@@ -10,7 +10,7 @@ version: 0.1
 
 <!--
 Template: Standards Document
-Version: 1.1
+Version: 1.2
 
 Sections (complete each, then delete its instruction block)
   - <Major Category>
@@ -30,6 +30,12 @@ Slug
   a descriptive slug ending in an approved role noun: -standards, -policy, 
   -guidelines, or -constraints (e.g. security-standards, 
   data-retention-policy).
+
+  The slug is independent of the filename. A reference resolves against 
+  this document's frontmatter slug, never its path (see 
+  cross-document-references.md), so a file may be named for how humans 
+  will look for it while the slug carries the registry-conforming 
+  identifier.
 
 When to use
   - Defining enterprise-wide standards (coding standards, security 
