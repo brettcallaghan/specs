@@ -24,8 +24,8 @@ This is the single definition of "ready to dispatch." The `spec` skill owns it;
 the grooming skills enforce it (`groom-beads` on any unit of work,
 `groom-feature-blueprint` on blueprint-decomposed work). Field-by-field
 guidance — the distinction between the three text fields, the tier-routing
-rubric, the C4 conventions — is in `references/work-order-field-guide.md`. The format each
-check maps onto is `references/work-order-template.md`.
+rubric, the C4 conventions — is in `work-order-field-guide.md`. The format each
+check maps onto is `work-order-template.md`.
 
 ## The checks
 
@@ -105,7 +105,7 @@ A work order that cannot be brought to this bar is **not** silently dispatched.
 It is flagged for the author on the tracker — `blocked-needs-info` when a
 specific fact is missing, `blocked-ungroomable` when it needs redesign — and
 excluded from dispatch until resolved. That flag lives on the tracker issue, not
-in the work order frontmatter (see the status note in `references/work-order-template.md`).
+in the work order frontmatter (see the status note in `work-order-template.md`).
 
 ## Worked examples
 

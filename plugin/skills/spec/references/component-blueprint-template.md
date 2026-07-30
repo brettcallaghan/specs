@@ -16,7 +16,7 @@ related: []                          # related documents (ADRs, standards)
 Template: Component Blueprint
 Version: 1.3
 Source: Architecture documentation framework. C4 mapping rules are
-  defined in `references/c4-guide.md` — load it before authoring.
+  defined in `c4-guide.md` — load it before authoring.
 
 Purpose
   Document one COMPONENT: an internal building block of a SINGLE
@@ -30,7 +30,7 @@ Purpose
   internal components of its own, it is a MODULE — use a module blueprint.
   The dividing line is the same one the framework draws for contract
   visibility: does it cross a boundary of independent change? See
-  `references/c4-guide.md`.
+  `c4-guide.md`.
 
 When to use — the trigger is the promotion predicate
   A component earns its own blueprint WHEN it has an interface other
@@ -175,7 +175,7 @@ specification.
 <!--
 Standards this component complies with, by reference. Platform choices
 that apply everywhere are mentioned in prose or standards docs, never
-modeled as elements on this component's diagrams — see `references/c4-guide.md`.
+modeled as elements on this component's diagrams — see `c4-guide.md`.
 -->
 
 This component SHALL comply with:
@@ -238,6 +238,6 @@ status becomes active.
 
 ## References
 
-- `references/c4-guide.md` — C4 mapping rules and diagram conventions
+- `c4-guide.md` — C4 mapping rules and diagram conventions
 - [[container-<name>]] — the container this component is composed into
 - <Additional references>

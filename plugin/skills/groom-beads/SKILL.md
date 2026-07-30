@@ -318,7 +318,8 @@ guidance, a command or script it prescribed misbehaved, or an
 instruction here pointed you the wrong way — offer to run `retro-skill`
 on `groom-beads` while the session is fresh, to capture the friction
 as an evidence-backed RFC. This skill prescribes scripts
-(`bd-health.sh`, `validate_beads.py`), so a misbehaving check is a
+(`scripts/bd-health.sh`, `scripts/validate_beads.py`), so a misbehaving
+check is a
 prime `script-defect` finding. WHEN the friction was instead in what
 "ready" means, that belongs against the `spec`-owned Definition of
 Ready, not here. A clean run needs nothing; never run it unprompted.

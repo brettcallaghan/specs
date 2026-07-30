@@ -634,10 +634,29 @@ instruction block.
 Documents that are not part of the specification set — contributor and
 build docs (`AGENTS.md`, `CONTRIBUTING.md`), pre-existing design or
 pattern documents, and the framework's own reference guides shipped with
-a skill (`references/c4-guide.md`, `references/ears-guide.md`) — MAY be
-referenced by path in backticks.
+a skill (`c4-guide.md`, `ears-guide.md`) — MAY be referenced by path in
+backticks.
 
-**Examples:** `` `AGENTS.md` ``, `` `references/c4-guide.md` ``
+#### Paths are relative to the file that contains them
+
+A backticked path SHALL be written relative to the **file it appears
+in**, not to the skill root. The same guide therefore has two correct
+spellings depending on where it is cited from:
+
+| Cited from | Path to the C4 guide |
+|------------|----------------------|
+| a skill's `SKILL.md` | `` `references/c4-guide.md` `` |
+| another file inside `references/` | `` `c4-guide.md` `` |
+
+**Rationale:** an agent resolves a path from the file it is currently
+reading. A `references/`-prefixed path written *inside* `references/`
+resolves to `references/references/…` — that is, to nothing — so the
+reference silently fails to load or costs a search to recover. Writing
+the path from the reader's position is the only spelling that works from
+every location the file is read.
+
+**Examples:** `` `AGENTS.md` ``, `` `references/c4-guide.md` `` (from a
+SKILL.md), `` `c4-guide.md` `` (from a sibling reference file)
 
 The `[[document-slug]]` notation SHALL be reserved for documents in the 
 specification set; it SHALL NOT be used for documents outside it.

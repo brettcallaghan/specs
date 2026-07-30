@@ -2,7 +2,7 @@
 title: Work Order Field Guide
 description: How to fill a work order's fields well — the three text
   fields kept distinct, the dispatch metadata conventions, and the
-  model-routing rubric
+  tier-routing rubric
 slug: work-order-field-guide
 type: guide
 status: active
@@ -15,7 +15,7 @@ related:
 
 # Work Order Field Guide
 
-Companion to `references/work-order-template.md` and [[work-order-definition-of-ready]]. The
+Companion to `work-order-template.md` and [[work-order-definition-of-ready]]. The
 template defines the shape and the DoR defines the gate; this guide is how to
 fill the fields well.
 

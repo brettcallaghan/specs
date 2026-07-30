@@ -56,7 +56,7 @@ time.
 6. Every component reference resolves to exactly one declaration across
    the referenced containers' and modules' Components sections — by name,
    qualified in prose where ambiguous (see element declarations in
-   `references/c4-guide.md`).
+   `c4-guide.md`).
 7. Every delta contains enough design intent to implement without
    making a design decision the blueprint does not record.
 8. The AC Coverage legend assigns every delta block a unique short
@@ -101,6 +101,6 @@ guards against pinning too little.
 
 - `feature-blueprint-template.md` (same directory) — the document
   these checks apply to, including the AC Coverage row validity rules
-- `references/c4-guide.md` — element declarations and reference rules
+- `c4-guide.md` — element declarations and reference rules
 - [[ac-traceability-standards]] — the test citation obligations the AC
   Coverage table feeds

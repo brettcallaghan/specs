@@ -234,7 +234,8 @@ logic, and duplicating it is how the two skills drift.
 
 <!--
 This is the interim no-tracker fallback. A first-class file-backed
-serialization of the work-order format (`work-order-template.md`) is
+serialization of the work-order format
+(`../spec/references/work-order-template.md`) is
 deliberately not yet defined; when it is, it supersedes this shape and
 the finishing pass applies here too. Until then, tier / C4 fields are
 absent on this path — file-backed work is not the beads dispatch model.

@@ -16,7 +16,7 @@ related: []                          # related documents (ADRs, standards, FRDs)
 Template: System Blueprint
 Version: 1.2
 Source: Architecture documentation framework. C4 mapping rules are
-  defined in `references/c4-guide.md` — load it before authoring.
+  defined in `c4-guide.md` — load it before authoring.
 
 Purpose
   Document one software system: the related capabilities it bundles, its
@@ -33,7 +33,7 @@ When to use
 When NOT to use
   - A single deployable unit inside a system → container blueprint
   - A shared library, package, or complex component → component blueprint
-  - An interface's shape and semantics → `references/contract-template.md`
+  - An interface's shape and semantics → `contract-template.md`
   - Recording a decision's trade-offs → ADR (reference it from Key
     Decisions below)
 
@@ -46,14 +46,14 @@ System boundary
   history has left a container in a system it does not belong to, keep
   it in this blueprint and document the misplacement in the Containers
   section: mark it "not for external use" and name the system it
-  should belong to. See `references/c4-guide.md`.
+  should belong to. See `c4-guide.md`.
 
 Diagrams
   Diagrams are views rendered from the element declarations in this
   document and the blueprints it links — declare first, then draw. Embed
   Mermaid C4 diagrams (C4Context, C4Container, C4Deployment) or link
   rendered views from your modeling tool. Every element on a diagram
-  SHALL be declared in prose or frontmatter; see `references/c4-guide.md` for the
+  SHALL be declared in prose or frontmatter; see `c4-guide.md` for the
   declaration format and for what to model as an element vs mention in
   prose.
 
@@ -111,7 +111,7 @@ boundary, which [[contract-slug]] governs it, and why the boundary is here.>
 
 <!--
 The containers are DECLARED in the list below; the C4 Container diagram
-is a view rendered from those declarations (see `references/c4-guide.md`). Each
+is a view rendered from those declarations (see `c4-guide.md`). Each
 declaration captures: the container's name (canonical — used verbatim on
 diagrams), its technology, and a brief description that doubles as the
 diagram's description text.
@@ -261,5 +261,5 @@ information. Remove the whole section when status becomes active.
 
 ## References
 
-- `references/c4-guide.md` — C4 mapping rules and diagram conventions
+- `c4-guide.md` — C4 mapping rules and diagram conventions
 - <Additional references>
