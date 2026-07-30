@@ -71,7 +71,7 @@ time.
 8. The AC Coverage legend assigns every delta block a unique short
    key, every legend key expands to an existing delta block, and no
    key from an earlier revision has been reused for a different delta.
-   These keys are the stable identity work items carry through
+   These keys are the stable identity work orders carry through
    grooming and re-grooming.
 9. For every lockstep-update rule in the owning blueprints' Change
    Guidance whose coupled artifacts span more than one delta block,

@@ -1,13 +1,13 @@
 ---
 name: bead-bonanza
 description: Process many beads autonomously by orchestrating subagents. Use
-when the user asks to work on multiple beads at once — e.g. "work on all open
-beads with label X", "address all P1 beads", "clear the bead backlog". Triages
-the queue, gates every bead for readiness (grooming under-specified beads via a
-subagent, or bouncing what can't be made ready), surfaces both explicit and
-implicit decisions up front, dispatches via the cheapest viable execution mode
-(doc fast lane / shared-surface batch / worktree parallel / sequential), streams
-per-bead progress, and lands each bead in a single commit.
+  when the user asks to work on multiple beads at once — e.g. "work on all open
+  beads with label X", "address all P1 beads", "clear the bead backlog". Triages
+  the queue, gates every bead for readiness (grooming under-specified beads via a
+  subagent, or bouncing what can't be made ready), surfaces both explicit and
+  implicit decisions up front, dispatches via the cheapest viable execution mode
+  (doc fast lane / shared-surface batch / worktree parallel / sequential), streams
+  per-bead progress, and lands each bead in a single commit.
 version: "1.2"
 ---
 
@@ -41,7 +41,7 @@ visible.)
 
 ```
 bead-bonanza run:
-- [ ] 0. Pre-flight: gate profile, model lineup, permissions, RUN_DIR + SCRIPTS
+- [ ] 0. Pre-flight: AGENTS.md blocks loaded, RUN_DIR + SCRIPTS resolved
 - [ ] 1. Queue resolved and printed (count + ordered list)
 - [ ] 1.5 Readiness gate: every bead groomed, or bounced with its gap
 - [ ] 2. Decisions surfaced and baked into beads (no questions after this)
@@ -71,9 +71,7 @@ Before reading the queue, verify the environment won't interrupt the run:
    If the project genuinely has no build/test step (e.g. a pure-docs
    repo), record that: `<test>` is a no-op and the doc/chore fast lane is
    the only dispatch mode.
-
-
-3. **Beads telemetry.** `bd` stores its data in Dolt, which calls
+2. **Beads telemetry.** `bd` stores its data in Dolt, which calls
    `eventsapi.dolthub.com`. Just kill it — don't ask, don't suggest. Run with
    sandbox disabled (writing `~/.dolt/config_global.json` is sandbox-blocked):
    ```
@@ -84,7 +82,7 @@ Before reading the queue, verify the environment won't interrupt the run:
    to `permissions.deny` (creating the array if needed). Tell the user in one
    line what was done. Skip if the config already shows `metrics.disabled =
    true` — check first with `dolt config --global --list`.
-4. **Run scratch directory.** Pick a run id (e.g. `$(date +%s)-<N>` where N is
+3. **Run scratch directory.** Pick a run id (e.g. `$(date +%s)-<N>` where N is
    the queue size), then resolve the run root ONCE and confirm it is writable
    before Phase 1:
    ```bash
@@ -109,19 +107,19 @@ Before reading the queue, verify the environment won't interrupt the run:
    progress files (one `.progress.jsonl` per bead), and per-bead retro files
    (one `.retro.md` per bead, written by the subagent before close) — and crash
    recovery reads from it, so a run started without it cannot be recovered.
-5. **TaskCreate fallback.** This skill defaults to `TaskCreate`/`TaskUpdate` for
+4. **TaskCreate fallback.** This skill defaults to `TaskCreate`/`TaskUpdate` for
    orchestrator-side progress visibility. If the project's
    `CLAUDE.md`/`AGENTS.md` explicitly bans `TaskCreate` (e.g. "use bd for ALL
    task tracking"), skip it — the project rule wins. Use inline status updates
    in your text output instead. (`bd` already tracks the work; `TaskCreate` is
    purely orchestrator scaffolding for in-conversation visibility.)
-6. **Push mechanics.** The sandbox blocks `.git/config` writes, so
+5. **Push mechanics.** The sandbox blocks `.git/config` writes, so
    `--set-upstream` never persists and a bare `git push` exits 128 with "no
    upstream" (and `| tail` masks the failure — always propagate the pipe's exit
    status). Push with an explicit refspec every time: `git push origin
    <branch>`. Verify landings with `git rev-parse origin/<branch>` after fetch,
    not with `git status -sb`.
-7. **Open a draft PR early (ask once).** If the repo has PR-triggered CI, ask
+6. **Open a draft PR early (ask once).** If the repo has PR-triggered CI, ask
    the user at run start whether to open a draft PR from the working branch.
    Every wave push then gets the full CI matrix in the cloud — including
    toolchain-heavy suites the local sandbox can't run — which is what makes the

@@ -102,7 +102,7 @@ expensive to silently get wrong.
 
 ## Phase 2 — Decomposition
 
-Derive work items from the blueprint — each item is one **work order**
+Derive work orders from the blueprint — each item is one **work order**
 (`references/shared/work-order-template.md`). Do not invent design; every
 item must trace to a delta, a DoD entry, or a sequencing constraint.
 
@@ -113,7 +113,7 @@ set `tier`, `tier_reason`, or the C4 blast-radius fields: those are the
 dispatch-readiness finishing pass, handed to `groom-beads` in Phase 3.
 Deriving them here would fork routing logic that must live in one place.
 
-**Work items:**
+**Work orders:**
 
 - **One item per element delta**, implementable and testable in
   isolation. The item includes its tests AND the fold of its delta into
@@ -142,7 +142,7 @@ Deriving them here would fork routing logic that must live in one place.
   item's test obligation.
 - **Tracker Reconciliation becomes graph structure.** For each issue
   the blueprint's Tracker Reconciliation section classifies: a
-  *subsumed* issue is blocked on the superseding work item and gets a
+  *subsumed* issue is blocked on the superseding work order and gets a
   supersession note ("close or re-scope when <item> lands"); a
   *prerequisite* issue becomes a dependency edge into the items whose
   deltas build on it; an *out-of-scope* issue becomes a coordination
@@ -173,7 +173,7 @@ Deriving them here would fork routing logic that must live in one place.
   to `retired`, and then run the `retro-spec` skill over the
   implementation phase, aggregating the findings recorded on the
   feature's items. Implementation is the phase that finally exercises
-  the work items, so this is where their quality becomes evidence.
+  the work orders, so this is where their quality becomes evidence.
   The approved plan is the standing authorization for this retro (no
   further prompt needed); the RFCs it produces remain human-gated at
   review.
@@ -200,7 +200,7 @@ Detect the backend, then emit the same graph in one of two formats.
 First, for either backend, **vendor the findings capture protocol**:
 copy `references/shared/findings-capture-protocol.md` to
 `rfcs/findings-capture.md` in the target project (creating `rfcs/` if
-absent; overwrite an older copy). Work items reference that
+absent; overwrite an older copy). Work orders reference that
 repo-local path, so any implementing agent — including one without
 this plugin installed — can follow the protocol by reading a single
 file inside the project, with no permission prompts and no skill
@@ -214,7 +214,7 @@ inputs produce identical graphs:
 - Create **one epic per feature**, titled from the blueprint, whose
   description links the blueprint and FRD paths and states the
   delivery unit (the blueprint's `delivery` declaration).
-- Create one issue per work item via the `bd` CLI, each a **child of
+- Create one issue per work order via the `bd` CLI, each a **child of
   the epic**, with dependencies wired so ready/blocked states mirror
   the graph. Put the AC list, verified-by levels, blueprint section
   references, and any generated supersession / coordination /
@@ -260,7 +260,7 @@ dispatch model and no finishing pass runs against it.
 
 - `index.md` — the feature, links to FRD and blueprint, the item list
   in dependency order, and a mermaid graph of the edges.
-- One file per work item, `NN-<item-slug>.md`, with frontmatter:
+- One file per work order, `NN-<item-slug>.md`, with frontmatter:
 
 ```yaml
 ---
@@ -308,7 +308,7 @@ with the document.
 - The plan derives from the spec; it never extends it. A needed-but-
   missing design decision is a Phase 1 failure, even if discovered
   during Phase 2 or 3 — bounce it back.
-- Do not prescribe function signatures or file layouts in work items;
+- Do not prescribe function signatures or file layouts in work orders;
   carry the blueprint's anchors and let implementers choose structure.
 - The delivery unit is the blueprint's `delivery` declaration:
   `single-pr` (assumed when the field is absent) or `staged`, whose

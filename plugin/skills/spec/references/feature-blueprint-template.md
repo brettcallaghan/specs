@@ -90,7 +90,7 @@ Lifecycle — this document is TRANSIENT
   Timing of the documentation updates: draft contracts and ADRs are
   authored at design time, alongside this blueprint. Folding a delta
   into its owning architecture blueprint happens on the feature branch,
-  within the same work item that implements the delta — documentation
+  within the same work order that implements the delta — documentation
   travels with the code it describes, and the main branch only ever
   sees architecture blueprints that match merged reality. Doc updates
   are neither an upfront phase (implementation may still bounce design
@@ -186,7 +186,7 @@ delivery, not by narrative ("the LSP changes" is a story, not a block).
 
 Every delta block SHALL have a short key (PD, CLI, DOC, ...) declared
 in the AC Coverage legend. The key is the block's stable identity:
-grooming stamps it onto the derived work item, and re-grooming diffs
+grooming stamps it onto the derived work order, and re-grooming diffs
 by it. Never reuse a retired key for a different delta.
 
 Write each delta in the OWNING document's vocabulary, so that folding it
@@ -312,7 +312,7 @@ One line per overlapping issue, classified as exactly one of:
   subsumed      — this feature's deltas supersede the issue (including
                   tracked defects the feature rolls in and fixes); name
                   the superseding delta by key. Grooming blocks the
-                  issue on the superseding work item with a
+                  issue on the superseding work order with a
                   supersession note, and the Definition of Done closes
                   or re-scopes it.
   prerequisite  — the issue must land first (e.g., an open defect in
@@ -377,7 +377,7 @@ incomplete — resolve it before status may become approved.
 
 Satisfied by: the delta block(s) that realize the AC. Every row SHALL
 name at least one delta block from Element Deltas — this is what makes
-the table mechanically translatable into work items:
+the table mechanically translatable into work orders:
   - WHEN an AC is delivered by relied-upon unchanged machinery, name
     the delta that feeds it and append the mechanism: "CLI delta, via
     relied-upon `Compiler`".
@@ -389,7 +389,7 @@ A short-name legend above the table SHALL assign each delta block a
 unique key (e.g. "PD = `PackageDiscovery` delta") and the Satisfied-by
 column SHALL use the keys. Every legend entry SHALL expand to a delta
 block and every delta block SHALL appear in the legend — the legend is
-the delta key table grooming stamps onto work items (see Element
+the delta key table grooming stamps onto work orders (see Element
 Deltas).
 
 Proving delta: WHEN a row names more than one satisfying delta,
@@ -438,7 +438,7 @@ while authoring this blueprint, author the ADR and reference it here
 
 <!--
 The retirement contract, populated per-feature from the deltas above.
-Planning agents SHALL include these as work items — the feature is not
+Planning agents SHALL include these as work orders — the feature is not
 done when the code merges; it is done when the documentation set is
 truthful again. Keep one checkbox per affected document.
 -->

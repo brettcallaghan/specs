@@ -13,3 +13,11 @@
 
 # A scratchpad directory for local files that should not be committed to the repository
 local/
+# Dogfooded skills: generated from plugin/skills/ by scripts/dogfood-install.sh
+# so a session in this repo runs the working tree. plugin/skills/ is the source.
+/.claude/skills/bead-bonanza/
+/.claude/skills/groom-beads/
+/.claude/skills/groom-feature-blueprint/
+/.claude/skills/retro-skill/
+/.claude/skills/retro-spec/
+/.claude/skills/spec/

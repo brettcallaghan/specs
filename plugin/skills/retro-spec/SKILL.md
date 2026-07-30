@@ -41,7 +41,7 @@ documents, route it to `retro-skill` rather than filing it here.
 |---------------------|----------------------------|
 | Authored a feature blueprint (spec skill) | The FRD it realizes; the architecture blueprints and standards it referenced |
 | Groomed a blueprint into a plan (groom-feature-blueprint skill) | The feature blueprint and its FRD |
-| Implemented a plan's work items (retro run by the final DoD item's agent, aggregating per-item findings — see the findings capture protocol) | The work items produced; the blueprint and FRD behind them |
+| Implemented a plan's work orders (retro run by the final DoD item's agent, aggregating per-item findings — see the findings capture protocol) | The work orders produced; the blueprint and FRD behind them |
 | Authored any spec from upstream docs | The upstream docs it consumed |
 
 (The skills, templates, and scripts these phases followed are the
@@ -56,12 +56,12 @@ be captured while it exists:
   input: every bounced gap is a candidate finding about the authoring
   side.
 - **Multi-session / multi-agent phases** (implementing a plan, where
-  each work item may go to a different spawned agent): no one session
+  each work order may go to a different spawned agent): no one session
   holds the evidence. Each implementing agent records findings
   in-flight per the findings capture protocol below, and ONE
   aggregated retro runs at the end of the phase — by the agent
   executing the plan's final DoD item, which reads every item anyway.
-  Never run a full retro per work item: per-item RFCs restate the
+  Never run a full retro per work order: per-item RFCs restate the
   same systemic issues N times, and the item's implementer lacks the
   cross-item perspective to tell a one-off from a pattern.
 
@@ -79,7 +79,7 @@ stay on closed items permanently as raw provenance.
 
 The protocol document is self-contained by design: `groom-feature-blueprint`
 vendors a copy into each target project at
-`rfcs/findings-capture.md`, and work items point there — an
+`rfcs/findings-capture.md`, and work orders point there — an
 implementing agent records findings from that one repo-local file
 without loading this skill or its references.
 
@@ -115,7 +115,7 @@ Retro progress:
    - syntax or sections that could not be used as documented
    - design decisions discovered missing at consume time
    - anything written twice
-   - findings recorded in-flight on work items (the findings capture
+   - findings recorded in-flight on work orders (the findings capture
      protocol) — for an implementation-phase retro these ARE the
      session evidence
    For each finding, capture the source text that caused it —
@@ -178,7 +178,7 @@ and belongs in Considered and Not Proposed at most.
 |---------|---------|
 | Retroing documents nothing has consumed yet | No evidence exists; the retro produces taste, not findings |
 | Running the retro from memory in a later session | The friction detail is gone; findings degrade to vague impressions — capture in-session, or in-flight via the findings protocol |
-| Running a full retro per work item | N near-identical RFCs per feature; the implementer records findings, the final DoD item runs the ONE aggregated retro |
+| Running a full retro per work order | N near-identical RFCs per feature; the implementer records findings, the final DoD item runs the ONE aggregated retro |
 | Recording analysis or proposals as findings | Capture is a sensor's job; root-causing without cross-item perspective bakes in wrong conclusions |
 | Proposals without verbatim source citations | Triage cannot verify the defect or check whether it is already fixed |
 | Blaming guidance for authoring carelessness | The fix for ignoring an existing warning is not another warning |

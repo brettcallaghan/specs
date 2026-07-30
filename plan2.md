@@ -454,11 +454,31 @@ But every gate in the framework fires **before** implementation:
 | `retro-spec` / `retro-skill` | after, on *guidance* quality |
 
 Nothing ever asks: *is `container-ledger-api`'s blueprint still true of
-`services/ledger`?* Architecture blueprints are the framework's only
-permanently-durable specs, they are the ones most expensive to re-derive,
-and they are the only ones with no verification at all. A single feature
-merged without its fold — the anti-pattern the framework names — is
-invisible forever.
+`services/ledger`?* A single feature merged without its fold — the
+anti-pattern the framework names — is invisible forever.
+
+**Which documents this applies to.** Most of the corpus is durable: C4
+architecture blueprints, contracts, standards, FRDs, and ADRs (until
+amended) all persist. Only two types are transient by design — the feature
+blueprint, which retires at merge, and the work order, which closes with
+its bead — precisely *because* they drift so easily as the code evolves.
+Making them short-lived is the mitigation.
+
+That sharpens rather than softens the gap. Drift risk is not uniform across
+the durable types, and it tracks how tightly a document is coupled to code:
+
+| Durable type | Drifts when | Detectable from the repo? |
+|---|---|---|
+| Architecture blueprints (system/container/module/component) | code moves, components are added or renamed, a delta is merged without its fold | **Yes** — `source_paths` / `test_paths` are declared in frontmatter |
+| Contracts | the implementation's real interface diverges from the documented semantics | **Partly** — via the machine-readable spec named in `specs:` |
+| Standards | the rule stops being followed, or stops being right | No — needs human judgment |
+| FRDs | requirements change without the document being updated | No — intent, not state |
+| ADRs | a decision is quietly reversed in code | No — but they are point-in-time by design, and amendment is the sanctioned path |
+
+So the drift gate should target the blueprints and contracts, where the
+coupling to code is declared and therefore checkable, and leave standards,
+FRDs, and ADRs to review. That is a narrower and more tractable scope than
+"verify every durable spec".
 
 The container and component templates even carry the raw material:
 `component-blueprint-template.md:9-10` declares `source_paths: []` and
@@ -472,7 +492,8 @@ quietly stopped being true three features ago.
 
 **Proposal.** Two complementary pieces:
 
-1. **`scripts/check-spec-drift.py`** (cheap, mechanical, high signal):
+1. **`scripts/check-spec-drift.py`** (cheap, mechanical, high signal),
+   scoped to the two code-coupled types above:
    for every blueprint, assert `source_paths` and `test_paths` exist;
    report blueprints whose `source_paths` have git commits since the
    blueprint's `updated_at`; report source roots that no blueprint
