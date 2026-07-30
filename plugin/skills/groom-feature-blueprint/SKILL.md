@@ -90,7 +90,7 @@ item must trace to a delta, a DoD entry, or a sequencing constraint.
 Decomposition produces the work order's *substance* — its Problem (the
 delta and anchors), Design intent, Acceptance (the ACs), provenance
 (`sources: [<feature-slug>]`, `delta:<KEY>`), and graph edges. It does NOT
-set `model`, `model_reason`, or the C4 blast-radius fields: those are the
+set `tier`, `tier_reason`, or the C4 blast-radius fields: those are the
 dispatch-readiness finishing pass, handed to `groom-beads` in Phase 3.
 Deriving them here would fork routing logic that must live in one place.
 
@@ -223,7 +223,7 @@ inputs produce identical graphs:
 
 Then run the **finishing pass**: invoke `groom-beads` over the epic's
 children (`bd list --label <feature-slug>`) to assign each work order a
-`model` + `model_reason`, tag its C4 blast radius (`c4_changes` /
+`tier` + `tier_reason`, tag its C4 blast radius (`c4_changes` /
 `c4_impacts` / `c4_docs`), and validate the graph against the Definition
 of Ready. Decomposition gave the beads their Problem / Design / Acceptance
 and edges; this pass makes them dispatch-ready. Do NOT hand-roll model
@@ -236,7 +236,7 @@ logic, and duplicating it is how the two skills drift.
 This is the interim no-tracker fallback. A first-class file-backed
 serialization of the work-order format (`work-order-template.md`) is
 deliberately not yet defined; when it is, it supersedes this shape and
-the finishing pass applies here too. Until then, model / C4 fields are
+the finishing pass applies here too. Until then, tier / C4 fields are
 absent on this path — file-backed work is not the beads dispatch model.
 -->
 

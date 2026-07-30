@@ -56,14 +56,19 @@
     "metadata": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["model", "model_reason"],
+      "required": ["tier", "tier_reason"],
       "description": "Structured, queryable extension data the orchestrator reads at dispatch.",
       "properties": {
-        "model": {
-          "enum": ["opus", "sonnet", "fable"],
-          "description": "Execution model. Closed set. Never null on a ready bead."
+        "tier": {
+          "enum": ["light", "standard", "advanced", "frontier"],
+          "description": "Capability tier this bead needs. Closed and ORDERED, least to most capable. Never null on a ready bead. This is the routing field — the orchestrator resolves tier -> model at dispatch via the project's `## model lineup` block. Assign the LOWEST tier that can complete the work correctly. Canonical rubric: spec skill, references/work-order-field-guide.md."
         },
-        "model_reason": { "type": "string", "minLength": 1 },
+        "tier_reason": { "type": "string", "minLength": 1 },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "description": "OPTIONAL named-model override, set only when a specific model is genuinely required. Normal beads carry `tier` and omit this. Deliberately NOT an enum: model lineups change per project and over time, which is why `tier` is the routing field."
+        },
         "est_size": { "anyOf": [{ "enum": ["XS", "S", "M", "L", "XL"] }, { "type": "null" }] },
         "c4_changes": {
           "type": "array",

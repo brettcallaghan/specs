@@ -8,11 +8,11 @@ description: >-
   maps the portable work-order format onto bead fields and metadata. Use this
   skill whenever the user wants to groom, refine, triage, prepare, clean up, or
   "get beads ready" — or mentions a backlog of beads, a `.beads/` directory,
-  `bd ready`, running beads in waves, assigning models to beads, or wiring bead
+  `bd ready`, running beads in waves, assigning capability tiers to beads, or wiring bead
   dependencies before a long-running/orchestrated session. Trigger even if the
   user just says "groom these" or "make these beads ready" in a repo that uses
   beads. Brings each bead to the Definition of Ready, wires the dependency graph,
-  tags C4 container/component blast radius, assigns an execution model, and
+  tags C4 container/component blast radius, assigns a capability tier, and
   (optionally) previews collision-free waves.
 version: "1.0"
 ---
@@ -49,12 +49,12 @@ copies live in the `spec` skill, so authoring and grooming can never disagree):
   enforce them; do not paraphrase or fork them:
   - `../spec/references/work-order-definition-of-ready.md` — the checklist.
   - `../spec/references/work-order-field-guide.md` — the three text fields kept
-    distinct, and the model-routing rubric.
+    distinct, and the tier-routing rubric.
   - `../spec/references/work-order-template.md` — the work-order format this
     skill materializes into beads.
 - **Where work orders come from.** A standalone bug/chore you groom directly, or
   a feature blueprint decomposed by `groom-feature-blueprint` — which hands its
-  finishing pass (model, C4, validation) to this skill.
+  finishing pass (tier, C4, validation) to this skill.
 
 What lives *here* is the beads-specific machinery: probing the `bd` CLI, mapping
 the work-order format onto bead fields and metadata, wiring the edge graph,
@@ -75,7 +75,7 @@ One work order is exactly one bead. The format maps onto a bead like this:
 | `depends_on` / `blocks` | `blocked-by` / `blocks` edges |
 | `parent_slug` | `parent` edge |
 | `related` / `discovered_from` | `related` / `discovered-from` edges |
-| `model`, `model_reason`, `est_size`, `c4_*` | `metadata` JSON keys |
+| `tier`, `tier_reason`, `est_size`, `c4_*` | `metadata` JSON keys |
 | `sources: [feature-<slug>]`, `delta` | a `feature-<slug>` label and a `delta:<KEY>` label/metadata |
 
 A work order carries **no status field**: bead `status` and `grooming_status`
@@ -165,22 +165,30 @@ work order's `depends_on` / `blocks` / `parent_slug` / `related` /
 Add only edges you can justify. A missing real edge is a wave-time race; a
 fabricated edge needlessly serializes work the orchestrator could parallelize.
 
-### 4. Assign an execution model
+### 4. Assign a capability tier
 
-Record the model in **metadata** so it rides with the bead and the orchestrator
+Record the tier in **metadata** so it rides with the bead and the orchestrator
 can read it at dispatch:
 
 ```
-bd update <id> --set-metadata '{"model":"sonnet","model_reason":"localized CRUD + tests, low ambiguity","est_size":"S"}'
+bd update <id> --set-metadata '{"tier":"standard","tier_reason":"localized CRUD + tests, low ambiguity","est_size":"S"}'
 ```
 
-The routing rubric — which signals push toward the top / mid / cheap-fast model —
-is owned by `../spec/references/work-order-field-guide.md`. Apply it, and:
-- **Always record `model_reason`** — a bare model name can't be audited, and the
+Beads carry a **tier** (`light | standard | advanced | frontier`, least to
+most capable), not a model name. The orchestrator resolves tier → model at
+dispatch from the project's `## model lineup` block, so a bead groomed today
+still routes correctly after the lineup changes. The routing rubric is owned
+by `../spec/references/work-order-field-guide.md`. Apply it, and:
+
+- **Assign the LOWEST tier that can do the work.** Over-routing is invisible
+  and paid for on every run; under-routing announces itself as an escalation
+  the orchestrator reports back. Bias toward the cheaper call.
+- **Always record `tier_reason`** — a bare tier can't be audited, and the
   retro uses the reason to tell whether routing was calibrated.
 - **Assign a default, never null** — a mis-groomed bead must not stall a wave.
-- Keep the model vocabulary **small and closed** and use the same names every
-  pass so routing stays consistent.
+  WHEN genuinely unsure, `standard` and say so.
+- Set a named `model` **only** as an override, when a specific model is
+  genuinely required. Normal beads carry `tier` and no `model`.
 
 ### 5. Tag C4 blast radius
 
@@ -200,7 +208,7 @@ bd update <id> --set-metadata '{"c4_changes":["auth-service"],"c4_impacts":["web
   worth surfacing.
 - This pays off three ways: **wave isolation** (two beads that both *change*
   `auth-service` are a collision even when both are `bd ready` — dependency-free ≠
-  safe-to-parallelize), **model routing** (blast radius is a risk signal), and
+  safe-to-parallelize), **tier routing** (blast radius is a risk signal), and
   **doc freshness** (a bead that changes a component should carry an acceptance
   checkbox to update that component's C4 doc).
 
@@ -225,7 +233,7 @@ on whether `bd` is live:
   It checks each bead against `references/bead.schema.json` (canonical field/edge
   names, enums, required fields) **and** the things a per-record schema can't:
   dependency/parent IDs resolve, no cycles in the blocks graph, C4 names are in
-  the vocabulary parsed from your docs, model is non-null on ready beads, ready
+  the vocabulary parsed from your docs, tier is non-null on ready beads, ready
   features/bugs carry acceptance criteria, plus a session-phrase lint and a
   wave-collision advisory. **Iterate emit → validate → fix until it reports 0
   errors** (warnings are advisory — a greenfield C4 component or a deliberately
@@ -255,8 +263,12 @@ for free. Say explicitly that it's a preview.
 
 Grooming quality compounds only if execution feeds back into it. When the user
 runs a retro (or asks you to help with one), the highest-value outputs are:
-- **Router calibration** — beads whose assigned `model` was wrong (re-runs,
-  escalations) are the signal to adjust the field guide's routing rubric.
+- **Router calibration** — beads whose assigned `tier` was wrong are the signal
+  to adjust the field guide's routing rubric. The orchestrator reports every
+  escalation (bead, assigned tier, tier that completed it, what failed); those
+  are the run's only direct routing evidence. Note the asymmetry: escalations
+  surface under-routing, but nothing surfaces over-routing — so a large run
+  with zero escalations is worth examining, not celebrating.
 - **Grooming misses** — beads reopened or blocked mid-wave for missing context.
   Capture the *pattern* as `bd remember "<insight>"` so future grooming (via
   `bd prime`) inherits it, and ideally propose it as an RFC against the
@@ -288,7 +300,7 @@ so it's never skipped.
 - `../spec/references/work-order-definition-of-ready.md` — the checklist you
   enforce in phase 2 (spec-owned; do not fork it).
 - `../spec/references/work-order-field-guide.md` — description vs. design vs.
-  acceptance; the model-routing rubric (spec-owned).
+  acceptance; the tier-routing rubric (spec-owned).
 - `../spec/references/work-order-template.md` — the work-order format this skill
   materializes into beads.
 - `references/bead.schema.json` — authoritative JSON Schema for the beads

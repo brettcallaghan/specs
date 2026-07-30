@@ -5,8 +5,6 @@ RFC triage
 - Always reference the skill(s) the proposal would change.
 - Every skill should have a reference to its source repo or a repo to receive retros.
 
-Migrate @templates/rfc.md into an appropriate skill; local or published.
-
 Refine the groom-beads skill, adopting the conventions (e.g. c4, references, etc) of the surrounding skills. Make it belong.
 
 Adopt "work order" or __"dev task"__ or "task" or "bead"?

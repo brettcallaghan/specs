@@ -21,8 +21,14 @@ related: []                          # relevant but non-blocking
 discovered_from: <work-order-slug>   # order whose execution surfaced this one
 
 # Dispatch metadata — what the orchestrator reads to route and pack
-model: sonnet                        # opus | sonnet | fable — never null
-model_reason: <one line: what about this order drove the model choice>
+tier: standard                       # light | standard | advanced | frontier
+                                     # (least to most capable) — never null.
+                                     # Assign the LOWEST tier that can do the
+                                     # work; the orchestrator resolves tier ->
+                                     # model from the project's model lineup.
+tier_reason: <one line: what about this order drove the tier choice>
+# model: <name>                      # OPTIONAL override — set only when a
+                                     # specific named model is required.
 est_size: M                          # XS | S | M | L | XL
 c4_changes: []                       # C4 components whose code this order edits
 c4_impacts: []                       # affected downstream, not edited

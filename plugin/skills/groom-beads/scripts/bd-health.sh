@@ -28,17 +28,30 @@ if [ ! -d ".beads" ]; then
 fi
 
 hard_fail=0
-have() { "$BD" "$1" --help >/dev/null 2>&1; }
+ran_any=0
+skipped_hard=0
+
+# $1 is a subcommand that may be MULTIPLE words ("swarm validate"), so it must
+# word-split into separate argv entries. Quoting it would invoke a single
+# subcommand literally named "swarm validate", which no `bd` has — every such
+# check would then report itself unavailable and silently never run.
+# shellcheck disable=SC2086
+have() { "$BD" $1 --help >/dev/null 2>&1; }
 
 run_check() {
   # $1 = subcommand, $2 = human label, $3 = "hard" if failure should fail the run
   local sub="$1" label="$2" severity="${3:-soft}"
   if ! have "$sub"; then
     printf '  - %-18s (skipped: `bd %s` not available)\n' "$label" "$sub"
+    # A skipped hard check is a gap in coverage, not a pass. Track it so the
+    # summary can say which integrity guarantees this run did NOT establish.
+    if [ "$severity" = "hard" ]; then skipped_hard=$((skipped_hard + 1)); fi
     return
   fi
+  ran_any=1
   local out rc
-  out="$("$BD" "$sub" 2>&1)"; rc=$?
+  # shellcheck disable=SC2086  # same deliberate word-split as `have`
+  out="$("$BD" $sub 2>&1)"; rc=$?
   if [ $rc -eq 0 ] && [ -z "${out//[[:space:]]/}" ]; then
     printf '  ✓ %-18s clean\n' "$label"
   else
@@ -62,6 +75,16 @@ echo
 if [ "$hard_fail" -ne 0 ]; then
   echo "RESULT: hard problems found — fix cycles/orphans before dispatching waves."
   exit 1
+fi
+if [ "$ran_any" -eq 0 ]; then
+  echo "RESULT: NO CHECKS RAN — this installed \`bd\` exposes none of them." >&2
+  echo "        This is not a clean bill of health. Validate the graph another way." >&2
+  exit 2
+fi
+if [ "$skipped_hard" -ne 0 ]; then
+  echo "RESULT: no hard problems among the checks that ran, but $skipped_hard hard"
+  echo "        check(s) were unavailable — cycles/orphans are NOT fully verified."
+  exit 0
 fi
 echo "RESULT: no hard problems. Address any advisory warnings above where practical."
 exit 0
