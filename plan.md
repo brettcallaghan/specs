@@ -11,6 +11,14 @@ rests on. Where this repo's *own* normative documents say the same thing,
 that is cited too — a rule you already wrote is cheaper to adopt than a
 new one.
 
+> **Status — implemented after review.** Tier 1 (P1–P5) and the reviewed
+> Tier 2 items (P6–P9) are done and pushed. P1's fix direction was inverted
+> on review: `haiku|sonnet|opus|fable` is the correct set and order, so the
+> spec-side files were the wrong ones — and rather than re-pin them to a
+> lineup that churns, routing now uses an ordered capability tier. P19 was
+> subsumed by the P6 split. Still open: P10–P18, and everything in
+> `plan2.md`.
+
 **How this is ranked:** by expected cost of *not* fixing it. Tier 1 items
 are live defects that will make a real run produce a wrong result. Tier 2
 are structural — they degrade every run a little. Tier 3 is the missing
