@@ -210,7 +210,9 @@ specs.
    `status` and `updated_at` when you do.
 6. **Preflight feature blueprints.** Before setting a feature blueprint
    to `ready-for-review`, run the decision sweep and self-check against
-   `references/blueprint-readiness-checklist.md` — the same checks
+   `references/blueprint-readiness-checklist.md`, then re-run the checklist
+   after fixing what it surfaced — a first pass that fixes check 4 often
+   breaks check 8. Do not set `ready-for-review` while any check fails — the same checks
    `groom-feature-blueprint` enforces at its Phase 1 gate, so a first-pass
    blueprint lands groomable instead of discovering the checks by
    failing them. Authoring a feature blueprint includes surveying the

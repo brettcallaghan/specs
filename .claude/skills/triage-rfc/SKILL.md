@@ -37,6 +37,24 @@ not relitigated without new evidence.
 
 ## Process
 
+Copy this checklist into your response and check items off as you go.
+(A checklist copied into your response is not a task tool — WHERE the project bans `TodoWrite`/`TaskCreate`, this is the compatible way to keep progress visible.)
+
+```
+Triage progress:
+- [ ] Retro notes appended to the log and deleted
+- [ ] 1. Provenance checked against current versions (per RFC)
+- [ ] 2. Deduped against resolved RFCs and rfc-triage beads
+- [ ] 3. Every proposal classified (adopt-now / defer / reject)
+- [ ] 4. Recommendation table presented — STOPPED for human approval
+- [ ] 5. Approved items implemented, verified, versions bumped
+- [ ] 6. Retro log appended
+- [ ] 7. Plugin version bumped IF any skill/template/standard changed
+```
+
+Step 4 is a hard stop. Do not tick 5 before the human has answered.
+
+
 Retro notes first: append each to the retro log (step 6), then delete
 the note. Then, per RFC, in received order:
 
@@ -87,6 +105,10 @@ the note. Then, per RFC, in received order:
      existing theme key WHERE one fits (check current labels before
      minting); themes are kebab-case topics, e.g.
      `theme:ac-coverage`, `theme:reference-syntax`.
+   - **Verify before moving on.** Re-read each file you changed: the
+     change is present, its version bumped, and its own conventions held.
+     A half-applied adoption is worse than a deferral, because the
+     Resolution will claim it landed.
    - Write the RFC's Resolution section: per-proposal outcome
      (adopted / adopted-with-refinement + the refinement / deferred +
      bead id / rejected + rationale), date, files changed, version

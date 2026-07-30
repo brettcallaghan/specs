@@ -12,6 +12,24 @@ Read `CLAUDE.md` and `AGENTS.md` once at the start so you have repo conventions 
 
 **This skill is language-agnostic.** It never hard-codes build, test, lint, or format commands. Everything it needs to validate the work done for a bead comes from the project's **gate profile** (Phase 0, step 1). Throughout this document, `<format>`, `<lint>`, `<build>`, `<test>`, and `<regen>` are placeholders that resolve to that project's actual commands. The profile can also define **custom gates** — any extra command or inline script the project wants run as part of the gate suite (e.g. a schema check, a license-header linter, a `bash` block). Substitute the profile's values wherever you see a placeholder, and run any custom gates alongside them.
 
+## Run checklist
+
+Copy this into your response at run start and check items off as the run
+proceeds. It is the one artifact that survives a long autonomous run.
+(A checklist copied into your response is not a task tool — WHERE the project bans `TodoWrite`/`TaskCreate`, this is the compatible way to keep progress visible.)
+
+```
+bead-bonanza run:
+- [ ] 0. Pre-flight: gate profile, model lineup, permissions, RUN_DIR + SCRIPTS
+- [ ] 1. Queue resolved and printed (count + ordered list)
+- [ ] 1.5 Readiness gate: every bead groomed, or bounced with its gap
+- [ ] 2. Decisions surfaced and baked into beads (no questions after this)
+- [ ] 2.5 Dispatch plan: bucket + tier + push mode per bead
+- [ ] 3. Execute buckets, verifying each return (skip claims, clean tree)
+- [ ] 4. Final report: table, totals, implicit decisions, TIER ESCALATIONS,
+        follow-up beads, stashes, pushes, run-dir path
+```
+
 ## Phase 0 — Pre-flight
 
 Before reading the queue, verify the environment won't interrupt the run:

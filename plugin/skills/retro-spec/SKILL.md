@@ -85,6 +85,21 @@ without loading this skill or its references.
 
 ## Workflow
 
+Copy this checklist into your response and check items off as you go.
+(A checklist copied into your response is not a task tool — WHERE the project bans `TodoWrite`/`TaskCreate`, this is the compatible way to keep progress visible.)
+
+```
+Retro progress:
+- [ ] 1. Scope and provenance established (phase, docs, skill/template versions)
+- [ ] 2. Evidence harvested from the session / in-flight findings
+- [ ] 3. Each finding root-caused (project-doc / skill-template / one-off)
+- [ ] 4. Bar applied — below-bar items to Considered and Not Proposed
+- [ ] 5. Project RFC authored IF anything cleared the bar; gate passed
+- [ ] 6. Null note recorded IF nothing did
+- [ ] 7. Handed off; retro-skill flagged IF guidance friction surfaced
+```
+
+
 1. **Establish scope and provenance.** Identify the phase just
    executed, the documents it consumed, the documents it produced, and
    the skill(s) and template(s) that guided it. Record the version of
@@ -132,7 +147,8 @@ without loading this skill or its references.
    qualifying finding as `audience: project`. File it in the project's
    `rfcs/` directory, named `rfc-<nnnn>-<short-description>.md` with the
    repo's next free number. Complete every section, run the template's
-   readiness gate, and set status to `ready-for-review`. Order proposals
+   readiness gate. Fix what it reports and re-run; do not proceed while it fails. After two full failed cycles, stop and surface the blocker rather than continuing to retry. Set status to
+   `ready-for-review` only once the gate passes. Order proposals
    by expected impact. (Skill-lens findings go to `retro-skill`, which
    authors its own `audience: skill-authors` RFC — do not file one from
    here.)

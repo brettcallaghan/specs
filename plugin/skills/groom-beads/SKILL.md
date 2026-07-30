@@ -112,6 +112,22 @@ dependency is real, say so in the report instead of wiring a guess.
 
 ## The workflow
 
+Copy this checklist into your response and check items off as you go.
+(A checklist copied into your response is not a task tool — WHERE the project bans `TodoWrite`/`TaskCreate`, this is the compatible way to keep progress visible.)
+
+```
+Grooming progress:
+- [ ] 0. Probed the `bd` CLI; loaded `bd prime` / remembered insights
+- [ ] 1. Scoped the grooming set; showed the user what will change
+- [ ] 2. Every bead driven to the spec-owned Definition of Ready
+- [ ] 3. Dependency graph wired (every edge justified, none fabricated)
+- [ ] 4. Tier + tier_reason on every bead (never null)
+- [ ] 5. C4 blast radius tagged (or explicitly skipped: no C4 docs)
+- [ ] 6. Validated — 0 errors, re-run after each fix
+- [ ] 7. Reported: changes, still-not-ready + gaps, flags for the human
+```
+
+
 Work through these phases. For a small backlog you can do it inline; for a large
 one, groom bead-by-bead and keep a running report.
 
@@ -224,6 +240,11 @@ on whether `bd` is live:
   runs whatever of these exist and summarizes: `bd lint` (missing
   acceptance/repro/success criteria), `bd swarm validate` (DAG cycles, orphans,
   disconnected subgraphs per epic), `bd orphans`, `bd stale`, `bd doctor`.
+  It exits 1 on hard problems (cycles, orphans) and 2 when no check could run
+  at all. **Do not declare the set ready while it exits non-zero.** Fix what it reports and re-run; do not proceed while it fails. After two full failed cycles, stop and surface the blocker rather than continuing to retry.
+  Read its summary line: when it reports that hard checks were *unavailable*
+  in this `bd` build, graph integrity is unverified — say so in the report
+  rather than treating a zero exit as a clean bill of health.
 - **In the file-emit fallback**, run the bundled validator on what you wrote:
 
   ```

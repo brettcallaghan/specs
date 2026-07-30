@@ -46,6 +46,25 @@ authoring and grooming can never disagree):
 
 ---
 
+## Grooming checklist
+
+Copy this into your response and check items off as you go.
+(A checklist copied into your response is not a task tool — WHERE the project bans `TodoWrite`/`TaskCreate`, this is the compatible way to keep progress visible.)
+
+```
+Blueprint grooming:
+- [ ] 1. Readiness gate run from the checklist document (not from memory)
+- [ ]    Readiness check failed?  -> reported and STOPPED, nothing modified
+- [ ]    Content check failed?    -> gaps written to Open Questions, status
+                                     back to draft, reported, STOPPED
+- [ ] 2. Work orders derived — every one traces to a delta, DoD entry, or
+        sequencing constraint
+- [ ] 3. Serialized to the detected backend; findings protocol vendored
+- [ ]    Beads backend: groom-beads finishing pass run over the epic's children
+- [ ] 4. Blueprint status set to in-progress; plan location recorded
+- [ ] 5. Retro offered (document lens, and skill lens if this skill misled)
+```
+
 ## Phase 1 — Readiness Gate
 
 The checks are defined in

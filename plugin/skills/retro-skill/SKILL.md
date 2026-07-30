@@ -145,6 +145,21 @@ is the goal, not a quota of findings.
 
 ## Workflow
 
+Copy this checklist into your response and check items off as you go.
+(A checklist copied into your response is not a task tool — WHERE the project bans `TodoWrite`/`TaskCreate`, this is the compatible way to keep progress visible.)
+
+```
+Retro progress:
+- [ ] 1. Scope & provenance recorded (skill, version, model, effort, runs)
+- [ ] 2. Run friction harvested — verbatim text, exact commands, locations
+- [ ] 3. Each finding classified by shape and severity
+- [ ] 4. Bar applied — below-bar items moved to Considered and Not Proposed
+- [ ] 5. One RFC per skill authored; readiness gate passed
+- [ ] 6. Null result recorded IF nothing cleared the bar
+- [ ] 7. Handed off — output routed, skill NOT edited
+```
+
+
 1. **Scope & provenance.** Name the skill exercised and the task it was
    applied to; fill the Provenance block above — model, effort, harness,
    runs observed, versions, dates.
@@ -165,8 +180,8 @@ is the goal, not a quota of findings.
    set the frontmatter labels (skill, skill_version, model, effort,
    runs_observed, origin, severity); order proposals by severity, each
    carrying its finding shape, cited evidence, and a concrete change.
-   Complete every section, run the template's readiness gate, set status
-   `ready-for-review`.
+   Complete every section, then run the template's readiness gate. Fix what it reports and re-run; do not proceed while it fails. After two full failed cycles, stop and surface the blocker rather than continuing to retry.
+   Set status `ready-for-review` only once the gate passes.
 6. **Route the output.**
    - Retroing a skill **from a downstream project** →
      `rfcs/outbox/rfc-<origin-project>-<slug>.md` (no number); the human
