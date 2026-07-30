@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://beads.local/bead.schema.json",
+  "title": "Groomed Bead",
+  "description": "Canonical shape for a groomed bead in the file-emit fallback used when the `bd` CLI is unavailable. One JSON object per line in a .jsonl file. These field and edge names are AUTHORITATIVE — do not improvise alternatives. In particular: the dependency array is `dependencies` (not `deps`), the identifier is `id` (not `slug`), and parentage is expressed as a dependency of type `parent` (there is no top-level `parent` field). `additionalProperties: false` enforces this.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "title", "type", "priority", "status", "description"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Stable bead id, or a provisional slug when bd hasn't assigned one yet (e.g. sw-a1, notif-epic)."
+    },
+    "title": { "type": "string", "minLength": 1 },
+    "type": { "enum": ["epic", "feature", "task", "bug", "chore"] },
+    "priority": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4,
+      "description": "Canonical priority is an integer 0 (critical) .. 4 (backlog). Write 1, not \"P1\"."
+    },
+    "status": { "enum": ["open", "ready", "in_progress", "blocked", "closed"] },
+    "grooming_status": {
+      "enum": ["ready", "blocked-needs-info", "blocked-ungroomable"],
+      "default": "ready",
+      "description": "Grooming outcome. Absent means ready. blocked-* beads are intentionally exempt from the design/acceptance/model requirements below, because they are flagged for the author rather than dispatched."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Immutable problem statement. Must be self-contained (fresh-agent test). If it quotes the original vague wording, mark it (e.g. 'Original wording: ...') so the lint can tell a resolved quote from live session-dependent text."
+    },
+    "design": {
+      "type": "string",
+      "description": "Mutable implementation approach. Required for non-epic, non-blocked beads."
+    },
+    "acceptance": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "Outcome-focused, checkable done-conditions. Required (>=1) for a ready feature or bug."
+    },
+    "dependencies": {
+      "type": "array",
+      "description": "Typed edges to other beads. Use ONLY these edge types.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "id"],
+        "properties": {
+          "type": { "enum": ["blocks", "blocked-by", "parent", "related", "discovered-from"] },
+          "id": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["model", "model_reason"],
+      "description": "Structured, queryable extension data the orchestrator reads at dispatch.",
+      "properties": {
+        "model": {
+          "enum": ["opus", "sonnet", "fable"],
+          "description": "Execution model. Closed set. Never null on a ready bead."
+        },
+        "model_reason": { "type": "string", "minLength": 1 },
+        "est_size": { "anyOf": [{ "enum": ["XS", "S", "M", "L", "XL"] }, { "type": "null" }] },
+        "c4_changes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "C4 components whose code this bead edits. The wave-collision key."
+        },
+        "c4_impacts": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "C4 components affected downstream but not edited."
+        },
+        "c4_docs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "C4 doc files that may need updating as a result of this bead."
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "$comment": "A ready feature or bug must carry at least one acceptance criterion. blocked-* beads are exempt.",
+      "if": {
+        "required": ["type"],
+        "properties": { "type": { "enum": ["feature", "bug"] } },
+        "not": {
+          "required": ["grooming_status"],
+          "properties": { "grooming_status": { "enum": ["blocked-needs-info", "blocked-ungroomable"] } }
+        }
+      },
+      "then": {
+        "required": ["acceptance"],
+        "properties": { "acceptance": { "minItems": 1 } }
+      }
+    }
+  ]
+}

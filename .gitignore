@@ -1,0 +1,15 @@
+# macOS
+.DS_Store
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/
+
+# git worktrees created for isolated work
+.worktrees/
+# local-comments.json
+
+# A scratchpad directory for local files that should not be committed to the repository
+local/

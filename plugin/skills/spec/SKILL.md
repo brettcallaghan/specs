@@ -1,0 +1,294 @@
+---
+name: spec
+description: Spec-first development using this framework's specification
+  document types — ADRs (architecture decisions), FRDs (feature requirements),
+  standards documents (cross-cutting standards, policies, and constraints), architecture
+  blueprints (system, container, component), feature blueprints (how a
+  single feature is built), and contracts (interface specifications). Use
+  when starting new work, scoping or specifying a feature, recording a
+  technology or architecture decision, defining standards, policies, or
+  constraints, writing acceptance criteria, designing how a specified
+  feature will be implemented, or documenting the architecture of a
+  system, container, component, or interface. Covers choosing the right
+  document type and authoring it from the framework templates using EARS
+  syntax and the C4 model.
+version: "1.3"
+---
+
+# Spec-First Development
+
+**Core principle:** Write the spec before the code. Requirements,
+constraints, and decisions are captured in version-controlled markdown
+before implementation begins. Code records how something was built; specs
+record what it must do and why — and they are the contract that design,
+implementation, tests, and reviews trace back to.
+
+Why spec first:
+
+- **Disputes are cheap before code exists.** A wrong requirement costs a
+  sentence edit at spec time and rework at implementation time.
+- **Testable by construction.** Requirements written in EARS are precise
+  enough to write a failing test from, so implementation is verified
+  against the spec rather than against intuition.
+- **Decision memory.** Recorded decisions prevent relitigating settled
+  questions and prevent accidental reversals by future maintainers (human
+  or agent).
+- **Shared contract.** Everyone working on the system — including coding
+  agents — works from the same written source of truth instead of private
+  understandings.
+
+Skipping ahead creates rework: an FRD written before the constraints and
+decisions it depends on will be rewritten once they land.
+
+---
+
+## Document Types
+
+Ten specification document types are currently defined: three for
+decisions, requirements, and cross-cutting standards, five for
+architecture documentation, one —
+the Feature Blueprint — for feature design, and one — the Work Order —
+for a single unit of executable work. Use only these types; do not
+invent new ones. If work does not fit any of them, say so rather than
+forcing it into the wrong type.
+
+The Work Order is the one type this skill does not itself author. It is
+the framework's portable, atomic unit of executable work — everything a
+fresh agent needs to complete one job — and it is *generated* by a
+grooming skill (`groom-beads`, or `groom-feature-blueprint` feeding
+it), never hand-written through the authoring workflow below. The `spec`
+skill owns its format and its readiness bar (the Definition of Ready);
+grooming owns its production. What remains a derived, non-spec artifact
+is the *plan*: the whole graph of work orders for a feature. Only the
+atomic order is promoted to a type — not the aggregate, and not the
+grooming that emits it. Improvement RFCs are likewise not specification
+documents: they are process artifacts produced by the `retro-spec`
+skill.
+
+| Type | Captures | One per |
+|------|----------|---------|
+| **ADR** — Architecture Decision Record | A significant decision: the context, alternatives considered, the choice, and its consequences | Decision |
+| **FRD** — Feature Requirements Document | The WHY (user story) and WHAT (EARS acceptance criteria) for a single feature | Feature |
+| **Standards** | Cross-cutting standards, policies, invariants, or constraints that span features or systems (the type name is shorthand for this whole family) | Domain or scope |
+| **System Blueprint** | A system's context, containers, public contracts, and deployment (C4 levels 1-2) | System |
+| **Container Blueprint** | One deployable unit: its context, components, provided/consumed contracts, owned data, and change guidance for feature work | Container |
+| **Component Blueprint** | An atomic component warranting standalone docs — an internal building block of one container, plus its interface and change guidance | Component |
+| **Module Blueprint** | A unit that crosses a boundary of independent change: shared/published across containers (library, SDK, UI package, IaC module) and/or composite with internal components — plus its versioning and change rules | Module |
+| **Feature Blueprint** | The HOW pairing 1:1 with an FRD's WHAT: a transient, diff-shaped design — element deltas, contracts, sequencing constraints, AC coverage, and a definition of done | Feature |
+| **Contract** | The prose semantics companion to a machine-readable interface spec (API, event, data product) | Interface |
+| **Work Order** | The atomic, self-contained unit of executable work — everything a fresh, zero-context agent needs to complete one job. Generated by grooming (not authored here); materialized into one tracker issue (bead) | Unit of work |
+
+The architecture documents follow the C4 model with the framework's
+documented extensions — load `references/c4-guide.md` before authoring
+any of them; it maps concrete elements (queues, shared libraries, IaC
+modules, sidecars, data products) to the correct C4 level and document.
+
+### Choosing the type
+
+Ask these questions in order:
+
+1. **Is this a choice between two or more real options** with trade-offs
+   and consequences that are hard to reverse (technology, architectural
+   pattern, API contract)? → **ADR**
+2. **Is this a single feature** that delivers complete, independently
+   testable user value? → **FRD**
+3. **Is this the design for HOW an already-specified feature will be
+   built** — the element deltas, contracts, and constraints that realize
+   an FRD? → **Feature Blueprint**
+4. **Is this a rule that applies across features or systems** — a coding
+   or security standard, a compliance obligation, an architectural
+   constraint, a system-wide invariant? → **Standards**
+5. **Does this describe a system your team owns** — its context among
+   neighbors, its containers, its deployment? → **System Blueprint**
+6. **Does this describe one deployable unit** — an application or data
+   store your team builds and runs? → **Container Blueprint**
+7. **Does this describe an atomic component of a single container** — an
+   internal building block with a defined interface, changing in lockstep
+   with its container? → **Component Blueprint**
+8. **Does this describe a unit that crosses a boundary of independent
+   change** — shared or published across containers, and/or composite
+   with internal components of its own? → **Module Blueprint**
+9. **Does this specify an interface consumed across a boundary of
+   independent change** — an API, event stream, or data product that
+   other codebases evolve against? → **Contract**
+
+Boundary cases:
+
+- A single unit of executable work is a **Work Order** — but you do not
+  author it through this skill. It is generated by grooming an approved
+  feature blueprint (`groom-feature-blueprint`) or an existing backlog
+  item (`groom-beads`) to the Definition of Ready. Author the FRD and
+  blueprint that precede it; the work order is downstream of both. The
+  plan graph that groups a feature's work orders stays a derived
+  artifact, not a spec type.
+- Component vs. module: the test is the boundary of independent change,
+  the same one that separates a private schema from a contract. An
+  internal building block of one container that changes in lockstep with
+  it is a component; a unit shared or published across containers, or
+  composite with internal components, is a module. WHEN unsure, default
+  to component and promote it to a module when it is first shared,
+  published, or grows internal structure.
+- A question that looks "architectural" is often a requirements question
+  in disguise. Get the product and requirements context first — it often
+  resolves or constrains the technical choice.
+- ADRs record *why an approach was chosen*; requirements documents define
+  *what must be satisfied*. Policy belongs in a requirements document, not
+  an ADR. Trade-off analysis belongs in an ADR, not a requirements
+  document.
+- Do not nest sub-features inside an FRD — author each sub-feature as its
+  own FRD. Split when each feature delivers value independently; keep
+  together when the requirements break without each other.
+- Obvious choices with no real alternative do not need an ADR, and
+  implementation details within a decided technology do not need a spec
+  document at all.
+- A private schema (a container and the database only it uses) is a
+  contract, but not a Contract document — it is documented in the
+  container blueprint's Data section, and promoted to a Contract only
+  when a second independently-built consumer appears.
+- Blueprints restate a decision in one line and reference the ADR; the
+  trade-off analysis lives only in the ADR. Blueprints in draft may
+  carry an Open Questions section; resolved questions become ADRs or
+  content, never stay as answered questions.
+- Architecture blueprints and contracts describe the system **as it is**
+  and are updated in the same change that alters the architecture; FRDs
+  and ADRs capture intent and decisions at a point in time. The Feature
+  Blueprint is the deliberate exception: a **transient change document**
+  that describes a delta, gates implementation planning (approved status,
+  empty Open Questions), and retires once its deltas are folded into the
+  owning architecture blueprints at merge.
+- Nothing durable may live only in a feature blueprint — it retires.
+  Decisions go to standalone ADRs; new or changed interfaces are
+  authored as draft contract documents alongside it; schema and
+  component changes are written in the owning blueprint's vocabulary so
+  folding them in at retirement is mechanical.
+
+### Ordering
+
+There is no rigid pipeline, but dependencies flow one way: cross-cutting
+requirements and constraints inform decisions, and both inform feature
+specs.
+
+- Do not write an ADR before the requirements context that motivates it is
+  understood — it will answer the wrong question.
+- Do not write an FRD that silently depends on an unmade decision; write
+  (or at least draft) the ADR first and reference it.
+- FRDs comply with requirements documents by reference: "This feature
+  SHALL comply with [[security-standards]]" — never by restating them.
+- A feature blueprint is authored after its FRD is stable, and the
+  contracts and ADRs it introduces are drafted alongside it — the
+  blueprint references them; it never contains them.
+- WHEN a feature blueprint reaches `approved` with no Open Questions,
+  hand off to the `groom-feature-blueprint` skill — it translates the blueprint into
+  an executable work-item graph. Authoring stops at the blueprint; task
+  decomposition is grooming's job, not this skill's.
+
+---
+
+## Authoring Workflow
+
+1. **Pick the template** from `references/` (table below) and copy it as
+   the starting point for the new document.
+2. **Follow the embedded instructions.** Each template carries its own
+   guidance in HTML comment blocks — when to use it, how to complete each
+   section, ID and slug conventions. Read them, complete the section, then
+   **delete the comment blocks** from the finished document.
+3. **Write every normative statement in EARS** with capitalized RFC 2119
+   modal verbs (SHALL / SHOULD / MAY). This applies to acceptance
+   criteria in FRDs and every requirement in standards documents. Load
+   `references/ears-guide.md` before writing requirements. In FRDs,
+   follow each acceptance criterion with one concrete example that
+   instantiates it (specific actor, data, observed result) — the example
+   is illustrative, never normative, and edge-case enumeration belongs in
+   tests, not the spec.
+4. **Follow the template-authoring standards** for frontmatter (title,
+   description, slug, type, status, updated_at), kebab-case slugs with
+   type prefixes, 80-character lines, and `[[document-slug]]`
+   cross-references. Cross-reference other documents instead of
+   duplicating their content — duplication drifts.
+5. **Treat specs as living documents.** Update them when requirements
+   change, new information arrives, or errors are found — and update
+   `status` and `updated_at` when you do.
+6. **Preflight feature blueprints.** Before setting a feature blueprint
+   to `ready-for-review`, run the decision sweep and self-check against
+   `references/blueprint-readiness-checklist.md` — the same checks
+   `groom-feature-blueprint` enforces at its Phase 1 gate, so a first-pass
+   blueprint lands groomable instead of discovering the checks by
+   failing them. Authoring a feature blueprint includes surveying the
+   project's issue tracker to populate its Tracker Reconciliation
+   section — existing issues the feature subsumes, depends on, or must
+   not absorb are design inputs, not groom-time discoveries. Flag BOTH
+   status flips to the human reviewer: the blueprint's approval AND
+   its FRD's (the FRD must be `approved` or `active` before grooming
+   can start).
+7. **Offer a retro.** WHEN an authored document consumed upstream
+   documents (a feature blueprint from its FRD and architecture
+   blueprints; any spec from prior specs) and the review loop has
+   settled, offer to run the `retro-spec` skill on the documents this
+   session exercised — the session's friction is the evidence, and it
+   does not survive into later sessions. The human accepts or
+   declines; never run the retro unprompted.
+
+---
+
+## References
+
+Load the reference that matches the work at hand:
+
+| Working on | Load |
+|------------|------|
+| Recording an architecture or technology decision | `references/adr-template.md` |
+| Specifying a feature (user stories + acceptance criteria) | `references/frd-template.md` |
+| Defining cross-cutting standards, policies, or constraints | `references/standards-template.md` |
+| Documenting a system (context, containers, deployment) | `references/system-blueprint-template.md` |
+| Documenting a deployable unit (app or owned data store) | `references/container-blueprint-template.md` |
+| Documenting an atomic component of one container | `references/component-blueprint-template.md` |
+| Documenting a shared/published or composite unit (a module) | `references/module-blueprint-template.md` |
+| Designing how a specified feature will be built (deltas, AC coverage) | `references/feature-blueprint-template.md` |
+| Understanding the format of an executable work order | `references/work-order-template.md` |
+| The readiness bar a work order must pass to be dispatched | `references/work-order-definition-of-ready.md` |
+| Filling a work order's fields (three text fields, model routing) | `references/work-order-field-guide.md` |
+| Preflighting a feature blueprint before review handoff | `references/blueprint-readiness-checklist.md` |
+| Authoring a feature blueprint's AC Coverage or Definition of Done | `references/ac-traceability-standards.md` |
+| Specifying an interface's semantics, SLOs, and change policy | `references/contract-template.md` |
+| Mapping any element to a C4 level; diagram conventions | `references/c4-guide.md` |
+| Writing any requirement or acceptance criterion | `references/ears-guide.md` |
+| Frontmatter, slugs, references, placeholders, comment blocks | `references/template-authoring-standards.md` |
+
+Load multiple when the work spans them (e.g., the EARS guide alongside
+whichever template you are filling in).
+
+---
+
+## Anti-Patterns
+
+| Pattern | Problem |
+|---------|---------|
+| Writing code before the spec exists | Requirements get reverse-engineered from the implementation and disputes surface as rework |
+| Writing an ADR before requirements context is known | Answers the wrong question |
+| Putting policy or invariants in an ADR | ADRs are for decisions with trade-offs — use a standards document |
+| Putting trade-off analysis in a standards document | Standards say WHAT must hold, not WHY an option won — use an ADR |
+| Nesting sub-features inside one FRD | Each sub-feature is its own FRD |
+| Free-form prose requirements ("should handle errors appropriately") | Untestable; every normative statement uses an EARS pattern |
+| Duplicating content across documents | Copies drift; cross-reference with `[[document-slug]]` instead |
+| Leaving template comment blocks in a finished document | Instruction bloat; delete them after completing each section |
+| Reusing a retired REQ/AC identifier | Breaks traceability; never reuse IDs |
+| Inventing a new document type | The taxonomy is deliberately small; flag the gap instead |
+| Filing a private schema as a standalone Contract | Freezes a container's internal implementation into a de facto public interface |
+| Deep component internals in a container blueprint | Bloat; extract to a component or module blueprint when it warrants standalone docs |
+| Filing a shared/published or composite unit as a component | It crosses a boundary of independent change — author a module blueprint (versioning + change rules) |
+| Per-container diagrams redrawing shared deployment topology | N copies drift; the system blueprint's deployment diagrams are authoritative |
+| Modeling ambient platforms (logging, mesh) as diagram elements | Dilutes every view; use prose plus a cross-cutting standards document |
+| Authoring a Contract for a third-party (SaaS) interface | The vendor's published contract governs; reference it by URL instead |
+| Recording durable content only in a feature blueprint | The document retires on merge; decisions belong in ADRs, interface shapes in contract documents |
+| Task lists or new code structure in a feature blueprint | Wrong altitude: planners derive tasks and implementers choose signatures; the blueprint carries deltas, constraints, and anchors |
+| Merging a feature without folding its deltas into the owning blueprints | Architecture blueprints rot and the reference chain collapses; the Definition of Done includes the documentation updates |
+| Beginning implementation planning against a draft feature blueprint | Planning SHALL NOT begin until status is approved and Open Questions is empty — gaps bounce back to the human loop, never get guessed at |
+| Hand-authoring a work order instead of grooming one | Work orders are generated to the Definition of Ready by grooming; writing one by hand skips the readiness gate that makes it dispatchable |
+
+## Retro this skill
+
+WHEN a run of `spec` struggled — you improvised around its guidance, a
+command or script it prescribed misbehaved, or an instruction here
+pointed you the wrong way — offer to run `retro-skill` on `spec` while
+the session is fresh, to capture the friction as an evidence-backed
+RFC. A clean run needs nothing; never run it unprompted.
