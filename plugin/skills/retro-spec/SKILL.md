@@ -128,7 +128,7 @@ without loading this skill or its references.
 5. **Author the project RFC** from `references/rfc-template.md` (it
    cites `[[template-authoring-standards]]`, whose canonical copy is the
    sibling spec skill's
-   `../spec/references/template-authoring-standards.md`), bundling every
+   `references/shared/template-authoring-standards.md`), bundling every
    qualifying finding as `audience: project`. File it in the project's
    `rfcs/` directory, named `rfc-<nnnn>-<short-description>.md` with the
    repo's next free number. Complete every section, run the template's
@@ -171,6 +171,14 @@ and belongs in Considered and Not Proposed at most.
 | Re-proposing an idea a prior RFC's Resolution rejected, without new evidence | Relitigates settled questions; check the project's `rfcs/` first |
 | Weakening a consumer's checks to make authoring easier | The checks catch real defects; move the knowledge upstream instead |
 | Editing the project's documents, skills, or templates directly during the retro | The retro's authority ends at the RFC; resolution belongs to the doc owners (project review or framework triage) |
+
+## Reference files
+
+Files under `references/shared/` are **generated copies** of reference
+documents owned by a sibling skill — vendored in by
+`scripts/sync-shared-references.sh` so this skill is self-contained. Read
+them normally; never edit them. Fix the source named in each file's header
+and re-run the script.
 
 ## Retro this skill
 

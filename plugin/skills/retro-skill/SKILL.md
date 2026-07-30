@@ -50,7 +50,7 @@ than the wording that caused it. Run the retro in the same session, or
 with the transcript at hand. For a skill run across multiple agents
 (e.g. a plan executed by spawned agents), have each agent record skill
 friction in-flight per the findings-capture protocol —
-`../retro-spec/references/findings-capture-protocol.md` — and aggregate
+`references/shared/findings-capture-protocol.md` — and aggregate
 once at the end; never one retro per agent.
 
 ## What counts as evidence — the three finding shapes
@@ -203,6 +203,14 @@ about a skill belongs in Considered and Not Proposed at most.
 | Padding with polish while blockers exist | Dilutes the RFC; rank by severity and lead with blockers |
 | One RFC per finding, or one RFC spanning several skills | Bundle all findings for ONE skill into one RFC (its proposals are the units of decision); findings about a different skill get their own RFC |
 | Editing the skill during the retro | The retro's authority ends at the RFC; resolution belongs to `triage-rfc` |
+
+## Reference files
+
+Files under `references/shared/` are **generated copies** of reference
+documents owned by a sibling skill — vendored in by
+`scripts/sync-shared-references.sh` so this skill is self-contained. Read
+them normally; never edit them. Fix the source named in each file's header
+and re-run the script.
 
 ## Retro this skill
 

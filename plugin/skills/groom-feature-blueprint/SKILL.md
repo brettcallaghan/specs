@@ -33,15 +33,15 @@ Load alongside this skill (canonical copies live in the sibling
 skills that own them — this skill deliberately keeps no copies, so
 authoring and grooming can never disagree):
 
-- `../spec/references/feature-blueprint-template.md` — the document
+- `references/shared/feature-blueprint-template.md` — the document
   being groomed
-- `../spec/references/blueprint-readiness-checklist.md` — the Phase 1
+- `references/shared/blueprint-readiness-checklist.md` — the Phase 1
   check definitions
-- `../spec/references/work-order-template.md` — the format each work
+- `references/shared/work-order-template.md` — the format each work
   item is emitted in
-- `../spec/references/ac-traceability-standards.md` — test citation
+- `references/shared/ac-traceability-standards.md` — test citation
   obligations
-- `../retro-spec/references/findings-capture-protocol.md` — the
+- `references/shared/findings-capture-protocol.md` — the
   retro-evidence protocol Phase 3 vendors into the target project
 
 ---
@@ -49,7 +49,7 @@ authoring and grooming can never disagree):
 ## Phase 1 — Readiness Gate
 
 The checks are defined in
-`../spec/references/blueprint-readiness-checklist.md` — the single definition
+`references/shared/blueprint-readiness-checklist.md` — the single definition
 of "ready to groom," which the `spec` skill runs as an authoring
 preflight and this skill enforces as the gate. Do not restate or
 paraphrase the checks; run them from that document. Resolve every
@@ -84,7 +84,7 @@ expensive to silently get wrong.
 ## Phase 2 — Decomposition
 
 Derive work items from the blueprint — each item is one **work order**
-(`../spec/references/work-order-template.md`). Do not invent design; every
+(`references/shared/work-order-template.md`). Do not invent design; every
 item must trace to a delta, a DoD entry, or a sequencing constraint.
 
 Decomposition produces the work order's *substance* — its Problem (the
@@ -143,7 +143,7 @@ Deriving them here would fork routing logic that must live in one place.
 - **Every item ends with a Retro section** — the standing instruction
   for its implementing agent (often a spawned subagent that sees only
   the item) to record friction findings per the findings capture
-  protocol (`../retro-spec/references/findings-capture-protocol.md`).
+  protocol (`references/shared/findings-capture-protocol.md`).
   Findings, not
   analysis: the implementer is a sensor for item quality —
   self-sufficiency gaps, unpinned decisions, stale anchors,
@@ -179,7 +179,7 @@ store, per contract) — never by inventing new design seams.
 Detect the backend, then emit the same graph in one of two formats.
 
 First, for either backend, **vendor the findings capture protocol**:
-copy `../retro-spec/references/findings-capture-protocol.md` to
+copy `references/shared/findings-capture-protocol.md` to
 `rfcs/findings-capture.md` in the target project (creating `rfcs/` if
 absent; overwrite an older copy). Work items reference that
 repo-local path, so any implementing agent — including one without
@@ -235,7 +235,7 @@ logic, and duplicating it is how the two skills drift.
 <!--
 This is the interim no-tracker fallback. A first-class file-backed
 serialization of the work-order format
-(`../spec/references/work-order-template.md`) is
+(`references/shared/work-order-template.md`) is
 deliberately not yet defined; when it is, it supersedes this shape and
 the finishing pass applies here too. Until then, tier / C4 fields are
 absent on this path — file-backed work is not the beads dispatch model.
@@ -302,6 +302,14 @@ with the document.
   unchanged.
 
 ---
+
+## Reference files
+
+Files under `references/shared/` are **generated copies** of reference
+documents owned by a sibling skill — vendored in by
+`scripts/sync-shared-references.sh` so this skill is self-contained. Read
+them normally; never edit them. Fix the source named in each file's header
+and re-run the script.
 
 ## After grooming — offer a retro
 

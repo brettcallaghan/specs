@@ -111,7 +111,7 @@ Use `TaskCreate` to track one task per bead so progress is visible (unless the p
 
 bead-bonanza dispatches **only groomed beads.** Every later phase already assumes grooming's outputs: Phase 1's `bd ready` ordering comes from the dependency graph grooming wires; Phase 2 reads the `decision-required` labels grooming sets; Phase 2.5 reads the `tier:` assignment grooming makes. An ungroomed queue makes all three unreliable — and handing a fresh, zero-context subagent an under-specified bead is the single most expensive failure mode this skill has: it detonates mid-wave, after later beads have built on it.
 
-So before any decisions or dispatch, gate the queue against the **Definition of Ready** — the checklist owned by the `spec` skill (`../spec/references/work-order-definition-of-ready.md`) and enforced by `groom-beads`, which materializes work orders as beads. Those skills are the authority; do not restate the checklist here.
+So before any decisions or dispatch, gate the queue against the **Definition of Ready** — the checklist owned by the `spec` skill (`references/shared/work-order-definition-of-ready.md`) and enforced by `groom-beads`, which materializes work orders as beads. Those skills are the authority; do not restate the checklist here.
 
 ### 1. Cheap check (orchestrator, read-only)
 
@@ -453,10 +453,17 @@ Load the one that matches where you are in the run:
 |------------|------|
 | Dispatching any subagent (Phase 1.5 grooming, Phase 3 execution) | `references/subagent-prompts.md` |
 | A subagent that crashed, timed out, or is running past 5 minutes | `references/recovery.md` |
+| The Definition of Ready the Phase 1.5 gate enforces | `references/shared/work-order-definition-of-ready.md` |
 
 Both are one hop from here — read them in full rather than previewing, and
 substitute every `{PLACEHOLDER}` and the resolved `$RUN_DIR` before sending
 a prompt.
+
+Files under `references/shared/` are **generated copies** of reference
+documents owned by a sibling skill — vendored in by
+`scripts/sync-shared-references.sh` so this skill is self-contained. Read
+them normally; never edit them. Fix the source named in each file's header
+and re-run the script.
 
 ## Retro this skill
 

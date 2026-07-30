@@ -4,10 +4,10 @@
 # retro-spec, ...) into the user-level Claude Code configuration so they
 # are available across all projects.
 #
-# groom-feature-blueprint references its sibling skills' reference files
-# by relative path (../spec/references/..., ../retro-spec/references/...),
-# so all skills under plugin/skills/ must be installed together, side by
-# side, for those cross-references to resolve.
+# Skills are self-contained: shared reference files are vendored into each
+# consumer's references/shared/ by scripts/sync-shared-references.sh, so no
+# skill reaches outside its own directory. Run that script (or its --check
+# mode) before installing if the shared sources have changed.
 #
 # If a skill is renamed or removed from plugin/skills/, its old
 # installation under $DEST_ROOT is cleaned up automatically — but only if

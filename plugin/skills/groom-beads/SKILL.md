@@ -47,10 +47,10 @@ copies live in the `spec` skill, so authoring and grooming can never disagree):
 
 - **What "ready" means.** The criteria are owned by the `spec` skill. Load and
   enforce them; do not paraphrase or fork them:
-  - `../spec/references/work-order-definition-of-ready.md` — the checklist.
-  - `../spec/references/work-order-field-guide.md` — the three text fields kept
+  - `references/shared/work-order-definition-of-ready.md` — the checklist.
+  - `references/shared/work-order-field-guide.md` — the three text fields kept
     distinct, and the tier-routing rubric.
-  - `../spec/references/work-order-template.md` — the work-order format this
+  - `references/shared/work-order-template.md` — the work-order format this
     skill materializes into beads.
 - **Where work orders come from.** A standalone bug/chore you groom directly, or
   a feature blueprint decomposed by `groom-feature-blueprint` — which hands its
@@ -126,9 +126,9 @@ you plan to change before making sweeping edits to a large backlog.
 ### 2. Bring each bead to the Definition of Ready
 
 This is the core loop. For each bead, drive it to pass every check in
-`../spec/references/work-order-definition-of-ready.md` — read it; it is the gate
+`references/shared/work-order-definition-of-ready.md` — read it; it is the gate
 you enforce. Keep the three text fields distinct using
-`../spec/references/work-order-field-guide.md`: agents habitually collapse
+`references/shared/work-order-field-guide.md`: agents habitually collapse
 `## Problem` / `## Design` / `## Acceptance` into one blob, and keeping them
 apart (immutable problem statement / mutable approach / checkable done-ness) is
 most of the quality battle.
@@ -178,7 +178,7 @@ Beads carry a **tier** (`light | standard | advanced | frontier`, least to
 most capable), not a model name. The orchestrator resolves tier → model at
 dispatch from the project's `## model lineup` block, so a bead groomed today
 still routes correctly after the lineup changes. The routing rubric is owned
-by `../spec/references/work-order-field-guide.md`. Apply it, and:
+by `references/shared/work-order-field-guide.md`. Apply it, and:
 
 - **Assign the LOWEST tier that can do the work.** Over-routing is invisible
   and paid for on every run; under-routing announces itself as an escalation
@@ -297,11 +297,18 @@ so it's never skipped.
 
 ## Reference files
 
-- `../spec/references/work-order-definition-of-ready.md` — the checklist you
+Files under `references/shared/` are **generated copies** of reference
+documents owned by a sibling skill — vendored in by
+`scripts/sync-shared-references.sh` so this skill is self-contained. Read
+them normally; never edit them. Fix the source named in each file's header
+and re-run the script.
+
+
+- `references/shared/work-order-definition-of-ready.md` — the checklist you
   enforce in phase 2 (spec-owned; do not fork it).
-- `../spec/references/work-order-field-guide.md` — description vs. design vs.
+- `references/shared/work-order-field-guide.md` — description vs. design vs.
   acceptance; the tier-routing rubric (spec-owned).
-- `../spec/references/work-order-template.md` — the work-order format this skill
+- `references/shared/work-order-template.md` — the work-order format this skill
   materializes into beads.
 - `references/bead.schema.json` — authoritative JSON Schema for the beads
   materialization in the file-emit fallback. The single source of truth for
