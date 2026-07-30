@@ -13,14 +13,14 @@ version: "0.2"
 # Findings Capture Protocol
 
 Retro evidence does not survive being recalled later, and in a
-multi-agent phase (implementing a groomed plan, where each work item
+multi-agent phase (implementing a groomed plan, where each work order
 may go to a different spawned agent) no single session holds it. This
 protocol is how that evidence is captured at the moment of friction.
 
 This document is deliberately self-contained: an agent implementing
-one work item needs ONLY this file — not the `retro-spec` skill that
+one work order needs ONLY this file — not the `retro-spec` skill that
 consumes the findings, and not the `groom-feature-blueprint` skill that produced
-the item. Work items reference the copy of this document vendored
+the item. Work orders reference the copy of this document vendored
 into the project (`rfcs/findings-capture.md`).
 
 ## The finding
@@ -39,7 +39,7 @@ finding SHOULD be 1-3 sentences.
 
 The implementing agent SHALL record a finding WHENEVER it:
 
-- **needed information not in the work item or its listed
+- **needed information not in the work order or its listed
   references** — had to open the blueprint, FRD, or code to fill a
   gap the item should have carried. Record even small occurrences:
   each is direct evidence about whether items are self-sufficient

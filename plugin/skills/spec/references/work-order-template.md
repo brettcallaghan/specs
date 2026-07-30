@@ -21,8 +21,14 @@ related: []                          # relevant but non-blocking
 discovered_from: <work-order-slug>   # order whose execution surfaced this one
 
 # Dispatch metadata — what the orchestrator reads to route and pack
-model: sonnet                        # opus | sonnet | fable — never null
-model_reason: <one line: what about this order drove the model choice>
+tier: standard                       # light | standard | advanced | frontier
+                                     # (least to most capable) — never null.
+                                     # Assign the LOWEST tier that can do the
+                                     # work; the orchestrator resolves tier ->
+                                     # model from the project's model lineup.
+tier_reason: <one line: what about this order drove the tier choice>
+# model: <name>                      # OPTIONAL override — set only when a
+                                     # specific named model is required.
 est_size: M                          # XS | S | M | L | XL
 c4_changes: []                       # C4 components whose code this order edits
 c4_impacts: []                       # affected downstream, not edited
@@ -34,7 +40,13 @@ Template: Work Order
 Version: 1.2
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]]. Readiness criteria are defined in
-  [[work-order-definition-of-ready]] and `references/work-order-field-guide.md`.
+  [[work-order-definition-of-ready]] and `work-order-field-guide.md`.
+
+Sections (complete each, then delete its instruction block)
+  - Problem
+  - Design
+  - Acceptance
+  - Retro
 
 Purpose
   A Work Order is the atomic, self-contained unit of executable work: the
@@ -70,7 +82,7 @@ Storage — beads now, files later
   out of scope for now.
 
 Self-containment is the whole point
-  The reason the dispatch metadata (model, C4 blast radius, est_size,
+  The reason the dispatch metadata (tier, C4 blast radius, est_size,
   provenance, delta key) lives in the work order rather than only in a
   planning agent's head is that the dispatching agent has no head to read.
   A field left "to figure out later" fails, because "later" is inside an
@@ -95,7 +107,7 @@ Reference syntax
   [[container-<name>#Component Name]]
                    — a C4 component, by a wikilink heading anchor into
                      its parent's Components roster (see
-                     `references/c4-guide.md`); c4_changes / c4_impacts
+                     `c4-guide.md`); c4_changes / c4_impacts
                      list the same component names
   `ElementName`    — code-level anchors: paths, symbols, endpoints, tables
 
@@ -152,7 +164,7 @@ do NOT prescribe new function signatures or file layouts — that is the
 executing agent's choice. Omit for `kind: epic`. Maps to the bead `design`.
 
 If a line tells you WHAT TO TYPE, it belongs here. If it tells you WHAT MUST
-BE TRUE when finished, it belongs in Acceptance. See `references/work-order-field-guide.md`.
+BE TRUE when finished, it belongs in Acceptance. See `work-order-field-guide.md`.
 -->
 
 <The chosen approach and key decisions.>

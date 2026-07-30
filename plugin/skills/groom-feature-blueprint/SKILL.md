@@ -33,23 +33,42 @@ Load alongside this skill (canonical copies live in the sibling
 skills that own them — this skill deliberately keeps no copies, so
 authoring and grooming can never disagree):
 
-- `../spec/references/feature-blueprint-template.md` — the document
+- `references/shared/feature-blueprint-template.md` — the document
   being groomed
-- `../spec/references/blueprint-readiness-checklist.md` — the Phase 1
+- `references/shared/blueprint-readiness-checklist.md` — the Phase 1
   check definitions
-- `../spec/references/work-order-template.md` — the format each work
+- `references/shared/work-order-template.md` — the format each work
   item is emitted in
-- `../spec/references/ac-traceability-standards.md` — test citation
+- `references/shared/ac-traceability-standards.md` — test citation
   obligations
-- `../retro-spec/references/findings-capture-protocol.md` — the
+- `references/shared/findings-capture-protocol.md` — the
   retro-evidence protocol Phase 3 vendors into the target project
 
 ---
 
+## Grooming checklist
+
+Copy this into your response and check items off as you go.
+(A checklist copied into your response is not a task tool — WHERE the project bans `TodoWrite`/`TaskCreate`, this is the compatible way to keep progress visible.)
+
+```
+Blueprint grooming:
+- [ ] 1. Readiness gate run from the checklist document (not from memory)
+- [ ]    Readiness check failed?  -> reported and STOPPED, nothing modified
+- [ ]    Content check failed?    -> gaps written to Open Questions, status
+                                     back to draft, reported, STOPPED
+- [ ] 2. Work orders derived — every one traces to a delta, DoD entry, or
+        sequencing constraint
+- [ ] 3. Serialized to the detected backend; findings protocol vendored
+- [ ]    Beads backend: groom-beads finishing pass run over the epic's children
+- [ ] 4. Blueprint status set to in-progress; plan location recorded
+- [ ] 5. Retro offered (document lens, and skill lens if this skill misled)
+```
+
 ## Phase 1 — Readiness Gate
 
 The checks are defined in
-`../spec/references/blueprint-readiness-checklist.md` — the single definition
+`references/shared/blueprint-readiness-checklist.md` — the single definition
 of "ready to groom," which the `spec` skill runs as an authoring
 preflight and this skill enforces as the gate. Do not restate or
 paraphrase the checks; run them from that document. Resolve every
@@ -83,18 +102,18 @@ expensive to silently get wrong.
 
 ## Phase 2 — Decomposition
 
-Derive work items from the blueprint — each item is one **work order**
-(`../spec/references/work-order-template.md`). Do not invent design; every
+Derive work orders from the blueprint — each item is one **work order**
+(`references/shared/work-order-template.md`). Do not invent design; every
 item must trace to a delta, a DoD entry, or a sequencing constraint.
 
 Decomposition produces the work order's *substance* — its Problem (the
 delta and anchors), Design intent, Acceptance (the ACs), provenance
 (`sources: [<feature-slug>]`, `delta:<KEY>`), and graph edges. It does NOT
-set `model`, `model_reason`, or the C4 blast-radius fields: those are the
+set `tier`, `tier_reason`, or the C4 blast-radius fields: those are the
 dispatch-readiness finishing pass, handed to `groom-beads` in Phase 3.
 Deriving them here would fork routing logic that must live in one place.
 
-**Work items:**
+**Work orders:**
 
 - **One item per element delta**, implementable and testable in
   isolation. The item includes its tests AND the fold of its delta into
@@ -123,7 +142,7 @@ Deriving them here would fork routing logic that must live in one place.
   item's test obligation.
 - **Tracker Reconciliation becomes graph structure.** For each issue
   the blueprint's Tracker Reconciliation section classifies: a
-  *subsumed* issue is blocked on the superseding work item and gets a
+  *subsumed* issue is blocked on the superseding work order and gets a
   supersession note ("close or re-scope when <item> lands"); a
   *prerequisite* issue becomes a dependency edge into the items whose
   deltas build on it; an *out-of-scope* issue becomes a coordination
@@ -143,7 +162,7 @@ Deriving them here would fork routing logic that must live in one place.
 - **Every item ends with a Retro section** — the standing instruction
   for its implementing agent (often a spawned subagent that sees only
   the item) to record friction findings per the findings capture
-  protocol (`../retro-spec/references/findings-capture-protocol.md`).
+  protocol (`references/shared/findings-capture-protocol.md`).
   Findings, not
   analysis: the implementer is a sensor for item quality —
   self-sufficiency gaps, unpinned decisions, stale anchors,
@@ -154,7 +173,7 @@ Deriving them here would fork routing logic that must live in one place.
   to `retired`, and then run the `retro-spec` skill over the
   implementation phase, aggregating the findings recorded on the
   feature's items. Implementation is the phase that finally exercises
-  the work items, so this is where their quality becomes evidence.
+  the work orders, so this is where their quality becomes evidence.
   The approved plan is the standing authorization for this retro (no
   further prompt needed); the RFCs it produces remain human-gated at
   review.
@@ -179,9 +198,9 @@ store, per contract) — never by inventing new design seams.
 Detect the backend, then emit the same graph in one of two formats.
 
 First, for either backend, **vendor the findings capture protocol**:
-copy `../retro-spec/references/findings-capture-protocol.md` to
+copy `references/shared/findings-capture-protocol.md` to
 `rfcs/findings-capture.md` in the target project (creating `rfcs/` if
-absent; overwrite an older copy). Work items reference that
+absent; overwrite an older copy). Work orders reference that
 repo-local path, so any implementing agent — including one without
 this plugin installed — can follow the protocol by reading a single
 file inside the project, with no permission prompts and no skill
@@ -195,7 +214,7 @@ inputs produce identical graphs:
 - Create **one epic per feature**, titled from the blueprint, whose
   description links the blueprint and FRD paths and states the
   delivery unit (the blueprint's `delivery` declaration).
-- Create one issue per work item via the `bd` CLI, each a **child of
+- Create one issue per work order via the `bd` CLI, each a **child of
   the epic**, with dependencies wired so ready/blocked states mirror
   the graph. Put the AC list, verified-by levels, blueprint section
   references, and any generated supersession / coordination /
@@ -223,7 +242,7 @@ inputs produce identical graphs:
 
 Then run the **finishing pass**: invoke `groom-beads` over the epic's
 children (`bd list --label <feature-slug>`) to assign each work order a
-`model` + `model_reason`, tag its C4 blast radius (`c4_changes` /
+`tier` + `tier_reason`, tag its C4 blast radius (`c4_changes` /
 `c4_impacts` / `c4_docs`), and validate the graph against the Definition
 of Ready. Decomposition gave the beads their Problem / Design / Acceptance
 and edges; this pass makes them dispatch-ready. Do NOT hand-roll model
@@ -233,16 +252,15 @@ logic, and duplicating it is how the two skills drift.
 **Task-file directory** — otherwise, write `plans/<feature-slug>/`:
 
 <!--
-This is the interim no-tracker fallback. A first-class file-backed
-serialization of the work-order format (`work-order-template.md`) is
-deliberately not yet defined; when it is, it supersedes this shape and
-the finishing pass applies here too. Until then, model / C4 fields are
-absent on this path — file-backed work is not the beads dispatch model.
+The no-tracker fallback. This shape is not the work-order format
+(`references/shared/work-order-template.md`) serialized to files; tier and
+C4 fields are absent here, because file-backed work is not the beads
+dispatch model and no finishing pass runs against it.
 -->
 
 - `index.md` — the feature, links to FRD and blueprint, the item list
   in dependency order, and a mermaid graph of the edges.
-- One file per work item, `NN-<item-slug>.md`, with frontmatter:
+- One file per work order, `NN-<item-slug>.md`, with frontmatter:
 
 ```yaml
 ---
@@ -290,7 +308,7 @@ with the document.
 - The plan derives from the spec; it never extends it. A needed-but-
   missing design decision is a Phase 1 failure, even if discovered
   during Phase 2 or 3 — bounce it back.
-- Do not prescribe function signatures or file layouts in work items;
+- Do not prescribe function signatures or file layouts in work orders;
   carry the blueprint's anchors and let implementers choose structure.
 - The delivery unit is the blueprint's `delivery` declaration:
   `single-pr` (assumed when the field is absent) or `staged`, whose
@@ -301,6 +319,14 @@ with the document.
   unchanged.
 
 ---
+
+## Reference files
+
+Files under `references/shared/` are **generated copies** of reference
+documents owned by a sibling skill — vendored in by
+`scripts/sync-shared-references.sh` so this skill is self-contained. Read
+them normally; never edit them. Fix the source named in each file's header
+and re-run the script.
 
 ## After grooming — offer a retro
 

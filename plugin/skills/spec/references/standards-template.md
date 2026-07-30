@@ -12,6 +12,11 @@ version: 0.1
 Template: Standards Document
 Version: 1.1
 
+Sections (complete each, then delete its instruction block)
+  - <Major Category>
+  - <Another Major Category>
+  - References
+
 Purpose
   This template is for capturing collections of requirements that define 
   standards, policies, or constraints across systems, teams, or the 

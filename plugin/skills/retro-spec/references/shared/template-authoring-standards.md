@@ -1,0 +1,459 @@
+<!-- GENERATED COPY — DO NOT EDIT.
+     Source of truth: plugin/skills/spec/references/template-authoring-standards.md (version 0.12)
+     Regenerate with: scripts/sync-shared-references.sh
+     Edit the source, then re-run that script. -->
+
+---
+title: Template Authoring Standards
+description: System invariants for authoring document templates —
+  structure, slugs, instruction blocks, versioning, placeholders, content
+  guidelines, and validation. Frontmatter, EARS, and cross-document
+  reference syntax are defined in the companion documents it points to
+slug: template-authoring-standards
+type: standards
+status: active
+updated_at: 2026-07-30T00:00:00Z
+version: "0.12"
+related:
+  - "frontmatter-standards"
+  - "cross-document-references"
+---
+
+# Template Authoring Standards
+
+This document defines invariants that SHALL be applied when authoring templates 
+for any type of structured document.
+
+## Contents
+
+- Document Structure — line length
+- Metadata (Frontmatter) → `frontmatter-standards.md`
+- Slug Conventions — format, identity rule, choosing the identifier, the
+  prefix registry, the frontmatter index, construction
+- Template Instructions — placement, HTML comment format, lifecycle
+- Template Versioning — when to bump a template, skill, or standard
+- Requirements Expression → `ears-guide.md`
+- Placeholders and Parameters — format, naming, env vars vs placeholders
+- Cross-Document References → `cross-document-references.md`
+- Template Content Guidelines — avoid duplication, avoid volatile facts,
+  living documents
+- Validation — frontmatter schemas, reference validation, dependency graph
+- References
+
+---
+
+## Document Structure
+
+### Line Length
+
+The width of any line SHALL NOT exceed 80 characters.
+
+WHEN a line contains a URL, code block content, or table cell data, the line 
+MAY exceed 80 characters IF line breaks would break functionality.
+
+**Rationale:** Ensures readability in terminals, code review tools, and 
+side-by-side diff views without horizontal scrolling.
+
+---
+
+## Metadata (Frontmatter)
+
+Defined in `frontmatter-standards.md` — required, relationship, and optional
+properties, the `status` vocabulary, and the embedded element-record blocks.
+Load it when authoring a template's frontmatter or validating a document's.
+
+---
+
+## Slug Conventions
+
+### Format
+
+Document slugs SHALL use lowercase kebab-case format (ASCII letters,
+digits, and hyphens only).
+
+The slug SHALL be unique across every document in the document system.
+The namespace is flat: a slug is a location-independent primary key, not
+a path. Uniqueness is enforced mechanically against the frontmatter index
+(see below), so a collision is a commit-time error, not a silent
+overwrite.
+
+**Format:** `<type-prefix>-<identifier>`
+
+Every document type SHALL have an assigned slug prefix. The prefix is a
+property of the type, drawn from the registry the document system
+defines — it is not mechanically the `type` value. The prefix names the
+subject or the type as that type is habitually cited; the identifier
+names the specific document.
+
+### Identity Rule
+
+A slug encodes **identity only**. It SHALL NOT encode any mutable
+attribute — status, version, date, or containment/hierarchy. Those live
+in frontmatter (`status`, `version`, `parent_slug`, `composes`, …) where
+they change without breaking references.
+
+WHEN a document's title or subject is rephrased, its slug SHOULD NOT
+change. WHEN a document is genuinely replaced, it is retired with
+`superseded_by` rather than renamed. The only sanctioned slug rewrite is
+**promotion** (a component promoted to a module), which is a deliberate,
+tooling-assisted change that rewrites the slug and every reference to it
+in one commit.
+
+### Choosing the Identifier
+
+The identifier SHALL be however that document type is habitually cited,
+in the shortest form that stays unambiguous:
+
+- **Named documents** (features, systems, containers, modules,
+  components, contracts) use the subject's own distinctive name —
+  `component-ledger`, not `component-the-ledger-subsystem`.
+- **Numbered documents** (ADRs) use a monotonic number — `adr-011`. The
+  number is the stable identity and encodes decision order; the human
+  description lives in `title`, not the slug. The next number is derived
+  from the frontmatter index (`max + 1`), never tracked by hand.
+
+WHEN two named documents would collide (two containers each with a
+`parser` component), disambiguate by making the name more distinctive —
+prefer an intrinsic role/domain qualifier (`component-billing-ledger`),
+and only where that does not suffice, a parent qualifier
+(`component-<container>-<component>`, `container-<system>-<container>`).
+A parent qualifier bakes a mutable relationship into the key, so a later
+reparent becomes a slug rewrite; the frontmatter index flags every
+dangling reference when that happens.
+
+### Prefix Registry
+
+The prefix set is small and closed. Terse prefixes are reserved for
+**transient, agent-generated** artifacts (feature blueprints, work
+orders), which are read far more than they are hand-authored; durable,
+human-cited specs use full-word prefixes. Acronyms are used only for
+genuine industry-standard terms (ADR, FRD), never for coined
+abbreviations.
+
+| Type | Prefix | Example |
+|------|--------|---------|
+| ADR | `adr-<nnn>` | `[[adr-011]]` |
+| FRD | `frd-` | `[[frd-checkout]]` |
+| Standards | *(none — descriptive slug)* | `[[security-standards]]` |
+| System Blueprint | `system-` | `[[system-payments]]` |
+| Container Blueprint | `container-` | `[[container-ledger-api]]` |
+| Module Blueprint | `module-` | `[[module-auth-sdk]]` |
+| Component Blueprint | `component-` | `[[component-ledger]]` |
+| Contract | `contract-` | `[[contract-payments-api]]` |
+| Feature Blueprint | `fb-` | `[[fb-guest-checkout]]` |
+| Work Order | `wo-` | `[[wo-1234]]` |
+
+The **Standards** type is the deliberate exception: it carries no fixed
+prefix. Its documents are cross-cutting and are cited by a descriptive
+name ending in an approved role noun — `-standards`, `-policy`,
+`-guidelines`, `-constraints` (e.g. `security-standards`,
+`data-retention-policy`). A forced `standards-` prefix would be both
+redundant and less descriptive.
+
+`feature-` is reserved for Gherkin `.feature` files and is NOT a spec
+slug prefix; feature blueprints use `fb-`.
+
+### Frontmatter Index
+
+A document system SHOULD maintain a machine-readable index of all
+documents' frontmatter (a JSON object written to disk). The index is the
+authority for slug-uniqueness checks, next-number derivation for
+numbered types, `[[slug]]` reference validation, and dangling-reference
+detection after a promotion or reparent.
+
+### Construction
+
+WHEN creating a slug from a document title:
+
+1. Convert to lowercase
+2. Replace spaces with hyphens
+3. Remove characters outside `[a-z0-9-]`
+4. Prepend the type's registered prefix
+
+**Example transformations:**
+- "Guest Checkout" (feature blueprint) → `fb-guest-checkout`
+- "Payments API" (contract) → `contract-payments-api`
+- "Data Retention" (standards) → `data-retention-policy`
+
+---
+
+## Template Instructions
+
+### Placement
+
+Templates SHALL include instructions that describe:
+- When the template should be used
+- When the template should NOT be used
+- Guidance for completing each section
+
+Instructions SHALL be provided in two locations:
+
+1. **Document-level instructions:** Immediately after the frontmatter
+2. **Section-level instructions:** Within each section
+
+### Format
+
+Instructions SHALL be wrapped in HTML comment blocks (`<!-- -->`).
+
+**Document-level example:**
+```markdown
+---
+title: <Document Title>
+description: <Brief summary>
+slug: <document-slug>
+type: <document-type>
+status: draft
+updated_at: <RFC 3339 timestamp>
+---
+
+<!--
+Template: <Template Name>
+Source: <Origin or authority, if applicable>
+
+Purpose
+  <One paragraph explaining what this template is for>
+
+When to use
+  - <Scenario 1>
+  - <Scenario 2>
+  
+When NOT to use
+  - <Wrong use case 1>
+  - <Wrong use case 2>
+-->
+```
+
+**Section-level example:**
+```markdown
+## <Section Title>
+
+<!--
+<Instructions for completing this section>
+
+Guidance:
+  - <Specific guidance point 1>
+  - <Specific guidance point 2>
+
+Example:
+  <Brief example of what goes in this section>
+-->
+```
+
+**Rationale:** HTML comments are passed through markdown processors but not 
+rendered by browsers, making them invisible to end users while visible to 
+document authors.
+
+### Lifecycle
+
+WHEN a template is used to author a new document, the author SHALL remove 
+HTML comment blocks after reading and completing each section.
+
+Instructions SHALL be deleted from the final document to prevent instruction 
+bloat.
+
+**Rationale:** Keeps final documents clean while providing guidance during 
+authoring.
+
+---
+
+## Template Versioning
+
+Every template SHALL carry a `Version:` line in its document-level
+instruction block, immediately after the `Template:` line:
+
+```markdown
+<!--
+Template: Feature Blueprint
+Version: 1.3
+...
+-->
+```
+
+WHEN a template's normative content changes (a rule, a required
+section, a check, reference syntax), the MINOR version SHALL be
+incremented. WHEN only editorial content changes (typos, phrasing,
+examples), the PATCH version MAY be incremented instead. Version
+numbers use `MAJOR.MINOR` with an optional `.PATCH`.
+
+The same rule applies to the skills (`version` in SKILL.md
+frontmatter) and to versioned standards documents (`version` in
+frontmatter): any normative change bumps the version in the same
+commit.
+
+**Rationale:** Improvement RFCs (see the `rfc` template) cite the
+versions of the templates, skills, and standards a session followed.
+Triage uses those citations to answer "is this proposal already
+fixed?" mechanically; without version stamps that judgment requires
+diff archaeology. The version lives in the instruction block — not
+the template's frontmatter — because template frontmatter is the
+placeholder frontmatter of generated documents, and instances do not
+carry their template's version.
+
+---
+
+## Requirements Expression
+
+WHEN a template is used to express requirements or invariants, EARS (Easy
+Approach to Requirements Syntax) SHALL be adopted, with capitalized RFC 2119
+modal verbs.
+
+The patterns, the modal-verb rubric, style rules, and worked examples are
+defined in `ears-guide.md` — the single, more complete definition. Load it
+when writing any requirement; this document does not restate it.
+
+**Rationale:** EARS provides unambiguous, testable constraint definitions
+with explicit triggers and conditions. Developed by Rolls-Royce for
+safety-critical systems.
+
+---
+
+## Placeholders and Parameters
+
+### Format
+
+Placeholders in templates SHALL be wrapped in angle brackets: `<placeholder>`
+
+Placeholders SHALL contain a human-readable description of the expected 
+content.
+
+**Examples:**
+- `<Feature Name>`
+- `<one-line summary>`
+- `<PREFIX>` (for ID generation)
+- `YYYY-MM-DD` (date format indicator)
+
+**Rationale:** Angle bracket notation originates from Backus-Naur Form (1950s) 
+and is universally recognized in technical documentation to distinguish 
+literal text from placeholders.
+
+### Variable Naming
+
+Placeholders SHALL use one of these naming conventions:
+
+1. **Human-readable description:** `<Feature Name>`, `<one-line summary>`
+2. **Format indicator:** `YYYY-MM-DD`, `NNN` (zero-padded number)
+3. **Variable name:** `<PREFIX>`, `<slug>`, `<TYPE>`
+
+Placeholder names SHALL be self-explanatory without requiring external 
+documentation.
+
+### Environment Variables vs Placeholders
+
+Template placeholders are distinct from environment variables injected at 
+runtime.
+
+**Template placeholder (manual replacement):**
+```yaml
+id: "FRD-<PREFIX>"
+title: "<Feature Name>"
+```
+
+**Environment variable (automatic injection):**
+```yaml
+last_updated: ${CURRENT_DATE}
+created_by: ${USER_EMAIL}
+```
+
+Environment variables SHALL use `${VARIABLE_NAME}` syntax when supported by 
+the document generation tool.
+
+**Note:** Environment variable injection is tool-specific and should be 
+documented in the relevant tooling guide, not in individual templates.
+
+---
+
+## Cross-Document References
+
+Defined in `cross-document-references.md` — the `[[slug]]` wikilink syntax,
+usage rules, component heading anchors, and the rules for referencing
+documents outside the specification set. Load it when authoring or
+validating references; do not restate it here.
+
+---
+
+## Template Content Guidelines
+
+### Avoid Duplication
+
+Templates SHALL instruct authors to cross-reference other documents rather 
+than duplicate content.
+
+WHEN content exists in another document, templates SHALL guide authors to 
+reference that document using `[[document-slug]]` notation.
+
+**Rationale:** Duplication leads to drift when only one copy is updated. 
+Cross-referencing maintains a single source of truth.
+
+### Avoid Volatile Facts
+
+Documents SHOULD NOT state volatile facts — element counts, line 
+numbers, dependency version numbers, file sizes — unless the fact is 
+itself normative. Name the thing and point at its source of truth 
+instead ("the `ValidationError` enum" and where it lives, not "the 
+~50-variant enum").
+
+Exception: versions that are contractual (a minimum supported runtime, 
+a pinned toolchain) are requirements, not descriptions, and SHALL be 
+expressed in EARS.
+
+**Rationale:** Volatile precision reads as rigor but rots immediately: 
+the count changes and the document silently becomes wrong. The 
+underlying source of truth stays correct.
+
+### Living Documents
+
+WHEN templates are used for documentation that evolves over time, the template 
+SHALL include instructions that documents are living artifacts.
+
+**Example instruction:**
+```markdown
+<!--
+This is a living document. Update when:
+- Requirements change
+- New information becomes available
+- Errors are discovered
+- Context shifts
+-->
+```
+
+---
+
+## Validation
+
+### Frontmatter Validation
+
+WHEN a document system implements validation tooling, JSON Schema definitions 
+SHALL be created for each document type to validate:
+- Required properties are present
+- Property values match allowed formats
+- Slug conventions are followed
+- Status values are valid
+- Embedded record blocks validate against the base-record schema, and
+  every child element is in exactly one state (record block XOR
+  blueprint link)
+
+Schema validation SHOULD be run as a pre-commit hook to catch errors before 
+commit.
+
+### Reference Validation
+
+WHEN a document system implements reference validation, tools SHOULD validate 
+that all `[[document-slug]]` references point to existing documents.
+
+### Dependency Graph
+
+WHEN documents include relationship properties (`depends_on`, `blocks`, 
+`sources`, `related`), tools SHOULD generate a dependency graph to:
+- Visualize document relationships
+- Detect circular dependencies
+- Enable impact analysis (what's affected if this changes?)
+- Find orphaned documents (no incoming references)
+
+---
+
+## References
+
+- [RFC 2119: Key words for RFCs](https://www.ietf.org/rfc/rfc2119.txt) — Modal verb definitions
+- [RFC 3339: Date and Time on the Internet](https://www.ietf.org/rfc/rfc3339.txt) — Timestamp format
+- [EARS Wikipedia](https://en.wikipedia.org/wiki/Easy_Approach_to_Requirements_Syntax) — EARS background
+- [Jekyll Frontmatter](https://jekyllrb.com/docs/front-matter/) — YAML frontmatter origin

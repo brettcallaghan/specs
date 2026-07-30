@@ -13,6 +13,22 @@ related:
 
 # Mapping Architecture to C4
 
+## Contents
+
+- The Abstraction Levels — system, container, module, component
+- Element Declarations: Model in Prose, Views in Diagrams
+- Nodes and Edges: Who Owns What
+- Naming and Relationship Conventions — acronyms, arrow direction, message
+  buses and async
+- Diagram Types and Placement — container context, deployment view, and the
+  Mermaid authoring rules
+- Mapping Concrete Elements to C4 — where queues, shared libraries, IaC
+  modules, sidecars and data products belong
+- Model as Element, or Mention in Prose?
+- Contract Visibility Tiers
+- Lifecycle: Documentation Follows the Realization
+- References
+
 This guide defines how this framework uses the [C4 model](https://c4model.com)
 in its architecture document types — system blueprint,
 container blueprint, module blueprint, component blueprint, and

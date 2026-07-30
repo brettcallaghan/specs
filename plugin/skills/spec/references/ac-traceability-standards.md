@@ -11,6 +11,13 @@ version: "0.2.0"
 
 # AC Traceability Standards
 
+## Contents
+
+- Citation Format — how a test names the AC it verifies
+- Coverage Obligations — which ACs need citations, at which level
+- Lifecycle and Verification — keeping citations correct as ACs change
+- References
+
 Requirements binding automated tests to the acceptance criteria (ACs)
 they verify. They apply to every project adopting this framework's FRDs
 and feature blueprints.

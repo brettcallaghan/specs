@@ -16,6 +16,12 @@ Source: Adapted from the 8090 Requirements Writing Guide
   (https://www.8090.ai/docs/opinions/requirements-writing-guide), modified to
   use EARS for acceptance criteria per [[template-authoring-standards]].
 
+Sections (complete each, then delete its instruction block)
+  - Overview
+  - Terminology
+  - Requirements
+  - References
+
 Purpose
   Capture the localized WHY (user story) and WHAT (acceptance criteria) for a
   single feature. An FRD describes what users need and how success is

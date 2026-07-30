@@ -50,7 +50,7 @@ than the wording that caused it. Run the retro in the same session, or
 with the transcript at hand. For a skill run across multiple agents
 (e.g. a plan executed by spawned agents), have each agent record skill
 friction in-flight per the findings-capture protocol —
-`../retro-spec/references/findings-capture-protocol.md` — and aggregate
+`references/shared/findings-capture-protocol.md` — and aggregate
 once at the end; never one retro per agent.
 
 ## What counts as evidence — the three finding shapes
@@ -145,6 +145,21 @@ is the goal, not a quota of findings.
 
 ## Workflow
 
+Copy this checklist into your response and check items off as you go.
+(A checklist copied into your response is not a task tool — WHERE the project bans `TodoWrite`/`TaskCreate`, this is the compatible way to keep progress visible.)
+
+```
+Retro progress:
+- [ ] 1. Scope & provenance recorded (skill, version, model, effort, runs)
+- [ ] 2. Run friction harvested — verbatim text, exact commands, locations
+- [ ] 3. Each finding classified by shape and severity
+- [ ] 4. Bar applied — below-bar items moved to Considered and Not Proposed
+- [ ] 5. One RFC per skill authored; readiness gate passed
+- [ ] 6. Null result recorded IF nothing cleared the bar
+- [ ] 7. Handed off — output routed, skill NOT edited
+```
+
+
 1. **Scope & provenance.** Name the skill exercised and the task it was
    applied to; fill the Provenance block above — model, effort, harness,
    runs observed, versions, dates.
@@ -165,8 +180,8 @@ is the goal, not a quota of findings.
    set the frontmatter labels (skill, skill_version, model, effort,
    runs_observed, origin, severity); order proposals by severity, each
    carrying its finding shape, cited evidence, and a concrete change.
-   Complete every section, run the template's readiness gate, set status
-   `ready-for-review`.
+   Complete every section, then run the template's readiness gate. Fix what it reports and re-run; do not proceed while it fails. After two full failed cycles, stop and surface the blocker rather than continuing to retry.
+   Set status `ready-for-review` only once the gate passes.
 6. **Route the output.**
    - Retroing a skill **from a downstream project** →
      `rfcs/outbox/rfc-<origin-project>-<slug>.md` (no number); the human
@@ -203,6 +218,14 @@ about a skill belongs in Considered and Not Proposed at most.
 | Padding with polish while blockers exist | Dilutes the RFC; rank by severity and lead with blockers |
 | One RFC per finding, or one RFC spanning several skills | Bundle all findings for ONE skill into one RFC (its proposals are the units of decision); findings about a different skill get their own RFC |
 | Editing the skill during the retro | The retro's authority ends at the RFC; resolution belongs to `triage-rfc` |
+
+## Reference files
+
+Files under `references/shared/` are **generated copies** of reference
+documents owned by a sibling skill — vendored in by
+`scripts/sync-shared-references.sh` so this skill is self-contained. Read
+them normally; never edit them. Fix the source named in each file's header
+and re-run the script.
 
 ## Retro this skill
 

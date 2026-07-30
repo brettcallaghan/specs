@@ -14,6 +14,22 @@ related:
 
 # Work Order Definition of Ready
 
+## Contents
+
+The eight checks a work order must pass before dispatch:
+
+1. Self-contained Problem statement (the fresh-agent test)
+2. Right size (single session)
+3. `## Design` present (non-trivial, non-epic orders)
+4. `## Acceptance` criteria (bugs & features)
+5. Kind-appropriate completeness (bug / feature / task / chore / epic)
+6. Dependencies wired
+7. Tier assigned (+ reason)
+8. C4 blast radius declared (IF the repo uses C4)
+
+Then: what to do when a work order can't reach ready, and three worked
+under-groomed → ready examples.
+
 A work order is **ready** when a fresh agent with zero session context can
 complete it correctly from the work order alone — no planning conversation, no
 one to ask. Run every work order against the checks below. Treat these as a
@@ -23,9 +39,9 @@ the failure mode the whole concept exists to prevent.
 This is the single definition of "ready to dispatch." The `spec` skill owns it;
 the grooming skills enforce it (`groom-beads` on any unit of work,
 `groom-feature-blueprint` on blueprint-decomposed work). Field-by-field
-guidance — the distinction between the three text fields, the model-routing
-rubric, the C4 conventions — is in `references/work-order-field-guide.md`. The format each
-check maps onto is `references/work-order-template.md`.
+guidance — the distinction between the three text fields, the tier-routing
+rubric, the C4 conventions — is in `work-order-field-guide.md`. The format each
+check maps onto is `work-order-template.md`.
 
 ## The checks
 
@@ -86,9 +102,13 @@ Real edges only, correct field (`depends_on` / `blocks`, `parent_slug`,
 Ordering SHALL live in the graph, not in prose or priority. A missing real edge
 is a wave-time race; a fabricated edge over-serializes.
 
-### 7. Model assigned (+ reason)
-`model` from the closed set (e.g. `opus | sonnet | fable`), never null, always
-with a short `model_reason`. See `references/work-order-field-guide.md` for the routing rubric.
+### 7. Tier assigned (+ reason)
+`tier` from the closed, ordered set (`light | standard | advanced |
+frontier`, least to most capable), never null, always with a short
+`tier_reason`. Assign the LOWEST tier that can complete the order
+correctly. A named `model` is an optional override, not the routing field.
+See `work-order-field-guide.md` for the rubric and the project lineup
+mapping.
 
 ### 8. C4 blast radius declared (IF the repo uses C4)
 `c4_changes` / `c4_impacts` / `c4_docs`, using only component names that exist
@@ -101,7 +121,7 @@ A work order that cannot be brought to this bar is **not** silently dispatched.
 It is flagged for the author on the tracker — `blocked-needs-info` when a
 specific fact is missing, `blocked-ungroomable` when it needs redesign — and
 excluded from dispatch until resolved. That flag lives on the tracker issue, not
-in the work order frontmatter (see the status note in `references/work-order-template.md`).
+in the work order frontmatter (see the status note in `work-order-template.md`).
 
 ## Worked examples
 
@@ -114,15 +134,15 @@ Problem: Wire up login like we talked about, similar to the other service.
 kind: feature   priority: 2
 ```
 Fails: not self-contained (#1), no Design (#3), no Acceptance (#4), no
-deps/model/C4.
+deps/tier/C4.
 
 After:
 ```
 title: Add JWT login to the accounts API
 kind: feature   priority: 1
 parent_slug: work-order-accounts-auth
-model: sonnet
-model_reason: well-specified, mirrors an existing pattern; low ambiguity
+tier: standard
+tier_reason: well-specified, mirrors an existing pattern; low ambiguity
 est_size: M
 c4_changes: [accounts-service]
 c4_impacts: [web-spa]
@@ -156,8 +176,8 @@ After: an **epic** "Notifications system" with child work orders such as
 in-app notification store + read/unread", "Wire notification triggers on order
 events" — each independently passing this checklist, `parent_slug` set to the
 epic, `depends_on` edges where a child genuinely depends on another (schema
-blocks the adapters), and models assigned per child (schema design → opus; SES
-adapter → sonnet).
+blocks the adapters), and tiers assigned per child (schema design → advanced;
+SES adapter → standard).
 
 **Example 3 — bug missing repro**
 
@@ -167,5 +187,5 @@ After: a Problem with the failing test path
 (`checkout/checkout_test.go::TestConcurrentCheckout`), the observed flakiness
 (fails ~1 in 5 under `-race`, passes in isolation), the suspected cause (shared
 cart fixture mutated across goroutines), expected vs. actual, and acceptance
-(`- [ ] Test passes 50/50 runs under -race`). Model `sonnet`; `c4_changes`
+(`- [ ] Test passes 50/50 runs under -race`). Tier `standard`; `c4_changes`
 `[checkout-service]`.

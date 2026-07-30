@@ -37,6 +37,24 @@ not relitigated without new evidence.
 
 ## Process
 
+Copy this checklist into your response and check items off as you go.
+(A checklist copied into your response is not a task tool — WHERE the project bans `TodoWrite`/`TaskCreate`, this is the compatible way to keep progress visible.)
+
+```
+Triage progress:
+- [ ] Retro notes appended to the log and deleted
+- [ ] 1. Provenance checked against current versions (per RFC)
+- [ ] 2. Deduped against resolved RFCs and rfc-triage beads
+- [ ] 3. Every proposal classified (adopt-now / defer / reject)
+- [ ] 4. Recommendation table presented — STOPPED for human approval
+- [ ] 5. Approved items implemented, verified, versions bumped
+- [ ] 6. Retro log appended
+- [ ] 7. Plugin version bumped IF any skill/template/standard changed
+```
+
+Step 4 is a hard stop. Do not tick 5 before the human has answered.
+
+
 Retro notes first: append each to the retro log (step 6), then delete
 the note. Then, per RFC, in received order:
 
@@ -48,11 +66,11 @@ the note. Then, per RFC, in received order:
    addressed in <file> v<X.Y>" without further debate. An RFC missing
    provenance versions is still triaged, but say so in the
    Resolution; the citation burden was the author's.
-2. **Dedupe.** Search this repo's `rfcs/` Resolution sections —
-   rfc-0001 through rfc-0003 predate the term and use the older
-   heading "Disposition"; check both — and
-   the beads (`bd list --label rfc-triage`) for prior proposals on
-   the same theme.
+2. **Dedupe.** Search this repo's `rfcs/` for prior proposals on the
+   same theme, and the beads (`bd list --label rfc-triage`). Match on
+   the outcome section of each resolved RFC whatever it is titled —
+   older RFCs may use a different heading than the current template's,
+   so search the content rather than assuming one heading.
    - Prior REJECTED match: flag it with the prior rationale; recommend
      reconsideration only if this RFC carries new evidence.
    - Prior DEFERRED match (an open bead): this is recurrence — the
@@ -87,6 +105,10 @@ the note. Then, per RFC, in received order:
      existing theme key WHERE one fits (check current labels before
      minting); themes are kebab-case topics, e.g.
      `theme:ac-coverage`, `theme:reference-syntax`.
+   - **Verify before moving on.** Re-read each file you changed: the
+     change is present, its version bumped, and its own conventions held.
+     A half-applied adoption is worse than a deferral, because the
+     Resolution will claim it landed.
    - Write the RFC's Resolution section: per-proposal outcome
      (adopted / adopted-with-refinement + the refinement / deferred +
      bead id / rejected + rationale), date, files changed, version

@@ -18,7 +18,17 @@ related: []                          # related documents (ADRs, standards)
 Template: Contract
 Version: 1.2
 Source: Architecture documentation framework. C4 mapping rules and
-  contract visibility tiers are defined in `references/c4-guide.md`.
+  contract visibility tiers are defined in `c4-guide.md`.
+
+Sections (complete each, then delete its instruction block)
+  - Overview
+  - Specification
+  - Guarantees
+  - Operational Expectations
+  - Versioning and Change Policy
+  - Key Decisions
+  - Open Questions
+  - References
 
 Purpose
   The prose companion to a machine-readable interface specification. The
@@ -43,7 +53,7 @@ Independence and longevity
   consequential architectural decision. WHEN no provider exists yet,
   leave provider a draft slug and keep status: draft.
 
-Visibility (see `references/c4-guide.md`)
+Visibility (see `c4-guide.md`)
   public   — crosses the system boundary; consumable by other teams.
   internal — crosses container boundaries within one system only.
              Internal contracts SHALL NOT be consumed outside their
@@ -188,6 +198,6 @@ status becomes active.
 
 ## References
 
-- `references/c4-guide.md` — C4 mapping rules and contract visibility tiers
+- `c4-guide.md` — C4 mapping rules and contract visibility tiers
 - @<provider-slug> — provider's blueprint
 - <Additional references>

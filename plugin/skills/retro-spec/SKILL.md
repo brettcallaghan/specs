@@ -41,7 +41,7 @@ documents, route it to `retro-skill` rather than filing it here.
 |---------------------|----------------------------|
 | Authored a feature blueprint (spec skill) | The FRD it realizes; the architecture blueprints and standards it referenced |
 | Groomed a blueprint into a plan (groom-feature-blueprint skill) | The feature blueprint and its FRD |
-| Implemented a plan's work items (retro run by the final DoD item's agent, aggregating per-item findings — see the findings capture protocol) | The work items produced; the blueprint and FRD behind them |
+| Implemented a plan's work orders (retro run by the final DoD item's agent, aggregating per-item findings — see the findings capture protocol) | The work orders produced; the blueprint and FRD behind them |
 | Authored any spec from upstream docs | The upstream docs it consumed |
 
 (The skills, templates, and scripts these phases followed are the
@@ -56,12 +56,12 @@ be captured while it exists:
   input: every bounced gap is a candidate finding about the authoring
   side.
 - **Multi-session / multi-agent phases** (implementing a plan, where
-  each work item may go to a different spawned agent): no one session
+  each work order may go to a different spawned agent): no one session
   holds the evidence. Each implementing agent records findings
   in-flight per the findings capture protocol below, and ONE
   aggregated retro runs at the end of the phase — by the agent
   executing the plan's final DoD item, which reads every item anyway.
-  Never run a full retro per work item: per-item RFCs restate the
+  Never run a full retro per work order: per-item RFCs restate the
   same systemic issues N times, and the item's implementer lacks the
   cross-item perspective to tell a one-off from a pattern.
 
@@ -79,11 +79,26 @@ stay on closed items permanently as raw provenance.
 
 The protocol document is self-contained by design: `groom-feature-blueprint`
 vendors a copy into each target project at
-`rfcs/findings-capture.md`, and work items point there — an
+`rfcs/findings-capture.md`, and work orders point there — an
 implementing agent records findings from that one repo-local file
 without loading this skill or its references.
 
 ## Workflow
+
+Copy this checklist into your response and check items off as you go.
+(A checklist copied into your response is not a task tool — WHERE the project bans `TodoWrite`/`TaskCreate`, this is the compatible way to keep progress visible.)
+
+```
+Retro progress:
+- [ ] 1. Scope and provenance established (phase, docs, skill/template versions)
+- [ ] 2. Evidence harvested from the session / in-flight findings
+- [ ] 3. Each finding root-caused (project-doc / skill-template / one-off)
+- [ ] 4. Bar applied — below-bar items to Considered and Not Proposed
+- [ ] 5. Project RFC authored IF anything cleared the bar; gate passed
+- [ ] 6. Null note recorded IF nothing did
+- [ ] 7. Handed off; retro-skill flagged IF guidance friction surfaced
+```
+
 
 1. **Establish scope and provenance.** Identify the phase just
    executed, the documents it consumed, the documents it produced, and
@@ -100,7 +115,7 @@ without loading this skill or its references.
    - syntax or sections that could not be used as documented
    - design decisions discovered missing at consume time
    - anything written twice
-   - findings recorded in-flight on work items (the findings capture
+   - findings recorded in-flight on work orders (the findings capture
      protocol) — for an implementation-phase retro these ARE the
      session evidence
    For each finding, capture the source text that caused it —
@@ -128,11 +143,12 @@ without loading this skill or its references.
 5. **Author the project RFC** from `references/rfc-template.md` (it
    cites `[[template-authoring-standards]]`, whose canonical copy is the
    sibling spec skill's
-   `../spec/references/template-authoring-standards.md`), bundling every
+   `references/shared/template-authoring-standards.md`), bundling every
    qualifying finding as `audience: project`. File it in the project's
    `rfcs/` directory, named `rfc-<nnnn>-<short-description>.md` with the
    repo's next free number. Complete every section, run the template's
-   readiness gate, and set status to `ready-for-review`. Order proposals
+   readiness gate. Fix what it reports and re-run; do not proceed while it fails. After two full failed cycles, stop and surface the blocker rather than continuing to retry. Set status to
+   `ready-for-review` only once the gate passes. Order proposals
    by expected impact. (Skill-lens findings go to `retro-skill`, which
    authors its own `audience: skill-authors` RFC — do not file one from
    here.)
@@ -162,7 +178,7 @@ and belongs in Considered and Not Proposed at most.
 |---------|---------|
 | Retroing documents nothing has consumed yet | No evidence exists; the retro produces taste, not findings |
 | Running the retro from memory in a later session | The friction detail is gone; findings degrade to vague impressions — capture in-session, or in-flight via the findings protocol |
-| Running a full retro per work item | N near-identical RFCs per feature; the implementer records findings, the final DoD item runs the ONE aggregated retro |
+| Running a full retro per work order | N near-identical RFCs per feature; the implementer records findings, the final DoD item runs the ONE aggregated retro |
 | Recording analysis or proposals as findings | Capture is a sensor's job; root-causing without cross-item perspective bakes in wrong conclusions |
 | Proposals without verbatim source citations | Triage cannot verify the defect or check whether it is already fixed |
 | Blaming guidance for authoring carelessness | The fix for ignoring an existing warning is not another warning |
@@ -171,6 +187,14 @@ and belongs in Considered and Not Proposed at most.
 | Re-proposing an idea a prior RFC's Resolution rejected, without new evidence | Relitigates settled questions; check the project's `rfcs/` first |
 | Weakening a consumer's checks to make authoring easier | The checks catch real defects; move the knowledge upstream instead |
 | Editing the project's documents, skills, or templates directly during the retro | The retro's authority ends at the RFC; resolution belongs to the doc owners (project review or framework triage) |
+
+## Reference files
+
+Files under `references/shared/` are **generated copies** of reference
+documents owned by a sibling skill — vendored in by
+`scripts/sync-shared-references.sh` so this skill is self-contained. Read
+them normally; never edit them. Fix the source named in each file's header
+and re-run the script.
 
 ## Retro this skill
 

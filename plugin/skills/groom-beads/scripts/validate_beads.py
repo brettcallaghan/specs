@@ -39,7 +39,11 @@ TYPES = {"epic", "feature", "task", "bug", "chore"}
 STATUSES = {"open", "ready", "in_progress", "blocked", "closed"}
 GROOMING = {"ready", "blocked-needs-info", "blocked-ungroomable"}
 EDGE_TYPES = {"blocks", "blocked-by", "parent", "related", "discovered-from"}
-MODELS = {"opus", "sonnet", "fable"}
+# Capability tiers, least to most capable. ORDER IS SIGNIFICANT: the orchestrator's
+# escalation ladder walks this list upward. Deliberately model-name-free — a project
+# binds tiers to named models in its own `## model lineup` block, so a lineup change
+# never edits this file. Canonical definition: spec skill, work-order-field-guide.md.
+TIERS = ["light", "standard", "advanced", "frontier"]
 SIZES = {"XS", "S", "M", "L", "XL", None}
 BLOCKED = {"blocked-needs-info", "blocked-ungroomable"}
 
@@ -153,8 +157,8 @@ def _builtin_structural(bead, rep, bid):
         if not isinstance(md, dict):
             rep.err(bid, "metadata must be an object")
         else:
-            if "model" in md and md["model"] not in MODELS:
-                rep.err(bid, f"metadata.model '{md['model']}' not in {sorted(MODELS)}")
+            if "tier" in md and md["tier"] not in TIERS:
+                rep.err(bid, f"metadata.tier '{md['tier']}' not in {TIERS} (least to most capable)")
             if md.get("est_size") not in SIZES:
                 rep.err(bid, f"metadata.est_size '{md.get('est_size')}' not in {sorted(x for x in SIZES if x)}")
 
@@ -174,18 +178,30 @@ def semantic_checks(beads, rep, vocab, have_c4_docs):
         if not blocked and typ != "epic":
             if not b.get("design"):
                 rep.err(bid, "ready non-epic bead is missing 'design'")
-            if not md.get("model"):
-                rep.err(bid, "ready bead has no metadata.model (must be non-null; opus|sonnet|fable)")
-            if not md.get("model_reason"):
-                rep.err(bid, "metadata.model set without a 'model_reason' (unauditable)")
+            if not md.get("tier"):
+                if md.get("model"):
+                    # Legacy shape from before tier-based routing. Migratable, not fatal
+                    # to diagnose — but still an error, because dispatch reads `tier`.
+                    rep.err(bid, f"ready bead has metadata.model '{md['model']}' but no metadata.tier "
+                                 f"— migrate: set tier to one of {TIERS} per the project's "
+                                 f"`## model lineup`, move the rationale to tier_reason, and drop "
+                                 f"`model` unless a named model is genuinely required")
+                else:
+                    rep.err(bid, f"ready bead has no metadata.tier (must be non-null; one of {TIERS}, "
+                                 f"least to most capable — assign the lowest that can do the work)")
+            elif not md.get("tier_reason"):
+                # Only meaningful once a tier exists; the no-tier case above already
+                # tells the author what to do, and two errors for one gap is noise.
+                rep.err(bid, f"metadata.tier '{md['tier']}' set without a 'tier_reason' (unauditable "
+                             f"— the retro uses it to tell whether routing was calibrated)")
         if not blocked and typ in ("feature", "bug") and not (b.get("acceptance") or []):
             rep.err(bid, f"ready {typ} has no acceptance criteria")
         if typ == "bug" and not blocked:
             blob = (b.get("description", "") + " " + " ".join(b.get("acceptance", []) or [])).lower()
             if not any(w in blob for w in ("reproduce", "repro", "steps", "expected", "actual")):
                 rep.warn(bid, "bug has no visible repro / expected-vs-actual — a fresh agent can't verify the fix")
-        if blocked and md.get("model") and md.get("model") in MODELS:
-            rep.info(bid, f"{gs}: carries a placeholder model — fine, but must not be dispatched until specified")
+        if blocked and md.get("tier") in TIERS:
+            rep.info(bid, f"{gs}: carries a placeholder tier — fine, but must not be dispatched until specified")
 
         # dependency / parent referential integrity + self-reference
         parents = []

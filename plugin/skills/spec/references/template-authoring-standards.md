@@ -1,19 +1,39 @@
 ---
 title: Template Authoring Standards
 description: System invariants for authoring document templates —
-  structure, metadata, slugs, instructions, EARS, placeholders, and
-  cross-references
+  structure, slugs, instruction blocks, versioning, placeholders, content
+  guidelines, and validation. Frontmatter, EARS, and cross-document
+  reference syntax are defined in the companion documents it points to
 slug: template-authoring-standards
 type: standards
 status: active
-updated_at: 2026-07-29T00:00:00Z
-version: "0.11"
+updated_at: 2026-07-30T00:00:00Z
+version: "0.12"
+related:
+  - "frontmatter-standards"
+  - "cross-document-references"
 ---
 
 # Template Authoring Standards
 
 This document defines invariants that SHALL be applied when authoring templates 
 for any type of structured document.
+
+## Contents
+
+- Document Structure — line length
+- Metadata (Frontmatter) → `frontmatter-standards.md`
+- Slug Conventions — format, identity rule, choosing the identifier, the
+  prefix registry, the frontmatter index, construction
+- Template Instructions — placement, HTML comment format, lifecycle
+- Template Versioning — when to bump a template, skill, or standard
+- Requirements Expression → `ears-guide.md`
+- Placeholders and Parameters — format, naming, env vars vs placeholders
+- Cross-Document References → `cross-document-references.md`
+- Template Content Guidelines — avoid duplication, avoid volatile facts,
+  living documents
+- Validation — frontmatter schemas, reference validation, dependency graph
+- References
 
 ---
 
@@ -33,197 +53,9 @@ side-by-side diff views without horizontal scrolling.
 
 ## Metadata (Frontmatter)
 
-### Format
-
-YAML frontmatter SHALL be used to provide structured metadata for documents 
-created from templates.
-
-The frontmatter block SHALL begin at the first line of the document.
-
-The frontmatter block SHALL be delimited by triple-dash lines (`---`).
-
-**Example:**
-```yaml
----
-title: Example Document
-description: A brief summary of what this document contains
-slug: example-document
-type: example
-status: draft
-updated_at: 2026-07-16T14:30:00Z
----
-```
-
-**Rationale:** YAML frontmatter is a widely-adopted convention (Jekyll, Hugo, 
-Obsidian) that provides machine-parseable metadata separate from content.
-
-### Required Properties
-
-Templates SHALL include the following metadata properties in their frontmatter:
-
-```yaml
----
-title: <title of the document>
-description: <a brief summary of the document>
-slug: <used to reference the document from other documents>
-type: <document-type>
-status: <status-value>
-updated_at: <RFC 3339 date time in which the document was last updated>
----
-```
-
-#### Property Definitions
-
-| Property | Type | Purpose | Format |
-|----------|------|---------|--------|
-| `title` | string | Human-readable document title | Free text |
-| `description` | string | Brief summary of the document | 1-2 sentences |
-| `slug` | string | Unique identifier for cross-references | Kebab-case (lowercase with hyphens) |
-| `type` | string | Document classification | Controlled vocabulary defined by document system |
-| `status` | string | Lifecycle state | One of: `draft`, `ready-for-review`, `approved`, `in-progress`, `active`, `retired` |
-| `updated_at` | datetime | Last modification timestamp | RFC 3339 format: `YYYY-MM-DDTHH:MM:SSZ` |
-
-The `type` property SHALL use a controlled vocabulary defined by the document 
-system using the templates.
-
-The `status` property SHALL use the following controlled vocabulary, common 
-to all document types:
-
-| Status | Meaning |
-|--------|---------|
-| `draft` | Under authorship; content may be incomplete |
-| `ready-for-review` | Complete and awaiting review |
-| `approved` | Reviewed and accepted; not yet in effect |
-| `in-progress` | Approved, and the change it specifies is being implemented |
-| `active` | In effect; the current source of truth |
-| `retired` | No longer in effect |
-
-Status values SHALL be lowercase with hyphen separators (kebab-case).
-
-State documents (blueprints, standards, contracts — documents that
-describe what IS) use `active` and never `in-progress`. Transient
-change documents (e.g., feature blueprints — documents that describe a
-change) use `in-progress` in place of `active`: a change specification
-is implemented, not "in effect."
-
-### Relationship Properties
-
-WHEN a document has relationships to other documents, the template SHALL 
-include relationship properties in the frontmatter:
-
-```yaml
----
-# Parent/child hierarchies
-parent_slug: "<parent document slug>"       # For nested documents
-children: []                                # Child document slugs
-
-# Source relationships (what this is based on)
-sources: []                                 # Source document slugs
-
-# Composition relationships (what this uses)
-composes: []                                # Composed document slugs
-
-# Dependency relationships (ordering)
-depends_on: []                              # Prerequisite document slugs
-blocks: []                                  # Blocked document slugs
-
-# Change relationships (transient change documents)
-updates: []                                 # Existing document slugs this
-                                            # change will modify
-creates: []                                 # New document slugs authored
-                                            # alongside this document
-
-# Peer relationships
-related: []                                 # Related document slugs
----
-```
-
-WHEN a document does not have relationships, these properties SHALL be omitted 
-from the template.
-
-All relationship properties SHALL reference documents by their `slug` value.
-
-WHEN a document describes a change to the document set itself (e.g., a 
-feature blueprint that will modify architecture blueprints and author new 
-contracts), the template SHALL include the `updates` and `creates` 
-properties.
-
-The `updates` property SHALL list existing documents the change will 
-modify; the `creates` property SHALL list new documents authored 
-alongside the change document (e.g., draft contracts).
-
-**Rationale:** Relationship properties enable traceability, dependency 
-management, and impact analysis across documents. Change relationships 
-additionally let tooling derive completion criteria for in-flight 
-changes: the change is not done until every listed document has been 
-updated or activated.
-
-### Optional Properties
-
-Templates MAY include additional properties based on the needs of the document 
-system:
-
-```yaml
----
-version: "0.1"                     # Semantic version
-created_at: <RFC 3339 datetime>    # Creation timestamp
-tags: []                           # Free-form tags for filtering/search
-superseded_by: "<slug>"            # For superseded documents
----
-```
-
-WHEN a document system uses semantic versioning, templates SHALL include a 
-`version` property.
-
-WHEN a document lifecycle includes supersession, templates SHALL include a 
-`superseded_by` property for use when a document is retired in favor of a 
-replacement.
-
-| Property | Type | Purpose | Format |
-|----------|------|----------|--------|
-| `version` | string | Document version | Semantic versioning: `MAJOR.MINOR.PATCH` |
-| `created_at` | datetime | Creation timestamp | RFC 3339 format |
-| `tags` | array | Free-form tags | Array of strings |
-| `superseded_by` | string | Superseding document | Slug of replacement document |
-
-Architecture blueprint templates (system, container, module, component)
-SHALL include `superseded_by`: their lifecycle includes retirement and
-migration between levels, and a retired blueprint points to its
-successor.
-
----
-
-## Embedded Element Records
-
-WHEN a document declares child elements it composes — the components of a
-container or a module — each child is recorded in one of two states, and
-a document system MAY make that record machine-readable:
-
-- **Un-promoted** (no blueprint of its own): the child's declaration
-  SHALL carry a fenced record block holding the base record fields
-  (`title`, `slug`, `description`):
-
-  ```component
-  title: <Child Name>
-  slug: component-<child-name>
-  description: <one-line brief description>
-  ```
-
-- **Promoted** (its own blueprint): the declaration links the blueprint
-  (`[[component-<name>]]` / `[[module-<name>]]`) and carries NO record
-  block.
-
-A child is in exactly ONE state — record block XOR blueprint link, never
-both. Promotion lifts the block verbatim into the new document's
-frontmatter and replaces it in every parent roster with the link, in the
-same change.
-
-The base record fields and the document-envelope fields (status,
-updated_at, and the type-specific frontmatter) SHOULD be defined as two
-schemas and merged with JSON Schema `allOf` for a standalone document's
-frontmatter: the embedded record block satisfies the base-record schema
-alone, and a promoted document's frontmatter satisfies both. One schema
-therefore validates a child whether it is embedded or promoted.
+Defined in `frontmatter-standards.md` — required, relationship, and optional
+properties, the `status` vocabulary, and the embedded element-record blocks.
+Load it when authoring a template's frontmatter or validating a document's.
 
 ---
 
@@ -456,58 +288,17 @@ carry their template's version.
 
 ## Requirements Expression
 
-### EARS Syntax
+WHEN a template is used to express requirements or invariants, EARS (Easy
+Approach to Requirements Syntax) SHALL be adopted, with capitalized RFC 2119
+modal verbs.
 
-WHEN a template is used to express requirements or invariants, EARS (Easy 
-Approach to Requirements Syntax) SHALL be adopted.
+The patterns, the modal-verb rubric, style rules, and worked examples are
+defined in `ears-guide.md` — the single, more complete definition. Load it
+when writing any requirement; this document does not restate it.
 
-EARS patterns SHALL use capitalized keywords: WHEN, WHILE, IF, THEN, SHALL, 
-SHALL NOT.
-
-**EARS Patterns:**
-
-| Pattern | Syntax | Use Case |
-|---------|--------|----------|
-| Ubiquitous | `The system SHALL [action]` | Always-active requirements |
-| Event-driven | `WHEN [event], the system SHALL [action]` | Triggered by events |
-| State-driven | `WHILE [state], the system SHALL [action]` | Active during a state |
-| Conditional | `IF [condition], THEN the system SHALL [action]` | Conditional requirements |
-| Negative | `The system SHALL NOT [action]` | Prohibitions |
-
-**Example:**
-```markdown
-The system SHALL NOT transmit data to external services.
-
-WHEN a user submits a form, the system SHALL validate all required fields.
-
-WHILE processing is in progress, the system SHALL display a loading indicator.
-
-IF validation fails, THEN the system SHALL display an error message.
-```
-
-**Rationale:** EARS provides unambiguous, testable constraint definitions 
-with explicit triggers and conditions. Developed by Rolls-Royce for 
+**Rationale:** EARS provides unambiguous, testable constraint definitions
+with explicit triggers and conditions. Developed by Rolls-Royce for
 safety-critical systems.
-
-### Modal Verbs (RFC 2119)
-
-Requirements SHALL use RFC 2119 keywords to indicate requirement levels:
-
-| Keyword | Meaning | Usage |
-|---------|---------|-------|
-| **SHALL** / **MUST** | Absolute requirement | Mandatory behavior |
-| **SHALL NOT** / **MUST NOT** | Absolute prohibition | Forbidden behavior |
-| **SHOULD** / **RECOMMENDED** | Strong recommendation | Recommended unless good reason to deviate |
-| **SHOULD NOT** / **NOT RECOMMENDED** | Strong discouragement | Avoid unless specific justification |
-| **MAY** / **OPTIONAL** | Truly optional | Implementer's choice |
-
-WHEN expressing requirements, modal verbs SHALL be capitalized for clarity.
-
-Modal verbs SHALL be used with care and sparingly, only where behavior must 
-be enforced for interoperability or to prevent harm.
-
-**Rationale:** RFC 2119 provides standardized language for requirement 
-levels, widely recognized in technical specifications since 1997.
 
 ---
 
@@ -568,85 +359,10 @@ documented in the relevant tooling guide, not in individual templates.
 
 ## Cross-Document References
 
-### Document Reference Syntax
-
-WHEN one document references another document in the specification set,
-double-bracket wikilink notation SHALL be used.
-
-**Format:** `[[document-slug]]`
-
-**Examples:**
-- `[[security-standards]]`
-- `[[contract-payments-api]]`
-- `[[template-authoring-standards]]`
-
-A reference resolves against the target document's frontmatter `slug` —
-never a file path. The namespace is flat and location-independent, so a
-reference is valid wherever the referencing document lives and wherever
-the target moves. At-sign (`@`) notation SHALL NOT be used: in a coding
-agent's environment `@` denotes a filesystem mention resolved against the
-session root, which a slug is not.
-
-### Reference Usage Rules
-
-WHEN referencing a document, the full slug SHALL be used (not the title),
-and only the slug SHALL appear between the brackets — display aliases
-(`[[slug|text]]`) SHALL NOT be used, as they reintroduce the title drift
-the slug exists to prevent. For readable prose, place words outside the
-link: `the checkout FRD ([[frd-checkout]])`.
-
-**Correct:** `See [[security-standards]] for requirements.`  
-**Incorrect:** `See Security Standards for requirements.`
-
-**Rationale:** An unambiguous closing delimiter lets tooling extract and
-validate every reference against the frontmatter index and build
-dependency graphs, with no trailing-punctuation ambiguity.
-
-### Specialized Reference Syntax
-
-Document systems MAY define additional reference syntaxes for
-domain-specific elements. `[[ ]]` is reserved for spec-set *documents*;
-the syntaxes below name things that are NOT documents.
-
-WHEN specialized reference syntax is defined, it SHALL be documented in the 
-template's instruction block.
-
-**Example specialized syntaxes:**
-- `` `Identifier` `` for a code-level element that is not a modeled
-  component — a schema, domain type, event, flag, or table
-- `$VARIABLE_NAME` for environment variables
-- `{placeholder}` for template variables
-
-An un-promoted component — declared under a `### <Name>` heading in its
-parent container's or module's Components section, with no blueprint of
-its own — is referenced with a standard wikilink heading anchor into
-that parent: `[[container-<name>#Component Name]]`. Once promoted to its
-own blueprint it is referenced as a document, `[[component-<name>]]`;
-the parent's roster heading persists through promotion, so existing
-anchor references keep resolving. Backticks stay reserved for code-level
-elements that are not modeled components.
-
-WHEN using specialized syntax, templates SHALL include examples in the 
-instruction block.
-
-### References Outside the Document Set
-
-Documents that are not part of the specification set — contributor and
-build docs (`AGENTS.md`, `CONTRIBUTING.md`), pre-existing design or
-pattern documents, and the framework's own reference guides shipped with
-a skill (`references/c4-guide.md`, `references/ears-guide.md`) — MAY be
-referenced by path in backticks.
-
-**Examples:** `` `AGENTS.md` ``, `` `references/c4-guide.md` ``
-
-The `[[document-slug]]` notation SHALL be reserved for documents in the 
-specification set; it SHALL NOT be used for documents outside it.
-
-**Rationale:** Real repositories have authoritative documents that 
-predate or sit outside the framework, and framework guides ship with the
-skill rather than being copied into a user's spec set. Referencing them
-by path avoids both duplication (which drifts) and forced migration; the
-distinct syntax keeps `[[slug]]` reference validation sound.
+Defined in `cross-document-references.md` — the `[[slug]]` wikilink syntax,
+usage rules, component heading anchors, and the rules for referencing
+documents outside the specification set. Load it when authoring or
+validating references; do not restate it here.
 
 ---
 

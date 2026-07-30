@@ -12,6 +12,13 @@ Template: Architecture Decision Record (ADR)
 Version: 1.2
 Source: Adapted from Michael Nygard's ADR format
 
+Sections (complete each, then delete its instruction block)
+  - Context
+  - Decision
+  - Alternatives Considered
+  - Consequences
+  - References
+
 Purpose
   Records significant architectural and technology decisions, their context,
   alternatives considered, and consequences. ADRs create a decision log that

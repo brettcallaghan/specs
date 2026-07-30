@@ -12,6 +12,15 @@ version: "0.5.0"
 
 # Blueprint Readiness Checklist
 
+## Contents
+
+- Readiness checks #1–#3 — is grooming premature? (FRD status, blueprint
+  status, Open Questions)
+- Content checks #4–#10 — is the approved design plannable? (AC Coverage
+  rows, `[[slug]]` resolution, component references, design intent, delta
+  keys, lockstep rules, Tracker Reconciliation)
+- The decision sweep — the authoring preflight for check 7
+
 One list, two consumers. The `spec` skill runs these checks as a
 **preflight** before a feature blueprint is set to `ready-for-review`;
 the `groom-feature-blueprint` skill enforces them as its **Phase 1 gate** before
@@ -56,13 +65,13 @@ time.
 6. Every component reference resolves to exactly one declaration across
    the referenced containers' and modules' Components sections — by name,
    qualified in prose where ambiguous (see element declarations in
-   `references/c4-guide.md`).
+   `c4-guide.md`).
 7. Every delta contains enough design intent to implement without
    making a design decision the blueprint does not record.
 8. The AC Coverage legend assigns every delta block a unique short
    key, every legend key expands to an existing delta block, and no
    key from an earlier revision has been reused for a different delta.
-   These keys are the stable identity work items carry through
+   These keys are the stable identity work orders carry through
    grooming and re-grooming.
 9. For every lockstep-update rule in the owning blueprints' Change
    Guidance whose coupled artifacts span more than one delta block,
@@ -101,6 +110,6 @@ guards against pinning too little.
 
 - `feature-blueprint-template.md` (same directory) — the document
   these checks apply to, including the AC Coverage row validity rules
-- `references/c4-guide.md` — element declarations and reference rules
+- `c4-guide.md` — element declarations and reference rules
 - [[ac-traceability-standards]] — the test citation obligations the AC
   Coverage table feeds
