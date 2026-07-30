@@ -206,8 +206,9 @@ are being reviewed for other reasons.
 
 - **Clarify whether step 7's retro offer covers a document authored from
   non-spec inputs.** `SKILL.md:224` triggers the offer WHEN a document
-  "consumed upstream documents"; this run consumed `plan.md` and
-  `plan2.md`, which are process artifacts, not spec types. The ambiguity
+  "consumed upstream documents"; this run consumed
+  `docs/plans/plan.md` and `docs/plans/plan2.md`, which are process
+  artifacts, not spec types. The ambiguity
   was noticed but did not mislead — the retro was requested explicitly, so
   no wrong action followed. No run evidence; revisit if a future run
   actually skips a warranted retro because of it.
