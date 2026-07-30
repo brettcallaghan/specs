@@ -20,6 +20,16 @@ Version: 1.2
 Source: Architecture documentation framework. C4 mapping rules and
   contract visibility tiers are defined in `c4-guide.md`.
 
+Sections (complete each, then delete its instruction block)
+  - Overview
+  - Specification
+  - Guarantees
+  - Operational Expectations
+  - Versioning and Change Policy
+  - Key Decisions
+  - Open Questions
+  - References
+
 Purpose
   The prose companion to a machine-readable interface specification. The
   spec artifact (OpenAPI, GraphQL SDL, protobuf, JSON Schema, Avro

@@ -232,30 +232,32 @@ specs.
 
 ## References
 
-Load the reference that matches the work at hand:
+Load the whole row. Where a row lists more than one file, those files are
+a **bundle** — the template alone is not enough to author the document
+correctly, and loading them together is one hop rather than a chain.
 
-| Working on | Load |
-|------------|------|
+| Working on | Load together |
+|------------|---------------|
 | Recording an architecture or technology decision | `references/adr-template.md` |
-| Specifying a feature (user stories + acceptance criteria) | `references/frd-template.md` |
-| Defining cross-cutting standards, policies, or constraints | `references/standards-template.md` |
-| Documenting a system (context, containers, deployment) | `references/system-blueprint-template.md` |
-| Documenting a deployable unit (app or owned data store) | `references/container-blueprint-template.md` |
-| Documenting an atomic component of one container | `references/component-blueprint-template.md` |
-| Documenting a shared/published or composite unit (a module) | `references/module-blueprint-template.md` |
-| Designing how a specified feature will be built (deltas, AC coverage) | `references/feature-blueprint-template.md` |
-| Understanding the format of an executable work order | `references/work-order-template.md` |
-| The readiness bar a work order must pass to be dispatched | `references/work-order-definition-of-ready.md` |
-| Filling a work order's fields (three text fields, model routing) | `references/work-order-field-guide.md` |
+| Specifying a feature (user stories + acceptance criteria) | `references/frd-template.md` + `references/ears-guide.md` |
+| Defining cross-cutting standards, policies, or constraints | `references/standards-template.md` + `references/ears-guide.md` |
+| Documenting a system (context, containers, deployment) | `references/system-blueprint-template.md` + `references/c4-guide.md` |
+| Documenting a deployable unit (app or owned data store) | `references/container-blueprint-template.md` + `references/c4-guide.md` |
+| Documenting an atomic component of one container | `references/component-blueprint-template.md` + `references/c4-guide.md` |
+| Documenting a shared/published or composite unit (a module) | `references/module-blueprint-template.md` + `references/c4-guide.md` |
+| Designing how a specified feature will be built (deltas, AC coverage) | `references/feature-blueprint-template.md` + `references/ac-traceability-standards.md` + `references/c4-guide.md` |
+| Understanding, filling, or gating a work order | `references/work-order-template.md` + `references/work-order-field-guide.md` + `references/work-order-definition-of-ready.md` |
 | Preflighting a feature blueprint before review handoff | `references/blueprint-readiness-checklist.md` |
-| Authoring a feature blueprint's AC Coverage or Definition of Done | `references/ac-traceability-standards.md` |
-| Specifying an interface's semantics, SLOs, and change policy | `references/contract-template.md` |
+| Specifying an interface's semantics, SLOs, and change policy | `references/contract-template.md` + `references/c4-guide.md` |
 | Mapping any element to a C4 level; diagram conventions | `references/c4-guide.md` |
 | Writing any requirement or acceptance criterion | `references/ears-guide.md` |
-| Frontmatter, slugs, references, placeholders, comment blocks | `references/template-authoring-standards.md` |
+| Slugs, instruction blocks, versioning, placeholders, validation | `references/template-authoring-standards.md` |
+| Frontmatter properties, status vocabulary, element records | `references/frontmatter-standards.md` |
+| `[[slug]]` wikilinks, heading anchors, backticked paths | `references/cross-document-references.md` |
 
-Load multiple when the work spans them (e.g., the EARS guide alongside
-whichever template you are filling in).
+Every file above is one hop from here. Read the bundle up front rather
+than following a pointer out of a template mid-authoring — a reference
+reached at the second hop tends to get previewed rather than read.
 
 ---
 

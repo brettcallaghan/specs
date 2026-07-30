@@ -28,6 +28,18 @@ Version: 1.3
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]].
 
+Sections (complete each, then delete its instruction block)
+  - Overview
+  - Element Deltas
+  - Contracts
+  - Tracker Reconciliation
+  - Sequencing Constraints
+  - AC Coverage
+  - Key Decisions
+  - Definition of Done
+  - Open Questions
+  - References
+
 Purpose
   Describe HOW a single feature is built. A Feature Blueprint maps 1:1 to
   a Feature Requirements Document — the FRD describes WHAT users need and

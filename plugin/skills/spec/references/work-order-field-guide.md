@@ -15,6 +15,17 @@ related:
 
 # Work Order Field Guide
 
+## Contents
+
+- The three text fields (Problem / Design / Acceptance) and what separates them
+- Dispatch metadata conventions — `tier`, `tier_reason`, `est_size`, `c4_*`
+- Why tiers, not model names — and the project `## model lineup` block
+- Tier-routing rubric — which signals push toward `light` / `standard` /
+  `advanced` / `frontier`
+- Calibration — escalations as routing evidence, and why over-routing is
+  invisible
+- Estimates vs. tiers — what `est_size` answers that `tier` does not
+
 Companion to `work-order-template.md` and [[work-order-definition-of-ready]]. The
 template defines the shape and the DoR defines the gate; this guide is how to
 fill the fields well.

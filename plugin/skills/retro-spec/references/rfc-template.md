@@ -21,6 +21,16 @@ Template: Improvement RFC
 Version: 1.1
 Source: spec-driven-dev framework (produced by the retro-spec skill)
 
+Sections (complete each, then delete its instruction block)
+  - Summary
+  - Provenance
+  - Evidence
+  - Proposals
+  - Considered and Not Proposed
+  - Non-Goals
+  - Adoption
+  - Resolution
+
 Purpose
   Proposes evidence-backed improvements to the documents, templates,
   or skills that guided a completed phase of spec-driven work. An RFC

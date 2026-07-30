@@ -42,6 +42,12 @@ Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]]. Readiness criteria are defined in
   [[work-order-definition-of-ready]] and `work-order-field-guide.md`.
 
+Sections (complete each, then delete its instruction block)
+  - Problem
+  - Design
+  - Acceptance
+  - Retro
+
 Purpose
   A Work Order is the atomic, self-contained unit of executable work: the
   smallest thing that can be handed to a fresh agent with zero session

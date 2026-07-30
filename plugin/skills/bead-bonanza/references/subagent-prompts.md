@@ -25,7 +25,7 @@ templates reference its workflow rather than restating it, so read it first.
 ## Grooming subagent prompt template
 
 ```
-You are grooming {N} beads to the Definition of Ready so an orchestrator can dispatch each to an isolated, zero-context sub-agent. Use the `groom-beads` skill; it enforces the spec-owned Definition of Ready (`../spec/references/work-order-definition-of-ready.md`). Follow its full workflow (Definition of Ready, dependency wiring, model assignment, C4 blast radius, validate).
+You are grooming {N} beads to the Definition of Ready so an orchestrator can dispatch each to an isolated, zero-context sub-agent. Use the `groom-beads` skill and follow its full workflow (Definition of Ready, dependency wiring, tier assignment, C4 blast radius, validate). It loads the spec-owned Definition of Ready itself — do not go looking for that file by path.
 
 Beads to groom:
 {ID_1} — {TITLE_1}

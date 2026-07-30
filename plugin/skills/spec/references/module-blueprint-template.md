@@ -26,6 +26,18 @@ Version: 0.5
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `c4-guide.md` — load it before authoring.
 
+Sections (complete each, then delete its instruction block)
+  - Overview
+  - Interface
+  - Components
+  - Pattern Guidance
+  - Versioning and Compatibility
+  - Cross-Cutting Standards
+  - Change Guidance
+  - Key Decisions
+  - Open Questions
+  - References
+
 Purpose
   Document one MODULE: a unit of software that crosses a boundary of
   independent change — it is shared or vended across containers on their

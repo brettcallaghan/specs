@@ -12,6 +12,15 @@ version: "0.5.0"
 
 # Blueprint Readiness Checklist
 
+## Contents
+
+- Readiness checks #1–#3 — is grooming premature? (FRD status, blueprint
+  status, Open Questions)
+- Content checks #4–#10 — is the approved design plannable? (AC Coverage
+  rows, `[[slug]]` resolution, component references, design intent, delta
+  keys, lockstep rules, Tracker Reconciliation)
+- The decision sweep — the authoring preflight for check 7
+
 One list, two consumers. The `spec` skill runs these checks as a
 **preflight** before a feature blueprint is set to `ready-for-review`;
 the `groom-feature-blueprint` skill enforces them as its **Phase 1 gate** before

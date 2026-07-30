@@ -14,6 +14,22 @@ related:
 
 # Work Order Definition of Ready
 
+## Contents
+
+The eight checks a work order must pass before dispatch:
+
+1. Self-contained Problem statement (the fresh-agent test)
+2. Right size (single session)
+3. `## Design` present (non-trivial, non-epic orders)
+4. `## Acceptance` criteria (bugs & features)
+5. Kind-appropriate completeness (bug / feature / task / chore / epic)
+6. Dependencies wired
+7. Tier assigned (+ reason)
+8. C4 blast radius declared (IF the repo uses C4)
+
+Then: what to do when a work order can't reach ready, and three worked
+under-groomed → ready examples.
+
 A work order is **ready** when a fresh agent with zero session context can
 complete it correctly from the work order alone — no planning conversation, no
 one to ask. Run every work order against the checks below. Treat these as a

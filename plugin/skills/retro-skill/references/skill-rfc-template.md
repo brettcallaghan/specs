@@ -30,6 +30,16 @@ Lineage: a skill-focused fork of retro-spec's rfc-template — drops
   runs_observed, severity), the three finding shapes, and a per-proposal
   Severity. Keep the two in sync where they overlap.
 
+Sections (complete each, then delete its instruction block)
+  - Summary
+  - Provenance
+  - Evidence
+  - Proposals
+  - Considered and Not Proposed
+  - Non-Goals
+  - Adoption
+  - Resolution
+
 Purpose
   Proposes evidence-backed improvements to ONE skill (its SKILL.md,
   references, scripts, or templates) from a real run of it. The RFC

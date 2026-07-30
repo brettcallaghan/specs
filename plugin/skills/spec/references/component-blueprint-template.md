@@ -18,6 +18,16 @@ Version: 1.3
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `c4-guide.md` — load it before authoring.
 
+Sections (complete each, then delete its instruction block)
+  - Overview
+  - Interface
+  - Pattern Guidance
+  - Cross-Cutting Standards
+  - Change Guidance
+  - Key Decisions
+  - Open Questions
+  - References
+
 Purpose
   Document one COMPONENT: an internal building block of a SINGLE
   container, with a defined interface and — as a leaf — no internal

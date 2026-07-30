@@ -12,6 +12,20 @@ related:
 
 # Writing Requirements with EARS
 
+## Contents
+
+- Why EARS — what the syntax buys over free-form prose
+- Sentence Patterns — ubiquitous, event-driven, state-driven, optional
+  feature, conditional, negative (plus pattern selection and complex
+  requirements)
+- Modal Verbs — RFC 2119 keywords and when each applies
+- Writing Style Rules
+- Common Mistakes
+- Examples Across Requirement Types
+- Requirements in Documents
+- Quick Checklist — run this before calling a requirement done
+- References
+
 EARS (Easy Approach to Requirements Syntax) is the convention for authoring
 requirements in this project. It applies to **all** requirement types —
 functional requirements, non-functional requirements, system invariants,

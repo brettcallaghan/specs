@@ -18,6 +18,19 @@ Version: 1.2
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `c4-guide.md` — load it before authoring.
 
+Sections (complete each, then delete its instruction block)
+  - Overview
+  - System Context
+  - Containers
+  - Public Contracts
+  - Consumed Systems and Contracts
+  - Deployment
+  - Cross-Cutting Standards
+  - Change Guidance
+  - Key Decisions
+  - Open Questions
+  - References
+
 Purpose
   Document one software system: the related capabilities it bundles, its
   context among neighboring systems and actors, the containers it is made
