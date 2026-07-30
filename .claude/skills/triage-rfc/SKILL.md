@@ -66,11 +66,11 @@ the note. Then, per RFC, in received order:
    addressed in <file> v<X.Y>" without further debate. An RFC missing
    provenance versions is still triaged, but say so in the
    Resolution; the citation burden was the author's.
-2. **Dedupe.** Search this repo's `rfcs/` Resolution sections —
-   rfc-0001 through rfc-0003 predate the term and use the older
-   heading "Disposition"; check both — and
-   the beads (`bd list --label rfc-triage`) for prior proposals on
-   the same theme.
+2. **Dedupe.** Search this repo's `rfcs/` for prior proposals on the
+   same theme, and the beads (`bd list --label rfc-triage`). Match on
+   the outcome section of each resolved RFC whatever it is titled —
+   older RFCs may use a different heading than the current template's,
+   so search the content rather than assuming one heading.
    - Prior REJECTED match: flag it with the prior rationale; recommend
      reconsideration only if this RFC carries new evidence.
    - Prior DEFERRED match (an open bead): this is recurrence — the

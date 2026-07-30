@@ -44,13 +44,12 @@ decisions it depends on will be rewritten once they land.
 
 ## Document Types
 
-Ten specification document types are currently defined: three for
-decisions, requirements, and cross-cutting standards, five for
-architecture documentation, one —
-the Feature Blueprint — for feature design, and one — the Work Order —
-for a single unit of executable work. Use only these types; do not
-invent new ones. If work does not fit any of them, say so rather than
-forcing it into the wrong type.
+The specification document types are listed in the table below: some for
+decisions, requirements, and cross-cutting standards, some for
+architecture documentation, one — the Feature Blueprint — for feature
+design, and one — the Work Order — for a single unit of executable work.
+Use only these types; do not invent new ones. If work does not fit any of
+them, say so rather than forcing it into the wrong type.
 
 The Work Order is the one type this skill does not itself author. It is
 the framework's portable, atomic unit of executable work — everything a

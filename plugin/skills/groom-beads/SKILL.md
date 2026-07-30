@@ -3,17 +3,13 @@ name: groom-beads
 description: >-
   Materialize and groom work orders as beads (issues in the Beads / `bd`
   git-native issue tracker) so each is Ready — dispatchable to an isolated,
-  zero-context agent. This is the work-order Definition of Ready engine for the
-  beads backend: it enforces the readiness criteria the `spec` skill defines and
-  maps the portable work-order format onto bead fields and metadata. Use this
-  skill whenever the user wants to groom, refine, triage, prepare, clean up, or
-  "get beads ready" — or mentions a backlog of beads, a `.beads/` directory,
-  `bd ready`, running beads in waves, assigning capability tiers to beads, or wiring bead
-  dependencies before a long-running/orchestrated session. Trigger even if the
-  user just says "groom these" or "make these beads ready" in a repo that uses
-  beads. Brings each bead to the Definition of Ready, wires the dependency graph,
-  tags C4 container/component blast radius, assigns a capability tier, and
-  (optionally) previews collision-free waves.
+  zero-context agent. Use this skill whenever the user wants to groom,
+  refine, triage, prepare, clean up, or "get beads ready" — or mentions a
+  backlog of beads, a `.beads/` directory, `bd ready`, running beads in
+  waves, assigning capability tiers to beads, or wiring bead dependencies
+  before a long-running or orchestrated session. Trigger even if the user
+  just says "groom these" or "make these beads ready" in a repo that uses
+  beads.
 version: "1.0"
 ---
 
@@ -248,8 +244,12 @@ on whether `bd` is live:
 - **In the file-emit fallback**, run the bundled validator on what you wrote:
 
   ```
-  python scripts/validate_beads.py <emitted.jsonl> --c4-docs <path/to/c4/docs...>
+  python3 scripts/validate_beads.py <emitted.jsonl> --c4-docs <path/to/c4/docs...>
   ```
+
+  Requires `python3`. It uses the `jsonschema` package for full structural
+  validation when installed and falls back to equivalent built-in checks
+  otherwise, so it never fails for a missing dependency.
 
   It checks each bead against `references/bead.schema.json` (canonical field/edge
   names, enums, required fields) **and** the things a per-record schema can't:

@@ -252,12 +252,10 @@ logic, and duplicating it is how the two skills drift.
 **Task-file directory** — otherwise, write `plans/<feature-slug>/`:
 
 <!--
-This is the interim no-tracker fallback. A first-class file-backed
-serialization of the work-order format
-(`references/shared/work-order-template.md`) is
-deliberately not yet defined; when it is, it supersedes this shape and
-the finishing pass applies here too. Until then, tier / C4 fields are
-absent on this path — file-backed work is not the beads dispatch model.
+The no-tracker fallback. This shape is not the work-order format
+(`references/shared/work-order-template.md`) serialized to files; tier and
+C4 fields are absent here, because file-backed work is not the beads
+dispatch model and no finishing pass runs against it.
 -->
 
 - `index.md` — the feature, links to FRD and blueprint, the item list

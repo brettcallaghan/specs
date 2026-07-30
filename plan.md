@@ -11,13 +11,20 @@ rests on. Where this repo's *own* normative documents say the same thing,
 that is cited too — a rule you already wrote is cheaper to adopt than a
 new one.
 
-> **Status — implemented after review.** Tier 1 (P1–P5) and the reviewed
-> Tier 2 items (P6–P9) are done and pushed. P1's fix direction was inverted
-> on review: `haiku|sonnet|opus|fable` is the correct set and order, so the
-> spec-side files were the wrong ones — and rather than re-pin them to a
-> lineup that churns, routing now uses an ordered capability tier. P19 was
-> subsumed by the P6 split. Still open: P10–P18, and everything in
-> `plan2.md`.
+> **Status — implemented after review.** P1–P9 and P12–P19 are done and
+> pushed. Two findings changed on review:
+>
+> - **P1's fix direction inverted.** `haiku|sonnet|opus|fable` is the
+>   correct set and order, so the spec-side files were the wrong ones.
+>   Rather than re-pin four files to a lineup that churns every release,
+>   routing now uses an ordered capability tier resolved to a model at
+>   dispatch.
+> - **P16 was wrong.** `retro-*` and `spec` are verb-object, not noun
+>   phrases — see the corrected entry. Verb-object is now the collection's
+>   recorded standard; the `bead-bonanza` rename is tabled with candidates.
+>
+> **Still open:** P10 (evaluations) and P11 (multi-model testing) — the
+> whole of Tier 3 — plus everything in `plan2.md`.
 
 **How this is ranked:** by expected cost of *not* fixing it. Tier 1 items
 are live defects that will make a real run produce a wrong result. Tier 2
@@ -926,54 +933,57 @@ already demands it of the templates.
 
 ---
 
-## P16. Naming is inconsistent across the collection, and one name is vague
+## P16. ~~Naming is inconsistent across the collection~~ — CORRECTED: only `bead-bonanza` diverges
 
-**Severity: low mechanically, medium for discovery.** BP:
-[Naming conventions](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices#naming-conventions):
+**This finding was wrong as originally written.** I read `retro-spec` /
+`retro-skill` as noun-noun and `spec` as a bare generic noun. Both are
+verb-object: *retro* is used as a verb ("retro the spec", "retro the
+skill"), and *spec* is short for *specify* — "spec out the feature". Under
+that reading the collection is already consistent:
 
-> "Consider using **gerund form** (verb + -ing)… **Acceptable
-> alternatives:** Noun phrases… Action-oriented…
-> **Avoid:** Vague names: `helper`, `utils`, `tools`; Overly generic:
-> `documents`, `data`, `files`; **Inconsistent patterns within your skill
-> collection.**"
->
-> "Consistent naming makes it easier to… Maintain a professional,
-> cohesive skill library."
-
-Four patterns across seven skills:
-
-| Pattern | Skills |
+| Skill | Reading |
 |---|---|
-| Verb-object | `groom-beads`, `groom-feature-blueprint`, `triage-rfc` |
-| Noun-noun | `retro-spec`, `retro-skill` |
-| Bare generic noun | `spec` |
-| Alliterative pun | `bead-bonanza` |
+| `groom-beads` | groom the beads |
+| `groom-feature-blueprint` | groom the feature blueprint |
+| `triage-rfc` | triage the RFC |
+| `retro-spec` | retro the spec |
+| `retro-skill` | retro the skill |
+| `spec` | spec [out the thing] |
+| `bead-bonanza` | — not verb-object |
 
-`bead-bonanza` is the clear miss: it names the mood rather than the
-activity, and gives the discovery layer nothing to match on. Its
-description carries the load alone — which works, but wastes the name.
-`spec` is generic in the sense BP flags, though it is at least the
-domain's real term of art.
+Six of seven follow one pattern. The best-practices
+["Avoid: inconsistent patterns within your skill collection"](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices#naming-conventions)
+concern therefore does not apply to the collection — only to the one
+outlier. All seven names also pass the hard rules (≤64 chars,
+lowercase/hyphens, no reserved words, no XML).
 
-All names pass the hard rules: ≤64 chars, lowercase/hyphens only, no
-reserved words, no XML.
+**Decision taken.** Verb-object is the collection's naming standard; new
+skills follow it. This belongs in the skill-authoring standard proposed in
+`plan2.md` §3 once that document exists.
 
-**Recommended change — deliberately conservative, because renaming is
-expensive here.** A rename breaks installed copies, every `../<skill>/`
-path (P9), and the `skill:` provenance field that
-`retro-skill/references/skill-rfc-template.md:12` records in past RFCs.
-So:
+**`bead-bonanza` — rename tabled, ideas recorded.** The framing is that
+this skill replaces an SDLC ceremony: it collapses a developer's whole
+sprint into one autonomous session. "Sprint" is the wrong borrow because a
+sprint is the fastest a *human* can go, and this is faster. Candidates, by
+the metaphor they borrow:
 
-1. **Rename `bead-bonanza`** → `processing-bead-queues` (gerund) or
-   `batch-process-beads` (action-oriented). Do it now, while it is the
-   least-referenced skill.
-2. **Keep `spec`.** It is established, its description is
-   trigger-rich, and the cost of churning it exceeds the benefit.
-3. **Adopt one pattern for anything new** and record it (see plan2 §6
-   on a skill-authoring standard). Verb-object matches the plurality and
-   reads well for this domain.
-4. If any rename lands, add an alias note to `triage-rfc` so RFCs citing
-   the old `skill:` value still dedupe correctly.
+| Candidate | Reading | Note |
+|---|---|---|
+| `burn-backlog` | verb-object | Borrows *burndown*, the agile artifact that tracks exactly this. Says what happens: the backlog goes down. |
+| `drain-queue` / `drain-backlog` | verb-object | Plainest description of the behavior. "Drain until dry" is already the skill's auto-chain language. |
+| `run-waves` / `dispatch-waves` | verb-object | Uses the skill's own vocabulary — it dispatches waves. Weakest on discovery: "wave" means nothing to a newcomer. |
+| `blitz-beads` | verb-object | Keeps the alliterative energy of the current name while becoming a verb. Blitz = faster than a sprint, which is exactly the intended contrast. |
+| `swarm-beads` | verb-object | Accurate (parallel subagents) but collides with `bd swarm validate`. |
+
+My pick would be **`burn-backlog`**: it is verb-object, it borrows the one
+agile artifact that already measures this activity, it describes the
+outcome rather than the mechanism, and it survives the framework moving
+off beads. `blitz-beads` is the better choice if keeping the SDLC-parody
+tone matters more than durability.
+
+Renaming is not free — it breaks installed copies, the vendored-reference
+map, and the `skill:` provenance field in any past RFC — so if one is
+adopted, add an alias note to `triage-rfc` so old RFCs still dedupe.
 
 ---
 
