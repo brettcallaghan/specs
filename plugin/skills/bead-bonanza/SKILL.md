@@ -72,6 +72,11 @@ Before reading the queue, verify the environment won't interrupt the run:
 2. **Common command permissions.** Confirm these are in `.claude/settings.local.json` allow list. If any are missing, ask the user once whether to add them, then add (don't add silently):
    - `Bash(bd:*)`, `Bash(bd create:*)`, `Bash(bd update:*)`, `Bash(bd close:*)`
    - `Bash(wait)`, `Bash(wait %1)`, `Bash(jq:*)`
+   - This skill's bundled scripts — one entry covers every progress event,
+     skip check, and close ceremony in the run:
+     `Bash(<skill-dir>/scripts/bb-progress.sh:*)`,
+     `Bash(<skill-dir>/scripts/bb-verify-skip.sh:*)`,
+     `Bash(<skill-dir>/scripts/bb-close-bead.sh:*)`
    - The gate-profile commands — whatever `<format>`/`<lint>`/`<build>`/`<test>`/`<regen>` resolve to for this project (e.g. `Bash(cargo:*)`, `Bash(npm run test:*)`, `Bash(go build:*)`, `Bash(pytest:*)`, or the regen script's path)
    - `Read(/tmp/claude/**)` — and `Read($TMPDIR/**)` too WHEN `TMPDIR` is set
      (macOS sets it to a per-user dir; most Linux hosts leave it unset)
@@ -86,6 +91,13 @@ Before reading the queue, verify the environment won't interrupt the run:
    mkdir -p "$RUN_DIR" && touch "$RUN_DIR/.ok" && echo "run dir: $RUN_DIR"
    ```
    **Always write `${TMPDIR:-/tmp}`, never a bare `$TMPDIR`.** `TMPDIR` is set on macOS but unset on most Linux hosts and in most containers, where a bare `$TMPDIR/claude/...` expands to the absolute path `/claude/...` — which is unwritable, so every later write fails. Substitute the resolved `$RUN_DIR` wherever this document shows the path.
+
+   Resolve the scripts directory in the same step — every subagent prompt
+   needs it as an absolute path, because a subagent runs from the repo root
+   and cannot find this skill by itself:
+   ```bash
+   SCRIPTS="<absolute path to this skill>/scripts"
+   ```
 
    Do not proceed while that command fails. This directory holds the decisions doc (when one is needed), the dispatch plan (when one is needed), per-bead progress files (one `.progress.jsonl` per bead), and per-bead retro files (one `.retro.md` per bead, written by the subagent before close) — and crash recovery reads from it, so a run started without it cannot be recovered.
 5. **TaskCreate fallback.** This skill defaults to `TaskCreate`/`TaskUpdate` for orchestrator-side progress visibility. If the project's `CLAUDE.md`/`AGENTS.md` explicitly bans `TaskCreate` (e.g. "use bd for ALL task tracking"), skip it — the project rule wins. Use inline status updates in your text output instead. (`bd` already tracks the work; `TaskCreate` is purely orchestrator scaffolding for in-conversation visibility.)
@@ -349,11 +361,11 @@ After each subagent returns:
 1. Append its summary lines to your log (one per bead processed).
 2. Mark corresponding tasks complete via `TaskUpdate` (or skip if the project bans TaskCreate per Phase 0 step 5).
 3. **Verify skip claims with a diff-stat.** For every bead the subagent returned as `skipped`:
-   - Run `git diff --stat` and `git diff --staged --stat` (scoped to that bead's worktree if applicable).
-   - **If both diffs are empty:** the skip is consistent. Confirm the subagent's summary line includes a one-line reason citing the bead/commit that already addressed the issue (e.g. `skipped - already addressed by demo-wxi @ a1b2c3d`). If the reason is missing, push back: re-prompt the subagent (or fill it in from `bd show <id>` history) before accepting the skip.
-   - **If either diff is non-empty AND status=skipped:** this is an inconsistency. **Block the close.** The subagent either did work it didn't acknowledge, or left the tree dirty. Re-dispatch with explicit instructions to choose one of:
+   - Run `scripts/bb-verify-skip.sh` (scoped to that bead's worktree if applicable). It exits 0 when the skip is consistent, 1 when it contradicts the tree.
+   - **If it exits 0:** the skip is consistent. Confirm the subagent's summary line includes a one-line reason citing the bead/commit that already addressed the issue (e.g. `skipped - already addressed by demo-wxi @ a1b2c3d`). If the reason is missing, push back: re-prompt the subagent (or fill it in from `bd show <id>` history) before accepting the skip.
+   - **If it exits 1 AND status=skipped:** this is an inconsistency. **Block the close.** The subagent either did work it didn't acknowledge, or left the tree dirty. Re-dispatch with explicit instructions to choose one of:
      - Commit the diff and change status to `completed` (run the full per-bead close ceremony), OR
-     - Revert the diff (`git checkout -- <paths>` / `git restore --staged <paths>`) and re-confirm `skipped` with a fresh diff-stat showing clean.
+     - Revert the diff (`git checkout -- <paths>` / `git restore --staged <paths>`) and re-confirm `skipped` with a fresh run showing CLEAN.
    - Do NOT proceed to push or to the next bead until the skip is reconciled. This catches the case where the subagent's first read mistakenly concluded "already addressed" but it still produced edits — the orchestrator must not silently accept a contradictory state. (Origin: a near-miss where a subagent claimed a skip while leaving a non-empty diff.)
 4. **Verify the working tree is clean** with `git status --porcelain`. If dirty, fall through to the recovery procedure below.
 5. If the bucket used `defer-push`, run `git push` for the bucket now.
@@ -453,17 +465,26 @@ Load the one that matches where you are in the run:
 |------------|------|
 | Dispatching any subagent (Phase 1.5 grooming, Phase 3 execution) | `references/subagent-prompts.md` |
 | A subagent that crashed, timed out, or is running past 5 minutes | `references/recovery.md` |
+| Emitting a progress event | run `scripts/bb-progress.sh` |
+| Checking a `skipped` claim against the tree | run `scripts/bb-verify-skip.sh` |
+| Closing a bead: close + export + stage + commit | run `scripts/bb-close-bead.sh` |
 | The Definition of Ready the Phase 1.5 gate enforces | `references/shared/work-order-definition-of-ready.md` |
 
-Both are one hop from here — read them in full rather than previewing, and
-substitute every `{PLACEHOLDER}` and the resolved `$RUN_DIR` before sending
+The two reference files are one hop from here — read them in full rather
+than previewing, and substitute every `{PLACEHOLDER}`, `{RUN_DIR}`, and `{SCRIPTS}` before sending
 a prompt.
+
+The three `scripts/` entries are **executed, not read**. They exist because
+each encodes an ordering or quoting rule that is easy to state and easy to
+get wrong under pressure — the close ceremony's four ordering constraints,
+the progress event's quoting hazard, the two-sided skip check. Run them
+rather than reproducing what they do.
 
 Files under `references/shared/` are **generated copies** of reference
 documents owned by a sibling skill — vendored in by
-`scripts/sync-shared-references.sh` so this skill is self-contained. Read
-them normally; never edit them. Fix the source named in each file's header
-and re-run the script.
+the repo-level `scripts/sync-shared-references.sh` so this skill is
+self-contained. Read them normally; never edit them — fix the source named
+in each file's header and re-run that script.
 
 ## Retro this skill
 

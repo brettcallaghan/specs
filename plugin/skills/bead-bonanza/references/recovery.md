@@ -24,7 +24,7 @@ If a subagent times out, returns an "API Error" instead of a summary, or otherwi
 2. **If `gates-passed` was emitted but `committed` was not** — the work is done in the working tree, only the close+commit ceremony is incomplete. This is the **happy crash path**:
    - Read the retro file at `<run-id>/<bead-id>.retro.md`. If present, use it as the close body.
    - If the retro file is missing (subagent crashed before writing it), reconstruct minimally: the original bead description plus a short Retro noting "Subagent timed out before retro write; orchestrator finished close from working-tree state."
-   - Run `bd update <id> --status closed --body-file <retro-file-or-tmp>`.
+   - Run `scripts/bb-close-bead.sh <id> <priority> "<title>" <retro-file> <paths>` — the same script the subagent would have run. It closes, exports, stages, and commits in the required order.
    - Run `bd export` into `.beads/issues.jsonl` first (the subagent may have crashed before exporting). Then stage source paths, any regenerated fixtures, `.beads/issues.jsonl`, `.beads/interactions.jsonl`. Inspect `git status --porcelain` carefully — only stage what belongs to this bead.
    - Commit with the canonical message format (`<id> P<priority> <title>`).
    - Push (if appropriate for the bucket).
@@ -49,7 +49,13 @@ Each subagent appends progress events to `${TMPDIR:-/tmp}/claude/bead-bonanza/<r
 {"bead":"<id>","phase":"blocked","reason":"..."}  # only on failure
 ```
 
-**Events are FULLY LITERAL single-quoted strings** — `printf '%s\n' '{"bead":"demo-x","phase":"committed","sha":"abc1234"}' >> <file>` with the sha typed literally from the git output. Never embed `$(date ...)`, `"$var"`, or any runtime substitution: the permission system flags runtime-determined printf operands (zsh arith-eval injection heuristic) and prompts the user on EVERY event write. No timestamps — the orchestrator's monitor notification is timestamped on arrival, so `ts` never earned its keep.
+Events are written by `scripts/bb-progress.sh`, never by hand:
+
+```bash
+scripts/bb-progress.sh "$RUN_DIR" <bead-id> <phase> [key=value ...]
+```
+
+It validates the phase against the closed vocabulary above, escapes values, and appends one well-formed line. Building the JSON in the caller is what used to make this fragile — a runtime-substituted `printf` operand trips the permission system's injection heuristic and prompts the user on *every* event write, so the old rule was to hand-type fully literal strings. One allowlisted script removes both the hazard and the rule. No timestamps: the orchestrator's monitor notification is timestamped on arrival, so `ts` never earned its keep.
 
 Batch subagents (fast lane, shared-surface batch) write events for every bead they process to the same per-bead progress files (one file per bead-id, even from the same batch subagent).
 

@@ -1,0 +1,99 @@
+#!/usr/bin/env bash
+# bb-close-bead.sh — the per-bead close ceremony: atomic close, tracker export,
+# stage, single commit.
+#
+# Why this exists
+#   Every closed bead must land as exactly one commit that also carries the
+#   tracker's durable export. Getting there has four ordering constraints that
+#   are easy to state and easy to reorder under pressure:
+#
+#     1. close BEFORE staging, so the closure is inside the implementation
+#        commit rather than trailing it as a second commit;
+#     2. `bd export` must actually land in .beads/issues.jsonl — some builds
+#        write to stdout — because an unexported closure is lost if the
+#        container is reclaimed;
+#     3. the export must be staged WITH the code, not after;
+#     4. one commit, no --amend of anything pushed, no --no-verify.
+#
+#   The same ceremony appears in three subagent prompt templates and has to be
+#   replayed by hand during crash recovery. One script means one behavior.
+#
+# Usage
+#   bb-close-bead.sh <bead-id> <priority> <title> <retro-file> [path ...]
+#
+#   Paths are the code files this bead changed. WHEN omitted, everything
+#   currently modified is staged — pass explicit paths whenever another agent
+#   may be sharing the tree.
+#
+# Exit status
+#   0  bead closed, exported, committed (short sha on stdout)
+#   1  a step failed — nothing is committed; the message says what to fix
+#   2  bad invocation
+
+set -uo pipefail
+
+die()  { echo "bb-close-bead: $*" >&2; exit 2; }
+fail() { echo "bb-close-bead: $*" >&2; exit 1; }
+
+[ $# -ge 4 ] || die "usage: bb-close-bead.sh <bead-id> <priority> <title> <retro-file> [path ...]"
+id="$1"; priority="$2"; title="$3"; retro="$4"; shift 4
+
+[ -n "$id" ]    || die "bead-id must not be empty"
+[ -n "$title" ] || die "title must not be empty"
+case "$priority" in ''|*[!0-4]*|??*) die "priority must be a single digit 0-4, got '$priority'" ;; esac
+[ -f "$retro" ] || fail "retro file not found: $retro
+  The retro is written BEFORE the close so a crash between gates and commit is
+  recoverable. If the work is done but the retro was never written, write it
+  now from the bead description plus what happened, then re-run."
+command -v bd >/dev/null 2>&1 || fail "\`bd\` not on PATH"
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "not inside a git work tree"
+
+branch="$(git rev-parse --abbrev-ref HEAD)"
+case "$branch" in
+  main|master) fail "refusing to commit directly to '$branch' — switch to a working branch" ;;
+esac
+
+# 1. Atomic close. `bd update --status closed` sets status AND body in one
+#    call; `bd close` would be a second write and a second commit.
+bd update "$id" --status closed --body-file "$retro" \
+  || fail "\`bd update $id --status closed\` failed — bead not closed, nothing staged"
+
+# 2. Refresh the durable export. .beads/issues.jsonl is a passive export that
+#    bd does not necessarily rewrite on every write, so confirm it changed
+#    rather than assuming.
+before=""; [ -f .beads/issues.jsonl ] && before="$(git hash-object .beads/issues.jsonl)"
+if ! bd export > /tmp/bb-export.$$ 2>/dev/null; then
+  # This build writes the file itself rather than to stdout.
+  rm -f /tmp/bb-export.$$
+  bd export >/dev/null 2>&1 || fail "\`bd export\` failed — closure is not durable, refusing to commit"
+elif [ -s /tmp/bb-export.$$ ]; then
+  mv /tmp/bb-export.$$ .beads/issues.jsonl
+else
+  rm -f /tmp/bb-export.$$
+fi
+after=""; [ -f .beads/issues.jsonl ] && after="$(git hash-object .beads/issues.jsonl)"
+if [ "$before" = "$after" ]; then
+  echo "bb-close-bead: warning — .beads/issues.jsonl did not change after export." >&2
+  echo "  The close may not have reached the export. Verify with: bd show $id" >&2
+fi
+
+# 3. Stage code + tracker together, so one commit carries both.
+if [ $# -gt 0 ]; then
+  git add -- "$@" || fail "git add failed for: $*"
+else
+  git add -A -- ':!.beads' || fail "git add failed"
+fi
+[ -f .beads/issues.jsonl ]      && git add .beads/issues.jsonl
+[ -f .beads/interactions.jsonl ] && git add .beads/interactions.jsonl
+
+git diff --staged --quiet && fail "nothing staged — no changes to commit for $id.
+  If the bead needed no code change, this is a SKIP, not a close:
+  run bb-verify-skip.sh and take the skipped path instead."
+
+# 4. One commit. No --no-verify (hooks are a gate), no --amend (the commit may
+#    already be pushed; a missed step becomes a follow-up commit instead).
+git commit -q -m "$id P$priority $title" \
+  || fail "git commit failed — hooks may have rejected it. Fix and re-run; the bead is already closed, so do not re-run bd update."
+
+sha="$(git rev-parse --short HEAD)"
+echo "$sha"
