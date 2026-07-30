@@ -57,12 +57,26 @@ test suite. The gates are the repo's own consistency checks.
 
 ### Environmental-failure ledger
 
-- `bd`: not preinstalled. `.claude/hooks/session-start.sh` builds it from
-  source, which needs `libicu-dev` for the Dolt/ICU cgo dependency — without
-  those headers the build fails at `unicode/uregex.h: No such file`.
-- GitHub's API and release pages return 403 through the egress proxy, so
-  `bd` cannot be fetched as a prebuilt binary here; `go install` from
-  `proxy.golang.org` is the working path.
+- `bd`: not preinstalled. `.claude/hooks/session-start.sh` installs it via the
+  official installer, which needs `libicu-dev` for the Dolt/ICU cgo dependency
+  — without those headers the build fails at `unicode/uregex.h: No such file`.
+- `api.github.com` and `github.com/.../releases` return **403** through the
+  egress proxy, so the installer's prebuilt-binary lookup always fails here
+  and it falls back to a source build. `raw.githubusercontent.com` (200) and
+  `proxy.golang.org` (in the proxy's no-proxy list) both work, which is why
+  the fallback path succeeds.
+- **Measured install cost:** ~175s on a cold container (both Go caches empty),
+  ~110s with a warm build cache. Budget ~3 minutes for first session start.
+  If release access is ever restored, the installer will pick the prebuilt
+  binary automatically and this drops to seconds — no hook change needed.
+- The Dolt database (`.beads/embeddeddolt`) is gitignored, so **no clone ever
+  has one**. Every fresh container must run `bd init` + `bd import` before any
+  `bd` command works; the hook does this.
+- `bd init` **git-commits its own scaffolding**. The hook records HEAD and
+  unwinds that commit — a session hook must not leave commits nobody asked for.
+- `bd` has been observed once writing its global config to a **literal `./~/`**
+  inside the repo rather than `$HOME`. Not reproducible on retry; the hook
+  pins `HOME` and sweeps `./~` on exit, and `.gitignore` covers it.
 
 ## model lineup
 

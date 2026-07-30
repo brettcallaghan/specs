@@ -21,3 +21,7 @@ local/
 /.claude/skills/retro-skill/
 /.claude/skills/retro-spec/
 /.claude/skills/spec/
+
+# Defensive: bd has been observed writing its global config to a literal
+# ./~/ instead of $HOME. The session hook sweeps it; ignore it regardless.
+/~/
