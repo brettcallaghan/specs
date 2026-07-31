@@ -42,7 +42,21 @@ case " $PHASES " in
 esac
 
 [ -n "$bead" ] || die "bead-id must not be empty"
+[ -n "$run_dir" ] || die "run-dir must not be empty"
 
+# Validate EVERY argument before touching the filesystem. This loop used to run
+# after the mkdir below, so a bad extra field left a freshly created run
+# directory behind on a call that then exited 2 — and if the path was wrong,
+# that stray directory sat permanently where the real one belonged.
+for kv in "$@"; do
+  case "$kv" in
+    *=*) ;;
+    *) die "extra fields must be key=value, got '$kv'" ;;
+  esac
+  [ -n "${kv%%=*}" ] || die "empty key in '$kv'"
+done
+
+# Only now, with the invocation known-good, may we write anything.
 if [ ! -d "$run_dir" ]; then
   # Create it rather than failing: a subagent that starts before the
   # orchestrator's mkdir landed should still record its own progress.
@@ -57,12 +71,8 @@ esc() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
 
 json="{\"bead\":\"$(esc "$bead")\",\"phase\":\"$(esc "$phase")\""
 for kv in "$@"; do
-  case "$kv" in
-    *=*) ;;
-    *) die "extra fields must be key=value, got '$kv'" ;;
-  esac
+  # Shape already validated above, before any filesystem write.
   k="${kv%%=*}"; v="${kv#*=}"
-  [ -n "$k" ] || die "empty key in '$kv'"
   json="$json,\"$(esc "$k")\":\"$(esc "$v")\""
 done
 json="$json}"

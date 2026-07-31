@@ -67,13 +67,28 @@ the note. Then, per RFC, in received order:
    provenance versions is still triaged, but say so in the
    Resolution; the citation burden was the author's.
 2. **Dedupe.** Search this repo's `rfcs/` for prior proposals on the
-   same theme, and the beads (`bd list --label rfc-triage`). Match on
-   the outcome section of each resolved RFC whatever it is titled —
-   older RFCs may use a different heading than the current template's,
-   so search the content rather than assuming one heading.
+   same theme, and the beads:
+
+   ```
+   bd list --label rfc-triage --all
+   ```
+
+   The `--all` is load-bearing. `bd list` defaults to open work and
+   hides `closed` and `deferred` issues, which are exactly the two
+   states a dedupe must see: a closed bead is a prior ADOPTED or
+   REJECTED outcome, and a deferred bead is the accumulation signal.
+   Without it the command returns only open beads and the prior-adopted
+   and prior-rejected branches below can never fire. (WHERE the
+   installed `bd` has no `--all`, use the explicit form
+   `--status open,in_progress,blocked,deferred,closed`; note that
+   repeating `--status` overwrites rather than accumulates.)
+
+   Match on the outcome section of each resolved RFC whatever it is
+   titled — older RFCs may use a different heading than the current
+   template's, so search the content rather than assuming one heading.
    - Prior REJECTED match: flag it with the prior rationale; recommend
      reconsideration only if this RFC carries new evidence.
-   - Prior DEFERRED match (an open bead): this is recurrence — the
+   - Prior DEFERRED match (a deferred bead): this is recurrence — the
      accumulation signal working. Link the new RFC in the bead,
      bump its priority, and recommend promotion to adopt-now when a
      second independent project has hit the same theme.

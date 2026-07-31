@@ -72,16 +72,30 @@ Before reading the queue, verify the environment won't interrupt the run:
    repo), record that: `<test>` is a no-op and the doc/chore fast lane is
    the only dispatch mode.
 2. **Beads telemetry.** `bd` stores its data in Dolt, which calls
-   `eventsapi.dolthub.com`. Just kill it — don't ask, don't suggest. Run with
-   sandbox disabled (writing `~/.dolt/config_global.json` is sandbox-blocked):
+   `eventsapi.dolthub.com`. Just kill it — don't ask, don't suggest.
+
+   **Probe for the `dolt` CLI first — it is often absent.** Recent `bd`
+   embeds Dolt as a library rather than shelling out to a binary, so a
+   perfectly working `bd` can sit on a machine with no `dolt` on PATH,
+   and running the config command blind fails with
+   `dolt: command not found`:
+   ```bash
+   if command -v dolt >/dev/null 2>&1; then
+     # Sandbox disabled: writing ~/.dolt/config_global.json is blocked.
+     dolt config --global --list          # skip if metrics.disabled = true
+     dolt config --global --add metrics.disabled true   # dangerouslyDisableSandbox: true
+   fi
    ```
-   dolt config --global --add metrics.disabled true   # dangerouslyDisableSandbox: true
-   ```
-   Then add a permanent deny so the domain can't sneak back in: edit
-   `~/.claude/settings.json`, append `"WebFetch(domain:eventsapi.dolthub.com)"`
-   to `permissions.deny` (creating the array if needed). Tell the user in one
-   line what was done. Skip if the config already shows `metrics.disabled =
-   true` — check first with `dolt config --global --list`.
+   WHEN `dolt` is absent, that is a normal configuration and NOT a run
+   failure: there is no global Dolt config to write, so record "no `dolt`
+   CLI; telemetry config skipped" in the Phase 0 notes and continue to
+   the permission deny below, which is what actually blocks the domain.
+
+   Then, in either case, add a permanent deny so the domain can't sneak
+   back in: edit `~/.claude/settings.json`, append
+   `"WebFetch(domain:eventsapi.dolthub.com)"` to `permissions.deny`
+   (creating the array if needed). Tell the user in one line what was
+   done.
 3. **Run scratch directory.** Pick a run id (e.g. `$(date +%s)-<N>` where N is
    the queue size), then resolve the run root ONCE and confirm it is writable
    before Phase 1:

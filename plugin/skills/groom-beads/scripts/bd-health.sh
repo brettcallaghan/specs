@@ -30,6 +30,7 @@ fi
 hard_fail=0
 ran_any=0
 skipped_hard=0
+failed_hard_labels=""
 
 # $1 is a subcommand that may be MULTIPLE words ("swarm validate"), so it must
 # word-split into separate argv entries. Quoting it would invoke a single
@@ -52,13 +53,26 @@ run_check() {
   local out rc
   # shellcheck disable=SC2086  # same deliberate word-split as `have`
   out="$("$BD" $sub 2>&1)"; rc=$?
-  if [ $rc -eq 0 ] && [ -z "${out//[[:space:]]/}" ]; then
-    printf '  ✓ %-18s clean\n' "$label"
+  # Score on EXIT CODE, never on whether the check printed something. Several
+  # `bd` checks report success in prose ("✓ No orphaned issues found"), so an
+  # emptiness test marks a passing check as failed — and then the summary below
+  # names faults that do not exist, which reads as a hard blocker.
+  if [ $rc -eq 0 ]; then
+    if [ -z "${out//[[:space:]]/}" ]; then
+      printf '  ✓ %-18s clean\n' "$label"
+    else
+      # Passed, but had something to say. Show it; do not score it as failure.
+      printf '  ✓ %-18s\n' "$label"
+      printf '%s\n' "$out" | sed 's/^/      /'
+    fi
   else
-    printf '  ✗ %-18s\n' "$label"
+    printf '  ✗ %-18s (exit %d)\n' "$label" "$rc"
     # indent the tool output
     printf '%s\n' "$out" | sed 's/^/      /'
-    if [ "$severity" = "hard" ]; then hard_fail=1; fi
+    if [ "$severity" = "hard" ]; then
+      hard_fail=1
+      failed_hard_labels="${failed_hard_labels:+$failed_hard_labels, }$label"
+    fi
   fi
 }
 
@@ -73,7 +87,10 @@ run_check "stale"          "stale"          soft    # forgotten in-progress work
 run_check "doctor"         "doctor"         soft    # infra / hooks / sync
 echo
 if [ "$hard_fail" -ne 0 ]; then
-  echo "RESULT: hard problems found — fix cycles/orphans before dispatching waves."
+  # Name the checks that actually failed. Asserting a fixed pair of faults
+  # ("cycles/orphans") sends grooming looking for problems the run never found.
+  echo "RESULT: hard problems found in: $failed_hard_labels"
+  echo "        Fix what those checks reported before dispatching waves."
   exit 1
 fi
 if [ "$ran_any" -eq 0 ]; then
