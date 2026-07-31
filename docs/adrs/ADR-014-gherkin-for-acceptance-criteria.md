@@ -61,14 +61,40 @@ Gherkin therefore satisfies the mechanical requirements. Two
 non-mechanical problems remain, and they are why this ADR does not adopt
 it.
 
-**Notation overlap.** EARS and Gherkin express the same thing in
-different words. "WHEN payment succeeds, the system SHALL display the
-confirmation page" and "When payment succeeds / Then the confirmation
-page is displayed" are the same criterion twice. Adopting Gherkin without
-resolving the overlap means every criterion is written in two notations,
-which is the duplication this framework prohibits everywhere else.
-Resolving it means either subordinating EARS to a scenario name — a role
-[[adr-002]] did not contemplate — or retiring one notation.
+**This is a substitution, not an addition.** EARS and Gherkin express
+the same thing in different words. "WHEN payment processing succeeds,
+the system SHALL display the confirmation page" and "When payment
+processing succeeds / Then the confirmation page is displayed" are the
+same criterion in two notations. Adopting Gherkin therefore means
+Gherkin *replaces* EARS for features and acceptance criteria — the two
+are never used for the same statement. The question this ADR answers is
+which notation expresses an acceptance criterion, not whether to add a
+second one.
+
+The mapping between them is close enough to make the substitution
+mechanical, which is itself an argument that one of them is redundant:
+
+| EARS pattern | Gherkin equivalent |
+|---|---|
+| WHEN `<event>`, the system SHALL `<action>` | `When <event>` / `Then <action>` |
+| WHILE `<state>`, the system SHALL `<action>` | `Given <state>` / `Then <action>` |
+| IF `<condition>`, THEN the system SHALL `<action>` | `Given <condition>` / `When …` / `Then <action>` |
+| The system SHALL `<action>` (ubiquitous) | `Then <action>` with no trigger — the one case Gherkin expresses less naturally |
+| The system SHALL NOT `<action>` | No native negative form; expressed in the `Then` text |
+| WHERE `<feature>`, the system SHALL `<action>` | A tag plus a `Rule:`, or a `Given` precondition |
+
+Two EARS patterns have no clean Gherkin counterpart: the ubiquitous
+form, which has no trigger for a `When` to carry, and the explicit
+`SHALL NOT` prohibition, which becomes ordinary prose inside a `Then`
+step and so loses the grammatical marking that makes prohibitions
+greppable today.
+
+The cost of the substitution is therefore narrower than "two notations"
+but real: [[adr-002]] established EARS for *all* normative statements,
+and adopting Gherkin would split that — Gherkin for feature acceptance
+criteria, EARS still governing standards documents, contracts, and every
+other normative sentence. One notation becomes two scopes, and an author
+has to know which surface they are writing on.
 
 **Scope coupling.** Adoption changes four surfaces together — the FRD
 template, the AC traceability standards, the EARS guide and the `spec`
@@ -91,9 +117,9 @@ traceability design.
 
 | Option | Pros | Cons | Why rejected |
 |--------|------|------|--------------|
-| **Adopt Gherkin as the AC notation** — criteria become ` ```gherkin ` blocks inside the FRD, tagged with their identifier | A parser, not a regex, decides whether a criterion is well formed<br>Identifiers become tags the parser extracts, so an untagged criterion is detectable<br>One artifact — no separate feature files to drift<br>The FRD template already requires an EARS statement plus a concrete example; scenario name and steps give that pair a grammar | Forces the EARS overlap decision immediately<br>Rewrites `plugin/skills/spec/references/frd-template.md`, `plugin/skills/spec/references/ac-traceability-standards.md` and `plugin/skills/spec/references/ears-guide.md` together<br>Embedded blocks need a synthetic `Feature:` wrapper and an offset map for correct diagnostics<br>Invites the assumption that scenarios are executable tests when they are specification text | Not rejected on merit — deferred. The unresolved EARS overlap is a prerequisite decision, and adoption is not needed by the tooling currently being specified |
+| **Adopt Gherkin as the AC notation** — criteria become ` ```gherkin ` blocks inside the FRD, tagged with their identifier | A parser, not a regex, decides whether a criterion is well formed<br>Identifiers become tags the parser extracts, so an untagged criterion is detectable<br>One artifact — no separate feature files to drift<br>The FRD template already requires an EARS statement plus a concrete example; scenario name and steps give that pair a grammar | Splits EARS into two scopes: Gherkin for acceptance criteria, EARS still governing every other normative statement<br>Loses the ubiquitous and SHALL NOT forms, which have no clean Gherkin counterpart<br>Rewrites `plugin/skills/spec/references/frd-template.md`, `plugin/skills/spec/references/ac-traceability-standards.md` and `plugin/skills/spec/references/ears-guide.md` together<br>Embedded blocks need a synthetic `Feature:` wrapper and an offset map for correct diagnostics<br>Invites the assumption that scenarios are executable tests when they are specification text | Not rejected on merit — deferred. Splitting the scope of [[adr-002]] is a prerequisite decision, and adoption is not needed by the tooling currently being specified |
 | **Separate `.feature` files carrying `@AC-*` tags** — FRD keeps prose criteria; feature files mirror them | No template change<br>Traceability works through tags<br>Natural if a project already runs Cucumber | Two artifacts stating the same criteria, kept in sync by hand — precisely the drift the validation tooling exists to eliminate<br>Adds an artifact with no owner in the document taxonomy | The duplication defeats the purpose |
-| **Gherkin for the example only** — prose EARS criterion stays; the mandatory `*Example:*` beneath it becomes a Gherkin block | Smallest change<br>Structures the example, which is currently free prose | Validates the illustration, not the criterion — the weakness in the Context section is untouched<br>Still introduces a second notation, with none of the benefit | Cost of a new notation without the benefit |
+| **Gherkin for the example only** — prose EARS criterion stays; the mandatory `*Example:*` beneath it becomes a Gherkin block | Smallest change<br>Structures the example, which is currently free prose | Validates the illustration, not the criterion — the weakness in the Context section is untouched<br>The one place a second notation genuinely WOULD coexist with EARS, since the criterion above it stays prose | Cost of a mixed notation without the benefit |
 | **Keep prose EARS criteria with identifiers** | No change to templates, guides, or the skill<br>Keeps the tooling's requirements scoped to validation<br>EARS remains the single normative notation, as [[adr-002]] established<br>Leaves the decision open for a deliberate later call | Identifiers stay hand-written and unvalidated — a criterion with no identifier is invisible to tooling<br>Criterion well-formedness stays a judgment call<br>Regex extraction is brittle relative to parsing | N/A — selected |
 
 ## Consequences
@@ -105,8 +131,9 @@ traceability design.
   [[adr-002]] needs no amendment and
   `plugin/skills/spec/references/document-readiness-checklist.md`
   checks 4 and 5 keep one syntax to test against.
-- No two-notation period, which would be the worst state to occupy:
-  every criterion written twice while the overlap question is open.
+- The scope of [[adr-002]] stays whole: one notation governs every
+  normative statement, rather than one notation for acceptance criteria
+  and another for everything else.
 - The reversibility constraint on AC extraction is a small, concrete
   design requirement rather than an open-ended "keep it flexible".
 
@@ -118,8 +145,9 @@ traceability design.
   non-deterministic and unauditable in a way a parser would not be.
 - AC extraction stays regex-based and inherits regex brittleness:
   reformatting a criterion can silently remove it from traceability.
-- The EARS/Gherkin overlap question remains open and will have to be
-  answered before this is revisited, not during.
+- The question of whether Gherkin should replace EARS for acceptance
+  criteria remains open and will have to be answered before this is
+  revisited, not during.
 - Notation-agnostic extraction is a design tax paid now for an option
   that may never be exercised.
 
@@ -127,9 +155,10 @@ traceability design.
 Cucumber or another Gherkin runner and wants its feature files to be the
 acceptance criteria; untagged or malformed criteria are observed reaching
 `approved` FRDs often enough to be worth structural prevention; or the
-EARS/Gherkin overlap is resolved on its own merits. The recommended way
-to settle the overlap is to author one real FRD both ways and compare,
-rather than deciding it in the abstract.
+substitution is judged on its own merits. The recommended way to settle
+it is to author one real FRD both ways and compare, rather than deciding
+in the abstract — paying particular attention to the ubiquitous and
+SHALL NOT criteria, which are where the substitution loses the most.
 
 ## References
 
