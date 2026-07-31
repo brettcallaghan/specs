@@ -104,6 +104,32 @@ oversight; the value could not be observed.
    inference was probably right, but it was an inference, and a second
    agent could as easily produce `docs/frd/` or `docs/requirements/`.
 
+4. **[misleading-text · snag]**
+   `plugin/skills/spec/references/adr-template.md:44` "`Update
+   docs/adr/README.md with a one-line entry for this ADR`". That path
+   does not exist. The directory is `docs/adrs/`; `docs/adrs/README.md`
+   holds the index.
+   **What happened:** authoring ADR-014, the agent looked for the file
+   named by the instruction, found no `docs/adr/`, and located
+   `docs/adrs/README.md` by listing the directory. On finding it, the
+   index was missing an entry for ADR-013 — consistent with a previous
+   author following the same instruction and not finding the file
+   either.
+
+5. **[gap · snag]** No rule at `spec` SKILL.md step 4 (`:207`) or in
+   `plugin/skills/spec/references/frd-template.md:8` covers a
+   non-specification input. That line declares
+   "`sources: []   # slugs of documents this FRD is based on`" — slugs
+   only. Out-of-set documents have no slug by design
+   (`cross-document-references.md:124-125`).
+   **What happened:** `docs/frds/FRD-spec-validation-cli.md` was derived
+   almost entirely from `docs/plans/spec-validation-cli-brief.md` — a
+   research brief that is correctly not a spec document and correctly
+   has no slug. The FRD therefore ships with `sources: []`, which is
+   false, and its only record of provenance is a backticked path in the
+   References section. The index this very FRD specifies would report
+   the document as having no sources.
+
 ## Proposals
 
 ### P1 — Match the ADR template's slug format to the registry [blocker]
@@ -180,7 +206,56 @@ this run do not get written. It also front-loads the readiness checklist,
 which the agent currently reaches only at step 7 — after the document
 exists.
 
-### P3 — Name the FRD directory in step 1's enumeration [polish]
+### P3 — Correct the ADR template's README path [snag]
+
+**Problem.** `adr-template.md:44` instructs the author to update
+`docs/adr/README.md`. No such directory exists; the ADR index lives at
+`docs/adrs/README.md`. An author following the instruction literally
+finds nothing and either skips the step or recovers by searching
+(finding 4). The ADR index is currently missing ADR-013's entry, which
+is what skipping the step looks like.
+
+**Change.** At `plugin/skills/spec/references/adr-template.md:44`,
+replace `docs/adr/README.md` with `docs/adrs/README.md`. Batched under
+P1's version bump of the same file if both land together.
+
+**Evidence.** Finding 4. The next ADR author finds the index on the
+first try, so the step stops being one an author silently drops.
+
+### P4 — Let `sources` record inputs that are not spec documents [snag]
+
+**Problem.** `frd-template.md:8` restricts `sources` to slugs. A
+research brief, a prior-art review, or a vendor document is correctly
+out of the specification set and correctly has no slug
+(`cross-document-references.md:124-125`), so it cannot be recorded —
+and an FRD derived from one ships claiming no sources at all
+(finding 5). The provenance survives only as prose in References,
+where no index can read it.
+
+**Change.** At `plugin/skills/spec/references/frd-template.md:8`,
+replace the comment with:
+
+```
+sources: []       # what this FRD is based on: slugs for spec-set
+                  # documents, repo-relative paths for anything outside
+                  # it (a research brief, a vendor doc). An FRD derived
+                  # from an out-of-set input records that path here, not
+                  # only in References.
+```
+
+Bump the instruction block's `Version: 1.1` to `1.2` (MINOR).
+
+Triage should consider whether the same change belongs in every
+template carrying a `sources` property, and whether
+`frontmatter-standards.md` should define the mixed form once rather
+than per template — this RFC proposes only the FRD template, because
+that is where the defect was observed.
+
+**Evidence.** Finding 5. An FRD authored from a research brief records
+that brief in `sources`, so the derivation is machine-readable rather
+than living in one prose bullet.
+
+### P5 — Name the FRD directory in step 1's enumeration [polish]
 
 **Problem.** Step 1 at `SKILL.md:188` enumerates three type
 subdirectories and omits FRDs, leaving the second-most-common document
@@ -233,10 +308,10 @@ rather than to a plausible variant.
 
 ## Adoption
 
-P1 and P2 are independent and touch different files —
-`references/adr-template.md` and `SKILL.md` respectively. P3 touches the
-same file as P2 and is naturally batched with it under one version bump;
-if P2 is rejected, P3 still stands alone.
+P1 and P3 both touch `references/adr-template.md` and share one version
+bump. P2 and P5 both touch `SKILL.md` and share another. P4 touches
+`references/frd-template.md` alone. All five are independent decisions;
+none blocks another.
 
 P1 is the more urgent of the two blockers: it is actively producing
 defects (11 occurrences, 26 dangling references) and its fix is three
