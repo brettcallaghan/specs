@@ -1,0 +1,42 @@
+name: checks
+
+# The framework's own thesis is that quality comes from gates rather than
+# diligence, and until now the two scripts enforcing this repo's invariants
+# were run only when somebody remembered to. This is that gate.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: skill invariants and vendored references
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # ubuntu-latest ships bash 5 and python3; both scripts need only those.
+      - name: Report tool versions
+        run: |
+          bash --version | head -1
+          python3 --version
+
+      # Not --strict: bead-bonanza/SKILL.md is 859 lines against a 500-line
+      # guidance, and gating on a warning that predates this workflow would
+      # land CI red. Tracked to be flipped on once that clears.
+      - name: Skill invariants
+        run: scripts/check-skills.sh
+
+      # --check rather than a write: CI verifies the vendored copies are
+      # current, and a stale copy is fixed by running the script locally and
+      # committing the result, so the diff stays visible in review.
+      - name: Vendored shared references are current
+        run: scripts/sync-shared-references.sh --check

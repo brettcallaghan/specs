@@ -9,7 +9,7 @@ description: Evidence-based retrospective on a SKILL that an agent just
   especially one that struggled, improvised, or produced a wrong result,
   or when asked to retro a skill, critique a skill, or capture how a
   skill could be improved.
-version: "0.2"
+version: "0.3"
 ---
 
 # Skill Retro
@@ -192,17 +192,22 @@ Retro progress:
    carrying its finding shape, cited evidence, and a concrete change.
    Complete every section, then run the template's readiness gate. Fix what it reports and re-run; do not proceed while it fails. After two full failed cycles, stop and surface the blocker rather than continuing to retry.
    Set status `ready-for-review` only once the gate passes.
-6. **Route the output.**
+6. **Route the output** into a directory named for the skill critiqued.
+   `<skill-name>` is the RFC's `skill` frontmatter value, so one
+   directory accumulates every RFC and note about one skill — and
+   recurrence, the strongest signal this pipeline has, becomes visible
+   by listing it.
    - Retroing a skill **from a downstream project** →
-     `rfcs/outbox/rfc-<origin-project>-<slug>.md` (no number); the human
-     copies it into the framework repo's `rfcs/inbox/` for triage.
+     `rfcs/outbox/<skill-name>/rfc-<origin-project>-<slug>.md` (no
+     number); the human copies it into the framework repo's
+     `rfcs/inbox/<skill-name>/` for triage.
    - Retroing a skill **inside this framework repo** (dogfooding, or
-     this repo's own skills) → straight to `rfcs/inbox/` for triage.
-     This closes the self-improvement loop: retro-skill → inbox →
-     `triage-rfc`.
-   - **Null result** → a `retro-note-<origin>-<YYYY-MM-DD>.md` beside the
-     RFC location, so the retro log stays complete; a skill that retroed
-     clean is information.
+     this repo's own skills) → straight to `rfcs/inbox/<skill-name>/`
+     for triage. This closes the self-improvement loop: retro-skill →
+     inbox → `triage-rfc`.
+   - **Null result** → a `retro-note-<origin>-<YYYY-MM-DD>.md` in the
+     same `<skill-name>` directory, so the retro log stays complete; a
+     skill that retroed clean is information.
 7. **Hand off.** Report what was produced and where it routes.
 
    Every factual claim in that report SHALL cite what it derives from —

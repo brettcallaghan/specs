@@ -16,6 +16,8 @@ This directory contains Architecture Decision Records documenting significant de
 - [ADR-010: Contracts Are Independent, Long-Lived Documents](ADR-010-contract-independence.md) — contracts outlive and may precede implementations; source live schemas from the running service
 - [ADR-011: Blueprints Declare Targeted Verification Gates](ADR-011-targeted-verification-gates.md) — each blueprint names the minimal tests to run on change; agents run that set, CI runs the full suite
 - [ADR-012: Wikilink and Anchor Reference Conventions](ADR-012-reference-conventions.md) — `[[slug]]` for documents, heading anchors for un-promoted components, backticks for code; replaces `@` and the `#` element convention
+- [ADR-014: Defer Gherkin as the Acceptance-Criteria Notation](ADR-014-gherkin-for-acceptance-criteria.md) — prose EARS criteria with AC identifiers stay; AC extraction is kept notation-agnostic so the choice stays reversible
+- [ADR-015: Go as the Implementation Language for the Spec Corpus CLI](ADR-015-go-for-the-spec-cli.md) — Go ties Rust on every discriminating measure and is the only candidate with an official in-process Gherkin parser
 
 ## About ADRs
 

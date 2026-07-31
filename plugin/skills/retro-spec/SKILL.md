@@ -10,7 +10,7 @@ description: Retrospective on a completed phase of spec-driven work —
   capture lessons learned about the documents a phase consumed. To
   critique the SKILLS, templates, or scripts that guided the phase, use
   the retro-skill skill instead.
-version: "1.2.0"
+version: "1.3.0"
 ---
 
 # Spec Retro
@@ -144,21 +144,26 @@ Retro progress:
    cites `[[template-authoring-standards]]`, whose canonical copy is the
    sibling spec skill's
    `references/shared/template-authoring-standards.md`), bundling every
-   qualifying finding as `audience: project`. File it in the project's
-   `rfcs/` directory, named `rfc-<nnnn>-<short-description>.md` with the
-   repo's next free number. Complete every section, run the template's
+   qualifying finding as `audience: project`. File it under
+   `rfcs/inbox/<spec-type>/`, named
+   `rfc-<nnnn>-<short-description>.md` with the repo's next free
+   number. `<spec-type>` is the document type the findings most concern
+   — `frd`, `adr`, `container-blueprint`, `standards` — so one directory
+   accumulates every RFC about one document type and recurrence is
+   visible by listing it. Complete every section, run the template's
    readiness gate. Fix what it reports and re-run; do not proceed while it fails. After two full failed cycles, stop and surface the blocker rather than continuing to retry. Set status to
    `ready-for-review` only once the gate passes. Order proposals
    by expected impact. (Skill-lens findings go to `retro-skill`, which
    authors its own `audience: skill-authors` RFC — do not file one from
    here.)
 6. **Record a null result.** WHEN no finding clears the bar, write a
-   retro note to `rfcs/retro-note-<phase>-<YYYY-MM-DD>.md`: one short
+   retro note to
+   `rfcs/inbox/<spec-type>/retro-note-<phase>-<YYYY-MM-DD>.md`: one short
    paragraph naming the phase executed, the documents examined, and the
    outcome ("no project-doc finding cleared the bar"). A phase that
    retroed clean is information — it says the consumed documents held up.
 7. **Hand off.** Report what was produced; the project RFC awaits the
-   project's own review in its `rfcs/`. IF the phase also surfaced
+   project's own review in `rfcs/inbox/<spec-type>/`. IF the phase also surfaced
    guidance friction (any finding root-caused to skill/template/script),
    THEN remind the human to run `retro-skill` for the skill lens — its
    RFCs travel to the framework repo's `rfcs/inbox/` for triage.

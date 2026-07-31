@@ -7,7 +7,7 @@ description: Triage improvement RFCs received from projects using the
   adopted changes after human approval. Use when asked to triage the
   RFC inbox, process rfcs/inbox/, review a received RFC, or check on
   deferred RFC themes.
-version: "1.1"
+version: "1.2"
 ---
 
 # RFC Triage
@@ -15,7 +15,8 @@ version: "1.1"
 **Role:** this repo is the upstream of every project using the
 spec-driven-dev plugin. Downstream retros (the `retro-spec` skill)
 deposit `audience: skill-authors` RFCs and retro notes into
-`rfcs/inbox/`. This skill turns that inbox into resolutions: changes
+`rfcs/inbox/<skill-name>/`, and `retro-spec` deposits its
+`audience: project` RFCs into `rfcs/inbox/<spec-type>/`. This skill turns that inbox into resolutions: changes
 to the skills, templates, and standards; beads for deferred themes;
 and a complete retro log. It is human-gated throughout — the skill
 recommends and, only after approval, implements.
@@ -28,8 +29,11 @@ not relitigated without new evidence.
 
 ## Inputs
 
-- `rfcs/inbox/*.md` — received RFCs (`rfc-<project>-<slug>.md`) and
-  retro notes (`retro-note-<project>-<date>.md`)
+- `rfcs/inbox/**/*.md` — received RFCs (`rfc-<project>-<slug>.md`) and
+  retro notes (`retro-note-<project>-<date>.md`), filed in a
+  subdirectory naming their subject: `<skill-name>/` for items from
+  `retro-skill`, `<spec-type>/` for items from `retro-spec`. Read the
+  whole tree — a glob that stops at the top level finds nothing.
 - `rfcs/*.md` — this repo's resolved RFC history (dedupe source)
 - The beads database — deferred proposals (`bd` CLI; label
   `rfc-triage`). IF `.beads/` does not exist yet, THEN run `bd init`

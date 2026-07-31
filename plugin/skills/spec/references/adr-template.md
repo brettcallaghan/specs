@@ -1,7 +1,7 @@
 ---
 title: "ADR-<NNN>: <Decision Title>"
 description: <One-sentence summary of the decision>
-slug: adr-<nnn>-<short-description>
+slug: adr-<nnn>
 type: adr
 status: draft
 updated_at: <YYYY-MM-DDTHH:MM:SSZ>
@@ -9,7 +9,7 @@ updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 
 <!--
 Template: Architecture Decision Record (ADR)
-Version: 1.2
+Version: 1.3
 Source: Adapted from Michael Nygard's ADR format
 
 Sections (complete each, then delete its instruction block)
@@ -41,16 +41,19 @@ Instructions
   2. Update the frontmatter with the actual decision details
   3. Complete each section below, following the guidance in comments
   4. Remove all HTML comment blocks after completing the document
-  5. Update docs/adr/README.md with a one-line entry for this ADR
+  5. Update docs/adrs/README.md with a one-line entry for this ADR
   6. Set status using the controlled vocabulary:
      draft | ready-for-review | approved | active | retired
   7. If superseded later, set status to "retired" and reference the
      superseding ADR
 
 Slug format
-  - Use lowercase kebab-case: adr-<number>-<short-description>
-  - Example: adr-003-local-tesseract-for-ocr
-  - Keep the description portion brief (3-5 words maximum)
+  - The slug is the bare type prefix and number: adr-<nnn>
+  - Example: adr-003
+  - The slug is independent of the filename. Name the FILE
+    descriptively — ADR-003-local-tesseract-for-ocr.md — so humans can
+    find it; the slug stays adr-003 so [[adr-003]] resolves.
+  - See template-authoring-standards.md, Prefix Registry.
 -->
 
 # ADR-<NNN>: <Decision Title>
