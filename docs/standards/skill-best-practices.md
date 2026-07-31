@@ -6,8 +6,8 @@ description: Requirements for authoring agent skills in this repository —
 slug: skill-authoring-standards
 type: standards
 status: draft
-updated_at: 2026-07-30T21:11:28Z
-version: 0.1
+updated_at: 2026-07-31T00:00:00Z
+version: 0.2
 related:
   - "template-authoring-standards"
   - "adr-013"
@@ -387,6 +387,26 @@ sequence serves.
 anticipate can satisfy a stated intent; it can only follow or abandon an
 unexplained instruction. "The push is the gate" survives circumstances that
 "run these four commands in order" does not.
+
+---
+
+WHERE a skill's workflow ends in a report to a human, that step SHALL
+require every factual claim to cite the artifact it derives from — a
+finding, a `file:line`, or a command and its output — or be marked as the
+reporter's inference.
+
+A skill SHALL NOT permit a report to state that a verification was
+performed unless it was performed.
+
+**Rationale:** *Observed.* Skills in this repository gate their artifacts
+hard and their reports not at all: `retro-skill` required every finding to
+carry a verbatim quote or a repro, and produced 17 that survived
+spot-checking — while the prose summarising them cleared nothing. A
+fabricated claim entered there, asserted with a verification that was never
+run, and reached a pull-request description before being retracted. The
+same asymmetry is present in every sibling's final step. Citation is the
+cheapest possible gate for that layer, and unlike "be careful" it is
+mechanically checkable: a sentence either names its source or it does not.
 
 ---
 

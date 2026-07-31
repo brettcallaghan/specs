@@ -9,7 +9,7 @@ description: Evidence-based retrospective on a SKILL that an agent just
   especially one that struggled, improvised, or produced a wrong result,
   or when asked to retro a skill, critique a skill, or capture how a
   skill could be improved.
-version: "0.1"
+version: "0.2"
 ---
 
 # Skill Retro
@@ -203,9 +203,21 @@ Retro progress:
    - **Null result** → a `retro-note-<origin>-<YYYY-MM-DD>.md` beside the
      RFC location, so the retro log stays complete; a skill that retroed
      clean is information.
-7. **Hand off.** Report what was produced and where it routes. Do NOT
-   edit the skill yourself — retro-skill's authority ends at the RFC;
-   `triage-rfc` resolves it after human approval.
+7. **Hand off.** Report what was produced and where it routes.
+
+   Every factual claim in that report SHALL cite what it derives from —
+   a finding number, a `file:line`, or a command and its output — or be
+   marked explicitly as your own inference. You SHALL NOT state that a
+   check was performed unless it was performed. A claim you cannot cite
+   does not belong in the report, for exactly the reason it would not
+   have cleared the bar as a finding: the bar governs the artifact, and
+   a report that escapes it is the one layer with no gate.
+
+   This is not a call to be more careful — it is mechanically checkable.
+   A sentence either names its source or it does not.
+
+   Do NOT edit the skill yourself — retro-skill's authority ends at the
+   RFC; `triage-rfc` resolves it after human approval.
 
 ## The bar, restated
 

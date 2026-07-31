@@ -76,9 +76,65 @@ run_check() {
   fi
 }
 
+# `bd swarm validate` validates ONE epic and requires its id; called bare it
+# exits non-zero with an arity error. The generic scorer would read that as a
+# graph failure, and `have()` cannot catch it because `--help` succeeds. So it
+# gets its own runner: enumerate the epics and validate each.
+#
+# A repo with no epics is the common case and is NOT a failure — there is
+# simply nothing for this check to validate. That is a skipped hard check:
+# recorded as a gap in coverage so the summary never implies the per-epic
+# integrity guarantee was established when it was not.
+run_swarm_validate() {
+  local label="swarm validate"
+  if ! have "swarm validate"; then
+    printf '  - %-18s (skipped: `bd %s` not available)\n' "$label" "swarm validate"
+    skipped_hard=$((skipped_hard + 1))
+    return
+  fi
+
+  # Active epics only — no `--all`. A closed epic's subgraph is not something a
+  # run can act on, so validating it would be noise at best and a false hard
+  # failure at worst.
+  #
+  # Top-level "id" keys only. Sibling keys are `depends_on_id` / `issue_id`,
+  # which this pattern does not match because it anchors the whole key.
+  local epics
+  epics="$("$BD" list --type epic --json 2>/dev/null \
+            | sed -n 's/^[[:space:]]*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
+
+  if [ -z "${epics//[[:space:]]/}" ]; then
+    printf '  - %-18s (skipped: no epics in this repo to validate)\n' "$label"
+    skipped_hard=$((skipped_hard + 1))
+    return
+  fi
+
+  local epic out rc failed=0 n=0
+  while IFS= read -r epic; do
+    [ -n "$epic" ] || continue
+    n=$((n + 1))
+    out="$("$BD" swarm validate "$epic" 2>&1)"; rc=$?
+    if [ $rc -ne 0 ]; then
+      failed=1
+      printf '  ✗ %-18s %s (exit %d)\n' "$label" "$epic" "$rc"
+      printf '%s\n' "$out" | sed 's/^/      /'
+    fi
+  done <<EOF
+$epics
+EOF
+
+  ran_any=1
+  if [ "$failed" -ne 0 ]; then
+    hard_fail=1
+    failed_hard_labels="${failed_hard_labels:+$failed_hard_labels, }$label"
+  else
+    printf '  ✓ %-18s clean (%d epic(s))\n' "$label" "$n"
+  fi
+}
+
 echo "=== bd health check ==="
 echo "Graph integrity (hard — must be clean before a run):"
-run_check "swarm validate" "swarm validate" hard   # cycles / orphans / disconnected per epic
+run_swarm_validate                                # cycles / orphans / disconnected per epic
 run_check "orphans"        "orphans"        hard
 echo
 echo "Quality & hygiene (advisory):"

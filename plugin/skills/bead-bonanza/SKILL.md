@@ -778,6 +778,33 @@ get wrong under pressure — the close ceremony's four ordering constraints,
 the progress event's quoting hazard, the two-sided skip check. Run them
 rather than reproducing what they do.
 
+Because they are not to be read, their interfaces are published here — an
+agent that must open a script to learn how to call it has already been sent
+to read it:
+
+```
+bb-progress.sh   <run-dir> <bead-id> <phase> [key=value ...]
+bb-verify-skip.sh [pathspec ...]        # no pathspec = whole working tree
+bb-close-bead.sh <bead-id> <priority> <title> <retro-file> [path ...]
+```
+
+- **`scripts/bb-progress.sh`** — appends one event to
+  `<run-dir>/<bead-id>.progress.jsonl`. `<phase>` is a closed vocabulary:
+  `claimed`, `implementing`, `gates-running`, `gates-passed`,
+  `retro-written`, `committed`, `pushed`, `blocked`. Extra fields are
+  `key=value` pairs (`sha=a1b2c3d`, `reason="gates failed twice"`).
+  Exit 2 on a bad invocation, and it writes nothing in that case.
+- **`scripts/bb-verify-skip.sh`** — the two-sided skip check. With no argument it
+  examines the whole working tree; pass pathspecs to scope it.
+- **`scripts/bb-close-bead.sh`** — the close ceremony, in its required order.
+  `<path ...>` are the code files this bead changed; WHEN omitted it stages
+  everything currently modified, so pass explicit paths whenever another
+  agent may be sharing the tree.
+
+Each script's own header carries the same usage line. WHEN a usage line
+here disagrees with the script, the script is authoritative — and that
+disagreement is a finding worth a retro.
+
 Files under `references/shared/` are **generated copies** of reference
 documents owned by a sibling skill — vendored in by
 the repo-level `scripts/sync-shared-references.sh` so this skill is
