@@ -290,10 +290,13 @@ document cannot reach review looking finished.
   SHALL report a finding naming the missing heading.
   - *Example:* A document declaring `type: adr` with no "Alternatives
     Considered" heading produces a finding naming it.
-- **AC-SPEC-005.2:** WHEN a document contains an HTML comment block, the
-  CLI SHALL report a finding with its line span.
+- **AC-SPEC-005.2:** WHEN a document contains an HTML comment block
+  outside a fenced code block and outside an inline code span, the CLI
+  SHALL report a finding with its span.
   - *Example:* A finished ADR still carrying its template's Context
-    instruction block is reported at the line the block opens.
+    instruction block is reported at the position the block opens, while
+    a module blueprint whose prose describes the `<!--` delimiter inside
+    backticks produces no finding.
 - **AC-SPEC-005.3:** WHEN a prose line exceeds the configured width, the
   CLI SHALL report a finding naming the line and its length.
   - *Example:* A line of 85 characters is reported when the configured
