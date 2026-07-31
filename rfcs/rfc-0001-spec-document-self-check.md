@@ -2,9 +2,9 @@
 title: "RFC: A document self-check, and a home for non-blueprint documents"
 description: The authoring workflow gates feature blueprints only, so a
   standards document shipped with EARS violations the same skill mandates
-slug: rfc-self-spec-document-self-check
+slug: rfc-0001-spec-document-self-check
 type: rfc
-status: ready-for-review
+status: retired
 updated_at: 2026-07-30T21:20:00Z
 origin: self
 skill: spec
@@ -257,3 +257,24 @@ been checked against the rules its own skill mandates, rather than only
 feature blueprints being checked against groomability.
 
 ## Resolution
+
+**Triaged 2026-07-31.** 4 proposals: 3 adopted (already implemented), 1 deferred.
+
+| Proposal | Outcome |
+|----------|---------|
+| P1 — document self-check step | **adopted — already implemented.** Landed before this triage as `spec` step 7 "Self-check the finished document" plus `references/document-readiness-checklist.md` (8 checks). |
+| P2 — state where a document is written | **adopted — already implemented.** Landed as the destination rule in `spec` step 1. |
+| P3 — slug is independent of the filename | **adopted — already implemented.** Landed in `references/standards-template.md` (Version 1.2). |
+| P4 — drop/replace placeholder section lists | **deferred** → `agent-plugins-ual`, `theme:template-ergonomics`. Scope is unsettled (which of ~10 templates) and no gate strategy exists; bead is `deferred` / `blocked-ungroomable`. |
+
+**Files changed by this triage:** none — P1–P3 were already in the tree
+when triage ran, and P4 was not implemented.
+
+**Version bumps:** none from this RFC.
+
+**Note on vocabulary.** The skill's classification set is
+adopt-now / defer / reject, and P1–P3 fit none of them cleanly: they were
+approved and are present, but this triage did not implement them. They
+are recorded as "adopted — already implemented" rather than forced into
+"rejected — already addressed", which would wrongly imply the proposals
+were unsound. The gap between those two phrasings is worth a retro.

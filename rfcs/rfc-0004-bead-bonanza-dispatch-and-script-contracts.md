@@ -6,9 +6,9 @@ description: Five evidence-backed fixes from a three-bead run — a
   bundled scripts, a validation-order fix in bb-progress.sh, a probe
   before the telemetry command, and a baseline verdict for the gate
   profile
-slug: rfc-self-bead-bonanza-dispatch-and-script-contracts
+slug: rfc-0004-bead-bonanza-dispatch-and-script-contracts
 type: rfc
-status: ready-for-review
+status: retired
 updated_at: 2026-07-30T00:00:00Z
 origin: self
 skill: bead-bonanza
@@ -382,3 +382,18 @@ filesystem trap, a dead mandatory command, and an ambiguity about
 whose failure a red gate is.
 
 ## Resolution
+
+**Triaged 2026-07-31.** 5 proposals: 4 adopted, 1 deferred.
+
+| Proposal | Outcome | Bead |
+|----------|---------|------|
+| P1 — main-loop fallback when delegation is unavailable | **adopted.** The skill now defines the fallback (sequential, full per-bead ceremony, parallel dispatch modes dropped, context as the scarce resource) and requires Phase 4 to report "no routing occurred" rather than `none`. | `agent-plugins-vtl` |
+| P2 — publish each bundled script's usage line | **adopted.** All three usage lines are now in the skill, verified against the scripts, with the script named authoritative on disagreement. | `agent-plugins-3rf` |
+| P3 — validate args before creating the run directory | **adopted.** Every argument is validated before any filesystem write; the RFC's repro no longer leaves a stray directory. | `agent-plugins-fme` |
+| P4 — probe for the `dolt` CLI | **adopted.** Phase 0 probes first and treats an absent `dolt` as a normal configuration, not a run failure. | `agent-plugins-cr2` |
+| P5 — record the gate profile's baseline verdict | **deferred** → `agent-plugins-1a9`, `theme:gate-baseline`. Entangled with an unsettled question: the standard states the body budget in CHARACTERS while `check-skills.sh` measures LINES. Bead is `deferred` / `blocked-needs-info` pending that decision. | `agent-plugins-1a9` |
+
+**Files changed:** `plugin/skills/bead-bonanza/SKILL.md`,
+`plugin/skills/bead-bonanza/scripts/bb-progress.sh`.
+
+**Version bumps:** `bead-bonanza` 1.2 → 1.3.

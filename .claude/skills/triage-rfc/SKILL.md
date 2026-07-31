@@ -7,7 +7,7 @@ description: Triage improvement RFCs received from projects using the
   adopted changes after human approval. Use when asked to triage the
   RFC inbox, process rfcs/inbox/, review a received RFC, or check on
   deferred RFC themes.
-version: "1.0"
+version: "1.1"
 ---
 
 # RFC Triage
@@ -108,6 +108,32 @@ the note. Then, per RFC, in received order:
    proposal, classification, one-line rationale, files touched.
    Implement nothing before the human approves; the human may
    reclassify any row.
+
+   **WHEN no human can answer** — an unattended, scheduled, or
+   batch run — the gate does NOT dissolve, and absence is NOT
+   approval. Take the unattended branch instead:
+   - Classify every proposal as usual, and present the table. The
+     analysis is the valuable part and it does not require a human.
+   - **File one bead per proposal, whatever its classification** —
+     adopt-now included — each meeting the bar in step 5, labelled
+     `rfc-triage` and `theme:<key>`, with the recommended
+     classification recorded in the bead. The beads ARE the handoff
+     artifact: they survive the session, and a human can approve
+     later by working the queue.
+   - **Implement nothing.** Not the obvious ones, not the one-line
+     ones.
+   - **Leave the RFCs in `rfcs/inbox/`.** Do not write Resolutions,
+     do not renumber, do not retire. The Resolution section records
+     what a human approved; writing it here would be a record of an
+     approval that never happened.
+   - **Say in the report which steps the gate blocked** — namely 5
+     through 7 — and name the beads filed, so the next attended
+     session resumes from them rather than re-triaging the inbox.
+
+   Do not resolve the ambiguity any other way. The three tempting
+   alternatives — discarding the analysis, writing into the
+   Resolution section, or reading an absent human as consent — lose
+   work, falsify the record, and defeat the gate respectively.
 5. **Implement** the approved adopt-now items:
    - Apply the changes; keep every touched file within its own
      conventions (80-column lines, EARS for normative statements).
