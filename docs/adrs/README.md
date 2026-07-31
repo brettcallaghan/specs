@@ -17,6 +17,7 @@ This directory contains Architecture Decision Records documenting significant de
 - [ADR-011: Blueprints Declare Targeted Verification Gates](ADR-011-targeted-verification-gates.md) — each blueprint names the minimal tests to run on change; agents run that set, CI runs the full suite
 - [ADR-012: Wikilink and Anchor Reference Conventions](ADR-012-reference-conventions.md) — `[[slug]]` for documents, heading anchors for un-promoted components, backticks for code; replaces `@` and the `#` element convention
 - [ADR-014: Defer Gherkin as the Acceptance-Criteria Notation](ADR-014-gherkin-for-acceptance-criteria.md) — prose EARS criteria with AC identifiers stay; AC extraction is kept notation-agnostic so the choice stays reversible
+- [ADR-015: Rust as the Implementation Language for the Spec Corpus CLI](ADR-015-rust-for-the-spec-cli.md) — measured startup and artifact size meet REQ-SPEC-009 with margin, and serde fits the pipeline; the cost is a third-party Gherkin parser
 
 ## About ADRs
 
