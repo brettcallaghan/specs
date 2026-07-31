@@ -5,7 +5,7 @@ description: The framework-agnostic engine that indexes markdown
   conformance findings against schemas a profile registers
 slug: module-document-core
 type: module-blueprint
-status: draft
+status: approved
 updated_at: 2026-07-31T00:00:00Z
 kind: standard
 visibility: internal

@@ -5,7 +5,7 @@ description: The command-line binary that indexes a specification corpus
   profile modules in a command surface
 slug: container-spec-cli
 type: container-blueprint
-status: draft
+status: approved
 updated_at: 2026-07-31T00:00:00Z
 components: []
 modules:

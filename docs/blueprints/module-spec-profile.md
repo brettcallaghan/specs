@@ -5,7 +5,7 @@ description: The plugin that supplies this framework's document
   records and lifecycle rules — to Document Core
 slug: module-spec-profile
 type: module-blueprint
-status: draft
+status: approved
 updated_at: 2026-07-31T00:00:00Z
 kind: standard
 visibility: internal

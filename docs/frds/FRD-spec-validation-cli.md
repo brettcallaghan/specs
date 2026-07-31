@@ -5,7 +5,7 @@ description: A command-line tool that indexes a specification corpus into
   CI, agents, and architecture tooling read one authoritative artifact
 slug: frd-spec-validation-cli
 type: frd
-status: draft
+status: approved
 updated_at: 2026-07-31T00:00:00Z
 sources: []
 related:

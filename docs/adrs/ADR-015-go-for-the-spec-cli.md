@@ -5,13 +5,13 @@ description: Go meets every stated requirement, ties Rust on the measures
   in-process Gherkin parser — which decides it
 slug: adr-015
 type: adr
-status: draft
+status: approved
 updated_at: 2026-07-31T00:00:00Z
 ---
 
 # ADR-015: Go as the Implementation Language for the Spec Corpus CLI
 
-**Status:** draft  
+**Status:** approved  
 **Date:** 2026-07-31
 
 ## Context
