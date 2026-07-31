@@ -196,13 +196,15 @@ section is authoritative for its deployment.
 
 ## Cross-Cutting Standards
 
-This container has no cross-cutting standards to comply with yet. The
-repository's one standards document, `docs/standards/skill-best-practices.md`,
-governs skill authoring and does not apply to a compiled binary.
+This container SHALL comply with:
 
-WHEN a standards document governing this tool is authored — the index
-schema policy is the likely first — it SHALL be referenced here rather
-than restated.
+- [[testing-standards]] — unit tests per declared component,
+  harness-independent snapshot cases for observable behavior, and the
+  coverage obligations tying both back to acceptance criteria.
+
+The repository's other standards document,
+`docs/standards/skill-best-practices.md`, governs skill authoring and
+does not apply to a compiled binary.
 
 ## Change Guidance
 
@@ -220,9 +222,12 @@ than restated.
   derived from the same declaration that defines it, so the two cannot
   drift.
 - **Verification gates:** `go test ./cmd/...` for command-surface
-  changes, plus the golden-output tests under `cli/testdata/cli/` that
-  assert `--help` and JSON report shape. Changes reaching into a module
-  additionally run that module's gates. CI runs the full suite.
+  changes, plus the snapshot cases under `cli/testdata/cases/` governed
+  by [[testing-standards]]. WHEN the command surface changes in a way
+  that alters observable output, the snapshot regeneration script SHALL
+  be run and every resulting diff reviewed before commit. Changes
+  reaching into a module additionally run that module's gates. CI runs
+  the full suite.
 
 ## Key Decisions
 

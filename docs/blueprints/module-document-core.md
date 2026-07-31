@@ -149,11 +149,14 @@ description: Frontmatter extraction and YAML parsing that preserves each propert
 ```
 
 (Go package) — Frontmatter extraction and YAML parsing that preserves
-each property's raw text. Splits the delimited block, parses it to a
-generic document model for schema validation, and — separately — decodes
-it into typed records. The raw text of each property is retained
-alongside the parsed value, because AC-SPEC-003.2 requires validating
-what the author wrote rather than what a YAML parser inferred from it.
+each property's raw text. Splits the delimited block and parses it to a
+generic document model, which serves both schema validation and — after
+conversion to JSON — decoding into the generated typed records. The two
+steps share one generic model rather than unmarshalling the source twice,
+because generated structs carry no YAML tags. The raw text of each
+property is retained alongside the parsed value, because AC-SPEC-003.2
+requires validating what the author wrote rather than what a YAML parser
+inferred from it.
 
 ### Markdown Structure
 
@@ -269,11 +272,11 @@ Rendering belongs to the command surface of [[container-spec-cli]].
 
 ## Cross-Cutting Standards
 
-This module has no cross-cutting standards to comply with yet. The
-repository's only standards document governs skill authoring and does
-not apply. WHEN a standards document covering the index schema or the
-finding format is authored, it SHALL be referenced here rather than
-restated.
+This module SHALL comply with:
+
+- [[testing-standards]] — every component declared below carries unit
+  tests covering its exported surface, cited to the acceptance criteria
+  they verify.
 
 ## Change Guidance
 

@@ -178,8 +178,13 @@ schema.
 
 ## Cross-Cutting Standards
 
-This module has no cross-cutting standards to comply with yet. Its rules
-derive from this framework's own reference documents —
+This module SHALL comply with:
+
+- [[testing-standards]] — every component declared below carries unit
+  tests covering its exported surface.
+
+Its registered rules derive from this framework's own reference
+documents —
 `plugin/skills/spec/references/frontmatter-standards.md`,
 `plugin/skills/spec/references/template-authoring-standards.md` and
 `plugin/skills/spec/references/cross-document-references.md` — which
