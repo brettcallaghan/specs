@@ -5,7 +5,7 @@ description: Unit testing for components, harness-independent snapshot
   both back to acceptance criteria
 slug: testing-standards
 type: standards
-status: draft
+status: approved
 updated_at: 2026-07-31T00:00:00Z
 version: 0.1
 ---
@@ -87,10 +87,38 @@ The layout is:
 
 ```
 cli/testdata/cases/<case-name>/
-  case.toml          manifest — description, cited criteria, argument vector
-  input/             a complete corpus, including its own specs.toml
-  expected/          the artifacts the run must produce
+  case.toml               the case manifest — description, cited
+                          criteria, argument vector
+  input/                  a complete corpus, including its own specs.toml
+  expected/
+    checks.log            the check results the run must report
+    manifest.json         the corpus manifest the run must produce,
+                          whole or partial
 ```
+
+`manifest.json` holds the index REQ-SPEC-002 of
+[[frd-spec-validation-cli]] defines. These standards use the file name
+the artifact is written under; where this document says *manifest* of an
+expected artifact and *case manifest* of `case.toml`, the qualifier is
+load-bearing.
+
+A run produces two artifacts, and a case SHALL carry an expectation for
+each one it exercises.
+
+**Rationale:** the two artifacts fail independently. A change can leave
+every finding correct while corrupting the manifest, or produce a sound
+manifest while mis-reporting severity. Folding both into one expected
+file would let either failure mask the other.
+
+---
+
+WHERE an argument vector produces only one of the two artifacts, the
+case SHALL omit the other rather than record an empty file.
+
+**Rationale:** an empty `checks.log` is a meaningful expectation — it
+asserts a clean corpus. An absent one asserts the command does not
+report checks at all. Conflating the two loses a distinction the suite
+exists to catch.
 
 ---
 

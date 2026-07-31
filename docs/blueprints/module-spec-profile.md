@@ -82,8 +82,11 @@ interface. Everything else is internal.
   - The module SHALL NOT parse document text directly; it registers
     schemas, patterns and predicates that Document Core applies.
   - WHERE a rule is expressible as a JSON Schema or a pattern, the
-    module SHALL register it as data rather than implement it as code,
-    so that an adopting repository can override it through configuration.
+    module SHALL register it as data rather than implement it as code.
+    [[contract-specs-configuration]] does not expose that data publicly
+    in v1, so the reason is not adopter override but reviewability: a
+    registered pattern is checkable against the template it mirrors,
+    while the same rule buried in a predicate is not.
 
 ## Components
 
@@ -129,8 +132,11 @@ patterns, required sections and named section sets. Registers every type
 in this framework's taxonomy — ADR, FRD, standards, the four blueprint
 levels, contract and work order — each with the JSON Schema its
 frontmatter satisfies, the slug pattern from the prefix registry, the
-headings its template requires, and which of its sections carry
-normative statements. That last one is what makes the
+hierarchy of headings its template requires, and which of its sections
+carry normative statements. The heading requirement is a tree rather
+than a list ([[contract-specs-configuration]]), because a misplaced
+heading and a missing one are different defects and a flat list reports
+them identically. That last one is what makes the
 extract-then-review pattern work: a reviewing agent asks for the
 normative sections of a standards document and reads only those.
 
@@ -233,10 +239,12 @@ standards documents.
       `kind: pattern`, governing how any profile is built, with the
       profiles as instances. Deciding early would be inventing a pattern
       from one example.
-- [ ] How much of the vocabulary should be shipped as data files an
-      adopter can override versus compiled-in defaults. The registered
-      form is settled; the override mechanism is not, and it interacts
-      with [[contract-specs-configuration]].
+- [ ] How much of the vocabulary should be shipped as data files versus
+      compiled-in defaults. The registered form is settled and v1
+      exposes none of it publicly, so this is purely a question of where
+      the bytes live — but it forces the answer to the promotion
+      question in [[contract-specs-configuration]], because a data file
+      is most of the way to an override mechanism already.
 - [ ] Whether the deferred domain rules — AC traceability, C4 diagram
       conventions, blueprint AC-coverage keys, work-order readiness —
       become components here or a second profile layered on this one.
