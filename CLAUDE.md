@@ -87,6 +87,10 @@ restores every issue with its original `agent-plugins-` id and status.
 - **Auto export is append/update-only. It does not propagate `bd delete`.**
   Measured 2026-07-31: a deleted issue was still present 90 seconds later,
   well past the 60s interval, and would have come back on the next import.
+- **The beads pre-commit hook does not save you here.** It runs the same
+  append/update path, so committing after a delete leaves the deleted record
+  in the file. Measured the same day: create a probe and commit — the file
+  gains it; delete the probe and commit again — the file still has it.
 - **Before ending a session, run the explicit export and commit it:**
 
   ```bash
