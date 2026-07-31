@@ -89,8 +89,12 @@ deliberately, not overlooked:
 - **Severity** — one of `error` (a conformance failure), `warning` (a
   probable problem that does not fail a build), or `unverified` (a check
   the CLI was asked to perform and could not run).
-- **Span** — a contiguous line range within a document, used to address
-  the content beneath a heading without reading the whole document.
+- **Span** — a contiguous region of a document, carrying a byte offset
+  and byte length as its authoritative extent, plus the line and column
+  of its start and end for readability. Byte offsets are required
+  because spans address regions *within* a line as well as whole
+  sections — a `[[slug]]` reference occupies part of a line, not the
+  line itself.
 - **Record block** — a fenced code block carrying structured data about
   an element declared inside a document, per [[adr-008]].
 - **Warm index** — a cached index whose inputs are unchanged since it was
@@ -149,8 +153,9 @@ truth instead of each re-deriving it.
 
 - **AC-SPEC-002.1:** WHEN the CLI builds an index, the CLI SHALL emit a
   JSON document containing, for every corpus member, its frontmatter
-  properties, its file path, its headings with the line span of the
-  content beneath each, and its outbound references.
+  properties, its file path, its headings with the span of the content
+  beneath each, and a `references` property holding every `[[slug]]`
+  parsed from its body, each with the span at which it occurs.
   - *Example:* The entry for `adr-011` carries its six frontmatter
     properties, the spans of its Context, Decision, Alternatives
     Considered, Consequences and References headings, and its outbound
@@ -227,9 +232,6 @@ the right thing rather than whether it is shaped correctly.
   - *Example:* `slug: adr-011-targeted-verification-gates` under a
     profile registering `^adr-[0-9]{3}$` for type `adr` produces a
     finding quoting both.
-- **AC-SPEC-003.6:** WHEN a document declares a `status` outside the
-  vocabulary the active profile defines, the CLI SHALL report a finding
-  listing the permitted values.
 
 ### REQ-SPEC-004: Reference Integrity
 
@@ -253,8 +255,10 @@ a reader follows it into nothing.
 - **AC-SPEC-004.3:** WHEN a reference names a heading anchor and the
   target document has no heading matching it, the CLI SHALL report a
   finding naming the target document and the missing anchor.
-  - *Example:* `[[container-api#Componets]]` reports the misspelling
-    against a document whose heading reads "Components".
+  - *Example:* `[[container-api#Componets]]` reports `no heading named
+    'Componets' found in container-api`. The finding states the fact
+    rather than proposing a correction — an agent resolves a plain
+    "not found" faster than a guess it must then verify.
 - **AC-SPEC-004.4:** WHEN a frontmatter property registered by the
   active profile as holding document references contains a value
   matching no corpus member's slug, the CLI SHALL report a finding
@@ -319,15 +323,13 @@ problem without loading the standards documents that define it.
 **Acceptance Criteria:**
 
 - **AC-SPEC-006.1:** Every finding the CLI reports SHALL carry a stable
-  rule identifier, a severity, a file path, a line number, and a
-  message.
+  rule identifier, a severity, a file path, a span, and a message
+  stating the violated constraint and the value that violated it.
   - *Example:* `slug/pattern-mismatch  error
-    docs/adrs/ADR-011-targeted-verification-gates.md:4`.
-- **AC-SPEC-006.2:** Every finding the CLI reports SHALL name the
-  document that defines the rule it enforces.
-  - *Example:* A slug finding closes with "see
-    `cross-document-references.md`", so the fixing agent reads one
-    document instead of the whole standards bundle.
+    docs/adrs/ADR-011-targeted-verification-gates.md:4:7`
+    "'adr-011-targeted-verification-gates' does not match pattern
+    '^adr-[0-9]{3}$'" — self-contained, so the fixing agent needs no
+    further lookup.
 - **AC-SPEC-006.3:** WHEN the CLI is asked to perform a check it cannot
   run, the CLI SHALL report that check with severity `unverified`.
   - *Example:* Asked to validate mermaid diagrams with no diagram
@@ -351,10 +353,11 @@ problem without loading the standards documents that define it.
   - *Example:* The same report distinguishes "links passed" from
     "frontmatter was not checked".
 
-*Rationale:* AC-SPEC-006.2 is what allows the `spec` skill to stop
-preloading verification procedure. A diagnostic that names its rule and
-its defining document moves that context from load time to the moment it
-is needed.
+*Rationale:* AC-SPEC-006.1's message requirement is what allows the
+`spec` skill to stop preloading verification procedure. A diagnostic
+that quotes the violated constraint and the offending value is
+self-contained: the agent fixes it without opening the standard that
+defines the rule.
 
 ### REQ-SPEC-007: Corpus Queries
 
@@ -379,7 +382,7 @@ impact without reading every document.
     citing it, so an author retiring it knows the blast radius.
 - **AC-SPEC-007.4:** WHEN asked for the spans of headings matching a
   configured selection, the CLI SHALL return each match as a file path,
-  heading text, and start and end line.
+  heading text, and the span of the content beneath it.
   - *Example:* A reviewing agent requests the normative sections of
     eleven standards documents and receives spans totalling a fraction
     of those documents' text, then reviews only that text.
@@ -398,7 +401,7 @@ than the one it shipped with.
 
 - **AC-SPEC-008.1:** The CLI SHALL read its configuration from a TOML
   file at the repository root.
-  - *Example:* `spec.toml` declares `root = "docs/specs"` and the
+  - *Example:* `specs.toml` declares `root = "docs/specs"` and the
     workspace identifier.
 - **AC-SPEC-008.2:** The configuration SHALL determine the spec root,
   the workspace identifier, the registered document types with their
@@ -407,7 +410,7 @@ than the one it shipped with.
 - **AC-SPEC-008.3:** WHEN no configuration file is present, the CLI
   SHALL report the absence and exit non-zero rather than assuming a
   layout.
-  - *Example:* Run in a repository with no `spec.toml`, it names the
+  - *Example:* Run in a repository with no `specs.toml`, it names the
     file it looked for and the path it looked in.
 - **AC-SPEC-008.4:** IF the configuration is present but invalid, THEN
   the CLI SHALL report the offending key and its position.

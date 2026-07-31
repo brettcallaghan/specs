@@ -241,16 +241,55 @@ added.
 **Negative:**
 - Every step of the composable pipeline carries explicit error handling,
   so the code is more verbose than the equivalent Rust and the happy
-  path is harder to read at a glance.
+  path is harder to read at a glance. Library mitigation is weaker than
+  it looks — see below.
 - The index is marshalled by reflection rather than from derived types,
   so a schema mistake surfaces at runtime in a consumer rather than at
   compile time. Mitigated by treating the index schema as a tested
   artifact, not merely a struct.
-- The artifact is roughly twice Rust's size. Immaterial for CI, worth
-  noting for embedded contexts.
+- The artifact is roughly twice Rust's size. No consequence follows: the
+  tool runs in CI, in developer checkouts, and in agent sessions, and 2.2
+  MB is immaterial in all three.
 - An agent debugging the CLI mid-session cannot edit and re-run it as it
   could a script. Partly offset by keeping the domain layer in
   configuration, which stays editable.
+
+### On mitigating Go's error-handling verbosity
+
+Three libraries were considered: `samber/mo` (Option/Result/Either
+monads), `samber/lo` (whose `*Err` helper variants short-circuit on the
+first error), and `samber/oops` (structured errors carrying contextual
+attributes and stack traces).
+
+A `Result`-shaped rewrite of the pipeline was attempted with `samber/mo`
+and **does not compile**:
+
+```
+cannot use ….FlatMap(…) (value of struct type mo.Result[string])
+  as mo.Result[Doc] value in return statement
+```
+
+The cause is a Go language rule, not a library gap: methods cannot
+introduce type parameters, so `Result[A].FlatMap` is constrained to
+return `Result[A]`. A pipeline that changes shape — text → map → typed
+record — cannot be chained fluently. A free function works,
+
+```go
+func bind[A, B any](r mo.Result[A], f func(A) mo.Result[B]) mo.Result[B]
+```
+
+but it nests rather than chains, and the result reads worse than the
+`if err != nil` version it replaces. It also discards Go's `%w` error
+wrapping: the idiomatic version yields `schema: at '/type': value must
+be 'adr'`, where the monadic version yields the bare
+`at '/type': value must be 'adr'` unless the context is re-added by
+hand.
+
+`samber/oops` is the one worth adopting, for a different reason. It does
+not reduce the number of error checks; it makes each error carry
+structured context — which is what a finding needs anyway under
+AC-SPEC-006.1. Whether to take that dependency belongs in the container
+blueprint, not here.
 
 **Revisit when** Gherkin is definitively rejected for acceptance
 criteria — removing the advantage that decided this — *and* a measured
