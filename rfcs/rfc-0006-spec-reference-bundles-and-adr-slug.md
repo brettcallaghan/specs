@@ -4,9 +4,9 @@ title: "RFC: Fix the ADR slug contradiction; bundle the always-required
 description: The ADR template's slug format contradicts the prefix
   registry and has produced 11 non-conforming slugs; steps 4 and 7
   mandate two references that no authoring bundle loads
-slug: rfc-self-spec-reference-bundles-and-adr-slug
+slug: rfc-0006
 type: rfc
-status: ready-for-review
+status: retired
 updated_at: 2026-07-31T00:00:00Z
 origin: self
 skill: spec
@@ -334,3 +334,43 @@ syntax rule and the readiness gate in context before it is written
 rather than after.
 
 ## Resolution
+
+**Triaged 2026-07-31.** 5 proposals: 4 adopted (1 with refinement),
+1 deferred.
+
+| Proposal | Outcome |
+|----------|---------|
+| P1 — ADR slug format matches the registry | **adopted as proposed.** `references/adr-template.md` line 4 now reads `slug: adr-<nnn>`, and the Slug format block carries the filename-independence note. |
+| P2 — bundle the two always-required references | **adopted with refinement.** The bundle enlargement was NOT adopted: RFC 0001 weighed the same remedy for the same class of friction and declined it as "the more expensive of two fixes", and this RFC's own Adoption section priced it at ~1,700 tokens per run. Adopted instead as a one-line rule at the source, in step 4 itself. The `document-readiness-checklist.md` half was dropped for want of evidence — step 7 was reached and the checklist run successfully in both observed runs, so no wrong action followed from its absence from the bundle. |
+| P3 — correct the ADR template's README path | **adopted as proposed.** `docs/adr/README.md` → `docs/adrs/README.md`. |
+| P4 — `sources` records non-spec inputs | **deferred** → `agent-plugins-6tp`, `theme:reference-syntax`. Adopting the FRD template alone would make a template contradict `frontmatter-standards.md:119`, which owns the property — the same defect class P1 was adopted to remove. Three templates carry `sources`; the owner changes first. Bead is `deferred` / `blocked-ungroomable`. |
+| P5 — name the FRD directory | **adopted as proposed.** `docs/frds/` added to step 1's enumeration. |
+
+**Dedupe notes.** Three of the five proposals are follow-on gaps in
+changes adopted at the previous triage: P2 in `agent-plugins-fiu`'s step
+7, P5 in `agent-plugins-8bx`'s step 1, and P1 alongside
+`agent-plugins-x8t`, which applied the same filename-independence fix to
+`standards-template.md` but not to `adr-template.md` — the template that
+had actually produced the 11 non-conforming slugs. No proposal matched a
+prior rejection.
+
+**Provenance check.** All five cited versions matched current at triage
+time (`adr-template.md` 1.2, `frd-template.md` 1.1, `spec` SKILL.md 1.4,
+`template-authoring-standards.md` 0.12, `cross-document-references.md`
+0.1), and every quoted line was verified present at its cited location.
+Nothing was already-addressed.
+
+**Files changed:**
+- `plugin/skills/spec/references/adr-template.md` — P1, P3;
+  instruction-block `Version: 1.2` → `1.3`
+- `plugin/skills/spec/SKILL.md` — P2 (refined), P5; frontmatter
+  `version: "1.4"` → `"1.5"`
+- `plugin/.claude-plugin/plugin.json` — `0.9.0` → `0.10.0` (MINOR)
+
+**Note on the refinement.** The first wording of P2's rule cited
+`ears-guide.md` and `c4-guide.md` as bare filenames from inside
+`SKILL.md`. `scripts/check-skills.sh` rejected both — a path in a
+`SKILL.md` resolves from that file, so the correct spelling is
+`references/ears-guide.md`. The rule was reworded to name
+`references/` as a directory instead. The gate caught the adopted text
+violating the rule that text was adopted to state.

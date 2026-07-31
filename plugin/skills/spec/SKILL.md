@@ -12,7 +12,7 @@ description: Spec-first development using this framework's specification
   system, container, component, or interface. Covers choosing the right
   document type and authoring it from the framework templates using EARS
   syntax and the C4 model.
-version: "1.4"
+version: "1.5"
 ---
 
 # Spec-First Development
@@ -189,7 +189,8 @@ specs.
    the starting point for the new document. **Write it under the
    project's spec root** — `docs/` unless the project's `AGENTS.md` or
    `CLAUDE.md` names another — in a subdirectory for its type
-   (`docs/adrs/`, `docs/standards/`, `docs/blueprints/`, …). WHEN the
+   (`docs/adrs/`, `docs/frds/`, `docs/standards/`, `docs/blueprints/`,
+   …). WHEN the
    project has an established location for that type, follow it; the
    frontmatter index does not depend on location, but humans do.
 2. **Follow the embedded instructions.** Each template carries its own
@@ -207,8 +208,11 @@ specs.
 4. **Follow the template-authoring standards** for frontmatter (title,
    description, slug, type, status, updated_at), kebab-case slugs with
    type prefixes, 80-character lines, and `[[document-slug]]`
-   cross-references. Cross-reference other documents instead of
-   duplicating their content — duplication drifts.
+   cross-references. `[[slug]]` is reserved for documents in the
+   project's spec set: everything under `references/` — the templates,
+   the guides, and the standards shipped with this skill — is cited by
+   backticked path, never by wikilink. Cross-reference other documents
+   instead of duplicating their content — duplication drifts.
 5. **Treat specs as living documents.** Update them when requirements
    change, new information arrives, or errors are found — and update
    `status` and `updated_at` when you do.

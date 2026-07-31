@@ -34,3 +34,4 @@
 {"id":"int-3da1602529a6a3de6c9fdf146e36ff90","kind":"field_change","created_at":"2026-07-31T05:14:04.544890774Z","actor":"Claude","issue_id":"agent-plugins-5y8","extra":{"field":"status","new_value":"in_progress","old_value":"open"}}
 {"id":"int-2578774ac148078766ce254f183661d4","kind":"field_change","created_at":"2026-07-31T05:14:33.994825078Z","actor":"Claude","issue_id":"agent-plugins-bc3","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
 {"id":"int-f28afe66f590ee5201c39e481d615410","kind":"field_change","created_at":"2026-07-31T05:14:34.255513115Z","actor":"Claude","issue_id":"agent-plugins-5y8","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
+{"id":"int-c5d67788a454af610304d46c2149dde5","kind":"field_change","created_at":"2026-07-31T19:08:07.114938792Z","actor":"Claude","issue_id":"agent-plugins-6tp","extra":{"field":"status","new_value":"deferred","old_value":"open"}}
