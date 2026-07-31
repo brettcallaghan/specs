@@ -127,11 +127,19 @@ the note. Then, per RFC, in received order:
      Beyond the DoR, each bead SHALL carry: the RFC path and proposal ID
      (so the testimony is recoverable), the evidence summary inlined
      rather than linked, and labels `rfc-triage` plus `theme:<key>`.
-     Reuse an existing theme key WHERE one fits — check current labels
-     before minting — and keep themes kebab-case topics, e.g.
-     `theme:ac-coverage`, `theme:reference-syntax`. The theme label is
-     what makes recurrence countable across projects, so a bead without
-     one is invisible to the accumulation model.
+     Reuse an existing theme key WHERE one fits. Enumerate them before
+     minting a new one:
+
+     ```
+     bd label list-all | grep 'theme:'
+     ```
+
+     The issue count beside each key is the recurrence signal itself —
+     a theme reaching two independent projects is the promotion trigger
+     in step 2 — so read the counts, not just the names. Keep themes
+     kebab-case topics, e.g. `theme:ac-coverage`,
+     `theme:reference-syntax`. A bead without a theme label is
+     invisible to the accumulation model.
 
      A deferral is not dispatchable work: set the bead's status to
      `deferred` so it does not surface in `bd ready`, and record why in

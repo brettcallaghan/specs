@@ -8,7 +8,7 @@ description: Process many beads autonomously by orchestrating subagents. Use
   implicit decisions up front, dispatches via the cheapest viable execution mode
   (doc fast lane / shared-surface batch / worktree parallel / sequential), streams
   per-bead progress, and lands each bead in a single commit.
-version: "1.2"
+version: "1.3"
 ---
 
 # bead-bonanza
@@ -488,6 +488,38 @@ lineup` block in `AGENTS.md` (Phase 0 step 1a). Honor these:
   a `Tier` column; on the lean path, name the tier in the one-line
   dispatch statement.
 
+### WHEN delegation is unavailable — the main-loop fallback
+
+Everything above assumes you can spawn subagents. **Check that before
+Phase 3, not during it:** some harnesses expose no `Agent` tool at all,
+and some sessions forbid it. The check is simply whether an `Agent` tool
+is available to you in this session.
+
+WHEN it is not, the run does NOT abort — it degrades to a defined mode:
+
+- **Implement every bead in the orchestrator's own loop**, in queue
+  order, following the full per-bead ceremony unchanged (claim, gates,
+  retro, atomic close, single commit). The ceremony is what makes a bead
+  landing correct; delegation is only how the work is distributed.
+- **Drop the parallel dispatch modes.** Worktree-parallel and
+  shared-surface batching exist to isolate concurrent agents; with one
+  agent there is no concurrency to isolate, so they add risk and no
+  benefit. Run sequential.
+- **Context is now the scarce resource**, because nothing is being
+  isolated for you. Keep per-bead notes to one line, and re-read the run
+  checklist rather than holding it in your head.
+- **No tier routing occurs.** You cannot dispatch at a resolved model
+  when you are the one doing the work — every bead runs at the session's
+  own model regardless of its `tier`. Do not silently treat this as
+  routing that happened to succeed.
+- **Say so once, at the top of the run**, so the user knows the tier
+  labels were not honored.
+
+This is a real degradation, not an equivalent path: an under-tiered bead
+that a `frontier` subagent would have handled may now fail, and a
+`light` bead costs full session model. Both are acceptable; concealing
+them is not.
+
 ### Push policy
 
 - **`push-per-bead`** — subagent pushes after each commit. Best for sequential
@@ -614,6 +646,22 @@ After the queue is drained (or the circuit breaker tripped), print:
 
    State `none` explicitly when there were no escalations — the null is
    the result, not the absence of one.
+
+   **`none` and "no routing occurred" are different results, and this
+   table cannot tell them apart.** WHEN the run used the main-loop
+   fallback because delegation was unavailable, do NOT write `none`.
+   Write, in place of the table:
+
+   ```
+   Tier escalations: N/A — no routing occurred. No Agent tool was
+   available, so every bead ran in the orchestrator's own loop at the
+   session model, and no bead's tier was honored.
+   ```
+
+   An empty table read as `none` says "routing was tested and nothing
+   needed raising", which is the opposite of what happened: routing was
+   never exercised at all. Reporting the first as the second feeds
+   `groom-beads`' retro loop a calibration signal that does not exist.
 
    This table is the whole point of routing by tier: it is the only
    direct evidence a run produces about whether grooming predicted

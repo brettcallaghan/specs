@@ -10,7 +10,7 @@ description: >-
   before a long-running or orchestrated session. Trigger even if the user
   just says "groom these" or "make these beads ready" in a repo that uses
   beads.
-version: "1.0"
+version: "1.1"
 ---
 
 # Bead Grooming
@@ -155,10 +155,28 @@ Prefer editing over rewriting: enrich a thin description, don't discard the
 author's intent. When a description leans on session context, the fix is to
 *inline the missing context*, not to delete the sentence.
 
-WHEN a bead cannot be brought to Ready, do not dispatch it: set its
-`grooming_status` to `blocked-needs-info` (a specific fact is missing) or
-`blocked-ungroomable` (it needs redesign), and flag it in the report rather than
-shipping a half-groomed bead downstream silently.
+WHEN a bead cannot be brought to Ready, do not dispatch it. Parking it takes
+**two** writes, and the second is the one that actually works:
+
+1. Record WHY, for the human and the next grooming pass — set
+   `grooming_status` to `blocked-needs-info` (a specific fact is missing) or
+   `blocked-ungroomable` (it needs redesign).
+2. Record THAT, for the orchestrator — change the bead's `status` so it
+   leaves the ready queue:
+
+   ```
+   bd update <id> --set-metadata grooming_status=blocked-needs-info
+   bd defer <id>          # status -> deferred; drops out of `bd ready`
+   ```
+
+`bd ready` reads `status`, **not** `grooming_status`. A bead flagged only
+with `grooming_status` stays dispatchable and will be handed to a fresh
+subagent exactly as if it were ready — which is the failure the flag exists
+to prevent, made worse by looking handled. Verify the park took effect: the
+bead SHALL NOT appear in `bd ready` afterwards.
+
+Then flag it in the report rather than shipping a half-groomed bead
+downstream silently.
 
 ### 3. Wire the dependency graph
 
