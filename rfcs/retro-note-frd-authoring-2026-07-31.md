@@ -18,7 +18,7 @@ the web. Effort not observable from within the session.
 |----------|----------|
 | `docs/plans/spec-validation-cli-brief.md` | Yes — every scope decision in the FRD traces to a question answered in it |
 | `docs/adrs/ADR-014-gherkin-for-acceptance-criteria.md` | Yes — its deferral and its reversibility constraint were both usable as written |
-| `docs/adrs/ADR-008-element-record-blocks.md` | Yes — verified during the retro; its Consequences already name "Validators must parse blocks, not just frontmatter", which is what REQ-SPEC-002.6 specifies |
+| `docs/adrs/ADR-008-element-record-blocks.md` | Yes — verified during the retro. Its Consequences → Negative already carry "Tooling must extract and validate blocks in addition to frontmatter" and "The block-XOR-link invariant must be enforced or a promoted unit could leave a stale block behind" — the first is what REQ-SPEC-002.6 specifies, the second what REQ-SPEC-005.7 partially covers |
 | `docs/adrs/ADR-012-reference-conventions.md` | Yes — `:57` covers backticked paths for framework guides |
 | `docs/adrs/ADR-002-ears-for-requirements.md` | Yes — cited for the notation the acceptance criteria are written in |
 
