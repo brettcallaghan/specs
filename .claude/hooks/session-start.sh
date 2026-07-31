@@ -197,7 +197,10 @@ if [ "${STRATA_CLI_SKIP:-}" != "1" ]; then
     # repo too — and a hook that resets or rebases someone's branch is data
     # loss, not convenience. Anything other than a clean default branch gets
     # built exactly as it sits.
-    _default="$(git -C "$strata_src" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||')"
+    # `|| true` is load-bearing: this script runs under `set -o pipefail`, and
+    # a clone with no origin/HEAD ref (git does not always create one) makes
+    # symbolic-ref fail, which would take the whole hook down mid-pipeline.
+    _default="$(git -C "$strata_src" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||' || true)"
     _default="${_default:-main}"
     _branch="$(git -C "$strata_src" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '')"
     if [ "$_branch" != "$_default" ]; then
