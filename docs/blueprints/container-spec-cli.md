@@ -23,8 +23,11 @@ related:
 
 ## Overview
 
-The Spec CLI is the single deployable artifact that realizes
-[[frd-spec-validation-cli]]. It walks a specification corpus, builds a
+The Spec CLI is the single deployable artifact realizing this
+framework's specification tooling. [[frd-spec-validation-cli]] is the
+first of the feature requirements documents it serves, and this
+blueprint describes the container as a whole rather than that one
+feature. It walks a specification corpus, builds a
 machine-readable index of every document's metadata, structure and
 relationships, and reports deterministic conformance findings against
 the rules the active profile registers.
