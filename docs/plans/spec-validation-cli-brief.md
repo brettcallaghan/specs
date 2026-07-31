@@ -181,6 +181,14 @@ long-lived `serve` mode for the interactive case.
 
 ## 4. Gherkin — I ran the experiments
 
+> **Scope note:** Gherkin is **not** in scope for this FRD. The decision
+> is recorded separately in
+> `docs/adrs/ADR-014-gherkin-for-acceptance-criteria.md`. This section
+> stays as the research record behind that ADR; nothing here changes the
+> FRD's requirements beyond the one reversibility constraint noted in
+> §14 Q2.
+
+
 You asked whether Gherkin can annotate every AC with an ID and whether
 a tool extracts them deterministically. **Yes to both**, and it's a
 better fit than I expected. Everything below is from actually running
@@ -612,15 +620,13 @@ Recording these so the FRD doesn't relitigate them.
 recommendation), or a real plugin interface from the start? Affects
 whether an enterprise can add a document type without a PR to us.
 
-**Q2 — Gherkin adoption shape.** §4 options A, B, or C? B is the
-strongest but rewrites `frd-template.md` and `ac-traceability-standards.md`.
-Should we write one real FRD both ways before committing?
-
-**Q3 — EARS vs. Gherkin overlap.** If B, does the EARS sentence live in
-the `Scenario:` name (my suggestion), or do we drop one of the two
-notations? This may be the most consequential spec decision on the table
-— it changes the FRD template, the EARS guide, and the AC standards
-together.
+**Q2 and Q3 — Gherkin — CLOSED, moved to ADR-014.** Gherkin is out of
+scope for this FRD. The evaluation, the parser findings, and the
+deferral now live in `docs/adrs/ADR-014-gherkin-for-acceptance-criteria.md`
+(status `draft`, pending review). The one thing that ADR leaves on this
+tool: AC extraction treats the criterion notation as a replaceable
+input, so adopting Gherkin later changes one component rather than the
+traceability design. §4 below is retained as the research record.
 
 **Q4 — Language.** Do you want the FRD to state latency and
 distribution *requirements* and defer the choice to an ADR (my
