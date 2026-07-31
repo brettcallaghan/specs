@@ -4,9 +4,9 @@ title: "RFC: An unattended-run rule for the gate, and a dedupe that
 description: The human gate has no rule for a session no human can
   answer, and the two bd commands step 2 and step 5 prescribe cannot
   return the data those steps need
-slug: rfc-self-triage-rfc-unattended-gate
+slug: rfc-0002-triage-rfc-unattended-gate
 type: rfc
-status: ready-for-review
+status: retired
 updated_at: 2026-07-30T22:10:00Z
 origin: self
 skill: triage-rfc
@@ -349,3 +349,17 @@ recommendation instead of an evaporated one, and the dedupe step
 actually reads the history it is told to read.
 
 ## Resolution
+
+**Triaged 2026-07-31.** 4 proposals, all adopted and implemented.
+
+| Proposal | Outcome | Bead |
+|----------|---------|------|
+| P1 — unattended-run rule at step 4 | **adopted.** Step 4 gained the unattended branch: classify and present, file one bead per proposal regardless of classification, implement nothing, leave RFCs in the inbox, and report which steps the gate blocked. The three tempting alternatives are named and forbidden. | `agent-plugins-bc3` |
+| P2 — dedupe command must see closed beads | **adopted.** Step 2 now uses `bd list --label rfc-triage --all`, with the reason the default hides closed and deferred issues, plus an explicit `--status` fallback. | `agent-plugins-amx` |
+| P3 — name the theme-key enumeration command | **adopted.** Step 5 now names `bd label list-all \| grep 'theme:'` and points out that the per-key issue counts are themselves the recurrence signal. | `agent-plugins-19s` |
+| P4 — bring step 5's beads to the Definition of Ready | **adopted.** Step 5 now defers to the spec-owned [[work-order-definition-of-ready]] instead of its own three-field schema, and requires deferrals carry status `deferred` plus a `grooming_status`. | `agent-plugins-2qd` |
+
+**Files changed:** `.claude/skills/triage-rfc/SKILL.md`.
+
+**Version bumps:** `triage-rfc` 1.0 → 1.1. Note this skill is repo-local
+and ships outside the plugin, so it does not by itself drive a plugin bump.

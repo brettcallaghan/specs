@@ -8,7 +8,7 @@ description: Process many beads autonomously by orchestrating subagents. Use
   implicit decisions up front, dispatches via the cheapest viable execution mode
   (doc fast lane / shared-surface batch / worktree parallel / sequential), streams
   per-bead progress, and lands each bead in a single commit.
-version: "1.2"
+version: "1.3"
 ---
 
 # bead-bonanza
@@ -72,16 +72,30 @@ Before reading the queue, verify the environment won't interrupt the run:
    repo), record that: `<test>` is a no-op and the doc/chore fast lane is
    the only dispatch mode.
 2. **Beads telemetry.** `bd` stores its data in Dolt, which calls
-   `eventsapi.dolthub.com`. Just kill it — don't ask, don't suggest. Run with
-   sandbox disabled (writing `~/.dolt/config_global.json` is sandbox-blocked):
+   `eventsapi.dolthub.com`. Just kill it — don't ask, don't suggest.
+
+   **Probe for the `dolt` CLI first — it is often absent.** Recent `bd`
+   embeds Dolt as a library rather than shelling out to a binary, so a
+   perfectly working `bd` can sit on a machine with no `dolt` on PATH,
+   and running the config command blind fails with
+   `dolt: command not found`:
+   ```bash
+   if command -v dolt >/dev/null 2>&1; then
+     # Sandbox disabled: writing ~/.dolt/config_global.json is blocked.
+     dolt config --global --list          # skip if metrics.disabled = true
+     dolt config --global --add metrics.disabled true   # dangerouslyDisableSandbox: true
+   fi
    ```
-   dolt config --global --add metrics.disabled true   # dangerouslyDisableSandbox: true
-   ```
-   Then add a permanent deny so the domain can't sneak back in: edit
-   `~/.claude/settings.json`, append `"WebFetch(domain:eventsapi.dolthub.com)"`
-   to `permissions.deny` (creating the array if needed). Tell the user in one
-   line what was done. Skip if the config already shows `metrics.disabled =
-   true` — check first with `dolt config --global --list`.
+   WHEN `dolt` is absent, that is a normal configuration and NOT a run
+   failure: there is no global Dolt config to write, so record "no `dolt`
+   CLI; telemetry config skipped" in the Phase 0 notes and continue to
+   the permission deny below, which is what actually blocks the domain.
+
+   Then, in either case, add a permanent deny so the domain can't sneak
+   back in: edit `~/.claude/settings.json`, append
+   `"WebFetch(domain:eventsapi.dolthub.com)"` to `permissions.deny`
+   (creating the array if needed). Tell the user in one line what was
+   done.
 3. **Run scratch directory.** Pick a run id (e.g. `$(date +%s)-<N>` where N is
    the queue size), then resolve the run root ONCE and confirm it is writable
    before Phase 1:
@@ -474,6 +488,38 @@ lineup` block in `AGENTS.md` (Phase 0 step 1a). Honor these:
   a `Tier` column; on the lean path, name the tier in the one-line
   dispatch statement.
 
+### WHEN delegation is unavailable — the main-loop fallback
+
+Everything above assumes you can spawn subagents. **Check that before
+Phase 3, not during it:** some harnesses expose no `Agent` tool at all,
+and some sessions forbid it. The check is simply whether an `Agent` tool
+is available to you in this session.
+
+WHEN it is not, the run does NOT abort — it degrades to a defined mode:
+
+- **Implement every bead in the orchestrator's own loop**, in queue
+  order, following the full per-bead ceremony unchanged (claim, gates,
+  retro, atomic close, single commit). The ceremony is what makes a bead
+  landing correct; delegation is only how the work is distributed.
+- **Drop the parallel dispatch modes.** Worktree-parallel and
+  shared-surface batching exist to isolate concurrent agents; with one
+  agent there is no concurrency to isolate, so they add risk and no
+  benefit. Run sequential.
+- **Context is now the scarce resource**, because nothing is being
+  isolated for you. Keep per-bead notes to one line, and re-read the run
+  checklist rather than holding it in your head.
+- **No tier routing occurs.** You cannot dispatch at a resolved model
+  when you are the one doing the work — every bead runs at the session's
+  own model regardless of its `tier`. Do not silently treat this as
+  routing that happened to succeed.
+- **Say so once, at the top of the run**, so the user knows the tier
+  labels were not honored.
+
+This is a real degradation, not an equivalent path: an under-tiered bead
+that a `frontier` subagent would have handled may now fail, and a
+`light` bead costs full session model. Both are acceptable; concealing
+them is not.
+
 ### Push policy
 
 - **`push-per-bead`** — subagent pushes after each commit. Best for sequential
@@ -600,6 +646,22 @@ After the queue is drained (or the circuit breaker tripped), print:
 
    State `none` explicitly when there were no escalations — the null is
    the result, not the absence of one.
+
+   **`none` and "no routing occurred" are different results, and this
+   table cannot tell them apart.** WHEN the run used the main-loop
+   fallback because delegation was unavailable, do NOT write `none`.
+   Write, in place of the table:
+
+   ```
+   Tier escalations: N/A — no routing occurred. No Agent tool was
+   available, so every bead ran in the orchestrator's own loop at the
+   session model, and no bead's tier was honored.
+   ```
+
+   An empty table read as `none` says "routing was tested and nothing
+   needed raising", which is the opposite of what happened: routing was
+   never exercised at all. Reporting the first as the second feeds
+   `groom-beads`' retro loop a calibration signal that does not exist.
 
    This table is the whole point of routing by tier: it is the only
    direct evidence a run produces about whether grooming predicted
@@ -763,6 +825,33 @@ each encodes an ordering or quoting rule that is easy to state and easy to
 get wrong under pressure — the close ceremony's four ordering constraints,
 the progress event's quoting hazard, the two-sided skip check. Run them
 rather than reproducing what they do.
+
+Because they are not to be read, their interfaces are published here — an
+agent that must open a script to learn how to call it has already been sent
+to read it:
+
+```
+bb-progress.sh   <run-dir> <bead-id> <phase> [key=value ...]
+bb-verify-skip.sh [pathspec ...]        # no pathspec = whole working tree
+bb-close-bead.sh <bead-id> <priority> <title> <retro-file> [path ...]
+```
+
+- **`scripts/bb-progress.sh`** — appends one event to
+  `<run-dir>/<bead-id>.progress.jsonl`. `<phase>` is a closed vocabulary:
+  `claimed`, `implementing`, `gates-running`, `gates-passed`,
+  `retro-written`, `committed`, `pushed`, `blocked`. Extra fields are
+  `key=value` pairs (`sha=a1b2c3d`, `reason="gates failed twice"`).
+  Exit 2 on a bad invocation, and it writes nothing in that case.
+- **`scripts/bb-verify-skip.sh`** — the two-sided skip check. With no argument it
+  examines the whole working tree; pass pathspecs to scope it.
+- **`scripts/bb-close-bead.sh`** — the close ceremony, in its required order.
+  `<path ...>` are the code files this bead changed; WHEN omitted it stages
+  everything currently modified, so pass explicit paths whenever another
+  agent may be sharing the tree.
+
+Each script's own header carries the same usage line. WHEN a usage line
+here disagrees with the script, the script is authoritative — and that
+disagreement is a finding worth a retro.
 
 Files under `references/shared/` are **generated copies** of reference
 documents owned by a sibling skill — vendored in by

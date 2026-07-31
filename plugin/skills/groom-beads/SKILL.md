@@ -10,7 +10,7 @@ description: >-
   before a long-running or orchestrated session. Trigger even if the user
   just says "groom these" or "make these beads ready" in a repo that uses
   beads.
-version: "1.0"
+version: "1.1"
 ---
 
 # Bead Grooming
@@ -155,10 +155,28 @@ Prefer editing over rewriting: enrich a thin description, don't discard the
 author's intent. When a description leans on session context, the fix is to
 *inline the missing context*, not to delete the sentence.
 
-WHEN a bead cannot be brought to Ready, do not dispatch it: set its
-`grooming_status` to `blocked-needs-info` (a specific fact is missing) or
-`blocked-ungroomable` (it needs redesign), and flag it in the report rather than
-shipping a half-groomed bead downstream silently.
+WHEN a bead cannot be brought to Ready, do not dispatch it. Parking it takes
+**two** writes, and the second is the one that actually works:
+
+1. Record WHY, for the human and the next grooming pass — set
+   `grooming_status` to `blocked-needs-info` (a specific fact is missing) or
+   `blocked-ungroomable` (it needs redesign).
+2. Record THAT, for the orchestrator — change the bead's `status` so it
+   leaves the ready queue:
+
+   ```
+   bd update <id> --set-metadata grooming_status=blocked-needs-info
+   bd defer <id>          # status -> deferred; drops out of `bd ready`
+   ```
+
+`bd ready` reads `status`, **not** `grooming_status`. A bead flagged only
+with `grooming_status` stays dispatchable and will be handed to a fresh
+subagent exactly as if it were ready — which is the failure the flag exists
+to prevent, made worse by looking handled. Verify the park took effect: the
+bead SHALL NOT appear in `bd ready` afterwards.
+
+Then flag it in the report rather than shipping a half-groomed bead
+downstream silently.
 
 ### 3. Wire the dependency graph
 
@@ -183,8 +201,21 @@ Record the tier in **metadata** so it rides with the bead and the orchestrator
 can read it at dispatch:
 
 ```
-bd update <id> --set-metadata '{"tier":"standard","tier_reason":"localized CRUD + tests, low ambiguity","est_size":"S"}'
+bd update <id> --set-metadata tier=standard \
+  --set-metadata tier_reason="localized CRUD + tests, low ambiguity" \
+  --set-metadata est_size=S
 ```
+
+Two flags write metadata and they are not interchangeable — probe both
+before a bulk pass:
+
+- `--set-metadata key=value` is **repeatable and additive**: it leaves
+  other keys intact, so it is what you want for touching one field on an
+  already-groomed bead. It stores every value as a **string**.
+- `--metadata '<json>'` takes real JSON types but **replaces the entire
+  metadata object**. Use it to write a bead's metadata in one shot (at
+  creation); do NOT reach for it to add a key, or you will silently drop
+  every key you did not restate.
 
 Beads carry a **tier** (`light | standard | advanced | frontier`, least to
 most capable), not a model name. The orchestrator resolves tier → model at
@@ -209,8 +240,17 @@ containers/components each bead touches — in metadata so it's queryable, not
 buried in prose:
 
 ```
-bd update <id> --set-metadata '{"c4_changes":["auth-service"],"c4_impacts":["web-spa","billing-service"],"c4_docs":["docs/c4/auth-service/component.md"]}'
+bd update <id> --metadata '{"tier":"standard","tier_reason":"...","est_size":"S",
+  "c4_changes":["auth-service"],"c4_impacts":["web-spa","billing-service"],
+  "c4_docs":["docs/c4/auth-service/component.md"]}'
 ```
+
+These three fields are **arrays**, which is why this phase uses
+`--metadata` and not `--set-metadata`: the latter would store
+`["auth-service"]` as the literal string `"[\"auth-service\"]"`, and
+anything reading `c4_changes` as a list — wave-collision packing above
+all — would not see a component name. Because `--metadata` replaces the
+whole object, restate the tier keys phase 4 already wrote, as shown.
 
 - Distinguish **changes** (code this bead edits) from **impacts** (downstream
   components affected but not edited). Both matter; see below.

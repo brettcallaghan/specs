@@ -9,7 +9,7 @@ description: Evidence-based retrospective on a SKILL that an agent just
   especially one that struggled, improvised, or produced a wrong result,
   or when asked to retro a skill, critique a skill, or capture how a
   skill could be improved.
-version: "0.1"
+version: "0.2"
 ---
 
 # Skill Retro
@@ -176,7 +176,17 @@ Retro progress:
 5. **Author one RFC per skill** from `references/skill-rfc-template.md`.
    Group the findings by the skill they target; author one RFC per
    skill (a run that surfaced findings about more than one skill
-   produces more than one RFC — do not force them into one). For each,
+   produces more than one RFC — do not force them into one).
+
+   **WHERE a finding is a property of several skills rather than of
+   one** — the same gap present in each skill's text, not one skill's
+   defect — do NOT file near-identical RFCs against each. Propose it as
+   a requirement in the skill-authoring standard
+   (`docs/standards/skill-best-practices.md`), and file ONE RFC against
+   the skill whose text most directly exhibits it, naming the other
+   affected skills and their `file:line` in Evidence. A standards
+   requirement is how the rule reaches skills not yet written; the
+   single RFC is how it reaches the ones that exist. For each,
    set the frontmatter labels (skill, skill_version, model, effort,
    runs_observed, origin, severity); order proposals by severity, each
    carrying its finding shape, cited evidence, and a concrete change.
@@ -193,9 +203,21 @@ Retro progress:
    - **Null result** → a `retro-note-<origin>-<YYYY-MM-DD>.md` beside the
      RFC location, so the retro log stays complete; a skill that retroed
      clean is information.
-7. **Hand off.** Report what was produced and where it routes. Do NOT
-   edit the skill yourself — retro-skill's authority ends at the RFC;
-   `triage-rfc` resolves it after human approval.
+7. **Hand off.** Report what was produced and where it routes.
+
+   Every factual claim in that report SHALL cite what it derives from —
+   a finding number, a `file:line`, or a command and its output — or be
+   marked explicitly as your own inference. You SHALL NOT state that a
+   check was performed unless it was performed. A claim you cannot cite
+   does not belong in the report, for exactly the reason it would not
+   have cleared the bar as a finding: the bar governs the artifact, and
+   a report that escapes it is the one layer with no gate.
+
+   This is not a call to be more careful — it is mechanically checkable.
+   A sentence either names its source or it does not.
+
+   Do NOT edit the skill yourself — retro-skill's authority ends at the
+   RFC; `triage-rfc` resolves it after human approval.
 
 ## The bar, restated
 
@@ -216,7 +238,8 @@ about a skill belongs in Considered and Not Proposed at most.
 | Reporting a script bug without a command or repro | Triage cannot verify it; an unreproducible bug is a rumor |
 | Proposing "be more careful" / "read carefully" | The fix for ignoring a warning is not another warning; find the misleading text or the gap instead |
 | Padding with polish while blockers exist | Dilutes the RFC; rank by severity and lead with blockers |
-| One RFC per finding, or one RFC spanning several skills | Bundle all findings for ONE skill into one RFC (its proposals are the units of decision); findings about a different skill get their own RFC |
+| One RFC per finding, or one RFC spanning several skills | Bundle all findings for ONE skill into one RFC (its proposals are the units of decision); findings about a different skill get their own RFC. The exception is a finding that is a property of several skills at once — route it per step 5: a standards requirement plus ONE RFC against the skill that most exhibits it |
+| N near-identical RFCs for one cross-cutting finding | The workaround the rule above invites, and the worse failure: triage then decides the same proposal N times. Use step 5's cross-skill route instead |
 | Editing the skill during the retro | The retro's authority ends at the RFC; resolution belongs to `triage-rfc` |
 
 ## Reference files

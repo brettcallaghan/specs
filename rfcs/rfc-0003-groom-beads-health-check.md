@@ -4,9 +4,9 @@ title: "RFC: bd-health.sh fails a clean backlog, and blocked beads stay
 description: The phase 6 health check reports hard graph problems on a
   backlog with zero cycles and zero orphans, and phase 2's blocked-bead
   flag does not remove the bead from the ready queue
-slug: rfc-self-groom-beads-health-check
+slug: rfc-0003-groom-beads-health-check
 type: rfc
-status: ready-for-review
+status: retired
 updated_at: 2026-07-30T23:10:00Z
 origin: self
 skill: groom-beads
@@ -405,3 +405,17 @@ the graph out of band, and a bead the skill declares un-ready stops
 appearing in `bd ready`.
 
 ## Resolution
+
+**Triaged 2026-07-31.** 4 proposals, all adopted and implemented.
+
+| Proposal | Outcome | Bead |
+|----------|---------|------|
+| P1 — stop scoring a success message as failure | **adopted.** `bd-health.sh` now scores on exit code, not output emptiness, and prints a passing check's output without marking it failed. The summary line was also changed to name the checks that actually failed instead of asserting "cycles/orphans" — that assertion was a false blocker, since `groom-beads` phase 6 forbids proceeding while the script exits non-zero. | `agent-plugins-t1m` |
+| P2 — scope `swarm validate` to an epic or report it skipped | **adopted.** It now enumerates active epics and validates each; zero epics is recorded as a skipped hard check, never a failure. Closed epics are excluded. | `agent-plugins-40v` |
+| P3 — rule for parking a blocked bead | **adopted.** Phase 2 now states that parking takes two writes and that `bd ready` reads `status`, not `grooming_status`. | `agent-plugins-4s2` |
+| P4 — correct the `--set-metadata` examples | **adopted-with-refinement.** Both examples corrected. The refinement: verification showed the two flags differ in more than syntax — `--set-metadata` is additive but stringifies values, `--metadata` takes real JSON but replaces the whole object. Since phase 5's `c4_*` fields are arrays, that distinction is load-bearing and is now documented alongside the fix. | `agent-plugins-t5v` |
+
+**Files changed:** `plugin/skills/groom-beads/scripts/bd-health.sh`,
+`plugin/skills/groom-beads/SKILL.md`.
+
+**Version bumps:** `groom-beads` 1.0 → 1.1.

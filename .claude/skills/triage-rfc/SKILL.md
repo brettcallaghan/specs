@@ -7,7 +7,7 @@ description: Triage improvement RFCs received from projects using the
   adopted changes after human approval. Use when asked to triage the
   RFC inbox, process rfcs/inbox/, review a received RFC, or check on
   deferred RFC themes.
-version: "1.0"
+version: "1.1"
 ---
 
 # RFC Triage
@@ -67,13 +67,28 @@ the note. Then, per RFC, in received order:
    provenance versions is still triaged, but say so in the
    Resolution; the citation burden was the author's.
 2. **Dedupe.** Search this repo's `rfcs/` for prior proposals on the
-   same theme, and the beads (`bd list --label rfc-triage`). Match on
-   the outcome section of each resolved RFC whatever it is titled —
-   older RFCs may use a different heading than the current template's,
-   so search the content rather than assuming one heading.
+   same theme, and the beads:
+
+   ```
+   bd list --label rfc-triage --all
+   ```
+
+   The `--all` is load-bearing. `bd list` defaults to open work and
+   hides `closed` and `deferred` issues, which are exactly the two
+   states a dedupe must see: a closed bead is a prior ADOPTED or
+   REJECTED outcome, and a deferred bead is the accumulation signal.
+   Without it the command returns only open beads and the prior-adopted
+   and prior-rejected branches below can never fire. (WHERE the
+   installed `bd` has no `--all`, use the explicit form
+   `--status open,in_progress,blocked,deferred,closed`; note that
+   repeating `--status` overwrites rather than accumulates.)
+
+   Match on the outcome section of each resolved RFC whatever it is
+   titled — older RFCs may use a different heading than the current
+   template's, so search the content rather than assuming one heading.
    - Prior REJECTED match: flag it with the prior rationale; recommend
      reconsideration only if this RFC carries new evidence.
-   - Prior DEFERRED match (an open bead): this is recurrence — the
+   - Prior DEFERRED match (a deferred bead): this is recurrence — the
      accumulation signal working. Link the new RFC in the bead,
      bump its priority, and recommend promotion to adopt-now when a
      second independent project has hit the same theme.
@@ -93,18 +108,69 @@ the note. Then, per RFC, in received order:
    proposal, classification, one-line rationale, files touched.
    Implement nothing before the human approves; the human may
    reclassify any row.
+
+   **WHEN no human can answer** — an unattended, scheduled, or
+   batch run — the gate does NOT dissolve, and absence is NOT
+   approval. Take the unattended branch instead:
+   - Classify every proposal as usual, and present the table. The
+     analysis is the valuable part and it does not require a human.
+   - **File one bead per proposal, whatever its classification** —
+     adopt-now included — each meeting the bar in step 5, labelled
+     `rfc-triage` and `theme:<key>`, with the recommended
+     classification recorded in the bead. The beads ARE the handoff
+     artifact: they survive the session, and a human can approve
+     later by working the queue.
+   - **Implement nothing.** Not the obvious ones, not the one-line
+     ones.
+   - **Leave the RFCs in `rfcs/inbox/`.** Do not write Resolutions,
+     do not renumber, do not retire. The Resolution section records
+     what a human approved; writing it here would be a record of an
+     approval that never happened.
+   - **Say in the report which steps the gate blocked** — namely 5
+     through 7 — and name the beads filed, so the next attended
+     session resumes from them rather than re-triaging the inbox.
+
+   Do not resolve the ambiguity any other way. The three tempting
+   alternatives — discarding the analysis, writing into the
+   Resolution section, or reading an absent human as consent — lose
+   work, falsify the record, and defeat the gate respectively.
 5. **Implement** the approved adopt-now items:
    - Apply the changes; keep every touched file within its own
      conventions (80-column lines, EARS for normative statements).
    - Bump the version of every changed template (instruction-block
      `Version:`), skill (frontmatter `version`), and standard
      (frontmatter `version`) per [[template-authoring-standards]].
-   - File one bead per approved deferral: title from the proposal,
-     description linking the RFC path, proposal ID, and evidence
-     summary; labels `rfc-triage` and `theme:<key>`. Reuse an
-     existing theme key WHERE one fits (check current labels before
-     minting); themes are kebab-case topics, e.g.
-     `theme:ac-coverage`, `theme:reference-syntax`.
+   - File one bead per approved deferral **that meets the Definition of
+     Ready**. The bar is the spec-owned
+     [[work-order-definition-of-ready]] — do not restate or fork it
+     here; run the bead against it, and use `groom-beads` when a bead
+     needs to be brought up to it. Deferred work is read months later by
+     an agent with no memory of this triage, so the fresh-agent test
+     (DoR check 1) is the one that actually bites: a bead saying "adopt
+     P4 from the RFC" fails it, because the reader has neither the RFC
+     open nor the session that produced it.
+
+     Beyond the DoR, each bead SHALL carry: the RFC path and proposal ID
+     (so the testimony is recoverable), the evidence summary inlined
+     rather than linked, and labels `rfc-triage` plus `theme:<key>`.
+     Reuse an existing theme key WHERE one fits. Enumerate them before
+     minting a new one:
+
+     ```
+     bd label list-all | grep 'theme:'
+     ```
+
+     The issue count beside each key is the recurrence signal itself —
+     a theme reaching two independent projects is the promotion trigger
+     in step 2 — so read the counts, not just the names. Keep themes
+     kebab-case topics, e.g. `theme:ac-coverage`,
+     `theme:reference-syntax`. A bead without a theme label is
+     invisible to the accumulation model.
+
+     A deferral is not dispatchable work: set the bead's status to
+     `deferred` so it does not surface in `bd ready`, and record why in
+     `grooming_status` (`blocked-needs-info` when a specific fact is
+     missing, `blocked-ungroomable` when it needs redesign).
    - **Verify before moving on.** Re-read each file you changed: the
      change is present, its version bumped, and its own conventions held.
      A half-applied adoption is worse than a deferral, because the
