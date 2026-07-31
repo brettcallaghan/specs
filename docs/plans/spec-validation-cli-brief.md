@@ -1,504 +1,672 @@
 # Brief: deterministic validation tooling for the spec document set
 
-Research and options for review. Not a spec — the input to one. Written
-against the working tree at `dec1a33`.
+Research and options. Input to an FRD, not a spec.
+
+**Revision 2** — restructured around review comments. The major changes:
+a product framing section (§1), the general/domain feature split you
+asked for (§2), Gherkin research with empirical results (§4), a complete
+agent-judgment catalogue (§5), and a reversed language recommendation
+(§8) now that legacy weight is off the table.
 
 ---
 
-## Recommendations at a glance
+## 1. What we're building and why
 
-| Question | Recommendation | Confidence |
-|----------|----------------|------------|
-| Scripts or CLI? | **One CLI, many subcommands**, with narrow flags so a skill can invoke exactly one check | High |
-| Language? | **Python**, single-file commands with PEP 723 inline deps, run via `uv run` with a plain-`python3` fallback | Medium-high |
-| Bundling? | **Ship inside the plugin.** `${CLAUDE_SKILL_DIR}` + `allowed-tools` runs it with no permission prompt; no separate distribution needed | High |
-| Cross-platform? | **Yes**, with named caveats (§8). The constraint is real and cheap to hold if designed in now | High |
-| Primary artifact? | **The frontmatter index**, not the pass/fail report. Every check you listed is a query over it | High |
-| Scope split? | **Two layers in one binary**: a generic document layer (config-driven) and a framework layer (built-in rules) | Medium |
-| FRD? | The CLI needs one. The standards docs **stay standards** — the FRD complies by reference | High |
+Three motivations, in the order they'd appear in an FRD overview.
 
-The one thing I'd change about the brief as you framed it: you listed
-checks, but the checks are downstream. Build the index first and most of
-the list falls out as queries (§3).
+**1. CI for other people's spec repos.** The primary consumer is not
+this repo — it's a team that adopts the framework, points the tool at
+their spec root, and gets a build failure when their documents drift.
+That makes *portability* a first-class requirement, not a nice-to-have:
+the tool cannot assume our directory layout, our document types, or our
+prefix registry.
 
----
+**2. Cheaper, more reliable agent validation.** Every mechanical check
+an agent performs by reading is tokens spent and a chance to claim a
+check it didn't run. Concretely, on this repo: readiness check 8
+("every `[[slug]]` resolves") costs roughly 42 file reads today. The
+skill runs its checklist, fixes, and **re-runs** — so that's paid twice.
+The `spec` skill's reference bundle is ~39k tokens; the per-run checking
+work is larger than the bundle.
 
-## 1. What I found when I actually ran it
+**3. The index is an enterprise architecture artifact.** This is the
+one I most underweighted in revision 1. The JSON isn't a build
+intermediate — it's the deliverable that gets pushed to a centralized
+service so an organization can see its whole system architecture in one
+place. That's the C4 payoff: rigorous component modeling feels heavy for
+a single app (though it still helps humans and agents), and pays off at
+enterprise scale where no one can hold the system in their head.
 
-I prototyped the core checks over this repo's own corpus — 50 markdown
-files under `docs/`, `rfcs/`, and `plugin/skills/*/references/`, 42 of
-them carrying a slug. Results, because "would this catch anything?" is a
-better question than "is this a good idea?":
+Motivation 3 has design consequences that motivations 1 and 2 don't:
 
-| Check | Fired | Verdict |
-|-------|-------|---------|
-| Dangling `[[slug]]` | 26 real | **Genuine live defect** — filed `agent-plugins-5nz` |
-| Frontmatter parses | 1 failure | **Genuine** — filed `agent-plugins-6n4` |
-| Slug uniqueness | 0 | Clean |
-| Required properties | 0 | Clean |
-| Status vocabulary | 0 | Clean |
-| Dangling frontmatter refs | 2 | Minor — `related: work-order-template` points at a template, which has no slug |
-| Line width > 80 | 14 | Mostly real, all trivial |
-| Compound `SHALL … and … SHALL` | 18 raw | ~6 real, rest false positives (§5) |
-| Leftover `<!--` | 14 | All templates — correct behaviour, wrong corpus (§4) |
+- **The index schema is a published API.** It needs a version field, a
+  compatibility policy, and a much higher bar for breaking changes than
+  an internal cache would.
+- **Indexes must merge across repositories.** Two repos indexed
+  independently have to compose into one graph. That means a
+  workspace/system identifier, and slugs that are unique within a
+  declared namespace rather than globally.
+- **It should interoperate.** Structurizr already publishes a JSON
+  schema for C4 workspaces and is explicitly designed as an open format
+  to avoid lock-in. Emitting something convertible to it — even as a
+  separate `export` subcommand — buys rendering and existing enterprise
+  tooling for free. Worth an ADR; probably not v1.
+- **Partial results must be usable.** A repo with three broken documents
+  should still contribute its other 997 to the graph. Reinforces "index
+  never fails; validation may."
 
-Three things worth knowing before we design anything:
-
-**The ADR defect is the interesting one.** Eleven of thirteen ADRs carry
-a descriptive slug (`adr-011-targeted-verification-gates`) while every
-citation in the repo writes the bare number (`[[adr-011]]`). The prefix
-registry in `template-authoring-standards.md` says `adr-<nnn>`, so the
-slugs are wrong and the links are right. This is exactly the class of
-error the framework's philosophy says gates should catch, sitting
-undetected in the repo that authored the philosophy. It also isn't
-visible to a human reader — you only see it if you resolve every link.
-
-**There is no CI.** `.github/workflows` does not exist. Two runnable
-gates already ship (`scripts/check-skills.sh`,
-`scripts/sync-shared-references.sh --check`) and nothing invokes them.
-`skill-authoring-standards.md` states "Every invariant a skill asserts
-about itself SHALL be enforced by an automated check — Status in this
-repository: not yet met." Filed as `agent-plugins-bgy`; worth doing
-before the CLI exists, since it's the harness the CLI slots into.
-
-**A corpus model is a hard requirement, not a nicety.** Of 151 raw
-unresolved wikilinks, 49 vanish once fenced and inline code spans are
-excluded, and nearly all of the remainder are placeholders in templates
-(`[[container-<name>]]`) or illustrations in guides
-(`[[frd-checkout]]`). Templates are *not documents*: their frontmatter
-is placeholder text, their instruction blocks are supposed to survive,
-their slugs are `<angle-bracket>` forms. A validator that doesn't model
-this reports ~100 findings on a clean repo and gets switched off in a
-week. This is the single most important design decision in the whole
-thing and it isn't in your list.
+Worth stating plainly in the FRD: **this is three products sharing one
+engine** — a CI linter, an agent accelerator, and an architecture graph
+exporter. If the FRD only describes the linter, the design will be wrong
+for the other two.
 
 ---
 
-## 2. Does this make skills faster and more reliable?
+## 2. The split: general engine vs. domain profile
 
-Faster: yes, measurably. Reliable: yes, but only with skill-side wiring.
+You want a clean seam. Here's where I'd put it.
 
-Count the mechanical share of the two checklists the skills already run
-by reading:
+**The seam:** the general layer knows about *markdown documents with
+frontmatter that reference each other*. It has no opinion about what a
+document means. The domain layer supplies vocabulary — which types
+exist, what each requires, what the prefixes are — and the handful of
+checks that can't be expressed as configuration.
 
-- `document-readiness-checklist.md` — 8 checks. **6 are fully
-  mechanical** (1 frontmatter, 2 slug rule, 3 status vocabulary, 6 line
-  width, 7 instruction blocks, 8 link resolution). 4 and 5 are semantic,
-  and 5 is partly mechanical.
-- `blueprint-readiness-checklist.md` — 10 checks. **6 are mechanical**
-  (1, 2, 3, 5, 8, 10), 4 is partly, and 6/7/9 are judgment.
+The test for "is this general?": **could an Obsidian vault or a
+docs-as-code repo with nothing to do with C4 use it?** If yes, general.
 
-Today an agent runs check 8 by globbing the corpus and reading every
-candidate. On this repo that's ~42 file reads to answer one question the
-index answers in one call. The savings compound because both skills run
-their checklist, fix, and **re-run** it.
+### 2.1 General engine
 
-The reliability argument is stronger than the speed one, and it's
-already written down here. `skill-authoring-standards.md` records that a
-fabricated verification claim reached a pull-request description in this
-repo — the artifacts were gated hard and the *report* not at all. A
-validator's output is a citable artifact: "the checklist passed" becomes
-a command and its output rather than an assertion.
+| ID | Feature | Notes |
+|----|---------|-------|
+| G1 | **Corpus discovery & frontmatter parse** | Walk a root or a single file. Parse YAML frontmatter. Never fail on a bad document — record it and continue. |
+| G2 | **Frontmatter schema validation** | JSON Schema per `type`, supplied by config. Validate against the **raw string**, not the parsed value — YAML silently coerces `updated_at: 2026-07-29` to a date, so a parsed-value RFC 3339 check passes junk. This produced 42 false positives in my prototype. |
+| G3 | **Slug registry** | Uniqueness (case-insensitive — see §11), format per configured pattern, and the `number` field (§3). |
+| G4 | **Wikilink index & resolution** | `[[slug]]` and `[[slug#Anchor]]`. Never scan fenced or inline code spans — that alone removed 49 of 151 false hits here. |
+| G5 | **Heading structure & section spans** | Every heading with its line range, and the span of content beneath it. Feeds template conformance (G5a) *and* the targeted-agent-review pattern (§6). Probably the highest-leverage general feature after the index itself. |
+| G6 | **Tagged structured-data block extraction** | Generalizes `component` record blocks: extract any fenced block with a given info-string tag, parse it as yaml/json/toml, validate against a schema, attach it to the containing document and heading. The domain layer just says "tag `component`, schema X". |
+| G7 | **HTML comment block extraction** | Both as content (structured data in comments) and as hygiene (surviving template instructions). |
+| G8 | **Reference graph** | Derived from body wikilinks and configured frontmatter properties. Emits forward *and reverse* edges. See §3 on killing the `related:` ceremony. |
+| G9 | **Git-derived metadata** | Read `updated_at` and change-detection from git rather than trusting frontmatter — and **write it back** (§7). |
+| G10 | **Text hygiene** | Line width in characters, placeholder leakage (`<Name>`, `TODO`, `TBD`), trailing whitespace. |
+| G11 | **Index & report emission** | Versioned JSON index; separate JSON report with severities. |
+| G12 | **Fenced-block validators (pluggable)** | Mermaid is the first; the general shape is "hand a fenced block to an external validator by info-string tag". |
 
-The caveat, also already written down: a validator whose output is
-advisory is decoration. The same standard requires the skill to fix and
-re-run, refuse to proceed while failing, and bound the loop. **So the
-deliverable is CLI + skill wiring, never the CLI alone.** If we ship the
-binary and leave the skills to notice it, we've built a nicer version of
-the thing nobody runs.
+### 2.2 Domain profile
 
----
+| ID | Feature | Built on |
+|----|---------|----------|
+| D1 | **Type registry** — adr, frd, standards, system/container/component/feature blueprint, contract, work-order | G1, G2 |
+| D2 | **Prefix & slug conventions per type** (`adr-<nnn>`, `frd-<feature>`, …) | G3 |
+| D3 | **Element record blocks** + the **record-block XOR blueprint-link** invariant | G6 |
+| D4 | **AC identifiers & traceability** to the test suite | G5, §4 |
+| D5 | **Status lifecycle** — vocabulary, `superseded_by` integrity, retired-document references | G2, G8 |
+| D6 | **EARS normative-span extraction** for agent review | G5, §6 |
+| D7 | **C4 rules** — naming, arrow direction, element/relationship consistency | G6, G12 |
+| D8 | **Blueprint AC-coverage legend ↔ delta keys** | G5 |
+| D9 | **Work-order Definition of Ready** | G2, G5 |
+| D10 | **Template section conformance per type** | G5 |
 
-## 3. The reframe: the index is the product
+### 2.3 How much of the domain layer is just configuration?
 
-`template-authoring-standards.md` §Frontmatter Index already specifies
-this and nobody has built it:
+Mostly, and that's the design goal. D1, D2, D5, D10 are pure config —
+type names, JSON Schemas, regex patterns, required headings. D3, D6, D8
+need real code. D4 and D7 need code plus external parsers.
 
-> A document system SHOULD maintain a machine-readable index of all
-> documents' frontmatter (a JSON object written to disk). The index is
-> the authority for slug-uniqueness checks, next-number derivation for
-> numbered types, `[[slug]]` reference validation, and dangling-reference
-> detection after a promotion or reparent.
+So the shipped shape is: **a general binary + a `spec-driven-dev`
+profile that is 80% a config bundle.** An enterprise with its own
+document taxonomy writes its own profile and gets everything in §2.1
+for free. That's also the honest path to open-sourcing the general half
+later — the seam exists from day one rather than being retrofitted.
 
-Your item "produce a JSON file that contains the frontmatter in all
-files" *is* this, and it's not one item among nine — it's the substrate
-the other eight run on. Slug uniqueness is a `GROUP BY` over the index.
-Link validation is a join. Next-ADR-number is a `MAX`. Impact analysis
-is a reverse edge walk.
-
-It also unlocks things that aren't validation at all, which is where I
-think the real leverage is:
-
-- **`next-slug adr`** — today, authoring an ADR means reading every ADR
-  to find the next free number. One call instead.
-- **`slug-exists <slug>`** — answers your "validate that a slug isn't
-  already in use" *before* the document is written, which is when the
-  answer is useful.
-- **`impact <slug>`** — what references this? The `retro-spec` and
-  `triage-rfc` skills both need this and currently grep for it.
-- **Injected context.** Skills support `` !`command` `` injection, which
-  runs before the agent sees the skill body. The `spec` skill could open
-  with the live slug registry already inlined. That's a meaningful
-  reliability change: the agent stops *deriving* the namespace.
-
-Design consequence: `index` must be fast and must not require the corpus
-to be valid. It parses what it can, records what it couldn't, and never
-fails. Validation is a separate consumer that may fail.
+**Open question (§14 Q1):** does the domain layer ship as a plugin
+interface (WASM? subprocess? dynamic registration?) or is it compiled
+in, with config as the only extension point for v1? I'd start compiled
+in, config-extensible — a plugin ABI is a lot of surface to commit to
+before we know what a second profile needs.
 
 ---
 
-## 4. Catalogue of deterministic checks
+## 3. The index
 
-Split by who they're useful to — that's your "universal vs. geared to
-our skills" question. **U** = any markdown/Obsidian spec repo. **F** =
-this framework specifically.
+Confirming what you already agreed with, plus what your comments change.
 
-### Already in your list
+**A `number` field.** Agreed, and it should be optional and general:
+any type using an incrementing `<nnn>` convention declares
+`number: 11`, and `next-slug adr` becomes `MAX(number)+1` over the type
+rather than parsing it back out of slugs. It also makes gaps and
+collisions visible, which slug-parsing hides.
 
-| # | Check | Layer | Owner doc | Notes |
-|---|-------|-------|-----------|-------|
-| 1 | Frontmatter present + parses | U | `frontmatter-standards` | Must validate the **raw string**, not the parsed value — PyYAML silently coerces `updated_at` to a datetime, so a bare `2026-07-29` passes an RFC 3339 check against the parsed object. My probe hit this: 42 false positives. |
-| 2 | Required properties per type | U | `frontmatter-standards` | JSON Schema per type, `allOf`-merged with the base record schema as the standard already prescribes |
-| 3 | `[[slug]]` resolves | U | `cross-document-references` | Report file + line + column span |
-| 4 | `[[slug#Anchor]]` heading exists | U | `cross-document-references` | Needs a heading index; slug-ify anchors consistently |
-| 5 | Slug uniqueness | U | `template-authoring-standards` | Trivially an index query |
-| 6 | Frontmatter index emission | U | `template-authoring-standards` | §3 — the substrate |
-| 7 | Mermaid blocks parse | U | `c4-guide` | The awkward one; see §7 |
-| 8 | `component` record blocks validate | F | `frontmatter-standards`, ADR-008 | Also enforce the **record-block XOR blueprint-link** rule — a child is in exactly one state, and nothing checks it today |
+**Derive the reference graph; drop the ceremony.** Strongly agree, and
+it's the single biggest ergonomic win available. Today `related:`,
+`sources:`, `composes:` are hand-maintained and drift silently — my
+prototype found `related: work-order-template` pointing at a template,
+which has no slug. If body `[[wikilinks]]` are the source of truth, the
+index derives both directions and nobody maintains anything.
 
-### Additional opportunities
+The nuance worth an FRD decision: **not all relationships are
+references, and not all references are semantic.** `parent_slug`,
+`supersedes`, and `composes` carry meaning a bare link doesn't — "this
+document replaces that one" isn't "this document mentions that one." I'd
+propose:
 
-Ordered roughly by value per unit of effort.
+- **Derived, never authored:** `references` / `referenced_by` — computed
+  from body links.
+- **Authored, still validated:** typed edges where the *type* matters —
+  `parent_slug`, `superseded_by`, `composes`.
+- **Retired:** `related`, which is the ceremony with no semantics.
 
-| # | Check | Layer | Why it's worth it |
-|---|-------|-------|-------------------|
-| 9 | **AC traceability coverage** | F | `ac-traceability-standards.md` *literally specifies this tool*: report uncovered ACs (in an active FRD, cited by no test) and orphaned citations (citing an ID no approved/active FRD defines), and fail the build on the former. The regex is given in the doc. Highest-value unbuilt item in the repo. |
-| 10 | **Bidirectional relationship consistency** | U | If A declares `children: [B]`, B should declare `parent_slug: A`. Same for `blocks`/`depends_on`. Pure graph check, catches drift no human sees. |
-| 11 | **Cycles and orphans** in the relationship graph | U | Specified in `template-authoring-standards` §Dependency Graph, unimplemented |
-| 12 | **`updated_at` staleness** | U | `git log -1 --format=%cI -- <file>` newer than frontmatter `updated_at` ⇒ the author forgot to bump it. Fully deterministic, catches a rule everyone breaks. |
-| 13 | **Version-bump enforcement** | U | `template-authoring-standards` mandates "any normative change bumps the version in the same commit". In CI, diff against the base ref: if a template/skill/standard body changed and `version` didn't, fail. Nothing enforces this today. |
-| 14 | **AC Coverage legend ↔ delta keys** | F | Blueprint checklist #8: every delta has a unique short key, every legend key expands to a real delta block, no retired key reused. Table + heading parse. |
-| 15 | **Change-document completion** | F | A feature blueprint's `updates`/`creates`: every listed slug exists, and everything in `creates` is status `draft`. Half of blueprint checklist #5. |
-| 16 | **Retired/superseded integrity** | U | `status: retired` ⇒ `superseded_by` present and resolving; flag live documents still pointing at retired ones |
-| 17 | **Placeholder leakage** | U | `<Feature Name>`, `${CURRENT_DATE}`, `TODO`, `TBD`, `<!--` surviving into a document at `ready-for-review` or beyond. Cheap; catches the embarrassing failures. |
-| 18 | **Template section conformance** | U | A document declaring `type: adr` has the ADR template's required headings. Catches "author skipped a section" for near-zero cost. |
-| 19 | **Work-order Definition of Ready** | F | 8 named checks; roughly 5 are mechanical (design section present, acceptance present, dependencies wired, tier assigned + reason, C4 blast radius). `validate_beads.py` already does much of this — fold it in rather than duplicating. |
-| 20 | **Fold in the existing gates** | F | `check-skills.sh` and `sync-shared-references.sh --check` become subcommands. One gate, one severity model, one exit contract — the framework's own "one term for one concept" rule applied to tooling. |
+**Startup cost is real and I measured it.** Your point about firing up
+the CLI for a one-shot check:
 
-### What should stay agent judgment
+| Operation | Median |
+|-----------|--------|
+| `python3 -c pass` | 12.4 ms |
+| `+ import yaml` | 34.7 ms |
+| `+ yaml, json, re, pathlib` | 38.4 ms |
+| Full parse, this repo's 50 docs | 56.6 ms |
+| A Rust/Go binary, same work | ~1–3 ms startup |
 
-Worth stating explicitly so the FRD's non-goals are honest:
+So Python pays ~38 ms before doing anything. For `slug-exists` that's
+essentially all overhead, and it scales badly: at ~1,000 documents the
+parse alone is roughly a second. If a `PostToolUse` hook fires on every
+write, that's the difference between imperceptible and irritating. This
+is now a primary input to §8.
 
-- **Is a requirement well-formed EARS?** Detecting a missing trigger is
-  mechanical; deciding whether the behaviour is *truly ubiquitous* is
-  not. Ship this as a warning-level lint, never a gate.
-- **Blueprint check 7** (does a delta carry enough design intent?) —
-  irreducibly semantic, and the checklist says so.
-- **Tracker reconciliation classification** (subsumed / prerequisite /
-  out-of-scope) — the *presence* of the section is checkable, the
-  classification isn't.
-- **"Is this the right document type?"** — the skill's job.
+Two mitigations regardless of language: cache the index with an mtime
+or content-hash check so repeat invocations skip reparsing, and offer a
+long-lived `serve` mode for the interactive case.
 
 ---
 
-## 5. The EARS lint is the hard one — and it argues for severities
+## 4. Gherkin — I ran the experiments
 
-My compound-modal check fired 18 times. Genuine hits like the contract
-template's "it SHALL remain available for `<window>`, and the provider
-SHALL announce…" sit next to false positives like
-`ac-traceability-standards`'s "It is SHOULD, not SHALL, because the
-blueprint retires…" — prose *about* requirements, not a requirement.
+You asked whether Gherkin can annotate every AC with an ID and whether
+a tool extracts them deterministically. **Yes to both**, and it's a
+better fit than I expected. Everything below is from actually running
+the official `gherkin-official` Python parser, not from documentation.
 
-The rule as written ("a sentence carrying a capitalized SHALL, SHOULD or
-MAY is a requirement") is a good instruction for a human and a bad
-predicate for a parser. Options:
+**Tags carry our exact ID format.** `@AC-CHK-003.1` parses as a valid
+tag — dots, hyphens and uppercase are all fine. The only hard rule is
+no whitespace. Our existing `AC-<PREFIX>-<nnn>.<n>` convention needs no
+change.
 
-1. **Scope by section** — only lint under Requirements/Acceptance
-   headings. Under-covers standards docs, where every section is
-   normative.
-2. **Warning severity, never a gate.** Cheap, honest, and matches how
-   the checklist already treats 4 and 5 differently from 1–3.
-3. **Structural markup** — require normative statements to be list items
-   or bolded. A real standards change; would make the lint exact.
+**Tags inherit and the parser resolves it.** A tag on `Feature:` or
+`Rule:` propagates to every `Scenario:` beneath it, already merged in
+the AST. So an FRD-level tag lands on every AC automatically.
 
-I'd start with (2) and revisit (3) if the noise is annoying. Worth
-deciding tomorrow, because it's the difference between a gate people
-trust and one they `--no-verify` past.
+**Every scenario carries a line number**, so diagnostics can point at
+`file:line`.
 
-**Implication:** the CLI needs three severities — `error` (gates),
-`warn` (advises), `unverified` (couldn't run). The third is not
-optional: `skill-authoring-standards` requires that "IF a script cannot
-run a check it was asked to perform, THEN it SHALL report that check as
-unverified rather than as passed." That's the mermaid case exactly (§7).
+**It parses from a string, not just a file** — which means fenced
+` ```gherkin ` blocks embedded directly in an FRD work. I extracted two
+blocks from a mock FRD, wrapped them in a synthetic `Feature:` header,
+parsed, and got both ACs back with tags and steps intact.
 
----
-
-## 6. Tech: one CLI, and how it gets to the agent
-
-### Scripts vs. CLI
-
-**One CLI.** Ten scripts each re-globbing and re-parsing the corpus is
-slow, and worse, they'd disagree — different exclusion rules, different
-exit-code meanings, different output shapes. One binary gives one corpus
-model, one config resolution, one severity vocabulary.
-
-But expose it narrowly, because a skill needs *one* check, not all of
-them:
+**The parser genuinely rejects malformed ACs.** A typo'd step keyword
+(`Wen` for `When`) produces:
 
 ```
-sdd index [--out .spec-index.json]     # the substrate; never fails
-sdd check [PATH...] [--only links,frontmatter] [--json] [--strict]
-sdd next-slug <type>                   # max+1 for numbered types
-sdd slug-exists <slug>
-sdd impact <slug>                      # reverse references
-sdd coverage --frds docs/ --tests src/ # AC traceability (§4 #9)
-sdd graph [--format mermaid|dot|json]
+Parser errors: (5:5): expected: #EOF, #TableRow, #DocStringSeparator,
+#StepLine, #TagLine, #Examples
 ```
 
-`--json` matters more than it looks: it's the difference between an
-agent parsing a report and an agent reading one.
+That is exactly the benefit you were after — a language parser, not a
+regex, deciding whether an acceptance criterion is well formed.
 
-Name is a placeholder — `sdd` after the plugin. Open question.
+**Two constraints found by testing:**
 
-### Bundling — this is a solved problem, better than I expected
+1. A fragment does **not** parse on its own. `Scenario:` alone is
+   rejected; so is `Rule:` alone. Embedded blocks must be wrapped in a
+   synthetic `Feature:` before parsing.
+2. Because of the wrapping, scenario line numbers are relative to the
+   synthetic document, not the markdown file. An offset map is required
+   to report errors at the right line in the FRD. Small, but it's the
+   kind of thing that gets discovered late and hurts.
 
-You do **not** need a separate distribution path. Three mechanisms:
+**Official implementations:** .NET, Java, JavaScript, Ruby, Go, Python,
+C, Perl, PHP, Dart, C++. **Rust is not on that list** — `cucumber-rs/gherkin`
+is a third-party pure-Rust reimplementation. That interacts with §8 and
+is called out there.
 
-1. **`${CLAUDE_SKILL_DIR}` + `allowed-tools`.** A skill can reference
-   its own bundled script by absolute path and pre-approve it:
+### Three ways to use it
 
-   ```yaml
-   ---
-   name: spec
-   allowed-tools: Bash(${CLAUDE_SKILL_DIR}/scripts/sdd *)
-   ---
-   Run `${CLAUDE_SKILL_DIR}/scripts/sdd check --json <path>`.
-   ```
+| | Shape | Gets us |
+|-|-------|---------|
+| **A** | FRD keeps prose ACs; separate `.feature` files carry `@AC-*` tags | Traceability without touching the FRD template. Two artifacts to keep in sync — the drift problem we're trying to kill. |
+| **B** | ACs **are** ` ```gherkin ` blocks inside the FRD | One artifact. Parser-validated structure. Deterministic ID extraction. Requires changing `frd-template.md` and `ac-traceability-standards.md`. |
+| **C** | Prose EARS AC stays; the `*Example:*` beneath it becomes a gherkin block | Smallest change; validates the example, not the criterion. |
 
-   Both occurrences expand to the same path, so the rule matches the
-   command the body prescribes and it runs **without a permission
-   prompt**. (Requires Claude Code ≥ 2.1.129; older versions leave the
-   literal string and it prompts — degraded, not broken.)
+**I'd argue for B**, with one framing that makes it much less radical
+than it looks: the FRD template *already* requires an EARS statement
+plus a concrete example per AC. Option B just gives that pair a grammar
+— the `Scenario:` name is the EARS sentence, the `Given/When/Then` steps
+are the example that was already mandatory.
 
-2. **Plugin hooks.** `hooks/hooks.json` in the plugin root can register
-   a `PostToolUse` hook matching `Write|Edit`, invoked as
-   `"${CLAUDE_PLUGIN_ROOT}/scripts/sdd"`. That makes validation
-   *ambient* — a spec document gets checked when it's written, whether
-   or not the skill remembered to. A `PostToolUse` hook can't block the
-   write (it fires after), but it can return `additionalContext` or
-   `decision: "block"` to stop the agent proceeding. This is the
-   strongest reliability mechanism available and it needs no skill
-   discipline at all.
+The reframe that matters: **adopting Gherkin is not adopting Cucumber.**
+We'd use it as a validated grammar for acceptance criteria and a
+deterministic ID carrier. Whether anyone *executes* the scenarios is a
+separate, later, per-project choice. Teams not using Cucumber keep
+citing IDs from their own tests exactly as `ac-traceability-standards`
+already specifies.
 
-3. **Skill-scoped hooks.** A skill's frontmatter can declare `hooks:`
-   scoped to its own lifetime — so the write-time validation is active
-   only while `spec` is running, and cleans itself up. Probably the
-   right middle ground: ambient enough to be reliable, narrow enough
-   not to fire on every unrelated markdown edit.
-
-Plus `${CLAUDE_PLUGIN_DATA}` (`~/.claude/plugins/data/<id>/`), which
-persists across plugin updates — the documented place to install
-language dependencies once, with a `SessionStart` hook that diffs the
-bundled manifest against the installed copy and reinstalls on change.
-That's our escape hatch if we ever need a real dependency tree.
-
-My read: **(1) for the deliberate checklist runs, (3) for a write-time
-safety net.** Start with (1); (3) is a follow-on once the rules are
-stable enough not to be noisy.
-
-### Language
-
-| Option | For | Against |
-|--------|-----|---------|
-| **Python + PEP 723 / `uv`** | Matches existing tooling (`validate_beads.py`, embedded Python in `check-skills.sh`); inline dep metadata means `uv run sdd` resolves PyYAML/jsonschema hermetically with no build step in a git-cloned plugin; agents can read and patch it | Needs `uv` or a `python3` with deps; `uv` isn't universally present yet |
-| **Node/TypeScript** | Mermaid's real parser is JS — the only route to grammar-accurate diagram validation; `npx` gives zero-install | Needs `node_modules`; heavier; diverges from everything already here |
-| **Go / Rust** | Single static binary, no runtime, fastest, trivially cross-platform | Must commit per-platform binaries into a git-distributed plugin, or require a toolchain; agents can't patch it mid-session |
-
-**Recommendation: Python.** The work is text, YAML, and graphs — no
-performance pressure — and the decisive factor is that a plugin is
-distributed as a git clone with no build step, which makes shipping
-compiled artifacts genuinely awkward. Python also keeps the tool
-*legible to the agents running it*, which matters for a framework whose
-whole thesis is agent-followable process.
-
-The fallback ladder: try `uv run` → fall back to `python3` with a
-dependency preflight → if deps are missing, report every affected check
-as **unverified** and exit non-zero with the install command. Never
-silently skip.
+The genuine tension — and I think this is the ADR: **EARS and Gherkin
+overlap.** "WHEN payment succeeds, the system SHALL display X" and
+"When payment succeeds / Then X is displayed" say the same thing twice.
+Option B resolves it by assigning each a role (EARS = the normative
+sentence in the scenario name; Gherkin steps = the concrete instance),
+but a reasonable person would say pick one. That deserves its own ADR
+after the FRD, and probably an experiment where we write one real FRD
+both ways.
 
 ---
 
-## 7. Mermaid: the one genuine carve-out
+## 5. Catalogue of checks that stay with the agent
 
-Mermaid has no dependency-free parser. The upstream library needs a DOM
-even to *parse*, and jsdom/happy-dom are reportedly not quite enough for
-all diagram types. Realistic options:
+You asked for all of them. Grouped by *why* they can't be mechanized —
+which matters, because "needs a model" and "needs a human" are different
+problems.
 
-- **`mermaid-validate`** (JS, official parser + jsdom) — accurate,
-  CLI-shaped, but pulls in Node
-- **`mermaid-check`** (pure Go, published Feb 2026) — no browser, but a
-  reimplemented grammar, so it will drift from upstream
-- **Headless browser via `mmdc`** — most accurate, far too heavy for a
-  gate
+### 5.1 Requires semantic judgment about content
 
-**Recommendation:** treat mermaid as an *optional* check. The CLI does
-its own cheap structural pass always (fence is closed, first token is a
-known diagram type, `-->`/`->` arrows are balanced, C4 naming rules from
-`c4-guide.md` — no internal acronyms, arrow direction). If a real
-mermaid validator is on `PATH`, shell out for grammar accuracy. If not,
-report `unverified` — which the standard already demands and which is
-honest, unlike the alternative of a structural pass masquerading as
-validation.
+| Check | Source | Why not mechanical |
+|-------|--------|-------------------|
+| Is a requirement genuinely testable? | `ears-guide` common mistakes | "Appropriate error message" is grammatically identical to a good AC |
+| Is a vague qualifier vague? | `ears-guide` | Needs domain knowledge — "promptly" is vague, "within 200 ms" isn't, and only context distinguishes "reasonable default" |
+| Is the EARS pattern the *right* one? | `ears-guide` pattern selection | Detecting a missing trigger is mechanical; deciding a behavior is truly ubiquitous is not |
+| Is a compound requirement genuinely compound? | `ears-guide` | My prototype fired 18 times, ~6 real. Prose *about* requirements ("It is SHOULD, not SHALL, because…") is indistinguishable by regex |
+| Does a delta carry enough design intent? | blueprint checklist 7 | Explicitly semantic; the checklist says so |
+| Is the User Story a real user story? | `frd-template` anti-example | "As a user, I want payment to work" is structurally perfect and useless |
+| Is the Problem statement self-contained? | work-order DoR 1 (fresh-agent test) | Requires simulating an agent with no context |
+| Is this the right document type? | `spec` routing | The skill's core job |
+| Is the C4 level right? | `c4-guide` | Component vs. module vs. container is a modeling judgment |
+| Is an alternative in an ADR fairly represented? | `adr-template` | Straw-man detection is semantic |
+| Is the blast radius correct? | work-order DoR 8 | Presence is checkable; correctness needs code knowledge |
+| Is a test's AC citation *honest*? | `ac-traceability-standards` | We can prove a citation exists and resolves. We cannot prove the test actually exercises that criterion |
 
-This also keeps the hard dependency out of the default install, which is
-what makes the Python recommendation hold.
+That last one is worth flagging loudly in the FRD's non-goals. AC
+coverage tooling proves *citation*, never *verification*. A team that
+reads a green coverage report as "all criteria are tested" has been
+misled by us.
 
----
+### 5.2 Requires judgment about scope or sizing
 
-## 8. Cross-platform: yes, with named caveats
+Right-sizing to a single session (DoR 2), kind-appropriate completeness
+(DoR 5), tier assignment (DoR 7), tracker-reconciliation classification
+(subsumed / prerequisite / out-of-scope), and whether an ADR is
+warranted at all.
 
-Linux/macOS/Windows is achievable and cheap *if designed in now*. The
-things that actually bite:
+### 5.3 Requires a human, not an agent
 
-- **CRLF.** Windows checkouts will have them. Line-width and span
-  arithmetic break silently. Normalize on read; never trust `len(line)`
-  on raw bytes.
-- **Unicode width ≠ character count.** The repo uses em dashes heavily.
-  Decide now whether "80 characters" means codepoints or display
-  columns, and write it down — currently ambiguous in
-  `template-authoring-standards`.
-- **Case-insensitive filesystems.** macOS and Windows will happily hold
-  `Frd-Checkout.md` and `frd-checkout.md` as one file. Slug uniqueness
-  must be case-folded.
-- **Shell scripts don't run on Windows** without Git Bash. Our current
-  gates are all `.sh`. Hook commands should invoke `python`/`uv`
-  directly, not a `.sh` wrapper. (Skills do support `shell: powershell`
-  for inline injection, but that's a per-skill setting, not a fix.)
-- **Path separators.** `pathlib` internally, POSIX-style paths in JSON
-  output, so reports are diffable across machines.
+Adopt/defer/reject on an improvement RFC; approving a status transition
+to `approved`; accepting a deviation from a SHOULD; and deciding whether
+a `blocked-ungroomable` bead gets reshaped or dropped.
 
-CI matrix should prove this rather than assert it: ubuntu × macos ×
-windows, on the minimum supported Python and current.
+### 5.4 Mechanical in principle, deliberately not in v1
+
+Worth naming so they're recognizable as deferred rather than missed:
+prose style and readability, terminology consistency across documents
+(one term per concept — doable with a glossary, and a real project),
+and whether a diagram matches the element records beside it.
 
 ---
 
-## 9. Testing and CI
+## 6. Extract deterministically, then review narrowly
 
-You asked for full coverage. Concretely:
+Your suggestion at line 216 is the best idea in the review, and it
+generalizes well beyond EARS. The pattern:
 
-**Fixture corpus.** `tests/fixtures/<rule-id>/` — one deliberately
-broken document per rule, plus a clean control. Snapshot the `--json`
-report. This is the only way to keep 20+ rules honest, and it doubles as
-the rules' documentation.
+> The CLI catalogs which sections are expected to contain normative
+> statements, extracts those spans (G5), and hands **filenames + spans**
+> to an agent. The agent reviews only the normative text.
 
-**Meta-test.** Assert every registered rule ID has at least one
-fixture and at least one passing control. Prevents a rule shipping
-untested — the exact failure mode `skill-authoring-standards` complains
-about.
+Why this is better than either alternative:
 
-**Property tests.** Slug parsing, link extraction, and code-span
-stripping against generated input. The code-span stripper is the
-highest-risk component (it decides what's a real link) and the easiest
-to get subtly wrong.
+- **Versus a regex lint:** it puts the judgment where judgment belongs.
+  All twelve items in §5.1 become tractable — you're asking a model a
+  semantic question, which it's good at, instead of asking a regex, which
+  it isn't.
+- **Versus "agent reads the document":** the agent reads the normative
+  spans, not the frontmatter, not the context section, not the
+  alternatives table. On `c4-guide.md` (3,600 words) the normative spans
+  are a small fraction of the text.
 
-**Self-application as an integration test.** Run the CLI against this
-repo's own `docs/` in CI. Real data, and it dogfoods the framework —
-today it would fail on the ADR slugs, which is the point.
+It also makes the review *auditable*: the extraction is deterministic
+and repeatable, so two runs review exactly the same spans. Today, two
+agents reviewing "the requirements" may not be looking at the same text.
 
-**Golden-path regression.** A frozen sample project (one FRD, one
-blueprint, one contract, one container) that must stay green.
+Design implication: `sdd spans --normative --json` is a first-class
+subcommand, not a debug flag. Output is `{file, heading, start_line,
+end_line, text}` — enough for an agent to review and cite precisely.
 
-**CI shape**, given none exists today:
+This is probably how §5.1 items 1–6 actually ship: not as CLI checks,
+but as CLI-extracted work packages for a review subagent.
+
+---
+
+## 7. Git as the source of truth for metadata
+
+Both your comments here point the same direction, and they change the
+tool's role from reader to writer.
+
+**`updated_at`:** derive it from `git log -1 --format=%cI -- <file>`.
+Don't verify a hand-maintained field — own it. Removes an entire class
+of drift and one line of ceremony per edit.
+
+**Version bumps:** likewise derivable. If a document's normative content
+changed between two refs and its `version` didn't, that's a fact git
+knows.
+
+This introduces a **write mode**, which is a genuine scope decision:
+
+- `sdd fmt` — rewrite derivable frontmatter in place. Idempotent, safe
+  to run in a pre-commit hook.
+- `sdd fmt --check` — CI mode, fails if a rewrite would change anything.
+
+Two caveats worth surfacing now:
+
+1. **Working-tree edits have no commit yet.** An uncommitted document's
+   git timestamp is stale by definition. Either `fmt` runs pre-commit
+   (so it stamps what's about to be committed), or it uses the working
+   tree's mtime when the file is dirty. Pre-commit is cleaner; it needs
+   the FRD to say so.
+2. **"Normative content changed" needs a definition.** A typo fix in a
+   non-normative sentence shouldn't force a version bump. This is where
+   G5 section spans pay off again: diff the *normative* spans, not the
+   whole file.
+
+Version bumping specifically may be better as a **warning that proposes
+the bump** rather than an automatic rewrite — MAJOR/MINOR/PATCH is a
+semantic call about whether a change breaks a consumer, and git can't
+make it. My suggestion: `fmt` owns `updated_at` outright, and *proposes*
+a version bump with a reason.
+
+---
+
+## 8. Language and distribution — I've changed my recommendation
+
+Revision 1 recommended Python largely because it matched what's already
+here. You've removed that consideration, and two things you raised push
+hard the other way: the enterprise index artifact, and one-shot
+invocation cost. So:
+
+**Recommendation: Rust.** Not because you like it — because the
+measurements in §3 point there and the distribution objection no longer
+holds.
+
+| | Rust | Go | Python |
+|-|------|-----|--------|
+| Startup | ~1–3 ms | ~1–3 ms | 38 ms fixed |
+| 1,000-doc index | tens of ms | tens of ms | ~1 s |
+| Adopter install | binary, no runtime | binary, no runtime | needs Python + deps |
+| Official Gherkin parser | ✗ (third-party `cucumber-rs/gherkin`) | ✓ | ✓ |
+| Agent can patch mid-session | ✗ | ✗ | ✓ |
+| Prototyping speed | slowest | middle | fastest |
+
+### Is binary distribution a problem for adopters?
+
+Short answer: **no, not in 2026** — but only if we avoid one specific
+mistake.
+
+The mature path is `cargo-dist`, which builds per-platform binaries and
+generates installers for npm, Homebrew, and shell/PowerShell one-liners.
+Python wheels can also carry a binary via the `.data/scripts/`
+directory, which makes `pip install` work as a cross-platform binary
+installer — this is how `uv` itself ships.
+
+**The mistake to avoid:** cargo-dist's npm installer traditionally uses
+a `postinstall` script that downloads the binary from GitHub Releases at
+install time. That fails in exactly the environments our enterprise
+adopters live in — locked-down networks that mirror npm and PyPI but
+block GitHub Releases — and it's a supply-chain surface. The fix is
+well-trodden: ship **platform-specific packages with the binary inside**
+(`optionalDependencies` on npm, platform wheels on PyPI), no postinstall
+download. `cargo-npm` exists specifically to do this.
+
+So the distribution matrix I'd propose: GitHub Releases (canonical),
+npm platform packages, PyPI platform wheels, Homebrew, and
+`cargo install` from source. An adopter uses whichever package manager
+their CI already trusts.
+
+### The two real costs of Rust
+
+1. **No official Gherkin implementation.** `cucumber-rs/gherkin` is a
+   pure-Rust reimplementation and reportedly covers the language well,
+   but it isn't part of the upstream shared test suite that keeps the
+   official implementations behaving identically. If Gherkin becomes
+   load-bearing (§4 option B), this matters. Mitigations: use the Rust
+   crate and accept the risk; shell out to the official CLI when
+   present; or treat Gherkin the way we treat mermaid (§9) — an
+   external validator, `unverified` when absent. I'd lean on the Rust
+   crate for structure and keep the shell-out as a `--strict` escalation.
+2. **Agents can't patch it mid-session.** Genuinely lost. Partly bought
+   back by making the domain layer configuration (§2.3) — an agent can
+   edit a JSON Schema or a type registry entry without a compiler.
+
+**Honest counter-position:** if we want an FRD-to-working-tool loop in
+days rather than weeks, Python or Go get there faster, and Go keeps the
+official Gherkin parser and the fast startup. Rust's edge over Go here
+is mostly ecosystem taste, not measurement. This is precisely an ADR
+decision, so I'd rather the FRD state the *requirements* — sub-10 ms
+one-shot latency, no runtime dependency for adopters, mirrorable
+package distribution — and let the ADR pick the language against them.
+
+---
+
+## 9. Delivery into agent sessions
+
+Unchanged from revision 1 and you agreed with all three, so briefly:
+`${CLAUDE_SKILL_DIR}` + `allowed-tools` for prompt-free invocation of a
+bundled binary; plugin `hooks/hooks.json` with a `PostToolUse` matcher
+on `Write|Edit`; and skill-frontmatter `hooks:` scoped to the skill's
+own lifetime.
+
+**On "CI during session runs?" — yes, and that's the right way to say
+it.** A `PostToolUse` hook is CI with a much shorter feedback loop: it
+fires on the write rather than on the push, and it can return
+`additionalContext` or `decision: "block"` so the agent must deal with
+the failure before continuing. The hook can't prevent the write (it
+fires after), but it can prevent the agent from moving on — which is the
+part that matters.
+
+This is also where §3's startup measurement bites hardest. A hook on
+every `Write` at 38 ms of pure interpreter overhead is tolerable; at
+~1 s on a large repo it isn't. Scoped hooks plus an index cache handle
+it, but it's another vote for a fast binary.
+
+**Mermaid** stays optional, as you agreed — cheap structural checks
+always, shell out to a real validator when present, report `unverified`
+otherwise (which `skill-authoring-standards` already requires). Agreed
+that the recommended tool belongs in an ADR; the candidates to weigh are
+`mermaid-validate` (official parser + jsdom, needs Node),
+`mermaid-check` (pure Go, no browser, but a reimplemented grammar), and
+`mmdc` with a headless browser (most accurate, far too heavy for a gate).
+
+---
+
+## 10. Does this let us lift standards docs out of the plugin?
+
+Rereading your comment — the question is whether the *skill's* bundled
+references shrink because validation moves to the CLI. Partly yes, and
+the framing that makes it precise is:
+
+> **Authoring knowledge must stay. Verification knowledge can go.**
+
+An agent still needs to know the wikilink syntax and the required
+frontmatter fields *in order to produce* a valid document. It does not
+need the verification procedure, the checklists, or the failure
+taxonomies — those become `sdd check`.
+
+Measuring the `spec` skill's bundle (~39k tokens across 20 files):
+
+| Reference | Tokens | Disposition |
+|-----------|--------|-------------|
+| `template-authoring-standards.md` | ~2,645 | Liftable — it's for template authors, not document authors |
+| `blueprint-readiness-checklist.md` | ~1,041 | Mostly liftable (6/10 mechanical) |
+| `ac-traceability-standards.md` | ~926 | Mostly liftable — it's a tooling spec |
+| `cross-document-references.md` | ~982 | Partly — syntax stays, verification goes |
+| `frontmatter-standards.md` | ~1,474 | Partly — field list stays, rules go |
+| `document-readiness-checklist.md` | ~746 | Mostly liftable (6/8 mechanical) |
+
+Realistic ceiling: **~6–7k tokens, roughly 17% of the bundle.** Real,
+but not transformative on its own.
+
+**The bigger saving is the work, not the bundle.** The references load
+once. The *checking* happens every readiness run, twice per run
+(check → fix → re-check), and readiness check 8 alone is ~42 file reads
+on a repo this size. That cost scales with corpus size; the bundle
+doesn't.
+
+**The mechanism that makes lifting actually work: diagnostics carry the
+rule.** If the error message says
 
 ```
-lint      ruff + format check
-test      pytest, ubuntu/macos/windows × 2 Python versions, coverage gate
-self      sdd check docs/ rfcs/ plugin/ --strict
-legacy    check-skills.sh --strict; sync-shared-references.sh --check
+adr-011-targeted-verification-gates: slug does not match the registered
+form for type 'adr' (adr-<nnn>) — see cross-document-references.md
 ```
 
-Wire `legacy` first — it's independently valuable and needs none of this
-(`agent-plugins-bgy`).
+…the agent learns the rule at the moment it's violated. Context moves
+from preload to on-demand. That's worth more than the 17%, and it's a
+requirement on the CLI's error messages that belongs in the FRD:
+**every diagnostic names the rule and cites the document that defines
+it.**
 
 ---
 
-## 10. Will standards docs turn into FRDs?
+## 11. Cross-platform — resolved
 
-No — and the distinction is worth getting right, because it's a test of
-the framework's own taxonomy.
+Per your comments: **80 characters means 80 characters** (Unicode
+codepoints, not bytes and not display columns), and **slug uniqueness is
+case-insensitive**. Both should be stated in the FRD so they're not
+rediscovered later.
 
-The standards docs state invariants that hold across features. By the
-`spec` skill's own routing question 4, that is exactly Standards, and
-building a tool that enforces them doesn't change their type. The CLI is
-a feature: it gets an **FRD** (the WHY and the EARS acceptance criteria)
-and a **feature blueprint** (the HOW), and the FRD complies with the
-standards *by reference* — `[[frontmatter-standards]]`,
-`[[cross-document-references]]` — never by restating them. That's the
-framework's own anti-duplication rule.
+Still live: normalize CRLF on read (Windows checkouts break span
+arithmetic otherwise); emit POSIX-style paths in the JSON index so
+reports diff across machines; and prefer invoking the binary directly in
+hook commands rather than a `.sh` wrapper, since our current gates are
+all shell scripts and those don't run on Windows without Git Bash.
 
-Two real consequences, though:
-
-1. **Several standards will tighten.** They currently hedge in
-   tooling-conditional form: "WHEN a document system implements
-   validation tooling, JSON Schema definitions SHALL be created…",
-   "tools SHOULD validate that all `[[document-slug]]` references point
-   to existing documents." Once the tooling exists, those SHOULDs become
-   SHALLs, and the conditional WHENs lose their condition. That's a
-   handful of one-line edits, and each one bumps a version.
-
-2. **This is the first end-to-end dogfood.** The repo has thirteen ADRs,
-   several standards, and **zero FRDs, zero architecture blueprints, and
-   zero feature blueprints**. Building the CLI is the first honest
-   chance to run the full chain — FRD → feature blueprint →
-   `groom-feature-blueprint` → beads → `bead-bonanza` → `retro-spec`.
-   Whatever the CLI is worth, the evidence from running the framework on
-   a real feature is worth as much. I'd treat that as an explicit goal
-   of the project, not a side effect.
+CI should prove this rather than assert it: ubuntu × macos × windows.
 
 ---
 
-## 11. Open questions for tomorrow
+## 12. Testing, fixtures, and CI
 
-1. **Corpus model.** How does the CLI know a template isn't a document?
-   Config globs, a `type: template` convention, or a marker file? And
-   how do guides mark illustrative links — mandatory backticks (a
-   standards change), or an ignore-region comment?
-2. **EARS lint severity.** Warning-only, section-scoped, or push for
-   structural markup of normative statements (§5)?
-3. **Scope of v1.** I'd cut it at: index, frontmatter schema, slug
-   uniqueness, link + anchor resolution, record blocks, line width,
-   instruction blocks, `next-slug`. That covers both readiness
-   checklists' mechanical checks and nothing else. AC traceability (§4
-   #9) is the highest-value *next* thing but it's a second corpus (the
-   test suite) and deserves its own increment.
-4. **Where does config live?** `.sddrc.toml` at the spec root, a
-   `spec:` block in an existing file, or convention-only with flags?
-   Affects how portable the tool is to a user's repo.
-5. **Name.** `sdd`? `spec-check`? It ends up in every skill body and
-   every CI log.
-6. **Do we generalize deliberately?** The universal layer is genuinely
-   reusable outside this framework (Obsidian vaults, docs-as-code
-   repos). Designing for that costs a little now and is nearly
-   impossible to retrofit. Worth it, or premature?
-7. **Hook aggressiveness.** Skill-scoped write-time validation (§6.3)
-   from day one, or wait until the rules are proven non-noisy?
+**Where do fixtures live?** Your question at line 389. I'd propose the
+CLI becomes **its own repository** — and this follows from §1 more than
+from testing convenience:
+
+- It's a general-purpose tool with an enterprise consumer; its release
+  cadence and versioning shouldn't be coupled to a Claude Code plugin.
+- It ships as compiled binaries via several package managers (§8), which
+  wants its own release pipeline.
+- The plugin then **depends on** a released version rather than vendoring
+  source — the same way it would depend on any other tool.
+
+Under that split: fixtures, unit tests, and the source live in the CLI
+repo. This repo keeps a *thin* integration check — "the pinned binary
+version still passes on our own docs" — which doubles as the dogfood
+signal and would currently fail on the ADR slugs.
+
+Counter-argument worth weighing: a single repo is simpler while the tool
+and the framework are co-evolving daily, and they will be for a while.
+A reasonable compromise is to start in-repo under a top-level directory
+with its own release workflow, and split once the interface stabilizes.
+Listed as Q6.
+
+**Test strategy** (unchanged and still what I'd do): a fixture corpus of
+one deliberately-broken document per rule plus a clean control, snapshot
+tested against `--json`; a meta-test asserting every registered rule ID
+has at least one fixture and one control; property tests on the
+code-span stripper (highest-risk component — it decides what counts as a
+real link); self-application against this repo in CI; and a frozen
+golden-path sample project.
 
 ---
 
-## 12. Suggested sequence
+## 13. Decisions settled in review
 
-1. Wire CI for the two existing scripts — `agent-plugins-bgy`. No
-   dependency on any of this.
-2. Fix the ADR slugs — `agent-plugins-5nz`. Also gives the link
-   validator a green baseline to be built against.
-3. Settle the open questions above.
-4. Author the FRD, then the feature blueprint. Dogfood the chain.
-5. Build v1 to the scope in Q3.
-6. Wire the skills — checklist steps call the CLI, with the fix/re-run
-   loop and a bound, per `skill-authoring-standards`.
-7. Retro the whole run with `retro-spec` and `retro-skill`. This is the
-   first project big enough to produce real evidence about the
-   framework.
+Recording these so the FRD doesn't relitigate them.
+
+| # | Decision |
+|---|----------|
+| 1 | The index is a first-class product artifact, not a cache — schema is an API |
+| 2 | Clean general/domain split, with the general layer usable outside this framework |
+| 3 | Corpus membership is determined by frontmatter presence + `type`; unknown/missing must be **reported** for agent judgment, not silently skipped |
+| 4 | Optional `number` frontmatter field for `<nnn>`-numbered types |
+| 5 | `references` relationships are derived from body links, not hand-maintained |
+| 6 | `updated_at` is derived from git and written, not verified |
+| 7 | Record-block extraction generalizes to any tagged structured-data block |
+| 8 | HTML comment blocks are extracted too |
+| 9 | Markdown headings and inter-heading spans are indexed |
+| 10 | Mermaid validation is optional; the recommended tool gets an ADR |
+| 11 | 80 characters means codepoints |
+| 12 | Slug uniqueness is case-insensitive |
+| 13 | No legacy-tooling weight on the language choice |
+
+---
+
+## 14. Open questions
+
+**Q1 — Domain layer extensibility.** Config-only for v1 (my
+recommendation), or a real plugin interface from the start? Affects
+whether an enterprise can add a document type without a PR to us.
+
+**Q2 — Gherkin adoption shape.** §4 options A, B, or C? B is the
+strongest but rewrites `frd-template.md` and `ac-traceability-standards.md`.
+Should we write one real FRD both ways before committing?
+
+**Q3 — EARS vs. Gherkin overlap.** If B, does the EARS sentence live in
+the `Scenario:` name (my suggestion), or do we drop one of the two
+notations? This may be the most consequential spec decision on the table
+— it changes the FRD template, the EARS guide, and the AC standards
+together.
+
+**Q4 — Language.** Do you want the FRD to state latency and
+distribution *requirements* and defer the choice to an ADR (my
+preference), or to name Rust up front?
+
+**Q5 — Write mode scope.** Does v1 include `sdd fmt` (§7), or is v1
+read-only with formatting as a follow-on? A tool that edits your
+documents is a different trust proposition than one that reads them.
+
+**Q6 — Repository split.** Separate CLI repo now (§12), or in-repo with
+its own release workflow until the interface settles?
+
+**Q7 — Naming.** `sddrc` was a bad placeholder — `rc` is the Unix
+"run commands" convention (`.bashrc`, `.vimrc`), which is opaque and
+says nothing. For the config file I'd suggest `spec.toml` or
+`.spec-index.toml` at the spec root. For the binary: `spec` collides
+with too much, `sdd` is terse and meaningless to a newcomer. Something
+like `specd`, `speclint`, or a real product name — it will appear in
+every skill body, every CI log, and every enterprise runbook. Worth
+picking deliberately rather than inheriting my placeholder.
+
+**Q8 — Index namespacing.** For cross-repo merge (§1), what identifies a
+workspace? A field in the config file, the git remote, or an explicit
+`--workspace` flag? Needed before the schema is published, hard to add
+after.
+
+**Q9 — Structurizr interop.** Worth an `export --format structurizr`
+subcommand, or does that presume a rendering choice adopters should make
+themselves?
+
+---
+
+## 15. Sequence
+
+1. **FRD** for the CLI, stating the three products (§1), the
+   general/domain split (§2), and requirements rather than technology.
+2. **ADRs** for the decisions the FRD deliberately defers: language and
+   runtime; Gherkin adoption and its interaction with EARS; index schema
+   and versioning; mermaid validator; repository split.
+3. **Container blueprint** for the CLI.
+4. Groom → beads → build.
+
+Two things worth doing in parallel that don't block any of it: wire CI
+for the two existing scripts (`agent-plugins-bgy`), and fix the ADR
+slugs (`agent-plugins-5nz`) so the link validator has a green baseline
+to be built against.
 
 ---
 
@@ -507,8 +675,14 @@ Two real consequences, though:
 - [Claude Code — Plugins reference](https://code.claude.com/docs/en/plugins-reference)
 - [Claude Code — Extend Claude with skills](https://code.claude.com/docs/en/skills)
 - [Claude Code — Hooks](https://code.claude.com/docs/en/hooks)
+- [cucumber/gherkin — parser and compiler](https://github.com/cucumber/gherkin)
+- [Gherkin reference — Cucumber docs](https://cucumber.io/docs/gherkin/reference/)
+- [cucumber-rs/gherkin — pure Rust implementation](https://github.com/cucumber-rs/gherkin)
+- [structurizr/json — C4 workspace JSON schema](https://github.com/structurizr/json)
+- [Structurizr — why "as code"](https://docs.structurizr.com/as-code)
+- [cargo-dist](https://axodotdev.github.io/cargo-dist/)
+- [cargo-npm — Rust CLIs on npm without postinstall](https://github.com/abemedia/cargo-npm)
+- [Packaging a Rust tool — Rust CLI book](https://rust-cli.github.io/book/tutorial/packaging.html)
 - [PEP 723 — Inline script metadata](https://peps.python.org/pep-0723/)
-- [uv — PEP 723 inline script metadata](https://deepwiki.com/astral-sh/uv/12.1-pep-723-inline-script-metadata)
 - [Zabaca/mermaid-validate](https://github.com/Zabaca/mermaid-validate)
 - [tetrafolium/mermaid-check (Go)](https://pkg.go.dev/github.com/tetrafolium/mermaid-check)
-- [rtuin/mcp-mermaid-validator](https://github.com/rtuin/mcp-mermaid-validator)
