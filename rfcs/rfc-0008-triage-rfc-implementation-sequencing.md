@@ -4,9 +4,9 @@ title: "RFC: Sequencing at step 5, and the gaps steps 5-7 met on their
 description: Triage's implement step is silent on colliding proposals and
   never names the grooming skills; its publish and log steps met four
   situations their first execution produced
-slug: rfc-self-triage-rfc-implementation-sequencing
+slug: rfc-0008
 type: rfc
-status: ready-for-review
+status: retired
 updated_at: 2026-07-31T00:00:00Z
 origin: self
 skill: triage-rfc
@@ -407,3 +407,74 @@ that fourteen changes need an order, and the four situations that steps
 invent under time pressure.
 
 ## Resolution
+
+**Triaged 2026-08-01.** 6 proposals, all adopted; P1 with a refinement.
+
+| Proposal | Outcome |
+|----------|---------|
+| P1 — route step 5 through grooming when approvals collide | **adopted with refinement.** Two refinements. First, placement: the proposal said to insert after the "Apply the changes" bullet, but its own heading is "Sequence before you edit" and the rule is useless once editing has begun, so the bullet is first in step 5. Second, the evidence had gone stale — see the provenance note below — so the text does not read as if it were introducing `groom-beads` to the skill for the first time. The rule itself is adopted as written, conditional trigger and all. |
+| P2 — bump each changed file's version exactly once | **adopted as proposed.** Appended to the version-bump bullet. Exercised immediately: `contract-template.md` took two substitutions this triage and moved one version. |
+| P3 — scope step 7's plugin bump to plugin-shipping skills | **adopted as proposed.** Step 7 now defines shipping as having a source directory under `plugin/skills/`, names `triage-rfc` as the counterexample, and requires a triage that changed only repo-local skills to say so and skip the bump. |
+| P4 — add "already implemented" as a recorded outcome | **adopted as proposed.** Added to step 3's list, and to the step-3 line of the progress checklist so the two stay in step. |
+| P5 — require a self-authored RFC to disclose it | **adopted as proposed.** Added to step 1 and to the anti-pattern table. Applied to both RFCs in this triage, including this one. |
+| P6 — give the retro log a format and a create-if-missing rule | **adopted as proposed.** Step 6 now carries the canonical header, the per-row field list, and the instruction not to restyle an existing log. The existing log was not restyled. |
+
+**Provenance check — one claim had gone stale.** The RFC cites
+`skill_version: "1.0"` and its Adoption section assumes the skill is at
+1.1. It was at **1.2** when this triage ran. All six quoted passages
+were re-verified against 1.2 and all six survive at shifted line
+numbers. One evidence claim did not: P1's finding states that "the
+words `groom-beads` and `bead-bonanza` do not appear anywhere in the
+skill." `groom-beads` had appeared at `SKILL.md:150` since v1.1, added
+by RFC 0002 P4 — but in the deferral-bead bullet, for bringing a bead
+up to the Definition of Ready, not for sequencing an implementation.
+The finding's substance therefore holds and the proposal is adopted;
+the claim as literally written was already false when triage read it.
+
+**Dedupe.** No prior RFC or `rfc-triage` bead matches any of these six.
+The two deferred beads (`agent-plugins-6tp`, `agent-plugins-ual`) are
+untouched by this batch. The RFC's own Considered and Not Proposed
+correctly identified the `bd list` defect as already adopted in RFC
+0002 P2, and did not re-propose it.
+
+**Self-authorship, disclosed — and one self-ratifying proposal.** This
+RFC carries `origin: self` and `model: claude-opus-5`, and was triaged
+by the same model. **P4 ratifies a decision its own author made:** the
+phrase "adopted — already implemented" was invented by that agent in
+RFC 0001's Resolution and flagged there as an invention; P4 makes it
+sanctioned vocabulary. It is additive, cheap, and load-bearing for the
+step-2 dedupe, but it is not independent corroboration and a reviewer
+should weigh it knowing that. This disclosure is the first application
+of P5, which this same RFC proposes.
+
+**Sequencing, and a deviation recorded.** This triage was itself P1's
+trigger case: 10 approved proposals, 6 of them colliding on
+`.claude/skills/triage-rfc/SKILL.md`. P1 as adopted calls for filing
+one bead per proposal and running `groom-beads`. That was not done.
+The proposals were sequenced by hand instead — the five architecture
+templates first as disjoint one-line substitutions, then the two
+multi-proposal files, each bumped once after its final edit. The
+reason: every change was a single known substitution executed by one
+agent in one session with no dispatch and no parallelism, so the
+grooming pass's product (a dependency graph for dispatch) had no
+consumer, and this project's `CLAUDE.md` warns that beads created on a
+branch conflict textually on merge. The correctness the rule protects —
+serialized edits to a shared file, version bump last — was obtained
+directly. This is a deviation from the rule as written on its first
+run, and it is recorded here rather than smoothed over, because a rule
+that its own author skips on day one is exactly what the next retro
+should examine.
+
+**Files changed:** `.claude/skills/triage-rfc/SKILL.md` (all six
+proposals); `version: "1.2"` → `"1.3"` (one bump, six changes — P2's
+own rule).
+
+**No plugin bump is warranted by this RFC.** `triage-rfc` is
+repo-local: it has no source directory under `plugin/skills/` and is
+tracked only at `.claude/skills/triage-rfc/SKILL.md`. That is P3's rule
+applied to itself. The `0.11.0` → `0.12.0` bump this session carries
+belongs entirely to RFC 0007's changes to the `spec` skill, its
+templates and its guides.
+
+**Verification.** `scripts/check-skills.sh` reports 0 errors. No line
+added by this triage exceeds 80 columns.

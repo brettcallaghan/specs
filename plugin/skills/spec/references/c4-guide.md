@@ -7,6 +7,7 @@ slug: guide-c4
 type: guide
 status: draft
 updated_at: 2026-07-29T00:00:00Z
+version: "0.1"
 related:
   - "template-authoring-standards"
 ---
@@ -304,11 +305,18 @@ Rules for authoring the Mermaid C4 diagrams embedded in blueprints:
   exempts code-block content).
 - Keep each element's description text short — it is the element's
   declared brief description, verbatim, not a place for extra prose.
-- Parse-check diagrams before finishing (RECOMMENDED) — via
-  `mermaid.parse` in a small script, or any Mermaid-rendering preview.
-  A broken C4 diagram reports `Expecting 'RBRACE', got 'EOF'` anchored
-  at the end of the diagram, far from the offending line, so authoring
-  blind is risky.
+- Parse-check diagrams before finishing (RECOMMENDED). A broken C4
+  diagram reports `Expecting 'RBRACE', got 'EOF'` anchored at the end
+  of the diagram, far from the offending line, so authoring blind is
+  risky.
+  - `mermaid.parse` needs a DOM even though it renders nothing. Import
+    it only after assigning a jsdom `window`, `document`, `navigator`,
+    `Element`, `HTMLElement` and `SVGElement` onto `globalThis`;
+    otherwise every diagram fails with `DOMPurify.addHook is not a
+    function`, valid or not. That failure is environmental — it is NOT
+    the mislocated syntax error described above, and the diagrams are
+    not at fault.
+  - Any Mermaid-rendering preview works too and needs no setup.
 
 ---
 

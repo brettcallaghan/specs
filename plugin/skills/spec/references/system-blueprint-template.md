@@ -14,7 +14,7 @@ related: []                          # related documents (ADRs, standards, FRDs)
 
 <!--
 Template: System Blueprint
-Version: 1.2
+Version: 1.3
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `c4-guide.md` — load it before authoring.
 
@@ -216,7 +216,7 @@ reference. Never restate a standard's requirements here.
 
 This system SHALL comply with:
 
-- @<standard-slug> — <one-line scope of the standard>.
+- [[<standard-slug>]] — <one-line scope of the standard>.
 
 ## Change Guidance
 
