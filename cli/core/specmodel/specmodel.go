@@ -509,7 +509,7 @@ type ContainerBlueprint struct {
 	// Omitted when the container is standalone — that is, when no system
 	// blueprint documents it. Absence records a documented fact rather than
 	// an oversight.
-	ParentSlug *Slug `json:"parent_slug,omitempty"`
+	System *Slug `json:"system,omitempty"`
 	// Component blueprint slugs composed into this container.
 	Components *[]Slug `json:"components,omitempty"`
 	// Module blueprint slugs composed into this container.

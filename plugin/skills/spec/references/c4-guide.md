@@ -78,7 +78,7 @@ inside it share its process space.
   differently per environment. Deployment diagrams map containers onto
   infrastructure; the container abstraction itself stays topology-free.
 - A repository MAY document standalone containers without a system
-  blueprint: omit `parent_slug` in the container blueprint. The system
+  blueprint: omit `system` in the container blueprint. The system
   level is introduced when a second container needs shared context worth
   modeling. WHEN there is no system blueprint, the container blueprint's
   Infrastructure and Deployment section is authoritative for that

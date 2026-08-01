@@ -140,7 +140,7 @@ artifact, and the modules and components composed into it.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
-| parent_slug | [Slug](vocabulary.md#slug)? | The system this container belongs to.<br><br>Omitted when the container is standalone — that is, when no system blueprint documents it. Absence records a documented fact rather than an oversight. |
+| system | [Slug](vocabulary.md#slug)? | The system this container belongs to.<br><br>Omitted when the container is standalone — that is, when no system blueprint documents it. Absence records a documented fact rather than an oversight. |
 | components | Array<[Slug](vocabulary.md#slug)>? | Component blueprint slugs composed into this container. |
 | modules | Array<[Slug](vocabulary.md#slug)>? | Module blueprint slugs composed into this container. |
 | provides | Array<[Slug](vocabulary.md#slug)>? | Contract slugs this container provides. |

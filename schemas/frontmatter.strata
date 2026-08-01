@@ -210,7 +210,7 @@ struct ContainerBlueprint: DocumentFrontmatter {
   blueprint documents it. Absence records a documented fact rather than
   an oversight.
   """
-  parent_slug: Slug?
+  system: Slug?
 
   """Component blueprint slugs composed into this container."""
   components: [Slug]?
