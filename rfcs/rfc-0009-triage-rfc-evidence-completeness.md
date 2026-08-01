@@ -4,9 +4,9 @@ title: "RFC: Triage verifies that cited evidence exists, not that it is
 description: Step 3 checks a quote against the tree but never checks the
   proposal's extent or sufficiency; steps 4 and 5 have no vocabulary for
   a triage-originated change or a file with no version property
-slug: rfc-self-triage-rfc-evidence-completeness
+slug: rfc-0009
 type: rfc
-status: ready-for-review
+status: retired
 updated_at: 2026-08-01T00:00:00Z
 origin: self
 skill: triage-rfc
@@ -397,3 +397,73 @@ forced an invention this run — an unversioned file, a triage-originated
 change, an ungated ingestion — resolve from rules instead.
 
 ## Resolution
+
+**Triaged 2026-08-01.** 5 proposals plus 1 triage-originated change:
+4 adopted (1 with refinement), 1 deferred, 1 `T` change adopted.
+
+| Item | Outcome | Bead |
+|------|---------|------|
+| P1 — extent and sufficiency checks before adopting | **adopted as proposed.** Step 3 now carries both checks after the classification list, and the Anti-Patterns table gained the cited-occurrences row. | `agent-plugins-gos` |
+| P2 — initial version for a file with no version property | **adopted as proposed.** Appended to the step-5 version bullet: add `0.1`, do not bump, with the reason and a pointer to [[frontmatter-standards]]. | `agent-plugins-cpy` |
+| P3 — admit triage-originated changes | **adopted with refinement.** Step 4 gained the `T1..Tn` paragraph as proposed. The Resolution bullet gained one clause beyond the proposed wording: the RFC assumed a `T` change always traces to some RFC's evidence, but this very triage produced one that did not — T1 below was reported directly by the human. The added clause says where such a change is recorded. | `agent-plugins-ml3` |
+| P5 — state that retro-note ingestion is not gated | **adopted as proposed.** The retro-notes instruction now states the exemption and its reason, and asks the report to name each ingested note. | `agent-plugins-905` |
+| P4 — key the sequencing escape hatch on the graph's consumer | **deferred** → `agent-plugins-9q8`, `theme:implementation-sequencing`. Status `deferred`, `grooming_status: blocked-needs-info`. See the note below — the evidence strengthened during triage but remains self-referential. | `agent-plugins-9q8` |
+| **T1 — clarify `already-implemented` vs `reject — already addressed`** *(triage-originated)* | **adopted.** Not a proposal in this or any RFC: reported directly by the repository owner, quoting `SKILL.md:122` and stating the distinction was not clear. The bullet now states the merits test, what the other outcome means instead, and the step-2 dedupe consequence of each. | `agent-plugins-wsl` |
+
+**Provenance check.** The RFC cites v1.2 for findings 1, 2, 3 and 5 and
+v1.3 for finding 4; the skill was at v1.3 at triage. All nine quoted
+passages were re-verified present at shifted line numbers —
+`SKILL.md:270`, `:111`, `:221`, `:223`, `:182`, `:127`, `:173`, `:63`,
+`:225`. Nothing was already-addressed.
+
+**Dedupe.** No match in RFCs 0001–0008 or the five prior `rfc-triage`
+beads. P2 is adjacent to RFC 0008 P2 (which governs bump *count*) but
+distinct, governing the *initial value*. P4 matched a prior ADOPTED
+item — RFC 0008 P1, adopted earlier the same day — and was checked
+against it per step 2: that adoption does not cover the missing-consumer
+case, so it is not already-addressed.
+
+**Self-authorship, disclosed.** This RFC carries `origin: self` and
+`model: claude-opus-5`, and was triaged by the same model that authored
+it roughly an hour earlier in the same session. This is the least
+independent review in the pipeline to date, and the human gate did the
+substantive gatekeeping. **P4 is doubly self-referential:** it critiques
+text the same agent adopted earlier the same day, on evidence the same
+agent generated.
+
+**On P4's deferral.** The RFC recommended deferral for corroboration
+from a run that did not author the rule. During triage the evidence
+strengthened rather than weakened: this run hit the same fork a second
+time — 6 approved changes all landing on one file, again with no
+dispatch consumer for the graph — taking `runs_observed` to 2. It was
+still deferred, because both observations are the same agent in the same
+session, which is repetition rather than corroboration. The bead records
+what would make it ready. The human was shown this reasoning and asked
+to choose; they directed that the sequencing rule be followed for this
+run, which is what produced the beads above.
+
+**Sequencing — the rule was followed this time.** Unlike the previous
+triage, which deviated and recorded the deviation, this run filed one
+bead per approved change and ran `groom-beads` over them before editing.
+That pass earned its keep: it found that `tier`, `tier_reason` and
+`grooming_status` had been written as prose into each bead's `notes`
+instead of into `metadata`, leaving `tier: None` on all six where the
+Definition of Ready requires it non-null. Six `--metadata` writes fixed
+it. The five approved beads were wired into a linear chain
+(`gos → wsl → ml3 → cpy → 905`) because all five edit one file, with the
+version-bump owner terminal; `bd-health.sh` exited 0 but reported one
+hard check unavailable in this `bd` build, so acyclicity was verified by
+hand rather than assumed.
+
+**Files changed:** `.claude/skills/triage-rfc/SKILL.md` (all six
+items); `version: "1.3"` → `"1.4"` (one bump, six changes).
+
+**No plugin bump.** `triage-rfc` has no source directory under
+`plugin/skills/` and is tracked only at
+`.claude/skills/triage-rfc/SKILL.md`, so installs never receive it —
+RFC 0008 P3's rule applied to this skill itself.
+`plugin/.claude-plugin/plugin.json` is unchanged at `0.12.0`.
+
+**Verification.** `scripts/check-skills.sh` reports 0 errors (the one
+warning is pre-existing, on `bead-bonanza/SKILL.md` body length,
+untouched here). No line added by this triage exceeds 80 columns.

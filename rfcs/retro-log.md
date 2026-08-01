@@ -18,6 +18,7 @@ decision.
 | 2026-07-31 | self | FRD authoring | retro note | null retro |
 | 2026-08-01 | self | `spec` | RFC 0007 | 3 adopted (2 with refinement) |
 | 2026-08-01 | self | `triage-rfc` | RFC 0008 | 6 adopted (1 with refinement) |
+| 2026-08-01 | self | `triage-rfc` | RFC 0009 | 4 adopted (1 with refinement), 1 deferred, 1 triage-originated adopted |
 
 ## Run notes
 
@@ -69,3 +70,31 @@ proposals with 6 colliding on one file were sequenced by hand instead.
 The reasoning is recorded in that RFC's Resolution. A rule skipped on its
 first run by the agent that adopted it is the most interesting thing in
 this log for the next retro to look at.
+
+**2026-08-01 — third triage run (RFC 0009).** 1 RFC, 5 proposals plus 1
+triage-originated change: 5 adopted (1 with refinement), 1 deferred.
+**The first deferral to be exercised rather than merely filed**, and the
+first non-zero-rejection-adjacent outcome in the log — the accumulation
+model finally has something moving through it.
+
+Two firsts worth recording. **The sequencing rule was followed.** Asked
+to choose, the human directed route (a); the resulting `groom-beads`
+pass immediately found that all six beads carried `tier`,
+`tier_reason` and `grooming_status` as prose in `notes` rather than in
+`metadata`, leaving `tier: None` where the Definition of Ready requires
+it non-null. That is the second consecutive grooming pass to find
+defects the filing pass did not (RFC 0008's Resolution records the
+first), which is now a pattern rather than an anecdote.
+
+**The first triage-originated change to go through the front door.** T1
+came from the repository owner reading `SKILL.md:122` and saying the
+distinction it drew was not clear. The run before it had produced a
+similar change and improvised an id and a Resolution heading for it;
+this run adopted P3 first, which created the `T` numbering, and then
+immediately used it. A rule adopted and exercised inside one run is the
+cheapest possible test of it.
+
+`bd-health.sh` exited 0 while reporting one hard check unavailable in
+this `bd` build. Exit 0 was not read as a clean bill of health;
+acyclicity was checked by hand. Worth remembering the next time that
+script returns success.

@@ -7,7 +7,7 @@ description: Triage improvement RFCs received from projects using the
   adopted changes after human approval. Use when asked to triage the
   RFC inbox, process rfcs/inbox/, review a received RFC, or check on
   deferred RFC themes.
-version: "1.3"
+version: "1.4"
 ---
 
 # RFC Triage
@@ -61,7 +61,10 @@ Step 4 is a hard stop. Do not tick 5 before the human has answered.
 
 
 Retro notes first: append each to the retro log (step 6), then delete
-the note. Then, per RFC, in received order:
+the note. This is deliberately outside the step-4 gate — a retro note
+is a null result and carries no proposals, so there is nothing for a
+human to approve, and the log stays complete either way. Name each
+ingested note in the report. Then, per RFC, in received order:
 
 1. **Provenance check.** Read the RFC's Provenance section. For every
    proposal, compare the cited skill/template/standard versions
@@ -119,13 +122,51 @@ the note. Then, per RFC, in received order:
      already addressed, or fixes carelessness rather than guidance.
    - **already-implemented** — the proposal is sound and its change is
      already present in the tree, landed by earlier work rather than by
-     this triage. Distinct from `reject — already addressed`, which is
-     for a proposal whose premise no longer holds: this one was right
-     and nothing about it is being turned down. Record it in the
-     Resolution as "adopted — already implemented", name where the
-     change lives, and bump nothing.
+     this triage. Record it in the Resolution as "adopted — already
+     implemented", name where the change lives, and bump nothing.
+
+     The test against `reject — already addressed` is whether triage is
+     ruling on the proposal's merits at all. Use **already-implemented**
+     WHEN you would have adopted it had the tree been untouched: the
+     proposal was right, and this triage says so. Use **reject —
+     already addressed** WHEN there is nothing to rule on — the text it
+     quotes is gone or rewritten, so its premise fails and triage takes
+     no position on whether the idea was ever good.
+
+     The difference is load-bearing at step 2, which reads prior
+     Resolutions. "Adopted" tells a future triage the idea is settled
+     and should not be relitigated; "rejected — already addressed"
+     tells it only that the evidence was stale, so the same idea backed
+     by fresh evidence gets a fresh hearing.
+
+   Before classifying a proposal **adopt-now**, run two checks its
+   author could not have run. Both are triage's, and each has a
+   recorded outcome:
+
+   - **Extent.** WHEN the evidence cites occurrences of a repeatable
+     pattern — a syntax, a phrase, a defect class — enumerate that
+     pattern across the whole surface before adopting. A cited list is
+     a sample from one run's path, not a census: the reporting run only
+     opened the files its task required. Put the enumerating command
+     and its result in the Resolution.
+   - **Sufficiency.** Read the proposed Change against the finding it
+     cites. WHEN the change resolves less than its own evidence
+     describes, widen it and adopt with refinement.
+
+   Failing either check does not sink a proposal — it resizes it. A
+   proposal whose extent was understated is adopted with refinement
+   over the full set, not rejected.
 4. **Present the recommendation and STOP for approval.** One table:
    proposal, classification, one-line rationale, files touched.
+
+   A triage MAY originate a change no RFC proposed — one the evidence
+   implies, or an item an RFC recorded under Considered and Not
+   Proposed that this triage judges ready. Table it as its own row,
+   numbered `T1..Tn` so it is never confused with an RFC's `P` ids,
+   with its origin given as triage. It carries the same evidence bar
+   and needs the same approval; what it lacks is a reporter, so the
+   rationale column carries triage's own reasoning and says so.
+
    Implement nothing before the human approves; the human may
    reclassify any row.
 
@@ -187,6 +228,14 @@ the note. Then, per RFC, in received order:
      not the proposal count. WHEN several proposals touch one file, the
      bump belongs to whichever lands last; verify the bump after the
      final change to that file, never before.
+
+     WHEN a changed file carries no version property at all, do not
+     bump — add one at `0.1`, and let this triage's change land inside
+     that first version. A higher initial value implies a predecessor a
+     reader could diff against; for a file that has never been
+     versioned there is none, and step 1's provenance check would then
+     be asking about a version that never existed. Place the property
+     per [[frontmatter-standards]].
    - File one bead per approved deferral **that meets the Definition of
      Ready**. The bar is the spec-owned
      [[work-order-definition-of-ready]] — do not restate or fork it
@@ -226,6 +275,12 @@ the note. Then, per RFC, in received order:
      (adopted / adopted-with-refinement + the refinement / deferred +
      bead id / rejected + rationale), date, files changed, version
      bumps.
+
+     Record any `T` change in the Resolution of the RFC whose evidence
+     prompted it, in its own row, marked as triage-originated rather
+     than that RFC's testimony. WHERE no RFC prompted it — a change
+     reported directly by the human — record it in the Resolution of
+     the RFC triaged alongside it, marked the same way.
    - Number and move the RFC: rename to
      `rfcs/rfc-<nnnn>-<short-description>.md` using this repo's next
      free number, update its slug to match, and set status `retired`
@@ -273,3 +328,4 @@ the note. Then, per RFC, in received order:
 | Forgetting version bumps on changed files | Future RFCs cite versions; stale versions break the "already fixed?" check |
 | Editing a received RFC's Evidence or Proposals | The RFC is the reporter's testimony; triage writes only the Resolution |
 | Adopting a self-authored proposal without recording that it was self-authored | The Resolution is the durable record; an undisclosed self-adoption is indistinguishable later from an independently reviewed one |
+| Treating a proposal's cited occurrences as the complete set | The RFC lists what its run touched; a defect class usually reaches files that run never opened, and the Resolution then records as fixed a class that is still live |
