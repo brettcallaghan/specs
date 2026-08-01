@@ -15,6 +15,7 @@ decision.
 | 2026-07-31 | self | `bead-bonanza` | RFC 0004 | 4 adopted, 1 deferred |
 | 2026-07-31 | self | `retro-skill` | RFC 0005 | 2 adopted |
 | 2026-07-31 | self | `spec` | RFC 0006 | 4 adopted (1 with refinement), 1 deferred |
+| 2026-07-31 | self | FRD authoring | retro note | null retro |
 
 ## Run notes
 
