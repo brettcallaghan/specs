@@ -27,7 +27,7 @@
 #   0  in sync (or written successfully)
 #   1  --check found a stale or missing copy
 #   2  bad invocation, or no strata checkout to sync from
-set -uo pipefail
+set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DEST_DIR="$REPO_ROOT/.claude/skills/strata/references"
@@ -64,7 +64,13 @@ if [ -z "$STRATA_SRC" ]; then
   # checkout is not a defect in this repo — it just cannot answer the
   # question. Skipping beats a red suite nobody can turn green. Write mode
   # still fails: there, the missing checkout blocks what was asked for.
-  [ "$CHECK" -eq 1 ] && { echo "RESULT: SKIP (nothing to compare against)."; exit 0; }
+  # Spelled as an if, not `[ ... ] && { ... }`: under `set -e` the && form
+  # aborts the script when the test is false, so write mode would exit 1
+  # here instead of reaching the exit 2 below.
+  if [ "$CHECK" -eq 1 ]; then
+    echo "RESULT: SKIP (nothing to compare against)."
+    exit 0
+  fi
   exit 2
 fi
 
@@ -73,8 +79,12 @@ fi
 # than failing — a tarball copy of the docs is still worth vendoring.
 source_stamp() {
   local sha date
-  sha=$(git -C "$STRATA_SRC" log -1 --format='%H' -- "$1" 2>/dev/null)
-  date=$(git -C "$STRATA_SRC" log -1 --format='%cs' -- "$1" 2>/dev/null)
+  # `|| true` matters under `set -e`: git exits 128 when STRATA_SRC is not a
+  # git checkout at all (an extracted tarball, a vendored tree), and a bare
+  # failing substitution in an assignment aborts the script — which is the
+  # opposite of the graceful "unknown" this function promises.
+  sha=$(git -C "$STRATA_SRC" log -1 --format='%H' -- "$1" 2>/dev/null || true)
+  date=$(git -C "$STRATA_SRC" log -1 --format='%cs' -- "$1" 2>/dev/null || true)
   if [ -n "$sha" ]; then printf '%s (%s)' "${sha:0:12}" "$date"; else printf 'unknown'; fi
 }
 

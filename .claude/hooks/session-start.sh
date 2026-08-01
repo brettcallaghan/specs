@@ -197,36 +197,53 @@ if [ "${STRATA_CLI_SKIP:-}" != "1" ]; then
     # repo too — and a hook that resets or rebases someone's branch is data
     # loss, not convenience. Anything other than a clean default branch gets
     # built exactly as it sits.
-    # `|| true` is load-bearing: this script runs under `set -o pipefail`, and
-    # a clone with no origin/HEAD ref (git does not always create one) makes
-    # symbolic-ref fail, which would take the whole hook down mid-pipeline.
-    _default="$(git -C "$strata_src" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||' || true)"
-    _default="${_default:-main}"
-    _branch="$(git -C "$strata_src" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '')"
-    if [ "$_branch" != "$_default" ]; then
-      log "strata: checkout is on '$_branch', not '$_default' — building it as-is"
-    elif [ -n "$(git -C "$strata_src" status --porcelain 2>/dev/null)" ]; then
-      log "strata: checkout has uncommitted changes — building it as-is"
+    if ! git -C "$strata_src" rev-parse --git-dir >/dev/null 2>&1; then
+      # STRATA_SRC_DIR pointed at a source tree with no git in it. Nothing to
+      # update and nothing to stamp, so it rebuilds every session.
+      log "strata: $strata_src is not a git checkout — building it as-is"
     else
-      git -C "$strata_src" fetch --quiet origin "$_default" >>"$STRATA_CACHE/build.log" 2>&1 \
-        && git -C "$strata_src" merge --ff-only --quiet "origin/$_default" >>"$STRATA_CACHE/build.log" 2>&1 \
-        || log "strata: fetch/fast-forward failed — building the checkout as-is"
+      # `|| true` is load-bearing: this script runs under `set -o pipefail`,
+      # and a clone with no origin/HEAD ref (git does not always create one)
+      # makes symbolic-ref fail, which would take the whole hook down
+      # mid-pipeline.
+      _default="$(git -C "$strata_src" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||' || true)"
+      _default="${_default:-main}"
+      _branch="$(git -C "$strata_src" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '')"
+      if [ "$_branch" != "$_default" ]; then
+        log "strata: checkout is on '$_branch', not '$_default' — building it as-is"
+      elif [ -n "$(git -C "$strata_src" status --porcelain 2>/dev/null)" ]; then
+        log "strata: checkout has uncommitted changes — building it as-is"
+      else
+        git -C "$strata_src" fetch --quiet origin "$_default" >>"$STRATA_CACHE/build.log" 2>&1 \
+          && git -C "$strata_src" merge --ff-only --quiet "origin/$_default" >>"$STRATA_CACHE/build.log" 2>&1 \
+          || log "strata: fetch/fast-forward failed — building the checkout as-is"
+      fi
     fi
 
-    _head="$(git -C "$strata_src" rev-parse HEAD 2>/dev/null || echo unknown)"
-    if [ -x "$STRATA_BIN" ] && [ "$(cat "$STRATA_STAMP" 2>/dev/null)" = "$_head" ]; then
+    # An empty _head means the source is not a git checkout — STRATA_SRC_DIR
+    # pointing at an extracted tarball or a vendored tree does that. Such a
+    # tree gets rebuilt every session: there is no commit to compare, and
+    # stamping a placeholder would match itself forever and pin the binary to
+    # whatever happened to be built first.
+    _head="$(git -C "$strata_src" rev-parse HEAD 2>/dev/null || true)"
+    if [ -n "$_head" ] && [ -x "$STRATA_BIN" ] \
+       && [ "$(cat "$STRATA_STAMP" 2>/dev/null)" = "$_head" ]; then
       log "strata CLI current: $("$STRATA_BIN" --version 2>/dev/null || echo installed) (${_head:0:8})"
     else
-      log "building strata CLI from $strata_src @ ${_head:0:8} (~2 min cold, cached after)"
+      log "building strata CLI from $strata_src${_head:+ @ ${_head:0:8}} (~2 min cold${_head:+, cached after})"
       # -p strata-cli, not the workspace: this needs the binary, not the WASM
       # crate, and skipping it saves both time and disk.
-      if cargo build --release -p strata-cli \
+      if ! command -v cargo >/dev/null 2>&1; then
+        log "WARNING: cargo not on PATH — cannot build the strata CLI"
+      elif cargo build --release -p strata-cli \
            --manifest-path "$strata_src/Cargo.toml" >>"$STRATA_CACHE/build.log" 2>&1; then
         # Install a copy rather than a symlink into target/: `cargo clean` in
         # the strata checkout is a routine thing to do, and it would leave a
         # dangling /usr/local/bin/strata that reads as a broken install.
         if install -m 0755 "$strata_src/target/release/strata" "$STRATA_BIN" 2>>"$STRATA_CACHE/build.log"; then
-          printf '%s' "$_head" > "$STRATA_STAMP"
+          # Only stamp a real commit — see the note above. A stale stamp is
+          # worse than none: it silently pins the binary.
+          if [ -n "$_head" ]; then printf '%s' "$_head" > "$STRATA_STAMP"; else rm -f "$STRATA_STAMP"; fi
           log "strata CLI ready: $("$STRATA_BIN" --version 2>/dev/null || echo installed)"
         else
           log "WARNING: could not install to $STRATA_BIN — see $STRATA_CACHE/build.log"
