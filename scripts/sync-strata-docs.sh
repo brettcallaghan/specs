@@ -9,7 +9,7 @@
 #   it here would fork it on the first upstream edit and quietly start
 #   teaching a language that no longer matches the compiler.
 #
-#   So: no authored copy in this repo at all. Both reference files are
+#   So: no authored copy in this repo at all. Every reference file is
 #   generated verbatim from the strata checkout, each stamped with the commit
 #   that last touched its source, and `--check` reports when upstream has
 #   moved. The stamp is per-file (`git log -1 -- <path>`) rather than repo
@@ -39,10 +39,17 @@ case "${1-}" in
   *)       echo "usage: $(basename "$0") [--check]" >&2; exit 2 ;;
 esac
 
-# source-path-in-strata-repo  <TAB>  destination-basename-here
+# source-path-in-strata-repo  <TAB>  destination-basename  <TAB>  mode
+#
+# mode `raw`          — copy the source through unchanged (it is already markdown).
+# mode `strata-fence` — wrap the source in a ```strata block. Needed for `.strata`
+#                       sources: the language has no comment syntax, so the
+#                       provenance header cannot live inside one, and a bare
+#                       copy would look like a compilable input to be edited.
 MAP=$(cat <<'EOF'
-docs/public/strata.llm.md	strata-llm-reference.md
-docs/content/docs/lang.mdx	language-reference.md
+docs/public/strata.llm.md	strata-llm-reference.md	raw
+docs/content/docs/lang.mdx	language-reference.md	raw
+strata/options.strata	compiler-options.md	strata-fence
 EOF
 )
 
@@ -88,17 +95,28 @@ source_stamp() {
   if [ -n "$sha" ]; then printf '%s (%s)' "${sha:0:12}" "$date"; else printf 'unknown'; fi
 }
 
-render() {  # $1 = source rel path
+render() {  # $1 = source rel path, $2 = mode
   printf '<!-- GENERATED COPY — DO NOT EDIT.\n'
   printf '     Source of truth: strata-lang/strata %s\n' "$1"
   printf '     Vendored from commit: %s\n' "$(source_stamp "$1")"
   printf '     Regenerate with: scripts/sync-strata-docs.sh\n'
   printf '     Upstream owns this text. Fix it there, then re-run that script. -->\n\n'
-  cat "$STRATA_SRC/$1"
+  if [ "$2" = strata-fence ]; then
+    printf '# `%s` — verbatim from strata-lang/strata\n\n' "$(basename "$1")"
+    printf '```strata\n'
+    cat "$STRATA_SRC/$1"
+    # Keep the closing fence on its own line even if the source has no
+    # trailing newline. Spelled as an if because `[ ] && printf` would abort
+    # the script under `set -e` on the false branch.
+    if [ -n "$(tail -c1 "$STRATA_SRC/$1")" ]; then printf '\n'; fi
+    printf '```\n'
+  else
+    cat "$STRATA_SRC/$1"
+  fi
 }
 
 stale=0 wrote=0 checked=0
-while IFS=$'\t' read -r src_rel dest_name; do
+while IFS=$'\t' read -r src_rel dest_name mode; do
   [ -n "$src_rel" ] || continue
   if [ ! -f "$STRATA_SRC/$src_rel" ]; then
     echo "error: source not found: $STRATA_SRC/$src_rel" >&2
@@ -111,13 +129,13 @@ while IFS=$'\t' read -r src_rel dest_name; do
     if [ ! -f "$dest" ]; then
       echo "  STALE (missing)  $dest_name"
       stale=$((stale + 1))
-    elif ! render "$src_rel" | diff -q - "$dest" >/dev/null 2>&1; then
+    elif ! render "$src_rel" "$mode" | diff -q - "$dest" >/dev/null 2>&1; then
       echo "  STALE (differs)  $dest_name  <-  $src_rel"
       stale=$((stale + 1))
     fi
   else
     mkdir -p "$DEST_DIR"
-    render "$src_rel" > "$dest"
+    render "$src_rel" "$mode" > "$dest"
     wrote=$((wrote + 1))
     echo "  $dest_name  <-  $src_rel @ $(source_stamp "$src_rel")"
   fi
