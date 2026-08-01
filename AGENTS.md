@@ -101,9 +101,18 @@ this environment:
 - **Escape hatches:** `STRATA_CLI_SKIP=1` skips the whole step,
   `STRATA_SRC_DIR` points it at a specific checkout. Build output lands in
   `~/.cache/strata-cli/build.log`.
-- Note against the 403 entry above: `api.github.com` answered **200** when
-  measured on 2026-07-31, so proxy behavior here may have changed or may vary
-  per session. The bd installer's fallback works either way.
+- **Prebuilt binaries are not an option here, so don't "optimize" to them.**
+  Measured 2026-08-01: `api.github.com` answers **200** (so a release *lookup*
+  succeeds and lists the Linux asset), but the asset download itself returns
+  **404** through the proxy, at both the `/releases/latest/download/` redirect
+  and the tagged URL. Release metadata being reachable is not the same as
+  release bytes being reachable — that is the trap. This also refines the 403
+  entry above: the bd installer's prebuilt lookup fails at the download, not
+  at the API.
+- **The clone is per-container, not shared.** `~/.cache/strata-src` and
+  `~/.cache/strata-cli` live on the session's ephemeral disk, so a new
+  container pays the full ~1m45s build once. The stamp only saves repeat
+  SessionStart fires within one container (resume, `/clear`), which cost 0.4s.
 - `bd init` **git-commits its own scaffolding**. The hook records HEAD and
   unwinds that commit — a session hook must not leave commits nobody asked for.
 - `bd` has been observed once writing its global config to a **literal `./~/`**
