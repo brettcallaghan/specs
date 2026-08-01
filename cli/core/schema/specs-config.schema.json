@@ -3,6 +3,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "definitions": {
     "ConventionsConfig": {
+      "additionalProperties": false,
       "description": "House conventions an adopting repository may set, and the profile\nsupplies when it does not.",
       "properties": {
         "line_width": {
@@ -20,6 +21,7 @@
       "type": "object"
     },
     "ProfileConfig": {
+      "additionalProperties": false,
       "description": "Selects the active document vocabulary.",
       "properties": {
         "name": {
@@ -33,6 +35,7 @@
       "type": "object"
     },
     "SpecsConfig": {
+      "additionalProperties": false,
       "description": "The `specs.toml` file an adopting repository authors at its root.\n\nThis is the public half of the configuration contract: the surface teams\noutside the CLI's own team write, and therefore the surface whose\ncompatibility promise costs something to keep. It is deliberately small.\nA repository says which repository it is, where its documents live,\nwhich profile is active, and a short list of house conventions —\nand nothing else.\n\nIn particular there is no way to define a document type, register a\nblock tag, or supply a schema from here. Those belong to the profile,\nand holding them back is what keeps the promise cheap: a key that was\nnever public cannot be broken by changing it. Promotion runs one way and\nis additive, so a repository that never wrote a key it could not write\nis unaffected by a later version that lets it.\n\nUndeclared keys are a defect rather than a courtesy. A misspelled key is\nfar more common than a key from the future, and silently ignoring one\nwould let a repository believe it had configured something it had not.",
       "properties": {
         "conventions": {
@@ -62,6 +65,7 @@
       "type": "object"
     },
     "WorkspaceConfig": {
+      "additionalProperties": false,
       "description": "Identifies a repository's document collection.",
       "properties": {
         "name": {

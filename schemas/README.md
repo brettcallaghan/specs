@@ -87,45 +87,24 @@ duplicating it here would create two authorities for one vocabulary.
 them, even though neither has a template. Without them those documents
 are excluded from every check as `unknown-type`.
 
-## Known gap: undeclared keys are not rejected
+**Undeclared keys are rejected.** The manifest sets
+`jsonSchema.allowAdditionalProperties: false`, which puts
+`additionalProperties: false` on every emitted object — what
+`contract-specs-configuration.md` asks for, on the grounds that a
+misspelled key is far more common than a key from the future. A document
+carrying `releated:` fails validation naming the key.
 
-`contract-specs-configuration.md` requires that a key `specs.toml` does
-not define be reported, on the grounds that a misspelled key is far more
-common than a key from the future. The natural way to express that is
-`jsonSchema.allowAdditionalProperties: false`, which adds
-`additionalProperties: false` to every emitted object.
+Closing a shape changes the emitted *shape* as well as its strictness:
+a closed type cannot be composed with `allOf`, because the `$ref`'d
+supertype would independently reject every property the subtype adds.
+Strata therefore flattens ancestors into each type instead, so
+`ContainerBlueprint` lists all fifteen of its properties inline rather
+than `$ref`ing `DocumentFrontmatter` and `ContractEdges`. Inheritance
+semantics are identical; only `$ref` sharing is lost, and the generated
+file is larger for it. The Markdown and Go targets are unaffected —
+both flatten anyway.
 
-**That option cannot be used today.** Setting it makes the Strata
-compiler drop struct inheritance from the JSON Schema output entirely —
-the `allOf`/`$ref` to the parent disappears, so `Contract` emits with
-only its own five properties and none of the envelope's six. The result
-is a schema that validates but is wrong in both directions: a document
-missing `title` passes, and a document carrying `title` fails. Reduced
-to a minimal case, and independent of `bundle`:
-
-```strata
-struct Base  { title: String }
-struct Child: Base { extra: String }
-```
-
-| `allowAdditionalProperties` | `Child` emitted as |
-|---|---|
-| `true` (default) | `{"allOf": [{...}, {"$ref": "#/definitions/Base"}]}` |
-| `false` | `{"properties": {"extra": ...}, "additionalProperties": false}` — inheritance silently lost |
-
-The manifest therefore leaves the option at its default and the
-generated schemas accept undeclared keys. Two consequences worth
-holding onto:
-
-- Unknown-key detection has to be implemented in the CLI regardless of
-  this bug, because the contract requires each finding to carry a
-  **span** into `specs.toml`, and JSON Schema has no notion of source
-  position. The schema was always going to be the second line of defence
-  rather than the first.
-- When the compiler is fixed, turning the option back on is a
-  one-line manifest change plus a regeneration. `scripts/validate-corpus.py`
-  will start rejecting misspelled keys the moment it is.
-
-Filed upstream against `strata-lang/strata`; see that repository's
-`rfcs/` for the reproduction and the rest of the findings from
-authoring this package.
+**The CLI still needs its own unknown-key detection.**
+`contract-specs-configuration.md` requires each finding to carry a
+**span** into `specs.toml`, and JSON Schema has no notion of source
+position. The schema is the second line of defence, not the first.
