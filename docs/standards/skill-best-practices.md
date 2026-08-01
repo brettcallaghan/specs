@@ -7,7 +7,7 @@ slug: skill-authoring-standards
 type: standards
 status: draft
 updated_at: 2026-07-31T00:00:00Z
-version: 0.2
+version: "0.2"
 related:
   - "template-authoring-standards"
   - "adr-013"

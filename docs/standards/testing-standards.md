@@ -7,7 +7,7 @@ slug: testing-standards
 type: standards
 status: approved
 updated_at: 2026-07-31T00:00:00Z
-version: 0.1
+version: "0.1"
 ---
 
 # Testing Standards for the Spec CLI
