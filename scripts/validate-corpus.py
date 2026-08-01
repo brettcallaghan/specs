@@ -43,7 +43,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 # Where documents are looked for. The corpus proper is docs/; the RFC
 # queue and the spec skill's own reference documents are checked too,
 # because they carry the same frontmatter and drift the same way.
-SEARCH = ["docs/**/*.md", "rfcs/*.md", "plugin/skills/*/references/*.md"]
+SEARCH = ["docs/**/*.md", "rfcs/**/*.md", "plugin/skills/*/references/*.md"]
 
 # Templates carry deliberate placeholder slugs and type values, and are
 # not corpus members. AC-SPEC-004.4 names this explicitly.
