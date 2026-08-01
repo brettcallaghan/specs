@@ -4,7 +4,10 @@
      Regenerate with: scripts/sync-strata-docs.sh
      Upstream owns this text. Fix it there, then re-run that script. -->
 
-# `options.strata` — verbatim from strata-lang/strata
+# Compiler options — the schema of `strata.config.json`
+
+Verbatim `options.strata` from strata-lang/strata. Every field states its
+default in its doc block.
 
 ```strata
 struct CompilerOptions {

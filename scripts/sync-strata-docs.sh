@@ -39,17 +39,21 @@ case "${1-}" in
   *)       echo "usage: $(basename "$0") [--check]" >&2; exit 2 ;;
 esac
 
-# source-path-in-strata-repo  <TAB>  destination-basename  <TAB>  mode
+# source-path  <TAB>  destination-basename  <TAB>  mode  <TAB>  title
 #
-# mode `raw`          — copy the source through unchanged (it is already markdown).
-# mode `strata-fence` — wrap the source in a ```strata block. Needed for `.strata`
-#                       sources: the language has no comment syntax, so the
-#                       provenance header cannot live inside one, and a bare
+# mode `raw`          — copy the source through unchanged (it is already markdown,
+#                       and carries its own heading, so `title` is left empty).
+# mode `strata-fence` — wrap the source in a ```strata block under `title`. Needed
+#                       for `.strata` sources: the language has no comment syntax,
+#                       so the provenance header cannot live inside one, and a bare
 #                       copy would look like a compilable input to be edited.
+#
+# The title is what an agent sees when it opens the file directly, so it names
+# what the schema IS to a user — not merely which upstream file it came from.
 MAP=$(cat <<'EOF'
 docs/public/strata.llm.md	strata-llm-reference.md	raw
 docs/content/docs/lang.mdx	language-reference.md	raw
-strata/options.strata	compiler-options.md	strata-fence
+strata/options.strata	compiler-options.md	strata-fence	Compiler options — the schema of `strata.config.json`
 EOF
 )
 
@@ -95,14 +99,16 @@ source_stamp() {
   if [ -n "$sha" ]; then printf '%s (%s)' "${sha:0:12}" "$date"; else printf 'unknown'; fi
 }
 
-render() {  # $1 = source rel path, $2 = mode
+render() {  # $1 = source rel path, $2 = mode, $3 = title (strata-fence only)
   printf '<!-- GENERATED COPY — DO NOT EDIT.\n'
   printf '     Source of truth: strata-lang/strata %s\n' "$1"
   printf '     Vendored from commit: %s\n' "$(source_stamp "$1")"
   printf '     Regenerate with: scripts/sync-strata-docs.sh\n'
   printf '     Upstream owns this text. Fix it there, then re-run that script. -->\n\n'
   if [ "$2" = strata-fence ]; then
-    printf '# `%s` — verbatim from strata-lang/strata\n\n' "$(basename "$1")"
+    printf '# %s\n\n' "$3"
+    printf 'Verbatim `%s` from strata-lang/strata. Every field states its\n' "$(basename "$1")"
+    printf 'default in its doc block.\n\n'
     printf '```strata\n'
     cat "$STRATA_SRC/$1"
     # Keep the closing fence on its own line even if the source has no
@@ -116,7 +122,7 @@ render() {  # $1 = source rel path, $2 = mode
 }
 
 stale=0 wrote=0 checked=0
-while IFS=$'\t' read -r src_rel dest_name mode; do
+while IFS=$'\t' read -r src_rel dest_name mode title; do
   [ -n "$src_rel" ] || continue
   if [ ! -f "$STRATA_SRC/$src_rel" ]; then
     echo "error: source not found: $STRATA_SRC/$src_rel" >&2
@@ -129,13 +135,13 @@ while IFS=$'\t' read -r src_rel dest_name mode; do
     if [ ! -f "$dest" ]; then
       echo "  STALE (missing)  $dest_name"
       stale=$((stale + 1))
-    elif ! render "$src_rel" "$mode" | diff -q - "$dest" >/dev/null 2>&1; then
+    elif ! render "$src_rel" "$mode" "${title:-}" | diff -q - "$dest" >/dev/null 2>&1; then
       echo "  STALE (differs)  $dest_name  <-  $src_rel"
       stale=$((stale + 1))
     fi
   else
     mkdir -p "$DEST_DIR"
-    render "$src_rel" "$mode" > "$dest"
+    render "$src_rel" "$mode" "${title:-}" > "$dest"
     wrote=$((wrote + 1))
     echo "  $dest_name  <-  $src_rel @ $(source_stamp "$src_rel")"
   fi

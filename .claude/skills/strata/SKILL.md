@@ -157,7 +157,7 @@ re-case the host-language identifier, never the wire key.
 |---|---|
 | `references/strata-llm-reference.md` | Anything beyond the card above: full syntax with wire-format examples, constraints, targets, the error-category → fix table, compatibility rules, and a porting-reflex translation table. Start here. |
 | `references/language-reference.md` | Multi-file or multi-package work, and any question the first reference answers only in passing: manifests, package roots, nested packages, dependencies, qualified references. Also the long-form prose on each construct. |
-| `references/compiler-options.md` | **Any configuration question.** The complete `CompilerOptions` surface, in Strata, with every field's default in its doc block: the per-target option groups (`rust`, `swift`, `kotlin`, `typescript`, `go`), `jsonSchema`, `enums`/`unions` unknown-variant handling, `dependencies`, and package metadata. The other two references cover only the highest-leverage knobs — do not guess an option name from them. |
+| `references/compiler-options.md` | **The schema of `strata.config.json`** — open it before writing or editing one. `CompilerOptions` is what a manifest (and a `--config` overlay) must match, field for field, with every default stated in its doc block: the per-target groups (`rust`, `swift`, `kotlin`, `typescript`, `go`), `jsonSchema`, `enums`/`unions` unknown-variant handling, `dependencies`, and package metadata. The other two references mention only the highest-leverage knobs — never guess an option name from them. |
 
 All three are vendored verbatim from `strata-lang/strata` and regenerated
 by `scripts/sync-strata-docs.sh` — fix the text upstream, never here.
@@ -189,8 +189,14 @@ depends on whether a `strata.config.json` exists above the input
 
 ## Configuration
 
-Two places, one shape — both are JSON matching `CompilerOptions`, whose
-full surface is `references/compiler-options.md`:
+**`strata.config.json` is `CompilerOptions` serialized as JSON.** That is
+not an analogy: upstream transpiles `options.strata` to
+`strata.config.schema.json` and validates every manifest against it, so
+the field names, types, nesting, and enum spellings in
+`references/compiler-options.md` *are* the config file's schema. Read
+that file rather than recalling an option name.
+
+It applies in two places:
 
 - **`strata.config.json`** — the package manifest. It both *makes* the
   directory a package root and carries that package's options.
@@ -210,11 +216,11 @@ overlay can override one nested field without restating its siblings.
 }
 ```
 
-Read the defaults out of `references/compiler-options.md` rather than assuming
-them: every field's doc block states its default, and several are
-opinionated (`skipNullSerialization` is `true`,
+Defaults are opinionated and worth checking per field rather than
+assuming — `skipNullSerialization` is `true`,
 `typescript.generateValidation` is `true`, `go.optionalStyle` is
-`Pointer`). A manifest that fails schema validation fails the build with
+`Pointer`, and `go.generateValidation` does **not** match its TypeScript
+namesake. A manifest that fails schema validation fails the build with
 the manifest path and the offending property named — including manifests
 reached through the dependency closure.
 
