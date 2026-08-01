@@ -2,7 +2,43 @@
 
 This file provides instructions and context for AI coding agents working on this project.
 
-<!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:970c3bf2 -->
+## Session bootstrap — check this first
+
+**If `bd` or `strata` is missing from PATH, the SessionStart hook did not
+run. Run it by hand before doing anything else:**
+
+```bash
+command -v bd >/dev/null && command -v strata >/dev/null || \
+  CLAUDE_PROJECT_DIR="$(git rev-parse --show-toplevel)" \
+  bash "$(git rev-parse --show-toplevel)/.claude/hooks/session-start.sh"
+```
+
+It is idempotent, takes a few minutes cold (it builds `bd` from source
+and `strata` from a checkout), and is a no-op once both are installed.
+
+**Why this is needed.** `.claude/settings.json` registers that hook, and
+Claude Code loads hooks only from the **project root** — there is no
+mechanism for a multi-root workspace to register hooks per repository
+([hooks reference](https://code.claude.com/docs/en/hooks)). When a
+session attaches this repository *alongside another*, both are cloned as
+siblings under a shared parent, that parent becomes the project root,
+and it contains no `.claude/` — so this repository's hook is never
+registered. Nothing in the hook or the settings file is wrong, and
+merging them to the default branch does not help; they are simply not
+read. Observed 2026-08-01 in a session with `agent-plugins` and `strata`
+both attached: no `bd`, no `strata`, and none of the dogfooded skills
+materialized.
+
+CLAUDE.md *is* still read from a nested repository, which is why this
+instruction works where the hook does not.
+
+**The durable fix is an environment setup script**, which runs before
+Claude Code launches and does not depend on the project root. It is
+configured per cloud environment at claude.ai/code rather than in this
+repository — see `docs/session-bootstrap.md` for the script to paste and
+its trade-offs.
+
+<!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:6cd5cc61 -->
 ## Beads Issue Tracker
 
 This project uses **bd (beads)** for issue tracking. Run `bd prime` to see full workflow context and commands.
@@ -46,7 +82,6 @@ This protocol applies when ending a Beads implementation workflow. It is subordi
 
    # Team-maintainer opt-in only, unless current instructions forbid it:
    git pull --rebase
-   bd dolt push
    git push
    git status
    ```
