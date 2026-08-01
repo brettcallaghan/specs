@@ -1,7 +1,7 @@
 {
   "name": "spec-driven-dev",
   "metadata": {
-    "description": "Marketplace for the spec-driven-dev plugin: spec-first development skills (spec, groom-feature-blueprint, retro-spec)"
+    "description": "Marketplace for the sf (spec-first) plugin: spec-driven development skills (spec, groom-beads, groom-feature-blueprint, bead-bonanza, retro-spec, retro-skill)"
   },
   "owner": {
     "name": "Brett Callaghan",
@@ -9,7 +9,7 @@
   },
   "plugins": [
     {
-      "name": "spec-driven-dev",
+      "name": "sf",
       "source": "./plugin",
       "description": "Spec-first development: authoring specs in EARS (ADRs, FRDs, requirements documents, architecture and feature blueprints, contracts), grooming approved feature blueprints into executable implementation plans, and retrospectives that produce evidence-backed improvement RFCs"
     }

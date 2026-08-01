@@ -1,0 +1,1716 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "Adr": {
+      "additionalProperties": false,
+      "description": "An architecture decision record.\n\nCarries no relationship properties of its own beyond the envelope's\n`related`: an ADR's connections to other decisions are argued in its\nprose, and the decisions it supersedes are named through\n`superseded_by`.",
+      "properties": {
+        "created_at": {
+          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "format": "date-time",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "type": "string"
+        },
+        "related": {
+          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "slug": {
+          "$ref": "#/definitions/Slug",
+          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+        },
+        "status": {
+          "$ref": "#/definitions/Status",
+          "description": "The document's lifecycle state."
+        },
+        "superseded_by": {
+          "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Slug"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tags": {
+          "description": "Free-form tags for filtering and search.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "title": {
+          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/DocumentType",
+          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
+        },
+        "updated_at": {
+          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "slug",
+        "type",
+        "status",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "BlockFormat": {
+      "description": "The formats a registered fenced block's contents may be parsed as.",
+      "enum": [
+        "yaml",
+        "json",
+        "toml"
+      ],
+      "type": "string"
+    },
+    "BlockTagRegistration": {
+      "additionalProperties": false,
+      "description": "A fenced block whose contents carry structured data about an element\ndeclared inside a document.",
+      "properties": {
+        "format": {
+          "$ref": "#/definitions/BlockFormat",
+          "description": "The format the block's contents are parsed as. A block that fails to\nparse is reported with the parse error and its position within the\ncontaining document."
+        },
+        "schema": {
+          "description": "The JSON Schema the parsed contents are validated against, expressed\nas a JSON Pointer into the bundled schema or as a path to a\nstandalone one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "tag": {
+          "description": "The fenced block's info string — `component` for a component record\nblock.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tag",
+        "format"
+      ],
+      "type": "object"
+    },
+    "BlueprintKind": {
+      "description": "Whether a blueprint documents one concrete element or a pattern that\nseveral elements follow.",
+      "enum": [
+        "standard",
+        "pattern"
+      ],
+      "type": "string"
+    },
+    "ComponentBlueprint": {
+      "additionalProperties": false,
+      "description": "A C4 component blueprint: a single component promoted out of its\nparent's roster into a document of its own, because it warrants more\nthan a record block.",
+      "properties": {
+        "contracts_consumed": {
+          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "contracts_provided": {
+          "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "created_at": {
+          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "format": "date-time",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/definitions/BlueprintKind",
+          "description": "Whether this blueprint documents one concrete component or a pattern\nseveral components follow."
+        },
+        "related": {
+          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "slug": {
+          "$ref": "#/definitions/Slug",
+          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+        },
+        "source_paths": {
+          "description": "Repository-relative source roots.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "status": {
+          "$ref": "#/definitions/Status",
+          "description": "The document's lifecycle state."
+        },
+        "superseded_by": {
+          "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Slug"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tags": {
+          "description": "Free-form tags for filtering and search.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "test_paths": {
+          "description": "Repository-relative test roots.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "title": {
+          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/DocumentType",
+          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
+        },
+        "updated_at": {
+          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "slug",
+        "type",
+        "status",
+        "updated_at",
+        "kind"
+      ],
+      "type": "object"
+    },
+    "ContainerBlueprint": {
+      "additionalProperties": false,
+      "description": "A C4 container blueprint: one independently deployable or runnable\nartifact, and the modules and components composed into it.",
+      "properties": {
+        "components": {
+          "description": "Component blueprint slugs composed into this container.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "contracts_consumed": {
+          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "contracts_provided": {
+          "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "created_at": {
+          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "format": "date-time",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "type": "string"
+        },
+        "modules": {
+          "description": "Module blueprint slugs composed into this container.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "related": {
+          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "slug": {
+          "$ref": "#/definitions/Slug",
+          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+        },
+        "status": {
+          "$ref": "#/definitions/Status",
+          "description": "The document's lifecycle state."
+        },
+        "superseded_by": {
+          "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Slug"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "system": {
+          "description": "The system this container belongs to.\n\nOmitted when the container is standalone — that is, when no system\nblueprint documents it. Absence records a documented fact rather than\nan oversight.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Slug"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tags": {
+          "description": "Free-form tags for filtering and search.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "title": {
+          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/DocumentType",
+          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
+        },
+        "updated_at": {
+          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "slug",
+        "type",
+        "status",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "Contract": {
+      "additionalProperties": false,
+      "description": "An interface specification governing an exchange across a boundary of\nindependent change.",
+      "properties": {
+        "consumers": {
+          "description": "Known consumers, by slug. Derived knowledge rather than a\nrestriction — an unlisted consumer is not forbidden, it is merely\nunknown to the provider.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "created_at": {
+          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "format": "date-time",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "type": "string"
+        },
+        "provider": {
+          "$ref": "#/definitions/Slug",
+          "description": "The container or system that provides this interface.\n\nExactly one, because a contract with two providers is two contracts."
+        },
+        "related": {
+          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "slug": {
+          "$ref": "#/definitions/Slug",
+          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+        },
+        "specs": {
+          "description": "Paths or URLs of the machine-readable artifacts that make this\ncontract executable: JSON Schemas, OpenAPI documents, protobuf\ndefinitions.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "status": {
+          "$ref": "#/definitions/Status",
+          "description": "The document's lifecycle state."
+        },
+        "superseded_by": {
+          "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Slug"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tags": {
+          "description": "Free-form tags for filtering and search.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "title": {
+          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/DocumentType",
+          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
+        },
+        "updated_at": {
+          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
+          "format": "date-time",
+          "type": "string"
+        },
+        "version": {
+          "description": "The contract's semantic version.\n\nRequired rather than optional: a contract without a version cannot\nstate a compatibility promise, which is the only reason to write one\ndown separately from the code that implements it.",
+          "type": "string"
+        },
+        "visibility": {
+          "$ref": "#/definitions/Visibility",
+          "description": "Whether this interface is published beyond the repository that\ndeclares it, and therefore whether its versioning policy binds\nadopters outside this team."
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "slug",
+        "type",
+        "status",
+        "updated_at",
+        "provider",
+        "visibility",
+        "version"
+      ],
+      "type": "object"
+    },
+    "ContractEdges": {
+      "additionalProperties": false,
+      "description": "The contract edges a C4 element owns: the interfaces it publishes, and\nthe interfaces it depends on.\n\nDeclared once and inherited by all four blueprint types rather than\nrepeated on each, because the same fact recorded at four altitudes\nunder three different spellings is how a vocabulary drifts. An element\nprovides a contract at whichever altitude it happens to sit; the\nproperty is named for the concept, not for the level.\n\nThese are not the neighbour edges ADR-009 reserves to a parent. A\nneighbour relationship varies by host — a shared module has different\ncollaborators in every container that composes it, which is why no\nsingle outward list is correct and the parent owns it. A contract is a\nnamed document with one identity, and the fact that an element\npublishes or depends on it holds wherever that element is composed. So\nthis edge belongs to the element, and ADR-009's rule is untouched.",
+      "properties": {
+        "contracts_consumed": {
+          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "contracts_provided": {
+          "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "ConventionsConfig": {
+      "additionalProperties": false,
+      "description": "House conventions an adopting repository may set, and the profile\nsupplies when it does not.",
+      "properties": {
+        "line_width": {
+          "description": "The maximum width of a prose line, measured in Unicode codepoints\nrather than bytes, so an em dash counts as one character and not as\nits three UTF-8 bytes.\n\nLines inside fenced code blocks, table rows, and lines containing a\nURL are exempt. Defaults to the active profile's registered value.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__UInt"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Delivery": {
+      "description": "The delivery unit a feature blueprint is groomed against.",
+      "enum": [
+        "single-pr",
+        "staged"
+      ],
+      "type": "string"
+    },
+    "DocumentFrontmatter": {
+      "additionalProperties": false,
+      "description": "The metadata envelope every specification document carries.\n\nMembership in the corpus is determined by this envelope rather than by\nlocation: a markdown file whose frontmatter parses and declares a known\n`type` is a specification, wherever it sits in the tree. Each document\ntype extends this struct with its own relationship and classification\nproperties, so the envelope is validated identically everywhere and only\nthe extension differs.",
+      "properties": {
+        "created_at": {
+          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "format": "date-time",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "type": "string"
+        },
+        "related": {
+          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "slug": {
+          "$ref": "#/definitions/Slug",
+          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+        },
+        "status": {
+          "$ref": "#/definitions/Status",
+          "description": "The document's lifecycle state."
+        },
+        "superseded_by": {
+          "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Slug"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tags": {
+          "description": "Free-form tags for filtering and search.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "title": {
+          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/DocumentType",
+          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
+        },
+        "updated_at": {
+          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "slug",
+        "type",
+        "status",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "DocumentType": {
+      "description": "The classification of a specification document.\n\nA document's type selects the schema, slug pattern and required sections\nthat govern it. This is the controlled vocabulary the spec-driven-dev\nprofile registers; a repository whose documents declare a type outside\nthis set is recorded as excluded with reason `unknown-type` rather than\nbeing checked against the wrong rules.",
+      "enum": [
+        "adr",
+        "frd",
+        "contract",
+        "standards",
+        "system-blueprint",
+        "container-blueprint",
+        "module-blueprint",
+        "component-blueprint",
+        "feature-blueprint",
+        "rfc",
+        "guide"
+      ],
+      "type": "string"
+    },
+    "DocumentTypeRegistration": {
+      "additionalProperties": false,
+      "description": "Everything the engine needs to check one document type.",
+      "properties": {
+        "numbered": {
+          "description": "Whether documents of this type carry a sequence number the CLI can\nderive the next value of.\n\nNumbering is global per type: the next number is one greater than the\nhighest in use anywhere in the corpus, regardless of directory.",
+          "type": "boolean"
+        },
+        "pairings": {
+          "description": "Relationship properties that must be declared from both ends.",
+          "items": {
+            "$ref": "#/definitions/PropertyPairing"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "reference_properties": {
+          "description": "Frontmatter properties of this type that hold document references.\n\nA value in one of these properties that matches no corpus member's\nslug is reported the same way an unresolved `[[slug]]` in the body is.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "schema": {
+          "description": "The JSON Schema this type's frontmatter is validated against,\nexpressed as a JSON Pointer into the bundled schema or as a path to a\nstandalone one.",
+          "type": "string"
+        },
+        "section_sets": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "description": "Named sets of headings a span query can select, so a reviewing agent\ncan ask for the normative sections of a document and read only those.",
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "sections": {
+          "description": "The heading hierarchy a document of this type must contain.",
+          "items": {
+            "$ref": "#/definitions/Section"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "slug_pattern": {
+          "description": "The pattern a document of this type must match in its `slug`.\n\nA mismatch is reported with both the actual slug and this pattern\nquoted, so the finding is self-contained and the fixing agent needs no\nfurther lookup.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema",
+        "slug_pattern",
+        "numbered"
+      ],
+      "type": "object"
+    },
+    "ElementRecord": {
+      "additionalProperties": false,
+      "description": "The three fields that identify any element the framework names.\n\nThis is the smallest unit of description in the vocabulary, and it is\ndeliberately shared by two artifacts that look unrelated. A child element\na parent document declares inline — a component of a container, a module\nof a system — carries exactly these fields in a fenced record block. A\nchild that has been promoted to its own document carries them as the\nopening of its frontmatter, because `DocumentFrontmatter` inherits them.\n\nOne schema therefore validates a child in either state, which is what\nmakes promotion a lift-and-link operation rather than a re-authoring\none: the record block moves verbatim into the new document's\nfrontmatter, and every parent roster replaces the block with a link.",
+      "properties": {
+        "description": {
+          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "type": "string"
+        },
+        "slug": {
+          "$ref": "#/definitions/Slug",
+          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+        },
+        "title": {
+          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "slug"
+      ],
+      "type": "object"
+    },
+    "FeatureBlueprint": {
+      "additionalProperties": false,
+      "description": "A transient change document describing how the system changes to deliver\none feature.\n\nUnlike the blueprints it modifies, a feature blueprint describes a\nchange rather than a state, so it reaches `in-progress` and then\n`retired` rather than `active`. Its `updates` and `creates` properties\nare what let tooling derive when the change is complete: the feature is\nnot done until every document it names has been updated or activated.",
+      "properties": {
+        "created_at": {
+          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "format": "date-time",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "creates": {
+          "description": "Slugs of new documents authored alongside this blueprint, such as\ndraft contracts for interfaces the feature introduces.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "delivery": {
+          "$ref": "#/definitions/Delivery",
+          "description": "The delivery unit grooming plans against. When `staged`, each stage\nboundary is enumerated in the blueprint's Sequencing Constraints."
+        },
+        "description": {
+          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "type": "string"
+        },
+        "related": {
+          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "slug": {
+          "$ref": "#/definitions/Slug",
+          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+        },
+        "sources": {
+          "description": "The FRD this blueprint realizes, one to one.\n\nA feature blueprint answers how the system changes; the FRD it names\nanswers what the change must achieve.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": "array"
+        },
+        "status": {
+          "$ref": "#/definitions/Status",
+          "description": "The document's lifecycle state."
+        },
+        "superseded_by": {
+          "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Slug"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tags": {
+          "description": "Free-form tags for filtering and search.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "title": {
+          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/DocumentType",
+          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
+        },
+        "updated_at": {
+          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
+          "format": "date-time",
+          "type": "string"
+        },
+        "updates": {
+          "description": "Slugs of existing documents this feature will change — blueprints at\nany C4 level, and contracts.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "slug",
+        "type",
+        "status",
+        "updated_at",
+        "delivery",
+        "sources"
+      ],
+      "type": "object"
+    },
+    "Frd": {
+      "additionalProperties": false,
+      "description": "A feature requirements document: the user need, its scope boundaries and\nthe acceptance criteria that decide whether it has been met.",
+      "properties": {
+        "created_at": {
+          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "format": "date-time",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "type": "string"
+        },
+        "related": {
+          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "slug": {
+          "$ref": "#/definitions/Slug",
+          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+        },
+        "sources": {
+          "description": "The documents this FRD is derived from — a brief, a research\ndocument, or an FRD it narrows.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "status": {
+          "$ref": "#/definitions/Status",
+          "description": "The document's lifecycle state."
+        },
+        "superseded_by": {
+          "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Slug"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tags": {
+          "description": "Free-form tags for filtering and search.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "title": {
+          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/DocumentType",
+          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
+        },
+        "updated_at": {
+          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "slug",
+        "type",
+        "status",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "Guide": {
+      "additionalProperties": false,
+      "description": "A how-to document explaining a technique that other document types\nassume knowledge of — EARS syntax, C4 mapping, cross-document reference\nconventions.\n\nA guide carries no relationships of its own beyond the envelope's\n`related`: it explains a technique rather than participating in the\narchitecture graph.",
+      "properties": {
+        "created_at": {
+          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "format": "date-time",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "type": "string"
+        },
+        "related": {
+          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "slug": {
+          "$ref": "#/definitions/Slug",
+          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+        },
+        "status": {
+          "$ref": "#/definitions/Status",
+          "description": "The document's lifecycle state."
+        },
+        "superseded_by": {
+          "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Slug"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tags": {
+          "description": "Free-form tags for filtering and search.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "title": {
+          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/DocumentType",
+          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
+        },
+        "updated_at": {
+          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
+          "format": "date-time",
+          "type": "string"
+        },
+        "version": {
+          "description": "The guide's semantic version, quoted so YAML reads it as a string.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "slug",
+        "type",
+        "status",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "ModuleBlueprint": {
+      "additionalProperties": false,
+      "description": "A C4 module blueprint: a coherent unit of code with an interface of its\nown, composed into a container.",
+      "properties": {
+        "components": {
+          "description": "Component or module blueprint slugs this module composes, where those\nchildren have been promoted to documents of their own.\n\nA child is in exactly one state: promoted and linked here, or\nun-promoted and declared in a record block in the body. Never both.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "contracts_consumed": {
+          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "contracts_provided": {
+          "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "created_at": {
+          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "format": "date-time",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/definitions/BlueprintKind",
+          "description": "Whether this blueprint documents one concrete module or a pattern\nseveral modules follow."
+        },
+        "related": {
+          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "slug": {
+          "$ref": "#/definitions/Slug",
+          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+        },
+        "source_paths": {
+          "description": "Repository-relative source roots, so a reader can find the code.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "status": {
+          "$ref": "#/definitions/Status",
+          "description": "The document's lifecycle state."
+        },
+        "superseded_by": {
+          "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Slug"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tags": {
+          "description": "Free-form tags for filtering and search.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "test_paths": {
+          "description": "Repository-relative test roots.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "title": {
+          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/DocumentType",
+          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
+        },
+        "updated_at": {
+          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
+          "format": "date-time",
+          "type": "string"
+        },
+        "version": {
+          "description": "The module's semantic version.\n\nRequired in practice when `visibility` is `public`, since a published\npackage API owes its consumers a compatibility promise.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "visibility": {
+          "$ref": "#/definitions/Visibility",
+          "description": "Whether the module is published to a registry, and therefore whether\nits package API is bound by a compatibility policy."
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "slug",
+        "type",
+        "status",
+        "updated_at",
+        "kind",
+        "visibility"
+      ],
+      "type": "object"
+    },
+    "ProfileConfig": {
+      "additionalProperties": false,
+      "description": "Selects the active document vocabulary.",
+      "properties": {
+        "name": {
+          "description": "The name of a registered profile.\n\nExactly one profile applies per invocation. A value naming no\nregistered profile is reported as a finding listing the names that are\nregistered, rather than as a bare startup failure.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "type": "object"
+    },
+    "ProfileRegistration": {
+      "additionalProperties": false,
+      "description": "What a profile registers into Document Core.\n\n**Internal surface.** This is the vocabulary a profile hands to the\nengine in-process, not something an adopting repository authors. It is\nnot reachable from `specs.toml` in v1 and is not an extension point\noutside this repository; `[profile].name` selects one of these\nregistrations by name, and that naming is the whole of the relationship\nbetween the two halves of the configuration contract.\n\nIt is modelled here rather than left to hand-written Go for two\nreasons. Registration is data — type names, patterns, section trees,\nblock tags — and only the rules that cannot be expressed as data stay in\ncode. And the open question of which internal keys get promoted to the\npublic surface is answered by editing this struct, which is a smaller\nand more reviewable act than editing an interface and its\nimplementations.\n\nProperty names are snake_case throughout, matching the public surface,\nso that promoting a key to `specs.toml` is a move rather than a rename.",
+      "properties": {
+        "block_tags": {
+          "description": "Fenced block info strings whose contents are parsed as structured data\nand attached to the containing document and heading.",
+          "items": {
+            "$ref": "#/definitions/BlockTagRegistration"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "conventions": {
+          "description": "The convention values this profile supplies when `specs.toml` omits\nthem.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ConventionsConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "document_types": {
+          "additionalProperties": {
+            "$ref": "#/definitions/DocumentTypeRegistration"
+          },
+          "description": "The document types this profile defines, keyed by the value documents\ndeclare in their `type` property.\n\nA markdown file declaring a type absent from this map is recorded as\nexcluded with reason `unknown-type` and its declared value reported,\nso a reviewing agent can judge whether the profile or the document is\nwrong.",
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "finished_statuses": {
+          "description": "The statuses at which a document is considered finished, and therefore\nat which leftover template placeholders are a defect rather than\nwork in progress.",
+          "items": {
+            "$ref": "#/definitions/Status"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "name": {
+          "description": "The name an adopting repository writes in `[profile].name`.",
+          "type": "string"
+        },
+        "placeholder_patterns": {
+          "description": "Patterns whose presence in a finished document indicates unreplaced\ntemplate scaffolding.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "document_types"
+      ],
+      "type": "object"
+    },
+    "PropertyPairing": {
+      "additionalProperties": false,
+      "description": "One half of a relationship that must be declared from both ends.\n\nA blueprint naming a child in `children` where that child declares no\n`parent_slug` is a half-built edge, and it is reported against both\ndocuments rather than only the one that happens to be checked first.",
+      "properties": {
+        "counterpart": {
+          "description": "The property the referenced document must declare in return.",
+          "type": "string"
+        },
+        "property": {
+          "description": "The property declared on this document.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "property",
+        "counterpart"
+      ],
+      "type": "object"
+    },
+    "Rfc": {
+      "additionalProperties": false,
+      "description": "An improvement proposal raised against a skill by a run that exercised\nit.\n\nThe provenance properties below are the load-bearing part. A skill\nbehaves differently under different models, efforts and harnesses, so a\ndefect real under one may not reproduce under another, and triage cannot\nscope a fix without knowing which run saw it. They are recorded\nfaithfully by the retro that raises the RFC and judged by the triage\nthat receives it — the two roles are deliberately separate.",
+      "properties": {
+        "created_at": {
+          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "format": "date-time",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "type": "string"
+        },
+        "effort": {
+          "description": "The reasoning effort the run used.\n\nLeft unconstrained because the effort vocabulary belongs to the\nharness rather than to this framework, and `unknown` is a legitimate\nvalue when a transcript does not record it.",
+          "type": "string"
+        },
+        "model": {
+          "description": "The exact model identifier the run used — not a family name. A finding\nthat reproduces under one model and not another is scoped by this\nproperty alone.",
+          "type": "string"
+        },
+        "origin": {
+          "description": "Where the run happened: `self` when this repository critiqued its own\nskill, otherwise the name of the project the run took place in.",
+          "type": "string"
+        },
+        "plugin_version": {
+          "description": "The plugin version the critiqued skill shipped in.",
+          "type": "string"
+        },
+        "related": {
+          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "runs_observed": {
+          "description": "How many runs stand behind the evidence.\n\nThis is the denominator for any claim about recurrence: an RFC may not\nassert more recurrence than it observed.",
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "severity": {
+          "$ref": "#/definitions/RfcSeverity",
+          "description": "The highest severity among this RFC's proposals."
+        },
+        "skill": {
+          "description": "The skill this RFC critiques.",
+          "type": "string"
+        },
+        "skill_version": {
+          "description": "The version recorded in the critiqued skill's own frontmatter at the\ntime of the run, so triage can tell whether a defect has already been\nfixed since.",
+          "type": "string"
+        },
+        "slug": {
+          "$ref": "#/definitions/Slug",
+          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+        },
+        "status": {
+          "$ref": "#/definitions/Status",
+          "description": "The document's lifecycle state."
+        },
+        "superseded_by": {
+          "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Slug"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tags": {
+          "description": "Free-form tags for filtering and search.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "title": {
+          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/DocumentType",
+          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
+        },
+        "updated_at": {
+          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "slug",
+        "type",
+        "status",
+        "updated_at",
+        "origin",
+        "skill",
+        "skill_version",
+        "model",
+        "effort",
+        "runs_observed",
+        "severity",
+        "plugin_version"
+      ],
+      "type": "object"
+    },
+    "RfcSeverity": {
+      "description": "How badly a run was impeded by the skill an RFC critiques.\n\nAn RFC carries the highest severity among its proposals, so that triage\ncan rank a queue without opening every document.",
+      "enum": [
+        "blocker",
+        "snag",
+        "polish"
+      ],
+      "type": "string"
+    },
+    "Section": {
+      "additionalProperties": false,
+      "description": "A required heading, and the headings required beneath it.\n\nRequired sections are a hierarchy rather than a flat list because the\ndefects worth catching are about nesting: a missing `## Consequences`\nand a `### Consequences` misfiled under `## Decision` are different\nproblems, and a flat list cannot tell them apart.",
+      "properties": {
+        "children": {
+          "description": "Headings required one level beneath this one.",
+          "items": {
+            "$ref": "#/definitions/Section"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "repeated": {
+          "description": "Whether the heading occurs once per instance of something in the\ndocument rather than exactly once — one subsection per alternative\nconsidered, for example.\n\nWithout this distinction a section tree can only describe documents of\nfixed shape, and not all of the templates this framework ships are\nfixed.",
+          "type": "boolean"
+        },
+        "required": {
+          "description": "Whether a document of this type must contain the heading.",
+          "type": "boolean"
+        },
+        "title": {
+          "description": "The heading text, matched exactly.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "required",
+        "repeated"
+      ],
+      "type": "object"
+    },
+    "Slug": {
+      "description": "A cross-reference identifier for a specification document.\n\nEvery relationship between documents is expressed as a slug rather than a\npath, so moving a file never breaks a reference. Slugs are kebab-case:\nlowercase alphanumeric words joined by single hyphens.",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "type": "string"
+    },
+    "SpecsConfig": {
+      "additionalProperties": false,
+      "description": "The `specs.toml` file an adopting repository authors at its root.\n\nThis is the public half of the configuration contract: the surface teams\noutside the CLI's own team write, and therefore the surface whose\ncompatibility promise costs something to keep. It is deliberately small.\nA repository says which repository it is, where its documents live,\nwhich profile is active, and a short list of house conventions —\nand nothing else.\n\nIn particular there is no way to define a document type, register a\nblock tag, or supply a schema from here. Those belong to the profile,\nand holding them back is what keeps the promise cheap: a key that was\nnever public cannot be broken by changing it. Promotion runs one way and\nis additive, so a repository that never wrote a key it could not write\nis unaffected by a later version that lets it.\n\nUndeclared keys are a defect rather than a courtesy. A misspelled key is\nfar more common than a key from the future, and silently ignoring one\nwould let a repository believe it had configured something it had not.",
+      "properties": {
+        "conventions": {
+          "description": "House conventions. Every key resolves from the active profile when\nabsent, so the whole table may be omitted.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ConventionsConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "profile": {
+          "$ref": "#/definitions/ProfileConfig",
+          "description": "Selects the document vocabulary to check against."
+        },
+        "workspace": {
+          "$ref": "#/definitions/WorkspaceConfig",
+          "description": "Identifies this repository and the directory its documents live in."
+        }
+      },
+      "required": [
+        "workspace",
+        "profile"
+      ],
+      "type": "object"
+    },
+    "Standards": {
+      "additionalProperties": false,
+      "description": "Cross-cutting standards, policies, guidelines or constraints that apply\nacross documents or components rather than to one of them.",
+      "properties": {
+        "created_at": {
+          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "format": "date-time",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "description": {
+          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "type": "string"
+        },
+        "related": {
+          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "slug": {
+          "$ref": "#/definitions/Slug",
+          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+        },
+        "status": {
+          "$ref": "#/definitions/Status",
+          "description": "The document's lifecycle state."
+        },
+        "superseded_by": {
+          "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Slug"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tags": {
+          "description": "Free-form tags for filtering and search.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "title": {
+          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/DocumentType",
+          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
+        },
+        "updated_at": {
+          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
+          "format": "date-time",
+          "type": "string"
+        },
+        "version": {
+          "description": "The document's semantic version, quoted so YAML reads it as a string.\n\nUnquoted `0.1` is a floating-point number to a YAML parser and fails\nvalidation here — which is the intended behaviour, because `0.10` and\n`0.1` are the same float and different versions.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "slug",
+        "type",
+        "status",
+        "updated_at",
+        "version"
+      ],
+      "type": "object"
+    },
+    "Status": {
+      "description": "The lifecycle state of a document.\n\nState documents — blueprints, standards and contracts, which describe\nwhat IS — use `active` and never `in-progress`. Transient change\ndocuments, which describe a change, use `in-progress` in its place: a\nchange specification is implemented, not put into effect.",
+      "enum": [
+        "draft",
+        "ready-for-review",
+        "approved",
+        "in-progress",
+        "active",
+        "retired"
+      ],
+      "type": "string"
+    },
+    "SystemBlueprint": {
+      "additionalProperties": false,
+      "description": "A C4 system blueprint: the containers a system bundles, the public\ncontracts it provides, and the systems it depends on.",
+      "properties": {
+        "containers": {
+          "description": "Container blueprint slugs composed into this system.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "contracts_consumed": {
+          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "contracts_provided": {
+          "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "created_at": {
+          "description": "RFC 3339 timestamp of the document's creation. Optional.",
+          "format": "date-time",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "depends_on": {
+          "description": "Other systems this system depends on.\n\nSystems only. A contract this system consumes is named in\n`contracts_consumed`, so the same dependency has exactly one home.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "description": {
+          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "type": "string"
+        },
+        "related": {
+          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "slug": {
+          "$ref": "#/definitions/Slug",
+          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+        },
+        "status": {
+          "$ref": "#/definitions/Status",
+          "description": "The document's lifecycle state."
+        },
+        "superseded_by": {
+          "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Slug"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "tags": {
+          "description": "Free-form tags for filtering and search.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "title": {
+          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/DocumentType",
+          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
+        },
+        "updated_at": {
+          "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
+          "format": "date-time",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "slug",
+        "type",
+        "status",
+        "updated_at"
+      ],
+      "type": "object"
+    },
+    "Visibility": {
+      "description": "Whether an interface or module is published beyond the repository that\ndeclares it.\n\nVisibility governs the compatibility obligation, not the access\nmodifier: a public surface owes adopters a versioning policy, while an\ninternal one may change in lockstep with its only consumers.",
+      "enum": [
+        "public",
+        "internal"
+      ],
+      "type": "string"
+    },
+    "WorkspaceConfig": {
+      "additionalProperties": false,
+      "description": "Identifies a repository's document collection.",
+      "properties": {
+        "name": {
+          "description": "The name this repository's documents are attributed to.\n\nIt exists so that indexes emitted by several repositories can be\nmerged into one architecture graph without two documents that both\ndeclare `adr-001` colliding.",
+          "type": "string"
+        },
+        "root": {
+          "description": "The directory the CLI walks to discover the corpus.\n\nResolved relative to the directory containing `specs.toml`, so a\nconfiguration file is portable with its repository and a check run in\nCI resolves the same corpus as a check run locally.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "root"
+      ],
+      "type": "object"
+    },
+    "__UInt": {
+      "maximum": 9007199254740991,
+      "minimum": 0,
+      "type": "integer"
+    }
+  }
+}

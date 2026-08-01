@@ -7,14 +7,15 @@ type: system-blueprint
 status: draft
 updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 containers: []                       # container blueprint slugs
-contracts: []                        # public contract slugs provided
-depends_on: []                       # systems/contracts consumed
+contracts_provided: []               # contract slugs this system provides
+contracts_consumed: []               # contract slugs this system consumes
+depends_on: []                       # other systems this system depends on
 related: []                          # related documents (ADRs, standards, FRDs)
 ---
 
 <!--
 Template: System Blueprint
-Version: 1.3
+Version: 1.4
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `c4-guide.md` — load it before authoring.
 

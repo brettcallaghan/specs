@@ -7,7 +7,7 @@ slug: skill-authoring-standards
 type: standards
 status: draft
 updated_at: 2026-07-31T00:00:00Z
-version: 0.2
+version: "0.2"
 related:
   - "template-authoring-standards"
   - "adr-013"
@@ -16,7 +16,7 @@ related:
 # Skill Authoring Standards
 
 These requirements govern every agent skill authored in this repository —
-the skills shipped in the `spec-driven-dev` plugin and the repo-local
+the skills shipped in the `sf` plugin and the repo-local
 skills under `.claude/skills/`. They apply to skill authors and to any
 agent modifying a skill on their behalf.
 

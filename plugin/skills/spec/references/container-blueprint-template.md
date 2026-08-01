@@ -6,19 +6,19 @@ slug: container-<container-name>
 type: container-blueprint
 status: draft
 updated_at: <YYYY-MM-DDTHH:MM:SSZ>
-parent_slug: system-<system-name>    # the system this container belongs to;
+system: system-<system-name>         # the system this container belongs to;
                                      # omit WHEN the container is standalone
                                      # (no documented system) — see below
 components: []                       # component blueprint slugs composed here
 modules: []                          # module blueprint slugs composed here
-provides: []                         # contract slugs this container provides
-consumes: []                         # contract slugs this container consumes
+contracts_provided: []               # contract slugs this container provides
+contracts_consumed: []               # contract slugs this container consumes
 related: []                          # related documents (ADRs, standards)
 ---
 
 <!--
 Template: Container Blueprint
-Version: 1.4
+Version: 1.5
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `c4-guide.md` — load it before authoring.
 
@@ -68,7 +68,7 @@ Contract visibility (see `c4-guide.md` for full rules)
 
 Standalone containers
   A container MAY be documented without a system blueprint: omit
-  parent_slug. Standalone containers are valid; the system level is
+  `system`. Standalone containers are valid; the system level is
   introduced when a second container needs shared context worth
   modeling (see `c4-guide.md`). WHEN there is no system blueprint, this
   document's Infrastructure and Deployment section is authoritative

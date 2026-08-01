@@ -7,6 +7,9 @@ type: component-blueprint
 status: draft
 updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 kind: <standard | pattern>           # see instructions below
+contracts_provided: []               # contract slugs, WHEN the interface
+                                     # is a standalone contract document
+contracts_consumed: []               # contract slugs this component depends on
 source_paths: []                     # repo-relative source roots
 test_paths: []                       # repo-relative test roots
 related: []                          # related documents (ADRs, standards)
@@ -14,7 +17,7 @@ related: []                          # related documents (ADRs, standards)
 
 <!--
 Template: Component Blueprint
-Version: 1.4
+Version: 1.5
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `c4-guide.md` — load it before authoring.
 

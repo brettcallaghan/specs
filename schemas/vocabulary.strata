@@ -1,0 +1,136 @@
+"""
+A cross-reference identifier for a specification document.
+
+Every relationship between documents is expressed as a slug rather than a
+path, so moving a file never breaks a reference. Slugs are kebab-case:
+lowercase alphanumeric words joined by single hyphens.
+"""
+alias Slug: String ~= /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+
+"""
+The classification of a specification document.
+
+A document's type selects the schema, slug pattern and required sections
+that govern it. This is the controlled vocabulary the spec-driven-dev
+profile registers; a repository whose documents declare a type outside
+this set is recorded as excluded with reason `unknown-type` rather than
+being checked against the wrong rules.
+"""
+enum DocumentType {
+  """An architecture decision record: one decision, its alternatives and its consequences."""
+  Adr: "adr"
+
+  """A feature requirements document: the user-facing need and its acceptance criteria."""
+  Frd: "frd"
+
+  """An interface specification shared across a boundary of independent change."""
+  Contract: "contract"
+
+  """Cross-cutting standards, policies, guidelines or constraints."""
+  Standards: "standards"
+
+  """A C4 system blueprint: the containers a system bundles and the contracts it provides."""
+  SystemBlueprint: "system-blueprint"
+
+  """A C4 container blueprint: one deployable artifact and the modules composed into it."""
+  ContainerBlueprint: "container-blueprint"
+
+  """A C4 module blueprint: a coherent unit of code with its own interface."""
+  ModuleBlueprint: "module-blueprint"
+
+  """A C4 component blueprint: a single component promoted to its own document."""
+  ComponentBlueprint: "component-blueprint"
+
+  """A transient change document describing how the system changes to deliver one feature."""
+  FeatureBlueprint: "feature-blueprint"
+
+  """An improvement proposal raised against a skill by a run that exercised it."""
+  Rfc: "rfc"
+
+  """A how-to document explaining a technique the other document types assume."""
+  Guide: "guide"
+}
+
+"""
+How badly a run was impeded by the skill an RFC critiques.
+
+An RFC carries the highest severity among its proposals, so that triage
+can rank a queue without opening every document.
+"""
+enum RfcSeverity {
+  """Forced an unscripted improvisation, or the skill as written produced a wrong result."""
+  Blocker: "blocker"
+
+  """The skill was silent on a decision that materially changed the outcome."""
+  Snag: "snag"
+
+  """It worked, but a change would make the next run clearer, faster, or safer."""
+  Polish: "polish"
+}
+
+"""
+The lifecycle state of a document.
+
+State documents — blueprints, standards and contracts, which describe
+what IS — use `active` and never `in-progress`. Transient change
+documents, which describe a change, use `in-progress` in its place: a
+change specification is implemented, not put into effect.
+"""
+enum Status {
+  """Under authorship; content may be incomplete."""
+  Draft: "draft"
+
+  """Complete and awaiting review."""
+  ReadyForReview: "ready-for-review"
+
+  """Reviewed and accepted; not yet in effect."""
+  Approved: "approved"
+
+  """Approved, and the change it specifies is being implemented."""
+  InProgress: "in-progress"
+
+  """In effect; the current source of truth."""
+  Active: "active"
+
+  """No longer in effect. A retired document names its replacement in `superseded_by`."""
+  Retired: "retired"
+}
+
+"""
+Whether an interface or module is published beyond the repository that
+declares it.
+
+Visibility governs the compatibility obligation, not the access
+modifier: a public surface owes adopters a versioning policy, while an
+internal one may change in lockstep with its only consumers.
+"""
+enum Visibility {
+  """Published for consumption outside this repository; bound by its versioning policy."""
+  Public: "public"
+
+  """Unpublished and in-repo; evolves in lockstep with its consumers."""
+  Internal: "internal"
+}
+
+"""
+Whether a blueprint documents one concrete element or a pattern that
+several elements follow.
+"""
+enum BlueprintKind {
+  """One concrete element, documented in its own right."""
+  Standard: "standard"
+
+  """A repeated shape that several elements instantiate."""
+  Pattern: "pattern"
+}
+
+"""
+The delivery unit a feature blueprint is groomed against.
+"""
+enum Delivery {
+  """The whole feature lands in one pull request."""
+  SinglePr: "single-pr"
+
+  """The feature lands across several stages, each boundary enumerated in Sequencing Constraints."""
+  Staged: "staged"
+}

@@ -40,3 +40,25 @@ jobs:
       # committing the result, so the diff stays visible in review.
       - name: Vendored shared references are current
         run: scripts/sync-shared-references.sh --check
+
+      - name: Install schema validation dependencies
+        run: python3 -m pip install --quiet jsonschema pyyaml
+
+      # Validates every document's frontmatter against the generated JSON
+      # Schema for its type, and specs.toml against the configuration
+      # schema. This is the interim stand-in for the Spec CLI: it checks
+      # the one rule class a stock JSON Schema validator can check, and
+      # none of the reference-integrity or required-section rules that
+      # need the real thing. It caught two documents writing an unquoted
+      # version that YAML reads as a float.
+      #
+      # Not gated here: that the generated artifacts under cli/ and
+      # plugin/skills/spec/references/generated/ are current with
+      # schemas/*.strata. That check is scripts/generate-schemas.sh
+      # --check, and it needs the strata compiler, which has no
+      # installable release binary yet — building it from source would
+      # add a Rust toolchain and several minutes to every run. Until then
+      # regeneration is a local step, and the drift it would catch shows
+      # up as an unexplained diff in review.
+      - name: Document frontmatter and configuration conform
+        run: scripts/validate-corpus.py

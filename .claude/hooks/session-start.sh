@@ -9,7 +9,19 @@
 #   2. Materialize the working-tree skills into .claude/skills/ so the
 #      session runs the plugin it is editing rather than a published copy.
 #
-# Idempotent and non-interactive. Safe to re-run.
+# Idempotent and non-interactive. Safe to re-run — and sometimes it must be
+# re-run by hand, because this hook is not always invoked:
+#
+#   Claude Code registers hooks from the PROJECT ROOT's .claude/settings.json
+#   only. A session that attaches this repo alongside another clones both as
+#   siblings under a shared parent, that parent becomes the project root, and
+#   it has no .claude/ — so this hook is never registered. Nothing here is
+#   broken when that happens, and merging to the default branch does not fix
+#   it. See docs/session-bootstrap.md; CLAUDE.md carries the manual fallback,
+#   and an environment setup script is the durable fix.
+#
+# To run it by hand:
+#   CLAUDE_PROJECT_DIR=/path/to/agent-plugins bash .claude/hooks/session-start.sh
 set -euo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
@@ -114,6 +126,18 @@ if command -v bd >/dev/null 2>&1; then
         git reset --soft "$_head_before" 2>/dev/null || true
         git restore --staged . 2>/dev/null || true
         log "unwound the commit bd init made (scaffolding is already in the repo)"
+      fi
+      # Unwinding the commit is not enough: `bd init` also REWRITES the
+      # committed .beads/config.yaml in the working tree. It reindents the
+      # file and adds a `sync.remote` pointing at the container-local git
+      # proxy (127.0.0.1:<ephemeral port>), which is exactly the misleading
+      # sync path that file's own trailing comment warns against — Dolt sync
+      # does not work in this project, and a remote that resolves only inside
+      # one dead container is worse than none. Observed 2026-08-01.
+      # The committed copy is authoritative; restore it.
+      if ! git diff --quiet -- .beads/config.yaml 2>/dev/null; then
+        git checkout -- .beads/config.yaml 2>/dev/null \
+          && log "restored .beads/config.yaml (bd init rewrote it and added a local-proxy sync remote)"
       fi
       # .beads/issues.jsonl is the durable export and the only thing version
       # control carries. Restore it into the fresh database when present.

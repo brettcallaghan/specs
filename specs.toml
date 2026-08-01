@@ -1,0 +1,9 @@
+[workspace]
+name = "agent-plugins"
+root = "docs"
+
+[profile]
+name = "spec-driven-dev"
+
+[conventions]
+line_width = 80
