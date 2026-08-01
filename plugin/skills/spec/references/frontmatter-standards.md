@@ -6,7 +6,7 @@ description: Required, relationship, and optional frontmatter properties for
 slug: frontmatter-standards
 type: standards
 status: active
-updated_at: 2026-07-30T00:00:00Z
+updated_at: 2026-08-01T00:00:00Z
 version: "0.1"
 related:
   - "template-authoring-standards"
@@ -28,6 +28,14 @@ related:
 Companion to `template-authoring-standards.md`, which owns document
 structure, slugs, instruction blocks, versioning, and content guidelines.
 Cross-document reference syntax is in `cross-document-references.md`.
+
+This document is the normative prose. The **per-type property tables**
+derived from it — which properties each document type carries, and
+which are required — are generated into `generated/frontmatter.md` from
+the schemas in `schemas/`, alongside the JSON Schema that validates
+them. WHEN this document and a generated table disagree, the schema is
+the one tooling enforces, and the disagreement is a defect in one of
+them to be resolved rather than a precedence rule to apply.
 
 ## Metadata (Frontmatter)
 
