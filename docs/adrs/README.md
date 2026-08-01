@@ -18,6 +18,7 @@ This directory contains Architecture Decision Records documenting significant de
 - [ADR-012: Wikilink and Anchor Reference Conventions](ADR-012-reference-conventions.md) — `[[slug]]` for documents, heading anchors for un-promoted components, backticks for code; replaces `@` and the `#` element convention
 - [ADR-014: Defer Gherkin as the Acceptance-Criteria Notation](ADR-014-gherkin-for-acceptance-criteria.md) — prose EARS criteria with AC identifiers stay; AC extraction is kept notation-agnostic so the choice stays reversible
 - [ADR-015: Go as the Implementation Language for the Spec Corpus CLI](ADR-015-go-for-the-spec-cli.md) — Go ties Rust on every discriminating measure and is the only candidate with an official in-process Gherkin parser
+- [ADR-016: Strata as the Single Source for Schemas and Generated Types](ADR-016-strata-for-schema-and-model-generation.md) — one definition emits JSON Schema, Go structs and Markdown; TypeSpec and Smithy are API IDLs that produce neither plain Go structs nor Markdown
 
 ## About ADRs
 
