@@ -45,12 +45,17 @@ test suite. The gates are the repo's own consistency checks.
 - **Format:** *(none — markdown and shell only)*
 - **Lint:** `scripts/check-skills.sh`
 - **Build:** *(none)*
-- **Test (full suite):** `scripts/check-skills.sh --strict && scripts/sync-shared-references.sh --check && scripts/dogfood-install.sh --check`
+- **Test (full suite):** `scripts/check-skills.sh --strict && scripts/sync-shared-references.sh --check && scripts/dogfood-install.sh --check && scripts/sync-strata-docs.sh --check`
 
 ### Targeted tests by surface
 
 - `plugin/skills/*/SKILL.md` → `scripts/check-skills.sh`
 - `plugin/skills/*/references/**` → `scripts/sync-shared-references.sh --check && scripts/check-skills.sh`
+- `.claude/skills/*/SKILL.md` → `scripts/check-skills.sh` (project-native
+  skills — `triage-rfc`, `strata` — are checked alongside the plugin's)
+- `.claude/skills/strata/references/**` → `scripts/sync-strata-docs.sh --check`.
+  These are generated verbatim from `strata-lang/strata`; never hand-edit
+  them. `--check` reports SKIP (exit 0) when no strata checkout is present.
 - `plugin/skills/groom-beads/scripts/**` → `python3 plugin/skills/groom-beads/scripts/validate_beads.py <fixture>.jsonl`
 - `plugin/skills/bead-bonanza/scripts/**` → run the script's own guards (see its header)
 - `scripts/**` → `bash -n <file>` then run it in its `--check` mode
@@ -72,6 +77,42 @@ test suite. The gates are the repo's own consistency checks.
 - The Dolt database (`.beads/embeddeddolt`) is gitignored, so **no clone ever
   has one**. Every fresh container must run `bd init` + `bd import` before any
   `bd` command works; the hook does this.
+- `strata`: not preinstalled either. The hook builds it from source — see
+  "strata CLI" below.
+
+### strata CLI
+
+`.claude/hooks/session-start.sh` provisions the `strata` compiler because the
+`strata` skill's entire method is compiling what it writes. Notes measured in
+this environment:
+
+- **Source, not a release.** The published binaries lag `main`, and the point
+  is the latest code. `https://github.com/strata-lang/strata.git` clones fine
+  through the egress proxy (unauthenticated, over HTTPS).
+- **Measured build cost:** 1m50s for `cargo build --release -p strata-cli` on
+  a cold container, and ~470 MB in `target/`. The hook stamps the built commit
+  in `~/.cache/strata-cli/built-commit` and skips the build when it matches, so
+  only the first session of a container pays. The SessionStart hook's `timeout`
+  in `.claude/settings.json` is raised to 900s to cover it — at the 60s default
+  the build is killed partway.
+- **It never touches a checkout that has work in it.** An attached strata clone
+  is fast-forwarded only when it is on the default branch *and* clean;
+  otherwise it is built exactly as it sits.
+- **Escape hatches:** `STRATA_CLI_SKIP=1` skips the whole step,
+  `STRATA_SRC_DIR` points it at a specific checkout. Build output lands in
+  `~/.cache/strata-cli/build.log`.
+- **Prebuilt binaries are not an option here, so don't "optimize" to them.**
+  Measured 2026-08-01: `api.github.com` answers **200** (so a release *lookup*
+  succeeds and lists the Linux asset), but the asset download itself returns
+  **404** through the proxy, at both the `/releases/latest/download/` redirect
+  and the tagged URL. Release metadata being reachable is not the same as
+  release bytes being reachable — that is the trap. This also refines the 403
+  entry above: the bd installer's prebuilt lookup fails at the download, not
+  at the API.
+- **The clone is per-container, not shared.** `~/.cache/strata-src` and
+  `~/.cache/strata-cli` live on the session's ephemeral disk, so a new
+  container pays the full ~1m45s build once. The stamp only saves repeat
+  SessionStart fires within one container (resume, `/clear`), which cost 0.4s.
 - `bd init` **git-commits its own scaffolding**. The hook records HEAD and
   unwinds that commit — a session hook must not leave commits nobody asked for.
 - `bd` has been observed once writing its global config to a **literal `./~/`**
