@@ -45,7 +45,17 @@ def is_generated(p):
     # .claude/skills/ holds both hand-authored project skills and copies
     # materialized from plugin/skills/ by dogfood-install.sh. Check sources
     # only; a generated copy is a symptom, and its source is the real target.
-    return os.path.exists(os.path.join(os.path.dirname(p), '.dogfood-generated'))
+    if os.path.exists(os.path.join(os.path.dirname(p), '.dogfood-generated')):
+        return True
+    # Vendored references (sync-shared-references.sh, sync-strata-docs.sh) all
+    # open with this header. Checking the header rather than a path pattern
+    # keeps this correct as vendoring destinations grow — and a file whose
+    # source of truth is another repo cannot be fixed by editing it here.
+    try:
+        with open(p) as f:
+            return f.readline().startswith('<!-- GENERATED COPY')
+    except (OSError, UnicodeDecodeError):
+        return False
 
 SKILLS = [p for p in sorted(glob.glob('plugin/skills/*/SKILL.md'))
                   + sorted(glob.glob('.claude/skills/*/SKILL.md'))
@@ -109,14 +119,19 @@ for p in SKILLS:
 # ---- 2. bundled paths resolve from the file that cites them ----------------
 IGNORE = {'AGENTS.md','CLAUDE.md','CONTRIBUTING.md','SKILL.md','index.md',
           'decisions.md','dispatch.md','.retro.md','.claude/settings.local.json',
-          'plugin/.claude-plugin/plugin.json','.claude-plugin/marketplace.json'}
+          'plugin/.claude-plugin/plugin.json','.claude-plugin/marketplace.json',
+          # Filenames a skill *describes* rather than ships: these name files
+          # in the user's project, or upstream in strata-lang/strata, so there
+          # is nothing here to resolve.
+          'strata.config.json','strata-config.json','strata.config.schema.json',
+          'options.strata'}
 TEACHING = {'template-authoring-standards.md','cross-document-references.md'}
 for p in glob.glob('plugin/skills/**/*.md', recursive=True) + glob.glob('.claude/skills/**/*.md', recursive=True):
     if '/references/shared/' in p or is_generated(p): continue
     d = os.path.dirname(p)
     for m in re.finditer(r'`((?:\.\./)*[A-Za-z0-9_./-]+\.(?:md|json|sh|py))`', open(p).read()):
         t = m.group(1)
-        if t in IGNORE or t.startswith(('http','docs/','rfcs/','plans/','word/','ooxml/','scripts/')): continue
+        if t in IGNORE or t.startswith(('http','docs/','rfcs/','plans/','word/','ooxml/','scripts/','.claude/')): continue
         if os.path.basename(p) in TEACHING and t == 'references/c4-guide.md': continue
         if not os.path.exists(os.path.join(d, t)):
             err(p, f"backticked path does not resolve from this file: {t}")

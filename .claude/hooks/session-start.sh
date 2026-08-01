@@ -139,4 +139,128 @@ if [ -x scripts/dogfood-install.sh ]; then
   scripts/dogfood-install.sh 2>&1 | sed 's/^/[session-start]   /'
 fi
 
+# --- 4. strata CLI -----------------------------------------------------------
+# The `strata` skill teaches an agent to write .strata schemas, and its entire
+# method is `strata build --target ast` — the compiler is the only reliable
+# validator of the language. Without the binary that skill degrades to
+# guessing, so it gets provisioned here for the same reason bd does.
+#
+# Built from the strata repo at HEAD rather than a tagged release: "latest
+# code" is what this is for, and the published binaries lag main.
+#
+# Runs last because it is the long pole (~2 min cold, no-op warm). If the hook
+# is ever killed on a timeout, everything above it has already landed.
+if [ "${STRATA_CLI_SKIP:-}" != "1" ]; then
+  STRATA_CACHE="$HOME/.cache/strata-cli"
+  STRATA_CLONE="$HOME/.cache/strata-src"
+  STRATA_BIN=/usr/local/bin/strata
+  STRATA_STAMP="$STRATA_CACHE/built-commit"
+  mkdir -p "$STRATA_CACHE"
+
+  # cargo lives in ~/.cargo/bin, which a hook subprocess may not have on PATH.
+  if [ -d "$HOME/.cargo/bin" ]; then
+    export PATH="$HOME/.cargo/bin:$PATH"
+  fi
+
+  # Prefer a checkout the session already has: when strata is attached as a
+  # source, that clone is the one the user is actually working in, and
+  # building it means the CLI matches the code in front of them. The private
+  # clone is the fallback for sessions where strata is not attached.
+  strata_src=""
+  for candidate in "${STRATA_SRC_DIR:-}" "$PROJECT_DIR/../strata" "$HOME/strata" \
+                   "$STRATA_CLONE"; do
+    [ -n "$candidate" ] || continue
+    [ -f "$candidate/crates/strata-cli/Cargo.toml" ] || continue
+    strata_src="$(cd "$candidate" && pwd)"
+    break
+  done
+
+  if [ -z "$strata_src" ]; then
+    log "cloning strata-lang/strata into $STRATA_CLONE"
+    # Blobless rather than shallow: `scripts/sync-strata-docs.sh` stamps each
+    # vendored doc with the commit that last touched it, which a --depth 1
+    # clone cannot answer. Falls back to a full clone if the git proxy in this
+    # environment refuses partial-clone filters.
+    if git clone --filter=blob:none --quiet https://github.com/strata-lang/strata.git \
+         "$STRATA_CLONE" >>"$STRATA_CACHE/build.log" 2>&1 \
+       || git clone --quiet https://github.com/strata-lang/strata.git \
+            "$STRATA_CLONE" >>"$STRATA_CACHE/build.log" 2>&1; then
+      strata_src="$STRATA_CLONE"
+    else
+      log "WARNING: could not clone strata (see $STRATA_CACHE/build.log) — CLI unavailable"
+    fi
+  fi
+
+  if [ -n "$strata_src" ]; then
+    # Fast-forward only, and only when there is nothing to lose. A session may
+    # be mid-change in an attached strata checkout — this hook runs in that
+    # repo too — and a hook that resets or rebases someone's branch is data
+    # loss, not convenience. Anything other than a clean default branch gets
+    # built exactly as it sits.
+    if ! git -C "$strata_src" rev-parse --git-dir >/dev/null 2>&1; then
+      # STRATA_SRC_DIR pointed at a source tree with no git in it. Nothing to
+      # update and nothing to stamp, so it rebuilds every session.
+      log "strata: $strata_src is not a git checkout — building it as-is"
+    else
+      # `|| true` is load-bearing: this script runs under `set -o pipefail`,
+      # and a clone with no origin/HEAD ref (git does not always create one)
+      # makes symbolic-ref fail, which would take the whole hook down
+      # mid-pipeline.
+      _default="$(git -C "$strata_src" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||' || true)"
+      _default="${_default:-main}"
+      _branch="$(git -C "$strata_src" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '')"
+      if [ "$_branch" != "$_default" ]; then
+        log "strata: checkout is on '$_branch', not '$_default' — building it as-is"
+      elif [ -n "$(git -C "$strata_src" status --porcelain 2>/dev/null)" ]; then
+        log "strata: checkout has uncommitted changes — building it as-is"
+      else
+        git -C "$strata_src" fetch --quiet origin "$_default" >>"$STRATA_CACHE/build.log" 2>&1 \
+          && git -C "$strata_src" merge --ff-only --quiet "origin/$_default" >>"$STRATA_CACHE/build.log" 2>&1 \
+          || log "strata: fetch/fast-forward failed — building the checkout as-is"
+      fi
+    fi
+
+    # An empty _head means the source is not a git checkout — STRATA_SRC_DIR
+    # pointing at an extracted tarball or a vendored tree does that. Such a
+    # tree gets rebuilt every session: there is no commit to compare, and
+    # stamping a placeholder would match itself forever and pin the binary to
+    # whatever happened to be built first.
+    _head="$(git -C "$strata_src" rev-parse HEAD 2>/dev/null || true)"
+    if [ -n "$_head" ] && [ -x "$STRATA_BIN" ] \
+       && [ "$(cat "$STRATA_STAMP" 2>/dev/null)" = "$_head" ]; then
+      log "strata CLI current: $("$STRATA_BIN" --version 2>/dev/null || echo installed) (${_head:0:8})"
+    else
+      log "building strata CLI from $strata_src${_head:+ @ ${_head:0:8}} (~2 min cold${_head:+, cached after})"
+      # -p strata-cli, not the workspace: this needs the binary, not the WASM
+      # crate, and skipping it saves both time and disk.
+      if ! command -v cargo >/dev/null 2>&1; then
+        log "WARNING: cargo not on PATH — cannot build the strata CLI"
+      elif cargo build --release -p strata-cli \
+           --manifest-path "$strata_src/Cargo.toml" >>"$STRATA_CACHE/build.log" 2>&1; then
+        # Install a copy rather than a symlink into target/: `cargo clean` in
+        # the strata checkout is a routine thing to do, and it would leave a
+        # dangling /usr/local/bin/strata that reads as a broken install.
+        if install -m 0755 "$strata_src/target/release/strata" "$STRATA_BIN" 2>>"$STRATA_CACHE/build.log"; then
+          # Only stamp a real commit — see the note above. A stale stamp is
+          # worse than none: it silently pins the binary.
+          if [ -n "$_head" ]; then printf '%s' "$_head" > "$STRATA_STAMP"; else rm -f "$STRATA_STAMP"; fi
+          log "strata CLI ready: $("$STRATA_BIN" --version 2>/dev/null || echo installed)"
+        else
+          log "WARNING: could not install to $STRATA_BIN — see $STRATA_CACHE/build.log"
+        fi
+      else
+        log "WARNING: strata build failed — see $STRATA_CACHE/build.log"
+      fi
+    fi
+
+    # The skill's references are vendored copies of strata's own docs. Report
+    # drift; never write, because a hook that edits tracked files turns every
+    # session start into an unexplained diff.
+    if [ -x scripts/sync-strata-docs.sh ]; then
+      STRATA_SRC_DIR="$strata_src" scripts/sync-strata-docs.sh --check >/dev/null 2>&1 \
+        || log "note: vendored strata docs are behind — run scripts/sync-strata-docs.sh"
+    fi
+  fi
+fi
+
 log "ready."
