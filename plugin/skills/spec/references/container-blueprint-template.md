@@ -18,7 +18,7 @@ related: []                          # related documents (ADRs, standards)
 
 <!--
 Template: Container Blueprint
-Version: 1.3
+Version: 1.4
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `c4-guide.md` — load it before authoring.
 
@@ -320,7 +320,7 @@ this container's diagrams — see `c4-guide.md`.
 
 This container SHALL comply with:
 
-- @<standard-slug> — <one-line scope>.
+- [[<standard-slug>]] — <one-line scope>.
 
 ## Change Guidance
 

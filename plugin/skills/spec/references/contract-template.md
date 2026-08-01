@@ -16,7 +16,7 @@ related: []                          # related documents (ADRs, standards)
 
 <!--
 Template: Contract
-Version: 1.2
+Version: 1.3
 Source: Architecture documentation framework. C4 mapping rules and
   contract visibility tiers are defined in `c4-guide.md`.
 
@@ -105,7 +105,7 @@ topic, published view, ...) and link the provider's blueprint.
 -->
 
 <What this interface vends and for whom.> Provided by
-@<provider-slug>. Visibility: <public | internal>.
+[[<provider-slug>]]. Visibility: <public | internal>.
 
 ## Specification
 
@@ -199,5 +199,5 @@ status becomes active.
 ## References
 
 - `c4-guide.md` — C4 mapping rules and contract visibility tiers
-- @<provider-slug> — provider's blueprint
+- [[<provider-slug>]] — provider's blueprint
 - <Additional references>

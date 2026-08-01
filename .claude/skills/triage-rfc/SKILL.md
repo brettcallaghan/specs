@@ -7,7 +7,7 @@ description: Triage improvement RFCs received from projects using the
   adopted changes after human approval. Use when asked to triage the
   RFC inbox, process rfcs/inbox/, review a received RFC, or check on
   deferred RFC themes.
-version: "1.2"
+version: "1.3"
 ---
 
 # RFC Triage
@@ -49,7 +49,8 @@ Triage progress:
 - [ ] Retro notes appended to the log and deleted
 - [ ] 1. Provenance checked against current versions (per RFC)
 - [ ] 2. Deduped against resolved RFCs and rfc-triage beads
-- [ ] 3. Every proposal classified (adopt-now / defer / reject)
+- [ ] 3. Every proposal classified (adopt-now / defer / reject /
+      already-implemented)
 - [ ] 4. Recommendation table presented — STOPPED for human approval
 - [ ] 5. Approved items implemented, verified, versions bumped
 - [ ] 6. Retro log appended
@@ -70,6 +71,14 @@ the note. Then, per RFC, in received order:
    addressed in <file> v<X.Y>" without further debate. An RFC missing
    provenance versions is still triaged, but say so in the
    Resolution; the citation burden was the author's.
+
+   WHEN the RFC's `origin` is `self` AND the model triaging it is the
+   model named in its `model` field, the Resolution SHALL state that
+   the RFC was authored and triaged by the same agent, and name any
+   proposal that ratifies a decision its own author made. This does
+   not disqualify the proposal — self-retro is how this repository
+   improves — but an approval recorded without the disclosure reads as
+   independent corroboration when there was none.
 2. **Dedupe.** Search this repo's `rfcs/` for prior proposals on the
    same theme, and the beads:
 
@@ -108,6 +117,13 @@ the note. Then, per RFC, in received order:
      evidence should not drive it alone.
    - **reject** — bar not met, conflicts with design principles,
      already addressed, or fixes carelessness rather than guidance.
+   - **already-implemented** — the proposal is sound and its change is
+     already present in the tree, landed by earlier work rather than by
+     this triage. Distinct from `reject — already addressed`, which is
+     for a proposal whose premise no longer holds: this one was right
+     and nothing about it is being turned down. Record it in the
+     Resolution as "adopted — already implemented", name where the
+     change lives, and bump nothing.
 4. **Present the recommendation and STOP for approval.** One table:
    proposal, classification, one-line rationale, files touched.
    Implement nothing before the human approves; the human may
@@ -139,11 +155,38 @@ the note. Then, per RFC, in received order:
    Resolution section, or reading an absent human as consent — lose
    work, falsify the record, and defeat the gate respectively.
 5. **Implement** the approved adopt-now items:
+   - **Sequence before you edit.** Count the approved proposals and the
+     files they touch. WHEN more than one approved proposal changes the
+     same file, or more than about five are approved in total, do not
+     implement inline: file one bead per approved proposal (to the same
+     bar as a deferral bead, below) and run `groom-beads` over them to
+     wire the dependency graph. Two proposals editing one file SHALL be
+     serialized by a real edge; the proposal that owns that file's
+     version bump SHALL be last in its chain. Implement in the
+     resulting wave order.
+
+     The collision key is the FILE, not the RFC — proposals from
+     different RFCs routinely land in the same file, and two beads with
+     no dependency between them are still a collision when they edit
+     the same lines.
+
+     WHERE the approved set is small and touches disjoint files,
+     implement inline and say so; grooming a two-file change is
+     overhead.
+
+     `bead-bonanza` MAY then execute the graph when the queue is large
+     enough to warrant orchestration, but this step does not require
+     it — the sequencing is the point, not the dispatch.
    - Apply the changes; keep every touched file within its own
      conventions (80-column lines, EARS for normative statements).
    - Bump the version of every changed template (instruction-block
      `Version:`), skill (frontmatter `version`), and standard
      (frontmatter `version`) per [[template-authoring-standards]].
+     **Bump each file exactly once for the whole triage, no matter how
+     many proposals changed it** — the version announces the release,
+     not the proposal count. WHEN several proposals touch one file, the
+     bump belongs to whichever lands last; verify the bump after the
+     final change to that file, never before.
    - File one bead per approved deferral **that meets the Definition of
      Ready**. The bar is the spec-owned
      [[work-order-definition-of-ready]] — do not restate or fork it
@@ -187,13 +230,32 @@ the note. Then, per RFC, in received order:
      `rfcs/rfc-<nnnn>-<short-description>.md` using this repo's next
      free number, update its slug to match, and set status `retired`
      (the Resolution is the record; deferred work lives in beads).
-6. **Log.** Append one line per ingested item to `rfcs/retro-log.md`:
-   date, origin project, phase retroed, item (RFC number or "retro
-   note"), outcome (counts adopted/deferred/rejected, or "null
-   retro").
-7. **Publish.** WHEN any skill, template, or standard changed, bump
-   the plugin version in `plugin/.claude-plugin/plugin.json` (MINOR
-   for normative changes). Distribution is plugin-only: installs pick
+6. **Log.** Append one row per ingested item to `rfcs/retro-log.md`.
+   WHEN the file does not exist, create it with this header and no
+   other content; do not restyle an existing log to match:
+
+   ```markdown
+   # Retro Log
+
+   | Date | Origin | Retroed | Item | Outcome |
+   |------|--------|---------|------|---------|
+   ```
+
+   One row per item, newest at the bottom: date (`YYYY-MM-DD`), origin
+   project (`self` for this repo), the skill or phase retroed, the item
+   (`RFC <nnnn>` or `retro note`), and the outcome as per-proposal
+   counts (`N adopted, N deferred, N rejected`) or `null retro`. Counts
+   are per proposal, never per RFC. Any commentary goes below the table
+   under `## Run notes`, never inside a row.
+7. **Publish.** WHEN any skill, template, or standard **that ships
+   inside the plugin** changed, bump the plugin version in
+   `plugin/.claude-plugin/plugin.json` (MINOR for normative changes).
+   A skill ships in the plugin IFF it has a source directory under
+   `plugin/skills/`; a tracked skill living only under
+   `.claude/skills/` (such as `triage-rfc` itself) is repo-local, and
+   changing it does NOT on its own justify a bump, because installs
+   never receive it. WHEN a triage changed only repo-local skills, say
+   so and skip the bump. Distribution is plugin-only: installs pick
    up the change on plugin update once the bump lands on the
    marketplace (repo-root `.claude-plugin/marketplace.json`); a
    session run with `claude --plugin-dir ./plugin` sees it after
@@ -210,3 +272,4 @@ the note. Then, per RFC, in received order:
 | Deferring without a theme label | Recurrence across projects becomes uncountable — the accumulation model stops working |
 | Forgetting version bumps on changed files | Future RFCs cite versions; stale versions break the "already fixed?" check |
 | Editing a received RFC's Evidence or Proposals | The RFC is the reporter's testimony; triage writes only the Resolution |
+| Adopting a self-authored proposal without recording that it was self-authored | The Resolution is the durable record; an undisclosed self-adoption is indistinguishable later from an independently reviewed one |

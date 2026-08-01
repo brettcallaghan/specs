@@ -22,7 +22,7 @@ version: "0.1"                       # required WHEN visibility: public
 
 <!--
 Template: Module Blueprint
-Version: 0.5
+Version: 0.6
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `c4-guide.md` — load it before authoring.
 
@@ -314,7 +314,7 @@ see `c4-guide.md`.
 
 This module SHALL comply with:
 
-- @<standard-slug> — <one-line scope>.
+- [[<standard-slug>]] — <one-line scope>.
 
 ## Change Guidance
 

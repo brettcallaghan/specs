@@ -12,7 +12,7 @@ description: Spec-first development using this framework's specification
   system, container, component, or interface. Covers choosing the right
   document type and authoring it from the framework templates using EARS
   syntax and the C4 model.
-version: "1.5"
+version: "1.6"
 ---
 
 # Spec-First Development
@@ -188,9 +188,11 @@ specs.
 1. **Pick the template** from `references/` (table below) and copy it as
    the starting point for the new document. **Write it under the
    project's spec root** — `docs/` unless the project's `AGENTS.md` or
-   `CLAUDE.md` names another — in a subdirectory for its type
-   (`docs/adrs/`, `docs/frds/`, `docs/standards/`, `docs/blueprints/`,
-   …). WHEN the
+   `CLAUDE.md` names another — in a subdirectory named for its type:
+   `docs/adrs/`, `docs/frds/`, `docs/standards/`, `docs/contracts/`.
+   The exception is the four architecture blueprint types (system,
+   container, component, module) plus feature blueprints, which share
+   `docs/blueprints/` because they are read together. WHEN the
    project has an established location for that type, follow it; the
    frontmatter index does not depend on location, but humans do.
 2. **Follow the embedded instructions.** Each template carries its own

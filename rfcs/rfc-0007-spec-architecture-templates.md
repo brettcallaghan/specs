@@ -5,9 +5,9 @@ description: The container, module and contract templates instruct
   authors to use @ notation that ADR-012 retired and a standard
   prohibits; the recommended mermaid parse-check fails without an
   undocumented DOM
-slug: rfc-self-spec-architecture-templates
+slug: rfc-0007
 type: rfc
-status: ready-for-review
+status: retired
 updated_at: 2026-07-31T00:00:00Z
 origin: self
 skill: spec
@@ -322,3 +322,66 @@ first attempt; and a document type introduced after P3 resolves its
 location from a rule rather than from an enumeration that has to grow.
 
 ## Resolution
+
+**Triaged 2026-08-01.** 3 proposals: 3 adopted, 2 of them with
+refinement.
+
+| Proposal | Outcome |
+|----------|---------|
+| P1 — replace `@` notation in the architecture templates | **adopted with refinement.** The refinement is scope. This proposal asked triage to sweep rather than trust its list, and the sweep earned its keep: two occurrences were not cited — `component-blueprint-template.md:193` and `system-blueprint-template.md:219`. Six substitutions across five templates, not four across three. `grep -rn '@<' plugin/skills/` now returns nothing. |
+| P2 — state the DOM requirement in the parse-check | **adopted with refinement.** The proposed replacement text named `window` and `document`; the finding's own evidence lists six globals — `window`, `document`, `navigator`, `Element`, `HTMLElement`, `SVGElement`. Adopting the text verbatim would have left the next agent failing on the third. All six are named. The bullet also now states that the `DOMPurify.addHook` failure is environmental and is NOT the mislocated syntax error described one line above it, which was the confusion the finding actually documented. |
+| P3 — state whether the subdirectory is per type or per family | **adopted as proposed.** Step 1 now states the rule instead of extending the list: a subdirectory named for the document's type, excepting the four architecture blueprint types plus feature blueprints, which share `docs/blueprints/` because they are read together. `docs/contracts/` is named. |
+
+**Provenance check.** All cited versions matched current at triage time
+(`container-blueprint-template.md` 1.3, `module-blueprint-template.md`
+0.5, `contract-template.md` 1.2, `spec` SKILL.md 1.5,
+`cross-document-references.md` 0.1), and every quoted line was verified
+present at its cited location — including the SHALL NOT at
+`cross-document-references.md:47-49`. Nothing was already-addressed.
+
+**Dedupe.** P1 matches `theme:reference-syntax` and RFC 0006 P1 — the
+same defect class (a template prescribing what a standard prohibits),
+prior ADOPTED. That adoption covered `adr-template.md`'s slug only, so
+it does not cover this evidence; this is a genuine second occurrence of
+the class in a different set of files. P3 matches
+`theme:document-location`, bead `agent-plugins-8bx` (closed, ADOPTED)
+and RFC 0006 P5. Both prior changes edited this same enumeration
+without stating the rule — verified still unstated before this triage —
+so neither addresses it. No proposal matched a prior rejection.
+
+**Also adopted, outside this RFC's proposals.** `c4-guide.md` and
+`ears-guide.md` carried no `version` property. This RFC recorded it in
+Considered and Not Proposed as the second occurrence (RFC 0001 recorded
+the first, against `ears-guide.md`) and asked for a sweep rather than
+two one-line fixes. The sweep found exactly those two files; both now
+carry `version: "0.1"`. This was triage's addition, approved
+separately by the human — it is not this RFC's testimony.
+
+**Self-authorship, disclosed.** This RFC carries `origin: self` and
+`model: claude-opus-5`, and was triaged by the same model. No proposal
+in it ratifies a decision its own author made; the disclosure is
+recorded because the rule adopted as RFC 0008 P5 requires it whenever
+the condition holds.
+
+**Files changed:**
+- `plugin/skills/spec/references/container-blueprint-template.md` — P1;
+  `Version: 1.3` → `1.4`
+- `plugin/skills/spec/references/module-blueprint-template.md` — P1;
+  `Version: 0.5` → `0.6`
+- `plugin/skills/spec/references/component-blueprint-template.md` — P1
+  (uncited, found by the sweep); `Version: 1.3` → `1.4`
+- `plugin/skills/spec/references/system-blueprint-template.md` — P1
+  (uncited, found by the sweep); `Version: 1.2` → `1.3`
+- `plugin/skills/spec/references/contract-template.md` — P1, both
+  occurrences; `Version: 1.2` → `1.3` (one bump, two changes)
+- `plugin/skills/spec/references/c4-guide.md` — P2 and the version
+  sweep; gains `version: "0.1"`
+- `plugin/skills/spec/references/ears-guide.md` — version sweep only;
+  gains `version: "0.1"`
+- `plugin/skills/spec/SKILL.md` — P3; `version: "1.5"` → `"1.6"`
+- `plugin/.claude-plugin/plugin.json` — `0.11.0` → `0.12.0` (MINOR),
+  shared with RFC 0008
+
+**Verification.** `scripts/check-skills.sh` reports 0 errors (one
+pre-existing warning on `bead-bonanza/SKILL.md` body length, untouched
+by this triage). No line added by this triage exceeds 80 columns.
