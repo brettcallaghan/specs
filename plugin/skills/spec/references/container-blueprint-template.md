@@ -11,14 +11,14 @@ system: system-<system-name>         # the system this container belongs to;
                                      # (no documented system) — see below
 components: []                       # component blueprint slugs composed here
 modules: []                          # module blueprint slugs composed here
-provides: []                         # contract slugs this container provides
-consumes: []                         # contract slugs this container consumes
+contracts_provided: []               # contract slugs this container provides
+contracts_consumed: []               # contract slugs this container consumes
 related: []                          # related documents (ADRs, standards)
 ---
 
 <!--
 Template: Container Blueprint
-Version: 1.4
+Version: 1.5
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `c4-guide.md` — load it before authoring.
 

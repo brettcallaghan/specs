@@ -6,10 +6,10 @@ description: The plugin that supplies this framework's document
 slug: module-spec-profile
 type: module-blueprint
 status: approved
-updated_at: 2026-07-31T00:00:00Z
+updated_at: 2026-08-01T00:00:00Z
 kind: standard
 visibility: internal
-provides: []
+contracts_provided: []
 components: []
 source_paths:
   - "cli/profile"

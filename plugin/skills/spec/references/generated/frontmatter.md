@@ -4,6 +4,7 @@
 
 - [ElementRecord](#elementrecord)
 - [DocumentFrontmatter](#documentfrontmatter)
+- [ContractEdges](#contractedges)
 - [Adr](#adr)
 - [Frd](#frd)
 - [Contract](#contract)
@@ -61,6 +62,31 @@ the extension differs.
 | tags | Array<String>? | Free-form tags for filtering and search. |
 | superseded_by | [Slug](vocabulary.md#slug)? | The document that replaces this one.<br><br>Required in practice on any document at `status: retired` — a retired document with no resolvable successor is a dead end for anyone who follows a reference to it. |
 | related | Array<[Slug](vocabulary.md#slug)>? | Peer documents relevant to this one without a stronger relationship: the ADRs behind it, the standards it observes.<br><br>Every relationship property in this vocabulary names documents by slug, and every named slug must resolve to a corpus member. |
+
+
+## ContractEdges
+
+The contract edges a C4 element owns: the interfaces it publishes, and
+the interfaces it depends on.
+
+Declared once and inherited by all four blueprint types rather than
+repeated on each, because the same fact recorded at four altitudes
+under three different spellings is how a vocabulary drifts. An element
+provides a contract at whichever altitude it happens to sit; the
+property is named for the concept, not for the level.
+
+These are not the neighbour edges ADR-009 reserves to a parent. A
+neighbour relationship varies by host — a shared module has different
+collaborators in every container that composes it, which is why no
+single outward list is correct and the parent owns it. A contract is a
+named document with one identity, and the fact that an element
+publishes or depends on it holds wherever that element is composed. So
+this edge belongs to the element, and ADR-009's rule is untouched.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| contracts_provided | Array<[Slug](vocabulary.md#slug)>? | Contract slugs this element provides.<br><br>The interface is this element's own, so it is recorded here whatever the element's altitude — a system's public API, a container's service surface, a module's package API, a component's interface where it warrants a contract document of its own. |
+| contracts_consumed | Array<[Slug](vocabulary.md#slug)>? | Contract slugs this element depends on.<br><br>Named contracts only. An element's untyped collaborators are not listed here — those are neighbour edges, and per ADR-009 they belong to the parent that composes the elements, or to the code. |
 
 
 ## Adr
@@ -122,13 +148,12 @@ across documents or components rather than to one of them.
 A C4 system blueprint: the containers a system bundles, the public
 contracts it provides, and the systems it depends on.
 
-**Inherits from:** [DocumentFrontmatter](#documentfrontmatter)
+**Inherits from:** [DocumentFrontmatter](#documentfrontmatter), [ContractEdges](#contractedges)
 
 | Property | Type | Documentation |
 |----------|------|---------------|
 | containers | Array<[Slug](vocabulary.md#slug)>? | Container blueprint slugs composed into this system. |
-| contracts | Array<[Slug](vocabulary.md#slug)>? | Public contract slugs this system provides. |
-| depends_on | Array<[Slug](vocabulary.md#slug)>? | Systems or contracts this system consumes. |
+| depends_on | Array<[Slug](vocabulary.md#slug)>? | Other systems this system depends on.<br><br>Systems only. A contract this system consumes is named in `contracts_consumed`, so the same dependency has exactly one home. |
 
 
 ## ContainerBlueprint
@@ -136,15 +161,13 @@ contracts it provides, and the systems it depends on.
 A C4 container blueprint: one independently deployable or runnable
 artifact, and the modules and components composed into it.
 
-**Inherits from:** [DocumentFrontmatter](#documentfrontmatter)
+**Inherits from:** [DocumentFrontmatter](#documentfrontmatter), [ContractEdges](#contractedges)
 
 | Property | Type | Documentation |
 |----------|------|---------------|
 | system | [Slug](vocabulary.md#slug)? | The system this container belongs to.<br><br>Omitted when the container is standalone — that is, when no system blueprint documents it. Absence records a documented fact rather than an oversight. |
 | components | Array<[Slug](vocabulary.md#slug)>? | Component blueprint slugs composed into this container. |
 | modules | Array<[Slug](vocabulary.md#slug)>? | Module blueprint slugs composed into this container. |
-| provides | Array<[Slug](vocabulary.md#slug)>? | Contract slugs this container provides. |
-| consumes | Array<[Slug](vocabulary.md#slug)>? | Contract slugs this container consumes. |
 
 
 ## ModuleBlueprint
@@ -152,13 +175,12 @@ artifact, and the modules and components composed into it.
 A C4 module blueprint: a coherent unit of code with an interface of its
 own, composed into a container.
 
-**Inherits from:** [DocumentFrontmatter](#documentfrontmatter)
+**Inherits from:** [DocumentFrontmatter](#documentfrontmatter), [ContractEdges](#contractedges)
 
 | Property | Type | Documentation |
 |----------|------|---------------|
 | kind | [BlueprintKind](vocabulary.md#blueprintkind) | Whether this blueprint documents one concrete module or a pattern several modules follow. |
 | visibility | [Visibility](vocabulary.md#visibility) | Whether the module is published to a registry, and therefore whether its package API is bound by a compatibility policy. |
-| provides | Array<[Slug](vocabulary.md#slug)>? | Contract slugs this module provides, where its interface warrants a standalone contract document. |
 | components | Array<[Slug](vocabulary.md#slug)>? | Component or module blueprint slugs this module composes, where those children have been promoted to documents of their own.<br><br>A child is in exactly one state: promoted and linked here, or un-promoted and declared in a record block in the body. Never both. |
 | source_paths | Array<String>? | Repository-relative source roots, so a reader can find the code. |
 | test_paths | Array<String>? | Repository-relative test roots. |
@@ -171,7 +193,7 @@ A C4 component blueprint: a single component promoted out of its
 parent's roster into a document of its own, because it warrants more
 than a record block.
 
-**Inherits from:** [DocumentFrontmatter](#documentfrontmatter)
+**Inherits from:** [DocumentFrontmatter](#documentfrontmatter), [ContractEdges](#contractedges)
 
 | Property | Type | Documentation |
 |----------|------|---------------|

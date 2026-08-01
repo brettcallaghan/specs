@@ -1,7 +1,7 @@
 {
   "name": "sf",
   "description": "Spec-first development: authoring specs in EARS (ADRs, FRDs, requirements documents, architecture and feature blueprints, contracts), grooming feature blueprints and backlog items into portable, dispatch-ready work orders, and retrospectives that produce evidence-backed improvement RFCs",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "author": {
     "name": "Brett Callaghan",
     "email": "brett.callaghan@gmail.com"

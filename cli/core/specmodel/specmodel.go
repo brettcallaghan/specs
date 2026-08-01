@@ -165,6 +165,38 @@ type DocumentFrontmatter struct {
 	Related *[]Slug `json:"related,omitempty"`
 }
 
+// The contract edges a C4 element owns: the interfaces it publishes, and
+// the interfaces it depends on.
+//
+// Declared once and inherited by all four blueprint types rather than
+// repeated on each, because the same fact recorded at four altitudes
+// under three different spellings is how a vocabulary drifts. An element
+// provides a contract at whichever altitude it happens to sit; the
+// property is named for the concept, not for the level.
+//
+// These are not the neighbour edges ADR-009 reserves to a parent. A
+// neighbour relationship varies by host — a shared module has different
+// collaborators in every container that composes it, which is why no
+// single outward list is correct and the parent owns it. A contract is a
+// named document with one identity, and the fact that an element
+// publishes or depends on it holds wherever that element is composed. So
+// this edge belongs to the element, and ADR-009's rule is untouched.
+type ContractEdges struct {
+	// Contract slugs this element provides.
+	//
+	// The interface is this element's own, so it is recorded here whatever
+	// the element's altitude — a system's public API, a container's
+	// service surface, a module's package API, a component's interface
+	// where it warrants a contract document of its own.
+	ContractsProvided *[]Slug `json:"contracts_provided,omitempty"`
+	// Contract slugs this element depends on.
+	//
+	// Named contracts only. An element's untyped collaborators are not
+	// listed here — those are neighbour edges, and per ADR-009 they belong
+	// to the parent that composes the elements, or to the code.
+	ContractsConsumed *[]Slug `json:"contracts_consumed,omitempty"`
+}
+
 // An architecture decision record.
 //
 // Carries no relationship properties of its own beyond the envelope's
@@ -448,11 +480,25 @@ type SystemBlueprint struct {
 	// Every relationship property in this vocabulary names documents by
 	// slug, and every named slug must resolve to a corpus member.
 	Related *[]Slug `json:"related,omitempty"`
+	// Contract slugs this element provides.
+	//
+	// The interface is this element's own, so it is recorded here whatever
+	// the element's altitude — a system's public API, a container's
+	// service surface, a module's package API, a component's interface
+	// where it warrants a contract document of its own.
+	ContractsProvided *[]Slug `json:"contracts_provided,omitempty"`
+	// Contract slugs this element depends on.
+	//
+	// Named contracts only. An element's untyped collaborators are not
+	// listed here — those are neighbour edges, and per ADR-009 they belong
+	// to the parent that composes the elements, or to the code.
+	ContractsConsumed *[]Slug `json:"contracts_consumed,omitempty"`
 	// Container blueprint slugs composed into this system.
 	Containers *[]Slug `json:"containers,omitempty"`
-	// Public contract slugs this system provides.
-	Contracts *[]Slug `json:"contracts,omitempty"`
-	// Systems or contracts this system consumes.
+	// Other systems this system depends on.
+	//
+	// Systems only. A contract this system consumes is named in
+	// `contracts_consumed`, so the same dependency has exactly one home.
 	DependsOn *[]Slug `json:"depends_on,omitempty"`
 }
 
@@ -504,6 +550,19 @@ type ContainerBlueprint struct {
 	// Every relationship property in this vocabulary names documents by
 	// slug, and every named slug must resolve to a corpus member.
 	Related *[]Slug `json:"related,omitempty"`
+	// Contract slugs this element provides.
+	//
+	// The interface is this element's own, so it is recorded here whatever
+	// the element's altitude — a system's public API, a container's
+	// service surface, a module's package API, a component's interface
+	// where it warrants a contract document of its own.
+	ContractsProvided *[]Slug `json:"contracts_provided,omitempty"`
+	// Contract slugs this element depends on.
+	//
+	// Named contracts only. An element's untyped collaborators are not
+	// listed here — those are neighbour edges, and per ADR-009 they belong
+	// to the parent that composes the elements, or to the code.
+	ContractsConsumed *[]Slug `json:"contracts_consumed,omitempty"`
 	// The system this container belongs to.
 	//
 	// Omitted when the container is standalone — that is, when no system
@@ -514,10 +573,6 @@ type ContainerBlueprint struct {
 	Components *[]Slug `json:"components,omitempty"`
 	// Module blueprint slugs composed into this container.
 	Modules *[]Slug `json:"modules,omitempty"`
-	// Contract slugs this container provides.
-	Provides *[]Slug `json:"provides,omitempty"`
-	// Contract slugs this container consumes.
-	Consumes *[]Slug `json:"consumes,omitempty"`
 }
 
 // A C4 module blueprint: a coherent unit of code with an interface of its
@@ -568,15 +623,25 @@ type ModuleBlueprint struct {
 	// Every relationship property in this vocabulary names documents by
 	// slug, and every named slug must resolve to a corpus member.
 	Related *[]Slug `json:"related,omitempty"`
+	// Contract slugs this element provides.
+	//
+	// The interface is this element's own, so it is recorded here whatever
+	// the element's altitude — a system's public API, a container's
+	// service surface, a module's package API, a component's interface
+	// where it warrants a contract document of its own.
+	ContractsProvided *[]Slug `json:"contracts_provided,omitempty"`
+	// Contract slugs this element depends on.
+	//
+	// Named contracts only. An element's untyped collaborators are not
+	// listed here — those are neighbour edges, and per ADR-009 they belong
+	// to the parent that composes the elements, or to the code.
+	ContractsConsumed *[]Slug `json:"contracts_consumed,omitempty"`
 	// Whether this blueprint documents one concrete module or a pattern
 	// several modules follow.
 	Kind BlueprintKind `json:"kind"`
 	// Whether the module is published to a registry, and therefore whether
 	// its package API is bound by a compatibility policy.
 	Visibility Visibility `json:"visibility"`
-	// Contract slugs this module provides, where its interface warrants a
-	// standalone contract document.
-	Provides *[]Slug `json:"provides,omitempty"`
 	// Component or module blueprint slugs this module composes, where those
 	// children have been promoted to documents of their own.
 	//
@@ -643,6 +708,19 @@ type ComponentBlueprint struct {
 	// Every relationship property in this vocabulary names documents by
 	// slug, and every named slug must resolve to a corpus member.
 	Related *[]Slug `json:"related,omitempty"`
+	// Contract slugs this element provides.
+	//
+	// The interface is this element's own, so it is recorded here whatever
+	// the element's altitude — a system's public API, a container's
+	// service surface, a module's package API, a component's interface
+	// where it warrants a contract document of its own.
+	ContractsProvided *[]Slug `json:"contracts_provided,omitempty"`
+	// Contract slugs this element depends on.
+	//
+	// Named contracts only. An element's untyped collaborators are not
+	// listed here — those are neighbour edges, and per ADR-009 they belong
+	// to the parent that composes the elements, or to the code.
+	ContractsConsumed *[]Slug `json:"contracts_consumed,omitempty"`
 	// Whether this blueprint documents one concrete component or a pattern
 	// several components follow.
 	Kind BlueprintKind `json:"kind"`

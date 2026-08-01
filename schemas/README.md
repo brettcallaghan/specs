@@ -26,7 +26,7 @@ scripts/validate-corpus.py            # check this repo's own documents
 | File | Contents |
 |---|---|
 | `vocabulary.strata` | The controlled vocabularies: `Slug`, `DocumentType`, `Status`, `Visibility`, `BlueprintKind`, `Delivery`, `RfcSeverity` |
-| `frontmatter.strata` | `ElementRecord`, the `DocumentFrontmatter` envelope, and one struct per document type |
+| `frontmatter.strata` | `ElementRecord`, the `DocumentFrontmatter` envelope, the `ContractEdges` mixin, and one struct per document type |
 | `config.strata` | `SpecsConfig` — the public `specs.toml` surface |
 | `profile.strata` | The internal profile registration surface |
 
@@ -43,11 +43,22 @@ hand-assembly.
 
 **Property names are snake_case, against Strata's camelCase
 convention.** Strata emits the property name verbatim as the wire key,
-and the frontmatter keys (`updated_at`, `parent_slug`, `source_paths`)
+and the frontmatter keys (`updated_at`, `source_paths`, `superseded_by`)
 are already in use across the corpus. Matching the existing files wins
 over matching the language's house style. The Go transpiler re-cases the
 Go identifier anyway, so the generated structs read as idiomatic Go with
 correct `json:"updated_at"` tags.
+
+**`ContractEdges` is a mixin, and it is the reason multiple inheritance
+is used at all.** `contracts_provided` and `contracts_consumed` mean the
+same thing on all four blueprint types, and before this they were spelled
+three different ways at three altitudes (`contracts` on a system,
+`provides`/`consumes` on a container, `provides` alone on a module) with
+components carrying none. Declaring them once and inheriting them makes
+divergence impossible rather than merely discouraged. Strata emits a
+three-branch `allOf` — the type's own properties, `DocumentFrontmatter`,
+and `ContractEdges` — and the Go transpiler flattens all three into one
+struct.
 
 **`type` is an enum on the base, not a constant per subtype.** Strata
 forbids redeclaring an inherited property, so `Adr` cannot narrow

@@ -103,6 +103,45 @@ struct DocumentFrontmatter: ElementRecord {
 }
 
 """
+The contract edges a C4 element owns: the interfaces it publishes, and
+the interfaces it depends on.
+
+Declared once and inherited by all four blueprint types rather than
+repeated on each, because the same fact recorded at four altitudes
+under three different spellings is how a vocabulary drifts. An element
+provides a contract at whichever altitude it happens to sit; the
+property is named for the concept, not for the level.
+
+These are not the neighbour edges ADR-009 reserves to a parent. A
+neighbour relationship varies by host — a shared module has different
+collaborators in every container that composes it, which is why no
+single outward list is correct and the parent owns it. A contract is a
+named document with one identity, and the fact that an element
+publishes or depends on it holds wherever that element is composed. So
+this edge belongs to the element, and ADR-009's rule is untouched.
+"""
+struct ContractEdges {
+  """
+  Contract slugs this element provides.
+
+  The interface is this element's own, so it is recorded here whatever
+  the element's altitude — a system's public API, a container's
+  service surface, a module's package API, a component's interface
+  where it warrants a contract document of its own.
+  """
+  contracts_provided: [Slug]?
+
+  """
+  Contract slugs this element depends on.
+
+  Named contracts only. An element's untyped collaborators are not
+  listed here — those are neighbour edges, and per ADR-009 they belong
+  to the parent that composes the elements, or to the code.
+  """
+  contracts_consumed: [Slug]?
+}
+
+"""
 An architecture decision record.
 
 Carries no relationship properties of its own beyond the envelope's
@@ -187,14 +226,16 @@ struct Standards: DocumentFrontmatter {
 A C4 system blueprint: the containers a system bundles, the public
 contracts it provides, and the systems it depends on.
 """
-struct SystemBlueprint: DocumentFrontmatter {
+struct SystemBlueprint: DocumentFrontmatter, ContractEdges {
   """Container blueprint slugs composed into this system."""
   containers: [Slug]?
 
-  """Public contract slugs this system provides."""
-  contracts: [Slug]?
+  """
+  Other systems this system depends on.
 
-  """Systems or contracts this system consumes."""
+  Systems only. A contract this system consumes is named in
+  `contracts_consumed`, so the same dependency has exactly one home.
+  """
   depends_on: [Slug]?
 }
 
@@ -202,7 +243,7 @@ struct SystemBlueprint: DocumentFrontmatter {
 A C4 container blueprint: one independently deployable or runnable
 artifact, and the modules and components composed into it.
 """
-struct ContainerBlueprint: DocumentFrontmatter {
+struct ContainerBlueprint: DocumentFrontmatter, ContractEdges {
   """
   The system this container belongs to.
 
@@ -217,19 +258,13 @@ struct ContainerBlueprint: DocumentFrontmatter {
 
   """Module blueprint slugs composed into this container."""
   modules: [Slug]?
-
-  """Contract slugs this container provides."""
-  provides: [Slug]?
-
-  """Contract slugs this container consumes."""
-  consumes: [Slug]?
 }
 
 """
 A C4 module blueprint: a coherent unit of code with an interface of its
 own, composed into a container.
 """
-struct ModuleBlueprint: DocumentFrontmatter {
+struct ModuleBlueprint: DocumentFrontmatter, ContractEdges {
   """
   Whether this blueprint documents one concrete module or a pattern
   several modules follow.
@@ -241,12 +276,6 @@ struct ModuleBlueprint: DocumentFrontmatter {
   its package API is bound by a compatibility policy.
   """
   visibility: Visibility
-
-  """
-  Contract slugs this module provides, where its interface warrants a
-  standalone contract document.
-  """
-  provides: [Slug]?
 
   """
   Component or module blueprint slugs this module composes, where those
@@ -277,7 +306,7 @@ A C4 component blueprint: a single component promoted out of its
 parent's roster into a document of its own, because it warrants more
 than a record block.
 """
-struct ComponentBlueprint: DocumentFrontmatter {
+struct ComponentBlueprint: DocumentFrontmatter, ContractEdges {
   """
   Whether this blueprint documents one concrete component or a pattern
   several components follow.

@@ -9,8 +9,9 @@ updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 kind: <standard | pattern>           # see instructions below
 visibility: <public | internal>      # public = published to a registry;
                                      # internal = unpublished (in-repo)
-provides: []                         # contract slugs, WHEN the interface
+contracts_provided: []               # contract slugs, WHEN the interface
                                      # is a standalone contract document
+contracts_consumed: []               # contract slugs this module depends on
 components: []                       # component/module blueprint slugs this
                                      # module composes, WHERE they are
                                      # promoted to their own documents
@@ -22,7 +23,7 @@ version: "0.1"                       # required WHEN visibility: public
 
 <!--
 Template: Module Blueprint
-Version: 0.6
+Version: 0.7
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `c4-guide.md` — load it before authoring.
 

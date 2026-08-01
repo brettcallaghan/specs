@@ -92,6 +92,9 @@
         },
         {
           "$ref": "#/definitions/DocumentFrontmatter"
+        },
+        {
+          "$ref": "#/definitions/ContractEdges"
         }
       ]
     },
@@ -110,28 +113,8 @@
                 "null"
               ]
             },
-            "consumes": {
-              "description": "Contract slugs this container consumes.",
-              "items": {
-                "$ref": "#/definitions/Slug"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
             "modules": {
               "description": "Module blueprint slugs composed into this container.",
-              "items": {
-                "$ref": "#/definitions/Slug"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
-            "provides": {
-              "description": "Contract slugs this container provides.",
               "items": {
                 "$ref": "#/definitions/Slug"
               },
@@ -156,6 +139,9 @@
         },
         {
           "$ref": "#/definitions/DocumentFrontmatter"
+        },
+        {
+          "$ref": "#/definitions/ContractEdges"
         }
       ]
     },
@@ -208,6 +194,32 @@
           "$ref": "#/definitions/DocumentFrontmatter"
         }
       ]
+    },
+    "ContractEdges": {
+      "description": "The contract edges a C4 element owns: the interfaces it publishes, and\nthe interfaces it depends on.\n\nDeclared once and inherited by all four blueprint types rather than\nrepeated on each, because the same fact recorded at four altitudes\nunder three different spellings is how a vocabulary drifts. An element\nprovides a contract at whichever altitude it happens to sit; the\nproperty is named for the concept, not for the level.\n\nThese are not the neighbour edges ADR-009 reserves to a parent. A\nneighbour relationship varies by host — a shared module has different\ncollaborators in every container that composes it, which is why no\nsingle outward list is correct and the parent owns it. A contract is a\nnamed document with one identity, and the fact that an element\npublishes or depends on it holds wherever that element is composed. So\nthis edge belongs to the element, and ADR-009's rule is untouched.",
+      "properties": {
+        "contracts_consumed": {
+          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "contracts_provided": {
+          "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
     },
     "ConventionsConfig": {
       "description": "House conventions an adopting repository may set, and the profile\nsupplies when it does not.",
@@ -523,16 +535,6 @@
               "$ref": "#/definitions/BlueprintKind",
               "description": "Whether this blueprint documents one concrete module or a pattern\nseveral modules follow."
             },
-            "provides": {
-              "description": "Contract slugs this module provides, where its interface warrants a\nstandalone contract document.",
-              "items": {
-                "$ref": "#/definitions/Slug"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
             "source_paths": {
               "description": "Repository-relative source roots, so a reader can find the code.",
               "items": {
@@ -573,6 +575,9 @@
         },
         {
           "$ref": "#/definitions/DocumentFrontmatter"
+        },
+        {
+          "$ref": "#/definitions/ContractEdges"
         }
       ]
     },
@@ -852,18 +857,8 @@
                 "null"
               ]
             },
-            "contracts": {
-              "description": "Public contract slugs this system provides.",
-              "items": {
-                "$ref": "#/definitions/Slug"
-              },
-              "type": [
-                "array",
-                "null"
-              ]
-            },
             "depends_on": {
-              "description": "Systems or contracts this system consumes.",
+              "description": "Other systems this system depends on.\n\nSystems only. A contract this system consumes is named in\n`contracts_consumed`, so the same dependency has exactly one home.",
               "items": {
                 "$ref": "#/definitions/Slug"
               },
@@ -877,6 +872,9 @@
         },
         {
           "$ref": "#/definitions/DocumentFrontmatter"
+        },
+        {
+          "$ref": "#/definitions/ContractEdges"
         }
       ]
     },

@@ -4,7 +4,7 @@ description: File every relationship at one altitude; parents own the edges amon
 slug: adr-009-nodes-and-edges-ownership
 type: adr
 status: active
-updated_at: 2026-07-29T00:00:00Z
+updated_at: 2026-08-01T00:00:00Z
 ---
 
 # ADR-009: Nodes-vs-Edges Ownership — Parents Own Child Edges
@@ -34,6 +34,16 @@ a shared module has different neighbors in every host, so no single outward-edge
 list is correct. Each document is also **light on the level below**: a component
 or module points to code as the source of truth for the collaborators an agent
 discovers while working.
+
+**This rule governs neighbor edges — the hierarchical composition
+relationships — and not contract edges.** A neighbor relationship is the
+thing that varies by host, which is the whole reason the parent owns it. A
+contract does not: it is a named document with one identity, so "this
+element provides it" and "this element depends on it" hold wherever the
+element is composed. Every blueprint at all four levels therefore carries
+`contracts_provided` and `contracts_consumed` of its own, and a module or
+component declaring a consumed contract is not an exception to this
+decision.
 
 ## Alternatives Considered
 

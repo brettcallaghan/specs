@@ -189,10 +189,19 @@ files each fact at exactly one altitude:
   component internals (the component/module blueprint owns them); a
   component or module is light on code (the code is the source of truth,
   and an agent reads it to discover collaborators).
+- **Contract edges are the exception, and they belong to the element.**
+  Every blueprint — at all four levels — carries `contracts_provided`
+  and `contracts_consumed`. The two rules above govern *neighbor* edges,
+  which have no single correct value for a shared element. A contract
+  does: it is a named document with one identity, so "this element
+  publishes it" and "this element depends on it" are true wherever the
+  element is composed. A module MAY therefore declare a consumed
+  contract even though it has no Context view.
 
 So every document sits at its own altitude: it owns its children as
-nodes and the edges among them, points UP to its parent for its own
-outward edges, and points DOWN to code for internal detail.
+nodes and the edges among them, names the contracts it provides and
+consumes, points UP to its parent for its remaining outward edges, and
+points DOWN to code for internal detail.
 
 ---
 
