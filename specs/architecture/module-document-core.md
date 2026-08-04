@@ -224,6 +224,46 @@ property is retained alongside the parsed value, because AC-SPEC-003.2
 requires validating what the author wrote rather than what a YAML parser
 inferred from it.
 
+**Built** — `cli/core/frontmatter`. Its surface is `Parse`, returning a
+`Document` carrying the block's `Region` and its top-level `Property`
+values in declaration order, each with its name, the span of its key, the
+span of its value, the value's raw source text, and the parsed value.
+`Values` returns the generic tree a JSON Schema is validated against and
+`JSON` converts it for decoding into a generated record — one parse
+serving both, so a property's position and its value cannot disagree.
+`goccy/go-yaml` is the parser, per [[adr-015]].
+
+Four semantics are pinned by the implementation:
+
+- **`Parse` has three outcomes, and they are distinct.** A document and
+  no error is a parsed block; no document and no error means the file
+  carries no frontmatter, which is the caller's `no-frontmatter`
+  exclusion rather than a defect; no document and a located error means
+  the block is there and could not be read. Nothing panics, so a corpus
+  walk continues past a malformed member (AC-SPEC-002.4).
+- **A block is recognised only at the start of the document,** located by
+  the Spans scanner with `---` as the opening delimiter and a newline
+  followed by `---` as the closing one. A `---` further down is content.
+  An opening delimiter with no closing one is reported as an
+  unterminated block located at that delimiter — the case the Spans
+  scanner deliberately declines to guess at.
+- **Raw text is source text, not a re-rendering.** A property's raw value
+  runs from the first byte of the value to the start of the next
+  property, trailing whitespace removed, so a quoted string keeps its
+  quotes and a sequence or nested mapping keeps its whole block. The
+  parser leaves an unquoted date as the string the author typed rather
+  than resolving it to a timestamp, which is what makes the AC-SPEC-003.2
+  check possible at all.
+- **The value tree is JSON-compatible.** No parsed value is a type JSON
+  cannot carry, so the crossing into the typed records is a marshal
+  rather than a conversion layer.
+
+A frontmatter block that is not a mapping — a bare scalar, a sequence —
+is reported as a located error rather than as an empty document, because
+a file whose frontmatter is a list has a defect worth naming. An empty
+block is a document declaring no properties, which is a different thing
+from a file with no block.
+
 ### Markdown Structure
 
 ```component
