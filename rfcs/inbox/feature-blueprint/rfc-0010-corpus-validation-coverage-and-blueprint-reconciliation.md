@@ -79,6 +79,72 @@ established by `rfcs/inbox/retro-skill/rfc-self-retro-skill-withheld-model.md`.
    summary reports `checked 21 documents, 0 findings, 6 excluded` — all
    21 are RFCs and plugin skill references.
 
+   **Minimal reproduction** (run from the repository root; requires
+   `pip install jsonschema pyyaml`). Step 1 — note the document count of
+   a clean run, then add one deliberately invalid blueprint to the
+   corpus:
+
+   ```bash
+   python3 scripts/validate-corpus.py | tail -1   # note the count
+
+   mkdir -p specs/features/repro
+   cat > specs/features/repro/repro-blueprint.md <<'EOF'
+   ---
+   title: "Feature Blueprint: Repro"
+   description: Minimal blueprint with an out-of-vocabulary delivery
+   slug: feature-repro
+   type: feature-blueprint
+   status: approved
+   updated_at: 2026-08-04T00:00:00Z
+   delivery: banana
+   sources: [frd-spec-validation-cli]
+   updates: []
+   creates: []
+   related: []
+   ---
+
+   # Repro
+   EOF
+
+   python3 scripts/validate-corpus.py; echo "exit=$?"
+   ```
+
+   *Observed:* `checked 24 documents, 0 findings, 6 excluded`, `exit=0`
+   — the **same** document count as before the file was added, and the
+   file is never named in the output. *Expected:* one finding reporting
+   `delivery: banana` as outside the `Delivery` vocabulary, and a
+   non-zero exit.
+
+   Step 2 — confirm the generated schema is not at fault by validating
+   the same frontmatter against it directly:
+
+   ```bash
+   python3 - <<'PY'
+   import json, jsonschema
+   s = json.load(open('cli/core/schema/spec-model.schema.json'))
+   schema = dict(s['definitions']['FeatureBlueprint'])
+   schema['definitions'] = s['definitions']
+   doc = {"title": "Feature Blueprint: Repro", "description": "x",
+          "slug": "feature-repro", "type": "feature-blueprint",
+          "status": "approved", "updated_at": "2026-08-04T00:00:00Z",
+          "delivery": "banana", "sources": ["frd-spec-validation-cli"],
+          "updates": [], "creates": [], "related": []}
+   try:
+       jsonschema.validate(doc, schema)
+       print("schema ACCEPTED the document (unexpected)")
+   except jsonschema.ValidationError as e:
+       print("schema REJECTS:", e.message)
+   PY
+
+   rm -rf specs/features/repro   # cleanup
+   ```
+
+   *Observed:* `schema REJECTS: 'banana' is not one of ['single-pr',
+   'staged']`. The schema is correct and the value is unambiguously
+   invalid; the validator simply never opens the file, because no
+   `SEARCH` pattern matches `specs/`. That isolates the defect to
+   coverage, not to schema generation.
+
 2. **A frontmatter value outside its enum reached an approved
    blueprint.** The blueprint carried `delivery: approved`, while
    `schemas/vocabulary.strata` line 130 declares `enum Delivery` with
