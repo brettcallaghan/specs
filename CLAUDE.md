@@ -26,8 +26,11 @@ and it contains no `.claude/` — so this repository's hook is never
 registered. Nothing in the hook or the settings file is wrong, and
 merging them to the default branch does not help; they are simply not
 read. Observed 2026-08-01 in a session with `agent-plugins` and `strata`
-both attached: no `bd`, no `strata`, and none of the dogfooded skills
-materialized.
+both attached: no `bd` and no `strata`. The **skills are no longer
+exposed to this**: they are committed symlinks under `.claude/skills/` →
+`plugin/skills/<name>`, so they load from the working tree whether or not
+the hook runs (and a global `~/.claude/skills` copy cannot shadow them).
+Only `bd` and `strata` still depend on the hook or the setup script.
 
 CLAUDE.md *is* still read from a nested repository, which is why this
 instruction works where the hook does not.

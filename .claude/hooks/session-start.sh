@@ -6,8 +6,10 @@
 #   1. Install `bd` (Beads), which every grooming and orchestration skill in
 #      this repo assumes is on PATH. Without it those skills cannot be
 #      exercised at all, which is the definition of not dogfooding.
-#   2. Materialize the working-tree skills into .claude/skills/ so the
-#      session runs the plugin it is editing rather than a published copy.
+#   2. Keep the vendored shared references current and build the `strata`
+#      CLI. The skills themselves are committed symlinks under .claude/skills/
+#      (each -> plugin/skills/<name>), so the session runs the working tree
+#      directly — no materialization step, and no global copy can shadow it.
 #
 # Idempotent and non-interactive. Safe to re-run — and sometimes it must be
 # re-run by hand, because this hook is not always invoked:
@@ -154,13 +156,12 @@ if command -v bd >/dev/null 2>&1; then
   fi
 fi
 
-# --- 3. Dogfood the plugin ---------------------------------------------------
+# --- 3. Vendored references --------------------------------------------------
+# The skills are committed symlinks under .claude/skills/ -> plugin/skills/,
+# so nothing needs materializing here; only their vendored shared references
+# are regenerated in case a source changed.
 if [ -x scripts/sync-shared-references.sh ]; then
   scripts/sync-shared-references.sh >/dev/null 2>&1 || log "WARNING: reference sync failed"
-fi
-if [ -x scripts/dogfood-install.sh ]; then
-  log "materializing working-tree skills into .claude/skills/"
-  scripts/dogfood-install.sh 2>&1 | sed 's/^/[session-start]   /'
 fi
 
 # --- 4. strata CLI -----------------------------------------------------------

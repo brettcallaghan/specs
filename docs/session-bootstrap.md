@@ -11,8 +11,9 @@ frontmatter and is not a corpus member.
 
 `.claude/settings.json` registers `.claude/hooks/session-start.sh` as a
 SessionStart hook. That hook installs `bd`, builds the `strata` CLI, and
-materializes the working-tree skills into `.claude/skills/` so a session
-dogfoods the plugin it is editing.
+regenerates the vendored shared references. (The skills are committed
+symlinks under `.claude/skills/` → `plugin/skills/`, so they need no
+materialization and are unaffected by whether the hook runs.)
 
 Claude Code loads hooks from the **project root** only. There is no
 mechanism for a multi-root workspace to register hooks per repository
@@ -31,9 +32,10 @@ the multi-repo case both repositories are cloned as siblings:
 ```
 
 Observed 2026-08-01 in a session with `agent-plugins` and `strata` both
-attached: no `bd` on PATH, no `strata` binary, and none of the
-gitignored dogfooded skills present. The hook script itself is fine —
-run by hand it completes successfully. It was simply never invoked.
+attached: no `bd` on PATH and no `strata` binary. (The skills are
+committed symlinks, so they were present regardless — only the two
+binaries were missing.) The hook script itself is fine — run by hand it
+completes successfully. It was simply never invoked.
 
 `strata` has the same exposure through its own
 `scripts/setup-cloud-env.sh`.
@@ -95,7 +97,8 @@ exit 0
   two binaries, which is VM provisioning and exactly what a setup script
   is for; the hook additionally does repository-specific work
   (reconstructing the beads database from `.beads/issues.jsonl`,
-  materializing skills) that cannot run before the repository is cloned.
+  regenerating vendored references) that cannot run before the
+  repository is cloned.
 - **The five-minute budget is real.** A cold `cargo build --release` of
   `strata-cli` took roughly two minutes in this environment, and the
   `bd` source build a few more. If the script starts timing out, drop
@@ -123,9 +126,9 @@ on the instruction rather than on the harness enforcing it.
 
 ```bash
 command -v bd strata          # both present -> provisioning worked
-ls .claude/skills/            # spec, bead-bonanza, ... -> the hook ran
 cat ~/.cache/strata-cli/build.log   # the hook's strata build output
 ```
 
-`.claude/skills/` containing only the committed skills (`strata`,
-`triage-rfc`) means the hook did not run, whatever else is on PATH.
+`bd` and `strata` are the only signal that the hook (or the setup
+script) ran; the skills under `.claude/skills/` are committed symlinks
+and are present either way.
