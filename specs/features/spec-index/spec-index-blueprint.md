@@ -6,9 +6,10 @@ description: Builds the first working slice of the Spec CLI — the index
   checks, queries and configuration of frd-spec-validation-cli
 slug: feature-spec-validation-cli
 type: feature-blueprint
-status: ready-for-review
+status: in-progress
 updated_at: 2026-08-04T00:00:00Z
-delivery: approved
+delivery: staged
+plan: agent-plugins-bge
 sources: [frd-spec-validation-cli]
 updates:
   - "container-spec-cli"
