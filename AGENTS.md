@@ -45,14 +45,15 @@ test suite. The gates are the repo's own consistency checks.
 - **Format:** *(none — markdown and shell only)*
 - **Lint:** `scripts/check-skills.sh`
 - **Build:** *(none)*
-- **Test (full suite):** `scripts/check-skills.sh --strict && scripts/sync-shared-references.sh --check && scripts/dogfood-install.sh --check && scripts/sync-strata-docs.sh --check`
+- **Test (full suite):** `scripts/check-skills.sh --strict && scripts/sync-shared-references.sh --check && scripts/sync-strata-docs.sh --check`
 
 ### Targeted tests by surface
 
 - `plugin/skills/*/SKILL.md` → `scripts/check-skills.sh`
 - `plugin/skills/*/references/**` → `scripts/sync-shared-references.sh --check && scripts/check-skills.sh`
-- `.claude/skills/*/SKILL.md` → `scripts/check-skills.sh` (project-native
-  skills — `triage-rfc`, `strata` — are checked alongside the plugin's)
+- `.claude/skills/*/SKILL.md` → `scripts/check-skills.sh` (only the
+  project-native skills `triage-rfc` and `strata`; the committed symlinks
+  to `plugin/skills/` are skipped and checked at their source)
 - `.claude/skills/strata/references/**` → `scripts/sync-strata-docs.sh --check`.
   These are generated verbatim from `strata-lang/strata`; never hand-edit
   them. `--check` reports SKIP (exit 0) when no strata checkout is present.

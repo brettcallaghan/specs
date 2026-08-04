@@ -42,10 +42,11 @@ def err(w, m):  errors.append(f"{w}: {m}")
 def warn(w, m): warnings.append(f"{w}: {m}")
 
 def is_generated(p):
-    # .claude/skills/ holds both hand-authored project skills and copies
-    # materialized from plugin/skills/ by dogfood-install.sh. Check sources
-    # only; a generated copy is a symptom, and its source is the real target.
-    if os.path.exists(os.path.join(os.path.dirname(p), '.dogfood-generated')):
+    # .claude/skills/ holds hand-authored project skills (triage-rfc, strata)
+    # and committed symlinks to the plugin/skills/ sources. A symlinked skill
+    # is already checked via the plugin/skills glob, so skip it here — checking
+    # it twice would double-report and could look like a duplicate skill.
+    if os.path.islink(os.path.dirname(p)):
         return True
     # Vendored references (sync-shared-references.sh, sync-strata-docs.sh) all
     # open with this header. Checking the header rather than a path pattern

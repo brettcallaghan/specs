@@ -13,14 +13,10 @@
 
 # A scratchpad directory for local files that should not be committed to the repository
 local/
-# Dogfooded skills: generated from plugin/skills/ by scripts/dogfood-install.sh
-# so a session in this repo runs the working tree. plugin/skills/ is the source.
-/.claude/skills/bead-bonanza/
-/.claude/skills/groom-beads/
-/.claude/skills/groom-feature-blueprint/
-/.claude/skills/retro-skill/
-/.claude/skills/retro-spec/
-/.claude/skills/spec/
+# The spec-driven-dev skills are committed as symlinks under .claude/skills/
+# (each -> ../../plugin/skills/<name>), so a session in this repo always loads
+# the working-tree branch version and no global ~/.claude/skills copy can
+# shadow it. plugin/skills/ remains the single source; nothing here is ignored.
 
 # Defensive: bd has been observed writing its global config to a literal
 # ./~/ instead of $HOME. The session hook sweeps it; ignore it regardless.
