@@ -734,6 +734,14 @@
       ],
       "type": "object"
     },
+    "ExclusionReason": {
+      "description": "Why a candidate file beneath the spec root is not a corpus member.\n\nExclusions are recorded rather than dropped, so that a document which\n*should* be a specification but is missing frontmatter is visible in the\nindex rather than absent from it — a judgement the tool cannot make for\nthe reader.",
+      "enum": [
+        "no-frontmatter",
+        "unknown-type"
+      ],
+      "type": "string"
+    },
     "FeatureBlueprint": {
       "additionalProperties": false,
       "description": "A transient change document describing how the system changes to deliver\none feature.\n\nUnlike the blueprints it modifies, a feature blueprint describes a\nchange rather than a state, so it reaches `in-progress` and then\n`retired` rather than `active`. Its `updates` and `creates` properties\nare what let tooling derive when the change is complete: the feature is\nnot done until every document it names has been updated or activated.",
@@ -1021,6 +1029,68 @@
       ],
       "type": "object"
     },
+    "IndexEntry": {
+      "additionalProperties": false,
+      "description": "One corpus member in the index: where it lives and what its frontmatter\ndeclares.\n\nThe entry is deliberately additive. This sprint populates the path and\nthe frontmatter envelope; later features attach headings, extracted\nrecord blocks and references to the same entry under the same\n`schema_version`, and no property here forecloses modelling references\nas their own collection later.",
+      "properties": {
+        "frontmatter": {
+          "description": "The member's parsed frontmatter.\n\nAbsent exactly when `parse_error` is present: a document whose\nfrontmatter could not be parsed is still indexed, but it has no parsed\nenvelope to carry.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/DocumentFrontmatter"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "parse_error": {
+          "description": "The failure that prevented this member's frontmatter from being\nparsed, with its position.\n\nPresent exactly when `frontmatter` is absent. A member carrying this\nproperty does not make the index a failure; the index is still emitted\nand still contains every other document.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ParseError"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "path": {
+          "description": "The member's path, relative to the repository root and written with\nforward slashes on every platform.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "type": "object"
+    },
+    "IndexExclusion": {
+      "additionalProperties": false,
+      "description": "One candidate file that is not a corpus member, and why.",
+      "properties": {
+        "path": {
+          "description": "The excluded file's path, relative to the repository root and written\nwith forward slashes on every platform.",
+          "type": "string"
+        },
+        "reason": {
+          "$ref": "#/definitions/ExclusionReason",
+          "description": "Why the file is not a member."
+        },
+        "type": {
+          "description": "The `type` value the file declared, reported when `reason` is\n`unknown-type` so that a reviewing agent can judge whether the profile\nor the document is wrong.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "path",
+        "reason"
+      ],
+      "type": "object"
+    },
     "ModuleBlueprint": {
       "additionalProperties": false,
       "description": "A C4 module blueprint: a coherent unit of code with an interface of its\nown, composed into a container.",
@@ -1164,6 +1234,25 @@
         "updated_at",
         "kind",
         "visibility"
+      ],
+      "type": "object"
+    },
+    "ParseError": {
+      "additionalProperties": false,
+      "description": "A located failure to parse part of a document.\n\nRecorded against the document it occurred in rather than raised, because\none unparsable file must not cost a repository the index of every other\nfile. The position is a `Span`, like every other position this framework\nreports.",
+      "properties": {
+        "message": {
+          "description": "What could not be parsed, stated so that the message needs no further\nlookup to act on.",
+          "type": "string"
+        },
+        "position": {
+          "$ref": "#/definitions/Span",
+          "description": "Where in the document the failure occurred."
+        }
+      },
+      "required": [
+        "message",
+        "position"
       ],
       "type": "object"
     },
@@ -1434,6 +1523,81 @@
       "description": "A cross-reference identifier for a specification document.\n\nEvery relationship between documents is expressed as a slug rather than a\npath, so moving a file never breaks a reference. Slugs are kebab-case:\nlowercase alphanumeric words joined by single hyphens.",
       "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
       "type": "string"
+    },
+    "Span": {
+      "additionalProperties": false,
+      "description": "A contiguous region of a document.\n\nByte offset and byte length are the authoritative extent, because spans\naddress regions *within* a line as well as whole sections — a malformed\n`slug` value occupies part of a line, not the line itself. Line and\ncolumn are carried alongside for readability: they are what a human or\nan agent reads in a report, and they are derived from the offset rather\nthan being an independent source of truth.\n\nLines and columns are one-based. A column counts Unicode codepoints from\nthe start of its line, matching the way this framework's conventions\nmeasure width, so an em dash advances the column by one rather than by\nits three UTF-8 bytes.",
+      "properties": {
+        "end_column": {
+          "$ref": "#/definitions/__UInt",
+          "description": "One-based codepoint column one past the last codepoint of the region."
+        },
+        "end_line": {
+          "$ref": "#/definitions/__UInt",
+          "description": "One-based line on which the region ends."
+        },
+        "length": {
+          "$ref": "#/definitions/__UInt",
+          "description": "Length of the region in bytes. Zero is a valid, empty region — the\ncontent of `---\\n---` is an empty span rather than an absent one."
+        },
+        "offset": {
+          "$ref": "#/definitions/__UInt",
+          "description": "Byte offset of the first byte of the region, from the start of the\ndocument."
+        },
+        "start_column": {
+          "$ref": "#/definitions/__UInt",
+          "description": "One-based codepoint column at which the region starts."
+        },
+        "start_line": {
+          "$ref": "#/definitions/__UInt",
+          "description": "One-based line on which the region starts."
+        }
+      },
+      "required": [
+        "offset",
+        "length",
+        "start_line",
+        "start_column",
+        "end_line",
+        "end_column"
+      ],
+      "type": "object"
+    },
+    "SpecIndex": {
+      "additionalProperties": false,
+      "description": "The machine-readable description of a repository's specification corpus,\nemitted to the file **specs.json** in the configured spec root.\n\nThis is the artifact CI, agents and a central architecture catalogue all\nread instead of each re-deriving the corpus. It crosses a boundary, so\nits shape is defined once here and generated into JSON Schema, Go and\nMarkdown rather than being assembled by hand in the emitter.\n\nThe model is additive by design: later features add properties to it and\nto its entries under the same `schema_version`. `entries` and\n`exclusions` are lists rather than maps precisely so that the emitter\nowns their order and can make output byte-identical across platforms\nwithout a change to this model.",
+      "properties": {
+        "entries": {
+          "description": "Every corpus member, in the order the emitter fixes.",
+          "items": {
+            "$ref": "#/definitions/IndexEntry"
+          },
+          "type": "array"
+        },
+        "exclusions": {
+          "description": "Every excluded candidate file, in the order the emitter fixes.",
+          "items": {
+            "$ref": "#/definitions/IndexExclusion"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "description": "The version of this index's schema.\n\nPinned to `1.0` for as long as the shape only grows. A change to the\nshape of what is already here — as opposed to an addition alongside it\n— updates this value and the emitted index in the same change.",
+          "pattern": "^1\\.0$",
+          "type": "string"
+        },
+        "workspace": {
+          "description": "The workspace identifier from configuration, so that indexes emitted\nby several repositories can be merged into one graph without two\ndocuments that both declare `adr-001` colliding.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "workspace",
+        "entries",
+        "exclusions"
+      ],
+      "type": "object"
     },
     "SpecsConfig": {
       "additionalProperties": false,

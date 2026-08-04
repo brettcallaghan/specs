@@ -942,6 +942,160 @@ type Guide struct {
 	Version *string `json:"version,omitempty"`
 }
 
+// A contiguous region of a document.
+//
+// Byte offset and byte length are the authoritative extent, because spans
+// address regions *within* a line as well as whole sections — a malformed
+// `slug` value occupies part of a line, not the line itself. Line and
+// column are carried alongside for readability: they are what a human or
+// an agent reads in a report, and they are derived from the offset rather
+// than being an independent source of truth.
+//
+// Lines and columns are one-based. A column counts Unicode codepoints from
+// the start of its line, matching the way this framework's conventions
+// measure width, so an em dash advances the column by one rather than by
+// its three UTF-8 bytes.
+type Span struct {
+	// Byte offset of the first byte of the region, from the start of the
+	// document.
+	Offset uint64 `json:"offset"`
+	// Length of the region in bytes. Zero is a valid, empty region — the
+	// content of `---\n---` is an empty span rather than an absent one.
+	Length uint64 `json:"length"`
+	// One-based line on which the region starts.
+	StartLine uint64 `json:"start_line"`
+	// One-based codepoint column at which the region starts.
+	StartColumn uint64 `json:"start_column"`
+	// One-based line on which the region ends.
+	EndLine uint64 `json:"end_line"`
+	// One-based codepoint column one past the last codepoint of the region.
+	EndColumn uint64 `json:"end_column"`
+}
+
+// A located failure to parse part of a document.
+//
+// Recorded against the document it occurred in rather than raised, because
+// one unparsable file must not cost a repository the index of every other
+// file. The position is a `Span`, like every other position this framework
+// reports.
+type ParseError struct {
+	// What could not be parsed, stated so that the message needs no further
+	// lookup to act on.
+	Message string `json:"message"`
+	// Where in the document the failure occurred.
+	Position Span `json:"position"`
+}
+
+// Why a candidate file beneath the spec root is not a corpus member.
+//
+// Exclusions are recorded rather than dropped, so that a document which
+// *should* be a specification but is missing frontmatter is visible in the
+// index rather than absent from it — a judgement the tool cannot make for
+// the reader.
+type ExclusionReason string
+
+const (
+	// The file carries no frontmatter block at all.
+	ExclusionReasonNoFrontmatter ExclusionReason = "no-frontmatter"
+	// The file declares a `type` the active profile does not define.
+	ExclusionReasonUnknownType ExclusionReason = "unknown-type"
+)
+
+func (e ExclusionReason) MarshalJSON() ([]byte, error) {
+	switch e {
+	case ExclusionReasonNoFrontmatter, ExclusionReasonUnknownType:
+		return json.Marshal(string(e))
+	}
+	return nil, fmt.Errorf("ExclusionReason: unknown value %q", string(e))
+}
+
+func (e *ExclusionReason) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	switch ExclusionReason(s) {
+	case ExclusionReasonNoFrontmatter, ExclusionReasonUnknownType:
+		*e = ExclusionReason(s)
+		return nil
+	}
+	return fmt.Errorf("ExclusionReason: unknown value %q", s)
+}
+
+func (e ExclusionReason) String() string {
+	return string(e)
+}
+
+// One corpus member in the index: where it lives and what its frontmatter
+// declares.
+//
+// The entry is deliberately additive. This sprint populates the path and
+// the frontmatter envelope; later features attach headings, extracted
+// record blocks and references to the same entry under the same
+// `schema_version`, and no property here forecloses modelling references
+// as their own collection later.
+type IndexEntry struct {
+	// The member's path, relative to the repository root and written with
+	// forward slashes on every platform.
+	Path string `json:"path"`
+	// The member's parsed frontmatter.
+	//
+	// Absent exactly when `parse_error` is present: a document whose
+	// frontmatter could not be parsed is still indexed, but it has no parsed
+	// envelope to carry.
+	Frontmatter *DocumentFrontmatter `json:"frontmatter,omitempty"`
+	// The failure that prevented this member's frontmatter from being
+	// parsed, with its position.
+	//
+	// Present exactly when `frontmatter` is absent. A member carrying this
+	// property does not make the index a failure; the index is still emitted
+	// and still contains every other document.
+	ParseError *ParseError `json:"parse_error,omitempty"`
+}
+
+// One candidate file that is not a corpus member, and why.
+type IndexExclusion struct {
+	// The excluded file's path, relative to the repository root and written
+	// with forward slashes on every platform.
+	Path string `json:"path"`
+	// Why the file is not a member.
+	Reason ExclusionReason `json:"reason"`
+	// The `type` value the file declared, reported when `reason` is
+	// `unknown-type` so that a reviewing agent can judge whether the profile
+	// or the document is wrong.
+	Type *string `json:"type,omitempty"`
+}
+
+// The machine-readable description of a repository's specification corpus,
+// emitted to the file **specs.json** in the configured spec root.
+//
+// This is the artifact CI, agents and a central architecture catalogue all
+// read instead of each re-deriving the corpus. It crosses a boundary, so
+// its shape is defined once here and generated into JSON Schema, Go and
+// Markdown rather than being assembled by hand in the emitter.
+//
+// The model is additive by design: later features add properties to it and
+// to its entries under the same `schema_version`. `entries` and
+// `exclusions` are lists rather than maps precisely so that the emitter
+// owns their order and can make output byte-identical across platforms
+// without a change to this model.
+type SpecIndex struct {
+	// The version of this index's schema.
+	//
+	// Pinned to `1.0` for as long as the shape only grows. A change to the
+	// shape of what is already here — as opposed to an addition alongside it
+	// — updates this value and the emitted index in the same change.
+	SchemaVersion string `json:"schema_version"`
+	// The workspace identifier from configuration, so that indexes emitted
+	// by several repositories can be merged into one graph without two
+	// documents that both declare `adr-001` colliding.
+	Workspace string `json:"workspace"`
+	// Every corpus member, in the order the emitter fixes.
+	Entries []IndexEntry `json:"entries"`
+	// Every excluded candidate file, in the order the emitter fixes.
+	Exclusions []IndexExclusion `json:"exclusions"`
+}
+
 // What a profile registers into Document Core.
 //
 // **Internal surface.** This is the vocabulary a profile hands to the

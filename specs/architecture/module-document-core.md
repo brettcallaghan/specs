@@ -6,7 +6,7 @@ description: The framework-agnostic engine that indexes markdown
 slug: module-document-core
 type: module-blueprint
 status: approved
-updated_at: 2026-08-01T00:00:00Z
+updated_at: 2026-08-04T00:00:00Z
 kind: standard
 visibility: internal
 contracts_provided: []
@@ -18,6 +18,7 @@ test_paths:
 related:
   - "frd-spec-validation-cli"
   - "adr-015"
+  - "adr-016"
 version: "0.1"
 ---
 
@@ -221,6 +222,48 @@ their reason rather than dropping them, and assembles the index every
 other capability queries. It orchestrates the parsing components but
 holds no parsing logic of its own.
 
+**The index model is `SpecIndex`, and it is generated.** The index
+crosses a boundary — CI, agents and a central architecture catalogue all
+read it — so its shape is declared once in `schemas/index.strata` and
+transpiled to JSON Schema, Go and Markdown with every other model, per
+[[adr-016]], rather than being assembled by hand in the emitter. Corpus
+populates the generated `specmodel.SpecIndex`; it does not define it.
+
+The vocabulary is:
+
+- **`SpecIndex`** — the root: a `schema_version`, the `workspace`
+  identifier from configuration, an ordered list of `entries`, and an
+  ordered list of `exclusions`. Both collections are lists rather than
+  maps precisely so that the emitter owns their order and can make
+  output byte-identical across platforms (AC-SPEC-009.7) without a
+  change to the model.
+- **`IndexEntry`** — one corpus member: its repository-relative `path`,
+  its parsed `frontmatter`, and a `parse_error` carrying a located
+  failure for a member whose frontmatter could not be read
+  (AC-SPEC-002.4). Exactly one of the latter two is present.
+- **`IndexExclusion`** — one candidate file that is not a member: its
+  `path`, a `reason` of `no-frontmatter` or `unknown-type`, and — where
+  the reason is `unknown-type` — the `type` value the file declared
+  (AC-SPEC-001.3, AC-SPEC-001.4).
+- **`Span`** and **`ParseError`** — the position type every component
+  reports through, and a message paired with one. `Span` is declared
+  here, in the generated model, because findings and parse errors carry
+  it across the JSON boundary; the Spans component below owns its
+  semantics and is the only place spans are computed.
+
+`schema_version` is required and pinned to `1.0` (AC-SPEC-002.2). The
+model is additive: later features attach headings, extracted record
+blocks and references to the same entry under this same version. Strata
+has no notion of a constant, so the emitted value lives in
+`cli/core/specindex` alongside the constructor that writes it —
+a separate package because `scripts/generate-schemas.sh` rebuilds
+`cli/core/specmodel/` from scratch on every run.
+
+The index is not yet a contract document. It has one producer and no
+independently-built consumer, so the generated JSON Schema is its interim
+machine-readable specification; promotion, with a formal versioning
+policy, waits for the first consumer.
+
 ### Numbering
 
 ```component
@@ -307,6 +350,9 @@ This module SHALL comply with:
 
 - [[adr-015]] — Go, `goccy/go-yaml`, `santhosh-tekuri/jsonschema` and
   `goldmark` are the implementation choices this module is built on.
+- [[adr-016]] — Strata is the single source for generated models, which
+  is why the index model this module emits is declared in
+  `schemas/index.strata` rather than written as Go structs.
 - [[adr-014]] — acceptance-criteria notation is deferred, so no
   component here parses acceptance criteria.
 - [[adr-012]] — the `[[slug]]` and heading-anchor conventions the
