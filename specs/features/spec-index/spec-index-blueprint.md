@@ -627,7 +627,7 @@ binary and distribution.
 - [ ] Every AC in the coverage table is verified at its declared level
       and cited from its tests per [[testing-standards]].
 - [ ] The profile self-application gate runs the built profile against
-      this repository's `docs/` corpus.
+      this repository's `specs/` corpus.
 - [ ] Issues classified `prerequisite` in Tracker Reconciliation are
       resolved or their decisions recorded; `out-of-scope` issues are
       confirmed neither regressed nor silently absorbed.
