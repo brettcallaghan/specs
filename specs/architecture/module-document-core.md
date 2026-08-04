@@ -359,6 +359,63 @@ as `unverified` rather than as passed. Every finding carries a rule
 identifier, a severity, a path, a span, and a message stating the
 violated constraint and the offending value.
 
+**The finding model is `Finding`, and it is generated.** The finding JSON
+is a published interface surface — an agent parses it and branches on it
+— so its shape is declared once in `schemas/finding.strata` and
+transpiled to JSON Schema, Go and Markdown with every other model, per
+[[adr-016]], rather than being hand-rolled in the emitter. The vocabulary
+is:
+
+- **`Finding`** — one reported result: the `rule` that raised it, its
+  `severity`, the `path` it is against, its `position` as a `Span`, a
+  `message` stating the violated constraint and the offending value, and
+  a `detail`.
+- **`FindingDetail`** — a union discriminated on `kind`, carrying the
+  structured fields that make each defect self-contained: a schema
+  violation with its JSON Pointer, constraint and raw value; a missing
+  property with its name; a slug-pattern mismatch with both the slug and
+  the pattern; a duplicate slug with the other document's path; and an
+  unverified check with the reason it could not run. The message is
+  derivable from the variant, so a consumer branches on structure rather
+  than parsing prose.
+- **`Severity`** — `error`, `warning` and `unverified`, the three
+  [[frd-spec-validation-cli]] defines and no others.
+- **`FindingReport`** — the run envelope: every `Finding` produced, and a
+  `CheckResult` for every check the run knows about carrying an outcome
+  of `passed`, `failed`, `unverified` or `not-requested`.
+
+**The detail is nested rather than inherited.** The alternative — a base
+`Finding` with each variant inheriting it — flattens in every target, so
+Go code wanting the severity or path of an arbitrary finding would need a
+type switch to reach fields every finding carries. Nesting keeps the five
+common properties readable without branching, which is what lets the
+command surface render one shape.
+
+**Built** — `cli/core/finding`. It owns the rules about the generated
+model rather than the model itself: a constructor per variant that
+derives the message from the variant's fields, and a `Report` that
+accumulates findings and accounts for every check. Three semantics are
+pinned by the implementation:
+
+- **A requested check that has not reported is `unverified`, not
+  `passed`.** Requesting a check sets that outcome, and only an explicit
+  completion clears it, so a check that starts and never finishes cannot
+  read as clean (AC-SPEC-006.4). A check the caller did not request stays
+  `not-requested` and is still listed, which is what distinguishes it from
+  one that passed (AC-SPEC-006.9).
+- **Both renderings come from one recorded state.** The report emits the
+  generated JSON and a human-readable text form; the command surface
+  selects a rendering and never formats a finding itself.
+- **Order is fixed here, not by the caller.** Checks are ordered by rule
+  and findings by path, then position, then rule and message, so the same
+  run yields byte-identical output (AC-SPEC-009.7) and snapshot cases stay
+  stable.
+
+The unverified mechanism is built and no check registers against it yet;
+the diagram validation AC-SPEC-006.3 illustrates is a structure-feature
+concern. A later check adds a variant to the union without changing the
+envelope that carries it.
+
 **Corpus → Frontmatter, Markdown Structure, References.** Corpus is the
 orchestrator: it walks files and delegates every act of parsing. A
 parser that Corpus does not call is unreachable, and parsing logic that

@@ -123,6 +123,42 @@
       ],
       "type": "string"
     },
+    "CheckOutcome": {
+      "description": "What became of one check in a run.\n\nA run reports an outcome for every check it knows about, including the\nones it was not asked to perform, because the alternative — omitting\nthem — leaves a consumer unable to tell a check that passed from a check\nthat never ran.",
+      "enum": [
+        "passed",
+        "failed",
+        "unverified",
+        "not-requested"
+      ],
+      "type": "string"
+    },
+    "CheckResult": {
+      "additionalProperties": false,
+      "description": "The outcome of one check in a run.",
+      "properties": {
+        "outcome": {
+          "$ref": "#/definitions/CheckOutcome",
+          "description": "What became of it."
+        },
+        "reason": {
+          "description": "Why the check could not run, present exactly when `outcome` is\n`unverified`.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rule": {
+          "$ref": "#/definitions/RuleId",
+          "description": "The check this result is for."
+        }
+      },
+      "required": [
+        "rule",
+        "outcome"
+      ],
+      "type": "object"
+    },
     "ComponentBlueprint": {
       "additionalProperties": false,
       "description": "A C4 component blueprint: a single component promoted out of its\nparent's roster into a document of its own, because it warrants more\nthan a record block.",
@@ -854,6 +890,266 @@
       ],
       "type": "object"
     },
+    "Finding": {
+      "additionalProperties": false,
+      "description": "One reported conformance result.\n\nEvery check in this tool reports through this shape, so a consumer\nrenders one thing and a check added later is readable by a consumer\nwritten before it. The five common properties are what make a diagnostic\nself-contained — the rule that raised it, how badly it bears on the run,\nwhich file, where in that file, and what is wrong — and `detail` carries\nthe same information again in structured form for a consumer that acts\non it rather than printing it.",
+      "properties": {
+        "detail": {
+          "$ref": "#/definitions/FindingDetail",
+          "description": "The structured form of the same defect."
+        },
+        "message": {
+          "description": "What is wrong, stating the violated constraint and the value that\nviolated it, so the finding needs no further lookup to act on.",
+          "type": "string"
+        },
+        "path": {
+          "description": "The file the finding is against, relative to the repository root and\nwritten with forward slashes on every platform.",
+          "type": "string"
+        },
+        "position": {
+          "$ref": "#/definitions/Span",
+          "description": "Where in the file the finding is, as a span rather than a bare line\nnumber, so a report can point at a value inside a line."
+        },
+        "rule": {
+          "$ref": "#/definitions/RuleId",
+          "description": "The check that raised this finding."
+        },
+        "severity": {
+          "$ref": "#/definitions/Severity",
+          "description": "How badly this finding bears on the run."
+        }
+      },
+      "required": [
+        "rule",
+        "severity",
+        "path",
+        "position",
+        "message",
+        "detail"
+      ],
+      "type": "object"
+    },
+    "FindingDetail": {
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "schema-violation"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FindingSchemaViolation"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "missing-property"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FindingMissingProperty"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "slug-pattern"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FindingSlugPattern"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "duplicate-slug"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FindingDuplicateSlug"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "unverified"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FindingUnverified"
+          }
+        }
+      ],
+      "description": "The structured detail of one finding, selected by the kind of defect.\n\nEvery finding carries one. The message on the finding is derivable from\nthis value, so a consumer branches on structure rather than parsing\nprose, and a renderer that wants to offer a fix reads the fields it needs\nas values.\n\nThe union is open to extension in the sense that matters: a later check\nadds a variant without changing the envelope that carries it, and a\nconsumer that does not recognise a variant still has the rule\nidentifier, the severity, the path, the span and the message.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "schema-violation",
+            "missing-property",
+            "slug-pattern",
+            "duplicate-slug",
+            "unverified"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "type": "object"
+    },
+    "FindingDuplicateSlug": {
+      "additionalProperties": false,
+      "description": "A slug declared by more than one corpus member.\n\nReported against each of the two documents, each naming the other, so\nthat checking either one surfaces the collision.",
+      "properties": {
+        "other_path": {
+          "description": "The other document's path, relative to the repository root and written\nwith forward slashes on every platform.",
+          "type": "string"
+        },
+        "slug": {
+          "description": "The slug both documents declare.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "slug",
+        "other_path"
+      ],
+      "type": "object"
+    },
+    "FindingMissingProperty": {
+      "additionalProperties": false,
+      "description": "A property the document's type requires and the document does not\ndeclare.\n\nModelled apart from the general schema violation because a missing\nproperty is the most common defect by a wide margin, and a consumer\noffering to insert one needs the property name as a value rather than as\na substring of a message.",
+      "properties": {
+        "pointer": {
+          "description": "The JSON Pointer of the object that should carry the property.",
+          "type": "string"
+        },
+        "property": {
+          "description": "The name of the property that is absent.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pointer",
+        "property"
+      ],
+      "type": "object"
+    },
+    "FindingReport": {
+      "additionalProperties": false,
+      "description": "Everything one check run produced.\n\nThe two collections answer different questions and neither substitutes\nfor the other. `findings` is what is wrong; `checks` is what was looked\nat. A report carrying no findings is only good news if every check the\ncaller cares about is accounted for in `checks` as having passed.\n\nBoth are lists rather than maps so that the emitter owns their order and\ncan make output byte-identical across platforms without a change to this\nmodel.",
+      "properties": {
+        "checks": {
+          "description": "Every check the run knows about, in the order the emitter fixes, each\nwith what became of it.",
+          "items": {
+            "$ref": "#/definitions/CheckResult"
+          },
+          "type": "array"
+        },
+        "findings": {
+          "description": "Every finding the run produced, in the order the emitter fixes.",
+          "items": {
+            "$ref": "#/definitions/Finding"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "checks",
+        "findings"
+      ],
+      "type": "object"
+    },
+    "FindingSchemaViolation": {
+      "additionalProperties": false,
+      "description": "A frontmatter value that violates the schema its document type is\nvalidated against.\n\nThe pointer and the constraint together make the finding actionable\nwithout re-running the validator: the pointer says which property, and\nthe constraint says what it had to satisfy.",
+      "properties": {
+        "constraint": {
+          "description": "The constraint the value failed, quoted as the schema states it.",
+          "type": "string"
+        },
+        "pointer": {
+          "description": "The JSON Pointer at which the violation occurred, relative to the\ndocument's frontmatter.",
+          "type": "string"
+        },
+        "value": {
+          "description": "The offending value, as raw source text rather than as a YAML parser\nreinterpreted it, so a date written unquoted is reported as it was\nwritten.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pointer",
+        "constraint",
+        "value"
+      ],
+      "type": "object"
+    },
+    "FindingSlugPattern": {
+      "additionalProperties": false,
+      "description": "A slug that does not match the pattern the active profile supplies for\nthe document's type.\n\nBoth halves are carried so the finding is self-contained: an agent\nfixing it needs neither the profile nor the document open.",
+      "properties": {
+        "pattern": {
+          "description": "The pattern the active profile supplies for this document's type.",
+          "type": "string"
+        },
+        "slug": {
+          "description": "The slug the document declares.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "slug",
+        "pattern"
+      ],
+      "type": "object"
+    },
+    "FindingUnverified": {
+      "additionalProperties": false,
+      "description": "A check that was requested and could not run.\n\nThis is the structured half of the `unverified` severity: the reason\nstates what was missing, so a consumer can decide whether to install a\ndependency, adjust configuration, or accept the gap.",
+      "properties": {
+        "reason": {
+          "description": "Why the check could not run, stated so that it needs no further lookup\nto act on.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "type": "object"
+    },
     "Frd": {
       "additionalProperties": false,
       "description": "A feature requirements document: the user need, its scope boundaries and\nthe acceptance criteria that decide whether it has been met.",
@@ -1485,6 +1781,10 @@
       ],
       "type": "string"
     },
+    "RuleId": {
+      "description": "The identifier of one check, stable across releases.\n\nEvery finding names the rule that raised it, and the run report accounts\nfor every rule it knows about, so the identifier is the join between the\ntwo: a caller naming a subset of checks to run names them by these\nvalues, and reads the outcome of each back under the same value.\n\nIdentifiers are namespaced kebab-case — `slug/pattern-mismatch`,\n`frontmatter/missing-property` — so the family a check belongs to is\nlegible without a lookup table. The shape is stated rather than\nconstrained because a Strata regex literal cannot contain a forward\nslash.",
+      "type": "string"
+    },
     "Section": {
       "additionalProperties": false,
       "description": "A required heading, and the headings required beneath it.\n\nRequired sections are a hierarchy rather than a flat list because the\ndefects worth catching are about nesting: a missing `## Consequences`\nand a `### Consequences` misfiled under `## Decision` are different\nproblems, and a flat list cannot tell them apart.",
@@ -1518,6 +1818,15 @@
         "repeated"
       ],
       "type": "object"
+    },
+    "Severity": {
+      "description": "How badly a finding bears on a run.\n\nThe three values are the whole vocabulary, and the distinction that\nmatters most is the third: `unverified` is not a milder failure, it is\nthe absence of a result. A check the tool was asked to perform and could\nnot run reports `unverified` rather than passing silently, because a\nconsumer that cannot tell the two apart will read a missing check as a\nclean one.",
+      "enum": [
+        "error",
+        "warning",
+        "unverified"
+      ],
+      "type": "string"
     },
     "Slug": {
       "description": "A cross-reference identifier for a specification document.\n\nEvery relationship between documents is expressed as a slug rather than a\npath, so moving a file never breaks a reference. Slugs are kebab-case:\nlowercase alphanumeric words joined by single hyphens.",
