@@ -1,6 +1,6 @@
 <!-- GENERATED COPY — DO NOT EDIT.
      Source of truth: strata-lang/strata strata/options.strata
-     Vendored from commit: 44c195509444 (2026-07-28)
+     Vendored from commit: 8997153f7db2 (2026-08-01)
      Regenerate with: scripts/sync-strata-docs.sh
      Upstream owns this text. Fix it there, then re-run that script. -->
 
@@ -531,6 +531,17 @@ struct JSONSchemaOptions {
     Disabling it is useful for schemas that gate configuration files, where a misspelled
     key should be reported instead of silently ignored. The `OpenAi` schema version
     always emits `additionalProperties: false` regardless of this option.
+
+    A closed shape and `allOf` composition cannot coexist in JSON Schema: a derived
+    type's `allOf` carries a `$ref` to its base, and that referenced subschema
+    independently rejects every property the derived type adds. Setting this to
+    `false` therefore makes inheriting types emit their ancestors' properties inline
+    instead of as a `$ref`. Validation semantics are unchanged — the same documents
+    are accepted and rejected — but the emitted schema is larger and shares no
+    definitions between a type and its supertypes. `unevaluatedProperties` does not
+    avoid this: it can close a derived type, but a base type still has to be closed
+    for its own direct use, and a closed base cannot be composed no matter which
+    keyword closed it.
 
     Defaults to `true` (undeclared keys are allowed).
     """

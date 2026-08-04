@@ -39,15 +39,34 @@ cp -rf source dest          # NOT: cp -r source dest
 
 ## bead-bonanza gates
 
-This is a documentation and skills repository — there is no compiler and no
-test suite. The gates are the repo's own consistency checks.
+This repository is a documentation-and-skills corpus **plus** the Go module
+under `cli/` that implements the Spec CLI. The gates are the repo's own
+consistency checks and, for anything under `cli/`, the Go toolchain.
 
-- **Format:** *(none — markdown and shell only)*
-- **Lint:** `scripts/check-skills.sh`
-- **Build:** *(none)*
-- **Test (full suite):** `scripts/check-skills.sh --strict && scripts/sync-shared-references.sh --check && scripts/sync-strata-docs.sh --check`
+Run the Go gates from `cli/` — that is the module root, so `./...` and the
+`go test ./core/...` form the work orders cite both resolve there.
+
+- **Format:** `cd cli && gofmt -l .` — must print nothing (`gofmt -w .` to fix)
+- **Lint:** `scripts/check-skills.sh` and, when `cli/` changed, `cd cli && go vet ./...`
+- **Build:** `cd cli && go build ./...` *(no build step for the docs corpus)*
+- **Test (full suite):** `scripts/check-skills.sh --strict && scripts/sync-shared-references.sh --check && scripts/sync-strata-docs.sh --check` and, when `cli/` changed, `cd cli && go test ./...`
+
+### Custom gates
+
+```bash
+scripts/generate-schemas.sh --check   # committed artifacts under cli/core/{schema,specmodel}
+                                      # match the schemas/*.strata sources
+```
+
+Run it after any change to `schemas/*.strata`. The artifacts it checks are
+**generated — never hand-edit them**; regenerate with the same script without
+`--check` and commit the result in the same change.
 
 ### Targeted tests by surface
+
+- `cli/**` → `cd cli && gofmt -l . && go vet ./... && go test ./...`
+- `schemas/*.strata` → `scripts/generate-schemas.sh --check`, then
+  `cd cli && go build ./...` (the generated Go must still compile)
 
 - `plugin/skills/*/SKILL.md` → `scripts/check-skills.sh`
 - `plugin/skills/*/references/**` → `scripts/sync-shared-references.sh --check && scripts/check-skills.sh`
@@ -63,6 +82,30 @@ test suite. The gates are the repo's own consistency checks.
 
 ### Environmental-failure ledger
 
+- **KNOWN RED, pre-existing — `scripts/check-skills.sh --strict`.** It exits 1
+  on a *warning*: `plugin/skills/bead-bonanza/SKILL.md` is 859 lines against a
+  "under 500" guideline. Zero errors. Do not treat this as your change's
+  failure and do not try to fix it mid-run; shortening that skill is editorial
+  work with its own scope. The bar is **no new findings** — compare against
+  this baseline (`0 error(s), 1 warning(s)`) rather than expecting exit 0.
+- **`scripts/generate-schemas.sh --check` fails when the installed `strata`
+  predates `strata-lang/strata@8997153`.** That commit fixes
+  `allowAdditionalProperties: false` silently dropping struct inheritance.
+  An older binary regenerates `cli/core/schema/spec-model.schema.json` with
+  `"properties": {}` on every inheriting type, so `--check` reports the
+  committed (correct) artifacts as stale — the binary is wrong, not the repo.
+  **Never "fix" this by committing the regenerated output**; that would delete
+  the properties. Fix the binary:
+
+  ```bash
+  cd /path/to/strata && cargo build --release -p strata-cli   # ~1m20s
+  cp -f target/release/strata /usr/local/bin/strata
+  ```
+
+  Diagnosed 2026-08-04: the session hook had built `strata-cli 0.7.0` from
+  `44c1955` (2026-07-28), six days before the fix. Version strings are useless
+  here — both binaries report `0.7.0` — so check
+  `~/.cache/strata-cli/built-commit` against `8997153`, not `strata --version`.
 - `bd`: not preinstalled. `.claude/hooks/session-start.sh` installs it via the
   official installer, which needs `libicu-dev` for the Dolt/ICU cgo dependency
   — without those headers the build fails at `unicode/uregex.h: No such file`.
