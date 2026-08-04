@@ -84,9 +84,20 @@ the plugin, and no framework vocabulary is compiled into the host.
     every document as excluded with reason `unknown-type`.
   - The module SHALL NOT import, reference, or special-case any
     individual profile.
-  - WHEN a profile registers a document type, the module SHALL treat
-    that type's schema, slug pattern and required headings as the
-    authority for documents declaring it.
+  - The module SHALL accept from the active profile **one** JSON Schema
+    — a discriminated union over every document type that profile
+    defines — and SHALL validate a document's frontmatter against the
+    branch of that union its declared `type` selects. It is one schema,
+    not a registry of schemas keyed by type: a profile needing a schema
+    per type would be describing several vocabularies rather than one,
+    and the host would have to know which to reach for.
+  - WHEN a profile registers a document type, the module SHALL treat the
+    slug pattern and numbered flag that profile supplies for it as the
+    authority for documents declaring it. These are the facts the union
+    schema cannot express — a slug pattern because the shared
+    frontmatter envelope declares `slug` once and a subtype cannot narrow
+    an inherited property, and numbering because it is a query over the
+    corpus rather than a property of a document.
   - The module SHALL express every position it reports as a `Span`, so a
     caller never receives a bare line number.
   - WHEN a document fails to parse, the module SHALL record the failure
@@ -94,6 +105,29 @@ the plugin, and no framework vocabulary is compiled into the host.
     a whole (AC-SPEC-002.4).
   - The module SHALL NOT write to the filesystem outside a cache
     location the caller supplies.
+
+**Built** — the `Profile` interface in `cli/core/corpus` has three
+members and nothing else:
+
+| Member | Supplies |
+|---|---|
+| `Schema() []byte` | the one union schema every document type is validated against |
+| `DocumentTypes() map[string]DocumentTypeRules` | per type, its slug pattern and whether it is numbered — keyed by the value documents declare in `type` |
+| `Conventions() specmodel.ConventionsConfig` | the convention defaults resolved where an adopting repository's configuration omits them |
+
+`DocumentTypeRules` carries a slug pattern and a numbered flag, and no
+schema. The keys of `DocumentTypes` are the whole of the host's knowledge
+of which types exist, which is what makes the `unknown-type` exclusion a
+lookup rather than a judgement.
+
+The surface is narrow because it constrains everything downstream of it.
+Required sections, element records, reference properties and lifecycle
+rules are later capabilities and each widens this interface; per the
+Change Guidance in [[module-spec-profile]], that widening is a change to
+the host reviewed on its own merits, never a special case granted to one
+profile. Two tests hold the boundary: no package under `cli/core` imports
+a profile package, and no non-test source in `cli/core/corpus` contains a
+string literal matching any document type in the generated vocabulary.
 
 ## Components
 
