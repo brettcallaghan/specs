@@ -46,3 +46,5 @@
 {"id":"int-cdd8513e4dc7cc38b4f0fb2f08fe55c8","kind":"field_change","created_at":"2026-08-04T21:06:29.133105616Z","actor":"Claude","issue_id":"agent-plugins-47r","extra":{"field":"assignee","new_value":"Claude","old_value":""}}
 {"id":"int-75ee0646a551366eaae1eda4a6d8fa05","kind":"field_change","created_at":"2026-08-04T21:41:35.436497647Z","actor":"Claude","issue_id":"agent-plugins-bge.1","extra":{"field":"status","new_value":"in_progress","old_value":"open"}}
 {"id":"int-5ce093eefd863a3c4223c107806701af","kind":"field_change","created_at":"2026-08-04T21:47:34.718656292Z","actor":"Claude","issue_id":"agent-plugins-bge.1","extra":{"field":"status","new_value":"closed","old_value":"in_progress"}}
+{"id":"int-8a5c3e34d2db78faadc1f136d5830543","kind":"field_change","created_at":"2026-08-04T21:48:32.667151954Z","actor":"Claude","issue_id":"agent-plugins-bge.2","extra":{"field":"status","new_value":"in_progress","old_value":"open"}}
+{"id":"int-d13324dbad35bbbd00414c920df163bd","kind":"field_change","created_at":"2026-08-04T21:52:40.896600893Z","actor":"Claude","issue_id":"agent-plugins-bge.2","extra":{"field":"status","new_value":"closed","old_value":"in_progress"}}

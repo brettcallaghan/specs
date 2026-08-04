@@ -141,6 +141,37 @@ Keeping one scanner here is what makes positions consistent across
 components: two parsers that locate regions differently will disagree
 about where a finding is.
 
+**Built** — `cli/core/span`. Its surface is `Find`, which locates a
+delimited region and returns it as a `Region` carrying two spans: `Outer`
+over the whole construct including both delimiters, and `Inner` over the
+content between them. `Of` derives a span from a byte extent and `Slice`
+recovers the bytes a span covers.
+
+Three semantics are pinned by the implementation and are what every
+consumer may rely on:
+
+- **The scanner does not nest.** A second opening delimiter inside a
+  region is content, and the first closing delimiter after the opening
+  one ends the region. Neither frontmatter nor an HTML comment nests, and
+  a scanner that pretended otherwise would locate a region no parser
+  reading the same file would agree with.
+- **An unterminated opening delimiter yields no region,** rather than one
+  running to the end of the document. A caller that must report the
+  dangling delimiter as a defect locates it itself; conflating the two
+  would swallow the malformed input silently.
+- **Line and column are derived, and a column counts codepoints.** Byte
+  offset and length remain authoritative; the column follows this
+  framework's `line_width` convention of measuring codepoints rather than
+  bytes, so an em dash advances it by one.
+
+The `Span` type is a Go alias for the generated `specmodel.Span` rather
+than a second declaration. Spans owns how a position is computed and is
+the only place one is constructed; the shape it is written in comes from
+`schemas/index.strata`, because a span crosses the JSON boundary in both
+the index and — from the Findings component onward — every finding. One
+definition means no conversion between an in-memory span and a
+serialized one, and no way for the two to drift.
+
 ### Frontmatter
 
 ```component
