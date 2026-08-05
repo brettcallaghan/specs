@@ -1,10 +1,10 @@
 ---
 title: "ADR-009: Nodes-vs-Edges Ownership — Parents Own Child Edges"
 description: File every relationship at one altitude; parents own the edges among their children, and leaves stay light on edges and code
-slug: adr-009-nodes-and-edges-ownership
+slug: adr-009
 type: adr
 status: active
-updated_at: 2026-08-01T00:00:00Z
+updated_at: 2026-08-05T00:00:00Z
 ---
 
 # ADR-009: Nodes-vs-Edges Ownership — Parents Own Child Edges

@@ -1,10 +1,10 @@
 ---
 title: "ADR-006: Model Visibility and Kind as Orthogonal Frontmatter Signals"
 description: Record a module's publication tier and its pattern-ness as separate frontmatter fields, not one overloaded kind
-slug: adr-006-visibility-and-kind-orthogonal-signals
+slug: adr-006
 type: adr
 status: active
-updated_at: 2026-07-29T00:00:00Z
+updated_at: 2026-08-05T00:00:00Z
 ---
 
 # ADR-006: Model Visibility and Kind as Orthogonal Frontmatter Signals
@@ -59,4 +59,5 @@ in-container — carry only `kind`.
 
 - [[adr-005]] — the tiers this encodes
 - [[adr-011]] — visibility also gates the change rules
-- Template: `module-blueprint-template.md`; [[template-authoring-standards]]
+- Template: `module-blueprint-template.md`;
+  `plugin/skills/spec/references/template-authoring-standards.md`

@@ -6,10 +6,9 @@ description: Requirements for authoring agent skills in this repository —
 slug: skill-authoring-standards
 type: standards
 status: draft
-updated_at: 2026-07-31T00:00:00Z
+updated_at: 2026-08-05T00:00:00Z
 version: "0.2"
 related:
-  - "template-authoring-standards"
   - "adr-013"
 ---
 
@@ -21,10 +20,10 @@ skills under `.claude/skills/`. They apply to skill authors and to any
 agent modifying a skill on their behalf.
 
 This document is the skill-side counterpart to
-[[template-authoring-standards]], which governs document templates. Where
-that document asks "how is a template written," this one asks "how is a
-skill written so an agent can find it, load only what it needs, and follow
-it without improvising."
+`plugin/skills/spec/references/template-authoring-standards.md`, which
+governs document templates. Where that document asks "how is a template
+written," this one asks "how is a skill written so an agent can find it,
+load only what it needs, and follow it without improvising."
 
 Authority is twofold. The upstream authority is Anthropic's published
 skill-authoring best practices (see References). The rationales below draw
@@ -503,8 +502,9 @@ stamp the question requires diff archaeology.
 
 ## References
 
-- [[template-authoring-standards]] — the counterpart standards for
-  document templates: frontmatter, slugs, instruction blocks, versioning
+- `plugin/skills/spec/references/template-authoring-standards.md` — the
+  counterpart standards for document templates: frontmatter, slugs,
+  instruction blocks, versioning
 - [[adr-013]] — terminology decision for the atomic unit of executable work
 - [Anthropic — Skill authoring best practices](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices)
   — the upstream authority these requirements implement and extend

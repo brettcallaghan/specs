@@ -1,10 +1,10 @@
 ---
 title: "ADR-002: Use EARS Notation for Requirements"
 description: Adopt EARS (Easy Approach to Requirements Syntax) for writing clear, testable requirements
-slug: adr-002-ears-for-requirements
+slug: adr-002
 type: adr
 status: active
-updated_at: 2026-07-29T00:00:00Z
+updated_at: 2026-08-05T00:00:00Z
 ---
 
 # ADR-002: Use EARS Notation for Requirements
