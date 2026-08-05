@@ -16,7 +16,7 @@ skill_version: "1.3"
 model: "claude-opus-5"
 effort: unknown
 runs_observed: 1
-severity: major
+severity: blocker
 plugin_version: "0.14.0"
 related:
   - "testing-standards"
