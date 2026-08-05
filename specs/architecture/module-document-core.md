@@ -6,7 +6,7 @@ description: The framework-agnostic engine that indexes markdown
 slug: module-document-core
 type: module-blueprint
 status: approved
-updated_at: 2026-08-04T00:00:00Z
+updated_at: 2026-08-05T00:00:00Z
 kind: standard
 visibility: internal
 contracts_provided: []
@@ -386,6 +386,46 @@ The index is not yet a contract document. It has one producer and no
 independently-built consumer, so the generated JSON Schema is its interim
 machine-readable specification; promotion, with a formal versioning
 policy, waits for the first consumer.
+
+**Built** — `cli/core/corpus`. `Build` walks the spec root and returns a
+`Corpus`: the populated `specmodel.SpecIndex`, the findings discovery
+raised over it, and the lookups the queries need — `Entry` by path,
+`Slug` by identifier, and `FindingsFor` to narrow a whole-corpus result
+to one file. Persisting that index and serving it warm are a separate
+concern and live elsewhere; nothing here writes to the filesystem.
+
+Five semantics are pinned by the implementation:
+
+- **Only regular files ending in `.md` are candidates**, matched without
+  regard to letter case, and everything else is passed over without being
+  recorded (AC-SPEC-001.6). Excluding symlinks is what closes the one
+  route by which a walk could leave the spec root, since `filepath.WalkDir`
+  already declines to descend into a symlinked directory; reads go through
+  an `os.Root` handle on top of that, so a path resolving outside the root
+  is refused by the operating system rather than by a check this package
+  would have to get right (AC-SPEC-001.5).
+- **A file that claimed to be a specification and could not be read is an
+  entry, not an exclusion.** Unparsable frontmatter, and frontmatter that
+  parses as YAML but does not fit the envelope, are both recorded as a
+  located `parse_error` against their own member while every other
+  document still indexes (AC-SPEC-002.4). An exclusion is reserved for the
+  two judgements the reader needs — no frontmatter, and a type the profile
+  does not define.
+- **A `.md` file with frontmatter declaring no `type` at all is
+  `unknown-type` with no declared value reported.** It is not a document
+  the active profile governs, and reporting an empty `type` would claim
+  the file said something it did not.
+- **Duplicate slugs are compared lowercased** (AC-SPEC-003.4) and reported
+  as every ordered pair within a colliding group, so that checking any one
+  member surfaces every collision it takes part in (AC-SPEC-003.3). Each
+  finding quotes the slug as *its own* document declared it, so a
+  case-only collision is legible in the report rather than normalised
+  away.
+- **Ordering is the component's, not the walk's.** Directory iteration
+  order is a property of a filesystem; entries and exclusions are sorted
+  by path and findings ordered through `Report`, the one authority for
+  finding order, so the same corpus content yields identical output
+  wherever it is built.
 
 ### Numbering
 
