@@ -7,8 +7,10 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
 	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
@@ -141,10 +143,57 @@ func writeAtomic(dest string, data []byte) error {
 	if err := os.Chmod(name, 0o644); err != nil {
 		return fmt.Errorf("corpus: writing %s: %w", dest, err)
 	}
-	if err := os.Rename(name, dest); err != nil {
+	if err := replace(name, dest); err != nil {
 		return fmt.Errorf("corpus: replacing %s: %w", dest, err)
 	}
 	return nil
+}
+
+// replaceRetryBudget bounds how long [replace] will wait out a Windows
+// sharing conflict before reporting it. Generous relative to the conflict
+// it covers — a reader holds the index open for microseconds — so that
+// exhausting it means something else is wrong (an editor, a virus
+// scanner, a stuck process) and the error is worth surfacing.
+const replaceRetryBudget = 2 * time.Second
+
+// replace renames name onto dest, waiting out a transient sharing
+// conflict on Windows.
+//
+// On POSIX this is one unconditional call: rename replaces the
+// destination whether or not anyone holds it open. Windows does not.
+// MoveFileEx refuses to replace a file that another handle has open
+// unless that handle was opened with FILE_SHARE_DELETE, and Go's os.Open
+// does not request it (golang/go#32088) — so an ordinary concurrent
+// reader of the index makes the replace fail with "Access is denied"
+// until it closes. That is not a hypothetical here: the index is rewritten
+// by a write-time hook while queries read it, which is the exact
+// interleaving AC-SPEC-010.4 exists to make safe.
+//
+// The conflict is transient by construction, so a bounded retry is the
+// whole remedy. What it does *not* change is the atomicity guarantee: the
+// rename is still a single operation when it lands, and a reader still
+// sees one complete version or the other, never a partial file. The retry
+// only keeps the writer from reporting a failure that would not have
+// occurred on any other platform.
+//
+// AC: AC-SPEC-010.4
+func replace(name, dest string) error {
+	err := os.Rename(name, dest)
+	// os.IsPermission maps ERROR_ACCESS_DENIED on Windows, and the GOOS
+	// guard keeps a genuine permission error on POSIX — where no amount of
+	// waiting helps — reported immediately rather than two seconds late.
+	if err == nil || runtime.GOOS != "windows" || !os.IsPermission(err) {
+		return err
+	}
+
+	deadline := time.Now().Add(replaceRetryBudget)
+	for backoff := time.Millisecond; time.Now().Before(deadline); backoff = min(backoff*2, 50*time.Millisecond) {
+		time.Sleep(backoff)
+		if err = os.Rename(name, dest); err == nil || !os.IsPermission(err) {
+			return err
+		}
+	}
+	return err
 }
 
 // Load reads a persisted index from path.
