@@ -496,6 +496,17 @@ is one greater than the highest ADR number in the corpus, regardless of
 directory. It reads the index rather than the filesystem, so it costs a
 query rather than a corpus walk.
 
+**Built** — `cli/core/numbering`. Its surface is `Next`, which takes the
+built `SpecIndex`, a document type, and the profile's numbered-type
+table, and returns one greater than the highest number in use for that
+type — reading the run of digits immediately following the
+`<type>-` prefix out of each matching member's slug, wherever in the
+corpus that member sits. An index with no member of the type — an empty
+corpus included — has a highest-in-use of zero, so `Next` returns 1. A
+type the table does not register as numbered, whether absent from it or
+present with `Numbered` false, returns `ErrNotNumbered` rather than an
+answer derived from the wrong query.
+
 ### Findings
 
 ```component
