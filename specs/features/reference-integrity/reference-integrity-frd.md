@@ -81,6 +81,19 @@ deliberately, not overlooked:
   edges is a schema decision recorded in the index-schema ADR, not
   here. This FRD states what must be recorded and answerable, not how
   the index models it.
+- **Resolving a reference across workspaces.** AC-SPEC-002.3 gives
+  every entry a workspace identifier so indexes from separate
+  repositories merge into one graph, but this feature resolves only
+  within the workspace it is run against. A reference to a slug that
+  exists only in another repository's index is reported as unresolved.
+  The merged-graph case is a known follow-on, not a defect for the
+  first team that tries it to discover.
+- **Reporting an unreferenced document.** Inbound edges make an orphan
+  free to detect, but whether a document *should* be reachable is a
+  judgment about the corpus, not a conformance rule — a draft is
+  expected to be uncited, and a warning on every new document is a
+  warning nobody reads. AC-SPECREF-003.5 answers the question on
+  demand; no check reports it.
 - **Rendering the reference graph**, and export to any third-party
   format.
 
@@ -253,6 +266,16 @@ a reader follows it into nothing.
     AC-SPEC-003.4 already establishes — the two rules must agree, or a
     corpus can hold a reference that resolves to two documents that
     cannot both exist.
+- **AC-SPECREF-002.10:** WHEN the CLI checks a single document, the CLI
+  SHALL report inbound references to that document that no longer
+  resolve, each cited at the span in the referring document, in addition
+  to findings against the document named.
+  - *Example:* An agent changes an ADR's slug and the write-time check
+    on that one file reports the seven documents now pointing at
+    nothing, at their own lines. Without this, the edit most likely to
+    break references is the one a single-document check cannot see: the
+    seven referrers were not the file that was written, so nothing
+    examines them until CI.
 
 *Rationale:* Severity is assigned here rather than left to
 implementation because it is what the exit status of a build depends on.
@@ -269,6 +292,16 @@ this. It also means this feature does not block on
 [[frd-spec-structure-conformance]] — it ships with the anchor check
 honest about what it cannot yet do, and gains resolution when heading
 data arrives.
+
+AC-SPECREF-002.10 is the one place this feature widens a check's blast
+radius rather than narrowing it, and it does so deliberately.
+AC-SPEC-001.2 already resolves a single document's references against
+the whole corpus, so the data is present; what was missing is the
+reverse direction. A finding belongs to the document a reader must open
+to fix it, which for broken inbound references is the referrer, not the
+document that was edited. The inbound edges of AC-SPECREF-001.3 are held
+by the warm index, so this costs a lookup rather than a corpus walk and
+stays inside AC-SPEC-009.2's single-document budget.
 
 ### REQ-SPECREF-003: Reference Queries
 
@@ -296,6 +329,11 @@ renaming a document without reading every file.
     the lines that carry the reference rather than each citing document.
 - **AC-SPECREF-003.4:** The `refs` subcommand SHALL answer from the warm
   index within the budget AC-SPEC-009.1 sets for a corpus query.
+- **AC-SPECREF-003.5:** WHEN no corpus member references the named slug,
+  the CLI SHALL report that and exit zero.
+  - *Example:* `spec refs frd-spec-reference-integrity` returning
+    nothing is the answer that a document is unreferenced, not a
+    failure — the same contract `slug-exists` sets in AC-SPEC-007.2.
 
 *Rationale:* This extends the command surface REQ-SPEC-011 fixed without
 renaming or repurposing any of its four subcommands, which is the growth
