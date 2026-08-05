@@ -1,4 +1,5 @@
 description = "index --out - streams the index to standard output"
 cites = ["AC-SPEC-011.1"]
+artifacts = ["manifest.json"]
 args = ["index", "--out", "-"]
 exit_code = 0

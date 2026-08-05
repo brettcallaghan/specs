@@ -1,4 +1,5 @@
 description = "slug-exists reports the path of the corpus member declaring the given slug"
 cites = ["AC-SPEC-011.3"]
+artifacts = ["checks.log"]
 args = ["slug-exists", "adr-001-example"]
 exit_code = 0

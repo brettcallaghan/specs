@@ -15,6 +15,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -35,6 +36,27 @@ type caseManifest struct {
 	Cites       []string `toml:"cites"`
 	Args        []string `toml:"args"`
 	ExitCode    int      `toml:"exit_code"`
+
+	// Artifacts names every file under the case's expected/ directory
+	// that this case asserts against — "checks.log", "manifest.json", or
+	// both.
+	//
+	// It exists because the comparison functions below can only skip an
+	// artifact they cannot find, and a skipped comparison is
+	// indistinguishable from a passing one. Without a declaration, a case
+	// whose artifact is deleted, renamed, or misspelled quietly degrades
+	// to asserting nothing but its exit status, and keeps reporting
+	// success. That is not hypothetical: every artifact comparison in
+	// this suite silently skipped for several commits because the case
+	// directory was resolved relatively and the run had already chdir'd
+	// away from it (see the filepath.Abs note in runSnapshotCaseWith).
+	// The bug was a wrong path; the reason it went unnoticed is that
+	// nothing required the comparisons to happen.
+	//
+	// checkAssertionCoverage reconciles this list against expected/ in
+	// both directions, so a missing artifact and an orphaned one are each
+	// a failure rather than a silence.
+	Artifacts []string `toml:"artifacts"`
 }
 
 // TestSnapshotCases replays every case under cli/testdata/cases/ and
@@ -95,6 +117,8 @@ func runSnapshotCaseWith(t *testing.T, dir string, materialize func(src, dst str
 		t.Fatalf("decoding case.toml: %v", err)
 	}
 
+	checkAssertionCoverage(t, dir, manifest)
+
 	work := t.TempDir()
 	inputDir := filepath.Join(dir, "input")
 	if _, err := os.Stat(inputDir); err == nil {
@@ -126,19 +150,92 @@ func runSnapshotCaseWith(t *testing.T, dir string, materialize func(src, dst str
 			exitCode, manifest.ExitCode, stdout.String(), stderr.String())
 	}
 
-	checkChecksLog(t, dir, stdout.String())
-	checkManifest(t, dir, work, manifest.Args, stdout.String())
+	checkChecksLog(t, dir, stdout.String(), manifest)
+	checkManifest(t, dir, work, manifest.Args, stdout.String(), manifest)
+}
+
+// knownArtifacts is every expected/ filename this harness knows how to
+// compare. A case naming anything else has a typo or is asking for a
+// comparison that does not exist, and either way its declaration would
+// otherwise be satisfied by a file nothing reads.
+var knownArtifacts = map[string]bool{
+	"checks.log":    true,
+	"manifest.json": true,
+}
+
+// checkAssertionCoverage reconciles the case's declared artifacts against
+// what is actually on disk under expected/, in both directions, and
+// requires that it assert something beyond its exit status.
+//
+// This is the guard that makes a skipped comparison impossible to mistake
+// for a passing one. Every failure it reports is a case that would
+// otherwise still be green:
+//
+//   - declared but absent — the artifact was deleted or renamed, and the
+//     comparison silently stopped happening;
+//   - present but undeclared — the file is misspelled (expected/check.log)
+//     or left over, so it is never read and the case asserts less than it
+//     appears to;
+//   - nothing declared — the case checks only its exit status, which for
+//     a snapshot case is almost always an oversight rather than a choice.
+func checkAssertionCoverage(t *testing.T, dir string, manifest caseManifest) {
+	t.Helper()
+
+	declared := map[string]bool{}
+	for _, a := range manifest.Artifacts {
+		if !knownArtifacts[a] {
+			t.Errorf("case.toml declares artifact %q, which this harness cannot compare; known artifacts are checks.log and manifest.json", a)
+			continue
+		}
+		if declared[a] {
+			t.Errorf("case.toml declares artifact %q twice", a)
+		}
+		declared[a] = true
+	}
+
+	if len(declared) == 0 {
+		t.Errorf("case.toml declares no artifacts, so this case asserts nothing but its exit status.\n" +
+			"Add an expected/ artifact and name it in artifacts = [...]; a case that genuinely\n" +
+			"cannot assert output should say why in its description and is probably a Go test.")
+	}
+
+	present := map[string]bool{}
+	entries, err := os.ReadDir(filepath.Join(dir, "expected"))
+	if err != nil && !os.IsNotExist(err) {
+		t.Fatalf("reading expected/: %v", err)
+	}
+	for _, e := range entries {
+		if !e.IsDir() {
+			present[e.Name()] = true
+		}
+	}
+
+	for name := range declared {
+		if !present[name] {
+			t.Errorf("case.toml declares artifact %q but expected/%s does not exist — the comparison this case claims to make cannot happen", name, name)
+		}
+	}
+	for name := range present {
+		if !declared[name] {
+			t.Errorf("expected/%s exists but case.toml does not declare it, so nothing reads it; add it to artifacts = [...] or delete it", name)
+		}
+	}
 }
 
 // checkChecksLog compares actual standard output against
-// expected/checks.log, when the case carries one.
-func checkChecksLog(t *testing.T, dir, stdout string) {
+// expected/checks.log, when the case declares one.
+//
+// A case that does not declare checks.log skips this comparison
+// deliberately; checkAssertionCoverage has already established that the
+// declaration and the directory agree, so the skip cannot be an accident.
+func checkChecksLog(t *testing.T, dir, stdout string, manifest caseManifest) {
 	t.Helper()
 
-	want, err := os.ReadFile(filepath.Join(dir, "expected", "checks.log"))
-	if os.IsNotExist(err) {
+	if !slices.Contains(manifest.Artifacts, "checks.log") {
 		return
 	}
+
+	want, err := os.ReadFile(filepath.Join(dir, "expected", "checks.log"))
 	if err != nil {
 		t.Fatalf("reading expected/checks.log: %v", err)
 	}
@@ -148,18 +245,22 @@ func checkChecksLog(t *testing.T, dir, stdout string) {
 }
 
 // checkManifest compares the produced index against expected/manifest.json,
-// when the case carries one. Where the produced index landed depends on
+// when the case declares one. Where the produced index landed depends on
 // the case's own --out argument: standard output when it is "-", the
 // named file otherwise, and the default specs.json inside the spec root
 // when --out was not given at all.
-func checkManifest(t *testing.T, dir, work string, args []string, stdout string) {
+//
+// As with checkChecksLog, the skip is driven by the declaration rather
+// than by whether the file happens to be readable.
+func checkManifest(t *testing.T, dir, work string, args []string, stdout string, manifest caseManifest) {
 	t.Helper()
+
+	if !slices.Contains(manifest.Artifacts, "manifest.json") {
+		return
+	}
 
 	wantPath := filepath.Join(dir, "expected", "manifest.json")
 	want, err := os.ReadFile(wantPath)
-	if os.IsNotExist(err) {
-		return
-	}
 	if err != nil {
 		t.Fatalf("reading expected/manifest.json: %v", err)
 	}
