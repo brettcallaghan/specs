@@ -6,8 +6,8 @@ description: The type-independent self-check every spec document passes
 slug: document-readiness-checklist
 type: standards
 status: active
-updated_at: 2026-07-30T00:00:00Z
-version: "0.1"
+updated_at: 2026-08-05T00:00:00Z
+version: "0.2"
 related:
   - "template-authoring-standards"
   - "cross-document-references"
@@ -17,6 +17,7 @@ related:
 
 ## Contents
 
+- Who decides — which checks the `spec` CLI settles and which are yours
 - Frontmatter checks #1–#3 — does the metadata conform? (required
   properties, slug, status vocabulary)
 - Normative-statement checks #4–#5 — are the requirements well formed?
@@ -39,6 +40,48 @@ Most checks below enforce rules the framework already owns elsewhere.
 Where that is so, the check cites its owner instead of repeating it — a
 restated rule drifts from its source. Only checks 4, 5 and 7 are stated
 here in this document's own voice.
+
+---
+
+## Who decides
+
+Run `spec check <path>` first. It settles checks 1–3 outright: it parses
+the frontmatter, validates every property against the schema for the
+document's `type`, matches the slug against that type's registered
+pattern, and reports a slug already claimed elsewhere in the corpus.
+Read its findings; each names the rule, the span, and the value that
+violated it.
+
+A `frontmatter/parse` finding (row 0 below) comes before all of them and
+is not one of the eight: it means the frontmatter could not be read as a
+document envelope, so no other check examined this document. Fix it and
+re-run before reading anything else in the report. The usual cause is a
+template placeholder left unfilled — `updated_at:
+<YYYY-MM-DDTHH:MM:SSZ>` is not a date.
+
+| # | Check | Decided by |
+|---|-------|------------|
+| 0 | Frontmatter is readable at all | `spec check` |
+| 1 | Required properties present and parseable | `spec check` |
+| 2 | Slug matches the pattern for this type; unique | `spec check` |
+| 3 | Status is in the controlled vocabulary | `spec check` |
+| 4 | Every normative statement uses an EARS pattern | you |
+| 5 | No requirement joins two modal verbs | you |
+| 6 | No prose line exceeds the width limit | you — CLI planned |
+| 7 | No template instruction blocks survive | you |
+| 8 | Every `[[slug]]` reference resolves | you — CLI planned |
+
+**A clean `spec check` is not a passing document.** It means row 0 and
+checks 1–3 passed. Checks 4, 5 and 7 are judgement the tool does not
+make, and 6 and 8 are specified but not built — a silent tool is not a
+passing grade for them.
+
+WHERE the CLI is not installed, every check below is still defined and
+still runs; you carry out 1–3 by hand instead, against the property
+definitions and prefix registry the checks cite. Say which happened —
+"`spec check` reports no findings" and "I read the frontmatter and it
+looks right" are different claims, and only the first can be re-run by a
+reviewer. `spec-cli.md` covers installation.
 
 ---
 
@@ -86,11 +129,15 @@ here in this document's own voice.
 Run it before setting a document to `ready-for-review`, fix what it
 reports, then run it again — a fix for one check often breaks another
 (rewrapping a line for check 6 can bury the compound requirement that
-check 5 looks for). Do not set `ready-for-review` while any check
-fails.
+check 5 looks for). Re-run `spec check <path>` on each pass too: it is
+one subprocess, and an edit made to satisfy check 5 can break check 1
+by disturbing the frontmatter above it. Do not set `ready-for-review`
+while any check fails.
 
 ## References
 
+- `spec-cli.md` — the CLI that settles checks 1–3, and what it does
+  not yet check
 - `template-authoring-standards.md` (same directory) — frontmatter
   properties, slug conventions, line width, instruction blocks
 - `frontmatter-standards.md` — the `status` controlled vocabulary

@@ -20,10 +20,19 @@ import (
 // than reconciling a second channel — a defect discovered at Build and one
 // discovered here are indistinguishable to a consumer.
 //
-// A member excluded from the corpus (no frontmatter, unknown type) or
-// recorded against itself with a parse error has already been reported
-// through the index's exclusions or the member's own parse_error and is
-// not revisited here — there is no frontmatter to check it against.
+// A member excluded from the corpus (no frontmatter, unknown type) has
+// already been reported through the index's exclusions and is not
+// revisited here: a file with no frontmatter is not claiming to be a
+// specification, so it has nothing to conform to.
+//
+// A member recorded with a parse error is the opposite case and IS
+// reported here, as [finding.RuleFrontmatterParse]. That document did
+// claim to be a specification and got the claim wrong. Skipping it —
+// which this function did until agent-plugins-5xo — left the run
+// reporting every rule as `passed` for the one document in the corpus
+// nothing had been able to read, so the worse a document's frontmatter
+// was, the quieter the tool got. The index recording the parse error is
+// not a substitute: `spec check` never shows the caller the index.
 //
 // An error is returned only when the active profile's schema does not
 // compile; a document's own defects are always findings, never errors.
@@ -62,6 +71,13 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 			continue
 		}
 		if entry.Frontmatter == nil {
+			// No parsed envelope, so nothing below can run against this
+			// document. Report why rather than passing over it in
+			// silence; see this function's doc comment.
+			if entry.ParseError != nil {
+				report.Add(finding.FrontmatterParse(
+					entry.Path, entry.ParseError.Position, entry.ParseError.Message))
+			}
 			continue
 		}
 		doc, ok := c.document(entry.Path)

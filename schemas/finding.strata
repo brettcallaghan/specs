@@ -115,6 +115,30 @@ struct FindingDuplicateSlug {
 }
 
 """
+A frontmatter block that could not be read as a document envelope.
+
+Distinct from a schema violation, and reported by a different route: a
+schema violation is found by validating a parsed envelope, while this is
+what happens when there is no parsed envelope to validate. The document
+declared itself a specification and got the declaration wrong badly
+enough that nothing downstream can look at it.
+
+Modelled separately because it is the one finding that suppresses all
+the others for its document. A consumer must be able to tell "this
+document passed every check" from "no check could run against this
+document", and the rule identifier alone does not carry that: the other
+checks report `passed` for a document they never examined unless
+something says otherwise.
+"""
+struct FindingFrontmatterParse {
+  """
+  What could not be read, quoted from the parser so the message needs no
+  further lookup to act on.
+  """
+  message: String
+}
+
+"""
 A check that was requested and could not run.
 
 This is the structured half of the `unverified` severity: the reason
@@ -155,6 +179,9 @@ union FindingDetail {
 
   """A slug declared by two corpus members."""
   @tag("duplicate-slug") DuplicateSlug: FindingDuplicateSlug
+
+  """A frontmatter block that could not be read as a document envelope."""
+  @tag("frontmatter-parse") FrontmatterParse: FindingFrontmatterParse
 
   """A requested check that could not run."""
   @tag("unverified") Unverified: FindingUnverified

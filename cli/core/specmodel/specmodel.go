@@ -189,6 +189,26 @@ type FindingDuplicateSlug struct {
 	OtherPath string `json:"other_path"`
 }
 
+// A frontmatter block that could not be read as a document envelope.
+//
+// Distinct from a schema violation, and reported by a different route: a
+// schema violation is found by validating a parsed envelope, while this is
+// what happens when there is no parsed envelope to validate. The document
+// declared itself a specification and got the declaration wrong badly
+// enough that nothing downstream can look at it.
+//
+// Modelled separately because it is the one finding that suppresses all
+// the others for its document. A consumer must be able to tell "this
+// document passed every check" from "no check could run against this
+// document", and the rule identifier alone does not carry that: the other
+// checks report `passed` for a document they never examined unless
+// something says otherwise.
+type FindingFrontmatterParse struct {
+	// What could not be read, quoted from the parser so the message needs no
+	// further lookup to act on.
+	Message string `json:"message"`
+}
+
 // A check that was requested and could not run.
 //
 // This is the structured half of the `unverified` severity: the reason
@@ -217,11 +237,12 @@ type FindingDetail struct {
 	Value FindingDetailVariant
 }
 
-func (FindingSchemaViolation) isFindingDetailVariant() {}
-func (FindingMissingProperty) isFindingDetailVariant() {}
-func (FindingSlugPattern) isFindingDetailVariant()     {}
-func (FindingDuplicateSlug) isFindingDetailVariant()   {}
-func (FindingUnverified) isFindingDetailVariant()      {}
+func (FindingSchemaViolation) isFindingDetailVariant()  {}
+func (FindingMissingProperty) isFindingDetailVariant()  {}
+func (FindingSlugPattern) isFindingDetailVariant()      {}
+func (FindingDuplicateSlug) isFindingDetailVariant()    {}
+func (FindingFrontmatterParse) isFindingDetailVariant() {}
+func (FindingUnverified) isFindingDetailVariant()       {}
 
 func NewFindingDetailSchemaViolation(v FindingSchemaViolation) FindingDetail {
 	return FindingDetail{Value: v}
@@ -236,6 +257,10 @@ func NewFindingDetailSlugPattern(v FindingSlugPattern) FindingDetail {
 }
 
 func NewFindingDetailDuplicateSlug(v FindingDuplicateSlug) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailFrontmatterParse(v FindingFrontmatterParse) FindingDetail {
 	return FindingDetail{Value: v}
 }
 
@@ -263,6 +288,11 @@ func (u FindingDetail) AsDuplicateSlug() (FindingDuplicateSlug, bool) {
 	return v, ok
 }
 
+func (u FindingDetail) AsFrontmatterParse() (FindingFrontmatterParse, bool) {
+	v, ok := u.Value.(FindingFrontmatterParse)
+	return v, ok
+}
+
 func (u FindingDetail) AsUnverified() (FindingUnverified, bool) {
 	v, ok := u.Value.(FindingUnverified)
 	return v, ok
@@ -284,6 +314,9 @@ func (u FindingDetail) MarshalJSON() ([]byte, error) {
 		payload, err = json.Marshal(v)
 	case FindingDuplicateSlug:
 		tag = "duplicate-slug"
+		payload, err = json.Marshal(v)
+	case FindingFrontmatterParse:
+		tag = "frontmatter-parse"
 		payload, err = json.Marshal(v)
 	case FindingUnverified:
 		tag = "unverified"
@@ -340,6 +373,13 @@ func (u *FindingDetail) UnmarshalJSON(data []byte) error {
 		return nil
 	case "duplicate-slug":
 		var v FindingDuplicateSlug
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "frontmatter-parse":
+		var v FindingFrontmatterParse
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}

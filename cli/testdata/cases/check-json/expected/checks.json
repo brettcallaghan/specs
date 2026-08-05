@@ -1,1 +1,1 @@
-{"checks":[{"rule":"frontmatter/missing-property","outcome":"passed"},{"rule":"frontmatter/schema","outcome":"passed"},{"rule":"slug/duplicate","outcome":"passed"},{"rule":"slug/pattern-mismatch","outcome":"passed"}],"findings":[]}
+{"checks":[{"rule":"frontmatter/missing-property","outcome":"passed"},{"rule":"frontmatter/parse","outcome":"passed"},{"rule":"frontmatter/schema","outcome":"passed"},{"rule":"slug/duplicate","outcome":"passed"},{"rule":"slug/pattern-mismatch","outcome":"passed"}],"findings":[]}

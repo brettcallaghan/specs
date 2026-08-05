@@ -6,7 +6,7 @@ description: Parses cross-document references from a spec corpus, records
 slug: frd-spec-reference-integrity
 type: frd
 status: draft
-updated_at: 2026-08-04T00:00:00Z
+updated_at: 2026-08-05T00:00:00Z
 sources: []
 related:
   - "frd-spec-validation-cli"
@@ -99,8 +99,11 @@ a reader follows it into nothing.
   reference that matches no corpus member's slug, the CLI SHALL report a
   finding with the file, line, and unresolved slug.
   - *Example:* `[[adr-011]]` in `ADR-004` reports as unresolved while
-    that ADR's frontmatter declares
-    `slug: adr-011-targeted-verification-gates`.
+    the target's frontmatter declares
+    `slug: adr-011-targeted-verification-gates`. This was this
+    repository's own state until the slugs were migrated to the
+    number-only form [[adr-012]] decided; the check exists so the next
+    such drift is caught by the build rather than by a prototype.
 - **AC-SPECREF-002.2:** WHEN a reference names a heading anchor and the
   target document has no heading matching it, the CLI SHALL report a
   finding naming the target document and the missing anchor.

@@ -1,0 +1,5 @@
+description = "a document whose frontmatter cannot be decoded is reported, not silently skipped"
+cites = ["AC-SPEC-003.6", "AC-SPEC-006.6"]
+artifacts = ["checks.log"]
+args = ["check"]
+exit_code = 1

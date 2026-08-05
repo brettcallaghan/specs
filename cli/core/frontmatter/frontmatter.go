@@ -181,8 +181,28 @@ func (d *Document) Values() map[string]any {
 // into one of the generated records: they carry json tags and no yaml
 // ones, so JSON is the crossing point between the generic model and the
 // typed one.
+//
+// HTML escaping is turned off. [json.Marshal] rewrites <, > and & as the
+// six-character sequences \u003c, \u003e and \u0026, which is
+// semantically identical to any JSON reader but is not identical to a
+// human: a decode failure quotes the source text it saw, so a document
+// carrying the template placeholder `updated_at: <YYYY-MM-DDTHH:MM:SSZ>`
+// produced the diagnostic
+// `parsing time "\u003cYYYY-MM-DDTHH:MM:SSZ\u003e"`. This value never
+// reaches an HTML document — it is decoded into a record and validated
+// against a schema in the same process — so the escaping bought nothing
+// and cost the legibility of exactly the messages a reader most needs.
+//
+// Encoder.Encode appends a newline that Marshal does not; it is trimmed
+// so callers see the same bytes they did before.
 func (d *Document) JSON() ([]byte, error) {
-	return json.Marshal(d.values)
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	if err := enc.Encode(d.values); err != nil {
+		return nil, err
+	}
+	return bytes.TrimRight(buf.Bytes(), "\n"), nil
 }
 
 // readProperty builds one property from a key/value pair, resolving both

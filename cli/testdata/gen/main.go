@@ -5,10 +5,11 @@
 //
 // It is not itself the test: cli/cmd/snapshot_test.go replays the same
 // cases and compares against whatever is committed. This program only
-// produces the committed side, and only for the two artifacts a case may
-// declare — expected/checks.log (standard output) and
-// expected/manifest.json (the produced index) — never both when the
-// case's argument vector produces only one.
+// produces the committed side, and writes exactly the artifacts each
+// case declares in its own case.toml — a standard-output artifact
+// (expected/checks.log for a human-readable run, expected/checks.json
+// for a --json one) and/or expected/manifest.json for the produced
+// index. A case that declares none gets none.
 //
 // Usage, from the cli module root:
 //
@@ -27,6 +28,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/BurntSushi/toml"
@@ -42,32 +44,33 @@ import (
 type caseManifest struct {
 	Args     []string `toml:"args"`
 	ExitCode int      `toml:"exit_code"`
+
+	// Artifacts is the case's own declaration of what it asserts
+	// against, and is what this program writes — nothing more.
+	//
+	// It replaces two hardcoded name tables (indexProducingCases and
+	// omitChecksLog) that this program used to carry. They were a
+	// standing invitation to drift: the harness decides what to compare
+	// from this list, so a case whose artifacts the tables disagreed
+	// with got an expected/ directory the harness then rejected as
+	// orphaned — or, worse, silently wrote a JSON payload to a name
+	// ending in .log. Reading the declaration means the generator and
+	// the harness cannot disagree about which files a case owns.
+	Artifacts []string `toml:"artifacts"`
 }
 
-// indexProducingCases names every case whose argument vector builds an
-// index, and so carries expected/manifest.json rather than (or, for a
-// case that also reports where it wrote the file, alongside)
-// expected/checks.log.
-//
-// This table exists because a case's own argument vector does not by
-// itself say whether its expected artifact is a check report or a
-// produced index — both `check --json` and `index --out -` write JSON to
-// standard output, and only one of them is a manifest. Declaring which
-// case is which here (repeated as the harness's own skipChecksLog and
-// wantsManifest below) is this program's alternative to inspecting the
-// case name.
-var indexProducingCases = map[string]bool{
-	"index-default":    true,
-	"index-out-custom": true,
-	"index-out-stdout": true,
-}
+// stdoutArtifacts are the two names a case may give its standard-output
+// artifact, mirroring cli/cmd/snapshot_test.go's list of the same name:
+// checks.log for a human-readable run, checks.json for a --json one. A
+// case declares at most one of them.
+var stdoutArtifacts = []string{"checks.log", "checks.json"}
 
-// omitChecksLog names a case whose argument vector produces only the
-// index artifact, so expected/checks.log is omitted entirely rather than
-// duplicating expected/manifest.json's content under a second name
-// (testing-standards.md: "the case SHALL omit the other").
-var omitChecksLog = map[string]bool{
-	"index-out-stdout": true,
+// manifestArtifact is the name a case gives the index a run produced.
+const manifestArtifact = "manifest.json"
+
+// declares reports whether the case asserts against the named artifact.
+func (m caseManifest) declares(name string) bool {
+	return slices.Contains(m.Artifacts, name)
 }
 
 func main() {
@@ -94,6 +97,25 @@ func main() {
 }
 
 func regenerate(dir, name string) error {
+	// Absolute before anything else, because this function chdir's into a
+	// scratch directory below and every later use of dir — reading
+	// input/, writing expected/ — would otherwise resolve against the
+	// scratch directory instead of the case.
+	//
+	// This is the identical defect cli/cmd/snapshot_test.go records
+	// against its own replay path ("the case directory was resolved
+	// relatively and the run had already chdir'd away from it"). The fix
+	// landed there and not here, so this program went on reporting
+	// "regenerated <case>" for every case while writing every artifact
+	// into a temp directory it then deleted. Measured 2026-08-05:
+	// corrupting a committed checks.log and re-running the wrapper script
+	// left the corruption in place and printed success for all twelve
+	// cases.
+	dir, err := filepath.Abs(dir)
+	if err != nil {
+		return fmt.Errorf("resolving the case directory: %w", err)
+	}
+
 	var manifest caseManifest
 	if _, err := toml.DecodeFile(filepath.Join(dir, "case.toml"), &manifest); err != nil {
 		return fmt.Errorf("decoding case.toml: %w", err)
@@ -136,18 +158,21 @@ func regenerate(dir, name string) error {
 		return err
 	}
 
-	if !omitChecksLog[name] {
-		if err := os.WriteFile(filepath.Join(expectedDir, "checks.log"), []byte(stdout.String()), 0o644); err != nil {
+	for _, artifact := range stdoutArtifacts {
+		if !manifest.declares(artifact) {
+			continue
+		}
+		if err := os.WriteFile(filepath.Join(expectedDir, artifact), []byte(stdout.String()), 0o644); err != nil {
 			return err
 		}
 	}
 
-	if indexProducingCases[name] {
+	if manifest.declares(manifestArtifact) {
 		got, err := producedIndex(work, manifest.Args, stdout.String())
 		if err != nil {
 			return fmt.Errorf("reading the produced index: %w", err)
 		}
-		if err := os.WriteFile(filepath.Join(expectedDir, "manifest.json"), got, 0o644); err != nil {
+		if err := os.WriteFile(filepath.Join(expectedDir, manifestArtifact), got, 0o644); err != nil {
 			return err
 		}
 	}

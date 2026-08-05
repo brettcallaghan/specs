@@ -37,11 +37,15 @@ When NOT to use
   - Tactical bug fixes or minor refactorings
 
 Instructions
-  1. Number ADRs sequentially: ADR-001, ADR-002, etc.
+  1. Number ADRs sequentially: ADR-001, ADR-002, etc. Get the next number
+     from `spec next-id adr` rather than from the highest filename you
+     can see — the slug is independent of the filename, so a filename
+     scan can miss the number actually in use.
   2. Update the frontmatter with the actual decision details
   3. Complete each section below, following the guidance in comments
   4. Remove all HTML comment blocks after completing the document
-  5. Update docs/adrs/README.md with a one-line entry for this ADR
+  5. Update the adrs/ README index with a one-line entry for this ADR,
+     under whatever spec root specs.toml declares (not necessarily docs/)
   6. Set status using the controlled vocabulary:
      draft | ready-for-review | approved | active | retired
   7. If superseded later, set status to "retired" and reference the

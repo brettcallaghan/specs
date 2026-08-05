@@ -1,10 +1,22 @@
 #!/usr/bin/env python3
-"""Validate this repository's documents against the generated JSON Schemas.
+"""Validate documents OUTSIDE the Spec CLI's corpus root against the schemas.
 
-This is an interim gate. The Spec CLI described by [[frd-spec-validation-cli]]
-will subsume it and do far more — spans, reference integrity, required
-sections, line width. Until that binary exists, this script proves the
-generated schemas are correct and catches frontmatter defects in CI.
+The Spec CLI now exists, and `spec check` runs over `specs/` — the root
+this repository's specs.toml declares — in the `corpus` job of
+.github/workflows/checks.yml. That is the real gate, with spans, exit
+codes, and every rule the active profile registers.
+
+This script covers what that root deliberately excludes: the RFC queue
+and the reference files bundled inside each skill. Those carry the same
+frontmatter and drift the same way, but they are not corpus members —
+the `spec` skill's own rule is that everything under a skill's
+`references/` is cited by backticked path, never by `[[slug]]` — so
+widening the CLI's root to reach them would make them corpus members in
+every consumer's repository too, which is not what they are.
+
+The two gates do not overlap. If this script's SEARCH ever grows a
+pattern under the CLI's root, delete it here instead: a document checked
+twice is a document whose two gates can disagree.
 
 What it checks, and only this:
 
@@ -12,6 +24,9 @@ What it checks, and only this:
     `type` is validated against that type's definition in
     cli/core/schema/spec-model.schema.json
   * specs.toml is validated against cli/core/schema/specs-config.schema.json
+
+It does NOT check reference integrity, required sections, or line width;
+those are the CLI's, and are specified but not yet built.
 
 Files with no frontmatter, and files declaring a type outside the
 profile's vocabulary, are reported as excluded rather than dropped
@@ -40,10 +55,39 @@ except ImportError:  # pragma: no cover
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
-# Where documents are looked for. The corpus proper is docs/; the RFC
-# queue and the spec skill's own reference documents are checked too,
-# because they carry the same frontmatter and drift the same way.
-SEARCH = ["docs/**/*.md", "rfcs/**/*.md", "plugin/skills/*/references/*.md"]
+# Where documents are looked for: everything outside the CLI's corpus
+# root that carries the same frontmatter. See the module docstring.
+#
+# This list used to lead with "docs/**/*.md". The specs/ reorganization
+# moved every specification document out of docs/ and nobody updated the
+# glob, so from that commit until the CLI gate landed this script matched
+# exactly one file under docs/ (session-bootstrap.md, no frontmatter) and
+# reported a healthy "checked 26 documents" drawn entirely from the other
+# two patterns. MIN_CHECKED below is the guard against a repeat.
+# Not listed: plugin/skills/*/references/shared/*.md, the vendored copies
+# sync-shared-references.sh writes. Each opens with a GENERATED COPY
+# comment, so read_frontmatter below sees no leading `---` and would
+# report every one of them as "no-frontmatter" — a wrong reason for a
+# file that has frontmatter three lines down. Their authored sources are
+# checked by the second pattern, and --check compares the copies byte for
+# byte against those sources, which is stronger than re-validating a copy.
+SEARCH = [
+    "rfcs/**/*.md",
+    "plugin/skills/*/references/*.md",
+]
+
+# The corpus root the CLI owns, read from specs.toml rather than hardcoded.
+# A SEARCH pattern reaching inside it is a configuration error, not a
+# broader check: see the module docstring.
+CLI_ROOT_KEY = ("workspace", "root")
+
+# A floor on how many documents this script must find. The failure it
+# guards against is not "a document is wrong" but "this script is
+# pointed at nothing and says so cheerfully" — the exact way the stale
+# docs/ glob survived review. The value is deliberately well below the
+# current count (26 at the time of writing): it is a smoke alarm for a
+# glob that stopped matching, not an inventory to keep in sync.
+MIN_CHECKED = 20
 
 # Templates carry deliberate placeholder slugs and type values, and are
 # not corpus members. AC-SPEC-004.4 names this explicitly.
@@ -75,6 +119,25 @@ def read_frontmatter(path: pathlib.Path) -> str | None:
     return text[4:end] if end != -1 else None
 
 
+def cli_corpus_root() -> str | None:
+    """Return [workspace].root from specs.toml, or None if unreadable.
+
+    None rather than an exception: a repository with no specs.toml has no
+    CLI gate to overlap with, so there is nothing for the caller to
+    enforce and no reason to fail here.
+    """
+    specs_toml = ROOT / "specs.toml"
+    if not specs_toml.exists():
+        return None
+    with specs_toml.open("rb") as fh:
+        cfg = tomllib.load(fh)
+    for key in CLI_ROOT_KEY:
+        cfg = cfg.get(key) if isinstance(cfg, dict) else None
+        if cfg is None:
+            return None
+    return str(cfg).strip("/")
+
+
 def main() -> int:
     quiet = "--quiet" in sys.argv
 
@@ -82,6 +145,18 @@ def main() -> int:
     config_path = ROOT / "cli/core/schema/specs-config.schema.json"
     if not bundle_path.exists():
         return err("generated schemas are missing — run scripts/generate-schemas.sh")
+
+    # No SEARCH pattern may reach into the root `spec check` owns.
+    cli_root = cli_corpus_root()
+    if cli_root:
+        overlapping = [p for p in SEARCH if p.split("/", 1)[0] == cli_root]
+        if overlapping:
+            return err(
+                f"SEARCH patterns {overlapping} reach inside the Spec CLI's corpus "
+                f"root ({cli_root}/). Those documents are checked by 'spec check' "
+                "in the checks.yml corpus job; remove them here rather than "
+                "gating them twice."
+            )
 
     bundle = json.loads(bundle_path.read_text())
 
@@ -143,6 +218,17 @@ def main() -> int:
         for e in Draft7Validator(cfg_schema).iter_errors(cfg):
             loc = "/".join(map(str, e.absolute_path)) or "<root>"
             findings.append(("specs.toml", f"config/schema: {loc}: {e.message}"))
+
+    # A glob that stopped matching reports zero findings, which reads as
+    # success. Refuse to be that gate.
+    if checked < MIN_CHECKED:
+        findings.append((
+            "scripts/validate-corpus.py",
+            f"search/underpopulated: matched {checked} documents against a floor of "
+            f"{MIN_CHECKED}. Either SEARCH has a pattern that no longer matches "
+            "anything, or documents moved. Fix the patterns — do not lower the floor "
+            "to make this pass.",
+        ))
 
     if not quiet:
         for rel, msg in findings:
