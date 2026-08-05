@@ -481,9 +481,15 @@ the repository currently has no CI (see Tracker Reconciliation).
   edge collection." A reference-feature concern; IDX's additive shape must
   not preclude it, but this feature indexes no references.
 - `agent-plugins-6n4` — out-of-scope (coordination): `work-order-template.md`
-  is not valid YAML. The CO parse-failure path records it and the profile
-  self-application gate reports it; this feature surfaces the defect but
-  does not fix the document.
+  is not valid YAML. Its file
+  (`plugin/skills/spec/references/work-order-template.md`) sits outside
+  `specs/`, the corpus root this feature's self-application gate scans
+  (confirmed on `agent-plugins-bge.14`), so the gate cannot surface it as
+  scoped — a stale assumption from before the `specs/` reorg, corrected
+  here. The CO parse-failure path would still record the defect if pointed
+  at a root that included this file; this feature does not fix the
+  document or widen the gate's root, and 6n4's own acceptance criteria
+  already call for a separate, generic regression check to cover it.
 - `agent-plugins-5nz`, `agent-plugins-vg1` — out-of-scope: dangling
   wikilinks and unpopulated `contracts_consumed` are reference-feature and
   corpus-data concerns this feature neither resolves nor regresses.
