@@ -1,12 +1,12 @@
 ---
 title: "Module Blueprint: Spec-Driven Development Profile"
 description: The plugin that supplies this framework's document
-  vocabulary — types, schemas, slug patterns, required sections, element
-  records and lifecycle rules — to Document Core
+  vocabulary — one union schema over every document type, plus each
+  type's slug pattern and numbered-ness — to Document Core
 slug: module-spec-profile
 type: module-blueprint
 status: approved
-updated_at: 2026-08-01T00:00:00Z
+updated_at: 2026-08-05T00:00:00Z
 kind: standard
 visibility: internal
 contracts_provided: []
@@ -19,7 +19,7 @@ related:
   - "frd-spec-validation-cli"
   - "adr-008"
   - "adr-012"
-version: "0.1"
+version: "0.2"
 ---
 
 # Spec-Driven Development Profile
@@ -27,10 +27,12 @@ version: "0.1"
 ## Overview
 
 This module is the domain half of the CLI. It knows that an ADR is a
-document type, that its slug is `adr-<nnn>`, that a container blueprint
-declares un-promoted components as fenced record blocks, and that a
-retired document names its successor. [[module-document-core]] knows
-none of that, and this module is how it arrives.
+document type, that its slug is `adr-<nnn>`, and that ADRs are numbered
+while FRDs are not. [[module-document-core]] knows none of that, and this
+module is how it arrives. A fuller vocabulary — that a container
+blueprint declares un-promoted components as fenced record blocks, that a
+retired document names its successor — is designed below and not yet
+registered.
 
 It is a **plugin**: it holds no engine of its own and implements no
 parsing. Every capability it needs — frontmatter extraction, schema
@@ -41,19 +43,22 @@ dependency runs one way, and the value of that is concrete rather than
 aesthetic: an enterprise with a different taxonomy writes a different
 profile and reuses the whole engine.
 
-Most of this module is configuration rather than code. Type names, JSON
-Schemas, slug patterns and required sections are data. Only the rules
-that cannot be expressed as data — the element-record invariants and the
-lifecycle integrity checks — are implemented here.
+Most of this module is configuration rather than code, and as built it is
+configuration almost exclusively: the vocabulary is one generated union
+schema plus a table of slug patterns and numbered flags, and the module's
+whole implementation is a single Go file supplying them. Only rules that
+cannot be expressed as data — the element-record invariants and the
+lifecycle integrity checks, neither yet implemented — would be code here.
 
 - **Role:** supply this framework's document vocabulary and its
   non-schema-expressible rules to Document Core.
-- **Scope:** in — the document type registry, per-type schemas and slug
-  patterns, required sections, named section sets, element record blocks
-  and their invariants, and status lifecycle integrity. Out — all
-  parsing, indexing and reference resolution, which belong to Document
-  Core; and all process-level concerns, which belong to the command
-  surface of [[container-spec-cli]].
+- **Scope:** in — the one union schema over every document type, each
+  type's slug pattern and numbered-ness, the convention defaults, and (as
+  later capabilities) required sections, named section sets, element
+  record blocks and their invariants, and status lifecycle integrity.
+  Out — all parsing, indexing and reference resolution, which belong to
+  Document Core; and all process-level concerns, which belong to the
+  command surface of [[container-spec-cli]].
 - **Composed into:** [[container-spec-cli]] — a Go module in the same
   repository, imported as a package and activated by configuration. See
   that blueprint for this module's relationships to its sibling
@@ -88,23 +93,35 @@ interface. Everything else is internal.
     registered pattern is checkable against the template it mirrors,
     while the same rule buried in a predicate is not.
 
-**Built (v1) — single-schema profile.** `cli/profile.New` returns a
-value satisfying `corpus.Profile`, registered under the name
-`spec-driven-dev`. It supplies exactly the narrowed v1 surface the
-spec-index feature's PROF delta scopes: **one** embedded union schema
+**Built — single-schema profile.** `cli/profile.New` returns a value
+satisfying `corpus.Profile`, registered under the name `spec-driven-dev`.
+It supplies three things and nothing else: **one** embedded union schema
 (`cli/core/schema/spec-model.schema.json`, via Go's `//go:embed`, so the
 binary reads no schema file at runtime), a thin per-type table of slug
 pattern and numbered-ness for every `DocumentType`, and the `line_width`
-convention default. There is no per-type schema, no required-sections
-tree, no named section sets, no element-record registration and no
-lifecycle-rule registration yet — the Document Types, Element Records
-and Lifecycle Rules components below describe a fuller design this
-delta does not implement. Reconciling this blueprint to the narrower v1
-shape those components describe — folding Document Types down to the
-single-schema table actually built and re-scoping or removing Element
-Records and Lifecycle Rules — is the separate component-removal
-reconciliation item the spec-index feature's Definition of Done names,
-not this change.
+convention default of 80 codepoints. There is no per-type schema, no
+required-sections tree, no named section sets, no element-record
+registration and no lifecycle-rule registration.
+
+The components below have been reconciled to that shape: the separate
+Document Types "type registry" is gone, folded into Profile Registration,
+and Element Records and Lifecycle Rules are retained as designed but
+marked not yet built.
+
+**The registered patterns are grounded in this repository's corpus, not
+transcribed from the prefix registry**, and in three places the two
+disagree. Feature blueprints: the registry assigns `fb-`, while this
+repository's one real feature blueprint is slugged
+`feature-spec-validation-cli`, so the pattern follows the document that
+exists. Guides: the registry has no row at all and this repository's four
+guides split two-and-two on a `guide-` prefix, so the pattern is the
+type's least restrictive form. RFCs: this repository mixes a numbered
+form (`rfc-0007`) with an unnumbered self-critique form, so `Numbered` is
+false for the type — a "highest number in use" query would silently
+ignore every `self-` document, which is worse than not offering `next-id`
+for RFCs at all. Each divergence is recorded at the table in
+`cli/profile/profile.go`; the Change Guidance below is what obliges a
+template change to come back here.
 
 ## Components
 
@@ -112,51 +129,68 @@ not this change.
 C4Component
     title Components — Spec-Driven Development Profile
     Container_Boundary(profile, "Spec-Driven Development Profile") {
-        Component(reg, "Profile Registration", "Go package", "The plugin entry point that wires vocabulary into Document Core")
-        Component(types, "Document Types", "Go package + schemas", "Type registry, per-type schemas, slug patterns, required and named sections")
-        Component(records, "Element Records", "Go package", "Fenced element record blocks and the record-XOR-blueprint invariant")
-        Component(life, "Lifecycle Rules", "Go package", "Status vocabulary and supersession integrity")
+        Component(reg, "Profile Registration", "Go package", "The plugin entry point: the union schema, the per-type slug and numbered table, and the convention defaults")
+        Component(records, "Element Records", "Go package (planned)", "Fenced element record blocks and the record-XOR-blueprint invariant")
+        Component(life, "Lifecycle Rules", "Go package (planned)", "Status vocabulary and supersession integrity")
     }
-    Rel(reg, types, "Registers the vocabulary of")
     Rel(reg, records, "Registers the block rules of")
     Rel(reg, life, "Registers the integrity rules of")
-    Rel(records, types, "Validates records against the base schema in")
 ```
+
+**One component is built.** Profile Registration is the whole of the
+module today — `cli/profile/profile.go`, one file. Element Records and
+Lifecycle Rules are planned and carry no package, so the two edges into
+them describe the intended wiring rather than an existing one.
+
+**The separate "Document Types" component has been removed.** The
+earlier design gave it a type registry holding a schema per type, and the
+host it would have registered into was never built that way: Document
+Core's extension point accepts exactly one
+union schema instead, precisely so the host never has to choose which
+schema to reach for. What remains of a per-type registry is a two-column
+table — slug pattern and numbered flag — small enough that a component of
+its own would be a directory containing a map literal. It lives in
+Profile Registration alongside the schema it complements.
 
 ### Profile Registration
 
 ```component
 title: Profile Registration
 slug: component-profile-registration
-description: The plugin entry point that wires this framework's vocabulary and rules into Document Core
+description: The plugin entry point supplying the union schema, the per-type slug and numbered table, and the convention defaults
 ```
 
-(Go package) — The plugin entry point that wires this framework's
-vocabulary and rules into Document Core. It is the only component the
-host sees, and it holds no rules of its own. Its value is that the
+(Go package) — The plugin entry point supplying this framework's
+vocabulary to Document Core. It is the only component the host sees, and
+it holds no engine and no parsing of its own. Its value is that the
 conformance surface is one file: whether this module is a well-behaved
 plugin is answerable by reading it.
 
-### Document Types
+**Built** — `cli/profile`. `New` returns a `corpus.Profile` whose three
+members are the whole of what this framework tells the host:
 
-```component
-title: Document Types
-slug: component-document-types
-description: The type registry with per-type schemas, slug patterns, required sections and named section sets
-```
+| Member | Registers |
+|---|---|
+| `Schema()` | the embedded union schema over every document type |
+| `DocumentTypes()` | per type, its slug pattern and whether it is numbered |
+| `Conventions()` | the `line_width` default of 80 codepoints |
 
-(Go package + schemas) — The type registry with per-type schemas, slug
-patterns, required sections and named section sets. Registers every type
-in this framework's taxonomy — ADR, FRD, standards, the four blueprint
-levels, contract and work order — each with the JSON Schema its
-frontmatter satisfies, the slug pattern from the prefix registry, the
-hierarchy of headings its template requires, and which of its sections
-carry normative statements. The heading requirement is a tree rather
-than a list ([[contract-specs-configuration]]), because a misplaced
-heading and a missing one are different defects and a flat list reports
-them identically. That last one is what makes the
-extract-then-review pattern work: a reviewing agent asks for the
-normative sections of a standards document and reads only those.
+**The union schema is generated, not authored here.** It comes from
+`schemas/*.strata` through `scripts/generate-schemas.sh`, which emits
+`cli/core/schema/spec-model.schema.json` and the matching Go vocabulary
+in `cli/core/specmodel`. This module embeds the result. Two mechanisms
+keep the registered vocabulary and the generated `DocumentType`
+constants from drifting: the per-type table is keyed by those constants
+rather than by string literals, so a renamed or removed type fails to
+compile here; and `TestDocumentTypesCoversEveryVocabularyValue` asserts
+one table entry, with a compiling slug pattern, for every value in the
+generated vocabulary, so an *added* type fails the suite.
+
+Required sections, named section sets and the heading-tree requirement
+described in [[contract-specs-configuration]] are later capabilities.
+None is registered, because Document Core's extension point has nowhere
+to receive them yet — widening it is a change to the host, per the
+Change Guidance below.
 
 ### Element Records
 
@@ -174,6 +208,12 @@ the record-XOR-blueprint-link rule from [[adr-008]] — the one rule here
 that no schema can express, because it is a constraint between a block
 and a sibling link rather than a constraint on a value.
 
+**Not yet built.** No fence tag is registered and no record schema is
+supplied, because Document Core has neither a Markdown Structure
+component to extract fenced blocks nor an extension-point member through
+which a tag could be registered. Building this component means widening
+the host first; it is not blocked on this module.
+
 ### Lifecycle Rules
 
 ```component
@@ -188,17 +228,17 @@ constraint on `status`; what needs code is the relational part — that a
 retired document names a resolvable successor, and that live documents
 referencing a retired one are surfaced.
 
-**Profile Registration → Document Types, Element Records, Lifecycle
-Rules.** Registration is a pure wiring layer: each component exposes
-what it registers, and Registration hands it to the host. No component
-here reaches the host directly, so there is exactly one place to look
-when the plugin contract changes.
+**Not yet built.** The status vocabulary itself *is* registered, because
+it is a schema constraint and the union schema carries it. The relational
+half is not: `superseded_by` naming a document that does not exist is
+currently unreported, since resolving it needs Document Core's References
+component, which is also not built.
 
-**Element Records → Document Types.** Record blocks validate against the
-same base schema a promoted document's frontmatter satisfies — the
-two-schema `allOf` model [[adr-008]] chose — so the record rules depend
-on the type registry rather than carrying a second copy of the base
-schema.
+**Profile Registration → Element Records, Lifecycle Rules.** Registration
+is a pure wiring layer: each component exposes what it registers, and
+Registration hands it to the host. No component here reaches the host
+directly, so there is exactly one place to look when the plugin contract
+changes. Today it is the only place, because it is the only component.
 
 ## Cross-Cutting Standards
 
@@ -213,7 +253,11 @@ documents —
 `plugin/skills/spec/references/template-authoring-standards.md` and
 `plugin/skills/spec/references/cross-document-references.md` — which
 are shipped with the `spec` skill rather than authored as project
-standards documents.
+standards documents. The derivation is not literal transcription: the
+union schema reaches this module through `schemas/*.strata`, and each
+slug pattern was checked against the documents this repository actually
+holds before being registered, which is where the three divergences noted
+under Interface come from.
 
 ## Change Guidance
 
@@ -234,16 +278,22 @@ standards documents.
 - WHILE visibility is internal, this module and its in-repo consumers
   evolve together, with no compatibility window.
 - **Verification gates:** `go test ./profile/...` for any change here,
-  plus the conformance test asserting that this module satisfies
-  Document Core's `Profile` interface, and the self-application test
-  that runs the built profile against this repository's own `docs/`
-  corpus. That last gate is the one that catches a registered schema
-  drifting from the templates it mirrors. CI runs the full suite.
+  which includes the conformance test asserting that this module
+  satisfies Document Core's `Profile` interface, the vocabulary-coverage
+  test above, and the self-application gate in
+  `cli/profile/self_application_test.go` that runs discovery and checking
+  over this repository's own corpus. That last gate is the one that
+  catches a registered schema drifting from the templates it mirrors —
+  and it is rooted at `specs/`, not `docs/`, which is the repository's
+  actual corpus root per `specs.toml`. It resolves that root from its own
+  file's location and fails outright if `specs.toml` and `specs/` are not
+  there, because a gate that passes over zero documents is worse than no
+  gate. CI runs the full suite.
 
 ## Key Decisions
 
 - [[adr-008]] — element record blocks and the two-schema model this
-  module's Element Records component implements.
+  module's Element Records component will implement when it is built.
 - [[adr-012]] — the reference conventions the registered types rely on.
 - [[adr-014]] — acceptance-criteria validation is deferred, so no
   component here registers AC rules.
@@ -262,7 +312,11 @@ standards documents.
       exposes none of it publicly, so this is purely a question of where
       the bytes live — but it forces the answer to the promotion
       question in [[contract-specs-configuration]], because a data file
-      is most of the way to an override mechanism already.
+      is most of the way to an override mechanism already. As built,
+      everything is compiled in: the schema through `//go:embed` and the
+      per-type table as a Go map, so the binary reads no vocabulary file
+      at runtime. That is an implementation default taken to keep the
+      binary self-contained, not an answer to this question.
 - [ ] Whether the deferred domain rules — AC traceability, C4 diagram
       conventions, blueprint AC-coverage keys, work-order readiness —
       become components here or a second profile layered on this one.

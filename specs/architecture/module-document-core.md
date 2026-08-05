@@ -19,7 +19,7 @@ related:
   - "frd-spec-validation-cli"
   - "adr-015"
   - "adr-016"
-version: "0.1"
+version: "0.2"
 ---
 
 # Document Core
@@ -80,8 +80,8 @@ the plugin, and no framework vocabulary is compiled into the host.
   - The module SHALL accept exactly one active profile per corpus
     operation, supplied by the caller.
   - WHERE no profile is registered, the module SHALL still discover the
-    corpus, parse frontmatter, and build the reference graph, reporting
-    every document as excluded with reason `unknown-type`.
+    corpus and parse frontmatter, reporting every document as excluded
+    with reason `unknown-type`.
   - The module SHALL NOT import, reference, or special-case any
     individual profile.
   - The module SHALL accept from the active profile **one** JSON Schema
@@ -103,8 +103,9 @@ the plugin, and no framework vocabulary is compiled into the host.
   - WHEN a document fails to parse, the module SHALL record the failure
     against that document and continue, so that indexing never fails as
     a whole (AC-SPEC-002.4).
-  - The module SHALL NOT write to the filesystem outside a cache
-    location the caller supplies.
+  - The module SHALL write exactly one artifact — the emitted index —
+    and only to the destination the caller resolves. It modifies no
+    document it reads.
 
 **Built** — the `Profile` interface in `cli/core/corpus` has three
 members and nothing else:
@@ -129,6 +130,13 @@ profile. Two tests hold the boundary: no package under `cli/core` imports
 a profile package, and no non-test source in `cli/core/corpus` contains a
 string literal matching any document type in the generated vocabulary.
 
+The write guarantee is narrower in fact than in statement. The module's
+only write is `corpus.Write`, whose destination `corpus.IndexPath`
+resolves to `specs.json` in the configured spec root unless the caller
+names another path or standard output. The persisted index *is* the
+cache: there is no separate cache location, so no other file is ever
+created.
+
 ## Components
 
 ```mermaid
@@ -137,8 +145,8 @@ C4Component
     Container_Boundary(core, "Document Core") {
         Component(span, "Spans", "Go package", "Position type and delimited-region scanning")
         Component(fm, "Frontmatter", "Go package", "Frontmatter extraction and YAML parsing with raw-text access")
-        Component(md, "Markdown Structure", "Go package", "Headings, section spans, fenced blocks and comment blocks")
-        Component(refs, "References", "Go package", "Wikilink discovery, resolution and the reference graph")
+        Component(md, "Markdown Structure", "Go package (planned)", "Headings, section spans, fenced blocks and comment blocks")
+        Component(refs, "References", "Go package (planned)", "Wikilink discovery, resolution and the reference graph")
         Component(schema, "Schema Registry", "Go package", "Single-union JSON Schema validation dispatched by document type")
         Component(corpus, "Corpus", "Go package", "Discovery, membership, the index model and its emission")
         Component(num, "Numbering", "Go package", "Next-number derivation for numbered document types")
@@ -157,6 +165,16 @@ C4Component
     Rel(refs, find, "Reports through")
     Rel(corpus, find, "Folds Check's findings through")
 ```
+
+Six of the eight are built and carry a **Built** paragraph naming the
+package that realizes them: Spans, Frontmatter, Schema Registry, Corpus,
+Numbering and Findings. **Markdown Structure and References are planned
+and not yet built** — `cli/core` holds no package for either, and the
+module has no markdown-parsing dependency at all. Their sections below
+describe a design, not an implementation, and the diagram edges into and
+out of them are likewise the intended shape. Everything the current
+corpus check does is reached without them, which is why the module ships
+useful without either.
 
 ### Spans
 
@@ -235,7 +253,7 @@ span of its value, the value's raw source text, and the parsed value.
 serving both, so a property's position and its value cannot disagree.
 `goccy/go-yaml` is the parser, per [[adr-015]].
 
-Four semantics are pinned by the implementation:
+Five semantics are pinned by the implementation:
 
 - **`Parse` has three outcomes, and they are distinct.** A document and
   no error is a parsed block; no document and no error means the file
@@ -259,6 +277,17 @@ Four semantics are pinned by the implementation:
 - **The value tree is JSON-compatible.** No parsed value is a type JSON
   cannot carry, so the crossing into the typed records is a marshal
   rather than a conversion layer.
+- **Byte offsets are re-derived here, not taken from the YAML library.**
+  `goccy/go-yaml` advances a token's reported position one unit per
+  Unicode codepoint rather than per byte, so treating it as a byte offset
+  is correct only while the block is pure ASCII. Every property after an
+  em dash or a curly quote would otherwise land short of its true
+  position by the accumulated byte/rune difference, silently corrupting
+  the raw text the Schema Registry checks a format constraint against.
+  This package therefore counts codepoints into the block's own bytes to
+  recover the offset. It is a failure mode no ASCII unit fixture can
+  expose, and it surfaced only when the profile self-application gate ran
+  over this repository's real documents.
 
 A frontmatter block that is not a mapping — a bare scalar, a sequence —
 is reported as a located error rather than as an empty document, because
@@ -283,6 +312,11 @@ leftover-scaffolding hygiene. This is the component the
 extract-then-review pattern depends on: an agent asks for the spans of
 particular sections and reads only those.
 
+**Not yet built.** There is no `cli/core/markdown` package and no
+markdown parser in the module's dependencies; [[adr-015]]'s choice of
+`goldmark` arrives with this component rather than having arrived
+already.
+
 ### References
 
 ```component
@@ -298,6 +332,12 @@ occurs, and resolves them against the corpus. It never scans fenced or
 inline code spans, because an illustrative reference inside backticks is
 not a reference. Inbound edges are derived, so no document maintains a
 list of its own referrers.
+
+**Not yet built.** There is no `cli/core/references` package, and the
+index model carries no reference collection yet — the additive shape
+described under Corpus is what lets one be attached later under the same
+`schema_version`. Until it exists, a `[[slug]]` naming no document is
+not reported by any check.
 
 ### Schema Registry
 
@@ -385,10 +425,13 @@ has no notion of a constant, so the emitted value lives in
 a separate package because `scripts/generate-schemas.sh` rebuilds
 `cli/core/specmodel/` from scratch on every run.
 
-The index is not yet a contract document. It has one producer and no
+The index is not yet a contract document, and that is now a recorded
+decision rather than an omission. It has one producer and no
 independently-built consumer, so the generated JSON Schema is its interim
-machine-readable specification; promotion, with a formal versioning
-policy, waits for the first consumer.
+machine-readable specification. Promotion to a contract, with a formal
+versioning policy, is deferred to the index-schema ADR
+(`agent-plugins-h6c`) and waits on a real consumer — see the Open
+Questions in [[container-spec-cli]], which owns that decision.
 
 **Built** — `cli/core/corpus`. `Build` walks the spec root and returns a
 `Corpus`: the populated `specmodel.SpecIndex`, the findings discovery
@@ -449,8 +492,17 @@ slug's position for a duplicate finding, or a schema check — which is
 what keeps a single-document check against a warm index proportional to
 that document rather than to the corpus (AC-SPEC-009.2).
 
-Five semantics are pinned by the implementation:
+Six semantics are pinned by the implementation:
 
+- **Every read passes through one choke point, and that choke point
+  normalizes line endings.** A candidate's bytes are read through the
+  `os.Root` handle and every CRLF is rewritten to a bare LF before any
+  other component sees them, so a Windows checkout under `core.autocrlf`
+  — the *same commit*, a different byte sequence — cannot move a span's
+  offsets or the content hash the warm path compares (AC-SPEC-009.7).
+  The consequence is deliberate: where the two differ, a reported byte
+  offset indexes the normalized text rather than the file on disk, while
+  line and column — what a human or an editor acts on — are unaffected.
 - **Only regular files ending in `.md` are candidates**, matched without
   regard to letter case, and everything else is passed over without being
   recorded (AC-SPEC-001.6). Excluding symlinks is what closes the one
@@ -580,10 +632,15 @@ the diagram validation AC-SPEC-006.3 illustrates is a structure-feature
 concern. A later check adds a variant to the union without changing the
 envelope that carries it.
 
+The relationships below are stated for the module's whole component set.
+Where one names Markdown Structure or References it describes the
+intended edge rather than an existing one, since neither component is
+built yet.
+
 **Corpus → Frontmatter, Markdown Structure, References.** Corpus is the
 orchestrator: it walks files and delegates every act of parsing. A
 parser that Corpus does not call is unreachable, and parsing logic that
-lives in Corpus is misplaced.
+lives in Corpus is misplaced. Today it delegates to Frontmatter alone.
 
 **Frontmatter, Markdown Structure, References → Spans.** All three
 locate regions through the shared scanner rather than implementing their
@@ -626,16 +683,21 @@ This module SHALL comply with:
   its visibility becomes public and the versioning obligations in the
   module template apply from that point.
 - **Verification gates:** `go test ./core/...` for any change in this
-  module, plus the fixture-corpus snapshot tests under
-  `cli/core/testdata/` that assert the JSON report for each rule. A
-  change to Spans additionally runs the property tests over the
-  delimiter scanner, which is the highest-risk component because every
-  other position derives from it. CI runs the full suite.
+  module, plus the CLI snapshot cases under `cli/testdata/cases/`, which
+  are where the JSON report for each rule is asserted end to end
+  (`check-json` and `check-error` among them), and the profile
+  self-application gate in `cli/profile`, which runs discovery and
+  checking over this repository's own corpus. A change to Spans is the
+  highest-risk change in the module, because every other position derives
+  from it; its own suite in `cli/core/span` is exhaustive over the
+  scanner's edge cases and is run in full. CI runs everything.
 
 ## Key Decisions
 
 - [[adr-015]] — Go, `goccy/go-yaml`, `santhosh-tekuri/jsonschema` and
-  `goldmark` are the implementation choices this module is built on.
+  `goldmark` are the implementation choices this module is built on. The
+  first three are in use; `goldmark` is not a dependency yet and arrives
+  with the Markdown Structure component.
 - [[adr-016]] — Strata is the single source for generated models, which
   is why the index model this module emits is declared in
   `schemas/index.strata` rather than written as Go structs.
@@ -646,13 +708,28 @@ This module SHALL comply with:
 
 ## Open Questions
 
-- [ ] Whether the index cache is invalidated by file modification time
-      or by content hash. Mtime is cheaper; hashing is correct across
-      checkouts and clock skew. Bears directly on whether the warm-index
-      latency in REQ-SPEC-009.1 holds in CI, where checkouts are fresh.
+- [x] **Resolved — the index cache is invalidated by content hash, never
+      by file modification time.** Mtime is cheaper, and it is wrong in
+      exactly the environment the warm-index latency of REQ-SPEC-009.1 is
+      claimed in: a fresh CI checkout gives every file a new mtime and
+      identical bytes, so an mtime-keyed cache would be cold on every CI
+      run. `Fingerprint` folds each candidate's repository-relative path
+      and content digest, plus the workspace identifier, the active
+      profile's schema and per-type table, and the schema version — the
+      inputs that change the index while the files stand still. Absolute
+      paths are excluded, so the same content checked out elsewhere
+      hashes the same. Invalidation is whole-index rather than partial,
+      and the persisted index is itself the cache, so there is no second
+      on-disk location to place or ignore. The full argument is recorded
+      under Corpus above. `agent-plugins-igc` stays open to record this
+      as an ADR; it is no longer the question of what to build.
 - [ ] Whether Findings should adopt `samber/oops` for structured error
       context, as raised in [[adr-015]]. Deferred to implementation; it
-      affects this component's API shape.
+      affects this component's API shape. The implementation shipped
+      without it — findings carry their structure in the generated
+      `FindingDetail` union and internal errors are wrapped with
+      `fmt.Errorf`, so the question is now whether to adopt it rather
+      than whether to start with it.
 
 ## References
 
