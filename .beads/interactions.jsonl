@@ -73,3 +73,5 @@
 {"id":"int-ec5c6ddbce2d6fd3f1ff048df96927cf","kind":"field_change","created_at":"2026-08-05T02:47:38.310499294Z","actor":"Claude","issue_id":"agent-plugins-8cj","extra":{"field":"status","new_value":"closed","old_value":"open"}}
 {"id":"int-76303b68cf7e122d3db99e537baab89c","kind":"field_change","created_at":"2026-08-05T03:57:22.2441251Z","actor":"Claude","issue_id":"agent-plugins-bge.13","extra":{"field":"status","new_value":"in_progress","old_value":"open"}}
 {"id":"int-0a022022ec39edadcdda49d5b899b9c2","kind":"field_change","created_at":"2026-08-05T04:13:33.75163489Z","actor":"Claude","issue_id":"agent-plugins-bge.13","extra":{"field":"status","new_value":"closed","old_value":"in_progress"}}
+{"id":"int-309247e0126647a71176c9ab8205bbfe","kind":"field_change","created_at":"2026-08-05T04:15:28.707733578Z","actor":"Claude","issue_id":"agent-plugins-tff","extra":{"field":"status","new_value":"in_progress","old_value":"open"}}
+{"id":"int-eaecd80bf366712160616ac7c8051938","kind":"field_change","created_at":"2026-08-05T04:19:44.367120019Z","actor":"Claude","issue_id":"agent-plugins-tff","extra":{"field":"status","new_value":"closed","old_value":"in_progress"}}

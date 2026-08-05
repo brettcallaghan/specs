@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
-	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 	"github.com/brettcallaghan/agent-plugins/cli/profile"
 )
@@ -67,11 +66,16 @@ func repositoryRoot(t *testing.T) string {
 // above some severity": per bge.14's instruction not to weaken the gate
 // to make it green, a corpus defect this run surfaces is filed as its
 // own bead rather than fixed here or hidden by loosening this assertion.
-// The one expected finding below is that filed defect
-// (agent-plugins-tff), not a placeholder — a finding appearing here that
-// isn't in this list, or this one disappearing, is exactly the drift
-// this gate exists to catch, and either way this test should fail
-// rather than pass silently.
+// Zero findings is expected here, not a placeholder — a finding
+// appearing where this asserts none is exactly the drift this gate
+// exists to catch, and this test should fail rather than pass silently.
+//
+// agent-plugins-tff (spec-index-blueprint.md's `plan: agent-plugins-bge`
+// tripped additionalProperties because FeatureBlueprint's schema did not
+// declare `plan`) was the one finding this test previously asserted
+// exactly. It is resolved: FeatureBlueprint now declares an optional
+// `plan: String?`, schemas/frontmatter.strata was regenerated, and this
+// document validates.
 //
 // Two false-positive findings this same run surfaced during development
 // were engine bugs, not corpus defects, and were fixed rather than filed
@@ -142,37 +146,8 @@ func TestProfileSelfApplicationAgainstThisRepositorysCorpus(t *testing.T) {
 		t.Fatalf("Check: %v", err)
 	}
 
-	// agent-plugins-tff: spec-index-blueprint.md declares `plan:
-	// agent-plugins-bge`, a property FeatureBlueprint's schema does not
-	// define, so additionalProperties rejects it. Filed rather than
-	// fixed: dropping the property or extending the schema to recognize
-	// it is an authoring decision, not an engine defect.
-	if len(findings) != 1 {
-		t.Fatalf("Check returned %d findings, want exactly 1 (see this test's doc comment): %+v",
+	if len(findings) != 0 {
+		t.Fatalf("Check returned %d findings, want exactly 0 (see this test's doc comment): %+v",
 			len(findings), findings)
-	}
-
-	got := findings[0]
-	if got.Path != "specs/features/spec-index/spec-index-blueprint.md" {
-		t.Errorf("finding path = %q, want spec-index-blueprint.md", got.Path)
-	}
-	if got.Rule != finding.RuleSchemaViolation {
-		t.Errorf("finding rule = %q, want %q", got.Rule, finding.RuleSchemaViolation)
-	}
-	if got.Severity != finding.SeverityError {
-		t.Errorf("finding severity = %q, want %q", got.Severity, finding.SeverityError)
-	}
-	violation, ok := got.Detail.AsSchemaViolation()
-	if !ok {
-		t.Fatalf("finding carries no FindingSchemaViolation detail: %+v", got)
-	}
-	if violation.Pointer != "/plan" {
-		t.Errorf("pointer = %q, want %q", violation.Pointer, "/plan")
-	}
-	if violation.Constraint != "additionalProperties" {
-		t.Errorf("constraint = %q, want %q", violation.Constraint, "additionalProperties")
-	}
-	if violation.Value != "agent-plugins-bge" {
-		t.Errorf("value = %q, want %q", violation.Value, "agent-plugins-bge")
 	}
 }

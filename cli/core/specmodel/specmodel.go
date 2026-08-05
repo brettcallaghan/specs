@@ -1168,6 +1168,14 @@ type FeatureBlueprint struct {
 	// The delivery unit grooming plans against. When `staged`, each stage
 	// boundary is enumerated in the blueprint's Sequencing Constraints.
 	Delivery Delivery `json:"delivery"`
+	// Where this feature's implementation plan lives, stamped in by the
+	// groom-feature-blueprint skill once grooming serializes the plan:
+	// an epic id (`agent-plugins-bge`) when the plan is beads, or a
+	// repository-relative directory (`plans/<feature-slug>/`) when it is
+	// task files. Absent before grooming, since an ungroomed blueprint has
+	// no plan yet; present through `retired`, since the pointer retires
+	// with the document rather than being cleared.
+	Plan *string `json:"plan,omitempty"`
 	// The FRD this blueprint realizes, one to one.
 	//
 	// A feature blueprint answers how the system changes; the FRD it names
