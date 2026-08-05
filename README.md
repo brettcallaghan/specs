@@ -14,7 +14,7 @@ Vibe coding is genuinely fun. It is also how demos get built, and it is
 why the influencer feed looks the way it does. Specs are how systems get
 built — and the question every enterprise is actually asking is not
 "should agents write our code" but **"how do we adopt agentic
-development without ending up with a codebase nobody can explain?"**
+development at scale, and trust what comes back?"**
 
 The answer is not more supervision. It is **agency**.
 
