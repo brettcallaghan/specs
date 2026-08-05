@@ -84,15 +84,37 @@ type Corpus struct {
 	findings []specmodel.Finding
 	byPath   map[string]int
 	bySlug   map[string]int
+
+	// profile is the active profile the corpus was built under, retained
+	// so that Check can reach its schema and per-type rules without the
+	// caller supplying them again — and without this package importing
+	// anything but the Profile extension point it already depends on.
+	profile Profile
+	// types is opts.Profile.DocumentTypes(), retained for the same reason:
+	// Check needs each member's slug pattern, and Build has already read
+	// it once.
+	types map[string]DocumentTypeRules
+	// docs is the parsed frontmatter document for every member whose
+	// frontmatter decoded into the envelope, keyed by reported path. Check
+	// reads from here rather than re-parsing (AC-SPEC-003 at corpus
+	// level); a member with a parse error carries no entry.
+	docs map[string]*frontmatter.Document
+
+	// registryState is Check's lazily-compiled Schema Registry. It is
+	// built at most once regardless of how many times Check or CheckFor is
+	// called.
+	registryState registryState
 }
 
-// member is one corpus member during a build, carrying the two facts
-// duplicate detection needs and the index does not model: the slug as
-// the document declared it, and where that slug sits in the file.
+// member is one corpus member during a build, carrying the facts
+// duplicate detection and later checking need and the index does not
+// model: the slug as the document declared it, where that slug sits in
+// the file, and the parsed document itself.
 type member struct {
 	path   string
 	slug   string
 	slugAt specmodel.Span
+	doc    *frontmatter.Document
 }
 
 // Build walks the configured spec root, decides membership from
@@ -145,10 +167,12 @@ func Build(opts Options) (*Corpus, error) {
 		root:      root,
 		specRoot:  specRoot,
 		repoRoot:  repoRoot,
+		profile:   opts.Profile,
 		types:     opts.Profile.DocumentTypes(),
 		index:     specindex.New(opts.Workspace),
 		byPath:    map[string]int{},
 		alsoKnown: map[string]int{},
+		docs:      map[string]*frontmatter.Document{},
 	}
 
 	if err := filepath.WalkDir(specRoot, b.visit); err != nil {
@@ -163,6 +187,7 @@ type builder struct {
 	root     *os.Root
 	specRoot string
 	repoRoot string
+	profile  Profile
 	types    map[string]DocumentTypeRules
 
 	index   specmodel.SpecIndex
@@ -173,6 +198,9 @@ type builder struct {
 	// declaring it, which is what makes the slug query case-insensitive
 	// in the same way duplicate detection is (AC-SPEC-003.4).
 	alsoKnown map[string]int
+	// docs is every member's parsed frontmatter document, keyed by
+	// reported path, carried onto the built Corpus for Check to read.
+	docs map[string]*frontmatter.Document
 }
 
 // visit classifies one entry of the walk.
@@ -272,9 +300,10 @@ func (b *builder) classifyDocument(reported string, doc *frontmatter.Document) {
 		return
 	}
 
+	b.docs[reported] = doc
 	b.addEntry(
 		specmodel.IndexEntry{Path: reported, Frontmatter: envelope},
-		member{path: reported, slug: string(envelope.Slug), slugAt: slugSpan(doc)},
+		member{path: reported, slug: string(envelope.Slug), slugAt: slugSpan(doc), doc: doc},
 	)
 }
 
@@ -352,6 +381,9 @@ func (b *builder) finish() *Corpus {
 		findings: report.Model().Findings,
 		byPath:   b.byPath,
 		bySlug:   b.alsoKnown,
+		profile:  b.profile,
+		types:    b.types,
+		docs:     b.docs,
 	}
 }
 
@@ -509,6 +541,17 @@ func (c *Corpus) Entry(path string) (specmodel.IndexEntry, bool) {
 		return specmodel.IndexEntry{}, false
 	}
 	return c.index.Entries[i], true
+}
+
+// Document returns the parsed frontmatter document for one corpus member,
+// so that a caller building further checks over it — the Schema Registry,
+// a slug-pattern check — reads the same parse Build already performed
+// rather than re-parsing the file. Present exactly when [Corpus.Entry]
+// reports a non-nil Frontmatter for the same path; a member with a parse
+// error carries neither.
+func (c *Corpus) Document(path string) (*frontmatter.Document, bool) {
+	doc, ok := c.docs[c.normalize(path)]
+	return doc, ok
 }
 
 // Slug reports whether a corpus member declares the given slug and, if

@@ -147,6 +147,7 @@ C4Component
     Rel(corpus, fm, "Extracts frontmatter via")
     Rel(corpus, md, "Extracts structure via")
     Rel(corpus, refs, "Extracts references via")
+    Rel(corpus, schema, "Runs Check's per-member validation through")
     Rel(fm, span, "Locates delimited regions with")
     Rel(md, span, "Locates delimited regions with")
     Rel(refs, span, "Locates occurrences with")
@@ -154,6 +155,7 @@ C4Component
     Rel(num, corpus, "Queries the index of")
     Rel(schema, find, "Reports through")
     Rel(refs, find, "Reports through")
+    Rel(corpus, find, "Folds Check's findings through")
 ```
 
 ### Spans
@@ -390,9 +392,20 @@ policy, waits for the first consumer.
 **Built** — `cli/core/corpus`. `Build` walks the spec root and returns a
 `Corpus`: the populated `specmodel.SpecIndex`, the findings discovery
 raised over it, and the lookups the queries need — `Entry` by path,
-`Slug` by identifier, and `FindingsFor` to narrow a whole-corpus result
-to one file. Persisting that index and serving it warm are a separate
-concern and live elsewhere; nothing here writes to the filesystem.
+`Slug` by identifier, `Document` for the parsed frontmatter behind one
+member, and `FindingsFor` to narrow a whole-corpus result to one file.
+Persisting that index and serving it warm are a separate concern and live
+elsewhere; nothing here writes to the filesystem.
+
+`Check` and `CheckFor` run the Schema Registry's validation and the
+active profile's per-type slug-pattern check for every member with parsed
+frontmatter — `CheckFor` narrowed to one file the same way `FindingsFor`
+is — folding the result into one `finding.Report` together with the
+corpus's own duplicate-slug findings, so a caller reads one ordered list
+rather than reconciling discovery-time and check-time findings as two
+channels. `Corpus` reaches the Schema Registry only through the compiled
+union schema the active `Profile` already supplied to `Build`; nothing
+here names a document type.
 
 Five semantics are pinned by the implementation:
 
