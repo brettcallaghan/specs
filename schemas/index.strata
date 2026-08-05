@@ -1,0 +1,190 @@
+"""
+A contiguous region of a document.
+
+Byte offset and byte length are the authoritative extent, because spans
+address regions *within* a line as well as whole sections — a malformed
+`slug` value occupies part of a line, not the line itself. Line and
+column are carried alongside for readability: they are what a human or
+an agent reads in a report, and they are derived from the offset rather
+than being an independent source of truth.
+
+Lines and columns are one-based. A column counts Unicode codepoints from
+the start of its line, matching the way this framework's conventions
+measure width, so an em dash advances the column by one rather than by
+its three UTF-8 bytes.
+"""
+struct Span {
+  """
+  Byte offset of the first byte of the region, from the start of the
+  document.
+  """
+  offset: UInt
+
+  """
+  Length of the region in bytes. Zero is a valid, empty region — the
+  content of `---\n---` is an empty span rather than an absent one.
+  """
+  length: UInt
+
+  """One-based line on which the region starts."""
+  start_line: UInt
+
+  """One-based codepoint column at which the region starts."""
+  start_column: UInt
+
+  """One-based line on which the region ends."""
+  end_line: UInt
+
+  """One-based codepoint column one past the last codepoint of the region."""
+  end_column: UInt
+}
+
+"""
+A located failure to parse part of a document.
+
+Recorded against the document it occurred in rather than raised, because
+one unparsable file must not cost a repository the index of every other
+file. The position is a `Span`, like every other position this framework
+reports.
+"""
+struct ParseError {
+  """
+  What could not be parsed, stated so that the message needs no further
+  lookup to act on.
+  """
+  message: String
+
+  """Where in the document the failure occurred."""
+  position: Span
+}
+
+"""
+Why a candidate file beneath the spec root is not a corpus member.
+
+Exclusions are recorded rather than dropped, so that a document which
+*should* be a specification but is missing frontmatter is visible in the
+index rather than absent from it — a judgement the tool cannot make for
+the reader.
+"""
+enum ExclusionReason {
+  """The file carries no frontmatter block at all."""
+  NoFrontmatter: "no-frontmatter"
+
+  """The file declares a `type` the active profile does not define."""
+  UnknownType: "unknown-type"
+}
+
+"""
+One corpus member in the index: where it lives and what its frontmatter
+declares.
+
+The entry is deliberately additive. This sprint populates the path and
+the frontmatter envelope; later features attach headings, extracted
+record blocks and references to the same entry under the same
+`schema_version`, and no property here forecloses modelling references
+as their own collection later.
+"""
+struct IndexEntry {
+  """
+  The member's path, relative to the repository root and written with
+  forward slashes on every platform.
+  """
+  path: String
+
+  """
+  The member's parsed frontmatter.
+
+  Absent exactly when `parse_error` is present: a document whose
+  frontmatter could not be parsed is still indexed, but it has no parsed
+  envelope to carry.
+  """
+  frontmatter: DocumentFrontmatter?
+
+  """
+  The failure that prevented this member's frontmatter from being
+  parsed, with its position.
+
+  Present exactly when `frontmatter` is absent. A member carrying this
+  property does not make the index a failure; the index is still emitted
+  and still contains every other document.
+  """
+  parse_error: ParseError?
+}
+
+"""
+One candidate file that is not a corpus member, and why.
+"""
+struct IndexExclusion {
+  """
+  The excluded file's path, relative to the repository root and written
+  with forward slashes on every platform.
+  """
+  path: String
+
+  """Why the file is not a member."""
+  reason: ExclusionReason
+
+  """
+  The `type` value the file declared, reported when `reason` is
+  `unknown-type` so that a reviewing agent can judge whether the profile
+  or the document is wrong.
+  """
+  type: String?
+}
+
+"""
+The machine-readable description of a repository's specification corpus,
+emitted to the file **specs.json** in the configured spec root.
+
+This is the artifact CI, agents and a central architecture catalogue all
+read instead of each re-deriving the corpus. It crosses a boundary, so
+its shape is defined once here and generated into JSON Schema, Go and
+Markdown rather than being assembled by hand in the emitter.
+
+The model is additive by design: later features add properties to it and
+to its entries under the same `schema_version`. `entries` and
+`exclusions` are lists rather than maps precisely so that the emitter
+owns their order and can make output byte-identical across platforms
+without a change to this model.
+"""
+struct SpecIndex {
+  """
+  The version of this index's schema.
+
+  Pinned to `1.0` for as long as the shape only grows. A change to the
+  shape of what is already here — as opposed to an addition alongside it
+  — updates this value and the emitted index in the same change.
+  """
+  schema_version: String ~= /^1\.0$/
+
+  """
+  The workspace identifier from configuration, so that indexes emitted
+  by several repositories can be merged into one graph without two
+  documents that both declare `adr-001` colliding.
+  """
+  workspace: String
+
+  """Every corpus member, in the order the emitter fixes."""
+  entries: [IndexEntry]
+
+  """Every excluded candidate file, in the order the emitter fixes."""
+  exclusions: [IndexExclusion]
+
+  """
+  A hash of everything this index was built from, written as
+  `sha256:` followed by lowercase hexadecimal.
+
+  This is what makes the emitted file double as a warm cache: a later
+  invocation recomputes the hash of the corpus's current inputs and
+  serves this index unchanged when the two agree, rather than
+  rebuilding. It is a hash of **content** — every candidate file's
+  repository-relative path and bytes, plus the active profile's
+  vocabulary — and never of modification time, so a fresh checkout
+  whose files all carry new timestamps and identical content is still
+  served warm.
+
+  Absent on an index that was not built by walking a corpus. An index
+  carrying no hash is never served warm; it is rebuilt.
+  """
+  input_hash: String?
+}

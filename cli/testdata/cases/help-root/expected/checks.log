@@ -1,0 +1,17 @@
+spec indexes a specification corpus and reports conformance findings against the rules the active profile registers. Configuration is read from specs.toml at the repository root.
+
+Usage:
+  spec [command]
+
+Available Commands:
+  check       Check the corpus, or a single document, for conformance
+  help        Help about any command
+  index       Build the spec index and write it to disk
+  next-id     Return the next identifier for a numbered document type
+  slug-exists Report whether a corpus member declares the given slug
+
+Flags:
+      --config string   path to the repository's specs.toml (default "specs.toml")
+  -h, --help            help for spec
+
+Use "spec [command] --help" for more information about a command.

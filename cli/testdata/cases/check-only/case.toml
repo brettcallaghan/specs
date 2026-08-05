@@ -1,0 +1,5 @@
+description = "--only narrows the report to the named rule identifier; the other known rule is reported not-requested rather than passed"
+cites = ["AC-SPEC-006.8"]
+artifacts = ["checks.log"]
+args = ["check", "--json", "--only", "slug/pattern-mismatch"]
+exit_code = 1

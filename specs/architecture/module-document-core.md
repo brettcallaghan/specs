@@ -6,7 +6,7 @@ description: The framework-agnostic engine that indexes markdown
 slug: module-document-core
 type: module-blueprint
 status: approved
-updated_at: 2026-08-01T00:00:00Z
+updated_at: 2026-08-05T00:00:00Z
 kind: standard
 visibility: internal
 contracts_provided: []
@@ -18,7 +18,8 @@ test_paths:
 related:
   - "frd-spec-validation-cli"
   - "adr-015"
-version: "0.1"
+  - "adr-016"
+version: "0.2"
 ---
 
 # Document Core
@@ -79,20 +80,62 @@ the plugin, and no framework vocabulary is compiled into the host.
   - The module SHALL accept exactly one active profile per corpus
     operation, supplied by the caller.
   - WHERE no profile is registered, the module SHALL still discover the
-    corpus, parse frontmatter, and build the reference graph, reporting
-    every document as excluded with reason `unknown-type`.
+    corpus and parse frontmatter, reporting every document as excluded
+    with reason `unknown-type`.
   - The module SHALL NOT import, reference, or special-case any
     individual profile.
-  - WHEN a profile registers a document type, the module SHALL treat
-    that type's schema, slug pattern and required headings as the
-    authority for documents declaring it.
+  - The module SHALL accept from the active profile **one** JSON Schema
+    — a discriminated union over every document type that profile
+    defines — and SHALL validate a document's frontmatter against the
+    branch of that union its declared `type` selects. It is one schema,
+    not a registry of schemas keyed by type: a profile needing a schema
+    per type would be describing several vocabularies rather than one,
+    and the host would have to know which to reach for.
+  - WHEN a profile registers a document type, the module SHALL treat the
+    slug pattern and numbered flag that profile supplies for it as the
+    authority for documents declaring it. These are the facts the union
+    schema cannot express — a slug pattern because the shared
+    frontmatter envelope declares `slug` once and a subtype cannot narrow
+    an inherited property, and numbering because it is a query over the
+    corpus rather than a property of a document.
   - The module SHALL express every position it reports as a `Span`, so a
     caller never receives a bare line number.
   - WHEN a document fails to parse, the module SHALL record the failure
     against that document and continue, so that indexing never fails as
     a whole (AC-SPEC-002.4).
-  - The module SHALL NOT write to the filesystem outside a cache
-    location the caller supplies.
+  - The module SHALL write exactly one artifact — the emitted index —
+    and only to the destination the caller resolves. It modifies no
+    document it reads.
+
+**Built** — the `Profile` interface in `cli/core/corpus` has three
+members and nothing else:
+
+| Member | Supplies |
+|---|---|
+| `Schema() []byte` | the one union schema every document type is validated against |
+| `DocumentTypes() map[string]DocumentTypeRules` | per type, its slug pattern and whether it is numbered — keyed by the value documents declare in `type` |
+| `Conventions() specmodel.ConventionsConfig` | the convention defaults resolved where an adopting repository's configuration omits them |
+
+`DocumentTypeRules` carries a slug pattern and a numbered flag, and no
+schema. The keys of `DocumentTypes` are the whole of the host's knowledge
+of which types exist, which is what makes the `unknown-type` exclusion a
+lookup rather than a judgement.
+
+The surface is narrow because it constrains everything downstream of it.
+Required sections, element records, reference properties and lifecycle
+rules are later capabilities and each widens this interface; per the
+Change Guidance in [[module-spec-profile]], that widening is a change to
+the host reviewed on its own merits, never a special case granted to one
+profile. Two tests hold the boundary: no package under `cli/core` imports
+a profile package, and no non-test source in `cli/core/corpus` contains a
+string literal matching any document type in the generated vocabulary.
+
+The write guarantee is narrower in fact than in statement. The module's
+only write is `corpus.Write`, whose destination `corpus.IndexPath`
+resolves to `specs.json` in the configured spec root unless the caller
+names another path or standard output. The persisted index *is* the
+cache: there is no separate cache location, so no other file is ever
+created.
 
 ## Components
 
@@ -102,9 +145,9 @@ C4Component
     Container_Boundary(core, "Document Core") {
         Component(span, "Spans", "Go package", "Position type and delimited-region scanning")
         Component(fm, "Frontmatter", "Go package", "Frontmatter extraction and YAML parsing with raw-text access")
-        Component(md, "Markdown Structure", "Go package", "Headings, section spans, fenced blocks and comment blocks")
-        Component(refs, "References", "Go package", "Wikilink discovery, resolution and the reference graph")
-        Component(schema, "Schema Registry", "Go package", "JSON Schema registration by document type, and validation")
+        Component(md, "Markdown Structure", "Go package (planned)", "Headings, section spans, fenced blocks and comment blocks")
+        Component(refs, "References", "Go package (planned)", "Wikilink discovery, resolution and the reference graph")
+        Component(schema, "Schema Registry", "Go package", "Single-union JSON Schema validation dispatched by document type")
         Component(corpus, "Corpus", "Go package", "Discovery, membership, the index model and its emission")
         Component(num, "Numbering", "Go package", "Next-number derivation for numbered document types")
         Component(find, "Findings", "Go package", "Finding and severity model, and report emission")
@@ -112,6 +155,7 @@ C4Component
     Rel(corpus, fm, "Extracts frontmatter via")
     Rel(corpus, md, "Extracts structure via")
     Rel(corpus, refs, "Extracts references via")
+    Rel(corpus, schema, "Runs Check's per-member validation through")
     Rel(fm, span, "Locates delimited regions with")
     Rel(md, span, "Locates delimited regions with")
     Rel(refs, span, "Locates occurrences with")
@@ -119,7 +163,18 @@ C4Component
     Rel(num, corpus, "Queries the index of")
     Rel(schema, find, "Reports through")
     Rel(refs, find, "Reports through")
+    Rel(corpus, find, "Folds Check's findings through")
 ```
+
+Six of the eight are built and carry a **Built** paragraph naming the
+package that realizes them: Spans, Frontmatter, Schema Registry, Corpus,
+Numbering and Findings. **Markdown Structure and References are planned
+and not yet built** — `cli/core` holds no package for either, and the
+module has no markdown-parsing dependency at all. Their sections below
+describe a design, not an implementation, and the diagram edges into and
+out of them are likewise the intended shape. Everything the current
+corpus check does is reached without them, which is why the module ships
+useful without either.
 
 ### Spans
 
@@ -140,6 +195,37 @@ Keeping one scanner here is what makes positions consistent across
 components: two parsers that locate regions differently will disagree
 about where a finding is.
 
+**Built** — `cli/core/span`. Its surface is `Find`, which locates a
+delimited region and returns it as a `Region` carrying two spans: `Outer`
+over the whole construct including both delimiters, and `Inner` over the
+content between them. `Of` derives a span from a byte extent and `Slice`
+recovers the bytes a span covers.
+
+Three semantics are pinned by the implementation and are what every
+consumer may rely on:
+
+- **The scanner does not nest.** A second opening delimiter inside a
+  region is content, and the first closing delimiter after the opening
+  one ends the region. Neither frontmatter nor an HTML comment nests, and
+  a scanner that pretended otherwise would locate a region no parser
+  reading the same file would agree with.
+- **An unterminated opening delimiter yields no region,** rather than one
+  running to the end of the document. A caller that must report the
+  dangling delimiter as a defect locates it itself; conflating the two
+  would swallow the malformed input silently.
+- **Line and column are derived, and a column counts codepoints.** Byte
+  offset and length remain authoritative; the column follows this
+  framework's `line_width` convention of measuring codepoints rather than
+  bytes, so an em dash advances it by one.
+
+The `Span` type is a Go alias for the generated `specmodel.Span` rather
+than a second declaration. Spans owns how a position is computed and is
+the only place one is constructed; the shape it is written in comes from
+`schemas/index.strata`, because a span crosses the JSON boundary in both
+the index and — from the Findings component onward — every finding. One
+definition means no conversion between an in-memory span and a
+serialized one, and no way for the two to drift.
+
 ### Frontmatter
 
 ```component
@@ -158,6 +244,57 @@ property is retained alongside the parsed value, because AC-SPEC-003.2
 requires validating what the author wrote rather than what a YAML parser
 inferred from it.
 
+**Built** — `cli/core/frontmatter`. Its surface is `Parse`, returning a
+`Document` carrying the block's `Region` and its top-level `Property`
+values in declaration order, each with its name, the span of its key, the
+span of its value, the value's raw source text, and the parsed value.
+`Values` returns the generic tree a JSON Schema is validated against and
+`JSON` converts it for decoding into a generated record — one parse
+serving both, so a property's position and its value cannot disagree.
+`goccy/go-yaml` is the parser, per [[adr-015]].
+
+Five semantics are pinned by the implementation:
+
+- **`Parse` has three outcomes, and they are distinct.** A document and
+  no error is a parsed block; no document and no error means the file
+  carries no frontmatter, which is the caller's `no-frontmatter`
+  exclusion rather than a defect; no document and a located error means
+  the block is there and could not be read. Nothing panics, so a corpus
+  walk continues past a malformed member (AC-SPEC-002.4).
+- **A block is recognised only at the start of the document,** located by
+  the Spans scanner with `---` as the opening delimiter and a newline
+  followed by `---` as the closing one. A `---` further down is content.
+  An opening delimiter with no closing one is reported as an
+  unterminated block located at that delimiter — the case the Spans
+  scanner deliberately declines to guess at.
+- **Raw text is source text, not a re-rendering.** A property's raw value
+  runs from the first byte of the value to the start of the next
+  property, trailing whitespace removed, so a quoted string keeps its
+  quotes and a sequence or nested mapping keeps its whole block. The
+  parser leaves an unquoted date as the string the author typed rather
+  than resolving it to a timestamp, which is what makes the AC-SPEC-003.2
+  check possible at all.
+- **The value tree is JSON-compatible.** No parsed value is a type JSON
+  cannot carry, so the crossing into the typed records is a marshal
+  rather than a conversion layer.
+- **Byte offsets are re-derived here, not taken from the YAML library.**
+  `goccy/go-yaml` advances a token's reported position one unit per
+  Unicode codepoint rather than per byte, so treating it as a byte offset
+  is correct only while the block is pure ASCII. Every property after an
+  em dash or a curly quote would otherwise land short of its true
+  position by the accumulated byte/rune difference, silently corrupting
+  the raw text the Schema Registry checks a format constraint against.
+  This package therefore counts codepoints into the block's own bytes to
+  recover the offset. It is a failure mode no ASCII unit fixture can
+  expose, and it surfaced only when the profile self-application gate ran
+  over this repository's real documents.
+
+A frontmatter block that is not a mapping — a bare scalar, a sequence —
+is reported as a located error rather than as an empty document, because
+a file whose frontmatter is a list has a defect worth naming. An empty
+block is a document declaring no properties, which is a different thing
+from a file with no block.
+
 ### Markdown Structure
 
 ```component
@@ -175,6 +312,11 @@ leftover-scaffolding hygiene. This is the component the
 extract-then-review pattern depends on: an agent asks for the spans of
 particular sections and reads only those.
 
+**Not yet built.** There is no `cli/core/markdown` package and no
+markdown parser in the module's dependencies; [[adr-015]]'s choice of
+`goldmark` arrives with this component rather than having arrived
+already.
+
 ### References
 
 ```component
@@ -191,20 +333,44 @@ inline code spans, because an illustrative reference inside backticks is
 not a reference. Inbound edges are derived, so no document maintains a
 list of its own referrers.
 
+**Not yet built.** There is no `cli/core/references` package, and the
+index model carries no reference collection yet — the additive shape
+described under Corpus is what lets one be attached later under the same
+`schema_version`. Until it exists, a `[[slug]]` naming no document is
+not reported by any check.
+
 ### Schema Registry
 
 ```component
 title: Schema Registry
 slug: component-schema-registry
-description: Registration of JSON Schemas by document type, and validation producing located findings
+description: Single-union JSON Schema validation, dispatched by document type, producing located findings
 ```
 
-(Go package) — Registration of JSON Schemas by document type, and
-validation producing located findings. A profile registers one schema
-per type; this component compiles them once and validates each
-document's frontmatter against the schema for its declared type. It
-reports every violation in one pass, each with the JSON Pointer at which
-it occurred, rather than stopping at the first.
+(Go package) — Single-union JSON Schema validation, dispatched by
+document type, producing located findings. A profile registers **one**
+schema — a discriminated union over every document type it defines —
+not a schema per type; this component compiles that union once and
+validates each document's frontmatter against the branch its declared
+`type` selects. It reports every violation in one pass, each with the
+JSON Pointer at which it occurred, rather than stopping at the first
+(AC-SPEC-003.1). Where the selected branch constrains a property with a
+format keyword, the property's raw source text — from the Frontmatter
+component — is validated in place of its YAML-coerced value, so that a
+value a YAML parser silently reinterpreted is checked as the author
+wrote it (AC-SPEC-003.2). A slug that does not match the pattern the
+active profile's per-type table supplies is reported separately, naming
+both the actual slug and the expected pattern (AC-SPEC-003.5) — that
+check is independent of the union schema, because the shared frontmatter
+envelope declares `slug` once and no subtype can narrow it there.
+
+**Built** — `cli/core/schemaregistry`. The branch a document is checked
+against is found mechanically: a document's declared type
+("system-blueprint") is converted to the PascalCase form the union's
+top-level `definitions` are keyed by ("SystemBlueprint"), which is a
+string transform rather than a lookup table naming any type. This is
+what lets the package hold to the Change Guidance below without a
+per-type schema pointer from the profile.
 
 ### Corpus
 
@@ -221,6 +387,153 @@ their reason rather than dropping them, and assembles the index every
 other capability queries. It orchestrates the parsing components but
 holds no parsing logic of its own.
 
+**The index model is `SpecIndex`, and it is generated.** The index
+crosses a boundary — CI, agents and a central architecture catalogue all
+read it — so its shape is declared once in `schemas/index.strata` and
+transpiled to JSON Schema, Go and Markdown with every other model, per
+[[adr-016]], rather than being assembled by hand in the emitter. Corpus
+populates the generated `specmodel.SpecIndex`; it does not define it.
+
+The vocabulary is:
+
+- **`SpecIndex`** — the root: a `schema_version`, the `workspace`
+  identifier from configuration, an ordered list of `entries`, an
+  ordered list of `exclusions`, and the optional `input_hash` the warm
+  cache is decided by. Both collections are lists rather than maps
+  precisely so that the emitter owns their order and can make output
+  byte-identical across platforms (AC-SPEC-009.7) without a change to
+  the model.
+- **`IndexEntry`** — one corpus member: its repository-relative `path`,
+  its parsed `frontmatter`, and a `parse_error` carrying a located
+  failure for a member whose frontmatter could not be read
+  (AC-SPEC-002.4). Exactly one of the latter two is present.
+- **`IndexExclusion`** — one candidate file that is not a member: its
+  `path`, a `reason` of `no-frontmatter` or `unknown-type`, and — where
+  the reason is `unknown-type` — the `type` value the file declared
+  (AC-SPEC-001.3, AC-SPEC-001.4).
+- **`Span`** and **`ParseError`** — the position type every component
+  reports through, and a message paired with one. `Span` is declared
+  here, in the generated model, because findings and parse errors carry
+  it across the JSON boundary; the Spans component below owns its
+  semantics and is the only place spans are computed.
+
+`schema_version` is required and pinned to `1.0` (AC-SPEC-002.2). The
+model is additive: later features attach headings, extracted record
+blocks and references to the same entry under this same version. Strata
+has no notion of a constant, so the emitted value lives in
+`cli/core/specindex` alongside the constructor that writes it —
+a separate package because `scripts/generate-schemas.sh` rebuilds
+`cli/core/specmodel/` from scratch on every run.
+
+The index is not yet a contract document, and that is now a recorded
+decision rather than an omission. It has one producer and no
+independently-built consumer, so the generated JSON Schema is its interim
+machine-readable specification. Promotion to a contract, with a formal
+versioning policy, is deferred to the index-schema ADR
+(`agent-plugins-h6c`) and waits on a real consumer — see the Open
+Questions in [[container-spec-cli]], which owns that decision.
+
+**Built** — `cli/core/corpus`. `Build` walks the spec root and returns a
+`Corpus`: the populated `specmodel.SpecIndex`, the findings discovery
+raised over it, and the lookups the queries need — `Entry` by path,
+`Slug` by identifier, `Document` for the parsed frontmatter behind one
+member, and `FindingsFor` to narrow a whole-corpus result to one file.
+
+`Check` and `CheckFor` run the Schema Registry's validation and the
+active profile's per-type slug-pattern check for every member with parsed
+frontmatter — `CheckFor` narrowed to one file the same way `FindingsFor`
+is — folding the result into one `finding.Report` together with the
+corpus's own duplicate-slug findings, so a caller reads one ordered list
+rather than reconciling discovery-time and check-time findings as two
+channels. `Corpus` reaches the Schema Registry only through the compiled
+union schema the active `Profile` already supplied to `Build`; nothing
+here names a document type.
+
+**Output and warm cache** — the same package. `Write` emits the index to
+one destination, resolved by `IndexPath`: `specs.json` inside the
+configured spec root by default (AC-SPEC-010.1), a named path when the
+output-path option gives one (AC-SPEC-010.2), or standard output when it
+is `-`, in which case no file is created or modified at all
+(AC-SPEC-010.3). A file destination is replaced through a temporary file
+in the destination's own directory followed by a rename, so a concurrent
+reader observes either the old complete index or the new one and never a
+partial file (AC-SPEC-010.4) — the index is rebuilt by a write-time hook
+while queries read it, so an in-place write would hand some reader a
+truncated document.
+
+`Open` is the read side, and the only place the cache decision is made.
+It serves the persisted index unchanged when that index records the
+corpus's current input hash (AC-SPEC-010.5), and rebuilds otherwise
+(AC-SPEC-010.6). Every condition that is not "this index was built from
+exactly these inputs" rebuilds — an absent file, an unreadable one, one
+of another `schema_version`, one carrying no hash — because a stale
+answer is a silent wrong answer and a rebuild costs a second at worst.
+The two paths are interchangeable by construction: the warm corpus holds
+the very index the cold one wrote, so deleting the artifact is always
+safe.
+
+**Staleness is a content hash, never a modification time**, and the
+reason is the environment the latency budget is claimed in. A fresh CI
+checkout gives every file a new mtime and identical bytes; an
+mtime-keyed cache would be cold on every CI run, and REQ-SPEC-009.1's
+warm-index budget would never hold there. `Fingerprint` computes that
+hash over the same walk `Build` uses — the property the whole path rests
+on, since a fingerprint that drifted from the build would either serve
+stale indexes or never serve one. What it folds in is every candidate
+file's repository-relative path and content digest, plus the inputs that
+change the index while the files stand still: the workspace identifier,
+the active profile's schema and per-type table, and the schema version.
+Absolute paths are deliberately excluded, so the same content checked
+out at another location hashes the same.
+
+A corpus served warm has parsed no document. It reads and parses one on
+demand when a caller asks something only the source can answer — a
+slug's position for a duplicate finding, or a schema check — which is
+what keeps a single-document check against a warm index proportional to
+that document rather than to the corpus (AC-SPEC-009.2).
+
+Six semantics are pinned by the implementation:
+
+- **Every read passes through one choke point, and that choke point
+  normalizes line endings.** A candidate's bytes are read through the
+  `os.Root` handle and every CRLF is rewritten to a bare LF before any
+  other component sees them, so a Windows checkout under `core.autocrlf`
+  — the *same commit*, a different byte sequence — cannot move a span's
+  offsets or the content hash the warm path compares (AC-SPEC-009.7).
+  The consequence is deliberate: where the two differ, a reported byte
+  offset indexes the normalized text rather than the file on disk, while
+  line and column — what a human or an editor acts on — are unaffected.
+- **Only regular files ending in `.md` are candidates**, matched without
+  regard to letter case, and everything else is passed over without being
+  recorded (AC-SPEC-001.6). Excluding symlinks is what closes the one
+  route by which a walk could leave the spec root, since `filepath.WalkDir`
+  already declines to descend into a symlinked directory; reads go through
+  an `os.Root` handle on top of that, so a path resolving outside the root
+  is refused by the operating system rather than by a check this package
+  would have to get right (AC-SPEC-001.5).
+- **A file that claimed to be a specification and could not be read is an
+  entry, not an exclusion.** Unparsable frontmatter, and frontmatter that
+  parses as YAML but does not fit the envelope, are both recorded as a
+  located `parse_error` against their own member while every other
+  document still indexes (AC-SPEC-002.4). An exclusion is reserved for the
+  two judgements the reader needs — no frontmatter, and a type the profile
+  does not define.
+- **A `.md` file with frontmatter declaring no `type` at all is
+  `unknown-type` with no declared value reported.** It is not a document
+  the active profile governs, and reporting an empty `type` would claim
+  the file said something it did not.
+- **Duplicate slugs are compared lowercased** (AC-SPEC-003.4) and reported
+  as every ordered pair within a colliding group, so that checking any one
+  member surfaces every collision it takes part in (AC-SPEC-003.3). Each
+  finding quotes the slug as *its own* document declared it, so a
+  case-only collision is legible in the report rather than normalised
+  away.
+- **Ordering is the component's, not the walk's.** Directory iteration
+  order is a property of a filesystem; entries and exclusions are sorted
+  by path and findings ordered through `Report`, the one authority for
+  finding order, so the same corpus content yields identical output
+  wherever it is built.
+
 ### Numbering
 
 ```component
@@ -234,6 +547,17 @@ registers as numbered. Numbering is global per type: the next ADR number
 is one greater than the highest ADR number in the corpus, regardless of
 directory. It reads the index rather than the filesystem, so it costs a
 query rather than a corpus walk.
+
+**Built** — `cli/core/numbering`. Its surface is `Next`, which takes the
+built `SpecIndex`, a document type, and the profile's numbered-type
+table, and returns one greater than the highest number in use for that
+type — reading the run of digits immediately following the
+`<type>-` prefix out of each matching member's slug, wherever in the
+corpus that member sits. An index with no member of the type — an empty
+corpus included — has a highest-in-use of zero, so `Next` returns 1. A
+type the table does not register as numbered, whether absent from it or
+present with `Numbered` false, returns `ErrNotNumbered` rather than an
+answer derived from the wrong query.
 
 ### Findings
 
@@ -251,10 +575,72 @@ as `unverified` rather than as passed. Every finding carries a rule
 identifier, a severity, a path, a span, and a message stating the
 violated constraint and the offending value.
 
+**The finding model is `Finding`, and it is generated.** The finding JSON
+is a published interface surface — an agent parses it and branches on it
+— so its shape is declared once in `schemas/finding.strata` and
+transpiled to JSON Schema, Go and Markdown with every other model, per
+[[adr-016]], rather than being hand-rolled in the emitter. The vocabulary
+is:
+
+- **`Finding`** — one reported result: the `rule` that raised it, its
+  `severity`, the `path` it is against, its `position` as a `Span`, a
+  `message` stating the violated constraint and the offending value, and
+  a `detail`.
+- **`FindingDetail`** — a union discriminated on `kind`, carrying the
+  structured fields that make each defect self-contained: a schema
+  violation with its JSON Pointer, constraint and raw value; a missing
+  property with its name; a slug-pattern mismatch with both the slug and
+  the pattern; a duplicate slug with the other document's path; and an
+  unverified check with the reason it could not run. The message is
+  derivable from the variant, so a consumer branches on structure rather
+  than parsing prose.
+- **`Severity`** — `error`, `warning` and `unverified`, the three
+  [[frd-spec-validation-cli]] defines and no others.
+- **`FindingReport`** — the run envelope: every `Finding` produced, and a
+  `CheckResult` for every check the run knows about carrying an outcome
+  of `passed`, `failed`, `unverified` or `not-requested`.
+
+**The detail is nested rather than inherited.** The alternative — a base
+`Finding` with each variant inheriting it — flattens in every target, so
+Go code wanting the severity or path of an arbitrary finding would need a
+type switch to reach fields every finding carries. Nesting keeps the five
+common properties readable without branching, which is what lets the
+command surface render one shape.
+
+**Built** — `cli/core/finding`. It owns the rules about the generated
+model rather than the model itself: a constructor per variant that
+derives the message from the variant's fields, and a `Report` that
+accumulates findings and accounts for every check. Three semantics are
+pinned by the implementation:
+
+- **A requested check that has not reported is `unverified`, not
+  `passed`.** Requesting a check sets that outcome, and only an explicit
+  completion clears it, so a check that starts and never finishes cannot
+  read as clean (AC-SPEC-006.4). A check the caller did not request stays
+  `not-requested` and is still listed, which is what distinguishes it from
+  one that passed (AC-SPEC-006.9).
+- **Both renderings come from one recorded state.** The report emits the
+  generated JSON and a human-readable text form; the command surface
+  selects a rendering and never formats a finding itself.
+- **Order is fixed here, not by the caller.** Checks are ordered by rule
+  and findings by path, then position, then rule and message, so the same
+  run yields byte-identical output (AC-SPEC-009.7) and snapshot cases stay
+  stable.
+
+The unverified mechanism is built and no check registers against it yet;
+the diagram validation AC-SPEC-006.3 illustrates is a structure-feature
+concern. A later check adds a variant to the union without changing the
+envelope that carries it.
+
+The relationships below are stated for the module's whole component set.
+Where one names Markdown Structure or References it describes the
+intended edge rather than an existing one, since neither component is
+built yet.
+
 **Corpus → Frontmatter, Markdown Structure, References.** Corpus is the
 orchestrator: it walks files and delegates every act of parsing. A
 parser that Corpus does not call is unreachable, and parsing logic that
-lives in Corpus is misplaced.
+lives in Corpus is misplaced. Today it delegates to Frontmatter alone.
 
 **Frontmatter, Markdown Structure, References → Spans.** All three
 locate regions through the shared scanner rather than implementing their
@@ -297,16 +683,24 @@ This module SHALL comply with:
   its visibility becomes public and the versioning obligations in the
   module template apply from that point.
 - **Verification gates:** `go test ./core/...` for any change in this
-  module, plus the fixture-corpus snapshot tests under
-  `cli/core/testdata/` that assert the JSON report for each rule. A
-  change to Spans additionally runs the property tests over the
-  delimiter scanner, which is the highest-risk component because every
-  other position derives from it. CI runs the full suite.
+  module, plus the CLI snapshot cases under `cli/testdata/cases/`, which
+  are where the JSON report for each rule is asserted end to end
+  (`check-json` and `check-error` among them), and the profile
+  self-application gate in `cli/profile`, which runs discovery and
+  checking over this repository's own corpus. A change to Spans is the
+  highest-risk change in the module, because every other position derives
+  from it; its own suite in `cli/core/span` is exhaustive over the
+  scanner's edge cases and is run in full. CI runs everything.
 
 ## Key Decisions
 
 - [[adr-015]] — Go, `goccy/go-yaml`, `santhosh-tekuri/jsonschema` and
-  `goldmark` are the implementation choices this module is built on.
+  `goldmark` are the implementation choices this module is built on. The
+  first three are in use; `goldmark` is not a dependency yet and arrives
+  with the Markdown Structure component.
+- [[adr-016]] — Strata is the single source for generated models, which
+  is why the index model this module emits is declared in
+  `schemas/index.strata` rather than written as Go structs.
 - [[adr-014]] — acceptance-criteria notation is deferred, so no
   component here parses acceptance criteria.
 - [[adr-012]] — the `[[slug]]` and heading-anchor conventions the
@@ -314,13 +708,28 @@ This module SHALL comply with:
 
 ## Open Questions
 
-- [ ] Whether the index cache is invalidated by file modification time
-      or by content hash. Mtime is cheaper; hashing is correct across
-      checkouts and clock skew. Bears directly on whether the warm-index
-      latency in REQ-SPEC-009.1 holds in CI, where checkouts are fresh.
+- [x] **Resolved — the index cache is invalidated by content hash, never
+      by file modification time.** Mtime is cheaper, and it is wrong in
+      exactly the environment the warm-index latency of REQ-SPEC-009.1 is
+      claimed in: a fresh CI checkout gives every file a new mtime and
+      identical bytes, so an mtime-keyed cache would be cold on every CI
+      run. `Fingerprint` folds each candidate's repository-relative path
+      and content digest, plus the workspace identifier, the active
+      profile's schema and per-type table, and the schema version — the
+      inputs that change the index while the files stand still. Absolute
+      paths are excluded, so the same content checked out elsewhere
+      hashes the same. Invalidation is whole-index rather than partial,
+      and the persisted index is itself the cache, so there is no second
+      on-disk location to place or ignore. The full argument is recorded
+      under Corpus above. `agent-plugins-igc` stays open to record this
+      as an ADR; it is no longer the question of what to build.
 - [ ] Whether Findings should adopt `samber/oops` for structured error
       context, as raised in [[adr-015]]. Deferred to implementation; it
-      affects this component's API shape.
+      affects this component's API shape. The implementation shipped
+      without it — findings carry their structure in the generated
+      `FindingDetail` union and internal errors are wrapped with
+      `fmt.Errorf`, so the question is now whether to adopt it rather
+      than whether to start with it.
 
 ## References
 

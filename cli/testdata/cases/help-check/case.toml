@@ -1,0 +1,5 @@
+description = "check --help lists its --json, --strict and --only options, derived from the same declaration that defines them"
+cites = ["AC-SPEC-011.2"]
+artifacts = ["checks.log"]
+args = ["check", "--help"]
+exit_code = 0

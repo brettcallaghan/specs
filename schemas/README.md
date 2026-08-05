@@ -29,6 +29,7 @@ scripts/validate-corpus.py            # check this repo's own documents
 | `frontmatter.strata` | `ElementRecord`, the `DocumentFrontmatter` envelope, the `ContractEdges` mixin, and one struct per document type |
 | `config.strata` | `SpecsConfig` — the public `specs.toml` surface |
 | `profile.strata` | The internal profile registration surface |
+| `index.strata` | `SpecIndex` — the emitted `specs.json`, its entries and exclusions, plus the `Span` and `ParseError` positions every report carries |
 
 ## Design decisions
 

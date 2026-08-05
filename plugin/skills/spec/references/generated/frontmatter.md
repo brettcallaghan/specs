@@ -218,6 +218,7 @@ not done until every document it names has been updated or activated.
 | Property | Type | Documentation |
 |----------|------|---------------|
 | delivery | [Delivery](vocabulary.md#delivery) | The delivery unit grooming plans against. When `staged`, each stage boundary is enumerated in the blueprint's Sequencing Constraints. |
+| plan | String? | Where this feature's implementation plan lives, stamped in by the groom-feature-blueprint skill once grooming serializes the plan: an epic id (`agent-plugins-bge`) when the plan is beads, or a repository-relative directory (`plans/<feature-slug>/`) when it is task files. Absent before grooming, since an ungroomed blueprint has no plan yet; present through `retired`, since the pointer retires with the document rather than being cleared. |
 | sources | Array<[Slug](vocabulary.md#slug)> | The FRD this blueprint realizes, one to one.<br><br>A feature blueprint answers how the system changes; the FRD it names answers what the change must achieve. |
 | updates | Array<[Slug](vocabulary.md#slug)>? | Slugs of existing documents this feature will change — blueprints at any C4 level, and contracts. |
 | creates | Array<[Slug](vocabulary.md#slug)>? | Slugs of new documents authored alongside this blueprint, such as draft contracts for interfaces the feature introduces. |

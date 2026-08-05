@@ -6,7 +6,7 @@ description: The command-line binary that indexes a specification corpus
 slug: container-spec-cli
 type: container-blueprint
 status: approved
-updated_at: 2026-08-01T00:00:00Z
+updated_at: 2026-08-05T00:00:00Z
 components: []
 modules:
   - "module-document-core"
@@ -125,6 +125,68 @@ domain logic: a check that lives here rather than in a module is a
 layering defect, because it would be unavailable to a future API or MCP
 wrapper.
 
+**Built (configuration resolution)** — `cli/cmd`. `Load` reads and
+checks `specs.toml` against the generated
+`cli/core/schema/specs-config.schema.json`, reporting every defect in one
+run — an offending key with its span (AC-SPEC-008.4), never defaulted
+(AC-SPEC-008.5) — through the same `finding.Report` a corpus check
+produces its findings through. It resolves `[workspace].root` relative to
+the configuration file's own directory (AC-SPEC-008.1) and, on a clean
+run, returns the spec root, workspace identifier, activated profile and
+resolved conventions the rest of the container needs (AC-SPEC-008.2). An
+absent `specs.toml` is reported as `*cmd.ErrConfigNotFound` rather than a
+finding, per [[contract-specs-configuration]]'s "no file to carry a span
+into" (AC-SPEC-008.3).
+
+`Registry` is the profile registry [[contract-specs-configuration]]
+names as the customization seam: it maps a `[profile].name` value to a
+`corpus.Profile`, and `BuiltinRegistry` is the one place in this
+container that imports `cli/profile` to register `spec-driven-dev` as
+the built-in. `[profile].name` naming no entry in the registry is
+reported as a finding listing the registered names, not a bare lookup
+failure.
+
+**Built (command tree)** — also `cli/cmd`, via `cobra`
+([[adr-015]]): `Execute` builds the four-subcommand tree — `index`,
+`check`, `slug-exists`, `next-id` — and converts each one's flags into
+calls against Document Core (`corpus.Build`, `corpus.Open`,
+`corpus.Corpus.Check`/`CheckFor`, `corpus.Corpus.Slug`,
+`numbering.Next`) and its result back into stdout and an exit status. No
+file here decides what makes a document valid or scores a check; every
+one of those calls is the whole of what a subcommand does with what it
+receives.
+
+`index` always builds fresh (`corpus.Build`, not the warm-cache
+`corpus.Open`) and writes through `corpus.Write`, accepting the
+`--out` option `IndexPath` resolves (AC-SPEC-011.1); a member that
+failed to parse is recorded in the index like any other, so `index`
+exits zero regardless (AC-SPEC-002.5). `check` opens the corpus warm at
+the default index path and accepts `--json`, `--strict` and `--only`.
+`--json` selects `finding.Report.JSON` over `.Text` (AC-SPEC-006.5).
+`--only` narrows a report built from `finding.NewReport`'s own
+requested/passed/failed/not-requested accounting rather than by
+filtering text: a rule named by `--only` is requested and then marked
+ran from the matching findings (if any), and a rule left out is simply
+never requested, which is what lets the rendered report tell "checked
+and clean" apart from "not asked for" (AC-SPEC-006.8). Exit status
+follows `finding.Report.HasErrors`: any error exits 1 unconditionally;
+warning or unverified findings alone exit 0 unless `--strict` is given
+(AC-SPEC-006.6, AC-SPEC-006.7). `slug-exists` and `next-id` open the
+corpus warm and answer `corpus.Corpus.Slug` and `numbering.Next`
+directly (AC-SPEC-011.3, AC-SPEC-011.4).
+
+A bare invocation or `--help` lists the four subcommands with their
+one-line synopses and, per subcommand, its own flags — cobra's default
+rendering of the `Use`, `Short` and flag declarations above, so the
+listed surface and the code that implements it cannot drift
+(AC-SPEC-011.5, and the Change Guidance below). No hand-written help
+text exists anywhere in this component.
+
+Observable command-tree behavior is verified by the snapshot cases
+under `cli/testdata/cases/`, replayed by `cli/cmd/snapshot_test.go`,
+per [[testing-standards]]; `scripts/regenerate-cli-snapshots.sh`
+regenerates their expected artifacts from the current implementation.
+
 ### Document Core
 
 See [[module-document-core]] (internal). (Go module) — Corpus
@@ -136,10 +198,11 @@ types.
 ### Spec-Driven Development Profile
 
 See [[module-spec-profile]] (internal). (Go module) — This framework's
-document vocabulary: the type registry, per-type schemas and slug
-patterns, required sections, element record blocks, and lifecycle rules.
+document vocabulary: one union schema over every document type, each
+type's slug pattern and numbered-ness, and the convention defaults.
 Registers itself into Document Core through the extension point that
-module defines.
+module defines. Required sections, element record blocks and lifecycle
+rules are designed in that blueprint and not yet registered.
 
 **Command Surface → Spec-Driven Development Profile.** The command
 surface activates exactly one profile per invocation and hands it the
@@ -175,10 +238,45 @@ artifacts, and any cache it keeps is derived and disposable.
 - **Index cache** (on-disk, derived) — the built index, retained so a
   subsequent query answers without re-reading the corpus. This is the
   "warm index" REQ-SPEC-009.1 and REQ-SPEC-009.2 are measured against.
-  - WHEN any input the cache was built from has changed, the CLI SHALL
-    rebuild the affected entries rather than serve a stale answer.
+  - WHEN any input the index was built from has changed, the CLI SHALL
+    rebuild rather than serve a stale answer.
   - The CLI SHALL produce identical output whether or not a cache is
     present, so deleting the cache is always safe.
+
+**Built** — there is no separate cache. The emitted index *is* the cache:
+`index` writes `specs.json` into the configured spec root, and `check`,
+`slug-exists` and `next-id` open that same artifact warm from that same
+default path. One file, one shape, one code path, so "delete the cache"
+and "delete the artifact" are the same act and neither can change an
+answer. An `index --out` naming somewhere else writes an artifact for a
+consumer rather than a cache for the reading commands, which simply find
+nothing at the default path and rebuild.
+
+**Staleness is decided by a content hash of the inputs, never by a
+modification time.** Every emitted index carries an `input_hash` folding
+each candidate file's repository-relative path and content digest,
+together with the inputs that change the index while the files stand
+still: the workspace identifier, the active profile's schema and per-type
+table, and the schema version. A persisted index is served warm only when
+it records the corpus's current hash; every other condition — an absent
+file, an unreadable one, one of another `schema_version`, one carrying no
+hash — rebuilds. The reason for hashing rather than stat-ing is the
+environment the latency budget is claimed in: a fresh CI checkout gives
+every file a new mtime and identical bytes, so an mtime-keyed cache would
+be cold on every CI run and REQ-SPEC-009.1 would never hold there.
+Absolute paths are deliberately excluded from the hash, so the same
+content checked out at another location is still warm.
+
+Invalidation is whole-index, not per-entry: the guarantee above says
+"rebuild" rather than "rebuild the affected entries" because a rebuild
+costs one corpus walk — 70ms cold over this repository's own 26
+documents, against 26ms warm — and a partial invalidation would buy a
+fraction of that while adding a way to be subtly wrong.
+
+The correctness argument rests on one property — the fingerprint and the
+build consume the same walk over the same bytes — which is what makes
+"this index was built from exactly these inputs" a checkable claim rather
+than a hopeful one.
 
 ## Infrastructure and Deployment
 
@@ -193,6 +291,37 @@ section is authoritative for its deployment.
   executable content at install time, and it is installable from at
   least one package registry that supports on-premises mirroring.
   Cross-compilation produces the platform matrix from a single build.
+- **Build:** `CGO_ENABLED=0`, so each artifact is one statically linked
+  file with no libc to resolve at run time (AC-SPEC-009.4), and
+  `-trimpath -ldflags="-s -w"`, so the bytes do not carry the builder's
+  absolute paths. Six targets — `linux`, `darwin` and `windows`, each on
+  `amd64` and `arm64` — are cross-compiled on one Linux runner from one
+  checkout. `.github/workflows/cli.yml` builds the whole matrix on every
+  pull request, so a target that stops cross-compiling fails on the
+  change that broke it rather than at release time.
+- **Distribution — two channels.** The Go module proxy is the registry
+  AC-SPEC-009.6 is satisfied by: it is mirrorable on premises (GOPROXY,
+  Athens, Artifactory), and `go install …/cli/spec@<tag>` needs no
+  release artifact at all. For a machine with no Go toolchain, tagged
+  releases carry one archive per target plus `SHA256SUMS`; unpacking one
+  runs no install-time code, which is what AC-SPEC-009.5 turns on.
+  Nothing here is signed yet, and the binaries carry no version string —
+  both are open, and both belong to the release-and-distribution ADR
+  rather than to this blueprint.
+- **The entry point is `cli/spec/`, not the module root.** Go names an
+  installed binary after the directory holding its main package, so the
+  path is what makes `go install` produce `spec` rather than `cli`. For
+  the same reason release tags are `cli/vX.Y.Z`: the module lives in a
+  subdirectory, and the proxy resolves a subdirectory module's versions
+  only from tags carrying that prefix.
+- **Cross-platform reproducibility (AC-SPEC-009.7) is a property of the
+  read path, not of the build.** The CLI normalizes CRLF to LF at the
+  single point where it reads a candidate file, so a Windows checkout
+  under `core.autocrlf` cannot move a span's byte offsets or the
+  content hash the warm-cache path compares. The consequence is
+  deliberate: a reported byte offset indexes the normalized text rather
+  than the on-disk file where the two differ, while line and column —
+  what a human or an editor acts on — are unaffected.
 
 ## Cross-Cutting Standards
 
@@ -246,6 +375,27 @@ does not apply to a compiled binary.
       modelled as object properties or as a separate edge collection
       (`agent-plugins-dgn`). Decide whether the contract is authored
       alongside that ADR or before it.
+
+      **Decided, in part.** Promotion to a contract document, with a
+      formal versioning policy, is **deferred to `agent-plugins-h6c`**
+      and waits on a consumer or catalogue that actually exists. Until
+      one does, the generated JSON Schema for `SpecIndex` — emitted from
+      `schemas/index.strata` with every other model — is the index's
+      machine-readable specification, and it is the only consumer-facing
+      statement of the shape.
+
+      What is pinned meanwhile: `schema_version` is `1.0`, and the shape
+      is **additive** under it. Later features attach headings, extracted
+      record blocks and references to the same entry without changing the
+      version; changing what is already there — a property's meaning, its
+      type, its removal — bumps `schema_version`, the Strata source and
+      the emitted index together, per the Change Guidance above. That
+      rule is what makes a one-producer artifact safe to ship before its
+      contract is written: a consumer built against 1.0 keeps working
+      until the version says otherwise. It is deliberately weaker than a
+      contract — nothing here says how long 1.0 is supported, or what a
+      consumer is owed on a bump — and closing that gap is exactly what
+      `agent-plugins-h6c` is for.
 - [ ] Whether the CLI ships a `serve` mode holding the index in memory
       across queries. Not required — the measured margin against
       REQ-SPEC-009.1 is wide — but it is the natural home for filesystem

@@ -1,0 +1,18 @@
+# Line endings in the working tree are LF on every platform.
+#
+# This repository's tests compare command output against committed
+# expected artifacts byte for byte (cli/testdata/cases/**/expected/), and
+# .github/workflows/cli.yml runs them on windows-latest, where Git's
+# default `core.autocrlf=true` would otherwise rewrite both the fixture
+# corpora and the expected artifacts on checkout. Pinning the working
+# tree to LF is what lets one set of expected bytes be the answer on all
+# three platforms.
+#
+# It does not weaken the CRLF guarantee AC-SPEC-009.7 makes — it is what
+# makes that guarantee testable. The CRLF checkout the criterion names is
+# reproduced synthetically, on every platform, by
+# cli/cmd/portability_test.go, which replays every case from a working
+# tree it has rewritten to CRLF itself.
+#
+# `text=auto` still lets Git detect binary content and leave it alone.
+* text=auto eol=lf

@@ -1,0 +1,509 @@
+// Tests for the Findings component.
+//
+// Two obligations are exercised here that no other package can hold. The
+// self-contained-diagnostic guarantee (AC-SPEC-006.1) is a property of
+// every finding this package can build, so it is asserted against every
+// constructor rather than against the one check that happens to raise it
+// first. And the unverified mechanism (AC-SPEC-006.3, AC-SPEC-006.4) is
+// registered by no check this sprint, so if it is not tested here it is
+// not tested at all.
+package finding_test
+
+import (
+	"encoding/json"
+	"os"
+	"strings"
+	"testing"
+
+	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
+	"github.com/brettcallaghan/agent-plugins/cli/core/span"
+	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+)
+
+// schemaPath is the generated bundle scripts/generate-schemas.sh emits
+// from schemas/*.strata. The schema-shape tests below read it rather than
+// restating its contents, so a change to the Strata source that loosened
+// the model would fail here instead of passing unnoticed.
+const schemaPath = "../schema/spec-model.schema.json"
+
+// at is a stand-in position. Findings carry a span computed by the Spans
+// component; this package neither derives nor validates one, so a fixed
+// document and extent serve every case.
+func at(t *testing.T) specmodel.Span {
+	t.Helper()
+	return span.Of([]byte("---\nslug: adr-011-targeted-verification\n---\n"), 10, 30)
+}
+
+// Every constructor must produce a finding that names the rule, the
+// severity, the file, the position and the constraint that was violated,
+// and must carry the same facts again as structured fields — so a
+// consumer acts on the finding without re-reading the document or the
+// standard that defines the rule.
+//
+// AC: AC-SPEC-006.1
+func TestEveryFindingIsSelfContained(t *testing.T) {
+	position := at(t)
+
+	cases := []struct {
+		name     string
+		finding  specmodel.Finding
+		rule     specmodel.RuleId
+		contains []string
+		detail   func(t *testing.T, d specmodel.FindingDetail)
+	}{
+		{
+			name:     "schema violation",
+			finding:  finding.SchemaViolation("specs/adrs/adr-011.md", position, "/updated_at", "format: date-time", "2026-07-29"),
+			rule:     finding.RuleSchemaViolation,
+			contains: []string{"/updated_at", "2026-07-29", "format: date-time"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsSchemaViolation()
+				if !ok {
+					t.Fatalf("detail is not a schema violation: %#v", d.Value)
+				}
+				if v.Pointer != "/updated_at" || v.Constraint != "format: date-time" || v.Value != "2026-07-29" {
+					t.Errorf("detail = %#v, want the pointer, constraint and raw value", v)
+				}
+			},
+		},
+		{
+			name:     "missing property",
+			finding:  finding.MissingProperty("specs/adrs/adr-011.md", position, "", "description"),
+			rule:     finding.RuleMissingProperty,
+			contains: []string{"description"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsMissingProperty()
+				if !ok {
+					t.Fatalf("detail is not a missing property: %#v", d.Value)
+				}
+				if v.Property != "description" {
+					t.Errorf("Property = %q, want %q", v.Property, "description")
+				}
+			},
+		},
+		{
+			name:     "slug pattern",
+			finding:  finding.SlugPattern("specs/adrs/adr-011.md", position, "adr-011-targeted-verification", `^adr-[0-9]{3}$`),
+			rule:     finding.RuleSlugPattern,
+			contains: []string{"adr-011-targeted-verification", `^adr-[0-9]{3}$`},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsSlugPattern()
+				if !ok {
+					t.Fatalf("detail is not a slug pattern: %#v", d.Value)
+				}
+				if v.Slug != "adr-011-targeted-verification" || v.Pattern != `^adr-[0-9]{3}$` {
+					t.Errorf("detail = %#v, want both the slug and the pattern", v)
+				}
+			},
+		},
+		{
+			name:     "duplicate slug",
+			finding:  finding.DuplicateSlug("specs/adrs/adr-011.md", position, "adr-011", "specs/adrs/other.md"),
+			rule:     finding.RuleDuplicateSlug,
+			contains: []string{"adr-011", "specs/adrs/other.md"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsDuplicateSlug()
+				if !ok {
+					t.Fatalf("detail is not a duplicate slug: %#v", d.Value)
+				}
+				if v.Slug != "adr-011" || v.OtherPath != "specs/adrs/other.md" {
+					t.Errorf("detail = %#v, want the slug and the other document's path", v)
+				}
+			},
+		},
+		{
+			name:     "unverified",
+			finding:  finding.Unverified("structure/mermaid", "specs/adrs/adr-011.md", position, "no diagram validator is available"),
+			rule:     "structure/mermaid",
+			contains: []string{"no diagram validator is available"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsUnverified()
+				if !ok {
+					t.Fatalf("detail is not an unverified check: %#v", d.Value)
+				}
+				if v.Reason != "no diagram validator is available" {
+					t.Errorf("Reason = %q, want the reason the check could not run", v.Reason)
+				}
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			f := c.finding
+
+			if f.Rule != c.rule {
+				t.Errorf("Rule = %q, want %q", f.Rule, c.rule)
+			}
+			if f.Severity == "" {
+				t.Error("Severity is empty; every finding carries one")
+			}
+			if f.Path != "specs/adrs/adr-011.md" {
+				t.Errorf("Path = %q, want the file the finding is against", f.Path)
+			}
+			if f.Position != position {
+				t.Errorf("Position = %#v, want %#v", f.Position, position)
+			}
+			if f.Message == "" {
+				t.Error("Message is empty; a finding with no message is not self-contained")
+			}
+			for _, want := range c.contains {
+				if !strings.Contains(f.Message, want) {
+					t.Errorf("Message %q does not quote %q", f.Message, want)
+				}
+			}
+			c.detail(t, f.Detail)
+		})
+	}
+}
+
+// The five properties AC-SPEC-006.1 names must survive the JSON
+// boundary, because the finding JSON is what an agent parses.
+//
+// AC: AC-SPEC-006.1
+func TestAFindingSerialisesEveryPropertyItCarries(t *testing.T) {
+	encoded, err := json.Marshal(finding.SlugPattern("specs/adrs/adr-011.md", at(t), "adr-011-x", `^adr-[0-9]{3}$`))
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+
+	var decoded map[string]json.RawMessage
+	if err := json.Unmarshal(encoded, &decoded); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	for _, property := range []string{"rule", "severity", "path", "position", "message", "detail"} {
+		if _, ok := decoded[property]; !ok {
+			t.Errorf("emitted finding has no %q property: %s", property, encoded)
+		}
+	}
+
+	var detail map[string]json.RawMessage
+	if err := json.Unmarshal(decoded["detail"], &detail); err != nil {
+		t.Fatalf("the detail is not an object: %v", err)
+	}
+	if string(detail["kind"]) != `"slug-pattern"` {
+		t.Errorf("detail kind = %s, want %q", detail["kind"], "slug-pattern")
+	}
+	for _, property := range []string{"slug", "pattern"} {
+		if _, ok := detail[property]; !ok {
+			t.Errorf("the detail has no %q property: %s", property, encoded)
+		}
+	}
+}
+
+// A check that was requested and could not run is reported as
+// unverified — both as the check's outcome and as a finding — and never
+// as passed.
+//
+// AC: AC-SPEC-006.3
+// AC: AC-SPEC-006.4
+func TestAnUnrunnableCheckIsUnverifiedRatherThanPassed(t *testing.T) {
+	report := finding.NewReport(finding.RuleSlugPattern, "structure/mermaid")
+	report.Request(finding.RuleSlugPattern)
+	report.Ran(finding.RuleSlugPattern)
+	report.Request("structure/mermaid")
+	report.Unverified("structure/mermaid", "specs/adrs/adr-011.md", at(t), "no diagram validator is available")
+
+	model := report.Model()
+
+	result := checkResult(t, model, "structure/mermaid")
+	if result.Outcome != specmodel.CheckOutcomeUnverified {
+		t.Errorf("outcome = %q, want %q", result.Outcome, specmodel.CheckOutcomeUnverified)
+	}
+	if result.Outcome == specmodel.CheckOutcomePassed {
+		t.Error("a check that could not run is reported as passed")
+	}
+	if result.Reason == nil || *result.Reason != "no diagram validator is available" {
+		t.Errorf("Reason = %v, want the reason the check could not run", result.Reason)
+	}
+
+	if len(model.Findings) != 1 {
+		t.Fatalf("findings = %d, want one unverified finding", len(model.Findings))
+	}
+	if model.Findings[0].Severity != finding.SeverityUnverified {
+		t.Errorf("severity = %q, want %q", model.Findings[0].Severity, finding.SeverityUnverified)
+	}
+	if report.HasErrors() {
+		t.Error("an unverified finding is not an error")
+	}
+}
+
+// A check that is requested and reports nothing at all is unverified,
+// not passed: silence must read as "not known" rather than as "fine".
+//
+// AC: AC-SPEC-006.4
+func TestARequestedCheckThatReportsNothingIsNotPassed(t *testing.T) {
+	report := finding.NewReport(finding.RuleDuplicateSlug)
+	report.Request(finding.RuleDuplicateSlug)
+
+	result := checkResult(t, report.Model(), finding.RuleDuplicateSlug)
+	if result.Outcome != specmodel.CheckOutcomeUnverified {
+		t.Errorf("outcome = %q, want %q", result.Outcome, specmodel.CheckOutcomeUnverified)
+	}
+	if result.Reason == nil || *result.Reason == "" {
+		t.Error("an unverified outcome carries no reason")
+	}
+}
+
+// The report distinguishes a check that passed from one that was never
+// requested, and from one that failed — so a clean-looking report cannot
+// be read as covering checks that never ran.
+//
+// AC: AC-SPEC-006.9
+func TestTheReportDistinguishesPassedFromUnrequested(t *testing.T) {
+	report := finding.NewReport(finding.RuleSlugPattern, finding.RuleDuplicateSlug, finding.RuleMissingProperty)
+	report.Request(finding.RuleDuplicateSlug)
+	report.Ran(finding.RuleDuplicateSlug)
+	report.Request(finding.RuleSlugPattern)
+	report.Add(finding.SlugPattern("specs/adrs/adr-011.md", at(t), "adr-011-x", `^adr-[0-9]{3}$`))
+	report.Ran(finding.RuleSlugPattern)
+
+	model := report.Model()
+
+	want := map[specmodel.RuleId]specmodel.CheckOutcome{
+		finding.RuleDuplicateSlug:   specmodel.CheckOutcomePassed,
+		finding.RuleSlugPattern:     specmodel.CheckOutcomeFailed,
+		finding.RuleMissingProperty: specmodel.CheckOutcomeNotRequested,
+	}
+	if len(model.Checks) != len(want) {
+		t.Fatalf("checks = %d, want %d — every known check is accounted for", len(model.Checks), len(want))
+	}
+	for rule, outcome := range want {
+		if got := checkResult(t, model, rule).Outcome; got != outcome {
+			t.Errorf("%s outcome = %q, want %q", rule, got, outcome)
+		}
+	}
+
+	// The distinction must survive to the JSON an agent reads.
+	encoded, err := report.JSON()
+	if err != nil {
+		t.Fatalf("JSON: %v", err)
+	}
+	if !strings.Contains(string(encoded), `"not-requested"`) {
+		t.Errorf("emitted report does not distinguish an un-requested check: %s", encoded)
+	}
+}
+
+// A finding raised for a check the report was not told about is kept and
+// accounted for rather than dropped.
+func TestAFindingForAnUndeclaredCheckIsStillAccountedFor(t *testing.T) {
+	report := finding.NewReport()
+	report.Add(finding.DuplicateSlug("specs/adrs/adr-011.md", at(t), "adr-011", "specs/adrs/other.md"))
+
+	model := report.Model()
+	if len(model.Findings) != 1 {
+		t.Fatalf("findings = %d, want 1", len(model.Findings))
+	}
+	if got := checkResult(t, model, finding.RuleDuplicateSlug).Outcome; got != specmodel.CheckOutcomeFailed {
+		t.Errorf("outcome = %q, want %q", got, specmodel.CheckOutcomeFailed)
+	}
+	if !report.HasErrors() {
+		t.Error("HasErrors is false with an error finding recorded")
+	}
+}
+
+// The report renders as human-readable text and as the generated finding
+// JSON from the same recorded state, so the command surface selects a
+// rendering rather than formatting findings itself.
+//
+// This participates in AC-SPEC-006.5, which the command surface proves at
+// integration level; what is asserted here is only that both renderings
+// exist and agree.
+func TestTheReportRendersAsTextAndAsJSON(t *testing.T) {
+	report := finding.NewReport(finding.RuleSlugPattern, finding.RuleMissingProperty)
+	report.Request(finding.RuleSlugPattern)
+	report.Add(finding.SlugPattern("specs/adrs/adr-011.md", at(t), "adr-011-x", `^adr-[0-9]{3}$`))
+	report.Ran(finding.RuleSlugPattern)
+
+	text := report.Text()
+	for _, want := range []string{"slug/pattern-mismatch", "error", "specs/adrs/adr-011.md:", "adr-011-x", "checks:", "not-requested"} {
+		if !strings.Contains(text, want) {
+			t.Errorf("text rendering does not mention %q:\n%s", want, text)
+		}
+	}
+
+	encoded, err := report.JSON()
+	if err != nil {
+		t.Fatalf("JSON: %v", err)
+	}
+	var decoded specmodel.FindingReport
+	if err := json.Unmarshal(encoded, &decoded); err != nil {
+		t.Fatalf("the emitted JSON does not decode as a report: %v", err)
+	}
+	if len(decoded.Findings) != 1 || decoded.Findings[0].Rule != finding.RuleSlugPattern {
+		t.Errorf("decoded findings = %#v, want the one recorded finding", decoded.Findings)
+	}
+	if _, ok := decoded.Findings[0].Detail.AsSlugPattern(); !ok {
+		t.Error("the variant did not survive the JSON round trip")
+	}
+}
+
+// An empty report emits empty collections rather than nulls, so output
+// stays comparable and a consumer can iterate without a nil check.
+func TestAnEmptyReportEmitsEmptyCollections(t *testing.T) {
+	encoded, err := finding.NewReport().JSON()
+	if err != nil {
+		t.Fatalf("JSON: %v", err)
+	}
+	if want := `{"checks":[],"findings":[]}`; string(encoded) != want {
+		t.Errorf("emitted report = %s, want %s", encoded, want)
+	}
+	if text := finding.NewReport().Text(); !strings.Contains(text, "no findings") {
+		t.Errorf("text rendering of an empty report = %q", text)
+	}
+}
+
+// Findings and checks are emitted in a fixed order regardless of the
+// order they were recorded in, because a consumer diffing two runs and
+// every snapshot case depends on it.
+func TestOutputOrderIsDeterministic(t *testing.T) {
+	source := []byte(strings.Repeat("x", 400))
+	early := span.Of(source, 10, 5)
+	late := span.Of(source, 300, 5)
+
+	forward := finding.NewReport(finding.RuleSlugPattern, finding.RuleDuplicateSlug)
+	forward.Add(
+		finding.DuplicateSlug("b.md", late, "s", "a.md"),
+		finding.SlugPattern("a.md", late, "s", "^p$"),
+		finding.SlugPattern("a.md", early, "s", "^p$"),
+	)
+
+	backward := finding.NewReport(finding.RuleDuplicateSlug, finding.RuleSlugPattern)
+	backward.Add(
+		finding.SlugPattern("a.md", early, "s", "^p$"),
+		finding.SlugPattern("a.md", late, "s", "^p$"),
+		finding.DuplicateSlug("b.md", late, "s", "a.md"),
+	)
+
+	first, err := forward.JSON()
+	if err != nil {
+		t.Fatalf("JSON: %v", err)
+	}
+	second, err := backward.JSON()
+	if err != nil {
+		t.Fatalf("JSON: %v", err)
+	}
+	if string(first) != string(second) {
+		t.Errorf("two orders of the same run produced different reports:\n%s\n%s", first, second)
+	}
+
+	model := forward.Model()
+	wantPaths := []string{"a.md", "a.md", "b.md"}
+	for i, want := range wantPaths {
+		if model.Findings[i].Path != want {
+			t.Errorf("findings[%d].Path = %q, want %q", i, model.Findings[i].Path, want)
+		}
+	}
+	if model.Findings[0].Position.Offset != early.Offset {
+		t.Error("findings within one file are not ordered by position")
+	}
+	if model.Checks[0].Rule != finding.RuleDuplicateSlug {
+		t.Errorf("checks[0] = %q, want the checks ordered by rule", model.Checks[0].Rule)
+	}
+}
+
+// The model the report emits is the generated one: the base finding, the
+// severity vocabulary, the variant union and the report envelope are
+// declared in schemas/finding.strata, not assembled in Go. These
+// assertions read the generated bundle so that a change loosening the
+// Strata source fails here.
+//
+// AC: AC-SPEC-006.1
+func TestTheGeneratedSchemaDeclaresTheFindingModel(t *testing.T) {
+	bundle := loadBundle(t)
+
+	base := definition(t, bundle, "Finding")
+	for _, property := range []string{"rule", "severity", "path", "position", "message", "detail"} {
+		if !isRequired(base, property) {
+			t.Errorf("Finding does not require %q", property)
+		}
+	}
+
+	severity := definition(t, bundle, "Severity")
+	values, _ := severity["enum"].([]any)
+	got := make(map[string]bool, len(values))
+	for _, value := range values {
+		if name, ok := value.(string); ok {
+			got[name] = true
+		}
+	}
+	for _, want := range []string{"error", "warning", "unverified"} {
+		if !got[want] {
+			t.Errorf("Severity does not declare %q; enum is %v", want, values)
+		}
+	}
+	if len(values) != 3 {
+		t.Errorf("Severity declares %d values, want exactly the three the FRD defines", len(values))
+	}
+
+	union := definition(t, bundle, "FindingDetail")
+	branches, ok := union["allOf"].([]any)
+	if !ok || len(branches) == 0 {
+		t.Fatalf("FindingDetail is not a discriminated union: %v", union)
+	}
+	for _, name := range []string{"FindingSchemaViolation", "FindingMissingProperty", "FindingSlugPattern", "FindingDuplicateSlug", "FindingUnverified"} {
+		if _, ok := bundle["definitions"].(map[string]any)[name]; !ok {
+			t.Errorf("the bundle declares no variant %q", name)
+		}
+	}
+
+	envelope := definition(t, bundle, "FindingReport")
+	for _, property := range []string{"checks", "findings"} {
+		if !isRequired(envelope, property) {
+			t.Errorf("FindingReport does not require %q", property)
+		}
+	}
+	if !isRequired(definition(t, bundle, "CheckResult"), "outcome") {
+		t.Error("CheckResult does not require an outcome")
+	}
+}
+
+func loadBundle(t *testing.T) map[string]any {
+	t.Helper()
+
+	raw, err := os.ReadFile(schemaPath)
+	if err != nil {
+		t.Fatalf("read %s: %v", schemaPath, err)
+	}
+	var bundle map[string]any
+	if err := json.Unmarshal(raw, &bundle); err != nil {
+		t.Fatalf("parse %s: %v", schemaPath, err)
+	}
+	return bundle
+}
+
+func definition(t *testing.T, bundle map[string]any, name string) map[string]any {
+	t.Helper()
+
+	definitions, ok := bundle["definitions"].(map[string]any)
+	if !ok {
+		t.Fatalf("%s declares no definitions object", schemaPath)
+	}
+	found, ok := definitions[name].(map[string]any)
+	if !ok {
+		t.Fatalf("%s declares no definition %q", schemaPath, name)
+	}
+	return found
+}
+
+func isRequired(definition map[string]any, name string) bool {
+	required, _ := definition["required"].([]any)
+	for _, entry := range required {
+		if entry == name {
+			return true
+		}
+	}
+	return false
+}
+
+func checkResult(t *testing.T, model specmodel.FindingReport, rule specmodel.RuleId) specmodel.CheckResult {
+	t.Helper()
+
+	for _, result := range model.Checks {
+		if result.Rule == rule {
+			return result
+		}
+	}
+	t.Fatalf("the report accounts for no check %q", rule)
+	return specmodel.CheckResult{}
+}

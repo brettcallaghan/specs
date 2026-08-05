@@ -75,6 +75,387 @@ type ConventionsConfig struct {
 	LineWidth *uint64 `json:"line_width,omitempty"`
 }
 
+// The identifier of one check, stable across releases.
+//
+// Every finding names the rule that raised it, and the run report accounts
+// for every rule it knows about, so the identifier is the join between the
+// two: a caller naming a subset of checks to run names them by these
+// values, and reads the outcome of each back under the same value.
+//
+// Identifiers are namespaced kebab-case — `slug/pattern-mismatch`,
+// `frontmatter/missing-property` — so the family a check belongs to is
+// legible without a lookup table. The shape is stated rather than
+// constrained because a Strata regex literal cannot contain a forward
+// slash.
+type RuleId string
+
+// How badly a finding bears on a run.
+//
+// The three values are the whole vocabulary, and the distinction that
+// matters most is the third: `unverified` is not a milder failure, it is
+// the absence of a result. A check the tool was asked to perform and could
+// not run reports `unverified` rather than passing silently, because a
+// consumer that cannot tell the two apart will read a missing check as a
+// clean one.
+type Severity string
+
+const (
+	// A conformance failure. A run producing one exits non-zero.
+	SeverityError Severity = "error"
+	// A probable problem that does not by itself fail a build.
+	SeverityWarning Severity = "warning"
+	// A check that was requested and could not run, so nothing is known.
+	SeverityUnverified Severity = "unverified"
+)
+
+func (e Severity) MarshalJSON() ([]byte, error) {
+	switch e {
+	case SeverityError, SeverityWarning, SeverityUnverified:
+		return json.Marshal(string(e))
+	}
+	return nil, fmt.Errorf("Severity: unknown value %q", string(e))
+}
+
+func (e *Severity) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	switch Severity(s) {
+	case SeverityError, SeverityWarning, SeverityUnverified:
+		*e = Severity(s)
+		return nil
+	}
+	return fmt.Errorf("Severity: unknown value %q", s)
+}
+
+func (e Severity) String() string {
+	return string(e)
+}
+
+// A frontmatter value that violates the schema its document type is
+// validated against.
+//
+// The pointer and the constraint together make the finding actionable
+// without re-running the validator: the pointer says which property, and
+// the constraint says what it had to satisfy.
+type FindingSchemaViolation struct {
+	// The JSON Pointer at which the violation occurred, relative to the
+	// document's frontmatter.
+	Pointer string `json:"pointer"`
+	// The constraint the value failed, quoted as the schema states it.
+	Constraint string `json:"constraint"`
+	// The offending value, as raw source text rather than as a YAML parser
+	// reinterpreted it, so a date written unquoted is reported as it was
+	// written.
+	Value string `json:"value"`
+}
+
+// A property the document's type requires and the document does not
+// declare.
+//
+// Modelled apart from the general schema violation because a missing
+// property is the most common defect by a wide margin, and a consumer
+// offering to insert one needs the property name as a value rather than as
+// a substring of a message.
+type FindingMissingProperty struct {
+	// The JSON Pointer of the object that should carry the property.
+	Pointer string `json:"pointer"`
+	// The name of the property that is absent.
+	Property string `json:"property"`
+}
+
+// A slug that does not match the pattern the active profile supplies for
+// the document's type.
+//
+// Both halves are carried so the finding is self-contained: an agent
+// fixing it needs neither the profile nor the document open.
+type FindingSlugPattern struct {
+	// The slug the document declares.
+	Slug string `json:"slug"`
+	// The pattern the active profile supplies for this document's type.
+	Pattern string `json:"pattern"`
+}
+
+// A slug declared by more than one corpus member.
+//
+// Reported against each of the two documents, each naming the other, so
+// that checking either one surfaces the collision.
+type FindingDuplicateSlug struct {
+	// The slug both documents declare.
+	Slug string `json:"slug"`
+	// The other document's path, relative to the repository root and written
+	// with forward slashes on every platform.
+	OtherPath string `json:"other_path"`
+}
+
+// A check that was requested and could not run.
+//
+// This is the structured half of the `unverified` severity: the reason
+// states what was missing, so a consumer can decide whether to install a
+// dependency, adjust configuration, or accept the gap.
+type FindingUnverified struct {
+	// Why the check could not run, stated so that it needs no further lookup
+	// to act on.
+	Reason string `json:"reason"`
+}
+
+type FindingDetailVariant interface{ isFindingDetailVariant() }
+
+// The structured detail of one finding, selected by the kind of defect.
+//
+// Every finding carries one. The message on the finding is derivable from
+// this value, so a consumer branches on structure rather than parsing
+// prose, and a renderer that wants to offer a fix reads the fields it needs
+// as values.
+//
+// The union is open to extension in the sense that matters: a later check
+// adds a variant without changing the envelope that carries it, and a
+// consumer that does not recognise a variant still has the rule
+// identifier, the severity, the path, the span and the message.
+type FindingDetail struct {
+	Value FindingDetailVariant
+}
+
+func (FindingSchemaViolation) isFindingDetailVariant() {}
+func (FindingMissingProperty) isFindingDetailVariant() {}
+func (FindingSlugPattern) isFindingDetailVariant()     {}
+func (FindingDuplicateSlug) isFindingDetailVariant()   {}
+func (FindingUnverified) isFindingDetailVariant()      {}
+
+func NewFindingDetailSchemaViolation(v FindingSchemaViolation) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailMissingProperty(v FindingMissingProperty) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailSlugPattern(v FindingSlugPattern) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailDuplicateSlug(v FindingDuplicateSlug) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailUnverified(v FindingUnverified) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func (u FindingDetail) AsSchemaViolation() (FindingSchemaViolation, bool) {
+	v, ok := u.Value.(FindingSchemaViolation)
+	return v, ok
+}
+
+func (u FindingDetail) AsMissingProperty() (FindingMissingProperty, bool) {
+	v, ok := u.Value.(FindingMissingProperty)
+	return v, ok
+}
+
+func (u FindingDetail) AsSlugPattern() (FindingSlugPattern, bool) {
+	v, ok := u.Value.(FindingSlugPattern)
+	return v, ok
+}
+
+func (u FindingDetail) AsDuplicateSlug() (FindingDuplicateSlug, bool) {
+	v, ok := u.Value.(FindingDuplicateSlug)
+	return v, ok
+}
+
+func (u FindingDetail) AsUnverified() (FindingUnverified, bool) {
+	v, ok := u.Value.(FindingUnverified)
+	return v, ok
+}
+
+func (u FindingDetail) MarshalJSON() ([]byte, error) {
+	var payload []byte
+	var tag string
+	var err error
+	switch v := u.Value.(type) {
+	case FindingSchemaViolation:
+		tag = "schema-violation"
+		payload, err = json.Marshal(v)
+	case FindingMissingProperty:
+		tag = "missing-property"
+		payload, err = json.Marshal(v)
+	case FindingSlugPattern:
+		tag = "slug-pattern"
+		payload, err = json.Marshal(v)
+	case FindingDuplicateSlug:
+		tag = "duplicate-slug"
+		payload, err = json.Marshal(v)
+	case FindingUnverified:
+		tag = "unverified"
+		payload, err = json.Marshal(v)
+	default:
+		return nil, fmt.Errorf("FindingDetail: nil or unknown variant")
+	}
+	if err != nil {
+		return nil, err
+	}
+	tagBytes, err := json.Marshal(tag)
+	if err != nil {
+		return nil, err
+	}
+	if len(payload) == 0 || payload[0] != '{' {
+		return nil, fmt.Errorf("FindingDetail: variant produced non-object JSON")
+	}
+	prefix := append([]byte{'{'}, []byte("\"kind\":")...)
+	prefix = append(prefix, tagBytes...)
+	if payload[1] != '}' {
+		prefix = append(prefix, ',')
+	}
+	return append(prefix, payload[1:]...), nil
+}
+
+func (u *FindingDetail) UnmarshalJSON(data []byte) error {
+	var probe struct {
+		Tag string `json:"kind"`
+	}
+	if err := json.Unmarshal(data, &probe); err != nil {
+		return err
+	}
+	switch probe.Tag {
+	case "schema-violation":
+		var v FindingSchemaViolation
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "missing-property":
+		var v FindingMissingProperty
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "slug-pattern":
+		var v FindingSlugPattern
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "duplicate-slug":
+		var v FindingDuplicateSlug
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "unverified":
+		var v FindingUnverified
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	}
+	return fmt.Errorf("FindingDetail: unknown kind %q", probe.Tag)
+}
+
+// One reported conformance result.
+//
+// Every check in this tool reports through this shape, so a consumer
+// renders one thing and a check added later is readable by a consumer
+// written before it. The five common properties are what make a diagnostic
+// self-contained — the rule that raised it, how badly it bears on the run,
+// which file, where in that file, and what is wrong — and `detail` carries
+// the same information again in structured form for a consumer that acts
+// on it rather than printing it.
+type Finding struct {
+	// The check that raised this finding.
+	Rule RuleId `json:"rule"`
+	// How badly this finding bears on the run.
+	Severity Severity `json:"severity"`
+	// The file the finding is against, relative to the repository root and
+	// written with forward slashes on every platform.
+	Path string `json:"path"`
+	// Where in the file the finding is, as a span rather than a bare line
+	// number, so a report can point at a value inside a line.
+	Position Span `json:"position"`
+	// What is wrong, stating the violated constraint and the value that
+	// violated it, so the finding needs no further lookup to act on.
+	Message string `json:"message"`
+	// The structured form of the same defect.
+	Detail FindingDetail `json:"detail"`
+}
+
+// What became of one check in a run.
+//
+// A run reports an outcome for every check it knows about, including the
+// ones it was not asked to perform, because the alternative — omitting
+// them — leaves a consumer unable to tell a check that passed from a check
+// that never ran.
+type CheckOutcome string
+
+const (
+	// Requested, ran, and raised no finding.
+	CheckOutcomePassed CheckOutcome = "passed"
+	// Requested, ran, and raised at least one finding.
+	CheckOutcomeFailed CheckOutcome = "failed"
+	// Requested and could not run. Nothing is known about it.
+	CheckOutcomeUnverified CheckOutcome = "unverified"
+	// Not requested for this run. Nothing is known about it.
+	CheckOutcomeNotRequested CheckOutcome = "not-requested"
+)
+
+func (e CheckOutcome) MarshalJSON() ([]byte, error) {
+	switch e {
+	case CheckOutcomePassed, CheckOutcomeFailed, CheckOutcomeUnverified, CheckOutcomeNotRequested:
+		return json.Marshal(string(e))
+	}
+	return nil, fmt.Errorf("CheckOutcome: unknown value %q", string(e))
+}
+
+func (e *CheckOutcome) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	switch CheckOutcome(s) {
+	case CheckOutcomePassed, CheckOutcomeFailed, CheckOutcomeUnverified, CheckOutcomeNotRequested:
+		*e = CheckOutcome(s)
+		return nil
+	}
+	return fmt.Errorf("CheckOutcome: unknown value %q", s)
+}
+
+func (e CheckOutcome) String() string {
+	return string(e)
+}
+
+// The outcome of one check in a run.
+type CheckResult struct {
+	// The check this result is for.
+	Rule RuleId `json:"rule"`
+	// What became of it.
+	Outcome CheckOutcome `json:"outcome"`
+	// Why the check could not run, present exactly when `outcome` is
+	// `unverified`.
+	Reason *string `json:"reason,omitempty"`
+}
+
+// Everything one check run produced.
+//
+// The two collections answer different questions and neither substitutes
+// for the other. `findings` is what is wrong; `checks` is what was looked
+// at. A report carrying no findings is only good news if every check the
+// caller cares about is accounted for in `checks` as having passed.
+//
+// Both are lists rather than maps so that the emitter owns their order and
+// can make output byte-identical across platforms without a change to this
+// model.
+type FindingReport struct {
+	// Every check the run knows about, in the order the emitter fixes, each
+	// with what became of it.
+	Checks []CheckResult `json:"checks"`
+	// Every finding the run produced, in the order the emitter fixes.
+	Findings []Finding `json:"findings"`
+}
+
 // The three fields that identify any element the framework names.
 //
 // This is the smallest unit of description in the vocabulary, and it is
@@ -787,6 +1168,14 @@ type FeatureBlueprint struct {
 	// The delivery unit grooming plans against. When `staged`, each stage
 	// boundary is enumerated in the blueprint's Sequencing Constraints.
 	Delivery Delivery `json:"delivery"`
+	// Where this feature's implementation plan lives, stamped in by the
+	// groom-feature-blueprint skill once grooming serializes the plan:
+	// an epic id (`agent-plugins-bge`) when the plan is beads, or a
+	// repository-relative directory (`plans/<feature-slug>/`) when it is
+	// task files. Absent before grooming, since an ungroomed blueprint has
+	// no plan yet; present through `retired`, since the pointer retires
+	// with the document rather than being cleared.
+	Plan *string `json:"plan,omitempty"`
 	// The FRD this blueprint realizes, one to one.
 	//
 	// A feature blueprint answers how the system changes; the FRD it names
@@ -940,6 +1329,175 @@ type Guide struct {
 	Related *[]Slug `json:"related,omitempty"`
 	// The guide's semantic version, quoted so YAML reads it as a string.
 	Version *string `json:"version,omitempty"`
+}
+
+// A contiguous region of a document.
+//
+// Byte offset and byte length are the authoritative extent, because spans
+// address regions *within* a line as well as whole sections — a malformed
+// `slug` value occupies part of a line, not the line itself. Line and
+// column are carried alongside for readability: they are what a human or
+// an agent reads in a report, and they are derived from the offset rather
+// than being an independent source of truth.
+//
+// Lines and columns are one-based. A column counts Unicode codepoints from
+// the start of its line, matching the way this framework's conventions
+// measure width, so an em dash advances the column by one rather than by
+// its three UTF-8 bytes.
+type Span struct {
+	// Byte offset of the first byte of the region, from the start of the
+	// document.
+	Offset uint64 `json:"offset"`
+	// Length of the region in bytes. Zero is a valid, empty region — the
+	// content of `---\n---` is an empty span rather than an absent one.
+	Length uint64 `json:"length"`
+	// One-based line on which the region starts.
+	StartLine uint64 `json:"start_line"`
+	// One-based codepoint column at which the region starts.
+	StartColumn uint64 `json:"start_column"`
+	// One-based line on which the region ends.
+	EndLine uint64 `json:"end_line"`
+	// One-based codepoint column one past the last codepoint of the region.
+	EndColumn uint64 `json:"end_column"`
+}
+
+// A located failure to parse part of a document.
+//
+// Recorded against the document it occurred in rather than raised, because
+// one unparsable file must not cost a repository the index of every other
+// file. The position is a `Span`, like every other position this framework
+// reports.
+type ParseError struct {
+	// What could not be parsed, stated so that the message needs no further
+	// lookup to act on.
+	Message string `json:"message"`
+	// Where in the document the failure occurred.
+	Position Span `json:"position"`
+}
+
+// Why a candidate file beneath the spec root is not a corpus member.
+//
+// Exclusions are recorded rather than dropped, so that a document which
+// *should* be a specification but is missing frontmatter is visible in the
+// index rather than absent from it — a judgement the tool cannot make for
+// the reader.
+type ExclusionReason string
+
+const (
+	// The file carries no frontmatter block at all.
+	ExclusionReasonNoFrontmatter ExclusionReason = "no-frontmatter"
+	// The file declares a `type` the active profile does not define.
+	ExclusionReasonUnknownType ExclusionReason = "unknown-type"
+)
+
+func (e ExclusionReason) MarshalJSON() ([]byte, error) {
+	switch e {
+	case ExclusionReasonNoFrontmatter, ExclusionReasonUnknownType:
+		return json.Marshal(string(e))
+	}
+	return nil, fmt.Errorf("ExclusionReason: unknown value %q", string(e))
+}
+
+func (e *ExclusionReason) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	switch ExclusionReason(s) {
+	case ExclusionReasonNoFrontmatter, ExclusionReasonUnknownType:
+		*e = ExclusionReason(s)
+		return nil
+	}
+	return fmt.Errorf("ExclusionReason: unknown value %q", s)
+}
+
+func (e ExclusionReason) String() string {
+	return string(e)
+}
+
+// One corpus member in the index: where it lives and what its frontmatter
+// declares.
+//
+// The entry is deliberately additive. This sprint populates the path and
+// the frontmatter envelope; later features attach headings, extracted
+// record blocks and references to the same entry under the same
+// `schema_version`, and no property here forecloses modelling references
+// as their own collection later.
+type IndexEntry struct {
+	// The member's path, relative to the repository root and written with
+	// forward slashes on every platform.
+	Path string `json:"path"`
+	// The member's parsed frontmatter.
+	//
+	// Absent exactly when `parse_error` is present: a document whose
+	// frontmatter could not be parsed is still indexed, but it has no parsed
+	// envelope to carry.
+	Frontmatter *DocumentFrontmatter `json:"frontmatter,omitempty"`
+	// The failure that prevented this member's frontmatter from being
+	// parsed, with its position.
+	//
+	// Present exactly when `frontmatter` is absent. A member carrying this
+	// property does not make the index a failure; the index is still emitted
+	// and still contains every other document.
+	ParseError *ParseError `json:"parse_error,omitempty"`
+}
+
+// One candidate file that is not a corpus member, and why.
+type IndexExclusion struct {
+	// The excluded file's path, relative to the repository root and written
+	// with forward slashes on every platform.
+	Path string `json:"path"`
+	// Why the file is not a member.
+	Reason ExclusionReason `json:"reason"`
+	// The `type` value the file declared, reported when `reason` is
+	// `unknown-type` so that a reviewing agent can judge whether the profile
+	// or the document is wrong.
+	Type *string `json:"type,omitempty"`
+}
+
+// The machine-readable description of a repository's specification corpus,
+// emitted to the file **specs.json** in the configured spec root.
+//
+// This is the artifact CI, agents and a central architecture catalogue all
+// read instead of each re-deriving the corpus. It crosses a boundary, so
+// its shape is defined once here and generated into JSON Schema, Go and
+// Markdown rather than being assembled by hand in the emitter.
+//
+// The model is additive by design: later features add properties to it and
+// to its entries under the same `schema_version`. `entries` and
+// `exclusions` are lists rather than maps precisely so that the emitter
+// owns their order and can make output byte-identical across platforms
+// without a change to this model.
+type SpecIndex struct {
+	// The version of this index's schema.
+	//
+	// Pinned to `1.0` for as long as the shape only grows. A change to the
+	// shape of what is already here — as opposed to an addition alongside it
+	// — updates this value and the emitted index in the same change.
+	SchemaVersion string `json:"schema_version"`
+	// The workspace identifier from configuration, so that indexes emitted
+	// by several repositories can be merged into one graph without two
+	// documents that both declare `adr-001` colliding.
+	Workspace string `json:"workspace"`
+	// Every corpus member, in the order the emitter fixes.
+	Entries []IndexEntry `json:"entries"`
+	// Every excluded candidate file, in the order the emitter fixes.
+	Exclusions []IndexExclusion `json:"exclusions"`
+	// A hash of everything this index was built from, written as
+	// `sha256:` followed by lowercase hexadecimal.
+	//
+	// This is what makes the emitted file double as a warm cache: a later
+	// invocation recomputes the hash of the corpus's current inputs and
+	// serves this index unchanged when the two agree, rather than
+	// rebuilding. It is a hash of **content** — every candidate file's
+	// repository-relative path and bytes, plus the active profile's
+	// vocabulary — and never of modification time, so a fresh checkout
+	// whose files all carry new timestamps and identical content is still
+	// served warm.
+	//
+	// Absent on an index that was not built by walking a corpus. An index
+	// carrying no hash is never served warm; it is rebuilt.
+	InputHash *string `json:"input_hash,omitempty"`
 }
 
 // What a profile registers into Document Core.
