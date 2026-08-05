@@ -21,3 +21,8 @@ local/
 # Defensive: bd has been observed writing its global config to a literal
 # ./~/ instead of $HOME. The session hook sweeps it; ignore it regardless.
 /~/
+
+# Spec CLI index output — a build artifact and cache, never source.
+# `spec index` writes it here by default (AC-SPEC-010.1); deleting it is
+# always safe, since any changed input triggers a rebuild (AC-SPEC-010.6).
+specs/specs.json
