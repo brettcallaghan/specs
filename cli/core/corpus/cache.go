@@ -144,7 +144,7 @@ func writeAtomic(dest string, data []byte) error {
 	if err := os.Chmod(name, 0o644); err != nil {
 		return fmt.Errorf("corpus: writing %s: %w", dest, err)
 	}
-	if err := throughSharingConflicts(func() error { return os.Rename(name, dest) }); err != nil {
+	if err := throughSharingConflicts(func() error { return replaceFile(name, dest) }); err != nil {
 		return fmt.Errorf("corpus: replacing %s: %w", dest, err)
 	}
 	return nil
@@ -159,17 +159,19 @@ func writeAtomic(dest string, data []byte) error {
 // while queries read it, which is precisely the interleaving the
 // criterion exists to make safe.
 //
-//   - The write loses, and this is the serious one. MoveFileEx refuses to
-//     replace a file another handle has open unless that handle carries
-//     FILE_SHARE_DELETE, and Go's os.Open does not request it
-//     (golang/go#32088). So an ordinary reader vetoes the rewrite, with
-//     ERROR_ACCESS_DENIED. Waiting the veto out only works while readers
-//     leave gaps: measured on the Windows runner, a reader reopening the
-//     file continuously blocked the writer past a two-second budget, 150
-//     rewrites running. That is livelock, not contention, and no retry
-//     budget fixes it. The remedy is to stop vetoing — [openShared] asks
-//     for FILE_SHARE_DELETE, so a reader never blocks a replacement at
-//     all, and the writer always makes progress.
+//   - The write loses, and this is the serious one. It loses at two
+//     independent gates, which is worth stating plainly because clearing
+//     the first alone changes nothing observable. A replacement needs
+//     DELETE access on the destination, which an ordinary Go reader
+//     refuses (golang/go#32088) — and separately, MoveFileEx will not
+//     replace a file that has open handles at all, whatever they permit.
+//     Waiting either out only works while readers leave gaps: measured on
+//     the Windows runner, a reader reopening the file continuously
+//     blocked the writer past a two-second budget with 150 rewrites
+//     running. That is livelock, not contention, and no retry budget
+//     fixes it. sharing_windows.go clears both gates — [openShared] grants
+//     FILE_SHARE_DELETE, [replaceFile] falls back to a rename with POSIX
+//     semantics — so the writer always makes progress.
 //   - The read loses, transiently. MoveFileEx opens the destination for
 //     delete with sharing of its own that a reader can lose against, so a
 //     read arriving inside that window fails with
