@@ -291,7 +291,14 @@ func TestFileReplacementIsAtomicUnderAConcurrentReader(t *testing.T) {
 				return
 			default:
 			}
-			raw, err := os.ReadFile(dest)
+			// corpus.ReadArtifact rather than os.ReadFile: on Windows a
+			// replacement briefly holds the destination open with no
+			// sharing, so a bare read loses that race with
+			// ERROR_SHARING_VIOLATION. Reading the way a consumer of this
+			// package is meant to read is also what makes the assertion
+			// below meaningful — it tests the artifact's read path, not
+			// an ad-hoc one only this test uses.
+			raw, err := corpus.ReadArtifact(dest)
 			if err != nil {
 				t.Errorf("the artifact was not readable during a rewrite: %v", err)
 				return

@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
@@ -143,57 +144,119 @@ func writeAtomic(dest string, data []byte) error {
 	if err := os.Chmod(name, 0o644); err != nil {
 		return fmt.Errorf("corpus: writing %s: %w", dest, err)
 	}
-	if err := replace(name, dest); err != nil {
+	if err := throughSharingConflicts(func() error { return os.Rename(name, dest) }); err != nil {
 		return fmt.Errorf("corpus: replacing %s: %w", dest, err)
 	}
 	return nil
 }
 
-// replaceRetryBudget bounds how long [replace] will wait out a Windows
-// sharing conflict before reporting it. Generous relative to the conflict
-// it covers — a reader holds the index open for microseconds — so that
-// exhausting it means something else is wrong (an editor, a virus
-// scanner, a stuck process) and the error is worth surfacing.
-const replaceRetryBudget = 2 * time.Second
+// Windows shares the index artifact grudgingly, and it does so in both
+// directions. On POSIX an atomic replacement needs no cooperation from
+// readers: rename replaces the destination whether or not anyone holds it
+// open, and a reader that already has the old inode keeps reading it.
+// Windows has no such separation between a name and the file behind it,
+// so the two sides of AC-SPEC-010.4 collide.
+//
+//   - The write loses. MoveFileEx refuses to replace a file another handle
+//     has open unless that handle carries FILE_SHARE_DELETE, and Go's
+//     os.Open does not request it (golang/go#32088), so a concurrent
+//     reader fails the rename with ERROR_ACCESS_DENIED.
+//   - The read loses. MoveFileEx opens the destination for delete with no
+//     sharing of its own, so a reader arriving in that window fails with
+//     ERROR_SHARING_VIOLATION — "the process cannot access the file
+//     because it is being used by another process".
+//
+// Neither is hypothetical: the index is rewritten by a write-time hook
+// while queries read it, which is precisely the interleaving AC-SPEC-010.4
+// exists to make safe. Both conflicts are transient by construction —
+// each side holds the file for microseconds — so a bounded retry is the
+// whole remedy, and it is why the read path belongs in this package
+// ([ReadArtifact]) rather than being left to each caller's os.ReadFile.
+//
+// What none of this changes is the guarantee itself. The rename is still
+// a single operation when it lands, and a reader still observes one
+// complete version or the other, never a partial file. The retries keep
+// either side from reporting a failure that would not have occurred on
+// any other platform.
 
-// replace renames name onto dest, waiting out a transient sharing
-// conflict on Windows.
+// windowsRetryBudget bounds how long an operation on the artifact will
+// wait out a sharing conflict before reporting it. Generous relative to
+// the conflict it covers, so that exhausting it means something else is
+// holding the file — an editor, a virus scanner, a stuck process — and
+// the error is worth surfacing rather than absorbing.
+const windowsRetryBudget = 2 * time.Second
+
+// errorSharingViolation is Windows ERROR_SHARING_VIOLATION (32). The
+// portable syscall package gives it no name, and unlike
+// ERROR_ACCESS_DENIED it is not one of the codes Errno.Is folds into
+// fs.ErrPermission, so it has to be matched numerically.
+const errorSharingViolation = syscall.Errno(32)
+
+// sharingConflict reports whether err is a Windows conflict over an open
+// file, which waiting can resolve.
 //
-// On POSIX this is one unconditional call: rename replaces the
-// destination whether or not anyone holds it open. Windows does not.
-// MoveFileEx refuses to replace a file that another handle has open
-// unless that handle was opened with FILE_SHARE_DELETE, and Go's os.Open
-// does not request it (golang/go#32088) — so an ordinary concurrent
-// reader of the index makes the replace fail with "Access is denied"
-// until it closes. That is not a hypothetical here: the index is rewritten
-// by a write-time hook while queries read it, which is the exact
-// interleaving AC-SPEC-010.4 exists to make safe.
+// The GOOS guard is what keeps the retry honest: on POSIX a permission
+// error is a permission error, no amount of waiting helps, and it is
+// reported immediately rather than two seconds late.
+func sharingConflict(err error) bool {
+	if err == nil || runtime.GOOS != "windows" {
+		return false
+	}
+	return os.IsPermission(err) || errors.Is(err, errorSharingViolation)
+}
+
+// throughSharingConflicts runs op, retrying for as long as
+// [windowsRetryBudget] allows while it keeps failing with a Windows
+// sharing conflict. Any other outcome — success or a real error — returns
+// at once.
+func throughSharingConflicts(op func() error) error {
+	return retryWhile(windowsRetryBudget, sharingConflict, op)
+}
+
+// retryWhile runs op until it stops returning an error that retryable
+// accepts, or until budget is spent, whichever comes first. It backs off
+// from a millisecond to a fiftieth of a second and returns op's last
+// error, so an exhausted budget reports the condition it waited on rather
+// than a timeout of its own invention.
 //
-// The conflict is transient by construction, so a bounded retry is the
-// whole remedy. What it does *not* change is the atomicity guarantee: the
-// rename is still a single operation when it lands, and a reader still
-// sees one complete version or the other, never a partial file. The retry
-// only keeps the writer from reporting a failure that would not have
-// occurred on any other platform.
-//
-// AC: AC-SPEC-010.4
-func replace(name, dest string) error {
-	err := os.Rename(name, dest)
-	// os.IsPermission maps ERROR_ACCESS_DENIED on Windows, and the GOOS
-	// guard keeps a genuine permission error on POSIX — where no amount of
-	// waiting helps — reported immediately rather than two seconds late.
-	if err == nil || runtime.GOOS != "windows" || !os.IsPermission(err) {
+// The predicate and the budget are parameters rather than the constants
+// the one caller supplies because the loop is otherwise untestable off
+// Windows: [sharingConflict] is false by construction on every other
+// platform, so nothing on a Linux runner would execute a line of this.
+func retryWhile(budget time.Duration, retryable func(error) bool, op func() error) error {
+	err := op()
+	if !retryable(err) {
 		return err
 	}
 
-	deadline := time.Now().Add(replaceRetryBudget)
+	deadline := time.Now().Add(budget)
 	for backoff := time.Millisecond; time.Now().Before(deadline); backoff = min(backoff*2, 50*time.Millisecond) {
 		time.Sleep(backoff)
-		if err = os.Rename(name, dest); err == nil || !os.IsPermission(err) {
+		if err = op(); !retryable(err) {
 			return err
 		}
 	}
 	return err
+}
+
+// ReadArtifact reads the bytes of an index artifact.
+//
+// It is os.ReadFile plus the wait described above, and it is exported
+// because the atomicity contract has two sides: a caller reading the
+// artifact while a hook rewrites it needs this, and giving it only the
+// write half would leave every consumer to rediscover the read half on
+// Windows. Callers that want the decoded index should use [Load], which
+// reads through here.
+//
+// AC: AC-SPEC-010.4
+func ReadArtifact(path string) ([]byte, error) {
+	var data []byte
+	err := throughSharingConflicts(func() error {
+		var err error
+		data, err = os.ReadFile(path)
+		return err
+	})
+	return data, err
 }
 
 // Load reads a persisted index from path.
@@ -203,7 +266,7 @@ func replace(name, dest string) error {
 // by the recorded input hash rather than by anything the file says about
 // itself.
 func Load(path string) (specmodel.SpecIndex, error) {
-	raw, err := os.ReadFile(path)
+	raw, err := ReadArtifact(path)
 	if err != nil {
 		return specmodel.SpecIndex{}, fmt.Errorf("corpus: reading the index at %s: %w", path, err)
 	}
