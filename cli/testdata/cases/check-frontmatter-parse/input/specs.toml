@@ -1,0 +1,6 @@
+[workspace]
+name = "fixture"
+root = "docs"
+
+[profile]
+name = "spec-driven-dev"

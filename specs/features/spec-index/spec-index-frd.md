@@ -245,6 +245,27 @@ the right thing rather than whether it is shaped correctly.
   - *Example:* `slug: adr-011-targeted-verification-gates` under a
     profile registering `^adr-[0-9]{3}$` for type `adr` produces a
     finding quoting both.
+- **AC-SPEC-003.6:** WHEN a corpus member is indexed with a parse error
+  rather than parsed frontmatter, the CLI SHALL report a finding
+  carrying that error's message and span, and SHALL NOT report the
+  document as having passed any check.
+  - *Example:* A document copied from a template and not yet completed
+    carries `updated_at: <YYYY-MM-DDTHH:MM:SSZ>`, which is not an RFC
+    3339 date-time. The check run reports it and exits non-zero, rather
+    than reporting four passed checks against a document nothing was
+    able to read.
+
+*Rationale for AC-SPEC-003.6:* every other criterion in this requirement
+presupposes parsed frontmatter, so before this was written the worst-formed
+document in a corpus was the one the checker was guaranteed to be silent
+about — the severity of a defect and the tool's willingness to mention it
+ran in opposite directions. REQ-SPEC-002's rationale already assigned this
+work: an index containing parse failures exits zero because "a build
+failure is the checker's job, not the indexer's". This is the criterion
+that makes the checker do that job. A file with no frontmatter at all
+remains an exclusion under AC-SPEC-001.3 and is *not* covered here; it
+never claimed to be a specification, whereas a member with a parse error
+did and got the claim wrong.
 
 *Note on numbering:* REQ-SPEC-004 (reference integrity) and REQ-SPEC-005
 (structure and hygiene conformance) covered behavior deferred to

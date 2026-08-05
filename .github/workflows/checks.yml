@@ -136,34 +136,6 @@ jobs:
           name: specs-index
           path: specs-index.json
 
-      # Covers a gap in `spec check` itself, and is not permanent.
-      #
-      # A document whose frontmatter parses as YAML but does not fit the
-      # document envelope — an out-of-vocabulary `status`, say — is
-      # indexed with a `parse_error` and no `frontmatter`
-      # (AC-SPEC-002.4). corpus.Check skips exactly those entries,
-      # because there is no parsed frontmatter to check them against, and
-      # the run then reports every rule as `passed`. So the single worst
-      # document in a corpus is the one `spec check --strict` is
-      # guaranteed to stay silent about. Filed as agent-plugins-5xo with
-      # the fix designed; until it lands, the index is where that fact
-      # lives, so read it from there.
-      #
-      # The FRD already says which side this belongs on: an index
-      # containing parse failures exits zero because "a build failure is
-      # the checker's job, not the indexer's" (REQ-SPEC-002's rationale).
-      # This step is that job, standing in.
-      - name: No document failed to parse
-        run: |
-          set -euo pipefail
-          broken="$(jq -r '.entries[] | select(.parse_error) | "\(.path): \(.parse_error.message)"' specs-index.json)"
-          if [ -n "$broken" ]; then
-            echo "documents indexed with a parse error:"
-            echo "$broken"
-            exit 1
-          fi
-          echo "no parse errors"
-
       # --strict: any finding at all fails the build, including the
       # warning and unverified severities that exit zero by default. A
       # repository that dogfoods its own tool has no business shipping

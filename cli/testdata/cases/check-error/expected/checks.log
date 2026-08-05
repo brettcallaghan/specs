@@ -2,6 +2,7 @@ frontmatter/missing-property  error  docs/adrs/adr-001-missing-description.md:1:
 
 checks:
   frontmatter/missing-property  failed
+  frontmatter/parse  passed
   frontmatter/schema  passed
   slug/duplicate  passed
   slug/pattern-mismatch  passed

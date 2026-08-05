@@ -8,6 +8,7 @@
 - [FindingMissingProperty](#findingmissingproperty)
 - [FindingSlugPattern](#findingslugpattern)
 - [FindingDuplicateSlug](#findingduplicateslug)
+- [FindingFrontmatterParse](#findingfrontmatterparse)
 - [FindingUnverified](#findingunverified)
 - [FindingDetail](#findingdetail)
 - [Finding](#finding)
@@ -116,6 +117,28 @@ that checking either one surfaces the collision.
 | other_path | String | The other document's path, relative to the repository root and written with forward slashes on every platform. |
 
 
+## FindingFrontmatterParse
+
+A frontmatter block that could not be read as a document envelope.
+
+Distinct from a schema violation, and reported by a different route: a
+schema violation is found by validating a parsed envelope, while this is
+what happens when there is no parsed envelope to validate. The document
+declared itself a specification and got the declaration wrong badly
+enough that nothing downstream can look at it.
+
+Modelled separately because it is the one finding that suppresses all
+the others for its document. A consumer must be able to tell "this
+document passed every check" from "no check could run against this
+document", and the rule identifier alone does not carry that: the other
+checks report `passed` for a document they never examined unless
+something says otherwise.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| message | String | What could not be read, quoted from the parser so the message needs no further lookup to act on. |
+
+
 ## FindingUnverified
 
 A check that was requested and could not run.
@@ -151,6 +174,7 @@ identifier, the severity, the path, the span and the message.
 | "missing-property" | MissingProperty | A required frontmatter property the document does not declare. |
 | "slug-pattern" | SlugPattern | A slug not matching the pattern registered for its type. |
 | "duplicate-slug" | DuplicateSlug | A slug declared by two corpus members. |
+| "frontmatter-parse" | FrontmatterParse | A frontmatter block that could not be read as a document envelope. |
 | "unverified" | Unverified | A requested check that could not run. |
 
 

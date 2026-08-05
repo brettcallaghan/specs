@@ -52,8 +52,16 @@ pattern, and reports a slug already claimed elsewhere in the corpus.
 Read its findings; each names the rule, the span, and the value that
 violated it.
 
+A `frontmatter/parse` finding (row 0 below) comes before all of them and
+is not one of the eight: it means the frontmatter could not be read as a
+document envelope, so no other check examined this document. Fix it and
+re-run before reading anything else in the report. The usual cause is a
+template placeholder left unfilled — `updated_at:
+<YYYY-MM-DDTHH:MM:SSZ>` is not a date.
+
 | # | Check | Decided by |
 |---|-------|------------|
+| 0 | Frontmatter is readable at all | `spec check` |
 | 1 | Required properties present and parseable | `spec check` |
 | 2 | Slug matches the pattern for this type; unique | `spec check` |
 | 3 | Status is in the controlled vocabulary | `spec check` |
@@ -63,10 +71,10 @@ violated it.
 | 7 | No template instruction blocks survive | you |
 | 8 | Every `[[slug]]` reference resolves | you — CLI planned |
 
-**A clean `spec check` is not a passing document.** It means checks 1–3
-passed. Checks 4, 5 and 7 are judgement the tool does not make, and 6
-and 8 are specified but not built — a silent tool is not a passing
-grade for them.
+**A clean `spec check` is not a passing document.** It means row 0 and
+checks 1–3 passed. Checks 4, 5 and 7 are judgement the tool does not
+make, and 6 and 8 are specified but not built — a silent tool is not a
+passing grade for them.
 
 WHERE the CLI is not installed, every check below is still defined and
 still runs; you carry out 1–3 by hand instead, against the property

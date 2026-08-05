@@ -92,14 +92,13 @@ not: it means the mechanized rules passed. The rules that are still
 yours are named in `document-readiness-checklist.md`, which marks each
 check with who decides it.
 
-**One case where `check` is silent rather than clean.** A document whose
-frontmatter parses as YAML but does not fit the document envelope — an
-`status` outside the vocabulary, most often — is recorded in the index
-with a `parse_error` and is skipped by every check, which then reports
-`passed`. Until that is fixed, confirm a newly authored document appears
-in `spec index --out -` with a `frontmatter` object and no `parse_error`
-before trusting a clean `check` on it. This is the one place where
-reading the tool's own output matters more than its exit status.
+**A document the tool could not read** — frontmatter that parses as YAML
+but does not fit the document envelope, most often a `status` outside the
+vocabulary or an `updated_at` that is not an RFC 3339 date-time — is
+reported as `frontmatter/parse`, at severity error. Fix that first: it
+means nothing else could examine the document, so the other checks have
+not cleared it. The commonest cause by far is a template placeholder
+(`updated_at: <YYYY-MM-DDTHH:MM:SSZ>`) left unfilled.
 
 ## When it is not installed
 
