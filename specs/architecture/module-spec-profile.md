@@ -88,6 +88,24 @@ interface. Everything else is internal.
     registered pattern is checkable against the template it mirrors,
     while the same rule buried in a predicate is not.
 
+**Built (v1) — single-schema profile.** `cli/profile.New` returns a
+value satisfying `corpus.Profile`, registered under the name
+`spec-driven-dev`. It supplies exactly the narrowed v1 surface the
+spec-index feature's PROF delta scopes: **one** embedded union schema
+(`cli/core/schema/spec-model.schema.json`, via Go's `//go:embed`, so the
+binary reads no schema file at runtime), a thin per-type table of slug
+pattern and numbered-ness for every `DocumentType`, and the `line_width`
+convention default. There is no per-type schema, no required-sections
+tree, no named section sets, no element-record registration and no
+lifecycle-rule registration yet — the Document Types, Element Records
+and Lifecycle Rules components below describe a fuller design this
+delta does not implement. Reconciling this blueprint to the narrower v1
+shape those components describe — folding Document Types down to the
+single-schema table actually built and re-scoping or removing Element
+Records and Lifecycle Rules — is the separate component-removal
+reconciliation item the spec-index feature's Definition of Done names,
+not this change.
+
 ## Components
 
 ```mermaid
