@@ -163,10 +163,11 @@ SHALL NOT criteria, which are where the substitution loses the most.
 ## References
 
 - [[adr-018]] — supersedes this ADR. It carries out the both-ways
-  comparison recommended above and settles the question on the merits:
-  the parser validates Gherkin's grammar rather than criterion
-  well-formedness, and 34% of this corpus uses the two EARS forms
-  Gherkin fits worst
+  comparison recommended above and settles the question on the merits.
+  It finds the extract-and-parse design sound, and rejects adoption on
+  margin: the AST enumeration is cleaner than bullet extraction but not
+  categorically safer, while 34% of this corpus uses the two EARS forms
+  Gherkin fits worst and the criterion/example split does not survive
 - [[adr-002]] — established EARS as the requirements notation; this ADR
   declines to displace it
 - `plugin/skills/spec/references/ac-traceability-standards.md` —
