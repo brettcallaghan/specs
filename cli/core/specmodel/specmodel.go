@@ -1475,6 +1475,21 @@ type SpecIndex struct {
 	Entries []IndexEntry `json:"entries"`
 	// Every excluded candidate file, in the order the emitter fixes.
 	Exclusions []IndexExclusion `json:"exclusions"`
+	// A hash of everything this index was built from, written as
+	// `sha256:` followed by lowercase hexadecimal.
+	//
+	// This is what makes the emitted file double as a warm cache: a later
+	// invocation recomputes the hash of the corpus's current inputs and
+	// serves this index unchanged when the two agree, rather than
+	// rebuilding. It is a hash of **content** — every candidate file's
+	// repository-relative path and bytes, plus the active profile's
+	// vocabulary — and never of modification time, so a fresh checkout
+	// whose files all carry new timestamps and identical content is still
+	// served warm.
+	//
+	// Absent on an index that was not built by walking a corpus. An index
+	// carrying no hash is never served warm; it is rebuilt.
+	InputHash *string `json:"input_hash,omitempty"`
 }
 
 // What a profile registers into Document Core.

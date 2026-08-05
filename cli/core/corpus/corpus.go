@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
 	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
@@ -70,16 +71,24 @@ type Options struct {
 // Corpus is one built corpus: the index of every document beneath the
 // spec root, and the findings discovery raised over it.
 //
-// It is built once and read many times. Nothing about it is lazy — a
-// query answers from memory — because the queries it serves are asked
-// one per process invocation and the walk that fills it is the expensive
-// part (AC-SPEC-009.3).
+// It is built once and read many times. Nothing about a built corpus is
+// lazy — a query answers from memory — because the queries it serves are
+// asked one per process invocation and the walk that fills it is the
+// expensive part (AC-SPEC-009.3).
 //
-// Persisting this index and serving it warm from a content hash are a
-// separate concern and live elsewhere; nothing here writes to the
-// filesystem.
+// A corpus served warm from a persisted index (see [Open]) is the one
+// exception: it holds the same index and answers the same queries, but
+// it has parsed no document, so it reads and parses one on demand when a
+// caller asks for something only the source can answer — a slug's
+// position, or a schema check. That is what makes a single-document
+// check against a warm index cost one file rather than the corpus
+// (AC-SPEC-009.2).
 type Corpus struct {
 	repoRoot string
+	// specRoot is retained so that a corpus served warm can read one
+	// member's source on demand, through the same containment guarantee
+	// [Build] reads under.
+	specRoot string
 	index    specmodel.SpecIndex
 	findings []specmodel.Finding
 	byPath   map[string]int
@@ -98,12 +107,23 @@ type Corpus struct {
 	// frontmatter decoded into the envelope, keyed by reported path. Check
 	// reads from here rather than re-parsing (AC-SPEC-003 at corpus
 	// level); a member with a parse error carries no entry.
-	docs map[string]*frontmatter.Document
+	//
+	// A warm corpus fills it on demand rather than at build time, which is
+	// the one thing about a Corpus that is written after construction —
+	// hence the mutex, so that two callers reading the same warm corpus
+	// cannot race on it.
+	docs   map[string]*frontmatter.Document
+	docsMu sync.Mutex
 
 	// registryState is Check's lazily-compiled Schema Registry. It is
 	// built at most once regardless of how many times Check or CheckFor is
 	// called.
 	registryState registryState
+
+	// warm reports whether this corpus was served from a persisted index
+	// rather than built by walking the corpus, which is the one condition
+	// under which docs is filled on demand rather than by the walk.
+	warm bool
 }
 
 // member is one corpus member during a build, carrying the facts
@@ -133,38 +153,12 @@ type member struct {
 // cannot start — no profile, no spec root, or a spec root that cannot be
 // opened.
 func Build(opts Options) (*Corpus, error) {
-	if opts.Profile == nil {
-		return nil, errors.New("corpus: no profile supplied")
-	}
-	if strings.TrimSpace(opts.Root) == "" {
-		return nil, errors.New("corpus: no spec root configured")
-	}
-
-	specRoot, err := filepath.Abs(opts.Root)
+	specRoot, repoRoot, err := opts.roots()
 	if err != nil {
-		return nil, fmt.Errorf("corpus: resolving the spec root: %w", err)
+		return nil, err
 	}
-	repoRoot := opts.RepoRoot
-	if strings.TrimSpace(repoRoot) == "" {
-		repoRoot = specRoot
-	}
-	repoRoot, err = filepath.Abs(repoRoot)
-	if err != nil {
-		return nil, fmt.Errorf("corpus: resolving the repository root: %w", err)
-	}
-
-	// Every read of a candidate goes through this handle rather than
-	// through a bare os.ReadFile, so that a path which resolves outside
-	// the spec root is refused by the operating system rather than by a
-	// check this package would have to get right (AC-SPEC-001.5).
-	root, err := os.OpenRoot(specRoot)
-	if err != nil {
-		return nil, fmt.Errorf("corpus: opening the spec root: %w", err)
-	}
-	defer root.Close()
 
 	b := &builder{
-		root:      root,
 		specRoot:  specRoot,
 		repoRoot:  repoRoot,
 		profile:   opts.Profile,
@@ -175,20 +169,129 @@ func Build(opts Options) (*Corpus, error) {
 		docs:      map[string]*frontmatter.Document{},
 	}
 
-	if err := filepath.WalkDir(specRoot, b.visit); err != nil {
-		return nil, fmt.Errorf("corpus: walking the spec root: %w", err)
+	if err := scanCandidates(specRoot, repoRoot, b.visit); err != nil {
+		return nil, err
 	}
 
-	return b.finish(), nil
+	return b.finish(opts), nil
+}
+
+// roots resolves one operation's spec root and repository root to
+// absolute paths, and refuses an operation that cannot be run at all.
+//
+// A build with no repository root reports paths relative to the spec
+// root, which is the only defensible fallback: an index has to name its
+// members relative to *something*, and the spec root is the one directory
+// every operation has.
+//
+// It is a method on Options rather than a step inside Build because
+// [Fingerprint] must resolve the same inputs the same way — a fingerprint
+// taken over a differently-resolved root would compare two different
+// corpora.
+func (opts Options) roots() (specRoot, repoRoot string, err error) {
+	if opts.Profile == nil {
+		return "", "", errors.New("corpus: no profile supplied")
+	}
+	if strings.TrimSpace(opts.Root) == "" {
+		return "", "", errors.New("corpus: no spec root configured")
+	}
+
+	specRoot, err = filepath.Abs(opts.Root)
+	if err != nil {
+		return "", "", fmt.Errorf("corpus: resolving the spec root: %w", err)
+	}
+	repoRoot = opts.RepoRoot
+	if strings.TrimSpace(repoRoot) == "" {
+		repoRoot = specRoot
+	}
+	repoRoot, err = filepath.Abs(repoRoot)
+	if err != nil {
+		return "", "", fmt.Errorf("corpus: resolving the repository root: %w", err)
+	}
+	return specRoot, repoRoot, nil
+}
+
+// scanCandidates walks specRoot and offers every candidate file to visit,
+// naming it in the form the index reports — relative to repoRoot and
+// forward-slashed on every platform (AC-SPEC-009.8).
+//
+// This is the only walk in the package. [Build] consumes it to assemble
+// the index and [Fingerprint] consumes it to hash the same bytes without
+// parsing any of them, so the two can never disagree about which files
+// the corpus is made of — the property the whole warm-cache path rests
+// on.
+//
+// A candidate that cannot be read is offered with readErr set and nil
+// bytes rather than aborting the walk: losing a file silently is worse
+// than recording that it could not be read.
+func scanCandidates(specRoot, repoRoot string, visit func(reported string, src []byte, readErr error)) error {
+	// Every read of a candidate goes through this handle rather than
+	// through a bare os.ReadFile, so that a path which resolves outside
+	// the spec root is refused by the operating system rather than by a
+	// check this package would have to get right (AC-SPEC-001.5).
+	root, err := os.OpenRoot(specRoot)
+	if err != nil {
+		return fmt.Errorf("corpus: opening the spec root: %w", err)
+	}
+	defer root.Close()
+
+	walk := func(osPath string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		// Only regular files are candidates. A symlink is deliberately
+		// not one: filepath.WalkDir does not descend into a symlinked
+		// directory, so refusing symlinked files as well means the walk
+		// has no way at all to leave the spec root (AC-SPEC-001.5).
+		if d.IsDir() || !d.Type().IsRegular() {
+			return nil
+		}
+		if !strings.EqualFold(filepath.Ext(d.Name()), candidateExtension) {
+			return nil
+		}
+
+		rel, err := filepath.Rel(specRoot, osPath)
+		if err != nil {
+			return err
+		}
+		reported, err := filepath.Rel(repoRoot, osPath)
+		if err != nil {
+			return err
+		}
+
+		src, readErr := readUnder(root, rel)
+		visit(filepath.ToSlash(reported), src, readErr)
+		return nil
+	}
+
+	if err := filepath.WalkDir(specRoot, walk); err != nil {
+		return fmt.Errorf("corpus: walking the spec root: %w", err)
+	}
+	return nil
+}
+
+// readUnder returns the bytes of one file named relative to an open root,
+// so the read cannot address a file outside it.
+func readUnder(root *os.Root, rel string) ([]byte, error) {
+	f, err := root.Open(rel)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	return io.ReadAll(f)
 }
 
 // builder is the mutable state of one build.
 type builder struct {
-	root     *os.Root
 	specRoot string
 	repoRoot string
 	profile  Profile
 	types    map[string]DocumentTypeRules
+
+	// hasher accumulates the content hash of everything the walk reads,
+	// so that the fingerprint the emitted index records is a by-product of
+	// the build rather than a second pass over the same files.
+	hasher inputHasher
 
 	index   specmodel.SpecIndex
 	members []member
@@ -203,46 +306,23 @@ type builder struct {
 	docs map[string]*frontmatter.Document
 }
 
-// visit classifies one entry of the walk.
-//
-// Only regular files are candidates. A symlink is deliberately not one:
-// filepath.WalkDir does not descend into a symlinked directory, so
-// refusing symlinked files as well means the walk has no way at all to
-// leave the spec root (AC-SPEC-001.5).
-func (b *builder) visit(osPath string, d fs.DirEntry, err error) error {
-	if err != nil {
-		return err
-	}
-	if d.IsDir() || !d.Type().IsRegular() {
-		return nil
-	}
-	if !strings.EqualFold(filepath.Ext(d.Name()), candidateExtension) {
-		return nil
-	}
+// visit classifies one candidate the walk offered, and folds its bytes
+// into the build's input hash.
+func (b *builder) visit(reported string, src []byte, readErr error) {
+	b.hasher.add(reported, src, readErr)
 
-	rel, err := filepath.Rel(b.specRoot, osPath)
-	if err != nil {
-		return err
-	}
-	reported, err := b.reportedPath(osPath)
-	if err != nil {
-		return err
-	}
-
-	src, err := b.read(rel)
-	if err != nil {
+	if readErr != nil {
 		// An unreadable candidate is recorded against itself for the same
 		// reason an unparsable one is: losing a file silently is worse
 		// than an index that says which file it could not read.
 		b.addEntry(specmodel.IndexEntry{
 			Path:       reported,
-			ParseError: &specmodel.ParseError{Message: err.Error(), Position: span.Of(nil, 0, 0)},
+			ParseError: &specmodel.ParseError{Message: readErr.Error(), Position: span.Of(nil, 0, 0)},
 		}, member{})
-		return nil
+		return
 	}
 
 	b.classify(reported, src)
-	return nil
 }
 
 // classify decides what one candidate file is, and records it.
@@ -317,28 +397,6 @@ func (b *builder) addEntry(entry specmodel.IndexEntry, m member) {
 	}
 }
 
-// read returns the bytes of one candidate, named relative to the spec
-// root so the read cannot address a file outside it.
-func (b *builder) read(rel string) ([]byte, error) {
-	f, err := b.root.Open(rel)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-	return io.ReadAll(f)
-}
-
-// reportedPath converts an absolute filesystem path to the form every
-// index entry, exclusion and finding uses: relative to the repository
-// root and forward-slashed on every platform (AC-SPEC-009.8).
-func (b *builder) reportedPath(osPath string) (string, error) {
-	rel, err := filepath.Rel(b.repoRoot, osPath)
-	if err != nil {
-		return "", err
-	}
-	return filepath.ToSlash(rel), nil
-}
-
 // finish orders everything the walk collected and assembles the Corpus.
 //
 // Ordering is this component's responsibility rather than the caller's.
@@ -347,7 +405,7 @@ func (b *builder) reportedPath(osPath string) (string, error) {
 // through the one authority for finding order — [finding.Report] — so
 // that the same corpus content yields identical output wherever it is
 // built.
-func (b *builder) finish() *Corpus {
+func (b *builder) finish(opts Options) *Corpus {
 	sort.Slice(b.index.Entries, func(i, j int) bool {
 		return b.index.Entries[i].Path < b.index.Entries[j].Path
 	})
@@ -375,8 +433,15 @@ func (b *builder) finish() *Corpus {
 	report := finding.NewReport()
 	report.Add(duplicateSlugs(b.members)...)
 
+	// The index records what it was built from, which is what lets a
+	// later invocation serve this same index warm instead of rebuilding
+	// (AC-SPEC-010.5).
+	hash := b.hasher.sum(opts)
+	b.index.InputHash = &hash
+
 	return &Corpus{
 		repoRoot: b.repoRoot,
+		specRoot: b.specRoot,
 		index:    b.index,
 		findings: report.Model().Findings,
 		byPath:   b.byPath,
@@ -550,8 +615,61 @@ func (c *Corpus) Entry(path string) (specmodel.IndexEntry, bool) {
 // reports a non-nil Frontmatter for the same path; a member with a parse
 // error carries neither.
 func (c *Corpus) Document(path string) (*frontmatter.Document, bool) {
-	doc, ok := c.docs[c.normalize(path)]
-	return doc, ok
+	return c.document(c.normalize(path))
+}
+
+// document returns the parsed document behind one member, named in
+// reported form.
+//
+// A built corpus answers from the walk. A corpus served warm from a
+// persisted index has parsed nothing, so it reads and parses the one file
+// asked for and remembers it — which is what keeps a single-document
+// check against a warm index proportional to that document rather than to
+// the corpus (AC-SPEC-009.2). A file that cannot be read or parsed is
+// reported as absent, exactly as a member with a recorded parse error is.
+func (c *Corpus) document(reported string) (*frontmatter.Document, bool) {
+	c.docsMu.Lock()
+	defer c.docsMu.Unlock()
+
+	if doc, ok := c.docs[reported]; ok {
+		return doc, true
+	}
+	if !c.warm {
+		return nil, false
+	}
+
+	doc, err := c.readDocument(reported)
+	if err != nil || doc == nil {
+		return nil, false
+	}
+	c.docs[reported] = doc
+	return doc, true
+}
+
+// readDocument reads and parses one member's source, through the same
+// os.Root containment the walk reads under (AC-SPEC-001.5).
+func (c *Corpus) readDocument(reported string) (*frontmatter.Document, error) {
+	rel, err := filepath.Rel(c.specRoot, filepath.Join(c.repoRoot, filepath.FromSlash(reported)))
+	if err != nil {
+		return nil, err
+	}
+
+	root, err := os.OpenRoot(c.specRoot)
+	if err != nil {
+		return nil, err
+	}
+	defer root.Close()
+
+	src, err := readUnder(root, rel)
+	if err != nil {
+		return nil, err
+	}
+
+	doc, perr := frontmatter.Parse(src)
+	if perr != nil {
+		return nil, fmt.Errorf("corpus: reading %s: %s", reported, perr.Message)
+	}
+	return doc, nil
 }
 
 // Slug reports whether a corpus member declares the given slug and, if

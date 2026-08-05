@@ -357,11 +357,12 @@ populates the generated `specmodel.SpecIndex`; it does not define it.
 The vocabulary is:
 
 - **`SpecIndex`** — the root: a `schema_version`, the `workspace`
-  identifier from configuration, an ordered list of `entries`, and an
-  ordered list of `exclusions`. Both collections are lists rather than
-  maps precisely so that the emitter owns their order and can make
-  output byte-identical across platforms (AC-SPEC-009.7) without a
-  change to the model.
+  identifier from configuration, an ordered list of `entries`, an
+  ordered list of `exclusions`, and the optional `input_hash` the warm
+  cache is decided by. Both collections are lists rather than maps
+  precisely so that the emitter owns their order and can make output
+  byte-identical across platforms (AC-SPEC-009.7) without a change to
+  the model.
 - **`IndexEntry`** — one corpus member: its repository-relative `path`,
   its parsed `frontmatter`, and a `parse_error` carrying a located
   failure for a member whose frontmatter could not be read
@@ -394,8 +395,6 @@ policy, waits for the first consumer.
 raised over it, and the lookups the queries need — `Entry` by path,
 `Slug` by identifier, `Document` for the parsed frontmatter behind one
 member, and `FindingsFor` to narrow a whole-corpus result to one file.
-Persisting that index and serving it warm are a separate concern and live
-elsewhere; nothing here writes to the filesystem.
 
 `Check` and `CheckFor` run the Schema Registry's validation and the
 active profile's per-type slug-pattern check for every member with parsed
@@ -406,6 +405,49 @@ rather than reconciling discovery-time and check-time findings as two
 channels. `Corpus` reaches the Schema Registry only through the compiled
 union schema the active `Profile` already supplied to `Build`; nothing
 here names a document type.
+
+**Output and warm cache** — the same package. `Write` emits the index to
+one destination, resolved by `IndexPath`: `specs.json` inside the
+configured spec root by default (AC-SPEC-010.1), a named path when the
+output-path option gives one (AC-SPEC-010.2), or standard output when it
+is `-`, in which case no file is created or modified at all
+(AC-SPEC-010.3). A file destination is replaced through a temporary file
+in the destination's own directory followed by a rename, so a concurrent
+reader observes either the old complete index or the new one and never a
+partial file (AC-SPEC-010.4) — the index is rebuilt by a write-time hook
+while queries read it, so an in-place write would hand some reader a
+truncated document.
+
+`Open` is the read side, and the only place the cache decision is made.
+It serves the persisted index unchanged when that index records the
+corpus's current input hash (AC-SPEC-010.5), and rebuilds otherwise
+(AC-SPEC-010.6). Every condition that is not "this index was built from
+exactly these inputs" rebuilds — an absent file, an unreadable one, one
+of another `schema_version`, one carrying no hash — because a stale
+answer is a silent wrong answer and a rebuild costs a second at worst.
+The two paths are interchangeable by construction: the warm corpus holds
+the very index the cold one wrote, so deleting the artifact is always
+safe.
+
+**Staleness is a content hash, never a modification time**, and the
+reason is the environment the latency budget is claimed in. A fresh CI
+checkout gives every file a new mtime and identical bytes; an
+mtime-keyed cache would be cold on every CI run, and REQ-SPEC-009.1's
+warm-index budget would never hold there. `Fingerprint` computes that
+hash over the same walk `Build` uses — the property the whole path rests
+on, since a fingerprint that drifted from the build would either serve
+stale indexes or never serve one. What it folds in is every candidate
+file's repository-relative path and content digest, plus the inputs that
+change the index while the files stand still: the workspace identifier,
+the active profile's schema and per-type table, and the schema version.
+Absolute paths are deliberately excluded, so the same content checked
+out at another location hashes the same.
+
+A corpus served warm has parsed no document. It reads and parses one on
+demand when a caller asks something only the source can answer — a
+slug's position for a duplicate finding, or a schema check — which is
+what keeps a single-document check against a warm index proportional to
+that document rather than to the corpus (AC-SPEC-009.2).
 
 Five semantics are pinned by the implementation:
 

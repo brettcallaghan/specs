@@ -64,7 +64,7 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 		if entry.Frontmatter == nil {
 			continue
 		}
-		doc, ok := c.docs[entry.Path]
+		doc, ok := c.document(entry.Path)
 		if !ok {
 			continue
 		}

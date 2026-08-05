@@ -1890,6 +1890,13 @@
           },
           "type": "array"
         },
+        "input_hash": {
+          "description": "A hash of everything this index was built from, written as\n`sha256:` followed by lowercase hexadecimal.\n\nThis is what makes the emitted file double as a warm cache: a later\ninvocation recomputes the hash of the corpus's current inputs and\nserves this index unchanged when the two agree, rather than\nrebuilding. It is a hash of **content** — every candidate file's\nrepository-relative path and bytes, plus the active profile's\nvocabulary — and never of modification time, so a fresh checkout\nwhose files all carry new timestamps and identical content is still\nserved warm.\n\nAbsent on an index that was not built by walking a corpus. An index\ncarrying no hash is never served warm; it is rebuilt.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "schema_version": {
           "description": "The version of this index's schema.\n\nPinned to `1.0` for as long as the shape only grows. A change to the\nshape of what is already here — as opposed to an addition alongside it\n— updates this value and the emitted index in the same change.",
           "pattern": "^1\\.0$",

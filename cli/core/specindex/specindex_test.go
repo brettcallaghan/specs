@@ -99,22 +99,30 @@ func TestSchemaRequiresAndPinsTheSchemaVersion(t *testing.T) {
 	}
 }
 
-// The index root declares exactly the four properties this sprint pins,
-// all of them required: the version, the workspace, and the two ordered
-// collections.
+// The index root declares exactly the properties this sprint pins: four
+// required ones — the version, the workspace, and the two ordered
+// collections — and the optional input hash the warm cache is decided by.
+//
+// The hash is optional because absence is meaningful: an index that
+// records no hash was not built by walking a corpus, and is never served
+// warm.
 //
 // AC: AC-SPEC-002.3
 func TestSchemaDeclaresTheIndexRootShape(t *testing.T) {
 	definition := loadDefinition(t, "SpecIndex")
 
-	want := []string{"schema_version", "workspace", "entries", "exclusions"}
+	required := []string{"schema_version", "workspace", "entries", "exclusions"}
+	want := append(append([]string{}, required...), "input_hash")
 	if got := propertyNames(t, definition); !reflect.DeepEqual(got, want) {
 		t.Errorf("SpecIndex properties = %v, want %v", got, want)
 	}
-	for _, name := range want {
+	for _, name := range required {
 		if !isRequired(definition, name) {
 			t.Errorf("SpecIndex does not require %q", name)
 		}
+	}
+	if isRequired(definition, "input_hash") {
+		t.Errorf("SpecIndex requires input_hash; an index built from no corpus carries none")
 	}
 	if additional, ok := definition["additionalProperties"].(bool); !ok || additional {
 		t.Errorf("SpecIndex accepts additional properties; the index shape must be closed")

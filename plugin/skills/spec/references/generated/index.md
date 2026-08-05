@@ -118,5 +118,6 @@ without a change to this model.
 | workspace | String | The workspace identifier from configuration, so that indexes emitted by several repositories can be merged into one graph without two documents that both declare `adr-001` colliding. |
 | entries | Array<[IndexEntry](#indexentry)> | Every corpus member, in the order the emitter fixes. |
 | exclusions | Array<[IndexExclusion](#indexexclusion)> | Every excluded candidate file, in the order the emitter fixes. |
+| input_hash | String? | A hash of everything this index was built from, written as `sha256:` followed by lowercase hexadecimal.<br><br>This is what makes the emitted file double as a warm cache: a later invocation recomputes the hash of the corpus's current inputs and serves this index unchanged when the two agree, rather than rebuilding. It is a hash of **content** — every candidate file's repository-relative path and bytes, plus the active profile's vocabulary — and never of modification time, so a fresh checkout whose files all carry new timestamps and identical content is still served warm.<br><br>Absent on an index that was not built by walking a corpus. An index carrying no hash is never served warm; it is rebuilt. |
 
 
