@@ -144,7 +144,7 @@ or delete them once merged.
 | Document | Captures | Audience | Example | Template |
 |---|---|---|---|---|
 | **Feature Blueprint** | The HOW, 1:1 with an FRD's WHAT: how the feature maps onto your architecture — components created, updated, deleted — plus contracts, sequencing, AC coverage, and a definition of done | Engineers, and `groom-feature-blueprint` | [Blueprint: Spec Corpus Index](specs/features/spec-index/spec-index-blueprint.md) | [`feature-blueprint-template.md`](plugin/skills/spec/references/feature-blueprint-template.md) |
-| **Work Order** | One atomic unit of work — "dev task", but the word *task* is too overloaded. Everything a fresh, zero-context agent needs to finish one job, connecting component changes to code changes | The agent doing the work, and `bead-bonanza` | Materialized as beads in [`.beads/issues.jsonl`](.beads/issues.jsonl) | [`work-order-template.md`](plugin/skills/spec/references/work-order-template.md) |
+| **Work Order** | One atomic unit of work — a "dev task". Everything a fresh, zero-context agent needs to finish one job, connecting component changes to code changes | The agent doing the work, and `bead-bonanza` | Materialized as beads in [`.beads/issues.jsonl`](.beads/issues.jsonl) | [`work-order-template.md`](plugin/skills/spec/references/work-order-template.md) |
 
 A **Feature Blueprint** references exactly one FRD, and as many
 system/container/component/module blueprints as the change touches. It
@@ -183,7 +183,7 @@ references. Making it an explicit frontmatter property is planned.
 | **`spec`** | Authors every document type above from the framework's templates, in [EARS](https://alistairmavin.com/ears/) syntax and the C4 model. Picks the right type for what you're describing and refuses to invent new ones. Runs readiness checklists before anything is handed to a reviewer. |
 | **`groom-feature-blueprint`** | The boundary between the human specification loop and autonomous execution. Gates on an approved blueprint with no open questions, then decomposes its deltas into a graph of work orders carrying AC coverage and a definition of done. A quality firewall: a blueprint it can't plan mechanically gets sent back, not guessed at. |
 | **`groom-beads`** | The Definition of Ready engine for the beads backend. Materializes work orders as beads, wires the dependency graph, assigns each a capability tier, validates the result, and previews execution waves. The north star: a fresh sub-agent with zero context can open `bd show <id>` and finish the job without asking anyone anything. |
-| **`bead-bonanza`** | Runs the backlog. Triages the queue, gates every bead for readiness (grooming the under-specified ones, bouncing what can't be saved), surfaces every decision up front so the run doesn't stop to ask, then dispatches each bead via the cheapest viable mode — doc fast lane, shared-surface batch, worktree parallel, or sequential — landing each in a single commit. |
+| **`bead-bonanza`** | Delivers a sprint's worth of work in one session, with as little interruption as it can manage. It triages the queue, gates every bead for readiness (grooming the under-specified ones, bouncing what can't be saved), and surfaces every decision up front — so once the run starts it doesn't come back to ask. Then it dispatches each bead via the cheapest viable mode — doc fast lane, shared-surface batch, worktree parallel, or sequential — landing each in a single commit. |
 | **`retro-spec`** | Retrospective on the *documents* a completed phase consumed. A spec's quality is only observable through its consumers, so this runs after a downstream phase has exercised it, and argues from that evidence into improvement RFCs for your own specs. |
 | **`retro-skill`** | Retrospective on the *skill* an agent just ran. Cites the exact instruction that misled, names the script that failed, records the model that ran it — and produces an RFC against the skill itself. This is how the framework improves. |
 
@@ -268,7 +268,7 @@ The engine is framework-agnostic; the document vocabulary comes from a
 | `cli/` | The `spec` CLI (Go) |
 | `schemas/` | [Strata](https://github.com/strata-lang/strata) schema sources for frontmatter, findings, the index, and the profile |
 | `rfcs/` | Improvement RFCs: `inbox/` received, `outbox/` sent, `retired/` resolved |
-| `docs/` | Supporting notes, including the [idea backlog](docs/idea-backlog.md) |
+| `docs/` | Supporting notes |
 
 The framework specifies itself. The FRDs, ADRs, blueprints and standards
 under `specs/` are the ones that produced the CLI in `cli/` — which is
