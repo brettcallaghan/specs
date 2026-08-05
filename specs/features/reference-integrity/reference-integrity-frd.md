@@ -10,6 +10,7 @@ updated_at: 2026-08-05T00:00:00Z
 sources: []
 related:
   - "frd-spec-validation-cli"
+  - "frd-spec-anchor-references"
   - "frd-spec-structure-conformance"
   - "contract-specs-configuration"
   - "adr-012"
@@ -59,12 +60,19 @@ organization's catalogue.
 **Out of scope for this feature.** Each of these is deferred
 deliberately, not overlooked:
 
+- **Anchor resolution.** A reference may name a heading anchor —
+  `[[container-spec-cli#Element Registry]]`, the form [[adr-012]]
+  mandates for un-promoted components. This feature resolves the slug
+  half and does not interpret the anchor (AC-SPECREF-002.2).
+  Interpreting it is specified in [[frd-spec-anchor-references]], a
+  sub-feature of this one. The split is deliberate: anchor resolution
+  needs heading data this feature does not have, from
+  [[frd-spec-structure-conformance]], and the corpus contains no anchor
+  reference today — so shipping slug resolution first costs the corpus
+  nothing and unblocks it sooner.
 - **Heading extraction and section spans.** Specified in
-  [[frd-spec-structure-conformance]]. This feature consumes a target
-  document's headings only to resolve an anchor reference against them,
-  and depends on that FRD for the heading data. Until that data exists,
-  an anchor check reports `unverified` rather than passing
-  (AC-SPECREF-002.2).
+  [[frd-spec-structure-conformance]]. Nothing in this feature reads a
+  document's headings.
 - **Suggesting a correction for a broken reference.** Findings state
   the fact and leave the fix to a reviewing agent.
 - **Repairing or rewriting references.** This feature only reads and
@@ -103,9 +111,12 @@ deliberately, not overlooked:
   Reference extraction reads the body; frontmatter contributes
   references only through the properties the profile registers as
   reference-bearing, never through prose in a frontmatter value.
-- **Outbound reference** — a `[[slug]]` link, optionally naming a
-  heading anchor, parsed from a document's body, or a slug value in a
-  frontmatter property the active profile registers as reference-bearing.
+- **Outbound reference** — a `[[slug]]` link parsed from a document's
+  body, or a slug value in a frontmatter property the active profile
+  registers as reference-bearing.
+- **Anchor** — the portion of a reference after a `#`, naming a heading
+  within the target document. This feature reads a reference's slug
+  half; [[frd-spec-anchor-references]] specifies the anchor half.
 - **Inbound reference** — the reverse edge: for a given document, every
   other corpus member whose outbound references name it.
 - **Resolution** — matching a reference's slug against the slugs corpus
@@ -203,31 +214,24 @@ a reader follows it into nothing.
     repository's own state until the slugs were migrated to the
     number-only form [[adr-012]] decided; the check exists so the next
     such drift is caught by the build rather than by a prototype.
-- **AC-SPECREF-002.2:** WHEN a reference names a heading anchor and the
-  headings of the target document are available, the CLI SHALL report a
-  finding of severity `error` naming the target document and the missing
-  anchor IF no heading matches it.
-  - *Example:* `[[container-spec-cli#Componets]]` reports `no heading
-    named 'Componets' found in container-spec-cli`. The finding states
-    the fact rather than proposing a correction — an agent resolves a
-    plain "not found" faster than a guess it must then verify.
-- **AC-SPECREF-002.3:** IF a reference names a heading anchor and the
-  headings of the target document are not available, THEN the CLI SHALL
-  report that reference with severity `unverified` naming what is
-  missing, and SHALL NOT report the anchor as resolved.
-  - *Example:* Before [[frd-spec-structure-conformance]] ships there is
-    no heading data at all, so every anchor reference in the corpus is
-    reported `unverified`, per AC-SPEC-006.3 and AC-SPEC-006.4. The same
-    path covers a target whose own frontmatter failed to parse, whose
-    headings were therefore never extracted.
-- **AC-SPECREF-002.4:** WHEN a frontmatter property registered by the
+- **AC-SPECREF-002.2:** WHEN a reference names a heading anchor, the CLI
+  SHALL resolve the reference on its slug portion alone, and SHALL NOT
+  report a finding about the anchor.
+  - *Example:* `[[container-spec-cli#Element Registry]]` resolves iff a
+    corpus member declares `slug: container-spec-cli`; whether that
+    document has an `Element Registry` heading is not asked here.
+    Splitting on the first `#` is the whole of this feature's anchor
+    handling — without it the slug half would be read as
+    `container-spec-cli#Element Registry`, matching nothing, and every
+    anchor reference in a corpus would report as broken.
+- **AC-SPECREF-002.3:** WHEN a frontmatter property registered by the
   active profile as reference-bearing contains a value matching no
   corpus member's slug, the CLI SHALL report a finding of severity
   `error` naming the property and the value.
   - *Example:* `related: ["work-order-template"]` reports as unresolved,
     because templates carry placeholder slugs and are not corpus
     members.
-- **AC-SPECREF-002.5:** WHEN a document declares `status: retired` and
+- **AC-SPECREF-002.4:** WHEN a document declares `status: retired` and
   either declares no `superseded_by` or declares one that resolves to no
   corpus member, the CLI SHALL report a finding of severity `error`
   distinguishing the two cases.
@@ -236,14 +240,14 @@ a reader follows it into nothing.
     corpus member declares reports "superseded_by 'adr-020' matches no
     document's slug". A reader is never sent to a replacement that does
     not exist, and never left to guess whether one was intended.
-- **AC-SPECREF-002.6:** WHEN the active profile registers a frontmatter
+- **AC-SPECREF-002.5:** WHEN the active profile registers a frontmatter
   property as one half of a paired relationship and the named document
   does not declare the matching counterpart, the CLI SHALL report a
   finding of severity `error` against both documents.
   - *Example:* A blueprint declaring `children: [component-ledger]`
     where `component-ledger` declares no `parent_slug` produces a
     finding on each.
-- **AC-SPECREF-002.7:** WHEN a document at a status the profile treats
+- **AC-SPECREF-002.6:** WHEN a document at a status the profile treats
   as live references a document at `status: retired`, the CLI SHALL
   report a finding of severity `warning` naming the retired target and
   its `superseded_by` value when it has one.
@@ -251,7 +255,7 @@ a reader follows it into nothing.
     `reference/retired-target  warning … "adr-009 is retired,
     superseded by adr-013"`, which does not fail a build but is the one
     finding that tells an author what to cite instead.
-- **AC-SPECREF-002.8:** WHEN a reference's slug matches a file the index
+- **AC-SPECREF-002.7:** WHEN a reference's slug matches a file the index
   recorded as excluded or as a parse failure rather than a corpus
   member, the CLI SHALL report the finding with that reason rather than
   as a slug matching nothing.
@@ -259,14 +263,14 @@ a reader follows it into nothing.
     parse reports "target exists but is not a corpus member: parse
     failure at line 28" — one lookup for the reader instead of a search
     for a document that is right there.
-- **AC-SPECREF-002.9:** The CLI SHALL resolve a reference against corpus
+- **AC-SPECREF-002.8:** The CLI SHALL resolve a reference against corpus
   slugs without regard to letter case.
   - *Example:* `[[ADR-012]]` resolves to the document declaring
     `slug: adr-012`, matching the case-insensitive slug uniqueness
     AC-SPEC-003.4 already establishes — the two rules must agree, or a
     corpus can hold a reference that resolves to two documents that
     cannot both exist.
-- **AC-SPECREF-002.10:** WHEN the CLI checks a single document, the CLI
+- **AC-SPECREF-002.9:** WHEN the CLI checks a single document, the CLI
   SHALL report inbound references to that document that no longer
   resolve, each cited at the span in the referring document, in addition
   to findings against the document named.
@@ -279,21 +283,27 @@ a reader follows it into nothing.
 
 *Rationale:* Severity is assigned here rather than left to
 implementation because it is what the exit status of a build depends on.
-AC-SPECREF-002.7 is a `warning` because a reference to a retired
+AC-SPECREF-002.6 is a `warning` because a reference to a retired
 document still resolves — the reader reaches a real document that tells
 them it has been replaced — so failing a build on it would punish a
 corpus for retiring anything. It is also the first check in this tool to
 emit `warning` at all: AC-SPEC-006.7's `--strict` boundary has until now
 been unreachable end to end, because every registered check emitted
-`error`. AC-SPECREF-002.3 is the same argument in the other direction:
-an anchor check that cannot see headings must say so rather than pass,
-and the `unverified` severity of AC-SPEC-006.3 exists precisely for
-this. It also means this feature does not block on
-[[frd-spec-structure-conformance]] — it ships with the anchor check
-honest about what it cannot yet do, and gains resolution when heading
-data arrives.
+`error`.
 
-AC-SPECREF-002.10 is the one place this feature widens a check's blast
+AC-SPECREF-002.2 is a scoping rule wearing a parser's clothes. Deferring
+anchors to [[frd-spec-anchor-references]] does not let this feature
+ignore that anchors exist: a reference that carries one is still a
+reference to a document, and reading `container-spec-cli#Element
+Registry` as a slug would report every anchored reference in a corpus as
+broken — the false-positive failure mode AC-SPECREF-001.2 and
+AC-SPECREF-001.4 exist to prevent, arriving by a different route. The
+criterion states the minimum this feature must know about a convention
+it otherwise leaves alone. No check here emits `unverified`; that
+severity stays defined by AC-SPEC-006.3 and first gets used by the
+sub-feature.
+
+AC-SPECREF-002.9 is the one place this feature widens a check's blast
 radius rather than narrowing it, and it does so deliberately.
 AC-SPEC-001.2 already resolves a single document's references against
 the whole corpus, so the data is present; what was missing is the
@@ -393,18 +403,20 @@ new prefix here are the same decision.
 
 - [[frd-spec-validation-cli]] — the index, finding engine, corpus
   discovery, and configuration this feature extends
-- [[frd-spec-structure-conformance]] — supplies the target-document
-  headings that AC-SPECREF-002.2 resolves an anchor against
+- [[frd-spec-anchor-references]] — the sub-feature that resolves the
+  anchor half of a reference this feature resolves the slug half of
+- [[frd-spec-structure-conformance]] — supplies the document headings
+  that sub-feature resolves an anchor against
 - [[contract-specs-configuration]] — the configuration surface
   REQ-SPECREF-004 consumes, whose `reference_properties` and `pairings`
   are already declared
-- [[adr-012]] — the `[[slug]]` and heading-anchor conventions this
-  feature parses and resolves
+- [[adr-012]] — the `[[slug]]` convention this feature parses and
+  resolves, and the heading-anchor convention it defers
 - [[adr-002]] — EARS, the notation these acceptance criteria are written
   in
 - [[module-document-core]] — declares the References component this
   feature builds, and records that it is not yet built
 - [[module-spec-profile]] — declares the Lifecycle Rules component whose
-  relational half AC-SPECREF-002.5 and AC-SPECREF-002.7 supply
+  relational half AC-SPECREF-002.4 and AC-SPECREF-002.6 supply
 - `plugin/skills/spec/references/cross-document-references.md` — what a
   reference resolves against
