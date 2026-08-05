@@ -474,11 +474,12 @@ func TestCheckReportsAMemberWhoseFrontmatterCouldNotBeDecoded(t *testing.T) {
 }
 
 // The placeholder that motivated the fix must not reach a reader
-// HTML-escaped. json.Marshal escapes <, > and & by default, and the
-// decode failure quotes the source text it saw, so the diagnostic for
-// the single most common instance of this defect read
-// `parsing time "&lt;YYYY-MM-DDTHH:MM:SSZ&gt;"` until Document.JSON
-// turned escaping off.
+// HTML-escaped. json.Marshal rewrites <, > and & as \u003c, \u003e
+// and \u0026 by default, and the decode failure quotes the source text
+// it saw, so the diagnostic for the single most common instance of this
+// defect read
+// `parsing time "\u003cYYYY-MM-DDTHH:MM:SSZ\u003e"` until
+// Document.JSON turned escaping off.
 func TestAParseFindingQuotesThePlaceholderWithoutHTMLEscaping(t *testing.T) {
 	repo := t.TempDir()
 	write(t, repo, "specs/adrs/adr-001.md", undecodableDocument("adr", "adr-001", "Placeholder date"))

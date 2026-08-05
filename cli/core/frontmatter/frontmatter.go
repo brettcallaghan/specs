@@ -182,12 +182,13 @@ func (d *Document) Values() map[string]any {
 // ones, so JSON is the crossing point between the generic model and the
 // typed one.
 //
-// HTML escaping is turned off. [json.Marshal] would escape <, > and & as
-// <, > and &, which is semantically identical to any JSON
-// reader but is not identical to a human: a decode failure quotes the
-// source text it saw, so a document carrying the template placeholder
-// `updated_at: <YYYY-MM-DDTHH:MM:SSZ>` produced the diagnostic
-// `parsing time "<YYYY-MM-DDTHH:MM:SSZ>"`. This value never
+// HTML escaping is turned off. [json.Marshal] rewrites <, > and & as the
+// six-character sequences \u003c, \u003e and \u0026, which is
+// semantically identical to any JSON reader but is not identical to a
+// human: a decode failure quotes the source text it saw, so a document
+// carrying the template placeholder `updated_at: <YYYY-MM-DDTHH:MM:SSZ>`
+// produced the diagnostic
+// `parsing time "\u003cYYYY-MM-DDTHH:MM:SSZ\u003e"`. This value never
 // reaches an HTML document — it is decoded into a record and validated
 // against a schema in the same process — so the escaping bought nothing
 // and cost the legibility of exactly the messages a reader most needs.
