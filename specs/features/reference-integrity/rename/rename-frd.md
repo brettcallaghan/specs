@@ -234,6 +234,59 @@ implemented, and it is the one an author actually cares about — the
 others describe how the command behaves, this one says the thing it was
 built to guarantee is true.
 
+### REQ-SPECREN-004: Command Surface and Skill Adoption
+
+**User Story:** As an authoring agent, I want to know this command
+exists at the moment I am about to rename a slug, so that I reach for it
+instead of editing every reference by hand.
+
+**Acceptance Criteria:**
+
+- **AC-SPECREN-004.1:** The CLI SHALL expose a `rename` subcommand
+  accepting the current slug and the new slug, previewing by default and
+  writing only when instructed, per REQ-SPECREN-002.
+  - *Example:* `spec rename adr-011-targeted-verification-gates adr-011`
+    previews; the same command with the write flag performs it. The
+    subcommand vocabulary AC-SPEC-011.5 lists gains a fifth entry, and
+    the four established there are neither renamed nor repurposed.
+- **AC-SPECREN-004.2:** The shipped skill SHALL list the `rename`
+  subcommand and the question it answers alongside the other
+  subcommands, in the same command surface an agent reads before
+  choosing how to act.
+  - *Example:* The command table in
+    `plugin/skills/spec/references/spec-cli.md` gains a `spec rename
+    <current-slug> <new-slug>` row reading "Rename a slug and every
+    reference to it". An agent that does not know the command exists
+    writes the hand sweep instead, which is the failure this feature was
+    built to remove.
+- **AC-SPECREN-004.3:** The shipped skill SHALL state that renaming a
+  slug is what this command is for, so that an agent prefers it over
+  editing references directly.
+  - *Example:* The guidance sits with the existing instruction to prefer
+    the CLI for anything it decides — "its answer is verifiable by
+    whoever reviews the work, where yours is an assertion" — which
+    applies unchanged to an edit the tool can make correctly and a hand
+    sweep frequently cannot (AC-SPECREN-001.2).
+
+*Rationale:* This requirement advertises the command; it does not gate
+anything. No checkpoint is added to any workflow and no agent is
+required to run it before a rename, because a rename performed by hand
+and then caught by the parent feature's checks is a recoverable
+outcome — noisy, but not silent, which was the original defect.
+
+The reason advertisement is specified here at all, rather than left to
+implementation, is that the tool has already produced one capability
+nobody invoked. A command that exists and is not named in the surface an
+agent reads is indistinguishable, in practice, from a command that was
+never built. Naming it in an acceptance criterion is what stops it being
+dropped as polish once the interesting part is working.
+
+The skill's command surface is documentation of a real binary, so
+AC-SPECREN-004.2 lands when the subcommand does. Advertising a `rename`
+that does not yet exist would send an agent to a command that fails, and
+the skill currently describes exactly four subcommands because exactly
+four are built.
+
 ## References
 
 - [[frd-spec-reference-integrity]] — the parent feature, whose recorded
