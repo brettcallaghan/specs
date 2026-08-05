@@ -13,6 +13,7 @@ related:
   - "frd-spec-reference-integrity"
   - "frd-spec-structure-conformance"
   - "frd-spec-validation-cli"
+  - "frd-spec-slug-rename"
   - "adr-012"
 ---
 
@@ -293,6 +294,8 @@ resolved it the same way.
   and query surface both features extend
 - [[adr-012]] — the wikilink and heading-anchor conventions, and the
   requirement that un-promoted components be addressed by anchor
+- [[frd-spec-slug-rename]] — the sibling sub-feature, whose rewrites
+  preserve the anchors this feature resolves
 - [[adr-002]] — EARS, the notation these acceptance criteria are written
   in
 - `plugin/skills/spec/references/c4-guide.md` — element declarations and

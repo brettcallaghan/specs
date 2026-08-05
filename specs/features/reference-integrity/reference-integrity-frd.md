@@ -11,6 +11,7 @@ sources: []
 related:
   - "frd-spec-validation-cli"
   - "frd-spec-anchor-references"
+  - "frd-spec-slug-rename"
   - "frd-spec-structure-conformance"
   - "contract-specs-configuration"
   - "adr-012"
@@ -76,7 +77,12 @@ deliberately, not overlooked:
 - **Suggesting a correction for a broken reference.** Findings state
   the fact and leave the fix to a reviewing agent.
 - **Repairing or rewriting references.** This feature only reads and
-  reports, as REQ-SPEC-002's ordering requires.
+  reports, as REQ-SPEC-002's ordering requires. Rewriting every
+  reference to a slug when that slug is deliberately renamed is
+  specified in [[frd-spec-slug-rename]], a sub-feature of this one. The
+  boundary holds in both documents: a check never edits what it merely
+  infers is wrong, and a rename edits only what an author explicitly
+  instructed.
 - **References to documents outside the specification set** — the
   backticked relative paths that
   `plugin/skills/spec/references/cross-document-references.md` governs.
@@ -405,6 +411,8 @@ new prefix here are the same decision.
   discovery, and configuration this feature extends
 - [[frd-spec-anchor-references]] — the sub-feature that resolves the
   anchor half of a reference this feature resolves the slug half of
+- [[frd-spec-slug-rename]] — the sub-feature that rewrites every
+  reference to a slug when the slug is deliberately renamed
 - [[frd-spec-structure-conformance]] — supplies the document headings
   that sub-feature resolves an anchor against
 - [[contract-specs-configuration]] — the configuration surface
