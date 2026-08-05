@@ -139,7 +139,7 @@ C4Component
         Component(fm, "Frontmatter", "Go package", "Frontmatter extraction and YAML parsing with raw-text access")
         Component(md, "Markdown Structure", "Go package", "Headings, section spans, fenced blocks and comment blocks")
         Component(refs, "References", "Go package", "Wikilink discovery, resolution and the reference graph")
-        Component(schema, "Schema Registry", "Go package", "JSON Schema registration by document type, and validation")
+        Component(schema, "Schema Registry", "Go package", "Single-union JSON Schema validation dispatched by document type")
         Component(corpus, "Corpus", "Go package", "Discovery, membership, the index model and its emission")
         Component(num, "Numbering", "Go package", "Next-number derivation for numbered document types")
         Component(find, "Findings", "Go package", "Finding and severity model, and report emission")
@@ -302,15 +302,33 @@ list of its own referrers.
 ```component
 title: Schema Registry
 slug: component-schema-registry
-description: Registration of JSON Schemas by document type, and validation producing located findings
+description: Single-union JSON Schema validation, dispatched by document type, producing located findings
 ```
 
-(Go package) — Registration of JSON Schemas by document type, and
-validation producing located findings. A profile registers one schema
-per type; this component compiles them once and validates each
-document's frontmatter against the schema for its declared type. It
-reports every violation in one pass, each with the JSON Pointer at which
-it occurred, rather than stopping at the first.
+(Go package) — Single-union JSON Schema validation, dispatched by
+document type, producing located findings. A profile registers **one**
+schema — a discriminated union over every document type it defines —
+not a schema per type; this component compiles that union once and
+validates each document's frontmatter against the branch its declared
+`type` selects. It reports every violation in one pass, each with the
+JSON Pointer at which it occurred, rather than stopping at the first
+(AC-SPEC-003.1). Where the selected branch constrains a property with a
+format keyword, the property's raw source text — from the Frontmatter
+component — is validated in place of its YAML-coerced value, so that a
+value a YAML parser silently reinterpreted is checked as the author
+wrote it (AC-SPEC-003.2). A slug that does not match the pattern the
+active profile's per-type table supplies is reported separately, naming
+both the actual slug and the expected pattern (AC-SPEC-003.5) — that
+check is independent of the union schema, because the shared frontmatter
+envelope declares `slug` once and no subtype can narrow it there.
+
+**Built** — `cli/core/schemaregistry`. The branch a document is checked
+against is found mechanically: a document's declared type
+("system-blueprint") is converted to the PascalCase form the union's
+top-level `definitions` are keyed by ("SystemBlueprint"), which is a
+string transform rather than a lookup table naming any type. This is
+what lets the package hold to the Change Guidance below without a
+per-type schema pointer from the profile.
 
 ### Corpus
 
