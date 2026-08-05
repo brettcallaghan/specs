@@ -13,8 +13,8 @@ doing the work and humans reviewing at two checkpoints.
 Vibe coding is genuinely fun. It is also how demos get built, and it is
 why the influencer feed looks the way it does. Specs are how systems get
 built — and the question every enterprise is actually asking is not
-"should agents write our code" but **"how do we adopt agentic development
-without losing the plot?"**
+"should agents write our code" but **"how do we adopt agentic
+development without ending up with a codebase nobody can explain?"**
 
 The answer is not more supervision. It is **agency**.
 
@@ -29,7 +29,7 @@ own. Specs are what make the decision good. When the plan meets reality
 mid-run:
 
 | What happens mid-run | What the agent does without specs | What it does with them |
-|---|---|---|
+|:---|:---|:---|
 | An acceptance criterion is missing or contradicts another feature | Picks one and moves on, silently | Detects the conflict against the FRD and bounces it back before writing code |
 | The architecture has to evolve in a way planning didn't anticipate | Invents a structure that fits the file it's in | Reads the container/module blueprint's change guidance and stays inside the boundary — or flags that the boundary must move |
 | A blocker nobody predicted appears | Works around it, inventing new behavior | Checks the blocker against the standards and ADRs that already settled the question |
@@ -46,9 +46,9 @@ thing it was supposed to do was written down first.
 
 ```mermaid
 flowchart LR
-    A["/spec<br/>FRD"] --> B{{"human<br/>review"}}
+    A["/spec<br/>FRD"] --> B{{"Product<br/>review"}}
     B --> C["/spec<br/>Feature Blueprint"]
-    C --> D{{"engineer<br/>review"}}
+    C --> D{{"Engineer<br/>review"}}
     D --> E["/groom-feature-blueprint<br/>→ work orders"]
     E --> F["/bead-bonanza<br/>→ implementation"]
     F --> G{{"PR<br/>review"}}
@@ -58,11 +58,12 @@ flowchart LR
     style G fill:#fde68a,stroke:#b45309,color:#1c1917
 ```
 
-Two human checkpoints before the PR: the **FRD** (is this the right
-feature?) and the **Feature Blueprint** (is this the right way to build
-it?). Everything downstream of the blueprint is mechanical enough to
-hand to agents — which is exactly the point. The blueprint review is the
-last cheap place to change your mind.
+Two review checkpoints before the PR: the **FRD**, where Product asks
+whether this is the right feature, and the **Feature Blueprint**, where
+an Engineer asks whether this is the right way to build it. Everything
+downstream of the blueprint is mechanical enough to hand to agents —
+which is exactly the point. The blueprint review is the last cheap place
+to change your mind.
 
 ---
 
@@ -104,17 +105,17 @@ and think, not to invent a ninth kind of document.
 
 ### Product
 
-The *what*. Owned by whoever owns the feature.
+The *what*. Owned by Product.
 
-| Document | Captures | Audience | Example | Template |
-|---|---|---|---|---|
-| **FRD** — Feature Requirements Document | Pure features: the user story (WHY) and the acceptance criteria (WHAT), in EARS. Never the how. | Product, engineering, and every downstream skill | [FRD: Spec Corpus Index](specs/features/spec-index/spec-index-frd.md) | [`frd-template.md`](plugin/skills/spec/references/frd-template.md) |
+| Document | Captures | Example | Template |
+|:---|:---|:---|:---|
+| **FRD** — Feature Requirements Document | Pure features: the user story (WHY) and the acceptance criteria (WHAT), in EARS. Never the how. | [FRD: Spec Corpus Index](specs/features/spec-index/spec-index-frd.md) | [`frd-template.md`](plugin/skills/spec/references/frd-template.md) |
 
 **Always start here. No FRD, no feature.** An FRD is one feature that
 delivers independently testable value — sub-features get their own FRDs
 rather than nesting.
 
-### Architecture and engineering
+### Architecture and Engineering
 
 The *how*, and the constraints the how has to respect. We use the
 [C4 model](https://c4model.com/): system → container → component. C4 is
@@ -122,15 +123,15 @@ useful for describing one application, but its real payoff is in the
 enterprise — a shared, scale-free vocabulary for describing hundreds or
 thousands of systems, where every team's diagram means the same thing.
 
-| Document | Captures | Audience | Example | Template |
-|---|---|---|---|---|
-| **System Blueprint** | A system's context, its containers, its public contracts, deployment (C4 levels 1–2) | Architects, engineers | *none in this repo yet* | [`system-blueprint-template.md`](plugin/skills/spec/references/system-blueprint-template.md) |
-| **Container Blueprint** | One deployable unit: components, contracts provided and consumed, owned data, change guidance | Engineers | [Container: Spec CLI](specs/architecture/container-spec-cli.md) | [`container-blueprint-template.md`](plugin/skills/spec/references/container-blueprint-template.md) |
-| **Component Blueprint** | An atomic internal building block of one container, plus its interface | Engineers | *none in this repo yet* | [`component-blueprint-template.md`](plugin/skills/spec/references/component-blueprint-template.md) |
-| **Module Blueprint** | A unit that crosses a boundary of independent change — shared or published across containers, or composite — plus versioning and change rules | Engineers, consumers of the module | [Module: Document Core](specs/architecture/module-document-core.md) | [`module-blueprint-template.md`](plugin/skills/spec/references/module-blueprint-template.md) |
-| **ADR** — Architecture Decision Record | One significant decision: context, alternatives, choice, consequences | Architects, engineers, future maintainers | [ADR-015: Go for the Spec CLI](specs/adrs/ADR-015-go-for-the-spec-cli.md) | [`adr-template.md`](plugin/skills/spec/references/adr-template.md) |
-| **Standards** | Cross-cutting standards, policies, invariants, constraints | Everyone in scope | [Testing Standards](specs/standards/testing-standards.md) | [`standards-template.md`](plugin/skills/spec/references/standards-template.md) |
-| **Contract** | The prose semantics of an interface consumed across a boundary: an API, event stream, or data product | Producers and consumers | [Contract: Specs Configuration](specs/contracts/contract-specs-configuration.md) | [`contract-template.md`](plugin/skills/spec/references/contract-template.md) |
+| Document | Captures | Example | Template |
+|:---|:---|:---|:---|
+| **System Blueprint** | A system's context, its containers, its public contracts, deployment (C4 levels 1–2) | *none in this repo yet* | [`system-blueprint-template.md`](plugin/skills/spec/references/system-blueprint-template.md) |
+| **Container Blueprint** | One deployable unit: components, contracts provided and consumed, owned data, change guidance | [Container: Spec CLI](specs/architecture/container-spec-cli.md) | [`container-blueprint-template.md`](plugin/skills/spec/references/container-blueprint-template.md) |
+| **Component Blueprint** | An atomic internal building block of one container, plus its interface | *none in this repo yet* | [`component-blueprint-template.md`](plugin/skills/spec/references/component-blueprint-template.md) |
+| **Module Blueprint** | A unit that crosses a boundary of independent change — shared or published across containers, or composite — plus versioning and change rules | [Module: Document Core](specs/architecture/module-document-core.md) | [`module-blueprint-template.md`](plugin/skills/spec/references/module-blueprint-template.md) |
+| **ADR** — Architecture Decision Record | One significant decision: context, alternatives, choice, consequences | [ADR-015: Go for the Spec CLI](specs/adrs/ADR-015-go-for-the-spec-cli.md) | [`adr-template.md`](plugin/skills/spec/references/adr-template.md) |
+| **Standards** | Cross-cutting standards, policies, invariants, constraints | [Testing Standards](specs/standards/testing-standards.md) | [`standards-template.md`](plugin/skills/spec/references/standards-template.md) |
+| **Contract** | The prose semantics of an interface consumed across a boundary: an API, event stream, or data product | [Contract: Specs Configuration](specs/contracts/contract-specs-configuration.md) | [`contract-template.md`](plugin/skills/spec/references/contract-template.md) |
 
 > **We document systems, containers, and components — and stop there.**
 > Code is the last level of the C4 hierarchy, and only transient work
@@ -141,10 +142,10 @@ thousands of systems, where every team's diagram means the same thing.
 These two are the bridge. Both are **transient**: keep them for audit,
 or delete them once merged.
 
-| Document | Captures | Audience | Example | Template |
-|---|---|---|---|---|
-| **Feature Blueprint** | The HOW, 1:1 with an FRD's WHAT: how the feature maps onto your architecture — components created, updated, deleted — plus contracts, sequencing, AC coverage, and a definition of done | Engineers, and `groom-feature-blueprint` | [Blueprint: Spec Corpus Index](specs/features/spec-index/spec-index-blueprint.md) | [`feature-blueprint-template.md`](plugin/skills/spec/references/feature-blueprint-template.md) |
-| **Work Order** | One atomic unit of work — a "dev task". Everything a fresh, zero-context agent needs to finish one job, connecting component changes to code changes | The agent doing the work, and `bead-bonanza` | Materialized as beads in [`.beads/issues.jsonl`](.beads/issues.jsonl) | [`work-order-template.md`](plugin/skills/spec/references/work-order-template.md) |
+| Document | Captures | Example | Template |
+|:---|:---|:---|:---|
+| **Feature Blueprint** | The HOW, 1:1 with an FRD's WHAT: how the feature maps onto your architecture — components created, updated, deleted — plus contracts, sequencing, AC coverage, and a definition of done | [Blueprint: Spec Corpus Index](specs/features/spec-index/spec-index-blueprint.md) | [`feature-blueprint-template.md`](plugin/skills/spec/references/feature-blueprint-template.md) |
+| **Work Order** | One atomic unit of work — a "dev task". Everything a fresh, zero-context agent needs to finish one job, connecting component changes to code changes | Materialized as beads in [`.beads/issues.jsonl`](.beads/issues.jsonl) | [`work-order-template.md`](plugin/skills/spec/references/work-order-template.md) |
 
 A **Feature Blueprint** references exactly one FRD, and as many
 system/container/component/module blueprints as the change touches. It
@@ -179,7 +180,7 @@ references. Making it an explicit frontmatter property is planned.
 ## The skills
 
 | Skill | What it does |
-|---|---|
+|:---|:---|
 | **`spec`** | Authors every document type above from the framework's templates, in [EARS](https://alistairmavin.com/ears/) syntax and the C4 model. Picks the right type for what you're describing and refuses to invent new ones. Runs readiness checklists before anything is handed to a reviewer. |
 | **`groom-feature-blueprint`** | The boundary between the human specification loop and autonomous execution. Gates on an approved blueprint with no open questions, then decomposes its deltas into a graph of work orders carrying AC coverage and a definition of done. A quality firewall: a blueprint it can't plan mechanically gets sent back, not guessed at. |
 | **`groom-beads`** | The Definition of Ready engine for the beads backend. Materializes work orders as beads, wires the dependency graph, assigns each a capability tier, validates the result, and previews execution waves. The north star: a fresh sub-agent with zero context can open `bd show <id>` and finish the job without asking anyone anything. |
@@ -203,7 +204,7 @@ on). A blueprint written against no architecture invents one.
 
 **3. Design the feature.** Once the FRD is approved and you have at
 least a skeleton architecture, run `/spec` again to produce a Feature
-Blueprint for it. An engineer reviews and approves it.
+Blueprint for it. An Engineer reviews and approves it.
 
 **4. Groom.** Run `/groom-feature-blueprint`. It turns the approved
 blueprint into specific work orders — beads, if you use them —
@@ -232,7 +233,7 @@ documents found 26 broken references and a document whose frontmatter
 didn't parse — none of which a reviewer had noticed.
 
 | Command | Purpose |
-|---|---|
+|:---|:---|
 | `spec index` | Walk the spec root, build a machine-readable index of every document's metadata and location, write it to `specs.json` (or `--out`, or stdout) |
 | `spec check [path]` | Check the corpus, or one document, for conformance: frontmatter against the active profile's schema, slug patterns, duplicate slugs. `--json`, `--strict`, `--only <rule>` |
 | `spec next-id <type>` | Return the next identifier for a numbered document type |
@@ -262,13 +263,12 @@ The engine is framework-agnostic; the document vocabulary comes from a
 ## Repository layout
 
 | Path | Contents |
-|---|---|
+|:---|:---|
 | `plugin/skills/` | The six skills, each with its templates, references, and scripts |
 | `specs/` | This repository's own specs — the framework applied to itself |
 | `cli/` | The `spec` CLI (Go) |
 | `schemas/` | [Strata](https://github.com/strata-lang/strata) schema sources for frontmatter, findings, the index, and the profile |
 | `rfcs/` | Improvement RFCs: `inbox/` received, `outbox/` sent, `retired/` resolved |
-| `docs/` | Supporting notes |
 
 The framework specifies itself. The FRDs, ADRs, blueprints and standards
 under `specs/` are the ones that produced the CLI in `cli/` — which is
