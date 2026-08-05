@@ -12,7 +12,7 @@ description: Spec-first development using this framework's specification
   system, container, component, or interface. Covers choosing the right
   document type and authoring it from the framework templates using EARS
   syntax and the C4 model.
-version: "1.6"
+version: "1.7"
 ---
 
 # Spec-First Development
@@ -187,14 +187,16 @@ specs.
 
 1. **Pick the template** from `references/` (table below) and copy it as
    the starting point for the new document. **Write it under the
-   project's spec root** — `docs/` unless the project's `AGENTS.md` or
-   `CLAUDE.md` names another — in a subdirectory named for its type:
-   `docs/adrs/`, `docs/frds/`, `docs/standards/`, `docs/contracts/`.
-   The exception is the four architecture blueprint types (system,
-   container, component, module) plus feature blueprints, which share
-   `docs/blueprints/` because they are read together. WHEN the
-   project has an established location for that type, follow it; the
-   frontmatter index does not depend on location, but humans do.
+   project's spec root**, which `specs.toml` declares as
+   `[workspace].root` — read it rather than assuming. Where a project
+   has no `specs.toml`, its `AGENTS.md` or `CLAUDE.md` names the root,
+   and `docs/` is the fallback. Within the root, use a subdirectory
+   named for the type — `adrs/`, `frds/`, `standards/`, `contracts/` —
+   except for the four architecture blueprint types (system, container,
+   component, module) plus feature blueprints, which share
+   `blueprints/` because they are read together. WHEN the project has an
+   established location for that type, follow it; the index does not
+   depend on location, but humans do.
 2. **Follow the embedded instructions.** Each template carries its own
    guidance in HTML comment blocks — when to use it, how to complete each
    section, ID and slug conventions. Read them, complete the section, then
@@ -215,6 +217,15 @@ specs.
    the guides, and the standards shipped with this skill — is cited by
    backticked path, never by wikilink. Cross-reference other documents
    instead of duplicating their content — duplication drifts.
+
+   **Ask the corpus rather than reading it.** For a numbered type, the
+   next number is `spec next-id <type>` — never the highest filename you
+   happened to see, which misses a document whose filename and slug
+   disagree. Before claiming any slug, `spec slug-exists <slug>`. Both
+   are one subprocess and both are checkable by a reviewer; a scan you
+   did yourself is neither. `references/spec-cli.md` covers the rest of
+   the command surface, including reading the whole index when you need
+   many documents' metadata at once.
 5. **Treat specs as living documents.** Update them when requirements
    change, new information arrives, or errors are found — and update
    `status` and `updated_at` when you do.
@@ -233,8 +244,12 @@ specs.
    its FRD's (the FRD must be `approved` or `active` before grooming
    can start).
 7. **Self-check the finished document.** Before setting any document to
-   `ready-for-review`, run `references/document-readiness-checklist.md`
-   against it. Fix what it reports and re-run; do not set
+   `ready-for-review`, run `spec check <path>` and then
+   `references/document-readiness-checklist.md` against it. The
+   checklist marks which of its eight checks the CLI settles and which
+   are yours; a clean `spec check` is not a passing document, and the
+   checks it does not yet make are named there rather than left to
+   silence. Fix what both report and re-run; do not set
    `ready-for-review` while any check fails. Feature blueprints
    additionally run the blueprint readiness checklist in step 6 — that
    one is about groomability, this one about conformance, and a
@@ -257,6 +272,7 @@ correctly, and loading them together is one hop rather than a chain.
 
 | Working on | Load together |
 |------------|---------------|
+| Checking a document, picking an identifier, querying the corpus | `references/spec-cli.md` |
 | Recording an architecture or technology decision | `references/adr-template.md` |
 | Specifying a feature (user stories + acceptance criteria) | `references/frd-template.md` + `references/ears-guide.md` |
 | Defining cross-cutting standards, policies, or constraints | `references/standards-template.md` + `references/ears-guide.md` |
@@ -293,6 +309,8 @@ reached at the second hop tends to get previewed rather than read.
 | Duplicating content across documents | Copies drift; cross-reference with `[[document-slug]]` instead |
 | Leaving template comment blocks in a finished document | Instruction bloat; delete them after completing each section |
 | Reusing a retired REQ/AC identifier | Breaks traceability; never reuse IDs |
+| Reporting a check as passed without running the command that decides it | Unverifiable: an agent that ran the check and one that assumed it produce identical output. Run `spec check` and cite it |
+| Deriving the next ADR number or a slug's uniqueness by reading filenames | The slug is independent of the filename, so a scan misses the collision it exists to find. `spec next-id` and `spec slug-exists` read the index |
 | Inventing a new document type | The taxonomy is deliberately small; flag the gap instead |
 | Filing a private schema as a standalone Contract | Freezes a container's internal implementation into a de facto public interface |
 | Deep component internals in a container blueprint | Bloat; extract to a component or module blueprint when it warrants standalone docs |
