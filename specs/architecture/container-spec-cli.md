@@ -255,6 +255,37 @@ section is authoritative for its deployment.
   executable content at install time, and it is installable from at
   least one package registry that supports on-premises mirroring.
   Cross-compilation produces the platform matrix from a single build.
+- **Build:** `CGO_ENABLED=0`, so each artifact is one statically linked
+  file with no libc to resolve at run time (AC-SPEC-009.4), and
+  `-trimpath -ldflags="-s -w"`, so the bytes do not carry the builder's
+  absolute paths. Six targets — `linux`, `darwin` and `windows`, each on
+  `amd64` and `arm64` — are cross-compiled on one Linux runner from one
+  checkout. `.github/workflows/cli.yml` builds the whole matrix on every
+  pull request, so a target that stops cross-compiling fails on the
+  change that broke it rather than at release time.
+- **Distribution — two channels.** The Go module proxy is the registry
+  AC-SPEC-009.6 is satisfied by: it is mirrorable on premises (GOPROXY,
+  Athens, Artifactory), and `go install …/cli/spec@<tag>` needs no
+  release artifact at all. For a machine with no Go toolchain, tagged
+  releases carry one archive per target plus `SHA256SUMS`; unpacking one
+  runs no install-time code, which is what AC-SPEC-009.5 turns on.
+  Nothing here is signed yet, and the binaries carry no version string —
+  both are open, and both belong to the release-and-distribution ADR
+  rather than to this blueprint.
+- **The entry point is `cli/spec/`, not the module root.** Go names an
+  installed binary after the directory holding its main package, so the
+  path is what makes `go install` produce `spec` rather than `cli`. For
+  the same reason release tags are `cli/vX.Y.Z`: the module lives in a
+  subdirectory, and the proxy resolves a subdirectory module's versions
+  only from tags carrying that prefix.
+- **Cross-platform reproducibility (AC-SPEC-009.7) is a property of the
+  read path, not of the build.** The CLI normalizes CRLF to LF at the
+  single point where it reads a candidate file, so a Windows checkout
+  under `core.autocrlf` cannot move a span's byte offsets or the
+  content hash the warm-cache path compares. The consequence is
+  deliberate: a reported byte offset indexes the normalized text rather
+  than the on-disk file where the two differ, while line and column —
+  what a human or an editor acts on — are unaffected.
 
 ## Cross-Cutting Standards
 

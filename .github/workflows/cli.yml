@@ -1,0 +1,176 @@
+name: cli
+
+# The Go gates for the Spec CLI, and the portability evidence for
+# REQ-SPEC-009 that only a real matrix can produce.
+#
+# Why this is a second workflow rather than more jobs in checks.yml: that
+# one is a single ubuntu runner over the docs corpus and needs no
+# toolchain beyond bash and python3. This one needs a Go toolchain and
+# three operating systems, and its failures mean something different. Two
+# workflows keep the two signals legible and let each evolve without
+# disturbing the other.
+#
+# There is deliberately no `paths:` filter. A filtered workflow that is
+# required for merge never reports on a pull request that does not touch
+# its paths, which blocks the merge rather than passing it; the cost of
+# running the matrix on a docs-only commit is the price of avoiding that.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cli-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Matches the `go` directive in cli/go.mod. Bump both together.
+  GO_VERSION: "1.24"
+
+jobs:
+  # The cross-platform half of AC-SPEC-009.7. The expected artifacts
+  # under cli/testdata/cases/**/expected/ are one committed set of bytes;
+  # this job holds all three operating systems to them. The other half —
+  # a CRLF working tree — is reproduced synthetically inside the suite by
+  # cli/cmd/portability_test.go, so it runs on every leg here too.
+  test:
+    name: go test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Do not cancel the other legs on the first failure: which
+      # platforms diverged is the whole diagnostic when a portability
+      # test fails.
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: cli/go.sum
+
+      - name: Report tool versions
+        run: go version
+
+      # gofmt on one platform only: it reads the same committed bytes
+      # everywhere (.gitattributes pins the working tree to LF), so three
+      # runs would report the same answer three times.
+      - name: Formatting
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "gofmt -l reported:"
+            echo "$unformatted"
+            echo "run 'cd cli && gofmt -w .' and commit the result"
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Build
+        run: go build ./...
+
+      - name: Test
+        run: go test ./...
+
+  # AC-SPEC-009.7's "produced by cross-compilation from a single source":
+  # every platform in the release matrix is built here, on one Linux
+  # runner, from the same checkout. A target that stops cross-compiling
+  # fails this job on the pull request that broke it rather than on the
+  # release tag.
+  cross-compile:
+    name: cross-compile the release matrix
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cli
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: cli/go.sum
+
+      - name: Build every target
+        env:
+          # No cgo: this is what makes the artifact a single static file
+          # with no libc to find at run time (AC-SPEC-009.4).
+          CGO_ENABLED: "0"
+        run: |
+          set -euo pipefail
+          for target in \
+            linux/amd64 linux/arm64 \
+            darwin/amd64 darwin/arm64 \
+            windows/amd64 windows/arm64
+          do
+            goos="${target%/*}"
+            goarch="${target#*/}"
+            echo "==> $goos/$goarch"
+            GOOS="$goos" GOARCH="$goarch" \
+              go build -trimpath -ldflags="-s -w" -o /dev/null ./spec
+          done
+
+  # AC-SPEC-009.4's worked example, run rather than asserted: the binary
+  # is executed in an image holding a shell, busybox's coreutils and
+  # nothing else — no Go toolchain, no libc beyond musl, no package
+  # manager. A binary that acquired a dynamic dependency fails here.
+  no-runtime:
+    name: runs with no language runtime installed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: cli/go.sum
+
+      - name: Build the static linux/amd64 binary
+        working-directory: cli
+        env:
+          CGO_ENABLED: "0"
+          GOOS: linux
+          GOARCH: amd64
+        run: go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/spec" ./spec
+
+      - name: The binary is statically linked
+        run: |
+          set -euo pipefail
+          description="$(file -b spec)"
+          echo "$description"
+          # `file` rather than `ldd`: ldd's wording for a static binary
+          # varies by distribution ("not a dynamic executable" against
+          # "statically linked") and its exit status is not a reliable
+          # signal either way.
+          case "$description" in
+            *"statically linked"*) ;;
+            *)
+              echo "spec is not statically linked; it will not run in a bare image"
+              exit 1
+              ;;
+          esac
+
+      - name: Run it in an image containing only a shell and the binary
+        run: |
+          set -euo pipefail
+          # busybox is a shell plus coreutils. The corpus is one of the
+          # committed snapshot fixtures, so the run has something real to
+          # check and a known exit status (0: the fixture is clean).
+          docker run --rm \
+            -v "$PWD/spec:/spec:ro" \
+            -v "$PWD/cli/testdata/cases/check-json/input:/corpus:ro" \
+            -w /corpus \
+            busybox:latest \
+            /spec check --json

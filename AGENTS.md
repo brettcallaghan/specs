@@ -62,6 +62,34 @@ Run it after any change to `schemas/*.strata`. The artifacts it checks are
 **generated — never hand-edit them**; regenerate with the same script without
 `--check` and commit the result in the same change.
 
+### What CI runs
+
+Three workflows under `.github/workflows/`, all on push and pull request
+except the last:
+
+- `checks.yml` — the docs-corpus gates on one Linux runner:
+  `check-skills.sh` (not `--strict`), `sync-shared-references.sh --check`,
+  `validate-corpus.py`.
+- `cli.yml` — the Go gates. `go vet`, `go build` and `go test ./...` on
+  ubuntu, macOS and Windows (the matrix is the cross-platform half of
+  AC-SPEC-009.7: one committed set of expected bytes, three platforms);
+  `gofmt -l` on ubuntu only; a cross-compile of all six release targets;
+  and a run of the static binary inside a busybox image, which is
+  AC-SPEC-009.4's worked example executed rather than asserted.
+- `release.yml` — on a `cli/vX.Y.Z` tag. Cross-compiles the six targets
+  on one Linux runner, packages one archive each plus `SHA256SUMS`, and
+  publishes a GitHub Release.
+
+Neither `check-skills.sh --strict` nor `generate-schemas.sh --check` runs
+in CI — the first is known red (below) and the second needs the Strata
+compiler. Both remain local gates.
+
+`.gitattributes` pins the working tree to LF on every platform. It has to:
+the expected artifacts under `cli/testdata/cases/**/expected/` are compared
+byte for byte, and Git's `core.autocrlf` default on Windows would rewrite
+them on checkout. The CRLF checkout AC-SPEC-009.7 names is reproduced
+synthetically instead, on every platform, by `cli/cmd/portability_test.go`.
+
 ### Targeted tests by surface
 
 - `cli/**` → `cd cli && gofmt -l . && go vet ./... && go test ./...`

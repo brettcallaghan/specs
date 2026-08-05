@@ -1,0 +1,167 @@
+name: release
+
+# Publishes the Spec CLI's per-platform binaries for one tag.
+#
+# Distribution has two channels, and this workflow is only the second of
+# them:
+#
+#  1. `go install github.com/brettcallaghan/agent-plugins/cli/spec@<tag>`
+#     — the Go module proxy is a package registry that supports
+#     on-premises mirroring (GOPROXY, Athens, Artifactory and the rest),
+#     which is what AC-SPEC-009.6 asks for. It needs nothing from this
+#     workflow beyond the tag, because the proxy serves source from the
+#     tag itself.
+#  2. The archives built below, for a machine with no Go toolchain at
+#     all. Downloading one retrieves an already-built artifact and runs
+#     no install-time code — no build script, no post-install hook, no
+#     second fetch (AC-SPEC-009.5).
+#
+# The tag is `cli/vX.Y.Z`, not `vX.Y.Z`: the Go module lives in the
+# `cli/` subdirectory of this repository, and the module proxy resolves a
+# subdirectory module's versions only from tags carrying that prefix.
+# Channel 1 does not work without it.
+#
+# Every binary is cross-compiled here, on one Linux runner, from one
+# checkout — no per-OS runner, which is the property AC-SPEC-009.7 names
+# and .github/workflows/cli.yml's cross-compile job gates on every pull
+# request.
+
+on:
+  push:
+    tags: ["cli/v*"]
+  # Kept so a failed publish can be retried against the same tag without
+  # deleting and re-pushing it.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing cli/vX.Y.Z tag to build and publish"
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref }}
+  cancel-in-progress: false
+
+env:
+  GO_VERSION: "1.24"
+
+jobs:
+  release:
+    name: build and publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: cli/go.sum
+
+      - name: Resolve the version
+        id: version
+        run: |
+          set -euo pipefail
+          raw="${{ github.event.inputs.tag || github.ref_name }}"
+          case "$raw" in
+            cli/v*) ;;
+            *) echo "expected a cli/vX.Y.Z tag, got '$raw'"; exit 1 ;;
+          esac
+          echo "tag=$raw" >> "$GITHUB_OUTPUT"
+          echo "version=${raw#cli/}" >> "$GITHUB_OUTPUT"
+
+      # The gates run again here rather than being trusted from the
+      # commit's own cli.yml run: a tag can be pushed at a commit whose
+      # workflow never completed, and a released binary that was never
+      # tested is worse than a slower release.
+      - name: Gates
+        working-directory: cli
+        run: |
+          set -euo pipefail
+          test -z "$(gofmt -l .)"
+          go vet ./...
+          go test ./...
+
+      - name: Cross-compile every platform
+        working-directory: cli
+        env:
+          # CGO_ENABLED=0 is what makes each artifact a single static
+          # file that runs on a machine with no language runtime and no
+          # libc of its own (AC-SPEC-009.4).
+          #
+          # -trimpath strips the builder's absolute paths, so the same
+          # source produces the same bytes from any checkout directory.
+          CGO_ENABLED: "0"
+        run: |
+          set -euo pipefail
+          version='${{ steps.version.outputs.version }}'
+          out="$GITHUB_WORKSPACE/dist"
+          mkdir -p "$out"
+
+          for target in \
+            linux/amd64 linux/arm64 \
+            darwin/amd64 darwin/arm64 \
+            windows/amd64 windows/arm64
+          do
+            goos="${target%/*}"
+            goarch="${target#*/}"
+            stage="$(mktemp -d)"
+            binary="spec"
+            if [ "$goos" = "windows" ]; then binary="spec.exe"; fi
+
+            echo "==> $goos/$goarch"
+            GOOS="$goos" GOARCH="$goarch" \
+              go build -trimpath -ldflags="-s -w" -o "$stage/$binary" ./spec
+
+            name="spec_${version}_${goos}_${goarch}"
+            if [ "$goos" = "windows" ]; then
+              ( cd "$stage" && zip -q "$out/$name.zip" "$binary" )
+            else
+              # --sort=name and the pinned mtime/owner keep the archive
+              # itself reproducible, not just the binary inside it.
+              tar --sort=name --owner=0 --group=0 --numeric-owner \
+                  --mtime='UTC 2020-01-01' \
+                  -czf "$out/$name.tar.gz" -C "$stage" "$binary"
+            fi
+            rm -rf "$stage"
+          done
+
+      - name: Checksums
+        working-directory: dist
+        run: |
+          set -euo pipefail
+          sha256sum -- * > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Publish the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag='${{ steps.version.outputs.tag }}'
+          version='${{ steps.version.outputs.version }}'
+
+          # printf rather than a heredoc: a heredoc inside a YAML block
+          # scalar carries the block's own indentation into every line of
+          # the release notes.
+          notes=$(printf '%s\n' \
+            "Spec CLI $version." \
+            "" \
+            "**Install from the Go module proxy** (needs a Go toolchain, and works against an on-premises proxy):" \
+            "" \
+            "    go install github.com/brettcallaghan/agent-plugins/cli/spec@$tag" \
+            "" \
+            "**Or download a binary.** Each archive holds one statically linked executable and nothing else: unpack it and put \`spec\` on your PATH. Nothing further is fetched or executed at install time. Verify against \`SHA256SUMS\` first.")
+
+          # --clobber so a re-run against the same tag replaces the assets
+          # instead of failing on the ones already uploaded.
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" dist/* --clobber
+          else
+            gh release create "$tag" dist/* \
+              --title "Spec CLI $version" \
+              --notes "$notes"
+          fi

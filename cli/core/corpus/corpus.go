@@ -1,6 +1,7 @@
 package corpus
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -272,13 +273,54 @@ func scanCandidates(specRoot, repoRoot string, visit func(reported string, src [
 
 // readUnder returns the bytes of one file named relative to an open root,
 // so the read cannot address a file outside it.
+//
+// The bytes are returned with line endings normalized by
+// [normalizeLineEndings], which is what makes this the one place a
+// CRLF checkout stops being visible to the rest of the package.
 func readUnder(root *os.Root, rel string) ([]byte, error) {
 	f, err := root.Open(rel)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
-	return io.ReadAll(f)
+	src, err := io.ReadAll(f)
+	if err != nil {
+		return nil, err
+	}
+	return normalizeLineEndings(src), nil
+}
+
+// normalizeLineEndings rewrites every CRLF in src to a bare LF.
+//
+// This is what AC-SPEC-009.7 rests on. Git converts LF to CRLF in the
+// working tree on Windows (`core.autocrlf`), so the *same commit* is a
+// different sequence of bytes there. Without this, every byte offset in
+// a span, and the content hash the warm-cache path compares, would move
+// with the checkout's line endings — and the same corpus would produce
+// different output on Windows than on Linux and macOS, which is exactly
+// what AC-SPEC-009.7 forbids.
+//
+// It is applied here, in [readUnder], rather than in each parser,
+// because [scanCandidates] is the only walk in the package: [Build] and
+// [Fingerprint] both read through it, so normalizing once means the
+// index's spans and the input hash can never disagree about which bytes
+// a file is made of.
+//
+// The consequence, recorded deliberately: a reported byte offset is an
+// offset into the normalized text, not into the on-disk file, on a
+// platform where the two differ. Line and column — which is what a
+// human or an editor acts on — are unaffected, and cross-platform
+// reproducibility is worth more than a byte offset that is only correct
+// on one of the three platforms.
+//
+// A lone CR is left alone. It is not a line ending in any checkout this
+// tool sees, and rewriting it would change content rather than restore
+// it.
+func normalizeLineEndings(src []byte) []byte {
+	if !bytes.Contains(src, []byte("\r\n")) {
+		return src
+	}
+	return bytes.ReplaceAll(src, []byte("\r\n"), []byte("\n"))
 }
 
 // builder is the mutable state of one build.

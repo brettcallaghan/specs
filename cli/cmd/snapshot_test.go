@@ -60,9 +60,35 @@ func TestSnapshotCases(t *testing.T) {
 }
 
 // runSnapshotCase runs one case directory to completion and checks its
-// observable results.
+// observable results, materializing its input corpus verbatim.
 func runSnapshotCase(t *testing.T, dir string) {
 	t.Helper()
+	runSnapshotCaseWith(t, dir, copyTree)
+}
+
+// runSnapshotCaseWith is runSnapshotCase with the step that materializes
+// the case's input corpus left to the caller.
+//
+// The seam exists for cli/cmd/portability_test.go, which replays every
+// one of these cases a second time from a CRLF working tree and holds
+// the result to the same committed artifacts (AC-SPEC-009.7). Nothing
+// else about a case run differs between the two, so the check logic
+// below is shared rather than copied — a divergence between the two
+// runners would be a way for the portability claim to stop meaning what
+// it says.
+func runSnapshotCaseWith(t *testing.T, dir string, materialize func(src, dst string) error) {
+	t.Helper()
+
+	// Absolute before anything else. The run below chdirs into the
+	// working copy, and every later read of the case's own files —
+	// expected/checks.log, expected/manifest.json — would otherwise
+	// resolve its relative path against that working copy, miss, and be
+	// treated as "this case carries no such artifact". The comparisons
+	// would then pass by not happening.
+	dir, err := filepath.Abs(dir)
+	if err != nil {
+		t.Fatalf("resolving the case directory: %v", err)
+	}
 
 	var manifest caseManifest
 	if _, err := toml.DecodeFile(filepath.Join(dir, "case.toml"), &manifest); err != nil {
@@ -72,7 +98,7 @@ func runSnapshotCase(t *testing.T, dir string) {
 	work := t.TempDir()
 	inputDir := filepath.Join(dir, "input")
 	if _, err := os.Stat(inputDir); err == nil {
-		if err := copyTree(inputDir, work); err != nil {
+		if err := materialize(inputDir, work); err != nil {
 			t.Fatalf("copying the input corpus: %v", err)
 		}
 	} else if !os.IsNotExist(err) {

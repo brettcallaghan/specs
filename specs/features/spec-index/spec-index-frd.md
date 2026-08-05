@@ -382,15 +382,15 @@ the build nor the author waits on it.
   95th percentile.
 - **AC-SPEC-009.4:** The CLI SHALL run on a machine with no language
   runtime, interpreter, or package manager installed beyond the CLI
-  itself.
+  itself. (manual)
   - *Example:* It runs in a container image containing only a shell and
     the CLI binary.
 - **AC-SPEC-009.5:** The CLI SHALL NOT retrieve executable content from
-  a network location during installation.
+  a network location during installation. (manual)
   - *Example:* Installing from a package registry mirrored inside a
     network that blocks all other outbound traffic succeeds.
 - **AC-SPEC-009.6:** The CLI SHALL be installable from at least one
-  package registry that supports on-premises mirroring.
+  package registry that supports on-premises mirroring. (manual)
 - **AC-SPEC-009.7:** WHEN the CLI runs against identical corpus content
   on Linux, macOS, and Windows, the CLI SHALL report the same findings
   in the same order.
