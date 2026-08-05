@@ -141,7 +141,11 @@ var realSlugs = []struct {
 	documentType, slug, source string
 }{
 	{"adr", "adr-013", "specs/adrs/ADR-013-work-order-terminology.md"},
-	{"adr", "adr-003-yaml-frontmatter-for-metadata", "specs/adrs/ADR-003-yaml-frontmatter-for-metadata.md"},
+	// The descriptive form no longer appears in this repository — the
+	// slugs were migrated to the number-only form [[adr-012]] decided —
+	// but the pattern still accepts it, because an adopting repository
+	// that never made that migration is not thereby non-conformant.
+	{"adr", "adr-003-yaml-frontmatter-for-metadata", "the optional descriptive suffix the pattern still admits"},
 	{"frd", "frd-spec-validation-cli", "specs/features/spec-index/spec-index-frd.md"},
 	{"frd", "frd-spec-reference-integrity", "specs/features/reference-integrity/reference-integrity-frd.md"},
 	{"contract", "contract-specs-configuration", "specs/contracts/contract-specs-configuration.md"},

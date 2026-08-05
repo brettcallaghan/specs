@@ -1006,6 +1006,22 @@
           "if": {
             "properties": {
               "kind": {
+                "const": "frontmatter-parse"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FindingFrontmatterParse"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
                 "const": "unverified"
               }
             },
@@ -1027,6 +1043,7 @@
             "missing-property",
             "slug-pattern",
             "duplicate-slug",
+            "frontmatter-parse",
             "unverified"
           ],
           "type": "string"
@@ -1053,6 +1070,20 @@
       "required": [
         "slug",
         "other_path"
+      ],
+      "type": "object"
+    },
+    "FindingFrontmatterParse": {
+      "additionalProperties": false,
+      "description": "A frontmatter block that could not be read as a document envelope.\n\nDistinct from a schema violation, and reported by a different route: a\nschema violation is found by validating a parsed envelope, while this is\nwhat happens when there is no parsed envelope to validate. The document\ndeclared itself a specification and got the declaration wrong badly\nenough that nothing downstream can look at it.\n\nModelled separately because it is the one finding that suppresses all\nthe others for its document. A consumer must be able to tell \"this\ndocument passed every check\" from \"no check could run against this\ndocument\", and the rule identifier alone does not carry that: the other\nchecks report `passed` for a document they never examined unless\nsomething says otherwise.",
+      "properties": {
+        "message": {
+          "description": "What could not be read, quoted from the parser so the message needs no\nfurther lookup to act on.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "message"
       ],
       "type": "object"
     },

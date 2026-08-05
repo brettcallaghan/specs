@@ -1,10 +1,10 @@
 ---
 title: "ADR-003: Use YAML Frontmatter for Document Metadata"
 description: Store structured metadata in YAML frontmatter blocks at the start of specification documents
-slug: adr-003-yaml-frontmatter-for-metadata
+slug: adr-003
 type: adr
 status: active
-updated_at: 2026-07-29T00:00:00Z
+updated_at: 2026-08-05T00:00:00Z
 ---
 
 # ADR-003: Use YAML Frontmatter for Document Metadata
@@ -68,7 +68,8 @@ precedes all markdown content and contains key-value pairs in YAML format.
 
 - All templates under `/plugin/skills/spec/references/` demonstrate frontmatter
   usage
-- [[template-authoring-standards]] — standardized fields used across document types
+- `plugin/skills/spec/references/template-authoring-standards.md` —
+  standardized fields used across document types
 - YAML 1.2 specification: https://yaml.org/spec/1.2/spec.html
 - Static site generator conventions (Jekyll, Hugo) establish precedent for this
   pattern

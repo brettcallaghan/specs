@@ -1,0 +1,8 @@
+frontmatter/parse  error  docs/adrs/adr-001-unfilled-placeholder.md:1:4  frontmatter could not be read: the frontmatter block does not fit the document envelope: parsing time "<YYYY-MM-DDTHH:MM:SSZ>" as "2006-01-02T15:04:05Z07:00": cannot parse "<YYYY-MM-DDTHH:MM:SSZ>" as "2006"
+
+checks:
+  frontmatter/missing-property  passed
+  frontmatter/parse  failed
+  frontmatter/schema  passed
+  slug/duplicate  passed
+  slug/pattern-mismatch  passed

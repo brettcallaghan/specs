@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
@@ -116,6 +117,29 @@ updated_at: "2026-08-05T00:00:00Z"
 
 # %s
 `, title, slug, docType, key, rawValue, title)
+}
+
+// undecodableDocument renders a document whose frontmatter is valid YAML
+// but does not fit the document envelope: updated_at carries the
+// placeholder every template in plugin/skills/spec/references/ ships,
+// which is not an RFC 3339 date-time.
+//
+// This is the real-world shape of the defect (agent-plugins-5xo), not a
+// contrived one: the spec skill instructs an author to copy a template
+// and then to run `spec check`, so every document is in exactly this
+// state between those two steps.
+func undecodableDocument(docType, slug, title string) string {
+	return fmt.Sprintf(`---
+title: %q
+description: "A fixture document."
+slug: %s
+type: %s
+status: approved
+updated_at: <YYYY-MM-DDTHH:MM:SSZ>
+---
+
+# %s
+`, title, slug, docType, title)
 }
 
 // findingsWithRule returns every finding of one rule against one path.
@@ -390,5 +414,119 @@ func TestCheckOutputIsDeterministic(t *testing.T) {
 
 	if a, b := encode(), encode(); a != b {
 		t.Errorf("two Check runs over one corpus differ:\n%s\n%s", a, b)
+	}
+}
+
+// AC: AC-SPEC-003.6
+//
+// The regression test for agent-plugins-5xo. Before the fix, Check
+// skipped every entry with no parsed frontmatter, so this corpus
+// produced zero findings and every rule reported `passed` — the worst
+// document in a corpus was the one the checker was guaranteed to be
+// silent about.
+func TestCheckReportsAMemberWhoseFrontmatterCouldNotBeDecoded(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-001.md", undecodableDocument("adr", "adr-001", "Placeholder date"))
+
+	built := buildChecked(t, repo, checkProfile(checkSchema))
+
+	// Confirm the premise: the document IS a corpus member, indexed with
+	// a parse error rather than excluded. A fixture that was merely
+	// excluded would exercise a different branch and pass vacuously.
+	var entry *specmodel.IndexEntry
+	for i, e := range built.Index().Entries {
+		if e.Path == "specs/adrs/adr-001.md" {
+			entry = &built.Index().Entries[i]
+		}
+	}
+	if entry == nil {
+		t.Fatal("the fixture is not a corpus member; this test needs one indexed with a parse error")
+	}
+	if entry.Frontmatter != nil || entry.ParseError == nil {
+		t.Fatalf("fixture entry has frontmatter=%v parse_error=%v; want no frontmatter and a parse error",
+			entry.Frontmatter != nil, entry.ParseError)
+	}
+
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+
+	parse := findingsWithRule(findings, finding.RuleFrontmatterParse, "specs/adrs/adr-001.md")
+	if len(parse) != 1 {
+		t.Fatalf("got %d frontmatter/parse findings, want 1: %+v", len(parse), findings)
+	}
+	if parse[0].Severity != finding.SeverityError {
+		t.Errorf("severity = %q, want %q — a document that claimed to be a specification and got the claim wrong is a conformance failure, not an unrun check",
+			parse[0].Severity, finding.SeverityError)
+	}
+	detail, ok := parse[0].Detail.Value.(specmodel.FindingFrontmatterParse)
+	if !ok {
+		t.Fatalf("detail = %T, want FindingFrontmatterParse", parse[0].Detail.Value)
+	}
+	if detail.Message != entry.ParseError.Message {
+		t.Errorf("detail message = %q, want the index's own wording %q — the finding and the index must not describe the same failure twice",
+			detail.Message, entry.ParseError.Message)
+	}
+	if parse[0].Position != entry.ParseError.Position {
+		t.Errorf("position = %+v, want the index's own span %+v", parse[0].Position, entry.ParseError.Position)
+	}
+}
+
+// The placeholder that motivated the fix must not reach a reader
+// HTML-escaped. json.Marshal rewrites <, > and & as \u003c, \u003e
+// and \u0026 by default, and the decode failure quotes the source text
+// it saw, so the diagnostic for the single most common instance of this
+// defect read
+// `parsing time "\u003cYYYY-MM-DDTHH:MM:SSZ\u003e"` until
+// Document.JSON turned escaping off.
+func TestAParseFindingQuotesThePlaceholderWithoutHTMLEscaping(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-001.md", undecodableDocument("adr", "adr-001", "Placeholder date"))
+
+	built := buildChecked(t, repo, checkProfile(checkSchema))
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+
+	parse := findingsWithRule(findings, finding.RuleFrontmatterParse, "specs/adrs/adr-001.md")
+	if len(parse) != 1 {
+		t.Fatalf("got %d frontmatter/parse findings, want 1", len(parse))
+	}
+	// The escaped forms json.Marshal emits for < and >, built from
+	// parts so this file never contains the sequence it forbids.
+	escapedLT := "\\" + "u003c"
+	escapedGT := "\\" + "u003e"
+	if strings.Contains(parse[0].Message, escapedLT) || strings.Contains(parse[0].Message, escapedGT) {
+		t.Errorf("message carries HTML escapes: %q", parse[0].Message)
+	}
+	if !strings.Contains(parse[0].Message, "<YYYY-MM-DDTHH:MM:SSZ>") {
+		t.Errorf("message does not quote the placeholder as the author wrote it: %q", parse[0].Message)
+	}
+}
+
+// A file with no frontmatter at all is an EXCLUSION, not a member, and
+// must not gain a parse finding: it never claimed to be a specification.
+// This is the boundary the fix must not cross — the distinction the old
+// doc comment collapsed by treating both cases as "already reported".
+func TestCheckRaisesNoParseFindingForAFileWithNoFrontmatter(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/README.md", "# Just an index page\n\nNo frontmatter here.\n")
+	write(t, repo, "specs/adrs/adr-001.md", documentWithExtra("adr", "adr-001", "First", "decision", "\"Chosen.\""))
+
+	built := buildChecked(t, repo, checkProfile(checkSchema))
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+
+	for _, f := range findings {
+		if f.Rule == finding.RuleFrontmatterParse {
+			t.Errorf("a file with no frontmatter raised %s: %+v", f.Rule, f)
+		}
+	}
+	if len(built.Index().Exclusions) != 1 {
+		t.Fatalf("exclusions = %+v, want the README recorded as one", built.Index().Exclusions)
 	}
 }

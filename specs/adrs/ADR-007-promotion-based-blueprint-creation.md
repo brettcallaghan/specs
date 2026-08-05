@@ -1,10 +1,10 @@
 ---
 title: "ADR-007: Create Blueprints by Promotion at a Seam"
 description: A unit starts as a record-block bullet in its container and graduates to its own blueprint at a self-contained seam
-slug: adr-007-promotion-based-blueprint-creation
+slug: adr-007
 type: adr
 status: active
-updated_at: 2026-07-29T00:00:00Z
+updated_at: 2026-08-05T00:00:00Z
 ---
 
 # ADR-007: Create Blueprints by Promotion at a Seam

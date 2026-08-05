@@ -20,6 +20,7 @@ import (
 // "requested and passed" (AC-SPEC-006.8's report distinction, carried by
 // [finding.Report] itself; see buildCheckReport below).
 var checkRules = []specmodel.RuleId{
+	finding.RuleFrontmatterParse,
 	finding.RuleSchemaViolation,
 	finding.RuleMissingProperty,
 	finding.RuleSlugPattern,

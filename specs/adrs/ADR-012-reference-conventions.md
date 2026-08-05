@@ -4,7 +4,7 @@ description: References use [[slug]] wikilinks for documents, heading anchors fo
 slug: adr-012
 type: adr
 status: ready-for-review
-updated_at: 2026-07-29T00:00:00Z
+updated_at: 2026-08-05T00:00:00Z
 ---
 
 # ADR-012: Wikilink and Anchor Reference Conventions
@@ -16,7 +16,8 @@ updated_at: 2026-07-29T00:00:00Z
 
 Framework documents reference each other and reference C4 model
 elements, and two separate systems had grown up for it: `@document-slug`
-for documents (defined in [[template-authoring-standards]]) and a
+for documents (defined in
+`plugin/skills/spec/references/template-authoring-standards.md`) and a
 homegrown `#ComponentName` reference-id for elements (defined in the C4
 guide). Both are authored and consumed primarily inside coding agents
 and edited in Obsidian-style Markdown tooling, and both interact badly
@@ -98,7 +99,8 @@ reference-id convention are both removed.
 
 ## References
 
-- [[template-authoring-standards]] — normative slug and reference rules
+- `plugin/skills/spec/references/template-authoring-standards.md` — normative
+  slug and reference rules
 - `references/c4-guide.md` — element declarations and anchor resolution
 - [[adr-007]] — promotion-based blueprint creation (why anchors must
   survive promotion)

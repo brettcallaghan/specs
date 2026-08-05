@@ -67,6 +67,10 @@ const (
 	// RuleDuplicateSlug covers a slug declared by more than one corpus
 	// member.
 	RuleDuplicateSlug specmodel.RuleId = "slug/duplicate"
+	// RuleFrontmatterParse covers a frontmatter block that could not be
+	// read as a document envelope, so no other check could examine the
+	// document at all.
+	RuleFrontmatterParse specmodel.RuleId = "frontmatter/parse"
 )
 
 // rootPointer is what an empty JSON Pointer is rendered as, so a message
@@ -147,6 +151,33 @@ func DuplicateSlug(path string, at specmodel.Span, slug, otherPath string) specm
 		Detail: specmodel.NewFindingDetailDuplicateSlug(specmodel.FindingDuplicateSlug{
 			Slug:      slug,
 			OtherPath: otherPath,
+		}),
+	}
+}
+
+// FrontmatterParse reports a frontmatter block that could not be read as
+// a document envelope.
+//
+// It carries [SeverityError] rather than [SeverityUnverified], even
+// though the practical consequence is that other checks could not run.
+// Unverified means the tool was unable to perform a check — no validator
+// installed, a dependency missing — and says nothing about the document.
+// This says something definite about the document: its frontmatter is
+// wrong, and that is a conformance failure in its own right, whoever
+// else was prevented from looking at it.
+//
+// message is the parser's own wording, taken from the index entry's
+// parse error, so the finding and the index agree about what happened
+// rather than describing it twice.
+func FrontmatterParse(path string, at specmodel.Span, message string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleFrontmatterParse,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message:  fmt.Sprintf("frontmatter could not be read: %s", message),
+		Detail: specmodel.NewFindingDetailFrontmatterParse(specmodel.FindingFrontmatterParse{
+			Message: message,
 		}),
 	}
 }

@@ -1,10 +1,10 @@
 ---
 title: "ADR-008: Machine-Readable Element Record Blocks with a Two-Schema Model"
 description: Un-promoted elements carry a fenced record block validated by the same base schema a promoted document's frontmatter satisfies
-slug: adr-008-element-record-blocks
+slug: adr-008
 type: adr
 status: active
-updated_at: 2026-07-29T00:00:00Z
+updated_at: 2026-08-05T00:00:00Z
 ---
 
 # ADR-008: Machine-Readable Element Record Blocks with a Two-Schema Model
@@ -60,7 +60,7 @@ promoted.
 ## References
 
 - [[adr-007]] — the model this completes
-- [[template-authoring-standards]] — Embedded Element Records and the two-schema
-  rule
+- `plugin/skills/spec/references/template-authoring-standards.md` — Embedded
+  Element Records and the two-schema rule
 - `references/c4-guide.md` — Element Declarations; templates:
   `container-blueprint-template.md`, `module-blueprint-template.md`
