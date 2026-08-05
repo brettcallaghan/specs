@@ -125,6 +125,32 @@ domain logic: a check that lives here rather than in a module is a
 layering defect, because it would be unavailable to a future API or MCP
 wrapper.
 
+**Built (configuration resolution)** — `cli/cmd`. `Load` reads and
+checks `specs.toml` against the generated
+`cli/core/schema/specs-config.schema.json`, reporting every defect in one
+run — an offending key with its span (AC-SPEC-008.4), never defaulted
+(AC-SPEC-008.5) — through the same `finding.Report` a corpus check
+produces its findings through. It resolves `[workspace].root` relative to
+the configuration file's own directory (AC-SPEC-008.1) and, on a clean
+run, returns the spec root, workspace identifier, activated profile and
+resolved conventions the rest of the container needs (AC-SPEC-008.2). An
+absent `specs.toml` is reported as `*cmd.ErrConfigNotFound` rather than a
+finding, per [[contract-specs-configuration]]'s "no file to carry a span
+into" (AC-SPEC-008.3).
+
+`Registry` is the profile registry [[contract-specs-configuration]]
+names as the customization seam: it maps a `[profile].name` value to a
+`corpus.Profile`, and `BuiltinRegistry` is the one place in this
+container that imports `cli/profile` to register `spec-driven-dev` as
+the built-in. `[profile].name` naming no entry in the registry is
+reported as a finding listing the registered names, not a bare lookup
+failure.
+
+The four-subcommand tree itself (`index`, `check`, `slug-exists`,
+`next-id`) — argument parsing, output rendering and exit codes over what
+`Load` and Document Core resolve — is a later addition to this same
+component and is not yet built.
+
 ### Document Core
 
 See [[module-document-core]] (internal). (Go module) — Corpus
