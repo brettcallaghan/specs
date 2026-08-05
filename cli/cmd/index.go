@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 
@@ -75,8 +76,15 @@ func runIndex(streams *ioStreams, configPath, out string) error {
 	// relative path"). Streaming to stdout already delivered the whole
 	// index there; printing the path too would corrupt that stream for a
 	// caller piping it into another tool (AC-SPEC-010.3).
+	// Forward slashes, always. dest comes back from IndexPath in the
+	// host's own separator, so printing it verbatim emits docs\\specs.json
+	// on Windows and docs/specs.json everywhere else — which breaks
+	// AC-SPEC-009.7's byte-identical-output guarantee on the one line this
+	// command writes, and contradicts AC-SPEC-009.8's rule for every path
+	// the CLI emits. ToSlash is a no-op on POSIX, so no committed golden
+	// moves.
 	if dest != corpus.StdoutTarget {
-		fmt.Fprintln(streams.out, dest)
+		fmt.Fprintln(streams.out, filepath.ToSlash(dest))
 	}
 	return nil
 }

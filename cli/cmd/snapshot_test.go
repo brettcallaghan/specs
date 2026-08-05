@@ -3,7 +3,7 @@
 // Case Structure specs/standards/testing-standards.md defines.
 //
 // A case is pure data — case.toml, an input/ corpus (omitted for a case
-// that needs none, such as --help), and up to two expected artifacts —
+// that needs none, such as --help), and the expected artifacts it names —
 // and carries no Go code of its own, which is what the standard asks for
 // ("a harness independent of the test framework"). The one test function
 // below is the only code this package requires to replay every one of
@@ -38,8 +38,9 @@ type caseManifest struct {
 	ExitCode    int      `toml:"exit_code"`
 
 	// Artifacts names every file under the case's expected/ directory
-	// that this case asserts against — "checks.log", "manifest.json", or
-	// both.
+	// that this case asserts against: one stdout artifact — "checks.log"
+	// for a human-readable run, "checks.json" for a --json one — and/or
+	// "manifest.json" for the index a case produces.
 	//
 	// It exists because the comparison functions below can only skip an
 	// artifact they cannot find, and a skipped comparison is
@@ -60,8 +61,8 @@ type caseManifest struct {
 }
 
 // TestSnapshotCases replays every case under cli/testdata/cases/ and
-// checks its exit status against case.toml and its output against
-// whichever of the two expected artifacts the case carries.
+// checks its exit status against case.toml and its output against the
+// expected artifacts the case declares.
 //
 // AC: AC-SPEC-002.5, AC-SPEC-006.5, AC-SPEC-006.6, AC-SPEC-006.8, AC-SPEC-011.1, AC-SPEC-011.2, AC-SPEC-011.3, AC-SPEC-011.4, AC-SPEC-011.5
 func TestSnapshotCases(t *testing.T) {
@@ -103,7 +104,8 @@ func runSnapshotCaseWith(t *testing.T, dir string, materialize func(src, dst str
 
 	// Absolute before anything else. The run below chdirs into the
 	// working copy, and every later read of the case's own files —
-	// expected/checks.log, expected/manifest.json — would otherwise
+	// expected/checks.log, expected/checks.json, expected/manifest.json —
+	// would otherwise
 	// resolve its relative path against that working copy, miss, and be
 	// treated as "this case carries no such artifact". The comparisons
 	// would then pass by not happening.
@@ -160,8 +162,20 @@ func runSnapshotCaseWith(t *testing.T, dir string, materialize func(src, dst str
 // otherwise be satisfied by a file nothing reads.
 var knownArtifacts = map[string]bool{
 	"checks.log":    true,
+	"checks.json":   true,
 	"manifest.json": true,
 }
+
+// stdoutArtifacts are the two spellings of "this case's standard output",
+// one per rendering the check subcommand offers. A case declares whichever
+// its args produce: checks.log for the human-readable default,
+// checks.json for a --json run. Naming a JSON payload .log would misfile
+// it for anyone browsing the cases or opening one in an editor.
+//
+// Declaring both is rejected rather than silently preferring one, because
+// a run has exactly one standard output and two expectations for it cannot
+// both be meaningful.
+var stdoutArtifacts = []string{"checks.log", "checks.json"}
 
 // checkAssertionCoverage reconciles the case's declared artifacts against
 // what is actually on disk under expected/, in both directions, and
@@ -231,16 +245,26 @@ func checkAssertionCoverage(t *testing.T, dir string, manifest caseManifest) {
 func checkChecksLog(t *testing.T, dir, stdout string, manifest caseManifest) {
 	t.Helper()
 
-	if !slices.Contains(manifest.Artifacts, "checks.log") {
+	var name string
+	for _, candidate := range stdoutArtifacts {
+		if slices.Contains(manifest.Artifacts, candidate) {
+			if name != "" {
+				t.Errorf("case.toml declares both %s and %s; a run has one standard output, so only one expectation for it can be meaningful", name, candidate)
+				return
+			}
+			name = candidate
+		}
+	}
+	if name == "" {
 		return
 	}
 
-	want, err := os.ReadFile(filepath.Join(dir, "expected", "checks.log"))
+	want, err := os.ReadFile(filepath.Join(dir, "expected", name))
 	if err != nil {
-		t.Fatalf("reading expected/checks.log: %v", err)
+		t.Fatalf("reading expected/%s: %v", name, err)
 	}
 	if stdout != string(want) {
-		t.Errorf("stdout does not match expected/checks.log.\n--- got ---\n%s\n--- want ---\n%s", stdout, want)
+		t.Errorf("stdout does not match expected/%s.\n--- got ---\n%s\n--- want ---\n%s", name, stdout, want)
 	}
 }
 

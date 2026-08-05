@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -40,7 +41,16 @@ func buildSpec(t *testing.T) string {
 		t.Skipf("no go toolchain on PATH: %v", err)
 	}
 
-	bin := filepath.Join(t.TempDir(), "spec")
+	// Windows will not execute a file without an executable extension,
+	// however absolute the path handed to exec.Command — the failure is a
+	// bare "executable file not found in %PATH%", which reads like a PATH
+	// problem and is not one. go build honours whatever -o name it is
+	// given, so the suffix has to be added here rather than assumed.
+	name := "spec"
+	if runtime.GOOS == "windows" {
+		name += ".exe"
+	}
+	bin := filepath.Join(t.TempDir(), name)
 	build := exec.Command("go", "build", "-o", bin, ".")
 	build.Dir = "."
 	if out, err := build.CombinedOutput(); err != nil {
