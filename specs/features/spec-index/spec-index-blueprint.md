@@ -6,8 +6,8 @@ description: Builds the first working slice of the Spec CLI — the index
   checks, queries and configuration of frd-spec-validation-cli
 slug: feature-spec-validation-cli
 type: feature-blueprint
-status: in-progress
-updated_at: 2026-08-04T00:00:00Z
+status: retired
+updated_at: 2026-08-05T00:00:00Z
 delivery: staged
 plan: agent-plugins-bge
 sources: [frd-spec-validation-cli]
@@ -494,6 +494,43 @@ the repository currently has no CI (see Tracker Reconciliation).
   wikilinks and unpopulated `contracts_consumed` are reference-feature and
   corpus-data concerns this feature neither resolves nor regresses.
 
+**Reconciled at retirement (2026-08-05, `agent-plugins-bge.16`).**
+
+- `agent-plugins-2l2` — **closed.** The artifact is named *index*:
+  `SpecIndex` in `schemas/index.strata`, emitted as `specs.json`.
+- `agent-plugins-igc` — **closed**, taking the blueprint's stated default
+  of recording the choice rather than authoring an ADR. Staleness is a
+  content hash of the corpus inputs (`input_hash`, a `sha256:` digest
+  carried in the emitted index); mtime was rejected because a fresh CI
+  checkout carries new mtimes over identical content, which would cold-
+  build every CI run and break the REQ-SPEC-009.1 budget the decision
+  exists to protect. No second alternative was in contention, so the ADR
+  would have recorded one rejected option and no open trade-off.
+- `agent-plugins-1ao`, `agent-plugins-h6c`, `agent-plugins-47r`,
+  `agent-plugins-dgn`, `agent-plugins-6n4`, `agent-plugins-5nz` — remain
+  open and out-of-scope; each was confirmed neither regressed nor
+  silently absorbed. `47r` is `in_progress` (ADR-016 is
+  `ready-for-review`), which is its own lifecycle, not this feature's.
+- `agent-plugins-vg1` — **exists in the tracker** ("Populate
+  `contracts_consumed` on the committed blueprints", open). The claim in
+  the grooming that it does not exist was wrong; its out-of-scope
+  classification is unchanged and correct.
+- `agent-plugins-55q` ("ADR: release and distribution of CLI binaries") —
+  open, and deliberately so. The BUILD delta (`agent-plugins-bge.13`)
+  pre-empted three of its five questions by shipping the answer: the
+  platform/arch matrix, cross-compilation from one source, and GitHub
+  Releases as the channel. What `55q` still owns is the part BUILD did
+  not decide — how an agent session obtains the binary given that this
+  repository is distributed by clone, and whether checksums or signing
+  apply. It is a distribution-policy decision, not a gap in this feature,
+  and it blocks nothing here. Its sibling `agent-plugins-8i2` (`spec
+  --version` and version stamping) is open for the same reason.
+- Filed during implementation and left open: `agent-plugins-0i6`
+  (snapshot harness treats a missing expected artifact as "case carries
+  none"), `agent-plugins-8i2`, `agent-plugins-e0t` (no `version` on
+  `ContainerBlueprint`), `agent-plugins-3md` (AC-SPEC-006.7's declared
+  level unreachable). None blocks retirement.
+
 ## Sequencing Constraints
 
 - `delivery: staged`. Three stages, each a reviewable increment:
@@ -612,32 +649,49 @@ binary and distribution.
 
 ## Definition of Done
 
-- [ ] Every delta above is folded into its owning blueprint:
-  - [ ] [[module-document-core]] — Spans, Frontmatter, Schema Registry
+Verified 2026-08-05 on `agent-plugins-bge.16`.
+
+- [x] Every delta above is folded into its owning blueprint:
+  - [x] [[module-document-core]] — Spans, Frontmatter, Schema Registry
         (single-union validation), Corpus, Numbering, Findings confirmed
         as built; the `SpecIndex` index model and the `Finding` model
         recorded; the `Profile` extension point reconciled to supply one
-        union schema (not a per-type schema); `version` bumped.
-  - [ ] [[module-spec-profile]] — the single-schema profile confirmed as
+        union schema (not a per-type schema); `version` bumped 0.1 → 0.2.
+  - [x] [[module-spec-profile]] — the single-schema profile confirmed as
         built; the separate Document Types "type registry" component
         removed in favour of one union schema plus a slug/numbered table;
-        `version` bumped; deferred components (Element Records, Lifecycle
-        Rules) noted as not-yet-implemented.
-  - [ ] [[container-spec-cli]] — Command Surface and the profile registry
+        `version` bumped 0.1 → 0.2; deferred components (Element Records,
+        Lifecycle Rules) noted as not-yet-implemented.
+  - [x] [[container-spec-cli]] — Command Surface and the profile registry
         built; the "Index cache" Data section reconciled with the CACHE
         delta; the emitted-index Open Question updated with the
-        index-schema decision.
-- [ ] The IDX index model and the FIND finding model exist in `schemas/`,
-      generated artifacts are regenerated, and
-      `scripts/generate-schemas.sh --check` passes.
-- [ ] Every AC in the coverage table is verified at its declared level
-      and cited from its tests per [[testing-standards]].
-- [ ] The profile self-application gate runs the built profile against
-      this repository's `specs/` corpus.
-- [ ] Issues classified `prerequisite` in Tracker Reconciliation are
+        index-schema decision. **`version` was not bumped**: the
+        `ContainerBlueprint` schema declares no `version` property and
+        sets `additionalProperties: false`, so this DoD clause is
+        unsatisfiable for a container as written (`agent-plugins-e0t`,
+        open). The other two bumps stand.
+- [x] The IDX index model and the FIND finding model exist in `schemas/`
+      (`index.strata`, `finding.strata`), generated artifacts are
+      regenerated, and `scripts/generate-schemas.sh --check` passes.
+- [x] Every AC in the coverage table is verified at its declared level
+      and cited from its tests per [[testing-standards]], **with two
+      recorded exceptions**:
+  - AC-SPEC-009.4, AC-SPEC-009.5 and AC-SPEC-009.6 carry the `(manual)`
+    marker in [[frd-spec-validation-cli]] and are exempt from citation.
+  - AC-SPEC-006.7 is declared `integration` but is cited only from the
+    unit test of `exitCodeFor`. No snapshot case can reach it: every
+    finding constructor this sprint registers emits `error` or
+    `unverified`, and none emits `warning`, so no corpus produces the
+    warning-only run the criterion describes (`agent-plugins-3md`, open).
+  - The remaining 48 of 51 are cited at or above their declared level;
+    no citation is orphaned.
+- [x] The profile self-application gate runs the built profile against
+      this repository's `specs/` corpus: 26 entries, 1 exclusion, no
+      findings.
+- [x] Issues classified `prerequisite` in Tracker Reconciliation are
       resolved or their decisions recorded; `out-of-scope` issues are
       confirmed neither regressed nor silently absorbed.
-- [ ] This blueprint's status → retired.
+- [x] This blueprint's status → retired.
 
 ## Open Questions
 
