@@ -264,8 +264,9 @@ func findingsFor(path string, doc *frontmatter.Document, verr *jsonschema.Valida
 
 // findingsForUnit converts one leaf validation failure to the Finding(s)
 // it represents: several missing-property Findings for one required
-// failure naming several properties, or one schema-violation Finding for
-// any other constraint.
+// failure naming several properties, one schema-violation Finding per
+// undeclared property for one additionalProperties failure naming
+// several, or one schema-violation Finding for any other constraint.
 func findingsForUnit(path string, doc *frontmatter.Document, unit jsonschema.OutputUnit) []specmodel.Finding {
 	if unit.Error == nil {
 		return nil
@@ -278,6 +279,34 @@ func findingsForUnit(path string, doc *frontmatter.Document, unit jsonschema.Out
 		findings := make([]specmodel.Finding, 0, len(required.Missing))
 		for _, property := range required.Missing {
 			findings = append(findings, finding.MissingProperty(path, at, pointer, property))
+		}
+		return findings
+	}
+
+	// additionalProperties is reported by the underlying library against
+	// the object as a whole (InstanceLocation is the object's own
+	// pointer), naming the offending keys in the error's own Properties
+	// field rather than in the pointer. Falling through to the generic
+	// branch below would therefore report a finding pointing at the
+	// whole frontmatter block with no offending value named — every
+	// undeclared property in the same document would collapse into one
+	// finding indistinguishable from another. Each undeclared property
+	// gets its own finding here instead, addressed by its own pointer and
+	// span exactly as a document that declares it would be for any other
+	// constraint, and naming its raw text as the value — self-contained
+	// per AC-SPEC-006.1, the same bar every other schema-violation
+	// finding meets.
+	if additional, ok := unit.Error.Kind.(*kind.AdditionalProperties); ok {
+		findings := make([]specmodel.Finding, 0, len(additional.Properties))
+		for _, property := range additional.Properties {
+			propertyPointer := pointer + "/" + escapePointerToken(property)
+			propertyAt := spanFor(doc, propertyPointer)
+			value := ""
+			if prop, ok := doc.Property(property); ok {
+				value = prop.Raw
+			}
+			findings = append(findings,
+				finding.SchemaViolation(path, propertyAt, propertyPointer, "additionalProperties", value))
 		}
 		return findings
 	}
@@ -331,6 +360,17 @@ func topLevelProperty(pointer string) (name, rest string) {
 func unescapePointerToken(token string) string {
 	token = strings.ReplaceAll(token, "~1", "/")
 	token = strings.ReplaceAll(token, "~0", "~")
+	return token
+}
+
+// escapePointerToken applies RFC 6901 escaping to a single pointer
+// token, the inverse of unescapePointerToken. Needed only when this
+// package constructs a pointer itself — for every pointer the
+// underlying library reports, escaping has already happened before this
+// package ever sees it.
+func escapePointerToken(token string) string {
+	token = strings.ReplaceAll(token, "~", "~0")
+	token = strings.ReplaceAll(token, "/", "~1")
 	return token
 }
 

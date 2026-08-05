@@ -193,8 +193,8 @@ func readProperty(src []byte, region span.Region, pairs []*ast.MappingValueNode,
 		return Property{}, located("a frontmatter property has no name", region.Inner)
 	}
 
-	keyStart := absolute(region, keyToken)
-	valueStart := absolute(region, valueToken(pair.Value))
+	keyStart := absolute(region, src, keyToken)
+	valueStart := absolute(region, src, valueToken(pair.Value))
 
 	// The property runs to the start of the next one, or to the end of
 	// the block. Trimming the trailing whitespace off that extent is what
@@ -203,7 +203,7 @@ func readProperty(src []byte, region span.Region, pairs []*ast.MappingValueNode,
 	end := int(region.Inner.Offset) + int(region.Inner.Length)
 	if i+1 < len(pairs) {
 		if next := pairs[i+1].Key.GetToken(); next != nil {
-			end = absolute(region, next)
+			end = absolute(region, src, next)
 		}
 	}
 	if end < valueStart {
@@ -269,16 +269,56 @@ func valueToken(value ast.Node) *token.Token {
 }
 
 // absolute converts a token's position within the parsed block to a byte
-// offset in the whole document. Token offsets are one-based.
-func absolute(region span.Region, tok *token.Token) int {
+// offset in the whole document.
+//
+// tok.Position.Offset is one-based, but it is not a byte offset: the
+// underlying YAML scanner (goccy/go-yaml) advances it one unit per
+// Unicode codepoint rather than per byte — verified against
+// v1.19.2's scanner, which progresses position by
+// len([]rune(value)) rather than len(value). Treating it as a byte
+// offset directly is correct only while the block is pure ASCII; a
+// block whose title or description contains an em dash, a curly
+// quote, or any other multi-byte character makes every token
+// reported after it land short of its true byte position, by the
+// accumulated byte/rune width difference of everything before it in
+// the block. That is a silent, self-application-only failure mode: no
+// unit fixture in this package's own tests uses non-ASCII prose, so it
+// went undetected until the profile self-application gate ran the
+// same code over this repository's real documents (several of which
+// use em dashes in their titles and descriptions) and it corrupted
+// the raw text schemaregistry.instanceValue checks a format constraint
+// against.
+//
+// The fix re-derives the byte offset from tok.Position by counting
+// codepoints into region.Inner's own bytes — the exact slice the YAML
+// parser tokenized — rather than trusting the library's Offset field.
+func absolute(region span.Region, src []byte, tok *token.Token) int {
 	if tok == nil {
 		return int(region.Inner.Offset)
 	}
-	offset := tok.Position.Offset - 1
-	if offset < 0 {
-		offset = 0
+	runeOffset := tok.Position.Offset - 1
+	if runeOffset < 0 {
+		runeOffset = 0
 	}
-	return int(region.Inner.Offset) + offset
+	inner := span.Slice(src, region.Inner)
+	return int(region.Inner.Offset) + byteOffsetOfRune(inner, runeOffset)
+}
+
+// byteOffsetOfRune returns the byte offset of the runeOffset-th Unicode
+// codepoint (0-based) within data, or len(data) if data has fewer than
+// runeOffset codepoints.
+func byteOffsetOfRune(data []byte, runeOffset int) int {
+	if runeOffset <= 0 {
+		return 0
+	}
+	count := 0
+	for i := range string(data) {
+		if count == runeOffset {
+			return i
+		}
+		count++
+	}
+	return len(data)
 }
 
 // tokenWidth returns the width in bytes of a token's source text,
@@ -300,7 +340,7 @@ func syntaxError(src []byte, region span.Region, err error) *specmodel.ParseErro
 	var syntax *yaml.SyntaxError
 	if stderrors.As(err, &syntax) {
 		if tok := syntax.GetToken(); tok != nil {
-			return located(syntax.GetMessage(), span.Of(src, absolute(region, tok), tokenWidth(tok)))
+			return located(syntax.GetMessage(), span.Of(src, absolute(region, src, tok), tokenWidth(tok)))
 		}
 		return located(syntax.GetMessage(), region.Inner)
 	}

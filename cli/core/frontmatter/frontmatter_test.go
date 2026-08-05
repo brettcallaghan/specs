@@ -152,6 +152,52 @@ func TestPropertySpansAddressTheValueWithinItsLine(t *testing.T) {
 	}
 }
 
+// A multi-byte character earlier in the block must not shift the
+// position or the raw text reported for a later property.
+//
+// The underlying YAML scanner (goccy/go-yaml) advances its own token
+// position by one unit per Unicode codepoint rather than per byte, so a
+// naive translation of that position into a byte offset lands short by
+// the accumulated byte/rune width difference of everything earlier in
+// the block — an em dash (three bytes, one codepoint) understates the
+// true byte offset of every property after it by two. This went
+// undetected by every fixture in this file, which is pure ASCII;
+// running the profile self-application gate against this repository's
+// own specification corpus (several of whose titles and descriptions
+// use em dashes) surfaced it as spurious `format` violations on
+// `updated_at`, because the corrupted raw text — a few trailing
+// characters of the property's own key, glued onto a truncated value —
+// is not a valid RFC 3339 timestamp.
+func TestAMultiByteCharacterEarlierInTheBlockDoesNotShiftALaterProperty(t *testing.T) {
+	source := []byte("---\n" +
+		"title: \"Boundary — Unified — Separated\"\n" +
+		"updated_at: 2026-07-29T00:00:00Z\n" +
+		"---\n")
+	doc, perr := frontmatter.Parse(source)
+	if perr != nil {
+		t.Fatalf("parse: %v", perr.Message)
+	}
+
+	updated, ok := doc.Property("updated_at")
+	if !ok {
+		t.Fatal("no updated_at property")
+	}
+	if updated.Raw != "2026-07-29T00:00:00Z" {
+		t.Errorf("updated_at Raw = %q, want %q", updated.Raw, "2026-07-29T00:00:00Z")
+	}
+	if got := string(span.Slice(source, updated.Position)); got != updated.Raw {
+		t.Errorf("updated_at span covers %q, want it to match Raw %q", got, updated.Raw)
+	}
+
+	title, ok := doc.Property("title")
+	if !ok {
+		t.Fatal("no title property")
+	}
+	if got := string(span.Slice(source, title.Position)); got != title.Raw {
+		t.Errorf("title span covers %q, want it to match Raw %q", got, title.Raw)
+	}
+}
+
 // A document with no frontmatter is not a defect here. It yields neither
 // a document nor an error, and the caller records it as excluded.
 func TestAbsentFrontmatterIsNeitherADocumentNorAnError(t *testing.T) {

@@ -174,6 +174,66 @@ func TestValidateReportsEveryViolationWithItsPointer(t *testing.T) {
 	}
 }
 
+// An undeclared property is reported once per offending key, each
+// addressed at that property's own position with its own raw text as
+// the value. The underlying library reports additionalProperties
+// against the object as a whole, naming every offending key in one
+// error; without this per-property fan-out, two different undeclared
+// properties in the same document would be indistinguishable — both
+// reported at the whole frontmatter block with no value at all — which
+// fails the self-contained bar AC-SPEC-006.1 sets for every finding.
+//
+// AC: AC-SPEC-003.1
+func TestValidateReportsOneFindingPerUndeclaredProperty(t *testing.T) {
+	registry := mustRegistry(t)
+
+	widget := mustParse(t, "---\n"+
+		"name: crate\n"+
+		"released_at: \"2026-07-29T00:00:00Z\"\n"+
+		"extra: surplus\n"+
+		"another: also-surplus\n"+
+		"---\n")
+
+	findings, err := registry.Validate("widgets/crate.md", "widget", widget)
+	if err != nil {
+		t.Fatalf("Validate: %v", err)
+	}
+	if len(findings) != 2 {
+		t.Fatalf("Validate reported %d findings, want 2: %+v", len(findings), findings)
+	}
+
+	extra, _ := widget.Property("extra")
+	another, _ := widget.Property("another")
+	wantSpan := map[string]specmodel.Span{"/extra": extra.Position, "/another": another.Position}
+	wantValue := map[string]string{"/extra": "surplus", "/another": "also-surplus"}
+
+	seen := map[string]bool{}
+	for _, f := range findings {
+		if f.Rule != finding.RuleSchemaViolation {
+			t.Errorf("unexpected rule %q", f.Rule)
+			continue
+		}
+		violation, ok := f.Detail.AsSchemaViolation()
+		if !ok {
+			t.Fatalf("finding carries no FindingSchemaViolation detail: %+v", f)
+		}
+		if violation.Constraint != "additionalProperties" {
+			t.Errorf("constraint = %q, want %q", violation.Constraint, "additionalProperties")
+		}
+		if violation.Value != wantValue[violation.Pointer] {
+			t.Errorf("%s value = %q, want %q", violation.Pointer, violation.Value, wantValue[violation.Pointer])
+		}
+		if f.Position != wantSpan[violation.Pointer] {
+			t.Errorf("%s position = %+v, want the property's own span %+v",
+				violation.Pointer, f.Position, wantSpan[violation.Pointer])
+		}
+		seen[violation.Pointer] = true
+	}
+	if !seen["/extra"] || !seen["/another"] {
+		t.Errorf("saw pointers %v, want both /extra and /another", seen)
+	}
+}
+
 // Where the branch constrains a property with a format keyword, the
 // property's raw source text is validated in place of its YAML-coerced
 // value. Writing digits with no punctuation is meant here as an author
