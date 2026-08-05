@@ -1,6 +1,6 @@
 [workspace]
 name = "agent-plugins"
-root = "docs"
+root = "specs"
 
 [profile]
 name = "spec-driven-dev"
