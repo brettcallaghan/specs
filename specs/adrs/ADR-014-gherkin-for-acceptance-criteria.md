@@ -5,13 +5,13 @@ description: Prose EARS acceptance criteria with AC identifiers stay the
   notation-agnostic so the choice stays reversible
 slug: adr-014
 type: adr
-status: draft
-updated_at: 2026-07-31T00:00:00Z
+status: retired
+updated_at: 2026-08-05T00:00:00Z
 ---
 
 # ADR-014: Defer Gherkin as the Acceptance-Criteria Notation
 
-**Status:** draft  
+**Status:** retired (superseded by [[adr-018]])  
 **Date:** 2026-07-31
 
 ## Context
@@ -162,6 +162,11 @@ SHALL NOT criteria, which are where the substitution loses the most.
 
 ## References
 
+- [[adr-018]] — supersedes this ADR. It carries out the both-ways
+  comparison recommended above and settles the question on the merits:
+  the parser validates Gherkin's grammar rather than criterion
+  well-formedness, and 34% of this corpus uses the two EARS forms
+  Gherkin fits worst
 - [[adr-002]] — established EARS as the requirements notation; this ADR
   declines to displace it
 - `plugin/skills/spec/references/ac-traceability-standards.md` —
