@@ -1,0 +1,4 @@
+description = "next-id returns one greater than the highest number in use for the named type"
+cites = ["AC-SPEC-011.4"]
+args = ["next-id", "adr"]
+exit_code = 0

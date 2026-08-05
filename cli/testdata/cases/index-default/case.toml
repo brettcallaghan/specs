@@ -1,0 +1,4 @@
+description = "index exits zero and writes specs.json inside the spec root even though one member fails to parse"
+cites = ["AC-SPEC-002.5", "AC-SPEC-011.1"]
+args = ["index"]
+exit_code = 0

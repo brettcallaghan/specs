@@ -1,0 +1,33 @@
+{
+  "schema_version": "1.0",
+  "workspace": "acme",
+  "entries": [
+    {
+      "path": "docs/adrs/adr-001-example.md",
+      "frontmatter": {
+        "title": "ADR-001: Example",
+        "description": "An example decision used by a snapshot case.",
+        "slug": "adr-001-example",
+        "type": "adr",
+        "status": "approved",
+        "updated_at": "2026-08-01T00:00:00Z"
+      }
+    },
+    {
+      "path": "docs/adrs/adr-002-broken.md",
+      "parse_error": {
+        "message": "could not find end character of double-quoted text",
+        "position": {
+          "offset": 11,
+          "length": 158,
+          "start_line": 2,
+          "start_column": 8,
+          "end_line": 7,
+          "end_column": 33
+        }
+      }
+    }
+  ],
+  "exclusions": [],
+  "input_hash": "sha256:0e53e73e813a28939b04a0a98c0cc5c3fbfe8981b917f1cd8c1fb14acc280f26"
+}

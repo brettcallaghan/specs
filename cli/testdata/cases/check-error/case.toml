@@ -1,0 +1,4 @@
+description = "a check run with at least one error finding exits non-zero"
+cites = ["AC-SPEC-006.6"]
+args = ["check"]
+exit_code = 1

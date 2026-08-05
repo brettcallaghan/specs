@@ -1,0 +1,4 @@
+description = "index --out - streams the index to standard output"
+cites = ["AC-SPEC-011.1"]
+args = ["index", "--out", "-"]
+exit_code = 0

@@ -1,0 +1,4 @@
+description = "index --out writes the index to the named path instead of the default"
+cites = ["AC-SPEC-011.1"]
+args = ["index", "--out", "build/spec-index.json"]
+exit_code = 0

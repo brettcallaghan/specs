@@ -1,0 +1,13 @@
+check validates every corpus member's frontmatter against the active profile's schema and slug patterns, and reports duplicate slugs, either across the whole corpus or, given a path, for one document.
+
+Usage:
+  spec check [path] [flags]
+
+Flags:
+  -h, --help           help for check
+      --json           write the full finding set as JSON to standard output
+      --only strings   run only the named checks (by rule identifier); repeatable or comma-separated
+      --strict         exit non-zero when the run produces only warning or unverified findings
+
+Global Flags:
+      --config string   path to the repository's specs.toml (default "specs.toml")

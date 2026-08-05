@@ -146,10 +146,46 @@ the built-in. `[profile].name` naming no entry in the registry is
 reported as a finding listing the registered names, not a bare lookup
 failure.
 
-The four-subcommand tree itself (`index`, `check`, `slug-exists`,
-`next-id`) — argument parsing, output rendering and exit codes over what
-`Load` and Document Core resolve — is a later addition to this same
-component and is not yet built.
+**Built (command tree)** — also `cli/cmd`, via `cobra`
+([[adr-015]]): `Execute` builds the four-subcommand tree — `index`,
+`check`, `slug-exists`, `next-id` — and converts each one's flags into
+calls against Document Core (`corpus.Build`, `corpus.Open`,
+`corpus.Corpus.Check`/`CheckFor`, `corpus.Corpus.Slug`,
+`numbering.Next`) and its result back into stdout and an exit status. No
+file here decides what makes a document valid or scores a check; every
+one of those calls is the whole of what a subcommand does with what it
+receives.
+
+`index` always builds fresh (`corpus.Build`, not the warm-cache
+`corpus.Open`) and writes through `corpus.Write`, accepting the
+`--out` option `IndexPath` resolves (AC-SPEC-011.1); a member that
+failed to parse is recorded in the index like any other, so `index`
+exits zero regardless (AC-SPEC-002.5). `check` opens the corpus warm at
+the default index path and accepts `--json`, `--strict` and `--only`.
+`--json` selects `finding.Report.JSON` over `.Text` (AC-SPEC-006.5).
+`--only` narrows a report built from `finding.NewReport`'s own
+requested/passed/failed/not-requested accounting rather than by
+filtering text: a rule named by `--only` is requested and then marked
+ran from the matching findings (if any), and a rule left out is simply
+never requested, which is what lets the rendered report tell "checked
+and clean" apart from "not asked for" (AC-SPEC-006.8). Exit status
+follows `finding.Report.HasErrors`: any error exits 1 unconditionally;
+warning or unverified findings alone exit 0 unless `--strict` is given
+(AC-SPEC-006.6, AC-SPEC-006.7). `slug-exists` and `next-id` open the
+corpus warm and answer `corpus.Corpus.Slug` and `numbering.Next`
+directly (AC-SPEC-011.3, AC-SPEC-011.4).
+
+A bare invocation or `--help` lists the four subcommands with their
+one-line synopses and, per subcommand, its own flags — cobra's default
+rendering of the `Use`, `Short` and flag declarations above, so the
+listed surface and the code that implements it cannot drift
+(AC-SPEC-011.5, and the Change Guidance below). No hand-written help
+text exists anywhere in this component.
+
+Observable command-tree behavior is verified by the snapshot cases
+under `cli/testdata/cases/`, replayed by `cli/cmd/snapshot_test.go`,
+per [[testing-standards]]; `scripts/regenerate-cli-snapshots.sh`
+regenerates their expected artifacts from the current implementation.
 
 ### Document Core
 

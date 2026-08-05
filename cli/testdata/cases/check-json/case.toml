@@ -1,0 +1,4 @@
+description = "check --json writes the full finding set as JSON to standard output for a clean corpus"
+cites = ["AC-SPEC-006.5"]
+args = ["check", "--json"]
+exit_code = 0

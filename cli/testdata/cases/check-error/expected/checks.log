@@ -1,0 +1,7 @@
+frontmatter/missing-property  error  docs/adrs/adr-001-missing-description.md:1:4  /: required property "description" is not declared
+
+checks:
+  frontmatter/missing-property  failed
+  frontmatter/schema  passed
+  slug/duplicate  passed
+  slug/pattern-mismatch  passed
