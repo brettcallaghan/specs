@@ -150,34 +150,43 @@ func writeAtomic(dest string, data []byte) error {
 	return nil
 }
 
-// Windows shares the index artifact grudgingly, and it does so in both
-// directions. On POSIX an atomic replacement needs no cooperation from
-// readers: rename replaces the destination whether or not anyone holds it
-// open, and a reader that already has the old inode keeps reading it.
-// Windows has no such separation between a name and the file behind it,
-// so the two sides of AC-SPEC-010.4 collide.
+// Windows shares the index artifact grudgingly, in both directions. On
+// POSIX an atomic replacement needs no cooperation from readers: rename
+// replaces the destination whether or not anyone holds it open, and a
+// reader that already has the old inode keeps reading it. Windows draws
+// no such line between a name and the file behind it, so the two sides of
+// AC-SPEC-010.4 collide — and the index is rewritten by a write-time hook
+// while queries read it, which is precisely the interleaving the
+// criterion exists to make safe.
 //
-//   - The write loses. MoveFileEx refuses to replace a file another handle
-//     has open unless that handle carries FILE_SHARE_DELETE, and Go's
-//     os.Open does not request it (golang/go#32088), so a concurrent
-//     reader fails the rename with ERROR_ACCESS_DENIED.
-//   - The read loses. MoveFileEx opens the destination for delete with no
-//     sharing of its own, so a reader arriving in that window fails with
+//   - The write loses, and this is the serious one. MoveFileEx refuses to
+//     replace a file another handle has open unless that handle carries
+//     FILE_SHARE_DELETE, and Go's os.Open does not request it
+//     (golang/go#32088). So an ordinary reader vetoes the rewrite, with
+//     ERROR_ACCESS_DENIED. Waiting the veto out only works while readers
+//     leave gaps: measured on the Windows runner, a reader reopening the
+//     file continuously blocked the writer past a two-second budget, 150
+//     rewrites running. That is livelock, not contention, and no retry
+//     budget fixes it. The remedy is to stop vetoing — [openShared] asks
+//     for FILE_SHARE_DELETE, so a reader never blocks a replacement at
+//     all, and the writer always makes progress.
+//   - The read loses, transiently. MoveFileEx opens the destination for
+//     delete with sharing of its own that a reader can lose against, so a
+//     read arriving inside that window fails with
 //     ERROR_SHARING_VIOLATION — "the process cannot access the file
-//     because it is being used by another process".
-//
-// Neither is hypothetical: the index is rewritten by a write-time hook
-// while queries read it, which is precisely the interleaving AC-SPEC-010.4
-// exists to make safe. Both conflicts are transient by construction —
-// each side holds the file for microseconds — so a bounded retry is the
-// whole remedy, and it is why the read path belongs in this package
-// ([ReadArtifact]) rather than being left to each caller's os.ReadFile.
+//     because it is being used by another process". This one *is*
+//     transient by construction, and now genuinely so, because the writer
+//     it is waiting on is no longer blocked: a bounded retry is the whole
+//     remedy. It is why the read path belongs in this package
+//     ([ReadArtifact]) rather than in each caller's os.ReadFile.
 //
 // What none of this changes is the guarantee itself. The rename is still
-// a single operation when it lands, and a reader still observes one
-// complete version or the other, never a partial file. The retries keep
-// either side from reporting a failure that would not have occurred on
-// any other platform.
+// a single operation when it lands, and a reader still observes one whole
+// version or the other, never a partial file — on Windows because a
+// FILE_SHARE_DELETE handle keeps referring to the file it opened, exactly
+// as a POSIX handle does. The sharing flag and the retry only keep either
+// side from reporting a failure that would not have occurred on any other
+// platform.
 
 // windowsRetryBudget bounds how long an operation on the artifact will
 // wait out a sharing conflict before reporting it. Generous relative to
@@ -241,19 +250,25 @@ func retryWhile(budget time.Duration, retryable func(error) bool, op func() erro
 
 // ReadArtifact reads the bytes of an index artifact.
 //
-// It is os.ReadFile plus the wait described above, and it is exported
-// because the atomicity contract has two sides: a caller reading the
-// artifact while a hook rewrites it needs this, and giving it only the
-// write half would leave every consumer to rediscover the read half on
-// Windows. Callers that want the decoded index should use [Load], which
-// reads through here.
+// It is os.ReadFile plus the sharing arrangement described above, and it
+// is exported because the atomicity contract has two sides: a caller
+// reading the artifact while a hook rewrites it needs this, and giving it
+// only the write half would leave every consumer to rediscover the read
+// half on Windows — where a plain os.ReadFile does not merely risk
+// failing, it blocks the writer. Callers that want the decoded index
+// should use [Load], which reads through here.
 //
 // AC: AC-SPEC-010.4
 func ReadArtifact(path string) ([]byte, error) {
 	var data []byte
 	err := throughSharingConflicts(func() error {
-		var err error
-		data, err = os.ReadFile(path)
+		file, err := openShared(path)
+		if err != nil {
+			return err
+		}
+		defer file.Close()
+
+		data, err = io.ReadAll(file)
 		return err
 	})
 	return data, err
