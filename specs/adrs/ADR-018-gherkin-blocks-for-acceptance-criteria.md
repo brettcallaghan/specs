@@ -151,6 +151,17 @@ carries exactly one tag matching
 sequence, and that `Feature`/`Scenario` `Description` fields do not
 contain what should have been a criterion.
 
+### Tried on a real document
+
+The whole of [[frd-spec-validation-cli]] was rewritten in Gherkin as a
+trial — 52 criteria, nine blocks — and parsed with the extractor
+(`docs/spec-index-frd-gherkin.md`, findings in
+`docs/gherkin-frd-comparison.md`). All nine blocks parse and all 52
+identifiers extract, so the design holds. Three costs it surfaced are
+recorded in Consequences below rather than discovered during migration:
+steps cannot wrap, a `Scenario Outline` tagged at scenario level
+silently loses criteria, and the Requirements section grows 50%.
+
 ### What is genuinely lost, and what it costs
 
 Honest accounting, since prose is not strictly worse:
@@ -217,6 +228,22 @@ Binding constraints:
 5. The CLI SHALL be able to emit conforming `.feature` files from the
    extracted blocks, so publication to external tooling needs no second
    authoring format.
+6. A step SHALL NOT be shortened to fit the line-width limit; a
+   criterion too long for one step SHALL be decomposed into more steps.
+7. WHERE a `Scenario Outline` carries more than one acceptance
+   criterion, each identifier SHALL be tagged on its own `Examples`
+   block rather than on the scenario.
+8. Migration SHALL be incremental — new and revised FRDs are authored
+   in Gherkin, and existing criteria migrate when their FRD is next
+   revised. Extraction SHALL accept both notations during the
+   transition, which the notation-agnostic constraint already requires.
+
+Constraints 6 and 7 exist because the trial hit both: compressing a step
+changed the meaning of AC-SPEC-009.4 without any check noticing, and
+tagging one `Scenario Outline` at scenario level made two criteria
+disappear from a document that parsed cleanly. Constraint 8 follows —
+a single pass over 52 criteria is the highest-risk way to introduce a
+notation whose main hazard is silent, review-invisible corruption.
 
 Constraint 5 is why level 2 beats level 3 rather than compromising with
 it: emitting `.feature` from fenced blocks is mechanical, so the FRD
@@ -269,6 +296,19 @@ generate.
   toward imperative detail without a runner to punish it.
 - Syntax highlighting is partial: GitHub's Linguist grammar is
   unmaintained and mis-colours `Rule:`; VS Code requires an extension.
+- **A step cannot wrap.** Against `line_width = 80` every step must say
+  what it says in roughly 70 characters. This is a permanent authoring
+  constraint on every future criterion, not a migration cost, and its
+  failure mode is silent: shortening a step to fit changes meaning
+  without changing anything a reviewer diffs.
+- **A mis-tagged `Scenario Outline` loses criteria silently.** Tagging
+  the scenario rather than each `Examples` block collapses several
+  criteria into one, in a document that parses, whose every scenario is
+  tagged, and against which no check fires. Constraint 7 and its
+  conformance check are the only defence.
+- **The Requirements section grows about 50%** — measured 410 to 616
+  lines, 7.9 to 11.8 lines per criterion — because 25 of 52 criteria
+  need a `Scenario Outline` to hold a single example row.
 
 **Revisit when** the central store's schema is actually designed. If it
 diverges materially from `cucumber/messages`, the structured-record
@@ -296,3 +336,5 @@ the target shape directly.
   published interchange schema the extracted records conform to
 - `docs/plans/gherkin-extraction-findings.md` — the measured extraction
   contract, the AST type hierarchy, and the five integration gotchas
+- `docs/spec-index-frd-gherkin.md`, `docs/gherkin-frd-comparison.md` —
+  the trial migration of a real FRD and what it cost
