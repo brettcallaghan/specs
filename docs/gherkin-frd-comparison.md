@@ -146,10 +146,9 @@ Examples:
 
 **But 25 of 52 criteria needed an Outline for a single example row.** A
 three-line `Examples:` block carrying one row, to hold what was a
-one-sentence `*Example:*`, is the largest single cause of the +54%.
-The tabular form earns
-its cost when a criterion has two or more instances; below that it is
-ceremony.
+one-sentence `*Example:*`, is the largest single cause of the +54%. The
+tabular form earns its cost when a criterion has two or more instances;
+below that it is ceremony.
 
 ## Finding 4 — the first attempt misused `Rule:`, and that hid everything else
 

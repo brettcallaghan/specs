@@ -143,12 +143,11 @@ documents and need no wrapper; the extractor still supplies a synthetic
 declares its own `Feature` and 1 for a wrapped fragment.
 
 Verified against a block containing one good criterion and three
-defective ones — correct `.md` line numbers, and untagged, malformed
-and duplicate identifiers all reported; and separately end to end into
-this project's `Span`, whose byte offsets
-were confirmed by slicing the source. **MDG (`.feature.md`) is
-JavaScript-only and is not needed.** The full extraction contract and
-its five gotchas are recorded in
+defective ones — correct `.md` line numbers, and untagged, malformed and
+duplicate identifiers all reported; and separately end to end into this
+project's `Span`, whose byte offsets were confirmed by slicing the
+source. **MDG (`.feature.md`) is JavaScript-only and is not needed.**
+The full extraction contract and its five gotchas are recorded in
 `docs/plans/gherkin-extraction-findings.md`.
 
 Semantic validation stays in the spec CLI by design: the parser
