@@ -140,9 +140,10 @@ blocks each declare their own `Feature`, so they are complete Gherkin
 documents and need no wrapper; the extractor still supplies a synthetic
 `Feature:` header for any block that omits one. Positions map back with
 `fence_line + (parser_line - wrap)`, where `wrap` is 0 for a block that
-declares its own `Feature` and 1 for a wrapped fragment. Verified against a block containing
-one good criterion and three defective ones — correct `.md` line
-numbers, and untagged, malformed and duplicate identifiers all reported;
+declares its own `Feature` and 1 for a wrapped fragment.
+
+Verified against a block containing one good criterion and three
+defective ones — correct `.md` line numbers, and untagged, malformed and duplicate identifiers all reported;
 and separately end to end into this project's `Span`, whose byte offsets
 were confirmed by slicing the source. **MDG (`.feature.md`) is
 JavaScript-only and is not needed.** The full extraction contract and
