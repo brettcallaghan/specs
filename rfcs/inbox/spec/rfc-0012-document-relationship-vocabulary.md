@@ -4,8 +4,9 @@ title: "RFC: Reconcile the document-relationship vocabulary with the
 description: Adopt a standard for declaring cross-document relationships
   once and deriving the reverse, and apply it to the framework's
   frontmatter — rename the feature blueprint's FRD edge, drop `updates`
-  and `creates`, trim `related`, mark `depends_on` aspirational, and
-  derive `children` from `parent_slug`
+  and `creates`, trim `related`, mark `depends_on` aspirational, derive
+  `children` from `parent_slug`, and replace the C4 composition rosters
+  with child back-pointers
 slug: rfc-0012
 type: rfc
 status: draft
@@ -47,7 +48,7 @@ the reverse — and applies it to the existing vocabulary: rename the
 feature blueprint's mis-typed FRD edge, drop two transient properties that
 are described in three places at once, trim the property that most purely
 mirrors prose, mark an unused property honestly, and replace one pairing
-with derivation. The engine and the index schema are untouched; every
+and the four C4 composition rosters with derivation from the child. The engine and the index schema are untouched; every
 proposal consumes the derived graph rather than changing it.
 
 ## Provenance
@@ -105,6 +106,19 @@ proposal consumes the derived graph rather than changing it.
    component has exactly one parent, and the index derives either end from
    the other. The pairing enforces by hand a reverse edge the tool computes
    for free.
+7. The composition rosters — `containers` (`SystemBlueprint`),
+   `components` and `modules` (`ContainerBlueprint`), `components`
+   (`ModuleBlueprint`) — carry exactly one non-empty value across the
+   corpus's three blueprint documents: `container-spec-cli` lists
+   `module-document-core` and `module-spec-profile` in `modules`.
+   `components` is present and empty on all three; `containers` appears
+   on no document, there being no system blueprint yet. In the other
+   direction nothing records that `container-spec-cli` composes those two
+   modules: `ContainerBlueprint.system` exists but is declared on 0
+   documents, and `ModuleBlueprint` and `ComponentBlueprint` have no
+   parent property at all — although [[adr-009]] already tells components
+   and modules to "point to their host container(s) instead" of carrying
+   a context view.
 
 ## Proposals
 
@@ -123,7 +137,7 @@ relationship a consumer keys on, names a target not in prose, or is the
 only home for the edge; the retaining end is chosen by singularity, then
 intrinsic-over-host-varying, then authored-at-decision; and a paired
 declaration is reserved for a document that must be read without the index.
-P2–P7 are that standard applied to the current vocabulary.
+P2–P8 are that standard applied to the current vocabulary.
 
 **Evidence.** 1, 2. The next author adding a relationship property has a
 rule to check it against instead of a precedent to copy.
@@ -254,6 +268,74 @@ reversing it.
 hand-work is replaced by a derivation, and ADR-009's intent is stated
 rather than left to inference.
 
+### P8 — Replace the composition rosters with child back-pointers
+
+**Problem.** The composition rosters — `containers` on a system,
+`components` and `modules` on a container, `components` on a module —
+are the last hand-maintained mirrors of an edge the index derives, and
+P7's reasoning applies to them unchanged. The originating review deferred
+them for a mechanical reason rather than a principled one: three of the
+four C4 levels have no back-pointer to derive a roster from (Evidence 7),
+so removing a roster there would delete the edge rather than relocate it.
+Supplying the missing back-pointers removes the only obstacle.
+
+**Change.** Give every C4 child the property its parent's roster stands
+in for, then drop the rosters. In `schemas/frontmatter.strata`:
+
+- `ContainerBlueprint.system: Slug?` — unchanged. It is already the
+  container's back-pointer to the system that composes it, and its
+  absence already records the documented fact that a container is
+  standalone rather than an oversight.
+- `ComponentBlueprint.container: Slug?` — new. Names the container **or
+  module** the component is composed into. Singular by the standard's
+  singularity tie-breaker: a component promoted under [[adr-007]] is
+  promoted out of exactly one parent's roster. Optional for the same
+  reason `system` is — a parent with no blueprint of its own is a real
+  state, and absence records it.
+- `ModuleBlueprint.contained_by: [Slug]?` — new. Names the containers,
+  or the modules, that compose this module. A list because a shared
+  module is composed into more than one host — the fact [[adr-009]] cites
+  when it denies modules a context view and tells them to point at their
+  host container(s) instead, a direction the vocabulary has never given
+  them a property for. Modules are the one level where singularity does
+  not settle which end holds the edge, since both ends are lists; it is
+  settled by ADR-009's instruction and by uniformity, so that one
+  derivation rule covers all three levels.
+- Remove `SystemBlueprint.containers`, `ContainerBlueprint.components`,
+  `ContainerBlueprint.modules`, and `ModuleBlueprint.components`. Each
+  parent's roster is then derived from inbound `system`, `container`, and
+  `contained_by` edges, exactly as P7 derives `children`.
+
+Register `container` and `contained_by` as reference-bearing for their
+types in the shipped configuration (AC-SPECREF-004.2). Pair neither with
+anything: under P1's standard a pairing is reserved for a document that
+must be read without the index, and these are the halves the index
+derives. Update `system-blueprint-template.md`,
+`container-blueprint-template.md`, `module-blueprint-template.md` and
+`component-blueprint-template.md`, and the relationship-property listing
+in `frontmatter-standards.md`.
+
+**Migration.** One non-empty roster exists corpus-wide (Evidence 7).
+`module-document-core` and `module-spec-profile` each gain
+`contained_by: ["container-spec-cli"]`; four roster properties — one
+`modules`, three empty `components` — are deleted. `containers` migrates
+nothing.
+
+**What this does not change.** [[adr-008]]'s block-XOR-link invariant and
+[[adr-012]]'s roster-heading convention govern the parent's **body**, not
+its frontmatter: a child is a fenced record block XOR a `[[slug]]`
+blueprint link under a `### <Display Name>` heading in the parent's
+roster section. That is where a reader meets the children, and where a
+promoted component's heading anchor keeps resolving. Only the frontmatter
+copy of the membership list goes; the roster section is untouched.
+
+**Evidence.** 6, 7. This supersedes the deferral this RFC first recorded
+under Considered and Not Proposed, whose stated blocker — that the
+child-to-parent back-pointer does not exist at every level — is what the
+change above supplies. Afterwards no C4 parent declares its children in
+frontmatter, and every composition edge is declared once, on the child,
+by the author who composed it.
+
 ## Considered and Not Proposed
 
 - **Removing `superseded_by`** — unused in the corpus today, but
@@ -263,11 +345,6 @@ rather than left to inference.
 - **Removing `contracts_provided` / `contracts_consumed`** — [[adr-009]]
   explicitly keeps these on the element because a contract's identity is
   host-independent; they are typed edges a machine consumer reads. Keep.
-- **Removing the composition rosters** (`containers`, `components`,
-  `modules`) — these are candidates for the same derive-from-child
-  treatment as P7, but the child-to-parent back-pointer does not exist for
-  every level today, so deriving them is not yet mechanical. Deferred, not
-  rejected; revisit once the back-pointers are in place.
 - **Keeping `creates` with its readiness check** — the recommendation the
   originating review first made. Rejected in favour of P4: it preserved a
   check but kept the create set described in frontmatter as well as prose,
@@ -291,13 +368,18 @@ the feature-blueprint surface and its single corpus instance, are low risk,
 and can land together. P5 (drop `related`) and P7 (derive `children`) touch
 the shared envelope and the shipped configuration respectively, have the
 widest blast radius, and are each independently adoptable — land them one
-at a time. P6 is a one-line schema annotation. Each proposal that removes a
-property carries a mechanical migration, because the data already lives in
-prose (`related`, `creates`, `updates`), in the `plan` (`updates`), or in
-the counterpart the index derives from (`children`). Expected overall
-effect: the frontmatter an author maintains by hand shrinks to the edges
-the index cannot derive, and every relationship in the corpus has one
-authoritative source.
+at a time. P6 is a one-line schema annotation. P8 lands after P7, whose
+derivation it repeats at the four C4 levels and whose ADR-009 companion
+note covers it: it touches all four blueprint templates and the three
+blueprint documents in the corpus, and its back-pointers must be in place
+before the rosters are removed, so both halves belong in one change. Each
+proposal that removes a property carries a mechanical migration, because
+the data already lives in prose (`related`, `creates`, `updates`), in the
+`plan` (`updates`), or in the counterpart the index derives from
+(`children`, the composition rosters). Expected overall effect: the
+frontmatter an author maintains by hand shrinks to the edges the index
+cannot derive, and every relationship in the corpus has one authoritative
+source.
 
 ## Resolution
 

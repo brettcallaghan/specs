@@ -5,8 +5,8 @@ description: Parses cross-document references from a spec corpus, records
   a reference that silently broke is caught before a reader follows it
 slug: frd-spec-reference-integrity
 type: frd
-status: draft
-updated_at: 2026-08-05T00:00:00Z
+status: approved
+updated_at: 2026-08-06T00:00:00Z
 sources:
   - "frd-spec-validation-cli"
 related:
