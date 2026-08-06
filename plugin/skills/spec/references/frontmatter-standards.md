@@ -126,11 +126,10 @@ sources: []                                 # Source document slugs
 
 # Composition — declared on the CHILD, never on the parent
 system: "<system slug>"                     # container -> its system
-contained_by: []                            # module -> its host container(s)
-container: "<container or module slug>"     # component -> its parent
+contained_by: []                            # module or component -> the
+                                            # parent(s) composing it
 
 # Typed edges a machine consumer keys on
-depends_on: []                              # system -> system dependency
 contracts_provided: []                      # contract slugs this provides
 contracts_consumed: []                      # contract slugs this consumes
 ---

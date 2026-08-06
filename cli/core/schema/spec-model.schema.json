@@ -153,15 +153,14 @@
       "additionalProperties": false,
       "description": "A C4 component blueprint: a single component promoted out of its\nparent's roster into a document of its own, because it warrants more\nthan a record block.",
       "properties": {
-        "container": {
-          "description": "The container, or the module, this component is composed into.\n\nExactly one, because a component promoted under ADR-007 is promoted\nout of exactly one parent's roster. Omitted when that parent has no\nblueprint of its own, the same way `ContainerBlueprint.system` is —\nabsence records a documented fact rather than an oversight.",
-          "oneOf": [
-            {
-              "$ref": "#/definitions/Slug"
-            },
-            {
-              "type": "null"
-            }
+        "contained_by": {
+          "description": "The parents this element is composed into.\n\nOmitted when no parent has a blueprint of its own, the same way\n`ContainerBlueprint.system` is — absence records a documented fact\nrather than an oversight.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
           ]
         },
         "contracts_consumed": {
@@ -274,9 +273,26 @@
       ],
       "type": "object"
     },
+    "CompositionEdge": {
+      "additionalProperties": false,
+      "description": "The composition edge a C4 child owns: the parent or parents it is\ncomposed into.\n\nDeclared once and inherited by every level that has a parent, rather\nthan spelled differently at each — the same drift `ContractEdges` is\ndeclared once to avoid. A child is composed into a parent at whichever\naltitude it happens to sit, so the property is named for the concept,\nnot for the level: a module names its containers, a promoted component\nnames the container or module that composes it.\n\nA list at every level, because a unit worth promoting to its own\ndocument is a unit worth reusing, and a reused child has more than one\nhost. This is the fact ADR-009 cites when it denies modules a context\nview and tells them to point at their host container(s) instead, and it\nholds for a shared component no less than a shared module.\n\nComposition is declared here, on the child, and each parent's membership\nroster is derived from these inbound edges — never mirrored back into\nthe parent's frontmatter. The children a reader meets are in the\nparent's body roster sections, where ADR-008's record-block XOR\nblueprint-link invariant governs.",
+      "properties": {
+        "contained_by": {
+          "description": "The parents this element is composed into.\n\nOmitted when no parent has a blueprint of its own, the same way\n`ContainerBlueprint.system` is — absence records a documented fact\nrather than an oversight.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
     "ContainerBlueprint": {
       "additionalProperties": false,
-      "description": "A C4 container blueprint: one independently deployable or runnable\nartifact.\n\nThe modules and components composed into it are not listed here. Each\nchild declares its host — a module in `contained_by`, a component in\n`container` — and this container's roster is derived from those inbound\nedges. The children a reader meets are in the body's roster sections,\nwhere ADR-008's record-block-XOR-blueprint-link invariant governs.",
+      "description": "A C4 container blueprint: one independently deployable or runnable\nartifact.\n\nThe modules and components composed into it are not listed here. Each\nchild declares its host in `contained_by`, and this container's roster\nis derived from those inbound edges. The children a reader meets are in\nthe body's roster sections, where ADR-008's record-block XOR\nblueprint-link invariant governs.",
       "properties": {
         "contracts_consumed": {
           "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
@@ -1328,10 +1344,10 @@
     },
     "ModuleBlueprint": {
       "additionalProperties": false,
-      "description": "A C4 module blueprint: a coherent unit of code with an interface of its\nown, composed into a container.\n\nThe components it composes are not listed here. Each promoted component\ndeclares this module in its own `container` property, and the roster is\nderived from those inbound edges. An un-promoted child is declared in a\nrecord block in this document's body instead — a child is in exactly one\nstate, record block XOR blueprint link, never both, per ADR-008.",
+      "description": "A C4 module blueprint: a coherent unit of code with an interface of its\nown, composed into a container.\n\nThe components it composes are not listed here. Each promoted component\ndeclares this module in its own `contained_by`, and the roster is\nderived from those inbound edges. An un-promoted child is declared in a\nrecord block in this document's body instead — a child is in exactly one\nstate, record block XOR blueprint link, never both, per ADR-008.",
       "properties": {
         "contained_by": {
-          "description": "The containers, or the modules, that compose this module.\n\nA list rather than a single slug because a shared module is composed\ninto more than one host — the fact ADR-009 cites when it denies\nmodules a context view and tells them to point at their host\ncontainer(s) instead. Both ends of this edge are lists, so singularity\ndoes not settle which end holds it; ADR-009's instruction does, and\nholding it here means one derivation rule covers all three C4 levels.\n\nOmitted when no host has a blueprint of its own, the same way\n`ContainerBlueprint.system` is.",
+          "description": "The parents this element is composed into.\n\nOmitted when no parent has a blueprint of its own, the same way\n`ContainerBlueprint.system` is — absence records a documented fact\nrather than an oversight.",
           "items": {
             "$ref": "#/definitions/Slug"
           },
@@ -1952,7 +1968,7 @@
     },
     "SystemBlueprint": {
       "additionalProperties": false,
-      "description": "A C4 system blueprint: the public contracts a system provides, and the\nsystems it depends on.\n\nThe containers a system bundles are not listed here. Each container\ndeclares the system that composes it in its own `system` property, and\nthe roster is derived from those inbound edges — one authoritative end,\nper the Document Relationship Standard.",
+      "description": "A C4 system blueprint: the public contracts a system provides.\n\nThe containers a system bundles are not listed here. Each container\ndeclares the system that composes it in its own `system` property, and\nthe roster is derived from those inbound edges — one authoritative end,\nper the Document Relationship Standard.\n\nA system's dependency on another system is not recorded in frontmatter\nat all. Where the dependency is a named interface it is a contract, and\n`contracts_consumed` holds it. Where it is looser, the blueprint's own\n\"Consumed Systems and Contracts\" section says what is depended on and\nwhat for — which a slug list cannot, and which is what a reader actually\nneeds. A repository spanning more than one system is rare enough that a\nfrontmatter property for the untyped case would be maintained by nobody.",
       "properties": {
         "contracts_consumed": {
           "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
@@ -1979,16 +1995,6 @@
           "format": "date-time",
           "type": [
             "string",
-            "null"
-          ]
-        },
-        "depends_on": {
-          "description": "Other systems this system depends on.\n\nSystems only. A contract this system consumes is named in\n`contracts_consumed`, so the same dependency has exactly one home.\n\nAspirational: no corpus document declares this today, and it is\nrecorded on the system's own Context view when one does. It is kept\nbecause it is the only home such an edge has — a system-to-system\ndependency is neither composition nor a contract, and a top-level\nsystem has no parent to own it under ADR-009. It is deliberately not\npaired; \"depended on by\" is derived from inbound edges.",
-          "items": {
-            "$ref": "#/definitions/Slug"
-          },
-          "type": [
-            "array",
             "null"
           ]
         },

@@ -7,9 +7,9 @@ type: component-blueprint
 status: draft
 updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 kind: <standard | pattern>           # see instructions below
-container: container-<name>          # the container, or module, this
-                                     # component is composed into; omit WHEN
-                                     # that parent has no blueprint of its own
+contained_by: []                     # the container(s) or module(s) that
+                                     # compose this component; omit WHEN no
+                                     # parent has a blueprint of its own
 contracts_provided: []               # contract slugs, WHEN the interface
                                      # is a standalone contract document
 contracts_consumed: []               # contract slugs this component depends on

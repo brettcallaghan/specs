@@ -47,9 +47,9 @@ decision.
 
 **Nor does it govern the parent-child membership edge itself.** "A
 container composes this module" is one fact with one authoritative home,
-and that home is the child: a container declares its `system`, a module
-its `contained_by`, a component its `container`, and each parent's
-membership roster is derived from those inbound edges. The parent still
+and that home is the child: a container declares its `system`, and a
+module or a promoted component declares its `contained_by`, from which
+each parent's membership roster is derived. The parent still
 owns the edges *among* its children, which is what this decision is
 about. Deriving the roster is how that ownership is kept free of drift,
 not an exception to it — a hand-maintained roster on the parent is a

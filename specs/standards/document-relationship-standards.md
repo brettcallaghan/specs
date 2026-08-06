@@ -78,10 +78,11 @@ A property clears the first bar when a check reads its meaning
 (`superseded_by` drives the retired-target checks). It clears the second
 when the relationship is not something an author would write in the body
 at all. It clears the third when no other document and no derivation can
-hold the edge — a top-level system's dependency on another system, which
-composition and contracts cannot express and which has no parent to own
-it. A property that clears none of these is doing work the index already
-does.
+hold the edge. No property in this framework's own vocabulary currently
+clears only the third test — the bar exists for an adopting profile whose
+corpus has an edge with nowhere else to live, and a property offered
+against it is expected to name that edge rather than assume one. A
+property that clears none of these is doing work the index already does.
 
 ---
 

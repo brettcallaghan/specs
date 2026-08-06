@@ -415,7 +415,7 @@ tool checks my conventions rather than assuming a fixed set.
   this framework's own reference-bearing properties and pairings, which
   an adopting repository can use without authoring one.
   - *Example:* The shipped configuration marks `superseded_by`,
-    `sources`, `frd`, `system`, `contained_by`, `container`,
+    `sources`, `frd`, `system`, `contained_by`,
     `contracts_provided` and `contracts_consumed` as reference-bearing,
     and registers **no** pairing — every relationship this framework
     declares has its reverse derived from inbound edges, and

@@ -8,7 +8,6 @@ status: draft
 updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 contracts_provided: []               # contract slugs this system provides
 contracts_consumed: []               # contract slugs this system consumes
-depends_on: []                       # other systems this system depends on
 ---
 
 <!--

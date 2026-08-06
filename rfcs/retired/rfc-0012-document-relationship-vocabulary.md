@@ -390,9 +390,9 @@ built to maintain frontmatter the framework should not carry.
 | P3 — drop `updates` | **adopted with refinement.** Extent check found two sites the RFC did not name: the template's own Contracts instruction block ("list them in `updates`"), and [[frontmatter-standards]], which did not merely mention the property but *mandated* it ("the template SHALL include the `updates` and `creates` properties"). Removing the property without those would have left a standard requiring a property the schema rejects. | `agent-plugins-f48` |
 | P4 — drop `creates` and its readiness check | **adopted as proposed**, with the same two extra sites as P3. Both copies of `blueprint-readiness-checklist` were updated through the authored copy plus `scripts/sync-shared-references.sh`; the vendored copy is generated and was not hand-edited. | `agent-plugins-1rx` |
 | P5 — remove `related` from the envelope | **adopted with refinement.** See *On P5's extent and sufficiency* below — the blast radius was 48 files rather than 11, and one document would have lost an edge. | `agent-plugins-2b1` |
-| P6 — mark `depends_on` aspirational | **adopted as proposed**, taking option (b) as the RFC recommends. The doc-comment now records that the property is unused in the corpus, why the slot is legitimate anyway, and that it is deliberately not paired. | `agent-plugins-yvo` |
+| P6 — mark `depends_on` aspirational | **adopted as option (a): dropped.** Landed first as option (b), the RFC's recommendation; reversed in review — see *Reversed in review* below. `SystemBlueprint.depends_on` is gone. | `agent-plugins-yvo` |
 | P7 — derive `children` from `parent_slug`; drop the pairing | **adopted with refinement.** See *On P7* below — neither property exists in this vocabulary, so what was removed was the framework's own worked example of a pairing its new standard forbids, not a live configuration. | `agent-plugins-0qm` |
-| P8 — replace the composition rosters with child back-pointers | **adopted as proposed.** `ComponentBlueprint.container` and `ModuleBlueprint.contained_by` added; `SystemBlueprint.containers`, `ContainerBlueprint.components`, `ContainerBlueprint.modules` and `ModuleBlueprint.components` removed. Migration was exactly what Evidence 7 predicted: two `contained_by` additions, four roster deletions. | `agent-plugins-4yv` |
+| P8 — replace the composition rosters with child back-pointers | **adopted with refinement.** The four rosters were removed as proposed, and the migration was exactly what Evidence 7 predicted: two `contained_by` additions, four roster deletions. The back-pointers landed differently — one `contained_by: [Slug]?` on a shared `CompositionEdge` struct, inherited by both module and component, rather than the proposed singular `ComponentBlueprint.container`. See *Reversed in review* below. | `agent-plugins-4yv` |
 
 **Provenance check.** `skill: spec` at `skill_version: "1.7"` — current at
 triage. `plugin_version: 0.14.0` — current at triage. No cited text had
@@ -453,6 +453,38 @@ slightly wider than P2's text — `schemas/profile.strata` gained
 reference-integrity FRD gained **AC-SPECREF-002.10** for the check itself.
 The human was shown this trade-off and chose it over registering the
 property without the check.
+
+**Reversed in review.** Both reversals came from the repository owner
+reviewing the diff on PR #14, and both overrule a choice made earlier in
+this triage — the second overrules one the same human had approved at the
+step-4 gate, on the stronger evidence of seeing the schema itself.
+
+- **`depends_on` dropped rather than annotated (P6).** The RFC recommended
+  option (b), keep-and-annotate, on the grounds that the property is the
+  only home for a system-to-system edge. The owner's objection is that
+  this is not a home worth having: a slug list is an ineffective way to
+  express what one system needs from another, the blueprint's "Consumed
+  Systems and Contracts" section already says it with the detail a reader
+  needs, and a repository spanning more than one system is rare enough
+  that nobody would maintain the property anyway. `SystemBlueprint` now
+  carries no relationship property beyond `ContractEdges`. The Document
+  Relationship Standard's third test — "only home for an edge" — used
+  `depends_on` as its worked example and no longer cites a live instance;
+  the test stands for an adopting profile, which is now what it says.
+- **One `contained_by`, not `contained_by` plus `container` (P8).** The
+  RFC proposed a singular `ComponentBlueprint.container`, reasoning from
+  ADR-007 that a component is promoted out of exactly one parent's roster.
+  The owner's objection is that `contained_by` already names this concept
+  and that reuse is the point of promoting a child at all — a unit worth
+  its own document is a unit worth composing into more than one host. So
+  the property is a list at both levels, and it is declared once on a
+  shared `CompositionEdge` struct that `ModuleBlueprint` and
+  `ComponentBlueprint` inherit, exactly as `ContractEdges` is. The
+  hoisting is triage's, not the owner's: two identical declarations at two
+  altitudes is the drift `ContractEdges`' own doc-comment exists to warn
+  against. `ContainerBlueprint.system` was left singular and unrenamed —
+  it predates this RFC, a container does belong to one system, and no
+  review comment touched it.
 
 **On the strata toolchain.** Regenerating the derived artifacts needs a
 `strata` newer than the 0.7.0 on PATH, which drops struct inheritance
