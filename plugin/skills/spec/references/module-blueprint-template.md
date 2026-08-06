@@ -12,9 +12,11 @@ visibility: <public | internal>      # public = published to a registry;
 contracts_provided: []               # contract slugs, WHEN the interface
                                      # is a standalone contract document
 contracts_consumed: []               # contract slugs this module depends on
-contained_by: []                     # the container(s) or module(s) that
-                                     # compose this module; omit WHEN no
-                                     # parent has a blueprint of its own
+contained_by: []                     # the container(s) composing this
+                                     # module — a LIST because being shared
+                                     # across containers is what makes a
+                                     # unit a module; omit WHEN no host has
+                                     # a blueprint of its own
 source_paths: []                     # repo-relative source roots
 test_paths: []                       # repo-relative test roots
 version: "0.1"                       # required WHEN visibility: public

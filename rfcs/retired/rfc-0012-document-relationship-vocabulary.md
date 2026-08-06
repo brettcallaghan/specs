@@ -471,20 +471,28 @@ step-4 gate, on the stronger evidence of seeing the schema itself.
   Relationship Standard's third test — "only home for an edge" — used
   `depends_on` as its worked example and no longer cites a live instance;
   the test stands for an adopting profile, which is now what it says.
-- **One `contained_by`, not `contained_by` plus `container` (P8).** The
-  RFC proposed a singular `ComponentBlueprint.container`, reasoning from
-  ADR-007 that a component is promoted out of exactly one parent's roster.
-  The owner's objection is that `contained_by` already names this concept
-  and that reuse is the point of promoting a child at all — a unit worth
-  its own document is a unit worth composing into more than one host. So
-  the property is a list at both levels, and it is declared once on a
-  shared `CompositionEdge` struct that `ModuleBlueprint` and
-  `ComponentBlueprint` inherit, exactly as `ContractEdges` is. The
-  hoisting is triage's, not the owner's: two identical declarations at two
-  altitudes is the drift `ContractEdges`' own doc-comment exists to warn
-  against. `ContainerBlueprint.system` was left singular and unrenamed —
-  it predates this RFC, a container does belong to one system, and no
-  review comment touched it.
+- **`contained_by` is the module level's alone (P8).** This took two
+  rounds, and the second corrected a premise rather than a placement.
+  The RFC proposed a singular `ComponentBlueprint.container`; triage first
+  generalized it to a `contained_by` list on both module and component,
+  reasoning that any unit worth its own document is worth reusing. The
+  owner rejected that generalization on C4 itself: **every C4 element has
+  exactly one parent** — a container belongs to one system, a component to
+  one container — and Module is this framework's *addition* to C4, whose
+  entire purpose is to be composed into more than one container. So
+  multi-containment is not a property of promotion; it is the definition
+  of a module.
+
+  As landed: `contained_by: [Slug]?` exists on `ModuleBlueprint` and
+  nowhere else, documented as the only multi-parent edge in the
+  vocabulary and as the reason the module level exists.
+  `ComponentBlueprint` carries no parent property at all — a component's
+  single parent is recorded where a reader meets the child, in the
+  parent's roster section, which links each promoted child by `[[slug]]`
+  under its own heading per ADR-008 and ADR-012, and the index derives the
+  edge from that inbound link. `ContainerBlueprint.system` is unchanged.
+  The shared `CompositionEdge` struct triage introduced in the first round
+  was removed with the premise that motivated it.
 
 **On the strata toolchain.** Regenerating the derived artifacts needs a
 `strata` newer than the 0.7.0 on PATH, which drops struct inheritance

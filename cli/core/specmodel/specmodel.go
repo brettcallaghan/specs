@@ -618,36 +618,6 @@ type ContractEdges struct {
 	ContractsConsumed *[]Slug `json:"contracts_consumed,omitempty"`
 }
 
-// The composition edge a C4 child owns: the parent or parents it is
-// composed into.
-//
-// Declared once and inherited by every level that has a parent, rather
-// than spelled differently at each — the same drift `ContractEdges` is
-// declared once to avoid. A child is composed into a parent at whichever
-// altitude it happens to sit, so the property is named for the concept,
-// not for the level: a module names its containers, a promoted component
-// names the container or module that composes it.
-//
-// A list at every level, because a unit worth promoting to its own
-// document is a unit worth reusing, and a reused child has more than one
-// host. This is the fact ADR-009 cites when it denies modules a context
-// view and tells them to point at their host container(s) instead, and it
-// holds for a shared component no less than a shared module.
-//
-// Composition is declared here, on the child, and each parent's membership
-// roster is derived from these inbound edges — never mirrored back into
-// the parent's frontmatter. The children a reader meets are in the
-// parent's body roster sections, where ADR-008's record-block XOR
-// blueprint-link invariant governs.
-type CompositionEdge struct {
-	// The parents this element is composed into.
-	//
-	// Omitted when no parent has a blueprint of its own, the same way
-	// `ContainerBlueprint.system` is — absence records a documented fact
-	// rather than an oversight.
-	ContainedBy *[]Slug `json:"contained_by,omitempty"`
-}
-
 // An architecture decision record.
 //
 // Carries no relationship properties of its own: an ADR's connections to
@@ -931,11 +901,15 @@ type SystemBlueprint struct {
 // A C4 container blueprint: one independently deployable or runnable
 // artifact.
 //
-// The modules and components composed into it are not listed here. Each
-// child declares its host in `contained_by`, and this container's roster
-// is derived from those inbound edges. The children a reader meets are in
-// the body's roster sections, where ADR-008's record-block XOR
-// blueprint-link invariant governs.
+// The modules and components composed into it are not listed here, and
+// the two arrive by different routes. A module names its hosts itself, in
+// `contained_by`, because a module may be composed into several containers
+// and that set is a fact about the module. A component has exactly one
+// parent, as C4 requires, and that edge is recorded where a reader meets
+// it: the Components section of this document's body, where each child is
+// a fenced record block XOR a `[[slug]]` blueprint link under its own
+// heading, per ADR-008 and ADR-012. Either way the index derives this
+// container's roster rather than reading it from frontmatter.
 type ContainerBlueprint struct {
 	// Human-readable title. Free text.
 	//
@@ -1000,11 +974,10 @@ type ContainerBlueprint struct {
 // A C4 module blueprint: a coherent unit of code with an interface of its
 // own, composed into a container.
 //
-// The components it composes are not listed here. Each promoted component
-// declares this module in its own `contained_by`, and the roster is
-// derived from those inbound edges. An un-promoted child is declared in a
-// record block in this document's body instead — a child is in exactly one
-// state, record block XOR blueprint link, never both, per ADR-008.
+// The components it composes are not listed in frontmatter. Each child is
+// declared in this document's Components section — a fenced record block
+// when un-promoted, a `[[slug]]` blueprint link once promoted, exactly one
+// of the two per ADR-008 — and the index derives the roster from there.
 type ModuleBlueprint struct {
 	// Human-readable title. Free text.
 	//
@@ -1058,18 +1031,31 @@ type ModuleBlueprint struct {
 	// listed here — those are neighbour edges, and per ADR-009 they belong
 	// to the parent that composes the elements, or to the code.
 	ContractsConsumed *[]Slug `json:"contracts_consumed,omitempty"`
-	// The parents this element is composed into.
-	//
-	// Omitted when no parent has a blueprint of its own, the same way
-	// `ContainerBlueprint.system` is — absence records a documented fact
-	// rather than an oversight.
-	ContainedBy *[]Slug `json:"contained_by,omitempty"`
 	// Whether this blueprint documents one concrete module or a pattern
 	// several modules follow.
 	Kind BlueprintKind `json:"kind"`
 	// Whether the module is published to a registry, and therefore whether
 	// its package API is bound by a compatibility policy.
 	Visibility Visibility `json:"visibility"`
+	// The containers, or the modules, that compose this module.
+	//
+	// **The only multi-parent relationship in the vocabulary, and the reason
+	// the module level exists.** C4 gives every element exactly one parent —
+	// a container belongs to one system, a component to one container — and
+	// that edge is recorded by the parent, in the roster section of its body.
+	// Module is this framework's addition to C4, and being composed into more
+	// than one container is its whole purpose: a unit shared by two
+	// containers is a module precisely because it is shared.
+	//
+	// So this is a list, and it is declared here rather than derived from
+	// parent rosters, because a shared module's hosts are a fact about the
+	// module. It is the direction ADR-009 tells modules to point when it
+	// denies them a context view — no single outward-edge list is correct for
+	// a module, but the set of hosts is, and this is where it goes.
+	//
+	// Omitted when no host has a blueprint of its own — absence records a
+	// documented fact rather than an oversight.
+	ContainedBy *[]Slug `json:"contained_by,omitempty"`
 	// Repository-relative source roots, so a reader can find the code.
 	SourcePaths *[]string `json:"source_paths,omitempty"`
 	// Repository-relative test roots.
@@ -1084,6 +1070,14 @@ type ModuleBlueprint struct {
 // A C4 component blueprint: a single component promoted out of its
 // parent's roster into a document of its own, because it warrants more
 // than a record block.
+//
+// Carries no parent property. A component has exactly one parent, as C4
+// requires, and its parent's roster section already links it by
+// `[[slug]]` under its own heading — so the edge is declared once, in the
+// one place a reader meets the child, and the index derives the component's
+// parent from that inbound link. `contained_by` is the module level's
+// alone, because being composed into more than one container is what
+// distinguishes a module from a component.
 type ComponentBlueprint struct {
 	// Human-readable title. Free text.
 	//
@@ -1137,12 +1131,6 @@ type ComponentBlueprint struct {
 	// listed here — those are neighbour edges, and per ADR-009 they belong
 	// to the parent that composes the elements, or to the code.
 	ContractsConsumed *[]Slug `json:"contracts_consumed,omitempty"`
-	// The parents this element is composed into.
-	//
-	// Omitted when no parent has a blueprint of its own, the same way
-	// `ContainerBlueprint.system` is — absence records a documented fact
-	// rather than an oversight.
-	ContainedBy *[]Slug `json:"contained_by,omitempty"`
 	// Whether this blueprint documents one concrete component or a pattern
 	// several components follow.
 	Kind BlueprintKind `json:"kind"`

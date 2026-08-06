@@ -17,8 +17,8 @@ version: "0.2"
 - Format — YAML delimiters and placement
 - Required Properties — title, description, slug, type, status, updated_at,
   including the full `status` vocabulary and the state-vs-transient rule
-- Relationship Properties — provenance, composition back-pointers, and the
-  typed edges a consumer keys on
+- Relationship Properties — provenance, composition, and the typed edges a
+  consumer keys on
 - Optional Properties — version, created_at, tags, superseded_by
 - Embedded Element Records — the record-block XOR blueprint-link rule for
   declaring child components
@@ -124,10 +124,11 @@ SHALL include a relationship property for it in the frontmatter:
 # Provenance (what this is derived from)
 sources: []                                 # Source document slugs
 
-# Composition — declared on the CHILD, never on the parent
-system: "<system slug>"                     # container -> its system
-contained_by: []                            # module or component -> the
-                                            # parent(s) composing it
+# Composition
+system: "<system slug>"                     # container -> its one system
+contained_by: []                            # module -> the containers
+                                            # composing it; a LIST, and the
+                                            # only multi-parent edge there is
 
 # Typed edges a machine consumer keys on
 contracts_provided: []                      # contract slugs this provides
@@ -155,8 +156,10 @@ and tracked in its `plan`, not mirrored into frontmatter.
 **Rationale:** Relationship properties enable traceability, dependency
 management, and impact analysis across documents — but only where the graph
 derived from prose citations cannot already answer the question. A parent's
-membership roster is derivable from its children's back-pointers, and a
-change set is tracked to completion by the plan, so neither is carried here.
+membership roster is derivable — from the child's own declaration where a
+child may have several parents, and otherwise from the parent's roster
+section, which links each promoted child by `[[slug]]` anyway — and a change
+set is tracked to completion by the plan, so neither is carried here.
 
 ### Optional Properties
 

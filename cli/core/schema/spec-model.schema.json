@@ -151,18 +151,8 @@
     },
     "ComponentBlueprint": {
       "additionalProperties": false,
-      "description": "A C4 component blueprint: a single component promoted out of its\nparent's roster into a document of its own, because it warrants more\nthan a record block.",
+      "description": "A C4 component blueprint: a single component promoted out of its\nparent's roster into a document of its own, because it warrants more\nthan a record block.\n\nCarries no parent property. A component has exactly one parent, as C4\nrequires, and its parent's roster section already links it by\n`[[slug]]` under its own heading — so the edge is declared once, in the\none place a reader meets the child, and the index derives the component's\nparent from that inbound link. `contained_by` is the module level's\nalone, because being composed into more than one container is what\ndistinguishes a module from a component.",
       "properties": {
-        "contained_by": {
-          "description": "The parents this element is composed into.\n\nOmitted when no parent has a blueprint of its own, the same way\n`ContainerBlueprint.system` is — absence records a documented fact\nrather than an oversight.",
-          "items": {
-            "$ref": "#/definitions/Slug"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
         "contracts_consumed": {
           "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
           "items": {
@@ -273,26 +263,9 @@
       ],
       "type": "object"
     },
-    "CompositionEdge": {
-      "additionalProperties": false,
-      "description": "The composition edge a C4 child owns: the parent or parents it is\ncomposed into.\n\nDeclared once and inherited by every level that has a parent, rather\nthan spelled differently at each — the same drift `ContractEdges` is\ndeclared once to avoid. A child is composed into a parent at whichever\naltitude it happens to sit, so the property is named for the concept,\nnot for the level: a module names its containers, a promoted component\nnames the container or module that composes it.\n\nA list at every level, because a unit worth promoting to its own\ndocument is a unit worth reusing, and a reused child has more than one\nhost. This is the fact ADR-009 cites when it denies modules a context\nview and tells them to point at their host container(s) instead, and it\nholds for a shared component no less than a shared module.\n\nComposition is declared here, on the child, and each parent's membership\nroster is derived from these inbound edges — never mirrored back into\nthe parent's frontmatter. The children a reader meets are in the\nparent's body roster sections, where ADR-008's record-block XOR\nblueprint-link invariant governs.",
-      "properties": {
-        "contained_by": {
-          "description": "The parents this element is composed into.\n\nOmitted when no parent has a blueprint of its own, the same way\n`ContainerBlueprint.system` is — absence records a documented fact\nrather than an oversight.",
-          "items": {
-            "$ref": "#/definitions/Slug"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        }
-      },
-      "type": "object"
-    },
     "ContainerBlueprint": {
       "additionalProperties": false,
-      "description": "A C4 container blueprint: one independently deployable or runnable\nartifact.\n\nThe modules and components composed into it are not listed here. Each\nchild declares its host in `contained_by`, and this container's roster\nis derived from those inbound edges. The children a reader meets are in\nthe body's roster sections, where ADR-008's record-block XOR\nblueprint-link invariant governs.",
+      "description": "A C4 container blueprint: one independently deployable or runnable\nartifact.\n\nThe modules and components composed into it are not listed here, and\nthe two arrive by different routes. A module names its hosts itself, in\n`contained_by`, because a module may be composed into several containers\nand that set is a fact about the module. A component has exactly one\nparent, as C4 requires, and that edge is recorded where a reader meets\nit: the Components section of this document's body, where each child is\na fenced record block XOR a `[[slug]]` blueprint link under its own\nheading, per ADR-008 and ADR-012. Either way the index derives this\ncontainer's roster rather than reading it from frontmatter.",
       "properties": {
         "contracts_consumed": {
           "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
@@ -1344,10 +1317,10 @@
     },
     "ModuleBlueprint": {
       "additionalProperties": false,
-      "description": "A C4 module blueprint: a coherent unit of code with an interface of its\nown, composed into a container.\n\nThe components it composes are not listed here. Each promoted component\ndeclares this module in its own `contained_by`, and the roster is\nderived from those inbound edges. An un-promoted child is declared in a\nrecord block in this document's body instead — a child is in exactly one\nstate, record block XOR blueprint link, never both, per ADR-008.",
+      "description": "A C4 module blueprint: a coherent unit of code with an interface of its\nown, composed into a container.\n\nThe components it composes are not listed in frontmatter. Each child is\ndeclared in this document's Components section — a fenced record block\nwhen un-promoted, a `[[slug]]` blueprint link once promoted, exactly one\nof the two per ADR-008 — and the index derives the roster from there.",
       "properties": {
         "contained_by": {
-          "description": "The parents this element is composed into.\n\nOmitted when no parent has a blueprint of its own, the same way\n`ContainerBlueprint.system` is — absence records a documented fact\nrather than an oversight.",
+          "description": "The containers, or the modules, that compose this module.\n\n**The only multi-parent relationship in the vocabulary, and the reason\nthe module level exists.** C4 gives every element exactly one parent —\na container belongs to one system, a component to one container — and\nthat edge is recorded by the parent, in the roster section of its body.\nModule is this framework's addition to C4, and being composed into more\nthan one container is its whole purpose: a unit shared by two\ncontainers is a module precisely because it is shared.\n\nSo this is a list, and it is declared here rather than derived from\nparent rosters, because a shared module's hosts are a fact about the\nmodule. It is the direction ADR-009 tells modules to point when it\ndenies them a context view — no single outward-edge list is correct for\na module, but the set of hosts is, and this is where it goes.\n\nOmitted when no host has a blueprint of its own — absence records a\ndocumented fact rather than an oversight.",
           "items": {
             "$ref": "#/definitions/Slug"
           },
