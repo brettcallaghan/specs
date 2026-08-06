@@ -4,6 +4,7 @@ package specmodel
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -37,6 +38,29 @@ type SpecsConfig struct {
 	Conventions *ConventionsConfig `json:"conventions,omitempty"`
 }
 
+func (v *SpecsConfig) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["workspace"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SpecsConfig: required field \"workspace\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Workspace); err != nil {
+		return prefixField("workspace", err)
+	}
+	if m, ok := raw["profile"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SpecsConfig: required field \"profile\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Profile); err != nil {
+		return prefixField("profile", err)
+	}
+	if m, ok := raw["conventions"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Conventions); err != nil {
+			return prefixField("conventions", err)
+		}
+	}
+	return nil
+}
+
 // Identifies a repository's document collection.
 type WorkspaceConfig struct {
 	// The name this repository's documents are attributed to.
@@ -53,6 +77,24 @@ type WorkspaceConfig struct {
 	Root string `json:"root"`
 }
 
+func (v *WorkspaceConfig) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["name"]; !ok || string(m) == "null" {
+		return fmt.Errorf("WorkspaceConfig: required field \"name\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Name); err != nil {
+		return prefixField("name", err)
+	}
+	if m, ok := raw["root"]; !ok || string(m) == "null" {
+		return fmt.Errorf("WorkspaceConfig: required field \"root\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Root); err != nil {
+		return prefixField("root", err)
+	}
+	return nil
+}
+
 // Selects the active document vocabulary.
 type ProfileConfig struct {
 	// The name of a registered profile.
@@ -61,6 +103,19 @@ type ProfileConfig struct {
 	// registered profile is reported as a finding listing the names that are
 	// registered, rather than as a bare startup failure.
 	Name string `json:"name"`
+}
+
+func (v *ProfileConfig) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["name"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ProfileConfig: required field \"name\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Name); err != nil {
+		return prefixField("name", err)
+	}
+	return nil
 }
 
 // House conventions an adopting repository may set, and the profile
@@ -151,6 +206,29 @@ type FindingSchemaViolation struct {
 	Value string `json:"value"`
 }
 
+func (v *FindingSchemaViolation) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["pointer"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingSchemaViolation: required field \"pointer\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Pointer); err != nil {
+		return prefixField("pointer", err)
+	}
+	if m, ok := raw["constraint"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingSchemaViolation: required field \"constraint\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Constraint); err != nil {
+		return prefixField("constraint", err)
+	}
+	if m, ok := raw["value"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingSchemaViolation: required field \"value\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Value); err != nil {
+		return prefixField("value", err)
+	}
+	return nil
+}
+
 // A property the document's type requires and the document does not
 // declare.
 //
@@ -165,6 +243,24 @@ type FindingMissingProperty struct {
 	Property string `json:"property"`
 }
 
+func (v *FindingMissingProperty) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["pointer"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingMissingProperty: required field \"pointer\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Pointer); err != nil {
+		return prefixField("pointer", err)
+	}
+	if m, ok := raw["property"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingMissingProperty: required field \"property\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Property); err != nil {
+		return prefixField("property", err)
+	}
+	return nil
+}
+
 // A slug that does not match the pattern the active profile supplies for
 // the document's type.
 //
@@ -177,6 +273,24 @@ type FindingSlugPattern struct {
 	Pattern string `json:"pattern"`
 }
 
+func (v *FindingSlugPattern) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingSlugPattern: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["pattern"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingSlugPattern: required field \"pattern\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Pattern); err != nil {
+		return prefixField("pattern", err)
+	}
+	return nil
+}
+
 // A slug declared by more than one corpus member.
 //
 // Reported against each of the two documents, each naming the other, so
@@ -187,6 +301,24 @@ type FindingDuplicateSlug struct {
 	// The other document's path, relative to the repository root and written
 	// with forward slashes on every platform.
 	OtherPath string `json:"other_path"`
+}
+
+func (v *FindingDuplicateSlug) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingDuplicateSlug: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["other_path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingDuplicateSlug: required field \"other_path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.OtherPath); err != nil {
+		return prefixField("other_path", err)
+	}
+	return nil
 }
 
 // A frontmatter block that could not be read as a document envelope.
@@ -209,6 +341,19 @@ type FindingFrontmatterParse struct {
 	Message string `json:"message"`
 }
 
+func (v *FindingFrontmatterParse) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["message"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingFrontmatterParse: required field \"message\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Message); err != nil {
+		return prefixField("message", err)
+	}
+	return nil
+}
+
 // A check that was requested and could not run.
 //
 // This is the structured half of the `unverified` severity: the reason
@@ -218,6 +363,19 @@ type FindingUnverified struct {
 	// Why the check could not run, stated so that it needs no further lookup
 	// to act on.
 	Reason string `json:"reason"`
+}
+
+func (v *FindingUnverified) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["reason"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingUnverified: required field \"reason\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Reason); err != nil {
+		return prefixField("reason", err)
+	}
+	return nil
 }
 
 type FindingDetailVariant interface{ isFindingDetailVariant() }
@@ -423,6 +581,44 @@ type Finding struct {
 	Detail FindingDetail `json:"detail"`
 }
 
+func (v *Finding) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["rule"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Finding: required field \"rule\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Rule); err != nil {
+		return prefixField("rule", err)
+	}
+	if m, ok := raw["severity"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Finding: required field \"severity\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Severity); err != nil {
+		return prefixField("severity", err)
+	}
+	if m, ok := raw["path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Finding: required field \"path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Path); err != nil {
+		return prefixField("path", err)
+	}
+	if m, ok := raw["position"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Finding: required field \"position\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Position); err != nil {
+		return prefixField("position", err)
+	}
+	if m, ok := raw["message"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Finding: required field \"message\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Message); err != nil {
+		return prefixField("message", err)
+	}
+	if m, ok := raw["detail"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Finding: required field \"detail\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Detail); err != nil {
+		return prefixField("detail", err)
+	}
+	return nil
+}
+
 // What became of one check in a run.
 //
 // A run reports an outcome for every check it knows about, including the
@@ -478,6 +674,29 @@ type CheckResult struct {
 	Reason *string `json:"reason,omitempty"`
 }
 
+func (v *CheckResult) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["rule"]; !ok || string(m) == "null" {
+		return fmt.Errorf("CheckResult: required field \"rule\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Rule); err != nil {
+		return prefixField("rule", err)
+	}
+	if m, ok := raw["outcome"]; !ok || string(m) == "null" {
+		return fmt.Errorf("CheckResult: required field \"outcome\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Outcome); err != nil {
+		return prefixField("outcome", err)
+	}
+	if m, ok := raw["reason"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Reason); err != nil {
+			return prefixField("reason", err)
+		}
+	}
+	return nil
+}
+
 // Everything one check run produced.
 //
 // The two collections answer different questions and neither substitutes
@@ -494,6 +713,24 @@ type FindingReport struct {
 	Checks []CheckResult `json:"checks"`
 	// Every finding the run produced, in the order the emitter fixes.
 	Findings []Finding `json:"findings"`
+}
+
+func (v *FindingReport) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["checks"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingReport: required field \"checks\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Checks); err != nil {
+		return prefixField("checks", err)
+	}
+	if m, ok := raw["findings"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingReport: required field \"findings\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Findings); err != nil {
+		return prefixField("findings", err)
+	}
+	return nil
 }
 
 // The three fields that identify any element the framework names.
@@ -528,6 +765,29 @@ type ElementRecord struct {
 	// conventionally prefixed by the document type — `adr-013`,
 	// `container-spec-cli`, `module-document-core`.
 	Slug Slug `json:"slug"`
+}
+
+func (v *ElementRecord) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ElementRecord: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ElementRecord: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ElementRecord: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	return nil
 }
 
 // The metadata envelope every specification document carries.
@@ -584,6 +844,59 @@ type DocumentFrontmatter struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
+}
+
+func (v *DocumentFrontmatter) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("DocumentFrontmatter: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("DocumentFrontmatter: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("DocumentFrontmatter: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("DocumentFrontmatter: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("DocumentFrontmatter: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("DocumentFrontmatter: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	return nil
 }
 
 // The contract edges a C4 element owns: the interfaces it publishes, and
@@ -666,6 +979,59 @@ type Adr struct {
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
 }
 
+func (v *Adr) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Adr: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Adr: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Adr: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Adr: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Adr: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Adr: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	return nil
+}
+
 // A feature requirements document: the user need, its scope boundaries and
 // the acceptance criteria that decide whether it has been met.
 type Frd struct {
@@ -711,6 +1077,64 @@ type Frd struct {
 	// The documents this FRD is derived from — a brief, a research
 	// document, or an FRD it narrows.
 	Sources *[]Slug `json:"sources,omitempty"`
+}
+
+func (v *Frd) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Frd: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Frd: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Frd: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Frd: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Frd: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Frd: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	if m, ok := raw["sources"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Sources); err != nil {
+			return prefixField("sources", err)
+		}
+	}
+	return nil
 }
 
 // An interface specification governing an exchange across a boundary of
@@ -779,6 +1203,84 @@ type Contract struct {
 	Version string `json:"version"`
 }
 
+func (v *Contract) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Contract: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Contract: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Contract: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Contract: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Contract: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Contract: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	if m, ok := raw["provider"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Contract: required field \"provider\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Provider); err != nil {
+		return prefixField("provider", err)
+	}
+	if m, ok := raw["visibility"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Contract: required field \"visibility\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Visibility); err != nil {
+		return prefixField("visibility", err)
+	}
+	if m, ok := raw["consumers"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Consumers); err != nil {
+			return prefixField("consumers", err)
+		}
+	}
+	if m, ok := raw["specs"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Specs); err != nil {
+			return prefixField("specs", err)
+		}
+	}
+	if m, ok := raw["version"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Contract: required field \"version\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Version); err != nil {
+		return prefixField("version", err)
+	}
+	return nil
+}
+
 // Cross-cutting standards, policies, guidelines or constraints that apply
 // across documents or components rather than to one of them.
 type Standards struct {
@@ -827,6 +1329,64 @@ type Standards struct {
 	// validation here — which is the intended behaviour, because `0.10` and
 	// `0.1` are the same float and different versions.
 	Version string `json:"version"`
+}
+
+func (v *Standards) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Standards: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Standards: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Standards: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Standards: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Standards: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Standards: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	if m, ok := raw["version"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Standards: required field \"version\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Version); err != nil {
+		return prefixField("version", err)
+	}
+	return nil
 }
 
 // A C4 system blueprint: the public contracts a system provides.
@@ -896,6 +1456,69 @@ type SystemBlueprint struct {
 	// listed here — those are neighbour edges, and per ADR-009 they belong
 	// to the parent that composes the elements, or to the code.
 	ContractsConsumed *[]Slug `json:"contracts_consumed,omitempty"`
+}
+
+func (v *SystemBlueprint) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SystemBlueprint: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SystemBlueprint: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SystemBlueprint: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SystemBlueprint: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SystemBlueprint: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SystemBlueprint: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	if m, ok := raw["contracts_provided"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
+			return prefixField("contracts_provided", err)
+		}
+	}
+	if m, ok := raw["contracts_consumed"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
+			return prefixField("contracts_consumed", err)
+		}
+	}
+	return nil
 }
 
 // A C4 container blueprint: one independently deployable or runnable
@@ -969,6 +1592,74 @@ type ContainerBlueprint struct {
 	// blueprint documents it. Absence records a documented fact rather than
 	// an oversight.
 	System *Slug `json:"system,omitempty"`
+}
+
+func (v *ContainerBlueprint) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ContainerBlueprint: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ContainerBlueprint: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ContainerBlueprint: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ContainerBlueprint: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ContainerBlueprint: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ContainerBlueprint: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	if m, ok := raw["contracts_provided"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
+			return prefixField("contracts_provided", err)
+		}
+	}
+	if m, ok := raw["contracts_consumed"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
+			return prefixField("contracts_consumed", err)
+		}
+	}
+	if m, ok := raw["system"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.System); err != nil {
+			return prefixField("system", err)
+		}
+	}
+	return nil
 }
 
 // A C4 module blueprint: a coherent unit of code with an interface of its
@@ -1067,6 +1758,99 @@ type ModuleBlueprint struct {
 	Version *string `json:"version,omitempty"`
 }
 
+func (v *ModuleBlueprint) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ModuleBlueprint: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ModuleBlueprint: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ModuleBlueprint: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ModuleBlueprint: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ModuleBlueprint: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ModuleBlueprint: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	if m, ok := raw["contracts_provided"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
+			return prefixField("contracts_provided", err)
+		}
+	}
+	if m, ok := raw["contracts_consumed"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
+			return prefixField("contracts_consumed", err)
+		}
+	}
+	if m, ok := raw["kind"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ModuleBlueprint: required field \"kind\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Kind); err != nil {
+		return prefixField("kind", err)
+	}
+	if m, ok := raw["visibility"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ModuleBlueprint: required field \"visibility\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Visibility); err != nil {
+		return prefixField("visibility", err)
+	}
+	if m, ok := raw["contained_by"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.ContainedBy); err != nil {
+			return prefixField("contained_by", err)
+		}
+	}
+	if m, ok := raw["source_paths"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.SourcePaths); err != nil {
+			return prefixField("source_paths", err)
+		}
+	}
+	if m, ok := raw["test_paths"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.TestPaths); err != nil {
+			return prefixField("test_paths", err)
+		}
+	}
+	if m, ok := raw["version"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Version); err != nil {
+			return prefixField("version", err)
+		}
+	}
+	return nil
+}
+
 // A C4 component blueprint: a single component promoted out of its
 // parent's roster into a document of its own, because it warrants more
 // than a record block.
@@ -1138,6 +1922,84 @@ type ComponentBlueprint struct {
 	SourcePaths *[]string `json:"source_paths,omitempty"`
 	// Repository-relative test roots.
 	TestPaths *[]string `json:"test_paths,omitempty"`
+}
+
+func (v *ComponentBlueprint) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ComponentBlueprint: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ComponentBlueprint: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ComponentBlueprint: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ComponentBlueprint: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ComponentBlueprint: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ComponentBlueprint: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	if m, ok := raw["contracts_provided"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
+			return prefixField("contracts_provided", err)
+		}
+	}
+	if m, ok := raw["contracts_consumed"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
+			return prefixField("contracts_consumed", err)
+		}
+	}
+	if m, ok := raw["kind"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ComponentBlueprint: required field \"kind\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Kind); err != nil {
+		return prefixField("kind", err)
+	}
+	if m, ok := raw["source_paths"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.SourcePaths); err != nil {
+			return prefixField("source_paths", err)
+		}
+	}
+	if m, ok := raw["test_paths"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.TestPaths); err != nil {
+			return prefixField("test_paths", err)
+		}
+	}
+	return nil
 }
 
 // A transient change document describing how the system changes to deliver
@@ -1212,6 +2074,74 @@ type FeatureBlueprint struct {
 	// property name does not span two relationships — `Frd.sources` is
 	// optional, many-valued provenance, which is a different edge.
 	Frd Slug `json:"frd"`
+}
+
+func (v *FeatureBlueprint) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FeatureBlueprint: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FeatureBlueprint: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FeatureBlueprint: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FeatureBlueprint: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FeatureBlueprint: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FeatureBlueprint: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	if m, ok := raw["delivery"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FeatureBlueprint: required field \"delivery\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Delivery); err != nil {
+		return prefixField("delivery", err)
+	}
+	if m, ok := raw["plan"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Plan); err != nil {
+			return prefixField("plan", err)
+		}
+	}
+	if m, ok := raw["frd"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FeatureBlueprint: required field \"frd\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Frd); err != nil {
+		return prefixField("frd", err)
+	}
+	return nil
 }
 
 // An improvement proposal raised against a skill by a run that exercised
@@ -1293,6 +2223,99 @@ type Rfc struct {
 	PluginVersion string `json:"plugin_version"`
 }
 
+func (v *Rfc) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	if m, ok := raw["origin"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"origin\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Origin); err != nil {
+		return prefixField("origin", err)
+	}
+	if m, ok := raw["skill"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"skill\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Skill); err != nil {
+		return prefixField("skill", err)
+	}
+	if m, ok := raw["skill_version"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"skill_version\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.SkillVersion); err != nil {
+		return prefixField("skill_version", err)
+	}
+	if m, ok := raw["model"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"model\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Model); err != nil {
+		return prefixField("model", err)
+	}
+	if m, ok := raw["effort"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"effort\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Effort); err != nil {
+		return prefixField("effort", err)
+	}
+	if m, ok := raw["runs_observed"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"runs_observed\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.RunsObserved); err != nil {
+		return prefixField("runs_observed", err)
+	}
+	if m, ok := raw["severity"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"severity\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Severity); err != nil {
+		return prefixField("severity", err)
+	}
+	if m, ok := raw["plugin_version"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"plugin_version\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.PluginVersion); err != nil {
+		return prefixField("plugin_version", err)
+	}
+	return nil
+}
+
 // A how-to document explaining a technique that other document types
 // assume knowledge of — EARS syntax, C4 mapping, cross-document reference
 // conventions.
@@ -1343,6 +2366,64 @@ type Guide struct {
 	Version *string `json:"version,omitempty"`
 }
 
+func (v *Guide) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Guide: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Guide: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Guide: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Guide: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Guide: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Guide: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	if m, ok := raw["version"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Version); err != nil {
+			return prefixField("version", err)
+		}
+	}
+	return nil
+}
+
 // A contiguous region of a document.
 //
 // Byte offset and byte length are the authoritative extent, because spans
@@ -1373,6 +2454,44 @@ type Span struct {
 	EndColumn uint64 `json:"end_column"`
 }
 
+func (v *Span) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["offset"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Span: required field \"offset\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Offset); err != nil {
+		return prefixField("offset", err)
+	}
+	if m, ok := raw["length"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Span: required field \"length\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Length); err != nil {
+		return prefixField("length", err)
+	}
+	if m, ok := raw["start_line"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Span: required field \"start_line\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.StartLine); err != nil {
+		return prefixField("start_line", err)
+	}
+	if m, ok := raw["start_column"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Span: required field \"start_column\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.StartColumn); err != nil {
+		return prefixField("start_column", err)
+	}
+	if m, ok := raw["end_line"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Span: required field \"end_line\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.EndLine); err != nil {
+		return prefixField("end_line", err)
+	}
+	if m, ok := raw["end_column"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Span: required field \"end_column\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.EndColumn); err != nil {
+		return prefixField("end_column", err)
+	}
+	return nil
+}
+
 // A located failure to parse part of a document.
 //
 // Recorded against the document it occurred in rather than raised, because
@@ -1385,6 +2504,24 @@ type ParseError struct {
 	Message string `json:"message"`
 	// Where in the document the failure occurred.
 	Position Span `json:"position"`
+}
+
+func (v *ParseError) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["message"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ParseError: required field \"message\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Message); err != nil {
+		return prefixField("message", err)
+	}
+	if m, ok := raw["position"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ParseError: required field \"position\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Position); err != nil {
+		return prefixField("position", err)
+	}
+	return nil
 }
 
 // Why a candidate file beneath the spec root is not a corpus member.
@@ -1454,6 +2591,29 @@ type IndexEntry struct {
 	ParseError *ParseError `json:"parse_error,omitempty"`
 }
 
+func (v *IndexEntry) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("IndexEntry: required field \"path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Path); err != nil {
+		return prefixField("path", err)
+	}
+	if m, ok := raw["frontmatter"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Frontmatter); err != nil {
+			return prefixField("frontmatter", err)
+		}
+	}
+	if m, ok := raw["parse_error"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.ParseError); err != nil {
+			return prefixField("parse_error", err)
+		}
+	}
+	return nil
+}
+
 // One candidate file that is not a corpus member, and why.
 type IndexExclusion struct {
 	// The excluded file's path, relative to the repository root and written
@@ -1465,6 +2625,29 @@ type IndexExclusion struct {
 	// `unknown-type` so that a reviewing agent can judge whether the profile
 	// or the document is wrong.
 	Type *string `json:"type,omitempty"`
+}
+
+func (v *IndexExclusion) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("IndexExclusion: required field \"path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Path); err != nil {
+		return prefixField("path", err)
+	}
+	if m, ok := raw["reason"]; !ok || string(m) == "null" {
+		return fmt.Errorf("IndexExclusion: required field \"reason\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Reason); err != nil {
+		return prefixField("reason", err)
+	}
+	if m, ok := raw["type"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Type); err != nil {
+			return prefixField("type", err)
+		}
+	}
+	return nil
 }
 
 // The machine-readable description of a repository's specification corpus,
@@ -1512,6 +2695,39 @@ type SpecIndex struct {
 	InputHash *string `json:"input_hash,omitempty"`
 }
 
+func (v *SpecIndex) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["schema_version"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SpecIndex: required field \"schema_version\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.SchemaVersion); err != nil {
+		return prefixField("schema_version", err)
+	}
+	if m, ok := raw["workspace"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SpecIndex: required field \"workspace\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Workspace); err != nil {
+		return prefixField("workspace", err)
+	}
+	if m, ok := raw["entries"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SpecIndex: required field \"entries\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Entries); err != nil {
+		return prefixField("entries", err)
+	}
+	if m, ok := raw["exclusions"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SpecIndex: required field \"exclusions\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Exclusions); err != nil {
+		return prefixField("exclusions", err)
+	}
+	if m, ok := raw["input_hash"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.InputHash); err != nil {
+			return prefixField("input_hash", err)
+		}
+	}
+	return nil
+}
+
 // What a profile registers into Document Core.
 //
 // **Internal surface.** This is the vocabulary a profile hands to the
@@ -1557,6 +2773,44 @@ type ProfileRegistration struct {
 	Conventions *ConventionsConfig `json:"conventions,omitempty"`
 }
 
+func (v *ProfileRegistration) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["name"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ProfileRegistration: required field \"name\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Name); err != nil {
+		return prefixField("name", err)
+	}
+	if m, ok := raw["document_types"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ProfileRegistration: required field \"document_types\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.DocumentTypes); err != nil {
+		return prefixField("document_types", err)
+	}
+	if m, ok := raw["block_tags"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.BlockTags); err != nil {
+			return prefixField("block_tags", err)
+		}
+	}
+	if m, ok := raw["finished_statuses"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.FinishedStatuses); err != nil {
+			return prefixField("finished_statuses", err)
+		}
+	}
+	if m, ok := raw["placeholder_patterns"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.PlaceholderPatterns); err != nil {
+			return prefixField("placeholder_patterns", err)
+		}
+	}
+	if m, ok := raw["conventions"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Conventions); err != nil {
+			return prefixField("conventions", err)
+		}
+	}
+	return nil
+}
+
 // Everything the engine needs to check one document type.
 type DocumentTypeRegistration struct {
 	// The JSON Schema this type's frontmatter is validated against,
@@ -1599,6 +2853,54 @@ type DocumentTypeRegistration struct {
 	Pairings *[]PropertyPairing `json:"pairings,omitempty"`
 }
 
+func (v *DocumentTypeRegistration) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["schema"]; !ok || string(m) == "null" {
+		return fmt.Errorf("DocumentTypeRegistration: required field \"schema\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Schema); err != nil {
+		return prefixField("schema", err)
+	}
+	if m, ok := raw["slug_pattern"]; !ok || string(m) == "null" {
+		return fmt.Errorf("DocumentTypeRegistration: required field \"slug_pattern\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.SlugPattern); err != nil {
+		return prefixField("slug_pattern", err)
+	}
+	if m, ok := raw["numbered"]; !ok || string(m) == "null" {
+		return fmt.Errorf("DocumentTypeRegistration: required field \"numbered\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Numbered); err != nil {
+		return prefixField("numbered", err)
+	}
+	if m, ok := raw["sections"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Sections); err != nil {
+			return prefixField("sections", err)
+		}
+	}
+	if m, ok := raw["section_sets"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.SectionSets); err != nil {
+			return prefixField("section_sets", err)
+		}
+	}
+	if m, ok := raw["reference_properties"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.ReferenceProperties); err != nil {
+			return prefixField("reference_properties", err)
+		}
+	}
+	if m, ok := raw["typed_reference_properties"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.TypedReferenceProperties); err != nil {
+			return prefixField("typed_reference_properties", err)
+		}
+	}
+	if m, ok := raw["pairings"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Pairings); err != nil {
+			return prefixField("pairings", err)
+		}
+	}
+	return nil
+}
+
 // A required heading, and the headings required beneath it.
 //
 // Required sections are a hierarchy rather than a flat list because the
@@ -1622,6 +2924,34 @@ type Section struct {
 	Children *[]Section `json:"children,omitempty"`
 }
 
+func (v *Section) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Section: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["required"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Section: required field \"required\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Required); err != nil {
+		return prefixField("required", err)
+	}
+	if m, ok := raw["repeated"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Section: required field \"repeated\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Repeated); err != nil {
+		return prefixField("repeated", err)
+	}
+	if m, ok := raw["children"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Children); err != nil {
+			return prefixField("children", err)
+		}
+	}
+	return nil
+}
+
 // One half of a relationship that must be declared from both ends.
 //
 // A document naming a counterpart in one property where that counterpart
@@ -1643,6 +2973,24 @@ type PropertyPairing struct {
 	Counterpart string `json:"counterpart"`
 }
 
+func (v *PropertyPairing) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["property"]; !ok || string(m) == "null" {
+		return fmt.Errorf("PropertyPairing: required field \"property\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Property); err != nil {
+		return prefixField("property", err)
+	}
+	if m, ok := raw["counterpart"]; !ok || string(m) == "null" {
+		return fmt.Errorf("PropertyPairing: required field \"counterpart\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Counterpart); err != nil {
+		return prefixField("counterpart", err)
+	}
+	return nil
+}
+
 // A fenced block whose contents carry structured data about an element
 // declared inside a document.
 type BlockTagRegistration struct {
@@ -1657,6 +3005,29 @@ type BlockTagRegistration struct {
 	// as a JSON Pointer into the bundled schema or as a path to a
 	// standalone one.
 	Schema *string `json:"schema,omitempty"`
+}
+
+func (v *BlockTagRegistration) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["tag"]; !ok || string(m) == "null" {
+		return fmt.Errorf("BlockTagRegistration: required field \"tag\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Tag); err != nil {
+		return prefixField("tag", err)
+	}
+	if m, ok := raw["format"]; !ok || string(m) == "null" {
+		return fmt.Errorf("BlockTagRegistration: required field \"format\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Format); err != nil {
+		return prefixField("format", err)
+	}
+	if m, ok := raw["schema"]; ok && string(m) != "null" {
+		if err := json.Unmarshal(m, &v.Schema); err != nil {
+			return prefixField("schema", err)
+		}
+	}
+	return nil
 }
 
 // The formats a registered fenced block's contents may be parsed as.
@@ -1959,4 +3330,18 @@ func (e *Delivery) UnmarshalJSON(data []byte) error {
 
 func (e Delivery) String() string {
 	return string(e)
+}
+
+// prefixField re-attaches a struct's key to a decode error raised inside a
+// property decoded on its own, so nested paths stay whole.
+func prefixField(key string, err error) error {
+	var typeErr *json.UnmarshalTypeError
+	if errors.As(err, &typeErr) {
+		if typeErr.Field == "" {
+			typeErr.Field = key
+		} else {
+			typeErr.Field = key + "." + typeErr.Field
+		}
+	}
+	return err
 }

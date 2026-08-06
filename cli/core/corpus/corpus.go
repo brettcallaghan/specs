@@ -566,13 +566,34 @@ func slugSpan(doc *frontmatter.Document) specmodel.Span {
 	return doc.Region.Inner
 }
 
+// envelopeShape is [specmodel.DocumentFrontmatter] with its generated
+// UnmarshalJSON deliberately dropped.
+//
+// A defined type does not inherit the methods of the type it is derived
+// from, so decoding through this one runs encoding/json's default struct
+// path: the same json tags and the same type checking, without the
+// generated decoder's required-field enforcement.
+//
+// That enforcement is right everywhere else the CLI decodes a generated
+// record — a specs.toml missing `workspace.name` or a persisted index
+// missing an entry path should fail loudly. It is wrong *here*, because a
+// missing required property in a document's frontmatter is the subject of
+// a check rather than a precondition of reading one. Enforcing it at
+// decode makes every such document a `frontmatter/parse` failure and
+// leaves `frontmatter/missing-property` unable to fire at all — a check
+// that reports success because it never runs. The schema owns
+// required-ness and says which property and where; this decode owns shape.
+type envelopeShape specmodel.DocumentFrontmatter
+
 // decodeFrontmatter converts a parsed block into the typed envelope an
 // index entry carries (AC-SPEC-002.1).
 //
 // The conversion runs through JSON because the generated records carry
 // json tags and no YAML ones. A value of the wrong shape for the
 // envelope is a located failure rather than an error the caller raises:
-// it is recorded against its own document and the walk continues.
+// it is recorded against its own document and the walk continues. A
+// value that is merely absent is not a failure here at all — see
+// [envelopeShape].
 func decodeFrontmatter(doc *frontmatter.Document) (*specmodel.DocumentFrontmatter, *specmodel.ParseError) {
 	raw, err := doc.JSON()
 	if err != nil {
@@ -582,13 +603,14 @@ func decodeFrontmatter(doc *frontmatter.Document) (*specmodel.DocumentFrontmatte
 		}
 	}
 
-	var envelope specmodel.DocumentFrontmatter
-	if err := json.Unmarshal(raw, &envelope); err != nil {
+	var shape envelopeShape
+	if err := json.Unmarshal(raw, &shape); err != nil {
 		return nil, &specmodel.ParseError{
 			Message:  fmt.Sprintf("the frontmatter block does not fit the document envelope: %s", err),
 			Position: envelopeErrorSpan(doc, err),
 		}
 	}
+	envelope := specmodel.DocumentFrontmatter(shape)
 	return &envelope, nil
 }
 

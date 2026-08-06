@@ -43,6 +43,26 @@ const checkSchema = `{
   }
 }`
 
+// envelopeCheckSchema requires "description" — a property of the shared
+// envelope rather than a type-specific one. checkSchema models only
+// "decision", so it cannot express the case
+// TestAMissingEnvelopePropertyIsAMissingPropertyNotAParseFailure needs:
+// a required property that the generated envelope decoder also knows
+// about, and would reject before any schema check could run.
+const envelopeCheckSchema = `{
+  "definitions": {
+    "Adr": {
+      "type": "object",
+      "required": ["description"],
+      "properties": {"description": {"type": "string"}}
+    },
+    "Frd": {
+      "type": "object",
+      "properties": {}
+    }
+  }
+}`
+
 // formatCheckSchema constrains "released_at" with a format keyword and
 // nothing else, isolating the raw-text-vs-coerced-value behavior
 // AC-SPEC-003.2 governs from the required-property behavior AC-SPEC-003.1
@@ -175,6 +195,68 @@ func TestCheckReportsASchemaInvalidMember(t *testing.T) {
 	}
 	if detail.Property != "decision" {
 		t.Errorf("property = %q, want %q", detail.Property, "decision")
+	}
+}
+
+// envelopeDocument renders a document missing one required property of
+// the shared envelope — the properties DocumentFrontmatter itself
+// declares, as opposed to the type-specific "decision" the test above
+// covers. Only these reach the generated envelope decoder.
+func envelopeDocument(docType, slug, title string) string {
+	return fmt.Sprintf(`---
+title: %q
+slug: %s
+type: %s
+status: approved
+updated_at: "2026-08-05T00:00:00Z"
+---
+
+# %s
+`, title, slug, docType, title)
+}
+
+// AC: AC-SPEC-003.1
+//
+// A member missing a required ENVELOPE property reports
+// frontmatter/missing-property, naming the property — never
+// frontmatter/parse.
+//
+// This guards a regression that regenerating the model can silently
+// reintroduce. Strata's Go target emits an UnmarshalJSON per struct that
+// rejects a missing required field, so decoding straight into
+// specmodel.DocumentFrontmatter turns every such document into a parse
+// failure and leaves frontmatter/missing-property unable to fire at all —
+// a check that reports success because it never runs. corpus.go decodes
+// through a defined type to drop that method; see envelopeShape there.
+//
+// TestCheckReportsASchemaInvalidMember does not cover this: "decision" is
+// type-specific, absent from the envelope, so the generated decoder never
+// sees it and that test passes either way.
+func TestAMissingEnvelopePropertyIsAMissingPropertyNotAParseFailure(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-001.md", envelopeDocument("adr", "adr-001", "First"))
+
+	built := buildChecked(t, repo, checkProfile(envelopeCheckSchema))
+
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+
+	if got := findingsWithRule(findings, finding.RuleFrontmatterParse, "specs/adrs/adr-001.md"); len(got) != 0 {
+		t.Errorf("got %d frontmatter/parse findings, want 0 — the envelope decode is enforcing required-ness: %+v", len(got), got)
+	}
+
+	missing := findingsWithRule(findings, finding.RuleMissingProperty, "specs/adrs/adr-001.md")
+	if len(missing) != 1 {
+		t.Fatalf("got %d missing-property findings, want 1: %+v", len(missing), findings)
+	}
+	detail, ok := missing[0].Detail.Value.(specmodel.FindingMissingProperty)
+	if !ok {
+		t.Fatalf("detail = %T, want FindingMissingProperty", missing[0].Detail.Value)
+	}
+	if detail.Property != "description" {
+		t.Errorf("property = %q, want %q", detail.Property, "description")
 	}
 }
 

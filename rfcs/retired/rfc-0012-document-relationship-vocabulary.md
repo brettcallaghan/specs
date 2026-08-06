@@ -497,15 +497,31 @@ step-4 gate, on the stronger evidence of seeing the schema itself.
 **On the strata toolchain.** Regenerating the derived artifacts needs a
 `strata` newer than the 0.7.0 on PATH, which drops struct inheritance
 under `additionalProperties: false` and would have silently emptied every
-document type (open bead `agent-plugins-j7f`). Building from the attached
-checkout at HEAD fixed that but introduced an unrelated emitter change —
-generated `UnmarshalJSON` methods enforcing required fields — which moved
-two snapshot findings from `frontmatter/missing-property` to
-`frontmatter/parse` and failed the CLI snapshot suites. That is a
-toolchain upgrade, not this RFC's change, so the regeneration was pinned
-to strata `8997153`, the commit `agent-plugins-j7f` records as producing
-byte-identical output to what is committed. The emitter change is worth
-adopting deliberately; it is not adopted here.
+document type (open bead `agent-plugins-j7f`, still open — nothing here
+adds the version floor it asks for). The artifacts are generated from
+strata `origin/main` at `840f9ba`.
+
+That build's Go target emits an `UnmarshalJSON` per struct which rejects a
+missing required field, and adopting it required one refactor. Three sites
+decode a generated record. For `specs.toml` and for a persisted index the
+new strictness is a straight improvement, and both were left alone. For a
+document's frontmatter it is wrong: required-ness there is *the subject of
+a check*, not a precondition of reading one, so enforcing it at decode
+turned every such document into a `frontmatter/parse` failure and left
+`frontmatter/missing-property` unable to fire at all — a check reporting
+success because it never ran, which is the defect class RFC 0011 is about.
+`corpus.go` now decodes through a defined type (`envelopeShape`), which by
+Go's rules does not inherit the generated method, so the decode keeps its
+type checking and gives required-ness back to the schema that owns it and
+names the property. Behaviour is identical to before: every CLI snapshot
+is byte-for-byte unchanged.
+
+The pre-existing unit test did not cover this — it asserts a missing
+*type-specific* property, which the envelope decoder never sees, so it
+passed either way and only the end-to-end snapshot caught the regression.
+`TestAMissingEnvelopePropertyIsAMissingPropertyNotAParseFailure` now pins
+it directly, and was confirmed to fail when the decode is pointed back at
+the generated type.
 
 **Files changed.** `schemas/frontmatter.strata`, `schemas/profile.strata`
 and their generated artifacts (`cli/core/schema/`, `cli/core/specmodel/`,
