@@ -18,15 +18,25 @@ COMPARISON ARTIFACT — not a corpus member.
 This file lives in docs/, outside the spec root declared in specs.toml, so
 `spec check` does not see it and its slug cannot collide with the original's.
 
-It reproduces specs/features/spec-index/spec-index-frd.md with one change:
-every acceptance criterion is a tagged Gherkin scenario instead of an EARS
-bullet. Overview, Terminology, user stories and the numbering note are
-unchanged prose, per [[adr-018]] — Gherkin replaces the criteria, not the
-document.
+It reproduces specs/features/spec-index/spec-index-frd.md under the mapping
+ADR-018 constraint 1 fixes:
+
+  REQ        -> Feature:          (one fenced block each)
+  User Story -> the Feature description, with a design note and scope fence
+  AC         -> Scenario / Scenario Outline, tagged with its identifier
+  a business rule grouping several ACs -> Rule:
+  *Example:* -> an Examples row
+
+Overview, Terminology and the numbering note remain markdown prose — they
+are FRD-level and Gherkin has no node above Feature. The nine per-requirement
+*Rationale:* paragraphs are gone: their durable content moved into the
+Feature descriptions, and the one that stated a real rule became a Rule:.
+See docs/plans/gherkin-feature-description-guidance.md.
 
 Every block below was parsed with github.com/cucumber/gherkin/go/v42 and the
-extractor described in docs/plans/gherkin-extraction-findings.md. Findings
-from the exercise are in docs/gherkin-frd-comparison.md.
+extractor described in docs/plans/gherkin-extraction-findings.md: 9 blocks,
+50 scenarios, all 52 AC identifiers, no duplicates, no untagged scenarios.
+Findings from the exercise are in docs/gherkin-frd-comparison.md.
 -->
 
 # Spec Corpus Index and Core Conformance Checks
@@ -74,8 +84,17 @@ unchanged and carries the full out-of-scope list.)*
 Feature: Corpus Discovery and Membership
 
   As an adopting team
-  I want to point the tool at my repository and have it work out which files are specifications
-  So that I do not have to enumerate documents or restructure my directories
+  I want the tool to work out for itself which files are specifications
+  So that I need not enumerate documents or restructure my directories
+
+  Membership is determined by content, not location: a `.md` file whose
+  frontmatter parses and declares a type the active profile knows. A file
+  that looks like a specification but has no frontmatter is recorded as an
+  exclusion rather than dropped, so an agent can notice what the CLI
+  cannot judge.
+
+  This requirement reads frontmatter and path only. Resolving references
+  and walking body structure are follow-on features.
 
   @AC-SPEC-001.1
   Scenario Outline: A directory invocation admits every typed markdown file
@@ -137,8 +156,6 @@ Feature: Corpus Discovery and Membership
       | docs/adrs/README.rst                        | ignored, not excluded |
 ```
 
-*Rationale:* Membership by content rather than path is what lets the tool run against a repository it did not design. Recording exclusions rather than dropping them is what lets an agent notice that a document which should be a specification is missing frontmatter — a judgment the CLI cannot make.
-
 ### REQ-SPEC-002: Document Index
 
 **Acceptance Criteria:**
@@ -148,8 +165,17 @@ Feature: Corpus Discovery and Membership
 Feature: Document Index
 
   As an architecture owner
-  I want one machine-readable artifact describing every specification document and how they relate
-  So that CI, agents, and a central catalogue all read the same source of truth instead of each re-deriving it
+  I want one machine-readable artifact describing every specification document
+  So that CI, agents and a central catalogue read one source of truth
+
+  The index is the primary artifact, not a by-product: every check in this
+  document is a query over it, and consumers outside this framework read it
+  without running any check at all. A repository with three broken documents
+  must still contribute its other nine hundred to an organization's graph.
+
+  The schema is deliberately additive. This increment fills frontmatter and
+  path; later features populate the rest without changing its shape or its
+  version.
 
   @AC-SPEC-002.1
   Scenario: The index carries frontmatter and path for every member
@@ -193,13 +219,6 @@ Feature: Document Index
       Then the CLI exits zero
 ```
 
-*Rationale:* the rule above is what makes the index usable as an
-architecture artifact — a repository with three broken documents must
-still contribute its other nine hundred to an organization's graph. The
-index is deliberately additive: this sprint fills frontmatter and path,
-and later features populate the remaining properties without changing
-the schema's shape or its version.
-
 ### REQ-SPEC-003: Metadata Conformance
 
 **Acceptance Criteria:**
@@ -210,7 +229,12 @@ Feature: Metadata Conformance
 
   As a reviewer
   I want frontmatter errors reported mechanically
-  So that review attention goes to whether a document says the right thing rather than whether it is shaped correctly
+  So that review attention goes to whether a document says the right thing
+
+  Every criterion here except AC-SPEC-003.6 presupposes parsed frontmatter.
+  A file with no frontmatter at all is an exclusion under AC-SPEC-001.3 and
+  is not covered here: it never claimed to be a specification, whereas a
+  member with a parse error claimed and got the claim wrong.
 
   @AC-SPEC-003.1
   Scenario Outline: Frontmatter is validated against the profile's schema
@@ -278,8 +302,6 @@ Feature: Metadata Conformance
     And the check run exits non-zero
 ```
 
-*Rationale:* Every criterion here except AC-SPEC-003.6 presupposes parsed frontmatter, so before that criterion was written the worst-formed document in a corpus was the one the checker was guaranteed to be silent about — the severity of a defect and the tool's willingness to mention it ran in opposite directions. A file with no frontmatter at all remains an exclusion under AC-SPEC-001.3 and is not covered here; it never claimed to be a specification, whereas a member with a parse error did and got the claim wrong.
-
 *Note on numbering:* REQ-SPEC-004 (reference integrity) and REQ-SPEC-005
 (structure and hygiene conformance) covered behavior deferred to
 follow-on features. Their numbers are intentionally left unused here
@@ -296,8 +318,12 @@ the gap would break those citations. The gap is deliberate.
 Feature: Findings, Severities, and Diagnostics
 
   As an agent acting on the output
-  I want findings that name the rule and cite where it is defined
-  So that I can fix the problem without loading the standards documents that define it
+  I want findings that name the rule and quote what violated it
+  So that I can fix the problem without loading the standards that define it
+
+  A diagnostic is self-contained. Because it quotes the violated constraint
+  and the offending value, the fixing agent needs no further lookup and the
+  `spec` skill need not preload verification procedure.
 
   @AC-SPEC-006.1
   Scenario: Every finding is self-contained
@@ -365,8 +391,6 @@ Feature: Findings, Severities, and Diagnostics
     And the report distinguishes "slug uniqueness passed" from "frontmatter schema was not checked"
 ```
 
-*Rationale:* AC-SPEC-006.1's message requirement is what allows the spec skill to stop preloading verification procedure. A diagnostic that quotes the violated constraint and the offending value is self-contained: the agent fixes it without opening the standard that defines the rule.
-
 ### REQ-SPEC-007: Corpus Queries
 
 **Acceptance Criteria:**
@@ -377,7 +401,11 @@ Feature: Corpus Queries
 
   As an authoring agent
   I want to ask the corpus direct questions
-  So that I can pick a conforming identifier and understand impact without reading every document
+  So that I can pick a conforming identifier without reading every document
+
+  Both queries answer from frontmatter and path alone. Queries that need
+  more of the index — which documents reference a slug, the spans of
+  headings matching a selection — are follow-on features.
 
   @AC-SPEC-007.1
   Scenario Outline: next-id returns one greater than the highest in use
@@ -401,8 +429,6 @@ Feature: Corpus Queries
       | adr-004 | docs/adrs/ADR-004-module-blueprint-and-atomic.md    |
 ```
 
-*Rationale:* Both queries answer from frontmatter and path alone, so they belong in this sprint. Queries that need more of the index — which documents reference this slug, the spans of headings matching a selection — are deferred to the later features that populate those parts.
-
 ### REQ-SPEC-008: Configuration
 
 **Acceptance Criteria:**
@@ -414,6 +440,10 @@ Feature: Configuration
   As an adopting team
   I want to declare my own document types and conventions
   So that the tool enforces my framework rather than the one it shipped with
+
+  The configuration schema is additive: later features add each type's
+  required headings, its line-width limit and its reference-bearing
+  properties to the same file without breaking an existing one.
 
   @AC-SPEC-008.1
   Scenario Outline: Configuration is read from a TOML file at the root
@@ -466,8 +496,16 @@ Feature: Configuration
 Feature: Invocation, Performance, and Portability
 
   As a platform engineer
-  I want to run this in locked-down CI and in an editing loop that fires on every file write
+  I want to run this in locked-down CI and in an editing loop on every write
   So that neither the build nor the author waits on it
+
+  The budgets come from the two invocation patterns that dominate: an agent
+  asking one question, and a write-time hook checking one file.
+
+  Installation must succeed inside a network that blocks outbound traffic.
+  That is why nothing executable is retrieved at install time — the common
+  download-a-binary pattern fails in exactly the networks that most need
+  this tool, and adds a supply-chain surface a security review will reject.
 
   Scenario Outline: Latency budgets against a 1,000-document corpus
     Given a corpus of 1,000 documents
@@ -526,8 +564,6 @@ Feature: Invocation, Performance, and Portability
     And the path is relative to the repository root
 ```
 
-*Rationale:* AC-SPEC-009.1 through AC-SPEC-009.3 come from the two invocation patterns that dominate: an agent asking one question, and a write-time hook checking one file. AC-SPEC-009.5 exists because the common packaging pattern of downloading a binary during install fails in exactly the networks that most need this tool, and adds a supply-chain surface an adopting security review will reject.
-
 *Note:* AC-SPEC-009.1, .2 and .3 share one `Scenario Outline` above,
 each carrying its identifier on its own tagged `Examples` block. Tagging
 the scenario instead would have collapsed three criteria into one — see
@@ -542,8 +578,17 @@ the comparison document.
 Feature: Index Output and Persistence
 
   As a CI pipeline and as an authoring agent
-  I want the index written to one known file that I can publish and that later invocations reuse
-  So that the artifact pushed to a central catalogue is the same one that answers my next query without re-reading the corpus
+  I want the index written to one known file that later invocations reuse
+  So that what CI publishes is what answers my next query
+
+  The index artifact and the check report are different outputs.
+  AC-SPEC-006.5 writes a check run's findings to standard output; this
+  requirement governs where the index itself is persisted. One file serves
+  both of the index's roles — the deliverable CI publishes, and the warm
+  cache behind REQ-SPEC-009's budgets.
+
+  Whether an adopting repository commits that file or ignores it is the
+  adopter's choice; the CLI requires neither.
 
   @AC-SPEC-010.1
   Scenario Outline: The index is written to one known file by default
@@ -597,8 +642,6 @@ Feature: Index Output and Persistence
       | present but an input has changed   |
 ```
 
-*Rationale:* The index artifact and the check report are different outputs: REQ-SPEC-006.5 writes the findings of a check run to standard output, while this requirement governs where the index is persisted. One file serves both of the index's roles: the deliverable a CI job publishes, and the warm cache that satisfies the latency budgets of REQ-SPEC-009. Placing specs.json inside the spec root keeps the artifact beside the documents it describes, and because discovery reads only .md files (AC-SPEC-001.6) the index is never mistaken for a corpus member.
-
 ### REQ-SPEC-011: Command Surface
 
 **Acceptance Criteria:**
@@ -607,9 +650,16 @@ Feature: Index Output and Persistence
 @frd-spec-validation-cli
 Feature: Command Surface
 
-  As a human or agent developer integrating the tool
+  As a developer integrating the tool
   I want a small, named set of subcommands
-  So that skills, hooks, and CI scripts call a stable interface rather than reverse-engineering it from behavior
+  So that skills, hooks and CI scripts call a stable interface
+
+  The subcommand vocabulary is this tool's public interface. Later features
+  extend `check` with additional checks and add their own query subcommands,
+  but they never rename or repurpose the four established here.
+
+  The name of the executable itself is a distribution decision recorded
+  separately; this requirement fixes only the subcommands beneath it.
 
   @AC-SPEC-011.1
   Scenario Outline: The index subcommand builds and writes the index
@@ -655,8 +705,6 @@ Feature: Command Surface
       | no subcommand   |
       | --help          |
 ```
-
-*Rationale:* The subcommand vocabulary is the tool's public interface, so it is fixed here rather than left to implementation. Later features extend check with additional checks and add their own query subcommands, but they do not rename or repurpose the four established here. The name of the executable itself is a distribution decision recorded separately.
 
 ## References
 

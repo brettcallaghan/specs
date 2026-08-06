@@ -84,12 +84,21 @@ Field provenance:
 |---|---|
 | `ac_id` | the `Scenario` tag matching `^@AC-[A-Z0-9]+-[0-9]{3}\.[0-9]+$` |
 | `frd` | the `Feature`-level tag |
-| `req` | the enclosing `Rule.Name` |
+| `req` | the enclosing `Feature.Name` (see the note below) |
 | `negative`, `manual`, `level` | `@negative`, `@manual`, `@level-*` tags |
 | `steps[].type` | `Step.KeywordType` |
 | `examples[]` | `Examples.TableHeader` zipped with each `TableBody` row |
-| `rationale` | `Rule.Description` (group) or `Scenario.Description` (single) |
+| `rationale` | `Rule.Description` where a `Rule` groups the criterion, else `Scenario.Description` |
 | `span` | computed — see gap 1 |
+| `story` / requirement context | `Feature.Description` — one text field per requirement |
+
+**Note on `req`.** An early version of this record took `req` from
+`Rule.Name`, because the first trial mapped a requirement onto `Rule:`.
+[[adr-018]] constraint 1 corrects that: a requirement is a `Feature`,
+and `Rule:` groups criteria under a genuine business rule. So `req` is
+`Feature.Name`, and a criterion may additionally sit under a `Rule`
+whose name is the rule it obeys. An extractor must walk **both** direct
+`Feature` children and `Rule` children — a criterion can be either.
 
 **Span correctness was verified by slicing the source at the computed
 offsets and confirming the text returned is the intended scenario**,
@@ -137,6 +146,11 @@ only within a single parse, for referring between nodes.
 
 ### Gap 4 — the synthetic wrapper is conditional
 
+**Under the corrected mapping this does not arise for FRDs**, because
+every block declares its own `Feature` and so is a complete Gherkin
+document. It still matters for any other fenced Gherkin this framework
+parses, and for FRDs written before the mapping was fixed.
+
 A bare fragment (`Scenario:` with no `Feature:`) does not parse, so it
 needs a synthetic `Feature:` line. But a block that *declares* its own
 `Feature:` fails **with** the wrapper:
@@ -170,6 +184,17 @@ they are *not* hung off the scenario beneath them. Associating a comment
 with a criterion is proximity logic we would own. Prefer
 `Rule.Description` / `Scenario.Description`, which are attached.
 
+**A `Feature` description holds multiple paragraphs and markdown.** Blank
+lines are preserved; emphasis, `code`, `[[slug]]`, bullets and blockquotes
+pass through as literal text. Two things do not survive: a line beginning
+`#` becomes a comment and vanishes from the description, and a line
+beginning with a Gherkin keyword terminates the description and becomes
+structure. See `docs/plans/gherkin-feature-description-guidance.md`.
+
+**Descriptions are AST-only.** `Pickles()` rows carry no description
+field, so a store that loads only pickles loses every `Feature`,
+`Rule` and `Scenario` description. Load them from the AST walk.
+
 **`DocString` carries a media type.** A step can hold a fenced block with
 `mediaType`, e.g. `"""markdown`, attached to that step and round-tripping
 through JSON. This is a typed carrier for richer per-criterion rationale
@@ -195,5 +220,7 @@ store or to external tooling (it resolves it).
 
 - [[adr-018]] — the decision this record supports
 - `cli/core/span` — the `Span` type gap 1 and gap 2 are reconciled against
+- `docs/plans/gherkin-feature-description-guidance.md` — what belongs in a
+  `Feature` description and what silently breaks one
 - [cucumber/messages](https://github.com/cucumber/messages) — the wire
   schema the extracted records conform to

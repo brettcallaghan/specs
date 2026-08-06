@@ -115,28 +115,32 @@ tools already ingest.
 ### Measured: rationale has a home, attached to the node
 
 The concern that Gherkin has nowhere for the corpus's `*Rationale:*`
-paragraphs does not hold. `Rule.Description` and `Scenario.Description`
-are populated and attached:
+paragraphs does not hold. Every description field is populated and
+attached to its node:
 
 ```
-Rule.Name        = "Metadata Conformance"
-Rule.Description = "Frontmatter errors are reported mechanically so review
-                    attention goes to whether a document says the right…"
+Feature.Name        = "Document Index"
+Feature.Description = "As an architecture owner / I want one machine-readable
+                       artifact… / The index is the primary artifact, not a
+                       by-product…"
+Rule.Name           = "A build failure is the checker's job, not the indexer's"
 ```
 
 Under the mapping fixed by constraint 1, `Feature.Description` carries
-the user story, `Rule.Description` carries the rationale of a rule that
-groups several criteria, and `Scenario.Description` carries
-per-criterion rationale. Each becomes a text column with an explicit
-scope, where today a `*Rationale:*` paragraph's scope is inferred from
-position.
+the requirement's user story and design note, a `Rule` **name** carries
+rationale that states an assertion governing several criteria, and
+`Scenario.Description` carries per-criterion rationale. Each becomes a
+field with an explicit scope, where today a `*Rationale:*` paragraph's
+scope is inferred from position.
 
 ### The extraction mechanics are settled
 
-Fenced ` ```gherkin ` blocks in `.md` files, wrapped in a synthetic
-`Feature:` header only when the block does not declare its own. The
-extractor is ~40 lines; positions map back with
-`fence_line + (parser_line - wrap)`. Verified against a block containing
+Fenced ` ```gherkin ` blocks in `.md` files. Under constraint 1 an FRD's
+blocks each declare their own `Feature`, so they are complete Gherkin
+documents and need no wrapper; the extractor still supplies a synthetic
+`Feature:` header for any block that omits one. Positions map back with
+`fence_line + (parser_line - wrap)`, where `wrap` is 0 for a block that
+declares its own `Feature` and 1 for a wrapped fragment. Verified against a block containing
 one good criterion and three defective ones — correct `.md` line
 numbers, and untagged, malformed and duplicate identifiers all reported;
 and separately end to end into this project's `Span`, whose byte offsets
@@ -149,8 +153,9 @@ Semantic validation stays in the spec CLI by design: the parser
 enforces Gherkin's grammar, and the CLI enforces that every scenario
 carries exactly one tag matching
 `^@AC-[A-Z0-9]+-[0-9]{3}\.[0-9]+$`, that identifiers are unique and in
-sequence, and that `Feature`/`Scenario` `Description` fields do not
-contain what should have been a criterion.
+sequence, and that a `Scenario` `Description` does not contain what
+should have been a criterion. A `Feature` description is exempt — under
+constraint 1 it legitimately carries the user story and design note.
 
 ### Tried on a real document
 
@@ -158,11 +163,23 @@ The whole of [[frd-spec-validation-cli]] was rewritten in Gherkin as a
 trial — 52 criteria, nine blocks — and parsed with the extractor
 (`docs/spec-index-frd-gherkin.md`, findings in
 `docs/gherkin-frd-comparison.md`). All nine blocks parse and all 52
-identifiers extract, so the design holds. Three costs it surfaced are
-recorded in Consequences below rather than discovered during migration:
-steps cannot wrap so long criteria become long lines, a `Scenario
-Outline` tagged at scenario level silently loses criteria, and the
-Requirements section grows 50%.
+identifiers extract, so the design holds.
+
+The trial also settled where the FRD's other prose goes. Overview,
+Terminology and the numbering note stay markdown, being FRD-level with
+no Gherkin node above `Feature`. Everything at requirement level moved
+inside the blocks: nine user stories into `Feature` descriptions, and
+eight `*Rationale:*` paragraphs either into those descriptions as design
+notes or into a `Rule:` where they stated a real rule. None remains as
+loose prose. `Feature` descriptions hold multiple paragraphs and pass
+markdown through verbatim, with the two silent failures constraint 1
+guards against; the authoring rules are drafted in
+`docs/plans/gherkin-feature-description-guidance.md`.
+
+Three costs are recorded in Consequences below rather than left to be
+discovered during migration: steps cannot wrap so long criteria become
+long lines, a `Scenario Outline` tagged at scenario level silently loses
+criteria, and the Requirements section grows 54%.
 
 ### What is genuinely lost, and what it costs
 
@@ -221,7 +238,10 @@ Binding constraints:
    `Scenario` or `Scenario Outline`. `Rule:` SHALL be used only where a
    genuine business rule groups several criteria — it names an
    assertion, not a topic. Because a Gherkin document holds exactly one
-   `Feature`, this means one fenced block per requirement.
+   `Feature`, this means one fenced block per requirement. That
+   description carries the user story, and MAY carry a design note and a
+   scope fence; it SHALL NOT use `#`, which Gherkin reads as a comment,
+   and no line in it may begin with a Gherkin keyword.
 2. Every `Scenario` SHALL carry exactly one tag matching
    `^@AC-[A-Z0-9]+-[0-9]{3}\.[0-9]+$`; the CLI SHALL report a finding
    otherwise.
@@ -324,9 +344,10 @@ generate.
   criteria into one, in a document that parses, whose every scenario is
   tagged, and against which no check fires. Constraint 7 and its
   conformance check are the only defence.
-- **The Requirements section grows about 50%** — measured 410 to 616
-  lines, 7.9 to 11.8 lines per criterion — because 25 of 52 criteria
-  need a `Scenario Outline` to hold a single example row.
+- **The Requirements section grows about 54%** — measured 410 to 633
+  lines, 7.9 to 12.2 lines per criterion. Two causes: 25 of 52 criteria
+  need a `Scenario Outline` to hold a single example row, and the
+  requirement-level prose that was markdown now sits inside the blocks.
 
 **Revisit when** the central store's schema is actually designed. If it
 diverges materially from `cucumber/messages`, the structured-record
@@ -356,3 +377,6 @@ the target shape directly.
   contract, the AST type hierarchy, and the five integration gotchas
 - `docs/spec-index-frd-gherkin.md`, `docs/gherkin-frd-comparison.md` —
   the trial migration of a real FRD and what it cost
+- `docs/plans/gherkin-feature-description-guidance.md` — proposed FRD
+  template section for `Feature` descriptions, held out of the template
+  while this ADR is draft

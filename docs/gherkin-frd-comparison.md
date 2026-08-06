@@ -2,8 +2,14 @@
 
 `specs/features/spec-index/spec-index-frd.md` (the original, EARS prose)
 rewritten as `docs/spec-index-frd-gherkin.md` (Gherkin blocks, per
-[[adr-018]]). Same feature, same 52 acceptance criteria, same overview,
-terminology and user stories — only the criteria notation differs.
+[[adr-018]]). Same feature, same 52 acceptance criteria.
+
+Overview, Terminology and the numbering note stay markdown — they are
+FRD-level, and Gherkin has no node above `Feature`. Everything at
+requirement level moved inside the blocks: the nine user stories into
+`Feature` descriptions, and the eight `*Rationale:*` paragraphs either
+into those descriptions or into a `Rule:` where they stated a real rule.
+No `*Rationale:*` paragraph remains.
 
 Every block in the variant was parsed with
 `github.com/cucumber/gherkin/go/v42` and run through the extractor from
@@ -16,13 +22,14 @@ from predicting it.
 
 | | Original (EARS) | Variant (Gherkin) |
 |---|---|---|
-| Requirements section | 410 lines | 613 lines (**+50%**) |
-| Lines per criterion | 7.9 | 11.8 |
+| Requirements section | 410 lines | 633 lines (**+54%**) |
+| Lines per criterion | 7.9 | 12.2 |
 | Criteria | 52 | 52 |
 | Examples | 40 prose sentences | 37 rows across 25 `Scenario Outline`s |
 | Lines over 80 cols | 0 | 9 (exempt — fenced blocks, AC-SPECSTR-002.5) |
 | Machine-extractable fields per criterion | 1 (the sentence) | id, req, typed steps, example rows, tags |
-| User story | prose | `Feature` description |
+| User stories | 9 markdown paragraphs | 9 `Feature` descriptions |
+| Rationale paragraphs | 8 markdown, scope by position | 0 — absorbed into descriptions and one `Rule:` |
 
 ## Finding 1 — steps cannot wrap, but the width limit does not apply
 
@@ -139,7 +146,8 @@ Examples:
 
 **But 25 of 52 criteria needed an Outline for a single example row.** A
 three-line `Examples:` block carrying one row, to hold what was a
-one-sentence `*Example:*`, is most of the +50%. The tabular form earns
+one-sentence `*Example:*`, is the largest single cause of the +54%.
+The tabular form earns
 its cost when a criterion has two or more instances; below that it is
 ceremony.
 
@@ -167,7 +175,7 @@ be independently testable" — that is a **`Feature`**:
 | AC | `Scenario` / `Scenario Outline` |
 | a genuine business rule grouping several ACs | `Rule:` |
 | `*Example:*` | an `Examples` row |
-| rationale | markdown, or a `Rule:` name where it truly states a rule |
+| rationale | a design note in the `Feature` description, or a `Rule:` name where it states a rule |
 
 Fixing it resolved a problem the wrong mapping had created. With REQ
 mapped to `Rule`, `Rule.Description` was the only description slot
@@ -245,7 +253,39 @@ Honest notes from writing it:
   reference rather than prose.
 - **`[[slug]]` inside a step** is just text. AC-SPEC-001.2 mentions a
   `[[slug]]`; the reference-integrity feature will need to decide
-  whether wikilinks inside Gherkin blocks are resolved or ignored.
+  whether wikilinks inside Gherkin blocks are resolved or ignored. The
+  same question applies to `[[slug]]` inside a `Feature` description,
+  which the variant now uses.
+
+## Finding 7 — the `Feature` description absorbs more than the user story
+
+The description is the only free-text slot attached to a requirement, and
+it takes more than the three story lines. Verified against the parser:
+
+| | Supported? |
+|---|---|
+| Multiple paragraphs, blank-line separated | **Yes**, preserved verbatim |
+| Markdown emphasis, `code`, `[[slug]]`, bullets, blockquotes | **Yes**, as literal text |
+| Markdown headings (`#`) | **No** — silently becomes a Gherkin comment and vanishes |
+| A line starting with a Gherkin keyword | **No** — terminates the description and becomes structure |
+| Lines wrapping freely | **Yes** — unlike steps, descriptions wrap normally |
+
+So a description can carry the story, a design note, and a scope fence.
+That is what the nine descriptions in the variant now do, and it is why
+no `*Rationale:*` paragraph survives: the durable half of each one is a
+constraint that belongs beside its requirement, and the archaeological
+half was dropped.
+
+The two unsupported cases are both silent. Neither errors — a `#` line
+disappears and a keyword line changes the document's shape — which is why
+they are stated as rules in
+`docs/plans/gherkin-feature-description-guidance.md` rather than left to
+be discovered.
+
+**Caveat for the structured store:** descriptions live on the AST only.
+`Pickles()` rows have no description field, so a loader that consumes
+only pickles silently loses every `Feature`, `Rule` and `Scenario`
+description.
 
 ## What this changes about ADR-018
 
@@ -261,13 +301,21 @@ Nothing in the decision, but three things belong in the migration:
 3. **AC identifiers on `Scenario Outline` go on `Examples` blocks.**
    Otherwise criteria disappear silently. The conformance check must
    read both tag positions.
-4. **Rationale is optional**, and per-criterion rationale needs a stated
-   convention or it will be written inconsistently.
+4. **Rationale is optional**, and needs a stated convention. The one
+   adopted here: if it states a rule governing several criteria it
+   becomes a `Rule:`; otherwise it becomes a design note in the
+   `Feature` description; if it is neither — history, or sprint-scoping
+   — it is deleted.
+5. **`Feature` descriptions need authoring guidance**, because two ways
+   of breaking them are silent. Drafted in
+   `docs/plans/gherkin-feature-description-guidance.md`.
 
-The +50% document growth is real and is the honest price. It buys six
-extractable fields per criterion where prose gives one — which is the
-trade ADR-018 makes deliberately, now measured on a real document rather
-than asserted.
+The +54% document growth is real and is the honest price. It buys a
+typed record per criterion — identifier, requirement, typed steps,
+example rows, tags and span — where prose gives one string, plus a
+described requirement where prose gave a story paragraph nothing could
+read. That is the trade ADR-018 makes deliberately, now measured on a
+real document rather than asserted.
 
 ## References
 
@@ -275,3 +323,5 @@ than asserted.
 - `docs/spec-index-frd-gherkin.md` — the variant
 - `specs/features/spec-index/spec-index-frd.md` — the original
 - `docs/plans/gherkin-extraction-findings.md` — the extraction contract
+- `docs/plans/gherkin-feature-description-guidance.md` — proposed FRD
+  template section for writing `Feature` descriptions
