@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: plugin/skills/spec/references/work-order-template.md (version 1.2)
+     Source of truth: plugin/skills/spec/references/work-order-template.md (version 1.3)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -22,7 +22,6 @@ delta: <KEY>                         # delta key from the blueprint's AC
 parent_slug: <work-order-epic-slug>  # the epic this order belongs to
 depends_on: []                       # orders that must complete first
 blocks: []                           # orders this one blocks
-related: []                          # relevant but non-blocking
 discovered_from: <work-order-slug>   # order whose execution surfaced this one
 
 # Dispatch metadata — what the orchestrator reads to route and pack
@@ -42,7 +41,7 @@ c4_docs: []                          # C4 doc files that may need updating
 
 <!--
 Template: Work Order
-Version: 1.2
+Version: 1.3
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]]. Readiness criteria are defined in
   [[work-order-definition-of-ready]] and `work-order-field-guide.md`.

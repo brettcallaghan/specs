@@ -6,19 +6,16 @@ description: The framework-agnostic engine that indexes markdown
 slug: module-document-core
 type: module-blueprint
 status: approved
-updated_at: 2026-08-05T00:00:00Z
+updated_at: 2026-08-06T00:00:00Z
 kind: standard
 visibility: internal
 contracts_provided: []
-components: []
+contained_by:
+  - "container-spec-cli"
 source_paths:
   - "cli/core"
 test_paths:
   - "cli/core"
-related:
-  - "frd-spec-validation-cli"
-  - "adr-015"
-  - "adr-016"
 version: "0.2"
 ---
 

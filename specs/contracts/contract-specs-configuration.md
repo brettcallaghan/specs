@@ -12,11 +12,6 @@ consumers: []
 specs:
   - "cli/core/schema/specs-config.schema.json"
 version: "1.0"
-related:
-  - "frd-spec-validation-cli"
-  - "module-document-core"
-  - "module-spec-profile"
-  - "testing-standards"
 ---
 
 # Specs Configuration

@@ -7,10 +7,7 @@ slug: cross-document-references
 type: standards
 status: active
 updated_at: 2026-07-30T00:00:00Z
-version: "0.1"
-related:
-  - "template-authoring-standards"
-  - "adr-012"
+version: "0.2"
 ---
 
 # Cross-Document Reference Standards

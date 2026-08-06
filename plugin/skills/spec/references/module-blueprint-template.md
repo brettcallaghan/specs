@@ -12,18 +12,17 @@ visibility: <public | internal>      # public = published to a registry;
 contracts_provided: []               # contract slugs, WHEN the interface
                                      # is a standalone contract document
 contracts_consumed: []               # contract slugs this module depends on
-components: []                       # component/module blueprint slugs this
-                                     # module composes, WHERE they are
-                                     # promoted to their own documents
+contained_by: []                     # the container(s), or module(s), that
+                                     # compose this module; omit WHEN no host
+                                     # has a blueprint of its own
 source_paths: []                     # repo-relative source roots
 test_paths: []                       # repo-relative test roots
-related: []                          # related documents (ADRs, standards)
 version: "0.1"                       # required WHEN visibility: public
 ---
 
 <!--
 Template: Module Blueprint
-Version: 0.7
+Version: 0.8
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `c4-guide.md` — load it before authoring.
 

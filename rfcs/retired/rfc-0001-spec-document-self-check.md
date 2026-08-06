@@ -14,7 +14,6 @@ effort: high
 runs_observed: 1
 severity: blocker
 plugin_version: "0.7.0"
-related: []
 ---
 
 # RFC: A document self-check, and a home for non-blueprint documents

@@ -538,6 +538,12 @@ type ElementRecord struct {
 // type extends this struct with its own relationship and classification
 // properties, so the envelope is validated identically everywhere and only
 // the extension differs.
+//
+// A relationship property here or on any extension is declared at one end
+// only; the index derives the reverse from every other document's inbound
+// edges. Before adding one, check it against the Document Relationship
+// Standard — a property that merely mirrors the document's own prose
+// citations does not earn its maintenance cost.
 type DocumentFrontmatter struct {
 	// Human-readable title. Free text.
 	//
@@ -578,12 +584,6 @@ type DocumentFrontmatter struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
 }
 
 // The contract edges a C4 element owns: the interfaces it publishes, and
@@ -620,9 +620,9 @@ type ContractEdges struct {
 
 // An architecture decision record.
 //
-// Carries no relationship properties of its own beyond the envelope's
-// `related`: an ADR's connections to other decisions are argued in its
-// prose, and the decisions it supersedes are named through
+// Carries no relationship properties of its own: an ADR's connections to
+// other decisions are argued in its prose, where the index reads them, and
+// the decision it supersedes is named through the envelope's
 // `superseded_by`.
 type Adr struct {
 	// Human-readable title. Free text.
@@ -664,12 +664,6 @@ type Adr struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
 }
 
 // A feature requirements document: the user need, its scope boundaries and
@@ -714,12 +708,6 @@ type Frd struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
 	// The documents this FRD is derived from — a brief, a research
 	// document, or an FRD it narrows.
 	Sources *[]Slug `json:"sources,omitempty"`
@@ -767,12 +755,6 @@ type Contract struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
 	// The container or system that provides this interface.
 	//
 	// Exactly one, because a contract with two providers is two contracts.
@@ -839,12 +821,6 @@ type Standards struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
 	// The document's semantic version, quoted so YAML reads it as a string.
 	//
 	// Unquoted `0.1` is a floating-point number to a YAML parser and fails
@@ -853,8 +829,13 @@ type Standards struct {
 	Version string `json:"version"`
 }
 
-// A C4 system blueprint: the containers a system bundles, the public
-// contracts it provides, and the systems it depends on.
+// A C4 system blueprint: the public contracts a system provides, and the
+// systems it depends on.
+//
+// The containers a system bundles are not listed here. Each container
+// declares the system that composes it in its own `system` property, and
+// the roster is derived from those inbound edges — one authoritative end,
+// per the Document Relationship Standard.
 type SystemBlueprint struct {
 	// Human-readable title. Free text.
 	//
@@ -895,12 +876,6 @@ type SystemBlueprint struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
 	// Contract slugs this element provides.
 	//
 	// The interface is this element's own, so it is recorded here whatever
@@ -914,17 +889,28 @@ type SystemBlueprint struct {
 	// listed here — those are neighbour edges, and per ADR-009 they belong
 	// to the parent that composes the elements, or to the code.
 	ContractsConsumed *[]Slug `json:"contracts_consumed,omitempty"`
-	// Container blueprint slugs composed into this system.
-	Containers *[]Slug `json:"containers,omitempty"`
 	// Other systems this system depends on.
 	//
 	// Systems only. A contract this system consumes is named in
 	// `contracts_consumed`, so the same dependency has exactly one home.
+	//
+	// Aspirational: no corpus document declares this today, and it is
+	// recorded on the system's own Context view when one does. It is kept
+	// because it is the only home such an edge has — a system-to-system
+	// dependency is neither composition nor a contract, and a top-level
+	// system has no parent to own it under ADR-009. It is deliberately not
+	// paired; "depended on by" is derived from inbound edges.
 	DependsOn *[]Slug `json:"depends_on,omitempty"`
 }
 
 // A C4 container blueprint: one independently deployable or runnable
-// artifact, and the modules and components composed into it.
+// artifact.
+//
+// The modules and components composed into it are not listed here. Each
+// child declares its host — a module in `contained_by`, a component in
+// `container` — and this container's roster is derived from those inbound
+// edges. The children a reader meets are in the body's roster sections,
+// where ADR-008's record-block-XOR-blueprint-link invariant governs.
 type ContainerBlueprint struct {
 	// Human-readable title. Free text.
 	//
@@ -965,12 +951,6 @@ type ContainerBlueprint struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
 	// Contract slugs this element provides.
 	//
 	// The interface is this element's own, so it is recorded here whatever
@@ -990,14 +970,16 @@ type ContainerBlueprint struct {
 	// blueprint documents it. Absence records a documented fact rather than
 	// an oversight.
 	System *Slug `json:"system,omitempty"`
-	// Component blueprint slugs composed into this container.
-	Components *[]Slug `json:"components,omitempty"`
-	// Module blueprint slugs composed into this container.
-	Modules *[]Slug `json:"modules,omitempty"`
 }
 
 // A C4 module blueprint: a coherent unit of code with an interface of its
 // own, composed into a container.
+//
+// The components it composes are not listed here. Each promoted component
+// declares this module in its own `container` property, and the roster is
+// derived from those inbound edges. An un-promoted child is declared in a
+// record block in this document's body instead — a child is in exactly one
+// state, record block XOR blueprint link, never both, per ADR-008.
 type ModuleBlueprint struct {
 	// Human-readable title. Free text.
 	//
@@ -1038,12 +1020,6 @@ type ModuleBlueprint struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
 	// Contract slugs this element provides.
 	//
 	// The interface is this element's own, so it is recorded here whatever
@@ -1063,12 +1039,18 @@ type ModuleBlueprint struct {
 	// Whether the module is published to a registry, and therefore whether
 	// its package API is bound by a compatibility policy.
 	Visibility Visibility `json:"visibility"`
-	// Component or module blueprint slugs this module composes, where those
-	// children have been promoted to documents of their own.
+	// The containers, or the modules, that compose this module.
 	//
-	// A child is in exactly one state: promoted and linked here, or
-	// un-promoted and declared in a record block in the body. Never both.
-	Components *[]Slug `json:"components,omitempty"`
+	// A list rather than a single slug because a shared module is composed
+	// into more than one host — the fact ADR-009 cites when it denies
+	// modules a context view and tells them to point at their host
+	// container(s) instead. Both ends of this edge are lists, so singularity
+	// does not settle which end holds it; ADR-009's instruction does, and
+	// holding it here means one derivation rule covers all three C4 levels.
+	//
+	// Omitted when no host has a blueprint of its own, the same way
+	// `ContainerBlueprint.system` is.
+	ContainedBy *[]Slug `json:"contained_by,omitempty"`
 	// Repository-relative source roots, so a reader can find the code.
 	SourcePaths *[]string `json:"source_paths,omitempty"`
 	// Repository-relative test roots.
@@ -1123,12 +1105,6 @@ type ComponentBlueprint struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
 	// Contract slugs this element provides.
 	//
 	// The interface is this element's own, so it is recorded here whatever
@@ -1145,6 +1121,13 @@ type ComponentBlueprint struct {
 	// Whether this blueprint documents one concrete component or a pattern
 	// several components follow.
 	Kind BlueprintKind `json:"kind"`
+	// The container, or the module, this component is composed into.
+	//
+	// Exactly one, because a component promoted under ADR-007 is promoted
+	// out of exactly one parent's roster. Omitted when that parent has no
+	// blueprint of its own, the same way `ContainerBlueprint.system` is —
+	// absence records a documented fact rather than an oversight.
+	Container *Slug `json:"container,omitempty"`
 	// Repository-relative source roots.
 	SourcePaths *[]string `json:"source_paths,omitempty"`
 	// Repository-relative test roots.
@@ -1156,9 +1139,13 @@ type ComponentBlueprint struct {
 //
 // Unlike the blueprints it modifies, a feature blueprint describes a
 // change rather than a state, so it reaches `in-progress` and then
-// `retired` rather than `active`. Its `updates` and `creates` properties
-// are what let tooling derive when the change is complete: the feature is
-// not done until every document it names has been updated or activated.
+// `retired` rather than `active`.
+//
+// The documents the change creates and updates are described in the
+// blueprint's own "Documentation Changes" prose and tracked to completion
+// in its `plan`, which records done-ness natively. They are not mirrored
+// into frontmatter: a change set recorded in three places is three places
+// that must agree.
 type FeatureBlueprint struct {
 	// Human-readable title. Free text.
 	//
@@ -1199,12 +1186,6 @@ type FeatureBlueprint struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
 	// The delivery unit grooming plans against. When `staged`, each stage
 	// boundary is enumerated in the blueprint's Sequencing Constraints.
 	Delivery Delivery `json:"delivery"`
@@ -1219,14 +1200,12 @@ type FeatureBlueprint struct {
 	// The FRD this blueprint realizes, one to one.
 	//
 	// A feature blueprint answers how the system changes; the FRD it names
-	// answers what the change must achieve.
-	Sources []Slug `json:"sources"`
-	// Slugs of existing documents this feature will change — blueprints at
-	// any C4 level, and contracts.
-	Updates *[]Slug `json:"updates,omitempty"`
-	// Slugs of new documents authored alongside this blueprint, such as
-	// draft contracts for interfaces the feature introduces.
-	Creates *[]Slug `json:"creates,omitempty"`
+	// answers what the change must achieve. Singular and required, so the
+	// one-to-one relationship is expressible in the schema rather than only
+	// in this comment, and named `frd` rather than `sources` so that one
+	// property name does not span two relationships — `Frd.sources` is
+	// optional, many-valued provenance, which is a different edge.
+	Frd Slug `json:"frd"`
 }
 
 // An improvement proposal raised against a skill by a run that exercised
@@ -1278,12 +1257,6 @@ type Rfc struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
 	// Where the run happened: `self` when this repository critiqued its own
 	// skill, otherwise the name of the project the run took place in.
 	Origin string `json:"origin"`
@@ -1318,9 +1291,8 @@ type Rfc struct {
 // assume knowledge of — EARS syntax, C4 mapping, cross-document reference
 // conventions.
 //
-// A guide carries no relationships of its own beyond the envelope's
-// `related`: it explains a technique rather than participating in the
-// architecture graph.
+// A guide carries no relationships of its own: it explains a technique
+// rather than participating in the architecture graph.
 type Guide struct {
 	// Human-readable title. Free text.
 	//
@@ -1361,12 +1333,6 @@ type Guide struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
 	// The guide's semantic version, quoted so YAML reads it as a string.
 	Version *string `json:"version,omitempty"`
 }
@@ -1613,6 +1579,16 @@ type DocumentTypeRegistration struct {
 	// A value in one of these properties that matches no corpus member's
 	// slug is reported the same way an unresolved `[[slug]]` in the body is.
 	ReferenceProperties *[]string `json:"reference_properties,omitempty"`
+	// Reference-bearing properties whose target must declare a particular
+	// document `type`, keyed by property name with the required type as the
+	// value.
+	//
+	// A schema can require that `frd` holds exactly one slug; only the index
+	// knows what that slug resolves to, so the type half of the constraint is
+	// registered here. Every key must also appear in `reference_properties`
+	// — a typed property that is not reference-bearing would be checked
+	// against a target nothing resolved.
+	TypedReferenceProperties *map[string]string `json:"typed_reference_properties,omitempty"`
 	// Relationship properties that must be declared from both ends.
 	Pairings *[]PropertyPairing `json:"pairings,omitempty"`
 }
@@ -1642,9 +1618,18 @@ type Section struct {
 
 // One half of a relationship that must be declared from both ends.
 //
-// A blueprint naming a child in `children` where that child declares no
-// `parent_slug` is a half-built edge, and it is reported against both
-// documents rather than only the one that happens to be checked first.
+// A document naming a counterpart in one property where that counterpart
+// declares nothing in return is a half-built edge, and it is reported
+// against both documents rather than only the one that happens to be
+// checked first.
+//
+// Reserved for a relationship a reader of one document must see without
+// consulting the index. Because the index derives the reverse of every
+// declared edge, a pairing used to enforce a mirror the index already
+// computes can only ever fail on redundant hand-work — so the
+// spec-driven-dev profile registers none, and an adopting profile that
+// registers one is expected to argue the case. See the Document
+// Relationship Standard.
 type PropertyPairing struct {
 	// The property declared on this document.
 	Property string `json:"property"`

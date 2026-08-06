@@ -10,21 +10,12 @@ delivery: single-pr                  # single-pr | staged. The delivery
                                      # unit grooming plans against. WHEN
                                      # staged, enumerate each stage
                                      # boundary in Sequencing Constraints.
-sources: [frd-<feature-name>]        # the FRD this blueprint realizes (1:1)
-updates: []                          # slugs of EXISTING documents this
-                                     # feature will change (system /
-                                     # container / module / component
-                                     # blueprints, contracts)
-creates: []                          # slugs of NEW documents authored
-                                     # alongside this blueprint (draft
-                                     # contracts, module / component
-                                     # blueprints)
-related: []                          # ADRs and other related documents
+frd: frd-<feature-name>              # the FRD this blueprint realizes (1:1)
 ---
 
 <!--
 Template: Feature Blueprint
-Version: 1.3
+Version: 1.4
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]].
 
@@ -285,9 +276,10 @@ reviewers what could break and planners what to regression-test.
 <!--
 Interface surfaces this feature introduces or changes. The specification
 itself is NEVER here: new contracts are authored as contract documents
-in draft status alongside this blueprint (list them in `creates`), and
-changes to existing contracts are drafted as revisions in the contract
-document itself (list them in `updates`). One line each.
+in draft status alongside this blueprint, and changes to existing
+contracts are drafted as revisions in the contract document itself. Name
+both below and in Documentation Changes; the `plan` tracks them to
+completion. One line each.
 
 Private schema changes (a container and its own store) belong in the
 owning container's delta block above, not here.

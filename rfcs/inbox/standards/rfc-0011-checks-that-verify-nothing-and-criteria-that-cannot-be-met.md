@@ -18,13 +18,6 @@ effort: unknown
 runs_observed: 1
 severity: blocker
 plugin_version: "0.14.0"
-related:
-  - "testing-standards"
-  - "module-document-core"
-  - "module-spec-profile"
-  - "container-spec-cli"
-  - "feature-spec-validation-cli"
-  - "frd-spec-validation-cli"
 ---
 
 # RFC: Checks that verify nothing, and criteria that cannot be met

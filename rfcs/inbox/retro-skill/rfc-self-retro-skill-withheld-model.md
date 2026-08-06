@@ -17,7 +17,6 @@ effort: high
 runs_observed: 1
 severity: blocker
 plugin_version: "0.12.0"
-related: []
 ---
 
 # The readiness gate has one item a harness policy can forbid

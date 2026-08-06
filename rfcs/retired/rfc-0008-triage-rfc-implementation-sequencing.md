@@ -16,7 +16,6 @@ effort: high
 runs_observed: 2
 severity: blocker
 plugin_version: "0.9.0"
-related: []
 ---
 
 # RFC: Sequencing at step 5, and the gaps steps 5-7 met on first run

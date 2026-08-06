@@ -9,13 +9,6 @@ status: approved
 updated_at: 2026-08-06T00:00:00Z
 sources:
   - "frd-spec-validation-cli"
-related:
-  - "frd-spec-validation-cli"
-  - "frd-spec-anchor-references"
-  - "frd-spec-slug-rename"
-  - "frd-spec-structure-conformance"
-  - "contract-specs-configuration"
-  - "adr-012"
 ---
 
 # Spec Corpus Reference Integrity
@@ -137,10 +130,16 @@ deliberately, not overlooked:
   (AC-SPECREF-002.7), because the reader's next step differs.
 - **Reference-bearing property** — a frontmatter property the active
   profile declares as holding one or more document slugs (for example
-  `related` or `superseded_by`).
+  `superseded_by` or `contained_by`). A profile MAY additionally declare
+  the document `type` such a property's target must carry, making the
+  property a *typed* reference.
 - **Paired relationship** — two reference-bearing properties the profile
   declares as counterparts, so that a reference in one document implies a
-  matching reference back (for example `children` and `parent_slug`).
+  matching reference back. An adopting profile that pairs `owner` with
+  `owned_by` gets both halves checked. The spec-driven-dev profile
+  registers no pairing: per [[document-relationship-standards]] a pairing
+  is reserved for a relationship a reader must see without the index, and
+  every relationship this framework declares has its reverse derived.
 
 ## Requirements
 
@@ -272,9 +271,11 @@ a reader follows it into nothing.
   property as one half of a paired relationship and the named document
   does not declare the matching counterpart, the CLI SHALL report a
   finding of severity `error` against both documents.
-  - *Example:* A blueprint declaring `children: [component-ledger]`
-    where `component-ledger` declares no `parent_slug` produces a
-    finding on each.
+  - *Example:* In an adopting profile that pairs `owner` with
+    `owned_by`, a document declaring `owner: team-ledger` where
+    `team-ledger` declares no matching `owned_by` produces a finding on
+    each. No pairing is registered by the profile this framework ships,
+    so this check is inert for its own corpus by design.
 - **AC-SPECREF-002.6:** WHEN a document at a status the profile treats
   as live references a document at `status: retired`, the CLI SHALL
   report a finding of severity `warning` naming the retired target and
@@ -309,6 +310,16 @@ a reader follows it into nothing.
     break references is the one a single-document check cannot see: the
     seven referrers were not the file that was written, so nothing
     examines them until CI.
+- **AC-SPECREF-002.10:** WHEN the active profile declares a required
+  target `type` for a reference-bearing property and the resolved
+  document declares a different `type`, the CLI SHALL report a finding
+  of severity `error` naming the property, the type expected and the
+  type the target declares.
+  - *Example:* A feature blueprint whose `frd` names `adr-009` reports
+    "frd expects type 'frd', target 'adr-009' declares type 'adr'". The
+    schema can require that `frd` holds exactly one slug; only the index
+    knows what that slug resolves to, so this half of the constraint has
+    to live here.
 
 *Rationale:* Severity is assigned here rather than left to
 implementation because it is what the exit status of a build depends on.
@@ -397,14 +408,20 @@ tool checks my conventions rather than assuming a fixed set.
   - *Example:* `reference_properties` and `pairings` are already
     declared per document type in [[contract-specs-configuration]] and
     in `schemas/profile.strata`; this feature is the first consumer of
-    properties the configuration schema already carries, not a change to
-    it.
+    properties the configuration schema already carries. It adds one:
+    `typed_reference_properties`, mapping a reference-bearing property
+    to the document `type` its target must declare (AC-SPECREF-002.10).
 - **AC-SPECREF-004.2:** The CLI SHALL ship a configuration registering
   this framework's own reference-bearing properties and pairings, which
   an adopting repository can use without authoring one.
-  - *Example:* The shipped configuration marks `related`,
-    `superseded_by`, `children` and `parent_slug` as reference-bearing
-    and pairs `children` with `parent_slug`, mirroring AC-SPEC-008.6.
+  - *Example:* The shipped configuration marks `superseded_by`,
+    `sources`, `frd`, `system`, `contained_by`, `container`,
+    `contracts_provided` and `contracts_consumed` as reference-bearing,
+    and registers **no** pairing — every relationship this framework
+    declares has its reverse derived from inbound edges, and
+    [[document-relationship-standards]] reserves a pairing for the case
+    that does not. It registers one typed reference: a feature
+    blueprint's `frd` must resolve to a document of type `frd`.
 - **AC-SPECREF-004.3:** IF a pairing names a property that is not
   registered as reference-bearing, THEN the CLI SHALL report the
   offending key and its position and SHALL NOT fall back to a default.

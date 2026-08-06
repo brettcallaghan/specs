@@ -6,10 +6,7 @@ slug: work-order-definition-of-ready
 type: standards
 status: active
 updated_at: 2026-07-30T00:00:00Z
-version: "1.1"
-related:
-  - "work-order-template"
-  - "work-order-field-guide"
+version: "1.2"
 ---
 
 # Work Order Definition of Ready

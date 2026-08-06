@@ -17,9 +17,6 @@ effort: unknown
 runs_observed: 1
 severity: blocker
 plugin_version: "0.14.0"
-related:
-  - "feature-spec-validation-cli"
-  - "frd-spec-validation-cli"
 ---
 
 # RFC: The corpus validator checks no specification document

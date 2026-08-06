@@ -7,12 +7,9 @@ description: How formal relationships between specification documents are
   justified
 slug: document-relationship-standards
 type: standards
-status: approved
+status: active
 updated_at: 2026-08-06T00:00:00Z
 version: "0.1"
-related:
-  - "frd-spec-reference-integrity"
-  - "adr-009"
 ---
 
 # Document Relationship Standards

@@ -9,7 +9,7 @@ description: Adopt a standard for declaring cross-document relationships
   with child back-pointers
 slug: rfc-0012
 type: rfc
-status: draft
+status: retired
 updated_at: 2026-08-06T00:00:00Z
 origin: self
 skill: spec
@@ -19,13 +19,6 @@ effort: unknown
 runs_observed: 1
 severity: snag
 plugin_version: "0.14.0"
-related:
-  - "document-relationship-standards"
-  - "blueprint-readiness-checklist"
-  - "frd-spec-reference-integrity"
-  - "frd-spec-validation-cli"
-  - "adr-009"
-  - "adr-012"
 ---
 
 # RFC: Reconcile the relationship vocabulary with the derived graph
@@ -383,4 +376,113 @@ source.
 
 ## Resolution
 
-<!-- FILLED BY THE RESOLVING REVIEW — leave empty. -->
+**Triaged 2026-08-06.** 8 proposals: 8 adopted, 4 of them with
+refinement. None deferred, none rejected. The human directed at the
+outset that every proposal was to be adopted — this RFC came out of
+their own planning session, and the vocabulary is being simplified
+before `reference-integrity` is implemented so that the feature is not
+built to maintain frontmatter the framework should not carry.
+
+| Item | Outcome | Bead |
+|------|---------|------|
+| P1 — adopt the Document Relationship Standard | **adopted with refinement.** The document was already at `status: approved`, not `draft` as the RFC states, so the transition made was `approved` → `active`. Version left at `0.1`: this is its first release, not a revision. | `agent-plugins-l7k` |
+| P2 — rename `FeatureBlueprint.sources` to `frd: Slug` | **adopted with refinement.** The rename landed as proposed. The refinement is the "check that its target declares `type: frd`" half, which had nowhere to be registered — see *On the typed-target check* below. | `agent-plugins-1h1` |
+| P3 — drop `updates` | **adopted with refinement.** Extent check found two sites the RFC did not name: the template's own Contracts instruction block ("list them in `updates`"), and [[frontmatter-standards]], which did not merely mention the property but *mandated* it ("the template SHALL include the `updates` and `creates` properties"). Removing the property without those would have left a standard requiring a property the schema rejects. | `agent-plugins-f48` |
+| P4 — drop `creates` and its readiness check | **adopted as proposed**, with the same two extra sites as P3. Both copies of `blueprint-readiness-checklist` were updated through the authored copy plus `scripts/sync-shared-references.sh`; the vendored copy is generated and was not hand-edited. | `agent-plugins-1rx` |
+| P5 — remove `related` from the envelope | **adopted with refinement.** See *On P5's extent and sufficiency* below — the blast radius was 48 files rather than 11, and one document would have lost an edge. | `agent-plugins-2b1` |
+| P6 — mark `depends_on` aspirational | **adopted as proposed**, taking option (b) as the RFC recommends. The doc-comment now records that the property is unused in the corpus, why the slot is legitimate anyway, and that it is deliberately not paired. | `agent-plugins-yvo` |
+| P7 — derive `children` from `parent_slug`; drop the pairing | **adopted with refinement.** See *On P7* below — neither property exists in this vocabulary, so what was removed was the framework's own worked example of a pairing its new standard forbids, not a live configuration. | `agent-plugins-0qm` |
+| P8 — replace the composition rosters with child back-pointers | **adopted as proposed.** `ComponentBlueprint.container` and `ModuleBlueprint.contained_by` added; `SystemBlueprint.containers`, `ContainerBlueprint.components`, `ContainerBlueprint.modules` and `ModuleBlueprint.components` removed. Migration was exactly what Evidence 7 predicted: two `contained_by` additions, four roster deletions. | `agent-plugins-4yv` |
+
+**Provenance check.** `skill: spec` at `skill_version: "1.7"` — current at
+triage. `plugin_version: 0.14.0` — current at triage. No cited text had
+moved or been fixed since; nothing was already-addressed.
+
+**Self-origin, disclosed.** This RFC carries `origin: self` and was
+authored in a separate planning session by the model named in its `model`
+field. The triaging agent is a different model, so this is not the
+same-agent self-adoption the skill requires disclosure of — but it is
+still this repository critiquing its own vocabulary, and the human gate
+did the substantive gatekeeping, including directing the adopt-now
+classification before triage began.
+
+**Dedupe.** No match in RFCs 0001–0011. One adjacent deferred bead:
+`agent-plugins-6tp` (RFC 0006 P4) asks whether `sources` can record an
+input that is not a spec document. P2 does not resolve it, but removes
+the overload that made it harder to reason about — after P2, `sources`
+names one relationship rather than two.
+
+**On P5's extent and sufficiency.** The RFC scoped its evidence to the 29
+documents under `specs/`. Enumerating `^related:` inside YAML frontmatter
+across the whole repository found **48 files**: 12 under `specs/`, 15
+RFCs, 13 templates, and 8 skill reference documents.
+`scripts/validate-corpus.py` validates the RFC queue and the skill
+reference files against the same bundled schema, whose document types set
+`additionalProperties: false`, so a partial migration would have failed
+the corpus gate rather than left a harmless remnant. The retired RFCs and
+every template carried `related: []` and migrated losslessly.
+
+The sufficiency check found one real gap in the claim that every value is
+already cited in prose. It holds for 47 of the 48:
+`specs/architecture/module-spec-profile.md` listed `frd-spec-validation-cli`
+in `related` and cited it nowhere in its body, so removing the property
+would have deleted the edge rather than derived it. That document's
+`## References` section gained the citation — along with `adr-008` and
+`adr-012`, cited in its body but not under References — before the
+property was removed.
+
+**On P7.** `children` and `parent_slug` are not properties of this
+vocabulary. Neither appears in `schemas/frontmatter.strata`; every
+corpus-side occurrence is an *example* — in this FRD's glossary, in
+AC-SPECREF-002.5, in AC-SPECREF-004.2, and in the `PropertyPairing`
+doc-comment in `schemas/profile.strata`. (The `parent_slug` in the work
+order template is a beads field in a different namespace and was left
+alone.) So there was no shipped pairing to remove. What the framework was
+doing was presenting, as its own canonical example, a pairing that P1's
+standard forbids. Those four sites now carry an adopter-side example and
+state that the spec-driven-dev profile registers no pairing. The pairing
+*capability* is untouched: AC-SPECREF-004.1 and AC-SPECREF-004.3 stand,
+because an adopting team may still need one.
+
+**On the typed-target check** *(human-approved at the step-4 gate).* P2
+asks for a check that a feature blueprint's `frd` resolves to a document
+of type `frd`. Nothing could register that: `reference_properties` is a
+list of names and carries no target type. The adopted form is therefore
+slightly wider than P2's text — `schemas/profile.strata` gained
+`typed_reference_properties`, a property→type map, and the
+reference-integrity FRD gained **AC-SPECREF-002.10** for the check itself.
+The human was shown this trade-off and chose it over registering the
+property without the check.
+
+**On the strata toolchain.** Regenerating the derived artifacts needs a
+`strata` newer than the 0.7.0 on PATH, which drops struct inheritance
+under `additionalProperties: false` and would have silently emptied every
+document type (open bead `agent-plugins-j7f`). Building from the attached
+checkout at HEAD fixed that but introduced an unrelated emitter change —
+generated `UnmarshalJSON` methods enforcing required fields — which moved
+two snapshot findings from `frontmatter/missing-property` to
+`frontmatter/parse` and failed the CLI snapshot suites. That is a
+toolchain upgrade, not this RFC's change, so the regeneration was pinned
+to strata `8997153`, the commit `agent-plugins-j7f` records as producing
+byte-identical output to what is committed. The emitter change is worth
+adopting deliberately; it is not adopted here.
+
+**Files changed.** `schemas/frontmatter.strata`, `schemas/profile.strata`
+and their generated artifacts (`cli/core/schema/`, `cli/core/specmodel/`,
+`plugin/skills/spec/references/generated/`); 48 documents migrated off
+`related`; 4 corpus documents migrated for P2, P3, P4 and P8;
+`specs/adrs/ADR-009-nodes-and-edges-ownership.md`;
+`specs/features/reference-integrity/reference-integrity-frd.md`;
+`specs/standards/document-relationship-standards.md`; 9 templates and 8
+standards/guides under `plugin/skills/`.
+
+**Version bumps.** Templates: feature-blueprint 1.3→1.4, system-blueprint
+1.4→1.5, container-blueprint 1.5→1.6, module-blueprint 0.7→0.8,
+component-blueprint 1.5→1.6, contract 1.3→1.4, frd 1.1→1.2, work-order
+1.2→1.3, rfc 1.1→1.2, skill-rfc 0.2→0.3. Standards and guides:
+frontmatter-standards 0.1→0.2, blueprint-readiness-checklist 0.5.0→0.6.0,
+template-authoring-standards 0.12→0.13, work-order-definition-of-ready
+1.1→1.2, work-order-field-guide 1.1→1.2, document-readiness-checklist
+0.2→0.3, c4-guide 0.1→0.2, cross-document-references 0.1→0.2, ears-guide
+0.1→0.2. `document-relationship-standards` stays at 0.1 — first release.
+Plugin 0.14.0 → 0.15.0.

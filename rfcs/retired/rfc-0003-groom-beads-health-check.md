@@ -16,7 +16,6 @@ effort: high
 runs_observed: 1
 severity: blocker
 plugin_version: "0.7.0"
-related: []
 ---
 
 # RFC: bd-health.sh fails a clean backlog, and blocked beads stay in the queue

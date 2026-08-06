@@ -16,7 +16,6 @@ effort: high
 runs_observed: 1
 severity: blocker
 plugin_version: "0.7.0"
-related: []
 ---
 
 # RFC: An unattended-run rule for the gate, and a dedupe that sees history

@@ -18,7 +18,6 @@ effort: high
 runs_observed: 1
 severity: blocker
 plugin_version: "0.7.0"
-related: []
 ---
 
 # RFC: bead-bonanza — dispatch fallback, script contracts, baseline gates
