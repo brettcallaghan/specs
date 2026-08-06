@@ -12,6 +12,7 @@ sources: []
 related:
   - "frd-spec-validation-cli"
   - "frd-spec-reference-integrity"
+  - "frd-spec-anchor-references"
   - "adr-008"
 ---
 
@@ -41,9 +42,10 @@ and the warm index are inherited unchanged and are not restated here.
 right thing — whether a requirement is testable, whether a design
 carries enough intent — stays with a reviewing agent; this feature
 extracts the spans the agent reads and checks that the sections exist,
-not what they contain. Reference resolution, including anchor
-resolution against the headings this feature extracts, is specified in
-[[frd-spec-reference-integrity]].
+not what they contain. Reference resolution is specified in
+[[frd-spec-reference-integrity]]; anchor resolution against the headings
+this feature extracts is specified in its sub-feature,
+[[frd-spec-anchor-references]].
 
 ## Terminology
 
@@ -169,8 +171,10 @@ enforces my templates rather than the ones it shipped with.
 
 - [[frd-spec-validation-cli]] — the index, finding engine, corpus
   discovery, and configuration this feature extends
-- [[frd-spec-reference-integrity]] — consumes the headings this feature
+- [[frd-spec-anchor-references]] — consumes the headings this feature
   extracts to resolve anchor references
+- [[frd-spec-reference-integrity]] — resolves the slug half of a
+  reference, and defers the anchor half to that sub-feature
 - [[adr-008]] — the element record blocks this feature extracts and
   validates
 - [[adr-002]] — EARS, the notation these acceptance criteria are written
