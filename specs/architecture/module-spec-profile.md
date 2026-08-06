@@ -295,8 +295,8 @@ under Interface come from.
 - [[adr-008]] — element record blocks and the two-schema model this
   module's Element Records component will implement when it is built.
 - [[adr-012]] — the reference conventions the registered types rely on.
-- [[adr-014]] — acceptance-criteria validation is deferred, so no
-  component here registers AC rules.
+- [[adr-018]] — acceptance-criteria extraction is a follow-on feature,
+  so no component here registers AC rules yet.
 - [[adr-015]] — Go, and the profile-as-package composition model.
 
 ## Open Questions

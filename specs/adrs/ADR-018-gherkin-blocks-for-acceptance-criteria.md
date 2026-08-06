@@ -16,11 +16,16 @@ updated_at: 2026-08-06T00:00:00Z
 
 ## Context
 
-[[adr-014]] deferred Gherkin and named the way to settle it: author real
-criteria both ways and compare. That comparison has been run, twice,
-against this repository's own corpus. The first pass evaluated the
-notation against a **local markdown destination** — is an FRD easier to
-read, review and lint — and came out against adoption on margin.
+A prior draft ADR at number 014 deferred this question and named the way
+to settle it: author real criteria both ways and compare. That comparison
+has been run, twice, against this repository's own corpus. This ADR
+replaces that draft, which is deleted rather than retained as a retired
+record — it was never ratified, and the decision log needs one document
+per question, not two. ADR number 014 is left unused.
+
+The first pass evaluated the notation against a **local markdown
+destination** — is an FRD easier to read, review and lint — and came out
+against adoption on margin.
 
 That was the wrong destination. The stated direction is publication out
 of these repositories into a **central structured store for C4 models,
@@ -154,6 +159,22 @@ Honest accounting, since prose is not strictly worse:
 | **FRD narrative flow.** The document becomes prose (overview, user stories, rationale) interleaved with fenced blocks | Real and permanent |
 | **Free rationale placement.** Rationale must attach to a `Feature`, `Rule` or `Scenario` | A constraint, and a good one |
 
+### The mapping the migration follows
+
+Carried forward from the deleted draft at number 014, which established
+it, and extended with the tag conventions this decision adds:
+
+| EARS pattern | Gherkin form |
+|---|---|
+| `WHEN <event>`, the system SHALL `<action>` | `When <event>` / `Then <action>` |
+| `WHILE <state>`, the system SHALL `<action>` | `Given <state>` / `Then <action>` |
+| `IF <condition>`, THEN the system SHALL `<action>` | `Given <condition>` / `When …` / `Then <action>` |
+| The system SHALL `<action>` (ubiquitous) | `Then <action>` with no trigger — the form that reads least naturally |
+| The system SHALL NOT `<action>` | `Then <action>` plus a required `@negative` tag; Gherkin has no native negative form |
+| `WHERE <feature>`, the system SHALL `<action>` | a `Rule:` grouping, or a `Given` precondition |
+| criterion + its `*Example:*` | `Scenario Outline` with parameterised steps and one `Examples` row per instance |
+| `(manual)` marker | `@manual` tag |
+
 ### Why this splits [[adr-002]] along a real boundary
 
 The earlier draft counted "splits EARS into two scopes across 22 files"
@@ -253,7 +274,6 @@ the target shape directly.
 
 ## References
 
-- [[adr-014]] — deferred this question; superseded
 - [[adr-002]] — EARS, whose scope this ADR narrows to non-AC normative
   statements
 - [[adr-015]] — chose Go partly for the official in-process Gherkin

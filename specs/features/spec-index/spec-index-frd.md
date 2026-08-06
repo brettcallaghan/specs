@@ -10,7 +10,7 @@ status: approved
 updated_at: 2026-08-04T00:00:00Z
 sources: []
 related:
-  - "adr-014"
+  - "adr-018"
   - "adr-015"
 ---
 
@@ -70,11 +70,11 @@ deliberately, not overlooked:
 - **Modifying documents.** This feature only reads and reports.
   Deriving `updated_at` from git history and rewriting frontmatter is a
   follow-on feature.
-- **Acceptance-criteria and feature-definition validation.** Deferred
-  per [[adr-014]], which also records the reversibility constraint that
-  decision places on this tool. Deferred is not abandoned: the
-  technology decision this feature defers to an ADR must preserve the
-  ability to parse and validate structured feature definitions later.
+- **Acceptance-criteria and feature-definition validation.** Out of
+  scope for this feature. [[adr-018]] settles the notation and assigns
+  the extraction to a follow-on feature; the technology decision this
+  feature defers to an ADR had to preserve the ability to parse and
+  validate structured feature definitions later, and does.
 - **Requirement quality judgment.** Whether a requirement is testable,
   whether a qualifier is vague, whether a design carries enough intent —
   these stay with a reviewing agent. This feature extracts the spans an
@@ -533,9 +533,8 @@ it.
 
 - [[adr-015]] — records Go as the implementation language, deferred to
   by REQ-SPEC-009
-- [[adr-014]] — defers acceptance-criteria and feature-definition
-  validation out of this feature, and records the constraint that
-  criterion notation stays a replaceable input
+- [[adr-018]] — settles the acceptance-criteria notation, whose
+  extraction is a follow-on feature rather than part of this one
 - [[adr-002]] — EARS, the notation these acceptance criteria are
   written in
 - `plugin/skills/spec/references/template-authoring-standards.md` —

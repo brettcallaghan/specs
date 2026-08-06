@@ -362,8 +362,8 @@ does not apply to a compiled binary.
 
 - [[adr-015]] — Go is the implementation language; the measured basis
   and the rejected alternatives are recorded there.
-- [[adr-014]] — acceptance-criteria and feature-definition validation
-  are deferred, so no component here parses them.
+- [[adr-018]] — acceptance-criteria extraction is a follow-on feature,
+  so no component here parses acceptance criteria yet.
 
 ## Open Questions
 

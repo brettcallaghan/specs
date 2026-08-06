@@ -70,9 +70,11 @@ magnitude.
 
 ### Measured: Gherkin
 
-[[adr-014]] defers Gherkin but requires this decision to preserve it,
-and records that adopting it would mean Gherkin *replaces* EARS for
-acceptance criteria. The same input was parsed with the official Python
+The acceptance-criteria notation was undecided when this decision was
+made, and this decision was required to keep Gherkin viable — adopting
+it would mean Gherkin *replaces* EARS for acceptance criteria.
+[[adr-018]] has since adopted it, exercising the capability measured
+below. The same input was parsed with the official Python
 and Go implementations and with `cucumber-rs/gherkin`, the third-party
 Rust crate:
 
@@ -227,9 +229,8 @@ added.
 ## Consequences
 
 **Positive:**
-- Gherkin, if [[adr-014]] is later revisited, is an import rather than a
-  second tool. That keeps the option genuinely open, which is what
-  [[adr-014]] asked this decision to preserve.
+- Gherkin is an import rather than a second tool. That kept the option
+  genuinely open, and [[adr-018]] has since exercised it.
 - Latency and artifact requirements are met with more than an order of
   magnitude of margin, so a write-time validation hook stays
   imperceptible as corpora grow.
@@ -299,7 +300,8 @@ need appears that Go cannot meet.
 
 - [[frd-spec-validation-cli]] — REQ-SPEC-009, the requirements this
   decision is measured against
-- [[adr-014]] — defers Gherkin, and requires this decision to preserve it
+- [[adr-018]] — adopts Gherkin for acceptance criteria, exercising the
+  in-process parser this decision preserved
 - `docs/plans/spec-validation-cli-brief.md` — earlier measurements and
   the distribution research
 - [cucumber/gherkin](https://github.com/cucumber/gherkin) — the shared

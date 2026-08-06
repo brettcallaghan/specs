@@ -701,8 +701,8 @@ This module SHALL comply with:
 - [[adr-016]] — Strata is the single source for generated models, which
   is why the index model this module emits is declared in
   `schemas/index.strata` rather than written as Go structs.
-- [[adr-014]] — acceptance-criteria notation is deferred, so no
-  component here parses acceptance criteria.
+- [[adr-018]] — settles the acceptance-criteria notation; extraction is
+  a follow-on feature, so no component here parses it yet.
 - [[adr-012]] — the `[[slug]]` and heading-anchor conventions the
   References component implements.
 
