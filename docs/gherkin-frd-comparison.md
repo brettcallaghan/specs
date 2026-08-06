@@ -21,7 +21,8 @@ from predicting it.
 | Criteria | 52 | 52 |
 | Examples | 40 prose sentences | 37 rows across 25 `Scenario Outline`s |
 | Lines over 80 cols | 0 | 9 (exempt — fenced blocks, AC-SPECSTR-002.5) |
-| Machine-extractable fields per criterion | 1 (the sentence) | id, req, typed steps, example rows, rationale, tags |
+| Machine-extractable fields per criterion | 1 (the sentence) | id, req, typed steps, example rows, tags |
+| User story | prose | `Feature` description |
 
 ## Finding 1 — steps cannot wrap, but the width limit does not apply
 
@@ -142,37 +143,91 @@ one-sentence `*Example:*`, is most of the +50%. The tabular form earns
 its cost when a criterion has two or more instances; below that it is
 ceremony.
 
-## Finding 4 — rationale survives, but moves and loses granularity
+## Finding 4 — the first attempt misused `Rule:`, and that hid everything else
 
-The original scatters `*Rationale:*` paragraphs at the end of the
-requirements they explain, and their scope is inferred from position.
-In Gherkin they become `Rule.Description`, which sits **above** the
-criteria and is explicitly scoped to the whole rule.
+The variant originally mapped **REQ → `Rule:`**, producing blocks headed
+`Rule: Configuration`, `Rule: Document Index`, `Rule: Command Surface`.
 
-That is better for extraction and slightly worse to read: the rationale
-for AC-SPEC-003.6 specifically now sits at the top of the whole
-`Metadata Conformance` rule, ahead of the five criteria it does not
-describe. Per-criterion rationale has a home (`Scenario.Description`)
-but no obvious style — a paragraph between the scenario name and its
-first `Given` reads oddly.
+**That is wrong.** In Gherkin a `Rule` is a *business rule* — an
+assertion that can be true or false, which the scenarios beneath it
+illustrate. "There can be only one" is a rule. "Configuration" is a
+topic. The mapping was made mechanically, because REQ is a grouping
+level and `Rule` is a grouping level, without checking what the keyword
+means.
 
-`REQ-SPEC-008` has no rationale at all in the original, which is fine
-and should stay fine. An early version of my conformance check flagged
-the empty `Rule.Description` as a problem; **rationale must be optional
-in the check**, or every terse requirement gets a spurious finding.
+The correct mapping follows this framework's own definition. The FRD
+template says a requirement "represents one cohesive capability and must
+be independently testable" — that is a **`Feature`**:
 
-## Finding 5 — one block per REQ works, and needs the wrapper
+| FRD | Gherkin |
+|---|---|
+| FRD | frontmatter slug, and a `@frd-<slug>` tag on each Feature |
+| REQ | `Feature:` |
+| User Story | the `Feature` description — the canonical Cucumber idiom |
+| AC | `Scenario` / `Scenario Outline` |
+| a genuine business rule grouping several ACs | `Rule:` |
+| `*Example:*` | an `Examples` row |
+| rationale | markdown, or a `Rule:` name where it truly states a rule |
 
-Each requirement carries one fenced block containing a bare `Rule:`.
-That does **not** parse alone — it needs the synthetic `Feature:` header
-— but with it, everything works, and the structure keeps each
-requirement's criteria beside its user story where a reviewer expects
-them.
+Fixing it resolved a problem the wrong mapping had created. With REQ
+mapped to `Rule`, `Rule.Description` was the only description slot
+available, rationale was put there, and the **user story had nowhere to
+go** — so it stayed markdown prose and never became an extractable
+field. With REQ mapped to `Feature`, the user story occupies
+`Feature.Description`, which is exactly what that slot is for:
 
-Consequence: there is no `Feature` line, so there is no place for the
-`@frd-spec-validation-cli` tag ADR-018 shows. **The FRD slug should come
-from frontmatter, not from a Feature tag** — which is better anyway,
-since it cannot drift from the document's own identity.
+```gherkin
+@frd-spec-validation-cli
+Feature: Document Index
+
+  As an architecture owner
+  I want one machine-readable artifact describing every specification document
+  So that CI, agents, and a central catalogue all read the same source of truth
+```
+
+And `Rule:` becomes available for its actual purpose. REQ-SPEC-002's
+rationale contains a real rule, which now groups the two criteria that
+depend on it:
+
+```gherkin
+  Rule: A build failure is the checker's job, not the indexer's
+
+    @AC-SPEC-002.4
+    Scenario: An unparseable document does not abort the index
+    @AC-SPEC-002.5
+    Scenario: Building an index containing parse failures exits zero
+```
+
+That is a quality gain, not just a correctness fix: it forces rationale
+that *is* a rule to be stated as one, instead of buried in a paragraph.
+
+## Finding 5 — one `Feature` per document, so one block per REQ
+
+A Gherkin document holds **exactly one** `Feature`. Two in one document
+fail to parse:
+
+```
+(5:1): expected: #EOF, #TableRow, … #RuleLine, #Comment, #Empty,
+       got 'Feature: B'
+```
+
+With REQ → `Feature`, one fenced block per requirement is therefore not
+a stylistic choice but the only legal arrangement — which happens to be
+what a reader wants anyway, since it keeps each requirement's criteria
+beside its user story.
+
+Two consequences, both improvements on the first attempt:
+
+- **No synthetic wrapper.** Each block now declares its own `Feature`,
+  so the extractor's wrap offset is 0 and the conditional-wrapper
+  gotcha does not arise for FRDs at all.
+- **The `@frd-<slug>` tag has a home** on each `Feature`, and pickles
+  inherit it. An earlier version of this document concluded there was
+  nowhere to put it; that was a consequence of the wrong mapping.
+
+For `.feature` emission (ADR-018 constraint 5), one FRD yields one file
+per requirement rather than one file per FRD. That is normal for feature
+files and needs no special handling.
 
 ## Finding 6 — what got harder to read
 
@@ -196,14 +251,17 @@ Honest notes from writing it:
 
 Nothing in the decision, but three things belong in the migration:
 
-1. **Never shorten a step to fit a width limit** — none applies inside
+1. **Map REQ to `Feature`, not `Rule`.** A `Rule` is a business rule;
+   a requirement is a capability. Reserve `Rule:` for the cases where
+   rationale genuinely states a rule that groups several criteria.
+2. **Never shorten a step to fit a width limit** — none applies inside
    a fenced block. Write the long line, or decompose only where more
    steps genuinely read better. The first pass got this wrong and
    silently changed the meaning of AC-SPEC-009.4.
-2. **AC identifiers on `Scenario Outline` go on `Examples` blocks.**
+3. **AC identifiers on `Scenario Outline` go on `Examples` blocks.**
    Otherwise criteria disappear silently. The conformance check must
    read both tag positions.
-3. **Rationale is optional**, and per-criterion rationale needs a stated
+4. **Rationale is optional**, and per-criterion rationale needs a stated
    convention or it will be written inconsistently.
 
 The +50% document growth is real and is the honest price. It buys six

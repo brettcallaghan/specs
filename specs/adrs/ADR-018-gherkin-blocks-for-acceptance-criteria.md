@@ -124,10 +124,11 @@ Rule.Description = "Frontmatter errors are reported mechanically so review
                     attention goes to whether a document says the right…"
 ```
 
-Group-level rationale (the corpus has rationale spanning several
-criteria) attaches to the `Rule`; per-criterion rationale attaches to the
-`Scenario`. Both become text columns. This is arguably better than
-today, where a `*Rationale:*` paragraph's scope is inferred from
+Under the mapping fixed by constraint 1, `Feature.Description` carries
+the user story, `Rule.Description` carries the rationale of a rule that
+groups several criteria, and `Scenario.Description` carries
+per-criterion rationale. Each becomes a text column with an explicit
+scope, where today a `*Rationale:*` paragraph's scope is inferred from
 position.
 
 ### The extraction mechanics are settled
@@ -215,40 +216,54 @@ statements. [[adr-002]] is amended in scope, not retired.
 
 Binding constraints:
 
-1. Every `Scenario` SHALL carry exactly one tag matching
+1. A requirement SHALL map to a `Feature`, its user story to that
+   `Feature`'s description, and each acceptance criterion to a
+   `Scenario` or `Scenario Outline`. `Rule:` SHALL be used only where a
+   genuine business rule groups several criteria — it names an
+   assertion, not a topic. Because a Gherkin document holds exactly one
+   `Feature`, this means one fenced block per requirement.
+2. Every `Scenario` SHALL carry exactly one tag matching
    `^@AC-[A-Z0-9]+-[0-9]{3}\.[0-9]+$`; the CLI SHALL report a finding
    otherwise.
-2. A criterion expressing a prohibition SHALL carry `@negative`, and one
+3. WHERE a `Scenario Outline` carries more than one acceptance
+   criterion, each identifier SHALL be tagged on its own `Examples`
+   block rather than on the scenario.
+4. A criterion expressing a prohibition SHALL carry `@negative`, and one
    verifiable only by hand SHALL carry `@manual`, replacing the
    `(manual)` text marker.
-3. `Feature` and `Scenario` `Description` fields SHALL NOT contain
-   normative statements; the CLI SHALL report prose there as a probable
-   un-tagged criterion.
-4. WHERE a criterion has concrete example data, it SHOULD be expressed
+5. `Scenario` `Description` fields SHALL NOT contain normative
+   statements; the CLI SHALL report prose there as a probable un-tagged
+   criterion. A `Feature` description carries the user story and is
+   exempt.
+6. WHERE a criterion has concrete example data, it SHOULD be expressed
    as a `Scenario Outline` with an `Examples` table rather than as prose.
-5. The CLI SHALL be able to emit conforming `.feature` files from the
-   extracted blocks, so publication to external tooling needs no second
-   authoring format.
-6. A step SHALL NOT be shortened to fit a line-width limit. No such
+7. A step SHALL NOT be shortened to fit a line-width limit. No such
    limit applies inside a fenced block (AC-SPECSTR-002.5); the line is
    written at whatever width the criterion needs, and decomposed into
    further steps only where that genuinely reads better.
-7. WHERE a `Scenario Outline` carries more than one acceptance
-   criterion, each identifier SHALL be tagged on its own `Examples`
-   block rather than on the scenario.
-8. Extraction SHALL accept both notations while any FRD still carries
+8. The CLI SHALL be able to emit conforming `.feature` files from the
+   extracted blocks, so publication to external tooling needs no second
+   authoring format. One requirement yields one file.
+9. Extraction SHALL accept both notations while any FRD still carries
    prose criteria, which the notation-agnostic constraint carried
    forward from ADR-014 already requires.
 
-Constraint 7 exists because the trial hit it: tagging one
+Constraint 1 is the one the trial got wrong first. Mapping a requirement
+onto `Rule:` produced blocks headed `Rule: Configuration` — a topic,
+where the keyword means an assertion — and, because `Rule.Description`
+was then the only slot available, left the user story with nowhere to go
+but markdown. Mapping the requirement onto `Feature` puts the user story
+in the description slot built for it and frees `Rule:` for its purpose.
+
+Constraint 3 exists because the trial hit it: tagging one
 `Scenario Outline` at scenario level made two criteria disappear from a
 document that parsed cleanly, with every scenario tagged and no check
-firing. Constraint 6 exists because the trial's first pass invented a
+firing. Constraint 7 exists because the trial's first pass invented a
 width limit that does not apply and compressed steps to fit it, changing
 the meaning of AC-SPEC-009.4 — the hazard is the invented constraint,
 not the notation.
 
-Constraint 5 is why level 2 beats level 3 rather than compromising with
+Constraint 8 is why level 2 beats level 3 rather than compromising with
 it: emitting `.feature` from fenced blocks is mechanical, so the FRD
 stays one reviewable document *and* the external artifact is available
 on demand. Level 3 pays the corpus-model cost — `.feature` files are
