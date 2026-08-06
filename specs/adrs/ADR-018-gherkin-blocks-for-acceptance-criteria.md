@@ -132,13 +132,17 @@ position.
 
 ### The extraction mechanics are settled
 
-Fenced ` ```gherkin ` blocks in `.md` files, each wrapped in a synthetic
-`Feature:` header before parsing. The extractor is ~40 lines; source
-positions map back with `fence_line + (parser_line - 1)`. Verified
-against a block containing one good criterion and three defective ones —
-correct `.md` line numbers, and untagged, malformed and duplicate
-identifiers all reported. **MDG (`.feature.md`) is JavaScript-only and
-is not needed.**
+Fenced ` ```gherkin ` blocks in `.md` files, wrapped in a synthetic
+`Feature:` header only when the block does not declare its own. The
+extractor is ~40 lines; positions map back with
+`fence_line + (parser_line - wrap)`. Verified against a block containing
+one good criterion and three defective ones — correct `.md` line
+numbers, and untagged, malformed and duplicate identifiers all reported;
+and separately end to end into this project's `Span`, whose byte offsets
+were confirmed by slicing the source. **MDG (`.feature.md`) is
+JavaScript-only and is not needed.** The full extraction contract and
+its five gotchas are recorded in
+`docs/plans/gherkin-extraction-findings.md`.
 
 Semantic validation stays in the spec CLI by design: the parser
 enforces Gherkin's grammar, and the CLI enforces that every scenario
@@ -290,3 +294,5 @@ the target shape directly.
   release history
 - [cucumber/messages](https://github.com/cucumber/messages) — the
   published interchange schema the extracted records conform to
+- `docs/plans/gherkin-extraction-findings.md` — the measured extraction
+  contract, the AST type hierarchy, and the five integration gotchas
