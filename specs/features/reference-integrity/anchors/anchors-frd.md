@@ -36,10 +36,12 @@ half. It exists as its own document because the two halves have
 different dependencies and different urgency: slug resolution needs only
 the index, while anchor resolution needs the heading data that
 [[frd-spec-structure-conformance]] extracts, and a scan of this corpus
-on 2026-08-05 found 257 wikilinks of which **zero** name an anchor. The
-five anchor-shaped strings in the corpus are all backticked notation
-examples in [[adr-012]] and this FRD's own siblings — illustrations of
-the convention, not uses of it.
+on 2026-08-06 found 256 body references of which **zero** name an
+anchor. The 20 anchor-shaped strings in the corpus are all backticked
+notation examples in [[adr-012]] and this FRD's own siblings —
+illustrations of the convention, not uses of it, and excluded from the
+count by the same rule (AC-SPECREF-001.2) that keeps them out of the
+index.
 
 That number is the reason this is a sub-feature rather than an
 afterthought. A convention nobody has used yet is a convention with no

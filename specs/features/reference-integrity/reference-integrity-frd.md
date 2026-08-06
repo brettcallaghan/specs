@@ -7,7 +7,8 @@ slug: frd-spec-reference-integrity
 type: frd
 status: draft
 updated_at: 2026-08-05T00:00:00Z
-sources: []
+sources:
+  - "frd-spec-validation-cli"
 related:
   - "frd-spec-validation-cli"
   - "frd-spec-anchor-references"
@@ -29,8 +30,9 @@ repository's own corpus found 26 such broken references that no reviewer
 had noticed.
 
 Those 26 are gone: the slug migration [[adr-012]] decided repaired them,
-and a scan of the same corpus on 2026-08-05 — 27 documents, 208
-references — finds none unresolved. That is the argument for this
+and a scan of the same corpus on 2026-08-06 — 29 documents, 256 body
+references once backticked illustrations are excluded — finds none
+unresolved. That is the argument for this
 feature rather than against it. The 26 were repaired by a one-off
 prototype and a hand migration, and nothing now stands between the
 corpus and the next such drift; a corpus that is clean exactly once, at
@@ -192,6 +194,17 @@ same artifact instead of re-deriving it.
   - *Example:* A corpus with eleven broken links still produces a
     complete index; the eleven are reported by `check`, per the ordering
     REQ-SPEC-002 sets — indexing never fails, validation may.
+- **AC-SPECREF-001.7:** WHEN the CLI builds the index, the CLI SHALL
+  record every value held by a frontmatter property the active profile
+  registers as reference-bearing as an outbound reference of that
+  document, each with the span at which it occurs, distinguishable from
+  a reference parsed from the body.
+  - *Example:* A document's `related: ["adr-012", "adr-002"]` records
+    two outbound references naming the property they came from, so
+    AC-SPECREF-002.3 can name it in a finding, AC-SPECREF-003.1 can
+    answer for a document cited only in frontmatter, and the inbound
+    edges of AC-SPECREF-001.3 include the relational graph rather than
+    only the prose one.
 
 *Rationale:* AC-SPECREF-001.2 and AC-SPECREF-001.4 are the same rule
 applied to the two places a reference is written about rather than
@@ -202,6 +215,15 @@ makes a checker get ignored. AC-SPECREF-001.6 restates REQ-SPEC-002's
 ordering for this feature specifically, because a reference graph is the
 part of the index most likely to tempt an implementer into failing the
 build from the indexer.
+
+AC-SPECREF-001.7 is stated positively because AC-SPECREF-001.1 covers
+only the body, and everything downstream assumes frontmatter references
+are in the index: AC-SPECREF-002.3 checks them, AC-SPECREF-003.1 answers
+for them, AC-SPECREF-002.5 compares a pairing across two documents, and
+AC-SPECREN-001.4 rewrites them from their recorded spans. Left implicit,
+the reasonable reading of REQ-SPECREF-001 is that the index holds prose
+links only — which passes every criterion in this requirement and
+silently drops the half of the graph a catalogue reads first.
 
 ### REQ-SPECREF-002: Reference Integrity Checks
 
@@ -278,8 +300,9 @@ a reader follows it into nothing.
     cannot both exist.
 - **AC-SPECREF-002.9:** WHEN the CLI checks a single document, the CLI
   SHALL report inbound references to that document that no longer
-  resolve, each cited at the span in the referring document, in addition
-  to findings against the document named.
+  resolve at the severity AC-SPECREF-002.1 assigns, each cited at the
+  span in the referring document, in addition to findings against the
+  document named.
   - *Example:* An agent changes an ADR's slug and the write-time check
     on that one file reports the seven documents now pointing at
     nothing, at their own lines. Without this, the edit most likely to
@@ -330,13 +353,13 @@ renaming a document without reading every file.
 - **AC-SPECREF-003.1:** The CLI SHALL expose a `refs` subcommand that,
   given a slug, returns every corpus member whose body or registered
   frontmatter properties reference it.
-  - *Example:* `spec refs adr-007` returns the seven documents citing
-    it, so an author retiring it knows the blast radius.
+  - *Example:* `spec refs adr-007` returns the four documents citing it,
+    so an author retiring it knows the blast radius.
 - **AC-SPECREF-003.2:** WHEN the `refs` subcommand is invoked with an
   option selecting the outbound direction, the CLI SHALL return the
   documents the named slug references instead of those referencing it.
   - *Example:* `spec refs frd-spec-reference-integrity --outbound`
-    lists the four documents this FRD cites, so an agent about to edit
+    lists the nine documents this FRD cites, so an agent about to edit
     it knows what it depends on without reading it.
 - **AC-SPECREF-003.3:** WHEN the `refs` subcommand is invoked with the
   `--json` option, the CLI SHALL emit each returned reference with its
@@ -414,7 +437,7 @@ new prefix here are the same decision.
 - [[frd-spec-slug-rename]] — the sub-feature that rewrites every
   reference to a slug when the slug is deliberately renamed
 - [[frd-spec-structure-conformance]] — supplies the document headings
-  that sub-feature resolves an anchor against
+  the anchor sub-feature resolves an anchor against
 - [[contract-specs-configuration]] — the configuration surface
   REQ-SPECREF-004 consumes, whose `reference_properties` and `pairings`
   are already declared
