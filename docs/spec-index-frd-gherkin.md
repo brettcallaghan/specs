@@ -164,7 +164,7 @@ Rule: Document Index
   Scenario: The index carries frontmatter and path for every member
     When the CLI builds an index
     Then the CLI emits a JSON document
-    And that document contains every corpus member's frontmatter and path
+    And that document contains, for every corpus member, its frontmatter properties and its file path
 
   @AC-SPEC-002.2
   Scenario Outline: The index declares a schema version identifier
@@ -278,7 +278,7 @@ Rule: Metadata Conformance
 
   @AC-SPEC-003.6 @negative
   Scenario: A parse error is reported and never counted as a pass
-    Given a corpus member indexed with a parse error, not frontmatter
+    Given a corpus member indexed with a parse error rather than parsed frontmatter
     When the CLI checks the corpus
     Then the CLI reports a finding carrying that error's message and span
     And the CLI does not report the document as having passed any check
@@ -312,7 +312,7 @@ Rule: Findings, Severities, and Diagnostics
     When the CLI reports a finding
     Then the finding carries a stable rule identifier
     And the finding carries a severity, a file path and a span
-    And the message states the violated constraint and the bad value
+    And the message states the violated constraint and the value that violated it
 
   @AC-SPEC-006.3
   Scenario Outline: A check that cannot run is reported as unverified
@@ -370,7 +370,7 @@ Rule: Findings, Severities, and Diagnostics
     Given a run invoked with "--only slug-uniqueness"
     When the CLI reports the run
     Then the CLI does not report the unrequested checks as passed
-    And the report distinguishes a pass from a check that was not run
+    And the report distinguishes "slug uniqueness passed" from "frontmatter schema was not checked"
 ```
 
 ### REQ-SPEC-007: Corpus Queries
@@ -435,8 +435,7 @@ Rule: Configuration
     When the CLI reads its configuration
     Then the configuration determines the spec root
     And the configuration determines the workspace identifier
-    And the configuration determines the registered document types
-    And each type carries a slug pattern and a frontmatter JSON Schema
+    And the configuration determines the registered document types with their slug patterns and the JSON Schema that validates each type's frontmatter
 
   @AC-SPEC-008.3
   Scenario: A missing configuration file is reported, not assumed away
@@ -455,7 +454,7 @@ Rule: Configuration
   Scenario: An invalid configuration never falls back to a default
     Given the configuration is present but invalid
     When the CLI reads it
-    Then the CLI does not default the offending key
+    Then the CLI does not fall back to a default value for the offending key
 
   @AC-SPEC-008.6
   Scenario: A configuration for this framework's own types ships with it
@@ -504,21 +503,19 @@ Rule: Invocation, Performance, and Portability
 
   @AC-SPEC-009.4 @manual
   Scenario: The CLI runs with no language runtime installed
-    Given a machine with only a shell and the CLI binary
-    And no language runtime, interpreter or package manager is installed
+    Given a machine with no language runtime, interpreter, or package manager installed beyond the CLI itself
     When the CLI runs
     Then the CLI runs successfully
 
   @AC-SPEC-009.5 @manual @negative
   Scenario: Installation retrieves no executable content from a network
     When the CLI is installed
-    Then the CLI retrieves no executable content from a network
+    Then the CLI does not retrieve executable content from a network location during installation
 
   @AC-SPEC-009.6 @manual
   Scenario: The CLI is installable from a mirrorable registry
     When an adopting organization installs the CLI
-    Then the CLI installs from at least one package registry
-    And that registry supports on-premises mirroring
+    Then the CLI is installable from at least one package registry that supports on-premises mirroring
 
   @AC-SPEC-009.7
   Scenario Outline: Identical content yields identical findings everywhere
@@ -595,7 +592,7 @@ Rule: Index Output and Persistence
   Scenario: The index file is replaced atomically
     When the CLI writes the index to a file
     Then the CLI replaces any existing file atomically
-    And a concurrent reader never observes a partially written file
+    And a concurrent reader observes either the old complete index or the new one, never a partially written file
 
   @AC-SPEC-010.5
   Scenario: A warm index answers without re-walking the corpus

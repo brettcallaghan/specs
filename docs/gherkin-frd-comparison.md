@@ -16,20 +16,16 @@ from predicting it.
 
 | | Original (EARS) | Variant (Gherkin) |
 |---|---|---|
-| Requirements section | 410 lines | 616 lines (**+50%**) |
+| Requirements section | 410 lines | 613 lines (**+50%**) |
 | Lines per criterion | 7.9 | 11.8 |
 | Criteria | 52 | 52 |
 | Examples | 40 prose sentences | 37 rows across 25 `Scenario Outline`s |
-| Lines over 80 cols | 0 | 0 (*after rewriting — see finding 1*) |
+| Lines over 80 cols | 0 | 9 (exempt — fenced blocks, AC-SPECSTR-002.5) |
 | Machine-extractable fields per criterion | 1 (the sentence) | id, req, typed steps, example rows, rationale, tags |
 
-## Finding 1 — Gherkin steps cannot wrap, and this collided immediately
+## Finding 1 — steps cannot wrap, but the width limit does not apply
 
-**This was the single biggest source of friction, and it is not
-mentioned anywhere in ADR-018.**
-
-A step is one line. There is no continuation syntax. On the first
-parse run, **6 of 9 blocks failed**, and every single error was a
+Six of nine blocks failed on the first parse run, and every error was a
 wrapped step:
 
 ```
@@ -38,32 +34,41 @@ wrapped step:
         #Empty, got '      properties and its file path'
 ```
 
-This repository sets `line_width = 80` in `specs.toml`. An EARS bullet
-wraps freely across as many lines as it needs; a Gherkin step must say
-what it says inside one 80-column line, minus 4–6 columns of indent —
-so roughly **70 usable characters per step**.
+**A Gherkin step is one line. There is no continuation syntax.** That
+part is real and immutable.
 
-Two ways out, and the difference matters:
+**The rest of what this section originally claimed was wrong.** It said
+steps must fit in roughly 70 characters because `specs.toml` sets
+`line_width = 80`, and that compressing them to fit was therefore an
+unavoidable hazard. Neither holds:
 
-- **Compress the sentence.** This silently loses meaning. My first pass
-  turned *"a machine with no language runtime, interpreter, or package
-  manager installed **beyond the CLI itself**"* into *"a machine with no
-  runtime, interpreter or package manager"* — which says something
-  different and wrong, since the CLI is installed. I did not notice
-  until re-reading against the original.
-- **Decompose into more steps.** This is the correct technique and it
-  preserves meaning:
+- **Gherkin imposes no length limit at all.** A 412-character step parses
+  without complaint.
+- **This framework already exempts fenced code blocks from line width.**
+  AC-SPECSTR-002.5 of [[frd-spec-structure-conformance]] states it
+  outright — no width finding is reported for a line inside a fenced
+  code block, a table row, or a line containing a URL — and
+  `schemas/config.strata` documents the same exemption on the
+  `line_width` property itself. A ` ```gherkin ` block is a fenced code
+  block.
 
-  ```gherkin
-  Given a machine with only a shell and the CLI binary
-  And no language runtime, interpreter or package manager is installed
-  ```
+So the correct fix for a long criterion is to **write the long line**.
+All ten steps that failed parse unchanged at full fidelity as single
+lines. Their widths: nine exceed 80 columns, five exceed 100, one
+reaches 150.
 
-  It is also a large part of why the document grew 50%.
+This matters because the wrong diagnosis produced real damage. Working
+from a limit that did not apply, the first pass compressed *"a machine
+with no language runtime, interpreter, or package manager installed
+**beyond the CLI itself**"* down to *"a machine with no runtime,
+interpreter or package manager"* — which is false, since the CLI is
+installed. All ten steps have since been restored to the original
+wording.
 
-**Implication for adoption:** the migration bead must treat step
-compression as a defect class, not a style choice. A reviewer diffing
-the two versions cannot see meaning lost inside a rewritten step.
+**What remains as a genuine cost** is much smaller than first reported:
+a criterion that takes 150 columns to state occupies one long line
+inside the block, which reads worse in a narrow diff than a wrapped
+prose bullet does. That is a readability trade, not a fidelity hazard.
 
 ## Finding 2 — tag `Examples`, not the scenario, or criteria disappear
 
@@ -191,9 +196,10 @@ Honest notes from writing it:
 
 Nothing in the decision, but three things belong in the migration:
 
-1. **Step compression is a defect class.** Long criteria must be
-   decomposed into more steps, never shortened. This is the main risk in
-   migrating 52 criteria and it is invisible in review.
+1. **Never shorten a step to fit a width limit** — none applies inside
+   a fenced block. Write the long line, or decompose only where more
+   steps genuinely read better. The first pass got this wrong and
+   silently changed the meaning of AC-SPEC-009.4.
 2. **AC identifiers on `Scenario Outline` go on `Examples` blocks.**
    Otherwise criteria disappear silently. The conformance check must
    read both tag positions.

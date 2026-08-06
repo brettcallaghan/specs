@@ -159,8 +159,9 @@ trial — 52 criteria, nine blocks — and parsed with the extractor
 `docs/gherkin-frd-comparison.md`). All nine blocks parse and all 52
 identifiers extract, so the design holds. Three costs it surfaced are
 recorded in Consequences below rather than discovered during migration:
-steps cannot wrap, a `Scenario Outline` tagged at scenario level
-silently loses criteria, and the Requirements section grows 50%.
+steps cannot wrap so long criteria become long lines, a `Scenario
+Outline` tagged at scenario level silently loses criteria, and the
+Requirements section grows 50%.
 
 ### What is genuinely lost, and what it costs
 
@@ -228,22 +229,24 @@ Binding constraints:
 5. The CLI SHALL be able to emit conforming `.feature` files from the
    extracted blocks, so publication to external tooling needs no second
    authoring format.
-6. A step SHALL NOT be shortened to fit the line-width limit; a
-   criterion too long for one step SHALL be decomposed into more steps.
+6. A step SHALL NOT be shortened to fit a line-width limit. No such
+   limit applies inside a fenced block (AC-SPECSTR-002.5); the line is
+   written at whatever width the criterion needs, and decomposed into
+   further steps only where that genuinely reads better.
 7. WHERE a `Scenario Outline` carries more than one acceptance
    criterion, each identifier SHALL be tagged on its own `Examples`
    block rather than on the scenario.
-8. Migration SHALL be incremental — new and revised FRDs are authored
-   in Gherkin, and existing criteria migrate when their FRD is next
-   revised. Extraction SHALL accept both notations during the
-   transition, which the notation-agnostic constraint already requires.
+8. Extraction SHALL accept both notations while any FRD still carries
+   prose criteria, which the notation-agnostic constraint carried
+   forward from ADR-014 already requires.
 
-Constraints 6 and 7 exist because the trial hit both: compressing a step
-changed the meaning of AC-SPEC-009.4 without any check noticing, and
-tagging one `Scenario Outline` at scenario level made two criteria
-disappear from a document that parsed cleanly. Constraint 8 follows —
-a single pass over 52 criteria is the highest-risk way to introduce a
-notation whose main hazard is silent, review-invisible corruption.
+Constraint 7 exists because the trial hit it: tagging one
+`Scenario Outline` at scenario level made two criteria disappear from a
+document that parsed cleanly, with every scenario tagged and no check
+firing. Constraint 6 exists because the trial's first pass invented a
+width limit that does not apply and compressed steps to fit it, changing
+the meaning of AC-SPEC-009.4 — the hazard is the invented constraint,
+not the notation.
 
 Constraint 5 is why level 2 beats level 3 rather than compromising with
 it: emitting `.feature` from fenced blocks is mechanical, so the FRD
@@ -296,11 +299,11 @@ generate.
   toward imperative detail without a runner to punish it.
 - Syntax highlighting is partial: GitHub's Linguist grammar is
   unmaintained and mis-colours `Rule:`; VS Code requires an extension.
-- **A step cannot wrap.** Against `line_width = 80` every step must say
-  what it says in roughly 70 characters. This is a permanent authoring
-  constraint on every future criterion, not a migration cost, and its
-  failure mode is silent: shortening a step to fit changes meaning
-  without changing anything a reviewer diffs.
+- **A step cannot wrap**, so a criterion that takes 150 columns to state
+  occupies one 150-column line. Gherkin imposes no length limit and this
+  framework already exempts fenced blocks from `line_width`
+  (AC-SPECSTR-002.5), so nothing forces shortening — but a long line
+  reads worse in a narrow diff than a wrapped prose bullet does.
 - **A mis-tagged `Scenario Outline` loses criteria silently.** Tagging
   the scenario rather than each `Examples` block collapses several
   criteria into one, in a document that parses, whose every scenario is
