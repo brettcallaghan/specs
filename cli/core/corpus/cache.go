@@ -410,6 +410,13 @@ func fromIndex(index specmodel.SpecIndex, opts Options) (*Corpus, error) {
 		}
 	}
 
+	// The graph is read from the persisted index, not re-derived: the rows
+	// were resolved by the build that wrote them, so serving them warm
+	// parses no document at all. That is what keeps the `refs` query and
+	// the inbound half of a single-document check inside the AC-SPEC-009.1
+	// and AC-SPEC-009.2 budgets (AC-SPECREF-003.4).
+	c.indexReferences()
+
 	members, err := c.collidingMembers()
 	if err != nil {
 		return nil, err

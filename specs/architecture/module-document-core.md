@@ -190,7 +190,7 @@ C4Component
         Component(span, "Spans", "Go package", "Position type and delimited-region scanning")
         Component(fm, "Frontmatter", "Go package", "Frontmatter extraction and YAML parsing with raw-text access")
         Component(md, "Markdown Structure", "Go package (planned)", "Headings, section spans, fenced blocks and comment blocks")
-        Component(refs, "References", "Go package", "Wikilink and frontmatter reference extraction; resolution and the reference graph planned")
+        Component(refs, "References", "Go package", "Wikilink and frontmatter reference extraction, resolution against corpus slugs, and the reference graph")
         Component(schema, "Schema Registry", "Go package", "Single-union JSON Schema validation dispatched by document type")
         Component(corpus, "Corpus", "Go package", "Discovery, membership, the index model and its emission")
         Component(num, "Numbering", "Go package", "Next-number derivation for numbered document types")
@@ -210,11 +210,11 @@ C4Component
     Rel(corpus, find, "Folds Check's findings through")
 ```
 
-Six of the eight are built and carry a **Built** paragraph naming the
-package that realizes them: Spans, Frontmatter, Schema Registry, Corpus,
-Numbering and Findings. References is **half built** — `cli/core/references`
-extracts every reference a document makes, and nothing yet resolves one or
-puts it in the index, so no check reports a broken link. **Markdown
+Seven of the eight are built and carry a **Built** paragraph naming the
+package that realizes them: Spans, Frontmatter, References, Schema
+Registry, Corpus, Numbering and Findings. The emitted index carries the
+resolved reference graph; no check reads it yet, so a broken link is
+recorded and not reported. **Markdown
 Structure is planned and not yet built** — there is no `cli/core/markdown`
 package, and no heading is read anywhere in the module. Its section below
 describes a design, not an implementation, and the diagram edges into and
@@ -390,20 +390,66 @@ inline code spans, because an illustrative reference inside backticks is
 not a reference. Inbound edges are derived, so no document maintains a
 list of its own referrers.
 
-**Half built — extraction.** `cli/core/references`. `Extract` takes one
+**Built** — `cli/core/references`. `Extract` takes one
 document — its path, its bytes, its parsed frontmatter, and the
 reference-bearing property names the active profile registers for its
 type — and returns the references it makes as `specmodel.Reference`
 values, ordered by position: the registered frontmatter properties in
-declaration order, then the body in the order it is written. Resolution
-is what is not built: the index model carries the `references` collection
-— declared in `schemas/index.strata` and added under the same
-`schema_version`, which is what the additive shape described under Corpus
-exists to permit — but nothing populates it, so every emitted index
-carries it empty and a `[[slug]]` naming no document is reported by no
-check.
+declaration order, then the body in the order it is written. `Resolve`
+takes those references and one `SpecIndex` and records what each of them
+reached, in place. The two are separate because they know different
+things: extraction knows a document, resolution knows a corpus, and
+keeping the seam between them is what makes a reference impossible to put
+in the index without a corpus having been consulted.
 
-Seven semantics are pinned by the implementation:
+**Resolution is a lookup, and it reads nothing.** It matches a
+reference's slug half against the slugs the index's members declare, and
+that is the whole of its input — no document is opened, no frontmatter is
+re-parsed, and the answer is a function of the index alone, so the same
+references over the same index resolve identically on every platform and
+on every run. What it costs is the walk it rides on; see Corpus below for
+where it is called from.
+
+The graph the index carries is one collection of edges, and both
+directions are read from it. `Corpus` exposes `OutboundReferences` by the
+path a reference occurs in and `InboundReferences` by the path it
+resolved to, each built once when the corpus is built or opened, so a
+document's referrers are a lookup rather than a scan and no reverse edge
+is stored ([[adr-018]], AC-SPECREF-001.3).
+
+Five further semantics are pinned by the resolution half:
+
+- **Slugs are compared lowercased and trimmed** (AC-SPECREF-002.8),
+  matching the case-insensitive slug uniqueness AC-SPEC-003.4 already
+  establishes. The two rules have to agree: a corpus that refuses to hold
+  `adr-012` and `ADR-012` as distinct documents but resolves a reference
+  to only one of them is answering one question about one identifier two
+  ways.
+- **A reference resolves only within the workspace the run is against.**
+  A slug declared only in another repository's index is unresolved, per
+  the boundary [[frd-spec-reference-integrity]] states. The merged-graph
+  case is a known follow-on rather than a defect.
+- **A slug matching a file the index recorded as an exclusion, or as a
+  member whose frontmatter could not be read, resolves to `non-member`
+  rather than to nothing** (AC-SPECREF-002.7), carrying that file's path
+  and the reason or the parse failure. The reader's next step differs:
+  the document is right there and what is wrong is its frontmatter.
+- **A non-member is matched on its file name without the extension,
+  lowercased**, because it is the only handle such a file has — a parse
+  failure has no readable frontmatter to declare a slug, and a file
+  excluded for carrying no frontmatter has none either. The name is
+  recorded on the index, so the match is reproducible by anything reading
+  the artifact rather than resting on knowledge only the build held. The
+  consequence is deliberate and one-directional: a non-member whose
+  intended slug differs from its file name matches nothing and reports as
+  an ordinary unresolved reference, which is the answer it received
+  before this rule existed.
+- **A member always wins over a file named like one**, and where two
+  non-members share a name the first in path order is reported, decided
+  by comparison rather than by the order the index happens to hold its
+  collections in.
+
+Seven semantics are pinned by the extraction half:
 
 - **The body is what follows the frontmatter block,** so a frontmatter
   value describing the notation — `description: References use [[slug]]
@@ -439,7 +485,10 @@ Seven semantics are pinned by the implementation:
   resolving quietly to something the standard forbids.
 - **Extraction leaves the resolution unset,** which is deliberately
   unserializable, so a reference cannot reach the index without having
-  been resolved on the way.
+  been resolved on the way. `Resolve` is what sets it, and it sets one on
+  every reference — including the ones that reached nothing, because the
+  index describes the corpus it found and reporting a broken link is a
+  check's job (AC-SPECREF-001.6).
 
 A reference's position covers what a reader is pointed at and what a
 rewrite replaces: for a body reference the text between the brackets, the
@@ -579,7 +628,21 @@ Questions in [[container-spec-cli]], which owns that decision.
 `Corpus`: the populated `specmodel.SpecIndex`, the findings discovery
 raised over it, and the lookups the queries need — `Entry` by path,
 `Slug` by identifier, `Document` for the parsed frontmatter behind one
-member, and `FindingsFor` to narrow a whole-corpus result to one file.
+member, `OutboundReferences` and `InboundReferences` for the two
+directions of the reference graph, and `FindingsFor` to narrow a
+whole-corpus result to one file.
+
+**The reference graph rides the walk.** A member's references are
+extracted inside the same visit that reads its bytes and parses its
+frontmatter, so no document is read or parsed twice; resolution then runs
+once, after the walk, because what a reference reached is a question
+about the whole corpus and the first file read may name the last. The
+rows are ordered by the path a reference occurs in and then by its
+position within that document, which satisfies AC-SPECREF-001.5's
+document ordering and AC-SPEC-009.7's byte-identical output in one rule.
+Only a member contributes references: a file that is not a specification
+has no declared type, and what holds a reference in frontmatter is
+registered per type.
 
 `Check` and `CheckFor` run the Schema Registry's validation and the
 active profile's per-type slug-pattern check for every member with parsed
@@ -625,14 +688,27 @@ stale indexes or never serve one. What it folds in is every candidate
 file's repository-relative path and content digest, plus the inputs that
 change the index while the files stand still: the workspace identifier,
 the active profile's schema and per-type table, and the schema version.
-Absolute paths are deliberately excluded, so the same content checked
-out at another location hashes the same.
+The per-type table includes each type's **reference-bearing properties**,
+because they decide the index's content — a property registered today
+holds a reference the emitted graph carries and did not carry yesterday,
+while every file on disk stands still. The registration's other members
+are deliberately not folded in: typed references, pairings and the
+lifecycle are read by checks that run against the live profile on every
+invocation and reach nothing the index records, so a change to one of
+them cannot make a persisted index stale. Absolute paths are deliberately
+excluded, so the same content checked out at another location hashes the
+same.
 
 A corpus served warm has parsed no document. It reads and parses one on
 demand when a caller asks something only the source can answer — a
 slug's position for a duplicate finding, or a schema check — which is
 what keeps a single-document check against a warm index proportional to
-that document rather than to the corpus (AC-SPEC-009.2).
+that document rather than to the corpus (AC-SPEC-009.2). The reference
+graph is not one of those questions: the rows were resolved by the build
+that wrote them, so both directions are served from the persisted index
+with nothing parsed at all, which is what keeps a reference query and the
+inbound half of a single-document check inside the AC-SPEC-009.1 and
+AC-SPEC-009.2 budgets (AC-SPECREF-003.4).
 
 Six semantics are pinned by the implementation:
 
@@ -852,9 +928,10 @@ This module SHALL comply with:
 ## Key Decisions
 
 - [[adr-015]] — Go, `goccy/go-yaml`, `santhosh-tekuri/jsonschema` and
-  `goldmark` are the implementation choices this module is built on. The
-  first three are in use; `goldmark` is not a dependency yet and arrives
-  with the Markdown Structure component.
+  `goldmark` are the implementation choices this module is built on. All
+  four are in use; `goldmark` arrived with References rather than with
+  Markdown Structure, for the code-region mask described under that
+  component.
 - [[adr-016]] — Strata is the single source for generated models, which
   is why the index model this module emits is declared in
   `schemas/index.strata` rather than written as Go structs.
