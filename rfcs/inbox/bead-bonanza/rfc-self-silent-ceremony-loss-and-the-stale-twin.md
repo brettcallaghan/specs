@@ -127,6 +127,20 @@ stated there.
    the file is split. Phase 0's gate-profile step has no rule for
    baselining an already-failing gate.
 
+6. **[script-defect · snag] `bb-close-bead.sh` writes no commit trailers,
+   and the amend that adds them invalidates the sha the ledger just
+   recorded.** The script commits with the bare subject `{ID} P{PRIORITY}
+   {TITLE}` and no body, so a repository requiring `Co-Authored-By` /
+   `Claude-Session` trailers must `git commit --amend` after step 6 —
+   which rewrites the commit. Step 7 then records the pre-amend sha.
+   Observed on `9kb.10`:
+   `agent-plugins-9kb.10.progress.jsonl` ends
+   `{"phase":"committed","sha":"14f0be3"}`, while the landing commit on
+   the branch is `875593a`; `git merge-base --is-ancestor 14f0be3 HEAD`
+   exits non-zero — the recorded sha is a dangling pre-amend object.
+   Repro: run `bb-close-bead.sh`, `git commit --amend` to add any
+   trailer, then compare the ledger's `sha` to `git rev-parse HEAD`.
+
 ## Proposals
 
 ### P1 — Verify the artifacts before recording a bead closed [blocker]
@@ -266,6 +280,35 @@ Separately, add to Phase 0's gate-profile step:
 step, and the linter stops reporting the skill meant to teach authoring
 standards.
 
+### P6 — Let the close script write the project's trailers [snag]
+
+**Problem.** `bb-close-bead.sh` emits a bare one-line subject. Any
+project whose convention requires commit trailers must amend after the
+close, and the amend rewrites the commit the ledger recorded one step
+later — so the ledger points at an object that is not on the branch.
+Finding 6. Every bead in this run that pushed trailers has this drift.
+
+**Change.** Give `bb-close-bead.sh` an optional `--trailers-file <path>`
+whose contents are appended to the commit message body (blank line
+first), and have Phase 0 resolve it once per run alongside the gate
+profile, from the project's stated commit convention. Then reorder the
+subagent template so no amend is needed: step 6 closes and commits with
+trailers already in place, and step 7's recorded sha is final. WHERE a
+project has no trailer convention, the flag is omitted and behavior is
+unchanged.
+
+Independently of the flag, change step 7 of
+`references/subagent-prompts.md` to read the sha from the branch rather
+than from the script's output:
+
+> 7. `bb-progress.sh "$RUN_DIR" {ID} committed sha=$(git rev-parse
+>    --short HEAD)` — read it from the branch, not from the script's
+>    printout, so any rewrite between the two steps cannot desync it.
+
+**Evidence.** Finding 6. The ledger's `committed` event names a commit
+that is actually reachable, which is what P1's acceptance check and
+every recovery path assume.
+
 ## Considered and Not Proposed
 
 - **"The main-loop fallback drops the ceremony."** Proposed in the first
@@ -297,10 +340,10 @@ standards.
 
 ## Non-Goals
 
-- No change to `bb-progress.sh`, `bb-close-bead.sh` or
-  `bb-verify-skip.sh`. All three behaved correctly wherever they were
-  invoked; the defect is that two of them were not invoked for three
-  beads. P2 adds a new script rather than modifying these.
+- No change to `bb-progress.sh` or `bb-verify-skip.sh`; P6 changes only
+  `bb-close-bead.sh`, by adding an optional flag. All three behaved
+  correctly wherever they were invoked; Finding 1's defect is that two
+  were not invoked for three beads at all.
 - No change to the phase vocabulary or the event schema.
 - No change to tier routing, gate profiles, or the close ceremony's
   ordering.
