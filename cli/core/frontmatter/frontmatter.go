@@ -76,6 +76,35 @@ type Property struct {
 	// property set converts to JSON without a second pass over the
 	// source.
 	Value any
+
+	// Items are the elements of a sequence-valued property, each at its
+	// own position, in declaration order.
+	//
+	// It is nil for a property whose value is not a sequence, and
+	// non-nil-but-empty for one whose value is the empty sequence, so a
+	// caller can tell the two apart.
+	//
+	// Position and Raw above describe the whole value, which is the right
+	// extent for a finding about the property and the wrong one for a
+	// finding about one of the slugs inside it: a reader told that a list
+	// holds a broken reference still has to find which element, and a
+	// rewrite of one element cannot address the list.
+	Items []Item
+}
+
+// Item is one element of a sequence-valued property.
+type Item struct {
+	// Position is where the element sits in the document, covering its
+	// source text as written — quotes included, the block sequence
+	// indicator and the separators around it excluded.
+	Position specmodel.Span
+
+	// Raw is the element's source text exactly as written, which is what
+	// Position covers.
+	Raw string
+
+	// Value is the parsed element, on the same terms as [Property.Value].
+	Value any
 }
 
 // Document is one markdown document's parsed frontmatter.
@@ -244,7 +273,80 @@ func readProperty(src []byte, region span.Region, pairs []*ast.MappingValueNode,
 		Position: span.Of(src, valueStart, len(raw)),
 		Raw:      raw,
 		Value:    value,
+		Items:    sequenceItems(src, region, pair.Value, valueStart+len(raw)),
 	}, nil
+}
+
+// sequenceItems returns one Item per element of value when value is a
+// sequence, and nil when it is anything else. end is the byte offset the
+// whole property's source text stops at, which is where the last element
+// stops too.
+//
+// A scalar element is located by its own token, not by the extent running
+// to the next element: in a block sequence that extent would swallow the
+// following element's "- " indicator, and trimming it back off by hand is
+// how a span parser starts guessing. A composite element — a mapping or a
+// nested sequence inside the list — has no single token covering it, so it
+// is the one case that does use the extent, with the indicator removed.
+func sequenceItems(src []byte, region span.Region, value ast.Node, end int) []Item {
+	sequence, ok := value.(*ast.SequenceNode)
+	if !ok {
+		return nil
+	}
+
+	items := make([]Item, 0, len(sequence.Values))
+	for i, entry := range sequence.Values {
+		start := absolute(region, src, valueToken(entry))
+		stop := end
+		if i+1 < len(sequence.Values) {
+			stop = absolute(region, src, valueToken(sequence.Values[i+1]))
+		}
+		if stop < start {
+			stop = start
+		}
+
+		raw := elementText(src, entry, start, stop)
+		var parsed any
+		if err := yaml.NodeToValue(entry, &parsed); err != nil {
+			// The whole property already parsed, so an element that will
+			// not convert is a shape this walk cannot describe rather
+			// than a defect in the document. It keeps its position and
+			// its source text, and carries no parsed value.
+			parsed = nil
+		}
+
+		items = append(items, Item{
+			Position: span.Of(src, start, len(raw)),
+			Raw:      raw,
+			Value:    parsed,
+		})
+	}
+	return items
+}
+
+// elementText returns the source text of one sequence element running
+// from start, bounded by stop.
+func elementText(src []byte, entry ast.Node, start, stop int) string {
+	if token := entry.GetToken(); token != nil && isScalar(entry) {
+		width := tokenWidth(token)
+		if start+width <= stop {
+			return string(src[start : start+width])
+		}
+	}
+	text := strings.TrimRight(string(src[start:stop]), " \t\r\n")
+	return strings.TrimRight(strings.TrimSuffix(text, "-"), " \t\r\n")
+}
+
+// isScalar reports whether a node's own token covers the whole of its
+// source text, which is true of every leaf value and of none of the
+// composite ones.
+func isScalar(node ast.Node) bool {
+	switch node.(type) {
+	case *ast.MappingNode, *ast.MappingValueNode, *ast.SequenceNode:
+		return false
+	default:
+		return true
+	}
 }
 
 // documentBody returns the body of the first YAML document in the block,

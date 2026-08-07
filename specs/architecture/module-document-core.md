@@ -190,7 +190,7 @@ C4Component
         Component(span, "Spans", "Go package", "Position type and delimited-region scanning")
         Component(fm, "Frontmatter", "Go package", "Frontmatter extraction and YAML parsing with raw-text access")
         Component(md, "Markdown Structure", "Go package (planned)", "Headings, section spans, fenced blocks and comment blocks")
-        Component(refs, "References", "Go package (planned)", "Wikilink discovery, resolution and the reference graph")
+        Component(refs, "References", "Go package", "Wikilink and frontmatter reference extraction; resolution and the reference graph planned")
         Component(schema, "Schema Registry", "Go package", "Single-union JSON Schema validation dispatched by document type")
         Component(corpus, "Corpus", "Go package", "Discovery, membership, the index model and its emission")
         Component(num, "Numbering", "Go package", "Next-number derivation for numbered document types")
@@ -212,13 +212,14 @@ C4Component
 
 Six of the eight are built and carry a **Built** paragraph naming the
 package that realizes them: Spans, Frontmatter, Schema Registry, Corpus,
-Numbering and Findings. **Markdown Structure and References are planned
-and not yet built** — `cli/core` holds no package for either, and the
-module has no markdown-parsing dependency at all. Their sections below
-describe a design, not an implementation, and the diagram edges into and
-out of them are likewise the intended shape. Everything the current
-corpus check does is reached without them, which is why the module ships
-useful without either.
+Numbering and Findings. References is **half built** — `cli/core/references`
+extracts every reference a document makes, and nothing yet resolves one or
+puts it in the index, so no check reports a broken link. **Markdown
+Structure is planned and not yet built** — there is no `cli/core/markdown`
+package, and no heading is read anywhere in the module. Its section below
+describes a design, not an implementation, and the diagram edges into and
+out of it are likewise the intended shape. Everything the current corpus
+check does is reached without it.
 
 ### Spans
 
@@ -297,8 +298,20 @@ span of its value, the value's raw source text, and the parsed value.
 serving both, so a property's position and its value cannot disagree.
 `goccy/go-yaml` is the parser, per [[adr-015]].
 
-Five semantics are pinned by the implementation:
+Six semantics are pinned by the implementation:
 
+- **A sequence-valued property carries its elements individually.**
+  `Property.Items` holds one `Item` per element, each with the element's
+  own span, its source text and its parsed value; it is nil for a
+  property whose value is not a sequence and empty for one whose value is
+  the empty sequence, so the two are distinguishable. The whole value's
+  span is the right extent for a finding about the property and the wrong
+  one for a finding about one slug inside it: a reader told a list holds
+  a broken reference still has to find which element, and a rewrite of
+  one element cannot address the list. A scalar element is located by its
+  own token rather than by the extent running to the next element, which
+  in a block sequence would swallow the following element's `- `
+  indicator.
 - **`Parse` has three outcomes, and they are distinct.** A document and
   no error is a parsed block; no document and no error means the file
   carries no frontmatter, which is the caller's `no-frontmatter`
@@ -377,13 +390,67 @@ inline code spans, because an illustrative reference inside backticks is
 not a reference. Inbound edges are derived, so no document maintains a
 list of its own referrers.
 
-**Not yet built.** There is no `cli/core/references` package. The index
-model now carries the `references` collection the component will fill —
-declared in `schemas/index.strata` and added under the same
+**Half built — extraction.** `cli/core/references`. `Extract` takes one
+document — its path, its bytes, its parsed frontmatter, and the
+reference-bearing property names the active profile registers for its
+type — and returns the references it makes as `specmodel.Reference`
+values, ordered by position: the registered frontmatter properties in
+declaration order, then the body in the order it is written. Resolution
+is what is not built: the index model carries the `references` collection
+— declared in `schemas/index.strata` and added under the same
 `schema_version`, which is what the additive shape described under Corpus
 exists to permit — but nothing populates it, so every emitted index
 carries it empty and a `[[slug]]` naming no document is reported by no
 check.
+
+Seven semantics are pinned by the implementation:
+
+- **The body is what follows the frontmatter block,** so a frontmatter
+  value describing the notation — `description: References use [[slug]]
+  wikilinks` — is not read as a reference. It is the only unresolved
+  reference a scan of this repository's corpus produces, and it is a
+  false one. Frontmatter contributes references only through registered
+  properties.
+- **A registered property is the whole of what holds a reference in
+  frontmatter.** An unregistered property contributes nothing however
+  slug-shaped its value is, and a registered property whose value is not
+  text contributes nothing either — whether such a value belongs there is
+  the schema's question, not this component's.
+- **A sequence-valued property yields one reference per element,** at the
+  element's own span rather than the list's, which is the widening
+  recorded under Frontmatter.
+- **Code regions are located with `goldmark`, not with a backtick scan.**
+  Where an inline code span ends depends on matching backtick-run
+  lengths, and where a fenced block ends depends on the fence length and
+  its info string; a hand-rolled masker getting one of those wrong
+  produces exactly the false positive the exclusion exists to prevent. A
+  fence's info string is masked with its content. This brings `goldmark`
+  into the module ahead of Markdown Structure, and nothing here builds
+  that component: no heading is read.
+- **An HTML comment block is read as body text.** Only code is excluded,
+  and `template-authoring-standards.md` requires a finished document's
+  comment blocks to be deleted, so masking them would hide a reference in
+  a document that should not be carrying the block at all.
+- **A reference splits on its first `#`,** into the slug half this
+  feature resolves and the anchor half it records without interpreting.
+  No other separator is read: the display alias `[[slug|text]]` is
+  prohibited by the reference standard, so such a reference carries
+  `slug|text` as its slug half and reports as unresolved rather than
+  resolving quietly to something the standard forbids.
+- **Extraction leaves the resolution unset,** which is deliberately
+  unserializable, so a reference cannot reach the index without having
+  been resolved on the way.
+
+A reference's position covers what a reader is pointed at and what a
+rewrite replaces: for a body reference the text between the brackets, the
+brackets being notation rather than reference; for a frontmatter
+reference the value's own source text as written, quotes included.
+
+Reference-bearing values are read from the parsed frontmatter block and
+never from an index entry's typed envelope, which carries neither the
+per-type properties a profile registers nor the positions a reference
+needs (`agent-plugins-gz3`). A test in the package asserts the import is
+absent rather than leaving the boundary to review.
 
 ### Schema Registry
 
@@ -757,7 +824,15 @@ This module SHALL comply with:
 - WHEN the index model changes shape, the schema version and the emitted
   index SHALL be updated in the same change, per AC-SPEC-002.2.
 - WHEN a new parsing capability is added, it SHALL be built on the Spans
-  delimiter scanner rather than scanning independently.
+  delimiter scanner rather than scanning independently. One narrowing:
+  where a capability needs to know which regions of a document are *not*
+  to be scanned, it MAY take that mask from a markdown parser. References
+  does — it locates code regions with `goldmark`, because where an inline
+  code span ends depends on matching backtick-run lengths and where a
+  fence ends depends on the fence length and its info string, none of
+  which a delimiter scanner can derive. Every position is still computed
+  by the scanner, which is what the rule is for: one way of computing a
+  position, not one way of deciding where to look.
 - WHILE visibility is internal, this module and its in-repo consumers
   evolve together: a breaking change to the package API MAY be made in
   the same change as the consumer updates, with no compatibility window.
