@@ -1,6 +1,6 @@
 <!-- GENERATED COPY — DO NOT EDIT.
      Source of truth: strata-lang/strata strata/options.strata
-     Vendored from commit: 8997153f7db2 (2026-08-01)
+     Vendored from commit: ce18d66f188a (2026-08-07)
      Regenerate with: scripts/sync-strata-docs.sh
      Upstream owns this text. Fix it there, then re-run that script. -->
 
@@ -420,42 +420,6 @@ struct GoOptions {
     Defaults to `null`.
     """
     package: GoPackageOptions?
-
-    """
-    When `true`, emit a `Validate() error` method on every generated struct that
-    checks required (non-optional) fields against their Go zero values and returns
-    an error if any are missing. Useful as a workaround for `encoding/json`
-    silently zero-filling missing fields on Unmarshal.
-
-    Defaults to `false` (opt-in) because zero-value detection is a heuristic — a
-    legitimate empty string or `0` count cannot be distinguished from a missing
-    field without pointer wrapping. Enable only if your domain rules out those
-    values for required fields.
-    """
-    generateValidation: Bool?
-
-    """
-    Controls how `Optional<T>` fields are rendered in generated Go.
-
-    - `Pointer` (default): emit `*T` with `,omitempty`. Distinguishes absent from zero on the wire — a `nil` pointer round-trips as omitted JSON; a pointer to the zero value round-trips as the JSON encoding of that zero value.
-    - `Value`: emit plain `T` with `,omitempty`. Lossy: a missing JSON field and a JSON field set to `T`'s zero value (`""`, `0`, `false`, `nil` slice, etc.) are indistinguishable after `Unmarshal`. The trade-off is fewer pointer dereferences and less GC pressure for callers that don't need the absent-vs-zero distinction.
-
-    Both modes single-layer-collapse nested optionals: `Optional<Optional<T>>` renders as `*T` (Pointer mode) or `T` (Value mode), never `**T` / `*T` — Go has only single-pointer optionality at the language level.
-
-    Defaults to `Pointer`.
-    """
-    optionalStyle: GoOptionalStyle?
-}
-
-"""
-Specifies how `Optional<T>` fields are rendered in Go.
-"""
-enum GoOptionalStyle {
-    """ Emit `*T` with `,omitempty` — preserves the absent-vs-zero distinction. """
-    Pointer
-
-    """ Emit plain `T` with `,omitempty` — lossy on the absent-vs-zero distinction. """
-    Value
 }
 
 """
@@ -469,7 +433,7 @@ struct GoPackageOptions {
     modulePath: String
 
     """
-    Go language version for `go.mod`. Defaults to "1.21".
+    Go language version for `go.mod`. Defaults to "1.24".
     """
     goVersion: String?
 }
