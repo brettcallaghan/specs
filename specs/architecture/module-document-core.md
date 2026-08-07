@@ -654,6 +654,22 @@ channels. `Corpus` reaches the Schema Registry only through the compiled
 union schema the active `Profile` already supplied to `Build`; nothing
 here names a document type.
 
+**They also report every reference the graph recorded as broken.** One
+rule, `reference/unresolved`, covers a body reference matching no corpus
+member, a reference-bearing frontmatter value matching no corpus member,
+and a slug matching a non-member — the last carrying the non-member's
+path and reason rather than reading as an ordinary unresolved slug
+(AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7). `CheckFor`
+additionally re-reads the one document it is narrowed to and compares its
+current slug against every inbound edge the graph still records as
+resolved to it; an edge whose slug no longer matches is reported against
+the *referring* document at the referrer's own span, in addition to
+findings against the document named, because that is the file a reader
+must open to fix it (AC-SPECREF-002.9). This is a lookup over
+`InboundReferences` — the graph's own edges — and one read of the checked
+document, never a walk of the corpus, which is what keeps it inside
+AC-SPEC-009.2's single-document budget.
+
 **Output and warm cache** — the same package. `Write` emits the index to
 one destination, resolved by `IndexPath`: `specs.json` inside the
 configured spec root by default (AC-SPEC-010.1), a named path when the

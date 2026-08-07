@@ -2,6 +2,7 @@ package corpus
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
@@ -13,7 +14,12 @@ import (
 // Registry's validation for the member's declared type and the active
 // profile's per-type slug-pattern check, proving AC-SPEC-003.1,
 // AC-SPEC-003.2 and AC-SPEC-003.5 at corpus level (the Schema Registry
-// package proves them at unit level against a fixture schema).
+// package proves them at unit level against a fixture schema). It also
+// reports every reference the graph recorded as unresolved or as reaching
+// a non-member — [finding.RuleUnresolvedReference], one rule whether the
+// reference was written in a document's body, held by a registered
+// frontmatter property, or matched a file that exists but is not a corpus
+// member (AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7).
 //
 // The result folds into one [finding.Report] together with the corpus's
 // own duplicate-slug findings, so callers read one ordered list rather
@@ -46,6 +52,10 @@ func (c *Corpus) Check() ([]specmodel.Finding, error) {
 // member, while schema and slug-pattern checking runs only for the named
 // file, which is what keeps a single-document check from paying for the
 // whole corpus.
+//
+// It additionally reports every inbound reference to path that no longer
+// resolves, against the referring document rather than path itself
+// (AC-SPECREF-002.9) — see [Corpus.brokenInboundReferences].
 //
 // path may be absolute or repository-relative, and may use either
 // platform's separator.
@@ -105,6 +115,18 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 		}
 	}
 
+	// Every reference the graph recorded as unresolved or as reaching a
+	// non-member is reported here, regardless of only: the references are
+	// already computed and held in memory, so processing all of them costs
+	// nothing extra, and the narrowing below scopes the result to one file
+	// exactly as it already does for the corpus's own duplicate-slug
+	// findings (AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7).
+	for _, ref := range c.index.References {
+		if f, ok := unresolvedReferenceFinding(ref); ok {
+			report.Add(f)
+		}
+	}
+
 	findings := report.Model().Findings
 	if only == nil {
 		return findings, nil
@@ -116,7 +138,88 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 			narrowed = append(narrowed, f)
 		}
 	}
+	// AC-SPECREF-002.9: a single-document check additionally reports every
+	// inbound reference to *only that no longer resolves, against the
+	// referring document rather than the one named — that is the file a
+	// reader must open to fix it.
+	narrowed = append(narrowed, c.brokenInboundReferences(*only)...)
 	return narrowed, nil
+}
+
+// unresolvedReferenceFinding derives the reference/unresolved finding a
+// reference's own recorded resolution calls for, or reports none for a
+// reference that resolved to a corpus member.
+func unresolvedReferenceFinding(ref specmodel.Reference) (specmodel.Finding, bool) {
+	if nonMember, ok := ref.Resolution.AsNonMember(); ok {
+		return finding.UnresolvedReference(ref.Path, ref.Position, ref.Text, ref.Slug, ref.Origin, &nonMember), true
+	}
+	if _, ok := ref.Resolution.AsUnresolved(); ok {
+		return finding.UnresolvedReference(ref.Path, ref.Position, ref.Text, ref.Slug, ref.Origin, nil), true
+	}
+	return specmodel.Finding{}, false
+}
+
+// brokenInboundReferences reports, for a single-document check of path,
+// every inbound reference the warm index still records as resolved to it
+// that no longer does — the graph's own edges were resolved when the
+// corpus was built, but path's frontmatter may have changed since (the
+// scenario AC-SPECREF-002.9 names: an agent renames a document's slug and
+// the write-time check on that one file is what has to catch the
+// referrers it just broke).
+//
+// This costs one lookup (InboundReferences, already built) and, when
+// there is anything to compare against, one read of path itself — the
+// same read a single-document check already pays for elsewhere — rather
+// than a corpus walk, which is what keeps it inside AC-SPEC-009.2's
+// single-document budget. A referrer whose reference still names path's
+// current slug is left alone; every other one is reported against the
+// referrer, at the referrer's own span, exactly as an ordinary unresolved
+// reference is.
+func (c *Corpus) brokenInboundReferences(path string) []specmodel.Finding {
+	inbound := c.InboundReferences(path)
+	if len(inbound) == 0 {
+		return nil
+	}
+
+	currentSlug, haveSlug := c.currentSlug(path)
+
+	var findings []specmodel.Finding
+	for _, ref := range inbound {
+		if haveSlug && slugsMatch(ref.Slug, currentSlug) {
+			continue
+		}
+		findings = append(findings, finding.UnresolvedReference(
+			ref.Path, ref.Position, ref.Text, ref.Slug, ref.Origin, nil))
+	}
+	return findings
+}
+
+// currentSlug reads the slug the document at path currently declares,
+// through Corpus.document rather than the persisted index entry — the
+// whole point being to see path's frontmatter as it stands now, which may
+// differ from what the graph's edges were resolved against. Reported as
+// its source text where the value is not a string, the same fallback
+// declaredType applies for a document's type.
+func (c *Corpus) currentSlug(path string) (string, bool) {
+	doc, ok := c.document(path)
+	if !ok {
+		return "", false
+	}
+	property, ok := doc.Property(slugProperty)
+	if !ok {
+		return "", false
+	}
+	if value, isString := property.Value.(string); isString {
+		return value, true
+	}
+	return property.Raw, true
+}
+
+// slugsMatch compares two slugs the way reference resolution itself does:
+// trimmed and case-insensitively, so this check and the graph it is
+// reading agree about what "the same slug" means (AC-SPECREF-002.8).
+func slugsMatch(a, b string) bool {
+	return strings.EqualFold(strings.TrimSpace(a), strings.TrimSpace(b))
 }
 
 // registryState is the lazily-built, once-compiled Schema Registry for one

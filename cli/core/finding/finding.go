@@ -71,6 +71,14 @@ const (
 	// read as a document envelope, so no other check could examine the
 	// document at all.
 	RuleFrontmatterParse specmodel.RuleId = "frontmatter/parse"
+	// RuleUnresolvedReference covers a reference — written in a
+	// document's body or held by a frontmatter property the active
+	// profile registers as reference-bearing — whose slug matches no
+	// corpus member. One identifier covers all three ways this can
+	// happen (a body reference, a frontmatter reference, and a slug
+	// matching a file that exists but is not a member): they are the
+	// same defect reported from three places, not three defects.
+	RuleUnresolvedReference specmodel.RuleId = "reference/unresolved"
 )
 
 // rootPointer is what an empty JSON Pointer is rendered as, so a message
@@ -180,6 +188,63 @@ func FrontmatterParse(path string, at specmodel.Span, message string) specmodel.
 			Message: message,
 		}),
 	}
+}
+
+// UnresolvedReference reports a reference whose slug matches no corpus
+// member, or matches a file the index recorded as excluded or as a parse
+// failure rather than as a member.
+//
+// The message reads differently depending on origin, matching how the
+// defect is best fixed: a body reference is quoted back exactly as the
+// author wrote it, brackets included, while a frontmatter reference names
+// the property that holds it rather than making the reader search the
+// document for the offending value (AC-SPECREF-002.1, AC-SPECREF-002.3).
+// nonMember is nil for an ordinary unresolved slug and set when the slug
+// matched a non-member file, in which case the message states that
+// reason instead of "matches nothing" (AC-SPECREF-002.7).
+func UnresolvedReference(
+	path string, at specmodel.Span, text, slug string,
+	origin specmodel.ReferenceOrigin, nonMember *specmodel.ReferenceNonMember,
+) specmodel.Finding {
+	outcome := "matches no document's slug"
+	if nonMember != nil {
+		outcome = fmt.Sprintf("target exists but is not a corpus member: %s", nonMemberReason(*nonMember))
+	}
+
+	var message string
+	if fm, ok := origin.AsFrontmatterProperty(); ok {
+		message = fmt.Sprintf("%s: %q %s", fm.Property, text, outcome)
+	} else {
+		message = fmt.Sprintf("[[%s]] %s", text, outcome)
+	}
+
+	return specmodel.Finding{
+		Rule:     RuleUnresolvedReference,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message:  message,
+		Detail: specmodel.NewFindingDetailUnresolvedReference(specmodel.FindingUnresolvedReference{
+			Slug:      slug,
+			Origin:    origin,
+			NonMember: nonMember,
+		}),
+	}
+}
+
+// nonMemberReason states why a matched file is not a corpus member, for
+// [UnresolvedReference]'s message: the position of the parse failure that
+// kept it out, or the exclusion reason recorded against it. Exactly one
+// of the two is present on a [specmodel.ReferenceNonMember], per its own
+// doc comment.
+func nonMemberReason(nonMember specmodel.ReferenceNonMember) string {
+	if nonMember.ParseError != nil {
+		return fmt.Sprintf("parse failure at line %d", nonMember.ParseError.Position.StartLine)
+	}
+	if nonMember.Reason != nil {
+		return fmt.Sprintf("excluded: %s", *nonMember.Reason)
+	}
+	return "not a corpus member"
 }
 
 // Unverified reports a check that was requested and could not run.

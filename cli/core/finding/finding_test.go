@@ -11,6 +11,7 @@ package finding_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -123,6 +124,28 @@ func TestEveryFindingIsSelfContained(t *testing.T) {
 				}
 				if v.Reason != "no diagram validator is available" {
 					t.Errorf("Reason = %q, want the reason the check could not run", v.Reason)
+				}
+			},
+		},
+		{
+			name: "unresolved reference",
+			finding: finding.UnresolvedReference("specs/adrs/adr-011.md", position, "adr-404", "adr-404",
+				specmodel.NewReferenceOriginBody(specmodel.ReferenceBodyOrigin{}), nil),
+			rule:     finding.RuleUnresolvedReference,
+			contains: []string{"adr-404"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsUnresolvedReference()
+				if !ok {
+					t.Fatalf("detail is not an unresolved reference: %#v", d.Value)
+				}
+				if v.Slug != "adr-404" {
+					t.Errorf("Slug = %q, want %q", v.Slug, "adr-404")
+				}
+				if _, ok := v.Origin.AsBody(); !ok {
+					t.Errorf("Origin = %#v, want body", v.Origin.Value)
+				}
+				if v.NonMember != nil {
+					t.Errorf("NonMember = %#v, want none", v.NonMember)
 				}
 			},
 		},
@@ -506,4 +529,50 @@ func checkResult(t *testing.T, model specmodel.FindingReport, rule specmodel.Rul
 	}
 	t.Fatalf("the report accounts for no check %q", rule)
 	return specmodel.CheckResult{}
+}
+
+// UnresolvedReference's message reads differently depending on where a
+// reference was written and what it matched: a body reference is quoted
+// back with its brackets, a frontmatter reference names the property
+// that holds it instead, and a non-member target states why it is not a
+// member rather than reading as an ordinary unresolved slug.
+//
+// AC: AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7
+func TestUnresolvedReferenceMessageVariesByOriginAndNonMember(t *testing.T) {
+	position := at(t)
+	bodyOrigin := specmodel.NewReferenceOriginBody(specmodel.ReferenceBodyOrigin{})
+	fmOrigin := specmodel.NewReferenceOriginFrontmatterProperty(
+		specmodel.ReferenceFrontmatterOrigin{Property: "superseded_by"})
+
+	body := finding.UnresolvedReference("specs/adrs/adr-011.md", position, "adr-404", "adr-404", bodyOrigin, nil)
+	if !strings.Contains(body.Message, "[[adr-404]]") {
+		t.Errorf("body message = %q, want it quoted with its brackets", body.Message)
+	}
+
+	fm := finding.UnresolvedReference("specs/adrs/adr-011.md", position, "adr-404", "adr-404", fmOrigin, nil)
+	if !strings.Contains(fm.Message, "superseded_by") {
+		t.Errorf("frontmatter message = %q, want the property named", fm.Message)
+	}
+	if strings.Contains(fm.Message, "[[") {
+		t.Errorf("frontmatter message = %q, wants no body-style brackets", fm.Message)
+	}
+
+	reason := specmodel.ExclusionReasonNoFrontmatter
+	excluded := finding.UnresolvedReference("specs/adrs/adr-011.md", position, "loose", "loose", bodyOrigin,
+		&specmodel.ReferenceNonMember{Path: "specs/notes/loose.md", Reason: &reason})
+	if !strings.Contains(excluded.Message, "not a corpus member") {
+		t.Errorf("non-member message = %q, want it to say the target is not a corpus member", excluded.Message)
+	}
+	if strings.Contains(excluded.Message, "matches no document's slug") {
+		t.Errorf("non-member message = %q, reads as an ordinary unresolved slug", excluded.Message)
+	}
+
+	parseFailed := finding.UnresolvedReference("specs/adrs/adr-011.md", position, "broken", "broken", bodyOrigin,
+		&specmodel.ReferenceNonMember{
+			Path:       "specs/notes/broken.md",
+			ParseError: &specmodel.ParseError{Message: "unterminated string", Position: position},
+		})
+	if want := fmt.Sprintf("line %d", position.StartLine); !strings.Contains(parseFailed.Message, want) {
+		t.Errorf("parse-failure message = %q, want it to cite the failure's line (%s)", parseFailed.Message, want)
+	}
 }

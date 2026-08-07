@@ -25,6 +25,7 @@ var checkRules = []specmodel.RuleId{
 	finding.RuleMissingProperty,
 	finding.RuleSlugPattern,
 	finding.RuleDuplicateSlug,
+	finding.RuleUnresolvedReference,
 }
 
 // newCheckCmd builds the `check` subcommand: run conformance checks over
@@ -37,8 +38,9 @@ func newCheckCmd(streams *ioStreams, configPath *string) *cobra.Command {
 		Use:   "check [path]",
 		Short: "Check the corpus, or a single document, for conformance",
 		Long: "check validates every corpus member's frontmatter against the active " +
-			"profile's schema and slug patterns, and reports duplicate slugs, " +
-			"either across the whole corpus or, given a path, for one document.",
+			"profile's schema and slug patterns, and reports duplicate slugs and " +
+			"unresolved references, either across the whole corpus or, given a " +
+			"path, for one document.",
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			var path string

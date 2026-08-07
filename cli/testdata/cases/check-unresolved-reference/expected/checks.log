@@ -1,0 +1,11 @@
+reference/unresolved  error  docs/adrs/adr-050-broken-references.md:8:16  superseded_by: "adr-998-absent" matches no document's slug
+reference/unresolved  error  docs/adrs/adr-050-broken-references.md:13:23  [[adr-999-absent]] matches no document's slug
+reference/unresolved  error  docs/adrs/adr-050-broken-references.md:13:52  [[loose-notes]] target exists but is not a corpus member: excluded: no-frontmatter
+
+checks:
+  frontmatter/missing-property  passed
+  frontmatter/parse  passed
+  frontmatter/schema  passed
+  reference/unresolved  failed
+  slug/duplicate  passed
+  slug/pattern-mismatch  passed
