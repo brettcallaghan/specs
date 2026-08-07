@@ -6,7 +6,7 @@ description: Builds the References component of Document Core, adds the
   exposes the graph as checks and a refs query
 slug: feature-spec-reference-integrity
 type: feature-blueprint
-status: ready-for-review
+status: approved
 updated_at: 2026-08-07T00:00:00Z
 delivery: staged
 frd: frd-spec-reference-integrity
@@ -376,12 +376,13 @@ the wrong kind of document. Every one of these is driven entirely by
 what the active profile registered, so the code is framework-agnostic
 and the judgement is the profile's.
 
-Nothing here requires a retired document to *have* a successor.
-AC-SPECREF-002.4 carried that obligation and is retired, because not
-every retirement is a replacement. The half worth keeping survives
-without it: `superseded_by` is a registered reference-bearing property
-(PREG), so a successor naming no corpus member is already an error under
-AC-SPECREF-002.3, reported by CHK.
+Nothing here requires a retired document to *have* a successor. An
+earlier criterion did, and it was removed from
+[[frd-spec-reference-integrity]] because not every retirement is a
+replacement. The half worth keeping survives without it: `superseded_by`
+is a registered reference-bearing property (PREG), so a successor naming
+no corpus member is already an error under AC-SPECREF-002.3, reported by
+CHK.
 
 **Behavior:**
 
@@ -714,15 +715,14 @@ checks; LIFE = lifecycle and relational checks; CMD = Command Surface in
 
 ## Open Questions
 
-None. One was raised while authoring and is resolved:
-AC-SPECREF-002.4 required a retired document to declare a resolvable
-successor, unconditionally, which reported an `error` against every
-retired feature blueprint — a feature blueprint retires because its
-Definition of Done is complete, not because something replaced it. The
-criterion is **retired** in [[frd-spec-reference-integrity]], its
-identifier is not reused, and whether retirement should imply a
-successor for some document types is left to a future revision. The
-half worth keeping needs no criterion of its own: `superseded_by` is a
+None. One was raised while authoring and is resolved: a criterion
+requiring every retired document to declare a resolvable successor
+reported an `error` against every retired feature blueprint, because a
+feature blueprint retires when its Definition of Done is complete rather
+than because something replaced it. It has been **removed** from
+[[frd-spec-reference-integrity]], and whether retirement should imply a
+successor for some document types is left to a future revision. The half
+worth keeping needs no criterion of its own: `superseded_by` is a
 registered reference-bearing property, so a successor naming no corpus
 member is already an error under AC-SPECREF-002.3.
 

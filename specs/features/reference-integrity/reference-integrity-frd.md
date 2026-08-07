@@ -258,17 +258,6 @@ a reader follows it into nothing.
   - *Example:* `related: ["work-order-template"]` reports as unresolved,
     because templates carry placeholder slugs and are not corpus
     members.
-- **AC-SPECREF-002.4:** *Retired. This criterion required a document at
-  `status: retired` to declare a resolvable `superseded_by`, and it was
-  unconditional. Not every retirement is a replacement: a feature
-  blueprint retires because its Definition of Done is complete, so the
-  criterion reported an `error` against every retired feature blueprint
-  this framework produces. The identifier is not reused. A retired
-  document whose `superseded_by` names no corpus member is still
-  reported, by AC-SPECREF-002.3, because AC-SPECREF-004.2 registers
-  `superseded_by` as reference-bearing; what is no longer required is a
-  successor's presence. Whether retirement should imply a successor for
-  some document types is left open.*
 - **AC-SPECREF-002.5:** WHEN the active profile registers a frontmatter
   property as one half of a paired relationship and the named document
   does not declare the matching counterpart, the CLI SHALL report a
@@ -445,7 +434,10 @@ prefix rather than continuing [[frd-spec-validation-cli]]'s sequence.
 REQ-SPEC-004, the number reference integrity held before the split, is
 left unused in that document rather than reclaimed here, so the ADRs
 citing REQ-SPEC-006, -008 and -009 keep resolving. The gap there and the
-new prefix here are the same decision.
+new prefix here are the same decision. AC-SPECREF-002.4 is unused for
+the same reason: it required a retired document to declare a successor,
+which is not true of every retirement, and it is removed rather than
+renumbered.
 
 ## References
 

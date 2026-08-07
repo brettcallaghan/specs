@@ -6,13 +6,13 @@ description: The index records every cross-document reference as a row in
   arrays in each document's entry
 slug: adr-018
 type: adr
-status: draft
+status: approved
 updated_at: 2026-08-07T00:00:00Z
 ---
 
 # ADR-018: References Are an Edge Collection in the Index
 
-**Status:** draft  
+**Status:** approved  
 **Date:** 2026-08-07
 
 ## Context
