@@ -6,9 +6,10 @@ description: Builds the References component of Document Core, adds the
   exposes the graph as checks and a refs query
 slug: feature-spec-reference-integrity
 type: feature-blueprint
-status: approved
+status: in-progress
 updated_at: 2026-08-07T00:00:00Z
 delivery: staged
+plan: agent-plugins-9kb
 frd: frd-spec-reference-integrity
 ---
 
