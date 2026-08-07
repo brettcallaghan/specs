@@ -414,13 +414,6 @@ func TestAWarmIndexIsServedWithoutRewalkingTheCorpus(t *testing.T) {
 // platform and still prints, so a genuine slowdown is visible in the log
 // of any job rather than only in one. Recording the reference platform in
 // the FRD itself is tracked separately.
-//
-// Linux is the reference platform, not an uncontended one. On 2026-08-07
-// the ubuntu leg reported 115.9 ms against the 50 ms query budget on a
-// commit that changed only markdown, having passed on identical Go code
-// in the run before it. Choosing one platform narrows how often runner
-// contention fails the build; it does not eliminate it, which is what the
-// repeated bursts below are for.
 func referencePlatform() bool {
 	return runtime.GOOS == "linux"
 }
@@ -428,22 +421,11 @@ func referencePlatform() bool {
 // A query and a single-document check against a warm index for a
 // thousand-document corpus stay within their budgets.
 //
-// The statistic is the best of several bursts rather than one burst,
-// because of what the two failure modes look like. Contention on a shared
-// runner only ever inflates a measurement: a burst that lands beside a
-// noisy neighbour reports a number about the neighbour, and the burst
-// after it on identical code reports the tool. A genuine regression
-// raises the floor, so it inflates every burst and no amount of repeating
-// recovers the budget. Taking the minimum across bursts therefore keeps
-// the regression signal the budgets exist for while declining to fail a
-// build on one moment of someone else's load.
-//
 // AC: AC-SPEC-009.1, AC-SPEC-009.2, AC-SPEC-010.5
 func TestWarmQueriesAndChecksMeetTheirBudgets(t *testing.T) {
 	const (
 		documents   = 1000
 		samples     = 20
-		bursts      = 3
 		queryBudget = 50 * time.Millisecond
 		checkBudget = 100 * time.Millisecond
 	)
@@ -456,61 +438,41 @@ func TestWarmQueriesAndChecksMeetTheirBudgets(t *testing.T) {
 
 	opts := checkingOptions(repo)
 	dest := buildAndWriteWith(t, opts)
+
+	queries := make([]time.Duration, 0, samples)
+	checks := make([]time.Duration, 0, samples)
 	checked := "specs/section-00/adr-0500.md"
 
-	// burst measures the two operations `samples` times each and returns
-	// the p95 of each, which is the statistic REQ-SPEC-009 states.
-	burst := func() (queryP95, checkP95 time.Duration) {
-		queries := make([]time.Duration, 0, samples)
-		checks := make([]time.Duration, 0, samples)
-
-		for range samples {
-			started := time.Now()
-			opened, warm, err := corpus.Open(opts, dest)
-			if err != nil {
-				t.Fatalf("Open: %v", err)
-			}
-			if !warm {
-				t.Fatal("Open rebuilt an index whose inputs are unchanged")
-			}
-			if _, found := opened.Slug("adr-0500"); !found {
-				t.Fatal("the warm index does not answer a slug query it should")
-			}
-			queries = append(queries, time.Since(started))
-
-			started = time.Now()
-			opened, warm, err = corpus.Open(opts, dest)
-			if err != nil {
-				t.Fatalf("Open: %v", err)
-			}
-			if !warm {
-				t.Fatal("Open rebuilt an index whose inputs are unchanged")
-			}
-			if _, err := opened.CheckFor(checked); err != nil {
-				t.Fatalf("CheckFor: %v", err)
-			}
-			checks = append(checks, time.Since(started))
+	for range samples {
+		started := time.Now()
+		opened, warm, err := corpus.Open(opts, dest)
+		if err != nil {
+			t.Fatalf("Open: %v", err)
 		}
-		return percentile95(queries), percentile95(checks)
+		if !warm {
+			t.Fatal("Open rebuilt an index whose inputs are unchanged")
+		}
+		if _, found := opened.Slug("adr-0500"); !found {
+			t.Fatal("the warm index does not answer a slug query it should")
+		}
+		queries = append(queries, time.Since(started))
+
+		started = time.Now()
+		opened, warm, err = corpus.Open(opts, dest)
+		if err != nil {
+			t.Fatalf("Open: %v", err)
+		}
+		if !warm {
+			t.Fatal("Open rebuilt an index whose inputs are unchanged")
+		}
+		if _, err := opened.CheckFor(checked); err != nil {
+			t.Fatalf("CheckFor: %v", err)
+		}
+		checks = append(checks, time.Since(started))
 	}
 
-	var queryP95, checkP95 time.Duration
-	for attempt := 1; attempt <= bursts; attempt++ {
-		query, check := burst()
-		t.Logf("%s/%s burst %d of %d: warm query p95 = %s (budget %s), warm check p95 = %s (budget %s)",
-			runtime.GOOS, runtime.GOARCH, attempt, bursts, query, queryBudget, check, checkBudget)
-
-		if attempt == 1 || query < queryP95 {
-			queryP95 = query
-		}
-		if attempt == 1 || check < checkP95 {
-			checkP95 = check
-		}
-		if queryP95 <= queryBudget && checkP95 <= checkBudget {
-			break
-		}
-	}
-	t.Logf("%s/%s: best warm query p95 = %s (budget %s), best warm check p95 = %s (budget %s)",
+	queryP95, checkP95 := percentile95(queries), percentile95(checks)
+	t.Logf("%s/%s: warm query p95 = %s (budget %s), warm check p95 = %s (budget %s)",
 		runtime.GOOS, runtime.GOARCH, queryP95, queryBudget, checkP95, checkBudget)
 
 	if !referencePlatform() {
@@ -521,12 +483,11 @@ func TestWarmQueriesAndChecksMeetTheirBudgets(t *testing.T) {
 		return
 	}
 	if queryP95 > queryBudget {
-		t.Errorf("warm query p95 over %d documents = %s, budget is %s (best of %d bursts)",
-			documents, queryP95, queryBudget, bursts)
+		t.Errorf("warm query p95 over %d documents = %s, budget is %s", documents, queryP95, queryBudget)
 	}
 	if checkP95 > checkBudget {
-		t.Errorf("warm single-document check p95 over %d documents = %s, budget is %s (best of %d bursts)",
-			documents, checkP95, checkBudget, bursts)
+		t.Errorf("warm single-document check p95 over %d documents = %s, budget is %s",
+			documents, checkP95, checkBudget)
 	}
 }
 
