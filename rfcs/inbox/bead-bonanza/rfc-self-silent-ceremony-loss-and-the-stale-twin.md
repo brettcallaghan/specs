@@ -1,0 +1,331 @@
+---
+title: "RFC: The ceremony can be skipped with nothing detecting it, and
+  the run directory's committed copy is a stale twin of the live one"
+description: Three beads closed with no retro anchor because their briefs
+  were paraphrased, and no orchestrator step checks; separately the
+  committed backup shares the live run directory's id while missing two
+  beads' trails, which misled a retro into reporting anchors as absent
+slug: rfc-self-silent-ceremony-loss-and-the-stale-twin
+type: rfc
+status: ready-for-review
+updated_at: 2026-08-07T00:00:00Z
+origin: self
+skill: bead-bonanza
+skill_version: "1.3"
+model: "<withheld by session policy — see Provenance>"
+effort: unknown
+runs_observed: 1
+severity: blocker
+plugin_version: "0.15.0"
+---
+
+# RFC: Silent ceremony loss, and a backup that lies by omission
+
+## Summary
+
+`bead-bonanza` run `1786121603-ri` closed 12 beads. Nine carry a
+complete progress trail and a retro anchor; three — `9kb.5`, `9kb.6`,
+`9kb.7` — carry none, and the run reached its final bead with nobody
+aware. The skill already warns against the cause (`SKILL.md:625-627`,
+"Do not paraphrase a template from memory"), so this RFC does not
+propose a louder warning; it proposes the check that catches the warning
+being ignored. A second, independent defect compounded it: the run
+directory's committed backup carries the same run id as the live
+directory but was snapshotted mid-run and never refreshed, so a retro
+reading the backup reported two beads' anchors as missing when both are
+complete. A stale twin under an identical name is worse than no backup,
+because it answers confidently and wrongly.
+
+## Provenance
+
+| Field | Value |
+|-------|-------|
+| Harness | Claude Code on the web (remote container session) |
+| Task the skill was applied to | The `agent-plugins-9kb` reference-integrity epic: 12 beads across two repos, on branch `claude/reference-integrity-blueprint-groom-xc7d30` |
+| References / scripts / templates invoked | `bead-bonanza` SKILL.md v1.3; `references/subagent-prompts.md`; `references/recovery.md`; `scripts/bb-progress.sh`; `scripts/bb-close-bead.sh`; `skill-rfc-template` v0.3 |
+| Run dates | 2026-08-07 (single continuous run, 17:21–22:24) |
+
+**On the withheld model field.** This session's operating instructions
+forbid writing the model identifier into any artifact committed to a
+repository. The placeholder is deliberate and matches the two prior
+`bead-bonanza` RFCs here. The value is in the session transcript; the
+human copying this RFC can fill it in, and triage needs it to scope the
+fix.
+
+**Relationship to the two prior RFCs in this directory.** This RFC
+covers the **same run** as
+`rfc-self-run-dir-discoverability-and-orchestrator-recovery.md`, which
+was written at 21:43 about the run's first half. This is therefore
+**not an independent recurrence**, and `runs_observed` stays 1. P2 below
+refines that RFC's P5 rather than duplicating it; the distinction is
+stated there.
+
+## Evidence
+
+1. **[gap · blocker] Three beads closed with no retro anchor, and no
+   step in the skill checks.** The live run directory
+   `/tmp/claude/bead-bonanza/1786121603-ri/` holds a `.progress.jsonl`
+   and a `.retro.md` for `tix`, `ml9`, `j7f`, `9kb.1`–`9kb.4`, `9kb.8`
+   and `9kb.9`. For `9kb.5` it holds a progress file of two events and
+   **no** retro; for `9kb.6` and `9kb.7` it holds **nothing**. All three
+   are closed in `bd` (`bd show agent-plugins-9kb` reports 9/10
+   complete) with landing commits `bb7ecc3`, `a43bcf9`, `da9d8bd`. The
+   epic's own progress note records the cause: "the previous three
+   hand-written briefs cost 9kb.5/.6/.7 their progress files and retro
+   anchors". `SKILL.md:616-618` calls the retro file "the recovery
+   anchor, and it is non-negotiable", and `SKILL.md:625-627` says "Do
+   not paraphrase a template from memory" — but both bind the dispatch
+   step, and **no step anywhere verifies the artifacts exist** before a
+   bead is recorded closed or before Phase 4 aggregates them. Three
+   beads' worth of anchors went missing across roughly three hours with
+   no signal.
+
+2. **[gap · blocker] The committed backup is a stale twin of the live
+   run directory, under the same run id.** `.bonanza/1786121603-ri/`
+   was committed at 21:56 (`02c3cc8`, 17 paths). The live directory now
+   holds five files the backup does not:
+   `agent-plugins-9kb.8.{progress.jsonl,retro.md,show.txt}` and
+   `agent-plugins-9kb.9.{progress.jsonl,retro.md}` — beads that landed
+   at 22:17 and 22:24, after the snapshot. Nothing in the backup says
+   it is partial or when it was taken. A retro run at 22:30 read the
+   backup, found no `9kb.8`/`9kb.9` artifacts, and reported both beads
+   as having closed with no ceremony — then, compounding it, asserted
+   that `agent-plugins-9kb.9.progress.jsonl` "has never existed in this
+   run directory". It exists, with a complete seven-event trail ending
+   `{"phase":"committed","sha":"7761db5"}` and `{"phase":"pushed"}`.
+   Both errors are attributable to a backup that shares its name with
+   the live directory and declares no as-of time.
+
+3. **[gap · snag] A ledger that stops short of `committed` says nothing
+   about the bead, and no rule states this.**
+   `agent-plugins-9kb.5.progress.jsonl` ends at
+   `{"phase":"implementing"}` with mtime 18:29, while bead `9kb.5` was
+   committed at 21:06 (`bb7ecc3`) and four further beads landed after
+   it. `references/recovery.md:40-55` presents the event sequence as the
+   status surface without bounding its authority, and a heartbeat in
+   this run read a trail ending at `implementing` as "positive proof of
+   a live agent at a known phase".
+
+4. **[gap · snag] No rule for a bead that cannot land in one commit.**
+   `SKILL.md:718-722`: "**One commit per bead, always.** Every closed
+   bead = exactly one commit on the branch." Bead `9kb.5` landed in two
+   — `e3f2777` "WIP agent-plugins-9kb.5 (PREG): profile registration,
+   snapshots pending" at 20:52, then `bb7ecc3` at 21:06. The rule is
+   absolute with no interruption case, so the agent improvised a commit
+   the invariant forbids rather than following a stated resume path.
+
+5. **[gap · snag] The skill's own size makes a project gate red, and the
+   skill says nothing about that case.** `scripts/check-skills.sh:118`
+   warns above 500 body lines; `bead-bonanza`'s SKILL.md body is 859, so
+   `./scripts/check-skills.sh --strict` prints `0 error(s), 1
+   warning(s)` and `RESULT: FAIL` on a clean tree, with `bead-bonanza`
+   the sole finding. This run carried a hand-written exception for it
+   (`.bonanza/1786121603-ri/dispatch.md` ledger entry 2: "KNOWN RED,
+   pre-existing … Bar is no NEW findings, not exit 0") repeated into
+   every prompt. Since the line count is a static property of the
+   committed file, any run in this repo meets the same red gate until
+   the file is split. Phase 0's gate-profile step has no rule for
+   baselining an already-failing gate.
+
+## Proposals
+
+### P1 — Verify the artifacts before recording a bead closed [blocker]
+
+**Problem.** `SKILL.md:616-618` and `SKILL.md:625-627` place the whole
+obligation on the dispatch step and the subagent. When that step is done
+wrong the loss is undetectable: three beads closed without anchors and
+the run continued normally. Finding 1. Adding emphasis to the existing
+warning is explicitly not the fix — the skill already carries it.
+
+**Change.** Insert a step in Phase 3, immediately after an outcome is
+received and before the bead is written into the run table:
+
+> **Acceptance check — every bead, every dispatch mode.** A bead is not
+> closed until its artifacts exist:
+>
+> ```bash
+> test -s "$RUN_DIR/$ID.retro.md" &&
+>   grep -q '"phase":"committed"' "$RUN_DIR/$ID.progress.jsonl"
+> ```
+>
+> On failure the bead's row is `ceremony-incomplete`, not `closed`.
+> Reconstruct the missing retro from the subagent's returned summary and
+> the bead's diff, append the missing events with `bb-progress.sh`, and
+> record the reconstruction in the Phase 4 report. Do NOT reopen the
+> bead or amend the commit — the work landed; only its record is
+> missing.
+
+And in Phase 4, before the aggregated retro: list every bead whose
+anchor was missing or reconstructed. An aggregated retro built from an
+incomplete anchor set states which beads contributed nothing.
+
+**Evidence.** Finding 1. Under the same model, a paraphrased brief still
+costs that bead its trail, but it is caught at the next outcome instead
+of at the end of the run — or, as happened here, not at all.
+
+### P2 — Make the run-directory backup self-describing [blocker]
+
+**Problem.** The backup and the live directory share a run id and differ
+in content, and the backup carries no as-of time or completeness marker.
+A reader who finds the committed copy has no way to know it is partial.
+Finding 2 — two false conclusions in one retro, both from this cause.
+
+**Change.** This refines P5 of
+`rfc-self-run-dir-discoverability-and-orchestrator-recovery.md` ("Back
+up the run directory before it is reclaimed"), which established *that*
+the copy should exist. It does not say what the copy must declare, and
+this run shows a once-taken copy going stale within 30 minutes. Add:
+
+> The backup is written by `bb-backup-run.sh <run-dir> <dest>`, which
+> copies the directory and writes `SNAPSHOT.md` beside it recording the
+> as-of timestamp, the source path, and the bead ids whose
+> `.retro.md` are present. Re-run it after **every** bead's acceptance
+> check (P1), not once — a copy taken mid-run and never refreshed is
+> indistinguishable from a complete one.
+>
+> **The live run directory is authoritative; the committed copy never
+> is.** Any procedure that reads the backup — recovery, a retro, a DoD
+> audit — first checks whether the live directory still exists, and
+> uses it when it does. Read the backup only when
+> `$RUN_DIR` is gone, and then state the snapshot's as-of time in
+> whatever you conclude from it.
+
+**Evidence.** Finding 2. A retro that consults the live directory first
+does not report a complete seven-event trail as a file that never
+existed.
+
+### P3 — State what the ledger does and does not prove [snag]
+
+**Problem.** `references/recovery.md:40-55` defines the event sequence
+as the status surface without bounding its authority, so a trail ending
+at `implementing` was read as proof of a live agent while the bead had
+been committed three hours earlier. Finding 3.
+
+**Change.** Add directly under the event schema in
+`references/recovery.md`:
+
+> **The ledger is a hint, never the authority.** It is written by the
+> agent doing the work, so it stops the instant that agent stops.
+> Therefore:
+>
+> - A trail ending before `committed` does **not** mean the bead is
+>   unfinished — only that nothing was appended after that point.
+> - An absent progress file does **not** mean no agent ran.
+> - A file's mtime bounds the last *write*, not the agent's liveness.
+>
+> Resolve any status question in this order, stopping at the first
+> answer: `bd show <id>`, then `git log --oneline --grep=<id>`, then the
+> ledger. Name which one you used. Never report a ledger fact you have
+> not just read from disk, and never from the backup while the live
+> directory exists (P2).
+
+**Evidence.** Finding 3, and the reading error in Finding 2 that the
+last sentence forecloses.
+
+### P4 — Define the resume path for an interrupted bead [snag]
+
+**Problem.** `SKILL.md:718-722` makes one-commit-per-bead absolute with
+no interruption case, so an interrupted bead has no legal move. Finding
+4.
+
+**Change.** Append to that bullet:
+
+> **WHEN a bead is interrupted mid-implementation** and its work must be
+> persisted before the agent stops, commit it with a subject prefixed
+> `WIP <bead-id>` and leave the bead `in_progress` — a WIP commit is the
+> one sanctioned exception, and it is not a close. The agent that
+> resumes the bead finishes the work, then squashes its own commit with
+> every `WIP <bead-id>` commit on the branch into the single landing
+> commit before running the close ceremony. Record the interruption in
+> the bead's retro.
+
+**Evidence.** Finding 4. The next interrupted bead follows a stated
+path, and the invariant holds at close time.
+
+### P5 — Split SKILL.md, and baseline already-red gates [snag]
+
+**Problem.** At 859 body lines the skill trips this repo's skill linter,
+making `check-skills.sh --strict` red on a clean tree and forcing a
+hand-written baseline exception into every prompt. Finding 5.
+
+**Change.** Move Phase 3's dispatch-mode detail and the Phase 4 report
+specification into `references/dispatch-modes.md` and
+`references/run-report.md`, leaving a one-paragraph summary and a
+pointer for each — the pattern the skill already uses for
+`recovery.md` and `subagent-prompts.md`. Target under 500 body lines.
+
+Separately, add to Phase 0's gate-profile step:
+
+> WHEN a gate already fails on an untouched tree, capture its output as
+> the run's **baseline** before Phase 1 and record it in the dispatch
+> plan's ledger. The bar for every bead is "no findings beyond the
+> baseline", not "exit 0". A gate with no recorded baseline is expected
+> to exit 0.
+
+**Evidence.** Finding 5. The exception this run wrote by hand becomes a
+step, and the linter stops reporting the skill meant to teach authoring
+standards.
+
+## Considered and Not Proposed
+
+- **"The main-loop fallback drops the ceremony."** Proposed in the first
+  draft of this RFC and **withdrawn**: the premise is refuted by this
+  same run. `9kb.8` and `9kb.9` produced complete seven-event trails and
+  14KB/9KB retro anchors at 22:17 and 22:24, so the ceremony demonstrably
+  reaches beads dispatched from the real template in this session. The
+  first draft reached the opposite conclusion by reading only the
+  committed backup, which is Finding 2 — the withdrawal is itself
+  evidence for P2.
+- **A stronger warning against paraphrasing briefs.** The proximate
+  cause of Finding 1 is hand-written briefs, and `SKILL.md:625-627`
+  already forbids exactly that. Per this skill's own scope rule, an
+  agent ignoring a warning the skill already carries is carelessness,
+  not a skill defect — and per its anti-pattern table, "the fix for
+  ignoring a warning is not another warning". It motivates P1's
+  detection, and nothing else.
+- **The dispatch plan was deviated from without a revision log.**
+  `.bonanza/1786121603-ri/dispatch.md` plans wave 5 as a shared batch of
+  `9kb.6`, `9kb.7`, `9kb.9` then `9kb.8` alone; the commits landed `.6`
+  (21:34), `.7` (21:58), `.8` (22:17), `.9` (22:24). Real, but it is P4
+  of the run-dir RFC and comes from the same run — corroboration, not a
+  second observation. Filing it again would make triage decide one
+  proposal twice.
+- **Requiring a timestamp in progress events.** Would make Finding 3's
+  staleness self-evident, but `recovery.md:52-55` records a deliberate
+  decision against it, and P3's cross-check resolves the question
+  without it.
+
+## Non-Goals
+
+- No change to `bb-progress.sh`, `bb-close-bead.sh` or
+  `bb-verify-skip.sh`. All three behaved correctly wherever they were
+  invoked; the defect is that two of them were not invoked for three
+  beads. P2 adds a new script rather than modifying these.
+- No change to the phase vocabulary or the event schema.
+- No change to tier routing, gate profiles, or the close ceremony's
+  ordering.
+
+## Adoption
+
+P1 and P2 are independent of each other but reinforce: P1 detects a lost
+anchor, P2 stops a stale copy from hiding one that exists. P2's
+"live directory is authoritative" rule should land first regardless — it
+is two paragraphs and it is what this run got wrong twice. P3 depends on
+nothing and touches only `references/recovery.md`. P4 is independent
+(`SKILL.md` only). P5's split is independent; its Phase 0 baseline rule
+can land separately from the split.
+
+Backward compatibility: P1 adds two shell commands per bead and no new
+dependency. P2 adds a script and a `SNAPSHOT.md` artifact; existing
+backups without one are, by the new rule, to be treated as
+unknown-as-of and subordinate to a live directory. P4 permits a commit
+shape that was previously forbidden, so no in-flight branch becomes
+invalid.
+
+Expected effect: a bead that loses its anchor is caught at the next
+outcome instead of at the end of the run; an aggregated retro states
+which beads contributed nothing rather than under-reporting silently;
+and a reader of a preserved run directory knows what it is and when it
+was taken.
+
+## Resolution
