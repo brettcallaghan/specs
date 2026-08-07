@@ -393,37 +393,57 @@ func valueToken(value ast.Node) *token.Token {
 // absolute converts a token's position within the parsed block to a byte
 // offset in the whole document.
 //
-// tok.Position.Offset is one-based, but it is not a byte offset: the
-// underlying YAML scanner (goccy/go-yaml) advances it one unit per
-// Unicode codepoint rather than per byte — verified against
-// v1.19.2's scanner, which progresses position by
-// len([]rune(value)) rather than len(value). Treating it as a byte
-// offset directly is correct only while the block is pure ASCII; a
-// block whose title or description contains an em dash, a curly
-// quote, or any other multi-byte character makes every token
-// reported after it land short of its true byte position, by the
-// accumulated byte/rune width difference of everything before it in
-// the block. That is a silent, self-application-only failure mode: no
-// unit fixture in this package's own tests uses non-ASCII prose, so it
-// went undetected until the profile self-application gate ran the
-// same code over this repository's real documents (several of which
-// use em dashes in their titles and descriptions) and it corrupted
-// the raw text schemaregistry.instanceValue checks a format constraint
-// against.
+// **Do not derive the offset from tok.Position.Offset.** Two prior
+// attempts did, and each corrupted the raw source text that
+// schemaregistry.instanceValue checks format constraints against. The
+// field drifts from the true byte offset in two independent ways, and
+// the underlying YAML scanner (goccy/go-yaml v1.19.2) causes both:
 //
-// The fix re-derives the byte offset from tok.Position by counting
-// codepoints into region.Inner's own bytes — the exact slice the YAML
-// parser tokenized — rather than trusting the library's Offset field.
+//   - It advances the offset one unit per Unicode codepoint rather than
+//     per byte, so an em dash or curly quote anywhere earlier in the
+//     block makes every later token land short by the accumulated
+//     byte/rune width difference.
+//   - It loses one unit per comment line, so a `#` comment earlier in
+//     the block shifts every later token left by the number of comment
+//     lines above it.
+//
+// Both are silent and neither is reachable from an ASCII, comment-free
+// fixture, which is why this package's own unit tests did not catch
+// either — the first surfaced only when the profile self-application
+// gate ran over this repository's real documents, the second only when
+// sequence element spans made the corruption visible in Item.Raw.
+//
+// tok.Position.Line and tok.Position.Column stay correct under both
+// hazards, so the offset is derived from those instead: walk to the
+// line, then count codepoints into it, both within region.Inner's own
+// bytes — the exact slice the YAML parser tokenized.
 func absolute(region span.Region, src []byte, tok *token.Token) int {
 	if tok == nil {
 		return int(region.Inner.Offset)
 	}
-	runeOffset := tok.Position.Offset - 1
-	if runeOffset < 0 {
-		runeOffset = 0
-	}
 	inner := span.Slice(src, region.Inner)
-	return int(region.Inner.Offset) + byteOffsetOfRune(inner, runeOffset)
+	return int(region.Inner.Offset) + byteOffsetOfLineColumn(inner, tok.Position.Line, tok.Position.Column)
+}
+
+// byteOffsetOfLineColumn returns the byte offset within data of the
+// one-based line and one-based column a YAML token reports. The column
+// counts codepoints, not bytes, so it is resolved with the same rune
+// walk used everywhere else in this file.
+func byteOffsetOfLineColumn(data []byte, line, column int) int {
+	offset := 0
+	for l := 1; l < line; l++ {
+		next := bytes.IndexByte(data[offset:], '\n')
+		if next < 0 {
+			return len(data)
+		}
+		offset += next + 1
+	}
+
+	rest := data[offset:]
+	if end := bytes.IndexByte(rest, '\n'); end >= 0 {
+		rest = rest[:end]
+	}
+	return offset + byteOffsetOfRune(rest, column-1)
 }
 
 // byteOffsetOfRune returns the byte offset of the runeOffset-th Unicode
