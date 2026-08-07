@@ -134,6 +134,29 @@ synthetically instead, on every platform, by `cli/cmd/portability_test.go`.
   `44c1955` (2026-07-28), six days before the fix. Version strings are useless
   here — both binaries report `0.7.0` — so check
   `~/.cache/strata-cli/built-commit` against `8997153`, not `strata --version`.
+- **`strata` HEAD is the supported build; it is not simply "any commit at or
+  after `8997153`".** Three builds, same sources, measured 2026-08-07:
+
+  | strata commit | result |
+  |---|---|
+  | `44c1955` (predates `8997153`) | schema destroyed — every inheriting type regenerates with `"properties": {}` |
+  | `840f9ba` | correct; byte-identical to the artifacts committed at that time |
+  | `ce18d66` (HEAD) | hard error on an unmodified repo: `/go/optionalStyle: unknown property` |
+
+  Upstream `strata-lang/strata#296` removed the `go.optionalStyle` option
+  between `840f9ba` and `ce18d66`; a manifest that still sets it makes HEAD
+  fail closed rather than emit wrong output, which is why this failure mode
+  didn't show up as silently-wrong artifacts. `schemas/strata.config.json` no
+  longer sets `go.optionalStyle` (the removed option's behavior — pointer
+  fields — was already the default), so HEAD builds this repo again. HEAD
+  also carries a bugfix over `840f9ba`: an explicit JSON `null` now clears an
+  optional field instead of leaving a previous value in place, which changed
+  every null-clearing guard in `cli/core/specmodel/specmodel.go` (JSON Schema
+  and Markdown output are unaffected). Do not read "any build after
+  `8997153` reproduces the committed artifacts byte-for-byte" as still true —
+  it stopped being true the moment `#296` landed upstream. The current,
+  correct statement is: build `strata` from `strata-lang/strata` HEAD
+  (`ce18d66` or later) against the manifest as committed in this repo.
 - `bd`: not preinstalled. `.claude/hooks/session-start.sh` installs it via the
   official installer, which needs `libicu-dev` for the Dolt/ICU cgo dependency
   — without those headers the build fails at `unicode/uregex.h: No such file`.

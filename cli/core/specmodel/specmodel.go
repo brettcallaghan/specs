@@ -53,7 +53,7 @@ func (v *SpecsConfig) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Profile); err != nil {
 		return prefixField("profile", err)
 	}
-	if m, ok := raw["conventions"]; ok && string(m) != "null" {
+	if m, ok := raw["conventions"]; ok {
 		if err := json.Unmarshal(m, &v.Conventions); err != nil {
 			return prefixField("conventions", err)
 		}
@@ -689,7 +689,7 @@ func (v *CheckResult) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Outcome); err != nil {
 		return prefixField("outcome", err)
 	}
-	if m, ok := raw["reason"]; ok && string(m) != "null" {
+	if m, ok := raw["reason"]; ok {
 		if err := json.Unmarshal(m, &v.Reason); err != nil {
 			return prefixField("reason", err)
 		}
@@ -881,17 +881,17 @@ func (v *DocumentFrontmatter) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
 		return prefixField("updated_at", err)
 	}
-	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
 		}
 	}
-	if m, ok := raw["tags"]; ok && string(m) != "null" {
+	if m, ok := raw["tags"]; ok {
 		if err := json.Unmarshal(m, &v.Tags); err != nil {
 			return prefixField("tags", err)
 		}
 	}
-	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+	if m, ok := raw["superseded_by"]; ok {
 		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
 			return prefixField("superseded_by", err)
 		}
@@ -1014,17 +1014,17 @@ func (v *Adr) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
 		return prefixField("updated_at", err)
 	}
-	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
 		}
 	}
-	if m, ok := raw["tags"]; ok && string(m) != "null" {
+	if m, ok := raw["tags"]; ok {
 		if err := json.Unmarshal(m, &v.Tags); err != nil {
 			return prefixField("tags", err)
 		}
 	}
-	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+	if m, ok := raw["superseded_by"]; ok {
 		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
 			return prefixField("superseded_by", err)
 		}
@@ -1114,22 +1114,22 @@ func (v *Frd) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
 		return prefixField("updated_at", err)
 	}
-	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
 		}
 	}
-	if m, ok := raw["tags"]; ok && string(m) != "null" {
+	if m, ok := raw["tags"]; ok {
 		if err := json.Unmarshal(m, &v.Tags); err != nil {
 			return prefixField("tags", err)
 		}
 	}
-	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+	if m, ok := raw["superseded_by"]; ok {
 		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
 			return prefixField("superseded_by", err)
 		}
 	}
-	if m, ok := raw["sources"]; ok && string(m) != "null" {
+	if m, ok := raw["sources"]; ok {
 		if err := json.Unmarshal(m, &v.Sources); err != nil {
 			return prefixField("sources", err)
 		}
@@ -1238,17 +1238,17 @@ func (v *Contract) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
 		return prefixField("updated_at", err)
 	}
-	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
 		}
 	}
-	if m, ok := raw["tags"]; ok && string(m) != "null" {
+	if m, ok := raw["tags"]; ok {
 		if err := json.Unmarshal(m, &v.Tags); err != nil {
 			return prefixField("tags", err)
 		}
 	}
-	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+	if m, ok := raw["superseded_by"]; ok {
 		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
 			return prefixField("superseded_by", err)
 		}
@@ -1263,12 +1263,12 @@ func (v *Contract) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Visibility); err != nil {
 		return prefixField("visibility", err)
 	}
-	if m, ok := raw["consumers"]; ok && string(m) != "null" {
+	if m, ok := raw["consumers"]; ok {
 		if err := json.Unmarshal(m, &v.Consumers); err != nil {
 			return prefixField("consumers", err)
 		}
 	}
-	if m, ok := raw["specs"]; ok && string(m) != "null" {
+	if m, ok := raw["specs"]; ok {
 		if err := json.Unmarshal(m, &v.Specs); err != nil {
 			return prefixField("specs", err)
 		}
@@ -1366,17 +1366,17 @@ func (v *Standards) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
 		return prefixField("updated_at", err)
 	}
-	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
 		}
 	}
-	if m, ok := raw["tags"]; ok && string(m) != "null" {
+	if m, ok := raw["tags"]; ok {
 		if err := json.Unmarshal(m, &v.Tags); err != nil {
 			return prefixField("tags", err)
 		}
 	}
-	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+	if m, ok := raw["superseded_by"]; ok {
 		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
 			return prefixField("superseded_by", err)
 		}
@@ -1493,27 +1493,27 @@ func (v *SystemBlueprint) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
 		return prefixField("updated_at", err)
 	}
-	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
 		}
 	}
-	if m, ok := raw["tags"]; ok && string(m) != "null" {
+	if m, ok := raw["tags"]; ok {
 		if err := json.Unmarshal(m, &v.Tags); err != nil {
 			return prefixField("tags", err)
 		}
 	}
-	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+	if m, ok := raw["superseded_by"]; ok {
 		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
 			return prefixField("superseded_by", err)
 		}
 	}
-	if m, ok := raw["contracts_provided"]; ok && string(m) != "null" {
+	if m, ok := raw["contracts_provided"]; ok {
 		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
 			return prefixField("contracts_provided", err)
 		}
 	}
-	if m, ok := raw["contracts_consumed"]; ok && string(m) != "null" {
+	if m, ok := raw["contracts_consumed"]; ok {
 		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
 			return prefixField("contracts_consumed", err)
 		}
@@ -1629,32 +1629,32 @@ func (v *ContainerBlueprint) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
 		return prefixField("updated_at", err)
 	}
-	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
 		}
 	}
-	if m, ok := raw["tags"]; ok && string(m) != "null" {
+	if m, ok := raw["tags"]; ok {
 		if err := json.Unmarshal(m, &v.Tags); err != nil {
 			return prefixField("tags", err)
 		}
 	}
-	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+	if m, ok := raw["superseded_by"]; ok {
 		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
 			return prefixField("superseded_by", err)
 		}
 	}
-	if m, ok := raw["contracts_provided"]; ok && string(m) != "null" {
+	if m, ok := raw["contracts_provided"]; ok {
 		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
 			return prefixField("contracts_provided", err)
 		}
 	}
-	if m, ok := raw["contracts_consumed"]; ok && string(m) != "null" {
+	if m, ok := raw["contracts_consumed"]; ok {
 		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
 			return prefixField("contracts_consumed", err)
 		}
 	}
-	if m, ok := raw["system"]; ok && string(m) != "null" {
+	if m, ok := raw["system"]; ok {
 		if err := json.Unmarshal(m, &v.System); err != nil {
 			return prefixField("system", err)
 		}
@@ -1793,27 +1793,27 @@ func (v *ModuleBlueprint) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
 		return prefixField("updated_at", err)
 	}
-	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
 		}
 	}
-	if m, ok := raw["tags"]; ok && string(m) != "null" {
+	if m, ok := raw["tags"]; ok {
 		if err := json.Unmarshal(m, &v.Tags); err != nil {
 			return prefixField("tags", err)
 		}
 	}
-	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+	if m, ok := raw["superseded_by"]; ok {
 		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
 			return prefixField("superseded_by", err)
 		}
 	}
-	if m, ok := raw["contracts_provided"]; ok && string(m) != "null" {
+	if m, ok := raw["contracts_provided"]; ok {
 		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
 			return prefixField("contracts_provided", err)
 		}
 	}
-	if m, ok := raw["contracts_consumed"]; ok && string(m) != "null" {
+	if m, ok := raw["contracts_consumed"]; ok {
 		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
 			return prefixField("contracts_consumed", err)
 		}
@@ -1828,22 +1828,22 @@ func (v *ModuleBlueprint) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Visibility); err != nil {
 		return prefixField("visibility", err)
 	}
-	if m, ok := raw["contained_by"]; ok && string(m) != "null" {
+	if m, ok := raw["contained_by"]; ok {
 		if err := json.Unmarshal(m, &v.ContainedBy); err != nil {
 			return prefixField("contained_by", err)
 		}
 	}
-	if m, ok := raw["source_paths"]; ok && string(m) != "null" {
+	if m, ok := raw["source_paths"]; ok {
 		if err := json.Unmarshal(m, &v.SourcePaths); err != nil {
 			return prefixField("source_paths", err)
 		}
 	}
-	if m, ok := raw["test_paths"]; ok && string(m) != "null" {
+	if m, ok := raw["test_paths"]; ok {
 		if err := json.Unmarshal(m, &v.TestPaths); err != nil {
 			return prefixField("test_paths", err)
 		}
 	}
-	if m, ok := raw["version"]; ok && string(m) != "null" {
+	if m, ok := raw["version"]; ok {
 		if err := json.Unmarshal(m, &v.Version); err != nil {
 			return prefixField("version", err)
 		}
@@ -1959,27 +1959,27 @@ func (v *ComponentBlueprint) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
 		return prefixField("updated_at", err)
 	}
-	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
 		}
 	}
-	if m, ok := raw["tags"]; ok && string(m) != "null" {
+	if m, ok := raw["tags"]; ok {
 		if err := json.Unmarshal(m, &v.Tags); err != nil {
 			return prefixField("tags", err)
 		}
 	}
-	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+	if m, ok := raw["superseded_by"]; ok {
 		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
 			return prefixField("superseded_by", err)
 		}
 	}
-	if m, ok := raw["contracts_provided"]; ok && string(m) != "null" {
+	if m, ok := raw["contracts_provided"]; ok {
 		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
 			return prefixField("contracts_provided", err)
 		}
 	}
-	if m, ok := raw["contracts_consumed"]; ok && string(m) != "null" {
+	if m, ok := raw["contracts_consumed"]; ok {
 		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
 			return prefixField("contracts_consumed", err)
 		}
@@ -1989,12 +1989,12 @@ func (v *ComponentBlueprint) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Kind); err != nil {
 		return prefixField("kind", err)
 	}
-	if m, ok := raw["source_paths"]; ok && string(m) != "null" {
+	if m, ok := raw["source_paths"]; ok {
 		if err := json.Unmarshal(m, &v.SourcePaths); err != nil {
 			return prefixField("source_paths", err)
 		}
 	}
-	if m, ok := raw["test_paths"]; ok && string(m) != "null" {
+	if m, ok := raw["test_paths"]; ok {
 		if err := json.Unmarshal(m, &v.TestPaths); err != nil {
 			return prefixField("test_paths", err)
 		}
@@ -2111,17 +2111,17 @@ func (v *FeatureBlueprint) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
 		return prefixField("updated_at", err)
 	}
-	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
 		}
 	}
-	if m, ok := raw["tags"]; ok && string(m) != "null" {
+	if m, ok := raw["tags"]; ok {
 		if err := json.Unmarshal(m, &v.Tags); err != nil {
 			return prefixField("tags", err)
 		}
 	}
-	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+	if m, ok := raw["superseded_by"]; ok {
 		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
 			return prefixField("superseded_by", err)
 		}
@@ -2131,7 +2131,7 @@ func (v *FeatureBlueprint) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Delivery); err != nil {
 		return prefixField("delivery", err)
 	}
-	if m, ok := raw["plan"]; ok && string(m) != "null" {
+	if m, ok := raw["plan"]; ok {
 		if err := json.Unmarshal(m, &v.Plan); err != nil {
 			return prefixField("plan", err)
 		}
@@ -2258,17 +2258,17 @@ func (v *Rfc) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
 		return prefixField("updated_at", err)
 	}
-	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
 		}
 	}
-	if m, ok := raw["tags"]; ok && string(m) != "null" {
+	if m, ok := raw["tags"]; ok {
 		if err := json.Unmarshal(m, &v.Tags); err != nil {
 			return prefixField("tags", err)
 		}
 	}
-	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+	if m, ok := raw["superseded_by"]; ok {
 		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
 			return prefixField("superseded_by", err)
 		}
@@ -2401,22 +2401,22 @@ func (v *Guide) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
 		return prefixField("updated_at", err)
 	}
-	if m, ok := raw["created_at"]; ok && string(m) != "null" {
+	if m, ok := raw["created_at"]; ok {
 		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
 			return prefixField("created_at", err)
 		}
 	}
-	if m, ok := raw["tags"]; ok && string(m) != "null" {
+	if m, ok := raw["tags"]; ok {
 		if err := json.Unmarshal(m, &v.Tags); err != nil {
 			return prefixField("tags", err)
 		}
 	}
-	if m, ok := raw["superseded_by"]; ok && string(m) != "null" {
+	if m, ok := raw["superseded_by"]; ok {
 		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
 			return prefixField("superseded_by", err)
 		}
 	}
-	if m, ok := raw["version"]; ok && string(m) != "null" {
+	if m, ok := raw["version"]; ok {
 		if err := json.Unmarshal(m, &v.Version); err != nil {
 			return prefixField("version", err)
 		}
@@ -2601,12 +2601,12 @@ func (v *IndexEntry) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Path); err != nil {
 		return prefixField("path", err)
 	}
-	if m, ok := raw["frontmatter"]; ok && string(m) != "null" {
+	if m, ok := raw["frontmatter"]; ok {
 		if err := json.Unmarshal(m, &v.Frontmatter); err != nil {
 			return prefixField("frontmatter", err)
 		}
 	}
-	if m, ok := raw["parse_error"]; ok && string(m) != "null" {
+	if m, ok := raw["parse_error"]; ok {
 		if err := json.Unmarshal(m, &v.ParseError); err != nil {
 			return prefixField("parse_error", err)
 		}
@@ -2642,7 +2642,7 @@ func (v *IndexExclusion) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Reason); err != nil {
 		return prefixField("reason", err)
 	}
-	if m, ok := raw["type"]; ok && string(m) != "null" {
+	if m, ok := raw["type"]; ok {
 		if err := json.Unmarshal(m, &v.Type); err != nil {
 			return prefixField("type", err)
 		}
@@ -2720,7 +2720,7 @@ func (v *SpecIndex) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Exclusions); err != nil {
 		return prefixField("exclusions", err)
 	}
-	if m, ok := raw["input_hash"]; ok && string(m) != "null" {
+	if m, ok := raw["input_hash"]; ok {
 		if err := json.Unmarshal(m, &v.InputHash); err != nil {
 			return prefixField("input_hash", err)
 		}
@@ -2788,22 +2788,22 @@ func (v *ProfileRegistration) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.DocumentTypes); err != nil {
 		return prefixField("document_types", err)
 	}
-	if m, ok := raw["block_tags"]; ok && string(m) != "null" {
+	if m, ok := raw["block_tags"]; ok {
 		if err := json.Unmarshal(m, &v.BlockTags); err != nil {
 			return prefixField("block_tags", err)
 		}
 	}
-	if m, ok := raw["finished_statuses"]; ok && string(m) != "null" {
+	if m, ok := raw["finished_statuses"]; ok {
 		if err := json.Unmarshal(m, &v.FinishedStatuses); err != nil {
 			return prefixField("finished_statuses", err)
 		}
 	}
-	if m, ok := raw["placeholder_patterns"]; ok && string(m) != "null" {
+	if m, ok := raw["placeholder_patterns"]; ok {
 		if err := json.Unmarshal(m, &v.PlaceholderPatterns); err != nil {
 			return prefixField("placeholder_patterns", err)
 		}
 	}
-	if m, ok := raw["conventions"]; ok && string(m) != "null" {
+	if m, ok := raw["conventions"]; ok {
 		if err := json.Unmarshal(m, &v.Conventions); err != nil {
 			return prefixField("conventions", err)
 		}
@@ -2873,27 +2873,27 @@ func (v *DocumentTypeRegistration) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Numbered); err != nil {
 		return prefixField("numbered", err)
 	}
-	if m, ok := raw["sections"]; ok && string(m) != "null" {
+	if m, ok := raw["sections"]; ok {
 		if err := json.Unmarshal(m, &v.Sections); err != nil {
 			return prefixField("sections", err)
 		}
 	}
-	if m, ok := raw["section_sets"]; ok && string(m) != "null" {
+	if m, ok := raw["section_sets"]; ok {
 		if err := json.Unmarshal(m, &v.SectionSets); err != nil {
 			return prefixField("section_sets", err)
 		}
 	}
-	if m, ok := raw["reference_properties"]; ok && string(m) != "null" {
+	if m, ok := raw["reference_properties"]; ok {
 		if err := json.Unmarshal(m, &v.ReferenceProperties); err != nil {
 			return prefixField("reference_properties", err)
 		}
 	}
-	if m, ok := raw["typed_reference_properties"]; ok && string(m) != "null" {
+	if m, ok := raw["typed_reference_properties"]; ok {
 		if err := json.Unmarshal(m, &v.TypedReferenceProperties); err != nil {
 			return prefixField("typed_reference_properties", err)
 		}
 	}
-	if m, ok := raw["pairings"]; ok && string(m) != "null" {
+	if m, ok := raw["pairings"]; ok {
 		if err := json.Unmarshal(m, &v.Pairings); err != nil {
 			return prefixField("pairings", err)
 		}
@@ -2944,7 +2944,7 @@ func (v *Section) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Repeated); err != nil {
 		return prefixField("repeated", err)
 	}
-	if m, ok := raw["children"]; ok && string(m) != "null" {
+	if m, ok := raw["children"]; ok {
 		if err := json.Unmarshal(m, &v.Children); err != nil {
 			return prefixField("children", err)
 		}
@@ -3022,7 +3022,7 @@ func (v *BlockTagRegistration) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Format); err != nil {
 		return prefixField("format", err)
 	}
-	if m, ok := raw["schema"]; ok && string(m) != "null" {
+	if m, ok := raw["schema"]; ok {
 		if err := json.Unmarshal(m, &v.Schema); err != nil {
 			return prefixField("schema", err)
 		}
