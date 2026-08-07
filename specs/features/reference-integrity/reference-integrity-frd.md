@@ -6,7 +6,7 @@ description: Parses cross-document references from a spec corpus, records
 slug: frd-spec-reference-integrity
 type: frd
 status: approved
-updated_at: 2026-08-06T00:00:00Z
+updated_at: 2026-08-07T00:00:00Z
 sources:
   - "frd-spec-validation-cli"
 ---
@@ -258,15 +258,17 @@ a reader follows it into nothing.
   - *Example:* `related: ["work-order-template"]` reports as unresolved,
     because templates carry placeholder slugs and are not corpus
     members.
-- **AC-SPECREF-002.4:** WHEN a document declares `status: retired` and
-  either declares no `superseded_by` or declares one that resolves to no
-  corpus member, the CLI SHALL report a finding of severity `error`
-  distinguishing the two cases.
-  - *Example:* A retired ADR with no `superseded_by` reports "retired
-    with no superseded_by"; one whose `superseded_by` names a slug no
-    corpus member declares reports "superseded_by 'adr-020' matches no
-    document's slug". A reader is never sent to a replacement that does
-    not exist, and never left to guess whether one was intended.
+- **AC-SPECREF-002.4:** *Retired. This criterion required a document at
+  `status: retired` to declare a resolvable `superseded_by`, and it was
+  unconditional. Not every retirement is a replacement: a feature
+  blueprint retires because its Definition of Done is complete, so the
+  criterion reported an `error` against every retired feature blueprint
+  this framework produces. The identifier is not reused. A retired
+  document whose `superseded_by` names no corpus member is still
+  reported, by AC-SPECREF-002.3, because AC-SPECREF-004.2 registers
+  `superseded_by` as reference-bearing; what is no longer required is a
+  successor's presence. Whether retirement should imply a successor for
+  some document types is left open.*
 - **AC-SPECREF-002.5:** WHEN the active profile registers a frontmatter
   property as one half of a paired relationship and the named document
   does not declare the matching counterpart, the CLI SHALL report a
@@ -465,6 +467,6 @@ new prefix here are the same decision.
 - [[module-document-core]] — declares the References component this
   feature builds, and records that it is not yet built
 - [[module-spec-profile]] — declares the Lifecycle Rules component whose
-  relational half AC-SPECREF-002.4 and AC-SPECREF-002.6 supply
+  relational half AC-SPECREF-002.6 supplies
 - `plugin/skills/spec/references/cross-document-references.md` — what a
   reference resolves against

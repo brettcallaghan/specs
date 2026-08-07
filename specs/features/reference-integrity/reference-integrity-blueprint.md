@@ -6,7 +6,7 @@ description: Builds the References component of Document Core, adds the
   exposes the graph as checks and a refs query
 slug: feature-spec-reference-integrity
 type: feature-blueprint
-status: draft
+status: ready-for-review
 updated_at: 2026-08-07T00:00:00Z
 delivery: staged
 frd: frd-spec-reference-integrity
@@ -93,9 +93,6 @@ know without being told.
     AC-SPECREF-002.3, AC-SPECREF-002.7);
   - a retired target, carrying the target's slug and its successor value
     where it declares one (AC-SPECREF-002.6);
-  - a retired document's successor, carrying the property name and
-    distinguishing an absent value from an unresolved one
-    (AC-SPECREF-002.4);
   - an incomplete pairing, carrying both property names and both
     documents (AC-SPECREF-002.5);
   - a reference-type mismatch, carrying the property, the expected
@@ -312,7 +309,9 @@ of its own.
   the successor property. Every status other than `retired` is live
   because the retired-target warning exists to tell an author what to
   cite instead, and the author most likely to need telling is editing a
-  draft.
+  draft. The successor property is registered so that warning can quote
+  the replacement (AC-SPECREF-002.6); nothing requires a retired
+  document to declare one.
 - The registered set SHALL be derived from `schemas/frontmatter.strata`
   rather than transcribed from it by hand.
 - A test SHALL assert that every property typed `Slug` or `[Slug]` in
@@ -371,25 +370,21 @@ for the MODEL variants); snapshot cases under `cli/testdata/cases/`.
 ### Lifecycle and relational checks in [[module-document-core]] (added) — LIFE
 
 **Intent:** The half of reference integrity that is about what a
-reference *means* rather than whether it lands: a retired document that
-sends its reader nowhere, a live document citing a retired one, a
-half-declared pairing, and a typed reference resolving to the wrong kind
-of document. Every one of these is driven entirely by what the active
-profile registered, so the code is framework-agnostic and the judgement
-is the profile's.
+reference *means* rather than whether it lands: a live document citing a
+retired one, a half-declared pairing, and a typed reference resolving to
+the wrong kind of document. Every one of these is driven entirely by
+what the active profile registered, so the code is framework-agnostic
+and the judgement is the profile's.
+
+Nothing here requires a retired document to *have* a successor.
+AC-SPECREF-002.4 carried that obligation and is retired, because not
+every retirement is a replacement. The half worth keeping survives
+without it: `superseded_by` is a registered reference-bearing property
+(PREG), so a successor naming no corpus member is already an error under
+AC-SPECREF-002.3, reported by CHK.
 
 **Behavior:**
 
-- WHEN a document declares a status the profile registers as retired and
-  declares no value in the registered successor property, the check
-  SHALL report a finding of severity `error` under
-  `lifecycle/retired-successor` whose detail marks the value absent
-  (AC-SPECREF-002.4).
-- WHEN such a document declares a successor value that resolves to no
-  corpus member, the check SHALL report the same rule with the detail
-  marking the value unresolved and naming it, so that a reader is never
-  sent to a replacement that does not exist and never left to guess
-  whether one was intended (AC-SPECREF-002.4).
 - WHEN a document at a status the profile registers as live references a
   document at a registered retired status, the check SHALL report a
   finding of severity `warning` under `reference/retired-target`, naming
@@ -452,7 +447,7 @@ direction into a corpus lookup and the result into stdout.
 - `refs` SHALL appear in the subcommand listing with its own flags,
   derived from the same declaration that defines it, per the container's
   Change Guidance (AC-SPEC-011.5).
-- The command surface SHALL declare the four new rule identifiers to the
+- The command surface SHALL declare the three new rule identifiers to the
   run report, so `--only` names them and `--strict` reaches the
   `reference/retired-target` warning.
 - WHEN activating a profile whose registration the XPT validation
@@ -643,7 +638,6 @@ checks; LIFE = lifecycle and relational checks; CMD = Command Surface in
 | AC-SPECREF-002.1 | **CHK (proves)**, RES | unit |
 | AC-SPECREF-002.2 | **RES (proves)**, REX | unit |
 | AC-SPECREF-002.3 | **CHK (proves)**, REX, PREG | unit |
-| AC-SPECREF-002.4 | **LIFE (proves)**, PREG | unit |
 | AC-SPECREF-002.5 | **LIFE (proves)**, XPT | unit |
 | AC-SPECREF-002.6 | **LIFE (proves)**, PREG | unit |
 | AC-SPECREF-002.7 | **RES (proves)**, CHK | unit |
@@ -720,41 +714,17 @@ checks; LIFE = lifecycle and relational checks; CMD = Command Surface in
 
 ## Open Questions
 
-- [ ] **AC-SPECREF-002.4 fires on a retired feature blueprint, and
-      nothing supersedes one.** The criterion is unconditional: a
-      document at `status: retired` declaring no `superseded_by` is an
-      `error`. This corpus holds exactly one retired document —
-      [[feature-spec-validation-cli]] — and it has no successor and
-      should not have one: a feature blueprint retires because its
-      Definition of Done is complete, not because another document
-      replaced it, which is what the feature blueprint template itself
-      states. As written, LIFE reports an error against every retired
-      feature blueprint this framework will ever produce, including the
-      one this document becomes.
-
-      Three resolutions, for the human to choose between — the design
-      cannot pick one without either contradicting an AC or writing an
-      exemption the FRD does not authorize:
-
-      1. **Register the successor obligation per document type** and
-         have the spec-driven-dev profile omit `feature-blueprint`.
-         Smallest change, fits AC-SPECREF-004's "configuration decides"
-         shape, and needs one sentence added to AC-SPECREF-002.4 to
-         stop it reading as unconditional.
-      2. **Amend AC-SPECREF-002.4** to scope the obligation to
-         documents whose retirement means replacement, and say in the
-         FRD which types those are.
-      3. **Give retired feature blueprints a successor** — the FRD
-         they realize, or nothing, accepting an `error` on each.
-         Rejected on its face here, but it is the reading the criterion
-         as written supports, so it is recorded rather than assumed
-         away.
-
-      Tracked as `agent-plugins-vdy`. Blocked on this: the PREG
-      lifecycle registration, the LIFE retired-successor check, and the
-      Definition of Done clause requiring the self-application gate to
-      be green. Everything else in the blueprint is unaffected. Decided
-      by the FRD's owner.
+None. One was raised while authoring and is resolved:
+AC-SPECREF-002.4 required a retired document to declare a resolvable
+successor, unconditionally, which reported an `error` against every
+retired feature blueprint — a feature blueprint retires because its
+Definition of Done is complete, not because something replaced it. The
+criterion is **retired** in [[frd-spec-reference-integrity]], its
+identifier is not reused, and whether retirement should imply a
+successor for some document types is left to a future revision. The
+half worth keeping needs no criterion of its own: `superseded_by` is a
+registered reference-bearing property, so a successor naming no corpus
+member is already an error under AC-SPECREF-002.3.
 
 ## References
 
