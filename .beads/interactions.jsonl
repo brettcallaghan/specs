@@ -111,3 +111,4 @@
 {"id":"int-059130a9500fcde462b8f034d97e1a27","kind":"field_change","created_at":"2026-08-07T18:18:43.23767377Z","actor":"Claude","issue_id":"agent-plugins-9kb.4","extra":{"field":"status","new_value":"in_progress","old_value":"open"}}
 {"id":"int-2a61bed55ec816275447de1eb6b6aec0","kind":"field_change","created_at":"2026-08-07T18:29:15.051000323Z","actor":"Claude","issue_id":"agent-plugins-9kb.4","extra":{"field":"status","new_value":"closed","old_value":"in_progress"}}
 {"id":"int-46f550460bcd7f67e3b6a2f21e56cc46","kind":"field_change","created_at":"2026-08-07T18:29:29.572701715Z","actor":"Claude","issue_id":"agent-plugins-9kb.5","extra":{"field":"status","new_value":"in_progress","old_value":"open"}}
+{"id":"int-2bdd73433fb66fd45ec35d2f63208b41","kind":"field_change","created_at":"2026-08-07T21:05:24.953607393Z","actor":"Claude","issue_id":"agent-plugins-9kb.5","extra":{"field":"status","new_value":"closed","old_value":"in_progress","reason":"Closed"}}
