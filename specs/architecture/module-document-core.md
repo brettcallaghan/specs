@@ -670,6 +670,34 @@ must open to fix it (AC-SPECREF-002.9). This is a lookup over
 document, never a walk of the corpus, which is what keeps it inside
 AC-SPEC-009.2's single-document budget.
 
+**They also report what a resolved reference *means*, not only whether
+it lands.** Three rules walk the same already-resolved reference
+collection `reference/unresolved` reads, so each costs a lookup rather
+than a second corpus walk. `reference/retired-target` — the first rule
+this package emits at severity `warning` rather than `error` — fires
+when a document at a status the active profile's `Lifecycle` registers
+as live resolves a reference to one at a registered retired status,
+naming the retired target and, where it declares one, the value of the
+registered successor property (AC-SPECREF-002.6). Because the target
+still resolves, failing a build on it would punish a corpus for
+retiring anything; this is also what makes `--strict`'s boundary
+(AC-SPEC-006.7) reachable end to end for the first time, since every
+rule before it was `error`. `reference/pairing-incomplete` fires when
+the active profile registers a pairing and the resolved target does not
+declare the counterpart in return, reporting against both documents
+with the same structured detail — the declaring document at the
+declared value's span, the target at the span of its frontmatter block,
+because an absent property has no position of its own (AC-SPECREF-002.5).
+`reference/type-mismatch` fires when the active profile requires a
+reference-bearing property's target to declare a particular document
+`type` and the resolved target declares a different one, naming the
+property and both types (AC-SPECREF-002.10). A type or profile that
+registers no pairing and no typed reference is not a reason to skip
+either check: the loop runs its full length and matches nothing, which
+is what lets a run that requests these checks report them `passed`
+rather than `not-requested` even where the registration behind them is
+empty (AC-SPEC-006.9).
+
 **Output and warm cache** — the same package. `Write` emits the index to
 one destination, resolved by `IndexPath`: `specs.json` inside the
 configured spec root by default (AC-SPEC-010.1), a named path when the

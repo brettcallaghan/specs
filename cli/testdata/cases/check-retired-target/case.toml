@@ -1,0 +1,5 @@
+description = "check reports reference/retired-target as a warning for a live document citing a retired one, naming its successor, and exits zero without --strict"
+cites = ["AC-SPECREF-002.6", "AC-SPEC-006.7"]
+artifacts = ["checks.log"]
+args = ["check"]
+exit_code = 0

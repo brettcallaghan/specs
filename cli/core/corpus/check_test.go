@@ -909,3 +909,390 @@ func TestBrokenInboundReferencesAreReadFromTheIndexNotFromTheReferrer(t *testing
 		t.Fatalf("got %d findings against the never-written referrer, want 1: %+v", len(got), findings)
 	}
 }
+
+// Tests for reference/retired-target, reference/pairing-incomplete and
+// reference/type-mismatch — the LIFE delta's relational half of
+// reference integrity. Every registration these tests exercise is a
+// stubProfile of this test file's own, registered through the same
+// [corpus.Profile] extension point the command surface's real profile
+// implements — never a pairing added to that shipped profile, which
+// registers none by design (reference-integrity-blueprint.md's LIFE
+// section).
+
+// statusDocument renders a conforming document at the given status,
+// carrying any extra frontmatter lines verbatim — the control document(),
+// documentWithExtra() and citing() do not offer, and every LIFE fixture
+// below needs at least one of a non-default status, a successor value, or
+// a registered pairing's counterpart.
+func statusDocument(docType, slug, title, status string, extra ...string) string {
+	lines := []string{
+		"---",
+		fmt.Sprintf("title: %q", title),
+		`description: "A fixture document."`,
+		fmt.Sprintf("slug: %s", slug),
+		fmt.Sprintf("type: %s", docType),
+		fmt.Sprintf("status: %s", status),
+		`updated_at: "2026-08-05T00:00:00Z"`,
+	}
+	lines = append(lines, extra...)
+	lines = append(lines, "---", "", fmt.Sprintf("# %s", title), "")
+	return strings.Join(lines, "\n")
+}
+
+// citingAtStatus renders a conforming document at the given status whose
+// body is the given text — the status control statusDocument() offers,
+// combined with the body control citing() offers, for the one fixture
+// that needs both: a retired document that itself cites another one.
+func citingAtStatus(docType, slug, title, status, body string) string {
+	return fmt.Sprintf(`---
+title: %q
+description: "A fixture document."
+slug: %s
+type: %s
+status: %s
+updated_at: "2026-08-05T00:00:00Z"
+---
+
+# %s
+
+%s
+`, title, slug, docType, status, title, body)
+}
+
+// lifecycleCheckProfile registers "adr" and "frd" exactly as
+// referenceCheckProfile does, widened with a lifecycle registration:
+// draft and approved are live, retired is retired, and superseded_by is
+// the successor property — this framework's own registration, restated
+// here as test data rather than imported, so this package proves its
+// checks against a fixture it owns (module-spec-profile.md's Change
+// Guidance: Document Core imports no profile).
+func lifecycleCheckProfile() corpus.Profile {
+	return stubProfile{
+		schema: []byte(permissiveCheckSchema),
+		types: map[string]corpus.DocumentTypeRules{
+			"adr": {SlugPattern: `^adr-[0-9]{3}(-[a-z0-9-]+)*$`},
+			"frd": {SlugPattern: `^frd-[a-z0-9-]+$`},
+		},
+		lifecycle: corpus.LifecycleRules{
+			Statuses:          []string{"draft", "approved", "retired"},
+			LiveStatuses:      []string{"draft", "approved"},
+			RetiredStatuses:   []string{"retired"},
+			SuccessorProperty: "superseded_by",
+		},
+	}
+}
+
+// AC: AC-SPECREF-002.6
+func TestCheckReportsALiveDocumentReferencingARetiredOneWithASuccessor(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-900.md",
+		statusDocument("adr", "adr-900", "Old decision", "retired", "superseded_by: adr-901"))
+	write(t, repo, "specs/adrs/adr-901.md", document("adr", "adr-901", "New decision"))
+	write(t, repo, "specs/adrs/adr-800.md",
+		citing("adr", "adr-800", "Citing decision", "This decision refines [[adr-900]]."))
+
+	built := buildChecked(t, repo, lifecycleCheckProfile())
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+
+	got := findingsWithRule(findings, finding.RuleRetiredTarget, "specs/adrs/adr-800.md")
+	if len(got) != 1 {
+		t.Fatalf("got %d reference/retired-target findings, want 1: %+v", len(got), findings)
+	}
+	if got[0].Severity != finding.SeverityWarning {
+		t.Errorf("severity = %q, want %q — a reference to a retired document still resolves", got[0].Severity, finding.SeverityWarning)
+	}
+	detail, ok := got[0].Detail.Value.(specmodel.FindingRetiredTarget)
+	if !ok {
+		t.Fatalf("detail = %T, want FindingRetiredTarget", got[0].Detail.Value)
+	}
+	if detail.Slug != "adr-900" {
+		t.Errorf("slug = %q, want adr-900", detail.Slug)
+	}
+	if detail.Successor == nil || *detail.Successor != "adr-901" {
+		t.Errorf("successor = %v, want adr-901", detail.Successor)
+	}
+	if !strings.Contains(got[0].Message, "adr-900") || !strings.Contains(got[0].Message, "adr-901") {
+		t.Errorf("message = %q, want it to name both the retired target and its successor", got[0].Message)
+	}
+}
+
+// AC: AC-SPECREF-002.6
+//
+// Not every retirement has a successor (reference-integrity-blueprint.md,
+// LIFE): a retired target that declares none still raises the warning,
+// with an absent successor rather than one invented from nothing.
+func TestCheckReportsALiveDocumentReferencingARetiredOneWithNoSuccessor(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-900.md", statusDocument("adr", "adr-900", "Old decision", "retired"))
+	write(t, repo, "specs/adrs/adr-800.md",
+		citing("adr", "adr-800", "Citing decision", "This decision refines [[adr-900]]."))
+
+	built := buildChecked(t, repo, lifecycleCheckProfile())
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+
+	got := findingsWithRule(findings, finding.RuleRetiredTarget, "specs/adrs/adr-800.md")
+	if len(got) != 1 {
+		t.Fatalf("got %d reference/retired-target findings, want 1: %+v", len(got), findings)
+	}
+	detail, ok := got[0].Detail.Value.(specmodel.FindingRetiredTarget)
+	if !ok {
+		t.Fatalf("detail = %T, want FindingRetiredTarget", got[0].Detail.Value)
+	}
+	if detail.Successor != nil {
+		t.Errorf("successor = %v, want nil — the target declares none", detail.Successor)
+	}
+}
+
+// A reference between two live documents raises no retired-target
+// finding — the check the tests above would pass vacuously without.
+func TestCheckRaisesNoRetiredTargetFindingBetweenTwoLiveDocuments(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-900.md", document("adr", "adr-900", "Live decision"))
+	write(t, repo, "specs/adrs/adr-800.md",
+		citing("adr", "adr-800", "Citing decision", "This decision refines [[adr-900]]."))
+
+	built := buildChecked(t, repo, lifecycleCheckProfile())
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+	if got := findingsWithRule(findings, finding.RuleRetiredTarget, "specs/adrs/adr-800.md"); len(got) != 0 {
+		t.Errorf("got %d reference/retired-target findings between two live documents, want 0: %+v", len(got), findings)
+	}
+}
+
+// A retired document citing another retired one raises no finding: the
+// warning exists to tell a LIVE author what to cite instead, and the
+// referrer here is not one (reference-integrity-blueprint.md's LIFE
+// rationale for why every non-retired status is live).
+func TestCheckRaisesNoRetiredTargetFindingWhenTheReferringDocumentIsAlsoRetired(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-900.md", statusDocument("adr", "adr-900", "Old decision", "retired"))
+	write(t, repo, "specs/adrs/adr-850.md",
+		citingAtStatus("adr", "adr-850", "Also retired", "retired", "This decision refines [[adr-900]]."))
+
+	built := buildChecked(t, repo, lifecycleCheckProfile())
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+	if got := findingsWithRule(findings, finding.RuleRetiredTarget, "specs/adrs/adr-850.md"); len(got) != 0 {
+		t.Errorf("got %d reference/retired-target findings from a retired referrer, want 0: %+v", len(got), findings)
+	}
+}
+
+// pairingCheckProfile registers "owner"/"owned_by" as a pairing on "adr"
+// — a relationship this framework's own shipped profile deliberately
+// registers none of (LIFE's Design: "Do not add a pairing to the shipped
+// profile"). "owner" is also registered as reference-bearing, which a
+// pairing's Property must be per [corpus.ValidateRegistration].
+func pairingCheckProfile() corpus.Profile {
+	return stubProfile{
+		schema: []byte(permissiveCheckSchema),
+		types: map[string]corpus.DocumentTypeRules{
+			"adr": {
+				SlugPattern:         `^adr-[0-9]{3}(-[a-z0-9-]+)*$`,
+				ReferenceProperties: []string{"owner"},
+				Pairings: []specmodel.PropertyPairing{
+					{Property: "owner", Counterpart: "owned_by"},
+				},
+			},
+			"frd": {SlugPattern: `^frd-[a-z0-9-]+$`},
+		},
+	}
+}
+
+// AC: AC-SPECREF-002.5
+func TestCheckReportsAnIncompletePairingAgainstBothDocuments(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-100.md",
+		statusDocument("adr", "adr-100", "Owning decision", "approved", "owner: frd-team-ledger"))
+	write(t, repo, "specs/features/frd-team-ledger.md", document("frd", "frd-team-ledger", "Team Ledger"))
+
+	built := buildChecked(t, repo, pairingCheckProfile())
+	targetDoc, ok := built.Document("specs/features/frd-team-ledger.md")
+	if !ok {
+		t.Fatal("Document did not return the target's parsed frontmatter")
+	}
+
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+
+	source := findingsWithRule(findings, finding.RuleIncompletePairing, "specs/adrs/adr-100.md")
+	if len(source) != 1 {
+		t.Fatalf("got %d reference/pairing-incomplete findings against the declaring document, want 1: %+v", len(source), findings)
+	}
+	target := findingsWithRule(findings, finding.RuleIncompletePairing, "specs/features/frd-team-ledger.md")
+	if len(target) != 1 {
+		t.Fatalf("got %d reference/pairing-incomplete findings against the target, want 1: %+v", len(target), findings)
+	}
+
+	sourceDetail, ok := source[0].Detail.Value.(specmodel.FindingIncompletePairing)
+	if !ok {
+		t.Fatalf("source detail = %T, want FindingIncompletePairing", source[0].Detail.Value)
+	}
+	targetDetail, ok := target[0].Detail.Value.(specmodel.FindingIncompletePairing)
+	if !ok {
+		t.Fatalf("target detail = %T, want FindingIncompletePairing", target[0].Detail.Value)
+	}
+	if sourceDetail != targetDetail {
+		t.Errorf("source detail = %+v, target detail = %+v, want the same structured detail against both documents", sourceDetail, targetDetail)
+	}
+	if sourceDetail.Property != "owner" || sourceDetail.Counterpart != "owned_by" {
+		t.Errorf("detail = %+v, want property owner paired with owned_by", sourceDetail)
+	}
+	if sourceDetail.SourcePath != "specs/adrs/adr-100.md" || sourceDetail.TargetPath != "specs/features/frd-team-ledger.md" {
+		t.Errorf("detail = %+v, want both paths", sourceDetail)
+	}
+
+	// The declaring document's finding sits at the declared value's span;
+	// the target's sits at its frontmatter block's span, because an
+	// absent property has no position of its own.
+	if source[0].Position.Length == 0 {
+		t.Error("the declaring document's finding carries an empty span")
+	}
+	if target[0].Position != targetDoc.Region.Inner {
+		t.Errorf("target position = %+v, want the target's frontmatter-block span %+v", target[0].Position, targetDoc.Region.Inner)
+	}
+}
+
+// A pairing whose target declares the counterpart back raises no
+// finding — the check the test above would pass vacuously without.
+//
+// AC: AC-SPECREF-002.5
+func TestCheckRaisesNoIncompletePairingFindingWhenTheCounterpartIsDeclared(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-100.md",
+		statusDocument("adr", "adr-100", "Owning decision", "approved", "owner: frd-team-ledger"))
+	write(t, repo, "specs/features/frd-team-ledger.md",
+		statusDocument("frd", "frd-team-ledger", "Team Ledger", "approved", "owned_by: adr-100"))
+
+	built := buildChecked(t, repo, pairingCheckProfile())
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+	for _, f := range findings {
+		if f.Rule == finding.RuleIncompletePairing {
+			t.Errorf("got a reference/pairing-incomplete finding when the counterpart is declared: %+v", f)
+		}
+	}
+}
+
+// typeMismatchCheckProfile registers this framework's own typed
+// reference — a feature blueprint's frd must resolve to a document of
+// type frd — as test data, on the same terms lifecycleCheckProfile
+// restates the shipped lifecycle registration.
+func typeMismatchCheckProfile() corpus.Profile {
+	return stubProfile{
+		schema: []byte(`{
+  "definitions": {
+    "FeatureBlueprint": {"type": "object", "properties": {}},
+    "Frd": {"type": "object", "properties": {}},
+    "Adr": {"type": "object", "properties": {}}
+  }
+}`),
+		types: map[string]corpus.DocumentTypeRules{
+			"feature-blueprint": {
+				SlugPattern:              `^feature-[a-z0-9-]+$`,
+				ReferenceProperties:      []string{"frd"},
+				TypedReferenceProperties: map[string]string{"frd": "frd"},
+			},
+			"frd": {SlugPattern: `^frd-[a-z0-9-]+$`},
+			"adr": {SlugPattern: `^adr-[0-9]{3}$`},
+		},
+	}
+}
+
+// AC: AC-SPECREF-002.10
+func TestCheckReportsATypeMismatch(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/features/feature-checkout.md",
+		statusDocument("feature-blueprint", "feature-checkout", "Checkout", "approved", "frd: adr-009"))
+	write(t, repo, "specs/adrs/adr-009.md", document("adr", "adr-009", "Checkout decision"))
+
+	built := buildChecked(t, repo, typeMismatchCheckProfile())
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+
+	got := findingsWithRule(findings, finding.RuleTypeMismatch, "specs/features/feature-checkout.md")
+	if len(got) != 1 {
+		t.Fatalf("got %d reference/type-mismatch findings, want 1: %+v", len(got), findings)
+	}
+	detail, ok := got[0].Detail.Value.(specmodel.FindingReferenceType)
+	if !ok {
+		t.Fatalf("detail = %T, want FindingReferenceType", got[0].Detail.Value)
+	}
+	if detail.Property != "frd" {
+		t.Errorf("property = %q, want frd", detail.Property)
+	}
+	if detail.Slug != "adr-009" {
+		t.Errorf("slug = %q, want adr-009", detail.Slug)
+	}
+	if detail.ExpectedType != "frd" || detail.ActualType != "adr" {
+		t.Errorf("expected/actual = %q/%q, want frd/adr", detail.ExpectedType, detail.ActualType)
+	}
+	if !strings.Contains(got[0].Message, "frd") || !strings.Contains(got[0].Message, "adr-009") || !strings.Contains(got[0].Message, "adr") {
+		t.Errorf("message = %q, want it to name the property, the target and both types", got[0].Message)
+	}
+}
+
+// A typed reference whose target declares the required type raises no
+// finding — the check the test above would pass vacuously without.
+//
+// AC: AC-SPECREF-002.10
+func TestCheckRaisesNoTypeMismatchFindingWhenTheTargetDeclaresTheExpectedType(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/features/feature-checkout.md",
+		statusDocument("feature-blueprint", "feature-checkout", "Checkout", "approved", "frd: frd-checkout"))
+	write(t, repo, "specs/features/frd-checkout.md", document("frd", "frd-checkout", "Checkout"))
+
+	built := buildChecked(t, repo, typeMismatchCheckProfile())
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+	if got := findingsWithRule(findings, finding.RuleTypeMismatch, "specs/features/feature-checkout.md"); len(got) != 0 {
+		t.Errorf("got %d reference/type-mismatch findings when the target declares the expected type, want 0: %+v", len(got), findings)
+	}
+}
+
+// CheckFor narrows every LIFE finding to the checked file exactly as it
+// already does for reference/unresolved: the defect is detected
+// corpus-wide, but only the named file's own copy is returned. This
+// matters most for reference/pairing-incomplete, which raises a finding
+// against two different paths from one corpus-wide pass.
+func TestCheckForNarrowsLifecycleAndRelationalFindingsToTheCheckedFile(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-900.md", statusDocument("adr", "adr-900", "Old decision", "retired"))
+	write(t, repo, "specs/adrs/adr-800.md",
+		citing("adr", "adr-800", "Citing decision", "This decision refines [[adr-900]]."))
+
+	built := buildChecked(t, repo, lifecycleCheckProfile())
+
+	findings, err := built.CheckFor("specs/adrs/adr-900.md")
+	if err != nil {
+		t.Fatalf("CheckFor: %v", err)
+	}
+	if got := findingsWithRule(findings, finding.RuleRetiredTarget, "specs/adrs/adr-800.md"); len(got) != 0 {
+		t.Errorf("CheckFor(adr-900) reported adr-800's own retired-target finding: %+v", got)
+	}
+
+	findings, err = built.CheckFor("specs/adrs/adr-800.md")
+	if err != nil {
+		t.Fatalf("CheckFor: %v", err)
+	}
+	if got := findingsWithRule(findings, finding.RuleRetiredTarget, "specs/adrs/adr-800.md"); len(got) != 1 {
+		t.Errorf("CheckFor(adr-800) reported %d of its own retired-target findings, want 1: %+v", len(got), findings)
+	}
+}

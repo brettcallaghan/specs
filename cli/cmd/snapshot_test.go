@@ -64,7 +64,7 @@ type caseManifest struct {
 // checks its exit status against case.toml and its output against the
 // expected artifacts the case declares.
 //
-// AC: AC-SPEC-002.5, AC-SPEC-006.5, AC-SPEC-006.6, AC-SPEC-006.8, AC-SPEC-011.1, AC-SPEC-011.2, AC-SPEC-011.3, AC-SPEC-011.4, AC-SPEC-011.5, AC-SPECREF-001.6
+// AC: AC-SPEC-002.5, AC-SPEC-006.5, AC-SPEC-006.6, AC-SPEC-006.7, AC-SPEC-006.8, AC-SPEC-011.1, AC-SPEC-011.2, AC-SPEC-011.3, AC-SPEC-011.4, AC-SPEC-011.5, AC-SPECREF-001.6, AC-SPECREF-002.6
 func TestSnapshotCases(t *testing.T) {
 	entries, err := os.ReadDir(casesDir)
 	if err != nil {

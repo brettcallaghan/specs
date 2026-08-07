@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
+	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
 	"github.com/brettcallaghan/agent-plugins/cli/core/schemaregistry"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
@@ -127,6 +128,15 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 		}
 	}
 
+	// The relational half of reference integrity — what a resolved
+	// reference *means* rather than whether it lands — walks the same
+	// already-resolved reference collection, for the same reason: the
+	// work is a lookup over data already in memory, not a second corpus
+	// walk (AC-SPECREF-002.5, AC-SPECREF-002.6, AC-SPECREF-002.10).
+	report.Add(c.retiredTargetFindings()...)
+	report.Add(c.pairingIncompleteFindings()...)
+	report.Add(c.typeMismatchFindings()...)
+
 	findings := report.Model().Findings
 	if only == nil {
 		return findings, nil
@@ -157,6 +167,170 @@ func unresolvedReferenceFinding(ref specmodel.Reference) (specmodel.Finding, boo
 		return finding.UnresolvedReference(ref.Path, ref.Position, ref.Text, ref.Slug, ref.Origin, nil), true
 	}
 	return specmodel.Finding{}, false
+}
+
+// retiredTargetFindings reports, for every resolved reference from a
+// document at a status the active profile's lifecycle registers as live
+// to one at a registered retired status, a warning against the
+// referring document at the reference's own position, naming the
+// retired target's slug and its successor value where the target
+// declares one (AC-SPECREF-002.6).
+//
+// A profile that registers no lifecycle — [corpus.LifecycleRules]'s zero
+// value — has an empty live set and an empty retired set, so this loop
+// runs its full length and matches nothing rather than being skipped: a
+// corpus whose documents have no lifecycle is a legitimate registration,
+// not a reason to special-case the walk.
+func (c *Corpus) retiredTargetFindings() []specmodel.Finding {
+	lifecycle := c.profile.Lifecycle()
+	live := stringSet(lifecycle.LiveStatuses)
+	retired := stringSet(lifecycle.RetiredStatuses)
+
+	var findings []specmodel.Finding
+	for _, ref := range c.index.References {
+		resolved, ok := ref.Resolution.AsResolved()
+		if !ok {
+			continue
+		}
+		referrer, ok := c.Entry(ref.Path)
+		if !ok || referrer.Frontmatter == nil || !live[string(referrer.Frontmatter.Status)] {
+			continue
+		}
+		target, ok := c.Entry(resolved.TargetPath)
+		if !ok || target.Frontmatter == nil || !retired[string(target.Frontmatter.Status)] {
+			continue
+		}
+		successor := c.successorOf(resolved.TargetPath, lifecycle.SuccessorProperty)
+		findings = append(findings, finding.RetiredTarget(
+			ref.Path, ref.Position, string(target.Frontmatter.Slug), successor))
+	}
+	return findings
+}
+
+// successorOf reads the text of the successor property the active
+// profile registers, from the document at path, returning nil where the
+// profile registers no successor property or the document does not
+// declare it — nothing requires a retired document to declare one.
+func (c *Corpus) successorOf(path, property string) *string {
+	if property == "" {
+		return nil
+	}
+	doc, ok := c.document(path)
+	if !ok {
+		return nil
+	}
+	value, ok := propertyText(doc, property)
+	if !ok {
+		return nil
+	}
+	return &value
+}
+
+// pairingIncompleteFindings reports, for every pairing the active
+// profile registers whose declaring document names a resolved target
+// that does not declare the paired counterpart in return, one finding
+// against each of the two documents, carrying the same structured detail
+// (AC-SPECREF-002.5). The finding against the declaring document sits at
+// the declared value's span; the finding against the target sits at the
+// span of its frontmatter block, because an absent property has no
+// position of its own.
+//
+// A type that registers no pairing contributes nothing here, which is
+// this loop finding zero matches over real data rather than being
+// skipped — the same reasoning [retiredTargetFindings] documents.
+func (c *Corpus) pairingIncompleteFindings() []specmodel.Finding {
+	var findings []specmodel.Finding
+	for _, ref := range c.index.References {
+		resolved, ok := ref.Resolution.AsResolved()
+		if !ok {
+			continue
+		}
+		origin, ok := ref.Origin.AsFrontmatterProperty()
+		if !ok {
+			continue
+		}
+		declarer, ok := c.Entry(ref.Path)
+		if !ok || declarer.Frontmatter == nil {
+			continue
+		}
+		rules, known := c.types[string(declarer.Frontmatter.Type)]
+		if !known {
+			continue
+		}
+		for _, pairing := range rules.Pairings {
+			if pairing.Property != origin.Property {
+				continue
+			}
+			targetDoc, ok := c.document(resolved.TargetPath)
+			if !ok {
+				continue
+			}
+			if _, declared := targetDoc.Property(pairing.Counterpart); declared {
+				continue
+			}
+			findings = append(findings,
+				finding.IncompletePairing(ref.Path, ref.Position,
+					pairing.Property, pairing.Counterpart, ref.Path, resolved.TargetPath),
+				finding.IncompletePairing(resolved.TargetPath, targetDoc.Region.Inner,
+					pairing.Property, pairing.Counterpart, ref.Path, resolved.TargetPath),
+			)
+		}
+	}
+	return findings
+}
+
+// typeMismatchFindings reports, for every reference-bearing property the
+// active profile requires a target document `type` for, a resolved
+// reference whose target declares a different one (AC-SPECREF-002.10).
+//
+// A type that registers no typed reference contributes nothing here, for
+// the same reason [pairingIncompleteFindings] does not special-case an
+// empty registration.
+func (c *Corpus) typeMismatchFindings() []specmodel.Finding {
+	var findings []specmodel.Finding
+	for _, ref := range c.index.References {
+		resolved, ok := ref.Resolution.AsResolved()
+		if !ok {
+			continue
+		}
+		origin, ok := ref.Origin.AsFrontmatterProperty()
+		if !ok {
+			continue
+		}
+		declarer, ok := c.Entry(ref.Path)
+		if !ok || declarer.Frontmatter == nil {
+			continue
+		}
+		rules, known := c.types[string(declarer.Frontmatter.Type)]
+		if !known {
+			continue
+		}
+		expected, typed := rules.TypedReferenceProperties[origin.Property]
+		if !typed {
+			continue
+		}
+		target, ok := c.Entry(resolved.TargetPath)
+		if !ok || target.Frontmatter == nil {
+			continue
+		}
+		actual := string(target.Frontmatter.Type)
+		if actual == expected {
+			continue
+		}
+		findings = append(findings, finding.ReferenceType(
+			ref.Path, ref.Position, origin.Property, ref.Slug, expected, actual))
+	}
+	return findings
+}
+
+// stringSet converts values to a lookup set, so a status membership test
+// reads as a map access rather than a linear scan repeated per reference.
+func stringSet(values []string) map[string]bool {
+	set := make(map[string]bool, len(values))
+	for _, v := range values {
+		set[v] = true
+	}
+	return set
 }
 
 // brokenInboundReferences reports, for a single-document check of path,
@@ -197,15 +371,22 @@ func (c *Corpus) brokenInboundReferences(path string) []specmodel.Finding {
 // currentSlug reads the slug the document at path currently declares,
 // through Corpus.document rather than the persisted index entry — the
 // whole point being to see path's frontmatter as it stands now, which may
-// differ from what the graph's edges were resolved against. Reported as
-// its source text where the value is not a string, the same fallback
-// declaredType applies for a document's type.
+// differ from what the graph's edges were resolved against.
 func (c *Corpus) currentSlug(path string) (string, bool) {
 	doc, ok := c.document(path)
 	if !ok {
 		return "", false
 	}
-	property, ok := doc.Property(slugProperty)
+	return propertyText(doc, slugProperty)
+}
+
+// propertyText returns the text of one frontmatter property: its parsed
+// value where that is a string, and its raw source text otherwise — the
+// same fallback declaredType applies for a document's type, so a value
+// that is not a plain string is still reported as what the author wrote
+// rather than silently dropped.
+func propertyText(doc *frontmatter.Document, name string) (string, bool) {
+	property, ok := doc.Property(name)
 	if !ok {
 		return "", false
 	}

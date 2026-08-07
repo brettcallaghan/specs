@@ -79,6 +79,22 @@ const (
 	// matching a file that exists but is not a member): they are the
 	// same defect reported from three places, not three defects.
 	RuleUnresolvedReference specmodel.RuleId = "reference/unresolved"
+	// RuleRetiredTarget covers a reference from a document at a status
+	// the active profile's lifecycle registration treats as live to one
+	// at a registered retired status. It is the first rule this package
+	// declares at [SeverityWarning] rather than [SeverityError]: the
+	// target still resolves, so this is not a conformance failure, but
+	// it is the one finding that tells an author what to cite instead.
+	RuleRetiredTarget specmodel.RuleId = "reference/retired-target"
+	// RuleIncompletePairing covers a pairing the active profile
+	// registers — a property declared from one end and a counterpart
+	// the resolved target must declare in return — where the target
+	// does not declare it.
+	RuleIncompletePairing specmodel.RuleId = "reference/pairing-incomplete"
+	// RuleTypeMismatch covers a reference-bearing property the active
+	// profile requires a specific target document `type` for, whose
+	// resolved target declares a different one.
+	RuleTypeMismatch specmodel.RuleId = "reference/type-mismatch"
 )
 
 // rootPointer is what an empty JSON Pointer is rendered as, so a message
@@ -245,6 +261,81 @@ func nonMemberReason(nonMember specmodel.ReferenceNonMember) string {
 		return fmt.Sprintf("excluded: %s", *nonMember.Reason)
 	}
 	return "not a corpus member"
+}
+
+// RetiredTarget reports a reference from a document at a live status to
+// one at a registered retired status.
+//
+// It carries [SeverityWarning] rather than [SeverityError]: the target
+// still resolves — the reader reaches a real document that says it has
+// been replaced — so failing a build on it would punish a corpus for
+// retiring anything (AC-SPECREF-002.6). successor is nil where the
+// target declares none; not every retirement has a successor, and a
+// message that implied otherwise would send the reader looking for one.
+func RetiredTarget(path string, at specmodel.Span, slug string, successor *string) specmodel.Finding {
+	message := fmt.Sprintf("%q is retired", slug)
+	if successor != nil {
+		message += fmt.Sprintf(", superseded by %q", *successor)
+	}
+	return specmodel.Finding{
+		Rule:     RuleRetiredTarget,
+		Severity: SeverityWarning,
+		Path:     path,
+		Position: at,
+		Message:  message,
+		Detail: specmodel.NewFindingDetailRetiredTarget(specmodel.FindingRetiredTarget{
+			Slug:      slug,
+			Successor: successor,
+		}),
+	}
+}
+
+// IncompletePairing reports one half of a paired relationship the
+// resolved target does not declare the counterpart of.
+//
+// The caller raises this twice, once against sourcePath and once against
+// targetPath, both times with the same property, counterpart, sourcePath
+// and targetPath — the same structured detail from both calls, so the
+// two findings describe the relationship in one direction rather than
+// each from its own point of view (AC-SPECREF-002.5). at is the
+// declared value's span when path is sourcePath, and the target's
+// frontmatter-block span when path is targetPath: an absent property has
+// no position of its own.
+func IncompletePairing(path string, at specmodel.Span, property, counterpart, sourcePath, targetPath string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleIncompletePairing,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message: fmt.Sprintf("%s declares %q naming %s, which does not declare the paired property %q back",
+			sourcePath, property, targetPath, counterpart),
+		Detail: specmodel.NewFindingDetailIncompletePairing(specmodel.FindingIncompletePairing{
+			Property:    property,
+			Counterpart: counterpart,
+			SourcePath:  sourcePath,
+			TargetPath:  targetPath,
+		}),
+	}
+}
+
+// ReferenceType reports a reference-bearing property whose resolved
+// target declares a document `type` other than the one the active
+// profile requires for that property (AC-SPECREF-002.10).
+func ReferenceType(path string, at specmodel.Span, property, slug, expectedType, actualType string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleTypeMismatch,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message: fmt.Sprintf("%s expects type %q, target %q declares type %q",
+			property, expectedType, slug, actualType),
+		Detail: specmodel.NewFindingDetailReferenceType(specmodel.FindingReferenceType{
+			Property:     property,
+			Slug:         slug,
+			ExpectedType: expectedType,
+			ActualType:   actualType,
+		}),
+	}
 }
 
 // Unverified reports a check that was requested and could not run.
