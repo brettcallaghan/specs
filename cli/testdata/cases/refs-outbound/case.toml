@@ -1,0 +1,5 @@
+description = "refs <slug> --outbound returns the documents that slug references, via its registered reference-bearing frontmatter property"
+cites = ["AC-SPECREF-003.2"]
+artifacts = ["checks.log"]
+args = ["refs", "adr-900-old-approach", "--outbound"]
+exit_code = 0

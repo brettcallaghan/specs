@@ -1,0 +1,5 @@
+description = "--only names one of the three newly declared reference-integrity rules, which is reported passed rather than omitted, while a real reference/retired-target violation elsewhere in the same corpus is excluded and left not-requested"
+cites = ["AC-SPEC-006.8"]
+artifacts = ["checks.json"]
+args = ["check", "--json", "--only", "reference/pairing-incomplete"]
+exit_code = 0

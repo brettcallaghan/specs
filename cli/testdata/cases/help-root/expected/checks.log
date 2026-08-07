@@ -8,6 +8,7 @@ Available Commands:
   help        Help about any command
   index       Build the spec index and write it to disk
   next-id     Return the next identifier for a numbered document type
+  refs        Report which corpus members reference a slug, or what it references
   slug-exists Report whether a corpus member declares the given slug
 
 Flags:

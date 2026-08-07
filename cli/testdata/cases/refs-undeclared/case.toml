@@ -1,0 +1,5 @@
+description = "refs <slug> for a slug no corpus member declares at all is reported distinctly from a declared-but-unreferenced one, and exits zero, matching the slug-exists contract"
+cites = ["AC-SPEC-007.2"]
+artifacts = ["checks.log"]
+args = ["refs", "does-not-exist"]
+exit_code = 0

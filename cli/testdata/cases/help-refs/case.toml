@@ -1,0 +1,5 @@
+description = "refs --help lists its --json and --outbound options, derived from the same declaration that defines them"
+cites = ["AC-SPEC-011.5"]
+artifacts = ["checks.log"]
+args = ["refs", "--help"]
+exit_code = 0

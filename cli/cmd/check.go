@@ -19,6 +19,16 @@ import (
 // to mention — which is what makes "not requested" distinguishable from
 // "requested and passed" (AC-SPEC-006.8's report distinction, carried by
 // [finding.Report] itself; see buildCheckReport below).
+//
+// RuleRetiredTarget, RuleIncompletePairing and RuleTypeMismatch are
+// declared here rather than left to [finding.Report.Add]'s own
+// auto-registration of an unnamed rule: without a declaration, a run
+// that raises none of them would leave them out of the report's checks
+// accounting entirely instead of showing "passed", and --only could not
+// name one to request it on a run that never happens to raise it. This
+// is what lets --only name each of the reference-integrity checks and
+// what lets --strict reach the reference/retired-target warning even on
+// a corpus that never triggers it.
 var checkRules = []specmodel.RuleId{
 	finding.RuleFrontmatterParse,
 	finding.RuleSchemaViolation,
@@ -26,6 +36,9 @@ var checkRules = []specmodel.RuleId{
 	finding.RuleSlugPattern,
 	finding.RuleDuplicateSlug,
 	finding.RuleUnresolvedReference,
+	finding.RuleRetiredTarget,
+	finding.RuleIncompletePairing,
+	finding.RuleTypeMismatch,
 }
 
 // newCheckCmd builds the `check` subcommand: run conformance checks over

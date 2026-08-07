@@ -76,6 +76,13 @@ func (e *ErrConfigNotFound) Error() string {
 // rather than anything about the repository being checked). Every defect
 // in the checked repository's own specs.toml is a finding, never an
 // error.
+//
+// Once [profile].name resolves to a registered profile, Load also runs
+// [corpus.ValidateRegistration] against it and reports any defect as a
+// finding positioned at [profile].name (AC-SPECREF-004.3) — the one
+// registration-level check that cannot be expressed as a specs.toml
+// schema constraint, because what it validates is the compiled-in
+// profile the name selected, not the text of the file itself.
 func Load(path string, registry *Registry) (*Config, []specmodel.Finding, error) {
 	src, err := os.ReadFile(path)
 	if err != nil {
@@ -127,6 +134,25 @@ func Load(path string, registry *Registry) (*Config, []specmodel.Finding, error)
 		// just above would have raised RuleConfigUnknownProfile and made
 		// report.HasErrors() true otherwise.
 		return nil, nil, fmt.Errorf("cmd: %s: profile %q resolved after passing its own check", path, cfg.Profile.Name)
+	}
+
+	// A registration is compiled in, so a defect in it is not the
+	// repository's specs.toml being wrong in the way the checks above
+	// catch — it is the *activated profile* contradicting itself (a
+	// pairing over a property nothing extracts, a typed reference naming
+	// an undefined target type, a lifecycle status outside the profile's
+	// own vocabulary). [profile].name is the only place in specs.toml
+	// that selected this profile, so every defect is positioned there
+	// (AC-SPECREF-004.3), and — the same "never fall back to a default"
+	// discipline this function's own doc comment states — a defect here
+	// means Load reports it and returns no Config, rather than resolving
+	// one that activates a registration known to be broken.
+	if defects := corpus.ValidateRegistration(active); len(defects) > 0 {
+		at := loc.valueSpan("/profile/name", src)
+		for _, defect := range defects {
+			report.Add(configRegistrationDefect(path, at, defect))
+		}
+		return nil, report.Model().Findings, nil
 	}
 
 	resolved := &Config{
