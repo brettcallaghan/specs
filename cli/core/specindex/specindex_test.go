@@ -64,7 +64,7 @@ func TestNewEmitsEmptyCollectionsRatherThanNull(t *testing.T) {
 		t.Fatalf("marshal: %v", err)
 	}
 
-	want := `{"schema_version":"1.0","workspace":"agent-plugins","entries":[],"exclusions":[]}`
+	want := `{"schema_version":"1.0","workspace":"agent-plugins","entries":[],"exclusions":[],"references":[]}`
 	if string(encoded) != want {
 		t.Errorf("emitted index =\n  %s\nwant\n  %s", encoded, want)
 	}
@@ -111,7 +111,7 @@ func TestSchemaRequiresAndPinsTheSchemaVersion(t *testing.T) {
 func TestSchemaDeclaresTheIndexRootShape(t *testing.T) {
 	definition := loadDefinition(t, "SpecIndex")
 
-	required := []string{"schema_version", "workspace", "entries", "exclusions"}
+	required := []string{"schema_version", "workspace", "entries", "exclusions", "references"}
 	want := append(append([]string{}, required...), "input_hash")
 	if got := propertyNames(t, definition); !reflect.DeepEqual(got, want) {
 		t.Errorf("SpecIndex properties = %v, want %v", got, want)

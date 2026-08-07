@@ -378,6 +378,184 @@ func (v *FindingUnverified) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// A reference that reached no corpus member.
+//
+// The origin is carried because it decides how the defect reads: a `[[…]]`
+// in prose is quoted back, while a value in a registered frontmatter
+// property is reported by naming the property that holds it. The
+// non-member half is carried because a slug that matched a file the index
+// excluded or could not parse is a different problem with a different fix,
+// and telling the reader which one they have saves them a search for a
+// document that is right there.
+type FindingUnresolvedReference struct {
+	// The slug half of the reference, as written — everything before the
+	// first `#`, whose anchor half is not part of this defect.
+	Slug string `json:"slug"`
+	// Where the reference was written: the document's body, or a named
+	// reference-bearing frontmatter property.
+	Origin ReferenceOrigin `json:"origin"`
+	// The non-member file the slug matched, with the reason it is not a
+	// member.
+	//
+	// Absent when the slug matched nothing at all, which is the ordinary
+	// case; present when the target exists beneath the spec root and is
+	// excluded or unparsable.
+	NonMember *ReferenceNonMember `json:"non_member,omitempty"`
+}
+
+func (v *FindingUnresolvedReference) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingUnresolvedReference: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["origin"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingUnresolvedReference: required field \"origin\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Origin); err != nil {
+		return prefixField("origin", err)
+	}
+	if m, ok := raw["non_member"]; ok {
+		if err := json.Unmarshal(m, &v.NonMember); err != nil {
+			return prefixField("non_member", err)
+		}
+	}
+	return nil
+}
+
+// A reference from a live document to one the active profile treats as
+// retired.
+//
+// The target resolves — the reader reaches a real document that says it has
+// been replaced — so this is a warning rather than an error. The successor
+// is what makes it worth reporting at all: it is the one finding that tells
+// an author what to cite instead.
+type FindingRetiredTarget struct {
+	// The retired target's slug.
+	Slug string `json:"slug"`
+	// The replacement the retired target names, read from the property the
+	// active profile registers for that purpose.
+	//
+	// Absent where the target declares none. Not every retirement has a
+	// successor, and a finding that implied otherwise would send the reader
+	// looking for one.
+	Successor *string `json:"successor,omitempty"`
+}
+
+func (v *FindingRetiredTarget) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingRetiredTarget: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["successor"]; ok {
+		if err := json.Unmarshal(m, &v.Successor); err != nil {
+			return prefixField("successor", err)
+		}
+	}
+	return nil
+}
+
+// One half of a paired relationship the counterpart does not declare.
+//
+// Reported against both documents, each carrying this same detail, so that
+// checking either one surfaces the half-built edge and the two copies
+// describe the relationship in the same direction rather than each from its
+// own point of view.
+type FindingIncompletePairing struct {
+	// The reference-bearing property the referring document declares.
+	Property string `json:"property"`
+	// The property the referenced document must declare in return, and does
+	// not.
+	Counterpart string `json:"counterpart"`
+	// The referring document's path, relative to the repository root and
+	// written with forward slashes on every platform.
+	SourcePath string `json:"source_path"`
+	// The referenced document's path, relative to the repository root and
+	// written with forward slashes on every platform.
+	TargetPath string `json:"target_path"`
+}
+
+func (v *FindingIncompletePairing) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["property"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingIncompletePairing: required field \"property\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Property); err != nil {
+		return prefixField("property", err)
+	}
+	if m, ok := raw["counterpart"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingIncompletePairing: required field \"counterpart\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Counterpart); err != nil {
+		return prefixField("counterpart", err)
+	}
+	if m, ok := raw["source_path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingIncompletePairing: required field \"source_path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.SourcePath); err != nil {
+		return prefixField("source_path", err)
+	}
+	if m, ok := raw["target_path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingIncompletePairing: required field \"target_path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.TargetPath); err != nil {
+		return prefixField("target_path", err)
+	}
+	return nil
+}
+
+// A typed reference whose target declares a document type other than the
+// one the active profile requires for that property.
+//
+// A frontmatter schema can require that a property holds exactly one slug;
+// only the index knows what that slug resolves to, so the type half of the
+// constraint is checked here and reported with both types quoted.
+type FindingReferenceType struct {
+	// The reference-bearing property whose target's type is constrained.
+	Property string `json:"property"`
+	// The slug the property names.
+	Slug string `json:"slug"`
+	// The document `type` the active profile requires the target to declare.
+	ExpectedType string `json:"expected_type"`
+	// The `type` the target actually declares.
+	ActualType string `json:"actual_type"`
+}
+
+func (v *FindingReferenceType) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["property"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingReferenceType: required field \"property\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Property); err != nil {
+		return prefixField("property", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingReferenceType: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["expected_type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingReferenceType: required field \"expected_type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.ExpectedType); err != nil {
+		return prefixField("expected_type", err)
+	}
+	if m, ok := raw["actual_type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingReferenceType: required field \"actual_type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.ActualType); err != nil {
+		return prefixField("actual_type", err)
+	}
+	return nil
+}
+
 type FindingDetailVariant interface{ isFindingDetailVariant() }
 
 // The structured detail of one finding, selected by the kind of defect.
@@ -395,12 +573,16 @@ type FindingDetail struct {
 	Value FindingDetailVariant
 }
 
-func (FindingSchemaViolation) isFindingDetailVariant()  {}
-func (FindingMissingProperty) isFindingDetailVariant()  {}
-func (FindingSlugPattern) isFindingDetailVariant()      {}
-func (FindingDuplicateSlug) isFindingDetailVariant()    {}
-func (FindingFrontmatterParse) isFindingDetailVariant() {}
-func (FindingUnverified) isFindingDetailVariant()       {}
+func (FindingSchemaViolation) isFindingDetailVariant()     {}
+func (FindingMissingProperty) isFindingDetailVariant()     {}
+func (FindingSlugPattern) isFindingDetailVariant()         {}
+func (FindingDuplicateSlug) isFindingDetailVariant()       {}
+func (FindingFrontmatterParse) isFindingDetailVariant()    {}
+func (FindingUnverified) isFindingDetailVariant()          {}
+func (FindingUnresolvedReference) isFindingDetailVariant() {}
+func (FindingRetiredTarget) isFindingDetailVariant()       {}
+func (FindingIncompletePairing) isFindingDetailVariant()   {}
+func (FindingReferenceType) isFindingDetailVariant()       {}
 
 func NewFindingDetailSchemaViolation(v FindingSchemaViolation) FindingDetail {
 	return FindingDetail{Value: v}
@@ -423,6 +605,22 @@ func NewFindingDetailFrontmatterParse(v FindingFrontmatterParse) FindingDetail {
 }
 
 func NewFindingDetailUnverified(v FindingUnverified) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailUnresolvedReference(v FindingUnresolvedReference) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailRetiredTarget(v FindingRetiredTarget) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailIncompletePairing(v FindingIncompletePairing) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailReferenceType(v FindingReferenceType) FindingDetail {
 	return FindingDetail{Value: v}
 }
 
@@ -456,6 +654,26 @@ func (u FindingDetail) AsUnverified() (FindingUnverified, bool) {
 	return v, ok
 }
 
+func (u FindingDetail) AsUnresolvedReference() (FindingUnresolvedReference, bool) {
+	v, ok := u.Value.(FindingUnresolvedReference)
+	return v, ok
+}
+
+func (u FindingDetail) AsRetiredTarget() (FindingRetiredTarget, bool) {
+	v, ok := u.Value.(FindingRetiredTarget)
+	return v, ok
+}
+
+func (u FindingDetail) AsIncompletePairing() (FindingIncompletePairing, bool) {
+	v, ok := u.Value.(FindingIncompletePairing)
+	return v, ok
+}
+
+func (u FindingDetail) AsReferenceType() (FindingReferenceType, bool) {
+	v, ok := u.Value.(FindingReferenceType)
+	return v, ok
+}
+
 func (u FindingDetail) MarshalJSON() ([]byte, error) {
 	var payload []byte
 	var tag string
@@ -478,6 +696,18 @@ func (u FindingDetail) MarshalJSON() ([]byte, error) {
 		payload, err = json.Marshal(v)
 	case FindingUnverified:
 		tag = "unverified"
+		payload, err = json.Marshal(v)
+	case FindingUnresolvedReference:
+		tag = "unresolved-reference"
+		payload, err = json.Marshal(v)
+	case FindingRetiredTarget:
+		tag = "retired-target"
+		payload, err = json.Marshal(v)
+	case FindingIncompletePairing:
+		tag = "incomplete-pairing"
+		payload, err = json.Marshal(v)
+	case FindingReferenceType:
+		tag = "reference-type"
 		payload, err = json.Marshal(v)
 	default:
 		return nil, fmt.Errorf("FindingDetail: nil or unknown variant")
@@ -545,6 +775,34 @@ func (u *FindingDetail) UnmarshalJSON(data []byte) error {
 		return nil
 	case "unverified":
 		var v FindingUnverified
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "unresolved-reference":
+		var v FindingUnresolvedReference
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "retired-target":
+		var v FindingRetiredTarget
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "incomplete-pairing":
+		var v FindingIncompletePairing
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "reference-type":
+		var v FindingReferenceType
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
@@ -2650,6 +2908,408 @@ func (v *IndexExclusion) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// A reference written in a document's body.
+//
+// Carries nothing of its own. What a body reference adds beyond its
+// position is nothing, and its position is recorded on the reference
+// itself; this shape exists so that the origin is a value a consumer
+// branches on rather than a property it has to infer from the absence of
+// another.
+type ReferenceBodyOrigin struct{}
+
+// A reference held by a frontmatter property the active profile registers
+// as reference-bearing.
+type ReferenceFrontmatterOrigin struct {
+	// The name of the frontmatter property the reference was written in, so
+	// that a finding names the property without the document being reopened.
+	Property string `json:"property"`
+}
+
+func (v *ReferenceFrontmatterOrigin) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["property"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ReferenceFrontmatterOrigin: required field \"property\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Property); err != nil {
+		return prefixField("property", err)
+	}
+	return nil
+}
+
+type ReferenceOriginVariant interface{ isReferenceOriginVariant() }
+
+// Where a reference was written.
+//
+// The distinction is not decoration. A reference in prose and a reference
+// in a registered frontmatter property are reported differently — one
+// quotes the link, the other names the property that holds it — and they
+// are rewritten differently, so the origin belongs to the reference rather
+// than being inferred from where its span happens to fall.
+type ReferenceOrigin struct {
+	Value ReferenceOriginVariant
+}
+
+func (ReferenceBodyOrigin) isReferenceOriginVariant()        {}
+func (ReferenceFrontmatterOrigin) isReferenceOriginVariant() {}
+
+func NewReferenceOriginBody(v ReferenceBodyOrigin) ReferenceOrigin {
+	return ReferenceOrigin{Value: v}
+}
+
+func NewReferenceOriginFrontmatterProperty(v ReferenceFrontmatterOrigin) ReferenceOrigin {
+	return ReferenceOrigin{Value: v}
+}
+
+func (u ReferenceOrigin) AsBody() (ReferenceBodyOrigin, bool) {
+	v, ok := u.Value.(ReferenceBodyOrigin)
+	return v, ok
+}
+
+func (u ReferenceOrigin) AsFrontmatterProperty() (ReferenceFrontmatterOrigin, bool) {
+	v, ok := u.Value.(ReferenceFrontmatterOrigin)
+	return v, ok
+}
+
+func (u ReferenceOrigin) MarshalJSON() ([]byte, error) {
+	var payload []byte
+	var tag string
+	var err error
+	switch v := u.Value.(type) {
+	case ReferenceBodyOrigin:
+		tag = "body"
+		payload, err = json.Marshal(v)
+	case ReferenceFrontmatterOrigin:
+		tag = "frontmatter-property"
+		payload, err = json.Marshal(v)
+	default:
+		return nil, fmt.Errorf("ReferenceOrigin: nil or unknown variant")
+	}
+	if err != nil {
+		return nil, err
+	}
+	tagBytes, err := json.Marshal(tag)
+	if err != nil {
+		return nil, err
+	}
+	if len(payload) == 0 || payload[0] != '{' {
+		return nil, fmt.Errorf("ReferenceOrigin: variant produced non-object JSON")
+	}
+	prefix := append([]byte{'{'}, []byte("\"kind\":")...)
+	prefix = append(prefix, tagBytes...)
+	if payload[1] != '}' {
+		prefix = append(prefix, ',')
+	}
+	return append(prefix, payload[1:]...), nil
+}
+
+func (u *ReferenceOrigin) UnmarshalJSON(data []byte) error {
+	var probe struct {
+		Tag string `json:"kind"`
+	}
+	if err := json.Unmarshal(data, &probe); err != nil {
+		return err
+	}
+	switch probe.Tag {
+	case "body":
+		var v ReferenceBodyOrigin
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "frontmatter-property":
+		var v ReferenceFrontmatterOrigin
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	}
+	return fmt.Errorf("ReferenceOrigin: unknown kind %q", probe.Tag)
+}
+
+// A reference that reached a corpus member.
+type ReferenceResolved struct {
+	// The target's path, relative to the repository root and written with
+	// forward slashes on every platform.
+	//
+	// The path rather than the slug, because the slug is already on the
+	// reference and a consumer following the edge wants the file.
+	TargetPath string `json:"target_path"`
+}
+
+func (v *ReferenceResolved) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["target_path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ReferenceResolved: required field \"target_path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.TargetPath); err != nil {
+		return prefixField("target_path", err)
+	}
+	return nil
+}
+
+// A reference whose slug matches no corpus member and no file the index
+// knows about at all.
+//
+// Carries nothing: the slug that matched nothing is already on the
+// reference this resolution belongs to.
+type ReferenceUnresolved struct{}
+
+// A reference whose slug matches a file the index recorded as excluded or
+// as a parse failure rather than as a corpus member.
+//
+// Held apart from an ordinary unresolved reference because the reader's
+// next step differs: the document is right there, and what is wrong is its
+// frontmatter rather than the reference. Exactly one of `reason` and
+// `parse_error` is present — the two ways a file beneath the spec root
+// fails to become a member.
+type ReferenceNonMember struct {
+	// The matched file's path, relative to the repository root and written
+	// with forward slashes on every platform.
+	Path string `json:"path"`
+	// Why the file is not a member, present when the index recorded it as an
+	// exclusion.
+	Reason *ExclusionReason `json:"reason,omitempty"`
+	// The failure that prevented the file's frontmatter from being parsed,
+	// with its position, present when the index recorded it as a member
+	// whose frontmatter could not be read.
+	ParseError *ParseError `json:"parse_error,omitempty"`
+}
+
+func (v *ReferenceNonMember) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ReferenceNonMember: required field \"path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Path); err != nil {
+		return prefixField("path", err)
+	}
+	if m, ok := raw["reason"]; ok {
+		if err := json.Unmarshal(m, &v.Reason); err != nil {
+			return prefixField("reason", err)
+		}
+	}
+	if m, ok := raw["parse_error"]; ok {
+		if err := json.Unmarshal(m, &v.ParseError); err != nil {
+			return prefixField("parse_error", err)
+		}
+	}
+	return nil
+}
+
+type ReferenceResolutionVariant interface{ isReferenceResolutionVariant() }
+
+// What a reference reached.
+//
+// A reference that reaches nothing is recorded with this state rather than
+// dropped, because indexing never fails: the index describes the corpus it
+// found, including the parts of it that are broken, and reporting a broken
+// reference is a check's job rather than the indexer's.
+type ReferenceResolution struct {
+	Value ReferenceResolutionVariant
+}
+
+func (ReferenceResolved) isReferenceResolutionVariant()   {}
+func (ReferenceUnresolved) isReferenceResolutionVariant() {}
+func (ReferenceNonMember) isReferenceResolutionVariant()  {}
+
+func NewReferenceResolutionResolved(v ReferenceResolved) ReferenceResolution {
+	return ReferenceResolution{Value: v}
+}
+
+func NewReferenceResolutionUnresolved(v ReferenceUnresolved) ReferenceResolution {
+	return ReferenceResolution{Value: v}
+}
+
+func NewReferenceResolutionNonMember(v ReferenceNonMember) ReferenceResolution {
+	return ReferenceResolution{Value: v}
+}
+
+func (u ReferenceResolution) AsResolved() (ReferenceResolved, bool) {
+	v, ok := u.Value.(ReferenceResolved)
+	return v, ok
+}
+
+func (u ReferenceResolution) AsUnresolved() (ReferenceUnresolved, bool) {
+	v, ok := u.Value.(ReferenceUnresolved)
+	return v, ok
+}
+
+func (u ReferenceResolution) AsNonMember() (ReferenceNonMember, bool) {
+	v, ok := u.Value.(ReferenceNonMember)
+	return v, ok
+}
+
+func (u ReferenceResolution) MarshalJSON() ([]byte, error) {
+	var payload []byte
+	var tag string
+	var err error
+	switch v := u.Value.(type) {
+	case ReferenceResolved:
+		tag = "resolved"
+		payload, err = json.Marshal(v)
+	case ReferenceUnresolved:
+		tag = "unresolved"
+		payload, err = json.Marshal(v)
+	case ReferenceNonMember:
+		tag = "non-member"
+		payload, err = json.Marshal(v)
+	default:
+		return nil, fmt.Errorf("ReferenceResolution: nil or unknown variant")
+	}
+	if err != nil {
+		return nil, err
+	}
+	tagBytes, err := json.Marshal(tag)
+	if err != nil {
+		return nil, err
+	}
+	if len(payload) == 0 || payload[0] != '{' {
+		return nil, fmt.Errorf("ReferenceResolution: variant produced non-object JSON")
+	}
+	prefix := append([]byte{'{'}, []byte("\"state\":")...)
+	prefix = append(prefix, tagBytes...)
+	if payload[1] != '}' {
+		prefix = append(prefix, ',')
+	}
+	return append(prefix, payload[1:]...), nil
+}
+
+func (u *ReferenceResolution) UnmarshalJSON(data []byte) error {
+	var probe struct {
+		Tag string `json:"state"`
+	}
+	if err := json.Unmarshal(data, &probe); err != nil {
+		return err
+	}
+	switch probe.Tag {
+	case "resolved":
+		var v ReferenceResolved
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "unresolved":
+		var v ReferenceUnresolved
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "non-member":
+		var v ReferenceNonMember
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	}
+	return fmt.Errorf("ReferenceResolution: unknown state %q", probe.Tag)
+}
+
+// One occurrence of one document referencing another.
+//
+// A reference is an edge, and it is recorded as a row of its own rather
+// than as a property of either document it connects. The facts that make
+// it actionable — where it was written, whether it came from prose or from
+// a named frontmatter property, and what it reached — belong to neither
+// endpoint, and both directions of the graph are derived by indexing this
+// one collection rather than stored twice.
+//
+// One row per occurrence. A document that references the same target twice
+// contributes two rows carrying two spans, so a finding about either cites
+// the line the reader must open.
+type Reference struct {
+	// The path of the document the reference occurs in, relative to the
+	// repository root and written with forward slashes on every platform.
+	Path string `json:"path"`
+	// The reference exactly as written, without the delimiters that enclose
+	// it — `adr-012`, or `adr-012#Decision`, or the raw value of a
+	// reference-bearing frontmatter property.
+	//
+	// Recorded alongside the halves it splits into, because the text is what
+	// a reader sees and what a rewrite replaces, and neither is recoverable
+	// from the halves once letter case or spacing has been normalized.
+	Text string `json:"text"`
+	// The slug half: everything before the first `#`, or the whole reference
+	// where it names no anchor.
+	//
+	// A plain `String` rather than a `Slug`, deliberately. A reference is
+	// written by hand and may name something that is not a well-formed slug
+	// at all; constraining this property would make such a reference
+	// unrepresentable in the index, which is the one place it must be
+	// visible in order to be reported.
+	Slug string `json:"slug"`
+	// The anchor half: everything after the first `#`, absent where the
+	// reference names no anchor.
+	//
+	// Recorded and not interpreted. Resolving an anchor against the target's
+	// headings is a separate feature; splitting on the first `#` is the whole
+	// of what this shape knows about anchors, and it exists so that an
+	// anchored reference resolves on its slug rather than reporting as
+	// broken.
+	Anchor *string `json:"anchor,omitempty"`
+	// Where the reference was written.
+	Origin ReferenceOrigin `json:"origin"`
+	// Where in the containing document the reference occurs, as a span rather
+	// than a bare line number, so a report and a rewrite both address the
+	// reference itself.
+	Position Span `json:"position"`
+	// What the reference reached.
+	Resolution ReferenceResolution `json:"resolution"`
+}
+
+func (v *Reference) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Reference: required field \"path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Path); err != nil {
+		return prefixField("path", err)
+	}
+	if m, ok := raw["text"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Reference: required field \"text\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Text); err != nil {
+		return prefixField("text", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Reference: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["anchor"]; ok {
+		if err := json.Unmarshal(m, &v.Anchor); err != nil {
+			return prefixField("anchor", err)
+		}
+	}
+	if m, ok := raw["origin"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Reference: required field \"origin\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Origin); err != nil {
+		return prefixField("origin", err)
+	}
+	if m, ok := raw["position"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Reference: required field \"position\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Position); err != nil {
+		return prefixField("position", err)
+	}
+	if m, ok := raw["resolution"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Reference: required field \"resolution\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Resolution); err != nil {
+		return prefixField("resolution", err)
+	}
+	return nil
+}
+
 // The machine-readable description of a repository's specification corpus,
 // emitted to the file **specs.json** in the configured spec root.
 //
@@ -2678,6 +3338,20 @@ type SpecIndex struct {
 	Entries []IndexEntry `json:"entries"`
 	// Every excluded candidate file, in the order the emitter fixes.
 	Exclusions []IndexExclusion `json:"exclusions"`
+	// Every reference any corpus member makes, in the order the emitter
+	// fixes: by the path the reference occurs in, then by its position within
+	// that document.
+	//
+	// One top-level collection rather than an array on each entry. A
+	// reference is an edge; its attributes describe the edge and not either
+	// endpoint, both directions are derived from this one list when the index
+	// is read, and merging the indexes of two repositories into one graph is
+	// appending rows rather than rewriting entries.
+	//
+	// Ordering by path and then by position is what makes a document's
+	// outbound references ordered by position in the document and the emitted
+	// file byte-identical across platforms, in one rule.
+	References []Reference `json:"references"`
 	// A hash of everything this index was built from, written as
 	// `sha256:` followed by lowercase hexadecimal.
 	//
@@ -2719,6 +3393,11 @@ func (v *SpecIndex) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("SpecIndex: required field \"exclusions\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Exclusions); err != nil {
 		return prefixField("exclusions", err)
+	}
+	if m, ok := raw["references"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SpecIndex: required field \"references\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.References); err != nil {
+		return prefixField("references", err)
 	}
 	if m, ok := raw["input_hash"]; ok {
 		if err := json.Unmarshal(m, &v.InputHash); err != nil {
@@ -2768,6 +3447,30 @@ type ProfileRegistration struct {
 	// Patterns whose presence in a finished document indicates unreplaced
 	// template scaffolding.
 	PlaceholderPatterns *[]string `json:"placeholder_patterns,omitempty"`
+	// The statuses at which a document is in effect, and therefore at which a
+	// reference it makes to a retired document is worth reporting.
+	//
+	// Profile-level rather than per-type because `status` is a property of
+	// the shared document envelope: every type this profile defines carries
+	// it, and none of them narrows it. A profile registering none of these
+	// three lifecycle keys registers no lifecycle, and the checks that read
+	// them do not run.
+	LiveStatuses *[]Status `json:"live_statuses,omitempty"`
+	// The statuses at which a document is no longer in effect, so that a live
+	// document still pointing at it is reported.
+	//
+	// Disjoint from `live_statuses` by construction; a status in neither is
+	// one the lifecycle says nothing about, which is the right answer for a
+	// draft.
+	RetiredStatuses *[]Status `json:"retired_statuses,omitempty"`
+	// The name of the frontmatter property in which a retired document names
+	// its replacement.
+	//
+	// Registered rather than assumed, because the engine that reports a
+	// retired target must not contain the name of the property this
+	// framework happens to use for it. Its value is quoted back in the
+	// finding, so a reader is told what to cite instead of what they cited.
+	SuccessorProperty *string `json:"successor_property,omitempty"`
 	// The convention values this profile supplies when `specs.toml` omits
 	// them.
 	Conventions *ConventionsConfig `json:"conventions,omitempty"`
@@ -2801,6 +3504,21 @@ func (v *ProfileRegistration) UnmarshalJSON(data []byte) error {
 	if m, ok := raw["placeholder_patterns"]; ok {
 		if err := json.Unmarshal(m, &v.PlaceholderPatterns); err != nil {
 			return prefixField("placeholder_patterns", err)
+		}
+	}
+	if m, ok := raw["live_statuses"]; ok {
+		if err := json.Unmarshal(m, &v.LiveStatuses); err != nil {
+			return prefixField("live_statuses", err)
+		}
+	}
+	if m, ok := raw["retired_statuses"]; ok {
+		if err := json.Unmarshal(m, &v.RetiredStatuses); err != nil {
+			return prefixField("retired_statuses", err)
+		}
+	}
+	if m, ok := raw["successor_property"]; ok {
+		if err := json.Unmarshal(m, &v.SuccessorProperty); err != nil {
+			return prefixField("successor_property", err)
 		}
 	}
 	if m, ok := raw["conventions"]; ok {

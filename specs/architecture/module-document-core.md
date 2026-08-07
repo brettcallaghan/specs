@@ -6,7 +6,7 @@ description: The framework-agnostic engine that indexes markdown
 slug: module-document-core
 type: module-blueprint
 status: approved
-updated_at: 2026-08-06T00:00:00Z
+updated_at: 2026-08-07T00:00:00Z
 kind: standard
 visibility: internal
 contracts_provided: []
@@ -16,7 +16,7 @@ source_paths:
   - "cli/core"
 test_paths:
   - "cli/core"
-version: "0.2"
+version: "0.3"
 ---
 
 # Document Core
@@ -330,11 +330,13 @@ inline code spans, because an illustrative reference inside backticks is
 not a reference. Inbound edges are derived, so no document maintains a
 list of its own referrers.
 
-**Not yet built.** There is no `cli/core/references` package, and the
-index model carries no reference collection yet — the additive shape
-described under Corpus is what lets one be attached later under the same
-`schema_version`. Until it exists, a `[[slug]]` naming no document is
-not reported by any check.
+**Not yet built.** There is no `cli/core/references` package. The index
+model now carries the `references` collection the component will fill —
+declared in `schemas/index.strata` and added under the same
+`schema_version`, which is what the additive shape described under Corpus
+exists to permit — but nothing populates it, so every emitted index
+carries it empty and a `[[slug]]` naming no document is reported by no
+check.
 
 ### Schema Registry
 
@@ -395,11 +397,11 @@ The vocabulary is:
 
 - **`SpecIndex`** — the root: a `schema_version`, the `workspace`
   identifier from configuration, an ordered list of `entries`, an
-  ordered list of `exclusions`, and the optional `input_hash` the warm
-  cache is decided by. Both collections are lists rather than maps
-  precisely so that the emitter owns their order and can make output
-  byte-identical across platforms (AC-SPEC-009.7) without a change to
-  the model.
+  ordered list of `exclusions`, an ordered list of `references`, and the
+  optional `input_hash` the warm cache is decided by. All three
+  collections are lists rather than maps precisely so that the emitter
+  owns their order and can make output byte-identical across platforms
+  (AC-SPEC-009.7) without a change to the model.
 - **`IndexEntry`** — one corpus member: its repository-relative `path`,
   its parsed `frontmatter`, and a `parse_error` carrying a located
   failure for a member whose frontmatter could not be read
@@ -408,6 +410,30 @@ The vocabulary is:
   `path`, a `reason` of `no-frontmatter` or `unknown-type`, and — where
   the reason is `unknown-type` — the `type` value the file declared
   (AC-SPEC-001.3, AC-SPEC-001.4).
+- **`Reference`** — one occurrence of one document referencing another:
+  the `path` it occurs in, the reference `text` as written, its `slug`
+  and `anchor` halves, its `origin`, its `position` as a `Span`, and its
+  `resolution`. References are their own collection rather than an array
+  on each entry, per [[adr-018]]: the attributes of a reference describe
+  the edge and not either endpoint, both directions are derived by
+  indexing the one list when the index is read, and merging two
+  repositories' indexes into one graph is appending rows. One row per
+  occurrence, so a document referencing the same target twice carries two
+  rows with two spans (AC-SPECREF-001.5). The `slug` half is a plain
+  string rather than a `Slug`, because a reference is hand-written and a
+  malformed one has to be representable in order to be reported.
+- **`ReferenceOrigin`** — a union discriminated on `kind`: a reference
+  parsed from the body, or one held by a named reference-bearing
+  frontmatter property, carrying that property's name
+  (AC-SPECREF-001.7). The origin decides how the defect reads and how a
+  rewrite finds it, so it belongs to the reference rather than being
+  inferred from where its span falls.
+- **`ReferenceResolution`** — a union discriminated on `state`:
+  `resolved` naming the target's path, `unresolved`, or `non-member`
+  carrying the matched file's path with either the exclusion reason or
+  the parse failure that keeps it out of the corpus (AC-SPECREF-002.7).
+  A reference that reaches nothing is recorded with a state rather than
+  dropped, because indexing never fails (AC-SPECREF-001.6).
 - **`Span`** and **`ParseError`** — the position type every component
   reports through, and a message paired with one. `Span` is declared
   here, in the generated model, because findings and parse errors carry
@@ -415,12 +441,17 @@ The vocabulary is:
   semantics and is the only place spans are computed.
 
 `schema_version` is required and pinned to `1.0` (AC-SPEC-002.2). The
-model is additive: later features attach headings, extracted record
-blocks and references to the same entry under this same version. Strata
-has no notion of a constant, so the emitted value lives in
-`cli/core/specindex` alongside the constructor that writes it —
-a separate package because `scripts/generate-schemas.sh` rebuilds
-`cli/core/specmodel/` from scratch on every run.
+model is additive: later features attach headings and extracted record
+blocks under this same version. The reference collection is the first
+exercise of that rule and it is a deliberate no-bump rather than an
+oversight — `references` is an addition alongside the existing shape,
+which is exactly what [[container-spec-cli]]'s additive rule permits at
+the same version, and the model and the emitted index changed in the
+same change as the Change Guidance below requires. Strata has no notion
+of a constant, so the emitted value lives in `cli/core/specindex`
+alongside the constructor that writes it — a separate package because
+`scripts/generate-schemas.sh` rebuilds `cli/core/specmodel/` from
+scratch on every run.
 
 The index is not yet a contract document, and that is now a recorded
 decision rather than an omission. It has one producer and no
@@ -587,10 +618,17 @@ is:
   structured fields that make each defect self-contained: a schema
   violation with its JSON Pointer, constraint and raw value; a missing
   property with its name; a slug-pattern mismatch with both the slug and
-  the pattern; a duplicate slug with the other document's path; and an
-  unverified check with the reason it could not run. The message is
-  derivable from the variant, so a consumer branches on structure rather
-  than parsing prose.
+  the pattern; a duplicate slug with the other document's path; an
+  unverified check with the reason it could not run; an unresolved
+  reference with its slug, its origin and — where the slug matched a
+  file the index excluded or could not parse — that file and the reason
+  (AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7); a retired
+  target with its slug and the successor it names, where it names one
+  (AC-SPECREF-002.6); an incomplete pairing with both property names and
+  both documents (AC-SPECREF-002.5); and a reference-type mismatch with
+  the property, the expected `type` and the `type` the target declares
+  (AC-SPECREF-002.10). The message is derivable from the variant, so a
+  consumer branches on structure rather than parsing prose.
 - **`Severity`** — `error`, `warning` and `unverified`, the three
   [[frd-spec-validation-cli]] defines and no others.
 - **`FindingReport`** — the run envelope: every `Finding` produced, and a
@@ -702,6 +740,9 @@ This module SHALL comply with:
   component here parses acceptance criteria.
 - [[adr-012]] — the `[[slug]]` and heading-anchor conventions the
   References component implements.
+- [[adr-018]] — references are one top-level edge collection on the
+  index, with both directions derived from it, which is why the index
+  vocabulary above gains `Reference` rather than an array on each entry.
 
 ## Open Questions
 

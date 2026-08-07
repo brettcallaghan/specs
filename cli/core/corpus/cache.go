@@ -380,6 +380,9 @@ func fromIndex(index specmodel.SpecIndex, opts Options) (*Corpus, error) {
 	if index.Exclusions == nil {
 		index.Exclusions = []specmodel.IndexExclusion{}
 	}
+	if index.References == nil {
+		index.References = []specmodel.Reference{}
+	}
 
 	c := &Corpus{
 		repoRoot: repoRoot,
