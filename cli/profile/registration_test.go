@@ -1,0 +1,322 @@
+// Tests for the reference, typed-reference, pairing and lifecycle
+// registrations this profile supplies.
+//
+// The drift guard below reads the generated schema through its own
+// untyped traversal rather than through the decoder registration.go uses.
+// That is deliberate: a guard sharing the production decode would agree
+// with it by construction, including where the decode is wrong, and would
+// report a registration derived from a misread schema as complete.
+package profile_test
+
+import (
+	"encoding/json"
+	"strings"
+	"testing"
+
+	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
+	"github.com/brettcallaghan/agent-plugins/cli/core/schema"
+	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+	"github.com/brettcallaghan/agent-plugins/cli/profile"
+)
+
+// registeredReferenceProperties is the complete set of reference-bearing
+// properties this framework registers, transcribed here on purpose: the
+// production set is derived from the schema, so a test that derived it
+// the same way would assert nothing about which properties the
+// registration actually contains.
+//
+// It includes `provider` and `consumers`, which AC-SPECREF-004.2's
+// illustrative list omits. Both hold slugs by declaration and both
+// resolve in this corpus today, and leaving them out would leave a
+// contract's two most load-bearing edges unchecked; the criterion is
+// "this framework's own reference-bearing properties", and this is the
+// complete set. That divergence is decided — see the PREG delta in
+// specs/features/reference-integrity/reference-integrity-blueprint.md.
+//
+// `sources` appears against `frd` and not against `rfc`, because
+// schemas/frontmatter.strata declares it on `Frd` alone. The set follows
+// the schema, which is what "derived rather than transcribed" means when
+// the two disagree.
+var registeredReferenceProperties = map[string][]string{
+	"adr":                 {"superseded_by"},
+	"frd":                 {"sources", "superseded_by"},
+	"contract":            {"consumers", "provider", "superseded_by"},
+	"standards":           {"superseded_by"},
+	"system-blueprint":    {"contracts_consumed", "contracts_provided", "superseded_by"},
+	"container-blueprint": {"contracts_consumed", "contracts_provided", "superseded_by", "system"},
+	"module-blueprint":    {"contained_by", "contracts_consumed", "contracts_provided", "superseded_by"},
+	"component-blueprint": {"contracts_consumed", "contracts_provided", "superseded_by"},
+	"feature-blueprint":   {"frd", "superseded_by"},
+	"rfc":                 {"superseded_by"},
+	"guide":               {"superseded_by"},
+}
+
+// The profile registers every frontmatter property that holds a document
+// slug, per type, so an adopting repository gets reference integrity over
+// this framework's own vocabulary without authoring a profile.
+//
+// AC: AC-SPECREF-004.2
+func TestTheProfileRegistersEverySlugHoldingProperty(t *testing.T) {
+	types := profile.New().DocumentTypes()
+
+	for _, value := range documentTypeVocabulary() {
+		rules, ok := types[value]
+		if !ok {
+			t.Errorf("DocumentTypes has no entry for %q", value)
+			continue
+		}
+		want := registeredReferenceProperties[value]
+		if len(want) == 0 {
+			t.Errorf("no expectation is recorded for %q; the table above is incomplete", value)
+			continue
+		}
+		if strings.Join(rules.ReferenceProperties, ",") != strings.Join(want, ",") {
+			t.Errorf("%q registers %v, want %v", value, rules.ReferenceProperties, want)
+		}
+	}
+
+	// The identity property is not a reference: it names the document
+	// declaring it, and registering it would make every document
+	// reference itself.
+	for value, rules := range types {
+		for _, property := range rules.ReferenceProperties {
+			if property == "slug" {
+				t.Errorf("%q registers its own identity property as reference-bearing", value)
+			}
+		}
+	}
+}
+
+// The registered set is derived from the vocabulary rather than
+// transcribed from it, so a property added to schemas/frontmatter.strata
+// is reference-bearing the moment it is declared. This is the same drift
+// guard the per-type table already carries for document types.
+func TestEverySlugTypedPropertyInTheVocabularyIsRegistered(t *testing.T) {
+	types := profile.New().DocumentTypes()
+	seen := 0
+
+	for _, value := range documentTypeVocabulary() {
+		declared := slugTypedPropertiesOf(t, value)
+		if len(declared) == 0 {
+			t.Errorf("the generated schema declares no slug-typed property for %q; "+
+				"every document type inherits superseded_by, so this is a misread schema", value)
+			continue
+		}
+		registered := map[string]bool{}
+		for _, property := range types[value].ReferenceProperties {
+			registered[property] = true
+		}
+		for _, property := range declared {
+			seen++
+			if !registered[property] {
+				t.Errorf("%q declares %q as a slug and does not register it as reference-bearing",
+					value, property)
+			}
+		}
+		// And nothing is registered that the vocabulary does not type as a
+		// slug — a registration wider than the schema would resolve values
+		// that are not identifiers.
+		for _, property := range types[value].ReferenceProperties {
+			if !contains(declared, property) {
+				t.Errorf("%q registers %q, which the generated schema does not type as a slug",
+					value, property)
+			}
+		}
+	}
+
+	if seen == 0 {
+		t.Fatal("read no slug-typed property from the generated schema; the guard would pass vacuously")
+	}
+}
+
+// The profile registers no pairing, and this asserts that emptiness
+// rather than leaving it unstated. Every relationship this framework
+// declares has its reverse derived from inbound edges, so the pairing
+// check is inert for this corpus by design — which is a property, not an
+// omission.
+func TestTheProfileRegistersNoPairing(t *testing.T) {
+	for value, rules := range profile.New().DocumentTypes() {
+		if len(rules.Pairings) != 0 {
+			t.Errorf("%q registers pairings %+v; this framework declares none, because every "+
+				"relationship it declares has its reverse derived from inbound edges",
+				value, rules.Pairings)
+		}
+	}
+}
+
+// Exactly one typed reference is registered: a feature blueprint's `frd`
+// must resolve to a document of type `frd`. The schema can require that
+// the property holds one slug; only the corpus knows what that slug
+// resolved to, so the type half of the constraint is registered here.
+//
+// AC: AC-SPECREF-002.10
+func TestTheProfileRegistersOneTypedReference(t *testing.T) {
+	types := profile.New().DocumentTypes()
+
+	total := 0
+	for _, rules := range types {
+		total += len(rules.TypedReferenceProperties)
+	}
+	if total != 1 {
+		t.Errorf("the profile registers %d typed references, want exactly 1", total)
+	}
+
+	blueprint := types[string(specmodel.DocumentTypeFeatureBlueprint)]
+	if got := blueprint.TypedReferenceProperties["frd"]; got != string(specmodel.DocumentTypeFrd) {
+		t.Errorf("a feature blueprint's frd must resolve to type %q, got %q",
+			specmodel.DocumentTypeFrd, got)
+	}
+	// A typed reference over a property nothing extracts would be checked
+	// against a target nothing resolved.
+	if !contains(blueprint.ReferenceProperties, "frd") {
+		t.Error("frd is registered as a typed reference and not as reference-bearing")
+	}
+}
+
+// The lifecycle registers the whole status vocabulary, `retired` as its
+// only retired status, every other status as live, and `superseded_by` as
+// the successor property.
+func TestTheProfileRegistersTheLifecycle(t *testing.T) {
+	rules := profile.New().Lifecycle()
+
+	want := []string{"draft", "ready-for-review", "approved", "in-progress", "active", "retired"}
+	if !equalStrings(rules.Statuses, want) {
+		t.Errorf("Statuses = %v, want the whole vocabulary %v", rules.Statuses, want)
+	}
+	if !equalStrings(rules.RetiredStatuses, []string{string(specmodel.StatusRetired)}) {
+		t.Errorf("RetiredStatuses = %v, want only retired", rules.RetiredStatuses)
+	}
+	if !equalStrings(rules.LiveStatuses, want[:len(want)-1]) {
+		t.Errorf("LiveStatuses = %v, want every status but retired %v", rules.LiveStatuses, want[:len(want)-1])
+	}
+	if rules.SuccessorProperty != "superseded_by" {
+		t.Errorf("SuccessorProperty = %q, want superseded_by", rules.SuccessorProperty)
+	}
+
+	// A draft is live on purpose: the retired-target warning exists to
+	// tell an author what to cite instead, and the author most likely to
+	// need telling is editing one.
+	if !contains(rules.LiveStatuses, string(specmodel.StatusDraft)) {
+		t.Error("draft is not registered as live")
+	}
+	// The successor property is one of the properties resolution follows,
+	// so a successor naming no corpus member is already an unresolved
+	// reference.
+	for value, types := range profile.New().DocumentTypes() {
+		if !contains(types.ReferenceProperties, rules.SuccessorProperty) {
+			t.Errorf("%q does not register the successor property %q as reference-bearing",
+				value, rules.SuccessorProperty)
+		}
+	}
+}
+
+// The host validates a registration when a profile is activated, and this
+// one has nothing for it to report. A registration is data, and data can
+// contradict itself in ways no compiler catches.
+func TestTheRegistrationHasNoDefects(t *testing.T) {
+	if defects := corpus.ValidateRegistration(profile.New()); len(defects) != 0 {
+		t.Errorf("ValidateRegistration reported %d defects: %+v", len(defects), defects)
+	}
+}
+
+// slugTypedPropertiesOf returns the properties the generated schema types
+// as a document slug for one document type, read by walking the decoded
+// JSON rather than through registration.go's own decoder — see this
+// file's package comment.
+func slugTypedPropertiesOf(t *testing.T, documentType string) []string {
+	t.Helper()
+
+	var bundle map[string]any
+	if err := json.Unmarshal(schema.SpecModel, &bundle); err != nil {
+		t.Fatalf("reading the generated schema: %v", err)
+	}
+	definitions, ok := bundle["definitions"].(map[string]any)
+	if !ok {
+		t.Fatal("the generated schema has no definitions object")
+	}
+
+	name := pascalCase(documentType)
+	branch, ok := definitions[name].(map[string]any)
+	if !ok {
+		t.Fatalf("the generated schema declares no branch %q for document type %q", name, documentType)
+	}
+	properties, ok := branch["properties"].(map[string]any)
+	if !ok {
+		t.Fatalf("the %q branch declares no properties", name)
+	}
+
+	var found []string
+	for property, declared := range properties {
+		if property == "slug" {
+			continue
+		}
+		shape, ok := declared.(map[string]any)
+		if !ok {
+			continue
+		}
+		if mentionsSlug(shape) {
+			found = append(found, property)
+		}
+	}
+	return found
+}
+
+// mentionsSlug reports whether a decoded property schema refers to the
+// Slug definition anywhere in it — directly, through `items`, or through
+// a `oneOf` against null.
+func mentionsSlug(shape map[string]any) bool {
+	const slugRef = "#/definitions/Slug"
+
+	if ref, ok := shape["$ref"].(string); ok && ref == slugRef {
+		return true
+	}
+	if items, ok := shape["items"].(map[string]any); ok && mentionsSlug(items) {
+		return true
+	}
+	alternatives, ok := shape["oneOf"].([]any)
+	if !ok {
+		return false
+	}
+	for _, alternative := range alternatives {
+		if branch, ok := alternative.(map[string]any); ok && mentionsSlug(branch) {
+			return true
+		}
+	}
+	return false
+}
+
+// pascalCase converts a document type value to the name the generated
+// schema keys its branch by: "system-blueprint" becomes
+// "SystemBlueprint".
+func pascalCase(kebab string) string {
+	var b strings.Builder
+	for _, word := range strings.Split(kebab, "-") {
+		if word == "" {
+			continue
+		}
+		b.WriteString(strings.ToUpper(word[:1]))
+		b.WriteString(word[1:])
+	}
+	return b.String()
+}
+
+func contains(haystack []string, needle string) bool {
+	for _, value := range haystack {
+		if value == needle {
+			return true
+		}
+	}
+	return false
+}
+
+func equalStrings(got, want []string) bool {
+	if len(got) != len(want) {
+		return false
+	}
+	for i := range got {
+		if got[i] != want[i] {
+			return false
+		}
+	}
+	return true
+}
