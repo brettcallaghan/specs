@@ -36,11 +36,13 @@ type stubProfile struct {
 	schema      []byte
 	types       map[string]corpus.DocumentTypeRules
 	conventions specmodel.ConventionsConfig
+	lifecycle   corpus.LifecycleRules
 }
 
 func (p stubProfile) Schema() []byte                                     { return p.schema }
 func (p stubProfile) DocumentTypes() map[string]corpus.DocumentTypeRules { return p.types }
 func (p stubProfile) Conventions() specmodel.ConventionsConfig           { return p.conventions }
+func (p stubProfile) Lifecycle() corpus.LifecycleRules                   { return p.lifecycle }
 
 // The interface is satisfiable, checked at compile time rather than only
 // when a test runs.
@@ -146,13 +148,26 @@ func TestDocumentCoreImportsNoProfilePackage(t *testing.T) {
 	}
 }
 
-// The extension point must not name a document type, because a host that
-// knows one type by name is no longer framework-agnostic and an adopting
+// The extension point must not name a document type, a status, or a
+// frontmatter property that holds a reference, because a host that knows
+// any of them by name is no longer framework-agnostic and an adopting
 // repository with a different taxonomy cannot reuse it.
-func TestTheExtensionPointNamesNoConcreteDocumentType(t *testing.T) {
-	vocabulary := documentTypeVocabulary(t)
-	if len(vocabulary) == 0 {
-		t.Fatal("read no document types from the generated schema; the check would pass vacuously")
+//
+// The three vocabularies are read from the generated schema rather than
+// listed here, so the check keeps holding as each of them grows. This is
+// what stops the widened extension point becoming a place to smuggle
+// vocabulary into the host: a registration member is only a seam while
+// the host holds none of the values that travel through it.
+func TestTheExtensionPointNamesNoRegisteredVocabulary(t *testing.T) {
+	vocabulary := registeredVocabulary(t)
+	read := map[string]int{}
+	for _, kind := range vocabulary {
+		read[kind]++
+	}
+	for _, kind := range []string{"document type", "status", "reference-bearing property"} {
+		if read[kind] == 0 {
+			t.Fatalf("read no %s from the generated schema; the check would pass vacuously for that kind", kind)
+		}
 	}
 
 	for _, file := range goFilesUnder(t, ".") {
@@ -173,9 +188,9 @@ func TestTheExtensionPointNamesNoConcreteDocumentType(t *testing.T) {
 			if err != nil {
 				return true
 			}
-			if vocabulary[value] {
-				t.Errorf("%s:%d names the document type %q",
-					file, fileSet.Position(literal.Pos()).Line, value)
+			if kind, named := vocabulary[value]; named {
+				t.Errorf("%s:%d names the %s %q",
+					file, fileSet.Position(literal.Pos()).Line, kind, value)
 			}
 			return true
 		})
@@ -216,10 +231,25 @@ func goFilesUnder(t *testing.T, root string) []string {
 	return files
 }
 
-// documentTypeVocabulary reads this framework's document types from the
-// generated schema rather than restating them, so the check keeps working
-// as the vocabulary grows.
-func documentTypeVocabulary(t *testing.T) map[string]bool {
+// identityProperty is the one property typed as a slug that names the
+// document declaring it rather than another document, so it is not
+// reference-bearing and the host's own use of it is not a leak. Every
+// other slug-typed property in the vocabulary points somewhere else and
+// is a property a profile registers.
+const identityProperty = "slug"
+
+// registeredVocabulary reads the values a profile registers through the
+// extension point from the generated schema rather than restating them,
+// mapping each to the kind of thing it is so a failure says what leaked.
+//
+// Three kinds travel through the extension point: the document types
+// DocumentTypes is keyed by, the statuses a lifecycle registration names,
+// and the frontmatter properties a document type registers as
+// reference-bearing. The last are derived the same way the profile
+// derives its own registration — every property whose value is a slug or
+// a list of slugs — so a property added to the schema is covered here
+// before anything registers it.
+func registeredVocabulary(t *testing.T) map[string]string {
 	t.Helper()
 
 	raw, err := os.ReadFile(filepath.FromSlash("../schema/spec-model.schema.json"))
@@ -228,19 +258,44 @@ func documentTypeVocabulary(t *testing.T) map[string]bool {
 	}
 
 	var bundle struct {
-		Definitions struct {
-			DocumentType struct {
-				Enum []string `json:"enum"`
-			} `json:"DocumentType"`
+		Definitions map[string]struct {
+			Enum       []string `json:"enum"`
+			Properties map[string]struct {
+				Ref   string `json:"$ref"`
+				OneOf []struct {
+					Ref string `json:"$ref"`
+				} `json:"oneOf"`
+				Items struct {
+					Ref string `json:"$ref"`
+				} `json:"items"`
+			} `json:"properties"`
 		} `json:"definitions"`
 	}
 	if err := json.Unmarshal(raw, &bundle); err != nil {
 		t.Fatalf("parsing the generated schema: %v", err)
 	}
 
-	vocabulary := make(map[string]bool, len(bundle.Definitions.DocumentType.Enum))
-	for _, value := range bundle.Definitions.DocumentType.Enum {
-		vocabulary[value] = true
+	const slugRef = "#/definitions/Slug"
+	vocabulary := map[string]string{}
+	for _, value := range bundle.Definitions["DocumentType"].Enum {
+		vocabulary[value] = "document type"
+	}
+	for _, value := range bundle.Definitions["Status"].Enum {
+		vocabulary[value] = "status"
+	}
+	for _, definition := range bundle.Definitions {
+		for name, property := range definition.Properties {
+			if name == identityProperty {
+				continue
+			}
+			slugTyped := property.Ref == slugRef || property.Items.Ref == slugRef
+			for _, alternative := range property.OneOf {
+				slugTyped = slugTyped || alternative.Ref == slugRef
+			}
+			if slugTyped {
+				vocabulary[name] = "reference-bearing property"
+			}
+		}
 	}
 	return vocabulary
 }

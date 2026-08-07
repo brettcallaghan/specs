@@ -6,7 +6,7 @@ description: The plugin that supplies this framework's document
 slug: module-spec-profile
 type: module-blueprint
 status: approved
-updated_at: 2026-08-06T00:00:00Z
+updated_at: 2026-08-07T00:00:00Z
 kind: standard
 visibility: internal
 contracts_provided: []
@@ -16,7 +16,7 @@ source_paths:
   - "cli/profile"
 test_paths:
   - "cli/profile"
-version: "0.2"
+version: "0.3"
 ---
 
 # Spec-Driven Development Profile
@@ -97,8 +97,20 @@ It supplies three things and nothing else: **one** embedded union schema
 binary reads no schema file at runtime), a thin per-type table of slug
 pattern and numbered-ness for every `DocumentType`, and the `line_width`
 convention default of 80 codepoints. There is no per-type schema, no
-required-sections tree, no named section sets, no element-record
-registration and no lifecycle-rule registration.
+required-sections tree, no named section sets and no element-record
+registration.
+
+**The host's extension point is wider than what this profile fills.**
+`corpus.DocumentTypeRules` now carries a type's reference-bearing
+properties, its typed references and its pairings, and `corpus.Profile`
+carries a `Lifecycle()` member supplying the status vocabulary, the live
+and retired statuses and the successor property. This profile returns the
+zero lifecycle registration and registers no reference property yet: the
+registered set is to be derived from `schemas/frontmatter.strata` rather
+than transcribed from it, so it lands with the change that derives it.
+Until then the checks that read those registrations do not run, which is
+a profile whose documents the lifecycle says nothing about rather than a
+placeholder the host has to recognise.
 
 The components below have been reconciled to that shape: the separate
 Document Types "type registry" is gone, folded into Profile Registration,
@@ -163,14 +175,15 @@ it holds no engine and no parsing of its own. Its value is that the
 conformance surface is one file: whether this module is a well-behaved
 plugin is answerable by reading it.
 
-**Built** — `cli/profile`. `New` returns a `corpus.Profile` whose three
+**Built** — `cli/profile`. `New` returns a `corpus.Profile` whose four
 members are the whole of what this framework tells the host:
 
 | Member | Registers |
 |---|---|
 | `Schema()` | the embedded union schema over every document type |
-| `DocumentTypes()` | per type, its slug pattern and whether it is numbered |
+| `DocumentTypes()` | per type, its slug pattern and whether it is numbered; its reference-bearing properties, typed references and pairings are not yet registered |
 | `Conventions()` | the `line_width` default of 80 codepoints |
+| `Lifecycle()` | nothing yet — the zero registration, so no status is treated as live or retired and no successor property is named |
 
 **The union schema is generated, not authored here.** It comes from
 `schemas/*.strata` through `scripts/generate-schemas.sh`, which emits
@@ -187,7 +200,9 @@ Required sections, named section sets and the heading-tree requirement
 described in [[contract-specs-configuration]] are later capabilities.
 None is registered, because Document Core's extension point has nowhere
 to receive them yet — widening it is a change to the host, per the
-Change Guidance below.
+Change Guidance below. The reference and lifecycle registrations are no
+longer in that position: the host has been widened to receive them, and
+what remains is for this module to derive and register its own.
 
 ### Element Records
 

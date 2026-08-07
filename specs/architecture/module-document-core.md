@@ -95,6 +95,28 @@ the plugin, and no framework vocabulary is compiled into the host.
     frontmatter envelope declares `slug` once and a subtype cannot narrow
     an inherited property, and numbering because it is a query over the
     corpus rather than a property of a document.
+  - WHEN a profile registers a document type, the module SHALL treat the
+    frontmatter properties that type registers as reference-bearing as
+    the whole of what it holds a reference in. A property absent from
+    that registration contributes no reference however slug-shaped its
+    value is: what is a reference is registered, never guessed.
+  - The module SHALL take the lifecycle the active profile registers —
+    the statuses at which a document is in effect, the statuses at which
+    it is no longer, and the property in which one of the latter names
+    its replacement — as the authority for those judgements, and SHALL
+    contain no status and no property name of its own.
+  - WHEN a profile is activated, the module SHALL validate its
+    registration and SHALL report every defect it finds, naming the
+    offending key, rather than falling back to a default for that key
+    (AC-SPECREF-004.3). The defects are three: a pairing or a typed
+    reference naming a property the same type does not register as
+    reference-bearing; a typed reference naming a document type the
+    profile does not define; and a lifecycle registration naming a
+    status outside the profile's own status vocabulary.
+  - The module SHALL return those defects to the caller rather than
+    rendering them. A compiled-in registration has no file position of
+    its own, and the position a reader needs — the configuration value
+    that selected the profile — is known only to the caller.
   - The module SHALL express every position it reports as a `Span`, so a
     caller never receives a bare line number.
   - WHEN a document fails to parse, the module SHALL record the failure
@@ -104,28 +126,53 @@ the plugin, and no framework vocabulary is compiled into the host.
     and only to the destination the caller resolves. It modifies no
     document it reads.
 
-**Built** — the `Profile` interface in `cli/core/corpus` has three
+**Built** — the `Profile` interface in `cli/core/corpus` has four
 members and nothing else:
 
 | Member | Supplies |
 |---|---|
 | `Schema() []byte` | the one union schema every document type is validated against |
-| `DocumentTypes() map[string]DocumentTypeRules` | per type, its slug pattern and whether it is numbered — keyed by the value documents declare in `type` |
+| `DocumentTypes() map[string]DocumentTypeRules` | per type, its slug pattern, whether it is numbered, and which of its properties hold references — keyed by the value documents declare in `type` |
 | `Conventions() specmodel.ConventionsConfig` | the convention defaults resolved where an adopting repository's configuration omits them |
+| `Lifecycle() LifecycleRules` | the profile's status vocabulary, which of those statuses mean in effect and which mean superseded, and the property a superseded document names its replacement in |
 
-`DocumentTypeRules` carries a slug pattern and a numbered flag, and no
+`DocumentTypeRules` carries a slug pattern, a numbered flag, and the
+type's reference registration — `ReferenceProperties`, the properties
+that hold document slugs; `TypedReferenceProperties`, the mapping from
+such a property to the `type` its target must declare; and `Pairings`,
+the properties that must be declared from both ends. It carries no
 schema. The keys of `DocumentTypes` are the whole of the host's knowledge
 of which types exist, which is what makes the `unknown-type` exclusion a
 lookup rather than a judgement.
 
+`LifecycleRules` is profile-level rather than per-type, because `status`
+is a property of the shared envelope that every type carries and none
+narrows. It states the status vocabulary explicitly rather than leaving
+it to be inferred from the live and retired sets: their union is not the
+vocabulary — a status in neither is one the lifecycle says nothing about,
+which is the right answer for a draft — and without it the module could
+not report a lifecycle naming a status the profile does not define. The
+alternative, reading the vocabulary out of the union schema, would mean
+the host knowing where a schema keeps its status enum and passing
+vacuously against a profile that keeps it elsewhere.
+
+`ValidateRegistration` is the registration check, and it returns
+`RegistrationDefect` values carrying the document type, the offending key
+and what is wrong with it. It renders nothing and repairs nothing.
+
 The surface is narrow because it constrains everything downstream of it.
-Required sections, element records, reference properties and lifecycle
-rules are later capabilities and each widens this interface; per the
-Change Guidance in [[module-spec-profile]], that widening is a change to
-the host reviewed on its own merits, never a special case granted to one
-profile. Two tests hold the boundary: no package under `cli/core` imports
-a profile package, and no non-test source in `cli/core/corpus` contains a
-string literal matching any document type in the generated vocabulary.
+Required sections and element records are later capabilities and each
+widens this interface further; per the Change Guidance in
+[[module-spec-profile]], that widening is a change to the host reviewed
+on its own merits, never a special case granted to one profile. Two tests
+hold the boundary: no package under `cli/core` imports a profile package,
+and no non-test source in `cli/core/corpus` contains a string literal
+matching anything a profile registers through the extension point — any
+document type, any status, or any frontmatter property the generated
+vocabulary types as a slug or a list of slugs. All three sets are read
+from the generated schema rather than restated, so the boundary widens
+with the vocabulary; the identity property `slug` is excluded because it
+names the document declaring it rather than another document.
 
 The write guarantee is narrower in fact than in statement. The module's
 only write is `corpus.Write`, whose destination `corpus.IndexPath`

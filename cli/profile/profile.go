@@ -12,9 +12,12 @@
 // convention defaults Document Core resolves when an adopting
 // repository's own configuration omits them.
 //
-// Element records, required sections, reference properties and
-// lifecycle rules are later capabilities; registering them belongs to a
-// future change to this package, not to a workaround here.
+// Element records and required sections are later capabilities;
+// registering them belongs to a future change to this package, not to a
+// workaround here. So are this framework's reference-bearing properties
+// and its lifecycle: the host now has members to receive them
+// (corpus.DocumentTypeRules and corpus.Profile.Lifecycle), and filling
+// them in from schemas/frontmatter.strata is its own change.
 package profile
 
 import (
@@ -142,4 +145,17 @@ func (specDrivenDev) DocumentTypes() map[string]corpus.DocumentTypeRules {
 func (specDrivenDev) Conventions() specmodel.ConventionsConfig {
 	width := uint64(defaultLineWidth)
 	return specmodel.ConventionsConfig{LineWidth: &width}
+}
+
+// Lifecycle returns the empty registration: this profile registers no
+// status vocabulary, no live or retired statuses and no successor
+// property yet, so the checks that read them do not run.
+//
+// The registration is derived from the generated vocabulary rather than
+// transcribed, so it lands with the change that derives it. Returning the
+// zero value meanwhile is a profile whose documents the lifecycle says
+// nothing about, which is the honest state and not a placeholder the host
+// has to recognise.
+func (specDrivenDev) Lifecycle() corpus.LifecycleRules {
+	return corpus.LifecycleRules{}
 }
