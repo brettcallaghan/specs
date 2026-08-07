@@ -340,12 +340,22 @@ run idled 2h16m with them unbacked.
 **Change.** Add to the per-bead close ceremony, after `retro-written`:
 
 > The retro is already concatenated into the bead's description by the
-> close ceremony, so the tracker copy is durable. Additionally, at
-> Phase 4, copy `dispatch.md`, `decisions.md` and any retro whose bead
-> did NOT reach `committed` into the repository under a gitignored
-> `.bonanza/<run-id>/` and note the location on the epic — those are the
-> artifacts with no tracker copy, and they are exactly the ones a
-> post-mortem needs.
+> close ceremony, so the tracker copy is durable for any bead that
+> closed. Additionally, at Phase 4, copy the whole run directory into
+> the repository under `.bonanza/<run-id>/`, **commit it**, and note the
+> location on the epic.
+>
+> It must be **committed, not gitignored**. A gitignored copy lives in
+> the working tree, which is reclaimed with the container exactly like
+> `/tmp` — it would move the artifacts without making them durable. The
+> whole point is surviving container reclaim, and only a pushed commit
+> does that. The cost is small: this run's directory is 152 KB across 17
+> files, dominated by seven retros of 4.3–17.5 KB.
+>
+> Copy the whole directory rather than a filtered subset. The progress
+> files are a few hundred bytes each and are what make a post-mortem
+> mechanical; deciding at Phase 4 which retros "matter" is a judgment
+> best not made while the evidence is being discarded.
 
 **Evidence.** Finding 6.
 
