@@ -213,8 +213,10 @@ C4Component
 Seven of the eight are built and carry a **Built** paragraph naming the
 package that realizes them: Spans, Frontmatter, References, Schema
 Registry, Corpus, Numbering and Findings. The emitted index carries the
-resolved reference graph; no check reads it yet, so a broken link is
-recorded and not reported. **Markdown
+resolved reference graph, and the corpus checks read it: a broken link,
+a live document citing a retired one, a half-declared pairing and a
+typed reference landing on the wrong document type are each reported
+against the document a reader must open. **Markdown
 Structure is planned and not yet built** — there is no `cli/core/markdown`
 package, and no heading is read anywhere in the module. Its section below
 describes a design, not an implementation, and the diagram edges into and
@@ -369,10 +371,12 @@ leftover-scaffolding hygiene. This is the component the
 extract-then-review pattern depends on: an agent asks for the spans of
 particular sections and reads only those.
 
-**Not yet built.** There is no `cli/core/markdown` package and no
-markdown parser in the module's dependencies; [[adr-015]]'s choice of
-`goldmark` arrives with this component rather than having arrived
-already.
+**Not yet built.** There is no `cli/core/markdown` package, and no
+heading is read anywhere in the module. [[adr-015]]'s choice of
+`goldmark` is already a module dependency — References brought it in for
+the code-region mask described under that component — so what this
+component still owes is the heading tree, the fenced-block extraction
+and the comment-block location, not the parser.
 
 ### References
 
@@ -902,14 +906,14 @@ concern. A later check adds a variant to the union without changing the
 envelope that carries it.
 
 The relationships below are stated for the module's whole component set.
-Where one names Markdown Structure or References it describes the
-intended edge rather than an existing one, since neither component is
-built yet.
+Where one names Markdown Structure it describes the intended edge rather
+than an existing one, since that component is not built.
 
 **Corpus → Frontmatter, Markdown Structure, References.** Corpus is the
 orchestrator: it walks files and delegates every act of parsing. A
 parser that Corpus does not call is unreachable, and parsing logic that
-lives in Corpus is misplaced. Today it delegates to Frontmatter alone.
+lives in Corpus is misplaced. It delegates to Frontmatter and to
+References, both on the one walk that reads each candidate's bytes.
 
 **Frontmatter, Markdown Structure, References → Spans.** All three
 locate regions through the shared scanner rather than implementing their

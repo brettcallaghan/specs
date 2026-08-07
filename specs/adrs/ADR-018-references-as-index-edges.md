@@ -100,8 +100,6 @@ is stored a second time.
 
 - [[frd-spec-reference-integrity]] — the requirements this shape serves,
   and the document that defers the shape here
-- [[feature-spec-reference-integrity]] — the feature blueprint that
-  applies this decision
 - [[frd-spec-validation-cli]] — AC-SPEC-002.2 and AC-SPEC-002.3, the
   versioned schema and the workspace identifier this shape is chosen
   against

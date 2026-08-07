@@ -174,14 +174,14 @@ a retired document names a resolvable successor, and that a live
 document citing a retired one is surfaced. The registration surface
 below removes that need: the statuses, the successor property and the
 pairings are data Profile Registration supplies like everything else,
-and the checks that will read them belong in [[module-document-core]]
-alongside the checks it already runs over the corpus, not in a package
-here. There is no relational logic left for a package in this module to
-hold, so the component is folded into Profile Registration rather than
-built where it was originally drawn. (Those Document Core checks are
-themselves later work — agent-plugins-9kb.6 and .7 — which this module
-does not gate on: the registration they will read is complete regardless
-of when they land.)
+and the checks that read them live in [[module-document-core]] alongside
+the checks it already runs over the corpus, not in a package here.
+`reference/retired-target`, `reference/pairing-incomplete` and
+`reference/type-mismatch` are those checks, and every judgement each one
+makes comes from the registration below. There is no relational logic
+left for a package in this module to hold, so the component is folded
+into Profile Registration rather than built where it was originally
+drawn.
 
 **The separate "Document Types" component has been removed.** The
 earlier design gave it a type registry holding a schema per type, and the
