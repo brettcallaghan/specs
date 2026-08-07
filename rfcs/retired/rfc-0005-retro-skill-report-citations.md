@@ -14,7 +14,6 @@ effort: high
 runs_observed: 4
 severity: snag
 plugin_version: "0.8.0"
-related: []
 ---
 
 # RFC: Constrain what a report may claim, and route cross-skill findings

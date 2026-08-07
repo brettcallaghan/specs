@@ -16,7 +16,6 @@ effort: unknown
 runs_observed: 2
 severity: blocker
 plugin_version: "0.9.0"
-related: []
 ---
 
 # RFC: Fix the ADR slug contradiction; bundle the always-required references

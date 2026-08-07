@@ -7,19 +7,10 @@ description: Builds the first working slice of the Spec CLI — the index
 slug: feature-spec-validation-cli
 type: feature-blueprint
 status: retired
-updated_at: 2026-08-05T00:00:00Z
+updated_at: 2026-08-06T00:00:00Z
 delivery: staged
 plan: agent-plugins-bge
-sources: [frd-spec-validation-cli]
-updates:
-  - "container-spec-cli"
-  - "module-document-core"
-  - "module-spec-profile"
-creates: []
-related:
-  - "adr-015"
-  - "adr-016"
-  - "contract-specs-configuration"
+frd: frd-spec-validation-cli
 ---
 
 # Spec Corpus Index and Core Conformance Checks

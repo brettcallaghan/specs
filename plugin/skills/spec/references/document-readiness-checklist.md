@@ -7,10 +7,7 @@ slug: document-readiness-checklist
 type: standards
 status: active
 updated_at: 2026-08-05T00:00:00Z
-version: "0.2"
-related:
-  - "template-authoring-standards"
-  - "cross-document-references"
+version: "0.3"
 ---
 
 # Document Readiness Checklist

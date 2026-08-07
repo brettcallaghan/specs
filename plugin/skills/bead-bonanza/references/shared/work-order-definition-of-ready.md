@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: plugin/skills/spec/references/work-order-definition-of-ready.md (version 1.1)
+     Source of truth: plugin/skills/spec/references/work-order-definition-of-ready.md (version 1.2)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -11,10 +11,7 @@ slug: work-order-definition-of-ready
 type: standards
 status: active
 updated_at: 2026-07-30T00:00:00Z
-version: "1.1"
-related:
-  - "work-order-template"
-  - "work-order-field-guide"
+version: "1.2"
 ---
 
 # Work Order Definition of Ready

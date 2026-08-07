@@ -17,12 +17,11 @@ effort: <low | medium | high | xhigh | max>
 runs_observed: <N>                     # runs standing behind the evidence
 severity: <blocker | snag | polish>    # highest severity among proposals
 plugin_version: "<x.y.z>"              # or "n/a (standalone install)"
-related: []
 ---
 
 <!--
 Template: Skill-Improvement RFC
-Version: 0.2
+Version: 0.3
 Source: spec-driven-dev framework (produced by the retro-skill skill)
 Lineage: a skill-focused fork of retro-spec's rfc-template — drops
   audience (retro-skill RFCs are inherently skill-authoring), adds the

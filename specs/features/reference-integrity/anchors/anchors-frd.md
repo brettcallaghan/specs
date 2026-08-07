@@ -9,12 +9,6 @@ status: draft
 updated_at: 2026-08-05T00:00:00Z
 sources:
   - "frd-spec-reference-integrity"
-related:
-  - "frd-spec-reference-integrity"
-  - "frd-spec-structure-conformance"
-  - "frd-spec-validation-cli"
-  - "frd-spec-slug-rename"
-  - "adr-012"
 ---
 
 # Spec Corpus Anchor References

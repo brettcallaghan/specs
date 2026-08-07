@@ -9,11 +9,6 @@ type: frd
 status: draft
 updated_at: 2026-08-04T00:00:00Z
 sources: []
-related:
-  - "frd-spec-validation-cli"
-  - "frd-spec-reference-integrity"
-  - "frd-spec-anchor-references"
-  - "adr-008"
 ---
 
 # Spec Corpus Structure and Hygiene Conformance

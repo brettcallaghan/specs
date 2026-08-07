@@ -16,7 +16,6 @@ effort: unknown
 runs_observed: 1
 severity: blocker
 plugin_version: "n/a (repo-local skill)"
-related: []
 ---
 
 # RFC: Triage checks that evidence exists, not that it is complete

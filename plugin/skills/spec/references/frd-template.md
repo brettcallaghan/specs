@@ -6,12 +6,11 @@ type: frd
 status: draft
 updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 sources: []                          # slugs of documents this FRD is based on
-related: []                          # slugs of related documents (ADRs, etc.)
 ---
 
 <!--
 Template: Feature Requirements Document (FRD)
-Version: 1.1
+Version: 1.2
 Source: Adapted from the 8090 Requirements Writing Guide
   (https://www.8090.ai/docs/opinions/requirements-writing-guide), modified to
   use EARS for acceptance criteria per [[template-authoring-standards]].

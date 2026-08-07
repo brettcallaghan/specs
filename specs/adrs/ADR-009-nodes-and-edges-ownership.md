@@ -4,7 +4,7 @@ description: File every relationship at one altitude; parents own the edges amon
 slug: adr-009
 type: adr
 status: active
-updated_at: 2026-08-05T00:00:00Z
+updated_at: 2026-08-06T00:00:00Z
 ---
 
 # ADR-009: Nodes-vs-Edges Ownership — Parents Own Child Edges
@@ -44,6 +44,21 @@ element is composed. Every blueprint at all four levels therefore carries
 `contracts_provided` and `contracts_consumed` of its own, and a module or
 component declaring a consumed contract is not an exception to this
 decision.
+
+**Nor does it govern the parent-child membership edge itself.** "A
+container composes this module" is one fact with one authoritative home,
+and that home depends on how many parents the child can have. Every C4
+element has exactly one — a container declares its `system`, and a
+component is declared in its parent's roster section, where a reader
+meets it. A module is this framework's addition to C4 and is the one
+element composed into several parents, so it names them itself in
+`contained_by`. Each parent's membership roster is derived from those
+edges rather than restated in the parent's frontmatter. The parent still
+owns the edges *among* its children, which is what this decision is
+about. Deriving the roster is how that ownership is kept free of drift,
+not an exception to it — a hand-maintained roster on the parent is a
+second copy of an edge the child already declares, and two copies is the
+condition this decision exists to prevent.
 
 ## Alternatives Considered
 

@@ -16,7 +16,6 @@ effort: unknown
 runs_observed: 1
 severity: snag
 plugin_version: "n/a (standalone install)"
-related: []
 ---
 
 # RFC: Greenfield anchors and split-FRD numbering gaps in the spec templates

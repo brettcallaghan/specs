@@ -17,7 +17,6 @@ effort: unknown
 runs_observed: 1
 severity: blocker
 plugin_version: "0.14.0"
-related: []
 ---
 
 # RFC: The readiness checklist validates no frontmatter value

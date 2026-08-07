@@ -3,7 +3,7 @@
   "definitions": {
     "Adr": {
       "additionalProperties": false,
-      "description": "An architecture decision record.\n\nCarries no relationship properties of its own beyond the envelope's\n`related`: an ADR's connections to other decisions are argued in its\nprose, and the decisions it supersedes are named through\n`superseded_by`.",
+      "description": "An architecture decision record.\n\nCarries no relationship properties of its own: an ADR's connections to\nother decisions are argued in its prose, where the index reads them, and\nthe decision it supersedes is named through the envelope's\n`superseded_by`.",
       "properties": {
         "created_at": {
           "description": "RFC 3339 timestamp of the document's creation. Optional.",
@@ -16,16 +16,6 @@
         "description": {
           "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
           "type": "string"
-        },
-        "related": {
-          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
-          "items": {
-            "$ref": "#/definitions/Slug"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
         },
         "slug": {
           "$ref": "#/definitions/Slug",
@@ -161,7 +151,7 @@
     },
     "ComponentBlueprint": {
       "additionalProperties": false,
-      "description": "A C4 component blueprint: a single component promoted out of its\nparent's roster into a document of its own, because it warrants more\nthan a record block.",
+      "description": "A C4 component blueprint: a single component promoted out of its\nparent's roster into a document of its own, because it warrants more\nthan a record block.\n\nCarries no parent property. A component has exactly one parent, as C4\nrequires, and its parent's roster section already links it by\n`[[slug]]` under its own heading — so the edge is declared once, in the\none place a reader meets the child, and the index derives the component's\nparent from that inbound link. `contained_by` is the module level's\nalone, because being composed into more than one container is what\ndistinguishes a module from a component.",
       "properties": {
         "contracts_consumed": {
           "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
@@ -198,16 +188,6 @@
         "kind": {
           "$ref": "#/definitions/BlueprintKind",
           "description": "Whether this blueprint documents one concrete component or a pattern\nseveral components follow."
-        },
-        "related": {
-          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
-          "items": {
-            "$ref": "#/definitions/Slug"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
         },
         "slug": {
           "$ref": "#/definitions/Slug",
@@ -285,18 +265,8 @@
     },
     "ContainerBlueprint": {
       "additionalProperties": false,
-      "description": "A C4 container blueprint: one independently deployable or runnable\nartifact, and the modules and components composed into it.",
+      "description": "A C4 container blueprint: one independently deployable or runnable\nartifact.\n\nThe modules and components composed into it are not listed here, and\nthe two arrive by different routes. A module names its hosts itself, in\n`contained_by`, because a module may be composed into several containers\nand that set is a fact about the module. A component has exactly one\nparent, as C4 requires, and that edge is recorded where a reader meets\nit: the Components section of this document's body, where each child is\na fenced record block XOR a `[[slug]]` blueprint link under its own\nheading, per ADR-008 and ADR-012. Either way the index derives this\ncontainer's roster rather than reading it from frontmatter.",
       "properties": {
-        "components": {
-          "description": "Component blueprint slugs composed into this container.",
-          "items": {
-            "$ref": "#/definitions/Slug"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
         "contracts_consumed": {
           "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
           "items": {
@@ -328,26 +298,6 @@
         "description": {
           "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
           "type": "string"
-        },
-        "modules": {
-          "description": "Module blueprint slugs composed into this container.",
-          "items": {
-            "$ref": "#/definitions/Slug"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "related": {
-          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
-          "items": {
-            "$ref": "#/definitions/Slug"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
         },
         "slug": {
           "$ref": "#/definitions/Slug",
@@ -442,16 +392,6 @@
         "provider": {
           "$ref": "#/definitions/Slug",
           "description": "The container or system that provides this interface.\n\nExactly one, because a contract with two providers is two contracts."
-        },
-        "related": {
-          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
-          "items": {
-            "$ref": "#/definitions/Slug"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
         },
         "slug": {
           "$ref": "#/definitions/Slug",
@@ -582,7 +522,7 @@
     },
     "DocumentFrontmatter": {
       "additionalProperties": false,
-      "description": "The metadata envelope every specification document carries.\n\nMembership in the corpus is determined by this envelope rather than by\nlocation: a markdown file whose frontmatter parses and declares a known\n`type` is a specification, wherever it sits in the tree. Each document\ntype extends this struct with its own relationship and classification\nproperties, so the envelope is validated identically everywhere and only\nthe extension differs.",
+      "description": "The metadata envelope every specification document carries.\n\nMembership in the corpus is determined by this envelope rather than by\nlocation: a markdown file whose frontmatter parses and declares a known\n`type` is a specification, wherever it sits in the tree. Each document\ntype extends this struct with its own relationship and classification\nproperties, so the envelope is validated identically everywhere and only\nthe extension differs.\n\nA relationship property here or on any extension is declared at one end\nonly; the index derives the reverse from every other document's inbound\nedges. Before adding one, check it against the Document Relationship\nStandard — a property that merely mirrors the document's own prose\ncitations does not earn its maintenance cost.",
       "properties": {
         "created_at": {
           "description": "RFC 3339 timestamp of the document's creation. Optional.",
@@ -595,16 +535,6 @@
         "description": {
           "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
           "type": "string"
-        },
-        "related": {
-          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
-          "items": {
-            "$ref": "#/definitions/Slug"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
         },
         "slug": {
           "$ref": "#/definitions/Slug",
@@ -737,6 +667,19 @@
         "slug_pattern": {
           "description": "The pattern a document of this type must match in its `slug`.\n\nA mismatch is reported with both the actual slug and this pattern\nquoted, so the finding is self-contained and the fixing agent needs no\nfurther lookup.",
           "type": "string"
+        },
+        "typed_reference_properties": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Reference-bearing properties whose target must declare a particular\ndocument `type`, keyed by property name with the required type as the\nvalue.\n\nA schema can require that `frd` holds exactly one slug; only the index\nknows what that slug resolves to, so the type half of the constraint is\nregistered here. Every key must also appear in `reference_properties`\n— a typed property that is not reference-bearing would be checked\nagainst a target nothing resolved.",
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": [
+            "object",
+            "null"
+          ]
         }
       },
       "required": [
@@ -780,23 +723,13 @@
     },
     "FeatureBlueprint": {
       "additionalProperties": false,
-      "description": "A transient change document describing how the system changes to deliver\none feature.\n\nUnlike the blueprints it modifies, a feature blueprint describes a\nchange rather than a state, so it reaches `in-progress` and then\n`retired` rather than `active`. Its `updates` and `creates` properties\nare what let tooling derive when the change is complete: the feature is\nnot done until every document it names has been updated or activated.",
+      "description": "A transient change document describing how the system changes to deliver\none feature.\n\nUnlike the blueprints it modifies, a feature blueprint describes a\nchange rather than a state, so it reaches `in-progress` and then\n`retired` rather than `active`.\n\nThe documents the change creates and updates are described in the\nblueprint's own \"Documentation Changes\" prose and tracked to completion\nin its `plan`, which records done-ness natively. They are not mirrored\ninto frontmatter: a change set recorded in three places is three places\nthat must agree.",
       "properties": {
         "created_at": {
           "description": "RFC 3339 timestamp of the document's creation. Optional.",
           "format": "date-time",
           "type": [
             "string",
-            "null"
-          ]
-        },
-        "creates": {
-          "description": "Slugs of new documents authored alongside this blueprint, such as\ndraft contracts for interfaces the feature introduces.",
-          "items": {
-            "$ref": "#/definitions/Slug"
-          },
-          "type": [
-            "array",
             "null"
           ]
         },
@@ -808,6 +741,10 @@
           "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
           "type": "string"
         },
+        "frd": {
+          "$ref": "#/definitions/Slug",
+          "description": "The FRD this blueprint realizes, one to one.\n\nA feature blueprint answers how the system changes; the FRD it names\nanswers what the change must achieve. Singular and required, so the\none-to-one relationship is expressible in the schema rather than only\nin this comment, and named `frd` rather than `sources` so that one\nproperty name does not span two relationships — `Frd.sources` is\noptional, many-valued provenance, which is a different edge."
+        },
         "plan": {
           "description": "Where this feature's implementation plan lives, stamped in by the\ngroom-feature-blueprint skill once grooming serializes the plan:\nan epic id (`agent-plugins-bge`) when the plan is beads, or a\nrepository-relative directory (`plans/<feature-slug>/`) when it is\ntask files. Absent before grooming, since an ungroomed blueprint has\nno plan yet; present through `retired`, since the pointer retires\nwith the document rather than being cleared.",
           "type": [
@@ -815,26 +752,9 @@
             "null"
           ]
         },
-        "related": {
-          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
-          "items": {
-            "$ref": "#/definitions/Slug"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
         "slug": {
           "$ref": "#/definitions/Slug",
           "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
-        },
-        "sources": {
-          "description": "The FRD this blueprint realizes, one to one.\n\nA feature blueprint answers how the system changes; the FRD it names\nanswers what the change must achieve.",
-          "items": {
-            "$ref": "#/definitions/Slug"
-          },
-          "type": "array"
         },
         "status": {
           "$ref": "#/definitions/Status",
@@ -873,16 +793,6 @@
           "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
           "format": "date-time",
           "type": "string"
-        },
-        "updates": {
-          "description": "Slugs of existing documents this feature will change — blueprints at\nany C4 level, and contracts.",
-          "items": {
-            "$ref": "#/definitions/Slug"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
         }
       },
       "required": [
@@ -893,7 +803,7 @@
         "status",
         "updated_at",
         "delivery",
-        "sources"
+        "frd"
       ],
       "type": "object"
     },
@@ -1204,16 +1114,6 @@
           "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
           "type": "string"
         },
-        "related": {
-          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
-          "items": {
-            "$ref": "#/definitions/Slug"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
         "slug": {
           "$ref": "#/definitions/Slug",
           "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
@@ -1279,7 +1179,7 @@
     },
     "Guide": {
       "additionalProperties": false,
-      "description": "A how-to document explaining a technique that other document types\nassume knowledge of — EARS syntax, C4 mapping, cross-document reference\nconventions.\n\nA guide carries no relationships of its own beyond the envelope's\n`related`: it explains a technique rather than participating in the\narchitecture graph.",
+      "description": "A how-to document explaining a technique that other document types\nassume knowledge of — EARS syntax, C4 mapping, cross-document reference\nconventions.\n\nA guide carries no relationships of its own: it explains a technique\nrather than participating in the architecture graph.",
       "properties": {
         "created_at": {
           "description": "RFC 3339 timestamp of the document's creation. Optional.",
@@ -1292,16 +1192,6 @@
         "description": {
           "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
           "type": "string"
-        },
-        "related": {
-          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
-          "items": {
-            "$ref": "#/definitions/Slug"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
         },
         "slug": {
           "$ref": "#/definitions/Slug",
@@ -1427,10 +1317,10 @@
     },
     "ModuleBlueprint": {
       "additionalProperties": false,
-      "description": "A C4 module blueprint: a coherent unit of code with an interface of its\nown, composed into a container.",
+      "description": "A C4 module blueprint: a coherent unit of code with an interface of its\nown, composed into a container.\n\nThe components it composes are not listed in frontmatter. Each child is\ndeclared in this document's Components section — a fenced record block\nwhen un-promoted, a `[[slug]]` blueprint link once promoted, exactly one\nof the two per ADR-008 — and the index derives the roster from there.",
       "properties": {
-        "components": {
-          "description": "Component or module blueprint slugs this module composes, where those\nchildren have been promoted to documents of their own.\n\nA child is in exactly one state: promoted and linked here, or\nun-promoted and declared in a record block in the body. Never both.",
+        "contained_by": {
+          "description": "The containers, or the modules, that compose this module.\n\n**The only multi-parent relationship in the vocabulary, and the reason\nthe module level exists.** C4 gives every element exactly one parent —\na container belongs to one system, a component to one container — and\nthat edge is recorded by the parent, in the roster section of its body.\nModule is this framework's addition to C4, and being composed into more\nthan one container is its whole purpose: a unit shared by two\ncontainers is a module precisely because it is shared.\n\nSo this is a list, and it is declared here rather than derived from\nparent rosters, because a shared module's hosts are a fact about the\nmodule. It is the direction ADR-009 tells modules to point when it\ndenies them a context view — no single outward-edge list is correct for\na module, but the set of hosts is, and this is where it goes.\n\nOmitted when no host has a blueprint of its own — absence records a\ndocumented fact rather than an oversight.",
           "items": {
             "$ref": "#/definitions/Slug"
           },
@@ -1474,16 +1364,6 @@
         "kind": {
           "$ref": "#/definitions/BlueprintKind",
           "description": "Whether this blueprint documents one concrete module or a pattern\nseveral modules follow."
-        },
-        "related": {
-          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
-          "items": {
-            "$ref": "#/definitions/Slug"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
         },
         "slug": {
           "$ref": "#/definitions/Slug",
@@ -1672,7 +1552,7 @@
     },
     "PropertyPairing": {
       "additionalProperties": false,
-      "description": "One half of a relationship that must be declared from both ends.\n\nA blueprint naming a child in `children` where that child declares no\n`parent_slug` is a half-built edge, and it is reported against both\ndocuments rather than only the one that happens to be checked first.",
+      "description": "One half of a relationship that must be declared from both ends.\n\nA document naming a counterpart in one property where that counterpart\ndeclares nothing in return is a half-built edge, and it is reported\nagainst both documents rather than only the one that happens to be\nchecked first.\n\nReserved for a relationship a reader of one document must see without\nconsulting the index. Because the index derives the reverse of every\ndeclared edge, a pairing used to enforce a mirror the index already\ncomputes can only ever fail on redundant hand-work — so the\nspec-driven-dev profile registers none, and an adopting profile that\nregisters one is expected to argue the case. See the Document\nRelationship Standard.",
       "properties": {
         "counterpart": {
           "description": "The property the referenced document must declare in return.",
@@ -1720,16 +1600,6 @@
         "plugin_version": {
           "description": "The plugin version the critiqued skill shipped in.",
           "type": "string"
-        },
-        "related": {
-          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
-          "items": {
-            "$ref": "#/definitions/Slug"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
         },
         "runs_observed": {
           "description": "How many runs stand behind the evidence.\n\nThis is the denominator for any claim about recurrence: an RFC may not\nassert more recurrence than it observed.",
@@ -1999,16 +1869,6 @@
           "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
           "type": "string"
         },
-        "related": {
-          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
-          "items": {
-            "$ref": "#/definitions/Slug"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
         "slug": {
           "$ref": "#/definitions/Slug",
           "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
@@ -2081,18 +1941,8 @@
     },
     "SystemBlueprint": {
       "additionalProperties": false,
-      "description": "A C4 system blueprint: the containers a system bundles, the public\ncontracts it provides, and the systems it depends on.",
+      "description": "A C4 system blueprint: the public contracts a system provides.\n\nThe containers a system bundles are not listed here. Each container\ndeclares the system that composes it in its own `system` property, and\nthe roster is derived from those inbound edges — one authoritative end,\nper the Document Relationship Standard.\n\nA system's dependency on another system is not recorded in frontmatter\nat all. Where the dependency is a named interface it is a contract, and\n`contracts_consumed` holds it. Where it is looser, the blueprint's own\n\"Consumed Systems and Contracts\" section says what is depended on and\nwhat for — which a slug list cannot, and which is what a reader actually\nneeds. A repository spanning more than one system is rare enough that a\nfrontmatter property for the untyped case would be maintained by nobody.",
       "properties": {
-        "containers": {
-          "description": "Container blueprint slugs composed into this system.",
-          "items": {
-            "$ref": "#/definitions/Slug"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
         "contracts_consumed": {
           "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
           "items": {
@@ -2121,29 +1971,9 @@
             "null"
           ]
         },
-        "depends_on": {
-          "description": "Other systems this system depends on.\n\nSystems only. A contract this system consumes is named in\n`contracts_consumed`, so the same dependency has exactly one home.",
-          "items": {
-            "$ref": "#/definitions/Slug"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
         "description": {
           "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
           "type": "string"
-        },
-        "related": {
-          "description": "Peer documents relevant to this one without a stronger relationship:\nthe ADRs behind it, the standards it observes.\n\nEvery relationship property in this vocabulary names documents by\nslug, and every named slug must resolve to a corpus member.",
-          "items": {
-            "$ref": "#/definitions/Slug"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
         },
         "slug": {
           "$ref": "#/definitions/Slug",

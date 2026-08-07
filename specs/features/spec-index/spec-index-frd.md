@@ -9,9 +9,6 @@ type: frd
 status: approved
 updated_at: 2026-08-04T00:00:00Z
 sources: []
-related:
-  - "adr-014"
-  - "adr-015"
 ---
 
 # Spec Corpus Index and Core Conformance Checks

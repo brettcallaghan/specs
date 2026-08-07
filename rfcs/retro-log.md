@@ -19,6 +19,7 @@ decision.
 | 2026-08-01 | self | `spec` | RFC 0007 | 3 adopted (2 with refinement) |
 | 2026-08-01 | self | `triage-rfc` | RFC 0008 | 6 adopted (1 with refinement) |
 | 2026-08-01 | self | `triage-rfc` | RFC 0009 | 4 adopted (1 with refinement), 1 deferred, 1 triage-originated adopted |
+| 2026-08-06 | self | spec (frontmatter relationship vocabulary) | RFC 0012 | 8 adopted (4 with refinement) |
 
 ## Run notes
 

@@ -6,19 +6,16 @@ description: The plugin that supplies this framework's document
 slug: module-spec-profile
 type: module-blueprint
 status: approved
-updated_at: 2026-08-05T00:00:00Z
+updated_at: 2026-08-06T00:00:00Z
 kind: standard
 visibility: internal
 contracts_provided: []
-components: []
+contained_by:
+  - "container-spec-cli"
 source_paths:
   - "cli/profile"
 test_paths:
   - "cli/profile"
-related:
-  - "frd-spec-validation-cli"
-  - "adr-008"
-  - "adr-012"
 version: "0.2"
 ---
 
@@ -326,7 +323,13 @@ under Interface come from.
 ## References
 
 - `c4-guide.md` — C4 mapping rules and diagram conventions
+- [[frd-spec-validation-cli]] — the requirements this module's
+  registrations satisfy
 - [[container-spec-cli]] — the container this module is composed into
 - [[module-document-core]] — the host it registers into
 - [[contract-specs-configuration]] — the configuration surface it
   populates and extends
+- [[adr-008]] — the record-block-XOR-blueprint-link invariant this
+  profile registers as a rule
+- [[adr-012]] — the reference conventions its slug patterns resolve
+  against

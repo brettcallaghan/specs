@@ -53,6 +53,7 @@ Everything the engine needs to check one document type.
 | sections | Array<[Section](#section)>? | The heading hierarchy a document of this type must contain. |
 | section_sets | Map<String, Array<String>>? | Named sets of headings a span query can select, so a reviewing agent can ask for the normative sections of a document and read only those. |
 | reference_properties | Array<String>? | Frontmatter properties of this type that hold document references.<br><br>A value in one of these properties that matches no corpus member's slug is reported the same way an unresolved `[[slug]]` in the body is. |
+| typed_reference_properties | Map<String, String>? | Reference-bearing properties whose target must declare a particular document `type`, keyed by property name with the required type as the value.<br><br>A schema can require that `frd` holds exactly one slug; only the index knows what that slug resolves to, so the type half of the constraint is registered here. Every key must also appear in `reference_properties` — a typed property that is not reference-bearing would be checked against a target nothing resolved. |
 | pairings | Array<[PropertyPairing](#propertypairing)>? | Relationship properties that must be declared from both ends. |
 
 
@@ -77,9 +78,18 @@ problems, and a flat list cannot tell them apart.
 
 One half of a relationship that must be declared from both ends.
 
-A blueprint naming a child in `children` where that child declares no
-`parent_slug` is a half-built edge, and it is reported against both
-documents rather than only the one that happens to be checked first.
+A document naming a counterpart in one property where that counterpart
+declares nothing in return is a half-built edge, and it is reported
+against both documents rather than only the one that happens to be
+checked first.
+
+Reserved for a relationship a reader of one document must see without
+consulting the index. Because the index derives the reverse of every
+declared edge, a pairing used to enforce a mirror the index already
+computes can only ever fail on redundant hand-work — so the
+spec-driven-dev profile registers none, and an adopting profile that
+registers one is expected to argue the case. See the Document
+Relationship Standard.
 
 | Property | Type | Documentation |
 |----------|------|---------------|

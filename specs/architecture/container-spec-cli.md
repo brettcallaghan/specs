@@ -6,17 +6,10 @@ description: The command-line binary that indexes a specification corpus
 slug: container-spec-cli
 type: container-blueprint
 status: approved
-updated_at: 2026-08-05T00:00:00Z
-components: []
-modules:
-  - "module-document-core"
-  - "module-spec-profile"
+updated_at: 2026-08-06T00:00:00Z
 contracts_provided:
   - "contract-specs-configuration"
 contracts_consumed: []
-related:
-  - "frd-spec-validation-cli"
-  - "adr-015"
 ---
 
 # Spec CLI

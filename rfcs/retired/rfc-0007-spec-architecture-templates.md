@@ -17,7 +17,6 @@ effort: unknown
 runs_observed: 1
 severity: blocker
 plugin_version: "0.10.0"
-related: []
 ---
 
 # RFC: Retired @ notation in three templates; the parse-check does not work
