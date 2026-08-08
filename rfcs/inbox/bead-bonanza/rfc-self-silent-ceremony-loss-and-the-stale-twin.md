@@ -26,10 +26,16 @@ plugin_version: "0.15.0"
 `bead-bonanza` run `1786121603-ri` closed 12 beads. Nine carry a
 complete progress trail and a retro anchor; three — `9kb.5`, `9kb.6`,
 `9kb.7` — carry none, and the run reached its final bead with nobody
-aware. The skill already warns against the cause (`SKILL.md:625-627`,
-"Do not paraphrase a template from memory"), so this RFC does not
-propose a louder warning; it proposes the check that catches the warning
-being ignored. A second, independent defect compounded it: the run
+aware. The skill does warn against the proximate cause
+(`SKILL.md:625-627`, "Do not paraphrase a template from memory"), but
+that warning **was not in the orchestrator's context when the decision
+was made**: a skill body is re-injected after compaction capped at 5,000
+tokens, which truncates this 869-line SKILL.md at line 406 and drops the
+warning, the retro-anchor rule, and the script interfaces together
+(Finding 7). So this RFC does not propose a louder warning — a warning
+that is not present cannot be made louder. It proposes the check that
+catches the loss, and the restructuring that keeps the procedure in
+context. A second, independent defect compounded it: the run
 directory's committed backup carries the same run id as the live
 directory but was snapshotted mid-run and never refreshed, so a retro
 reading the backup reported two beads' anchors as missing when both are
@@ -141,6 +147,32 @@ stated there.
    Repro: run `bb-close-bead.sh`, `git commit --amend` to add any
    trailer, then compare the ledger's `sha` to `git rev-parse HEAD`.
 
+7. **[gap · blocker] Compaction truncates the skill body at line 406, so
+   the entire operative procedure leaves the orchestrator's context
+   mid-run.** Claude Code re-injects an invoked skill's body after
+   compaction "capped at 5,000 tokens per skill … oldest dropped first",
+   and truncation keeps the START of the file
+   (`code.claude.com/docs/en/context-window`). `SKILL.md` is 45,983
+   bytes / 869 lines; measured, `head -c 20000 SKILL.md | wc -l` lands at
+   **line 406**, `### Choose a dispatch mode per bucket`. Everything
+   after that is dropped on re-injection, including:
+
+   - `SKILL.md:624-627` — "**Read that file at dispatch** and fill in
+     every `{PLACEHOLDER}` before sending. Do not paraphrase a template
+     from memory";
+   - `SKILL.md:616-618` — the retro anchor "is non-negotiable";
+   - `SKILL.md:813-843` — the Reference-files table and the three
+     published script interfaces, which the skill states are published
+     precisely because the scripts are not to be read.
+
+   `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80` is set in this cloud
+   environment (verified in-session), so compaction fires at 80% whether
+   or not the orchestrator plans for it. The three beads that lost their
+   ceremony — `9kb.5`, `9kb.6`, `9kb.7` — are exactly the three
+   dispatched after the run's context loss. The proximate cause recorded
+   in the epic ("hand-written briefs") is correct; this is why the
+   briefs were hand-written.
+
 ## Proposals
 
 ### P1 — Verify the artifacts before recording a bead closed [blocker]
@@ -208,7 +240,58 @@ this run shows a once-taken copy going stale within 30 minutes. Add:
 does not report a complete seven-event trail as a file that never
 existed.
 
-### P3 — State what the ledger does and does not prove [snag]
+### P3 — Fit the operative procedure under the re-injection cap [blocker]
+
+**Problem.** Two problems with one fix, and the severe one is Finding 7,
+not Finding 5. The skill body is re-injected after compaction capped at
+5,000 tokens, truncating at line 406 and dropping the dispatch rule, the
+retro-anchor rule and the script interfaces — the material an
+orchestrator needs *most* after losing context, gone precisely when it
+loses context. Separately (Finding 5) the same length trips this repo's
+skill linter.
+
+**Change.** Restructure so everything an orchestrator executes sits
+before the cap, and everything explanatory moves out:
+
+- **Above the cap:** Phase 3's execution loop, the close ceremony's
+  ordering, the acceptance check from P1, the circuit breaker, and the
+  Reference-files table with the three script interfaces.
+- **Into `references/`:** Phase 1.5's grooming rationale, Phase 2's
+  decision-doc format, the Phase 4 report specification, and the long
+  Operating-principles prose — the pattern already used for
+  `recovery.md` and `subagent-prompts.md`.
+- Target under 5,000 tokens of body (~20,000 bytes), which also clears
+  the linter's 500-line guidance.
+
+Add near the TOP of the file, where truncation cannot reach it:
+
+> **After any compaction, before dispatching anything:** re-read this
+> file from Phase 3 onward and re-read `references/recovery.md` — a
+> compacted session re-injects only this file's first ~5,000 tokens, so
+> the ceremony, the script interfaces and the anti-paraphrase rule are
+> not in your context even though you have "read the skill". Then
+> `ls $RUN_DIR` and re-run the queue query to re-derive state from the
+> durable source rather than from the summary.
+
+And give Phase 2.5 the compaction trigger: compact deliberately at a
+bucket boundary — never mid-bucket, never with a subagent in flight —
+and check context after each bucket rather than letting the automatic
+pass choose the moment. `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80` is set in
+cloud environments, so it will choose one.
+
+Separately, add to Phase 0's gate-profile step:
+
+> WHEN a gate already fails on an untouched tree, capture its output as
+> the run's **baseline** before Phase 1 and record it in the dispatch
+> plan's ledger. The bar for every bead is "no findings beyond the
+> baseline", not "exit 0". A gate with no recorded baseline is expected
+> to exit 0.
+
+**Evidence.** Finding 5. The exception this run wrote by hand becomes a
+step, and the linter stops reporting the skill meant to teach authoring
+standards.
+
+### P4 — State what the ledger does and does not prove [snag]
 
 **Problem.** `references/recovery.md:40-55` defines the event sequence
 as the status surface without bounding its authority, so a trail ending
@@ -236,7 +319,7 @@ been committed three hours earlier. Finding 3.
 **Evidence.** Finding 3, and the reading error in Finding 2 that the
 last sentence forecloses.
 
-### P4 — Define the resume path for an interrupted bead [snag]
+### P5 — Define the resume path for an interrupted bead [snag]
 
 **Problem.** `SKILL.md:718-722` makes one-commit-per-bead absolute with
 no interruption case, so an interrupted bead has no legal move. Finding
@@ -255,30 +338,6 @@ no interruption case, so an interrupted bead has no legal move. Finding
 
 **Evidence.** Finding 4. The next interrupted bead follows a stated
 path, and the invariant holds at close time.
-
-### P5 — Split SKILL.md, and baseline already-red gates [snag]
-
-**Problem.** At 859 body lines the skill trips this repo's skill linter,
-making `check-skills.sh --strict` red on a clean tree and forcing a
-hand-written baseline exception into every prompt. Finding 5.
-
-**Change.** Move Phase 3's dispatch-mode detail and the Phase 4 report
-specification into `references/dispatch-modes.md` and
-`references/run-report.md`, leaving a one-paragraph summary and a
-pointer for each — the pattern the skill already uses for
-`recovery.md` and `subagent-prompts.md`. Target under 500 body lines.
-
-Separately, add to Phase 0's gate-profile step:
-
-> WHEN a gate already fails on an untouched tree, capture its output as
-> the run's **baseline** before Phase 1 and record it in the dispatch
-> plan's ledger. The bar for every bead is "no findings beyond the
-> baseline", not "exit 0". A gate with no recorded baseline is expected
-> to exit 0.
-
-**Evidence.** Finding 5. The exception this run wrote by hand becomes a
-step, and the linter stops reporting the skill meant to teach authoring
-standards.
 
 ### P6 — Let the close script write the project's trailers [snag]
 
@@ -321,21 +380,25 @@ every recovery path assume.
   evidence for P2.
 - **A stronger warning against paraphrasing briefs.** The proximate
   cause of Finding 1 is hand-written briefs, and `SKILL.md:625-627`
-  already forbids exactly that. Per this skill's own scope rule, an
-  agent ignoring a warning the skill already carries is carelessness,
-  not a skill defect — and per its anti-pattern table, "the fix for
-  ignoring a warning is not another warning". It motivates P1's
-  detection, and nothing else.
+  already forbids exactly that. An earlier draft of this RFC dismissed
+  it as carelessness on that basis — that dismissal was **wrong**, and
+  Finding 7 is why: the warning sits at line 625 of a file truncated at
+  line 406 on re-injection, so it was absent from context at the moment
+  it was needed. The conclusion survives for a different reason. Per the
+  anti-pattern table, "the fix for ignoring a warning is not another
+  warning"; here the fix for a *truncated* warning is not a louder one
+  either. It motivates P1's detection and P3's restructuring, and
+  nothing else.
 - **The dispatch plan was deviated from without a revision log.**
   `.bonanza/1786121603-ri/dispatch.md` plans wave 5 as a shared batch of
   `9kb.6`, `9kb.7`, `9kb.9` then `9kb.8` alone; the commits landed `.6`
-  (21:34), `.7` (21:58), `.8` (22:17), `.9` (22:24). Real, but it is P4
+  (21:34), `.7` (21:58), `.8` (22:17), `.9` (22:24). Real, but it is P5
   of the run-dir RFC and comes from the same run — corroboration, not a
   second observation. Filing it again would make triage decide one
   proposal twice.
 - **Requiring a timestamp in progress events.** Would make Finding 3's
   staleness self-evident, but `recovery.md:52-55` records a deliberate
-  decision against it, and P3's cross-check resolves the question
+  decision against it, and P4's cross-check resolves the question
   without it.
 
 ## Non-Goals
@@ -350,20 +413,26 @@ every recovery path assume.
 
 ## Adoption
 
+**Land P3 first.** It is the causal root: while the operative procedure
+sits past the re-injection cap, every other rule in this file is one
+compaction away from being absent, including P1's acceptance check. The
+post-compact re-read paragraph is the cheapest half and can ship on its
+own, ahead of the restructuring.
+
 P1 and P2 are independent of each other but reinforce: P1 detects a lost
-anchor, P2 stops a stale copy from hiding one that exists. P2's
-"live directory is authoritative" rule should land first regardless — it
-is two paragraphs and it is what this run got wrong twice. P3 depends on
-nothing and touches only `references/recovery.md`. P4 is independent
-(`SKILL.md` only). P5's split is independent; its Phase 0 baseline rule
-can land separately from the split.
+anchor, P2 stops a stale copy from hiding one that exists. P2's "live
+directory is authoritative" rule is two paragraphs and is what this run
+got wrong twice, so it should not wait on the rest. P4 depends on
+nothing and touches only `references/recovery.md`. P5 and P6 are
+independent (`SKILL.md` and `bb-close-bead.sh` respectively).
 
 Backward compatibility: P1 adds two shell commands per bead and no new
 dependency. P2 adds a script and a `SNAPSHOT.md` artifact; existing
 backups without one are, by the new rule, to be treated as
-unknown-as-of and subordinate to a live directory. P4 permits a commit
-shape that was previously forbidden, so no in-flight branch becomes
-invalid.
+unknown-as-of and subordinate to a live directory. P3 moves text between
+files that only this skill reads, and no project document cites
+`SKILL.md` line numbers. P5 permits a commit shape that was previously
+forbidden, so no in-flight branch becomes invalid.
 
 Expected effect: a bead that loses its anchor is caught at the next
 outcome instead of at the end of the run; an aggregated retro states
