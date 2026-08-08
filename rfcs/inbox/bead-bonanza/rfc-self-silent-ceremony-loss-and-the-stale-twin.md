@@ -235,9 +235,10 @@ this run shows a once-taken copy going stale within 30 minutes. Add:
 > it does. Read the backup only when `$RUN_DIR` is gone, and then state
 > the snapshot's as-of time in whatever you conclude from it.
 >
-> The destination is **not** the repository: committing run artifacts was
-> rejected in review of PR #16 and `.bonanza/` is gitignored. See the
-> sibling RFC's P5, where choosing the destination is the open decision.
+> The snapshot is committed under `.bonanza/<run-id>/` while the run is
+> live and deleted as the final step of Phase 4 (sibling RFC's P5), so
+> "refresh after every bead" applies for the run's duration and the
+> directory does not reach the merged tree.
 
 **Evidence.** Finding 2. A retro that consults the live directory first
 does not report a complete seven-event trail as a file that never
