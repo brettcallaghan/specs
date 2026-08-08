@@ -614,11 +614,17 @@ exercise of that rule and it is a deliberate no-bump rather than an
 oversight — `references` is an addition alongside the existing shape,
 which is exactly what [[container-spec-cli]]'s additive rule permits at
 the same version, and the model and the emitted index changed in the
-same change as the Change Guidance below requires. Strata has no notion
-of a constant, so the emitted value lives in `cli/core/specindex`
-alongside the constructor that writes it — a separate package because
+same change as the Change Guidance below requires. The schema constrains
+`schema_version` by pattern (`String ~= /^1\.0$/`) rather than pinning
+it, so the generated model carries a validated field and not a constant;
+the emitted value lives in `cli/core/specindex` alongside the
+constructor that writes it — a separate package because
 `scripts/generate-schemas.sh` rebuilds `cli/core/specmodel/` from
 scratch on every run.
+
+Strata does support pinning a scalar to a single value with `==`, which
+would make the generated model carry the constant directly and remove
+the need for the separate package (`agent-plugins-13j`).
 
 The index is not yet a contract document, and that is now a recorded
 decision rather than an omission. It has one producer and no

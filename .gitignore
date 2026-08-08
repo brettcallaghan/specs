@@ -26,3 +26,7 @@ local/
 # `spec index` writes it here by default (AC-SPEC-010.1); deleting it is
 # always safe, since any changed input triggers a rebuild (AC-SPEC-010.6).
 specs/specs.json
+
+# bead-bonanza run artifacts: scratch state for one run, never merged.
+# The run directory lives under ${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>.
+.bonanza/

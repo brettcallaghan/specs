@@ -213,8 +213,8 @@ of at the end of the run — or, as happened here, not at all.
 
 **Problem.** The backup and the live directory share a run id and differ
 in content, and the backup carries no as-of time or completeness marker.
-A reader who finds the committed copy has no way to know it is partial.
-Finding 2 — two false conclusions in one retro, both from this cause.
+A reader who finds the copy has no way to know it is partial. Finding 2 —
+two false conclusions in one retro, both from this cause.
 
 **Change.** This refines P5 of
 `rfc-self-run-dir-discoverability-and-orchestrator-recovery.md` ("Back
@@ -229,12 +229,15 @@ this run shows a once-taken copy going stale within 30 minutes. Add:
 > check (P1), not once — a copy taken mid-run and never refreshed is
 > indistinguishable from a complete one.
 >
-> **The live run directory is authoritative; the committed copy never
-> is.** Any procedure that reads the backup — recovery, a retro, a DoD
-> audit — first checks whether the live directory still exists, and
-> uses it when it does. Read the backup only when
-> `$RUN_DIR` is gone, and then state the snapshot's as-of time in
-> whatever you conclude from it.
+> **The live run directory is authoritative; a snapshot never is.** Any
+> procedure that reads the backup — recovery, a retro, a DoD audit —
+> first checks whether the live directory still exists, and uses it when
+> it does. Read the backup only when `$RUN_DIR` is gone, and then state
+> the snapshot's as-of time in whatever you conclude from it.
+>
+> The destination is **not** the repository: committing run artifacts was
+> rejected in review of PR #16 and `.bonanza/` is gitignored. See the
+> sibling RFC's P5, where choosing the destination is the open decision.
 
 **Evidence.** Finding 2. A retro that consults the live directory first
 does not report a complete seven-event trail as a file that never

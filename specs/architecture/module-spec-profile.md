@@ -168,14 +168,13 @@ module today — `cli/profile/profile.go` and `cli/profile/registration.go`.
 Element Records is planned and carries no package, so its edge describes
 the intended wiring rather than an existing one.
 
-**Lifecycle Rules is no longer a component of this module.** It was
-designed as a Go package because "the relational part needs code" — that
-a retired document names a resolvable successor, and that a live
-document citing a retired one is surfaced. The registration surface
-below removes that need: the statuses, the successor property and the
-pairings are data Profile Registration supplies like everything else,
-and the checks that read them live in [[module-document-core]] alongside
-the checks it already runs over the corpus, not in a package here.
+**Lifecycle rules are data, not a component.** The statuses, the
+successor property and the pairings are values Profile Registration
+supplies like everything else it registers, and the checks that read
+them — that a retired document names a resolvable successor, and that a
+live document citing a retired one is surfaced — live in
+[[module-document-core]] alongside the checks it already runs over the
+corpus. This module carries no package for them.
 `reference/retired-target`, `reference/pairing-incomplete` and
 `reference/type-mismatch` are those checks, and every judgement each one
 makes comes from the registration below. There is no relational logic

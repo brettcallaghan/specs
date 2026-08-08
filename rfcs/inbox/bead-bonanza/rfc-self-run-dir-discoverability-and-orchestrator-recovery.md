@@ -341,21 +341,38 @@ run idled 2h16m with them unbacked.
 
 > The retro is already concatenated into the bead's description by the
 > close ceremony, so the tracker copy is durable for any bead that
-> closed. Additionally, at Phase 4, copy the whole run directory into
-> the repository under `.bonanza/<run-id>/`, **commit it**, and note the
-> location on the epic.
->
-> It must be **committed, not gitignored**. A gitignored copy lives in
-> the working tree, which is reclaimed with the container exactly like
-> `/tmp` — it would move the artifacts without making them durable. The
-> whole point is surviving container reclaim, and only a pushed commit
-> does that. The cost is small: this run's directory is 152 KB across 17
-> files, dominated by seven retros of 4.3–17.5 KB.
+> closed. Additionally, at Phase 4, preserve the whole run directory to
+> a destination that survives container reclaim, and note that location
+> on the epic.
 >
 > Copy the whole directory rather than a filtered subset. The progress
 > files are a few hundred bytes each and are what make a post-mortem
 > mechanical; deciding at Phase 4 which retros "matter" is a judgment
-> best not made while the evidence is being discarded.
+> best not made while the evidence is being discarded. This run's
+> directory is 152 KB across 17 files.
+>
+> **The destination is not the repository.** A gitignored copy in the
+> working tree is reclaimed with the container exactly like `/tmp`, so
+> it moves the artifacts without making them durable — but committing
+> them is ruled out on review (see below), so this proposal is
+> incomplete until a destination is chosen. Candidates: a CI artifact
+> upload, an object store, or a branch outside the PR's history.
+
+**Rejected on review: committing the copy into the repository.** An
+earlier version of this proposal specified `.bonanza/<run-id>/`,
+committed. That was implemented during this run and **rejected by the
+repository owner in review of PR #16**: "The `.bonanza` directory should
+be cleaned up as a last step in the bonanza. We don't want to merge
+these with our PRs." The directory has been removed from that PR and
+`.bonanza/` is now gitignored. Run artifacts are scratch state for one
+run; a feature PR is not the place to carry them, and the durability
+argument does not override that. **Phase 4 must therefore also delete
+the run directory's in-repo copy if one was ever made** — the cleanup
+step the owner asked for.
+
+The durability problem this proposal was solving is real and remains
+open; only the destination is settled (not the repo). Triage should
+treat the destination as the decision.
 
 **Evidence.** Finding 6.
 
