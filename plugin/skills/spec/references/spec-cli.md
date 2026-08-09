@@ -71,6 +71,12 @@ Indexing never fails on a broken reference. An unresolved reference is
 recorded in the index and reported by `check`; that split is deliberate,
 so a repository whose links are broken still contributes its graph.
 
+`check`, `refs`, `slug-exists` and `next-id` refresh that same file when
+they had to rebuild, so the second of two runs is served from it. You
+never need to run `spec index` to make the others fast — run it when you
+want the artifact itself. It is derived and disposable: deleting it
+changes no answer, and it belongs in `.gitignore`.
+
 **`spec next-id <type>`** returns one greater than the highest number in
 use for a numbered type, across the whole corpus. This is the only
 correct way to pick an ADR number; scanning filenames misses a document
@@ -131,18 +137,26 @@ reaches a real document that says it has been replaced — so it does not
 fail a build unless you pass `--strict`. It is also the one finding that
 tells an author what to cite instead.
 
-**`spec check <path>` reports broken inbound links — and only those.**
-`reference/unresolved` is the one rule the narrow form does not scope to
-the file you name: rename a slug, check that one file, and it names every
-document left citing the old one, at that document's own line. The other
-three reference rules stay scoped to the file named, so an edit whose
-consequence lands on a *referring* document is invisible to them.
-Retiring a document is the case that bites: measured 2026-08-09, setting
-an ADR to `status: retired` and checking that one file reports
-`reference/retired-target passed` and exits 0, while the corpus-wide run
-reports four warnings. Changing a document's `type` behaves the same way
-for `reference/type-mismatch`. Run the corpus-wide `spec check` after a
-retirement or a type change — or `spec refs <slug>` before either.
+**`spec check <path>` reports the reference findings your edit caused
+elsewhere.** All four reference rules escape the narrowing to the file
+you name, because the document that breaks a reference is never the
+document that holds it: rename a slug, retire a document or change its
+`type`, check that one file, and it names every document left citing it,
+at that document's own line. Every other rule stays scoped to the file
+you named.
+
+What no form of the check can tell you is whether a broken reference is
+*yours*. It has no memory of what those references used to resolve to,
+so breakage already in the corpus is reported alongside breakage you
+caused. In a corpus you keep green that distinction is empty. `spec refs
+<slug>` before the change still answers the blast-radius question ahead
+of time, and is the cheaper habit.
+
+**A path that names no corpus member is an error, not a pass.**
+`spec check docs/typo.md` exits 1 and says the path is not a member —
+and where the file exists but was excluded, it names the reason
+(`no-frontmatter`, `unknown-type`). A clean report is never what you get
+for a path the corpus does not hold.
 
 Which frontmatter properties are reference-bearing is **derived from the
 profile's schema**, not a hand-kept list: every property typed as a

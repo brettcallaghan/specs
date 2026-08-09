@@ -4,8 +4,6 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-
-	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
 )
 
 // newSlugExistsCmd builds the `slug-exists` subcommand: answer whether a
@@ -46,9 +44,9 @@ func runSlugExists(streams *ioStreams, configPath, slug string) error {
 		return err
 	}
 
-	c, _, err := corpus.Open(opts, corpus.IndexPath(opts, ""))
+	c, err := openCorpus(opts)
 	if err != nil {
-		return fmt.Errorf("cmd: opening the corpus: %w", err)
+		return err
 	}
 
 	entry, found := c.Slug(slug)

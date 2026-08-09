@@ -670,20 +670,31 @@ member, a reference-bearing frontmatter value matching no corpus member,
 and a slug matching a non-member — the last carrying the non-member's
 path and reason rather than reading as an ordinary unresolved slug
 (AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7). `CheckFor`
-narrows that result to the document named with one exception: unresolved
-references survive wherever they were written, reported against the
+narrows that result to the document named with one exception: every
+reference finding survives wherever it was written, reported against the
 *referring* document at the referrer's own span, because that is the file
-a reader must open to fix it (AC-SPECREF-002.9). Renaming a document's
-slug breaks references held by other files, so a result narrowed strictly
-by path is silent about the very defect a write-time check exists to
-catch. The exception costs nothing: those findings are derived from the
+a reader must open to fix it (AC-SPECREF-002.9, AC-SPECREF-002.11).
+Renaming a document's slug, retiring it and changing its `type` all break
+references held by other files, so a result narrowed strictly by path is
+silent about the very defect a write-time check exists to catch — and
+worse than silent, since the run report would then declare those rules
+`passed` over findings it had discarded. Membership in the exception is a
+property of where a rule's findings land, not of its `reference/` prefix.
+The exception costs nothing: those findings are derived from the
 reference collection the corpus holds in memory regardless of which file
 was named, so the narrowing was the only thing discarding them, and
 AC-SPEC-009.2's single-document budget is untouched. What it does not do
-is separate breakage this edit caused from breakage already present — a
-slug edit invalidates the content fingerprint, so the check reads a
-freshly rebuilt graph with no memory of the slug those references were
-resolved against.
+is separate breakage this edit caused from breakage already present — an
+edit invalidates the content fingerprint, so the check reads a freshly
+rebuilt graph with no memory of what those references resolved to.
+
+`CheckFor` also refuses a path no corpus member occupies, returning
+`ErrNotAMember` rather than a result. Narrowing by path means an unknown
+path selects nothing, and a caller cannot tell an empty result from a
+document that conformed; a mistyped path, a file outside the spec root
+and a file the index excluded would all read as success. Where the index
+recorded an exclusion the error carries its reason, so the answer to
+"why was this not checked" is the one the index already holds.
 
 **They also report what a resolved reference *means*, not only whether
 it lands.** Three rules walk the same already-resolved reference

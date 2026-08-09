@@ -311,6 +311,21 @@ a reader follows it into nothing.
     schema can require that `frd` holds exactly one slug; only the index
     knows what that slug resolves to, so this half of the constraint has
     to live here.
+- **AC-SPECREF-002.11:** WHEN the CLI checks a single document, the CLI
+  SHALL report every reference finding against the document that holds
+  the reference, whichever document that is, in addition to findings
+  against the document named — the retired target of AC-SPECREF-002.6,
+  the incomplete pairing of AC-SPECREF-002.5 and the type mismatch of
+  AC-SPECREF-002.10, on the same terms AC-SPECREF-002.9 states for an
+  unresolved reference.
+  - *Example:* An agent sets an ADR to `status: retired` and the
+    write-time check on that one file reports the four live documents
+    still citing it, at their own lines. Under AC-SPECREF-002.9 alone
+    that same check reported nothing and printed
+    `reference/retired-target passed`: retiring a document does not stop
+    its references resolving, so the edit whose entire purpose is to
+    change what those references *mean* was invisible to the check an
+    author runs before flipping status.
 
 *Rationale:* Severity is assigned here rather than left to
 implementation because it is what the exit status of a build depends on.
@@ -354,6 +369,21 @@ the references used to resolve to. In a corpus kept green the
 distinction is empty, since anything reported is new; narrowing it to
 exactly this criterion's set is deferred to the per-file digests of
 `agent-plugins-h6c.1`.
+
+AC-SPECREF-002.11 generalizes that widening to the other three reference
+rules, and it exists because scoping it to unresolved references alone
+was a defect rather than a boundary (`agent-plugins-bk4`). The argument
+for AC-SPECREF-002.9 — a finding belongs to the document a reader must
+open to fix it, which for a reference is the referrer — is a property of
+*references*, not of unresolved ones. Retiring a document, or changing
+its `type`, breaks a referring document exactly as renaming its slug
+does; the reference still resolves, so nothing about the reader's
+position changes. Leaving those two narrowed made the report state
+something false rather than merely incomplete: `reference/retired-target
+passed` means "ran, found nothing" under AC-SPEC-006.8's accounting,
+while the same corpus checked whole reported findings the narrowing had
+dropped. A check that reports a rule as passed on evidence it discarded
+is worse than one that does not run the rule.
 
 ### REQ-SPECREF-003: Reference Queries
 

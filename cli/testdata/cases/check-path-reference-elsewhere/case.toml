@@ -1,0 +1,5 @@
+description = "check <path> reports reference findings held by other documents — an unresolved reference and a retired target — while still narrowing every non-reference finding to the file named"
+cites = ["AC-SPECREF-002.9", "AC-SPECREF-002.11"]
+artifacts = ["checks.log"]
+args = ["check", "docs/adrs/adr-200-checked.md"]
+exit_code = 1

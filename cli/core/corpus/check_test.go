@@ -13,6 +13,7 @@ package corpus_test
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"sort"
@@ -1222,12 +1223,21 @@ func TestCheckRaisesNoTypeMismatchFindingWhenTheTargetDeclaresTheExpectedType(t 
 	}
 }
 
-// CheckFor narrows every LIFE finding to the checked file exactly as it
-// already does for reference/unresolved: the defect is detected
-// corpus-wide, but only the named file's own copy is returned. This
-// matters most for reference/pairing-incomplete, which raises a finding
-// against two different paths from one corpus-wide pass.
-func TestCheckForNarrowsLifecycleAndRelationalFindingsToTheCheckedFile(t *testing.T) {
+// Every LIFE finding survives CheckFor's narrowing on the same terms
+// reference/unresolved does, because every one of them is raised against
+// the document holding the reference rather than the document the
+// reference is about (AC-SPECREF-002.11).
+//
+// Retiring a document is the case that motivates it: checking the
+// document just retired must name the live documents still citing it,
+// which is the write-time equivalent of the slug rename AC-SPECREF-002.9
+// covers. This test asserted the opposite until agent-plugins-bk4 — that
+// the finding was narrowed away — which is what let a single-document
+// check print "reference/retired-target passed" over findings it had
+// discarded.
+//
+// AC: AC-SPECREF-002.11
+func TestCheckForReportsLifecycleFindingsAgainstTheReferringDocument(t *testing.T) {
 	repo := t.TempDir()
 	write(t, repo, "specs/adrs/adr-900.md", statusDocument("adr", "adr-900", "Old decision", "retired"))
 	write(t, repo, "specs/adrs/adr-800.md",
@@ -1235,19 +1245,72 @@ func TestCheckForNarrowsLifecycleAndRelationalFindingsToTheCheckedFile(t *testin
 
 	built := buildChecked(t, repo, lifecycleCheckProfile())
 
+	// The document that was retired: the finding lands on its referrer,
+	// and checking the retired document is what an author does before
+	// flipping status.
 	findings, err := built.CheckFor("specs/adrs/adr-900.md")
 	if err != nil {
 		t.Fatalf("CheckFor: %v", err)
 	}
-	if got := findingsWithRule(findings, finding.RuleRetiredTarget, "specs/adrs/adr-800.md"); len(got) != 0 {
-		t.Errorf("CheckFor(adr-900) reported adr-800's own retired-target finding: %+v", got)
+	if got := findingsWithRule(findings, finding.RuleRetiredTarget, "specs/adrs/adr-800.md"); len(got) != 1 {
+		t.Errorf("CheckFor(adr-900) reported %d retired-target findings against the referrer, want 1: %+v", len(got), findings)
 	}
 
+	// The referrer itself still reports its own finding, exactly once.
 	findings, err = built.CheckFor("specs/adrs/adr-800.md")
 	if err != nil {
 		t.Fatalf("CheckFor: %v", err)
 	}
 	if got := findingsWithRule(findings, finding.RuleRetiredTarget, "specs/adrs/adr-800.md"); len(got) != 1 {
 		t.Errorf("CheckFor(adr-800) reported %d of its own retired-target findings, want 1: %+v", len(got), findings)
+	}
+}
+
+// A path that names no corpus member is an error, never a report with no
+// findings — the vacuous success agent-plugins-ltd is about. The index
+// already distinguishes a candidate it excluded, with the reason, from a
+// path discovery never saw, and both are reported as such.
+//
+// AC: AC-SPEC-001.2
+func TestCheckForRejectsAPathThatIsNotACorpusMember(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-001.md", document("adr", "adr-001", "First"))
+	write(t, repo, "specs/notes/loose.md", "# No frontmatter at all\n")
+	write(t, repo, "README.md", "# Outside the spec root\n")
+
+	built := buildChecked(t, repo, referenceCheckProfile("superseded_by"))
+
+	for _, tc := range []struct {
+		name string
+		path string
+		want string
+	}{
+		{"never discovered", "specs/adrs/does-not-exist.md", "no document at that path"},
+		{"outside the spec root", "README.md", "no document at that path"},
+		{"excluded candidate", "specs/notes/loose.md", "no-frontmatter"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			findings, err := built.CheckFor(tc.path)
+			if err == nil {
+				t.Fatalf("CheckFor(%s) returned %d findings and no error", tc.path, len(findings))
+			}
+			if !errors.Is(err, corpus.ErrNotAMember) {
+				t.Fatalf("error = %v, want it to wrap ErrNotAMember", err)
+			}
+			if findings != nil {
+				t.Errorf("findings = %+v, want none alongside the error", findings)
+			}
+			if !strings.Contains(err.Error(), tc.want) {
+				t.Errorf("error = %q, want it to mention %q", err, tc.want)
+			}
+			if !strings.Contains(err.Error(), tc.path) {
+				t.Errorf("error = %q, want it to name the path asked about", err)
+			}
+		})
+	}
+
+	// A real member is unaffected.
+	if _, err := built.CheckFor("specs/adrs/adr-001.md"); err != nil {
+		t.Errorf("CheckFor on a member returned %v", err)
 	}
 }

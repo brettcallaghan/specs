@@ -1,6 +1,7 @@
 package corpus
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -53,17 +54,55 @@ func (c *Corpus) Check() ([]specmodel.Finding, error) {
 // file, which is what keeps a single-document check from paying for the
 // whole corpus.
 //
-// Unresolved references are the exception to that narrowing: they are
-// reported wherever they were written, against the referring document
-// rather than the file named (AC-SPECREF-002.9). Renaming a document's
-// slug breaks references held by *other* files, and a result narrowed
-// strictly by path would report nothing for the edit that caused them.
+// Reference findings are the exception to that narrowing: every one of
+// them is reported against the document that holds the reference,
+// whichever document that is, in addition to the findings against the
+// file named (AC-SPECREF-002.9, AC-SPECREF-002.11). Renaming a
+// document's slug, retiring it, or changing its `type` all break
+// references held by *other* files, and a result narrowed strictly by
+// path would report nothing for the edit that caused them.
 //
-// path may be absolute or repository-relative, and may use either
-// platform's separator.
+// It returns [ErrNotAMember] for a path no corpus member occupies, so
+// that a mistyped path, a file outside the spec root and a file the
+// index excluded are all distinguishable from a document that passed.
+// Selecting nothing and reporting every rule passed is the vacuous
+// success this tool exists to catch elsewhere (`agent-plugins-ltd`).
+//
+// path may be absolute or repository-relative. On Windows it may use
+// either separator; on other platforms a backslash is an ordinary
+// character in a filename and is left alone.
 func (c *Corpus) CheckFor(path string) ([]specmodel.Finding, error) {
 	wanted := c.normalize(path)
+	if _, member := c.byPath[wanted]; !member {
+		return nil, c.notAMember(wanted)
+	}
 	return c.check(&wanted)
+}
+
+// ErrNotAMember reports that a path a caller named is not a corpus
+// member. Callers test for it with [errors.Is]; the wrapped error carries
+// the path and, where the index recorded one, the reason it was excluded.
+var ErrNotAMember = errors.New("not a corpus member")
+
+// notAMember builds the error [Corpus.CheckFor] returns for a path that
+// occupies no entry, distinguishing the two cases the index can already
+// tell apart: a candidate that was discovered and excluded — where the
+// recorded reason is the answer the caller needs, and the same reason the
+// index reports — and a path discovery never saw at all.
+func (c *Corpus) notAMember(normalized string) error {
+	for _, excluded := range c.index.Exclusions {
+		if excluded.Path != normalized {
+			continue
+		}
+		if excluded.Type != nil && *excluded.Type != "" {
+			return fmt.Errorf("corpus: %s is %w: %s (declared type %q)",
+				normalized, ErrNotAMember, excluded.Reason, *excluded.Type)
+		}
+		return fmt.Errorf("corpus: %s is %w: %s",
+			normalized, ErrNotAMember, excluded.Reason)
+	}
+	return fmt.Errorf("corpus: %s is %w: no document at that path was discovered under the spec root",
+		normalized, ErrNotAMember)
 }
 
 // check is the shared implementation behind Check and CheckFor. only,
@@ -143,34 +182,42 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 		return findings, nil
 	}
 
-	// AC-SPECREF-002.9: unresolved references survive the narrowing
-	// wherever they were written, not only in the file named. The
-	// criterion's scenario is an agent renaming a document's slug, where
-	// the referrers it just broke are in *other* files — so a result
-	// narrowed strictly by path is silent about the very defect the
-	// write-time check exists to catch, and stays silent until someone
-	// runs the corpus-wide check.
+	// AC-SPECREF-002.9 and AC-SPECREF-002.11: every reference finding
+	// survives the narrowing, wherever it was written. A finding belongs
+	// to the document a reader must open to fix it, and for a reference
+	// that is the referrer — so an edit to the file named breaks *other*
+	// files, and a result narrowed strictly by path is silent about the
+	// very defect a write-time check exists to catch.
 	//
-	// This costs nothing. The loop above already derives these findings
+	// All four rules share that property, not only the unresolved one:
+	// renaming a slug leaves references unresolved, retiring a document
+	// leaves them resolving to a retired target, changing its type leaves
+	// them mismatched, and dropping a paired property leaves the pairing
+	// incomplete. In every case the edit is here and the finding is
+	// elsewhere. Scoping the exception to unresolved references made the
+	// report state something false rather than merely incomplete: under
+	// AC-SPEC-006.8's accounting `reference/retired-target passed` means
+	// "ran, found nothing", which is not what had happened
+	// (agent-plugins-bk4).
+	//
+	// This costs nothing. The loops above already derive these findings
 	// for the whole corpus regardless of only, because the references are
 	// in memory either way; the narrowing was the only thing discarding
-	// them. A slug edit changes the corpus's input hash, so a check that
-	// follows one is reading a freshly rebuilt graph in which the stale
-	// referrers are recorded unresolved — already computed, already paid
-	// for, and previously thrown away one line from being reported.
+	// them.
 	//
-	// What this cannot do is separate "broken by this edit" from "already
-	// broken": the rebuild has no memory of the slug the referrers were
-	// resolved against. In a corpus kept green that distinction is empty
-	// — every unresolved reference is new. In one already red, a
-	// single-document check repeats the corpus's existing breakage. Telling
-	// them apart needs real prior state, which is agent-plugins-h6c.1
-	// (per-file digests, so a single-document check can prove the only
-	// changed file is the one named) rather than a diff against whatever
-	// index happened to be on disk, whose age is unbounded.
+	// What it cannot do is separate "broken by this edit" from "already
+	// broken": an edit changes the corpus's input hash, so the check reads
+	// a freshly rebuilt graph with no memory of what those references used
+	// to resolve to. In a corpus kept green that distinction is empty —
+	// everything reported is new. In one already red, a single-document
+	// check repeats the corpus's existing breakage. Telling them apart
+	// needs real prior state, which is agent-plugins-h6c.1 (per-file
+	// digests, so a check can prove the only changed file is the one
+	// named) rather than a diff against whatever index happened to be on
+	// disk, whose age is unbounded.
 	var narrowed []specmodel.Finding
 	for _, f := range findings {
-		if f.Path == *only || f.Rule == finding.RuleUnresolvedReference {
+		if f.Path == *only || finding.IsReferenceRule(f.Rule) {
 			narrowed = append(narrowed, f)
 		}
 	}
