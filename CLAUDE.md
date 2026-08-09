@@ -16,12 +16,8 @@ command -v bd >/dev/null && command -v strata >/dev/null || \
 It is idempotent, takes a few minutes cold (it builds `bd` from source
 and `strata` from a checkout), and is a no-op once both are installed.
 
-The `strata` half needs `STRATA_ACCESS_TOKEN` in the environment — that
-repository is private, and the credentials this session gets are scoped
-to the repositories it attached. Without it the hook logs a warning,
-skips `strata`, and everything else still lands. If `strata` **is**
-attached to this session, no token is needed: the hook builds that
-checkout instead of cloning.
+If it skips `strata`, read the warning it logs — `AGENTS.md` ("strata
+CLI") covers the causes. Everything else still lands either way.
 
 **Why this is needed.** `.claude/settings.json` registers that hook, and
 Claude Code loads hooks only from the **project root** — there is no

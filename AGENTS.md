@@ -161,70 +161,39 @@ synthetically instead, on every platform, by `cli/cmd/portability_test.go`.
 - `strata`: not preinstalled either. The hook builds it from source — see
   "strata CLI" below.
 
-### strata CLI
-
-`.claude/hooks/session-start.sh` provisions the `strata` compiler because the
-`strata` skill's entire method is compiling what it writes. Notes measured in
-this environment:
-
-- **Source, not a release.** The published binaries lag `main`, and the point
-  is the latest code. `https://github.com/strata-lang/strata.git` clones over
-  HTTPS through the egress proxy, but **not unauthenticated** — the repository
-  is private, and the credentials the proxy injects are scoped to the
-  repositories the session attached. Measured 2026-08-09: an unauthenticated
-  clone fails with `could not read Username for 'https://github.com'`, which
-  is what "WARNING: could not clone strata" in the hook log means.
-- **`STRATA_ACCESS_TOKEN` is what makes the clone work** — a fine-grained PAT
-  with read access to `strata-lang/strata`, set as an environment variable on
-  the cloud environment (`docs/session-bootstrap.md` covers where). The hook
-  hands it to git through a **credential helper**, scoped to the clone's own
-  local config. Two things that looks over-engineered for and is not:
-  - **Not in the remote URL.** `https://x-access-token:$TOKEN@github.com/...`
-    authenticates, but git persists it in `.git/config`, where it outlives the
-    session on disk and appears in `git remote -v`.
-  - **Not in global config, and not `http.extraHeader`.** A global github.com
-    helper would also answer for this repository's own pushes, where a
-    strata-scoped PAT is rejected. `-c http.extraHeader="Authorization:
-    Bearer …"` simply does not authenticate here (measured 2026-08-09: same
-    username prompt) — the proxy re-terminates TLS, so don't reach for it.
-- **`api.github.com` returns 403 through the proxy** as of 2026-08-09, with or
-  without a token — see the correction under "Prebuilt binaries" below. Only
-  git-over-HTTPS to `github.com` works, which is why every provisioning path
-  here is a clone plus a source build.
-- **Measured build cost:** 1m50s for `cargo build --release -p strata-cli` on
-  a cold container, and ~470 MB in `target/`. The hook stamps the built commit
-  in `~/.cache/strata-cli/built-commit` and skips the build when it matches, so
-  only the first session of a container pays. The SessionStart hook's `timeout`
-  in `.claude/settings.json` is raised to 900s to cover it — at the 60s default
-  the build is killed partway.
-- **It never touches a checkout that has work in it.** An attached strata clone
-  is fast-forwarded only when it is on the default branch *and* clean;
-  otherwise it is built exactly as it sits.
-- **Escape hatches:** `STRATA_CLI_SKIP=1` skips the whole step,
-  `STRATA_SRC_DIR` points it at a specific checkout (which also bypasses the
-  token entirely — an attached or pre-cloned checkout needs no credentials).
-  Build output lands in `~/.cache/strata-cli/build.log`.
-- **Prebuilt binaries are not an option here, so don't "optimize" to them.**
-  Measured 2026-08-01: `api.github.com` answered **200** (so a release *lookup*
-  succeeded and listed the Linux asset), but the asset download itself returned
-  **404** through the proxy, at both the `/releases/latest/download/` redirect
-  and the tagged URL. Release metadata being reachable is not the same as
-  release bytes being reachable — that is the trap.
-
-  **Re-measured 2026-08-09: `api.github.com` now returns 403**, with and
-  without a token, so the lookup fails before the download does. Both
-  measurements point the same way — build from source — but do not cite the
-  2026-08-01 reading as evidence that the API is reachable; it no longer is.
-  The 403 entry above stands as written.
-- **The clone is per-container, not shared.** `~/.cache/strata-src` and
-  `~/.cache/strata-cli` live on the session's ephemeral disk, so a new
-  container pays the full ~1m45s build once. The stamp only saves repeat
-  SessionStart fires within one container (resume, `/clear`), which cost 0.4s.
 - `bd init` **git-commits its own scaffolding**. The hook records HEAD and
   unwinds that commit — a session hook must not leave commits nobody asked for.
 - `bd` has been observed once writing its global config to a **literal `./~/`**
   inside the repo rather than `$HOME`. Not reproducible on retry; the hook
   pins `HOME` and sweeps `./~` on exit, and `.gitignore` covers it.
+
+### strata CLI
+
+Local sessions already have `strata` on PATH; this section is about cloud
+sessions, where `.claude/hooks/session-start.sh` provisions it because the
+`strata` skill's entire method is compiling what it writes.
+
+- **Built from source at HEAD, not from a release.** The published binaries
+  lag `main` and the point is the latest code. Do not "optimize" this into a
+  release download: both the release API and the release assets are blocked by
+  the egress proxy (403 and 404 respectively, last measured 2026-08-09), so a
+  clone plus `cargo build` is the only path that works here.
+- The hook prefers a checkout the session already has — an attached `strata`,
+  or `STRATA_SRC_DIR` — and clones only as a fallback. It never touches a
+  checkout with work in it: it fast-forwards only a clean default branch, and
+  otherwise builds what it finds.
+- **Escape hatches:** `STRATA_CLI_SKIP=1` skips the step entirely;
+  `STRATA_SRC_DIR` points at a checkout. Build output lands in
+  `~/.cache/strata-cli/build.log` and the built commit in
+  `~/.cache/strata-cli/built-commit`.
+- **If `strata` is missing, read the hook's warning** — it names the cause.
+  The common one is the clone: `strata-lang/strata` is private *today*, so a
+  cloud session with no attached checkout needs `STRATA_ACCESS_TOKEN` set on
+  the environment (`docs/session-bootstrap.md`). That requirement goes away
+  when the repository goes public — `agent-plugins-6gn` tracks removing it.
+- **Cost:** ~1m50s and ~470 MB of `target/`, once per container. The
+  SessionStart `timeout` in `.claude/settings.json` is 900s to cover it; at
+  the 60s default the build is killed partway.
 
 ## model lineup
 
