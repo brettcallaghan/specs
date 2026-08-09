@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"hash"
 	"sort"
+	"strings"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/specindex"
 )
@@ -90,6 +91,21 @@ func (h *inputHasher) sum(opts Options) string {
 	for _, name := range names {
 		rules := types[name]
 		field(sum, "type:"+name, fmt.Appendf(nil, "%s\x00%t", rules.SlugPattern, rules.Numbered))
+		// The reference-bearing properties are folded in because they
+		// decide the index's *content*: a property registered today holds
+		// a reference the emitted graph carries and did not carry
+		// yesterday, while every file on disk stands still. Without this a
+		// profile that registers a new one would be served the index built
+		// before it — a stale answer, which the whole cache decision is
+		// one-sided to avoid.
+		//
+		// The registration's other members are deliberately not folded in.
+		// Typed references, pairings and the lifecycle are read by checks
+		// that run against the live profile on every invocation and reach
+		// nothing the index records, so a change to one of them cannot
+		// make a persisted index stale — and folding it in would rebuild
+		// the corpus to produce identical bytes.
+		field(sum, "references:"+name, []byte(strings.Join(rules.ReferenceProperties, "\x00")))
 	}
 
 	sort.Slice(h.files, func(i, j int) bool { return h.files[i].path < h.files[j].path })

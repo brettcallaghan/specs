@@ -56,6 +56,39 @@ struct ProfileRegistration {
   placeholder_patterns: [String]?
 
   """
+  The statuses at which a document is in effect, and therefore at which a
+  reference it makes to a retired document is worth reporting.
+
+  Profile-level rather than per-type because `status` is a property of
+  the shared document envelope: every type this profile defines carries
+  it, and none of them narrows it. A profile registering none of these
+  three lifecycle keys registers no lifecycle, and the checks that read
+  them do not run.
+  """
+  live_statuses: [Status]?
+
+  """
+  The statuses at which a document is no longer in effect, so that a live
+  document still pointing at it is reported.
+
+  Disjoint from `live_statuses` by construction; a status in neither is
+  one the lifecycle says nothing about, which is the right answer for a
+  draft.
+  """
+  retired_statuses: [Status]?
+
+  """
+  The name of the frontmatter property in which a retired document names
+  its replacement.
+
+  Registered rather than assumed, because the engine that reports a
+  retired target must not contain the name of the property this
+  framework happens to use for it. Its value is quoted back in the
+  finding, so a reader is told what to cite instead of what they cited.
+  """
+  successor_property: String?
+
+  """
   The convention values this profile supplies when `specs.toml` omits
   them.
   """

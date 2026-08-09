@@ -12,9 +12,17 @@
 // convention defaults Document Core resolves when an adopting
 // repository's own configuration omits them.
 //
-// Element records, required sections, reference properties and
-// lifecycle rules are later capabilities; registering them belongs to a
-// future change to this package, not to a workaround here.
+// What this package registers per type is the authored table below —
+// a slug pattern and whether the type is numbered — widened with the
+// reference registration derived from the embedded schema, and the
+// lifecycle derived from the same place. Both derivations live in
+// registration.go, and they are derivations rather than lists because a
+// property added to schemas/frontmatter.strata is reference-bearing the
+// moment it is declared.
+//
+// Element records and required sections are later capabilities;
+// registering them belongs to a future change to this package, not to a
+// workaround here.
 package profile
 
 import (
@@ -37,11 +45,14 @@ const Name = "spec-driven-dev"
 // Unicode codepoints per that same standard.
 const defaultLineWidth = 80
 
-// documentTypes is the thin per-type table required of every value in
-// the DocumentType vocabulary: a slug pattern and whether the type is
-// numbered. It carries no schema — DocumentTypeRegistration.schema in
-// cli/core/specmodel is left unpopulated, since the one union schema
-// this profile embeds already covers every type.
+// documentTypes is the authored half of the per-type table: a slug
+// pattern and whether the type is numbered, for every value in the
+// DocumentType vocabulary. It carries no schema —
+// DocumentTypeRegistration.schema in cli/core/specmodel is left
+// unpopulated, since the one union schema this profile embeds already
+// covers every type. It carries no reference registration either: that
+// half is derived from the same schema, in registration.go, and the two
+// are joined by [registeredTypes] — which is what [New] returns.
 //
 // Patterns are grounded in this repository's own corpus rather than
 // restated from the prefix registry in template-authoring-standards.md,
@@ -115,10 +126,18 @@ var documentTypes = map[string]corpus.DocumentTypeRules{
 // specDrivenDev is this framework's Profile: the value New returns.
 type specDrivenDev struct{}
 
+// registration is the whole per-type table this profile registers,
+// assembled once. It is built at package initialization rather than per
+// call because it is a constant of this binary: the authored table is a
+// literal and the derived half comes from a schema embedded at build
+// time, so there is nothing a later call could learn.
+var registration = registeredTypes()
+
 // New returns this framework's spec-driven-dev profile: a value
 // satisfying Document Core's Profile interface (cli/core/corpus),
-// carrying the embedded union schema, the per-type slug/numbered table,
-// and the line_width convention default.
+// carrying the embedded union schema, the per-type table of slug
+// pattern, numbered-ness and reference registration, the lifecycle, and
+// the line_width convention default.
 func New() corpus.Profile {
 	return specDrivenDev{}
 }
@@ -131,10 +150,13 @@ func (specDrivenDev) Schema() []byte {
 	return schema.SpecModel
 }
 
-// DocumentTypes returns the slug pattern and numbered flag this profile
-// registers for every DocumentType.
+// DocumentTypes returns what this profile registers for every
+// DocumentType: its slug pattern, whether it is numbered, the frontmatter
+// properties of that type that hold a document slug, the one typed
+// reference this framework declares, and its pairings — of which it
+// declares none.
 func (specDrivenDev) DocumentTypes() map[string]corpus.DocumentTypeRules {
-	return documentTypes
+	return registration
 }
 
 // Conventions returns this profile's convention defaults: line_width,
@@ -142,4 +164,17 @@ func (specDrivenDev) DocumentTypes() map[string]corpus.DocumentTypeRules {
 func (specDrivenDev) Conventions() specmodel.ConventionsConfig {
 	width := uint64(defaultLineWidth)
 	return specmodel.ConventionsConfig{LineWidth: &width}
+}
+
+// Lifecycle returns this profile's lifecycle registration: the whole
+// status vocabulary the generated schema declares, `retired` as the only
+// status at which a document is no longer in effect, every other status
+// as live, and `superseded_by` as the property a retired document names
+// its replacement in.
+//
+// Every status other than `retired` is live because the warning about a
+// retired target exists to tell an author what to cite instead, and the
+// author most likely to need telling is editing a draft.
+func (specDrivenDev) Lifecycle() corpus.LifecycleRules {
+	return lifecycle()
 }

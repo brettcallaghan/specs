@@ -7,6 +7,14 @@
 - [ExclusionReason](#exclusionreason)
 - [IndexEntry](#indexentry)
 - [IndexExclusion](#indexexclusion)
+- [ReferenceBodyOrigin](#referencebodyorigin)
+- [ReferenceFrontmatterOrigin](#referencefrontmatterorigin)
+- [ReferenceOrigin](#referenceorigin)
+- [ReferenceResolved](#referenceresolved)
+- [ReferenceUnresolved](#referenceunresolved)
+- [ReferenceNonMember](#referencenonmember)
+- [ReferenceResolution](#referenceresolution)
+- [Reference](#reference)
 - [SpecIndex](#specindex)
 
 ## Span
@@ -96,6 +104,129 @@ One candidate file that is not a corpus member, and why.
 | type | String? | The `type` value the file declared, reported when `reason` is `unknown-type` so that a reviewing agent can judge whether the profile or the document is wrong. |
 
 
+## ReferenceBodyOrigin
+
+A reference written in a document's body.
+
+Carries nothing of its own. What a body reference adds beyond its
+position is nothing, and its position is recorded on the reference
+itself; this shape exists so that the origin is a value a consumer
+branches on rather than a property it has to infer from the absence of
+another.
+
+*No properties defined.*
+
+
+## ReferenceFrontmatterOrigin
+
+A reference held by a frontmatter property the active profile registers
+as reference-bearing.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| property | String | The name of the frontmatter property the reference was written in, so that a finding names the property without the document being reopened. |
+
+
+## ReferenceOrigin
+
+Where a reference was written.
+
+The distinction is not decoration. A reference in prose and a reference
+in a registered frontmatter property are reported differently — one
+quotes the link, the other names the property that holds it — and they
+are rewritten differently, so the origin belongs to the reference rather
+than being inferred from where its span happens to fall.
+
+**Discriminator:** kind (String)
+
+| Tag | Type | Documentation |
+|-----|------|---------------|
+| "body" | Body | A reference parsed from the content after the frontmatter block. |
+| "frontmatter-property" | FrontmatterProperty | A value held by a registered reference-bearing frontmatter property. |
+
+
+## ReferenceResolved
+
+A reference that reached a corpus member.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| target_path | String | The target's path, relative to the repository root and written with forward slashes on every platform.<br><br>The path rather than the slug, because the slug is already on the reference and a consumer following the edge wants the file. |
+
+
+## ReferenceUnresolved
+
+A reference whose slug matches no corpus member and no file the index
+knows about at all.
+
+Carries nothing: the slug that matched nothing is already on the
+reference this resolution belongs to.
+
+*No properties defined.*
+
+
+## ReferenceNonMember
+
+A reference whose slug matches a file the index recorded as excluded or
+as a parse failure rather than as a corpus member.
+
+Held apart from an ordinary unresolved reference because the reader's
+next step differs: the document is right there, and what is wrong is its
+frontmatter rather than the reference. Exactly one of `reason` and
+`parse_error` is present — the two ways a file beneath the spec root
+fails to become a member.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| path | String | The matched file's path, relative to the repository root and written with forward slashes on every platform. |
+| reason | [ExclusionReason](#exclusionreason)? | Why the file is not a member, present when the index recorded it as an exclusion. |
+| parse_error | [ParseError](#parseerror)? | The failure that prevented the file's frontmatter from being parsed, with its position, present when the index recorded it as a member whose frontmatter could not be read. |
+
+
+## ReferenceResolution
+
+What a reference reached.
+
+A reference that reaches nothing is recorded with this state rather than
+dropped, because indexing never fails: the index describes the corpus it
+found, including the parts of it that are broken, and reporting a broken
+reference is a check's job rather than the indexer's.
+
+**Discriminator:** state (String)
+
+| Tag | Type | Documentation |
+|-----|------|---------------|
+| "resolved" | Resolved | The slug matched a corpus member. |
+| "unresolved" | Unresolved | The slug matched nothing in the corpus. |
+| "non-member" | NonMember | The slug matched a file beneath the spec root that is not a member. |
+
+
+## Reference
+
+One occurrence of one document referencing another.
+
+A reference is an edge, and it is recorded as a row of its own rather
+than as a property of either document it connects. The facts that make
+it actionable — where it was written, whether it came from prose or from
+a named frontmatter property, and what it reached — belong to neither
+endpoint, and both directions of the graph are derived by indexing this
+one collection rather than stored twice.
+
+One row per occurrence. A document that references the same target twice
+contributes two rows carrying two spans, so a finding about either cites
+the line the reader must open.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| path | String | The path of the document the reference occurs in, relative to the repository root and written with forward slashes on every platform. |
+| text | String | The reference exactly as written, without the delimiters that enclose it — `adr-012`, or `adr-012#Decision`, or the raw value of a reference-bearing frontmatter property.<br><br>Recorded alongside the halves it splits into, because the text is what a reader sees and what a rewrite replaces, and neither is recoverable from the halves once letter case or spacing has been normalized. |
+| slug | String | The slug half: everything before the first `#`, or the whole reference where it names no anchor.<br><br>A plain `String` rather than a `Slug`, deliberately. A reference is written by hand and may name something that is not a well-formed slug at all; constraining this property would make such a reference unrepresentable in the index, which is the one place it must be visible in order to be reported. |
+| anchor | String? | The anchor half: everything after the first `#`, absent where the reference names no anchor.<br><br>Recorded and not interpreted. Resolving an anchor against the target's headings is a separate feature; splitting on the first `#` is the whole of what this shape knows about anchors, and it exists so that an anchored reference resolves on its slug rather than reporting as broken. |
+| origin | [ReferenceOrigin](#referenceorigin) | Where the reference was written. |
+| position | [Span](#span) | Where in the containing document the reference occurs, as a span rather than a bare line number, so a report and a rewrite both address the reference itself. |
+| resolution | [ReferenceResolution](#referenceresolution) | What the reference reached. |
+
+
 ## SpecIndex
 
 The machine-readable description of a repository's specification corpus,
@@ -118,6 +249,7 @@ without a change to this model.
 | workspace | String | The workspace identifier from configuration, so that indexes emitted by several repositories can be merged into one graph without two documents that both declare `adr-001` colliding. |
 | entries | Array<[IndexEntry](#indexentry)> | Every corpus member, in the order the emitter fixes. |
 | exclusions | Array<[IndexExclusion](#indexexclusion)> | Every excluded candidate file, in the order the emitter fixes. |
+| references | Array<[Reference](#reference)> | Every reference any corpus member makes, in the order the emitter fixes: by the path the reference occurs in, then by its position within that document.<br><br>One top-level collection rather than an array on each entry. A reference is an edge; its attributes describe the edge and not either endpoint, both directions are derived from this one list when the index is read, and merging the indexes of two repositories into one graph is appending rows rather than rewriting entries.<br><br>Ordering by path and then by position is what makes a document's outbound references ordered by position in the document and the emitted file byte-identical across platforms, in one rule. |
 | input_hash | String? | A hash of everything this index was built from, written as `sha256:` followed by lowercase hexadecimal.<br><br>This is what makes the emitted file double as a warm cache: a later invocation recomputes the hash of the corpus's current inputs and serves this index unchanged when the two agree, rather than rebuilding. It is a hash of **content** — every candidate file's repository-relative path and bytes, plus the active profile's vocabulary — and never of modification time, so a fresh checkout whose files all carry new timestamps and identical content is still served warm.<br><br>Absent on an index that was not built by walking a corpus. An index carrying no hash is never served warm; it is rebuilt. |
 
 

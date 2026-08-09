@@ -6,9 +6,10 @@ description: Builds the References component of Document Core, adds the
   exposes the graph as checks and a refs query
 slug: feature-spec-reference-integrity
 type: feature-blueprint
-status: approved
-updated_at: 2026-08-07T00:00:00Z
+status: retired
+updated_at: 2026-08-07T23:00:00Z
 delivery: staged
+plan: agent-plugins-9kb
 frd: frd-spec-reference-integrity
 ---
 
@@ -643,16 +644,33 @@ checks; LIFE = lifecycle and relational checks; CMD = Command Surface in
 | AC-SPECREF-002.6 | **LIFE (proves)**, PREG | unit |
 | AC-SPECREF-002.7 | **RES (proves)**, CHK | unit |
 | AC-SPECREF-002.8 | **RES (proves)** | unit |
-| AC-SPECREF-002.9 | **CHK (proves)**, CMD | integration |
+| AC-SPECREF-002.9 | **CHK (proves)**, CMD | unit † |
 | AC-SPECREF-002.10 | **LIFE (proves)**, PREG | unit |
 | AC-SPECREF-003.1 | **CMD (proves)**, RES | integration |
 | AC-SPECREF-003.2 | **CMD (proves)**, RES | integration |
 | AC-SPECREF-003.3 | **CMD (proves)**, MODEL | integration |
-| AC-SPECREF-003.4 | **CMD (proves)**, RES | integration |
+| AC-SPECREF-003.4 | **CMD (proves)**, RES | unit † |
 | AC-SPECREF-003.5 | **CMD (proves)** | integration |
 | AC-SPECREF-004.1 | **XPT (proves)**, MODEL, PREG | unit |
 | AC-SPECREF-004.2 | **PREG (proves)** | unit |
-| AC-SPECREF-004.3 | **CMD (proves)**, XPT | integration |
+| AC-SPECREF-004.3 | **CMD (proves)**, XPT | unit † |
+
+† Three criteria are verified by Go tests rather than by a snapshot
+case, because the state each one is about cannot be staged from a
+case's input corpus — and a snapshot case is pure data by
+[[testing-standards]]'s own harness-independence rule, so it has no way
+to plant that state. AC-SPECREF-002.9 needs a persisted index whose
+reference row disagrees with a document on disk, which `corpus.Open`'s
+all-or-nothing content fingerprint makes unreachable from files
+(`TestCheckForReportsBrokenInboundReferencesAgainstTheReferrer`).
+AC-SPECREF-003.4 needs a warm-served row no document carries, the same
+way (`TestAWarmCorpusServesTheGraphFromThePersistedIndex`).
+AC-SPECREF-004.3 needs a profile whose registration is defective, and a
+profile is compiled in rather than authored in the corpus
+(`TestLoadReportsARegistrationDefectAtProfileNamePosition`). All three
+fall under [[testing-standards]]'s note that index content, corpus
+queries, configuration resolution and latency are verified by unit tests
+and other artifacts, whose citation stands on its own.
 
 ## Key Decisions
 
@@ -673,8 +691,8 @@ checks; LIFE = lifecycle and relational checks; CMD = Command Surface in
 
 ## Definition of Done
 
-- [ ] Every delta above is folded into its owning blueprint:
-  - [ ] [[module-document-core]] — References marked built with the
+- [x] Every delta above is folded into its owning blueprint:
+  - [x] [[module-document-core]] — References marked built with the
         package that realizes it and its pinned semantics; the Corpus
         index-model vocabulary gains `Reference` and the `references`
         collection; the Findings vocabulary gains the new
@@ -684,34 +702,47 @@ checks; LIFE = lifecycle and relational checks; CMD = Command Surface in
         Change Guidance rule on the Spans scanner records the
         `goldmark` narrowing; Key Decisions gains [[adr-018]];
         `version` bumped 0.2 → 0.3.
-  - [ ] [[module-spec-profile]] — Profile Registration records the
+  - [x] [[module-spec-profile]] — Profile Registration records the
         reference, typed-reference and lifecycle registrations;
         Lifecycle Rules reconciled from a planned package to a
         registration, with the checks located in Document Core;
         Interface records the widened `Profile` members; `version`
         bumped 0.2 → 0.3.
-  - [ ] [[container-spec-cli]] — Command Surface records the `refs`
+  - [x] [[container-spec-cli]] — Command Surface records the `refs`
         subcommand and the profile-registration finding; the Components
         prose reflects the widened module surfaces. (`ContainerBlueprint`
         declares no `version` property, so no bump is possible here —
         `agent-plugins-e0t`.)
-- [ ] [[contract-specs-configuration]] — the internal registration
+- [x] [[contract-specs-configuration]] — the internal registration
       surface revised in place to enumerate reference-bearing
       properties, typed references, pairings and the lifecycle
       registration; `version` unchanged, with the reason recorded.
-- [ ] [[adr-018]] status: draft → approved, and referenced from
+- [x] [[adr-018]] status: draft → approved, and referenced from
       [[module-document-core]]'s Key Decisions.
-- [ ] `specs/adrs/README.md` carries an index entry for [[adr-018]].
-- [ ] Every AC in the coverage table is verified at its declared level
-      and cited from its tests per [[testing-standards]].
-- [ ] The profile self-application gate runs the built profile over this
+- [x] `specs/adrs/README.md` carries an index entry for [[adr-018]].
+- [x] Every AC in the coverage table is verified at its declared level
+      and cited from its tests per [[testing-standards]]. All 24 carry an
+      `AC:` citation or a case manifest `cites` entry, and no citation
+      names a criterion the FRD does not define. Three declared levels
+      were corrected to `unit` at verification, for the reason recorded
+      under the coverage table.
+- [x] The profile self-application gate runs the built profile over this
       repository's own `specs/` corpus and the run is green at the
       severities these checks assign.
-- [ ] Every issue listed as subsumed in Tracker Reconciliation
+      `TestProfileSelfApplicationAgainstThisRepositorysCorpus` asserts
+      exactly zero findings, warnings included, so the new
+      `reference/*` rules are inside the assertion rather than beside
+      it. One finding surfaced at retirement — [[adr-018]] listed this
+      blueprint in its References, which
+      [[document-relationship-standards]] already forbids as a mirrored
+      declaration of an edge the blueprint's own Key Decisions holds —
+      and was fixed in the corpus rather than by loosening either the
+      gate or the lifecycle registration.
+- [x] Every issue listed as subsumed in Tracker Reconciliation
       (`agent-plugins-dgn`, `agent-plugins-3md`) is closed or
       re-scoped, and the prerequisite (`agent-plugins-j7f`) is resolved
       before MODEL lands.
-- [ ] This blueprint's status → retired.
+- [x] This blueprint's status → retired.
 
 ## Open Questions
 

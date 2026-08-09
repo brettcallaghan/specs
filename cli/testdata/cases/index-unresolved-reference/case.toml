@@ -1,0 +1,5 @@
+description = "index records a reference that resolves to no corpus member and still exits zero with a complete index"
+cites = ["AC-SPECREF-001.6"]
+artifacts = ["checks.log", "manifest.json"]
+args = ["index"]
+exit_code = 0

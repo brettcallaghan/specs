@@ -16,6 +16,7 @@ import (
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
 	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
+	"github.com/brettcallaghan/agent-plugins/cli/core/references"
 	"github.com/brettcallaghan/agent-plugins/cli/core/span"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specindex"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
@@ -94,6 +95,14 @@ type Corpus struct {
 	findings []specmodel.Finding
 	byPath   map[string]int
 	bySlug   map[string]int
+
+	// outbound and inbound are the reference graph's two directions, each
+	// holding positions into index.References keyed by a document's path:
+	// outbound by the path a reference occurs in, inbound by the path it
+	// resolved to. Both are built once, by [Corpus.indexReferences], from
+	// the one collection the index carries.
+	outbound map[string][]int
+	inbound  map[string][]int
 
 	// profile is the active profile the corpus was built under, retained
 	// so that Check can reach its schema and per-type rules without the
@@ -346,6 +355,11 @@ type builder struct {
 	// docs is every member's parsed frontmatter document, keyed by
 	// reported path, carried onto the built Corpus for Check to read.
 	docs map[string]*frontmatter.Document
+	// references is every reference the walk extracted, in walk order.
+	// They are resolved and ordered in [builder.finish], once the whole
+	// corpus is known: what a reference reached is a question about the
+	// corpus rather than about the document it was written in.
+	references []specmodel.Reference
 }
 
 // visit classifies one candidate the walk offered, and folds its bytes
@@ -387,13 +401,17 @@ func (b *builder) classify(reported string, src []byte) {
 		})
 
 	default:
-		b.classifyDocument(reported, doc)
+		b.classifyDocument(reported, src, doc)
 	}
 }
 
 // classifyDocument decides membership for a file whose frontmatter
 // parsed, from the type it declares.
-func (b *builder) classifyDocument(reported string, doc *frontmatter.Document) {
+//
+// src is the file's bytes, carried this far so that a member's references
+// are extracted from the read the walk already performed rather than from
+// a second one.
+func (b *builder) classifyDocument(reported string, src []byte, doc *frontmatter.Document) {
 	declared, declaredOK := declaredType(doc)
 	if _, known := b.types[declared]; !known || !declaredOK {
 		// A type the active profile does not define, or no type at all.
@@ -427,6 +445,26 @@ func (b *builder) classifyDocument(reported string, doc *frontmatter.Document) {
 		specmodel.IndexEntry{Path: reported, Frontmatter: envelope},
 		member{path: reported, slug: string(envelope.Slug), slugAt: slugSpan(doc), doc: doc},
 	)
+	b.extractReferences(reported, src, doc, b.types[declared])
+}
+
+// extractReferences records the references one member makes, from the
+// bytes the walk has already read and the frontmatter it has already
+// parsed — which is what keeps the reference graph costing the walk it
+// rides on rather than a second pass over the corpus.
+//
+// Only a member contributes references. A file that is not a
+// specification, or is one whose frontmatter could not be read, has no
+// declared type, and the properties that hold a reference in frontmatter
+// are registered per type — so there is nothing to ask the profile for
+// and no document whose graph the answer would belong to.
+func (b *builder) extractReferences(reported string, src []byte, doc *frontmatter.Document, rules DocumentTypeRules) {
+	b.references = append(b.references, references.Extract(references.Options{
+		Path:                reported,
+		Source:              src,
+		Frontmatter:         doc,
+		ReferenceProperties: rules.ReferenceProperties,
+	})...)
 }
 
 // addEntry records one entry, and the member facts duplicate detection
@@ -472,6 +510,14 @@ func (b *builder) finish(opts Options) *Corpus {
 		}
 	}
 
+	// Resolution runs here rather than during the walk because it is a
+	// question about the whole corpus: a reference read from the first
+	// file may name the last, so nothing can be resolved until every
+	// member's slug is known. It reads no document — the walk is still
+	// the only pass over the corpus.
+	b.index.References = append(b.index.References, orderedReferences(b.references)...)
+	references.Resolve(b.index.References, b.index)
+
 	report := finding.NewReport()
 	report.Add(duplicateSlugs(b.members)...)
 
@@ -481,7 +527,7 @@ func (b *builder) finish(opts Options) *Corpus {
 	hash := b.hasher.sum(opts)
 	b.index.InputHash = &hash
 
-	return &Corpus{
+	built := &Corpus{
 		repoRoot: b.repoRoot,
 		specRoot: b.specRoot,
 		index:    b.index,
@@ -491,6 +537,55 @@ func (b *builder) finish(opts Options) *Corpus {
 		profile:  b.profile,
 		types:    b.types,
 		docs:     b.docs,
+	}
+	built.indexReferences()
+	return built
+}
+
+// orderedReferences returns refs in the order the emitted index carries
+// them: by the path of the document the reference occurs in, then by its
+// position within that document.
+//
+// One rule serves two requirements. A document's outbound references come
+// out ordered by position, which is what AC-SPECREF-001.5 asks for, and
+// the collection as a whole is a function of corpus content rather than
+// of the filesystem's iteration order, which is what makes the emitted
+// index byte-identical across platforms and across runs (AC-SPEC-009.7).
+//
+// Sorting by byte offset rather than by line and column is deliberate:
+// the offset is the authoritative extent of a span, and two references
+// cannot begin at the same offset in the same document, so the order is
+// total.
+func orderedReferences(refs []specmodel.Reference) []specmodel.Reference {
+	sort.Slice(refs, func(i, j int) bool {
+		if refs[i].Path != refs[j].Path {
+			return refs[i].Path < refs[j].Path
+		}
+		return refs[i].Position.Offset < refs[j].Position.Offset
+	})
+	return refs
+}
+
+// indexReferences builds the two direction lookups over the index's one
+// reference collection, once, when the corpus is built or opened.
+//
+// Both directions index the same rows rather than storing an edge and its
+// reverse ([[adr-018]]): outbound is keyed by the path a reference occurs
+// in, inbound by the path it resolved to, and each map holds positions
+// into [Corpus.index].References. A reference that resolved to nothing has
+// no inbound key, which is the honest shape — a broken edge has one end.
+//
+// The values come out in the collection's own order, so a lookup answers
+// in path-then-position order without sorting anything a second time.
+func (c *Corpus) indexReferences() {
+	c.outbound = map[string][]int{}
+	c.inbound = map[string][]int{}
+
+	for i, reference := range c.index.References {
+		c.outbound[reference.Path] = append(c.outbound[reference.Path], i)
+		if resolved, ok := reference.Resolution.AsResolved(); ok {
+			c.inbound[resolved.TargetPath] = append(c.inbound[resolved.TargetPath], i)
+		}
 	}
 }
 
@@ -750,6 +845,52 @@ func (c *Corpus) Slug(slug string) (specmodel.IndexEntry, bool) {
 		return specmodel.IndexEntry{}, false
 	}
 	return c.index.Entries[i], true
+}
+
+// OutboundReferences returns every reference one document makes: the
+// `[[slug]]` links in its body and the values of the reference-bearing
+// frontmatter properties the active profile registers for its type, in
+// the order they occur in the document.
+//
+// The result is empty for a document that references nothing, and for one
+// the corpus does not hold — a document that is not a member makes no
+// reference the graph records, and neither case is an error.
+//
+// path may be absolute or repository-relative, and may use either
+// platform's separator.
+func (c *Corpus) OutboundReferences(path string) []specmodel.Reference {
+	return c.referencesAt(c.outbound, path)
+}
+
+// InboundReferences returns every reference that resolved to one
+// document: the reverse direction, derived from the same collection the
+// outbound references are read from rather than stored a second time.
+//
+// Each returned reference is cited at its position in the *referring*
+// document, because that is the file a reader opens to change it. The
+// result is ordered by referring path and then by position within it, and
+// is empty for a document nothing references — which is an answer, not a
+// failure.
+//
+// path may be absolute or repository-relative, and may use either
+// platform's separator.
+func (c *Corpus) InboundReferences(path string) []specmodel.Reference {
+	return c.referencesAt(c.inbound, path)
+}
+
+// referencesAt returns the references one direction's lookup holds for a
+// path, copied out of the index so that a caller cannot reorder the
+// collection every later query reads.
+func (c *Corpus) referencesAt(direction map[string][]int, path string) []specmodel.Reference {
+	positions := direction[c.normalize(path)]
+	if len(positions) == 0 {
+		return nil
+	}
+	found := make([]specmodel.Reference, 0, len(positions))
+	for _, i := range positions {
+		found = append(found, c.index.References[i])
+	}
+	return found
 }
 
 // normalize converts a caller's path to the reported form: relative to

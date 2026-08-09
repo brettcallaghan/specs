@@ -943,6 +943,70 @@
           "then": {
             "$ref": "#/definitions/FindingUnverified"
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "unresolved-reference"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FindingUnresolvedReference"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "retired-target"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FindingRetiredTarget"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "incomplete-pairing"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FindingIncompletePairing"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "reference-type"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FindingReferenceType"
+          }
         }
       ],
       "description": "The structured detail of one finding, selected by the kind of defect.\n\nEvery finding carries one. The message on the finding is derivable from\nthis value, so a consumer branches on structure rather than parsing\nprose, and a renderer that wants to offer a fix reads the fields it needs\nas values.\n\nThe union is open to extension in the sense that matters: a later check\nadds a variant without changing the envelope that carries it, and a\nconsumer that does not recognise a variant still has the rule\nidentifier, the severity, the path, the span and the message.",
@@ -954,7 +1018,11 @@
             "slug-pattern",
             "duplicate-slug",
             "frontmatter-parse",
-            "unverified"
+            "unverified",
+            "unresolved-reference",
+            "retired-target",
+            "incomplete-pairing",
+            "reference-type"
           ],
           "type": "string"
         }
@@ -997,6 +1065,35 @@
       ],
       "type": "object"
     },
+    "FindingIncompletePairing": {
+      "additionalProperties": false,
+      "description": "One half of a paired relationship the counterpart does not declare.\n\nReported against both documents, each carrying this same detail, so that\nchecking either one surfaces the half-built edge and the two copies\ndescribe the relationship in the same direction rather than each from its\nown point of view.",
+      "properties": {
+        "counterpart": {
+          "description": "The property the referenced document must declare in return, and does\nnot.",
+          "type": "string"
+        },
+        "property": {
+          "description": "The reference-bearing property the referring document declares.",
+          "type": "string"
+        },
+        "source_path": {
+          "description": "The referring document's path, relative to the repository root and\nwritten with forward slashes on every platform.",
+          "type": "string"
+        },
+        "target_path": {
+          "description": "The referenced document's path, relative to the repository root and\nwritten with forward slashes on every platform.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "property",
+        "counterpart",
+        "source_path",
+        "target_path"
+      ],
+      "type": "object"
+    },
     "FindingMissingProperty": {
       "additionalProperties": false,
       "description": "A property the document's type requires and the document does not\ndeclare.\n\nModelled apart from the general schema violation because a missing\nproperty is the most common defect by a wide margin, and a consumer\noffering to insert one needs the property name as a value rather than as\na substring of a message.",
@@ -1013,6 +1110,35 @@
       "required": [
         "pointer",
         "property"
+      ],
+      "type": "object"
+    },
+    "FindingReferenceType": {
+      "additionalProperties": false,
+      "description": "A typed reference whose target declares a document type other than the\none the active profile requires for that property.\n\nA frontmatter schema can require that a property holds exactly one slug;\nonly the index knows what that slug resolves to, so the type half of the\nconstraint is checked here and reported with both types quoted.",
+      "properties": {
+        "actual_type": {
+          "description": "The `type` the target actually declares.",
+          "type": "string"
+        },
+        "expected_type": {
+          "description": "The document `type` the active profile requires the target to declare.",
+          "type": "string"
+        },
+        "property": {
+          "description": "The reference-bearing property whose target's type is constrained.",
+          "type": "string"
+        },
+        "slug": {
+          "description": "The slug the property names.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "property",
+        "slug",
+        "expected_type",
+        "actual_type"
       ],
       "type": "object"
     },
@@ -1038,6 +1164,27 @@
       "required": [
         "checks",
         "findings"
+      ],
+      "type": "object"
+    },
+    "FindingRetiredTarget": {
+      "additionalProperties": false,
+      "description": "A reference from a live document to one the active profile treats as\nretired.\n\nThe target resolves — the reader reaches a real document that says it has\nbeen replaced — so this is a warning rather than an error. The successor\nis what makes it worth reporting at all: it is the one finding that tells\nan author what to cite instead.",
+      "properties": {
+        "slug": {
+          "description": "The retired target's slug.",
+          "type": "string"
+        },
+        "successor": {
+          "description": "The replacement the retired target names, read from the property the\nactive profile registers for that purpose.\n\nAbsent where the target declares none. Not every retirement has a\nsuccessor, and a finding that implied otherwise would send the reader\nlooking for one.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "slug"
       ],
       "type": "object"
     },
@@ -1081,6 +1228,36 @@
       "required": [
         "slug",
         "pattern"
+      ],
+      "type": "object"
+    },
+    "FindingUnresolvedReference": {
+      "additionalProperties": false,
+      "description": "A reference that reached no corpus member.\n\nThe origin is carried because it decides how the defect reads: a `[[…]]`\nin prose is quoted back, while a value in a registered frontmatter\nproperty is reported by naming the property that holds it. The\nnon-member half is carried because a slug that matched a file the index\nexcluded or could not parse is a different problem with a different fix,\nand telling the reader which one they have saves them a search for a\ndocument that is right there.",
+      "properties": {
+        "non_member": {
+          "description": "The non-member file the slug matched, with the reason it is not a\nmember.\n\nAbsent when the slug matched nothing at all, which is the ordinary\ncase; present when the target exists beneath the spec root and is\nexcluded or unparsable.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ReferenceNonMember"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "origin": {
+          "$ref": "#/definitions/ReferenceOrigin",
+          "description": "Where the reference was written: the document's body, or a named\nreference-bearing frontmatter property."
+        },
+        "slug": {
+          "description": "The slug half of the reference, as written — everything before the\nfirst `#`, whose anchor half is not part of this defect.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "slug",
+        "origin"
       ],
       "type": "object"
     },
@@ -1529,6 +1706,16 @@
             "null"
           ]
         },
+        "live_statuses": {
+          "description": "The statuses at which a document is in effect, and therefore at which a\nreference it makes to a retired document is worth reporting.\n\nProfile-level rather than per-type because `status` is a property of\nthe shared document envelope: every type this profile defines carries\nit, and none of them narrows it. A profile registering none of these\nthree lifecycle keys registers no lifecycle, and the checks that read\nthem do not run.",
+          "items": {
+            "$ref": "#/definitions/Status"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
         "name": {
           "description": "The name an adopting repository writes in `[profile].name`.",
           "type": "string"
@@ -1540,6 +1727,23 @@
           },
           "type": [
             "array",
+            "null"
+          ]
+        },
+        "retired_statuses": {
+          "description": "The statuses at which a document is no longer in effect, so that a live\ndocument still pointing at it is reported.\n\nDisjoint from `live_statuses` by construction; a status in neither is\none the lifecycle says nothing about, which is the right answer for a\ndraft.",
+          "items": {
+            "$ref": "#/definitions/Status"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "successor_property": {
+          "description": "The name of the frontmatter property in which a retired document names\nits replacement.\n\nRegistered rather than assumed, because the engine that reports a\nretired target must not contain the name of the property this\nframework happens to use for it. Its value is quoted back in the\nfinding, so a reader is told what to cite instead of what they cited.",
+          "type": [
+            "string",
             "null"
           ]
         }
@@ -1567,6 +1771,245 @@
         "property",
         "counterpart"
       ],
+      "type": "object"
+    },
+    "Reference": {
+      "additionalProperties": false,
+      "description": "One occurrence of one document referencing another.\n\nA reference is an edge, and it is recorded as a row of its own rather\nthan as a property of either document it connects. The facts that make\nit actionable — where it was written, whether it came from prose or from\na named frontmatter property, and what it reached — belong to neither\nendpoint, and both directions of the graph are derived by indexing this\none collection rather than stored twice.\n\nOne row per occurrence. A document that references the same target twice\ncontributes two rows carrying two spans, so a finding about either cites\nthe line the reader must open.",
+      "properties": {
+        "anchor": {
+          "description": "The anchor half: everything after the first `#`, absent where the\nreference names no anchor.\n\nRecorded and not interpreted. Resolving an anchor against the target's\nheadings is a separate feature; splitting on the first `#` is the whole\nof what this shape knows about anchors, and it exists so that an\nanchored reference resolves on its slug rather than reporting as\nbroken.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "origin": {
+          "$ref": "#/definitions/ReferenceOrigin",
+          "description": "Where the reference was written."
+        },
+        "path": {
+          "description": "The path of the document the reference occurs in, relative to the\nrepository root and written with forward slashes on every platform.",
+          "type": "string"
+        },
+        "position": {
+          "$ref": "#/definitions/Span",
+          "description": "Where in the containing document the reference occurs, as a span rather\nthan a bare line number, so a report and a rewrite both address the\nreference itself."
+        },
+        "resolution": {
+          "$ref": "#/definitions/ReferenceResolution",
+          "description": "What the reference reached."
+        },
+        "slug": {
+          "description": "The slug half: everything before the first `#`, or the whole reference\nwhere it names no anchor.\n\nA plain `String` rather than a `Slug`, deliberately. A reference is\nwritten by hand and may name something that is not a well-formed slug\nat all; constraining this property would make such a reference\nunrepresentable in the index, which is the one place it must be\nvisible in order to be reported.",
+          "type": "string"
+        },
+        "text": {
+          "description": "The reference exactly as written, without the delimiters that enclose\nit — `adr-012`, or `adr-012#Decision`, or the raw value of a\nreference-bearing frontmatter property.\n\nRecorded alongside the halves it splits into, because the text is what\na reader sees and what a rewrite replaces, and neither is recoverable\nfrom the halves once letter case or spacing has been normalized.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "text",
+        "slug",
+        "origin",
+        "position",
+        "resolution"
+      ],
+      "type": "object"
+    },
+    "ReferenceBodyOrigin": {
+      "additionalProperties": false,
+      "description": "A reference written in a document's body.\n\nCarries nothing of its own. What a body reference adds beyond its\nposition is nothing, and its position is recorded on the reference\nitself; this shape exists so that the origin is a value a consumer\nbranches on rather than a property it has to infer from the absence of\nanother.",
+      "properties": {},
+      "type": "object"
+    },
+    "ReferenceFrontmatterOrigin": {
+      "additionalProperties": false,
+      "description": "A reference held by a frontmatter property the active profile registers\nas reference-bearing.",
+      "properties": {
+        "property": {
+          "description": "The name of the frontmatter property the reference was written in, so\nthat a finding names the property without the document being reopened.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "property"
+      ],
+      "type": "object"
+    },
+    "ReferenceNonMember": {
+      "additionalProperties": false,
+      "description": "A reference whose slug matches a file the index recorded as excluded or\nas a parse failure rather than as a corpus member.\n\nHeld apart from an ordinary unresolved reference because the reader's\nnext step differs: the document is right there, and what is wrong is its\nfrontmatter rather than the reference. Exactly one of `reason` and\n`parse_error` is present — the two ways a file beneath the spec root\nfails to become a member.",
+      "properties": {
+        "parse_error": {
+          "description": "The failure that prevented the file's frontmatter from being parsed,\nwith its position, present when the index recorded it as a member\nwhose frontmatter could not be read.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ParseError"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "path": {
+          "description": "The matched file's path, relative to the repository root and written\nwith forward slashes on every platform.",
+          "type": "string"
+        },
+        "reason": {
+          "description": "Why the file is not a member, present when the index recorded it as an\nexclusion.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/ExclusionReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "type": "object"
+    },
+    "ReferenceOrigin": {
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "body"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/ReferenceBodyOrigin"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "frontmatter-property"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/ReferenceFrontmatterOrigin"
+          }
+        }
+      ],
+      "description": "Where a reference was written.\n\nThe distinction is not decoration. A reference in prose and a reference\nin a registered frontmatter property are reported differently — one\nquotes the link, the other names the property that holds it — and they\nare rewritten differently, so the origin belongs to the reference rather\nthan being inferred from where its span happens to fall.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "body",
+            "frontmatter-property"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "type": "object"
+    },
+    "ReferenceResolution": {
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "resolved"
+              }
+            },
+            "required": [
+              "state"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/ReferenceResolved"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "unresolved"
+              }
+            },
+            "required": [
+              "state"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/ReferenceUnresolved"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "non-member"
+              }
+            },
+            "required": [
+              "state"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/ReferenceNonMember"
+          }
+        }
+      ],
+      "description": "What a reference reached.\n\nA reference that reaches nothing is recorded with this state rather than\ndropped, because indexing never fails: the index describes the corpus it\nfound, including the parts of it that are broken, and reporting a broken\nreference is a check's job rather than the indexer's.",
+      "properties": {
+        "state": {
+          "enum": [
+            "resolved",
+            "unresolved",
+            "non-member"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "type": "object"
+    },
+    "ReferenceResolved": {
+      "additionalProperties": false,
+      "description": "A reference that reached a corpus member.",
+      "properties": {
+        "target_path": {
+          "description": "The target's path, relative to the repository root and written with\nforward slashes on every platform.\n\nThe path rather than the slug, because the slug is already on the\nreference and a consumer following the edge wants the file.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_path"
+      ],
+      "type": "object"
+    },
+    "ReferenceUnresolved": {
+      "additionalProperties": false,
+      "description": "A reference whose slug matches no corpus member and no file the index\nknows about at all.\n\nCarries nothing: the slug that matched nothing is already on the\nreference this resolution belongs to.",
+      "properties": {},
       "type": "object"
     },
     "Rfc": {
@@ -1805,6 +2248,13 @@
             "null"
           ]
         },
+        "references": {
+          "description": "Every reference any corpus member makes, in the order the emitter\nfixes: by the path the reference occurs in, then by its position within\nthat document.\n\nOne top-level collection rather than an array on each entry. A\nreference is an edge; its attributes describe the edge and not either\nendpoint, both directions are derived from this one list when the index\nis read, and merging the indexes of two repositories into one graph is\nappending rows rather than rewriting entries.\n\nOrdering by path and then by position is what makes a document's\noutbound references ordered by position in the document and the emitted\nfile byte-identical across platforms, in one rule.",
+          "items": {
+            "$ref": "#/definitions/Reference"
+          },
+          "type": "array"
+        },
         "schema_version": {
           "description": "The version of this index's schema.\n\nPinned to `1.0` for as long as the shape only grows. A change to the\nshape of what is already here — as opposed to an addition alongside it\n— updates this value and the emitted index in the same change.",
           "pattern": "^1\\.0$",
@@ -1819,7 +2269,8 @@
         "schema_version",
         "workspace",
         "entries",
-        "exclusions"
+        "exclusions",
+        "references"
       ],
       "type": "object"
     },

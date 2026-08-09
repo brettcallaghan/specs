@@ -1,0 +1,12 @@
+refs reports every corpus member whose body or registered frontmatter properties reference the given slug. Given --outbound, it reports the documents that slug references instead. A slug no corpus member declares is reported distinctly from one that is declared but unreferenced; both exit zero.
+
+Usage:
+  spec refs <slug> [flags]
+
+Flags:
+  -h, --help       help for refs
+      --json       write each reference as JSON, with its file path and span, to standard output
+      --outbound   report the documents the slug references, instead of the documents referencing it
+
+Global Flags:
+      --config string   path to the repository's specs.toml (default "specs.toml")

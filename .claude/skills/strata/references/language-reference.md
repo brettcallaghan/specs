@@ -1,6 +1,6 @@
 <!-- GENERATED COPY — DO NOT EDIT.
      Source of truth: strata-lang/strata docs/content/docs/lang.mdx
-     Vendored from commit: 68c28f514cc9 (2026-07-26)
+     Vendored from commit: 840f9ba5740c (2026-08-06)
      Regenerate with: scripts/sync-strata-docs.sh
      Upstream owns this text. Fix it there, then re-run that script. -->
 
@@ -183,6 +183,53 @@ struct OptionalElements {
 > [!NOTE]
 >
 > Strata has no distinct `undefined` state — most target languages don't model one, so the absent and `null` cases are unified.
+
+### Where optionality may be declared
+
+A `?` goes at a *use* site — a property, an array element, a map value, a template argument. It may not be baked into a type's name, and it may not be applied twice to the same type. Two rules follow from that, and both are enforced by the compiler.
+
+**An alias is never optional.** `alias OptionalColor: RgbColor?` is rejected. Optionality belongs where the type is used, so a property's declaration always tells you whether it may be absent — you should never have to open another file to find out. Write the alias without the `?` and mark each use:
+
+```strata
+alias RgbColor: String ~= /^#[0-9A-Fa-f]{6}$/
+
+struct Layer {
+  backgroundColor: RgbColor
+  foregroundColor: RgbColor?
+}
+```
+
+An alias whose type merely *contains* an optional below the top level is fine — `alias Names: [String?]` and `alias Lookup: [String: RgbColor?]` both resolve to a collection, and only the element and value types are optional.
+
+**An optional of an optional is rejected.** `String??` has never parsed. A template argument can reach the same shape less obviously, and that is rejected too: given `struct Box<T> { value: T? }`, the instantiation `Box<String?>` would substitute `String?` into a position that already carries a `?`, so the compiler refuses it rather than quietly reducing it to one level. Drop the `?` from the argument, or drop it from the template body and write it at each use:
+
+```strata
+struct Box<T> {
+  value: T?
+}
+
+struct Root {
+  b: Box<String>     # value is String?
+}
+```
+
+The rule is about the *parameter's position in the template body*, not about the argument being optional. An optional argument landing anywhere else stays legal, because those shapes are representable on the wire:
+
+```strata
+struct Paginated<T> {
+  items: [T]
+}
+
+struct Root {
+  page: Paginated<User?>   # items is [User?] — fine
+}
+```
+
+`[]`, `[null]` and `[{...}]` are three distinct payloads, so an optional inside an array carries real information. A doubled optional does not: JSON has one representation for "no value", so the second `?` would describe a state no payload could ever express and no target could round-trip.
+
+> [!NOTE]
+>
+> **Converting from GraphQL or OpenAPI?** Both let you name a nullable type — a GraphQL nullable field type, an OpenAPI schema with `nullable: true` — and Strata does not, so those types have no one-to-one alias. Push the optionality down instead: name the base type with an alias, then mark each property that uses it with `?`. A type that is nullable in *every* position becomes an alias plus a `?` at each of its use sites, which is more edits but leaves each declaration self-describing.
 
 ## Enums
 An `enum` is a scalar type with a fixed set of named values — use it when a property's value must come from a known list.
@@ -482,6 +529,8 @@ struct Config {
 ## Type aliases
 A type alias gives a name to a type expression. Most useful for naming constrained types you reuse — regex-matched strings, formatted identifiers, and so on.
 
+An alias names a type; it does not decide whether a property may be absent. `alias OptionalColor: RgbColor?` is a compile error — see [Where optionality may be declared](#where-optionality-may-be-declared) for the rewrite.
+
 **Colors**
 
 ```strata
@@ -558,6 +607,8 @@ struct Demo {
   nested: Value<Pair<String, Int>>
 }
 ```
+
+An optional type argument is allowed — `Value<String?>` gives `value: String?`, exactly as if you had written the `?` inline. The one instantiation Strata rejects is the one that would apply a second `?` to the same type, which happens when the template body already marks that parameter optional. See [Where optionality may be declared](#where-optionality-may-be-declared).
 
 Templates can show up as union variants and can themselves be inherited:
 

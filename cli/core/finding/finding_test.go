@@ -11,6 +11,7 @@ package finding_test
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -126,6 +127,82 @@ func TestEveryFindingIsSelfContained(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "unresolved reference",
+			finding: finding.UnresolvedReference("specs/adrs/adr-011.md", position, "adr-404", "adr-404",
+				specmodel.NewReferenceOriginBody(specmodel.ReferenceBodyOrigin{}), nil),
+			rule:     finding.RuleUnresolvedReference,
+			contains: []string{"adr-404"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsUnresolvedReference()
+				if !ok {
+					t.Fatalf("detail is not an unresolved reference: %#v", d.Value)
+				}
+				if v.Slug != "adr-404" {
+					t.Errorf("Slug = %q, want %q", v.Slug, "adr-404")
+				}
+				if _, ok := v.Origin.AsBody(); !ok {
+					t.Errorf("Origin = %#v, want body", v.Origin.Value)
+				}
+				if v.NonMember != nil {
+					t.Errorf("NonMember = %#v, want none", v.NonMember)
+				}
+			},
+		},
+		{
+			name: "retired target",
+			finding: finding.RetiredTarget("specs/adrs/adr-011.md", position, "adr-009",
+				strPtr("adr-013")),
+			rule:     finding.RuleRetiredTarget,
+			contains: []string{"adr-009", "adr-013"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsRetiredTarget()
+				if !ok {
+					t.Fatalf("detail is not a retired target: %#v", d.Value)
+				}
+				if v.Slug != "adr-009" {
+					t.Errorf("Slug = %q, want %q", v.Slug, "adr-009")
+				}
+				if v.Successor == nil || *v.Successor != "adr-013" {
+					t.Errorf("Successor = %v, want %q", v.Successor, "adr-013")
+				}
+			},
+		},
+		{
+			name: "incomplete pairing",
+			finding: finding.IncompletePairing("specs/adrs/adr-011.md", position,
+				"owner", "owned_by", "specs/adrs/adr-011.md", "specs/teams/team-ledger.md"),
+			rule:     finding.RuleIncompletePairing,
+			contains: []string{"owner", "owned_by", "specs/teams/team-ledger.md"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsIncompletePairing()
+				if !ok {
+					t.Fatalf("detail is not an incomplete pairing: %#v", d.Value)
+				}
+				if v.Property != "owner" || v.Counterpart != "owned_by" {
+					t.Errorf("detail = %#v, want the property and its counterpart", v)
+				}
+				if v.SourcePath != "specs/adrs/adr-011.md" || v.TargetPath != "specs/teams/team-ledger.md" {
+					t.Errorf("detail = %#v, want both paths", v)
+				}
+			},
+		},
+		{
+			name: "reference type",
+			finding: finding.ReferenceType("specs/adrs/adr-011.md", position,
+				"frd", "adr-009", "frd", "adr"),
+			rule:     finding.RuleTypeMismatch,
+			contains: []string{"frd", "adr-009", "adr"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsReferenceType()
+				if !ok {
+					t.Fatalf("detail is not a reference type: %#v", d.Value)
+				}
+				if v.Property != "frd" || v.Slug != "adr-009" || v.ExpectedType != "frd" || v.ActualType != "adr" {
+					t.Errorf("detail = %#v, want the property, slug, and both types", v)
+				}
+			},
+		},
 	}
 
 	for _, c := range cases {
@@ -154,6 +231,81 @@ func TestEveryFindingIsSelfContained(t *testing.T) {
 			}
 			c.detail(t, f.Detail)
 		})
+	}
+}
+
+// strPtr returns a pointer to s, for building the optional string fields
+// a finding constructor takes.
+func strPtr(s string) *string { return &s }
+
+// RetiredTarget carries severity warning, never error — the target
+// still resolves, so a citation to it is not a conformance failure — and
+// its message and detail omit the successor entirely rather than
+// reporting one that does not exist when the target declares none.
+//
+// AC: AC-SPECREF-002.6
+func TestRetiredTargetCarriesWarningAndOmitsAnAbsentSuccessor(t *testing.T) {
+	f := finding.RetiredTarget("specs/adrs/adr-011.md", at(t), "adr-009", nil)
+
+	if f.Severity != finding.SeverityWarning {
+		t.Errorf("severity = %q, want %q — a reference to a retired document still resolves", f.Severity, finding.SeverityWarning)
+	}
+	if strings.Contains(f.Message, "superseded") {
+		t.Errorf("message = %q, wants no mention of a successor the target does not declare", f.Message)
+	}
+	v, ok := f.Detail.AsRetiredTarget()
+	if !ok {
+		t.Fatalf("detail is not a retired target: %#v", f.Detail.Value)
+	}
+	if v.Successor != nil {
+		t.Errorf("Successor = %v, want nil", v.Successor)
+	}
+}
+
+// IncompletePairing and ReferenceType both carry severity error: unlike
+// a retired target, neither the half-declared relationship nor the
+// wrong-typed target is a defect a build can tolerate.
+//
+// AC: AC-SPECREF-002.5
+// AC: AC-SPECREF-002.10
+func TestPairingAndTypeMismatchFindingsCarryError(t *testing.T) {
+	pairing := finding.IncompletePairing("specs/adrs/adr-011.md", at(t),
+		"owner", "owned_by", "specs/adrs/adr-011.md", "specs/teams/team-ledger.md")
+	if pairing.Severity != finding.SeverityError {
+		t.Errorf("pairing severity = %q, want %q", pairing.Severity, finding.SeverityError)
+	}
+
+	mismatch := finding.ReferenceType("specs/features/frd-checkout.md", at(t), "frd", "adr-009", "frd", "adr")
+	if mismatch.Severity != finding.SeverityError {
+		t.Errorf("type-mismatch severity = %q, want %q", mismatch.Severity, finding.SeverityError)
+	}
+}
+
+// The two IncompletePairing findings the design calls for — one against
+// the declaring document, one against the target — carry the identical
+// structured detail, so checking either document surfaces the same
+// half-built edge described the same way.
+//
+// AC: AC-SPECREF-002.5
+func TestIncompletePairingCarriesTheSameDetailAgainstBothDocuments(t *testing.T) {
+	source := finding.IncompletePairing("specs/adrs/adr-011.md", at(t),
+		"owner", "owned_by", "specs/adrs/adr-011.md", "specs/teams/team-ledger.md")
+	target := finding.IncompletePairing("specs/teams/team-ledger.md", at(t),
+		"owner", "owned_by", "specs/adrs/adr-011.md", "specs/teams/team-ledger.md")
+
+	sourceDetail, ok := source.Detail.AsIncompletePairing()
+	if !ok {
+		t.Fatalf("source detail is not an incomplete pairing: %#v", source.Detail.Value)
+	}
+	targetDetail, ok := target.Detail.AsIncompletePairing()
+	if !ok {
+		t.Fatalf("target detail is not an incomplete pairing: %#v", target.Detail.Value)
+	}
+	if sourceDetail != targetDetail {
+		t.Errorf("source detail = %#v, target detail = %#v, want them identical", sourceDetail, targetDetail)
+	}
+	if source.Path == target.Path {
+		t.Error("the two findings are against the same path; the fixture proves nothing about both documents")
 	}
 }
 
@@ -281,6 +433,34 @@ func TestTheReportDistinguishesPassedFromUnrequested(t *testing.T) {
 	}
 	if !strings.Contains(string(encoded), `"not-requested"`) {
 		t.Errorf("emitted report does not distinguish an un-requested check: %s", encoded)
+	}
+}
+
+// A LIFE check whose registration is empty — no pairing, no typed
+// reference — is still requested by a run that requests it, and reports
+// passed rather than not-requested: "the profile registers none" and
+// "the check did not run" are different facts
+// (reference-integrity-blueprint.md's LIFE section). The mechanism is
+// [Report]'s own, already proven rule-agnostically by
+// TestTheReportDistinguishesPassedFromUnrequested; this applies it to
+// the three rule identifiers this delta adds, so the guarantee is
+// checked against their own names rather than only in the abstract.
+func TestALIFECheckWithEmptyRegistrationReportsPassedNotUnrequested(t *testing.T) {
+	rules := []specmodel.RuleId{finding.RuleRetiredTarget, finding.RuleIncompletePairing, finding.RuleTypeMismatch}
+	report := finding.NewReport(rules...)
+	for _, rule := range rules {
+		report.Request(rule)
+		// corpus.Check found nothing to report for this rule — an empty
+		// registration produces zero findings, not a skipped check — so the
+		// caller still calls Ran once the check has run its course.
+		report.Ran(rule)
+	}
+
+	model := report.Model()
+	for _, rule := range rules {
+		if got := checkResult(t, model, rule).Outcome; got != specmodel.CheckOutcomePassed {
+			t.Errorf("%s outcome = %q, want %q", rule, got, specmodel.CheckOutcomePassed)
+		}
 	}
 }
 
@@ -506,4 +686,50 @@ func checkResult(t *testing.T, model specmodel.FindingReport, rule specmodel.Rul
 	}
 	t.Fatalf("the report accounts for no check %q", rule)
 	return specmodel.CheckResult{}
+}
+
+// UnresolvedReference's message reads differently depending on where a
+// reference was written and what it matched: a body reference is quoted
+// back with its brackets, a frontmatter reference names the property
+// that holds it instead, and a non-member target states why it is not a
+// member rather than reading as an ordinary unresolved slug.
+//
+// AC: AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7
+func TestUnresolvedReferenceMessageVariesByOriginAndNonMember(t *testing.T) {
+	position := at(t)
+	bodyOrigin := specmodel.NewReferenceOriginBody(specmodel.ReferenceBodyOrigin{})
+	fmOrigin := specmodel.NewReferenceOriginFrontmatterProperty(
+		specmodel.ReferenceFrontmatterOrigin{Property: "superseded_by"})
+
+	body := finding.UnresolvedReference("specs/adrs/adr-011.md", position, "adr-404", "adr-404", bodyOrigin, nil)
+	if !strings.Contains(body.Message, "[[adr-404]]") {
+		t.Errorf("body message = %q, want it quoted with its brackets", body.Message)
+	}
+
+	fm := finding.UnresolvedReference("specs/adrs/adr-011.md", position, "adr-404", "adr-404", fmOrigin, nil)
+	if !strings.Contains(fm.Message, "superseded_by") {
+		t.Errorf("frontmatter message = %q, want the property named", fm.Message)
+	}
+	if strings.Contains(fm.Message, "[[") {
+		t.Errorf("frontmatter message = %q, wants no body-style brackets", fm.Message)
+	}
+
+	reason := specmodel.ExclusionReasonNoFrontmatter
+	excluded := finding.UnresolvedReference("specs/adrs/adr-011.md", position, "loose", "loose", bodyOrigin,
+		&specmodel.ReferenceNonMember{Path: "specs/notes/loose.md", Reason: &reason})
+	if !strings.Contains(excluded.Message, "not a corpus member") {
+		t.Errorf("non-member message = %q, want it to say the target is not a corpus member", excluded.Message)
+	}
+	if strings.Contains(excluded.Message, "matches no document's slug") {
+		t.Errorf("non-member message = %q, reads as an ordinary unresolved slug", excluded.Message)
+	}
+
+	parseFailed := finding.UnresolvedReference("specs/adrs/adr-011.md", position, "broken", "broken", bodyOrigin,
+		&specmodel.ReferenceNonMember{
+			Path:       "specs/notes/broken.md",
+			ParseError: &specmodel.ParseError{Message: "unterminated string", Position: position},
+		})
+	if want := fmt.Sprintf("line %d", position.StartLine); !strings.Contains(parseFailed.Message, want) {
+		t.Errorf("parse-failure message = %q, want it to cite the failure's line (%s)", parseFailed.Message, want)
+	}
 }

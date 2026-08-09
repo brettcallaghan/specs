@@ -130,10 +130,19 @@ synthetically instead, on every platform, by `cli/cmd/portability_test.go`.
   cp -f target/release/strata /usr/local/bin/strata
   ```
 
-  Diagnosed 2026-08-04: the session hook had built `strata-cli 0.7.0` from
-  `44c1955` (2026-07-28), six days before the fix. Version strings are useless
-  here — both binaries report `0.7.0` — so check
-  `~/.cache/strata-cli/built-commit` against `8997153`, not `strata --version`.
+  **`strata --version` cannot identify a build** — every build in the range
+  that matters reports `strata-cli 0.7.0`. Check
+  `~/.cache/strata-cli/built-commit` instead.
+- **Build `strata` from `strata-lang/strata` HEAD**, against the manifest as
+  committed in this repo. A build that is merely "recent enough" is not
+  sufficient: the supported build tracks HEAD, and both older and mismatched
+  builds fail — older ones *silently*, by emitting document-type structs with
+  an empty `properties` map while exiting 0.
+
+  That silent mode is why `scripts/generate-schemas.sh` asserts on the emitted
+  shape (every document-type struct retains a non-empty `required` list)
+  rather than on a version string. Keep the assertion: it catches this class
+  of corruption from any build, not one known-bad commit.
 - `bd`: not preinstalled. `.claude/hooks/session-start.sh` installs it via the
   official installer, which needs `libicu-dev` for the Dolt/ICU cgo dependency
   — without those headers the build fails at `unicode/uregex.h: No such file`.

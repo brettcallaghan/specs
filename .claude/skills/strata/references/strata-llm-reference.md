@@ -1,6 +1,6 @@
 <!-- GENERATED COPY — DO NOT EDIT.
      Source of truth: strata-lang/strata docs/public/strata.llm.md
-     Vendored from commit: 179d49029f4e (2026-07-24)
+     Vendored from commit: ce18d66f188a (2026-08-07)
      Regenerate with: scripts/sync-strata-docs.sh
      Upstream owns this text. Fix it there, then re-run that script. -->
 
@@ -508,7 +508,6 @@ Highest-leverage knobs:
 - `jsonSchema.schemaVersion` — `Draft07` (default), `Draft04`, `Draft201909`, `Draft202012`, or `OpenAi` (for OpenAI Structured Outputs).
 - `jsonSchema.bundle` — single bundled file vs per-source files.
 - `jsonSchema.root` — emit a focused schema rooted at a single type and its transitive dependencies.
-- `go.optionalStyle` — `Pointer` (default; preserves absent-vs-zero) or `Value` (lossy, fewer dereferences).
 - `typescript.generateValidation` — emit runtime parse/validate code alongside types (default `true`).
 - `enums.unknownVariant`, `unions.unknownVariant` — forward-compat behavior on unrecognized variants (see §12).
 
@@ -517,8 +516,7 @@ Servers usually own the schema, validate strictly, and don't need to tolerate un
 ```json
 {
   "skipNullSerialization": true,
-  "typescript": { "generateValidation": true },
-  "go": { "optionalStyle": "Pointer", "generateValidation": true }
+  "typescript": { "generateValidation": true }
 }
 ```
 
@@ -582,7 +580,7 @@ Two output formats:
 
 Strata-generated parsers behave consistently across targets:
 
-- **Required field missing on the wire → validation error.** No silent zero-fill (except where the host language forces it; see `go.generateValidation`).
+- **Required field missing on the wire → validation error.** No silent zero-fill. Go enforces this in a generated `UnmarshalJSON` that checks key presence, so a legitimate `""`, `0` or `false` still deserializes as the ordinary value it is.
 - **Optional field missing → the parsed value is `null` / `None` / equivalent.**
 - **Unknown enum variant → behavior is `enums.unknownVariant`-controlled.** Default: error. With `Value`, the variant deserializes as `__Unknown(rawValue)`.
 - **Unknown union variant → behavior is `unions.unknownVariant`-controlled.** Default: error. With `Tag`, the variant deserializes as `__Unknown(rawTag)`.

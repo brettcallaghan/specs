@@ -1,0 +1,5 @@
+description = "refs <slug> returns every corpus member referencing that slug from its body, by default"
+cites = ["AC-SPECREF-003.1"]
+artifacts = ["checks.log"]
+args = ["refs", "adr-900-old-approach"]
+exit_code = 0

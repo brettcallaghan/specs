@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0",
+  "workspace": "acme",
+  "entries": [
+    {
+      "path": "docs/adrs/adr-001-citing.md",
+      "frontmatter": {
+        "title": "ADR-001: Citing",
+        "description": "A decision citing one document that exists and one that does not.",
+        "slug": "adr-001-citing",
+        "type": "adr",
+        "status": "approved",
+        "updated_at": "2026-08-01T00:00:00Z"
+      }
+    },
+    {
+      "path": "docs/adrs/adr-002-cited.md",
+      "frontmatter": {
+        "title": "ADR-002: Cited",
+        "description": "The document the other one resolves to.",
+        "slug": "adr-002-cited",
+        "type": "adr",
+        "status": "approved",
+        "updated_at": "2026-08-01T00:00:00Z"
+      }
+    }
+  ],
+  "exclusions": [],
+  "references": [
+    {
+      "path": "docs/adrs/adr-001-citing.md",
+      "text": "adr-002-cited",
+      "slug": "adr-002-cited",
+      "origin": {
+        "kind": "body"
+      },
+      "position": {
+        "offset": 228,
+        "length": 13,
+        "start_line": 12,
+        "start_column": 16,
+        "end_line": 12,
+        "end_column": 29
+      },
+      "resolution": {
+        "state": "resolved",
+        "target_path": "docs/adrs/adr-002-cited.md"
+      }
+    },
+    {
+      "path": "docs/adrs/adr-001-citing.md",
+      "text": "adr-404-absent",
+      "slug": "adr-404-absent",
+      "origin": {
+        "kind": "body"
+      },
+      "position": {
+        "offset": 261,
+        "length": 14,
+        "start_line": 12,
+        "start_column": 49,
+        "end_line": 12,
+        "end_column": 63
+      },
+      "resolution": {
+        "state": "unresolved"
+      }
+    }
+  ],
+  "input_hash": "sha256:4993995878857c525044313d790b0d30fec836c7262f8e7464b056d1a5693e06"
+}

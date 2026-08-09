@@ -19,12 +19,26 @@ import (
 // to mention — which is what makes "not requested" distinguishable from
 // "requested and passed" (AC-SPEC-006.8's report distinction, carried by
 // [finding.Report] itself; see buildCheckReport below).
+//
+// RuleRetiredTarget, RuleIncompletePairing and RuleTypeMismatch are
+// declared here rather than left to [finding.Report.Add]'s own
+// auto-registration of an unnamed rule: without a declaration, a run
+// that raises none of them would leave them out of the report's checks
+// accounting entirely instead of showing "passed", and --only could not
+// name one to request it on a run that never happens to raise it. This
+// is what lets --only name each of the reference-integrity checks and
+// what lets --strict reach the reference/retired-target warning even on
+// a corpus that never triggers it.
 var checkRules = []specmodel.RuleId{
 	finding.RuleFrontmatterParse,
 	finding.RuleSchemaViolation,
 	finding.RuleMissingProperty,
 	finding.RuleSlugPattern,
 	finding.RuleDuplicateSlug,
+	finding.RuleUnresolvedReference,
+	finding.RuleRetiredTarget,
+	finding.RuleIncompletePairing,
+	finding.RuleTypeMismatch,
 }
 
 // newCheckCmd builds the `check` subcommand: run conformance checks over
@@ -37,8 +51,9 @@ func newCheckCmd(streams *ioStreams, configPath *string) *cobra.Command {
 		Use:   "check [path]",
 		Short: "Check the corpus, or a single document, for conformance",
 		Long: "check validates every corpus member's frontmatter against the active " +
-			"profile's schema and slug patterns, and reports duplicate slugs, " +
-			"either across the whole corpus or, given a path, for one document.",
+			"profile's schema and slug patterns, and reports duplicate slugs and " +
+			"unresolved references, either across the whole corpus or, given a " +
+			"path, for one document.",
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			var path string

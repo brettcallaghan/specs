@@ -1,0 +1,5 @@
+description = "a check run with only warning findings exits non-zero under --strict, reaching the boundary reference/retired-target is the first registered check to make reachable"
+cites = ["AC-SPEC-006.7"]
+artifacts = ["checks.log"]
+args = ["check", "--strict"]
+exit_code = 1

@@ -222,6 +222,20 @@ if [ "${STRATA_CLI_SKIP:-}" != "1" ]; then
     # repo too — and a hook that resets or rebases someone's branch is data
     # loss, not convenience. Anything other than a clean default branch gets
     # built exactly as it sits.
+    #
+    # _fetch_unverified tracks whether we actually confirmed the checkout is
+    # caught up with upstream this session. A "stamp matches local HEAD"
+    # match below only proves the binary matches what's on disk — it says
+    # nothing about whether that disk state is current if the fetch that was
+    # supposed to update it failed. Left unguarded, a persistent fetch
+    # failure (e.g. a flaky egress proxy) plus a stamp that happens to match
+    # the unmoved local HEAD reports "strata CLI current" indefinitely while
+    # actually installing whatever was on disk when the fetch first started
+    # failing (see agent-plugins-j7f). Only the explicit fetch/merge failure
+    # below sets this — the "not a git checkout" and "as-is" (non-default
+    # branch / dirty tree) cases are deliberate, not failures, and are
+    # already self-explanatory in their own log lines.
+    _fetch_unverified=0
     if ! git -C "$strata_src" rev-parse --git-dir >/dev/null 2>&1; then
       # STRATA_SRC_DIR pointed at a source tree with no git in it. Nothing to
       # update and nothing to stamp, so it rebuilds every session.
@@ -241,7 +255,7 @@ if [ "${STRATA_CLI_SKIP:-}" != "1" ]; then
       else
         git -C "$strata_src" fetch --quiet origin "$_default" >>"$STRATA_CACHE/build.log" 2>&1 \
           && git -C "$strata_src" merge --ff-only --quiet "origin/$_default" >>"$STRATA_CACHE/build.log" 2>&1 \
-          || log "strata: fetch/fast-forward failed — building the checkout as-is"
+          || { _fetch_unverified=1; log "WARNING: strata: fetch/fast-forward against upstream failed — building the checkout as-is; freshness relative to upstream is unverified this session (see $STRATA_CACHE/build.log)"; }
       fi
     fi
 
@@ -253,7 +267,15 @@ if [ "${STRATA_CLI_SKIP:-}" != "1" ]; then
     _head="$(git -C "$strata_src" rev-parse HEAD 2>/dev/null || true)"
     if [ -n "$_head" ] && [ -x "$STRATA_BIN" ] \
        && [ "$(cat "$STRATA_STAMP" 2>/dev/null)" = "$_head" ]; then
-      log "strata CLI current: $("$STRATA_BIN" --version 2>/dev/null || echo installed) (${_head:0:8})"
+      if [ "$_fetch_unverified" = "1" ]; then
+        # Do NOT report plain success here: the stamp matching local HEAD
+        # only proves the binary matches disk, not that disk is caught up —
+        # this is exactly the "stale stamp reports success" failure mode
+        # this branch exists to close.
+        log "WARNING: strata CLI stamp matches local HEAD (${_head:0:8}), but this session could not verify that HEAD against upstream (fetch failed above) — the installed binary may be stale. Re-run the hook once network access to github.com is restored, or inspect $STRATA_CACHE/build.log."
+      else
+        log "strata CLI current: $("$STRATA_BIN" --version 2>/dev/null || echo installed) (${_head:0:8})"
+      fi
     else
       log "building strata CLI from $strata_src${_head:+ @ ${_head:0:8}} (~2 min cold${_head:+, cached after})"
       # -p strata-cli, not the workspace: this needs the binary, not the WASM

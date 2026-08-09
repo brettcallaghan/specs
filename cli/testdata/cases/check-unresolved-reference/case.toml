@@ -1,0 +1,5 @@
+description = "check reports reference/unresolved for a body reference, a reference-bearing frontmatter value, and a slug matching a non-member, each with its own detail"
+cites = ["AC-SPECREF-002.1", "AC-SPECREF-002.3", "AC-SPECREF-002.7"]
+artifacts = ["checks.log"]
+args = ["check"]
+exit_code = 1
