@@ -131,13 +131,18 @@ reaches a real document that says it has been replaced — so it does not
 fail a build unless you pass `--strict`. It is also the one finding that
 tells an author what to cite instead.
 
-**`spec check <path>` resolves that document's references, not the
-references into it.** Renaming a slug breaks every document that cited
-the old one, and the narrow form does not report them: measured
-2026-08-09, renaming an ADR's slug and checking that one file reports
-`reference/unresolved passed` and exits 0 while the corpus-wide run
-reports ten errors. Run the corpus-wide `spec check` after any slug
-change or retirement — or `spec refs <slug>` before it.
+**`spec check <path>` reports broken inbound links — and only those.**
+`reference/unresolved` is the one rule the narrow form does not scope to
+the file you name: rename a slug, check that one file, and it names every
+document left citing the old one, at that document's own line. The other
+three reference rules stay scoped to the file named, so an edit whose
+consequence lands on a *referring* document is invisible to them.
+Retiring a document is the case that bites: measured 2026-08-09, setting
+an ADR to `status: retired` and checking that one file reports
+`reference/retired-target passed` and exits 0, while the corpus-wide run
+reports four warnings. Changing a document's `type` behaves the same way
+for `reference/type-mismatch`. Run the corpus-wide `spec check` after a
+retirement or a type change — or `spec refs <slug>` before either.
 
 Which frontmatter properties are reference-bearing is **derived from the
 profile's schema**, not a hand-kept list: every property typed as a

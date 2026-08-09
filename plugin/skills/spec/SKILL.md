@@ -236,10 +236,12 @@ specs.
    It lists every document that cites this one, at the line and column
    of each citation — the blast radius, decided rather than estimated.
    Retiring a document leaves those references resolving to a retired
-   target, which `spec check` reports as a warning naming the successor;
-   declare `superseded_by` so it has one to name. Renaming a slug breaks
-   them outright, and the rename is not finished until every line `refs`
-   listed has been updated.
+   target, which the **corpus-wide** `spec check` reports as a warning
+   naming the successor — `spec check <path>` on the document you
+   retired does not; declare `superseded_by` so the warning has a
+   successor to name. Renaming a slug breaks them outright, and that
+   *is* reported by either form; the rename is not finished until every
+   line `refs` listed has been updated.
 6. **Preflight feature blueprints.** Before setting a feature blueprint
    to `ready-for-review`, run the decision sweep and self-check against
    `references/blueprint-readiness-checklist.md`, then re-run the checklist

@@ -50,22 +50,30 @@ resolves every `[[slug]]` reference — in the body and in the frontmatter
 properties that hold slugs — against the corpus. Read its findings; each
 names the rule, the span, and the value that violated it.
 
-**A single-document check does report what your edit broke elsewhere.**
-`spec check <path>` resolves that document's own references against the
-whole corpus, and reports every *other* document whose `[[slug]]` links
-no longer resolve, each at its own line. Renaming an ADR's slug and
-checking that one file names the documents still citing the old one.
-Broken references are the one rule the narrow form does not scope to the
-file you named, because the document that breaks a reference is never
-the document that holds it.
+**A single-document check reports the links your edit broke — if it
+broke them outright.** `spec check <path>` resolves that document's own
+references against the whole corpus, and also reports every *other*
+document whose `[[slug]]` links no longer resolve, each at its own line:
+rename an ADR's slug, check that one file, and it names the documents
+left citing the old one. `reference/unresolved` is the one rule the
+narrow form does not scope to the file you named, because the document
+that breaks a reference is never the document that holds it.
 
-What it cannot tell you is whether a broken reference is *yours*. The
-check has no memory of what those references used to resolve to, so
-breakage that was already in the corpus is reported alongside breakage
-your edit caused. In a corpus you keep green that distinction is empty —
-anything reported is new. `spec refs <slug>` before you change or retire
-a document answers the blast-radius question ahead of time, and is the
-cheaper habit.
+**Retiring a document is not covered by that.** A live document citing a
+retired one is `reference/retired-target`, and that rule *is* still
+scoped to the file you name — so checking the document you just retired
+reports nothing and prints `reference/retired-target passed`. Changing a
+document's `type` behaves the same way for `reference/type-mismatch`.
+After either edit, run the corpus-wide `spec check`; the narrow form
+will not tell you.
+
+What no form of the check can tell you is whether a broken reference is
+*yours*. It has no memory of what those references used to resolve to,
+so breakage already in the corpus is reported alongside breakage your
+edit caused. In a corpus you keep green that distinction is empty —
+anything reported is new. `spec refs <slug>` before you change, retire
+or re-type a document answers the blast-radius question ahead of time,
+and is the cheaper habit.
 
 A `frontmatter/parse` finding (row 0 below) comes before all of them and
 is not one of the eight: it means the frontmatter could not be read as a
