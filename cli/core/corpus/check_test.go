@@ -747,13 +747,17 @@ func TestCheckReportsANonMemberReferenceWithItsReason(t *testing.T) {
 	}
 }
 
-// CheckFor narrows reference/unresolved findings to the checked document
-// exactly as it already does for a schema or slug-pattern finding: the
-// defect is detected corpus-wide, but only the named file's own is
-// returned.
-func TestCheckForNarrowsUnresolvedReferenceFindingsToTheCheckedFile(t *testing.T) {
+// Unresolved references are the one rule CheckFor does not narrow to the
+// file named: they surface wherever they were written, because the
+// document that breaks a reference is never the document that holds it
+// (AC-SPECREF-002.9). Every other rule stays scoped to the named file, so
+// this is an exception rather than the narrowing being abandoned.
+//
+// AC: AC-SPECREF-002.9
+func TestCheckForReportsUnresolvedReferencesWhereverTheyWereWritten(t *testing.T) {
 	repo := t.TempDir()
 	write(t, repo, "specs/adrs/adr-001.md", citing("adr", "adr-001", "First", "Refines [[adr-404]]."))
+	write(t, repo, "specs/adrs/adr-abc.md", document("adr", "adr-abc", "Unpatterned"))
 	write(t, repo, "specs/adrs/adr-002.md", document("adr", "adr-002", "Second"))
 
 	built := buildChecked(t, repo, referenceCheckProfile("superseded_by"))
@@ -762,10 +766,18 @@ func TestCheckForNarrowsUnresolvedReferenceFindingsToTheCheckedFile(t *testing.T
 	if err != nil {
 		t.Fatalf("CheckFor: %v", err)
 	}
-	if got := findingsWithRule(findings, finding.RuleUnresolvedReference, "specs/adrs/adr-001.md"); len(got) != 0 {
-		t.Errorf("CheckFor(adr-002) reported adr-001's own unresolved reference: %+v", got)
+	if got := findingsWithRule(findings, finding.RuleUnresolvedReference, "specs/adrs/adr-001.md"); len(got) != 1 {
+		t.Errorf("CheckFor(adr-002) reported %d of adr-001's unresolved references, want 1: %+v", len(got), findings)
+	}
+	// adr-abc's slug does not match the profile's pattern, and that
+	// finding belongs to a file this check did not name: the narrowing is
+	// intact for every rule but the one above.
+	if got := findingsWithRule(findings, finding.RuleSlugPattern, "specs/adrs/adr-abc.md"); len(got) != 0 {
+		t.Errorf("CheckFor(adr-002) reported another file's slug-pattern violation: %+v", got)
 	}
 
+	// A file's own unresolved reference is still reported when it is the
+	// file named, and is not reported twice for matching both arms.
 	findings, err = built.CheckFor("specs/adrs/adr-001.md")
 	if err != nil {
 		t.Fatalf("CheckFor: %v", err)
@@ -775,26 +787,25 @@ func TestCheckForNarrowsUnresolvedReferenceFindingsToTheCheckedFile(t *testing.T
 	}
 }
 
-// A single-document check reports every inbound reference the warm index
-// still records as resolved to the checked document that no longer does,
-// against the referring document at its own span, alongside any findings
-// against the document named — the scenario an edited slug produces: the
-// referrer's row is exactly what the graph recorded when it was built,
-// but the checked document, read fresh, no longer matches it
-// (AC-SPECREF-002.9's own example: an agent renames a document and the
-// write-time check on that one file is what has to catch the referrers it
-// just broke).
+// AC-SPECREF-002.9's own scenario, end to end and through the real cache:
+// an agent renames a document's slug, and the write-time check on that one
+// file reports the references the rename broke — against the referring
+// document, at the referrer's own span, which is the file and the line a
+// reader has to open to fix it.
 //
-// The mismatch is planted directly in the persisted index rather than
-// produced by editing a real file on disk, because editing adr-002.md's
-// slug would change the corpus's input hash and force a cold rebuild —
-// which would recompute a fully consistent graph and prove nothing about
-// the warm path this criterion is about: Open's fingerprint covers every
-// candidate file's content, all-or-nothing (hash.go), so there is no way
-// to make one file's real bytes disagree with the rest of a warm index.
+// The break is produced by editing a real file on disk, because that is
+// what the criterion describes and it is the only state production can
+// reach. The edit changes the corpus's input hash, so the check that
+// follows reads a freshly rebuilt graph in which the stale referrers are
+// recorded unresolved. An earlier implementation instead compared a warm
+// index's inbound edges against the document's slug read fresh from disk
+// and could only be exercised by planting a row in the persisted index:
+// Open's fingerprint is all-or-nothing over every candidate's content, so
+// one file's real bytes can never disagree with the rest of a warm index
+// (agent-plugins-fe1).
 //
 // AC: AC-SPECREF-002.9
-func TestCheckForReportsBrokenInboundReferencesAgainstTheReferrer(t *testing.T) {
+func TestCheckForReportsTheReferencesARenamedSlugBroke(t *testing.T) {
 	repo := t.TempDir()
 	write(t, repo, "specs/adrs/adr-001.md", citing("adr", "adr-001", "First", "Refines [[adr-002]]."))
 	write(t, repo, "specs/adrs/adr-002.md", document("adr", "adr-002", "Second"))
@@ -802,27 +813,9 @@ func TestCheckForReportsBrokenInboundReferencesAgainstTheReferrer(t *testing.T) 
 	opts := checkingOptions(repo)
 	dest := buildAndWriteWith(t, opts)
 
-	persisted := readIndex(t, dest)
-	if len(persisted.References) != 1 {
-		t.Fatalf("the built index carries %d references, want 1", len(persisted.References))
-	}
-	// A row the graph would have recorded had a referrer this test never
-	// writes to disk cited adr-002 by a slug it no longer declares —
-	// proving the finding comes from the persisted row, not from anything
-	// read off a file that does not exist.
-	persisted.References = append(persisted.References, specmodel.Reference{
-		Path:     "specs/adrs/phantom-referrer.md",
-		Text:     "adr-002-old",
-		Slug:     "adr-002-old",
-		Origin:   specmodel.NewReferenceOriginBody(specmodel.ReferenceBodyOrigin{}),
-		Position: persisted.References[0].Position,
-		Resolution: specmodel.NewReferenceResolutionResolved(
-			specmodel.ReferenceResolved{TargetPath: "specs/adrs/adr-002.md"}),
-	})
-	if err := corpus.Write(persisted, dest, nil); err != nil {
-		t.Fatalf("Write: %v", err)
-	}
-
+	// Before the rename the reference resolves, so the check on adr-002 is
+	// silent about adr-001 — establishing that what follows is caused by
+	// the edit and not merely present all along.
 	opened, warm, err := corpus.Open(opts, dest)
 	if err != nil {
 		t.Fatalf("Open: %v", err)
@@ -830,13 +823,29 @@ func TestCheckForReportsBrokenInboundReferencesAgainstTheReferrer(t *testing.T) 
 	if !warm {
 		t.Fatal("Open rebuilt an index whose inputs are unchanged")
 	}
-
 	findings, err := opened.CheckFor("specs/adrs/adr-002.md")
 	if err != nil {
 		t.Fatalf("CheckFor: %v", err)
 	}
+	if got := findingsWithRule(findings, finding.RuleUnresolvedReference, "specs/adrs/adr-001.md"); len(got) != 0 {
+		t.Fatalf("adr-001's reference was reported broken before the rename: %+v", got)
+	}
 
-	broken := findingsWithRule(findings, finding.RuleUnresolvedReference, "specs/adrs/phantom-referrer.md")
+	// The rename. adr-003 still matches the profile's slug pattern, so the
+	// only defect this introduces is the broken inbound reference.
+	write(t, repo, "specs/adrs/adr-002.md", document("adr", "adr-003", "Second"))
+
+	opened, _, err = corpus.Open(opts, dest)
+	if err != nil {
+		t.Fatalf("Open after the rename: %v", err)
+	}
+
+	findings, err = opened.CheckFor("specs/adrs/adr-002.md")
+	if err != nil {
+		t.Fatalf("CheckFor after the rename: %v", err)
+	}
+
+	broken := findingsWithRule(findings, finding.RuleUnresolvedReference, "specs/adrs/adr-001.md")
 	if len(broken) != 1 {
 		t.Fatalf("got %d reference/unresolved findings against the referrer, want 1: %+v", len(broken), findings)
 	}
@@ -844,69 +853,15 @@ func TestCheckForReportsBrokenInboundReferencesAgainstTheReferrer(t *testing.T) 
 	if !ok {
 		t.Fatalf("detail = %T, want FindingUnresolvedReference", broken[0].Detail.Value)
 	}
-	if detail.Slug != "adr-002-old" {
-		t.Errorf("slug = %q, want adr-002-old", detail.Slug)
+	if detail.Slug != "adr-002" {
+		t.Errorf("slug = %q, want adr-002 — the slug the referrer still names", detail.Slug)
 	}
-	if broken[0].Position != persisted.References[0].Position {
-		t.Errorf("position = %+v, want the referrer's own span", broken[0].Position)
+	outbound := opened.OutboundReferences("specs/adrs/adr-001.md")
+	if len(outbound) != 1 {
+		t.Fatalf("adr-001 holds %d references, want 1", len(outbound))
 	}
-
-	// The legitimate edge — adr-001's reference, which still names
-	// adr-002's current slug — is left alone: only the row that no longer
-	// matches is reported.
-	if got := findingsWithRule(findings, finding.RuleUnresolvedReference, "specs/adrs/adr-001.md"); len(got) != 0 {
-		t.Errorf("adr-001's still-valid reference was reported broken: %+v", got)
-	}
-}
-
-// The inbound half of a single-document check is a lookup over the
-// already-derived graph and reads only the checked document, never the
-// referrer: proved by a referrer path that is never written to disk at
-// all, the same technique
-// TestAWarmCorpusServesTheGraphFromThePersistedIndex uses for the graph
-// itself.
-//
-// AC: AC-SPECREF-002.9
-func TestBrokenInboundReferencesAreReadFromTheIndexNotFromTheReferrer(t *testing.T) {
-	repo := t.TempDir()
-	write(t, repo, "specs/adrs/adr-002.md", document("adr", "adr-002", "Second"))
-
-	opts := checkingOptions(repo)
-	dest := buildAndWriteWith(t, opts)
-
-	persisted := readIndex(t, dest)
-	persisted.References = append(persisted.References, specmodel.Reference{
-		Path:   "specs/adrs/never-written.md",
-		Text:   "adr-002-old",
-		Slug:   "adr-002-old",
-		Origin: specmodel.NewReferenceOriginBody(specmodel.ReferenceBodyOrigin{}),
-		Position: specmodel.Span{
-			Offset: 10, Length: 12, StartLine: 3, StartColumn: 1, EndLine: 3, EndColumn: 13,
-		},
-		Resolution: specmodel.NewReferenceResolutionResolved(
-			specmodel.ReferenceResolved{TargetPath: "specs/adrs/adr-002.md"}),
-	})
-	if err := corpus.Write(persisted, dest, nil); err != nil {
-		t.Fatalf("Write: %v", err)
-	}
-
-	opened, warm, err := corpus.Open(opts, dest)
-	if err != nil {
-		t.Fatalf("Open: %v", err)
-	}
-	if !warm {
-		t.Fatal("Open rebuilt an index whose inputs are unchanged")
-	}
-
-	// specs/adrs/never-written.md does not exist on disk. If reporting the
-	// broken inbound reference required reading it, this would fail rather
-	// than report the finding the planted row calls for.
-	findings, err := opened.CheckFor("specs/adrs/adr-002.md")
-	if err != nil {
-		t.Fatalf("CheckFor: %v", err)
-	}
-	if got := findingsWithRule(findings, finding.RuleUnresolvedReference, "specs/adrs/never-written.md"); len(got) != 1 {
-		t.Fatalf("got %d findings against the never-written referrer, want 1: %+v", len(got), findings)
+	if broken[0].Position != outbound[0].Position {
+		t.Errorf("position = %+v, want the referrer's own span %+v", broken[0].Position, outbound[0].Position)
 	}
 }
 

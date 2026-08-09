@@ -50,18 +50,22 @@ resolves every `[[slug]]` reference — in the body and in the frontmatter
 properties that hold slugs — against the corpus. Read its findings; each
 names the rule, the span, and the value that violated it.
 
-**A single-document check does not see what your edit broke elsewhere.**
+**A single-document check does report what your edit broke elsewhere.**
 `spec check <path>` resolves that document's own references against the
-whole corpus, but it does not report the *other* documents whose links
-this edit just broke. Measured 2026-08-09: renaming an ADR's slug and
-checking that one file reports `reference/unresolved passed` and exits
-0, while `spec check` over the corpus reports ten errors in the
-documents that still cite the old slug.
+whole corpus, and reports every *other* document whose `[[slug]]` links
+no longer resolve, each at its own line. Renaming an ADR's slug and
+checking that one file names the documents still citing the old one.
+Broken references are the one rule the narrow form does not scope to the
+file you named, because the document that breaks a reference is never
+the document that holds it.
 
-So WHEN you change a document's `slug`, or retire it, run the
-corpus-wide `spec check` as well — the narrow form is the fast loop
-while authoring, not the gate. `spec refs <slug>` before the change
-answers the same question ahead of time.
+What it cannot tell you is whether a broken reference is *yours*. The
+check has no memory of what those references used to resolve to, so
+breakage that was already in the corpus is reported alongside breakage
+your edit caused. In a corpus you keep green that distinction is empty —
+anything reported is new. `spec refs <slug>` before you change or retire
+a document answers the blast-radius question ahead of time, and is the
+cheaper habit.
 
 A `frontmatter/parse` finding (row 0 below) comes before all of them and
 is not one of the eight: it means the frontmatter could not be read as a

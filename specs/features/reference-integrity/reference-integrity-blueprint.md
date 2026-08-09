@@ -7,7 +7,7 @@ description: Builds the References component of Document Core, adds the
 slug: feature-spec-reference-integrity
 type: feature-blueprint
 status: retired
-updated_at: 2026-08-07T23:00:00Z
+updated_at: 2026-08-09T00:00:00Z
 delivery: staged
 plan: agent-plugins-9kb
 frd: frd-spec-reference-integrity
@@ -353,12 +353,16 @@ because a build's exit status depends on it.
 - WHEN a reference's slug matched a non-member, the check SHALL report
   the same rule with the non-member detail rather than as a slug
   matching nothing (AC-SPECREF-002.7).
-- WHEN a single document is checked, the check SHALL additionally report
-  every inbound reference to that document that no longer resolves, each
-  against the referring document at the referrer's own span, in addition
-  to the findings against the document named (AC-SPECREF-002.9). It
-  reads the warm index's edges, so it costs a lookup rather than a
-  corpus walk and stays inside AC-SPEC-009.2's single-document budget.
+- WHEN a single document is checked, the check SHALL report unresolved
+  references wherever they were written, each against the referring
+  document at the referrer's own span, in addition to the findings
+  against the document named (AC-SPECREF-002.9). This is the one rule
+  the single-document form does not narrow by path, because the document
+  that breaks a reference is never the document that holds it. It costs
+  nothing beyond the corpus-wide check that already runs: those findings
+  are derived from the reference collection held in memory either way,
+  so the narrowing was all that discarded them, and AC-SPEC-009.2's
+  single-document budget is untouched.
 - The check SHALL declare `reference/unresolved` to the run report so
   that `--only` can name it and a run distinguishes it having passed
   from its not having been requested (AC-SPEC-006.8, AC-SPEC-006.9).
@@ -659,10 +663,10 @@ checks; LIFE = lifecycle and relational checks; CMD = Command Surface in
 case, because the state each one is about cannot be staged from a
 case's input corpus — and a snapshot case is pure data by
 [[testing-standards]]'s own harness-independence rule, so it has no way
-to plant that state. AC-SPECREF-002.9 needs a persisted index whose
-reference row disagrees with a document on disk, which `corpus.Open`'s
-all-or-nothing content fingerprint makes unreachable from files
-(`TestCheckForReportsBrokenInboundReferencesAgainstTheReferrer`).
+to plant that state. AC-SPECREF-002.9 needs one build, an edit to a file
+between two checks, and a second build, which is a sequence rather than
+an input corpus
+(`TestCheckForReportsTheReferencesARenamedSlugBroke`).
 AC-SPECREF-003.4 needs a warm-served row no document carries, the same
 way (`TestAWarmCorpusServesTheGraphFromThePersistedIndex`).
 AC-SPECREF-004.3 needs a profile whose registration is defective, and a

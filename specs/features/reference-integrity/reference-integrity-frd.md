@@ -6,7 +6,7 @@ description: Parses cross-document references from a spec corpus, records
 slug: frd-spec-reference-integrity
 type: frd
 status: approved
-updated_at: 2026-08-07T00:00:00Z
+updated_at: 2026-08-09T00:00:00Z
 sources:
   - "frd-spec-validation-cli"
 ---
@@ -340,9 +340,20 @@ AC-SPEC-001.2 already resolves a single document's references against
 the whole corpus, so the data is present; what was missing is the
 reverse direction. A finding belongs to the document a reader must open
 to fix it, which for broken inbound references is the referrer, not the
-document that was edited. The inbound edges of AC-SPECREF-001.3 are held
-by the warm index, so this costs a lookup rather than a corpus walk and
-stays inside AC-SPEC-009.2's single-document budget.
+document that was edited. Every unresolved reference in the corpus is
+already derived on any check, narrow or not, so this costs a narrowing
+exception rather than a corpus walk and stays inside AC-SPEC-009.2's
+single-document budget.
+
+What it delivers is a superset of what this criterion asks for: a
+narrowed check reports every unresolved reference, not only those that
+had been inbound to the document named. Distinguishing the two needs
+prior state the corpus does not keep — an edit invalidates the content
+fingerprint, so the check reads a rebuilt graph with no memory of what
+the references used to resolve to. In a corpus kept green the
+distinction is empty, since anything reported is new; narrowing it to
+exactly this criterion's set is deferred to the per-file digests of
+`agent-plugins-h6c.1`.
 
 ### REQ-SPECREF-003: Reference Queries
 

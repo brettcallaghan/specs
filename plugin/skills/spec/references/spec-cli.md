@@ -54,7 +54,9 @@ it rather than assuming `docs/`.
 **`spec check`** validates every document's frontmatter against the
 active profile's schema and slug patterns, reports duplicate slugs, and
 applies the four reference rules in the next section. Given a path it
-narrows to that one document — the form to use after authoring. `--json`
+narrows to that one document — the form to use after authoring — except
+for unresolved references, which it reports wherever they were written,
+so renaming a slug names the documents left pointing at nothing. `--json`
 emits the full finding set with spans; `--strict` makes warning and
 unverified findings fail too. `--only <rule>` narrows to named rules.
 
