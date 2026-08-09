@@ -76,8 +76,20 @@ go install github.com/steveyegge/beads/cmd/bd@latest >/dev/null 2>&1 || true
   && install -m 0755 "$(go env GOPATH)/bin/bd" /usr/local/bin/bd 2>/dev/null || true
 
 # strata publishes no reachable release binary either; build from source.
-if [ ! -x /usr/local/bin/strata ]; then
-  git clone --filter=blob:none --quiet \
+#
+# strata-lang/strata is PRIVATE, and the session's own git credentials are
+# scoped to the repositories it attached — so an unauthenticated clone fails
+# with "could not read Username for 'https://github.com'". Add a fine-grained
+# PAT with read access to strata-lang/strata as an environment variable named
+# STRATA_ACCESS_TOKEN (same settings panel as this script, under Environment
+# variables). Without it this half is a no-op and only `bd` gets provisioned.
+#
+# The token goes to git through a credential helper, not into the remote URL:
+# a URL carrying the token is written into /opt/strata-src/.git/config, where
+# it outlives the run and shows up in `git remote -v`.
+if [ ! -x /usr/local/bin/strata ] && [ -n "${STRATA_ACCESS_TOKEN:-}" ]; then
+  helper='!f() { [ "$1" = get ] || exit 0; printf "username=x-access-token\npassword=%s\n" "$STRATA_ACCESS_TOKEN"; }; f'
+  git clone --filter=blob:none --quiet -c "credential.helper=$helper" \
     https://github.com/strata-lang/strata.git /opt/strata-src >/dev/null 2>&1 || true
   if [ -f /opt/strata-src/crates/strata-cli/Cargo.toml ]; then
     ( cd /opt/strata-src && cargo build --release -p strata-cli ) >/dev/null 2>&1 || true
@@ -88,6 +100,12 @@ fi
 
 exit 0
 ```
+
+**The environment must also export `STRATA_ACCESS_TOKEN` to the session
+itself**, not only to the setup script. The SessionStart hook re-reads it
+to fast-forward `~/.cache/strata-src` against upstream, and a session that
+has the binary but not the token builds from whatever the cache last held.
+Setting it as an environment variable on the environment covers both.
 
 ### Trade-offs
 
@@ -128,6 +146,12 @@ on the instruction rather than on the harness enforcing it.
 command -v bd strata          # both present -> provisioning worked
 cat ~/.cache/strata-cli/build.log   # the hook's strata build output
 ```
+
+If `strata` is missing and the build log ends in `could not read Username
+for 'https://github.com'`, the clone was unauthenticated: `STRATA_ACCESS_TOKEN`
+is unset in this session, or the PAT no longer grants read access to
+strata-lang/strata. Re-running the hook by hand with the variable set is
+enough to recover — nothing else in this repository depends on it.
 
 `bd` and `strata` are the only signal that the hook (or the setup
 script) ran; the skills under `.claude/skills/` are committed symlinks

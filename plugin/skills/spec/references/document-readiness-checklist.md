@@ -6,8 +6,8 @@ description: The type-independent self-check every spec document passes
 slug: document-readiness-checklist
 type: standards
 status: active
-updated_at: 2026-08-05T00:00:00Z
-version: "0.3"
+updated_at: 2026-08-09T00:00:00Z
+version: "0.4"
 ---
 
 # Document Readiness Checklist
@@ -42,12 +42,26 @@ here in this document's own voice.
 
 ## Who decides
 
-Run `spec check <path>` first. It settles checks 1–3 outright: it parses
-the frontmatter, validates every property against the schema for the
-document's `type`, matches the slug against that type's registered
-pattern, and reports a slug already claimed elsewhere in the corpus.
-Read its findings; each names the rule, the span, and the value that
-violated it.
+Run `spec check <path>` first. It settles checks 1–3 and 8 outright: it
+parses the frontmatter, validates every property against the schema for
+the document's `type`, matches the slug against that type's registered
+pattern, reports a slug already claimed elsewhere in the corpus, and
+resolves every `[[slug]]` reference — in the body and in the frontmatter
+properties that hold slugs — against the corpus. Read its findings; each
+names the rule, the span, and the value that violated it.
+
+**A single-document check does not see what your edit broke elsewhere.**
+`spec check <path>` resolves that document's own references against the
+whole corpus, but it does not report the *other* documents whose links
+this edit just broke. Measured 2026-08-09: renaming an ADR's slug and
+checking that one file reports `reference/unresolved passed` and exits
+0, while `spec check` over the corpus reports ten errors in the
+documents that still cite the old slug.
+
+So WHEN you change a document's `slug`, or retire it, run the
+corpus-wide `spec check` as well — the narrow form is the fast loop
+while authoring, not the gate. `spec refs <slug>` before the change
+answers the same question ahead of time.
 
 A `frontmatter/parse` finding (row 0 below) comes before all of them and
 is not one of the eight: it means the frontmatter could not be read as a
@@ -66,12 +80,18 @@ template placeholder left unfilled — `updated_at:
 | 5 | No requirement joins two modal verbs | you |
 | 6 | No prose line exceeds the width limit | you — CLI planned |
 | 7 | No template instruction blocks survive | you |
-| 8 | Every `[[slug]]` reference resolves | you — CLI planned |
+| 8 | Every `[[slug]]` reference resolves | `spec check` |
 
 **A clean `spec check` is not a passing document.** It means row 0 and
-checks 1–3 passed. Checks 4, 5 and 7 are judgement the tool does not
-make, and 6 and 8 are specified but not built — a silent tool is not a
+checks 1–3 and 8 passed. Checks 4, 5 and 7 are judgement the tool does
+not make, and 6 is specified but not built — a silent tool is not a
 passing grade for them.
+
+Check 8 has one part the CLI still leaves to you: it resolves the slug
+half of a reference and does not interpret a **heading anchor**, so
+`[[container-x#Some Heading]]` passes on `container-x` alone. If you
+wrote an anchor, confirm the heading exists. `spec-cli.md` lists the
+other reference cases a clean run says nothing about.
 
 WHERE the CLI is not installed, every check below is still defined and
 still runs; you carry out 1–3 by hand instead, against the property
@@ -117,7 +137,12 @@ reviewer. `spec-cli.md` covers installation.
    authoring scaffolding a reader will mistake for content.
 8. Every `[[slug]]` reference resolves to an existing document.
    [[cross-document-references]] owns what a reference resolves against
-   and the notation it must use.
+   and the notation it must use. `spec check` decides this one; run it
+   rather than reading the links. Two of its findings are worth reading
+   rather than only counting: a `reference/retired-target` **warning**
+   means the link resolves but the target has been replaced — cite the
+   successor it names instead — and a `reference/type-mismatch` means
+   the property resolved to a document of the wrong type.
 
 ---
 
@@ -133,8 +158,8 @@ while any check fails.
 
 ## References
 
-- `spec-cli.md` — the CLI that settles checks 1–3, and what it does
-  not yet check
+- `spec-cli.md` — the CLI that settles checks 1–3 and 8, and what it
+  does not yet check
 - `template-authoring-standards.md` (same directory) — frontmatter
   properties, slug conventions, line width, instruction blocks
 - `frontmatter-standards.md` — the `status` controlled vocabulary
