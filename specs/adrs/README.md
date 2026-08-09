@@ -22,6 +22,7 @@ This directory contains Architecture Decision Records documenting significant de
 - [ADR-016: Strata as the Single Source for Schemas and Generated Types](ADR-016-strata-for-schema-and-model-generation.md) — one definition emits JSON Schema, Go structs and Markdown; TypeSpec and Smithy are API IDLs that produce neither plain Go structs nor Markdown
 - [ADR-017: The Spec CLI Is a Prerequisite of the sf Plugin, Not a Payload](ADR-017-spec-cli-as-a-plugin-prerequisite.md) — the plugin stays pure markdown and names the binary as a prerequisite; skills call it in a single path rather than branching on its absence
 - [ADR-018: References Are an Edge Collection in the Index](ADR-018-references-as-index-edges.md) — one top-level `references` list carries each occurrence with its span, origin and resolution; both directions are derived from it rather than mirrored into each entry
+- [ADR-019: Orchestrate Work Orders with a Skill Composing Native Subagents](ADR-019-skill-composed-subagent-orchestration.md) — `bead-bonanza` composes the `Agent` primitive rather than adopting agent teams, background sessions, `/batch` or dynamic workflows, whose durability and input models do not fit an hours-long run that commits
 
 ## About ADRs
 
