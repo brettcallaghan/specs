@@ -38,10 +38,14 @@ Work these steps in order.
 
 1. **Find the run.** `bd show <epic-id>` carries the `RUN_DIR` pointer in its
    tracker note, and each amendment is mirrored there — that note is the
-   cheapest route in. Failing that, list `${TMPDIR:-/tmp}/claude/bead-bonanza/`
-   and take the newest run-id directory. WHEN neither exists, the run predates
-   the pointer: reconstruct from `git log` and `bd list --status all`, and
-   **say so in the report** — a reconstruction is not a plan.
+   cheapest route in and the only one that survives container reclaim. Failing
+   that, `ls -l "${TMPDIR:-/tmp}/claude/bead-bonanza/current"` — a symlink
+   pre-flight-check.sh repoints at the start of every run. Only if neither
+   resolves, list the run root and take the newest run-id directory, treating
+   it as a guess: newest-by-mtime is wrong whenever an older run's directory
+   was touched after a newer one started. WHEN none of the three resolves, the
+   run predates the pointer: reconstruct from `git log` and `bd list --status all`,
+   and **say so in the report** — a reconstruction is not a plan.
 
 2. **Read `dispatch.md` in full.** It carries the mandate, the enumerated bead
    list, the standing authorization, the wave table, the gate profile and the

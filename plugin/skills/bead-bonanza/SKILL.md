@@ -784,6 +784,25 @@ bb-close-bead.sh <bead-id> <priority> <title> [path ...]
   agent may be sharing the tree. It closes with a status-only `bd update` and
   never writes the description.
 
+### Side effects — what each script leaves behind
+
+These are the artifacts each script creates, writes, or repoints. They are
+published for the same reason the usage lines are: the scripts are executed,
+not read, so an agent that obeys that rule cannot discover a side effect by
+opening the file.
+
+- **`scripts/pre-flight-check.sh`** — creates `$RUN_DIR` if it does not
+  exist, repoints `$RUN_ROOT/current` symlink at the start of every run,
+  emits `BB_*` facts (`BB_LINT`, `BB_MTIME`, etc.) on stdout.
+- **`scripts/bb-progress.sh`** — creates `<run-dir>` if it does not exist,
+  appends one JSONL event to `<run-dir>/<bead-id>.progress.jsonl`.
+- **`scripts/bb-verify-skip.sh`** — no side effects; exits 0 (skip
+  verified), 1 (not skipped), or 2 (invocation error).
+- **`scripts/bb-close-bead.sh`** — runs `bd update --status closed`,
+  rewrites `.beads/issues.jsonl` by exporting the database, stages the
+  specified paths plus `.beads/issues.jsonl` and
+  `.beads/interactions.jsonl`, makes one commit.
+
 Each script's own header carries the same usage line. WHEN a usage line
 here disagrees with the script, the script is authoritative — and that
 disagreement is a finding worth a retro.
