@@ -408,6 +408,24 @@ else
   say "$SETTINGS_LOCAL: absent — expect a permission prompt per distinct command"
 fi
 
+# worktree.baseRef — advisory, never blocking. Most runs never dispatch a
+# worktree wave, but when one does, an unset baseRef silently branches each
+# worktree from the DEFAULT branch instead of session HEAD. Measured, because
+# this lives in user-scope settings that no repository owns.
+USER_SETTINGS="$HOME/.claude/settings.json"
+if [ "$JQ" = ok ] && [ -f "$USER_SETTINGS" ]; then
+  WORKTREE_BASEREF="$(jq -r '.worktree.baseRef // "unset"' "$USER_SETTINGS" 2>/dev/null)"
+  [ -n "$WORKTREE_BASEREF" ] || WORKTREE_BASEREF=unset
+else
+  WORKTREE_BASEREF=unknown
+fi
+say "worktree.baseRef: $WORKTREE_BASEREF (advisory)"
+if [ "$WORKTREE_BASEREF" != head ]; then
+  say "  ^ NOT 'head'. isolation:\"worktree\" will branch from the default branch,"
+  say "    not session HEAD. Harmless unless this run dispatches a worktree wave —"
+  say "    if it does, set it first: .worktree.baseRef = \"head\" in $USER_SETTINGS"
+fi
+
 # TaskCreate ban detection. The project rule wins over this skill's default, so
 # it is worth knowing before the first progress update rather than after.
 TASKCREATE=allowed
@@ -506,6 +524,7 @@ emit  BB_DOLT "$DOLT"
 emit  BB_DOLT_TELEMETRY "$DOLT_TELEMETRY"
 emit  BB_DENY_ENTRY "$DENY_ENTRY"
 emit  BB_SETTINGS_LOCAL_ALLOW "$SETTINGS_LOCAL_ALLOW"
+emitq BB_WORKTREE_BASEREF "$WORKTREE_BASEREF"
 emit  BB_GATE_BASELINE "$GATE_BASELINE"
 [ -n "$GATE_EMIT" ] && printf '%s\n' "$GATE_EMIT" | sed '/^$/d'
 

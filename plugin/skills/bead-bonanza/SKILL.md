@@ -100,6 +100,12 @@ Two things no script can settle:
   harness property, invisible from a shell, and it is the trigger for the
   main-loop fallback. No script can check it — you must.
 
+WHEN the run may use worktree-parallel, confirm `BB_WORKTREE_BASEREF` is `head`
+before Phase 2.5. Unset, worktrees branch from the **default branch**, not
+session HEAD, and beads building on each other lose their foundation. It is
+user-scope global state this repo does not own, so re-verify per wave — see
+`references/subagent-prompts.md`, "The base-ref trap".
+
 ## Phase 1 — Resolve the queue
 
 Parse the user's filter from their request (label, priority, ID list).
