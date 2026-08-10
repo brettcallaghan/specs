@@ -162,8 +162,11 @@ context without searching. Maps to the bead `description`.
 
 <!--
 The MUTABLE approach: how. The chosen approach and the decisions that would
-otherwise be re-litigated by a time-pressured agent. It MAY hedge ("leaning X
-because Y; fall back to Z if the API can't do it"). Name existing code anchors;
+otherwise be re-litigated by a time-pressured agent. Record the alternatives
+weighed AND the one chosen; it SHALL NOT leave the choice open ("leaning X
+because Y; fall back to Z if that doesn't work out" is an open decision and
+fails the Definition of Ready). A fallback a fresh agent can resolve
+mechanically from the repo is fine. Name existing code anchors;
 do NOT prescribe new function signatures or file layouts — that is the
 executing agent's choice. Omit for `kind: epic`. Maps to the bead `design`.
 
