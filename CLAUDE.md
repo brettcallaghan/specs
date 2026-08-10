@@ -147,6 +147,14 @@ restores every issue with its original `agent-plugins-` id and status.
   configured for it, so beads created on two branches will conflict
   textually on merge. Prefer creating beads on one branch until that is
   resolved.
+- **2026-08-10:** Observed a lost bead (agent-plugins-1a9) deferred in
+  rfcs/retired/rfc-0004-bead-bonanza-dispatch-and-script-contracts.md whose
+  deferral record persists but the bead itself was never exported to
+  `.beads/issues.jsonl` — it existed only in the session's ephemeral database.
+  The documented practice of running `bd export` and committing before
+  container exit is correct and complete; this incident confirms it was not
+  followed. Audit the visible deferrals periodically (sweep `rfcs/retired/*.md`
+  for bead citations and check each resolves) to detect a recurrence.
 
 ## Build & Test
 
