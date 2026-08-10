@@ -76,12 +76,12 @@ and appends the JSON itself — never hand-write an event.
    - Any custom gates from the profile: `{CUSTOM_GATES}` (skip if none)
    On gate failure, fix the root cause and rerun. After two full failed cycles, follow the Blocked path — do not keep retrying. Run `bb-progress.sh "$RUN_DIR" {ID} gates-passed` after success.
 5. **Write the Retro to a file BEFORE closing the bead** (crash recovery anchor — non-negotiable).
-   - Write `{RUN_DIR}/{ID}.retro.md` containing the FULL bead description (original + a `## Retro` section appended). The Retro section covers:
-     - Approach taken (which option, if a decision was made)
-     - **For a defect/bug bead: the observed pre-fix failure** — the test and how it failed *before* the change (e.g. "test X failed with Y"), not merely "tests pass now"
-     - **Implicit decisions you made** (one bullet each: what you chose + why)
-     - Anything that differed from the original instructions
-     - Anything surprising; ideas for improving prompts/skills/patterns
+   - Start the file mechanically, never by retyping: `bd show {ID} --json | jq -r '.[0].description' > "{RUN_DIR}/{ID}.retro.md"`. Retyping the description costs generated tokens and silently drops content — a groomed bead's own `## Retro` instructions are what usually go missing, and `{SCRIPTS}/bb-close-bead.sh` then writes the lossy copy back over the bead with `--body-file`.
+   - Then append a `## Retro — implementation` section (that exact heading, so it cannot collide with or displace any `## Retro` the bead already carries). Four items, in order, and keep it SHORT — write for a reader who already has the diff, the commit, `bd show {ID}` and the gate output. Do NOT restate the approach, the diffstat, the files changed, the gate table or the acceptance criteria; `git show --stat <sha>` already holds all of it.
+     1. **Findings** — one bullet per point of friction, and record EACH ALSO as its own `bd comment` on {ID} prefixed `retro:`. That comment channel is what downstream retros and RFCs actually read; the file alone does not reach them. Trigger list — record one WHEN: you needed information the bead and its references did not carry; you had to settle something the bead or spec should have pinned; the bead contradicted repo reality; you could not satisfy an acceptance criterion as declared; a sequencing surprise. 1–3 sentences each, friction only, no root-causing. **A clean bead records none — say so rather than inventing filler.**
+     2. **What you tried that did not work** — the reading you took first and abandoned, and why. The diff shows only the reading that survived, so this is unrecoverable later.
+     3. **What you decided silently** — only choices a diff-reader would not recognise AS choices. Narrower than "every implicit decision": an internal helper's name or the order of two independent guard clauses qualifies; the approach the bead already specified does not.
+     4. **For a defect bead: the observed pre-fix failure**, quoted from actual output. If you could not reproduce it, say so and say what you substituted.
    - Run `bb-progress.sh "$RUN_DIR" {ID} retro-written` after the file is on disk.
 6. Close and commit in one step — run the bundled script:
    `{SCRIPTS}/bb-close-bead.sh {ID} {PRIORITY} "{TITLE}" "{RUN_DIR}/{ID}.retro.md" <code paths>`
