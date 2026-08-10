@@ -52,9 +52,9 @@ visible.)
 bead-bonanza run:
 - [ ] 0. Pre-flight: pre-flight-check.sh run, RUN_DIR + SCRIPTS eval'd
 - [ ] 1. Queue resolved and printed (count + ordered list)
-- [ ] 1.5 Readiness gate: every bead groomed, or bounced with its gap
-- [ ] 2. Decisions surfaced and baked into beads (no questions after this)
-- [ ] 2.5 Dispatch plan: bucket + tier + push mode per bead
+- [ ] 1.5 Readiness gate: every bead groomed (decisions closed), or bounced
+        with its gap
+- [ ] 2. Dispatch plan: bucket + tier + push mode per bead
 - [ ] 3. Execute buckets, verifying each return (skip claims, clean tree)
 - [ ] 4. Final report: table, totals, implicit decisions, TIER ESCALATIONS,
         follow-up beads, stashes, pushes, run-dir path
@@ -130,13 +130,14 @@ pre-flight reported `BB_TASKCREATE=banned`).
 
 bead-bonanza dispatches **only groomed beads.** Every later phase already
 assumes grooming's outputs: Phase 1's `bd ready` ordering comes from the
-dependency graph grooming wires; Phase 2 reads the `decision-required` labels
-grooming sets; Phase 2.5 reads the `tier:` assignment grooming makes. An
-ungroomed queue makes all three unreliable — and handing a fresh, zero-context
-subagent an under-specified bead is the single most expensive failure mode this
-skill has: it detonates mid-wave, after later beads have built on it.
+dependency graph grooming wires; this gate's own cheap check reads the
+`decision-required` label grooming sets (DoR check 9); Phase 2.5 reads the
+`tier:` assignment grooming makes. An ungroomed queue makes all three
+unreliable — and handing a fresh, zero-context subagent an under-specified
+bead is the single most expensive failure mode this skill has: it detonates
+mid-wave, after later beads have built on it.
 
-So before any decisions or dispatch, gate the queue against the **Definition of
+So before dispatch, gate the queue against the **Definition of
 Ready** — the checklist owned by the `spec` skill
 (`references/shared/work-order-definition-of-ready.md`) and enforced by
 `groom-beads`, which materializes work orders as beads. Those skills are the
@@ -156,9 +157,12 @@ readiness signals (parallelize — this is read-only):
   numbers or prose).
 - no session-dependent language — "as discussed", "the above", "finish the
   earlier refactor" — the fresh-subagent test.
+- no open decision — no `decision-required` label, "DECISION REQUIRED"/"TBD"
+  marker, or unresolved options list (DoR check 9); it is bounced, not
+  questioned mid-run.
 
 A queue that is entirely ready makes this phase a one-line no-op: say so and
-proceed to Phase 2.
+proceed to Phase 2.5.
 
 ### 2. Groom what fails (delegate — don't groom in the orchestrator)
 
@@ -180,6 +184,11 @@ split, rests on an unexamined premise — does **not** enter the run. Exclude
 these from the queue and surface them to the user at the end of this phase (one
 line each + the gap). The run proceeds with the Ready beads; ungroomable beads
 are the user's to resolve, not a subagent's.
+
+Bounced beads are the run's **single decision point**: surfaced with their
+open question, resolved or groomed before dispatch, then the run proceeds
+with the Ready remainder — an *admission* decision made once, up front, not
+mid-flight.
 
 ### 4. Admitting emergent work mid-run
 
@@ -215,8 +224,10 @@ decides:
 - **In-scope** → run it through this gate (groom → re-`bd ready`), wire the
   `blocks` edge so it orders ahead of the bead it unblocks, and dispatch it
   under the standing auto-chain authorization. No new prompt — this is the
-  intended autonomy. (A groomed prerequisite that lands a `decision-required`
-  label still stops for the user, per the standing-authorization terms.)
+  intended autonomy. Grooming closes decisions along with the rest of the
+  Definition of Ready. (A groomed prerequisite that still lands a
+  `decision-required` label stops for the user, per the standing-authorization
+  terms.)
 - **Out-of-scope** → leave it filed and linked, do NOT dispatch it, and surface
   it in the final report for the user to triage. The standing authorization
   finishes the launched scope; it never enlarges it.
@@ -228,103 +239,6 @@ mis-groomed, which is a human's call, not an autonomous expansion.
 
 The grooming subagent prompt template is in
 `references/subagent-prompts.md`.
-
-## Phase 2 — Decisions
-
-Run `bd show <id>` for every bead (parallelize — read-only). Classify each
-bead's decision state:
-
-- **`explicit`** — bead has the `decision-required` label, a "DECISION REQUIRED"
-  / "TBD" / "open question" marker, or a bulleted Options list with no chosen
-  path.
-- **`implicit`** — the description leaves an implementation choice open without
-  flagging it as a decision. Look for: multiple acceptable acceptance-criteria
-  phrasings ("either … or …"), under-specified output formats, fallback string
-  formatting, default values, naming choices. The subagent will pick silently if
-  you don't surface this.
-- **`none`** — fully specified.
-
-### Lean path: skip the decisions doc when nothing is pending
-
-If **every** bead in the queue is `none` OR `implicit-with-trustworthy-default`
-AND there are no `explicit` decisions remaining (all previously-flagged
-decisions are already baked into bead descriptions with a SELECTED option), skip
-Step 2a entirely. State the implicit defaults inline in chat (one line each),
-issue a single consolidated implicit-decisions question (Step 2b's implicit
-flavor), and proceed. No `decisions.md` file. The doc is only worth writing when
-there are ≥3 implicit decisions worth tabulating, or any explicit decisions left
-to make.
-
-For everything else (mixed bag, large queue, or any explicit decisions pending),
-use the full path below.
-
-### Step 2a — Write the decisions doc
-
-Write `${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/decisions.md`. Two sections:
-**Explicit Decisions** and **Implicit Decisions**.
-
-For each **explicit** decision:
-- **Bead ID + title**
-- **Problem in plain English** with file:line refs
-- **Options table** — each option with: one-line summary, concrete code/output
-  example, blast radius, trade-off
-- **Recommendation** + one-sentence rationale
-- **Status** — `[ ] pending`
-
-For each **implicit** decision:
-- **Bead ID + title**
-- **The choice** — what the subagent will need to decide (e.g. "unknown-enum
-  fallback: numeric code vs a `\"unknown\"` sentinel string vs raise an error?")
-- **Subagent default** — what it will pick if you don't override (with
-  rationale)
-- **Status** — `[ ] subagent-default` (user can change to `[x] override:
-  <value>`)
-
-Read source files when needed for concrete examples. The user references this
-doc while answering.
-
-Tell the user the doc's path explicitly when issuing AskUserQuestion.
-
-### Step 2b — Batch ask
-
-Issue `AskUserQuestion`. **Two flavors:**
-
-- **Explicit decisions** — one multi-choice question per decision (max 4 per
-  AskUserQuestion call; split into parallel calls if more). Recommended option
-  first with " (Recommended)" suffix. Short labels — detail lives in the doc.
-- **Implicit decisions** — ONE consolidated question: "Want to override any of
-  the {N} implicit decisions? (defaults shown in the decisions doc)" with
-  options: "Use all defaults (Recommended)" | "Override specific ones" (user
-  replies with which + value via Other). Don't blast N implicit questions; most
-  users will trust the defaults.
-
-If the user replies with "clarify these questions" or pushes back, ask what
-they'd like clarified rather than guessing. After clarification, reissue with
-refined options.
-
-### Step 2c — Bake decisions into beads
-
-For each **explicit** decision answered:
-
-1. Update the bead description: append (or modify) a `## DECISION
-   (<YYYY-MM-DD>)` section. **Preserve all options** — mark only the selected
-   one with " — SELECTED". Don't delete unselected options; future readers want
-   to know what was considered.
-2. Update acceptance criteria to refer to the selected option.
-3. Remove the label: `bd update <id> --remove-label decision-required`.
-
-For each **implicit** decision the user overrode: append the override +
-rationale to the bead description as a `## IMPLICIT DECISION OVERRIDE
-(<YYYY-MM-DD>)` section. Subagent-default decisions don't need a description
-update; the subagent will record its choice in a `retro:` comment.
-
-Do these `bd update` calls in parallel. Use `--body-file -` with HEREDOC for
-description updates.
-
-Update `decisions.md` to mark each row `[x] <selected option>` or `[x]
-subagent-default`.
-
-**After Phase 2c, do not ask the user any more questions.**
 
 ## Phase 2.5 — Triage & dispatch plan
 
@@ -404,9 +318,9 @@ Beads name a **tier**, not a model, so a backlog groomed months ago still
 routes correctly. Resolve tier → model from the project's `## model
 lineup` block in `AGENTS.md`, echoed by Phase 0. Honor these:
 
-- **Collect during Phase 2** — you're already running `bd show` per
-  bead; record each bead's tier alongside its decision state.
-  `bd list --label tier:standard --json` also works for bulk queries.
+- **Collect during Phase 1.5** — you're already reading each bead's
+  readiness signals; record its tier then. `bd list --label tier:standard
+  --json` also works for bulk queries.
 - **Dispatch at the resolved model** — pass `model: "<resolved>"` on the
   `Agent` tool call for that bead's subagent. Absent a lineup, omit the
   param (the subagent inherits the session model) and say so once.
@@ -549,7 +463,7 @@ After each subagent returns:
 
 **Circuit breaker:** if 3 consecutive beads return `blocked` or fail, stop the
 run and surface to the user. Something is systemically wrong (broken main,
-environment issue, bad decisions doc).
+environment issue, an under-groomed bead).
 
 ### Recovery and progress streaming
 
@@ -635,7 +549,7 @@ After the queue is drained (or the circuit breaker tripped), print:
    list`.
 6. **Pushes** — confirm all closed beads' commits are on the remote.
 7. Path to `${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/` so the user can
-   review the decisions doc, dispatch plan, and progress files.
+   review the dispatch plan and progress files.
 
 Do NOT create a PR or merge to main — that is a separate, explicit user action.
 
@@ -670,14 +584,13 @@ Do NOT create a PR or merge to main — that is a separate, explicit user action
   anchor); the close happens via a plain `bd update --status closed` BEFORE
   staging, so the close is folded into the implementation commit. Closing never
   rewrites the description — grooming owns it.
-- **Lean path for the decisions doc only.** Skip the formal decisions doc when
-  all decisions are pre-baked, and state them in one line in chat instead. The
-  dispatch plan has no lean path: it is written every run, because it is what a
-  recovering orchestrator reads instead of re-deriving the run.
-- **Surface implicit decisions, don't bury them.** If the subagent will silently
-  choose, name it — either inline in chat (small queues) or in the decisions doc
-  (large queues). The user can override or trust the default, but should know it
-  exists.
+- **The dispatch plan has no lean path.** It is written every run, whatever
+  its size, because it is what a recovering orchestrator reads instead of
+  re-deriving the run.
+- **Surface implicit decisions, don't bury them.** A bead with an open
+  decision is bounced at Phase 1.5. A choice a subagent still makes silently
+  — one the bead's Design didn't pin — belongs in its `retro:` comment, not
+  the diff.
 - **Visible progress beats opacity.** Subagents write JSONL progress events. For
   any subagent past 5 minutes, the orchestrator must arm `Monitor` on the
   progress file so the user sees per-phase events live. Long opaque runs erode
@@ -685,12 +598,12 @@ Do NOT create a PR or merge to main — that is a separate, explicit user action
 - **Subagents discard context on return.** This is why the skill prefers fresh
   subagents over `/compact`. Batch subagents (fast lane, shared-surface)
   compromise — they hold context for N beads but free it on return.
-- **Don't read source files in the orchestrator.** Almost all code reads happen
-  inside subagents. Exception: Phase 2a may need to read source to make decision
-  examples concrete.
+- **Don't read source files in the orchestrator.** Code reads happen inside
+  subagents — grooming (Phase 1.5) reads source to close decisions and wire
+  dependencies before dispatch.
 - **Capture decisions in the bead, not just in chat.** The bead description
-  (with SELECTED markers and preserved alternatives) is the durable record.
-  Decisions doc and dispatch plan are session-scratch.
+  (selected options and alternatives, set by grooming) is the durable record;
+  the dispatch plan is session-scratch.
 - **Fail loudly, recover quietly.** If a subagent blocks, log it and move on. If
   three consecutive block, stop and surface — that's a systemic problem. If a
   subagent crashes mid-step, follow the recovery procedure (the handoff file is
