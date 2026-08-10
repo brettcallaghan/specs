@@ -7,7 +7,7 @@ single most common dispatch defect, because the subagent has no session
 context to infer it from.
 
 Two placeholders are resolved once per run and substituted into every
-prompt: `{RUN_DIR}` is the run root from Phase 0 step 4, and `{SCRIPTS}` is
+prompt: `{RUN_DIR}` is the run root Phase 0's pre-flight script resolved, and `{SCRIPTS}` is
 the absolute path to this skill's `scripts/` directory. A subagent runs from
 the repo root and cannot infer either.
 

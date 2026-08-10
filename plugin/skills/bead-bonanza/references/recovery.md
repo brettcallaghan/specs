@@ -4,7 +4,7 @@ How the orchestrator sees a run in flight, and how it recovers when a
 subagent dies mid-ceremony. Read this WHEN a subagent times out, returns an
 API error instead of a summary, or is expected to run past 5 minutes.
 
-`${TMPDIR:-/tmp}` below is the run root resolved in Phase 0 step 4.
+`${TMPDIR:-/tmp}` below is the run root Phase 0's pre-flight script resolved.
 
 ## Contents
 

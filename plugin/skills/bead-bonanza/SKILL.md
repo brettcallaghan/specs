@@ -31,8 +31,9 @@ than from a summary of it.
 
 **This skill is language-agnostic.** It never hard-codes build, test, lint, or
 format commands. Everything it needs to validate the work done for a bead comes
-from the project's **gate profile** (Phase 0, step 1). Throughout this document,
-`<format>`, `<lint>`, `<build>`, `<test>`, and `<regen>` are placeholders that
+from the project's **gate profile**, echoed by Phase 0's pre-flight script.
+Throughout this document, `<format>`, `<lint>`, `<build>`, `<test>`, and
+`<regen>` are placeholders that
 resolve to that project's actual commands. The profile can also define **custom
 gates** — any extra command or inline script the project wants run as part of
 the gate suite (e.g. a schema check, a license-header linter, a `bash` block).
@@ -49,7 +50,7 @@ visible.)
 
 ```
 bead-bonanza run:
-- [ ] 0. Pre-flight: AGENTS.md blocks loaded, RUN_DIR + SCRIPTS resolved
+- [ ] 0. Pre-flight: pre-flight-check.sh run, RUN_DIR + SCRIPTS eval'd
 - [ ] 1. Queue resolved and printed (count + ordered list)
 - [ ] 1.5 Readiness gate: every bead groomed, or bounced with its gap
 - [ ] 2. Decisions surfaced and baked into beads (no questions after this)
@@ -61,92 +62,43 @@ bead-bonanza run:
 
 ## Phase 0 — Pre-flight
 
-Before reading the queue, verify the environment won't interrupt the run:
+One script measures the environment; you act on what it returns. Run it from
+this skill's own directory, with a run id of `$(date +%s)-<queue size>`:
 
-1. **Load the project's two `AGENTS.md` blocks.**
-   - `## bead-bonanza gates` — the gate profile. Every `<format>`,
-     `<lint>`, `<build>`, `<test>`, and `<regen>` placeholder in this
-     document resolves to a command from it.
-   - `## model lineup` — how the capability tiers on each bead
-     (`light | standard | advanced | frontier`) resolve to models at
-     dispatch.
+```bash
+eval "$(<this skill>/scripts/pre-flight-check.sh "<run-id>" --gate-baseline)"
+```
 
-   Both present is the fast path: load them and continue, no prompt.
-   **WHEN either is missing, read `references/project-setup.md`** — it
-   holds the templates, how to draft one from the repo, and the
-   permissions a run needs. Do not invent gates or a lineup from memory.
+Read its stderr report once. It echoes the two `AGENTS.md` blocks —
+`## bead-bonanza gates`, the profile every `<format>`, `<lint>`, `<build>`,
+`<test>` and `<regen>` placeholder in this document resolves to, and
+`## model lineup`, how a bead's tier resolves to a model at dispatch — and
+reports every other probe, including the gate baseline. Its stdout sets
+`RUN_DIR`, `SCRIPTS` and the `BB_*` facts; substitute those wherever this
+document shows a run-dir path or a scripts path. Exit **0** proceed;
+**1** blocking, named in the report and fixed before Phase 1 — a missing
+`AGENTS.md` block means read `references/project-setup.md` and draft it WITH
+the user, never invent gates or a lineup from memory; **2** you called it
+wrong.
 
-   If the project genuinely has no build/test step (e.g. a pure-docs
-   repo), record that: `<test>` is a no-op and the doc/chore fast lane is
-   the only dispatch mode.
-2. **Beads telemetry.** `bd` stores its data in Dolt, which calls
-   `eventsapi.dolthub.com`. Just kill it — don't ask, don't suggest.
+Those facts are ledger lines with a command behind them. **Do not re-assert
+from memory what the script just measured** — push mechanics in particular
+vary by container. WHEN `BB_PUSH_NEEDS_REFSPEC=yes`, push with an explicit
+refspec (`git push <remote> <branch>`) every time; verify landings with
+`git rev-parse <remote>/<branch>` after fetch, not `git status -sb`; and never
+let a pipe to `tail` mask a push's exit status.
 
-   **Probe for the `dolt` CLI first — it is often absent.** Recent `bd`
-   embeds Dolt as a library rather than shelling out to a binary, so a
-   perfectly working `bd` can sit on a machine with no `dolt` on PATH,
-   and running the config command blind fails with
-   `dolt: command not found`:
-   ```bash
-   if command -v dolt >/dev/null 2>&1; then
-     # Sandbox disabled: writing ~/.dolt/config_global.json is blocked.
-     dolt config --global --list          # skip if metrics.disabled = true
-     dolt config --global --add metrics.disabled true   # dangerouslyDisableSandbox: true
-   fi
-   ```
-   WHEN `dolt` is absent, that is a normal configuration and NOT a run
-   failure: there is no global Dolt config to write, so record "no `dolt`
-   CLI; telemetry config skipped" in the Phase 0 notes and continue to
-   the permission deny below, which is what actually blocks the domain.
+Two things no script can settle:
 
-   Then, in either case, add a permanent deny so the domain can't sneak
-   back in: edit `~/.claude/settings.json`, append
-   `"WebFetch(domain:eventsapi.dolthub.com)"` to `permissions.deny`
-   (creating the array if needed). Tell the user in one line what was
-   done.
-3. **Run scratch directory.** Pick a run id (e.g. `$(date +%s)-<N>` where N is
-   the queue size), then resolve the run root ONCE and confirm it is writable
-   before Phase 1:
-   ```bash
-   RUN_DIR="${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>"
-   mkdir -p "$RUN_DIR" && touch "$RUN_DIR/.ok" && echo "run dir: $RUN_DIR"
-   ```
-   **Always write `${TMPDIR:-/tmp}`, never a bare `$TMPDIR`.** `TMPDIR` is set
-   on macOS but unset on most Linux hosts and in most containers, where a bare
-   `$TMPDIR/claude/...` expands to the absolute path `/claude/...` — which is
-   unwritable, so every later write fails. Substitute the resolved `$RUN_DIR`
-   wherever this document shows the path.
-
-   Resolve the scripts directory in the same step — every subagent prompt
-   needs it as an absolute path, because a subagent runs from the repo root
-   and cannot find this skill by itself:
-   ```bash
-   SCRIPTS="<absolute path to this skill>/scripts"
-   ```
-
-   Do not proceed while that command fails. This directory holds the decisions
-   doc (when one is needed), the dispatch plan (when one is needed), per-bead
-   progress files (one `.progress.jsonl` per bead), and per-bead retro files
-   (one `.retro.md` per bead, written by the subagent before close) — and crash
-   recovery reads from it, so a run started without it cannot be recovered.
-4. **TaskCreate fallback.** This skill defaults to `TaskCreate`/`TaskUpdate` for
-   orchestrator-side progress visibility. If the project's
-   `CLAUDE.md`/`AGENTS.md` explicitly bans `TaskCreate` (e.g. "use bd for ALL
-   task tracking"), skip it — the project rule wins. Use inline status updates
-   in your text output instead. (`bd` already tracks the work; `TaskCreate` is
-   purely orchestrator scaffolding for in-conversation visibility.)
-5. **Push mechanics.** The sandbox blocks `.git/config` writes, so
-   `--set-upstream` never persists and a bare `git push` exits 128 with "no
-   upstream" (and `| tail` masks the failure — always propagate the pipe's exit
-   status). Push with an explicit refspec every time: `git push origin
-   <branch>`. Verify landings with `git rev-parse origin/<branch>` after fetch,
-   not with `git status -sb`.
-6. **Open a draft PR early (ask once).** If the repo has PR-triggered CI, ask
-   the user at run start whether to open a draft PR from the working branch.
-   Every wave push then gets the full CI matrix in the cloud — including
-   toolchain-heavy suites the local sandbox can't run — which is what makes the
-   slim local gate policy (below) safe. Note: `gh` fails TLS verification inside
-   the sandbox; run `gh` commands with sandbox disabled.
+- **Draft PR.** WHEN `BB_PR_CI=yes`, ask the user once whether to open a draft
+  PR from the working branch — every wave push then gets the full CI matrix in
+  the cloud, including toolchain-heavy suites the local sandbox can't run,
+  which is what makes the slim local gate policy (below) safe. (`gh` fails TLS
+  verification inside the sandbox; run it with sandbox disabled.) WHEN
+  `BB_PR_CI=no`, don't ask.
+- **Agent-tool availability.** Whether you have an Agent/Task tool at all is a
+  harness property, invisible from a shell, and it is the trigger for the
+  main-loop fallback. No script can check it — you must.
 
 ## Phase 1 — Resolve the queue
 
@@ -166,7 +118,7 @@ Parse the user's filter from their request (label, priority, ID list).
    explicit ID list)" — this is the only Phase-1 question allowed.
 
 Use `TaskCreate` to track one task per bead so progress is visible (unless the
-project bans it — see Phase 0 step 5).
+pre-flight reported `BB_TASKCREATE=banned`).
 
 ## Phase 1.5 — Readiness gate (grooming)
 
@@ -466,7 +418,7 @@ light  →  standard  →  advanced  →  frontier
 
 Beads name a **tier**, not a model, so a backlog groomed months ago still
 routes correctly. Resolve tier → model from the project's `## model
-lineup` block in `AGENTS.md` (Phase 0 step 1a). Honor these:
+lineup` block in `AGENTS.md`, echoed by Phase 0. Honor these:
 
 - **Collect during Phase 2** — you're already running `bd show` per
   bead; record each bead's tier alongside its decision state.
@@ -580,7 +532,7 @@ After each subagent returns:
 
 1. Append its summary lines to your log (one per bead processed).
 2. Mark corresponding tasks complete via `TaskUpdate` (or skip if the project
-   bans TaskCreate per Phase 0 step 5).
+   reported `BB_TASKCREATE=banned`).
 3. **Verify skip claims with a diff-stat.** For every bead the subagent returned
    as `skipped`:
    - Run `scripts/bb-verify-skip.sh` (scoped to that bead's worktree if
@@ -783,7 +735,7 @@ Do NOT create a PR or merge to main — that is a separate, explicit user action
   scope; it never enlarges it.
 - **Keep an environmental-failure ledger; never re-diagnose per wave.** Suites
   that fail — or silently PASS for environmental reasons — in the local sandbox
-  get diagnosed ONCE, recorded in the gate profile's ledger (Phase 0 step 1),
+  get diagnosed ONCE, recorded in the gate baseline pre-flight captured,
   then the verdict is passed into every subsequent subagent prompt as fact. The
   silent-pass case is the dangerous one: a gate can go green without exercising
   your change (a harness running a stale prebuilt binary a plain test command
@@ -818,6 +770,7 @@ Load the one that matches where you are in the run:
 | Dispatching any subagent (Phase 1.5 grooming, Phase 3 execution) | `references/subagent-prompts.md` |
 | A subagent that crashed, timed out, or is running past 5 minutes | `references/recovery.md` |
 | A project with no `## bead-bonanza gates` or `## model lineup` block | `references/project-setup.md` |
+| Phase 0 pre-flight: probe the environment, resolve `RUN_DIR`/`SCRIPTS` | run `scripts/pre-flight-check.sh` |
 | Emitting a progress event | run `scripts/bb-progress.sh` |
 | Checking a `skipped` claim against the tree | run `scripts/bb-verify-skip.sh` |
 | Closing a bead: close + export + stage + commit | run `scripts/bb-close-bead.sh` |
@@ -828,22 +781,33 @@ than previewing, and substitute every `{PLACEHOLDER}`, `{RUN_DIR}`, and
 `{SCRIPTS}` before sending
 a prompt.
 
-The three `scripts/` entries are **executed, not read**. They exist because
-each encodes an ordering or quoting rule that is easy to state and easy to
-get wrong under pressure — the close ceremony's four ordering constraints,
-the progress event's quoting hazard, the two-sided skip check. Run them
-rather than reproducing what they do.
+The four `scripts/` entries are **executed, not read**. They exist because
+each encodes an ordering, quoting or portability rule that is easy to state
+and easy to get wrong under pressure — the close ceremony's four ordering
+constraints, the progress event's quoting hazard, the two-sided skip check,
+and pre-flight's ten probes across two platforms. Run them rather than
+reproducing what they do.
 
 Because they are not to be read, their interfaces are published here — an
 agent that must open a script to learn how to call it has already been sent
 to read it:
 
 ```
+pre-flight-check.sh <run-id> [--gate-baseline] [--self-test]   # sandbox ON
 bb-progress.sh   <run-dir> <bead-id> <phase> [key=value ...]
 bb-verify-skip.sh [pathspec ...]        # no pathspec = whole working tree
 bb-close-bead.sh <bead-id> <priority> <title> <retro-file> [path ...]
 ```
 
+- **`scripts/pre-flight-check.sh`** — Phase 0, mechanized. Human report on
+  stderr, an evalable `RUN_DIR=`/`SCRIPTS=`/`BB_*=` block on stdout. Exit 0
+  proceed / 1 blocking / 2 bad invocation. **Run it with the sandbox ON** — the
+  one write the sandbox refuses is the global Dolt telemetry config, which the
+  script detects, skips, and reports as the single command to re-run with the
+  sandbox off. `--gate-baseline` also runs the gate profile on the untouched
+  tree, so a pre-existing failure is recorded as the baseline instead of being
+  charged to the first bead. `--self-test` exercises the portability wrappers
+  and takes no run id.
 - **`scripts/bb-progress.sh`** — appends one event to
   `<run-dir>/<bead-id>.progress.jsonl`. `<phase>` is a closed vocabulary:
   `claimed`, `implementing`, `gates-running`, `gates-passed`,
