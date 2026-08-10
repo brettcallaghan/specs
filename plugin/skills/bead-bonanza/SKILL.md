@@ -21,6 +21,14 @@ doesn't compound.
 Read `CLAUDE.md` and `AGENTS.md` once at the start so you have repo conventions
 in scope before delegating.
 
+**After any compaction, before dispatching anything:** re-read this file from
+Phase 3 onward and re-read references/recovery.md. A compacted session re-injects
+only this file's first ~5,000 tokens, so the per-bead ceremony, the published
+script interfaces and the rule against paraphrasing a dispatch template are NOT
+in your context even though you have "read the skill". Then ls "$RUN_DIR" and
+re-run the queue query, to re-derive run state from the durable source rather
+than from a summary of it.
+
 **This skill is language-agnostic.** It never hard-codes build, test, lint, or
 format commands. Everything it needs to validate the work done for a bead comes
 from the project's **gate profile** (Phase 0, step 1). Throughout this document,
