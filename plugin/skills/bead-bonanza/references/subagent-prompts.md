@@ -34,13 +34,19 @@ Beads to groom:
 {ID_2} — {TITLE_2}
 ...
 
-For each bead: bring it to Ready by editing it in place with `bd update` — enrich thin descriptions rather than discarding author intent; wire only dependencies you can justify; assign a `tier` with a `tier_reason`.
+For each bead: bring it to Ready by editing it in place with `bd update` — enrich thin descriptions rather than discarding author intent; wire only dependencies you can justify; assign a `tier` with a `tier_reason`; and where the repo has C4 docs, tag `c4_changes` / `c4_impacts` as arrays in metadata (the orchestrator buckets waves off those two fields).
 
 Do NOT implement any bead. Do NOT invent IDs, component names, or dependencies. Bounce, don't guess: any bead you cannot bring to Ready, leave as-is and report NOT-READY with the specific gap a human must close.
 
 Return a report, one line per bead:
 - `{ID}: ready — <notable change: description made context-independent / split into epic <id> + children <ids> / model assigned>`
 - `{ID}: NOT-READY - <the gap that needs a human>`
+
+Then return the **wave preview** `groom-beads` produces, as its own block after the per-bead lines — the orchestrator's Phase 2.5 consumes it as a starting partition, so a report without this block loses it:
+- `wave N: {ID}, {ID}, … — <why they are safe together>`, one line per candidate wave, grouped under both constraints (dependencies, and no two beads sharing a `c4_changes` component in a wave)
+- `sequencing: {ID} after {ID} — consumes <component>` for each pair whose `c4_impacts` intersects another bead's `c4_changes`
+- `wave-preview: none (no C4 docs)` instead of the above WHEN the repo documents no architecture and you skipped C4 tagging — the orchestrator must know the signal is absent, not empty
+- `c4-untagged: {ID} — <why>` for any bead you could not tag (component with no doc, scope unclear)
 ```
 
 

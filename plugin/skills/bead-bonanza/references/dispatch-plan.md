@@ -32,6 +32,7 @@ The header, before the wave table. Most of it is the stdout block from
 | Gate baseline | `<gate>=pass|fail` per gate, from pre-flight `--gate-baseline` |
 | Model lineup | light=`…` standard=`…` advanced=`…` frontier=`…` |
 | Standing authorization | what the user authorized without further asking (push mode, PR, scope) |
+| Wave preview | `accepted` \| `overridden — <why>` \| `none (no C4 docs)` \| `not returned` |
 
 ## Environmental ledger
 
@@ -61,12 +62,72 @@ step 4's scope test, and only as an amendment.
 | 2 | demo-9h0 | shared | shared-batch #1 | standard | defer | same serializer + fixture cluster |
 | 2 | demo-04y | shared | shared-batch #1 | standard | defer | same cluster |
 | 2 | demo-ojt | shared | shared-batch #1 | standard | defer | same cluster |
+| 2 | demo-1kq | shared | shared-batch #2 | standard | defer | same c4_changes: auth-service as demo-4tp (no file overlap) |
+| 2 | demo-4tp | shared | shared-batch #2 | standard | defer | same c4_changes: auth-service |
+| 3 | demo-7wb | isolated | sequential | standard | — | consumes auth-service, changed by demo-1kq |
 | 3 | demo-d3j | isolated | sequential | advanced | — | validator change; different surface |
 ```
 
 `Tier` is the bead's `tier:` label, resolved to a model at dispatch via the
 project's `## model lineup`. Leave it blank only when the project declares no
 lineup — the subagent then inherits the session model.
+
+### The Reason column names the collision class
+
+The two collision classes have different consequences, so they must not read
+alike. Spell out which one a row is:
+
+- **Co-edit collision** — names the shared surface: `same c4_changes:
+  auth-service`, `same fixture cluster`, `both edit testdata/golden.json`. These
+  beads may share a bucket and a batch; they may never share a
+  worktree-parallel wave.
+- **Sequencing constraint** — names what is consumed and whose change it
+  consumes: `consumes auth-service, changed by demo-1kq`. This is an *ordering*
+  edge, not a batching one; it can hold with zero file overlap. The consumer
+  goes in a later wave, or after the producer inside one bucket. WHEN the
+  ordering must survive recovery or a re-plan, wire a real `blocks` edge and say
+  so in the row.
+- **Signal disagreement** — say both signals and that you took the union:
+  `union: disjoint c4, overlapping fixture testdata/golden.json`. A
+  disagreement usually means stale C4 tagging or a bead scoped wider than its
+  tags say, so it is worth a line even when the packing is unaffected.
+
+## Reading C4 overlap
+
+Phase 2.5's primary overlap signal. `bd`'s JSON gives `metadata` as an object,
+so `c4_changes` / `c4_impacts` come back as real arrays:
+
+```bash
+bd list --status open --json | jq -r '
+  [ .[] | {id, ch:(.metadata.c4_changes // []), im:(.metadata.c4_impacts // [])} ] as $b
+  | ( [ $b[] as $x | $b[] as $y | select($x.id < $y.id)
+        | ($x.ch - ($x.ch - $y.ch)) as $s | select($s|length > 0)
+        | "co-edit  \($x.id) + \($y.id): \($s|join(","))" ]
+    + [ $b[] as $a | $b[] as $c | select($a.id != $c.id)
+        | ($c.im - ($c.im - $a.ch)) as $s | select($s|length > 0)
+        | "sequence \($c.id) after \($a.id): consumes \($s|join(","))" ] ) | .[]'
+```
+
+`$x.ch - ($x.ch - $y.ch)` is array intersection in `jq`; `// []` is what keeps
+an untagged bead from erroring out instead of reading as "no components".
+Filter the list to the run's queue first — a repo-wide `bd list` will pair
+queued beads with beads nobody scoped.
+
+Worked example, four beads:
+
+| Bead | `c4_changes` | `c4_impacts` |
+|------|--------------|--------------|
+| A | `auth-service` | `billing-service` |
+| B | `auth-service` | — |
+| C | `web-spa` | `auth-service` |
+| D | `reporting-service` | — |
+
+A + B collide on `auth-service` even if they share no file: shared-surface, one
+batch, never the same parallel wave. C changes a different component and shares
+no file with either, but consumes `auth-service` — a sequencing constraint, so C
+runs after both. D is isolated on both signals. Nothing in this reads a file
+path, which is the point: the file scan would have parallelized A with B and
+seen no relationship at all between C and them.
 
 ## Amendments
 

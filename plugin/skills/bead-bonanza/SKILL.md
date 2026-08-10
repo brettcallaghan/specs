@@ -170,7 +170,9 @@ If any bead fails the check, do NOT dispatch it and do NOT fix it inline —
 grooming reads source and wires graphs, which belongs in a subagent (see "don't
 read source files in the orchestrator"). Dispatch a **grooming subagent** over
 the ungroomed subset (template below); it runs `groom-beads` to the Definition
-of Ready and returns a per-bead readiness report.
+of Ready and returns a per-bead readiness report plus a **wave preview** — its
+candidate partition under dependencies and C4 collisions. Carry the preview into
+Phase 2.5, which takes it as a starting partition, not an instruction.
 
 When it returns, **re-run `bd ready`** with the run's filter: grooming may have
 wired new dependencies or split a boulder into an epic + children, changing both
@@ -253,14 +255,47 @@ one-bead-per-subagent for caution. Sequential is the *exception*, not the rule.
   comment/regex-pin additions. No fixture regeneration needed; targeted unit
   tests suffice. Examples: "document a trade-off in docs/", "add an explanatory
   comment", "swap one equivalent stdlib call for another".
-- **`isolated`** — touches files no other queued bead touches. No `BLOCKS` /
-  `RELATED` link to another queued bead.
-- **`shared-surface`** — touches files (especially snapshot/golden fixtures)
-  that another queued bead also touches, or has explicit `RELATED` links to
-  another queued bead.
+- **`isolated`** — shares no C4 component and no file with another queued bead.
+  No `BLOCKS` / `RELATED` link to another queued bead.
+- **`shared-surface`** — shares a `c4_changes` component with another queued
+  bead, or touches files (especially snapshot/golden fixtures) another queued
+  bead also touches, or has explicit `RELATED` links to another queued bead.
 
-Find file overlap by scanning each bead's description for fixture names + source
-paths, then bucketing by overlap.
+**Overlap comes from C4 metadata first, file paths second.** Grooming already
+computed the blast radius onto each bead — `c4_changes` (components it edits)
+and `c4_impacts` (downstream components affected but not edited). Read it; don't
+re-derive it from prose. The `jq` and a worked example are in
+`references/dispatch-plan.md`.
+
+1. **C4 metadata — primary.** Read `.metadata.c4_changes` and
+   `.metadata.c4_impacts` from `bd list --json` for every queued bead.
+   - Two beads sharing a `c4_changes` component are **shared-surface** whatever
+     their file paths say — the same component through different files still
+     collides. They MAY batch; they SHALL NOT share a worktree-parallel wave.
+   - Bead B whose `c4_impacts` intersects bead A's `c4_changes` consumes a
+     contract A is changing. That is a **sequencing** constraint, not a batching
+     one, and it holds with zero file overlap: order B after A within the
+     bucket, or wire a real `blocks` edge when the ordering must survive the run.
+   - Disjoint changes with no impact intersection is isolated *architecturally*
+     only — layer 2 still runs.
+2. **File paths — fallback and corroborator.** Scan each bead's description for
+   fixture names + source paths. It is the whole signal where `c4_*` is absent,
+   and it runs alongside C4 where both exist. WHEN the two disagree — disjoint
+   components, overlapping files — take the **union** as the collision set and
+   note the discrepancy in the plan; do not silently prefer one signal.
+3. **The grooming wave preview — starting partition.** WHEN Phase 1.5 returned
+   one, start from it instead of re-deriving the partition, and record in the
+   plan whether you accepted or overrode it and why. The orchestrator stays the
+   source of truth on packing; the preview is an input, not an instruction.
+
+Where the repo documents no C4 architecture, grooming skips the tagging and
+`c4_*` is absent — file scanning is then the whole signal, and absent metadata
+means *unknown*, never "no collisions".
+
+The two collision classes read differently in the plan's `Reason` column: a
+co-edit collision names what is shared (`same c4_changes: auth-service`); a
+sequencing constraint names what is consumed and from whom (`consumes
+auth-service, changed by demo-9h0`).
 
 ### Choose a dispatch mode per bucket
 
