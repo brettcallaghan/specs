@@ -522,12 +522,15 @@ environment issue, an under-groomed bead).
 
 ### Recovery and progress streaming
 
-Two things live in `references/recovery.md`: the progress-event schema
-every subagent writes, and the procedure for a subagent that dies
-mid-ceremony. **Read it WHEN** a subagent times out, returns an API error
-instead of a summary, or is expected to run past 5 minutes (any non-trivial
-bead, given full test runs) — at that point the orchestrator must arm a
-`Monitor` on the progress file so the user sees per-phase events live.
+Three things live in `references/recovery.md`: the progress-event schema
+every subagent writes (and the rule bounding what it proves), the procedure
+for a subagent that dies mid-ceremony, and the entry procedure for resuming a
+run after the *orchestrator* died. **Read it WHEN** a subagent times out,
+returns an API error instead of a summary, or is expected to run past 5
+minutes (any non-trivial bead, given full test runs) — at that point the
+orchestrator must arm a `Monitor` on the progress file so the user sees
+per-phase events live — **and WHEN** you are picking up a run whose state you
+do not hold.
 
 The one rule to carry without reading the file: after `gates-passed` and
 BEFORE closing the bead, the subagent writes `$RUN_DIR/<bead-id>.handoff.md`
@@ -727,7 +730,7 @@ Load the one that matches where you are in the run:
 |------------|------|
 | Dispatching any subagent (Phase 1.5 grooming, Phase 3 execution) | `references/subagent-prompts.md` |
 | Writing or amending the Phase 2.5 dispatch plan | `references/dispatch-plan.md` |
-| A subagent that crashed, timed out, or is running past 5 minutes | `references/recovery.md` |
+| A subagent that crashed, timed out, or is running past 5 minutes — or resuming a run whose state you do not hold | `references/recovery.md` |
 | A project with no `## bead-bonanza gates` or `## model lineup` block | `references/project-setup.md` |
 | Phase 0 pre-flight: probe the environment, resolve `RUN_DIR`/`SCRIPTS` | run `scripts/pre-flight-check.sh` |
 | Emitting a progress event | run `scripts/bb-progress.sh` |

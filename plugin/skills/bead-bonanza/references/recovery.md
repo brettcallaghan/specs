@@ -1,20 +1,118 @@
 # bead-bonanza Recovery and Progress Streaming
 
-How the orchestrator sees a run in flight, and how it recovers when a
-subagent dies mid-ceremony. Read this WHEN a subagent times out, returns an
-API error instead of a summary, or is expected to run past 5 minutes.
+How the orchestrator sees a run in flight, how it recovers when a subagent
+dies mid-ceremony, and how a run is picked back up when the **orchestrator**
+is what died. Read this WHEN a subagent times out, returns an API error
+instead of a summary, or is expected to run past 5 minutes — and WHEN you
+are resuming a bead-bonanza run whose state you do not hold.
 
 `${TMPDIR:-/tmp}` below is the run root Phase 0's pre-flight script resolved.
 
 ## Contents
 
+- Orchestrator crash / context loss — the ordered entry procedure for
+  resuming a run you have no memory of
 - Subagent crash / mid-step timeout recovery — the four states and what to do
-- Mid-stream visibility (progress streaming) — the JSONL event schema and the
-  literal-quoting rule that avoids a permission prompt per event
+- Mid-stream visibility (progress streaming) — the JSONL event schema, the
+  rule bounding what that schema proves, and the literal-quoting rule that
+  avoids a permission prompt per event
 - Crash-resilient close — why the handoff file is written before the bead is
   closed, and what it buys on recovery
 
 ---
+
+## Orchestrator crash / context loss — resuming a run
+
+The subagent procedure below presumes a live orchestrator that knows the run.
+This section is for when that is not true: the orchestrator was interrupted,
+compacted past the point of usefulness, or replaced by a fresh session, and
+someone has to pick the sprint back up.
+
+**Nothing reports this to you.** A user interrupt that kills the orchestrator
+kills the mechanism that would have announced the deaths of its children too —
+observed in run `1786121603-ri`, where two subagent kill notifications were
+enqueued and never dequeued while the UI went on showing the task as running.
+Assume no notification is coming and no notification you *do* find is proof.
+
+Work these steps in order.
+
+1. **Find the run.** `bd show <epic-id>` carries the `RUN_DIR` pointer in its
+   tracker note, and each amendment is mirrored there — that note is the
+   cheapest route in. Failing that, list `${TMPDIR:-/tmp}/claude/bead-bonanza/`
+   and take the newest run-id directory. WHEN neither exists, the run predates
+   the pointer: reconstruct from `git log` and `bd list --status all`, and
+   **say so in the report** — a reconstruction is not a plan.
+
+2. **Read `dispatch.md` in full.** It carries the mandate, the enumerated bead
+   list, the standing authorization, the wave table, the gate profile and the
+   environmental ledger. **This is the plan — do not re-derive it, and do not
+   re-run the filter that produced it.** A filter re-evaluated now returns a
+   different set than the one this run committed to, and admits beads nobody
+   scoped. Read `## Amendments` too, and reconcile it against the wave table:
+   the plan may have moved since it was first written, and the amendments log
+   is where it moved.
+
+3. **Establish liveness — git is primary, the tracker is corroboration.**
+   `bd list --status in_progress` is **not** a liveness signal: a bead can be
+   worked without ever being claimed, so that query returns empty while an
+   agent is actively editing (observed open across twelve in-flight file
+   edits). The signal that works is the **newest mtime among dirty files**:
+
+   | Newest dirty-file mtime | Reading | Do |
+   |---|---|---|
+   | < ~5 min | an agent is alive and mid-ceremony | do not dispatch to that surface, do not commit its files, wait |
+   | > ~30 min | orphaned work from a killed child | recover it per the subagent procedure below |
+   | no dirty files | idle | safe to dispatch |
+
+   ```sh
+   # GNU and BSD stat disagree on both the flag and the format string, so
+   # probe once and bind a function — the same wrapper scripts/pre-flight-check.sh
+   # establishes. Do not inline `stat -c`: it fails on macOS.
+   if stat -f '%m' . >/dev/null 2>&1; then bb_mtime() { stat -f '%m' "$1"; }
+   else                                    bb_mtime() { stat -c '%Y' "$1"; }
+   fi
+
+   cd "$(git rev-parse --show-toplevel)"   # porcelain paths are repo-root-relative
+   newest=$(git status --porcelain | cut -c4- | while IFS= read -r f; do
+     [ -e "$f" ] && bb_mtime "$f"
+   done | sort -rn | head -1)
+   [ -z "$newest" ] && echo "clean tree — idle" \
+                    || echo "$(( $(date +%s) - newest ))s since the newest dirty-file write"
+   ```
+
+   **The set of dirty files is diagnostic too, not just the newest mtime.**
+   Only `.beads/issues.jsonl` and `.beads/interactions.jsonl` dirty means a
+   subagent's `bd update --claim` just landed and implementation has not
+   started; source files dirty means implementation is underway. Both readings
+   forbid committing — sweeping a subagent's tracker export into an
+   orchestrator commit is the same race as staging its half-written source.
+
+4. **Classify each in-scope bead, then corroborate — the tail is a hint.**
+   Take `<bead-id>.progress.jsonl`'s last phase as a *starting hypothesis*,
+   then resolve it per **The ledger is a hint, never the authority** below
+   (`bd show <id>` → `git log --oneline --grep=<id>` → the ledger, first
+   answer wins). Never act on the tail alone:
+
+   - **absent** — may never have started, or may have started and written
+     nothing. Confirm with `bd show <id>`.
+   - **`claimed` / `implementing`** — may have died mid-work, or may be
+     finished and committed with nothing appended after the crash. Check
+     `git log --grep=<id>` before you touch the tree.
+   - **`gates-passed` / `retro-written`** — the work is in the tree and only
+     the close is outstanding. Read `<bead-id>.handoff.md` for the paths to
+     stage and any caveat, honor the caveat, then run
+     `../scripts/bb-close-bead.sh <id> <priority> "<title>" <path>…`. The
+     handoff file carries **only paths and caveats** — it is not a body for
+     the close, and the close script leaves the bead's description as
+     grooming wrote it.
+   - **`committed`** — verify the recorded sha is an ancestor of `HEAD`
+     (`git merge-base --is-ancestor <sha> HEAD`) before believing it.
+
+5. **Verify every claim against `bd` and `git` yourself.** A completion
+   notification is not proof; one was lost entirely in the run that motivated
+   this section. Neither is a summary, a backup copy of a progress file, or
+   your own earlier report. Read the live state, name the source you read,
+   then act.
 
 ## Subagent crash / mid-step timeout recovery
 
@@ -48,6 +146,23 @@ Each subagent appends progress events to `${TMPDIR:-/tmp}/claude/bead-bonanza/<r
 {"bead":"<id>","phase":"pushed"}             # omitted in defer-push mode
 {"bead":"<id>","phase":"blocked","reason":"..."}  # only on failure
 ```
+
+**The ledger is a hint, never the authority.** It is written by the agent
+doing the work, so it stops the instant that agent stops. Therefore:
+
+- A trail ending before `committed` does **not** mean the bead is unfinished —
+  only that nothing was appended after that point. Run `1786121603-ri`'s
+  `agent-plugins-9kb.5` trail ends at `implementing`, mtime 18:29; the bead was
+  committed at 21:06, four beads later. A heartbeat in that run read the trail
+  as "positive proof of a live agent at a known phase". It was proof of nothing
+  except that nothing had been appended.
+- An absent progress file does **not** mean no agent ran.
+- A file's mtime bounds the last *write*, not the agent's liveness.
+
+Resolve any status question in this order, stopping at the first answer:
+`bd show <id>`, then `git log --oneline --grep=<id>`, then the ledger. **Name
+which one you used.** Never report a ledger fact you have not just read from
+disk, and never from a backup copy while the live directory exists.
 
 Events are written by `../scripts/bb-progress.sh`, never by hand:
 
