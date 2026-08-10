@@ -327,28 +327,6 @@ subagent-default`.
 skill's job is to find the largest safe batch, not to default to
 one-bead-per-subagent for caution. Sequential is the *exception*, not the rule.
 
-### Lean path: skip the formal dispatch plan
-
-Most runs don't need a markdown table. Skip the formal `dispatch.md` and just
-state the dispatch decision in one line in chat if **any** of:
-
-- Queue size <5 beads.
-- All beads land in one bucket regardless of dispatch mode (single-surface
-  clusters, all-trivial batches).
-- The user gave an explicit ID list rather than a label/priority filter —
-  they've done the bucketing implicitly.
-
-Examples of acceptable one-line dispatches:
-- 1 bead: "Single bead, sequential, push at end."
-- 3 beads same surface: "Single shared-batch subagent, defer-push, full gates at
-  end."
-- 4 doc-only beads: "Fast-lane subagent, defer-push."
-
-Write the formal plan only if **both**: queue size ≥5 AND the queue spans
-multiple dispatch modes (e.g. "3 fast-lane + 4 shared-batch + 2
-worktree-parallel"). Save to
-`${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/dispatch.md` in that case.
-
 ### Classify each bead
 
 - **`trivial`** — pure documentation (md/mdx edits), single-line code swap,
@@ -444,9 +422,8 @@ lineup` block in `AGENTS.md`, echoed by Phase 0. Honor these:
   that completed it, and what failed. This is a required line in the
   Phase 4 report (see "Tier escalations"), and it is the run's only
   direct evidence about whether grooming's routing is calibrated.
-- **Record the routing** — when you write the formal dispatch plan, add
-  a `Tier` column; on the lean path, name the tier in the one-line
-  dispatch statement.
+- **Record the routing** — the dispatch plan's wave table carries a
+  `Tier` column for every bead.
 
 ### WHEN delegation is unavailable — the main-loop fallback
 
@@ -491,31 +468,36 @@ them is not.
 For a single-bead "wave," `push-per-bead` and `defer-push` are equivalent —
 don't bother labeling. Just push when the subagent returns.
 
-### When you write the formal plan
+### The dispatch plan
 
-Print a table to chat AND save to
-`${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/dispatch.md`:
+Write `${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/dispatch.md` **on every
+run** — there is no queue-size or bucket-count exemption. It is the sprint plan,
+written for whoever picks the sprint back up, which may be an agent with no
+memory of having written it. Chat is the one store that does not survive.
 
-```
-| Bead | Class | Bucket | Tier | Push | Reason |
-|------|-------|--------|------|------|--------|
-| demo-89s | trivial | fast-lane #1 | light | defer | docs only |
-| demo-aqw | trivial | fast-lane #1 | light | defer | comment only |
-| demo-9h0 | shared | shared-batch #1 | standard | defer | same serializer + fixture cluster |
-| demo-04y | shared | shared-batch #1 | standard | defer | same cluster |
-| demo-ojt | shared | shared-batch #1 | standard | defer | same cluster |
-| demo-76y | shared | shared-batch #1 | standard | defer | same cluster |
-| demo-2i5 | shared | shared-batch #1 | standard | defer | same cluster |
-| demo-ckh | shared | shared-batch #1 | standard | defer | same cluster |
-| demo-d3j | isolated | sequential | advanced | — | validator change; different surface |
+Its format — run manifest, wave table, amendments — is in
+`references/dispatch-plan.md`. Three of its rules are load-bearing enough to
+state here:
 
-(`Tier` = the bead's `tier:` label, resolved to a model at dispatch via the
-project's `## model lineup`. Blank only when the project declares no lineup —
-the subagent then inherits the session model.)
-```
+- **The plan names beads, never a filter.** The filter produced the queue; the
+  plan IS the queue. A filter re-evaluated later — at recovery, or at the next
+  wave — returns a different set than the one this run committed to, and admits
+  beads nobody scoped. Beads discovered mid-run enter only through Phase 1.5
+  step 4's scope test, recorded as an amendment.
+- **The manifest carries what recovery cannot re-derive** — run id, `RUN_DIR`,
+  branch, base sha, gate profile, gate baseline, environmental ledger, resolved
+  model lineup, and the standing authorization the user gave. Most of it is
+  pre-flight's stdout block, landing durably.
+- **The plan is append-only and amendable.** WHEN it changes mid-run — a wave
+  resequenced, a bucket reclassified, a bead admitted or bounced, a tier
+  escalated — append a dated entry under `## Amendments` stating what changed
+  and why, AND update the wave table in place. The plan on disk SHALL describe
+  the run as it is actually being executed. Mirror one line of each amendment to
+  the tracker note carrying the `RUN_DIR` pointer, so a reader who has only the
+  tracker knows the plan moved.
 
-Don't ask for approval — just print and proceed. The user can interrupt if they
-disagree.
+Print the wave table to chat as well. Don't ask for approval — just print and
+proceed. The user can interrupt if they disagree.
 
 ## Phase 3 — Execute
 
@@ -680,10 +662,10 @@ Do NOT create a PR or merge to main — that is a separate, explicit user action
   anchor); the close happens via `bd update --status closed --body-file
   <retro-file>` BEFORE staging, so the close is folded into the implementation
   commit.
-- **Lean path for small / simple queues.** Skip the formal decisions doc when
-  all decisions are pre-baked. Skip the formal dispatch plan when queue size <5
-  or all beads share a bucket. State the decision in one line in chat and
-  proceed. The ceremony is for runs that earn it.
+- **Lean path for the decisions doc only.** Skip the formal decisions doc when
+  all decisions are pre-baked, and state them in one line in chat instead. The
+  dispatch plan has no lean path: it is written every run, because it is what a
+  recovering orchestrator reads instead of re-deriving the run.
 - **Surface implicit decisions, don't bury them.** If the subagent will silently
   choose, name it — either inline in chat (small queues) or in the decisions doc
   (large queues). The user can override or trust the default, but should know it
@@ -768,6 +750,7 @@ Load the one that matches where you are in the run:
 | Working on | Load |
 |------------|------|
 | Dispatching any subagent (Phase 1.5 grooming, Phase 3 execution) | `references/subagent-prompts.md` |
+| Writing or amending the Phase 2.5 dispatch plan | `references/dispatch-plan.md` |
 | A subagent that crashed, timed out, or is running past 5 minutes | `references/recovery.md` |
 | A project with no `## bead-bonanza gates` or `## model lineup` block | `references/project-setup.md` |
 | Phase 0 pre-flight: probe the environment, resolve `RUN_DIR`/`SCRIPTS` | run `scripts/pre-flight-check.sh` |
