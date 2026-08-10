@@ -11,7 +11,7 @@ API error instead of a summary, or is expected to run past 5 minutes.
 - Subagent crash / mid-step timeout recovery — the four states and what to do
 - Mid-stream visibility (progress streaming) — the JSONL event schema and the
   literal-quoting rule that avoids a permission prompt per event
-- Crash-resilient close — why the retro file is written before the bead is
+- Crash-resilient close — why the handoff file is written before the bead is
   closed, and what it buys on recovery
 
 ---
@@ -22,9 +22,9 @@ If a subagent times out, returns an "API Error" instead of a summary, or otherwi
 
 1. **Read the progress file** (`<run-id>/<bead-id>.progress.jsonl`). The last phase tells you how far it got.
 2. **If `gates-passed` was emitted but `committed` was not** — the work is done in the working tree, only the close+commit ceremony is incomplete. This is the **happy crash path**:
-   - Read the retro file at `<run-id>/<bead-id>.retro.md`. If present, use it as the close body.
-   - If the retro file is missing (subagent crashed before writing it), reconstruct minimally: the original bead description plus a short Retro noting "Subagent timed out before retro write; orchestrator finished close from working-tree state."
-   - Run `../scripts/bb-close-bead.sh <id> <priority> "<title>" <retro-file> <paths>` — the same script the subagent would have run. It closes, exports, stages, and commits in the required order.
+   - Read the handoff file at `<run-id>/<bead-id>.handoff.md`. It names the paths to stage and any close-specific caveat (a `WIP <id>` commit to squash, a regen step to run first). Honor the caveat before you stage.
+   - If the handoff file is missing (subagent crashed before writing it), derive the paths yourself from `git status --porcelain` — and be strict about it, because in a shared tree some of that dirt belongs to another agent. Add a `retro:` comment on the bead noting that the handoff was never written.
+   - Run `../scripts/bb-close-bead.sh <id> <priority> "<title>" <paths>` — the same script the subagent would have run. It closes, exports, stages, and commits in the required order, and leaves the bead's description exactly as grooming wrote it.
    - Run `bd export` into `.beads/issues.jsonl` first (the subagent may have crashed before exporting). Then stage source paths, any regenerated fixtures, `.beads/issues.jsonl`, `.beads/interactions.jsonl`. Inspect `git status --porcelain` carefully — only stage what belongs to this bead.
    - Commit with the canonical message format (`<id> P<priority> <title>`).
    - Push (if appropriate for the bucket).
@@ -32,7 +32,7 @@ If a subagent times out, returns an "API Error" instead of a summary, or otherwi
 3. **If the last phase was `implementing` or earlier** — the work is partial. Stash with `git stash push -m "bead-bonanza recovery: <id>"`, mark the bead `blocked` with a recovery note, and surface to the user. Don't try to finish someone else's half-done work.
 4. **If the progress file is empty or missing** — the subagent never started. Check `bd show <id>` to confirm status; if it's still `open`, retry the subagent. If it's `in_progress`, claim it back with `bd update <id> --status open` first.
 
-The retro file is what makes the happy crash path mechanical instead of inferential — that's why it's non-negotiable.
+The handoff file is what makes the happy crash path mechanical instead of inferential — that's why it's non-negotiable. Findings are not in it: they are `retro:` comments the subagent writes on the bead, so whatever it managed to record is already durable in the tracker.
 
 ## Mid-stream visibility (progress streaming)
 
@@ -67,14 +67,14 @@ tail -n +1 -F <run-dir>/<bead-id>.progress.jsonl | grep -E --line-buffered '"pha
 
 For batch subagents, tail multiple files in one Monitor. **Filter to `committed|blocked` only** — those are the events the orchestrator acts on. Relaying every phase (implementing, gates-running, …) wakes the orchestrator per event and adds a conversation turn each time for narration nobody needs; the per-bead progress files still hold the full phase history for crash recovery.
 
-## Crash-resilient close: write the retro to a file before bd update
+## Crash-resilient close: write the handoff file before bd update
 
-After `gates-passed` and BEFORE the `bd update --status closed` call, the subagent **must** write its proposed Retro section to `${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/<bead-id>.retro.md`. Then emit `{"phase":"retro-written"}`. Only then proceed to the close ceremony.
+After `gates-passed` and BEFORE the `bd update --status closed` call, the subagent **must** write `${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/<bead-id>.handoff.md` — the paths the close must stage, plus any close-specific caveat, and nothing else. Then emit `{"phase":"retro-written"}` (the phase vocabulary predates the rename and is unchanged). Only then proceed to the close ceremony.
 
 This is the recovery anchor. If the subagent times out, crashes, or otherwise dies between `gates-passed` and the commit, the orchestrator can:
-1. Read the retro file.
-2. Run `bd update <id> --status closed --body-file -` itself (concatenating original description + retro).
-3. Stage, commit, push.
+1. Read the handoff file for the paths and the caveat.
+2. Run `../scripts/bb-close-bead.sh <id> <priority> "<title>" <paths>` itself.
+3. Verify with `bd show <id>`, then push if the bucket calls for it.
 
-No information is lost; recovery is mechanical instead of inferential. **This is non-negotiable** — the cost is one extra file write per bead; the savings on a single recovery pay for years of runs.
+The file deliberately does not restate the phase — `<bead-id>.progress.jsonl` is the single source for that, and a second copy would give a recovering orchestrator two hints to reconcile. It also carries no findings: those are `retro:` comments on the bead, durable in the tracker the moment they are written. **This is non-negotiable** — the cost is one extra file write per bead; the savings on a single recovery pay for years of runs.
 

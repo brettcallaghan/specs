@@ -56,7 +56,7 @@ Decision (chosen by the user up front): {DECISION}
 Implicit decisions (subagent picks unless overridden): {IMPLICIT_NOTES}
 Gates: format=`{FORMAT}` lint=`{LINT}` build=`{BUILD}` test=`{TEST}` regen=`{REGEN or "none"}` custom=`{CUSTOM_GATES or "none"}`
 Push mode: {push_per_bead | defer_push}
-Run dir: {RUN_DIR}          (progress + retro files live here)
+Run dir: {RUN_DIR}          (progress + handoff files live here)
 Scripts: {SCRIPTS}          (bb-progress.sh, bb-verify-skip.sh, bb-close-bead.sh)
 
 ## Workflow — follow in order, do not deviate
@@ -67,7 +67,7 @@ and appends the JSON itself — never hand-write an event.
 
 1. `bb-progress.sh "$RUN_DIR" {ID} claimed`. Claim: `bd update {ID} --status in_progress`
 2. Read full details: `bd show {ID}`
-3. `bb-progress.sh "$RUN_DIR" {ID} implementing`. Implement the change. **If this bead fixes a defect or regression, first write (or locate) a test that reproduces it and observe it FAIL for the stated reason BEFORE you fix it** — a test written after the fix encodes the fix's own assumptions and can stay green while the defect is live. Record the observed failure; it goes in the retro. Stay strictly within this bead's scope. If you find work beyond it, file a new bead via `bd create` with a `discovered-from` link to {ID}, noting in one line whether it *blocks* this bead (a prerequisite, an acceptance-criteria decomposition, or an expected test-coverage gap) or is merely adjacent — the orchestrator decides whether it enters the run. Do NOT implement it or pull it into your own scope. If this bead genuinely cannot be finished without it, take the Blocked path naming the new bead as the blocker; otherwise continue with the original — do NOT expand scope inline. For any implicit decision you must make, record what you chose (and why) — you'll put it in the retro.
+3. `bb-progress.sh "$RUN_DIR" {ID} implementing`. Implement the change. **If this bead fixes a defect or regression, first write (or locate) a test that reproduces it and observe it FAIL for the stated reason BEFORE you fix it** — a test written after the fix encodes the fix's own assumptions and can stay green while the defect is live. Record the observed failure; it goes in a `retro:` comment (step 6). Stay strictly within this bead's scope. If you find work beyond it, file a new bead via `bd create` with a `discovered-from` link to {ID}, noting in one line whether it *blocks* this bead (a prerequisite, an acceptance-criteria decomposition, or an expected test-coverage gap) or is merely adjacent — the orchestrator decides whether it enters the run. Do NOT implement it or pull it into your own scope. If this bead genuinely cannot be finished without it, take the Blocked path naming the new bead as the blocker; otherwise continue with the original — do NOT expand scope inline. For any implicit decision you must make, record what you chose (and why) — it goes in a `retro:` comment (step 6).
 4. `bb-progress.sh "$RUN_DIR" {ID} gates-running`. **The push is the gate** — this is a single-bead push, so full gates run here before pushing. If the change affects generated output the tests compare against (codegen, snapshots, golden files, schemas) AND the gate profile defines a regen step, run `{REGEN}` BEFORE the test step.
    - `{FORMAT}`
    - `{LINT}`
@@ -75,20 +75,21 @@ and appends the JSON itself — never hand-write an event.
    - `{TEST}`
    - Any custom gates from the profile: `{CUSTOM_GATES}` (skip if none)
    On gate failure, fix the root cause and rerun. After two full failed cycles, follow the Blocked path — do not keep retrying. Run `bb-progress.sh "$RUN_DIR" {ID} gates-passed` after success.
-5. **Write the Retro to a file BEFORE closing the bead** (crash recovery anchor — non-negotiable).
-   - Start the file mechanically, never by retyping: `bd show {ID} --json | jq -r '.[0].description' > "{RUN_DIR}/{ID}.retro.md"`. Retyping the description costs generated tokens and silently drops content — a groomed bead's own `## Retro` instructions are what usually go missing, and `{SCRIPTS}/bb-close-bead.sh` then writes the lossy copy back over the bead with `--body-file`.
-   - Then append a `## Retro — implementation` section (that exact heading, so it cannot collide with or displace any `## Retro` the bead already carries). Four items, in order, and keep it SHORT — write for a reader who already has the diff, the commit, `bd show {ID}` and the gate output. Do NOT restate the approach, the diffstat, the files changed, the gate table or the acceptance criteria; `git show --stat <sha>` already holds all of it.
-     1. **Findings** — one bullet per point of friction, and record EACH ALSO as its own `bd comment` on {ID} prefixed `retro:`. That comment channel is what downstream retros and RFCs actually read; the file alone does not reach them. Trigger list — record one WHEN: you needed information the bead and its references did not carry; you had to settle something the bead or spec should have pinned; the bead contradicted repo reality; you could not satisfy an acceptance criterion as declared; a sequencing surprise. 1–3 sentences each, friction only, no root-causing. **A clean bead records none — say so rather than inventing filler.**
-     2. **What you tried that did not work** — the reading you took first and abandoned, and why. The diff shows only the reading that survived, so this is unrecoverable later.
-     3. **What you decided silently** — only choices a diff-reader would not recognise AS choices. Narrower than "every implicit decision": an internal helper's name or the order of two independent guard clauses qualifies; the approach the bead already specified does not.
-     4. **For a defect bead: the observed pre-fix failure**, quoted from actual output. If you could not reproduce it, say so and say what you substituted.
-   - Run `bb-progress.sh "$RUN_DIR" {ID} retro-written` after the file is on disk.
-6. Close and commit in one step — run the bundled script:
-   `{SCRIPTS}/bb-close-bead.sh {ID} {PRIORITY} "{TITLE}" "{RUN_DIR}/{ID}.retro.md" <code paths>`
-   It performs the whole ceremony in the required order: atomic close (`bd update --status closed`, never `bd close` — that would be a second commit), refresh the `.beads/issues.jsonl` export and verify it changed, stage code + tracker together, then one commit messaged `{ID} P{PRIORITY} {TITLE}`. It prints the short sha and refuses to run on `main`, without a retro file, or with nothing staged. Do not perform these steps by hand.
-7. `{SCRIPTS}/bb-progress.sh "{RUN_DIR}" {ID} committed sha=<the sha it printed>`.
-8. If push mode is `push_per_bead`: `git push origin <branch>` on the current branch (never main), then `{SCRIPTS}/bb-progress.sh "{RUN_DIR}" {ID} pushed`. If `defer_push`: skip the push; the orchestrator handles it.
-9. Return one line as your final message:
+5. **Write the handoff file BEFORE closing the bead** (crash recovery anchor — non-negotiable). Write `{RUN_DIR}/{ID}.handoff.md` as a `# {ID} handoff` heading plus exactly two labeled lines, and nothing else:
+   - `Paths:` — the code paths this bead changed, the ones the close must stage. In a tree another agent may be sharing, nobody can re-derive them from `git status`; that is the whole reason this file exists.
+   - `Caveat:` — anything the close must do differently: a prior `WIP {ID}` commit to squash first, a regen step that must run before staging, a fixture this bead regenerated. Write `none` when there is none.
+
+   Four lines total is typical. Do NOT restate the phase (the progress JSONL has it), the diff, the gates, or the bead, and do NOT put findings in it — those are step 6. Run `bb-progress.sh "$RUN_DIR" {ID} retro-written` after the file is on disk (the phase vocabulary keeps that name).
+6. **Record findings as `retro:` comments on {ID}** — one `bd comment` per finding, prefixed `retro:`, 1–3 sentences each, friction only, no root-causing. That comment channel is what downstream retros and RFCs actually read. Trigger list — record one WHEN: you needed information the bead and its references did not carry; you had to settle something the bead or spec should have pinned; the bead contradicted repo reality; you could not satisfy an acceptance criterion as declared; a sequencing surprise. **A clean bead records none — say so rather than inventing filler.** Record each of these as its own `retro:` comment too:
+     - **What you tried that did not work** — the reading you took first and abandoned, and why. The diff shows only the reading that survived, so this is unrecoverable later.
+     - **What you decided silently** — only choices a diff-reader would not recognise AS choices. Narrower than "every implicit decision": an internal helper's name or the order of two independent guard clauses qualifies; the approach the bead already specified does not.
+     - **For a defect bead: the observed pre-fix failure**, quoted from actual output. If you could not reproduce it, say so and say what you substituted.
+7. Close and commit in one step — run the bundled script:
+   `{SCRIPTS}/bb-close-bead.sh {ID} {PRIORITY} "{TITLE}" <code paths>`
+   It performs the whole ceremony in the required order: atomic close (`bd update --status closed`, never `bd close` — that would be a second commit), refresh the `.beads/issues.jsonl` export and verify it changed, stage code + tracker together, then one commit messaged `{ID} P{PRIORITY} {TITLE}`. It does not touch the description — grooming owns that. It prints the short sha and refuses to run on `main` or with nothing staged. Do not perform these steps by hand.
+8. `{SCRIPTS}/bb-progress.sh "{RUN_DIR}" {ID} committed sha=<the sha it printed>`.
+9. If push mode is `push_per_bead`: `git push origin <branch>` on the current branch (never main), then `{SCRIPTS}/bb-progress.sh "{RUN_DIR}" {ID} pushed`. If `defer_push`: skip the push; the orchestrator handles it.
+10. Return one line as your final message:
     - Success → `{ID}: closed <short-sha>`
     - Blocked → `{ID}: blocked - <short reason>`
     - Skipped → `{ID}: skipped - <short reason>`
@@ -142,8 +143,8 @@ Scripts: {SCRIPTS}
 
 These are documentation, comments, single-line swaps, or other low-risk changes. For each bead in order:
 
-1. Run the per-bead workflow (claim → read → implement → write retro file → atomic close → stage → single commit → optional push) exactly as in the sequential template, INCLUDING per-bead progress JSONL writes AND the per-bead retro file write to `{RUN_DIR}/<bead-id>.retro.md` BEFORE close.
-2. Between beads: skip the full `{TEST}` run. Run `{FORMAT}` + `{BUILD}` per bead. **Targeted tests are non-negotiable** — identify which test file covers the touched surface (see the profile's targeted-tests-by-surface list) and run it. If the change is so trivial there's no plausible test (e.g. pure docs edit, a comment with zero output diff), say so explicitly in the bead's retro and continue. "I couldn't find a targeted test" without explanation is not acceptable.
+1. Run the per-bead workflow (claim → read → implement → write handoff file → `retro:` comments → atomic close → stage → single commit → optional push) exactly as in the sequential template, INCLUDING per-bead progress JSONL writes AND the per-bead handoff file write to `{RUN_DIR}/<bead-id>.handoff.md` BEFORE close.
+2. Between beads: skip the full `{TEST}` run. Run `{FORMAT}` + `{BUILD}` per bead. **Targeted tests are non-negotiable** — identify which test file covers the touched surface (see the profile's targeted-tests-by-surface list) and run it. If the change is so trivial there's no plausible test (e.g. pure docs edit, a comment with zero output diff), say so explicitly in a `retro:` comment on the bead and continue. "I couldn't find a targeted test" without explanation is not acceptable.
 3. After the LAST bead in this batch, run the full gate suite once (`{FORMAT}`, `{LINT}`, `{BUILD}`, `{TEST}`, plus any custom gates). **The push is the gate** — full gates must pass before the orchestrator pushes. If full gates fail, the most-recent bead is the suspect — investigate and fix it (a new commit), then continue.
 
 Return ONE message containing N+1 lines: one per-bead summary, then a final `batch-end: full gates {passed|failed}`.
@@ -175,7 +176,7 @@ These beads are NOT trivial — they touch real code. The reason they're batched
 
 For each bead in order:
 
-1. Run the per-bead workflow (claim → read → implement → write retro file → atomic close → stage → single commit → optional push), INCLUDING progress JSONL writes per bead AND the per-bead retro file at `{RUN_DIR}/<bead-id>.retro.md` BEFORE close.
+1. Run the per-bead workflow (claim → read → implement → write handoff file → `retro:` comments → atomic close → stage → single commit → optional push), INCLUDING progress JSONL writes per bead AND the per-bead handoff file at `{RUN_DIR}/<bead-id>.handoff.md` BEFORE close.
 2. Between beads, run gates AT THIS REDUCED LEVEL — but **targeted tests are non-negotiable**:
    - `{FORMAT}`
    - `{LINT}`

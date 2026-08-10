@@ -316,7 +316,7 @@ For each **explicit** decision answered:
 For each **implicit** decision the user overrode: append the override +
 rationale to the bead description as a `## IMPLICIT DECISION OVERRIDE
 (<YYYY-MM-DD>)` section. Subagent-default decisions don't need a description
-update; the subagent will record its choice in the retro.
+update; the subagent will record its choice in a `retro:` comment.
 
 Do these `bd update` calls in parallel. Use `--body-file -` with HEREDOC for
 description updates.
@@ -561,9 +561,11 @@ bead, given full test runs) — at that point the orchestrator must arm a
 `Monitor` on the progress file so the user sees per-phase events live.
 
 The one rule to carry without reading the file: after `gates-passed` and
-BEFORE closing the bead, the subagent writes its Retro to
-`$RUN_DIR/<bead-id>.retro.md`. That file is the recovery anchor, and it is
-non-negotiable — without it, recovery is guesswork instead of a procedure.
+BEFORE closing the bead, the subagent writes `$RUN_DIR/<bead-id>.handoff.md`
+— the paths the close must stage, plus any close-specific caveat, and nothing
+else. That file is the recovery anchor, and it is non-negotiable — without it,
+recovery is guesswork instead of a procedure. Findings do not live there; they
+are `retro:` comments on the bead.
 
 ### Subagent prompt templates
 
@@ -580,7 +582,7 @@ After the queue is drained (or the circuit breaker tripped), print:
 
 1. A markdown table: `| ID | Status | Bucket | Commit | Notes |`
 2. Totals: `N closed, N blocked, N skipped`.
-3. **Implicit decisions made** — extract from the retros: which beads had
+3. **Implicit decisions made** — extract from the beads' `retro:` comments: which beads had
    implicit decisions, what the subagent chose. Surface to the user so they can
    audit non-obvious choices.
 3a. **Tier escalations** — every bead whose tier you had to raise to get it
@@ -664,10 +666,10 @@ Do NOT create a PR or merge to main — that is a separate, explicit user action
   stated reason before fixing; the retro names that observed failure, not just
   "tests pass".
 - **One commit per bead, always.** Every closed bead = exactly one commit on the
-  branch. The retro file is written BEFORE the close ceremony (crash recovery
-  anchor); the close happens via `bd update --status closed --body-file
-  <retro-file>` BEFORE staging, so the close is folded into the implementation
-  commit.
+  branch. The handoff file is written BEFORE the close ceremony (crash recovery
+  anchor); the close happens via a plain `bd update --status closed` BEFORE
+  staging, so the close is folded into the implementation commit. Closing never
+  rewrites the description — grooming owns it.
 - **Lean path for the decisions doc only.** Skip the formal decisions doc when
   all decisions are pre-baked, and state them in one line in chat instead. The
   dispatch plan has no lean path: it is written every run, because it is what a
@@ -691,8 +693,8 @@ Do NOT create a PR or merge to main — that is a separate, explicit user action
   Decisions doc and dispatch plan are session-scratch.
 - **Fail loudly, recover quietly.** If a subagent blocks, log it and move on. If
   three consecutive block, stop and surface — that's a systemic problem. If a
-  subagent crashes mid-step, follow the recovery procedure (retro file is the
-  anchor).
+  subagent crashes mid-step, follow the recovery procedure (the handoff file is
+  the anchor).
 - **Route by tier, and report every escalation.** A bead's `tier:` label is
   grooming's *prediction* of the capability the work needs; resolve it to a
   model via the project's `## model lineup` and dispatch there (Phase 2.5 → Tier
@@ -785,7 +787,7 @@ to read it:
 pre-flight-check.sh <run-id> [--gate-baseline] [--self-test]   # sandbox ON
 bb-progress.sh   <run-dir> <bead-id> <phase> [key=value ...]
 bb-verify-skip.sh [pathspec ...]        # no pathspec = whole working tree
-bb-close-bead.sh <bead-id> <priority> <title> <retro-file> [path ...]
+bb-close-bead.sh <bead-id> <priority> <title> [path ...]
 ```
 
 - **`scripts/pre-flight-check.sh`** — Phase 0, mechanized. Human report on
@@ -808,7 +810,8 @@ bb-close-bead.sh <bead-id> <priority> <title> <retro-file> [path ...]
 - **`scripts/bb-close-bead.sh`** — the close ceremony, in its required order.
   `<path ...>` are the code files this bead changed; WHEN omitted it stages
   everything currently modified, so pass explicit paths whenever another
-  agent may be sharing the tree.
+  agent may be sharing the tree. It closes with a status-only `bd update` and
+  never writes the description.
 
 Each script's own header carries the same usage line. WHEN a usage line
 here disagrees with the script, the script is authoritative — and that

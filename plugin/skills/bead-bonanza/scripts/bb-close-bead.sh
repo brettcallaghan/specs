@@ -19,11 +19,16 @@
 #   replayed by hand during crash recovery. One script means one behavior.
 #
 # Usage
-#   bb-close-bead.sh <bead-id> <priority> <title> <retro-file> [path ...]
+#   bb-close-bead.sh <bead-id> <priority> <title> [path ...]
 #
 #   Paths are the code files this bead changed. WHEN omitted, everything
 #   currently modified is staged — pass explicit paths whenever another agent
 #   may be sharing the tree.
+#
+#   The close does NOT touch the bead's description: grooming wrote it, and
+#   closing must not rewrite it. Findings belong in `retro:`-prefixed
+#   `bd comment`s on the bead; the run directory's <bead-id>.handoff.md is an
+#   artifact the orchestrator's acceptance check reads, not an input here.
 #
 # Exit status
 #   0  bead closed, exported, committed (short sha on stdout)
@@ -35,16 +40,12 @@ set -uo pipefail
 die()  { echo "bb-close-bead: $*" >&2; exit 2; }
 fail() { echo "bb-close-bead: $*" >&2; exit 1; }
 
-[ $# -ge 4 ] || die "usage: bb-close-bead.sh <bead-id> <priority> <title> <retro-file> [path ...]"
-id="$1"; priority="$2"; title="$3"; retro="$4"; shift 4
+[ $# -ge 3 ] || die "usage: bb-close-bead.sh <bead-id> <priority> <title> [path ...]"
+id="$1"; priority="$2"; title="$3"; shift 3
 
 [ -n "$id" ]    || die "bead-id must not be empty"
 [ -n "$title" ] || die "title must not be empty"
 case "$priority" in ''|*[!0-4]*|??*) die "priority must be a single digit 0-4, got '$priority'" ;; esac
-[ -f "$retro" ] || fail "retro file not found: $retro
-  The retro is written BEFORE the close so a crash between gates and commit is
-  recoverable. If the work is done but the retro was never written, write it
-  now from the bead description plus what happened, then re-run."
 command -v bd >/dev/null 2>&1 || fail "\`bd\` not on PATH"
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 || die "not inside a git work tree"
 
@@ -53,9 +54,10 @@ case "$branch" in
   main|master) fail "refusing to commit directly to '$branch' — switch to a working branch" ;;
 esac
 
-# 1. Atomic close. `bd update --status closed` sets status AND body in one
-#    call; `bd close` would be a second write and a second commit.
-bd update "$id" --status closed --body-file "$retro" \
+# 1. Atomic close — status only. `bd close` would be a second write and a
+#    second commit; `--body-file` would overwrite the groomed description with
+#    a hand-retyped copy, which is how descriptions used to lose content.
+bd update "$id" --status closed \
   || fail "\`bd update $id --status closed\` failed — bead not closed, nothing staged"
 
 # 2. Refresh the durable export. .beads/issues.jsonl is a passive export that
