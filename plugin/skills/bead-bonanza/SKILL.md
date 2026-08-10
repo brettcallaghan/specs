@@ -325,12 +325,32 @@ full-test-suite runs across the queue.
 
 3. **Worktree parallel** — `isolated` beads with no surface overlap, where
    parallel wall-clock savings beat merge cost. Spawn each via `Agent` with
-   `isolation: "worktree"`. Orchestrator merges results back to the parent
-   branch one at a time. If a merge produces fixture/snapshot conflicts, run
-   `<regen>` on the merged tree to settle (skip if the project defines no regen
-   step — resolve the conflict manually). Skip this mode if there are <3
-   isolated beads (parallelism savings don't pay) or if the beads aren't
-   actually isolated (you'll just hit merge conflicts).
+   `isolation: "worktree"`. `bd` is not the obstacle here: it resolves the
+   shared tracker database through git's common directory from any worktree,
+   measured with `BEADS_DIR` unset (`references/subagent-prompts.md`, "Beads
+   inside a worktree"). The obstacles are the exported ledger and the base
+   ref. Each worktree agent SHALL run `bd export > .beads/issues.jsonl` in its
+   own directory before committing — auto-export is best-effort and always
+   writes the MAIN checkout's copy, so a worktree's committed ledger goes
+   stale while `git status` reads clean (same reference, measured). Because
+   `export.git-add: true` (`.beads/config.yaml`) stages those writes into the
+   main index, keep commits pathspec-scoped (see "Guard against foreign dirt"
+   above). A wave of 2+ worktree beads therefore commits near-identical full
+   exports of one shared database with no merge driver configured for
+   `.beads/issues.jsonl` — an N-way conflict there is guaranteed, not
+   incidental; resolve it by re-exporting on the merged tree
+   (`bd export > .beads/issues.jsonl`, stage, amend), not by hand-merging JSON
+   and not via `<regen>` (that's for fixture/snapshot conflicts only, next).
+   Orchestrator merges results back to the parent branch one at a time. If a
+   merge instead produces fixture/snapshot conflicts, run `<regen>` on the
+   merged tree to settle (skip if the project defines no regen step — resolve
+   the conflict manually). Skip this mode if there are <3 isolated beads
+   (parallelism savings don't pay), if the beads aren't actually isolated
+   (you'll just hit merge conflicts), or if any bead builds on another in-run
+   bead's work while `BB_WORKTREE_BASEREF` isn't confirmed `head` (Phase 0
+   gate above; "The base-ref trap", `references/subagent-prompts.md`) — safe
+   for that case is exactly what `agent-plugins-jh6` measured, not the
+   default.
 
 4. **Plain sequential** — reserved for: a single bead with no batch peers, OR a
    bead whose surface diverges from every other queued bead, OR explicit user

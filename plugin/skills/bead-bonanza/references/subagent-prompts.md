@@ -213,39 +213,19 @@ Return ONE message containing N+1 lines: one per-bead summary, then a final `bat
 ### The base-ref trap — read before the first wave
 
 `isolation: "worktree"` is **safe for a run whose beads build on each other
-only if `worktree.baseRef` is set to `"head"`.** By default it is not, and the
-worktree branches from the repository's **default branch**, not from your
-session's HEAD.
-
-Measured in this repository (session HEAD `0ccc092` on a working branch, 8
-commits ahead of `main` at `5390f1d`), with two read-only probe subagents:
-
-| probe | `git rev-parse --short HEAD` in the worktree | session HEAD is an ancestor | working-branch files present |
-|---|---|---|---|
-| no `worktree` key in `~/.claude/settings.json` | `5390f1d` (default branch) | no (exit 1) | no |
-| `"worktree": {"baseRef": "head"}` | `0ccc092` (session HEAD) | yes (exit 0) | yes |
-
-Why the default is unsafe: every merge back would carry the whole delta between
-the default branch and your working branch, and any bead built on an earlier
-bead's commit **in the same run** would silently lose that foundation — the
-worktree never saw it.
-
-The fix is one key in user-scope `~/.claude/settings.json`:
+only if `worktree.baseRef` is `"head"`.** Unset, the worktree branches from
+the repository's **default branch**, not session HEAD — measured in this
+repo, `agent-plugins-jh6`. Fix (user scope only; project-root untested):
 
 ```json
 { "worktree": { "baseRef": "head" } }
 ```
 
-It **takes effect immediately — no session restart.** The second probe ran
-minutes after the write, in the same session, and branched from session HEAD.
-(Only user scope was verified. Whether the project-root settings file is also
-read for this key is untested — do not assume it is.)
+Takes effect immediately, no restart.
 
-**Verification step — run it before dispatching each wave.** The setting is
-user-scope global state this repository does not own: another session, a
-settings reset, or a fresh container can change it without warning. So do not
-trust it, measure it. Note your session HEAD (`git rev-parse --short HEAD`) and
-give the **first** worktree subagent of the wave this instruction:
+**Verify before every wave** — this is global state the repo doesn't own and
+can change without warning. Note session HEAD (`git rev-parse --short HEAD`)
+and give the **first** worktree subagent this instruction:
 
 ```
 Before doing anything else, run in your worktree:
@@ -254,25 +234,37 @@ Before doing anything else, run in your worktree:
 Report both lines verbatim as the first line of your reply.
 ```
 
-WHEN `ancestor-exit` is non-zero, **abort the wave**: the worktrees are branched
-off the wrong base. Do not merge anything back. Fix `worktree.baseRef`, or fall
-back to sequential mode for that bucket.
+WHEN `ancestor-exit` is non-zero, **abort the wave**: wrong base, do not
+merge anything back. Fix `worktree.baseRef`, or fall back to sequential mode.
 
-**Beads inside a worktree.** `bd` is not an obstacle here. From both probes,
-with `BEADS_DIR` unset, `bd` resolved the MAIN checkout's database through
-git's common directory (`git rev-parse --git-common-dir` →
-the main checkout's `.git`); `bd where` pointed at the main checkout, `bd list`
-returned the full set, and no `embeddeddolt` directory and no redirect file was
-created inside either worktree. All worktree agents therefore share one tracker.
+### Beads inside a worktree
 
-**But the worktree's own `.beads/issues.jsonl` is a committed file, and it goes
-stale.** It reflects the commit the worktree was created from: the default-base
-probe saw 105 lines against the main checkout's 128 — 23 records invisible.
-`baseRef: "head"` makes it current *at creation*, but auto-export always writes
-the MAIN checkout's copy, so it drifts again the moment any agent touches the
-tracker. Therefore: **a worktree agent SHALL run `bd export > .beads/issues.jsonl`
-in its own worktree directory before committing**, so the file it commits is a
-full rewrite of the shared database rather than the stale snapshot it inherited.
+`bd` is not an obstacle: it resolves the shared tracker database through
+git's common directory from any worktree — `bd where`/`bd worktree info`
+point at the main checkout, `bd list` returns the full set, no `embeddeddolt`
+or redirect file created (measured, `BEADS_DIR` unset, `agent-plugins-jh6`,
+`agent-plugins-t09`). All worktree agents share one tracker, which is
+exactly what makes these four constraints real:
+
+- **A worktree's own `.beads/issues.jsonl` goes stale while `git status`
+  reads clean** — auto-export always writes the MAIN checkout's copy
+  (measured 105 lines vs. 128, `agent-plugins-jh6`). **A worktree agent
+  SHALL run `bd export > .beads/issues.jsonl` in its own directory before
+  committing.**
+- **Auto-export is best-effort, not a guarantee** — three creates sat
+  unexported 20+ seconds, flushing only on a later main-context write
+  (`agent-plugins-t09`). Never rely on it inside a worktree.
+- **`export.git-add: true` (`.beads/config.yaml`) stages the refreshed
+  ledger into the MAIN index from writes issued anywhere, including a
+  worktree** — the case the orchestrator's `git commit -- <pathspec>` guard
+  exists for (SKILL.md, "Guard against foreign dirt"); keep commits
+  pathspec-scoped.
+- **The exported ledger has no merge driver.** 2+ worktree beads each running
+  the mandated export commit near-identical full rewrites of the *same*
+  database on separate branches — an N-way `.beads/issues.jsonl` conflict at
+  merge time, guaranteed, not the fixture/snapshot case `<regen>` below
+  settles. **Resolve by re-exporting on the merged tree**, stage, amend —
+  never hand-merge the JSON.
 
 ### Dispatch and merge
 
@@ -283,6 +275,7 @@ When dispatching a wave of `isolated` beads in parallel:
 - After all subagents return, merge their branches into the parent branch one at a time:
   - `git merge <branch>` — if clean, continue.
   - If a fixture/snapshot conflict and the profile defines a regen step: take both sides, run `<regen>` on the merged tree, stage and amend the merge commit. Without a regen step, resolve the conflict manually.
+  - If the conflict is `.beads/issues.jsonl`: expected on 2+ merges, not a triage failure (see "Beads inside a worktree" above) — re-export on the merged tree, stage, amend.
   - If non-fixture conflict on shared code: triage failure — the beads weren't actually isolated. Mark the unmerged bead as `blocked` with a note about the conflict; let the user resolve.
 - If the bucket used `defer-push`, push once after all merges complete. Otherwise individual subagents pushed their branches; the orchestrator's merge commits still need a `git push` per merge or one `git push` at the end (your call — defer is fine here).
 

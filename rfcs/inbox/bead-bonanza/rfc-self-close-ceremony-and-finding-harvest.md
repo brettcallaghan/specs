@@ -332,3 +332,31 @@ nothing while 53 findings exist — become impossible to reach without
 noticing.
 
 ## Resolution
+
+**P3 — Exclude worktree-parallel in the beads backend: rejected as
+written.** The premise (`.beads/embeddeddolt/` is gitignored) is true; the
+conclusion drawn from it — "a worktree cannot see the tracker database at
+all" — does not hold and was never tested before this RFC asserted it.
+`agent-plugins-t09` measured `bd` 1.1.2 from a worktree with `BEADS_DIR`
+unset: `bd where` and `bd worktree info` resolve the MAIN checkout's
+database through git's common directory, `bd list` returns the identical
+issue set, and no `embeddeddolt/` or redirect file is created in the
+worktree; `agent-plugins-jh6` independently reproduced this inside this
+repository. Tracker access was never the obstacle.
+
+Replaced by `agent-plugins-92q.9`, which states the git-side constraints
+measurement actually supports: a worktree's own committed
+`.beads/issues.jsonl` goes stale while auto-export keeps writing the main
+checkout's copy; auto-export is best-effort and was observed to miss;
+`export.git-add: true` stages those writes into the main index from
+anywhere, including a worktree; the exported ledger has no merge driver,
+so a wave of 2+ worktree beads produces a guaranteed N-way conflict in
+`.beads/issues.jsonl`, resolved by re-exporting on the merged tree rather
+than the fixture-conflict `<regen>` remedy; and the mode is safe only
+conditional on `worktree.baseRef: "head"` (`agent-plugins-jh6`). P1, P2,
+and P4 remain open, tracked by `agent-plugins-92q.21`.
+
+**Self-authorship, disclosed.** This RFC carries `origin: self` and a
+withheld `model` field (harness policy — see Provenance). The refuting
+measurement came from `agent-plugins-t09` and `agent-plugins-jh6`,
+separate beads run independently of the session that authored this RFC.
