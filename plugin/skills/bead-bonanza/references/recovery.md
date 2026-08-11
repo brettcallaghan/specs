@@ -242,7 +242,7 @@ addition to** the Monitor:
 
 ## Crash-resilient close: write the handoff file before bd update
 
-After `gates-passed` and BEFORE the `bd update --status closed` call, the subagent **must** write `${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/<bead-id>.handoff.md` — the paths the close must stage, plus any close-specific caveat, and nothing else. Then emit `{"phase":"retro-written"}` (the phase vocabulary predates the rename and is unchanged). Only then proceed to the close ceremony.
+After `gates-passed` and BEFORE the `bd update --status closed` call, the subagent **must** write `${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/<bead-id>.handoff.md` — any close-specific caveat, and nothing else (the `Paths:` line was retired by `agent-plugins-92q.30`; the close stages the bead's whole worktree). Then emit `{"phase":"retro-written"}` (the phase vocabulary predates the rename and is unchanged). Only then proceed to the close ceremony.
 
 This is the recovery anchor. If the subagent times out, crashes, or otherwise dies between `gates-passed` and the commit, the orchestrator can:
 1. Read the handoff file for the paths and the caveat.
