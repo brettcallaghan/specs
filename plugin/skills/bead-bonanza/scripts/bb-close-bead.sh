@@ -30,8 +30,18 @@
 #       passed, since the trailers land in the one commit this script makes.
 #
 #   Paths are the code files this bead changed. WHEN omitted, everything
-#   currently modified is staged — pass explicit paths whenever another agent
-#   may be sharing the tree.
+#   currently modified is staged.
+#
+#   Running inside the bead's own worktree — the normal case since
+#   agent-plugins-92q.30 — OMIT the paths. Everything dirty in that tree
+#   belongs to this bead by construction, so a path list can only be wrong:
+#   too narrow and the commit is incomplete, and it has to be maintained by
+#   hand as the implementation grows.
+#
+#   Pass explicit paths only where the tree is genuinely shared: the
+#   orchestrator committing its own work on the sprint branch, and the
+#   main-loop fallback (no Agent tool), where every bead is implemented in
+#   the shared checkout.
 #
 #   The close does NOT touch the bead's description: grooming wrote it, and
 #   closing must not rewrite it. Findings belong in `retro:`-prefixed

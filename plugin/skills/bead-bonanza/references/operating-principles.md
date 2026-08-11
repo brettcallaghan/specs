@@ -2,14 +2,16 @@
 
 Principles referenced from SKILL.md's Operating principles list, in full.
 Read the summary line in SKILL.md first; come here for the rule's complete
-statement and its one sanctioned exception.
+statement.
 
 ## Contents
 
-- One commit per bead, always — the WIP-commit exception and how to resume one
+- One commit per bead, always — now without exceptions, and how the bead's own
+  worktree holds interrupted work
 - Findings harvest — the `bd export | jq` pipeline and its non-zero assertion
-- Guard against foreign dirt, and the shared-database race — why pathspec
-  can't fix a tracker write landing in another agent's commit
+- Guard against foreign dirt, and the shared-database race — which of the two
+  worktrees fix, and why isolation cannot fix a tracker write landing in
+  another agent's commit
 
 ## One commit per bead, always
 
@@ -19,39 +21,30 @@ via a plain `bd update --status closed` BEFORE staging, so the close is
 folded into the implementation commit. Closing never rewrites the
 description — grooming owns it.
 
-### The one sanctioned exception: an interrupted bead's WIP commit
+### No exceptions: the worktree holds interrupted work
 
-**WHEN a bead is interrupted mid-implementation** and its work must be
-persisted before the agent stops, commit it with a subject prefixed
-`WIP <bead-id>` and leave the bead `in_progress`. A WIP commit is the one
-sanctioned exception, and it is **not** a close: no `bd update --status
-closed`, no retro, no committed progress event. Emit
-`bb-progress.sh "$RUN_DIR" <id> blocked reason="interrupted; WIP <sha>"` so
-the ledger records where it stopped.
+**Retired by `agent-plugins-92q.30`** (one worktree per bead). The
+`WIP <bead-id>` commit was the one sanctioned exception to one-commit-per-bead.
+It existed because a half-finished bead's changes sat in a working tree that
+the next bead needed clean — the only way to get them out of the way without
+losing them was to commit them, and the only way to restore
+one-commit-per-bead afterwards was a squash.
 
-The agent that resumes the bead finishes the work, then squashes its own
-commit together with every `WIP <bead-id>` commit on the branch into the
-single landing commit before running the close ceremony. Record the
-interruption and the squash in the bead's retro.
+Under one worktree per bead there is nothing to get out of the way. An
+interrupted bead's changes stay uncommitted in **its own** worktree, on its
+own branch, where no other agent will ever look. The worktree's continued
+existence is precisely the signal that the bead is unfinished.
 
-**How to find prior WIP commits.** `git log --oneline --grep="^WIP
-<bead-id>"` on the branch. State it, because the resuming agent may be a
-different agent with no knowledge that a WIP exists — which is the whole
-situation being handled.
+**To resume an interrupted bead:** re-enter its worktree, finish the work, and
+run the close ceremony once. There is no WIP commit to find, no squash, no
+history rewrite, and therefore no unpushed-only safety boundary to observe.
+One bead still means exactly one commit — now without an exception.
 
-**The safety boundary.** Squashing rewrites history, so it is permitted only
-while the WIP commits are unpushed. WHERE a WIP commit has already been
-pushed, do not rewrite it: land the completion as a normal second commit,
-note the two-commit landing in the retro, and report it in Phase 4. The
-existing prohibition on force-pushing a published branch
-(`subagent-prompts.md`, Constraints) is not weakened by this
-exception.
-
-**`../scripts/bb-close-bead.sh` does not reject a prior WIP commit.** It closes,
-exports, stages, and commits based on the currently-staged diff — it never
-inspects `git log`, so a `WIP <bead-id>` commit already on the branch does
-not block it. The resuming agent still must squash by hand first: the script
-gives you a normal close, not a squash.
+**WHEN the work must be surrendered rather than resumed** — the bead is
+genuinely blocked, not merely interrupted — leave the worktree in place, mark
+the bead `blocked` with a reason, and report it. Do not commit partial work to
+"save" it: the worktree already saves it, and a partial commit on the bead's
+branch would merge into the sprint branch as an incomplete bead.
 
 ## Findings harvest
 
@@ -104,18 +97,43 @@ anything.
 
 ## Guard against foreign dirt, and the shared-database race
 
-Multiple agents can share the tree: a diagnosis agent's uncommitted fixes,
-a live subagent's staged `.beads/issues.jsonl`. Two different hazards
-live here, and only one of them is fixed by pathspec discipline.
+Two different hazards live here. **One worktree per bead
+(`agent-plugins-92q.30`) removes the first for subagents and narrows it to the
+orchestrator; it does NOT touch the second.** Read that distinction carefully
+before deleting anything here — they used to be discussed together because
+they had the same symptom, not the same cause.
 
-### Working-tree dirt: pathspec discipline still works
+### Working-tree dirt: narrowed to the orchestrator, not deleted
 
-Batch prompts must name any known foreign files as untouchable. The
-orchestrator commits its own work by explicit pathspec (`git commit --
-<files>`) so foreign working-tree changes are not accidentally swept into
-its commit. This defence is correct and unchanged for this hazard.
+**Subagents no longer face this hazard at all.** Each implements in its own
+worktree, which contains that bead's changes and nothing else. There is no
+foreign dirt to guard against, nothing to enumerate as untouchable, and no
+need to name the paths a bead touched so the close can stage them — inside a
+worktree, "everything here" is exactly this bead's work.
 
-### The shared-database race: pathspec cannot fix it
+**The orchestrator still faces it, and the guard survives for it unchanged.**
+The orchestrator works in the shared checkout, where a diagnosis agent's
+uncommitted fixes, a stale export, or a half-applied edit can be sitting
+alongside its own work. It therefore commits by explicit pathspec
+(`git commit -- <files>`), exactly as before. The same applies on the
+main-loop fallback path (SKILL.md), where the orchestrator implements every
+bead in the shared checkout because there are no subagents to isolate.
+
+### The shared-database race: worktrees do NOT fix it either
+
+**Do not delete this rule on the strength of worktree adoption.** It is the
+one hazard in this document that isolation cannot touch, and the reason is
+worth stating plainly: a worktree isolates *files*, and this race is not
+about files. Every worktree resolves the same tracker database through git's
+common directory — that is exactly why `bd` works from inside one. So a
+subagent's close, running in its own worktree on its own branch, still
+exports the **shared** database, and still captures whatever the orchestrator
+wrote to it moments earlier. The write lands in the subagent's commit as
+surely as it did in a shared tree; it just lands on a different branch now.
+
+This is `agent-plugins-92q.31`'s to fix, by making the tracker stop being a
+committed file at all. Until that lands, the deferral rule below stands
+verbatim.
 
 The tracker ledger (`.beads/issues.jsonl`) is a projection of a database
 every agent shares, not a file one agent owns. `../scripts/bb-close-bead.sh`

@@ -8,16 +8,23 @@ context to infer it from.
 
 Two placeholders are resolved once per run and substituted into every
 prompt: `{RUN_DIR}` is the run root Phase 0's pre-flight script resolved, and `{SCRIPTS}` is
-the absolute path to this skill's `scripts/` directory. A subagent runs from
-the repo root and cannot infer either.
+the absolute path to this skill's `scripts/` directory. A subagent cannot
+infer either.
+
+`{WORKTREE}` is resolved **per bead** — the absolute path to the worktree the
+orchestrator created for it. A subagent works there and nowhere else; it
+cannot infer the path, and a prompt that omits it sends the agent into the
+shared checkout, which defeats every guarantee this design rests on.
 
 ## Contents
 
 - Grooming subagent (Phase 1.5) — bring under-specified beads to Ready
-- Per-bead subagent (sequential and worktree modes) — the canonical ceremony
+- Per-bead subagent — the canonical ceremony, run in the bead's own worktree
 - Doc/chore fast-lane subagent — a cluster of trivial beads, one subagent
 - Shared-surface batch subagent — beads sharing a code/fixture surface
-- Worktree parallel notes (orchestrator) — spawning and merging a wave
+- Worktree mechanics (orchestrator) — the base-ref trap, how `bd` behaves
+  inside a worktree, the create/merge/remove lifecycle, and why concurrent
+  waves are gated closed
 
 The per-bead template is the canonical one; the fast-lane and shared-surface
 templates reference its workflow rather than restating it, so read it first.
@@ -52,7 +59,7 @@ Then return the **wave preview** `groom-beads` produces, as its own block after 
 
 ---
 
-## Per-bead subagent prompt template (sequential and worktree modes)
+## Per-bead subagent prompt template
 
 ```
 You are addressing a single bead in this repo. Read CLAUDE.md and AGENTS.md if you need repo conventions or the bead workflow. The gate commands are in AGENTS.md under "## bead-bonanza gates".
@@ -62,6 +69,7 @@ Decision (chosen by the user up front): {DECISION}
 Implicit decisions (subagent picks unless overridden): {IMPLICIT_NOTES}
 Gates: format=`{FORMAT}` lint=`{LINT}` build=`{BUILD}` test=`{TEST}` regen=`{REGEN or "none"}` custom=`{CUSTOM_GATES or "none"}`
 Push mode: {push_per_bead | defer_push}
+Worktree: {WORKTREE}        (work HERE, not in the main checkout; it is yours alone)
 Run dir: {RUN_DIR}          (progress + handoff files live here)
 Scripts: {SCRIPTS}          (bb-progress.sh, bb-verify-skip.sh, bb-close-bead.sh)
 Trailers file: {TRAILERS_FILE or "none"}   (Phase 0 resolved; pass to bb-close-bead.sh --trailers-file)
@@ -82,18 +90,20 @@ and appends the JSON itself — never hand-write an event.
    - `{TEST}`
    - Any custom gates from the profile: `{CUSTOM_GATES}` (skip if none)
    On gate failure, fix the root cause and rerun. After two full failed cycles, follow the Blocked path — do not keep retrying. Run `bb-progress.sh "$RUN_DIR" {ID} gates-passed` after success.
-5. **Write the handoff file BEFORE closing the bead** (crash recovery anchor — non-negotiable). Write `{RUN_DIR}/{ID}.handoff.md` as a `# {ID} handoff` heading plus exactly two labeled lines, and nothing else:
-   - `Paths:` — the code paths this bead changed, the ones the close must stage. In a tree another agent may be sharing, nobody can re-derive them from `git status`; that is the whole reason this file exists.
-   - `Caveat:` — anything the close must do differently: a prior `WIP {ID}` commit to squash first, a regen step that must run before staging, a fixture this bead regenerated. Write `none` when there is none.
+5. **Write the handoff file BEFORE closing the bead** (crash recovery anchor — non-negotiable). Write `{RUN_DIR}/{ID}.handoff.md` as a `# {ID} handoff` heading plus exactly one labeled line, and nothing else:
+   - `Caveat:` — anything the close must do differently: a regen step that must run before staging, a fixture this bead regenerated. Write `none` when there is none.
 
-   Four lines total is typical. Do NOT restate the phase (the progress JSONL has it), the diff, the gates, or the bead, and do NOT put findings in it — those are step 6. Run `bb-progress.sh "$RUN_DIR" {ID} retro-written` after the file is on disk (the phase vocabulary keeps that name).
+   **The `Paths:` line is retired** (`agent-plugins-92q.30`). It existed because, in a tree another agent might be sharing, nobody could re-derive from `git status` which dirt belonged to this bead. You are in this bead's own worktree, so everything dirty here is yours by construction and the close stages all of it. Do not reintroduce a path list.
+
+   Three lines total is typical. Do NOT restate the phase (the progress JSONL has it), the diff, the gates, or the bead, and do NOT put findings in it — those are step 6. Run `bb-progress.sh "$RUN_DIR" {ID} retro-written` after the file is on disk (the phase vocabulary keeps that name).
 6. **Record findings as `retro:` comments on {ID}** — one `bd comment` per finding, prefixed `retro:`, 1–3 sentences each, friction only, no root-causing. That comment channel is what downstream retros and RFCs actually read. Trigger list — record one WHEN: you needed information the bead and its references did not carry; you had to settle something the bead or spec should have pinned; the bead contradicted repo reality; you could not satisfy an acceptance criterion as declared; a sequencing surprise. **A clean bead records none — say so rather than inventing filler.** Record each of these as its own `retro:` comment too:
      - **What you tried that did not work** — the reading you took first and abandoned, and why. The diff shows only the reading that survived, so this is unrecoverable later.
      - **What you decided silently** — only choices a diff-reader would not recognise AS choices. Narrower than "every implicit decision": an internal helper's name or the order of two independent guard clauses qualifies; the approach the bead already specified does not.
      - **For a defect bead: the observed pre-fix failure**, quoted from actual output. If you could not reproduce it, say so and say what you substituted.
 7. Close and commit in one step — run the bundled script. WHEN `{TRAILERS_FILE}` is not "none", pass it first so the trailers land in the same commit and no amend is ever needed:
-   `{SCRIPTS}/bb-close-bead.sh --trailers-file {TRAILERS_FILE} {ID} {PRIORITY} "{TITLE}" <code paths>`
-   Otherwise (`{TRAILERS_FILE}` is "none"): `{SCRIPTS}/bb-close-bead.sh {ID} {PRIORITY} "{TITLE}" <code paths>`
+   `{SCRIPTS}/bb-close-bead.sh --trailers-file {TRAILERS_FILE} {ID} {PRIORITY} "{TITLE}"`
+   Otherwise (`{TRAILERS_FILE}` is "none"): `{SCRIPTS}/bb-close-bead.sh {ID} {PRIORITY} "{TITLE}"`
+   **Pass no paths.** You are in this bead's own worktree, so everything modified here is this bead's work and the script stages all of it. A path list can only be too narrow (`agent-plugins-92q.30`).
    It performs the whole ceremony in the required order: atomic close (`bd update --status closed`, never `bd close` — that would be a second commit), refresh the `.beads/issues.jsonl` export and verify it changed, stage code + tracker together, then one commit messaged `{ID} P{PRIORITY} {TITLE}` (plus the trailers file's contents in the body, when given). It does not touch the description — grooming owns that. It refuses to run on `main` or with nothing staged. Do not perform these steps by hand, and do not `git commit --amend` afterward — if a required trailer is missing, that means `{TRAILERS_FILE}` was resolved wrong at Phase 0, not something to patch here.
 8. `{SCRIPTS}/bb-progress.sh "{RUN_DIR}" {ID} committed sha=$(git rev-parse --short HEAD)` — read the sha from the branch, not from the script's printout, so any rewrite between steps 7 and 8 cannot desync the ledger from what actually landed.
 9. If push mode is `push_per_bead`: `git push origin <branch>` on the current branch (never main), then `{SCRIPTS}/bb-progress.sh "{RUN_DIR}" {ID} pushed`. If `defer_push`: skip the push; the orchestrator handles it.
@@ -107,7 +117,7 @@ and appends the JSON itself — never hand-write an event.
 If gates fail twice, the change is intractable, or the bead cannot be finished without a prerequisite you filed:
 - `bb-progress.sh "$RUN_DIR" {ID} blocked reason="<short>"`.
 - `bd update {ID} --status blocked --append-notes "<short reason>"` — if a filed prerequisite is the blocker, name its id in the reason.
-- Stash any uncommitted changes: `git stash push -m "bead-bonanza blocked: {ID}"`
+- **Leave your uncommitted changes exactly where they are, in your worktree.** Do NOT stash and do NOT commit them. The worktree holds the partial work and its continued existence is what tells the orchestrator this bead is unfinished; stashing would move the work out of it and destroy that signal (`agent-plugins-92q.30`).
 - Return the blocked summary line. Do not push.
 
 ## Skipped path
@@ -146,6 +156,11 @@ Beads (process in order; one commit per bead):
 
 Gates: format=`{FORMAT}` lint=`{LINT}` build=`{BUILD}` test=`{TEST}` custom=`{CUSTOM_GATES or "none"}`
 Push mode: {push_per_bead | defer_push}
+Worktrees: one per bead, created by YOU, held ONE AT A TIME. Before each bead:
+  git -C <repo> worktree add -b <suffix> <repo>/../.bb-worktrees/<suffix> HEAD
+Work that bead entirely inside its worktree. After its close commit lands, tell
+the orchestrator and move on — never hold two worktrees open at once, because a
+worktree that exists means "this bead is unfinished" to every other reader.
 Run dir: {RUN_DIR}
 Scripts: {SCRIPTS}
 Trailers file: {TRAILERS_FILE or "none"}   (Phase 0 resolved; pass to bb-close-bead.sh --trailers-file)
@@ -178,6 +193,11 @@ Beads (process in order; each is its own commit):
 Gates: format=`{FORMAT}` lint=`{LINT}` build=`{BUILD}` test=`{TEST}` regen=`{REGEN or "none"}` custom=`{CUSTOM_GATES or "none"}`
 Targeted tests for this surface: {SURFACE_TARGETED_TESTS}
 Push mode: {push_per_bead | defer_push}
+Worktrees: one per bead, created by YOU, held ONE AT A TIME. Before each bead:
+  git -C <repo> worktree add -b <suffix> <repo>/../.bb-worktrees/<suffix> HEAD
+Work that bead entirely inside its worktree. After its close commit lands, tell
+the orchestrator and move on — never hold two worktrees open at once, because a
+worktree that exists means "this bead is unfinished" to every other reader.
 Run dir: {RUN_DIR}
 Scripts: {SCRIPTS}
 Trailers file: {TRAILERS_FILE or "none"}   (Phase 0 resolved; pass to bb-close-bead.sh --trailers-file)
@@ -212,7 +232,7 @@ Return ONE message containing N+1 lines: one per-bead summary, then a final `bat
 - Same per-bead constraints as the sequential template.
 ```
 
-## Worktree parallel notes (orchestrator)
+## Worktree mechanics (orchestrator)
 
 ### The base-ref trap — read before the first wave
 
@@ -271,23 +291,80 @@ exactly what makes these four constraints real:
   worktree** — the case the orchestrator's `git commit -- <pathspec>` guard
   exists for (SKILL.md, "Guard against foreign dirt"); keep commits
   pathspec-scoped.
-- **The exported ledger has no merge driver.** 2+ worktree beads each running
-  the mandated export commit near-identical full rewrites of the *same*
-  database on separate branches — an N-way `.beads/issues.jsonl` conflict at
-  merge time, guaranteed, not the fixture/snapshot case `<regen>` below
-  settles. **Resolve by re-exporting on the merged tree**, stage, amend —
-  never hand-merge the JSON.
+- **The exported ledger has no merge driver — this is why concurrency is
+  gated.** 2+ beads running the mandated export *concurrently* commit
+  near-identical full rewrites of the *same* database on separate branches,
+  and an N-way `.beads/issues.jsonl` conflict at merge time is then
+  guaranteed rather than incidental. **Sequential worktrees do not hit it**:
+  each branches from an already-merged head, so only one export is in flight
+  at a time. That is the whole reason waves run one bead at a time until
+  `agent-plugins-92q.31` retires the committed ledger. WHERE you meet this
+  conflict anyway, resolve by re-exporting on the merged tree, stage, amend —
+  never hand-merge the JSON, and never via `<regen>` (that settles
+  fixture/snapshot conflicts only).
 
-### Dispatch and merge
+### The worktree lifecycle — create, dispatch, merge, remove
 
-When dispatching a wave of `isolated` beads in parallel:
+The orchestrator owns creation and removal; the subagent owns only what
+happens inside. Per bead, in order:
 
-- Spawn all subagents in a single message with multiple `Agent` tool calls, each with `isolation: "worktree"`.
-- Each subagent uses the per-bead template above, runs in its own worktree on its own branch.
-- After all subagents return, merge their branches into the parent branch one at a time:
-  - `git merge <branch>` — if clean, continue.
-  - If a fixture/snapshot conflict and the profile defines a regen step: take both sides, run `<regen>` on the merged tree, stage and amend the merge commit. Without a regen step, resolve the conflict manually.
-  - If the conflict is `.beads/issues.jsonl`: expected on 2+ merges, not a triage failure (see "Beads inside a worktree" above) — re-export on the merged tree, stage, amend.
-  - If non-fixture conflict on shared code: triage failure — the beads weren't actually isolated. Mark the unmerged bead as `blocked` with a note about the conflict; let the user resolve.
-- If the bucket used `defer-push`, push once after all merges complete. Otherwise individual subagents pushed their branches; the orchestrator's merge commits still need a `git push` per merge or one `git push` at the end (your call — defer is fine here).
+```sh
+REPO="$(git rev-parse --show-toplevel)"
+WT="$REPO/../.bb-worktrees/<suffix>"        # sibling of the repo, never inside it
+git -C "$REPO" worktree add -b <suffix> "$WT" HEAD
+```
 
+Branching from `HEAD` — the sprint branch as it stands *now*, after the
+previous bead merged — is what makes each bead build on the last. Where the
+harness creates the worktree for you (`Agent` with `isolation: "worktree"`),
+it uses `worktree.baseRef` instead, which is why that setting is a hard gate.
+
+1. **Dispatch** the subagent with the per-bead template, telling it to work in
+   `$WT`. It implements, gates, writes its handoff, records findings, and
+   closes with `../scripts/bb-close-bead.sh` — passing **no paths**, since everything in
+   that tree is this bead's work.
+2. **Accept**: verify the bead reads `closed` and its commit exists on the
+   bead's branch. This is the acceptance check; the worktree still existing at
+   this point is what tells you the bead is not yet done.
+3. **Merge** into the sprint branch, one bead at a time:
+   ```sh
+   git -C "$REPO" merge --ff-only <suffix>
+   ```
+   **`--ff-only` is deliberate.** With the base-ref gate holding and waves
+   running sequentially, every merge is a fast-forward. A refusal means an
+   invariant broke — a worktree branched from the wrong base, or two beads
+   dispatched concurrently against a shared surface. **Stop the wave and
+   report it; do not resolve it inline** and do not retry without `--ff-only`.
+   That is what makes the failure informative instead of silently absorbed.
+4. **Remove the worktree — the final act of accepting the bead:**
+   ```sh
+   git -C "$REPO" worktree remove "$WT" && git -C "$REPO" branch -d <suffix>
+   ```
+   Removal is the orchestrator's, not the subagent's: an agent cannot remove
+   the tree it is standing in. Because removal happens *after* the merge, a
+   surviving worktree means "not yet accepted", which is the stronger reading
+   of the in-flight signal than "not yet committed".
+5. **Push** per the bucket's push mode.
+
+WHEN a bead is blocked rather than finished, **leave its worktree in place**
+and say so in the report. It holds the partial work, and its existence is the
+durable record that the bead is unfinished — there is nothing to stash and no
+WIP commit to make (`operating-principles.md`).
+
+**Prune before trusting the list.** A reclaimed container deletes worktree
+directories without deregistering them, and a stale entry reads as in-flight
+forever: `git worktree prune` before `git worktree list` in pre-flight and in
+recovery.
+
+### Concurrent waves (gated closed)
+
+Spawning several beads at once — one `Agent` call per bead with
+`isolation: "worktree"`, in a single message — is **not** available while
+`.beads/issues.jsonl` is a tracked file; see the ledger bullet above. When
+`agent-plugins-92q.31` retires it, the merge loop stays as written, with two
+additions: merge each branch as it returns rather than after all return, and
+where a merge hits a fixture/snapshot conflict and the profile defines a regen
+step, take both sides, run `<regen>` on the merged tree, stage and amend. A
+non-fixture conflict on shared code remains a triage failure — the beads were
+not actually isolated; mark the unmerged bead `blocked` and let the user
+resolve.

@@ -81,7 +81,7 @@ alike. Spell out which one a row is:
 - **Co-edit collision** — names the shared surface: `same c4_changes:
   auth-service`, `same fixture cluster`, `both edit testdata/golden.json`. These
   beads may share a bucket and a batch; they may never share a
-  worktree-parallel wave.
+  concurrent wave.
 - **Sequencing constraint** — names what is consumed and whose change it
   consumes: `consumes auth-service, changed by demo-1kq`. This is an *ordering*
   edge, not a batching one; it can hold with zero file overlap. The consumer

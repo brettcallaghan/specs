@@ -6,8 +6,9 @@ description: Process many beads autonomously by orchestrating subagents. Use
   the queue, gates every bead for readiness (grooming under-specified beads via a
   subagent, or bouncing what can't be made ready), surfaces both explicit and
   implicit decisions up front, dispatches via the cheapest viable execution mode
-  (doc fast lane / shared-surface batch / worktree parallel / sequential), streams
-  per-bead progress, and lands each bead in a single commit.
+  (doc fast lane / shared-surface batch / sequential), runs every bead in its
+  own git worktree, streams per-bead progress, and lands each bead in a single
+  commit.
 version: "1.3"
 ---
 
@@ -106,7 +107,7 @@ Two things no script can settle:
   harness property, invisible from a shell, and it is the trigger for the
   main-loop fallback. No script can check it — you must.
 
-WHEN the run may use worktree-parallel, confirm `BB_WORKTREE_BASEREF` is `head`
+Every bead runs in a worktree, so confirm `BB_WORKTREE_BASEREF` is `head`
 before Phase 2.5. Unset, worktrees branch from the **default branch**, not
 session HEAD, and beads building on each other lose their foundation. It is
 user-scope global state this repo does not own, so re-verify per wave — see
@@ -284,7 +285,7 @@ re-derive it from prose. The `jq` and a worked example are in
    `.metadata.c4_impacts` from `bd list --json` for every queued bead.
    - Two beads sharing a `c4_changes` component are **shared-surface** whatever
      their file paths say — the same component through different files still
-     collides. They MAY batch; they SHALL NOT share a worktree-parallel wave.
+     collides. They MAY batch; they SHALL NOT share a concurrent wave.
    - Bead B whose `c4_impacts` intersects bead A's `c4_changes` consumes a
      contract A is changing. That is a **sequencing** constraint, not a batching
      one, and it holds with zero file overlap: order B after A within the
@@ -310,10 +311,78 @@ co-edit collision names what is shared (`same c4_changes: auth-service`); a
 sequencing constraint names what is consumed and from whom (`consumes
 auth-service, changed by demo-9h0`).
 
+### Every bead runs in its own worktree
+
+**This is universal, not a mode.** Each dispatched bead gets a git worktree
+named for its hash suffix (`jh6`, `92q.14` — not the full id), created from the
+sprint branch and carrying a branch of the same name. Nothing is implemented in
+the shared checkout except by the orchestrator itself.
+
+- **Where.** A sibling of the repository root, never inside it:
+  `"$(git rev-parse --show-toplevel)/../.bb-worktrees/<suffix>"`. Inside the
+  repo the worktree's own files would read as dirt in every `git status` the
+  run takes.
+- **Presence is the in-flight signal.** A worktree that still exists means its
+  bead is not yet accepted. `git worktree list` is the complete answer to
+  "what is still in flight" — there is no mtime heuristic anywhere, and no
+  need to re-derive which paths a bead touched.
+- **Who removes it.** The orchestrator, as the final act of accepting the
+  bead — after the branch merges. A subagent cannot remove the worktree it is
+  standing in, and removal-on-merge makes the signal mean *accepted* rather
+  than merely *committed*, which is the stronger reading.
+- **Stale registrations.** A worktree directory that vanishes without
+  `git worktree remove` (a reclaimed container) leaves a stale entry that
+  would read as in-flight forever. Pre-flight and recovery both run
+  `git worktree prune` before trusting the list.
+
+**`bd` is not an obstacle.** It resolves the shared tracker database through
+git's common directory from any worktree, measured with `BEADS_DIR` unset — no
+`embeddeddolt` and no redirect file is created in the worktree
+(`agent-plugins-t09`). What a worktree agent must still do is run
+`bd export > .beads/issues.jsonl` **in its own directory** before committing:
+auto-export is best-effort and always writes the MAIN checkout's copy, so a
+worktree's committed ledger goes stale while `git status` reads clean (same
+reference, measured).
+
+**Hard gate — every worktree must branch from the sprint's own branch, never
+the default branch.** Two conditions produce that, and both are checked:
+pre-flight blocks a run whose HEAD is the default branch (Phase 0), and
+`worktree.baseRef` must be `head` so a worktree takes session HEAD rather than
+the repository's default branch. Verify `BB_WORKTREE_BASEREF` is `head`
+**before the first worktree of each wave, and do NOT dispatch otherwise.** The
+remedy is one line — set `.worktree.baseRef = "head"` in user-scope
+`~/.claude/settings.json`, which no repository owns — and it takes effect
+immediately with no session restart (`agent-plugins-jh6` measured this), so
+this is stop-and-fix, not stop-and-abandon. Because the setting is global user
+state anything could change between waves, re-verify before **each** wave, not
+once per run — see `references/subagent-prompts.md`, "The base-ref trap".
+
+**Merge policy.** The **orchestrator** merges each bead's branch into the
+sprint branch as it is accepted, one at a time; subagents never merge. With
+the base-ref gate holding and waves running sequentially, every merge is a
+fast-forward. **A conflict therefore means an invariant broke — stop the wave
+and report it; do not resolve it inline.** The two invariants that produce one
+are a worktree branched from the wrong base, and two beads dispatched
+concurrently against a surface they share.
+
+**Concurrent waves remain gated.** Sequential worktrees are safe today: each
+branches from an updated head, so the tracker export lands on one branch at a
+time. Two or more worktree beads dispatched *concurrently* each commit a full
+export of one shared database onto separate branches, and an N-way conflict on
+`.beads/issues.jsonl` is then guaranteed rather than incidental. **Do not read
+"every bead gets a worktree" as licence to fan out.** Concurrency unlocks when
+the tracker stops being a committed file (`agent-plugins-92q.31`), not before.
+
 ### Choose a dispatch mode per bucket
 
-Four modes. Pick the broadest one that's safe — you're trying to minimize total
-full-test-suite runs across the queue.
+Modes decide **how many beads share a subagent**, not how they are isolated —
+isolation is settled above and is the same everywhere. Pick the broadest one
+that's safe: you're trying to minimize total full-test-suite runs across the
+queue.
+
+**A batch subagent holds exactly one worktree at a time** — create, implement,
+close, hand back, then the next. Holding two at once makes worktree presence
+ambiguous and breaks the in-flight signal for every reader.
 
 1. **Doc/chore fast lane** — `trivial` beads. ONE subagent processes the cluster
    sequentially. Targeted tests between beads, ONE full `<test>` run at the end.
@@ -336,47 +405,14 @@ full-test-suite runs across the queue.
    when bead A's implementation would conflict with bead B's, or when decisions
    overlap such that one bead's choice changes another bead's plan.
 
-3. **Worktree parallel** — `isolated` beads with no surface overlap, where
-   parallel wall-clock savings beat merge cost. Spawn each via `Agent` with
-   `isolation: "worktree"`. `bd` is not the obstacle here: it resolves the
-   shared tracker database through git's common directory from any worktree,
-   measured with `BEADS_DIR` unset (`references/subagent-prompts.md`, "Beads
-   inside a worktree"). The obstacles are the exported ledger and the base
-   ref. Each worktree agent SHALL run `bd export > .beads/issues.jsonl` in its
-   own directory before committing — auto-export is best-effort and always
-   writes the MAIN checkout's copy, so a worktree's committed ledger goes
-   stale while `git status` reads clean (same reference, measured). Because
-   `export.git-add: true` (`.beads/config.yaml`) stages those writes into the
-   main index, keep commits pathspec-scoped (see "Guard against foreign dirt"
-   above). A wave of 2+ worktree beads therefore commits near-identical full
-   exports of one shared database with no merge driver configured for
-   `.beads/issues.jsonl` — an N-way conflict there is guaranteed, not
-   incidental; resolve it by re-exporting on the merged tree
-   (`bd export > .beads/issues.jsonl`, stage, amend), not by hand-merging JSON
-   and not via `<regen>` (that's for fixture/snapshot conflicts only, next).
-   Orchestrator merges results back to the parent branch one at a time. If a
-   merge instead produces fixture/snapshot conflicts, run `<regen>` on the
-   merged tree to settle (skip if the project defines no regen step — resolve
-   the conflict manually). Skip this mode if there are <3 isolated beads
-   (parallelism savings don't pay), or if the beads aren't actually isolated
-   (you'll just hit merge conflicts).
-
-   **Hard gate — every worktree must branch from the sprint's own branch,
-   never the default branch.** Two conditions produce that, and both are
-   checked: pre-flight blocks a run whose HEAD is the default branch (Phase
-   0), and `worktree.baseRef` must be `head` so a worktree takes session
-   HEAD rather than the repository's default branch. WHEN the dispatch
-   plan assigns any bead to this mode, verify `BB_WORKTREE_BASEREF` is
-   `head` (Phase 0's report) **before the first worktree dispatch, and do
-   NOT dispatch the wave otherwise** — this promotes Phase 0's advisory
-   line to a hard gate at the point of use. The remedy is one line — set
-   `.worktree.baseRef = "head"` in user-scope `~/.claude/settings.json`,
-   which no repository owns — and it takes effect immediately, with no
-   session restart (`agent-plugins-jh6` measured this), so this is
-   stop-and-fix, not stop-and-abandon. Because the setting is global user
-   state anything could change between waves, re-verify before **each**
-   worktree wave, not once per run — see `references/subagent-prompts.md`,
-   "The base-ref trap".
+3. **Concurrent wave** — `isolated` beads dispatched at the same time rather
+   than one after another. **Gated, and currently closed:** see "Concurrent
+   waves remain gated" above. Every bead already runs in its own worktree, so
+   this mode buys wall-clock only, and it buys it at the cost of a guaranteed
+   N-way conflict on the committed tracker. Do not use it while
+   `.beads/issues.jsonl` is a tracked file. WHEN the gate opens, the entry
+   conditions are: ≥3 `isolated` beads, no shared `c4_changes`, and the
+   base-ref check re-verified for the wave.
 
 4. **Plain sequential** — reserved for: a single bead with no batch peers, OR a
    bead whose surface diverges from every other queued bead, OR explicit user
@@ -449,10 +485,15 @@ WHEN it is not, the run does NOT abort — it degrades to a defined mode:
   order, following the full per-bead ceremony unchanged (claim, gates,
   retro, atomic close, single commit). The ceremony is what makes a bead
   landing correct; delegation is only how the work is distributed.
-- **Drop the parallel dispatch modes.** Worktree-parallel and
-  shared-surface batching exist to isolate concurrent agents; with one
-  agent there is no concurrency to isolate, so they add risk and no
-  benefit. Run sequential.
+- **Drop batching, and work in the shared checkout.** Batching exists to
+  amortize full test runs across a subagent's beads; with one agent there
+  is nothing to amortize across, so it adds risk and no benefit. Worktrees
+  likewise buy nothing here — they isolate agents from each other, and
+  there is only one agent — so the orchestrator implements each bead on
+  the sprint branch directly. Run sequential. **This is the one path on
+  which the shared-tree cautions still apply**: commit by explicit
+  pathspec, because a diagnosis agent's edits or a stale export can be
+  sitting in that tree alongside your own work.
 - **Context is now the scarce resource**, because nothing is being
   isolated for you. Keep per-bead notes to one line, and re-read the run
   checklist rather than holding it in your head.
@@ -514,12 +555,14 @@ proceed. The user can interrupt if they disagree.
 
 Execute buckets in this order (lowest blast radius first):
 
-1. **Doc/chore fast lane** — single subagent.
+1. **Doc/chore fast lane** — single subagent, one worktree at a time.
 2. **Shared-surface batches** — one subagent per batch, sequentially across
-   batches.
-3. **Worktree parallel waves** — spawn isolated beads concurrently in one
-   message; merge each as it returns.
-4. **Plain sequential** — one subagent per bead, in `bd ready` order.
+   batches, one worktree at a time within each.
+3. **Plain sequential** — one subagent per bead, in `bd ready` order.
+
+Concurrent waves are gated closed (see Phase 2.5), so every bucket above runs
+one bead at a time. Merge and remove each bead's worktree as it is accepted,
+before the next dispatch.
 
 After each subagent returns:
 
@@ -581,7 +624,7 @@ are `retro:` comments on the bead.
 ### Subagent prompt templates
 
 The four dispatch prompts — per-bead (sequential/worktree), doc/chore
-fast lane, shared-surface batch, plus the orchestrator's worktree-parallel
+fast lane, shared-surface batch, plus the orchestrator's worktree
 merge notes — are in `references/subagent-prompts.md`. **Read that file at
 dispatch** and fill in every `{PLACEHOLDER}` before sending. Do not
 paraphrase a template from memory: the per-bead ceremony is ordered, and
@@ -705,9 +748,10 @@ Do NOT create a PR or merge to main — that is a separate, explicit user action
   fixing a defect or regression, observe the reproducing test fail for the
   stated reason before fixing; the retro names that observed failure, not just
   "tests pass".
-- **One commit per bead, always** — except an interrupted bead's `WIP
-  <bead-id>` commit, the one sanctioned exception, squashed away before the
-  close ceremony. Full rule and resume path:
+- **One commit per bead, always — now without exceptions.** An interrupted
+  bead's work stays uncommitted in its own worktree, so there is no `WIP`
+  commit to make and nothing to squash (`agent-plugins-92q.30` retired that
+  exception). Full rule and resume path:
   `references/operating-principles.md`.
 - **The dispatch plan has no lean path.** It is written every run, whatever
   its size, because it is what a recovering orchestrator reads instead of
@@ -804,7 +848,7 @@ Load the one that matches where you are in the run:
 | Writing or amending the Phase 2.5 dispatch plan | `references/dispatch-plan.md` |
 | A subagent that crashed, timed out, or is running past 5 minutes — or resuming a run whose state you do not hold | `references/recovery.md` |
 | A project with no `## bead-bonanza gates` or `## model lineup` block | `references/project-setup.md` |
-| Resuming a bead interrupted mid-implementation (a `WIP <bead-id>` commit exists) | `references/operating-principles.md` |
+| Resuming a bead interrupted mid-implementation (its worktree still exists) | `references/operating-principles.md` |
 | Phase 0 pre-flight: probe the environment, resolve `RUN_DIR`/`SCRIPTS` | run `scripts/pre-flight-check.sh` |
 | Emitting a progress event | run `scripts/bb-progress.sh` |
 | Checking a `skipped` claim against the tree | run `scripts/bb-verify-skip.sh` |

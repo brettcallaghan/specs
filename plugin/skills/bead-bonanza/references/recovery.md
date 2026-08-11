@@ -61,40 +61,43 @@ Work these steps in order.
    the plan may have moved since it was first written, and the amendments log
    is where it moved.
 
-3. **Establish liveness — git is primary, the tracker is corroboration.**
-   `bd list --status in_progress` is **not** a liveness signal: a bead can be
-   worked without ever being claimed, so that query returns empty while an
-   agent is actively editing (observed open across twelve in-flight file
-   edits). The signal that works is the **newest mtime among dirty files**:
-
-   | Newest dirty-file mtime | Reading | Do |
-   |---|---|---|
-   | < ~5 min | an agent is alive and mid-ceremony | do not dispatch to that surface, do not commit its files, wait |
-   | > ~30 min | orphaned work from a killed child | recover it per the subagent procedure below |
-   | no dirty files | idle | safe to dispatch |
+3. **Establish what is in flight — `git worktree list` is the whole answer.**
+   Every dispatched bead runs in its own worktree named for its hash suffix
+   (`agent-plugins-92q.30`), and the orchestrator removes that worktree only
+   when the bead's branch has merged. **A worktree that exists is a bead that
+   is not finished.** The state is explicit, so nothing has to be inferred:
 
    ```sh
-   # GNU and BSD stat disagree on both the flag and the format string, so
-   # probe once and bind a function — the same wrapper scripts/pre-flight-check.sh
-   # establishes. Do not inline `stat -c`: it fails on macOS.
-   if stat -f '%m' . >/dev/null 2>&1; then bb_mtime() { stat -f '%m' "$1"; }
-   else                                    bb_mtime() { stat -c '%Y' "$1"; }
-   fi
-
-   cd "$(git rev-parse --show-toplevel)"   # porcelain paths are repo-root-relative
-   newest=$(git status --porcelain | cut -c4- | while IFS= read -r f; do
-     [ -e "$f" ] && bb_mtime "$f"
-   done | sort -rn | head -1)
-   [ -z "$newest" ] && echo "clean tree — idle" \
-                    || echo "$(( $(date +%s) - newest ))s since the newest dirty-file write"
+   cd "$(git rev-parse --show-toplevel)"
+   git worktree prune          # drop registrations whose directory is gone
+   git worktree list           # every remaining entry is an unfinished bead
    ```
 
-   **The set of dirty files is diagnostic too, not just the newest mtime.**
-   Only `.beads/issues.jsonl` and `.beads/interactions.jsonl` dirty means a
-   subagent's `bd update --claim` just landed and implementation has not
-   started; source files dirty means implementation is underway. Both readings
-   forbid committing — sweeping a subagent's tracker export into an
-   orchestrator commit is the same race as staging its half-written source.
+   `git worktree prune` first is not optional. A container reclaimed
+   mid-run leaves worktree directories deleted but still registered, and a
+   stale entry reads as in-flight forever.
+
+   **Retired by this change: the newest-dirty-file-mtime table.** Liveness
+   used to be inferred from how recently a dirty file had been written —
+   under ~5 minutes meant an agent was alive, over ~30 meant orphaned work.
+   That heuristic existed because every agent shared one working tree, so
+   "whose changes are these, and is that agent still breathing?" could not be
+   answered directly. It is now answered directly, and the heuristic is gone
+   rather than kept as a cross-check: it was never reliable (a file's mtime
+   bounds the last *write*, not the agent's liveness — see the worked example
+   below), and two liveness signals that can disagree is worse than one that
+   cannot.
+
+   `bd list --status in_progress` remains **not** a liveness signal — a bead
+   can be worked without ever being claimed, so the query returns empty while
+   an agent is actively editing (observed open across twelve in-flight file
+   edits). Use it only to corroborate what the worktree list already told you.
+
+   **To tell an unfinished bead's state, ask its worktree**, not the shared
+   checkout: `git -C <worktree> status --porcelain` shows exactly that bead's
+   work and nothing else, and `git -C <worktree> log --oneline <base>..` shows
+   whether it has committed. No path enumeration and no ownership question —
+   everything in that tree belongs to that bead.
 
 4. **Classify each in-scope bead, then corroborate — the tail is a hint.**
    Take `<bead-id>.progress.jsonl`'s last phase as a *starting hypothesis*,
@@ -110,10 +113,10 @@ Work these steps in order.
    - **`gates-passed` / `retro-written`** — the work is in the tree and only
      the close is outstanding. Read `<bead-id>.handoff.md` for the paths to
      stage and any caveat, honor the caveat, then run
-     `../scripts/bb-close-bead.sh <id> <priority> "<title>" <path>…`. The
-     handoff file carries **only paths and caveats** — it is not a body for
-     the close, and the close script leaves the bead's description as
-     grooming wrote it.
+     `../scripts/bb-close-bead.sh <id> <priority> "<title>"` from inside the
+     bead's worktree, passing no paths. The
+     handoff file carries **only a caveat** — it is not a body for the close,
+     and the close script leaves the bead's description as grooming wrote it.
    - **`committed`** — verify the recorded sha is an ancestor of `HEAD`
      (`git merge-base --is-ancestor <sha> HEAD`) before believing it.
 
@@ -129,17 +132,18 @@ If a subagent times out, returns an "API Error" instead of a summary, or otherwi
 
 1. **Read the progress file** (`<run-id>/<bead-id>.progress.jsonl`). The last phase tells you how far it got.
 2. **If `gates-passed` was emitted but `committed` was not** — the work is done in the working tree, only the close+commit ceremony is incomplete. This is the **happy crash path**:
-   - Read the handoff file at `<run-id>/<bead-id>.handoff.md`. It names the paths to stage and any close-specific caveat (a `WIP <id>` commit to squash, a regen step to run first). Honor the caveat before you stage.
-   - If the handoff file is missing (subagent crashed before writing it), derive the paths yourself from `git status --porcelain` — and be strict about it, because in a shared tree some of that dirt belongs to another agent. Add a `retro:` comment on the bead noting that the handoff was never written.
-   - Run `../scripts/bb-close-bead.sh --trailers-file "$RUN_DIR/trailers.txt" <id> <priority> "<title>" <paths>` — the same script the subagent would have run, with the same per-run trailers file Phase 0 resolved (omit `--trailers-file` WHEN the run resolved none). It closes, exports, stages, and commits in the required order, appends the trailers to the commit body itself, and leaves the bead's description exactly as grooming wrote it. Do not `git commit --amend` afterward to add trailers — that is the exact drift this flag exists to avoid.
+   - Read the handoff file at `<run-id>/<bead-id>.handoff.md`. It names any close-specific caveat (a regen step to run first, a fixture the bead regenerated). Honor the caveat before you stage. It no longer names paths to stage: everything in the bead's worktree is the bead's work, so the close stages all of it (`agent-plugins-92q.30`).
+   - If the handoff file is missing (subagent crashed before writing it), the bead's worktree is the answer: everything dirty in `git -C <worktree> status --porcelain` belongs to this bead, because nothing else was ever implemented there. Strictness about whose dirt it is — required when one tree was shared — no longer applies. Add a `retro:` comment on the bead noting that the handoff was never written.
+   - Run `../scripts/bb-close-bead.sh --trailers-file "$RUN_DIR/trailers.txt" <id> <priority> "<title>"` from inside the bead's worktree, passing no paths — the same script the subagent would have run, with the same per-run trailers file Phase 0 resolved (omit `--trailers-file` WHEN the run resolved none). It closes, exports, stages, and commits in the required order, appends the trailers to the commit body itself, and leaves the bead's description exactly as grooming wrote it. Do not `git commit --amend` afterward to add trailers — that is the exact drift this flag exists to avoid.
    - Run `bd export` into `.beads/issues.jsonl` first (the subagent may have crashed before exporting). Then stage source paths, any regenerated fixtures, `.beads/issues.jsonl`, `.beads/interactions.jsonl`. Inspect `git status --porcelain` carefully — only stage what belongs to this bead.
    - Commit with the canonical message format (`<id> P<priority> <title>`).
    - Push (if appropriate for the bucket).
    - Verify the bead is now `closed` via `bd show <id>`.
    - Record the commit yourself: `../scripts/bb-progress.sh "$RUN_DIR" <id> committed sha=$(git rev-parse --short HEAD)` — read the sha from the branch, not from the script's printout, same rule as the per-bead template's step 8.
-3. **If the last phase is `blocked` with a reason starting `interrupted; WIP`** — this bead is resumable, not failed: the work was persisted as a `WIP <bead-id>` commit before the agent stopped (the one sanctioned exception to one-commit-per-bead, `operating-principles.md`). Do NOT stash — there is nothing uncommitted to lose. Find the commit(s) with `git log --oneline --grep="^WIP <bead-id>"`, finish the work, squash them into the landing commit, then run the close ceremony.
-4. **If the last phase was `implementing` or earlier, and it is not the interrupted-WIP case above** — the work is partial and uncommitted. Stash with `git stash push -m "bead-bonanza recovery: <id>"`, mark the bead `blocked` with a recovery note, and surface to the user. Don't try to finish someone else's half-done work.
-5. **If the progress file is empty or missing** — the subagent never started. Check `bd show <id>` to confirm status; if it's still `open`, retry the subagent. If it's `in_progress`, claim it back with `bd update <id> --status open` first.
+3. **If the last phase was `implementing` or earlier** — the work is partial and uncommitted, and it is sitting safely in the bead's own worktree. **Do not stash and do not commit it.** Leave the worktree exactly as it is, mark the bead `blocked` with a recovery note naming the worktree path, and surface it to the user. The worktree's continued existence is the durable record that this bead is unfinished; stashing would move the work into the shared checkout and destroy that signal, which is the opposite of recovery.
+
+   To resume rather than surrender it, re-enter the worktree and finish the work — there is no WIP commit to hunt for and nothing to squash (`operating-principles.md`, "No exceptions: the worktree holds interrupted work"). **Retired by `agent-plugins-92q.30`:** the former step 3 handled a bead whose work had been persisted as a `WIP <bead-id>` commit, and the former step 4 stashed uncommitted work into the shared tree. Both existed only because a half-done bead's changes had to be got out of a tree the next bead needed clean.
+4. **If the progress file is empty or missing** — the subagent never started. Check `bd show <id>` to confirm status; if it's still `open`, retry the subagent. If it's `in_progress`, claim it back with `bd update <id> --status open` first. Remove any worktree it created before re-dispatching, so the in-flight signal does not lie.
 
 The handoff file is what makes the happy crash path mechanical instead of inferential — that's why it's non-negotiable. Findings are not in it: they are `retro:` comments the subagent writes on the bead, so whatever it managed to record is already durable in the tracker.
 
@@ -170,8 +174,9 @@ doing the work, so it stops the instant that agent stops. Therefore:
 - A file's mtime bounds the last *write*, not the agent's liveness.
 
 Resolve any status question in this order, stopping at the first answer:
-`bd show <id>`, then `git log --oneline --grep=<id>`, then the ledger. **Name
-which one you used.** Never report a ledger fact you have not just read from
+`git worktree list` (present means unfinished — the one signal that is state
+rather than testimony), then `bd show <id>`, then
+`git log --oneline --grep=<id>`, then the ledger. **Name which one you used.** Never report a ledger fact you have not just read from
 disk, and never from a backup copy while the live directory exists.
 
 Events are written by `../scripts/bb-progress.sh`, never by hand:
@@ -215,8 +220,9 @@ addition to** the Monitor:
   "check on the run".
 - **Do not key its liveness check on `bd list --status in_progress`.** A
   bead can be worked without ever being claimed, so that query reads
-  "nothing in flight" while an agent is actively editing. Use the
-  newest-dirty-file-mtime rule above instead.
+  "nothing in flight" while an agent is actively editing. Use
+  `git worktree prune && git worktree list` instead — a worktree that still
+  exists is a bead that is not finished.
 - **Cancel it in Phase 4**, when the run drains. A trigger left armed after
   the run finishes wakes an agent into a finished sprint, which trains the
   reader to ignore it.
@@ -227,7 +233,7 @@ After `gates-passed` and BEFORE the `bd update --status closed` call, the subage
 
 This is the recovery anchor. If the subagent times out, crashes, or otherwise dies between `gates-passed` and the commit, the orchestrator can:
 1. Read the handoff file for the paths and the caveat.
-2. Run `../scripts/bb-close-bead.sh --trailers-file "$RUN_DIR/trailers.txt" <id> <priority> "<title>" <paths>` itself (omit `--trailers-file` WHEN the run resolved none) — no amend needed afterward to add trailers.
+2. Run `../scripts/bb-close-bead.sh --trailers-file "$RUN_DIR/trailers.txt" <id> <priority> "<title>"` from the bead's worktree itself (omit `--trailers-file` WHEN the run resolved none) — no amend needed afterward to add trailers.
 3. Record the commit: `../scripts/bb-progress.sh "$RUN_DIR" <id> committed sha=$(git rev-parse --short HEAD)` — read the sha from the branch, not from the script's printout.
 4. Verify with `bd show <id>`, then push if the bucket calls for it.
 
