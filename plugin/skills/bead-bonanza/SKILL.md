@@ -383,7 +383,13 @@ lineup` block in `AGENTS.md`, echoed by Phase 0. Honor these:
 - **Batching across tiers** — prefer bucketing beads that share a tier.
   When a bucket mixes tiers, run the whole batch subagent at the
   **highest** tier among its members — never run a bead below its tier.
-  If honoring that would drag several cheap beads up, split the bucket.
+  Split the bucket WHEN more than one bead would be dragged above its
+  tier, OR when any bead would be dragged more than one tier. Weigh that
+  against what batching saves: batching exists to avoid repeated full
+  `<test>` runs, so WHERE Phase 0's gate baseline (`scripts/pre-flight-check.sh`)
+  shows the suite completing in seconds, the saving is negligible and the
+  correct tier wins; WHERE it takes minutes, one bead one tier high is
+  the cheaper error.
 - **Escalate, never downgrade** — if a bead fails gates/review twice or
   its subagent visibly flails, re-dispatch that bead one tier up. Never
   re-dispatch below the assigned tier, and never "save cost" by
@@ -594,9 +600,24 @@ After the queue is drained (or the circuit breaker tripped), print:
    would have finished never appears here — it succeeds, and the
    overspend is silent. So zero escalations across a large queue is not
    evidence of good calibration; it is equally consistent with routing
-   everything too high. WHEN a run of ≥10 beads produces zero
-   escalations, say so and suggest the next run try one tier lower on
-   the beads whose `tier_reason` was thinnest.
+   everything too high (see the over-routing table below). WHEN a run of
+   ≥10 beads produces zero escalations, say so and suggest the next run
+   try one tier lower on the beads whose `tier_reason` was thinnest.
+3b. **Deliberate over-routes** — every bead you knowingly ran a tier above
+    its assigned one (e.g. batched into a higher-tier bucket per the
+    tier-batching rule), one row each:
+
+   ```
+   | Bead | Assigned | Ran at | Why raised |
+   |------|----------|--------|------------|
+   | demo-9h0 | light | standard | batched with a standard bead; gate suite completes in seconds |
+   ```
+
+   State `none` explicitly when there were no over-routes — the null is
+   the result, not the absence of one. Together with the escalation table
+   this is the run's complete routing evidence: escalations expose
+   *under*-routing, this exposes *over*-routing, and `groom-beads`' retro
+   loop needs both to recalibrate the rubric.
 4. **Follow-up beads** — beads created mid-run via `bd create`, split into those
    admitted into the run (in-scope prerequisites / AC-decompositions / coverage
    gaps, with their outcome) and those left for the user (out-of-scope finds,
