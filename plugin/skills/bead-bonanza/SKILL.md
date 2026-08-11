@@ -340,12 +340,25 @@ full-test-suite runs across the queue.
    merge instead produces fixture/snapshot conflicts, run `<regen>` on the
    merged tree to settle (skip if the project defines no regen step — resolve
    the conflict manually). Skip this mode if there are <3 isolated beads
-   (parallelism savings don't pay), if the beads aren't actually isolated
-   (you'll just hit merge conflicts), or if any bead builds on another in-run
-   bead's work while `BB_WORKTREE_BASEREF` isn't confirmed `head` (Phase 0
-   gate above; "The base-ref trap", `references/subagent-prompts.md`) — safe
-   for that case is exactly what `agent-plugins-jh6` measured, not the
-   default.
+   (parallelism savings don't pay), or if the beads aren't actually isolated
+   (you'll just hit merge conflicts).
+
+   **Hard gate — every worktree must branch from the sprint's own branch,
+   never the default branch.** Two conditions produce that, and both are
+   checked: pre-flight blocks a run whose HEAD is the default branch (Phase
+   0), and `worktree.baseRef` must be `head` so a worktree takes session
+   HEAD rather than the repository's default branch. WHEN the dispatch
+   plan assigns any bead to this mode, verify `BB_WORKTREE_BASEREF` is
+   `head` (Phase 0's report) **before the first worktree dispatch, and do
+   NOT dispatch the wave otherwise** — this promotes Phase 0's advisory
+   line to a hard gate at the point of use. The remedy is one line — set
+   `.worktree.baseRef = "head"` in user-scope `~/.claude/settings.json`,
+   which no repository owns — and it takes effect immediately, with no
+   session restart (`agent-plugins-jh6` measured this), so this is
+   stop-and-fix, not stop-and-abandon. Because the setting is global user
+   state anything could change between waves, re-verify before **each**
+   worktree wave, not once per run — see `references/subagent-prompts.md`,
+   "The base-ref trap".
 
 4. **Plain sequential** — reserved for: a single bead with no batch peers, OR a
    bead whose surface diverges from every other queued bead, OR explicit user

@@ -212,10 +212,18 @@ Return ONE message containing N+1 lines: one per-bead summary, then a final `bat
 
 ### The base-ref trap — read before the first wave
 
-`isolation: "worktree"` is **safe for a run whose beads build on each other
-only if `worktree.baseRef` is `"head"`.** Unset, the worktree branches from
-the repository's **default branch**, not session HEAD — measured in this
-repo, `agent-plugins-jh6`. Fix (user scope only; project-root untested):
+**Every worktree MUST branch from the sprint's own branch, never the
+default branch.** Two conditions produce that, and both are checked: the
+orchestrator's own HEAD is not the default branch (pre-flight blocks the
+run otherwise), and `worktree.baseRef` must be `"head"` so the worktree
+takes session HEAD rather than the repository's default branch. Unset,
+the worktree branches from the repository's **default branch**, not
+session HEAD — measured in this repo, `agent-plugins-jh6`. This is not
+conditional on whether the run's beads build on each other: an unset
+`baseRef` silently drops every commit the sprint branch carries from
+every worktree, isolated beads included — it is a hard gate for
+`isolation: "worktree"` full stop, not a special case for beads with a
+dependency edge. Fix (user scope only; project-root untested):
 
 ```json
 { "worktree": { "baseRef": "head" } }
