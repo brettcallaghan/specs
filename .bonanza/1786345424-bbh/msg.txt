@@ -1,0 +1,5 @@
+agent-plugins-92q.22 P1 Split findings from the close artifact: retro: comments own findings, the file becomes handoff.md, and bb-close-bead.sh stops rewriting the description
+
+
+Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_014rH39TvrSEzSR8DwHASrH5
