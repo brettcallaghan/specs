@@ -23,8 +23,8 @@ shared checkout, which defeats every guarantee this design rests on.
 - Doc/chore fast-lane subagent — a cluster of trivial beads, one subagent
 - Shared-surface batch subagent — beads sharing a code/fixture surface
 - Worktree mechanics (orchestrator) — the base-ref trap, how `bd` behaves
-  inside a worktree, the create/merge/remove lifecycle, and why concurrent
-  waves are gated closed
+  inside a worktree, the create/merge/remove lifecycle, and the status of
+  concurrent waves
 
 The per-bead template is the canonical one; the fast-lane and shared-surface
 templates reference its workflow rather than restating it, so read it first.
@@ -291,17 +291,14 @@ exactly what makes these four constraints real:
   worktree** — the case the orchestrator's `git commit -- <pathspec>` guard
   exists for (SKILL.md, "Guard against foreign dirt"); keep commits
   pathspec-scoped.
-- **The exported ledger has no merge driver — this is why concurrency is
-  gated.** 2+ beads running the mandated export *concurrently* commit
-  near-identical full rewrites of the *same* database on separate branches,
-  and an N-way `.beads/issues.jsonl` conflict at merge time is then
-  guaranteed rather than incidental. **Sequential worktrees do not hit it**:
-  each branches from an already-merged head, so only one export is in flight
-  at a time. That is the whole reason waves run one bead at a time until
-  `agent-plugins-92q.31` retires the committed ledger. WHERE you meet this
-  conflict anyway, resolve by re-exporting on the merged tree, stage, amend —
-  never hand-merge the JSON, and never via `<regen>` (that settles
-  fixture/snapshot conflicts only).
+- **The exported ledger is gone.** Until `agent-plugins-92q.31` the mandated
+  per-close export made concurrency unsafe: N beads each committed a
+  near-identical full rewrite of one shared database onto N branches with no
+  merge driver, so an N-way `.beads/issues.jsonl` conflict at merge time was
+  guaranteed. The tracker is now `origin refs/dolt/data`, `.beads/*.jsonl` is
+  untracked, and the close ceremony stages code only and pushes the database
+  itself. There is no per-worktree export to conflict, and no export step for a
+  worktree agent to remember.
 
 ### The worktree lifecycle — create, dispatch, merge, remove
 
@@ -356,12 +353,14 @@ directories without deregistering them, and a stale entry reads as in-flight
 forever: `git worktree prune` before `git worktree list` in pre-flight and in
 recovery.
 
-### Concurrent waves (gated closed)
+### Concurrent waves (unblocked, not yet enabled)
 
 Spawning several beads at once — one `Agent` call per bead with
-`isolation: "worktree"`, in a single message — is **not** available while
-`.beads/issues.jsonl` is a tracked file; see the ledger bullet above. When
-`agent-plugins-92q.31` retires it, the merge loop stays as written, with two
+`isolation: "worktree"`, in a single message — was blocked by the committed
+ledger; that blocker is gone (see the ledger bullet above). It is still not the
+default, because no concurrent wave has actually been measured:
+`agent-plugins-bhl` does that. Until it reports, dispatch one bead at a time.
+When concurrency is enabled the merge loop stays as written, with two
 additions: merge each branch as it returns rather than after all return, and
 where a merge hits a fixture/snapshot conflict and the profile defines a regen
 step, take both sides, run `<regen>` on the merged tree, stage and amend. A

@@ -9,9 +9,9 @@ statement.
 - One commit per bead, always — now without exceptions, and how the bead's own
   worktree holds interrupted work
 - Findings harvest — the `bd export | jq` pipeline and its non-zero assertion
-- Guard against foreign dirt, and the shared-database race — which of the two
-  worktrees fix, and why isolation cannot fix a tracker write landing in
-  another agent's commit
+- Guard against foreign dirt — narrowed to the orchestrator's own commits by
+  worktree adoption, and why the shared-database race it used to be paired
+  with is gone entirely
 
 ## One commit per bead, always
 
@@ -95,13 +95,12 @@ WHEN the count is zero against a feature known to carry `retro:` comments,
 `.beads/issues.jsonl` reflects the latest closes — before aggregating
 anything.
 
-## Guard against foreign dirt, and the shared-database race
+## Guard against foreign dirt
 
-Two different hazards live here. **One worktree per bead
-(`agent-plugins-92q.30`) removes the first for subagents and narrows it to the
-orchestrator; it does NOT touch the second.** Read that distinction carefully
-before deleting anything here — they used to be discussed together because
-they had the same symptom, not the same cause.
+Two hazards used to live here, discussed together because they shared a
+symptom rather than a cause. One worktree per bead (`agent-plugins-92q.30`)
+removed the first for subagents and narrowed it to the orchestrator; retiring
+the committed tracker (`agent-plugins-92q.31`) removed the second outright.
 
 ### Working-tree dirt: narrowed to the orchestrator, not deleted
 
@@ -119,53 +118,34 @@ alongside its own work. It therefore commits by explicit pathspec
 main-loop fallback path (SKILL.md), where the orchestrator implements every
 bead in the shared checkout because there are no subagents to isolate.
 
-### The shared-database race: worktrees do NOT fix it either
+### The shared-database race: RETIRED — the tracker is no longer a file
 
-**Do not delete this rule on the strength of worktree adoption.** It is the
-one hazard in this document that isolation cannot touch, and the reason is
-worth stating plainly: a worktree isolates *files*, and this race is not
-about files. Every worktree resolves the same tracker database through git's
-common directory — that is exactly why `bd` works from inside one. So a
-subagent's close, running in its own worktree on its own branch, still
-exports the **shared** database, and still captures whatever the orchestrator
-wrote to it moments earlier. The write lands in the subagent's commit as
-surely as it did in a shared tree; it just lands on a different branch now.
+**Retired by `agent-plugins-92q.31`.** Both the race and
+`agent-plugins-92q.17`'s deferral rule are gone, and it is worth recording why,
+because the fix is not the one worktree adoption looked like it would provide.
 
-This is `agent-plugins-92q.31`'s to fix, by making the tracker stop being a
-committed file at all. Until that lands, the deferral rule below stands
-verbatim.
+The race was: `.beads/issues.jsonl` was a projection of a database every agent
+shared, and the close ceremony regenerated it in full at every close. So any
+tracker write the orchestrator made while a subagent sat between `claimed` and
+`committed` landed inside *that subagent's* commit. Pathspec could not prevent
+it, because the capture — the export — happened before the git index was ever
+consulted. The rule that compensated: while any subagent held a claim, the
+orchestrator confined itself to read-only `bd` queries and deferred its own
+tracker writes to the wave boundary.
 
-The tracker ledger (`.beads/issues.jsonl`) is a projection of a database
-every agent shares, not a file one agent owns. `../scripts/bb-close-bead.sh`
-regenerates it in full — a plain `bd export` — at every close, so any
-tracker write the orchestrator makes while a subagent is between `claimed`
-and `committed` lands inside *that subagent's* commit. Pathspec cannot
-prevent this, because the capture (the export) happens before the git
-index is ever consulted — the orchestrator can commit `-- <files>` with
-maximal discipline and still find "nothing to commit," because the
-subagent's close already carried the write.
+**Worktrees did not fix this**, and briefly looked as though they had. A
+worktree isolates *files*; this race was never about files. Every worktree
+resolves the same database through git's common directory — precisely why `bd`
+works inside one — so a subagent's close still exported shared state and still
+captured the orchestrator's concurrent write. It merely landed on a different
+branch.
 
-**WHILE any subagent holds a claim, the orchestrator SHALL confine itself
-to read-only `bd` queries and defer its own tracker writes** — grooming a
-newly discovered bead, baking a decision, wiring a dependency edge — until
-the wave returns. **WHERE a write cannot wait,** make it and note in the
-report which bead's commit will carry it, so a reader of that commit is
-not surprised to find another actor's edit inside it.
-
-**The trade.** Deferring can make a wave marginally slower — a discovered
-bead's grooming waits for the wave boundary instead of happening the
-moment it's found. That is the intended trade, not an oversight; the
-WHERE clause above is the escape hatch for a write that genuinely cannot
-wait, not a license to defer nothing.
-
-**Considered and rejected: a `git status` check before committing.** This
-does not fix the race — the window between the check and the commit is
-exactly where the close ceremony lands its export. A run that checked
-`git status` clean immediately before committing still landed another
-actor's write, because `../scripts/bb-close-bead.sh`'s export ran, and its commit
-landed, inside that same window. Ordering discipline on the
-orchestrator's side cannot close a race that happens on the subagent's
-side of the same shared file.
+What fixed it was removing the file. The tracker is `origin refs/dolt/data`;
+the exports are untracked; the close ceremony stages code only and pushes the
+database itself. There is no shared file for one agent's write to ride into
+another agent's commit, so there is nothing to defer. **The orchestrator may
+groom a discovered bead, bake a decision, or wire a dependency edge at any
+time, including mid-wave.**
 
 ### The claim-reset rule (unchanged)
 

@@ -44,39 +44,29 @@
 #   git-push: false    # Disable git push (backup locally only)
 #   git-repo: ""       # Separate git repo for backups (default: project repo)
 
-# Optional JSONL auto-export for viewers, interchange, and issue-level migration.
-# Disabled by default; enable only when an integration needs fresh .beads/issues.jsonl.
-# Use relative paths under .beads/ for JSONL import/export filenames.
+# JSONL auto-export: OFF, and .beads/*.jsonl is no longer tracked.
 #
-# ENABLED HERE ON PURPOSE. In this project's environment the Dolt database is
-# per-session and disposable: .beads/embeddeddolt/ is gitignored, sessions run
-# in ephemeral containers, and `bd dolt push` cannot reach a remote (the egress
-# proxy returns 403). That makes .beads/issues.jsonl the ONLY thing that
-# carries issues between sessions and between branches — the SessionStart hook
-# reconstructs the database from it (.claude/hooks/session-start.sh).
+# Retired by agent-plugins-92q.31 (2026-08-11). It was on because the Dolt
+# database was per-session and disposable, which made .beads/issues.jsonl the
+# only thing carrying issues between sessions and branches. That premise is
+# gone: `bd dolt push` reaches origin's refs/dolt/data, the SessionStart hook
+# bootstraps from it, and the remote is the source of truth. beads' own
+# documentation names JSONL-as-sync an anti-pattern, and bd init --help says
+# the same: "Cross-machine sync and backups use Dolt remotes/backups, not
+# JSONL import/export."
 #
-# With auto export off, every bead created or closed in a session was lost
-# unless somebody remembered to run `bd export` before the container was
-# reclaimed. That is exactly the kind of invariant this repo argues should be
-# a gate rather than a matter of diligence.
+# What turning it off buys, beyond correctness: a 1.1 MB generated file stopped
+# being rewritten into every bead commit. Measured 2026-08-11 — a plain
+# import-then-export of an UNCHANGED tracker rewrote 65 of 146 records, because
+# dependencies re-serialize in a different order and every comment id is
+# re-minted. The file churned ~45% of itself regardless of what a session
+# actually changed, which made its git history useless as a record of intent.
 #
-# git-add stages the refreshed file so it joins whatever commit follows,
-# rather than surfacing later as a stray modification.
-#
-# KNOWN LIMIT, measured 2026-07-31: auto export is append/update-only. A
-# `bd delete` is NOT reflected — the deleted row stays in issues.jsonl
-# indefinitely (verified over a 90s window, well past the interval), so the
-# issue would come back on the next session's import. Only an explicit
-# `bd export > .beads/issues.jsonl` rewrites the file in full. Auto export is
-# still the right default because losing a bead is worse than resurrecting
-# one, but a session that deletes an issue must run the explicit export.
+# Run `bd export > .beads/issues.jsonl` by hand if you want a snapshot for a
+# viewer or for interchange. It is gitignored; it is not a backup, and it is
+# not how issues travel.
 export:
-  auto: true
-  path: issues.jsonl
-  interval: 60s
-  git-add: true
-import:
-  path: issues.jsonl
+  auto: false
 
 # Integration settings (access with 'bd config get/set')
 # Non-secret keys (stored in the database):
@@ -88,12 +78,23 @@ import:
 # - linear.api_key  → use LINEAR_API_KEY env var instead
 # - github.token    → use GITHUB_TOKEN env var instead
 
-# sync.remote is deliberately unset. It was previously committed as
-# "git+http://local_proxy@127.0.0.1:41729/git/brettcallaghan/agent-plugins" —
-# the loopback address of one ephemeral container's egress proxy, which is
-# meaningless in any other clone and returns HTTP 403 for `bd dolt push` even
-# in the container that wrote it. Its only effect was to make `bd dolt push`
-# look like a working sync path when it never was.
+# The Dolt remote IS the tracker. Committed deliberately, replacing a comment
+# that said the opposite.
 #
-# The intended model is that Dolt is local and per-session, and that
-# .beads/issues.jsonl is what crosses session and branch boundaries.
+# The previous value was "git+http://local_proxy@127.0.0.1:41729/git/..." — the
+# loopback address of one ephemeral container's egress proxy, meaningless in any
+# other clone. It was removed, and the comment replacing it concluded that Dolt
+# sync "does not work in this project" because `bd dolt push` returned 403.
+#
+# That conclusion was wrong, and the correction is worth keeping: the 403 came
+# from the egress proxy substituting a brokered GitHub App token scoped to
+# refs/heads, NOT from GitHub refusing refs/dolt/* writes. Proof — a push with a
+# deliberately invalid token still succeeded, which only happens if the proxy
+# replaced the credential. With the proxy bypassed and a real PAT, writes work
+# (agent-plugins-92q.31).
+#
+# The SessionStart hook establishes and VERIFIES that write path on every
+# session and fails loudly when it cannot. There is no JSONL fallback by
+# design; see .claude/hooks/session-start.sh and docs/session-bootstrap.md.
+sync:
+  remote: "git+https://github.com/brettcallaghan/agent-plugins"

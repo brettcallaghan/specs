@@ -365,13 +365,15 @@ and report it; do not resolve it inline.** The two invariants that produce one
 are a worktree branched from the wrong base, and two beads dispatched
 concurrently against a surface they share.
 
-**Concurrent waves remain gated.** Sequential worktrees are safe today: each
-branches from an updated head, so the tracker export lands on one branch at a
-time. Two or more worktree beads dispatched *concurrently* each commit a full
-export of one shared database onto separate branches, and an N-way conflict on
-`.beads/issues.jsonl` is then guaranteed rather than incidental. **Do not read
-"every bead gets a worktree" as licence to fan out.** Concurrency unlocks when
-the tracker stops being a committed file (`agent-plugins-92q.31`), not before.
+**Concurrent waves: unblocked, not yet enabled.** The condition that gated
+them — every concurrent bead committing a full export of one shared database
+onto its own branch, guaranteeing an N-way conflict on `.beads/issues.jsonl` —
+was removed by `agent-plugins-92q.31`: the tracker is now the Dolt remote and
+the exports are untracked, so a close commit carries code only and there is
+nothing left to conflict. What has NOT happened is a measured concurrent wave.
+**Keep dispatching one bead at a time until `agent-plugins-bhl` records one**,
+and do not read "every bead gets a worktree" as licence to fan out on the
+strength of the blocker having been removed.
 
 ### Choose a dispatch mode per bucket
 

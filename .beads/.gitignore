@@ -78,3 +78,12 @@ bd.db
 
 # Added by bd (missing required patterns)
 *.gate.lock*
+
+# JSONL exports are NOT tracked (agent-plugins-92q.31). The Dolt remote
+# (origin refs/dolt/data) is the source of truth; these are local snapshots for
+# viewers and interchange only. Tracking them made a 1.1 MB generated file
+# churn ~45% of its records into every bead commit, and invited the
+# JSONL-as-sync anti-pattern beads' own docs warn against.
+issues.jsonl
+issues-full.jsonl
+interactions.jsonl

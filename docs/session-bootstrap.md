@@ -40,6 +40,44 @@ completes successfully. It was simply never invoked.
 `strata` has the same exposure through its own
 `scripts/setup-cloud-env.sh`.
 
+## The environment contract: write access to `refs/dolt/data`
+
+Read this before the setup script — it is the one requirement that cannot be
+satisfied from inside a running session.
+
+This repository's issue tracker is a Dolt database synced to `refs/dolt/data`
+on the GitHub remote. `.beads/*.jsonl` is untracked and is **not** a fallback:
+there deliberately isn't one, because carrying both models means two code
+paths and a rule for which wins. A session that can read but not write the
+tracker can close a bead and lose it when the container is reclaimed, so
+`.claude/hooks/session-start.sh` **verifies** write access with a real probe
+push and **exits 1** when it cannot.
+
+The environment must supply two things:
+
+1. **`AGENT_PLUGINS_ACCESS_TOKEN`** — a GitHub PAT with push access to this
+   repository. Set it at [claude.ai/code](https://claude.ai/code) on the
+   environment's variables. **Environment variables are read at container
+   creation**, so adding one cannot rescue a session already running; that
+   session has to be restarted.
+
+2. **Direct, unproxied egress to `github.com`.** The egress proxy replaces the
+   `Authorization` header with a brokered GitHub App installation token scoped
+   to `refs/heads`, which returns 403 on `refs/dolt/*`. The hook handles this
+   by setting `http.https://github.com/.proxy` to empty and installing a
+   credential helper that reads the PAT from the environment at call time, so
+   the token is never written to disk. If an environment blocks direct egress,
+   the hook will fail its probe and say so.
+
+This cost a full session to diagnose, so the correction is worth keeping: the
+403 was **not** GitHub refusing `refs/dolt/*` writes. The measurement that
+settled it — a push carrying a **deliberately invalid** token succeeded, which
+is only possible if something upstream substituted a working credential.
+
+The `bead-bonanza` skill never names a credential. Its requirement is the
+capability, "write access to `refs/dolt/data`"; the token and the proxy bypass
+are this repository's environment configuration.
+
 ## The fix: an environment setup script
 
 A [setup script](https://code.claude.com/docs/en/cloud-environments#setup-scripts)
