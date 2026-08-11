@@ -388,6 +388,42 @@ Consequences for the plan as written:
   becomes true at step 5, not at the gate. It carries a `DO NOT IMPLEMENT`
   comment and closes via its dependency.
 
+### 2026-08-11 — sprint 2 stage 1 landed: `92q.30` worktree adoption
+
+Implemented in the orchestrator's own loop, per the standing hazard. Closed as
+`e78932b`, one commit, gates at baseline (`0 error(s), 2 warning(s)`).
+
+**The decision the bead refused to defer: batching survives**, with a batch
+subagent holding exactly one worktree at a time. Batching's saving is
+full-test-suite amortization, which is orthogonal to isolation — worktrees
+replace its collision rationale, not its economic one. Retiring it would have
+cost N−1 full test runs per cluster and superseded chunks of `92q.10`.
+
+Verified by a real two-bead sequential wave in a scratch clone: `bd` resolved
+the shared database from inside a worktree with no local `embeddeddolt`, the
+close staged correctly with **no path arguments**, both merges were
+fast-forwards, bead 2's worktree carried bead 1's work, and
+`git worktree list` came back clean. Full observed output is on the bead.
+
+Three things later stages must not misread:
+
+- **`92q.17`'s tracker-write deferral is NOT deleted.** Worktrees isolate
+  files; the shared-database race is not about files. Every worktree resolves
+  the same database through git's common directory, so a subagent's close
+  still exports shared state and still captures the orchestrator's concurrent
+  write — it just lands on a different branch. That remains `92q.31`'s.
+  Stage 3 (`92q.33`) lists `92q.17` under **Deleted**; that classification is
+  wrong and stage 3 should treat it as **Rewritten** instead.
+- **Concurrent waves are gated closed**, in writing, until `92q.31` retires
+  the committed ledger. Sequential worktrees do not hit the N-way conflict;
+  concurrent ones hit it every time.
+- **This bead added more than it removed** (+338/−184; SKILL.md 51,333 →
+  53,067 bytes), because the bead's own "cross-reference each deletion"
+  requirement trades every retired rule for a paragraph explaining it. That
+  lands on stage 5 — the retirement notes are exactly what `92q.7` extracts —
+  and it is one more reason `92q.7` must be re-groomed from scratch rather
+  than unfrozen as written.
+
 ---
 
 # Sprint 2 plan — re-scope, 2026-08-11
