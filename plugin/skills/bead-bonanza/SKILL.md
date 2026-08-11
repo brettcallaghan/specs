@@ -129,8 +129,11 @@ Parse the user's filter from their request (label, priority, ID list).
 5. If the user gave no filter, ask once: "Which beads? (label / priority /
    explicit ID list)" — this is the only Phase-1 question allowed.
 
-Use `TaskCreate` to track one task per bead so progress is visible (unless the
-pre-flight reported `BB_TASKCREATE=banned`).
+The Run checklist copied into your response (above) is the default progress-visibility
+mechanism and is sufficient. Some projects additionally offer `TaskCreate`/`TaskUpdate`;
+use them only where the project has no durable tracker of its own (this one uses `bd`),
+and never alongside one — two dependency graphs is a correctness hazard, not redundancy.
+Note that a subagent in a cloud session may have no task tool at all.
 
 ## Phase 1.5 — Readiness gate (grooming)
 
@@ -426,6 +429,10 @@ lineup` block in `AGENTS.md`, echoed by Phase 0. Honor these:
   that completed it, and what failed. This is a required line in the
   Phase 4 report (see "Tier escalations"), and it is the run's only
   direct evidence about whether grooming's routing is calibrated.
+  **WHEN `CLAUDE_CODE_SUBAGENT_MODEL` env var is set** in this session's
+  environment, it overrides the per-invocation model on every dispatch, so no
+  tier routing occurs and the escalation table becomes fiction — omit it from
+  the Phase 4 report rather than printing one that cannot be true.
 - **Record the routing** — the dispatch plan's wave table carries a
   `Tier` column for every bead.
 
@@ -517,8 +524,8 @@ Execute buckets in this order (lowest blast radius first):
 After each subagent returns:
 
 1. Append its summary lines to your log (one per bead processed).
-2. Mark corresponding tasks complete via `TaskUpdate` (or skip if the project
-   reported `BB_TASKCREATE=banned`).
+2. Mark items on the run checklist complete as you go (this documents
+   progress durably, visible in the conversation history).
 3. **Verify skip claims with a diff-stat.** For every bead the subagent returned
    as `skipped`:
    - Run `scripts/bb-verify-skip.sh` (scoped to that bead's worktree if
@@ -600,6 +607,16 @@ After the queue is drained (or the circuit breaker tripped), print:
 
    State `none` explicitly when there were no escalations — the null is
    the result, not the absence of one.
+
+   **`CLAUDE_CODE_SUBAGENT_MODEL` override and no routing are different
+   results.** WHEN `CLAUDE_CODE_SUBAGENT_MODEL` env var is set, every
+   subagent runs at that forced model regardless of tier, so no routing
+   occurs and tier escalations mean nothing — omit the table and write:
+
+   ```
+   Tier escalations: N/A — CLAUDE_CODE_SUBAGENT_MODEL is set, so every
+   bead ran at that model and no tier routing occurred.
+   ```
 
    **`none` and "no routing occurred" are different results, and this
    table cannot tell them apart.** WHEN the run used the main-loop
@@ -732,9 +749,11 @@ Do NOT create a PR or merge to main — that is a separate, explicit user action
   not delegate" run in the orchestrator's own loop.
 - **Project rules win over skill defaults.** The gate profile is the source of
   truth for build/test/lint/format commands and any custom gates the project
-  adds. If `CLAUDE.md`/`AGENTS.md` bans `TaskCreate`, skip it (use inline
-  status). If the project has its own commit message conventions, follow them.
-  The skill is opinionated but not authoritative.
+  adds. Progress visibility defaults to the run checklist (above, Phase 0); task
+  tools are the exception for projects with no durable tracker of their own —
+  read the project's `CLAUDE.md`/`AGENTS.md` once at session start. If the
+  project has its own commit message conventions, follow them. The skill is
+  opinionated but not authoritative.
 - **Auto-chain waves under standing authorization.** When dependencies mean
   closing one wave unblocks the next, ask ONCE (at run start or first chain
   point) for standing approval: "re-resolve the queue after each push and
