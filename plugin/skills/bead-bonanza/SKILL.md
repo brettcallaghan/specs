@@ -69,17 +69,12 @@ this skill's own directory, with a run id of `$(date +%s)-<queue size>`:
 eval "$(<this skill>/scripts/pre-flight-check.sh "<run-id>" --gate-baseline)"
 ```
 
-Read its stderr report once. It echoes the two `AGENTS.md` blocks —
-`## bead-bonanza gates`, the profile every `<format>`, `<lint>`, `<build>`,
-`<test>` and `<regen>` placeholder in this document resolves to, and
-`## model lineup`, how a bead's tier resolves to a model at dispatch — and
-reports every other probe, including the gate baseline. Its stdout sets
-`RUN_DIR`, `SCRIPTS` and the `BB_*` facts; substitute those wherever this
-document shows a run-dir path or a scripts path. Exit **0** proceed;
-**1** blocking, named in the report and fixed before Phase 1 — a missing
-`AGENTS.md` block means read `references/project-setup.md` and draft it WITH
-the user, never invent gates or a lineup from memory; **2** you called it
-wrong.
+Eval the stdout — it sets `RUN_DIR`, `SCRIPTS` and the `BB_*` facts this
+document refers to elsewhere. Read the stderr report once. Exit **0**
+proceed; **1** blocking, named in the report and fixed before Phase 1 — a
+missing `AGENTS.md` block means read `references/project-setup.md` and draft
+it WITH the user, never invent gates or a lineup from memory; **2** you
+called it wrong.
 
 Those facts are ledger lines with a command behind them. **Do not re-assert
 from memory what the script just measured** — push mechanics in particular

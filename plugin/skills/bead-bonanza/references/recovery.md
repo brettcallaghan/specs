@@ -29,23 +29,27 @@ compacted past the point of usefulness, or replaced by a fresh session, and
 someone has to pick the sprint back up.
 
 **Nothing reports this to you.** A user interrupt that kills the orchestrator
-kills the mechanism that would have announced the deaths of its children too —
-observed in run `1786121603-ri`, where two subagent kill notifications were
-enqueued and never dequeued while the UI went on showing the task as running.
-Assume no notification is coming and no notification you *do* find is proof.
+kills the mechanism that would have announced its children's deaths — two kill
+notifications were enqueued and never dequeued while the UI showed the task
+running. Assume no notification is coming and no notification you *do* find is
+proof.
 
 Work these steps in order.
 
-1. **Find the run.** `bd show <epic-id>` carries the `RUN_DIR` pointer in its
-   tracker note, and each amendment is mirrored there — that note is the
-   cheapest route in and the only one that survives container reclaim. Failing
-   that, `ls -l "${TMPDIR:-/tmp}/claude/bead-bonanza/current"` — a symlink
-   pre-flight-check.sh repoints at the start of every run. Only if neither
-   resolves, list the run root and take the newest run-id directory, treating
-   it as a guess: newest-by-mtime is wrong whenever an older run's directory
-   was touched after a newer one started. WHEN none of the three resolves, the
-   run predates the pointer: reconstruct from `git log` and `bd list --status all`,
-   and **say so in the report** — a reconstruction is not a plan.
+1. **Find the run.** `ls -l "${TMPDIR:-/tmp}/claude/bead-bonanza/current"` —
+   a symlink pre-flight-check.sh repoints at the start of every run, and the
+   only route that needs nothing you have to already know. Read
+   `$RUN_DIR/dispatch.md`; its run manifest names the epic, the branch and
+   the base sha. WHEN the symlink is gone (a reclaimed container, a run
+   started before it existed), the epic's tracker note carries the same
+   `RUN_DIR` pointer and every amendment — `bd show <epic-id>` once the
+   manifest or the user has named the epic, and that note is the copy that
+   survives container reclaim. Only if neither resolves, list the run root
+   and take the newest run-id directory, treating it as a guess:
+   newest-by-mtime is wrong whenever an older run's directory was touched
+   after a newer one started. WHEN none resolves, reconstruct from `git log`
+   and `bd list --status all`, and **say so in the report** — a
+   reconstruction is not a plan.
 
 2. **Read `dispatch.md` in full.** It carries the mandate, the enumerated bead
    list, the standing authorization, the wave table, the gate profile and the
@@ -155,11 +159,10 @@ Each subagent appends progress events to `${TMPDIR:-/tmp}/claude/bead-bonanza/<r
 doing the work, so it stops the instant that agent stops. Therefore:
 
 - A trail ending before `committed` does **not** mean the bead is unfinished —
-  only that nothing was appended after that point. Run `1786121603-ri`'s
-  `agent-plugins-9kb.5` trail ends at `implementing`, mtime 18:29; the bead was
-  committed at 21:06, four beads later. A heartbeat in that run read the trail
-  as "positive proof of a live agent at a known phase". It was proof of nothing
-  except that nothing had been appended.
+  only that nothing was appended after that point. One bead's trail ended at
+  `implementing`, mtime 18:29; it was committed at 21:06, four beads later. A
+  heartbeat that read the trail as "positive proof of a live agent at a known
+  phase" was proof of nothing except that nothing had been appended.
 - An absent progress file does **not** mean no agent ran.
 - A file's mtime bounds the last *write*, not the agent's liveness.
 

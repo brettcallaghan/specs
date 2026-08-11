@@ -37,7 +37,8 @@ The header, before the wave table. Most of it is the stdout block from
 ## Environmental ledger
 
 Facts established this run that no wave should re-diagnose. One line each,
-naming the command that proved it.
+naming the command that proved it. Keep the numbering — dispatch prompts cite
+entries by number ("ledger entry 1", "ledger entry 2").
 
 1. `<claim>` — proved by `<command>`, observed `<result>`
 ```

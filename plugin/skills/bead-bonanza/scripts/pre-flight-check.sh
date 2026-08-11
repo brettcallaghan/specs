@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
 # pre-flight-check.sh — run bead-bonanza's Phase 0 as a measurement, not as prose.
 #
-# Why this exists
-#   Phase 0 used to be ~90 lines of SKILL.md describing shell commands, inside
-#   the window that survives compaction, while the judgment-bearing phases sat
-#   past the truncation point. Worse, one of those steps was not an action at
-#   all: it asserted from memory that "the sandbox blocks .git/config writes, so
-#   --set-upstream never persists". That is environment-dependent and was FALSE
-#   in the container where it was last checked. Anything an agent can measure at
-#   run start should be measured at run start, once, by one script — and the
-#   result carried as a cited fact rather than as remembered prose.
+# Contract
+#   Measures what Phase 0 needs and reports it as a cited fact, not
+#   remembered prose. stderr: human-readable report. stdout: shell-evalable
+#   RUN_DIR=, SCRIPTS=, BB_* facts — eval it. Exit 0 proceed, 1 a blocking
+#   condition named in the report, 2 bad invocation.
 #
 # Usage
 #   pre-flight-check.sh <run-id> [--gate-baseline] [--self-test]
@@ -22,17 +18,6 @@
 #   blocks is the global Dolt telemetry config; the script detects the block,
 #   skips it, and prints the single command to re-run with the sandbox off.
 #   Nothing else here needs elevated permission.
-#
-# Output
-#   stderr — a human-readable report, one line per check.
-#   stdout — a shell-evalable block: RUN_DIR=, SCRIPTS=, and BB_* facts.
-#            eval "$(pre-flight-check.sh <run-id> 2>/dev/null)"
-#
-# Exit status
-#   0  safe to proceed
-#   1  a blocking condition (dirty tree, no bd, missing gate profile, HEAD is
-#      the default branch)
-#   2  bad invocation
 #
 # Portability — this must run on macOS (bash 3.2, BSD userland) and on Linux.
 #   No associative arrays, no mapfile, no ${var^^}, no `declare -A`.
