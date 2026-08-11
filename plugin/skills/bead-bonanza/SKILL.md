@@ -624,10 +624,55 @@ After each subagent returns:
      This catches the case where the subagent's first read mistakenly concluded
      "already addressed" but it still produced edits — the orchestrator must not
      silently accept a contradictory state.
-4. **Verify the working tree is clean** with `git status --porcelain`. If dirty,
+4. **Acceptance check — every bead, every dispatch mode.** A bead the subagent
+   returned as `completed` is not closed until **five signals** agree. Verify
+   them in this order and stop at the first that fails:
+
+   1. **The bead reads closed in the tracker** — `bd show <id>` shows
+     `CLOSED`. Durable off-container since the tracker became the Dolt
+     remote, so this is no longer a local-only fact.
+   2. **A commit exists on the bead's branch** with the subject
+     `<bead-id> P<n> <title>` — `git log --oneline --grep=<bead-id> -1`.
+   3. **The branch merged into the sprint branch.** The merge is `--ff-only`,
+     so a refusal is not a conflict to resolve here but an invariant that
+     broke (see "Merge policy") — stop the wave. After the fact, confirm with
+     `git branch --contains <sha>` and look for the sprint branch.
+   4. **The worktree is GONE** — `git worktree prune && git worktree list` no
+     longer lists it. **This is the load-bearing signal.** Removal is the
+     orchestrator's own final act of accepting the bead, so a surviving
+     worktree is a bead not accepted, whatever the subagent reported: it is
+     state rather than testimony, and no subagent summary can forge it.
+   5. **Findings were recorded** — at least one `retro:` comment on the bead,
+     or the subagent's explicit "clean bead, no findings". A silent bead is
+     neither, and is not accepted.
+
+   Applies **per bead, not per subagent**. A fast-lane subagent that
+   processed six beads is checked six times — that is exactly where a silent
+   omission hides.
+
+   **A bead failing any signal is reported, not recorded closed.** Give it a
+   Phase 4 row naming the failing signal (`acceptance-failed: worktree
+   survives`) in place of a commit sha, and say so in the run totals rather
+   than counting it among the closed. Signals 1, 2 and 5 are repairable in
+   place — close the bead, or add the missing `retro:` comment from the
+   returned summary — and the repair is stated in the report. Failures of 3
+   or 4 are not the orchestrator's to repair inline: the merge or the
+   acceptance never happened, so leave the worktree standing (it is the
+   in-flight signal) and surface it.
+
+   **Two signals this check deliberately does NOT use.** A
+   `"phase":"committed"` ledger event is written by the agent doing the work
+   and stops when that agent stops — see `references/recovery.md`, "the
+   ledger is a hint, never the authority" — so its absence proves nothing and
+   its presence proves only that a line was appended, not that the sha in it
+   is reachable. And a per-bead retro FILE no longer exists:
+   `agent-plugins-92q.22` moved findings to `retro:` comments and reduced the
+   file to `<bead-id>.handoff.md`, a recovery anchor that carries no findings
+   and is not evidence of acceptance.
+5. **Verify the working tree is clean** with `git status --porcelain`. If dirty,
    fall through to the recovery procedure below.
-5. If the bucket used `defer-push`, run `git push` for the bucket now.
-6. Move to the next bucket/bead.
+6. If the bucket used `defer-push`, run `git push` for the bucket now.
+7. Move to the next bucket/bead.
 
 **Circuit breaker:** if 3 consecutive beads return `blocked` or fail, stop the
 run and surface to the user. Something is systemically wrong (broken main,
