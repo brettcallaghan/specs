@@ -741,12 +741,11 @@ Do NOT create a PR or merge to main — that is a separate, explicit user action
   — a bead found `in_progress` that this agent didn't claim belongs to a live
   sibling — and the orchestrator (never a subagent) owns reconciling claims
   across waves.
-- **Wire findings capture when the repo has it.** If `rfcs/findings-capture.md`
-  exists (retro-spec protocol), every batch prompt includes: record
-  `retro:`-prefixed `bd comment`s on the bead being worked, 1-3 sentences,
-  friction only, zero analysis. The feature's final DoD bead runs the one
-  aggregated retro-spec; closed-bead `## Retro` sections serve as the findings
-  record for beads that predate the wiring.
+- **Wire findings capture when the repo has it, and harvest with `bd export |
+  jq`, never `bd list` + `bd show --json`.** The feature's final DoD bead runs
+  the one aggregated retro-spec, asserting a non-zero harvest before
+  aggregating. Full wiring, the harvest pipeline, and why the obvious
+  commands fail silently: `references/operating-principles.md`.
 
 ## Reference files
 

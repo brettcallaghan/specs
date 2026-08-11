@@ -45,3 +45,52 @@ exports, stages, and commits based on the currently-staged diff — it never
 inspects `git log`, so a `WIP <bead-id>` commit already on the branch does
 not block it. The resuming agent still must squash by hand first: the script
 gives you a normal close, not a squash.
+
+## Findings harvest
+
+Wiring findings capture into a run and harvesting what it wrote are two
+different steps. The harvest is the one that's easy to get wrong: `bd list`
+defaults to open issues, and a drained closure set is almost entirely
+closed, so a literal reading returns findings for the handful of beads that
+never got closed and silently drops nearly everything else.
+
+### Wiring: unchanged, and it stays
+
+If `rfcs/findings-capture.md` exists (retro-spec protocol) in the project,
+every batch prompt includes: record `retro:`-prefixed `bd comment`s on the
+bead being worked, 1-3 sentences, friction only, zero analysis. This
+channel is the shared protocol across retro-spec, `groom-feature-blueprint`
+and the work-order template — it stays wired regardless of how the
+harvest below is done; do not remove it anywhere.
+
+### Harvesting: one `bd export | jq` pipeline, not `bd list` + `bd show --json`
+
+`bd show --json` omits comments entirely (measured on bd 1.1.2); `bd show`'s
+text output prints them, but parsing that text is fragile — a bead's
+Description or Design can itself quote the word `retro:` in prose, which a
+naive `grep '^\s*retro:'` over the whole `bd show` output miscounts as a
+comment. `bd export` sidesteps both problems: it carries comments as a
+`comments` array on the issue record, covers every status in one pass (no
+`--status closed` flag to remember — and note that repeating `--status`
+overwrites rather than accumulates, so it cannot be used to combine
+open+closed in one invocation), and needs no text parsing:
+
+```
+bd export | jq -r 'select(.status=="closed")
+  | select((.labels//[]) | index("<slug>"))
+  | .comments[]? | select(.text|startswith("retro:")) | .text'
+```
+
+Drop the `select(.status=="closed")` clause (or run the pipeline a second
+time without it) to also catch findings on beads still open at aggregation
+time — a drained run is mostly closed but not necessarily all closed.
+
+**Assert the count is non-zero before aggregating — this is a required
+step with a stated failure action, not advice.** A harvest that returns
+zero findings across a completed feature is a broken query, not a clean
+run: an aggregated retro built on an empty set is worse than none, because
+it reads as a confident, clean-looking artifact instead of an obvious gap.
+WHEN the count is zero against a feature known to carry `retro:` comments,
+**stop and re-run the query** — check the label spelling and confirm
+`.beads/issues.jsonl` reflects the latest closes — before aggregating
+anything.

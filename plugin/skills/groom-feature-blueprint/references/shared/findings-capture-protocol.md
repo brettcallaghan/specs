@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: plugin/skills/retro-spec/references/findings-capture-protocol.md (version 0.2)
+     Source of truth: plugin/skills/retro-spec/references/findings-capture-protocol.md (version 0.3)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -11,8 +11,8 @@ description: How agents record retro evidence in-flight during
 slug: findings-capture-protocol
 type: standards
 status: active
-updated_at: 2026-07-23T00:00:00Z
-version: "0.2"
+updated_at: 2026-08-11T00:00:00Z
+version: "0.3"
 ---
 
 # Findings Capture Protocol
@@ -79,8 +79,22 @@ SHALL NOT be deleted after aggregation.
 
 The plan's final Definition-of-Done item runs ONE retro for the whole
 implementation phase (the `retro-spec` skill; never a retro per work
-item). It harvests the findings across the feature's closure set —
-`bd list --label <feature-slug>` then each issue's `retro:` comments,
-or each task file's Retro findings section — adds its own
-DoD-verification friction, and treats that pool as the phase's
-evidence.
+item). It harvests the findings across the feature's closure set with
+one `bd export | jq` pipeline, never `bd list` plus `bd show --json`:
+`bd list` defaults to open issues, and a drained closure set is almost
+entirely closed; `bd show --json` omits comments entirely even though
+the text output prints them. `bd export` carries comments as a
+`comments` array on the issue record and covers every status in one
+pass:
+
+```
+bd export | jq -r 'select((.labels//[]) | index("<feature-slug>"))
+  | .comments[]? | select(.text|startswith("retro:")) | .text'
+```
+
+(Task-file backend: each task file's Retro findings section instead.)
+Assert the count is non-zero before aggregating — a harvest that
+returns zero findings across a completed feature is a broken query,
+not a clean run, and an aggregated retro built on it is worse than
+none. Then add the DoD item's own verification friction, and treat
+that pool as the phase's evidence.
