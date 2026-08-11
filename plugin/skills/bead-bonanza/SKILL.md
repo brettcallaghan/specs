@@ -365,15 +365,26 @@ and report it; do not resolve it inline.** The two invariants that produce one
 are a worktree branched from the wrong base, and two beads dispatched
 concurrently against a surface they share.
 
-**Concurrent waves: unblocked, not yet enabled.** The condition that gated
-them — every concurrent bead committing a full export of one shared database
-onto its own branch, guaranteeing an N-way conflict on `.beads/issues.jsonl` —
-was removed by `agent-plugins-92q.31`: the tracker is now the Dolt remote and
-the exports are untracked, so a close commit carries code only and there is
-nothing left to conflict. What has NOT happened is a measured concurrent wave.
-**Keep dispatching one bead at a time until `agent-plugins-bhl` records one**,
-and do not read "every bead gets a worktree" as licence to fan out on the
-strength of the blocker having been removed.
+**Concurrent dispatch is ENABLED.** Several beads may be dispatched at once
+within a wave, each in its own worktree, merged as each returns. The condition
+that gated it — every concurrent bead committing a full export of one shared
+database onto its own branch, guaranteeing an N-way conflict on
+`.beads/issues.jsonl` — was removed by `agent-plugins-92q.31`: the tracker is
+the Dolt remote, the exports are untracked, and a close commit carries code
+only. There is nothing left to conflict.
+
+Note what is and is not concurrent. **A wave is the unit of parallelism**, and
+waves remain sequential — a wave boundary is where dependency edges resolve and
+where the base ref advances. Concurrency is *within* a wave, across beads that
+the dispatch plan established are independent.
+
+Entry conditions, all three required: ≥3 `isolated` beads, **no shared
+`c4_changes` component** between any two of them, and the base-ref check
+re-verified for this wave. Two beads sharing a surface may batch; they SHALL
+NOT share a concurrent wave.
+
+`agent-plugins-bhl` tracks refinement from real use — record what a concurrent
+wave actually does there rather than tightening this rule from speculation.
 
 ### Choose a dispatch mode per bucket
 
@@ -408,13 +419,11 @@ ambiguous and breaks the in-flight signal for every reader.
    overlap such that one bead's choice changes another bead's plan.
 
 3. **Concurrent wave** — `isolated` beads dispatched at the same time rather
-   than one after another. **Gated, and currently closed:** see "Concurrent
-   waves remain gated" above. Every bead already runs in its own worktree, so
-   this mode buys wall-clock only, and it buys it at the cost of a guaranteed
-   N-way conflict on the committed tracker. Do not use it while
-   `.beads/issues.jsonl` is a tracked file. WHEN the gate opens, the entry
-   conditions are: ≥3 `isolated` beads, no shared `c4_changes`, and the
-   base-ref check re-verified for the wave.
+   than one after another, each in its own worktree. Every bead already runs in
+   a worktree, so this buys wall-clock and nothing else — which is worth having
+   on a wide, independent wave and worth nothing on a narrow one. Entry
+   conditions are in "Concurrent dispatch is ENABLED" above; all three must
+   hold.
 
 4. **Plain sequential** — reserved for: a single bead with no batch peers, OR a
    bead whose surface diverges from every other queued bead, OR explicit user
@@ -562,9 +571,10 @@ Execute buckets in this order (lowest blast radius first):
    batches, one worktree at a time within each.
 3. **Plain sequential** — one subagent per bead, in `bd ready` order.
 
-Concurrent waves are gated closed (see Phase 2.5), so every bucket above runs
-one bead at a time. Merge and remove each bead's worktree as it is accepted,
-before the next dispatch.
+Within a bucket, dispatch `isolated` beads concurrently where Phase 2.5's entry
+conditions hold; otherwise one at a time. Either way, merge and remove each
+bead's worktree as it is accepted — concurrently dispatched beads are merged
+one at a time, in the order they return.
 
 After each subagent returns:
 

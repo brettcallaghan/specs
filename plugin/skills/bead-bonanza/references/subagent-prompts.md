@@ -23,8 +23,8 @@ shared checkout, which defeats every guarantee this design rests on.
 - Doc/chore fast-lane subagent — a cluster of trivial beads, one subagent
 - Shared-surface batch subagent — beads sharing a code/fixture surface
 - Worktree mechanics (orchestrator) — the base-ref trap, how `bd` behaves
-  inside a worktree, the create/merge/remove lifecycle, and the status of
-  concurrent waves
+  inside a worktree, the create/merge/remove lifecycle, and concurrent
+  dispatch within a wave
 
 The per-bead template is the canonical one; the fast-lane and shared-surface
 templates reference its workflow rather than restating it, so read it first.
@@ -353,15 +353,15 @@ directories without deregistering them, and a stale entry reads as in-flight
 forever: `git worktree prune` before `git worktree list` in pre-flight and in
 recovery.
 
-### Concurrent waves (unblocked, not yet enabled)
+### Concurrent dispatch within a wave (enabled)
 
-Spawning several beads at once — one `Agent` call per bead with
-`isolation: "worktree"`, in a single message — was blocked by the committed
-ledger; that blocker is gone (see the ledger bullet above). It is still not the
-default, because no concurrent wave has actually been measured:
-`agent-plugins-bhl` does that. Until it reports, dispatch one bead at a time.
-When concurrency is enabled the merge loop stays as written, with two
-additions: merge each branch as it returns rather than after all return, and
+Spawn several beads at once — one `Agent` call per bead with
+`isolation: "worktree"`, all in a single message. The committed ledger that
+blocked this is gone (see the ledger bullet above). Waves themselves stay
+sequential; concurrency is across beads *inside* a wave.
+
+The lifecycle above is unchanged per bead. Two additions when running
+concurrently: merge each branch as it returns rather than after all return, and
 where a merge hits a fixture/snapshot conflict and the profile defines a regen
 step, take both sides, run `<regen>` on the merged tree, stage and amend. A
 non-fixture conflict on shared code remains a triage failure — the beads were
