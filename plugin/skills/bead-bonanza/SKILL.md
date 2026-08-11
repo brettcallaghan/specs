@@ -639,11 +639,10 @@ Do NOT create a PR or merge to main — that is a separate, explicit user action
   fixing a defect or regression, observe the reproducing test fail for the
   stated reason before fixing; the retro names that observed failure, not just
   "tests pass".
-- **One commit per bead, always.** Every closed bead = exactly one commit on the
-  branch. The handoff file is written BEFORE the close ceremony (crash recovery
-  anchor); the close happens via a plain `bd update --status closed` BEFORE
-  staging, so the close is folded into the implementation commit. Closing never
-  rewrites the description — grooming owns it.
+- **One commit per bead, always** — except an interrupted bead's `WIP
+  <bead-id>` commit, the one sanctioned exception, squashed away before the
+  close ceremony. Full rule and resume path:
+  `references/operating-principles.md`.
 - **The dispatch plan has no lean path.** It is written every run, whatever
   its size, because it is what a recovering orchestrator reads instead of
   re-deriving the run.
@@ -738,6 +737,7 @@ Load the one that matches where you are in the run:
 | Writing or amending the Phase 2.5 dispatch plan | `references/dispatch-plan.md` |
 | A subagent that crashed, timed out, or is running past 5 minutes — or resuming a run whose state you do not hold | `references/recovery.md` |
 | A project with no `## bead-bonanza gates` or `## model lineup` block | `references/project-setup.md` |
+| Resuming a bead interrupted mid-implementation (a `WIP <bead-id>` commit exists) | `references/operating-principles.md` |
 | Phase 0 pre-flight: probe the environment, resolve `RUN_DIR`/`SCRIPTS` | run `scripts/pre-flight-check.sh` |
 | Emitting a progress event | run `scripts/bb-progress.sh` |
 | Checking a `skipped` claim against the tree | run `scripts/bb-verify-skip.sh` |

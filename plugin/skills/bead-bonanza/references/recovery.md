@@ -136,8 +136,9 @@ If a subagent times out, returns an "API Error" instead of a summary, or otherwi
    - Commit with the canonical message format (`<id> P<priority> <title>`).
    - Push (if appropriate for the bucket).
    - Verify the bead is now `closed` via `bd show <id>`.
-3. **If the last phase was `implementing` or earlier** — the work is partial. Stash with `git stash push -m "bead-bonanza recovery: <id>"`, mark the bead `blocked` with a recovery note, and surface to the user. Don't try to finish someone else's half-done work.
-4. **If the progress file is empty or missing** — the subagent never started. Check `bd show <id>` to confirm status; if it's still `open`, retry the subagent. If it's `in_progress`, claim it back with `bd update <id> --status open` first.
+3. **If the last phase is `blocked` with a reason starting `interrupted; WIP`** — this bead is resumable, not failed: the work was persisted as a `WIP <bead-id>` commit before the agent stopped (the one sanctioned exception to one-commit-per-bead, `operating-principles.md`). Do NOT stash — there is nothing uncommitted to lose. Find the commit(s) with `git log --oneline --grep="^WIP <bead-id>"`, finish the work, squash them into the landing commit, then run the close ceremony.
+4. **If the last phase was `implementing` or earlier, and it is not the interrupted-WIP case above** — the work is partial and uncommitted. Stash with `git stash push -m "bead-bonanza recovery: <id>"`, mark the bead `blocked` with a recovery note, and surface to the user. Don't try to finish someone else's half-done work.
+5. **If the progress file is empty or missing** — the subagent never started. Check `bd show <id>` to confirm status; if it's still `open`, retry the subagent. If it's `in_progress`, claim it back with `bd update <id> --status open` first.
 
 The handoff file is what makes the happy crash path mechanical instead of inferential — that's why it's non-negotiable. Findings are not in it: they are `retro:` comments the subagent writes on the bead, so whatever it managed to record is already durable in the tracker.
 
