@@ -110,6 +110,20 @@ synthetically instead, on every platform, by `cli/cmd/portability_test.go`.
 
 ### Environmental-failure ledger
 
+- **`bd`'s JSONL export lags the database.** A close reaches the Dolt DB
+  seconds before it reaches `.beads/issues.jsonl`, so an export taken
+  immediately after `bd update --status closed` can still return pre-close
+  bytes. Measured 2026-08-10 in run `1786345424-bbh` on two consecutive
+  beads: `agent-plugins-92q.20` (`d5a6de5`) and `agent-plugins-92q.23`
+  (`905aee4`) each committed without `.beads/issues.jsonl`, and on the clean
+  tree straight afterwards
+  `jq -r 'select(.id=="agent-plugins-92q.20") | .status' .beads/issues.jsonl`
+  printed `open` while `bd export | jq -r 'select(...) | .status'` printed
+  `closed` — same for `92q.23`. Every other bead in the run exported
+  correctly, so this is intermittent, not a broken build. Do not re-diagnose
+  it: `scripts/bb-close-bead.sh` now re-exports a bounded number of times and
+  refuses to commit a closure the ledger does not carry, and any hand-rolled
+  close must verify the ledger the same way rather than trusting one export.
 - **KNOWN RED, pre-existing — `scripts/check-skills.sh --strict`.** It exits 1
   on a *warning*: `plugin/skills/bead-bonanza/SKILL.md` is 859 lines against a
   "under 500" guideline. Zero errors. Do not treat this as your change's

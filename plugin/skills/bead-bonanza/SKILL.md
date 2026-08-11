@@ -825,7 +825,11 @@ bb-close-bead.sh <bead-id> <priority> <title> [path ...]
   `<path ...>` are the code files this bead changed; WHEN omitted it stages
   everything currently modified, so pass explicit paths whenever another
   agent may be sharing the tree. It closes with a status-only `bd update` and
-  never writes the description.
+  never writes the description. It also **verifies the closure reached
+  `.beads/issues.jsonl`** — re-exporting a bounded number of times, then
+  failing rather than committing when the ledger still does not record the
+  bead closed. That exit-1 case means the bead IS closed: repair with another
+  export plus the commit, never a second `bd update`.
 
 ### Side effects — what each script leaves behind
 
