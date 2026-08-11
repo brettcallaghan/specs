@@ -224,7 +224,11 @@ decides:
   intended autonomy. Grooming closes decisions along with the rest of the
   Definition of Ready. (A groomed prerequisite that still lands a
   `decision-required` label stops for the user, per the standing-authorization
-  terms.)
+  terms.) Grooming and wiring the edge are themselves tracker writes: if any
+  subagent in the current wave still holds a claim, this waits for the wave
+  boundary per the tracker-write deferral rule
+  (`references/operating-principles.md`) like any other orchestrator-side
+  tracker write.
 - **Out-of-scope** → leave it filed and linked, do NOT dispatch it, and surface
   it in the final report for the user to triage. The standing authorization
   finishes the launched scope; it never enlarges it.
@@ -744,16 +748,16 @@ Do NOT create a PR or merge to main — that is a separate, explicit user action
   actually ran before trusting it. Heavy suites (integration, codegen, anything
   needing sockets/toolchains the sandbox lacks) run locally only when a bead
   touches the surface they cover; when a PR is open, CI is the backstop.
-- **Guard against foreign dirt and index races.** Multiple agents can share the
-  tree (a diagnosis agent's uncommitted fixes, an in-flight batch's staged
-  `.beads/issues.jsonl`). Batch prompts must name any known foreign files as
-  untouchable; the orchestrator commits its own work by explicit pathspec (`git
-  commit -- <files>`) so a concurrently-staged tracker ledger rides with the
-  next bead commit instead of being swept up mid-ceremony. The same guard
-  applies to tracker *claims*: a subagent may only reset a claim it made itself
-  — a bead found `in_progress` that this agent didn't claim belongs to a live
-  sibling — and the orchestrator (never a subagent) owns reconciling claims
-  across waves.
+- **Guard against foreign dirt, and defer tracker writes while a subagent
+  holds a claim.** Multiple agents can share the tree; name known foreign
+  files as untouchable in batch prompts, and commit your own work by
+  explicit pathspec (`git commit -- <files>`) — that still works for
+  foreign *working-tree* dirt. It does NOT work for the shared tracker
+  database: `scripts/bb-close-bead.sh` regenerates the *entire* ledger export at
+  every close, so an orchestrator tracker write made while any subagent is
+  between `claimed` and `committed` lands inside that subagent's commit
+  regardless of pathspec. Full rule, its one escape hatch, the latency
+  trade-off, and the claim-reset rule: `references/operating-principles.md`.
 - **Wire findings capture when the repo has it, and harvest with `bd export |
   jq`, never `bd list` + `bd show --json`.** The feature's final DoD bead runs
   the one aggregated retro-spec, asserting a non-zero harvest before

@@ -4,6 +4,13 @@ Principles referenced from SKILL.md's Operating principles list, in full.
 Read the summary line in SKILL.md first; come here for the rule's complete
 statement and its one sanctioned exception.
 
+## Contents
+
+- One commit per bead, always — the WIP-commit exception and how to resume one
+- Findings harvest — the `bd export | jq` pipeline and its non-zero assertion
+- Guard against foreign dirt, and the shared-database race — why pathspec
+  can't fix a tracker write landing in another agent's commit
+
 ## One commit per bead, always
 
 Every closed bead = exactly one commit on the branch. The handoff file is
@@ -94,3 +101,58 @@ WHEN the count is zero against a feature known to carry `retro:` comments,
 **stop and re-run the query** — check the label spelling and confirm
 `.beads/issues.jsonl` reflects the latest closes — before aggregating
 anything.
+
+## Guard against foreign dirt, and the shared-database race
+
+Multiple agents can share the tree: a diagnosis agent's uncommitted fixes,
+a live subagent's staged `.beads/issues.jsonl`. Two different hazards
+live here, and only one of them is fixed by pathspec discipline.
+
+### Working-tree dirt: pathspec discipline still works
+
+Batch prompts must name any known foreign files as untouchable. The
+orchestrator commits its own work by explicit pathspec (`git commit --
+<files>`) so foreign working-tree changes are not accidentally swept into
+its commit. This defence is correct and unchanged for this hazard.
+
+### The shared-database race: pathspec cannot fix it
+
+The tracker ledger (`.beads/issues.jsonl`) is a projection of a database
+every agent shares, not a file one agent owns. `../scripts/bb-close-bead.sh`
+regenerates it in full — a plain `bd export` — at every close, so any
+tracker write the orchestrator makes while a subagent is between `claimed`
+and `committed` lands inside *that subagent's* commit. Pathspec cannot
+prevent this, because the capture (the export) happens before the git
+index is ever consulted — the orchestrator can commit `-- <files>` with
+maximal discipline and still find "nothing to commit," because the
+subagent's close already carried the write.
+
+**WHILE any subagent holds a claim, the orchestrator SHALL confine itself
+to read-only `bd` queries and defer its own tracker writes** — grooming a
+newly discovered bead, baking a decision, wiring a dependency edge — until
+the wave returns. **WHERE a write cannot wait,** make it and note in the
+report which bead's commit will carry it, so a reader of that commit is
+not surprised to find another actor's edit inside it.
+
+**The trade.** Deferring can make a wave marginally slower — a discovered
+bead's grooming waits for the wave boundary instead of happening the
+moment it's found. That is the intended trade, not an oversight; the
+WHERE clause above is the escape hatch for a write that genuinely cannot
+wait, not a license to defer nothing.
+
+**Considered and rejected: a `git status` check before committing.** This
+does not fix the race — the window between the check and the commit is
+exactly where the close ceremony lands its export. A run that checked
+`git status` clean immediately before committing still landed another
+actor's write, because `../scripts/bb-close-bead.sh`'s export ran, and its commit
+landed, inside that same window. Ordering discipline on the
+orchestrator's side cannot close a race that happens on the subagent's
+side of the same shared file.
+
+### The claim-reset rule (unchanged)
+
+The same "don't touch what another agent owns" principle applies to
+tracker *claims*: a subagent may only reset a claim it made itself — a
+bead found `in_progress` that this agent didn't claim belongs to a live
+sibling. The orchestrator, never a subagent, owns reconciling claims
+across waves.

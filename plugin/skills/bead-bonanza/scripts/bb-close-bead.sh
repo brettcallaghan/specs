@@ -63,6 +63,7 @@ bd update "$id" --status closed \
 # 2. Refresh the durable export. .beads/issues.jsonl is a passive export that
 #    bd does not necessarily rewrite on every write, so confirm it changed
 #    rather than assuming.
+before_snapshot=""; [ -f .beads/issues.jsonl ] && before_snapshot="$(cat .beads/issues.jsonl)"
 before=""; [ -f .beads/issues.jsonl ] && before="$(git hash-object .beads/issues.jsonl)"
 if ! bd export > /tmp/bb-export.$$ 2>/dev/null; then
   # This build writes the file itself rather than to stdout.
@@ -78,6 +79,30 @@ if [ "$before" = "$after" ]; then
   echo "bb-close-bead: warning — .beads/issues.jsonl did not change after export." >&2
   echo "  The close may not have reached the export. Verify with: bd show $id" >&2
 fi
+
+# Report the export delta: how many issue records actually changed. The
+# tracker ledger is a shared-database projection (see
+# references/operating-principles.md, "the shared-database race") — this
+# bead's own status flip accounts for exactly one changed record, so a
+# count above one is the signal that this commit is carrying another
+# actor's tracker write. No jq dependency: extract "<id><TAB><line-hash>"
+# per record with sed + `git hash-object` (already required by this
+# script) and diff the two id/hash sets.
+export_record_map() {
+  while IFS= read -r line || [ -n "$line" ]; do
+    rid="$(printf '%s' "$line" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p')"
+    [ -n "$rid" ] || continue
+    printf '%s\t%s\n' "$rid" "$(printf '%s' "$line" | git hash-object --stdin)"
+  done
+}
+changed_records=0
+if [ -f .beads/issues.jsonl ]; then
+  before_map="$(printf '%s\n' "$before_snapshot" | export_record_map | sort)"
+  after_map="$(export_record_map < .beads/issues.jsonl | sort)"
+  changed_records="$(comm -3 <(printf '%s\n' "$before_map") <(printf '%s\n' "$after_map") 2>/dev/null \
+    | cut -f1 | sort -u | wc -l | tr -d ' ')"
+fi
+echo "bb-close-bead: export: ${changed_records:-0} record(s) changed (this bead: $id)"
 
 # 3. Stage code + tracker together, so one commit carries both.
 if [ $# -gt 0 ]; then
