@@ -107,6 +107,15 @@ Two things no script can settle:
   harness property, invisible from a shell, and it is the trigger for the
   main-loop fallback. No script can check it — you must.
 
+**`BB_DOLT_WRITE` is a blocking fact where it reads `no`.** It means the
+project syncs beads to a Dolt remote and this container cannot write it, so
+every closure the run makes dies with the container — the exact loss the close
+ceremony exists to prevent. Stop and fix the environment; do not run and hope.
+`none` means no Dolt remote is configured, which is not a fault (the project
+may track beads another way) and `yes` is the normal case. Measured here as
+well as in any SessionStart hook, because a hook is registered from the project
+root only and a session that attached this repo alongside another never ran one.
+
 Every bead runs in a worktree, so confirm `BB_WORKTREE_BASEREF` is `head`
 before Phase 2.5. Unset, worktrees branch from the **default branch**, not
 session HEAD, and beads building on each other lose their foundation. It is
@@ -263,6 +272,12 @@ The grooming subagent prompt template is in
 skill's job is to find the largest safe batch, not to default to
 one-bead-per-subagent for caution. Sequential is the *exception*, not the rule.
 
+**Batching survives worktree adoption** (`agent-plugins-92q.30`, decided
+explicitly). Its saving is test-suite amortization, which is orthogonal to
+isolation — worktrees replaced batching's collision rationale, not its
+economic one. So `agent-plugins-92q.10`'s mixed-tier splitting rule below
+stands as written; a batch subagent simply holds one worktree at a time.
+
 ### Classify each bead
 
 - **`trivial`** — pure documentation (md/mdx edits), single-line code swap,
@@ -286,6 +301,13 @@ re-derive it from prose. The `jq` and a worked example are in
    - Two beads sharing a `c4_changes` component are **shared-surface** whatever
      their file paths say — the same component through different files still
      collides. They MAY batch; they SHALL NOT share a concurrent wave.
+     **The hazard changed shape** (`agent-plugins-92q.8`, rationale corrected
+     by `agent-plugins-92q.30`): it used to be a *co-edit* collision, two
+     agents writing one working tree at once. Worktrees make that impossible.
+     What remains is a *merge* collision — two branches changing the same
+     component conflict when the second one merges, and under `--ff-only` that
+     stops the wave. The conclusion is unchanged and the reason is not, so do
+     not relax this rule on the grounds that worktrees isolate the agents.
    - Bead B whose `c4_impacts` intersects bead A's `c4_changes` consumes a
      contract A is changing. That is a **sequencing** constraint, not a batching
      one, and it holds with zero file overlap: order B after A within the

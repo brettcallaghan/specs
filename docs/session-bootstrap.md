@@ -74,6 +74,20 @@ This cost a full session to diagnose, so the correction is worth keeping: the
 settled it — a push carrying a **deliberately invalid** token succeeded, which
 is only possible if something upstream substituted a working credential.
 
+### Also user-scope: `worktree.baseRef`
+
+`~/.claude/settings.json` must carry `{ "worktree": { "baseRef": "head" } }`.
+Unset, a git worktree branches from the repository's **default branch** rather
+than session HEAD, so every bead in a run silently loses the commits the sprint
+branch already carries. Now that every bead runs in a worktree
+(`agent-plugins-92q.30`), this affects every run, not just parallel ones.
+
+It is user-scope global state that no repository owns, and **a fresh container
+does not have it** — measured 2026-08-11, where pre-flight reported
+`BB_WORKTREE_BASEREF='unset'`. Set it in the environment setup script below, or
+expect to set it by hand at the start of each session. Pre-flight reports it,
+and the skill treats a wrong value as stop-and-fix at worktree dispatch.
+
 The `bead-bonanza` skill never names a credential. Its requirement is the
 capability, "write access to `refs/dolt/data`"; the token and the proxy bypass
 are this repository's environment configuration.
@@ -124,6 +138,17 @@ if [ ! -x /usr/local/bin/strata ]; then
   fi
 fi
 
+# Worktree base ref: without this a git worktree branches from the default
+# branch instead of session HEAD, and every bead in a bead-bonanza run loses
+# the commits its sprint branch already carries. User-scope global state that
+# no repository owns, so it belongs here.
+mkdir -p "$HOME/.claude"
+if [ ! -s "$HOME/.claude/settings.json" ]; then
+  printf '{"worktree":{"baseRef":"head"}}\n' > "$HOME/.claude/settings.json"
+elif command -v python3 >/dev/null 2>&1; then
+  python3 -c 'import json,os; p=os.path.expanduser("~/.claude/settings.json"); d=json.load(open(p)); d.setdefault("worktree",{})["baseRef"]="head"; json.dump(d,open(p,"w"),indent=2)' 2>/dev/null || true
+fi
+
 exit 0
 ```
 
@@ -134,8 +159,8 @@ exit 0
   deliberately different in scope: the setup script provisions only the
   two binaries, which is VM provisioning and exactly what a setup script
   is for; the hook additionally does repository-specific work
-  (reconstructing the beads database from `.beads/issues.jsonl`,
-  regenerating vendored references) that cannot run before the
+  (bootstrapping the beads database from the Dolt remote and verifying
+  write access to it, regenerating vendored references) that cannot run before the
   repository is cloned.
 - **The five-minute budget is real.** A cold `cargo build --release` of
   `strata-cli` took roughly two minutes in this environment, and the

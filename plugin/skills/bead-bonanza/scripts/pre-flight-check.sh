@@ -488,6 +488,28 @@ else
 fi
 
 # The evalable block. Values that can contain spaces are single-quoted.
+# Tracker durability: can a closure actually be persisted? Where beads syncs to
+# a Dolt remote, a run whose closures cannot be pushed loses them when the
+# container is reclaimed — the failure this whole ceremony exists to prevent.
+# Measured, not assumed, and measured HERE as well as in any SessionStart hook:
+# a hook is registered from the project root only, so a session that attached
+# this repo alongside another never ran one (agent-plugins-92q.3, probe added
+# by agent-plugins-92q.33).
+#
+# `none` means no Dolt remote is configured, which is not a fault: a project
+# may track beads another way. `no` means one IS configured and cannot be
+# written — that is a blocking condition for the run.
+DOLT_WRITE=none
+if [ "$BD" = ok ] && bd dolt remote list 2>/dev/null | grep -q .; then
+  _probe_ref="refs/dolt/preflight-probe-$$"
+  if git push -q "${REMOTE:-origin}" "HEAD:$_probe_ref" >/dev/null 2>&1; then
+    git push -q "${REMOTE:-origin}" --delete "$_probe_ref" >/dev/null 2>&1 || true
+    DOLT_WRITE=yes
+  else
+    DOLT_WRITE=no
+  fi
+fi
+
 emitq RUN_DIR "$RUN_DIR"
 emitq SCRIPTS "$SCRIPTS"
 emit  BB_GATES_BLOCK "$GATES_BLOCK"
@@ -507,6 +529,7 @@ emitq BB_BD_DB "$BD_DB"
 emit  BB_JQ "$JQ"
 emit  BB_DOLT "$DOLT"
 emit  BB_DOLT_TELEMETRY "$DOLT_TELEMETRY"
+emit  BB_DOLT_WRITE "$DOLT_WRITE"
 emit  BB_DENY_ENTRY "$DENY_ENTRY"
 emit  BB_SETTINGS_LOCAL_ALLOW "$SETTINGS_LOCAL_ALLOW"
 emitq BB_WORKTREE_BASEREF "$WORKTREE_BASEREF"

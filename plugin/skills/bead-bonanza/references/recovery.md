@@ -37,20 +37,33 @@ proof.
 
 Work these steps in order.
 
-1. **Find the run.** `ls -l "${TMPDIR:-/tmp}/claude/bead-bonanza/current"` —
-   a symlink pre-flight-check.sh repoints at the start of every run, and the
-   only route that needs nothing you have to already know. Read
-   `$RUN_DIR/dispatch.md`; its run manifest names the epic, the branch and
-   the base sha. WHEN the symlink is gone (a reclaimed container, a run
-   started before it existed), the epic's tracker note carries the same
-   `RUN_DIR` pointer and every amendment — `bd show <epic-id>` once the
-   manifest or the user has named the epic, and that note is the copy that
-   survives container reclaim. Only if neither resolves, list the run root
-   and take the newest run-id directory, treating it as a guess:
-   newest-by-mtime is wrong whenever an older run's directory was touched
-   after a newer one started. WHEN none resolves, reconstruct from `git log`
-   and `bd list --status all`, and **say so in the report** — a
-   reconstruction is not a plan.
+1. **Find the run — derive it from the branch.** A run happens on its own
+   dedicated branch, uses one run directory, and that directory is removed
+   before the branch merges (`agent-plugins-92q.30`). So the branch you are on
+   identifies the run, and `git log` on it lists the beads that have landed.
+   Start there: `git rev-parse --abbrev-ref HEAD`, then
+   `git log --oneline <default-branch>..HEAD` — every close commit is
+   `<bead-id> P<n> <title>`, so that is the run's completed set, read from the
+   record rather than from a report.
+
+   For the plan and the run's artifacts:
+
+   - `ls -l "${TMPDIR:-/tmp}/claude/bead-bonanza/current"` — a symlink
+     pre-flight-check.sh repoints at the start of every run. Convenient while
+     the container lives; gone after a reclaim.
+   - The committed snapshot under `.bonanza/<run-id>/` on the branch, which is
+     what survives a reclaim. `ls .bonanza/` and take the directory the branch
+     carries.
+
+   **Retired here** (`agent-plugins-92q.23`, `agent-plugins-92q.25`): the
+   four-route ladder that ended in "list the run root and take the newest
+   run-id directory, treating it as a guess". It existed because the run
+   directory's location was treated as unknowable and a run was assumed to
+   belong to an epic. Neither holds: the branch names the run, and a
+   newest-by-mtime guess was wrong whenever an older run's directory was
+   touched after a newer one started. Do not reintroduce a guess — WHEN
+   neither the snapshot nor the symlink resolves, reconstruct from `git log`
+   and `bd list`, and **say so in the report**: a reconstruction is not a plan.
 
 2. **Read `dispatch.md` in full.** It carries the mandate, the enumerated bead
    list, the standing authorization, the wave table, the gate profile and the
@@ -111,8 +124,8 @@ Work these steps in order.
      finished and committed with nothing appended after the crash. Check
      `git log --grep=<id>` before you touch the tree.
    - **`gates-passed` / `retro-written`** — the work is in the tree and only
-     the close is outstanding. Read `<bead-id>.handoff.md` for the paths to
-     stage and any caveat, honor the caveat, then run
+     the close is outstanding. Read `<bead-id>.handoff.md` for its caveat,
+     honor it, then run
      `../scripts/bb-close-bead.sh <id> <priority> "<title>"` from inside the
      bead's worktree, passing no paths. The
      handoff file carries **only a caveat** — it is not a body for the close,
