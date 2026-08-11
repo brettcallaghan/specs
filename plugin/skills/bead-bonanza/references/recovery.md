@@ -14,8 +14,9 @@ are resuming a bead-bonanza run whose state you do not hold.
   resuming a run you have no memory of
 - Subagent crash / mid-step timeout recovery — the four states and what to do
 - Mid-stream visibility (progress streaming) — the JSONL event schema, the
-  rule bounding what that schema proves, and the literal-quoting rule that
-  avoids a permission prompt per event
+  rule bounding what that schema proves, the literal-quoting rule that
+  avoids a permission prompt per event, and the durable trigger that backs
+  the in-session Monitor
 - Crash-resilient close — why the handoff file is written before the bead is
   closed, and what it buys on recovery
 
@@ -188,6 +189,35 @@ tail -n +1 -F <run-dir>/<bead-id>.progress.jsonl | grep -E --line-buffered '"pha
 ```
 
 For batch subagents, tail multiple files in one Monitor. **Filter to `committed|blocked` only** — those are the events the orchestrator acts on. Relaying every phase (implementing, gates-running, …) wakes the orchestrator per event and adds a conversation turn each time for narration nobody needs; the per-bead progress files still hold the full phase history for crash recovery.
+
+### Back the Monitor with a durable trigger
+
+A Monitor is in-session: it dies with the turn that armed it, so it cannot
+report its own death. A user interrupt that kills the orchestrator kills the
+Monitor at the same instant — the "Nothing reports this to you" case above.
+A durable run needs a second mechanism that survives that.
+
+Before the first dispatch of a run, arm an out-of-session check-in **in
+addition to** the Monitor:
+
+- **Prefer a recurring trigger over a one-shot** — a cron/recurring trigger
+  where the harness offers one, otherwise a re-armed `send_later`, at
+  15–30 minute intervals. A recurring trigger re-arms itself instead of
+  depending on the agent to remember, and the agent forgetting is the
+  failure mode being defended against. State once at run start which kind
+  the harness offers; WHERE it offers neither, say so once and proceed —
+  the only wake path for this run is in-session.
+- **The trigger's message must be self-contained.** It wakes a turn that may
+  hold no run context: carry the `RUN_DIR` path, the epic id, and an
+  instruction to run this file's orchestrator-recovery procedure — not
+  "check on the run".
+- **Do not key its liveness check on `bd list --status in_progress`.** A
+  bead can be worked without ever being claimed, so that query reads
+  "nothing in flight" while an agent is actively editing. Use the
+  newest-dirty-file-mtime rule above instead.
+- **Cancel it in Phase 4**, when the run drains. A trigger left armed after
+  the run finishes wakes an agent into a finished sprint, which trains the
+  reader to ignore it.
 
 ## Crash-resilient close: write the handoff file before bd update
 

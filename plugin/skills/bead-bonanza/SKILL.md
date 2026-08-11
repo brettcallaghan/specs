@@ -522,10 +522,13 @@ every subagent writes (and the rule bounding what it proves), the procedure
 for a subagent that dies mid-ceremony, and the entry procedure for resuming a
 run after the *orchestrator* died. **Read it WHEN** a subagent times out,
 returns an API error instead of a summary, or is expected to run past 5
-minutes (any non-trivial bead, given full test runs) — at that point the
-orchestrator must arm a `Monitor` on the progress file so the user sees
-per-phase events live — **and WHEN** you are picking up a run whose state you
-do not hold.
+minutes (any non-trivial bead, given full test runs) — at that point arm a
+`Monitor` on the progress file so the user sees per-phase events live —
+**and WHEN** you are picking up a run whose state you do not hold.
+
+Before the first dispatch, also arm a durable out-of-session trigger — see
+`references/recovery.md`'s "Back the Monitor with a durable trigger" — and
+cancel it in Phase 4.
 
 The one rule to carry without reading the file: after `gates-passed` and
 BEFORE closing the bead, the subagent writes `$RUN_DIR/<bead-id>.handoff.md`
@@ -601,6 +604,10 @@ After the queue is drained (or the circuit breaker tripped), print:
 5. **Stashes** — if any were created during recovery, list with `git stash
    list`.
 6. **Pushes** — confirm all closed beads' commits are on the remote.
+6a. **Cancel the durable out-of-session trigger** armed at first dispatch
+    (`references/recovery.md`, "Back the Monitor with a durable trigger") —
+    a trigger left armed after the run drains wakes an agent into a finished
+    sprint, which trains the reader to ignore it.
 7. Path to `${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/` so the user can
    review the dispatch plan and progress files.
 
@@ -644,10 +651,14 @@ Do NOT create a PR or merge to main — that is a separate, explicit user action
   decision is bounced at Phase 1.5. A choice a subagent still makes silently
   — one the bead's Design didn't pin — belongs in its `retro:` comment, not
   the diff.
-- **Visible progress beats opacity.** Subagents write JSONL progress events. For
-  any subagent past 5 minutes, the orchestrator must arm `Monitor` on the
-  progress file so the user sees per-phase events live. Long opaque runs erode
-  trust.
+- **Visible progress beats opacity, and the fast path alone doesn't survive an
+  interrupt.** Subagents write JSONL progress events. For any subagent past 5
+  minutes, arm `Monitor` on the progress file so the user sees per-phase
+  events live — but a Monitor dies with the turn that armed it, so it cannot
+  report its own death. Before the first dispatch, also arm the durable
+  out-of-session trigger described in `references/recovery.md` and cancel it
+  in Phase 4. Long opaque runs erode trust; a run whose only wake mechanism
+  is in-session cannot survive an interrupt that lands on the orchestrator.
 - **Subagents discard context on return.** This is why the skill prefers fresh
   subagents over `/compact`. Batch subagents (fast lane, shared-surface)
   compromise — they hold context for N beads but free it on return.
