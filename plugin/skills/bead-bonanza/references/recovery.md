@@ -131,11 +131,12 @@ If a subagent times out, returns an "API Error" instead of a summary, or otherwi
 2. **If `gates-passed` was emitted but `committed` was not** — the work is done in the working tree, only the close+commit ceremony is incomplete. This is the **happy crash path**:
    - Read the handoff file at `<run-id>/<bead-id>.handoff.md`. It names the paths to stage and any close-specific caveat (a `WIP <id>` commit to squash, a regen step to run first). Honor the caveat before you stage.
    - If the handoff file is missing (subagent crashed before writing it), derive the paths yourself from `git status --porcelain` — and be strict about it, because in a shared tree some of that dirt belongs to another agent. Add a `retro:` comment on the bead noting that the handoff was never written.
-   - Run `../scripts/bb-close-bead.sh <id> <priority> "<title>" <paths>` — the same script the subagent would have run. It closes, exports, stages, and commits in the required order, and leaves the bead's description exactly as grooming wrote it.
+   - Run `../scripts/bb-close-bead.sh --trailers-file "$RUN_DIR/trailers.txt" <id> <priority> "<title>" <paths>` — the same script the subagent would have run, with the same per-run trailers file Phase 0 resolved (omit `--trailers-file` WHEN the run resolved none). It closes, exports, stages, and commits in the required order, appends the trailers to the commit body itself, and leaves the bead's description exactly as grooming wrote it. Do not `git commit --amend` afterward to add trailers — that is the exact drift this flag exists to avoid.
    - Run `bd export` into `.beads/issues.jsonl` first (the subagent may have crashed before exporting). Then stage source paths, any regenerated fixtures, `.beads/issues.jsonl`, `.beads/interactions.jsonl`. Inspect `git status --porcelain` carefully — only stage what belongs to this bead.
    - Commit with the canonical message format (`<id> P<priority> <title>`).
    - Push (if appropriate for the bucket).
    - Verify the bead is now `closed` via `bd show <id>`.
+   - Record the commit yourself: `../scripts/bb-progress.sh "$RUN_DIR" <id> committed sha=$(git rev-parse --short HEAD)` — read the sha from the branch, not from the script's printout, same rule as the per-bead template's step 8.
 3. **If the last phase is `blocked` with a reason starting `interrupted; WIP`** — this bead is resumable, not failed: the work was persisted as a `WIP <bead-id>` commit before the agent stopped (the one sanctioned exception to one-commit-per-bead, `operating-principles.md`). Do NOT stash — there is nothing uncommitted to lose. Find the commit(s) with `git log --oneline --grep="^WIP <bead-id>"`, finish the work, squash them into the landing commit, then run the close ceremony.
 4. **If the last phase was `implementing` or earlier, and it is not the interrupted-WIP case above** — the work is partial and uncommitted. Stash with `git stash push -m "bead-bonanza recovery: <id>"`, mark the bead `blocked` with a recovery note, and surface to the user. Don't try to finish someone else's half-done work.
 5. **If the progress file is empty or missing** — the subagent never started. Check `bd show <id>` to confirm status; if it's still `open`, retry the subagent. If it's `in_progress`, claim it back with `bd update <id> --status open` first.
@@ -226,8 +227,9 @@ After `gates-passed` and BEFORE the `bd update --status closed` call, the subage
 
 This is the recovery anchor. If the subagent times out, crashes, or otherwise dies between `gates-passed` and the commit, the orchestrator can:
 1. Read the handoff file for the paths and the caveat.
-2. Run `../scripts/bb-close-bead.sh <id> <priority> "<title>" <paths>` itself.
-3. Verify with `bd show <id>`, then push if the bucket calls for it.
+2. Run `../scripts/bb-close-bead.sh --trailers-file "$RUN_DIR/trailers.txt" <id> <priority> "<title>" <paths>` itself (omit `--trailers-file` WHEN the run resolved none) — no amend needed afterward to add trailers.
+3. Record the commit: `../scripts/bb-progress.sh "$RUN_DIR" <id> committed sha=$(git rev-parse --short HEAD)` — read the sha from the branch, not from the script's printout.
+4. Verify with `bd show <id>`, then push if the bucket calls for it.
 
 The file deliberately does not restate the phase — `<bead-id>.progress.jsonl` is the single source for that, and a second copy would give a recovering orchestrator two hints to reconcile. It also carries no findings: those are `retro:` comments on the bead, durable in the tracker the moment they are written. **This is non-negotiable** — the cost is one extra file write per bead; the savings on a single recovery pay for years of runs.
 

@@ -83,6 +83,17 @@ refspec (`git push <remote> <branch>`) every time; verify landings with
 `git rev-parse <remote>/<branch>` after fetch, not `git status -sb`; and never
 let a pipe to `tail` mask a push's exit status.
 
+**Commit trailers.** WHEN `CLAUDE.md`/`AGENTS.md` states a commit-trailer
+convention (`Co-Authored-By`, a session URL, etc.), resolve it once here and
+write it to `$RUN_DIR/trailers.txt` — a session URL varies per session, so
+this file is per-run and never committed. Substitute that path as
+`{TRAILERS_FILE}` into every dispatch prompt; the close ceremony
+(`bb-close-bead.sh --trailers-file {TRAILERS_FILE} ...`) appends its contents
+to the commit body, so no subagent needs `git commit --amend` to add them.
+WHEN the project states no trailer convention, leave `{TRAILERS_FILE}` unset
+and omit the flag — the close ceremony behaves exactly as before this flag
+existed.
+
 Two things no script can settle:
 
 - **Draft PR.** WHEN `BB_PR_CI=yes`, ask the user once whether to open a draft
@@ -801,7 +812,7 @@ to read it:
 pre-flight-check.sh <run-id> [--gate-baseline] [--self-test]   # sandbox ON
 bb-progress.sh   <run-dir> <bead-id> <phase> [key=value ...]
 bb-verify-skip.sh [pathspec ...]        # no pathspec = whole working tree
-bb-close-bead.sh <bead-id> <priority> <title> [path ...]
+bb-close-bead.sh [--trailers-file <path>] <bead-id> <priority> <title> [path ...]
 ```
 
 - **`scripts/pre-flight-check.sh`** — Phase 0, mechanized. Human report on
@@ -822,6 +833,11 @@ bb-close-bead.sh <bead-id> <priority> <title> [path ...]
 - **`scripts/bb-verify-skip.sh`** — the two-sided skip check. With no argument it
   examines the whole working tree; pass pathspecs to scope it.
 - **`scripts/bb-close-bead.sh`** — the close ceremony, in its required order.
+  `--trailers-file <path>` is optional and must precede `<bead-id>`; its
+  contents are appended to the commit body after a blank line, so a project's
+  required trailers (`Co-Authored-By`, a session URL) land in the one commit
+  this script makes and no caller needs `git commit --amend` to add them.
+  Omitting it leaves behavior identical to before the flag existed.
   `<path ...>` are the code files this bead changed; WHEN omitted it stages
   everything currently modified, so pass explicit paths whenever another
   agent may be sharing the tree. It closes with a status-only `bd update` and

@@ -20,7 +20,14 @@
 #   replayed by hand during crash recovery. One script means one behavior.
 #
 # Usage
-#   bb-close-bead.sh <bead-id> <priority> <title> [path ...]
+#   bb-close-bead.sh [--trailers-file <path>] <bead-id> <priority> <title> [path ...]
+#
+#   --trailers-file <path>  optional; must precede <bead-id>. Its contents
+#       are appended to the commit message body after a blank line (e.g.
+#       Co-Authored-By, Claude-Session trailers a project's convention
+#       requires). Omitting the flag leaves behavior identical to before it
+#       existed — no separate `git commit --amend` is needed when it is
+#       passed, since the trailers land in the one commit this script makes.
 #
 #   Paths are the code files this bead changed. WHEN omitted, everything
 #   currently modified is staged — pass explicit paths whenever another agent
@@ -49,8 +56,37 @@ set -uo pipefail
 die()  { echo "bb-close-bead: $*" >&2; exit 2; }
 fail() { echo "bb-close-bead: $*" >&2; exit 1; }
 
-[ $# -ge 3 ] || die "usage: bb-close-bead.sh <bead-id> <priority> <title> [path ...]"
+trailers_file=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --trailers-file)
+      [ $# -ge 2 ] || die "--trailers-file requires a path argument"
+      trailers_file="$2"
+      shift 2
+      ;;
+    --trailers-file=*)
+      trailers_file="${1#--trailers-file=}"
+      shift
+      ;;
+    --)
+      shift
+      break
+      ;;
+    --*)
+      die "unknown option: $1"
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+[ $# -ge 3 ] || die "usage: bb-close-bead.sh [--trailers-file <path>] <bead-id> <priority> <title> [path ...]"
 id="$1"; priority="$2"; title="$3"; shift 3
+
+if [ -n "$trailers_file" ]; then
+  [ -f "$trailers_file" ] || die "--trailers-file: no such file: $trailers_file"
+fi
 
 [ -n "$id" ]    || die "bead-id must not be empty"
 [ -n "$title" ] || die "title must not be empty"
@@ -194,8 +230,20 @@ git diff --staged --quiet && fail "nothing staged — no changes to commit for $
 
 # 4. One commit. No --no-verify (hooks are a gate), no --amend (the commit may
 #    already be pushed; a missed step becomes a follow-up commit instead).
-git commit -q -m "$id P$priority $title" \
-  || fail "git commit failed — hooks may have rejected it. Fix and re-run; the bead is already closed, so do not re-run bd update."
+#    WHEN --trailers-file was given, its contents are appended to the message
+#    body after a blank line, so the trailers land in this one commit and no
+#    caller ever needs to amend it back in.
+subject="$id P$priority $title"
+if [ -n "$trailers_file" ]; then
+  msgfile="/tmp/bb-commit-msg.$$"
+  { printf '%s\n\n' "$subject"; cat "$trailers_file"; } > "$msgfile"
+  git commit -q -F "$msgfile" \
+    || fail "git commit failed — hooks may have rejected it. Fix and re-run; the bead is already closed, so do not re-run bd update."
+  rm -f "$msgfile"
+else
+  git commit -q -m "$subject" \
+    || fail "git commit failed — hooks may have rejected it. Fix and re-run; the bead is already closed, so do not re-run bd update."
+fi
 
 sha="$(git rev-parse --short HEAD)"
 echo "$sha"
