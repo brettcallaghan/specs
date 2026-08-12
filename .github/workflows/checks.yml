@@ -73,6 +73,20 @@ jobs:
       - name: Vendored shared references are current
         run: scripts/sync-shared-references.sh --check
 
+      # Structural check on the templates every document is authored from:
+      # the property set a template declares must match its type's schema.
+      # Runs before the pip step because it needs no dependency — only the
+      # generated bundle and the frontmatter keys.
+      #
+      # continue-on-error until agent-plugins-3xx (rfc-template has drifted
+      # from the Rfc schema) and agent-plugins-j5n (work-order is not in the
+      # DocumentType vocabulary) close. Both need a decision rather than a
+      # fix, and gating on defects that predate this step would land CI red.
+      # agent-plugins-9fx flips it to gating.
+      - name: Templates match their type's schema
+        continue-on-error: true
+        run: scripts/check-template-drift.py
+
       - name: Install schema validation dependencies
         run: python3 -m pip install --quiet jsonschema pyyaml
 
