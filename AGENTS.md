@@ -49,7 +49,22 @@ Run the Go gates from `cli/` — that is the module root, so `./...` and the
 - **Format:** `cd cli && gofmt -l .` — must print nothing (`gofmt -w .` to fix)
 - **Lint:** `scripts/check-skills.sh` and, when `cli/` changed, `cd cli && go vet ./...`
 - **Build:** `cd cli && go build ./...` *(no build step for the docs corpus)*
-- **Test (full suite):** `scripts/check-skills.sh --strict && scripts/sync-shared-references.sh --check && scripts/sync-strata-docs.sh --check` and, when `cli/` changed, `cd cli && go test ./...`
+- **Test (full suite):** run the three checks independently — never chain them
+  with `&&`, since `check-skills.sh --strict` is known red (see the ledger
+  below) and would short-circuit the other two before they ever run:
+
+  ```bash
+  scripts/check-skills.sh --strict;            s1=$?
+  scripts/sync-shared-references.sh --check;    s2=$?
+  scripts/sync-strata-docs.sh --check;          s3=$?
+  echo "check-skills --strict:        exit=$s1"
+  echo "sync-shared-references --check: exit=$s2"
+  echo "sync-strata-docs --check:      exit=$s3"
+  [ "$s1" -eq 0 ] && [ "$s2" -eq 0 ] && [ "$s3" -eq 0 ]
+  ```
+
+  Report each check's exit status; the gate as a whole fails if any of the
+  three failed. And, when `cli/` changed, `cd cli && go test ./...`.
 
 ### Custom gates
 
