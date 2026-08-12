@@ -20,6 +20,7 @@ shared checkout, which defeats every guarantee this design rests on.
 
 - Grooming subagent (Phase 1.5) — bring under-specified beads to Ready
 - Per-bead subagent — the canonical ceremony, run in the bead's own worktree
+- Shared batch preamble — boilerplate common to both batch templates below
 - Doc/chore fast-lane subagent — a cluster of trivial beads, one subagent
 - Shared-surface batch subagent — beads sharing a code/fixture surface
 - Worktree mechanics (orchestrator) — the base-ref trap, how `bd` behaves
@@ -28,6 +29,13 @@ shared checkout, which defeats every guarantee this design rests on.
 
 The per-bead template is the canonical one; the fast-lane and shared-surface
 templates reference its workflow rather than restating it, so read it first.
+Those two batch templates also open with a reference to the **Shared batch
+preamble** below instead of repeating it. **The orchestrator concatenates
+that preamble plus the template into the single text it actually sends** —
+the subagent reads only the assembled prompt, never this file, so a batch
+prompt sent without the preamble is incomplete: the subagent silently loses
+the worktree-creation mechanics, the per-bead workflow step, and the return
+contract along with it.
 
 ---
 
@@ -139,23 +147,22 @@ If the bead is already addressed, malformed, or duplicates a closed bead:
 - Do not ask the user questions. Decisions are baked into this prompt.
 - Do not modify code outside this bead's scope.
 - Never reset or reclaim a bead's status that you did not set yourself. A bead already `in_progress` when you arrive belongs to another agent — treat it as untouchable, exactly like foreign working-tree changes; leave claim reconciliation to the orchestrator.
-- Do not skip git hooks (`--no-verify`). If you realize a required step was missed (e.g. a regen step the handoff caveat named) after committing, add a NEW follow-up commit — never amend a commit that may already be pushed, and never force-push a published branch. (Amending a local commit you are certain is unpushed, to fold in a missed step, is fine.)
+- If you realize a required step was missed (e.g. a regen step the handoff caveat named) after committing, add a NEW follow-up commit — never amend a commit that may already be pushed. (Amending a local commit you are certain is unpushed, to fold in a missed step, is fine.)
 - Only push the current branch — never push to main.
-- Do not use `git reset --hard`, `git checkout .`, or other destructive recovery commands without first stashing.
 ```
 
-## Doc/chore fast-lane subagent prompt template
+## Shared batch preamble
+
+Both batch templates below (doc/chore fast-lane, shared-surface) open with
+this block rather than repeating it. **The orchestrator concatenates this
+preamble plus the chosen template into the one text it sends** — a batch
+prompt assembled without it is missing the worktree-creation mechanics, the
+per-bead workflow step, and the return contract, with nothing to catch the
+loss downstream.
 
 ```
-You are processing {N} trivial beads in this repo. Read CLAUDE.md and AGENTS.md if you need conventions; gate commands are in AGENTS.md under "## bead-bonanza gates".
+Read CLAUDE.md and AGENTS.md if you need conventions; gate commands are in AGENTS.md under "## bead-bonanza gates".
 
-Beads (process in order; one commit per bead):
-{ID_1} (P{PRIORITY_1}) — {TITLE_1} — Decision: {DECISION_1}
-{ID_2} (P{PRIORITY_2}) — {TITLE_2} — Decision: {DECISION_2}
-...
-
-Gates: format=`{FORMAT}` lint=`{LINT}` build=`{BUILD}` test=`{TEST}` custom=`{CUSTOM_GATES or "none"}`
-Push mode: {push_per_bead | defer_push}
 Worktrees: one per bead, created by YOU, held ONE AT A TIME. Before each bead:
   git -C <repo> worktree add -b <suffix> <repo>/../.bb-worktrees/<suffix> HEAD
 Work that bead entirely inside its worktree. After its close commit lands, tell
@@ -165,13 +172,28 @@ Run dir: {RUN_DIR}
 Scripts: {SCRIPTS}
 Trailers file: {TRAILERS_FILE or "none"}   (Phase 0 resolved; pass to bb-close-bead.sh --trailers-file)
 
-These are documentation, comments, single-line swaps, or other low-risk changes. For each bead in order:
+For each bead, first run the per-bead workflow (claim → read → implement → write handoff file → `retro:` comments → atomic close → stage → single commit → optional push) exactly as in the sequential template — including its close step's `--trailers-file {TRAILERS_FILE}` and reading the committed sha with `git rev-parse --short HEAD` rather than the script's printout — INCLUDING per-bead progress JSONL writes AND the per-bead handoff file write to `{RUN_DIR}/<bead-id>.handoff.md` BEFORE close. Then run the template-specific steps below.
 
-1. Run the per-bead workflow (claim → read → implement → write handoff file → `retro:` comments → atomic close → stage → single commit → optional push) exactly as in the sequential template — including its close step's `--trailers-file {TRAILERS_FILE}` and reading the committed sha with `git rev-parse --short HEAD` rather than the script's printout — INCLUDING per-bead progress JSONL writes AND the per-bead handoff file write to `{RUN_DIR}/<bead-id>.handoff.md` BEFORE close.
-2. Between beads: skip the full `{TEST}` run. Run `{FORMAT}` + `{BUILD}` per bead. **Targeted tests are non-negotiable** — identify which test file covers the touched surface (see the profile's targeted-tests-by-surface list) and run it. If the change is so trivial there's no plausible test (e.g. pure docs edit, a comment with zero output diff), say so explicitly in a `retro:` comment on the bead and continue. "I couldn't find a targeted test" without explanation is not acceptable.
-3. After the LAST bead in this batch, run the full gate suite once (`{FORMAT}`, `{LINT}`, `{BUILD}`, `{TEST}`, plus any custom gates). **The push is the gate** — full gates must pass before the orchestrator pushes. If full gates fail, the most-recent bead is the suspect — investigate and fix it (a new commit), then continue.
+When the batch is done, return ONE message containing N+1 lines: one per-bead summary, then a final `batch-end: full gates {passed|failed}`.
+```
 
-Return ONE message containing N+1 lines: one per-bead summary, then a final `batch-end: full gates {passed|failed}`.
+## Doc/chore fast-lane subagent prompt template
+
+```
+You are processing {N} trivial beads in this repo.
+
+Beads (process in order; one commit per bead):
+{ID_1} (P{PRIORITY_1}) — {TITLE_1} — Decision: {DECISION_1}
+{ID_2} (P{PRIORITY_2}) — {TITLE_2} — Decision: {DECISION_2}
+...
+
+Gates: format=`{FORMAT}` lint=`{LINT}` build=`{BUILD}` test=`{TEST}` custom=`{CUSTOM_GATES or "none"}`
+Push mode: {push_per_bead | defer_push}
+
+These are documentation, comments, single-line swaps, or other low-risk changes. Beyond the shared per-bead workflow above:
+
+1. Between beads: skip the full `{TEST}` run. Run `{FORMAT}` + `{BUILD}` per bead. **Targeted tests are non-negotiable** — identify which test file covers the touched surface (see the profile's targeted-tests-by-surface list) and run it. If the change is so trivial there's no plausible test (e.g. pure docs edit, a comment with zero output diff), say so explicitly in a `retro:` comment on the bead and continue. "I couldn't find a targeted test" without explanation is not acceptable.
+2. After the LAST bead in this batch, run the full gate suite once (`{FORMAT}`, `{LINT}`, `{BUILD}`, `{TEST}`, plus any custom gates). **The push is the gate** — full gates must pass before the orchestrator pushes. If full gates fail, the most-recent bead is the suspect — investigate and fix it (a new commit), then continue.
 
 ## Constraints
 
@@ -183,8 +205,6 @@ Same as the per-bead constraints. Each bead is its own commit. In `defer_push` m
 ```
 You are processing {N} related beads that share a code/fixture surface ({SURFACE_DESCRIPTION}, e.g. "the JSON serializer in src/serialize.* and the serializer golden fixtures").
 
-Read CLAUDE.md and AGENTS.md if you need conventions; gate commands are in AGENTS.md under "## bead-bonanza gates".
-
 Beads (process in order; each is its own commit):
 {ID_1} (P{PRIORITY_1}) — {TITLE_1} — Decision: {DECISION_1} — Implicit: {IMPLICIT_1}
 {ID_2} (P{PRIORITY_2}) — {TITLE_2} — Decision: {DECISION_2} — Implicit: {IMPLICIT_2}
@@ -193,21 +213,12 @@ Beads (process in order; each is its own commit):
 Gates: format=`{FORMAT}` lint=`{LINT}` build=`{BUILD}` test=`{TEST}` regen=`{REGEN or "none"}` custom=`{CUSTOM_GATES or "none"}`
 Targeted tests for this surface: {SURFACE_TARGETED_TESTS}
 Push mode: {push_per_bead | defer_push}
-Worktrees: one per bead, created by YOU, held ONE AT A TIME. Before each bead:
-  git -C <repo> worktree add -b <suffix> <repo>/../.bb-worktrees/<suffix> HEAD
-Work that bead entirely inside its worktree. After its close commit lands, tell
-the orchestrator and move on — never hold two worktrees open at once, because a
-worktree that exists means "this bead is unfinished" to every other reader.
-Run dir: {RUN_DIR}
-Scripts: {SCRIPTS}
-Trailers file: {TRAILERS_FILE or "none"}   (Phase 0 resolved; pass to bb-close-bead.sh --trailers-file)
 
 These beads are NOT trivial — they touch real code. The reason they're batched is to avoid running the full `{TEST}` suite between them when later beads will rebuild the same surface. **The push at the end is the gate; per-bead validation in this batch is a regression-detector to prevent rework, not the final gate.**
 
-For each bead in order:
+Beyond the shared per-bead workflow above:
 
-1. Run the per-bead workflow (claim → read → implement → write handoff file → `retro:` comments → atomic close → stage → single commit → optional push) — including its close step's `--trailers-file {TRAILERS_FILE}` and reading the committed sha with `git rev-parse --short HEAD` rather than the script's printout — INCLUDING progress JSONL writes per bead AND the per-bead handoff file at `{RUN_DIR}/<bead-id>.handoff.md` BEFORE close.
-2. Between beads, run gates AT THIS REDUCED LEVEL — but **targeted tests are non-negotiable**:
+1. Between beads, run gates AT THIS REDUCED LEVEL — but **targeted tests are non-negotiable**:
    - `{FORMAT}`
    - `{LINT}`
    - `{BUILD}`
@@ -215,15 +226,13 @@ For each bead in order:
    - **Run the surface-relevant targeted tests** named above for the file(s) you touched. If none is listed for a surface you touched, consult the profile's targeted-tests-by-surface list; if there's still nothing, that's a signal the change is broader than expected — pause and reconsider scope, don't take it as permission to skip.
 
    **Why this matters:** without per-bead targeted tests, a regression introduced in bead #2 only surfaces at batch end, after beads #3 and #4 may have built on the broken assumption. You then bisect, rework #2, and possibly redo #3 and #4. Targeted tests prevent that cascade.
-3. **After the LAST bead in this batch** (push gate). If the repo has a pre-push hook running a CI-mirror gauntlet AND a PR is open so pushes trigger full CI (ask the user once at run start — "slim gates"), SKIP this step entirely: the hook and CI *are* the full gate, and running the suite in-batch just duplicates them minutes apart. Otherwise run the full gate suite — must pass before orchestrator pushes:
+2. **After the LAST bead in this batch** (push gate). If the repo has a pre-push hook running a CI-mirror gauntlet AND a PR is open so pushes trigger full CI (ask the user once at run start — "slim gates"), SKIP this step entirely: the hook and CI *are* the full gate, and running the suite in-batch just duplicates them minutes apart. Otherwise run the full gate suite — must pass before orchestrator pushes:
    - `{FORMAT}`
    - `{LINT}`
    - `{BUILD}`
    - `{TEST}`
    - Any custom gates from the profile
    If it fails, identify which bead introduced the regression (bisect via the per-bead commits — `git log --oneline | head` then `git checkout <sha>` and rerun the failing test) and follow the Blocked path for THAT bead — do not silently fix it across multiple commits.
-
-Return ONE message containing N+1 lines: one per-bead summary, then a final `batch-end: full gates {passed|failed}`.
 
 ## Constraints
 
