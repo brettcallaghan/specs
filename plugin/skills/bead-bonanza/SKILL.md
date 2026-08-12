@@ -360,11 +360,11 @@ the shared checkout except by the orchestrator itself.
 **`bd` is not an obstacle.** It resolves the shared tracker database through
 git's common directory from any worktree, measured with `BEADS_DIR` unset — no
 `embeddeddolt` and no redirect file is created in the worktree
-(`agent-plugins-t09`). What a worktree agent must still do is run
-`bd export > .beads/issues.jsonl` **in its own directory** before committing:
-auto-export is best-effort and always writes the MAIN checkout's copy, so a
-worktree's committed ledger goes stale while `git status` reads clean (same
-reference, measured).
+(`agent-plugins-t09`). And a worktree agent has **nothing extra to do** for the
+tracker: `agent-plugins-92q.31` retired the pre-commit `bd export >
+.beads/issues.jsonl` step along with the committed ledger it refreshed. The
+tracker is `origin refs/dolt/data`, the JSONL exports are untracked, and
+`scripts/bb-close-bead.sh` pushes the database itself at every close.
 
 **Hard gate — every worktree must branch from the sprint's own branch, never
 the default branch.** Two conditions produce that, and both are checked:
@@ -677,10 +677,25 @@ After each subagent returns:
    `agent-plugins-92q.22` moved findings to `retro:` comments and reduced the
    file to `<bead-id>.handoff.md`, a recovery anchor that carries no findings
    and is not evidence of acceptance.
-5. **Verify the working tree is clean** with `git status --porcelain`. If dirty,
+5. **Snapshot the run directory** — `scripts/bb-backup-run.sh "$RUN_DIR"`, run
+   from your own checkout on the sprint branch and **never from a bead's
+   worktree**: the snapshot is the whole run's record, and committing it inside
+   a bead's worktree would either pollute that bead's one commit or strand it
+   on a branch you are about to delete. Run it after **every** bead's
+   acceptance check, not once per wave — `$RUN_DIR` lives under
+   `${TMPDIR:-/tmp}` and dies with the container, taking `dispatch.md` and
+   every progress and handoff file with it, and a copy refreshed once mid-run
+   is indistinguishable from a complete one. It copies `$RUN_DIR` to
+   `.bonanza/<run-id>/`, writes a self-describing
+   `.bonanza/<run-id>/SNAPSHOT.md`, and commits that path alone; it prints
+   `unchanged` and makes no commit when no run file moved, so the per-bead
+   cadence costs nothing on a quiet bead. It does
+   **not** push — the snapshot rides the sprint branch, and an unpushed
+   snapshot dies with the container like everything else. Phase 4 deletes it.
+6. **Verify the working tree is clean** with `git status --porcelain`. If dirty,
    fall through to the recovery procedure below.
-6. If the bucket used `defer-push`, run `git push` for the bucket now.
-7. Move to the next bucket/bead.
+7. If the bucket used `defer-push`, run `git push` for the bucket now.
+8. Move to the next bucket/bead.
 
 **Circuit breaker:** if 3 consecutive beads return `blocked` or fail, stop the
 run and surface to the user. Something is systemically wrong (broken main,
@@ -804,6 +819,13 @@ After the queue is drained (or the circuit breaker tripped), print:
     (`references/recovery.md`, "Back the Monitor with a durable trigger") —
     a trigger left armed after the run drains wakes an agent into a finished
     sprint, which trains the reader to ignore it.
+6b. **Delete the run snapshot** — `git rm -r .bonanza/<run-id>/` as its own
+    commit, **after** the report above is written and committed, never before.
+    It is a working artifact of the run and must not reach the PR that carries
+    the run's actual work. Nothing is lost: the commits that added it stay in
+    the branch history, found with
+    `git log --diff-filter=A -- '.bonanza/<run-id>/'` and read back with
+    `git show <sha>:<path>`.
 7. Path to `${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/` so the user can
    review the dispatch plan and progress files.
 
@@ -909,16 +931,18 @@ Do NOT create a PR or merge to main — that is a separate, explicit user action
   actually ran before trusting it. Heavy suites (integration, codegen, anything
   needing sockets/toolchains the sandbox lacks) run locally only when a bead
   touches the surface they cover; when a PR is open, CI is the backstop.
-- **Guard against foreign dirt, and defer tracker writes while a subagent
-  holds a claim.** Multiple agents can share the tree; name known foreign
-  files as untouchable in batch prompts, and commit your own work by
-  explicit pathspec (`git commit -- <files>`) — that still works for
-  foreign *working-tree* dirt. It does NOT work for the shared tracker
-  database: `scripts/bb-close-bead.sh` regenerates the *entire* ledger export at
-  every close, so an orchestrator tracker write made while any subagent is
-  between `claimed` and `committed` lands inside that subagent's commit
-  regardless of pathspec. Full rule, its one escape hatch, the latency
-  trade-off, and the claim-reset rule: `references/operating-principles.md`.
+- **Guard against foreign dirt; tracker writes no longer need deferring.**
+  Multiple agents can share the tree, so name known foreign files as
+  untouchable in batch prompts and commit your own work by explicit pathspec
+  (`git commit -- <files>`). The rule that also deferred your *tracker* writes
+  to a wave boundary is **retired** (`agent-plugins-92q.31`): it existed
+  because the close ceremony regenerated a committed ledger export in full, so
+  a concurrent tracker write rode into whichever subagent's commit came next,
+  pathspec notwithstanding. There is no such file now — the close stages code
+  only — so you may groom a discovered bead, bake a decision, or wire a
+  dependency edge at any time, including mid-wave. Why worktrees did *not* fix
+  this, and the claim-reset rule that is unchanged:
+  `references/operating-principles.md`.
 - **Wire findings capture when the repo has it, and harvest with `bd export |
   jq`, never `bd list` + `bd show --json`.** The feature's final DoD bead runs
   the one aggregated retro-spec, asserting a non-zero harvest before
@@ -939,7 +963,8 @@ Load the one that matches where you are in the run:
 | Phase 0 pre-flight: probe the environment, resolve `RUN_DIR`/`SCRIPTS` | run `scripts/pre-flight-check.sh` |
 | Emitting a progress event | run `scripts/bb-progress.sh` |
 | Checking a `skipped` claim against the tree | run `scripts/bb-verify-skip.sh` |
-| Closing a bead: close + export + stage + commit | run `scripts/bb-close-bead.sh` |
+| Closing a bead: close + verify + stage + commit + push the tracker | run `scripts/bb-close-bead.sh` |
+| Snapshotting the run directory after each bead's acceptance check | run `scripts/bb-backup-run.sh` |
 | The Definition of Ready the Phase 1.5 gate enforces | `references/shared/work-order-definition-of-ready.md` |
 
 The reference files are one hop from here — read them in full rather
@@ -947,11 +972,12 @@ than previewing, and substitute every `{PLACEHOLDER}`, `{RUN_DIR}`, and
 `{SCRIPTS}` before sending
 a prompt.
 
-The four `scripts/` entries are **executed, not read**. They exist because
+The five `scripts/` entries are **executed, not read**. They exist because
 each encodes an ordering, quoting or portability rule that is easy to state
 and easy to get wrong under pressure — the close ceremony's four ordering
 constraints, the progress event's quoting hazard, the two-sided skip check,
-and pre-flight's ten probes across two platforms. Run them rather than
+pre-flight's ten probes across two platforms, and the snapshot's
+replace-wholesale-and-guard-the-destination rules. Run them rather than
 reproducing what they do.
 
 Because they are not to be read, their interfaces are published here — an
@@ -963,6 +989,7 @@ pre-flight-check.sh <run-id> [--gate-baseline] [--self-test]   # sandbox ON
 bb-progress.sh   <run-dir> <bead-id> <phase> [key=value ...]
 bb-verify-skip.sh [pathspec ...]        # no pathspec = whole working tree
 bb-close-bead.sh [--trailers-file <path>] <bead-id> <priority> <title> [path ...]
+bb-backup-run.sh <run-dir> [<dest>]     # <dest> defaults to <repo>/.bonanza/<run-id>
 ```
 
 - **`scripts/pre-flight-check.sh`** — Phase 0, mechanized. Human report on
@@ -991,11 +1018,27 @@ bb-close-bead.sh [--trailers-file <path>] <bead-id> <priority> <title> [path ...
   `<path ...>` are the code files this bead changed; WHEN omitted it stages
   everything currently modified, so pass explicit paths whenever another
   agent may be sharing the tree. It closes with a status-only `bd update` and
-  never writes the description. It also **verifies the closure reached
-  `.beads/issues.jsonl`** — re-exporting a bounded number of times, then
-  failing rather than committing when the ledger still does not record the
-  bead closed. That exit-1 case means the bead IS closed: repair with another
-  export plus the commit, never a second `bd update`.
+  never writes the description. It then **verifies the close against the
+  database** — `bd show <id>` must read `closed` — and refuses to stage or
+  commit anything when it does not, so a `bd update` that silently did not
+  take cannot produce a commit claiming a closure that never happened. After
+  the commit it runs `bd dolt push`; a push failure is a WARNING, not an
+  error — the bead IS closed and committed, and the repair is another push,
+  never a second `bd update`.
+- **`scripts/bb-backup-run.sh`** — commits a self-describing copy of the live
+  run directory to `.bonanza/<run-id>/` on the run's branch, so `dispatch.md`
+  and the per-bead progress and handoff files survive a container reclaim.
+  Run it per bead, after each acceptance check, from the orchestrator's own
+  checkout — it refuses to commit to `main`/`master`, and a snapshot taken
+  inside a bead's worktree lands on a branch that is deleted after merge.
+  `<run-dir>` may be the `current` symlink; it is resolved to its physical
+  path so the snapshot is named for the run. Idempotent: each invocation
+  replaces the copy wholesale, and prints `unchanged` without committing when
+  no run file moved. Exit 0 committed (short sha on stdout) or already
+  current (`unchanged`), 1 a step failed, 2 bad invocation. **The live run
+  directory is authoritative and this copy never is** — read the snapshot only
+  WHEN `$RUN_DIR` is gone, and then state its as-of time in whatever you
+  conclude from it.
 
 ### Side effects — what each script leaves behind
 
@@ -1011,10 +1054,20 @@ opening the file.
   appends one JSONL event to `<run-dir>/<bead-id>.progress.jsonl`.
 - **`scripts/bb-verify-skip.sh`** — no side effects; exits 0 (skip
   verified), 1 (not skipped), or 2 (invocation error).
-- **`scripts/bb-close-bead.sh`** — runs `bd update --status closed`,
-  rewrites `.beads/issues.jsonl` by exporting the database, stages the
-  specified paths plus `.beads/issues.jsonl` and
-  `.beads/interactions.jsonl`, makes one commit.
+- **`scripts/bb-close-bead.sh`** — runs `bd update --status closed`, stages
+  the specified paths (or, with none given, everything modified **except
+  `.beads/`**), makes one commit, then runs `bd dolt push` when a Dolt remote
+  is configured. It does **not** write or stage `.beads/issues.jsonl`:
+  `agent-plugins-92q.31` retired that, along with the export-and-verify retry
+  loop and its `BB_EXPORT_*` knobs. The tracker's transport is
+  `origin refs/dolt/data`, the JSONL exports are untracked, and a close commit
+  carries code only.
+- **`scripts/bb-backup-run.sh`** — creates and replaces
+  `<repo>/.bonanza/<run-id>/` (or `<dest>`), writes a
+  `.bonanza/<run-id>/SNAPSHOT.md` inside it, and makes one commit of that path
+  alone. It stages by pathspec, so it cannot swallow unrelated staged work in
+  the orchestrator's checkout. It does not push, and it deletes nothing —
+  Phase 4 removes the directory.
 
 Each script's own header carries the same usage line. WHEN a usage line
 here disagrees with the script, the script is authoritative — and that
