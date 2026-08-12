@@ -1108,7 +1108,15 @@ opening the file.
 
 - **`scripts/pre-flight-check.sh`** — creates `$RUN_DIR` if it does not
   exist, repoints `$RUN_ROOT/current` symlink at the start of every run,
-  emits `BB_*` facts (`BB_LINT`, `BB_MTIME`, etc.) on stdout.
+  emits `BB_*` facts (`BB_LINT`, `BB_MTIME`, etc.) on stdout. It also: runs
+  `git worktree prune` at startup; **pushes to the remote** — probes tracker
+  write access with `git push <remote> HEAD:refs/dolt/preflight-probe-$$`,
+  then deletes that ref, both against the same remote the bead's own work
+  will later push to; and, under `--gate-baseline`, **executes arbitrary
+  commands** by running `bash -c` on every command parsed out of AGENTS.md's
+  `## bead-bonanza gates` block. It does not write user-global state — where
+  Dolt telemetry suppression or the `eventsapi.dolthub.com` deny entry is
+  absent, it reports that and prints the command to run yourself.
 - **`scripts/bb-progress.sh`** — creates `<run-dir>` if it does not exist,
   appends one JSONL event to `<run-dir>/<bead-id>.progress.jsonl`.
 - **`scripts/bb-verify-skip.sh`** — no side effects; exits 0 (skip
