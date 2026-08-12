@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# bb-close-bead.sh — the per-bead close ceremony: atomic close, tracker export,
-# stage, single commit.
+# bb-close-bead.sh — the per-bead close ceremony: atomic close, verify against
+# the database, stage code, one commit, push the tracker.
 #
 # Why this exists
 #   Every closed bead must land as exactly one commit, and the closure must be
@@ -16,8 +16,7 @@
 #     4. one commit, no --amend of anything pushed, no --no-verify.
 #
 #   Then the tracker is pushed (step 5), which is what makes the closure
-#   durable. Constraint 2 formerly read "`bd export` must land in
-#   .beads/issues.jsonl"; that file is not the tracker's transport.
+#   durable.
 #
 #   The same ceremony appears in three subagent prompt templates and has to be
 #   replayed by hand during crash recovery. One script means one behavior.
