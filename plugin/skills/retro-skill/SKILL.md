@@ -182,7 +182,8 @@ Retro progress:
    one** — the same gap present in each skill's text, not one skill's
    defect — do NOT file near-identical RFCs against each. Propose it as
    a requirement in the skill-authoring standard
-   (`docs/standards/skill-best-practices.md`), and file ONE RFC against
+   (standards/skill-best-practices.md, under the project's spec root),
+   and file ONE RFC against
    the skill whose text most directly exhibits it, naming the other
    affected skills and their `file:line` in Evidence. A standards
    requirement is how the rule reaches skills not yet written; the
