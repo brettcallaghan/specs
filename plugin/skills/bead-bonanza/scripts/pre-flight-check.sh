@@ -230,6 +230,12 @@ cd "$REPO" || die "cannot cd to repo root $REPO"
 head_ "pre-flight-check — run $RUN_ID"
 say "repo: $REPO"
 
+# Prune stale worktree registrations before anything downstream trusts
+# `git worktree list`. A reclaimed container deletes a worktree's directory
+# without deregistering it, and a stale entry would read as in-flight forever.
+git worktree prune 2>/dev/null || true
+say "worktree registrations pruned"
+
 # ====================================================== 2. the AGENTS.m blocks
 
 head_ "AGENTS.md blocks"
