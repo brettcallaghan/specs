@@ -14,11 +14,23 @@ name: cli
 # required for merge never reports on a pull request that does not touch
 # its paths, which blocks the merge rather than passing it; the cost of
 # running the matrix on a docs-only commit is the price of avoiding that.
+#
+# This matrix is the most expensive thing this repository runs — on a
+# private repository macOS minutes bill at 10x and Windows at 2x — so it
+# is held to the narrowest trigger set that still gates a merge: a pull
+# request that is ready for review, a merge to the default branch, and
+# manual dispatch. Pushes to a working branch run nothing, and draft pull
+# requests are skipped by the `if` on each job below.
 
 on:
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
+    # ready_for_review is not in the default set (opened, synchronize,
+    # reopened); without it, taking a pull request out of draft would not
+    # start the run that the draft skipped.
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -40,6 +52,11 @@ jobs:
   test:
     name: go test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    # Draft pull requests are skipped at the job rather than filtered at the
+    # trigger: a job that skips still reports a check run, which branch
+    # protection counts as satisfied, whereas a workflow that never triggers
+    # leaves a required check pending forever and blocks the merge.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     strategy:
       # Do not cancel the other legs on the first failure: which
       # platforms diverged is the whole diagnostic when a portability
@@ -92,6 +109,7 @@ jobs:
   cross-compile:
     name: cross-compile the release matrix
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     defaults:
       run:
         working-directory: cli
@@ -129,6 +147,7 @@ jobs:
   no-runtime:
     name: runs with no language runtime installed
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     steps:
       - uses: actions/checkout@v4
 
