@@ -167,15 +167,18 @@ and is not, is worse than absent.
   refuses to commit a closure the ledger does not carry, and any hand-rolled
   close must verify the ledger the same way rather than trusting one export.
 - **KNOWN RED, pre-existing — `scripts/check-skills.sh --strict`.** It exits 1
-  on *warnings*, not errors. Do not treat either warning as your change's
-  failure and do not try to fix them mid-run; both are editorial scope owned
+  on a *warning*, not an error. Do not treat the warning as your change's
+  failure and do not try to fix it mid-run; it is editorial scope owned
   elsewhere. The bar is **no findings beyond this baseline**, not exit 0.
-  Re-verified 2026-08-12: `scripts/check-skills.sh --strict` →
-  `0 error(s), 2 warning(s)` — `plugin/skills/bead-bonanza/SKILL.md` at 859
-  lines, and `plugin/skills/spec/SKILL.md` (22497 bytes) now also over the
-  ~20000-byte guideline. The warning count has grown from the previously
-  recorded 1; update this baseline again the next time it drifts rather than
-  trusting this number indefinitely.
+  Re-verified 2026-08-12 on `e92e56f`: `scripts/check-skills.sh --strict` →
+  `0 error(s), 1 warning(s)`, exit 1 — `plugin/skills/bead-bonanza/SKILL.md`
+  at 65451 bytes, over the ~20000-byte guideline.
+  `plugin/skills/spec/SKILL.md` was the second warning earlier the same day
+  and no longer is; `agent-plugins-d70` brought it to 16941 bytes.
+  Re-measure rather than trusting this number indefinitely — and capture
+  `$?` directly, not through a pipe: `scripts/check-skills.sh --strict >out
+  2>&1; echo $?`. Piping to `tail` reports the pager's status and reads as
+  a pass.
 - **`scripts/generate-schemas.sh --check` fails when the installed `strata`
   predates `strata-lang/strata@8997153`.** That commit fixes
   `allowAdditionalProperties: false` silently dropping struct inheritance.
