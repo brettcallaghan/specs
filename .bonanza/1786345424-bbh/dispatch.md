@@ -424,6 +424,69 @@ Three things later stages must not misread:
   and it is one more reason `92q.7` must be re-groomed from scratch rather
   than unfrozen as written.
 
+### 2026-08-12 — stages 2–4 landed (log gap closed retroactively)
+
+The amendments log stopped at stage 1 while stages 2–4 ran. Recorded here from
+git and the tracker rather than from the log, which is itself the defect:
+
+| Stage | Beads | Landed as |
+|---|---|---|
+| 2 | `92q.31` | `05fff9b` — Dolt remote adopted, JSONL-as-transport retired |
+| 3 | `92q.33` | `e439232` — post-re-scope pass over the 24 closed beads |
+| 4 | `92q.12`, `92q.13`, `92q.29` | `e8a8fd7`, `d8608da`, folded |
+| 4b | `92q.27` (superseded), `92q.28`, `92q.32` | `149b32e`, `0410ddc` |
+
+A PR #19 review then added a prose-cut pass (`opu`, `04m`, `6uo`, `20w`,
+`rzu`, `xvl`, `vme`) and two standing rules: `## Historical prose: don't` in
+`CLAUDE.md`/`AGENTS.md`, and no project bead ids in `plugin/skills/**`.
+
+**Amending this file is not optional per stage.** A stage that lands without an
+amendment leaves the plan describing a shape that no longer exists, which is
+the failure `92q.6` filed this file to prevent.
+
+### 2026-08-12 — stage 5 scoped: fix the failure mode, then re-decide the residual
+
+**User decision.** `92q.7` runs steps 1–3 — reorder so compaction-critical
+material sits above byte 20,000; single-source the rules duplicated between
+`SKILL.md` and `references/`; extract the reference-shaped sections. Then
+**re-measure and stop**. Whether to pursue the residual down to a whole-file
+20,000 bytes is a separate decision taken against real numbers, not
+pre-committed now.
+
+What this settles: `92q.7` is **not** authorised to delete operative content to
+hit a byte target, and its move-rule 2 stands — no rule may exist only in a
+reference file if an orchestrator must obey it without being told to load that
+file. `8ef` reports the residual against the cap; it does not gate on it.
+
+Measured at decision time: `SKILL.md` 61,435 bytes (body 60,746);
+`references/` 64,897 across 5 files; `head -c 20000` lands mid-sentence inside
+the `BB_WORKTREE_BASEREF` paragraph.
+
+**Steps 1–3 land around 30–35,000 bytes.** That is the expected outcome, not a
+shortfall.
+
+### 2026-08-12 — wave S5A dispatched (concurrent, non-epic backlog)
+
+Runs alongside stage 5's planning. Partitioned on shared surface, not on
+priority — three of the seven candidates collide:
+
+| Dispatch | Beads | Surface |
+|---|---|---|
+| A (batch) | `qqm`, `psw` | `scripts/bb-close-bead.sh` — same file, so batched, never concurrent |
+| B | `6xn` | bead Designs + `SKILL.md` reference table |
+| C | `4sp` | `scripts/sync-shared-references.sh`, the 12 vendored copies, `check-skills.sh` |
+
+Held back to a second wave, and why: **`y1h`** touches
+`sync-shared-references.sh` (collides with `4sp`) and
+`scripts/validate-corpus.py` (collides with `7eh`); **`7eh`** extends the
+orphan guard that `4sp` may retire outright. Both are dispatched after `4sp`
+resolves, since a rejected `4sp` and an adopted one give them different targets.
+
+**`akz` is bounced, not dispatched.** Its acceptance criteria require timing
+Phase 0, plan authoring and Phase 4 on a real run of ≤3 beads. This wave re-uses
+an existing sprint plan and runs no Phase 0, so dispatching it would produce a
+measurement of something the criteria do not ask about.
+
 ---
 
 # Sprint 2 plan — re-scope, 2026-08-11
