@@ -169,10 +169,28 @@ if command -v bd >/dev/null 2>&1; then
   if [ -z "$BB_DOLT_FATAL" ] && [ -d .beads ] \
      && [ ! -d .beads/embeddeddolt ] && [ ! -d .beads/dolt ]; then
     log "no beads database in this clone — bootstrapping from the Dolt remote"
-    if bd bootstrap >/dev/null 2>&1; then
+    _bootstrap_out="$(bd bootstrap 2>&1)"
+
+    # Verify the POST-CONDITION, never the exit code. `bd bootstrap` exits 0
+    # after doing nothing: its "database already exists" probe matches the
+    # .beads DIRECTORY, which is committed here, so a clone that produced no
+    # database still reports success. Trusting the status is how every fresh
+    # session silently came up with an empty tracker.
+    if [ -d .beads/embeddeddolt ] || [ -d .beads/dolt ]; then
       log "beads DB bootstrapped from origin refs/dolt/data"
     else
-      BB_DOLT_FATAL="bd bootstrap failed against origin refs/dolt/data."
+      BB_DOLT_FATAL="bd bootstrap produced no database (it may have exited 0 anyway). Output: $(printf '%s' "$_bootstrap_out" | tr '\n' ' ' | cut -c1-300)"
+    fi
+  fi
+
+  # The database name must match the one on the remote, or bd silently creates
+  # an EMPTY database under the configured name and reports no issues. Measured:
+  # .beads/metadata.json said `spec_driven_dev` while the remote carries `beads`,
+  # and `bd stats` created the empty one rather than reporting the mismatch.
+  if [ -z "$BB_DOLT_FATAL" ] && [ -d .beads/embeddeddolt ] && command -v jq >/dev/null 2>&1; then
+    _want="$(jq -r '.dolt_database // empty' .beads/metadata.json 2>/dev/null)"
+    if [ -n "$_want" ] && [ ! -d ".beads/embeddeddolt/$_want" ]; then
+      log "WARNING: metadata.json names database '$_want' but it is absent from .beads/embeddeddolt/ — present: $(ls .beads/embeddeddolt/ 2>/dev/null | tr '\n' ' ')"
     fi
   fi
 

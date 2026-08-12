@@ -67,9 +67,16 @@ export:
 # - github.token    → use GITHUB_TOKEN env var instead
 
 # The Dolt remote IS the tracker: issues live in a Dolt database synced to
-# refs/dolt/data here. It must be the shared https URL — a container-local proxy
-# address (e.g. http://local_proxy@127.0.0.1:PORT/...) resolves nowhere else, and
-# every other clone then has no tracker. There is no JSONL fallback by design.
+# refs/dolt/data on this repository's git origin. There is no JSONL fallback by
+# design.
+#
+# `sync.remote` is deliberately NOT set. bd 1.2.1 rejects a `git+https://` value
+# with "looks like a git code-repository URL, not a Dolt remote — skipping
+# clone", and then reports "Database already exists" because its probe matches
+# the .beads DIRECTORY (committed here) rather than a database — exiting 0 with
+# no database cloned. Unset, bd discovers the same remote from git origin's
+# refs/dolt/data and clones correctly. Setting it is what breaks a fresh clone,
+# not what makes it work.
 #
 # Trap: a 403 from `bd dolt push` is NOT GitHub refusing refs/dolt/* writes. It
 # is an egress proxy substituting a brokered GitHub App token scoped to
@@ -77,5 +84,3 @@ export:
 # SessionStart hook establishes and verifies that write path every session and
 # fails loudly when it cannot — see .claude/hooks/session-start.sh and
 # docs/session-bootstrap.md.
-sync:
-  remote: "git+https://github.com/brettcallaghan/agent-plugins"
