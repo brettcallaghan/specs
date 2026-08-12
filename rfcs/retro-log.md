@@ -23,7 +23,7 @@ decision.
 | 2026-08-10 | self | `bead-bonanza` | RFC 0016 | 3 adopted (1 with refinement, 1 since retired), 1 rejected, 3 triage-originated adopted |
 | 2026-08-10 | self | `bead-bonanza` | RFC 0017 | 5 adopted (3 with refinement), 1 triage-originated adopted |
 | 2026-08-10 | self | `bead-bonanza` | RFC 0018 | 6 adopted (3 with refinement, 1 of those incomplete, 1 since retired), 2 triage-originated adopted |
-| 2026-08-12 | self | `bead-bonanza` sprint (run `1786562615-17`) | [sprint report](sprints/2026-08-12-bead-bonanza-hardening.md) | 73 findings harvested, 16/17 beads closed; not yet triaged |
+| 2026-08-12 | self | `bead-bonanza` sprint (run `1786562615-17`) | sprint report, deleted from the tree in `ed6257f`; all 73 findings remain at `git show 522f30d:rfcs/sprints/2026-08-12-bead-bonanza-hardening.md` | 73 findings harvested, 16/17 beads closed; 11 cited by the two inbox RFCs, remainder unfiled |
 
 ## Run notes
 

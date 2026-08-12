@@ -43,7 +43,7 @@ without distinguishing anchors that survive a sprint from anchors that cannot.
 | Runs observed | 1 |
 | Task | Grooming 17 beads for a redundancy-cut sprint over `plugin/skills/bead-bonanza/` |
 | Run dates | 2026-08-12, PR #20 |
-| Evidence base | `rfcs/sprints/2026-08-12-bead-bonanza-hardening.md`, verbatim findings |
+| Evidence base | The run's sprint report, verbatim findings. Deleted from the working tree in `ed6257f`; retrieve with `git show 522f30d:rfcs/sprints/2026-08-12-bead-bonanza-hardening.md`. Every finding number cited below indexes that file. |
 
 Disclosure: the grooming pass being critiqued here was performed by this same
 session earlier in the day. The evidence is the implementers' findings, not the
