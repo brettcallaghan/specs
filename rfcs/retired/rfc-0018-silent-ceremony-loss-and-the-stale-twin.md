@@ -5,10 +5,10 @@ description: Three beads closed with no retro anchor because their briefs
   were paraphrased, and no orchestrator step checks; separately the
   committed backup shares the live run directory's id while missing two
   beads' trails, which misled a retro into reporting anchors as absent
-slug: rfc-self-silent-ceremony-loss-and-the-stale-twin
+slug: rfc-0018
 type: rfc
-status: ready-for-review
-updated_at: 2026-08-07T00:00:00Z
+status: retired
+updated_at: 2026-08-12T00:00:00Z
 origin: self
 skill: bead-bonanza
 skill_version: "1.3"
@@ -445,3 +445,132 @@ and a reader of a preserved run directory knows what it is and when it
 was taken.
 
 ## Resolution
+
+**Triaged 2026-08-10; implemented across two `bead-bonanza` sprints and
+resolved 2026-08-12.** 6 proposals: 6 adopted — 3 with refinement, 1 of
+those still incomplete, and 1 since retired. None deferred, none
+rejected. 2 triage-originated changes are recorded below the proposal
+table.
+
+Approved alongside two sibling RFCs in `rfcs/inbox/bead-bonanza/`; with
+more than five proposals approved and most of them changing one file,
+step 5's "Sequence before you edit" branch applied, so each proposal was
+filed as a bead under epic `agent-plugins-92q` and run through
+`groom-beads` rather than implemented inline.
+
+| Item | Outcome | Bead |
+|------|---------|------|
+| P1 — verify the artifacts before recording a bead closed | **adopted with refinement**, and the refinement inverts the check. P1's test reads the run directory (`test -s "$RUN_DIR/$ID.retro.md"`, grep the progress ledger), but both files are written by the agent being checked, so the test is testimony verifying itself — exactly the failure it was written to catch. What landed is a five-signal acceptance check against git and tracker state: the bead reads closed in `bd`, a close commit exists on the bead's branch, that branch merged into the sprint branch `--ff-only`, **the worktree is gone** (the load-bearing signal — removal is the orchestrator's own act of accepting the bead, so a surviving worktree is a bead not accepted whatever the subagent reported), and at least one `retro:` comment exists or the subagent explicitly reported a clean bead. `SKILL.md` also names the two signals the check deliberately does not use, the `"phase":"committed"` ledger event and a per-bead retro file — which no longer exists, findings having moved to `retro:` comments. P1's disposition rules survived: a failing bead gets a Phase 4 row naming the failing signal instead of a commit sha, and is not counted among the closed. | `agent-plugins-92q.12`, `agent-plugins-92q.22` |
+| P2 — make the run-directory backup self-describing | **adopted with refinement, and merged with the sibling RFC's P5.** `scripts/bb-backup-run.sh` writes `SNAPSHOT.md` beside the copy recording the run id, the as-of timestamp, the live directory's path, the run branch, the HEAD when it was taken, and every bead id with a progress ledger or handoff file. The "live directory is authoritative, a snapshot never is" rule landed verbatim in `references/recovery.md` and binds recovery, retros and DoD audits alike. Refinement: the refresh is keyed to P1's acceptance check as proposed, but the bead-id list is of handoff files rather than `.retro.md` files, because the per-bead retro file was retired in the same sprint. | `agent-plugins-92q.13`, `agent-plugins-xvl`, `agent-plugins-vme` |
+| P3 — fit the operative procedure under the re-injection cap | **adopted with refinement — decomposed, and NOT yet complete.** See *On P3* below. The re-read instruction, the linter's byte threshold, the Phase 0 gate baseline and the reordering all landed. The size target did not: `SKILL.md`'s body is **61,153 bytes (~15,288 tokens)** against P3's ~20,000-byte target, and `scripts/check-skills.sh --strict` still exits 1 on it. Do not read this row as resolved. | `agent-plugins-92q.1`, `agent-plugins-92q.2`, `agent-plugins-92q.7`, `agent-plugins-92q.3` (Phase 0 baseline half); measurement gate `agent-plugins-8ef` deferred |
+| P4 — state what the ledger does and does not prove | **adopted** as written. `references/recovery.md` carries "the ledger is a hint, never the authority" directly under the event schema, with all three negative statements — a trail ending before `committed` proves nothing, an absent progress file proves nothing, an mtime bounds the last write and not liveness — and the resolution order `bd show`, then `git log --grep`, then the ledger. It survived the second sprint untouched and is now cited by the Phase 3 acceptance check as the reason a `"phase":"committed"` event is not an acceptance signal. | `agent-plugins-92q.11` |
+| P5 — define the resume path for an interrupted bead | **adopted, landed, and since retired.** The `WIP <bead-id>` exception and its squash-before-close rule landed as proposed. `agent-plugins-92q.30` then removed the condition that made it necessary: a bead's interrupted work sits in that bead's own worktree on its own branch, so there is nothing to persist with a WIP commit and nothing to squash. The resume path is now to re-enter the worktree and finish the work, and `references/recovery.md` says so explicitly. The proposal was correct for a shared working tree; it does not survive one worktree per bead. | `agent-plugins-92q.15`; retired by `agent-plugins-92q.30` / `agent-plugins-92q.33` |
+| P6 — let the close script write the project's trailers | **adopted** as written, both halves. `bb-close-bead.sh` takes `--trailers-file <path>`, appended to the commit message body after a blank line, resolved once per run at Phase 0 and threaded into every dispatch template; and the ceremony now reads the landed sha from the branch (`git rev-parse --short HEAD`) rather than from the script's printout, so a rewrite between the commit and the ledger write cannot desync them. | `agent-plugins-92q.16` |
+
+**Triage-originated changes.** From the review session rather than from
+this RFC's testimony, numbered `T` so they are not read as its proposals.
+
+| Item | Outcome | Bead |
+|------|---------|------|
+| T1 — Definition of Ready: require decisions to be closed, and narrow the sanctioned hedge in the Design check | **adopted.** The spec-owned `work-order-definition-of-ready` gained check 9; `groom-beads` gained the matching checklist line and parks a bead whose Design leaves a choice open as `blocked-needs-info` rather than guessing. | `agent-plugins-92q.4` |
+| T2 — delete `SKILL.md` Phase 2: the readiness gate owns decisions, and refinement does not run inside the sprint | **adopted.** Phase 2 was 4,280 bytes inside the window that survives compaction, spent on work the Definition of Ready (T1) already requires to be finished before dispatch. Recorded here as triage-originated, though it also served P3's byte budget. | `agent-plugins-92q.5` |
+
+**On P3.** Adopted with refinement because it was decomposed rather than
+implemented as the single restructure it describes, and it is the one row
+in this Resolution that is not finished.
+
+*Why it was decomposed.* P3 proposes one restructure of a file whose
+contents were about to change. Within the same epic,
+`agent-plugins-92q.30` and `agent-plugins-92q.31` deleted whole passages
+of `SKILL.md` outright — the shared-tree machinery, the tracker-write
+deferral, the JSONL-as-transport rules — so a restructure performed
+against the file as it stood would have been redone. The proposal was
+split into the parts that were safe to land immediately, the reordering
+that had to wait for the content-reducing beads, and a measurement gate
+to verify the result.
+
+*What landed.* `agent-plugins-92q.1` put the post-compaction re-read
+instruction at the top of the file, above the truncation point — the half
+P3 itself calls the cheapest and says can ship on its own.
+`agent-plugins-92q.2` rewrote `scripts/check-skills.sh` to threshold skill
+bodies on bytes derived from the 5,000-token re-injection cap instead of
+on a 500-line guideline; the byte threshold immediately found a second
+skill over the cap that the line count had never flagged
+(`plugin/skills/spec/SKILL.md`, 22,497 bytes). `agent-plugins-92q.3`
+carried P3's separate Phase 0 half: `pre-flight-check.sh --gate-baseline`
+runs the gate profile on the untouched tree, records the result in
+`dispatch.md`'s run manifest, and makes "no findings beyond the baseline"
+the stated bar — retiring the hand-written exception this run repeated
+into every prompt. `agent-plugins-92q.7` reordered the file so the
+executable core comes first: worktrees, the merge policy, the phase loop,
+the acceptance check, the close ceremony and the script interfaces are all
+inside the surviving window, and the explanatory material moved to
+`references/operating-principles.md` and `references/dispatch-plan.md`.
+
+*What did not.* `agent-plugins-8ef` was the bead that would have measured
+the fit, trimmed the residual and retired the KNOWN RED entry. It was
+closed on 2026-08-12 by the repository owner's decision, to be revisited
+in a dedicated analysis round rather than carried as a standing open bead.
+So the finding that motivates P3 — Finding 7, that everything past the cap
+leaves context mid-run — is **mitigated, not resolved**. Measured on the
+tree this Resolution was written against: body 61,153 bytes against a
+~20,000-byte cap, meaning roughly two thirds of the file is still dropped
+on re-injection. The reordering means what is dropped is now explanatory
+rather than operative, which is the whole of the improvement. The linter
+baseline is `0 error(s), 2 warning(s)`, `RESULT: FAIL`, on `bead-bonanza`
+and `spec`.
+
+**On the P2/P5 merge.** Recorded in both Resolutions so neither reads as
+unaddressed. This RFC's P2 explicitly refines the sibling RFC's P5 rather
+than duplicating it: P5 established that a committed copy must exist, P2
+established what it must declare and that it is never authoritative while
+the live directory exists. One bead carried both.
+
+**Self-authorship, disclosed.** This RFC carries `origin: self`: it was
+authored inside this repository by an agent running the skill it
+critiques, and triaged inside the same repository. Its `model` field is
+withheld under the harness policy tracked by
+`rfcs/inbox/retro-skill/rfc-self-retro-skill-withheld-model.md`, so
+whether the authoring agent and the triaging agent were the same model
+**cannot be confirmed or excluded**. Nothing here is independent
+corroboration — and this RFC is not even an independent run: it says so
+itself, covering the same run `1786121603-ri` as its sibling, with
+`runs_observed: 1`. Two of its proposals ratify decisions their own author
+made. P5 sanctions the `WIP` commit that run improvised against the
+skill's stated invariant, converting a rule-break into a rule; the sprint
+then retired it on other grounds. P3's decomposition was decided by the
+triage rather than by the RFC, and the measurement that would have tested
+whether the restructure worked was deferred by the human — which is the
+one place in these three Resolutions where a self-adopted proposal is
+recorded as unfinished rather than as landed.
+
+**Provenance check.** `skill: bead-bonanza` at `skill_version: "1.3"` and
+`plugin_version: "0.15.0"` — both current when the RFC was filed and when
+triage began. Every cited line was re-read against the tree before
+classification; none had moved or been fixed since. Finding 5's measured
+red gate was reproduced (`0 error(s), 1 warning(s)` at the time; the
+threshold has since changed and the baseline is now 2 warnings).
+
+**Dedupe.** No match in RFCs 0001–0015. The overlap with its two sibling
+RFCs is confined to the P2/P5 merge above.
+
+**Files changed.** `plugin/skills/bead-bonanza/SKILL.md`;
+`plugin/skills/bead-bonanza/references/recovery.md`,
+`operating-principles.md`, `dispatch-plan.md`, `subagent-prompts.md`;
+`plugin/skills/bead-bonanza/scripts/bb-close-bead.sh`,
+`bb-backup-run.sh` (new), `pre-flight-check.sh` (new);
+`scripts/check-skills.sh`; `work-order-definition-of-ready.md` and
+`work-order-template.md` in `plugin/skills/spec/references/` and their
+vendored copies under `groom-beads`, `groom-feature-blueprint` and
+`bead-bonanza`; `plugin/skills/groom-beads/SKILL.md`.
+
+**Version bumps.** `work-order-definition-of-ready` 1.2→1.3,
+`work-order-template` 1.3→1.4. Plugin 0.16.0→0.17.0, one MINOR bump
+covering this RFC and its two siblings.
+
+The `version` frontmatter of the changed shipped **skills** is not
+bumped here: those files were outside this closeout's scope, and the
+five affected (`bead-bonanza`, `groom-beads`, `groom-feature-blueprint`,
+`retro-skill`, `retro-spec`) are tracked by `agent-plugins-x8r`. Until
+that lands, `bead-bonanza` still reports `1.3` — the version all three
+of these RFCs were filed against — despite a near-total rewrite.

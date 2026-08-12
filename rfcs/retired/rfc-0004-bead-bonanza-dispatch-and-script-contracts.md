@@ -392,6 +392,8 @@ whose failure a red gate is.
 | P4 — probe for the `dolt` CLI | **adopted.** Phase 0 probes first and treats an absent `dolt` as a normal configuration, not a run failure. | `agent-plugins-cr2` |
 | P5 — record the gate profile's baseline verdict | **deferred** → `agent-plugins-1a9`, `theme:gate-baseline`. Entangled with an unsettled question: the standard states the body budget in CHARACTERS while `check-skills.sh` measures LINES. Bead is `deferred` / `blocked-needs-info` pending that decision. | `agent-plugins-1a9` |
 
+**2026-08-10:** bead `agent-plugins-1a9` was never persisted to `.beads/issues.jsonl` and does not exist in any branch's database; the deferral was lost with its container. The blocking question (body budget in characters vs `check-skills.sh` measuring lines) is resolved: the binding constraint is the 5,000-token re-injection cap, so the threshold is a size in bytes. Both halves of P5 are now tracked by `agent-plugins-92q.2` (check-skills.sh: threshold skill bodies on bytes) and `agent-plugins-92q.3` (pre-flight-check.sh: mechanize Phase 0 on macOS and Linux).
+
 **Files changed:** `plugin/skills/bead-bonanza/SKILL.md`,
 `plugin/skills/bead-bonanza/scripts/bb-progress.sh`.
 

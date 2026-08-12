@@ -28,3 +28,7 @@ local/
 specs/specs.json
 
 build/
+# Beads / Dolt runtime locks (bd init flags this as a required pattern;
+# .beads/.gitignore ignores *.lock but only inside .beads/, and the gate
+# lock is written at the repo root)
+*.gate.lock*

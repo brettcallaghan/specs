@@ -37,6 +37,11 @@ command -v python3 >/dev/null 2>&1 || { echo "check-skills: python3 required" >&
 STRICT=$STRICT python3 - <<'PY'
 import glob, os, re, sys
 
+# The skill re-injection cap: after a compaction Claude re-reads at most
+# ~5,000 tokens of a loaded skill, and anything past that is simply gone.
+# Expressed in bytes at ~4 bytes/token so the gate needs no tokenizer.
+BODY_BYTE_MAX = 20000
+
 errors, warnings = [], []
 def err(w, m):  errors.append(f"{w}: {m}")
 def warn(w, m): warnings.append(f"{w}: {m}")
@@ -113,13 +118,23 @@ for p in SKILLS:
         for pov in (' I ', 'I can ', 'you can ', 'You can '):
             if pov in desc: warn(p, f"description may not be third person (found {pov!r})")
 
+    # Size the body against the 5,000-token skill re-injection cap — what
+    # Claude re-reads after a compaction. Lines are the wrong unit: the same
+    # content rewrapped from 80 to 200 columns loses two thirds of its lines
+    # and not one token, so a line gate is satisfied by reflowing. Bytes are
+    # proportional to tokens, need no tokenizer (this must run in CI and on a
+    # laptop with nothing installed), and at the ~4 bytes/token rule of thumb
+    # for English prose plus markdown, 5,000 tokens is ~20,000 bytes.
     body = text.split('---', 2)[2]
-    n = len(body.split('\n'))
-    if n > 500: warn(p, f"body is {n} lines (guidance: under 500)")
+    n = len(body.encode('utf-8'))
+    if n > BODY_BYTE_MAX:
+        warn(p, f"body is {n} bytes (~{n // 4} tokens); above ~{BODY_BYTE_MAX} "
+                f"the tail is truncated from context after a compaction")
 
 # ---- 2. bundled paths resolve from the file that cites them ----------------
 IGNORE = {'AGENTS.md','CLAUDE.md','CONTRIBUTING.md','SKILL.md','index.md',
-          'decisions.md','dispatch.md','.retro.md','.claude/settings.local.json',
+          'decisions.md','dispatch.md','.handoff.md','SNAPSHOT.md',
+          '.claude/settings.local.json',
           'plugin/.claude-plugin/plugin.json','.claude-plugin/marketplace.json',
           # Filenames a skill *describes* rather than ships: these name files
           # in the user's project, or upstream in strata-lang/strata, so there

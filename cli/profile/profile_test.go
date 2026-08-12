@@ -152,7 +152,7 @@ var realSlugs = []struct {
 	{"standards", "testing-standards", "specs/standards/testing-standards.md"},
 	{"standards", "cross-document-references", "plugin/skills/spec/references/cross-document-references.md"},
 	{"standards", "blueprint-readiness-checklist", "plugin/skills/spec/references/blueprint-readiness-checklist.md"},
-	{"standards", "findings-capture-protocol", "rfcs/findings-capture.md"},
+	{"standards", "findings-capture-protocol", "plugin/skills/retro-spec/references/findings-capture-protocol.md"},
 	{"container-blueprint", "container-spec-cli", "specs/architecture/container-spec-cli.md"},
 	{"module-blueprint", "module-spec-profile", "specs/architecture/module-spec-profile.md"},
 	{"module-blueprint", "module-document-core", "specs/architecture/module-document-core.md"},

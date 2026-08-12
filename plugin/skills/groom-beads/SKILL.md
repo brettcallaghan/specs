@@ -116,6 +116,7 @@ Grooming progress:
 - [ ] 0. Probed the `bd` CLI; loaded `bd prime` / remembered insights
 - [ ] 1. Scoped the grooming set; showed the user what will change
 - [ ] 2. Every bead driven to the spec-owned Definition of Ready
+  - [ ] 2a. No open decisions on any bead (DoR check 9)
 - [ ] 3. Dependency graph wired (every edge justified, none fabricated)
 - [ ] 4. Tier + tier_reason on every bead (never null)
 - [ ] 5. C4 blast radius tagged (or explicitly skipped: no C4 docs)
@@ -159,8 +160,9 @@ WHEN a bead cannot be brought to Ready, do not dispatch it. Parking it takes
 **two** writes, and the second is the one that actually works:
 
 1. Record WHY, for the human and the next grooming pass — set
-   `grooming_status` to `blocked-needs-info` (a specific fact is missing) or
-   `blocked-ungroomable` (it needs redesign).
+   `grooming_status` to `blocked-needs-info` (a specific fact is missing, or
+   the Design leaves a choice open — that is the human's call, never yours to
+   guess) or `blocked-ungroomable` (it needs redesign).
 2. Record THAT, for the orchestrator — change the bead's `status` so it
    leaves the ready queue:
 

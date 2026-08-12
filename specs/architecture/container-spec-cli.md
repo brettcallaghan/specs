@@ -6,7 +6,7 @@ description: The command-line binary that indexes a specification corpus
 slug: container-spec-cli
 type: container-blueprint
 status: approved
-updated_at: 2026-08-09T00:00:00Z
+updated_at: 2026-08-12T00:00:00Z
 contracts_provided:
   - "contract-specs-configuration"
 contracts_consumed: []
@@ -364,7 +364,7 @@ This container SHALL comply with:
   coverage obligations tying both back to acceptance criteria.
 
 The repository's other standards document,
-`docs/standards/skill-best-practices.md`, governs skill authoring and
+`specs/standards/skill-best-practices.md`, governs skill authoring and
 does not apply to a compiled binary.
 
 ## Change Guidance

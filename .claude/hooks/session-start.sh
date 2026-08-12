@@ -110,48 +110,93 @@ if command -v bd >/dev/null 2>&1; then
   export BD_DISABLE_TELEMETRY=1
   [ -n "${CLAUDE_ENV_FILE:-}" ] && echo 'export BD_DISABLE_TELEMETRY=1' >> "$CLAUDE_ENV_FILE"
 
-  # The Dolt database is gitignored — only .beads/issues.jsonl is committed —
-  # so a fresh container has no database and every bd command fails with "no
-  # beads database found". Test for the database directory rather than running
-  # bd: an unrelated bd failure should not trigger a re-init.
-  if [ -d .beads ] && [ ! -d .beads/embeddeddolt ] && [ ! -d .beads/dolt ]; then
-    log "no beads database in this clone — reconstructing"
-    # `bd init` scaffolds agent config files AND git-commits them. That
-    # scaffolding is already committed in this repo, so on a fresh container
-    # the only thing genuinely needed is the (gitignored) Dolt database.
-    # Record HEAD so any commit init makes can be unwound: a session hook must
-    # never leave a commit the user did not ask for.
-    _head_before="$(git rev-parse HEAD 2>/dev/null || echo none)"
-    if BD_NON_INTERACTIVE=1 bd init --non-interactive >/dev/null 2>&1; then
-      _head_after="$(git rev-parse HEAD 2>/dev/null || echo none)"
-      if [ "$_head_before" != "$_head_after" ] && [ "$_head_before" != none ]; then
-        git reset --soft "$_head_before" 2>/dev/null || true
-        git restore --staged . 2>/dev/null || true
-        log "unwound the commit bd init made (scaffolding is already in the repo)"
-      fi
-      # Unwinding the commit is not enough: `bd init` also REWRITES the
-      # committed .beads/config.yaml in the working tree. It reindents the
-      # file and adds a `sync.remote` pointing at the container-local git
-      # proxy (127.0.0.1:<ephemeral port>), which is exactly the misleading
-      # sync path that file's own trailing comment warns against — Dolt sync
-      # does not work in this project, and a remote that resolves only inside
-      # one dead container is worse than none. Observed 2026-08-01.
-      # The committed copy is authoritative; restore it.
-      if ! git diff --quiet -- .beads/config.yaml 2>/dev/null; then
-        git checkout -- .beads/config.yaml 2>/dev/null \
-          && log "restored .beads/config.yaml (bd init rewrote it and added a local-proxy sync remote)"
-      fi
-      # .beads/issues.jsonl is the durable export and the only thing version
-      # control carries. Restore it into the fresh database when present.
-      if [ -s .beads/issues.jsonl ]; then
-        BD_NON_INTERACTIVE=1 bd import .beads/issues.jsonl >/dev/null 2>&1 \
-          && log "beads DB reconstructed from .beads/issues.jsonl" \
-          || log "WARNING: bd import failed — DB is empty but usable"
-      else
-        log "beads DB created (no .beads/issues.jsonl to restore)"
-      fi
+  # --- 2a. Write access to refs/dolt/data -----------------------------------
+  #
+  # The tracker's source of truth is the Dolt remote (`refs/dolt/data` on
+  # origin), not a committed JSONL export. That makes WRITE access to that ref
+  # a hard precondition for this repository, not a nice-to-have: a session that
+  # can read but not write can close a bead and lose it on container reclaim.
+  #
+  # There is deliberately NO JSONL fallback. Carrying both models means two
+  # code paths, a rule for which one wins, and every reader having to ask which
+  # mode it is in — more complexity than either model alone, and it preserves
+  # exactly the machinery agent-plugins-92q.31 retired. An environment that
+  # cannot reach the tracker is broken and says so.
+  #
+  # Two settings make it work, and both are global git config rather than
+  # per-command environment juggling, because `bd dolt push` shells out to git
+  # from wherever the agent happens to run it:
+  #
+  #   1. A credential helper that reads the PAT from the environment at call
+  #      time. The token is never written to disk.
+  #   2. Proxy bypass for github.com. The egress proxy REPLACES the
+  #      Authorization header with a brokered GitHub App installation token,
+  #      which is scoped to refs/heads and returns 403 on refs/dolt/*. This was
+  #      misdiagnosed for a full session as "GitHub refuses refs/dolt/* writes";
+  #      it is not. Proof: a push with a deliberately INVALID token succeeded,
+  #      which is only possible if the proxy substituted its own credential.
+  #      Direct egress to github.com is permitted, so bypassing the proxy lets
+  #      the real PAT through.
+  #
+  # The token name is this repository's environment contract, not the skill's:
+  # bead-bonanza requires only "write access to refs/dolt/data" and never names
+  # a credential. See docs/session-bootstrap.md.
+  BB_DOLT_FATAL=""
+  if [ -z "${AGENT_PLUGINS_ACCESS_TOKEN:-}" ]; then
+    BB_DOLT_FATAL="AGENT_PLUGINS_ACCESS_TOKEN is not set in this container."
+  else
+    git config --global credential.helper \
+      '!f() { echo username=x-access-token; echo "password=$AGENT_PLUGINS_ACCESS_TOKEN"; }; f'
+    git config --global 'http.https://github.com/.proxy' ''
+
+    # Verify rather than assume. Pushing HEAD (already on the remote in any
+    # normal clone) to a scratch ref under refs/dolt/ transfers no objects and
+    # exercises the exact permission that matters, then removes it.
+    _probe="refs/dolt/write-probe-$$"
+    if git push -q origin "HEAD:$_probe" >/dev/null 2>&1; then
+      git push -q origin --delete "$_probe" >/dev/null 2>&1 || \
+        log "note: left a stray probe ref $_probe on origin — delete it by hand"
+      log "verified write access to refs/dolt/* (probe pushed and removed)"
     else
-      log "WARNING: bd init failed — bd-dependent skills will not run"
+      BB_DOLT_FATAL="a probe push to refs/dolt/* was rejected."
+    fi
+  fi
+
+  # --- 2b. The database -------------------------------------------------------
+  # Gitignored, so a fresh container has none and every bd command fails with
+  # "no beads database found". Test for the directory rather than running bd:
+  # an unrelated bd failure should not trigger a re-bootstrap.
+  if [ -z "$BB_DOLT_FATAL" ] && [ -d .beads ] \
+     && [ ! -d .beads/embeddeddolt ] && [ ! -d .beads/dolt ]; then
+    log "no beads database in this clone — bootstrapping from the Dolt remote"
+    if bd bootstrap >/dev/null 2>&1; then
+      log "beads DB bootstrapped from origin refs/dolt/data"
+    else
+      BB_DOLT_FATAL="bd bootstrap failed against origin refs/dolt/data."
+    fi
+  fi
+
+  # A database whose configured prefix disagrees with the ids it holds mints a
+  # SECOND id namespace silently — measured: a bootstrapped clone carrying 146
+  # `agent-plugins-*` issues minted `spec-driven-dev-w0n`, because the prefix
+  # lives in the database config and travels with the remote. Repaired at the
+  # source and pushed, so this is a regression guard rather than a fix-up: it
+  # should never fire. `--repair` rewrites no ids when they are already correct.
+  if [ -z "$BB_DOLT_FATAL" ] && [ -d .beads/embeddeddolt ]; then
+    # Read the prefix positively rather than testing for its absence: under
+    # `pipefail` a transient `bd config list` failure is indistinguishable from
+    # "the prefix is wrong", and acting on that ran a repair that then errored
+    # with "new prefix is the same as current prefix" — two alarming warnings
+    # about a database that was correct all along. Only act on a value actually
+    # read.
+    _prefix="$(bd config list 2>/dev/null | sed -n 's/^[[:space:]]*issue_prefix = //p' | head -1)" || _prefix=""
+    if [ -z "$_prefix" ]; then
+      log "note: could not read the tracker prefix — skipping the namespace guard"
+    elif [ "$_prefix" != "agent-plugins" ]; then
+      log "WARNING: tracker prefix is '$_prefix', not 'agent-plugins' — repairing"
+      bd rename-prefix agent-plugins --repair >/dev/null 2>&1 \
+        && log "repaired tracker prefix -> agent-plugins" \
+        || log "WARNING: prefix repair failed — new beads may mint a second namespace"
     fi
   fi
 fi
@@ -344,6 +389,33 @@ if [ "${STRATA_CLI_SKIP:-}" != "1" ]; then
         || log "note: vendored strata docs are behind — run scripts/sync-strata-docs.sh"
     fi
   fi
+fi
+
+# --- 5. Fail loudly if the tracker is unreachable ----------------------------
+# Deliberately last: everything else still gets provisioned, so the failure is
+# reported against a fully set-up session rather than aborting halfway. But it
+# IS a failure — this repository's issue tracker lives on the Dolt remote, and
+# a session that cannot write to it will lose any bead it closes.
+if [ -n "${BB_DOLT_FATAL:-}" ]; then
+  log ""
+  log "ERROR: no write access to the beads tracker — $BB_DOLT_FATAL"
+  log ""
+  log "  This repository's tracker is the Dolt remote (refs/dolt/data on"
+  log "  origin). There is no JSONL fallback by design. Do not create or close"
+  log "  beads in this session: the work would be lost when the container is"
+  log "  reclaimed."
+  log ""
+  log "  The environment must provide BOTH:"
+  log "    1. AGENT_PLUGINS_ACCESS_TOKEN — a GitHub PAT with push access to"
+  log "       this repository, set at container creation (claude.ai/code ->"
+  log "       the environment's variables)."
+  log "    2. Direct, unproxied egress to github.com. The egress proxy"
+  log "       substitutes a brokered token scoped to refs/heads, which 403s on"
+  log "       refs/dolt/*."
+  log ""
+  log "  See docs/session-bootstrap.md."
+  log ""
+  exit 1
 fi
 
 log "ready."
