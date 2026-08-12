@@ -1,0 +1,6 @@
+{"bead":"agent-plugins-txq","phase":"claimed"}
+{"bead":"agent-plugins-txq","phase":"implementing"}
+{"bead":"agent-plugins-txq","phase":"gates-running"}
+{"bead":"agent-plugins-txq","phase":"gates-passed"}
+{"bead":"agent-plugins-txq","phase":"retro-written"}
+{"bead":"agent-plugins-txq","phase":"committed","sha":"baf0dd5"}
