@@ -6,8 +6,8 @@ description: How agents record retro evidence in-flight during
 slug: findings-capture-protocol
 type: standards
 status: active
-updated_at: 2026-08-11T00:00:00Z
-version: "0.3"
+updated_at: 2026-08-12T00:00:00Z
+version: "0.4"
 ---
 
 # Findings Capture Protocol
@@ -17,11 +17,13 @@ multi-agent phase (implementing a groomed plan, where each work order
 may go to a different spawned agent) no single session holds it. This
 protocol is how that evidence is captured at the moment of friction.
 
-This document is deliberately self-contained: an agent implementing
-one work order needs ONLY this file — not the `retro-spec` skill that
-consumes the findings, and not the `groom-feature-blueprint` skill that produced
-the item. Work orders reference the copy of this document vendored
-into the project (`rfcs/findings-capture.md`).
+This document is the single statement of the protocol. Skills that
+capture or harvest findings vendor it into their own
+`references/shared/` and point at that copy; they do not restate it.
+Do not copy it into a target project, and do not restate it per work
+order or per issue — an item carries only the short standing
+instruction its grooming skill stamps, which is self-sufficient on its
+own.
 
 ## The finding
 

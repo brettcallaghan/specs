@@ -71,13 +71,12 @@ EOF
 # derives its destination from the consumer's name; an entry here has no skill
 # to derive one from, so it spells the path out in full.
 #
-# rfcs/findings-capture.md is this project's own copy of the findings-capture
-# protocol — the one work orders and bead-bonanza send agents to read. It
-# carried the GENERATED COPY header while no entry generated it, so `--check`
-# passed over it and it drifted by hand instead (agent-plugins-92q.18 had to
-# hand-edit it after the sync silently left it behind; agent-plugins-92q.28).
+# Empty is a valid state, and the current one: no vendored copy outside a
+# consumer skill's `references/shared/` is wanted right now. Any file added
+# here MUST be one this repo genuinely needs at a fixed path — a copy placed
+# somewhere merely so readers can find it is a second thing to keep current
+# saying what the first already says.
 PATH_MAP=$(cat <<'EOF'
-rfcs/findings-capture.md	retro-spec/references/findings-capture-protocol.md
 EOF
 )
 
@@ -151,8 +150,7 @@ if [ "$CHECK" -eq 1 ]; then
   # The header tells readers not to touch it, --check never looks at it, and
   # the run still ends "all N vendored references are current" — so the file
   # drifts by hand and the only two things that could notice both report
-  # health. rfcs/findings-capture.md sat in exactly that state (agent-plugins
-  # -92q.28); the loop above now covers it, and this covers the next one.
+  # health.
   #
   # The rule: carrying the header obliges you to name a generator this repo
   # can actually run. Either this script maintains you and a MAP entry proves

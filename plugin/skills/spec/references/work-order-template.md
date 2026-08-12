@@ -36,7 +36,7 @@ c4_docs: []                          # C4 doc files that may need updating
 
 <!--
 Template: Work Order
-Version: 1.3
+Version: 1.4
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]]. Readiness criteria are defined in
   [[work-order-definition-of-ready]] and `work-order-field-guide.md`.
@@ -197,9 +197,10 @@ The standing instruction to the executing agent (often a subagent that sees
 only this order) to record friction findings before closing. Reinforces the
 retro pipeline: the implementer is a sensor for work-order quality. The exact
 text and mechanism are backend-specific and STAMPED BY THE GROOMING SKILL at
-materialization (a `bd comment` prefixed `retro:` for beads), pointing at the
-project-local `rfcs/findings-capture.md`. Keep it verbatim as the grooming
-skill emits it; do not paraphrase.
+materialization (a `bd comment` prefixed `retro:` for beads). It is short and
+self-sufficient — it does not point at a protocol file, because an order that
+sends its agent elsewhere to learn the format is an order that gets skipped.
+Keep it verbatim as the grooming skill emits it; do not paraphrase.
 -->
 
 <Grooming stamps the backend-specific retro instruction here.>

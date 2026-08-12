@@ -924,7 +924,8 @@ Do NOT create a PR or merge to main — that is a separate, explicit user action
   a close commit stages code only — so you may groom a discovered bead, bake a
   decision, or wire a dependency edge at any time, including mid-wave. The
   claim-reset rule: `references/operating-principles.md`.
-- **Wire findings capture when the repo has it, and harvest with `bd export |
+- **Wire findings capture into every dispatch prompt unconditionally — no
+  project file gates it — and harvest with `bd export |
   jq`, never `bd list` + `bd show --json`.** The feature's final DoD bead runs
   the one aggregated retro-spec, asserting a non-zero harvest before
   aggregating. Full wiring, the harvest pipeline, and why the obvious

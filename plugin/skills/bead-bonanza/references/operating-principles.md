@@ -47,11 +47,18 @@ never got closed and silently drops nearly everything else.
 
 ### Wiring
 
-If `rfcs/findings-capture.md` exists (retro-spec protocol) in the project,
-every batch prompt includes: record `retro:`-prefixed `bd comment`s on the
-bead being worked, 1-3 sentences, friction only, zero analysis. This
-channel is the shared protocol across retro-spec, `groom-feature-blueprint`
-and the work-order template — keep it wired regardless of how the harvest
+Every dispatch prompt — sequential, batch and fast-lane alike — instructs the
+agent to record `retro:`-prefixed `bd comment`s on the bead it is working:
+one per friction point, 1-3 sentences, friction only, zero analysis.
+
+This is unconditional. It is not gated on the project having adopted anything
+and there is no file to check for first — gate it and a project that carries
+no retro tooling silently produces no findings at all, which is the one
+outcome the channel exists to prevent. The comment channel IS the tooling.
+
+It is the same channel `retro-spec`, `groom-feature-blueprint` and the
+work-order template use — the findings-capture protocol, stated once in the
+`retro-spec` skill's references. Keep it wired regardless of how the harvest
 below is done; do not remove it anywhere.
 
 ### Harvesting: one `bd export | jq` pipeline, not `bd list` + `bd show --json`
