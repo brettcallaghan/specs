@@ -104,7 +104,7 @@ and appends the JSON itself — never hand-write an event.
    `{SCRIPTS}/bb-close-bead.sh --trailers-file {TRAILERS_FILE} {ID} {PRIORITY} "{TITLE}"`
    Otherwise (`{TRAILERS_FILE}` is "none"): `{SCRIPTS}/bb-close-bead.sh {ID} {PRIORITY} "{TITLE}"`
    **Pass no paths.** You are in this bead's own worktree, so everything modified here is this bead's work and the script stages all of it. A path list can only be too narrow (`agent-plugins-92q.30`).
-   It performs the whole ceremony in the required order: atomic close (`bd update --status closed`, never `bd close` — that would be a second commit), refresh the `.beads/issues.jsonl` export and verify it changed, stage code + tracker together, then one commit messaged `{ID} P{PRIORITY} {TITLE}` (plus the trailers file's contents in the body, when given). It does not touch the description — grooming owns that. It refuses to run on `main` or with nothing staged. Do not perform these steps by hand, and do not `git commit --amend` afterward — if a required trailer is missing, that means `{TRAILERS_FILE}` was resolved wrong at Phase 0, not something to patch here.
+   It performs the whole ceremony in the required order: atomic close (`bd update --status closed`, never `bd close` — that would be a second commit), verify the close against the DATABASE (`bd show`) before anything is staged, stage **code only** (`git add -A -- ':!.beads'`), one commit messaged `{ID} P{PRIORITY} {TITLE}` (plus the trailers file's contents in the body, when given), then `bd dolt push` — the push, not a file, is what makes the closure durable. It writes and stages no `.beads/` export: `agent-plugins-92q.31` retired that step along with the committed ledger it refreshed. It does not touch the description — grooming owns that. It refuses to run on `main` or with nothing staged. Do not perform these steps by hand, and do not `git commit --amend` afterward — if a required trailer is missing, that means `{TRAILERS_FILE}` was resolved wrong at Phase 0, not something to patch here.
 8. `{SCRIPTS}/bb-progress.sh "{RUN_DIR}" {ID} committed sha=$(git rev-parse --short HEAD)` — read the sha from the branch, not from the script's printout, so any rewrite between steps 7 and 8 cannot desync the ledger from what actually landed.
 9. If push mode is `push_per_bead`: `git push origin <branch>` on the current branch (never main), then `{SCRIPTS}/bb-progress.sh "{RUN_DIR}" {ID} pushed`. If `defer_push`: skip the push; the orchestrator handles it.
 10. Return one line as your final message:
@@ -139,7 +139,7 @@ If the bead is already addressed, malformed, or duplicates a closed bead:
 - Do not ask the user questions. Decisions are baked into this prompt.
 - Do not modify code outside this bead's scope.
 - Never reset or reclaim a bead's status that you did not set yourself. A bead already `in_progress` when you arrive belongs to another agent — treat it as untouchable, exactly like foreign working-tree changes; leave claim reconciliation to the orchestrator.
-- Do not skip git hooks (`--no-verify`). If you realize a required step was missed (e.g. the tracker export) after committing, add a NEW follow-up commit — never amend a commit that may already be pushed, and never force-push a published branch. (Amending a local commit you are certain is unpushed, to fold in a missed step, is fine.)
+- Do not skip git hooks (`--no-verify`). If you realize a required step was missed (e.g. a regen step the handoff caveat named) after committing, add a NEW follow-up commit — never amend a commit that may already be pushed, and never force-push a published branch. (Amending a local commit you are certain is unpushed, to fold in a missed step, is fine.)
 - Only push the current branch — never push to main.
 - Do not use `git reset --hard`, `git checkout .`, or other destructive recovery commands without first stashing.
 ```
@@ -279,18 +279,27 @@ or redirect file created (measured, `BEADS_DIR` unset, `agent-plugins-jh6`,
 exactly what makes these four constraints real:
 
 - **A worktree's own `.beads/issues.jsonl` goes stale while `git status`
-  reads clean** — auto-export always writes the MAIN checkout's copy
-  (measured 105 lines vs. 128, `agent-plugins-jh6`). **A worktree agent
-  SHALL run `bd export > .beads/issues.jsonl` in its own directory before
-  committing.**
+  reads clean** — where a project still auto-exports, it writes the MAIN
+  checkout's copy (measured 105 lines vs. 128, `agent-plugins-jh6`). The rule
+  this used to carry — "run `bd export > .beads/issues.jsonl` in your own
+  directory before committing" — is **retired** (`agent-plugins-92q.31`): the
+  exports are untracked and the close stages code only, so there is nothing to
+  refresh before committing. What survives is the reading rule: **never treat
+  that file as tracker state.** Ask the database — `bd show`, or `bd export` to
+  stdout, which regenerates from it.
 - **Auto-export is best-effort, not a guarantee** — three creates sat
   unexported 20+ seconds, flushing only on a later main-context write
-  (`agent-plugins-t09`). Never rely on it inside a worktree.
+  (`agent-plugins-t09`). The commit path no longer depends on it; anything that
+  *reads* a `.beads/*.jsonl` file still does, which is why the rule above is a
+  rule.
 - **`export.git-add: true` (`.beads/config.yaml`) stages the refreshed
   ledger into the MAIN index from writes issued anywhere, including a
-  worktree** — the case the orchestrator's `git commit -- <pathspec>` guard
-  exists for (SKILL.md, "Guard against foreign dirt"); keep commits
-  pathspec-scoped.
+  worktree** — this bites only in a project that still tracks the export.
+  Where `.beads/*.jsonl` is gitignored (here, since `agent-plugins-92q.31`)
+  `git add` of an ignored path is a no-op. Keep the orchestrator's commits
+  pathspec-scoped regardless (SKILL.md, "Guard against foreign dirt"): that
+  guard is against foreign dirt in a shared checkout generally, not against
+  the export specifically.
 - **The exported ledger is gone.** Until `agent-plugins-92q.31` the mandated
   per-close export made concurrency unsafe: N beads each committed a
   near-identical full rewrite of one shared database onto N branches with no

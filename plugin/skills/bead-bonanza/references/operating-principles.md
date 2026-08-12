@@ -91,9 +91,11 @@ zero findings across a completed feature is a broken query, not a clean
 run: an aggregated retro built on an empty set is worse than none, because
 it reads as a confident, clean-looking artifact instead of an obvious gap.
 WHEN the count is zero against a feature known to carry `retro:` comments,
-**stop and re-run the query** — check the label spelling and confirm
-`.beads/issues.jsonl` reflects the latest closes — before aggregating
-anything.
+**stop and re-run the query** — check the label spelling and confirm with
+`bd show` that the beads you expect really are closed — before aggregating
+anything. Do not go looking at `.beads/issues.jsonl`: `bd export` writes
+stdout from the database at call time, so there is no stale file in this path
+(`agent-plugins-92q.31` untracked the exports entirely).
 
 ## Guard against foreign dirt
 
@@ -112,7 +114,7 @@ worktree, "everything here" is exactly this bead's work.
 
 **The orchestrator still faces it, and the guard survives for it unchanged.**
 The orchestrator works in the shared checkout, where a diagnosis agent's
-uncommitted fixes, a stale export, or a half-applied edit can be sitting
+uncommitted fixes, a regenerated fixture, or a half-applied edit can be sitting
 alongside its own work. It therefore commits by explicit pathspec
 (`git commit -- <files>`), exactly as before. The same applies on the
 main-loop fallback path (SKILL.md), where the orchestrator implements every
