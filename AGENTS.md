@@ -137,6 +137,21 @@ synthetically instead, on every platform, by `cli/cmd/portability_test.go`.
 
 ### Environmental-failure ledger
 
+**Entries are admitted on evidence, not on reasoning.** An entry asserting
+what is impossible, unnecessary, unreachable, or already-verified — including
+a claim of sufficiency ("this check verifies X") — cites the command run and
+the output observed; run it first, record it after. A true premise plus a
+plausible inference is not evidence.
+
+State the conditions the command ran under when they could change the
+result: attached repositories, credentials present, cache warmth, toolchain
+version. A reachability or permission test run inside a session that already
+holds a grant measures the grant, not the capability.
+
+Where a claim cannot be tested cheaply, mark it **unverified** and state what
+would settle it — an unverified entry is useful; one that reads as settled
+and is not, is worse than absent.
+
 - **`bd`'s JSONL export lags the database.** A close reaches the Dolt DB
   seconds before it reaches `.beads/issues.jsonl`, so an export taken
   immediately after `bd update --status closed` can still return pre-close
@@ -152,11 +167,15 @@ synthetically instead, on every platform, by `cli/cmd/portability_test.go`.
   refuses to commit a closure the ledger does not carry, and any hand-rolled
   close must verify the ledger the same way rather than trusting one export.
 - **KNOWN RED, pre-existing — `scripts/check-skills.sh --strict`.** It exits 1
-  on a *warning*: `plugin/skills/bead-bonanza/SKILL.md` is 859 lines against a
-  "under 500" guideline. Zero errors. Do not treat this as your change's
-  failure and do not try to fix it mid-run; shortening that skill is editorial
-  work with its own scope. The bar is **no new findings** — compare against
-  this baseline (`0 error(s), 1 warning(s)`) rather than expecting exit 0.
+  on *warnings*, not errors. Do not treat either warning as your change's
+  failure and do not try to fix them mid-run; both are editorial scope owned
+  elsewhere. The bar is **no findings beyond this baseline**, not exit 0.
+  Re-verified 2026-08-12: `scripts/check-skills.sh --strict` →
+  `0 error(s), 2 warning(s)` — `plugin/skills/bead-bonanza/SKILL.md` at 859
+  lines, and `plugin/skills/spec/SKILL.md` (22497 bytes) now also over the
+  ~20000-byte guideline. The warning count has grown from the previously
+  recorded 1; update this baseline again the next time it drifts rather than
+  trusting this number indefinitely.
 - **`scripts/generate-schemas.sh --check` fails when the installed `strata`
   predates `strata-lang/strata@8997153`.** That commit fixes
   `allowAdditionalProperties: false` silently dropping struct inheritance.
@@ -184,29 +203,57 @@ synthetically instead, on every platform, by `cli/cmd/portability_test.go`.
   shape (every document-type struct retains a non-empty `required` list)
   rather than on a version string. Keep the assertion: it catches this class
   of corruption from any build, not one known-bad commit.
+
+  **Both entries above are unverified this session**: no cited command run
+  showing the empty-`properties` failure, and `schemas/*.strata` is out of
+  scope for this run's beads, so neither was re-run. Settle by running
+  `scripts/generate-schemas.sh --check` against a `strata` build older than
+  `8997153` and confirming the emitted schema shows empty `properties` maps
+  on inheriting types.
 - `bd`: not preinstalled. `.claude/hooks/session-start.sh` installs it via the
   official installer, which needs `libicu-dev` for the Dolt/ICU cgo dependency
   — without those headers the build fails at `unicode/uregex.h: No such file`.
+  **Partially re-verified 2026-08-12**: `dpkg -l | grep libicu` shows
+  `libicu-dev` and `libicu74` both installed in this container, consistent
+  with the hook needing them. The failure text itself is **unverified** —
+  reproducing it means uninstalling a package this session depends on.
 - `api.github.com` and `github.com/.../releases` return **403** through the
   egress proxy, so the installer's prebuilt-binary lookup always fails here
   and it falls back to a source build. `raw.githubusercontent.com` (200) and
   `proxy.golang.org` (in the proxy's no-proxy list) both work, which is why
-  the fallback path succeeds.
+  the fallback path succeeds. **Re-verified 2026-08-12** with `curl -o
+  /dev/null -w '%{http_code}'`: `api.github.com/repos/strata-lang/strata/
+  releases/latest` → 403; `github.com/strata-lang/strata/releases` → 403;
+  `raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh` (the
+  installer's actual URL) → 200; `proxy.golang.org/github.com/gastownhall/
+  beads/@v/list` → 200 (unproxied, per `no_proxy`). Same result set as
+  documented.
 - **Measured install cost:** ~175s on a cold container (both Go caches empty),
   ~110s with a warm build cache. Budget ~3 minutes for first session start.
   If release access is ever restored, the installer will pick the prebuilt
   binary automatically and this drops to seconds — no hook change needed.
+  **Unverified this session** — `bd` (`bd version 1.2.1`) was already
+  installed when this bead started, so no fresh cold/warm timing was taken.
 - The Dolt database (`.beads/embeddeddolt`) is gitignored, so **no clone ever
-  has one**. Every fresh container must run `bd init` + `bd import` before any
-  `bd` command works; the hook does this.
+  has one**. The hook bootstraps it from the Dolt remote with `bd bootstrap`
+  when both `.beads/embeddeddolt` and `.beads/dolt` are absent
+  (`.claude/hooks/session-start.sh`, step "2b. The database"). **Corrected
+  2026-08-12** — this entry previously said the hook runs `bd init` +
+  `bd import`; verified by reading the current hook source that it does not.
 - `strata`: not preinstalled either. The hook builds it from source — see
   "strata CLI" below.
-
-- `bd init` **git-commits its own scaffolding**. The hook records HEAD and
-  unwinds that commit — a session hook must not leave commits nobody asked for.
+- **Corrected 2026-08-12, was stale:** this entry previously read "`bd init`
+  git-commits its own scaffolding; the hook records HEAD and unwinds that
+  commit." The hook no longer runs `bd init` (see above) and contains no
+  `git commit`, `git add`, or `git reset` call anywhere — verified by reading
+  the current `.claude/hooks/session-start.sh` in full. The underlying rule
+  still holds for any future hook logic: a session hook must not leave
+  commits nobody asked for.
 - `bd` has been observed once writing its global config to a **literal `./~/`**
   inside the repo rather than `$HOME`. Not reproducible on retry; the hook
   pins `HOME` and sweeps `./~` on exit, and `.gitignore` covers it.
+  **Re-verified 2026-08-12** by reading the hook source: it still exports
+  `HOME` and defines/traps a `sweep_literal_tilde` cleanup on exit.
 
 ### strata CLI
 
@@ -217,24 +264,43 @@ sessions, where `.claude/hooks/session-start.sh` provisions it because the
 - **Built from source at HEAD, not from a release.** The published binaries
   lag `main` and the point is the latest code. Do not "optimize" this into a
   release download: both the release API and the release assets are blocked by
-  the egress proxy (403 and 404 respectively, last measured 2026-08-09), so a
-  clone plus `cargo build` is the only path that works here.
+  the egress proxy, so a clone plus `cargo build` is the only path that works
+  here. **Re-verified 2026-08-12** (updates "403 and 404 respectively, last
+  measured 2026-08-09"): `api.github.com/repos/strata-lang/strata/
+  releases/latest` → 403; `github.com/strata-lang/strata/releases` → 403. A
+  direct download URL for a specific release asset returned 404, but that
+  asset/tag may simply not exist — not distinguishable from a block with the
+  URL tried, so the original "403 and 404 respectively" pairing is
+  **unverified** as stated; the net effect (no release path works) is
+  unchanged.
 - The hook prefers a checkout the session already has — an attached `strata`,
   or `STRATA_SRC_DIR` — and clones only as a fallback. It never touches a
   checkout with work in it: it fast-forwards only a clean default branch, and
-  otherwise builds what it finds.
+  otherwise builds what it finds. **Re-verified 2026-08-12** by reading the
+  hook source (candidate checkout search, and the fast-forward-only-a-clean-
+  default-branch guard).
 - **Escape hatches:** `STRATA_CLI_SKIP=1` skips the step entirely;
   `STRATA_SRC_DIR` points at a checkout. Build output lands in
   `~/.cache/strata-cli/build.log` and the built commit in
-  `~/.cache/strata-cli/built-commit`.
+  `~/.cache/strata-cli/built-commit`. **Re-verified 2026-08-12**: both
+  environment variables appear in the current hook source, and both cache
+  files exist in this container.
 - **If `strata` is missing, read the hook's warning** — it names the cause.
   The common one is the clone: `strata-lang/strata` is private *today*, so a
   cloud session with no attached checkout needs `STRATA_ACCESS_TOKEN` set on
   the environment (`docs/session-bootstrap.md`). That requirement goes away
   when the repository goes public — `agent-plugins-6gn` tracks removing it.
+  **Re-verified 2026-08-12**: the exact warning text is present in the hook
+  source.
 - **Cost:** ~1m50s and ~470 MB of `target/`, once per container. The
   SessionStart `timeout` in `.claude/settings.json` is 900s to cover it; at
-  the 60s default the build is killed partway.
+  the 60s default the build is killed partway. **Re-verified 2026-08-12** from
+  this session's own build: `~/.cache/strata-cli/build.log` shows `Finished
+  \`release\` profile [optimized] target(s) in 2m 35s`, and
+  `du -sh ~/.cache/strata-src/target` → `470M` (exact match). The time is
+  higher than the documented ~1m50s on this run — cache warmth and container
+  CPU allocation can move it; treat ~1m50s–2m35s as the observed range rather
+  than a fixed number.
 
 ## model lineup
 

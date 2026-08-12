@@ -41,11 +41,18 @@ The header, before the wave table. Most of it is the stdout block from
 
 ## Environmental ledger
 
-Facts established this run that no wave should re-diagnose. One line each,
-naming the command that proved it. Keep the numbering — dispatch prompts cite
+Facts established this run that no wave should re-diagnose. Admitted on
+evidence, not on reasoning: every entry — including a claim of sufficiency
+("this check verifies X"), not only a claim of impossibility — names the
+command that proved it and the result observed; run it first, record it
+after. Note the conditions the command ran under when they could change the
+result (attached repos, credentials, cache warmth, toolchain version). A
+claim that cannot be tested cheaply is recorded as `unverified` with what
+would settle it, not omitted. Keep the numbering — dispatch prompts cite
 entries by number ("ledger entry 1", "ledger entry 2").
 
 1. `<claim>` — proved by `<command>`, observed `<result>`
+1. `<claim>` — unverified; would be settled by `<command>`
 ```
 
 A gate recorded `fail` in the baseline is the bar for every bead in this run:
