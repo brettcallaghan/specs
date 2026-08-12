@@ -251,11 +251,10 @@ decides:
   intended autonomy. Grooming closes decisions along with the rest of the
   Definition of Ready. (A groomed prerequisite that still lands a
   `decision-required` label stops for the user, per the standing-authorization
-  terms.) Grooming and wiring the edge are themselves tracker writes: if any
-  subagent in the current wave still holds a claim, this waits for the wave
-  boundary per the tracker-write deferral rule
-  (`references/operating-principles.md`) like any other orchestrator-side
-  tracker write.
+  terms.) Grooming and wiring the edge are tracker writes, and they
+  need not wait for the wave boundary — the tracker is a database, not a file
+  in the tree, so no tracker write can ride into a subagent's commit
+  (`references/operating-principles.md`).
 - **Out-of-scope** → leave it filed and linked, do NOT dispatch it, and surface
   it in the final report for the user to triage. The standing authorization
   finishes the launched scope; it never enlarges it.
