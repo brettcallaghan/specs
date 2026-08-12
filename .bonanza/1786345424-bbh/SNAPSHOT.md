@@ -8,14 +8,14 @@ reclaim. It is written by `scripts/bb-backup-run.sh` after every bead.
 | Field | Value |
 |---|---|
 | Run id | `1786345424-bbh` |
-| As of | `2026-08-12T06:40:42Z` |
+| As of | `2026-08-12T06:50:18Z` |
 | Live run directory | `/tmp/claude/bead-bonanza/1786345424-bbh` |
 | Repo | `/home/user/agent-plugins` |
 | Run branch | `claude/bead-bonanza-sprint-2-yqpua6` |
 | Default branch | `main` |
-| HEAD when taken | `b186a68` agent-plugins-7eh P2 validate-corpus.py skips GENERATED COPY files with no orphan check of its own |
-| Files copied | 66 |
-| Beads with artifacts | 30 |
+| HEAD when taken | `0d0e4df` agent-plugins-y1h P2 Bake findings-capture into the skills that need it, and stop writing rfcs/findings-capture.md |
+| Files copied | 68 |
+| Beads with artifacts | 31 |
 
 Resume the run from the branch, not from this file: `git log --oneline main..claude/bead-bonanza-sprint-2-yqpua6`
 lists every bead that has landed, one close commit each.
@@ -54,6 +54,7 @@ lists every bead that has landed, one close commit each.
 | `agent-plugins-jh6` | `committed` | `8c54565` | yes | no |
 | `agent-plugins-psw` | `committed` | `c35f056` | yes | yes |
 | `agent-plugins-qqm` | `committed` | `1b97627` | yes | yes |
+| `agent-plugins-y1h` | `committed` | `0d0e4df` | yes | yes |
 
 The phase column is a **hint, never the authority** — the ledger stops when
 the agent writing it stops, so a trail ending before `committed` does not
@@ -83,7 +84,7 @@ whether the live directory still exists and use it when it does:
     ls -A /tmp/claude/bead-bonanza/1786345424-bbh
 
 Read this copy only WHEN that directory is gone, and then state this
-snapshot's as-of time (`2026-08-12T06:40:42Z`) in whatever you conclude from it.
+snapshot's as-of time (`2026-08-12T06:50:18Z`) in whatever you conclude from it.
 
 **It preserves operational state, not findings.** Findings are `retro:`
 comments on the beads themselves, durable in the tracker independently of
