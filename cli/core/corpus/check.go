@@ -1,8 +1,8 @@
 package corpus
 
 import (
+	"errors"
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
@@ -54,15 +54,55 @@ func (c *Corpus) Check() ([]specmodel.Finding, error) {
 // file, which is what keeps a single-document check from paying for the
 // whole corpus.
 //
-// It additionally reports every inbound reference to path that no longer
-// resolves, against the referring document rather than path itself
-// (AC-SPECREF-002.9) — see [Corpus.brokenInboundReferences].
+// Reference findings are the exception to that narrowing: every one of
+// them is reported against the document that holds the reference,
+// whichever document that is, in addition to the findings against the
+// file named (AC-SPECREF-002.9, AC-SPECREF-002.11). Renaming a
+// document's slug, retiring it, or changing its `type` all break
+// references held by *other* files, and a result narrowed strictly by
+// path would report nothing for the edit that caused them.
 //
-// path may be absolute or repository-relative, and may use either
-// platform's separator.
+// It returns [ErrNotAMember] for a path no corpus member occupies, so
+// that a mistyped path, a file outside the spec root and a file the
+// index excluded are all distinguishable from a document that passed.
+// Selecting nothing and reporting every rule passed is the vacuous
+// success this tool exists to catch elsewhere (`agent-plugins-ltd`).
+//
+// path may be absolute or repository-relative. On Windows it may use
+// either separator; on other platforms a backslash is an ordinary
+// character in a filename and is left alone.
 func (c *Corpus) CheckFor(path string) ([]specmodel.Finding, error) {
 	wanted := c.normalize(path)
+	if _, member := c.byPath[wanted]; !member {
+		return nil, c.notAMember(wanted)
+	}
 	return c.check(&wanted)
+}
+
+// ErrNotAMember reports that a path a caller named is not a corpus
+// member. Callers test for it with [errors.Is]; the wrapped error carries
+// the path and, where the index recorded one, the reason it was excluded.
+var ErrNotAMember = errors.New("not a corpus member")
+
+// notAMember builds the error [Corpus.CheckFor] returns for a path that
+// occupies no entry, distinguishing the two cases the index can already
+// tell apart: a candidate that was discovered and excluded — where the
+// recorded reason is the answer the caller needs, and the same reason the
+// index reports — and a path discovery never saw at all.
+func (c *Corpus) notAMember(normalized string) error {
+	for _, excluded := range c.index.Exclusions {
+		if excluded.Path != normalized {
+			continue
+		}
+		if excluded.Type != nil && *excluded.Type != "" {
+			return fmt.Errorf("corpus: %s is %w: %s (declared type %q)",
+				normalized, ErrNotAMember, excluded.Reason, *excluded.Type)
+		}
+		return fmt.Errorf("corpus: %s is %w: %s",
+			normalized, ErrNotAMember, excluded.Reason)
+	}
+	return fmt.Errorf("corpus: %s is %w: no document at that path was discovered under the spec root",
+		normalized, ErrNotAMember)
 }
 
 // check is the shared implementation behind Check and CheckFor. only,
@@ -142,17 +182,45 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 		return findings, nil
 	}
 
+	// AC-SPECREF-002.9 and AC-SPECREF-002.11: every reference finding
+	// survives the narrowing, wherever it was written. A finding belongs
+	// to the document a reader must open to fix it, and for a reference
+	// that is the referrer — so an edit to the file named breaks *other*
+	// files, and a result narrowed strictly by path is silent about the
+	// very defect a write-time check exists to catch.
+	//
+	// All four rules share that property, not only the unresolved one:
+	// renaming a slug leaves references unresolved, retiring a document
+	// leaves them resolving to a retired target, changing its type leaves
+	// them mismatched, and dropping a paired property leaves the pairing
+	// incomplete. In every case the edit is here and the finding is
+	// elsewhere. Scoping the exception to unresolved references made the
+	// report state something false rather than merely incomplete: under
+	// AC-SPEC-006.8's accounting `reference/retired-target passed` means
+	// "ran, found nothing", which is not what had happened
+	// (agent-plugins-bk4).
+	//
+	// This costs nothing. The loops above already derive these findings
+	// for the whole corpus regardless of only, because the references are
+	// in memory either way; the narrowing was the only thing discarding
+	// them.
+	//
+	// What it cannot do is separate "broken by this edit" from "already
+	// broken": an edit changes the corpus's input hash, so the check reads
+	// a freshly rebuilt graph with no memory of what those references used
+	// to resolve to. In a corpus kept green that distinction is empty —
+	// everything reported is new. In one already red, a single-document
+	// check repeats the corpus's existing breakage. Telling them apart
+	// needs real prior state, which is agent-plugins-h6c.1 (per-file
+	// digests, so a check can prove the only changed file is the one
+	// named) rather than a diff against whatever index happened to be on
+	// disk, whose age is unbounded.
 	var narrowed []specmodel.Finding
 	for _, f := range findings {
-		if f.Path == *only {
+		if f.Path == *only || finding.IsReferenceRule(f.Rule) {
 			narrowed = append(narrowed, f)
 		}
 	}
-	// AC-SPECREF-002.9: a single-document check additionally reports every
-	// inbound reference to *only that no longer resolves, against the
-	// referring document rather than the one named — that is the file a
-	// reader must open to fix it.
-	narrowed = append(narrowed, c.brokenInboundReferences(*only)...)
 	return narrowed, nil
 }
 
@@ -333,53 +401,6 @@ func stringSet(values []string) map[string]bool {
 	return set
 }
 
-// brokenInboundReferences reports, for a single-document check of path,
-// every inbound reference the warm index still records as resolved to it
-// that no longer does — the graph's own edges were resolved when the
-// corpus was built, but path's frontmatter may have changed since (the
-// scenario AC-SPECREF-002.9 names: an agent renames a document's slug and
-// the write-time check on that one file is what has to catch the
-// referrers it just broke).
-//
-// This costs one lookup (InboundReferences, already built) and, when
-// there is anything to compare against, one read of path itself — the
-// same read a single-document check already pays for elsewhere — rather
-// than a corpus walk, which is what keeps it inside AC-SPEC-009.2's
-// single-document budget. A referrer whose reference still names path's
-// current slug is left alone; every other one is reported against the
-// referrer, at the referrer's own span, exactly as an ordinary unresolved
-// reference is.
-func (c *Corpus) brokenInboundReferences(path string) []specmodel.Finding {
-	inbound := c.InboundReferences(path)
-	if len(inbound) == 0 {
-		return nil
-	}
-
-	currentSlug, haveSlug := c.currentSlug(path)
-
-	var findings []specmodel.Finding
-	for _, ref := range inbound {
-		if haveSlug && slugsMatch(ref.Slug, currentSlug) {
-			continue
-		}
-		findings = append(findings, finding.UnresolvedReference(
-			ref.Path, ref.Position, ref.Text, ref.Slug, ref.Origin, nil))
-	}
-	return findings
-}
-
-// currentSlug reads the slug the document at path currently declares,
-// through Corpus.document rather than the persisted index entry — the
-// whole point being to see path's frontmatter as it stands now, which may
-// differ from what the graph's edges were resolved against.
-func (c *Corpus) currentSlug(path string) (string, bool) {
-	doc, ok := c.document(path)
-	if !ok {
-		return "", false
-	}
-	return propertyText(doc, slugProperty)
-}
-
 // propertyText returns the text of one frontmatter property: its parsed
 // value where that is a string, and its raw source text otherwise — the
 // same fallback declaredType applies for a document's type, so a value
@@ -394,13 +415,6 @@ func propertyText(doc *frontmatter.Document, name string) (string, bool) {
 		return value, true
 	}
 	return property.Raw, true
-}
-
-// slugsMatch compares two slugs the way reference resolution itself does:
-// trimmed and case-insensitively, so this check and the graph it is
-// reading agree about what "the same slug" means (AC-SPECREF-002.8).
-func slugsMatch(a, b string) bool {
-	return strings.EqualFold(strings.TrimSpace(a), strings.TrimSpace(b))
 }
 
 // registryState is the lazily-built, once-compiled Schema Registry for one

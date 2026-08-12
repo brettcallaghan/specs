@@ -148,6 +148,35 @@ func corpusOptions(cfg *Config, configPath string) (corpus.Options, error) {
 	}, nil
 }
 
+// openCorpus opens the corpus for opts at the default index location,
+// persisting the index when the open had to build one.
+//
+// The persisting is what makes AC-SPEC-010.5's own example true — "run
+// twice in a row reads specs.json the second time". Until this existed
+// only `spec index` ever wrote the artifact, so a workflow of checks and
+// queries rebuilt from scratch every invocation and the warm path the
+// REQ-SPEC-009 budgets are stated against was never reached by the
+// commands those budgets are about (`agent-plugins-9ur`).
+//
+// Writing is best-effort and its failure is discarded on purpose. A
+// read-only checkout, a race with a concurrent writer, a full disk: none
+// of them make the answer this command already computed any less
+// correct, and a query that failed because it could not update a cache
+// would be a worse tool than one that is merely slow. AC-SPEC-010.4's
+// atomic replace is [corpus.Write]'s, so a concurrent reader never sees
+// a partial file.
+func openCorpus(opts corpus.Options) (*corpus.Corpus, error) {
+	dest := corpus.IndexPath(opts, "")
+	c, warm, err := corpus.Open(opts, dest)
+	if err != nil {
+		return nil, fmt.Errorf("cmd: opening the corpus: %w", err)
+	}
+	if !warm {
+		_ = corpus.Write(c.Index(), dest, nil)
+	}
+	return c, nil
+}
+
 // renderReport writes report to streams.out as JSON when asJSON is set,
 // and as human-readable text otherwise.
 //

@@ -1,0 +1,5 @@
+description = "check <path> for a path no corpus member occupies reports an error naming the path and exits non-zero, rather than rendering a report with no findings that reads as a document that passed"
+cites = ["AC-SPEC-001.2"]
+artifacts = ["checks.err"]
+args = ["check", "docs/adrs/absent.md"]
+exit_code = 1

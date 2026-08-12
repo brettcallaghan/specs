@@ -271,6 +271,19 @@ change an answer. An `index --out` naming somewhere else writes an
 artifact for a consumer rather than a cache for the reading commands,
 which simply find nothing at the default path and rebuild.
 
+The reading commands **also write it when they had to build it**, which
+is what makes AC-SPEC-010.5's own example — "run twice in a row reads
+`specs.json` the second time" — true of a workflow that never invokes
+`index`. Until they did, only `index` ever created the artifact, and
+since nothing instructs an author to run it, every check and query in
+practice rebuilt from cold and the warm path the REQ-SPEC-009 budgets
+are stated against went unreached (`agent-plugins-9ur`). That write is
+best-effort and its failure is discarded: a read-only checkout or a race
+with a concurrent writer makes the answer no less correct, and a query
+that failed because it could not refresh a cache would be a worse tool
+than a slow one. AC-SPEC-010.4's atomic replace keeps a concurrent
+reader from seeing a partial file.
+
 **Staleness is decided by a content hash of the inputs, never by a
 modification time.** Every emitted index carries an `input_hash` folding
 each candidate file's repository-relative path and content digest,

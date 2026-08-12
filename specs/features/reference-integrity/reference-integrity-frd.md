@@ -6,7 +6,7 @@ description: Parses cross-document references from a spec corpus, records
 slug: frd-spec-reference-integrity
 type: frd
 status: approved
-updated_at: 2026-08-07T00:00:00Z
+updated_at: 2026-08-09T00:00:00Z
 sources:
   - "frd-spec-validation-cli"
 ---
@@ -311,6 +311,21 @@ a reader follows it into nothing.
     schema can require that `frd` holds exactly one slug; only the index
     knows what that slug resolves to, so this half of the constraint has
     to live here.
+- **AC-SPECREF-002.11:** WHEN the CLI checks a single document, the CLI
+  SHALL report every reference finding against the document that holds
+  the reference, whichever document that is, in addition to findings
+  against the document named — the retired target of AC-SPECREF-002.6,
+  the incomplete pairing of AC-SPECREF-002.5 and the type mismatch of
+  AC-SPECREF-002.10, on the same terms AC-SPECREF-002.9 states for an
+  unresolved reference.
+  - *Example:* An agent sets an ADR to `status: retired` and the
+    write-time check on that one file reports the four live documents
+    still citing it, at their own lines. Under AC-SPECREF-002.9 alone
+    that same check reported nothing and printed
+    `reference/retired-target passed`: retiring a document does not stop
+    its references resolving, so the edit whose entire purpose is to
+    change what those references *mean* was invisible to the check an
+    author runs before flipping status.
 
 *Rationale:* Severity is assigned here rather than left to
 implementation because it is what the exit status of a build depends on.
@@ -340,9 +355,35 @@ AC-SPEC-001.2 already resolves a single document's references against
 the whole corpus, so the data is present; what was missing is the
 reverse direction. A finding belongs to the document a reader must open
 to fix it, which for broken inbound references is the referrer, not the
-document that was edited. The inbound edges of AC-SPECREF-001.3 are held
-by the warm index, so this costs a lookup rather than a corpus walk and
-stays inside AC-SPEC-009.2's single-document budget.
+document that was edited. Every unresolved reference in the corpus is
+already derived on any check, narrow or not, so this costs a narrowing
+exception rather than a corpus walk and stays inside AC-SPEC-009.2's
+single-document budget.
+
+What it delivers is a superset of what this criterion asks for: a
+narrowed check reports every unresolved reference, not only those that
+had been inbound to the document named. Distinguishing the two needs
+prior state the corpus does not keep — an edit invalidates the content
+fingerprint, so the check reads a rebuilt graph with no memory of what
+the references used to resolve to. In a corpus kept green the
+distinction is empty, since anything reported is new; narrowing it to
+exactly this criterion's set is deferred to the per-file digests of
+`agent-plugins-h6c.1`.
+
+AC-SPECREF-002.11 generalizes that widening to the other three reference
+rules, and it exists because scoping it to unresolved references alone
+was a defect rather than a boundary (`agent-plugins-bk4`). The argument
+for AC-SPECREF-002.9 — a finding belongs to the document a reader must
+open to fix it, which for a reference is the referrer — is a property of
+*references*, not of unresolved ones. Retiring a document, or changing
+its `type`, breaks a referring document exactly as renaming its slug
+does; the reference still resolves, so nothing about the reader's
+position changes. Leaving those two narrowed made the report state
+something false rather than merely incomplete: `reference/retired-target
+passed` means "ran, found nothing" under AC-SPEC-006.8's accounting,
+while the same corpus checked whole reported findings the narrowing had
+dropped. A check that reports a rule as passed on evidence it discarded
+is worse than one that does not run the rule.
 
 ### REQ-SPECREF-003: Reference Queries
 

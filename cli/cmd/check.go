@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -95,9 +96,9 @@ func runCheck(streams *ioStreams, configPath, path string, jsonOut, strict bool,
 		return err
 	}
 
-	c, _, err := corpus.Open(opts, corpus.IndexPath(opts, ""))
+	c, err := openCorpus(opts)
 	if err != nil {
-		return fmt.Errorf("cmd: opening the corpus: %w", err)
+		return err
 	}
 
 	var raw []specmodel.Finding
@@ -107,6 +108,15 @@ func runCheck(streams *ioStreams, configPath, path string, jsonOut, strict bool,
 		raw, err = c.CheckFor(path)
 	}
 	if err != nil {
+		// A path naming no corpus member is the caller's mistake, not a
+		// defect in the corpus, so it is an error rather than a finding —
+		// and it must not render as a report, because a report with no
+		// findings is what "this document passed" looks like
+		// (`agent-plugins-ltd`). corpus already distinguishes a file the
+		// index excluded, with its reason, from one discovery never saw.
+		if errors.Is(err, corpus.ErrNotAMember) {
+			return fmt.Errorf("cmd: %s was not checked: %w", path, err)
+		}
 		return fmt.Errorf("cmd: checking: %w", err)
 	}
 

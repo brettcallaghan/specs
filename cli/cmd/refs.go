@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
@@ -82,9 +81,9 @@ func runRefs(streams *ioStreams, configPath, slug string, outbound, jsonOut bool
 		return err
 	}
 
-	c, _, err := corpus.Open(opts, corpus.IndexPath(opts, ""))
+	c, err := openCorpus(opts)
 	if err != nil {
-		return fmt.Errorf("cmd: opening the corpus: %w", err)
+		return err
 	}
 
 	direction := "inbound"

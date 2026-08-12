@@ -1,0 +1,5 @@
+description = "check <path> reports the named document's own findings and not another document's, so a single-document check narrows to the file asked about"
+cites = ["AC-SPEC-001.2"]
+artifacts = ["checks.log"]
+args = ["check", "docs/adrs/adr-1-checked.md"]
+exit_code = 1

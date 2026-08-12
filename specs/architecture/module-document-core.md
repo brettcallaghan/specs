@@ -6,7 +6,7 @@ description: The framework-agnostic engine that indexes markdown
 slug: module-document-core
 type: module-blueprint
 status: approved
-updated_at: 2026-08-07T00:00:00Z
+updated_at: 2026-08-09T00:00:00Z
 kind: standard
 visibility: internal
 contracts_provided: []
@@ -670,15 +670,31 @@ member, a reference-bearing frontmatter value matching no corpus member,
 and a slug matching a non-member — the last carrying the non-member's
 path and reason rather than reading as an ordinary unresolved slug
 (AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7). `CheckFor`
-additionally re-reads the one document it is narrowed to and compares its
-current slug against every inbound edge the graph still records as
-resolved to it; an edge whose slug no longer matches is reported against
-the *referring* document at the referrer's own span, in addition to
-findings against the document named, because that is the file a reader
-must open to fix it (AC-SPECREF-002.9). This is a lookup over
-`InboundReferences` — the graph's own edges — and one read of the checked
-document, never a walk of the corpus, which is what keeps it inside
-AC-SPEC-009.2's single-document budget.
+narrows that result to the document named with one exception: every
+reference finding survives wherever it was written, reported against the
+*referring* document at the referrer's own span, because that is the file
+a reader must open to fix it (AC-SPECREF-002.9, AC-SPECREF-002.11).
+Renaming a document's slug, retiring it and changing its `type` all break
+references held by other files, so a result narrowed strictly by path is
+silent about the very defect a write-time check exists to catch — and
+worse than silent, since the run report would then declare those rules
+`passed` over findings it had discarded. Membership in the exception is a
+property of where a rule's findings land, not of its `reference/` prefix.
+The exception costs nothing: those findings are derived from the
+reference collection the corpus holds in memory regardless of which file
+was named, so the narrowing was the only thing discarding them, and
+AC-SPEC-009.2's single-document budget is untouched. What it does not do
+is separate breakage this edit caused from breakage already present — an
+edit invalidates the content fingerprint, so the check reads a freshly
+rebuilt graph with no memory of what those references resolved to.
+
+`CheckFor` also refuses a path no corpus member occupies, returning
+`ErrNotAMember` rather than a result. Narrowing by path means an unknown
+path selects nothing, and a caller cannot tell an empty result from a
+document that conformed; a mistyped path, a file outside the spec root
+and a file the index excluded would all read as success. Where the index
+recorded an exclusion the error carries its reason, so the answer to
+"why was this not checked" is the one the index already holds.
 
 **They also report what a resolved reference *means*, not only whether
 it lands.** Three rules walk the same already-resolved reference

@@ -221,14 +221,28 @@ specs.
    **Ask the corpus rather than reading it.** For a numbered type, the
    next number is `spec next-id <type>` — never the highest filename you
    happened to see, which misses a document whose filename and slug
-   disagree. Before claiming any slug, `spec slug-exists <slug>`. Both
-   are one subprocess and both are checkable by a reviewer; a scan you
-   did yourself is neither. `references/spec-cli.md` covers the rest of
-   the command surface, including reading the whole index when you need
-   many documents' metadata at once.
+   disagree. Before claiming any slug, `spec slug-exists <slug>`. To
+   learn what a document depends on before editing it, `spec refs <slug>
+   --outbound`. Each is one subprocess and each is checkable by a
+   reviewer; a scan you did yourself is neither.
+   `references/spec-cli.md` covers the rest of the command surface,
+   including reading the whole index when you need many documents'
+   metadata at once.
 5. **Treat specs as living documents.** Update them when requirements
    change, new information arrives, or errors are found — and update
    `status` and `updated_at` when you do.
+
+   **Before retiring or renaming a document, run `spec refs <slug>`.**
+   It lists every document that cites this one, at the line and column
+   of each citation — the blast radius, decided rather than estimated.
+   Retiring a document leaves those references resolving to a retired
+   target, which `spec check` reports as a warning naming the successor;
+   declare `superseded_by` so it has one to name. Renaming a slug breaks
+   them outright, and the rename is not finished until every line `refs`
+   listed has been updated. Either way `spec check <path>` on the
+   document you edited reports the findings against the documents citing
+   it, so the narrow form is enough to see the blast radius after the
+   fact — `refs` is how you see it before.
 6. **Preflight feature blueprints.** Before setting a feature blueprint
    to `ready-for-review`, run the decision sweep and self-check against
    `references/blueprint-readiness-checklist.md`, then re-run the checklist
@@ -311,6 +325,7 @@ reached at the second hop tends to get previewed rather than read.
 | Reusing a retired REQ/AC identifier | Breaks traceability; never reuse IDs |
 | Reporting a check as passed without running the command that decides it | Unverifiable: an agent that ran the check and one that assumed it produce identical output. Run `spec check` and cite it |
 | Deriving the next ADR number or a slug's uniqueness by reading filenames | The slug is independent of the filename, so a scan misses the collision it exists to find. `spec next-id` and `spec slug-exists` read the index |
+| Retiring or renaming a document without asking who references it | Every citation silently stops resolving, and nobody finds out until a reader follows one. `spec refs <slug>` names them at their own lines, before the change |
 | Inventing a new document type | The taxonomy is deliberately small; flag the gap instead |
 | Filing a private schema as a standalone Contract | Freezes a container's internal implementation into a de facto public interface |
 | Deep component internals in a container blueprint | Bloat; extract to a component or module blueprint when it warrants standalone docs |

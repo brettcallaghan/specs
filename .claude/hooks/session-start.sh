@@ -245,15 +245,40 @@ if [ "${STRATA_CLI_SKIP:-}" != "1" ]; then
     break
   done
 
+  # strata-lang/strata is private, so an unauthenticated clone fails with
+  # "could not read Username for 'https://github.com'" — and the session's own
+  # git credentials do not cover it: the egress proxy injects credentials
+  # scoped to the repositories the session attached, not to strata. A
+  # fine-grained PAT with read access to that repo, supplied as
+  # STRATA_ACCESS_TOKEN in the environment's variables, is what closes the gap.
+  #
+  # The token is handed to git through a credential helper rather than being
+  # written into the remote URL. A URL carrying the token is persisted in the
+  # clone's .git/config, where it survives the session on disk and leaks into
+  # any `git remote -v` output; the helper reads $STRATA_ACCESS_TOKEN at call
+  # time, so only the shell snippet is stored. Passed via `git clone -c`, it
+  # authenticates the clone AND persists into the clone's local config, so the
+  # fetch/fast-forward below reuses it with no further work.
+  #
+  # Scoped to this clone's local config, never global: a global github.com
+  # helper would also answer for this repository's own pushes, and a PAT
+  # scoped to strata would be rejected there.
+  STRATA_CRED_HELPER='!f() { [ "$1" = get ] || exit 0; [ -n "${STRATA_ACCESS_TOKEN:-}" ] || exit 0; printf "username=x-access-token\npassword=%s\n" "$STRATA_ACCESS_TOKEN"; }; f'
+
   if [ -z "$strata_src" ]; then
+    if [ -z "${STRATA_ACCESS_TOKEN:-}" ]; then
+      log "WARNING: no strata checkout and STRATA_ACCESS_TOKEN is unset — strata-lang/strata is private, so the clone would fail. Set it in the environment's variables (fine-grained PAT, read access to strata-lang/strata), or point STRATA_SRC_DIR at a checkout."
+    fi
     log "cloning strata-lang/strata into $STRATA_CLONE"
     # Blobless rather than shallow: `scripts/sync-strata-docs.sh` stamps each
     # vendored doc with the commit that last touched it, which a --depth 1
     # clone cannot answer. Falls back to a full clone if the git proxy in this
     # environment refuses partial-clone filters.
-    if git clone --filter=blob:none --quiet https://github.com/strata-lang/strata.git \
+    if git clone --filter=blob:none --quiet -c "credential.helper=$STRATA_CRED_HELPER" \
+         https://github.com/strata-lang/strata.git \
          "$STRATA_CLONE" >>"$STRATA_CACHE/build.log" 2>&1 \
-       || git clone --quiet https://github.com/strata-lang/strata.git \
+       || git clone --quiet -c "credential.helper=$STRATA_CRED_HELPER" \
+            https://github.com/strata-lang/strata.git \
             "$STRATA_CLONE" >>"$STRATA_CACHE/build.log" 2>&1; then
       strata_src="$STRATA_CLONE"
     else
@@ -262,6 +287,17 @@ if [ "${STRATA_CLI_SKIP:-}" != "1" ]; then
   fi
 
   if [ -n "$strata_src" ]; then
+    # Reassert the credential helper on the clone this hook owns, so a clone
+    # made by an earlier version of this script — or one whose helper snippet
+    # has since changed — can still fetch. Only ever on $STRATA_CLONE: an
+    # attached checkout belongs to the user and has its own credentials, and
+    # a hook that edits someone's .git/config is the same class of surprise
+    # as a hook that rebases their branch.
+    if [ "$strata_src" = "$STRATA_CLONE" ] \
+       && git -C "$strata_src" rev-parse --git-dir >/dev/null 2>&1; then
+      git -C "$strata_src" config credential.helper "$STRATA_CRED_HELPER" 2>/dev/null || true
+    fi
+
     # Fast-forward only, and only when there is nothing to lose. A session may
     # be mid-change in an attached strata checkout — this hook runs in that
     # repo too — and a hook that resets or rebases someone's branch is data

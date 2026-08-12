@@ -97,6 +97,30 @@ const (
 	RuleTypeMismatch specmodel.RuleId = "reference/type-mismatch"
 )
 
+// referenceRules is every rule whose finding is raised against the
+// document that *holds* a reference rather than the document the
+// reference is about.
+//
+// That distinction is what a single-document check turns on: an edit to
+// one document breaks references held by others, so these findings are
+// reported wherever they were written rather than narrowed to the file a
+// caller named (AC-SPECREF-002.9, AC-SPECREF-002.11). Membership is a
+// property of where a rule's findings land, not of its `reference/`
+// prefix — a future rule reported against the referenced document would
+// not belong here however it is named.
+var referenceRules = map[specmodel.RuleId]bool{
+	RuleUnresolvedReference: true,
+	RuleRetiredTarget:       true,
+	RuleIncompletePairing:   true,
+	RuleTypeMismatch:        true,
+}
+
+// IsReferenceRule reports whether findings of this rule are raised
+// against the referring document — see [referenceRules].
+func IsReferenceRule(rule specmodel.RuleId) bool {
+	return referenceRules[rule]
+}
+
 // rootPointer is what an empty JSON Pointer is rendered as, so a message
 // about the frontmatter object itself does not begin with a bare colon.
 const rootPointer = "/"
