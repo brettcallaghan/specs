@@ -7,9 +7,14 @@ which may be an agent with no memory of having written it.
 
 ## Contents
 
-- Run manifest — the facts recovery cannot re-derive
-- Wave table — the enumerated beads, with class, bucket, tier and push mode
-- Amendments — the append-only log that keeps the plan true mid-run
+- Run manifest — the facts recovery cannot re-derive; a gate whose baseline is
+  `fail` sets "no new findings", not exit 0, as the bar for every bead
+- Wave table — names beads, never a filter; every row carries class, bucket,
+  tier and push mode, and its Reason names which collision class applies
+- Reading C4 overlap — compute co-edit and sequencing edges from bead metadata,
+  not from file paths
+- Amendments — append-only; when the run diverges from the plan, log the change
+  AND update the wave table in place
 
 Every run gets one, whatever its size. A two-bead run interrupted at bead one
 needs the plan exactly as much as a twenty-bead run does.
