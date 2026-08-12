@@ -92,8 +92,7 @@ this file is per-run and never committed. Substitute that path as
 (`bb-close-bead.sh --trailers-file {TRAILERS_FILE} ...`) appends its contents
 to the commit body, so no subagent needs `git commit --amend` to add them.
 WHEN the project states no trailer convention, leave `{TRAILERS_FILE}` unset
-and omit the flag — the close ceremony behaves exactly as before this flag
-existed.
+and omit the flag; the close ceremony then appends no trailers.
 
 Two things no script can settle:
 
@@ -112,9 +111,10 @@ project syncs beads to a Dolt remote and this container cannot write it, so
 every closure the run makes dies with the container — the exact loss the close
 ceremony exists to prevent. Stop and fix the environment; do not run and hope.
 `none` means no Dolt remote is configured, which is not a fault (the project
-may track beads another way) and `yes` is the normal case. Measured here as
-well as in any SessionStart hook, because a hook is registered from the project
-root only and a session that attached this repo alongside another never ran one.
+may track beads another way) and `yes` is the normal case. Pre-flight measures
+it even where a SessionStart hook also does — a hook is registered from the
+project root only, so a session that attached this repo alongside another never
+ran one, and a green hook is not a substitute for this fact.
 
 Every bead runs in a worktree, so confirm `BB_WORKTREE_BASEREF` is `head`
 before Phase 2.5. Unset, worktrees branch from the **default branch**, not
@@ -144,10 +144,9 @@ mechanism and is sufficient. Some projects additionally offer `TaskCreate`/`Task
 use them only where the project has no durable tracker of its own (this one uses `bd`),
 and never alongside one — two dependency graphs is a correctness hazard, not redundancy.
 Note that a subagent in a cloud session may have no task tool at all.
-A **display-only** task-tool mirror of the checklist was proposed and
-**rejected** (`agent-plugins-92q.32`): the "mirror, never source" boundary
-erodes the first time a recovering orchestrator reads it, and nothing fails
-loudly when it does. Do not relitigate without new evidence.
+Do **not** add a display-only task-tool mirror of the checklist: the "mirror,
+never source" boundary erodes the first time a recovering orchestrator reads
+it, and nothing fails loudly when it does.
 
 ## Phase 1.5 — Readiness gate (grooming)
 
@@ -276,11 +275,9 @@ The grooming subagent prompt template is in
 skill's job is to find the largest safe batch, not to default to
 one-bead-per-subagent for caution. Sequential is the *exception*, not the rule.
 
-**Batching survives worktree adoption** (`agent-plugins-92q.30`, decided
-explicitly). Its saving is test-suite amortization, which is orthogonal to
-isolation — worktrees replaced batching's collision rationale, not its
-economic one. So `agent-plugins-92q.10`'s mixed-tier splitting rule below
-stands as written; a batch subagent simply holds one worktree at a time.
+**Worktrees do not make batching redundant.** Batching's saving is test-suite
+amortization, which is orthogonal to isolation, so every batching rule below
+holds even though each bead is already isolated in its own worktree.
 
 ### Classify each bead
 
@@ -305,13 +302,10 @@ re-derive it from prose. The `jq` and a worked example are in
    - Two beads sharing a `c4_changes` component are **shared-surface** whatever
      their file paths say — the same component through different files still
      collides. They MAY batch; they SHALL NOT share a concurrent wave.
-     **The hazard changed shape** (`agent-plugins-92q.8`, rationale corrected
-     by `agent-plugins-92q.30`): it used to be a *co-edit* collision, two
-     agents writing one working tree at once. Worktrees make that impossible.
-     What remains is a *merge* collision — two branches changing the same
+     **The hazard is a *merge* collision:** two branches changing the same
      component conflict when the second one merges, and under `--ff-only` that
-     stops the wave. The conclusion is unchanged and the reason is not, so do
-     not relax this rule on the grounds that worktrees isolate the agents.
+     stops the wave. Worktrees isolate the agents but not the merge, so
+     isolation is never grounds to relax this rule.
    - Bead B whose `c4_impacts` intersects bead A's `c4_changes` consumes a
      contract A is changing. That is a **sequencing** constraint, not a batching
      one, and it holds with zero file overlap: order B after A within the
@@ -333,13 +327,13 @@ Where the repo documents no C4 architecture, grooming skips the tagging and
 means *unknown*, never "no collisions".
 
 The two collision classes read differently in the plan's `Reason` column: a
-co-edit collision names what is shared (`same c4_changes: auth-service`); a
+merge collision names what is shared (`same c4_changes: auth-service`); a
 sequencing constraint names what is consumed and from whom (`consumes
 auth-service, changed by demo-9h0`).
 
 ### Every bead runs in its own worktree
 
-**This is universal, not a mode.** Each dispatched bead gets a git worktree
+**This is universal, not opt-in.** Each dispatched bead gets a git worktree
 named for its hash suffix (`jh6`, `92q.14` — not the full id), created from the
 sprint branch and carrying a branch of the same name. Nothing is implemented in
 the shared checkout except by the orchestrator itself.
@@ -361,14 +355,12 @@ the shared checkout except by the orchestrator itself.
   would read as in-flight forever. Pre-flight and recovery both run
   `git worktree prune` before trusting the list.
 
-**`bd` is not an obstacle.** It resolves the shared tracker database through
-git's common directory from any worktree, measured with `BEADS_DIR` unset — no
-`embeddeddolt` and no redirect file is created in the worktree
-(`agent-plugins-t09`). And a worktree agent has **nothing extra to do** for the
-tracker: `agent-plugins-92q.31` retired the pre-commit `bd export >
-.beads/issues.jsonl` step along with the committed ledger it refreshed. The
-tracker is `origin refs/dolt/data`, the JSONL exports are untracked, and
-`scripts/bb-close-bead.sh` pushes the database itself at every close.
+**`bd` is not an obstacle.** With `BEADS_DIR` unset it resolves the shared
+tracker database through git's common directory from any worktree, creating no
+`embeddeddolt` and no redirect file in the worktree. And a worktree agent has
+**nothing extra to do** for the tracker: it is `origin refs/dolt/data`, the
+JSONL exports are untracked, and `scripts/bb-close-bead.sh` pushes the database
+itself at every close.
 
 **Hard gate — every worktree must branch from the sprint's own branch, never
 the default branch.** Two conditions produce that, and both are checked:
@@ -378,9 +370,9 @@ the repository's default branch. Verify `BB_WORKTREE_BASEREF` is `head`
 **before the first worktree of each wave, and do NOT dispatch otherwise.** The
 remedy is one line — set `.worktree.baseRef = "head"` in user-scope
 `~/.claude/settings.json`, which no repository owns — and it takes effect
-immediately with no session restart (`agent-plugins-jh6` measured this), so
-this is stop-and-fix, not stop-and-abandon. Because the setting is global user
-state anything could change between waves, re-verify before **each** wave, not
+immediately with no session restart, so this is stop-and-fix, not
+stop-and-abandon. Because the setting is global user state anything could
+change between waves, re-verify before **each** wave, not
 once per run — see `references/subagent-prompts.md`, "The base-ref trap".
 
 **Merge policy.** The **orchestrator** merges each bead's branch into the
@@ -391,7 +383,7 @@ sprint branch as it is accepted, one at a time; subagents never merge.
   invariant broke — stop the wave and report it, do not resolve it inline.**
 - **Concurrent wave:** only the FIRST merge can fast-forward. Every branch in
   the wave shares one base, so the rest necessarily diverge and a `--ff-only`
-  refusal is expected rather than diagnostic (measured, `agent-plugins-bhl`).
+  refusal is expected rather than diagnostic.
   Merge the first `--ff-only`, then **rebase each remaining branch onto the
   updated sprint head and fast-forward it**. A rebase CONFLICT is the real
   collision signal — two beads changed the same lines — and stops the wave.
@@ -400,12 +392,7 @@ Either way the result is linear history and one commit per bead. See
 `references/subagent-prompts.md`, "The worktree lifecycle".
 
 **Concurrent dispatch is ENABLED.** Several beads may be dispatched at once
-within a wave, each in its own worktree, merged as each returns. The condition
-that gated it — every concurrent bead committing a full export of one shared
-database onto its own branch, guaranteeing an N-way conflict on
-`.beads/issues.jsonl` — was removed by `agent-plugins-92q.31`: the tracker is
-the Dolt remote, the exports are untracked, and a close commit carries code
-only. There is nothing left to conflict.
+within a wave, each in its own worktree, merged as each returns.
 
 Note what is and is not concurrent. **A wave is the unit of parallelism**, and
 waves remain sequential — a wave boundary is where dependency edges resolve and
@@ -417,19 +404,13 @@ Entry conditions, both required and both about **safety**: **no shared
 check re-verified for this wave. Two beads sharing a surface may batch; they
 SHALL NOT share a concurrent wave.
 
-**There is no minimum bead count.** A `≥3 isolated beads` threshold used to sit
-in this list and was dropped (`agent-plugins-bhl`): it came from the retired
-worktree-parallel *mode*, where creating worktrees was the thing you opted into
-and below 3 beads the setup did not pay. Every bead gets a worktree now, so the
-marginal cost of concurrency is one rebase per extra bead — measured in seconds.
-Two beads that each take five minutes finish in five rather than ten. Worse, a
-count sitting in a list of safety conditions reads as one, and nothing about two
-concurrent beads is less safe than three. Whether a wave is *worth* dispatching
-concurrently is ordinary judgment; whether it is *safe* is the two conditions
-above.
-
-`agent-plugins-bhl` tracks refinement from real use — record what a concurrent
-wave actually does there rather than tightening this rule from speculation.
+**There is no minimum bead count, and do not reintroduce one** — a count in a
+list of safety conditions reads as one, and nothing about two concurrent beads
+is less safe than three. Every bead gets a worktree anyway, so the marginal
+cost of concurrency is one rebase per extra bead, measured in seconds: two
+beads that each take five minutes finish in five rather than ten. Whether a
+wave is *worth* dispatching concurrently is ordinary judgment; whether it is
+*safe* is the two conditions above.
 
 ### Choose a dispatch mode per bucket
 
@@ -652,8 +633,7 @@ After each subagent returns:
    them in this order and stop at the first that fails:
 
    1. **The bead reads closed in the tracker** — `bd show <id>` shows
-     `CLOSED`. Durable off-container since the tracker became the Dolt
-     remote, so this is no longer a local-only fact.
+     `CLOSED`.
    2. **A commit exists on the bead's branch** with the subject
      `<bead-id> P<n> <title>` — `git log --oneline --grep=<bead-id> -1`.
    3. **The branch merged into the sprint branch.** The merge is `--ff-only`,
@@ -688,10 +668,9 @@ After each subagent returns:
    and stops when that agent stops — see `references/recovery.md`, "the
    ledger is a hint, never the authority" — so its absence proves nothing and
    its presence proves only that a line was appended, not that the sha in it
-   is reachable. And a per-bead retro FILE no longer exists:
-   `agent-plugins-92q.22` moved findings to `retro:` comments and reduced the
-   file to `<bead-id>.handoff.md`, a recovery anchor that carries no findings
-   and is not evidence of acceptance.
+   is reachable. And there is no per-bead retro FILE: findings are `retro:`
+   comments on the bead, and `<bead-id>.handoff.md` is a recovery anchor that
+   carries no findings and is not evidence of acceptance.
 5. **Snapshot the run directory** — `scripts/bb-backup-run.sh "$RUN_DIR"`, run
    from your own checkout on the sprint branch and **never from a bead's
    worktree**: the snapshot is the whole run's record, and committing it inside
@@ -872,10 +851,9 @@ Do NOT create a PR or merge to main — that is a separate, explicit user action
   fixing a defect or regression, observe the reproducing test fail for the
   stated reason before fixing; the retro names that observed failure, not just
   "tests pass".
-- **One commit per bead, always — now without exceptions.** An interrupted
-  bead's work stays uncommitted in its own worktree, so there is no `WIP`
-  commit to make and nothing to squash (`agent-plugins-92q.30` retired that
-  exception). Full rule and resume path:
+- **One commit per bead, always — no exceptions.** An interrupted bead's work
+  stays uncommitted in its own worktree, so there is no `WIP` commit to make
+  and nothing to squash. Full rule and resume path:
   `references/operating-principles.md`.
 - **The dispatch plan has no lean path.** It is written every run, whatever
   its size, because it is what a recovering orchestrator reads instead of
@@ -946,18 +924,13 @@ Do NOT create a PR or merge to main — that is a separate, explicit user action
   actually ran before trusting it. Heavy suites (integration, codegen, anything
   needing sockets/toolchains the sandbox lacks) run locally only when a bead
   touches the surface they cover; when a PR is open, CI is the backstop.
-- **Guard against foreign dirt; tracker writes no longer need deferring.**
+- **Guard against foreign dirt; tracker writes need no deferring.**
   Multiple agents can share the tree, so name known foreign files as
   untouchable in batch prompts and commit your own work by explicit pathspec
-  (`git commit -- <files>`). The rule that also deferred your *tracker* writes
-  to a wave boundary is **retired** (`agent-plugins-92q.31`): it existed
-  because the close ceremony regenerated a committed ledger export in full, so
-  a concurrent tracker write rode into whichever subagent's commit came next,
-  pathspec notwithstanding. There is no such file now — the close stages code
-  only — so you may groom a discovered bead, bake a decision, or wire a
-  dependency edge at any time, including mid-wave. Why worktrees did *not* fix
-  this, and the claim-reset rule that is unchanged:
-  `references/operating-principles.md`.
+  (`git commit -- <files>`). Tracker writes are not subject to that hazard —
+  a close commit stages code only — so you may groom a discovered bead, bake a
+  decision, or wire a dependency edge at any time, including mid-wave. The
+  claim-reset rule: `references/operating-principles.md`.
 - **Wire findings capture when the repo has it, and harvest with `bd export |
   jq`, never `bd list` + `bd show --json`.** The feature's final DoD bead runs
   the one aggregated retro-spec, asserting a non-zero harvest before
@@ -1029,7 +1002,7 @@ bb-backup-run.sh <run-dir> [<dest>]     # <dest> defaults to <repo>/.bonanza/<ru
   contents are appended to the commit body after a blank line, so a project's
   required trailers (`Co-Authored-By`, a session URL) land in the one commit
   this script makes and no caller needs `git commit --amend` to add them.
-  Omitting it leaves behavior identical to before the flag existed.
+  Omitting it appends no trailers.
   `<path ...>` are the code files this bead changed; WHEN omitted it stages
   everything currently modified, so pass explicit paths whenever another
   agent may be sharing the tree. It closes with a status-only `bd update` and
@@ -1072,11 +1045,9 @@ opening the file.
 - **`scripts/bb-close-bead.sh`** — runs `bd update --status closed`, stages
   the specified paths (or, with none given, everything modified **except
   `.beads/`**), makes one commit, then runs `bd dolt push` when a Dolt remote
-  is configured. It does **not** write or stage `.beads/issues.jsonl`:
-  `agent-plugins-92q.31` retired that, along with the export-and-verify retry
-  loop and its `BB_EXPORT_*` knobs. The tracker's transport is
-  `origin refs/dolt/data`, the JSONL exports are untracked, and a close commit
-  carries code only.
+  is configured. It does **not** write or stage `.beads/issues.jsonl`: the
+  tracker's transport is `origin refs/dolt/data`, the JSONL exports are
+  untracked, and a close commit carries code only.
 - **`scripts/bb-backup-run.sh`** — creates and replaces
   `<repo>/.bonanza/<run-id>/` (or `<dest>`), writes a
   `.bonanza/<run-id>/SNAPSHOT.md` inside it, and makes one commit of that path
