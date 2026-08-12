@@ -898,6 +898,10 @@ After the queue is drained (or the circuit breaker tripped), print:
    filed with a `discovered-from` link, awaiting triage).
 5. **Stashes** — if any were created during recovery, list with `git stash
    list`.
+5a. **Sprint retro** — synthesize the run's own evidence into how the next
+    sprint runs better. Specified in "The sprint retro" below. It runs on
+    every run that closed at least one bead, and it runs *here*: after the
+    report, before 6b deletes the run snapshot it reads.
 6. **Pushes** — confirm all closed beads' commits are on the remote.
 6a. **Cancel the durable out-of-session trigger** armed at first dispatch
     (`references/recovery.md`, "Back the Monitor with a durable trigger") —
@@ -914,6 +918,75 @@ After the queue is drained (or the circuit breaker tripped), print:
    review the dispatch plan and progress files.
 
 Do NOT create a PR or merge to main — that is a separate, explicit user action.
+
+### The sprint retro
+
+A run is a sprint; this is its retrospective. It runs on **every run that
+closed at least one bead**, not only on a run that struggled. Escalations
+expose *under*-routing while over-routing succeeds silently, so a smooth run
+is the one most likely to be hiding waste.
+
+**Read the run's records; do not re-derive the run.** The inputs are the
+harvested `retro:` comments, the tables you just printed (3a escalations, 3b
+over-routes, 4 follow-up and admitted/bounced beads), `dispatch.md`'s
+`## Amendments` log, the per-bead `<bead-id>.handoff.md` and
+`<bead-id>.progress.jsonl` under `$RUN_DIR`, and `git log` on the sprint
+branch. Do NOT re-read diffs, re-run gates, or re-open the beads' work. A
+retro that costs a second pass over the run is a retro that gets skipped.
+
+**Harvest first, then assert.** Findings are `retro:` comments on the beads —
+there is no per-bead retro file. Harvest with the `bd export | jq` pipeline in
+`references/operating-principles.md` ("Findings harvest"), once filtered to
+closed and once unfiltered. A zero count across a drained run is a broken
+query, not a clean run: **stop, re-run it**, check the label spelling and
+confirm the beads really are closed, before aggregating anything. An aggregate
+over an empty set is worse than no retro — it reads as a confident, clean
+artifact where there is no evidence at all.
+
+**Answer four questions. A question with no evidence gets `null result` in
+writing** — omit it and an unasked question is indistinguishable from an
+answered one.
+
+1. **Grooming** — which beads were under-groomed, and how did it surface
+   (bounced at the readiness gate, an AC unsatisfiable as written, a
+   description that failed the fresh-agent test in practice, a wrong or
+   missing dependency edge)? Which tier predictions were wrong, in which
+   direction? *From:* the bounce list, 3a, 3b, `retro:` comments.
+2. **Specs** — which spec documents did an implementer find wrong, thin or
+   self-contradictory? *From:* `retro:` comments naming a document.
+3. **Plan** — what did `## Amendments` record (resequencings,
+   reclassifications, admissions, bounces), and what would have produced a
+   better initial bucketing? *From:* the amendments log read against the wave
+   table it amended.
+4. **Skill** — where did `bead-bonanza` itself mislead, and what did a
+   subagent improvise around? *From:* `retro:` comments citing this skill,
+   its references or its scripts.
+
+**Write one sprint report per run** at
+`rfcs/sprints/<YYYY-MM-DD>-<epic-slug>.md` — dated and slugged, because a run
+id means nothing to a human scanning the directory. It carries the four
+answers and **every harvested finding verbatim, including the tail that
+warrants no RFC**, and it says so: `triage-rfc` defers on recurrence, so a
+finding recorded once and filtered out the next time can never be observed
+appearing twice. Filtering the report down to RFC-worthy findings breaks that
+accumulation silently.
+
+**The bar for anything past the report: it changes how the next run is
+dispatched.** "Wave 2 needed three cycles" is a summary. "The `schema`-labelled
+beads were bucketed shared-surface but each regenerated the same fixture, so
+the batch serialized anyway — bucket that label sequential" is a finding. Only
+findings that clear that bar become RFCs.
+
+**Route them, as offers.** Grooming and tier-calibration findings →
+`groom-beads`; spec findings → `retro-spec`; skill findings → `retro-skill`.
+Each route is one offer the user accepts or declines, naming the findings it
+would carry. RFCs land in `rfcs/inbox/<skill>/` and **cite the sprint report
+instead of re-inlining its evidence**, so report and RFC cannot disagree: the
+report is the testimony, the RFC is the proposal built on it.
+
+The report itself is not an offer. Write it, append one row for the sprint to
+`rfcs/retro-log.md` so one index covers all retro activity, and commit both
+with any RFCs in a single commit before 6b's deletion commit.
 
 ## Operating principles
 
@@ -1067,9 +1140,9 @@ in each file's header and re-run that script.
 
 ## Retro this skill
 
-WHEN a run of `bead-bonanza` struggled — you improvised around its
-guidance, the gate profile it prescribes was wrong or missing, a command
-it told a subagent to run misbehaved, or an instruction here pointed you
-the wrong way — offer to run `retro-skill` on `bead-bonanza` while the
-session is fresh, to capture the friction as an evidence-backed RFC. A
-clean run needs nothing; never run it unprompted.
+Question 4 of Phase 4's sprint retro ("The sprint retro") owns this. It asks
+where `bead-bonanza` misled and what a subagent improvised around, answers it
+from the run's harvested `retro:` comments, and offers `retro-skill` when
+those comments carry a finding. Do not gate a retro of this skill on whether
+the run felt like it struggled — the comments are the evidence, and a run that
+felt clean can still have produced several.
