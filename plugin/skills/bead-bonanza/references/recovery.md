@@ -53,7 +53,28 @@ Work these steps in order.
      the container lives; gone after a reclaim.
    - The committed snapshot under `.bonanza/<run-id>/` on the branch, which is
      what survives a reclaim. `ls .bonanza/` and take the directory the branch
-     carries.
+     carries. It is written by `scripts/bb-backup-run.sh` after every bead's
+     acceptance check, and `.bonanza/<run-id>/SNAPSHOT.md` is self-describing:
+     the run id, the as-of time, the live directory's path, the run branch, the
+     HEAD when it was taken, and every bead id that had a progress ledger or a
+     handoff file. Read that file first — it tells you which run you are
+     looking at without your knowing the run id.
+
+   **The live run directory is authoritative; a snapshot never is.** Any
+   procedure that reads the backup — this recovery, a retro, a DoD audit —
+   first checks whether the live directory still exists and uses it when it
+   does. Read the backup only WHEN `$RUN_DIR` is gone, and then **state the
+   snapshot's as-of time** in whatever you conclude from it. A copy taken
+   mid-run is indistinguishable from a complete one once it is detached from
+   its timestamp; one went stale within 30 minutes of being taken.
+
+   **Refresh it as you go.** WHEN you resume a run and keep working it, run
+   `<skill>/scripts/bb-backup-run.sh "$RUN_DIR"` after each bead's acceptance
+   check, exactly as the original orchestrator was to. It re-copies the live
+   directory and commits `.bonanza/<run-id>/`, makes no commit when nothing
+   changed, and never reads back out of the copy. A snapshot that is committed
+   but never pushed dies with the container like everything else — push the
+   branch.
 
    **Retired here** (`agent-plugins-92q.23`, `agent-plugins-92q.25`): the
    four-route ladder that ended in "list the run root and take the newest
