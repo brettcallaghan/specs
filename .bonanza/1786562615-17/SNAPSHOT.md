@@ -8,14 +8,14 @@ reclaim. It is written by `scripts/bb-backup-run.sh` after every bead.
 | Field | Value |
 |---|---|
 | Run id | `1786562615-17` |
-| As of | `2026-08-12T21:07:16Z` |
+| As of | `2026-08-12T21:13:16Z` |
 | Live run directory | `/tmp/claude/bead-bonanza/1786562615-17` |
 | Repo | `/home/user/agent-plugins` |
 | Run branch | `claude/bead-bonanza-refinement-261qvk` |
 | Default branch | `main` |
-| HEAD when taken | `da7ea08` agent-plugins-b5z P2 Extract dispatch planning into a private plan-sprint skill, dispatched to a subagent rather than run in the orchestrator |
-| Files copied | 33 |
-| Beads with artifacts | 15 |
+| HEAD when taken | `bb8969f` Finish agent-plugins-x8r's audit, and drop four files it swept in |
+| Files copied | 36 |
+| Beads with artifacts | 17 |
 
 Resume the run from the branch, not from this file: `git log --oneline main..claude/bead-bonanza-refinement-261qvk`
 lists every bead that has landed, one close commit each.
@@ -29,6 +29,7 @@ lists every bead that has landed, one close commit each.
 | `agent-plugins-8ef.2` | `committed` | `d7fe4d7` | yes | yes |
 | `agent-plugins-8ef.3` | `committed` | `7ec6591` | yes | yes |
 | `agent-plugins-8mv` | `committed` | `e0fd2a5` | yes | yes |
+| `agent-plugins-9ko` | `blocked` |  | yes | no |
 | `agent-plugins-9p4` | `committed` | `9f79570` | yes | yes |
 | `agent-plugins-b13` | `committed` | `f892cc7` | yes | yes |
 | `agent-plugins-b5z` | `committed` | `da7ea08` | yes | yes |
@@ -39,6 +40,7 @@ lists every bead that has landed, one close commit each.
 | `agent-plugins-td1` | `committed` | `daae2d3` | yes | yes |
 | `agent-plugins-txq` | `committed` | `baf0dd5` | yes | yes |
 | `agent-plugins-viy` | `committed` | `59983d8` | yes | yes |
+| `agent-plugins-x8r` | `committed` | `8e8f7c3` | yes | yes |
 
 The phase column is a **hint, never the authority** — the ledger stops when
 the agent writing it stops, so a trail ending before `committed` does not
@@ -64,7 +66,7 @@ whether the live directory still exists and use it when it does:
     ls -A /tmp/claude/bead-bonanza/1786562615-17
 
 Read this copy only WHEN that directory is gone, and then state this
-snapshot's as-of time (`2026-08-12T21:07:16Z`) in whatever you conclude from it.
+snapshot's as-of time (`2026-08-12T21:13:16Z`) in whatever you conclude from it.
 
 **It preserves operational state, not findings.** Findings are `retro:`
 comments on the beads themselves, durable in the tracker independently of
