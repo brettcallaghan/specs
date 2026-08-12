@@ -467,7 +467,41 @@ else
   say "expected to exit 0, and a pre-existing failure will be misread as a regression."
 fi
 
-# ================================================================= 9. verdict
+# ==================================================== 9. tracker durability
+#
+# Can a closure actually be persisted? Where beads syncs to a Dolt remote, a
+# run whose closures cannot be pushed loses them when the container is
+# reclaimed — the failure this whole ceremony exists to prevent. Measured, not
+# assumed, and measured HERE as well as in any SessionStart hook: a hook is
+# registered from the project root only, so a session that attached this repo
+# alongside another never ran one. This MUST run before the verdict block
+# below — it is the fact that decides whether the run is safe to proceed.
+#
+# `none` means no Dolt remote is configured, which is not a fault: a project
+# may track beads another way. `no` means one IS configured and cannot be
+# written — that is a blocking condition for the run.
+head_ "Tracker durability"
+DOLT_WRITE=none
+DOLT_WRITE_PROBE=""
+if [ "$BD" = ok ] && bd dolt remote list 2>/dev/null | grep -q .; then
+  _probe_ref="refs/dolt/preflight-probe-$$"
+  DOLT_WRITE_PROBE="git push ${REMOTE:-origin} HEAD:$_probe_ref"
+  if git push -q "${REMOTE:-origin}" "HEAD:$_probe_ref" >/dev/null 2>&1; then
+    git push -q "${REMOTE:-origin}" --delete "$_probe_ref" >/dev/null 2>&1 || true
+    DOLT_WRITE=yes
+    say "refs/dolt/data write: yes (probed: $DOLT_WRITE_PROBE)"
+  else
+    DOLT_WRITE=no
+    say "refs/dolt/data write: NO (probed: $DOLT_WRITE_PROBE)"
+  fi
+else
+  say "refs/dolt/data write: n/a — no Dolt remote configured"
+fi
+if [ "$DOLT_WRITE" = no ]; then
+  block "refs/dolt/data is not writable (probed: $DOLT_WRITE_PROBE — push failed). Every bead closure this run makes dies with the container when it is reclaimed; the tracker has no JSONL fallback. Fix write access (AGENT_PLUGINS_ACCESS_TOKEN and unproxied github.com egress — see docs/session-bootstrap.md), then re-run pre-flight-check.sh before Phase 1."
+fi
+
+# ================================================================= 10. verdict
 
 head_ "Verdict"
 if [ "$REPORT_FAIL" -eq 0 ]; then
@@ -478,27 +512,6 @@ else
 fi
 
 # The evalable block. Values that can contain spaces are single-quoted.
-# Tracker durability: can a closure actually be persisted? Where beads syncs to
-# a Dolt remote, a run whose closures cannot be pushed loses them when the
-# container is reclaimed — the failure this whole ceremony exists to prevent.
-# Measured, not assumed, and measured HERE as well as in any SessionStart hook:
-# a hook is registered from the project root only, so a session that attached
-# this repo alongside another never ran one.
-#
-# `none` means no Dolt remote is configured, which is not a fault: a project
-# may track beads another way. `no` means one IS configured and cannot be
-# written — that is a blocking condition for the run.
-DOLT_WRITE=none
-if [ "$BD" = ok ] && bd dolt remote list 2>/dev/null | grep -q .; then
-  _probe_ref="refs/dolt/preflight-probe-$$"
-  if git push -q "${REMOTE:-origin}" "HEAD:$_probe_ref" >/dev/null 2>&1; then
-    git push -q "${REMOTE:-origin}" --delete "$_probe_ref" >/dev/null 2>&1 || true
-    DOLT_WRITE=yes
-  else
-    DOLT_WRITE=no
-  fi
-fi
-
 emitq RUN_DIR "$RUN_DIR"
 emitq SCRIPTS "$SCRIPTS"
 emit  BB_GATES_BLOCK "$GATES_BLOCK"
