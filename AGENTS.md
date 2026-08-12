@@ -152,6 +152,14 @@ Where a claim cannot be tested cheaply, mark it **unverified** and state what
 would settle it — an unverified entry is useful; one that reads as settled
 and is not, is worse than absent.
 
+Cite the measurement that established the entry, not the date someone last
+re-ran it. "Re-verified `<date>`" is provenance for the audit rather than for
+the claim: it ages on its own, and a reader who trusts it inherits whatever
+the number happened to be that day. Where the fact is volatile — a file size,
+a warning count, a line number — record the command that measures it and no
+figure at all. Scope an entry to the repository, never to a session: "out of
+scope for this run's beads" tells a future reader nothing they can act on.
+
 - **`bd`'s JSONL export lags the database.** A close reaches the Dolt DB
   seconds before it reaches `.beads/issues.jsonl`, so an export taken
   immediately after `bd update --status closed` can still return pre-close
@@ -170,15 +178,16 @@ and is not, is worse than absent.
   on a *warning*, not an error. Do not treat the warning as your change's
   failure and do not try to fix it mid-run; it is editorial scope owned
   elsewhere. The bar is **no findings beyond this baseline**, not exit 0.
-  Re-verified 2026-08-12 on `e92e56f`: `scripts/check-skills.sh --strict` →
-  `0 error(s), 1 warning(s)`, exit 1 — `plugin/skills/bead-bonanza/SKILL.md`
-  at 65451 bytes, over the ~20000-byte guideline.
-  `plugin/skills/spec/SKILL.md` was the second warning earlier the same day
-  and no longer is; `agent-plugins-d70` brought it to 16941 bytes.
-  Re-measure rather than trusting this number indefinitely — and capture
-  `$?` directly, not through a pipe: `scripts/check-skills.sh --strict >out
-  2>&1; echo $?`. Piping to `tail` reports the pager's status and reads as
-  a pass.
+  Measure the baseline at pre-flight rather than quoting a number from here.
+  The warning is a body size that moves with every editorial bead, so any
+  figure recorded in this file is stale on arrival — and a stale baseline read
+  as current is how a real regression gets waved through. Capture `$?`
+  directly, never through a pipe; piping to `tail` reports the pager's status
+  and reads as a pass:
+
+  ```bash
+  scripts/check-skills.sh --strict >out 2>&1; echo $?
+  ```
 - **`scripts/generate-schemas.sh --check` fails when the installed `strata`
   predates `strata-lang/strata@8997153`.** That commit fixes
   `allowAdditionalProperties: false` silently dropping struct inheritance.
@@ -207,9 +216,8 @@ and is not, is worse than absent.
   rather than on a version string. Keep the assertion: it catches this class
   of corruption from any build, not one known-bad commit.
 
-  **Both entries above are unverified this session**: no cited command run
-  showing the empty-`properties` failure, and `schemas/*.strata` is out of
-  scope for this run's beads, so neither was re-run. Settle by running
+  **Both entries above are unverified**: no run has been cited showing the
+  empty-`properties` failure. Settle by running
   `scripts/generate-schemas.sh --check` against a `strata` build older than
   `8997153` and confirming the emitted schema shows empty `properties` maps
   on inheriting types.
