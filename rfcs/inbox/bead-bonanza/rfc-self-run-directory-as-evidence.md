@@ -15,7 +15,7 @@ skill_version: "1.3"
 model: "<withheld by session policy — see Provenance>"
 effort: unknown
 runs_observed: 1
-severity: minor
+severity: polish
 plugin_version: "0.14.0"
 ---
 
