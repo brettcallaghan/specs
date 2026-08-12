@@ -137,10 +137,15 @@ fi
 # 3. Stage code only. Inside the bead's own worktree everything present belongs
 #    to this bead, so no paths need naming; the Usage note above gives the two
 #    cases that still pass them.
+#
+#    The exclusion names the JSONL exports alone, not all of .beads/. Excluding
+#    the whole directory silently drops tracked tracker config — config.yaml,
+#    .gitignore, the bd hooks — from the commit of any bead whose scope
+#    includes it, and the close still reports success.
 if [ $# -gt 0 ]; then
   git add -- "$@" || fail "git add failed for: $*"
 else
-  git add -A -- ':!.beads' || fail "git add failed"
+  git add -A -- ':!.beads/*.jsonl' || fail "git add failed"
 fi
 
 git diff --staged --quiet && fail "nothing staged — no changes to commit for $id.
