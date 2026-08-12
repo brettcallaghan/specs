@@ -93,7 +93,7 @@ and appends the JSON itself — never hand-write an event.
 5. **Write the handoff file BEFORE closing the bead** (crash recovery anchor — non-negotiable). Write `{RUN_DIR}/{ID}.handoff.md` as a `# {ID} handoff` heading plus exactly one labeled line, and nothing else:
    - `Caveat:` — anything the close must do differently: a regen step that must run before staging, a fixture this bead regenerated. Write `none` when there is none.
 
-   **The `Paths:` line is retired** (`agent-plugins-92q.30`). It existed because, in a tree another agent might be sharing, nobody could re-derive from `git status` which dirt belonged to this bead. You are in this bead's own worktree, so everything dirty here is yours by construction and the close stages all of it. Do not reintroduce a path list.
+   **No `Paths:` line.** You are in this bead's own worktree, so everything dirty here is yours by construction and the close stages all of it — a path list can only be too narrow.
 
    Three lines total is typical. Do NOT restate the phase (the progress JSONL has it), the diff, the gates, or the bead, and do NOT put findings in it — those are step 6. Run `bb-progress.sh "$RUN_DIR" {ID} retro-written` after the file is on disk (the phase vocabulary keeps that name).
 6. **Record findings as `retro:` comments on {ID}** — one `bd comment` per finding, prefixed `retro:`, 1–3 sentences each, friction only, no root-causing. That comment channel is what downstream retros and RFCs actually read. Trigger list — record one WHEN: you needed information the bead and its references did not carry; you had to settle something the bead or spec should have pinned; the bead contradicted repo reality; you could not satisfy an acceptance criterion as declared; a sequencing surprise. **A clean bead records none — say so rather than inventing filler.** Record each of these as its own `retro:` comment too:
@@ -103,8 +103,8 @@ and appends the JSON itself — never hand-write an event.
 7. Close and commit in one step — run the bundled script. WHEN `{TRAILERS_FILE}` is not "none", pass it first so the trailers land in the same commit and no amend is ever needed:
    `{SCRIPTS}/bb-close-bead.sh --trailers-file {TRAILERS_FILE} {ID} {PRIORITY} "{TITLE}"`
    Otherwise (`{TRAILERS_FILE}` is "none"): `{SCRIPTS}/bb-close-bead.sh {ID} {PRIORITY} "{TITLE}"`
-   **Pass no paths.** You are in this bead's own worktree, so everything modified here is this bead's work and the script stages all of it. A path list can only be too narrow (`agent-plugins-92q.30`).
-   It performs the whole ceremony in the required order: atomic close (`bd update --status closed`, never `bd close` — that would be a second commit), verify the close against the DATABASE (`bd show`) before anything is staged, stage **code only** (`git add -A -- ':!.beads'`), one commit messaged `{ID} P{PRIORITY} {TITLE}` (plus the trailers file's contents in the body, when given), then `bd dolt push` — the push, not a file, is what makes the closure durable. It writes and stages no `.beads/` export: `agent-plugins-92q.31` retired that step along with the committed ledger it refreshed. It does not touch the description — grooming owns that. It refuses to run on `main` or with nothing staged. Do not perform these steps by hand, and do not `git commit --amend` afterward — if a required trailer is missing, that means `{TRAILERS_FILE}` was resolved wrong at Phase 0, not something to patch here.
+   **Pass no paths.** You are in this bead's own worktree, so everything modified here is this bead's work and the script stages all of it. A path list can only be too narrow.
+   It performs the whole ceremony in the required order: atomic close (`bd update --status closed`, never `bd close` — that would be a second commit), verify the close against the DATABASE (`bd show`) before anything is staged, stage **code only** (`git add -A -- ':!.beads'`), one commit messaged `{ID} P{PRIORITY} {TITLE}` (plus the trailers file's contents in the body, when given), then `bd dolt push` — the push, not a file, is what makes the closure durable. It writes and stages no `.beads/` export, and neither do you. It does not touch the description — grooming owns that. It refuses to run on `main` or with nothing staged. Do not perform these steps by hand, and do not `git commit --amend` afterward — if a required trailer is missing, that means `{TRAILERS_FILE}` was resolved wrong at Phase 0, not something to patch here.
 8. `{SCRIPTS}/bb-progress.sh "{RUN_DIR}" {ID} committed sha=$(git rev-parse --short HEAD)` — read the sha from the branch, not from the script's printout, so any rewrite between steps 7 and 8 cannot desync the ledger from what actually landed.
 9. If push mode is `push_per_bead`: `git push origin <branch>` on the current branch (never main), then `{SCRIPTS}/bb-progress.sh "{RUN_DIR}" {ID} pushed`. If `defer_push`: skip the push; the orchestrator handles it.
 10. Return one line as your final message:
@@ -117,7 +117,7 @@ and appends the JSON itself — never hand-write an event.
 If gates fail twice, the change is intractable, or the bead cannot be finished without a prerequisite you filed:
 - `bb-progress.sh "$RUN_DIR" {ID} blocked reason="<short>"`.
 - `bd update {ID} --status blocked --append-notes "<short reason>"` — if a filed prerequisite is the blocker, name its id in the reason.
-- **Leave your uncommitted changes exactly where they are, in your worktree.** Do NOT stash and do NOT commit them. The worktree holds the partial work and its continued existence is what tells the orchestrator this bead is unfinished; stashing would move the work out of it and destroy that signal (`agent-plugins-92q.30`).
+- **Leave your uncommitted changes exactly where they are, in your worktree.** Do NOT stash and do NOT commit them. The worktree holds the partial work and its continued existence is what tells the orchestrator this bead is unfinished; stashing would move the work out of it and destroy that signal.
 - Return the blocked summary line. Do not push.
 
 ## Skipped path
@@ -242,12 +242,11 @@ orchestrator's own HEAD is not the default branch (pre-flight blocks the
 run otherwise), and `worktree.baseRef` must be `"head"` so the worktree
 takes session HEAD rather than the repository's default branch. Unset,
 the worktree branches from the repository's **default branch**, not
-session HEAD — measured in this repo, `agent-plugins-jh6`. This is not
-conditional on whether the run's beads build on each other: an unset
-`baseRef` silently drops every commit the sprint branch carries from
-every worktree, isolated beads included — it is a hard gate for
-`isolation: "worktree"` full stop, not a special case for beads with a
-dependency edge. Fix (user scope only; project-root untested):
+session HEAD. This is not conditional on whether the run's beads build on
+each other: an unset `baseRef` silently drops every commit the sprint
+branch carries from every worktree, isolated beads included — it is a hard
+gate for `isolation: "worktree"` full stop, not a special case for beads
+with a dependency edge. Fix (set it in user scope; project scope is untested):
 
 ```json
 { "worktree": { "baseRef": "head" } }
@@ -273,41 +272,28 @@ merge anything back. Fix `worktree.baseRef`, or fall back to sequential mode.
 
 `bd` is not an obstacle: it resolves the shared tracker database through
 git's common directory from any worktree — `bd where`/`bd worktree info`
-point at the main checkout, `bd list` returns the full set, no `embeddeddolt`
-or redirect file created (measured, `BEADS_DIR` unset, `agent-plugins-jh6`,
-`agent-plugins-t09`). All worktree agents share one tracker, which is
-exactly what makes these four constraints real:
+point at the main checkout, `bd list` returns the full set, and no
+`embeddeddolt` or redirect file is created (with `BEADS_DIR` unset). All
+worktree agents share one tracker, which is exactly what makes these three
+constraints real:
 
 - **A worktree's own `.beads/issues.jsonl` goes stale while `git status`
-  reads clean** — where a project still auto-exports, it writes the MAIN
-  checkout's copy (measured 105 lines vs. 128, `agent-plugins-jh6`). The rule
-  this used to carry — "run `bd export > .beads/issues.jsonl` in your own
-  directory before committing" — is **retired** (`agent-plugins-92q.31`): the
-  exports are untracked and the close stages code only, so there is nothing to
-  refresh before committing. What survives is the reading rule: **never treat
-  that file as tracker state.** Ask the database — `bd show`, or `bd export` to
-  stdout, which regenerates from it.
-- **Auto-export is best-effort, not a guarantee** — three creates sat
-  unexported 20+ seconds, flushing only on a later main-context write
-  (`agent-plugins-t09`). The commit path no longer depends on it; anything that
-  *reads* a `.beads/*.jsonl` file still does, which is why the rule above is a
-  rule.
+  reads clean** — where a project auto-exports, it writes the MAIN checkout's
+  copy, so the worktree's copy can be dozens of issues short. **Never treat
+  that file as tracker state.** Ask the database — `bd show`, or `bd export`
+  to stdout, which regenerates from it. There is no export step to run before
+  committing: the exports are untracked and the close stages code only.
+- **Auto-export is best-effort, not a guarantee** — a create can sit
+  unexported for 20+ seconds, flushing only on a later main-context write.
+  The commit path does not depend on it; anything that *reads* a
+  `.beads/*.jsonl` file does, which is why the rule above is a rule.
 - **`export.git-add: true` (`.beads/config.yaml`) stages the refreshed
   ledger into the MAIN index from writes issued anywhere, including a
-  worktree** — this bites only in a project that still tracks the export.
-  Where `.beads/*.jsonl` is gitignored (here, since `agent-plugins-92q.31`)
-  `git add` of an ignored path is a no-op. Keep the orchestrator's commits
-  pathspec-scoped regardless (SKILL.md, "Guard against foreign dirt"): that
-  guard is against foreign dirt in a shared checkout generally, not against
-  the export specifically.
-- **The exported ledger is gone.** Until `agent-plugins-92q.31` the mandated
-  per-close export made concurrency unsafe: N beads each committed a
-  near-identical full rewrite of one shared database onto N branches with no
-  merge driver, so an N-way `.beads/issues.jsonl` conflict at merge time was
-  guaranteed. The tracker is now `origin refs/dolt/data`, `.beads/*.jsonl` is
-  untracked, and the close ceremony stages code only and pushes the database
-  itself. There is no per-worktree export to conflict, and no export step for a
-  worktree agent to remember.
+  worktree** — this bites only in a project that tracks the export. Where
+  `.beads/*.jsonl` is gitignored, `git add` of an ignored path is a no-op.
+  Keep the orchestrator's commits pathspec-scoped regardless (SKILL.md,
+  "Guard against foreign dirt"): that guard is against foreign dirt in a
+  shared checkout generally, not against the export specifically.
 
 ### The worktree lifecycle — create, dispatch, merge, remove
 
@@ -344,11 +330,9 @@ it uses `worktree.baseRef` instead, which is why that setting is a hard gate.
 
    **In a CONCURRENT wave, only the first merge can fast-forward**, and that is
    not a fault — every branch in the wave shares one base by construction, so
-   the second onward necessarily diverge. Measured 2026-08-12 on the first real
-   concurrent wave (`agent-plugins-bhl`): `--ff-only` fast-forwarded bead one
-   and then refused bead two with "Not possible to fast-forward" on a wave in
-   which nothing was wrong. Applying the sequential rule literally would stop
-   every concurrent wave of 2+ beads and report it as broken.
+   the second onward necessarily diverge and `--ff-only` refuses them with "Not
+   possible to fast-forward". Applying the sequential rule literally would stop
+   every concurrent wave of 2+ beads and report a healthy wave as broken.
 
    So for each branch after the first: **rebase it onto the updated sprint head,
    then fast-forward.**
@@ -386,8 +370,7 @@ recovery.
 ### Concurrent dispatch within a wave (enabled)
 
 Spawn several beads at once — one `Agent` call per bead with
-`isolation: "worktree"`, all in a single message. The committed ledger that
-blocked this is gone (see the ledger bullet above). Waves themselves stay
+`isolation: "worktree"`, all in a single message. Waves themselves stay
 sequential; concurrency is across beads *inside* a wave.
 
 The lifecycle above is unchanged per bead. Two additions when running
