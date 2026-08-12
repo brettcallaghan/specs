@@ -568,9 +568,8 @@ vendored copies under `groom-beads`, `groom-feature-blueprint` and
 `work-order-template` 1.3→1.4. Plugin 0.16.0→0.17.0, one MINOR bump
 covering this RFC and its two siblings.
 
-The `version` frontmatter of the changed shipped **skills** is not
-bumped here: those files were outside this closeout's scope, and the
-five affected (`bead-bonanza`, `groom-beads`, `groom-feature-blueprint`,
-`retro-skill`, `retro-spec`) are tracked by `agent-plugins-x8r`. Until
-that lands, `bead-bonanza` still reports `1.3` — the version all three
-of these RFCs were filed against — despite a near-total rewrite.
+The `version` frontmatter of the changed shipped **skills** has been
+bumped in `agent-plugins-x8r`: `bead-bonanza` 1.3→1.4 and `spec` 1.8→1.9.
+The other four skills (`groom-beads`, `groom-feature-blueprint`,
+`retro-skill`, `retro-spec`) did not change in this sprint and received
+no bumps.
