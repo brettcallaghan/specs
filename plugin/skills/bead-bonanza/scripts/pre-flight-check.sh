@@ -411,16 +411,6 @@ if [ "$WORKTREE_BASEREF" != head ]; then
   say "    if it does, set it first: .worktree.baseRef = \"head\" in $USER_SETTINGS"
 fi
 
-# TaskCreate ban detection. The project rule wins over this skill's default, so
-# it is worth knowing before the first progress update rather than after.
-TASKCREATE=allowed
-for f in CLAUDE.md AGENTS.md; do
-  [ -f "$f" ] || continue
-  if grep -i 'TaskCreate' "$f" 2>/dev/null | grep -qi 'do not\|don.t\|never\|instead of\|ban'; then
-    TASKCREATE=banned
-  fi
-done
-say "TaskCreate: $TASKCREATE"
 
 # =============================================================== 7. PR CI
 
@@ -513,7 +503,6 @@ emitq RUN_DIR "$RUN_DIR"
 emitq SCRIPTS "$SCRIPTS"
 emit  BB_GATES_BLOCK "$GATES_BLOCK"
 emit  BB_LINEUP_BLOCK "$LINEUP_BLOCK"
-emit  BB_TASKCREATE "$TASKCREATE"
 emitq BB_SUBAGENT_MODEL_OVERRIDE "$SUBAGENT_MODEL_OVERRIDE"
 emit  BB_PR_CI "$PR_CI"
 emit  BB_TREE_CLEAN "$TREE_CLEAN"

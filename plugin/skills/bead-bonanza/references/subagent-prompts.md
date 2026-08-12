@@ -274,26 +274,11 @@ merge anything back. Fix `worktree.baseRef`, or fall back to sequential mode.
 git's common directory from any worktree — `bd where`/`bd worktree info`
 point at the main checkout, `bd list` returns the full set, and no
 `embeddeddolt` or redirect file is created (with `BEADS_DIR` unset). All
-worktree agents share one tracker, which is exactly what makes these three
-constraints real:
+worktree agents share one tracker, which is what makes this constraint real:
 
-- **A worktree's own `.beads/issues.jsonl` goes stale while `git status`
-  reads clean** — where a project auto-exports, it writes the MAIN checkout's
-  copy, so the worktree's copy can be dozens of issues short. **Never treat
-  that file as tracker state.** Ask the database — `bd show`, or `bd export`
-  to stdout, which regenerates from it. There is no export step to run before
-  committing: the exports are untracked and the close stages code only.
-- **Auto-export is best-effort, not a guarantee** — a create can sit
-  unexported for 20+ seconds, flushing only on a later main-context write.
-  The commit path does not depend on it; anything that *reads* a
-  `.beads/*.jsonl` file does, which is why the rule above is a rule.
-- **`export.git-add: true` (`.beads/config.yaml`) stages the refreshed
-  ledger into the MAIN index from writes issued anywhere, including a
-  worktree** — this bites only in a project that tracks the export. Where
-  `.beads/*.jsonl` is gitignored, `git add` of an ignored path is a no-op.
-  Keep the orchestrator's commits pathspec-scoped regardless (SKILL.md,
-  "Guard against foreign dirt"): that guard is against foreign dirt in a
-  shared checkout generally, not against the export specifically.
+- **Never read `.beads/*.jsonl` as tracker state.** Ask the database: `bd show`,
+  or `bd export` to stdout, which regenerates from it. There is no export step
+  to run before committing — the close stages code only.
 
 ### The worktree lifecycle — create, dispatch, merge, remove
 

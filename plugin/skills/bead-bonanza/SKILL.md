@@ -45,9 +45,8 @@ custom gates alongside them.
 
 Copy this into your response at run start and check items off as the run
 proceeds. It is the one artifact that survives a long autonomous run.
-(A checklist copied into your response is not a task tool — WHERE the project
-bans `TodoWrite`/`TaskCreate`, this is the compatible way to keep progress
-visible.)
+(It lives in your response, not in a task tool — nothing external to render,
+nothing to fall out of sync with `bd`.)
 
 ```
 bead-bonanza run:
@@ -139,14 +138,9 @@ Parse the user's filter from their request (label, priority, ID list).
 5. If the user gave no filter, ask once: "Which beads? (label / priority /
    explicit ID list)" — this is the only Phase-1 question allowed.
 
-The Run checklist copied into your response (above) is the default progress-visibility
-mechanism and is sufficient. Some projects additionally offer `TaskCreate`/`TaskUpdate`;
-use them only where the project has no durable tracker of its own (this one uses `bd`),
-and never alongside one — two dependency graphs is a correctness hazard, not redundancy.
-Note that a subagent in a cloud session may have no task tool at all.
-Do **not** add a display-only task-tool mirror of the checklist: the "mirror,
-never source" boundary erodes the first time a recovering orchestrator reads
-it, and nothing fails loudly when it does.
+The Run checklist copied into your response (above) is the progress-visibility
+mechanism, and it is sufficient. `bd` is the only tracker: a second progress
+store is a correctness hazard, not redundancy.
 
 ## Phase 1.5 — Readiness gate (grooming)
 
