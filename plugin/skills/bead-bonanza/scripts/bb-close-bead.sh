@@ -17,8 +17,7 @@
 #
 #   Then the tracker is pushed (step 5), which is what makes the closure
 #   durable. Constraint 2 formerly read "`bd export` must land in
-#   .beads/issues.jsonl"; that file stopped being the tracker's transport in
-#   agent-plugins-92q.31.
+#   .beads/issues.jsonl"; that file is not the tracker's transport.
 #
 #   The same ceremony appears in three subagent prompt templates and has to be
 #   replayed by hand during crash recovery. One script means one behavior.
@@ -36,8 +35,8 @@
 #   Paths are the code files this bead changed. WHEN omitted, everything
 #   currently modified is staged.
 #
-#   Running inside the bead's own worktree — the normal case since
-#   agent-plugins-92q.30 — OMIT the paths. Everything dirty in that tree
+#   Running inside the bead's own worktree — the normal case — OMIT the
+#   paths. Everything dirty in that tree
 #   belongs to this bead by construction, so a path list can only be wrong:
 #   too narrow and the commit is incomplete, and it has to be maintained by
 #   hand as the implementation grows.
@@ -119,19 +118,8 @@ bd update "$id" --status closed \
 # 2. Verify the close actually took. The DATABASE is the authority; there is
 #    no committed ledger file to cross-check against any more.
 #
-#    RETIRED HERE by agent-plugins-92q.31 (Dolt remote as source of truth):
-#      - the export-and-verify retry loop and its BB_EXPORT_* knobs
-#        (agent-plugins-92q.24), which existed because a closure could reach
-#        the database but not the committed .beads/issues.jsonl, and be lost
-#        when the container was reclaimed;
-#      - the export-delta record counter (agent-plugins-92q.29), which counted
-#        changed ledger records to detect another actor's tracker write riding
-#        along in this commit;
-#      - staging .beads/*.jsonl into the commit at all.
-#    All three compensated for a generated file being the tracker's transport.
-#    It is not: the tracker is origin refs/dolt/data, the exports are untracked
-#    (.beads/.gitignore), and a closure becomes durable when it is pushed —
-#    step 5 below.
+#    The tracker is origin refs/dolt/data, .beads/*.jsonl is untracked, and a
+#    closure becomes durable when it is pushed — step 5 below.
 db_status() {
   if command -v jq >/dev/null 2>&1; then
     bd show "$1" --json 2>/dev/null | jq -r '.[0].status // empty'
@@ -177,8 +165,7 @@ else
 fi
 
 sha="$(git rev-parse --short HEAD)"
-# 5. Push the tracker. PER-CLOSE, not per-wave — stated choice
-#    (agent-plugins-92q.31). A bead's closure is the unit of durable work, and
+# 5. Push the tracker. PER-CLOSE, not per-wave. A bead's closure is the unit of durable work, and
 #    deferring to a wave boundary loses every closure since the last push when
 #    a container is reclaimed mid-wave, which is the loss this epic exists to
 #    prevent. The cost is one push per bead, seconds.

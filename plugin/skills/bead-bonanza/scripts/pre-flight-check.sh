@@ -493,8 +493,7 @@ fi
 # container is reclaimed — the failure this whole ceremony exists to prevent.
 # Measured, not assumed, and measured HERE as well as in any SessionStart hook:
 # a hook is registered from the project root only, so a session that attached
-# this repo alongside another never ran one (agent-plugins-92q.3, probe added
-# by agent-plugins-92q.33).
+# this repo alongside another never ran one.
 #
 # `none` means no Dolt remote is configured, which is not a fault: a project
 # may track beads another way. `no` means one IS configured and cannot be
