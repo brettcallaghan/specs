@@ -408,10 +408,21 @@ waves remain sequential — a wave boundary is where dependency edges resolve an
 where the base ref advances. Concurrency is *within* a wave, across beads that
 the dispatch plan established are independent.
 
-Entry conditions, all three required: ≥3 `isolated` beads, **no shared
-`c4_changes` component** between any two of them, and the base-ref check
-re-verified for this wave. Two beads sharing a surface may batch; they SHALL
-NOT share a concurrent wave.
+Entry conditions, both required and both about **safety**: **no shared
+`c4_changes` component** between any two beads in the wave, and the base-ref
+check re-verified for this wave. Two beads sharing a surface may batch; they
+SHALL NOT share a concurrent wave.
+
+**There is no minimum bead count.** A `≥3 isolated beads` threshold used to sit
+in this list and was dropped (`agent-plugins-bhl`): it came from the retired
+worktree-parallel *mode*, where creating worktrees was the thing you opted into
+and below 3 beads the setup did not pay. Every bead gets a worktree now, so the
+marginal cost of concurrency is one rebase per extra bead — measured in seconds.
+Two beads that each take five minutes finish in five rather than ten. Worse, a
+count sitting in a list of safety conditions reads as one, and nothing about two
+concurrent beads is less safe than three. Whether a wave is *worth* dispatching
+concurrently is ordinary judgment; whether it is *safe* is the two conditions
+above.
 
 `agent-plugins-bhl` tracks refinement from real use — record what a concurrent
 wave actually does there rather than tightening this rule from speculation.
@@ -452,8 +463,8 @@ ambiguous and breaks the in-flight signal for every reader.
    than one after another, each in its own worktree. Every bead already runs in
    a worktree, so this buys wall-clock and nothing else — which is worth having
    on a wide, independent wave and worth nothing on a narrow one. Entry
-   conditions are in "Concurrent dispatch is ENABLED" above; all three must
-   hold.
+   conditions are in "Concurrent dispatch is ENABLED" above; both must hold,
+   and there is no minimum bead count.
 
 4. **Plain sequential** — reserved for: a single bead with no batch peers, OR a
    bead whose surface diverges from every other queued bead, OR explicit user
