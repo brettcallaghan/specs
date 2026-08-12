@@ -225,6 +225,58 @@ here at dispatch.
 - **frontier:** `fable`
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:970c3bf2 -->
+## Historical prose: don't
+
+Every skill file, reference, config comment and script header is loaded into an
+agent's context window. Tokens spent narrating how a rule came to exist are
+tokens not spent on the rule. Write the current state; leave the story out.
+
+**The test:** would a reader who has never seen this project's history behave
+differently for having read this sentence? If no, delete it.
+
+**State the fact and its failure mode. Drop the account of how it was learned.**
+
+- Yes: "`worktree.baseRef` must be `head`. Unset, a worktree branches from the
+  default branch instead of session HEAD, and the bead loses every commit the
+  sprint branch carries."
+- No: "This was misdiagnosed for a full session as X. The proof that settled it
+  was Y. It was then repaired at the source and pushed, and the hook re-checks
+  it each session as a regression guard."
+
+Both convey the rule. The second spends 4x the tokens on a story that changes
+nothing a reader does.
+
+**Where the history goes instead.** It is not lost, it moves to where it is
+retrievable but not re-read every session:
+
+| Content | Home |
+|---|---|
+| Why a rule exists; what was tried and rejected | the bead, and the commit message |
+| A measurement that justified a decision | the bead |
+| What a change retired, and why | the commit message |
+| The rule itself, and what breaks without it | the skill file |
+
+A commit message is the right place for a retirement narrative: it is attached
+to the change, `git log` finds it, and nothing loads it into context.
+
+**Three narrow exceptions** — keep it short even then:
+
+1. **A rule that looks removable but is not.** One sentence saying why the
+   obvious simplification is wrong, so it is not "fixed" every six months.
+2. **A trap with a plausible wrong answer.** Where an agent would otherwise
+   guess confidently and wrongly, name the wrong answer.
+3. **A non-obvious measured constraint.** State it as a current fact, not as a
+   discovery narrative — "`bd` resolves the shared database from any worktree
+   through git's common directory", not "we measured that…".
+
+**Do not cross-reference issue ids in skill files.** Skills are exported to
+other projects, where `<this-project>-abc.12` resolves to nothing. A reader
+there sees a dangling reference and cannot look it up. Cross-reference the bead
+in the COMMIT that makes the change; keep the skill file self-contained.
+This applies to `plugin/skills/**` and anything vendored from it. Files that
+never leave this repo — `CLAUDE.md`, `AGENTS.md`, `docs/`, `.beads/config.yaml`
+— may cite ids, and should still keep the narrative short.
+
 ## Beads Issue Tracker
 
 This project uses **bd (beads)** for issue tracking. Run `bd prime` to see full workflow context and commands.
