@@ -73,58 +73,29 @@ named for its hash suffix (`jh6`, `92q.14` — not the full id), created from th
 sprint branch and carrying a branch of the same name. Nothing is implemented in
 the shared checkout except by the orchestrator itself.
 
-- **Where.** A sibling of the repository root, never inside it:
-  `"$(git rev-parse --show-toplevel)/../.bb-worktrees/<suffix>"`. Inside the
-  repo the worktree's own files would read as dirt in every `git status` the
-  run takes.
-- **Presence is the in-flight signal.** A worktree that still exists means its
-  bead is not yet accepted. `git worktree list` is the complete answer to
-  "what is still in flight" — there is no mtime heuristic anywhere, and no
-  need to re-derive which paths a bead touched.
-- **Who removes it.** The orchestrator, as the final act of accepting the
-  bead — after the branch merges. A subagent cannot remove the worktree it is
-  standing in, and removal-on-merge makes the signal mean *accepted* rather
-  than merely *committed*, which is the stronger reading.
-- **Stale registrations.** A worktree directory that vanishes without
-  `git worktree remove` (a reclaimed container) leaves a stale entry that
-  would read as in-flight forever. Pre-flight and recovery both run
-  `git worktree prune` before trusting the list.
-
-**`bd` is not an obstacle.** With `BEADS_DIR` unset it resolves the shared
-tracker database through git's common directory from any worktree, creating no
-`embeddeddolt` and no redirect file in the worktree. And a worktree agent has
-**nothing extra to do** for the tracker: it is `origin refs/dolt/data`, the
-JSONL exports are untracked, and `scripts/bb-close-bead.sh` pushes the database
-itself at every close.
+**Presence is the in-flight signal.** A worktree that still exists means its
+bead is not yet accepted — the orchestrator removes it as the final act of
+accepting the bead, after the branch merges. `git worktree list` is the
+complete answer to "what is still in flight": there is no mtime heuristic
+anywhere, and no need to re-derive which paths a bead touched.
 
 **Hard gate — every worktree must branch from the sprint's own branch, never
-the default branch.** Two conditions produce that, and both are checked:
-pre-flight blocks a run whose HEAD is the default branch (Phase 0), and
-`worktree.baseRef` must be `head` so a worktree takes session HEAD rather than
-the repository's default branch. Verify `BB_WORKTREE_BASEREF` is `head`
-**before the first worktree of each wave, and do NOT dispatch otherwise.** The
-remedy is one line — set `.worktree.baseRef = "head"` in user-scope
-`~/.claude/settings.json`, which no repository owns — and it takes effect
-immediately with no session restart, so this is stop-and-fix, not
-stop-and-abandon. Because the setting is global user state anything could
-change between waves, re-verify before **each** wave, not
-once per run — see `references/subagent-prompts.md`, "The base-ref trap".
+the default branch.** Verify `BB_WORKTREE_BASEREF` is `head` **before the first
+worktree of each wave, and do NOT dispatch otherwise.** It is global user state
+that no repository owns, so anything could change between waves: re-verify
+before **each** wave, not once per run.
 
 **Merge policy.** The **orchestrator** merges each bead's branch into the
-sprint branch as it is accepted, one at a time; subagents never merge.
+sprint branch as it is accepted, one at a time; subagents never merge. Either
+way the result is linear history and one commit per bead. What a `--ff-only`
+refusal means differs between a sequential and a concurrent wave, and reading
+it wrong stops a healthy wave — take that rule from the lifecycle named below
+before you merge anything.
 
-- **Sequential wave:** every merge is a fast-forward, because each bead
-  branched from an already-updated head. Use `--ff-only`; **a refusal means an
-  invariant broke — stop the wave and report it, do not resolve it inline.**
-- **Concurrent wave:** only the FIRST merge can fast-forward. Every branch in
-  the wave shares one base, so the rest necessarily diverge and a `--ff-only`
-  refusal is expected rather than diagnostic.
-  Merge the first `--ff-only`, then **rebase each remaining branch onto the
-  updated sprint head and fast-forward it**. A rebase CONFLICT is the real
-  collision signal — two beads changed the same lines — and stops the wave.
-
-Either way the result is linear history and one commit per bead. See
-`references/subagent-prompts.md`, "The worktree lifecycle".
+Where the worktree lives, how `bd` behaves inside one, the base-ref remedy, and
+the create/merge/remove lifecycle are all in `references/subagent-prompts.md`,
+"Worktree mechanics" — read it at dispatch, which is when the first worktree of
+the run gets created.
 
 ## Phase 3 — Execute
 
@@ -235,25 +206,14 @@ environment issue, an under-groomed bead).
 
 ### Recovery and progress streaming
 
-Three things live in `references/recovery.md`: the progress-event schema
-every subagent writes (and the rule bounding what it proves), the procedure
-for a subagent that dies mid-ceremony, and the entry procedure for resuming a
-run after the *orchestrator* died. **Read it WHEN** a subagent times out,
-returns an API error instead of a summary, or is expected to run past 5
-minutes (any non-trivial bead, given full test runs) — at that point arm a
-`Monitor` on the progress file so the user sees per-phase events live —
-**and WHEN** you are picking up a run whose state you do not hold.
-
-Before the first dispatch, also arm a durable out-of-session trigger — see
-`references/recovery.md`'s "Back the Monitor with a durable trigger" — and
-cancel it in Phase 4.
-
-The one rule to carry without reading the file: after `gates-passed` and
-BEFORE closing the bead, the subagent writes `$RUN_DIR/<bead-id>.handoff.md`
-— the paths the close must stage, plus any close-specific caveat, and nothing
-else. That file is the recovery anchor, and it is non-negotiable — without it,
-recovery is guesswork instead of a procedure. Findings do not live there; they
-are `retro:` comments on the bead.
+`references/recovery.md` carries the progress-event schema, the procedure for a
+subagent that dies mid-ceremony, and the entry procedure for resuming a run
+after the *orchestrator* died. Two things the orchestrator does without being
+sent there: arm a `Monitor` on the progress file for any subagent expected to
+run past 5 minutes (any non-trivial bead, given full test runs) so the user
+sees per-phase events live, and — before the first dispatch — arm the durable
+out-of-session trigger that file's "Back the Monitor with a durable trigger"
+specifies, cancelling it in Phase 4.
 
 ### Subagent prompt templates
 
@@ -283,9 +243,7 @@ Load the one that matches where you are in the run:
 | The Definition of Ready the Phase 1.5 gate enforces | `references/shared/work-order-definition-of-ready.md` |
 
 The reference files are one hop from here — read them in full rather
-than previewing, and substitute every `{PLACEHOLDER}`, `{RUN_DIR}`, and
-`{SCRIPTS}` before sending
-a prompt.
+than previewing.
 
 The five `scripts/` entries are **executed, not read**. They exist because
 each encodes an ordering, quoting or portability rule that is easy to state
@@ -412,7 +370,7 @@ ran one, and a green hook is not a substitute for this fact.
 
 `BB_WORKTREE_BASEREF` is the same kind of blocking fact — pre-flight now exits
 non-zero when it is not `head`. See "Every bead runs in its own worktree"
-above for the cadence and the fix.
+above.
 
 ## Phase 1 — Resolve the queue
 
@@ -455,20 +413,11 @@ authority; do not restate the checklist here.
 ### 1. Cheap check (orchestrator, read-only)
 
 Most runs pass in seconds because the user groomed first. Per bead, confirm the
-readiness signals (parallelize — this is read-only):
-
-- `bd lint` is clean for it (no missing acceptance / repro / success criteria),
-  if the installed `bd` has it.
-- a `feature`/`bug` carries a `design` and `acceptance` criteria; a `bug`
-  carries a repro.
-- a `tier` is assigned (grooming never leaves it null).
-- dependencies are wired (ordering must live in the graph, not in priority
-  numbers or prose).
-- no session-dependent language — "as discussed", "the above", "finish the
-  earlier refactor" — the fresh-subagent test.
-- no open decision — no `decision-required` label, "DECISION REQUIRED"/"TBD"
-  marker, or unresolved options list (DoR check 9); it is bounced, not
-  questioned mid-run.
+Definition of Ready's nine checks hold — read them from
+`references/shared/work-order-definition-of-ready.md`, not from memory — plus
+one signal it does not carry: `bd lint` is clean for the bead, WHERE the
+installed `bd` has it. Parallelize; this is read-only. A bead failing check 9
+(an open decision) is bounced, not questioned mid-run.
 
 A queue that is entirely ready makes this phase a one-line no-op: say so and
 proceed to Phase 2.5.
@@ -538,10 +487,8 @@ decides:
   intended autonomy. Grooming closes decisions along with the rest of the
   Definition of Ready. (A groomed prerequisite that still lands a
   `decision-required` label stops for the user, per the standing-authorization
-  terms.) Grooming and wiring the edge are tracker writes, and they
-  need not wait for the wave boundary — the tracker is a database, not a file
-  in the tree, so no tracker write can ride into a subagent's commit
-  (`references/operating-principles.md`).
+  terms.) Grooming and wiring the edge are tracker writes, which need not wait
+  for a wave boundary (`references/operating-principles.md`).
 - **Out-of-scope** → leave it filed and linked, do NOT dispatch it, and surface
   it in the final report for the user to triage. The standing authorization
   finishes the launched scope; it never enlarges it.
@@ -786,30 +733,13 @@ don't bother labeling. Just push when the subagent returns.
 ### The dispatch plan
 
 Write `${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/dispatch.md` **on every
-run** — there is no queue-size or bucket-count exemption. It is the sprint plan,
-written for whoever picks the sprint back up, which may be an agent with no
-memory of having written it. Chat is the one store that does not survive.
+run** — there is no queue-size or bucket-count exemption. Chat is the one store
+that does not survive.
 
 Its format — run manifest, wave table, amendments — is in
-`references/dispatch-plan.md`. Three of its rules are load-bearing enough to
-state here:
-
-- **The plan names beads, never a filter.** The filter produced the queue; the
-  plan IS the queue. A filter re-evaluated later — at recovery, or at the next
-  wave — returns a different set than the one this run committed to, and admits
-  beads nobody scoped. Beads discovered mid-run enter only through Phase 1.5
-  step 4's scope test, recorded as an amendment.
-- **The manifest carries what recovery cannot re-derive** — run id, `RUN_DIR`,
-  branch, base sha, gate profile, gate baseline, environmental ledger, resolved
-  model lineup, and the standing authorization the user gave. Most of it is
-  pre-flight's stdout block, landing durably.
-- **The plan is append-only and amendable.** WHEN it changes mid-run — a wave
-  resequenced, a bucket reclassified, a bead admitted or bounced, a tier
-  escalated — append a dated entry under `## Amendments` stating what changed
-  and why, AND update the wave table in place. The plan on disk SHALL describe
-  the run as it is actually being executed. Mirror one line of each amendment to
-  the tracker note carrying the `RUN_DIR` pointer, so a reader who has only the
-  tracker knows the plan moved.
+`references/dispatch-plan.md`, with the three rules that make it worth writing:
+the plan names beads and never a filter, the manifest carries what recovery
+cannot re-derive, and the plan is append-only and amended in place.
 
 Print the wave table to chat as well. Don't ask for approval — just print and
 proceed. The user can interrupt if they disagree.
@@ -937,9 +867,7 @@ there is no per-bead retro file. Harvest with the `bd export | jq` pipeline in
 `references/operating-principles.md` ("Findings harvest"), once filtered to
 closed and once unfiltered. A zero count across a drained run is a broken
 query, not a clean run: **stop, re-run it**, check the label spelling and
-confirm the beads really are closed, before aggregating anything. An aggregate
-over an empty set is worse than no retro — it reads as a confident, clean
-artifact where there is no evidence at all.
+confirm the beads really are closed, before aggregating anything.
 
 **Answer four questions. A question with no evidence gets `null result` in
 writing** — omit it and an unasked question is indistinguishable from an
@@ -1085,19 +1013,16 @@ with any RFCs in a single commit before 6b's deletion commit.
   actually ran before trusting it. Heavy suites (integration, codegen, anything
   needing sockets/toolchains the sandbox lacks) run locally only when a bead
   touches the surface they cover; when a PR is open, CI is the backstop.
-- **Guard against foreign dirt; tracker writes need no deferring.**
-  Multiple agents can share the tree, so name known foreign files as
-  untouchable in batch prompts and commit your own work by explicit pathspec
-  (`git commit -- <files>`). Tracker writes are not subject to that hazard —
-  a close commit stages code only — so you may groom a discovered bead, bake a
-  decision, or wire a dependency edge at any time, including mid-wave. The
-  claim-reset rule: `references/operating-principles.md`.
+- **Guard against foreign dirt; tracker writes need no deferring.** Multiple
+  agents can share the tree, so name known foreign files as untouchable in
+  batch prompts and commit your own work by explicit pathspec
+  (`git commit -- <files>`). Tracker writes are exempt: groom a discovered
+  bead, bake a decision, or wire a dependency edge at any time, including
+  mid-wave. Why, and the claim-reset rule:
+  `references/operating-principles.md`.
 - **Wire findings capture into every dispatch prompt unconditionally — no
-  project file gates it — and harvest with `bd export |
-  jq`, never `bd list` + `bd show --json`.** The feature's final DoD bead runs
-  the one aggregated retro-spec, asserting a non-zero harvest before
-  aggregating. Full wiring, the harvest pipeline, and why the obvious
-  commands fail silently: `references/operating-principles.md`.
+  project file gates it.** Full wiring and the harvest pipeline:
+  `references/operating-principles.md`.
 
 ## Side effects — what each script leaves behind
 

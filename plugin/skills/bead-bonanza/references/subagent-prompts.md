@@ -252,7 +252,8 @@ with a dependency edge. Fix (set it in user scope; project scope is untested):
 { "worktree": { "baseRef": "head" } }
 ```
 
-Takes effect immediately, no restart.
+Takes effect immediately, no restart — a failed check is stop-and-fix, not
+stop-and-abandon.
 
 **Verify before every wave** — this is global state the repo doesn't own and
 can change without warning. Note session HEAD (`git rev-parse --short HEAD`)
@@ -290,6 +291,9 @@ REPO="$(git rev-parse --show-toplevel)"
 WT="$REPO/../.bb-worktrees/<suffix>"        # sibling of the repo, never inside it
 git -C "$REPO" worktree add -b <suffix> "$WT" HEAD
 ```
+
+A worktree inside the repository would read as dirt in every `git status` the
+run takes, which is why it is a sibling.
 
 Branching from `HEAD` — the sprint branch as it stands *now*, after the
 previous bead merged — is what makes each bead build on the last. Where the
