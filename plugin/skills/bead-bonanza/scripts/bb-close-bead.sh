@@ -4,7 +4,7 @@
 #
 # Why this exists
 #   Every closed bead must land as exactly one commit, and the closure must be
-#   durable before the container goes away. Four ordering constraints, easy to
+#   durable before the container goes away. The ordering constraints, easy to
 #   state and easy to reorder under pressure:
 #
 #     1. close BEFORE staging, so the closure is inside the implementation

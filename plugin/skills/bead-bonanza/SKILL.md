@@ -62,9 +62,8 @@ bead-bonanza run:
 
 **How this document is ordered.** The executable core comes first — worktrees
 and merges, Phase 3's per-bead ceremony, the reference and script interfaces —
-because only this file's opening survives a compaction. The run-start phases
-(0, 1, 1.5, 2.5), Phase 4 and the operating principles follow, out of numeric
-order. Phase numbers are unchanged.
+because only this file's opening survives a compaction, so the phases appear
+out of numeric order.
 
 ## Every bead runs in its own worktree
 
@@ -114,8 +113,7 @@ one at a time, in the order they return.
 After each subagent returns:
 
 1. Append its summary lines to your log (one per bead processed).
-2. Mark items on the run checklist complete as you go (this documents
-   progress durably, visible in the conversation history).
+2. Mark items on the run checklist complete as you go.
 3. **Verify skip claims with a diff-stat.** For every bead the subagent returned
    as `skipped`:
    - Run `scripts/bb-verify-skip.sh` (scoped to that bead's worktree if
@@ -134,12 +132,9 @@ After each subagent returns:
      - Revert the diff (`git checkout -- <paths>` / `git restore --staged
        <paths>`) and re-confirm `skipped` with a fresh run showing CLEAN.
    - Do NOT proceed to push or to the next bead until the skip is reconciled.
-     This catches the case where the subagent's first read mistakenly concluded
-     "already addressed" but it still produced edits — the orchestrator must not
-     silently accept a contradictory state.
 4. **Acceptance check — every bead, every dispatch mode.** A bead the subagent
-   returned as `completed` is not closed until **five signals** agree. Verify
-   them in this order and stop at the first that fails:
+   returned as `completed` is not closed until **every signal below** agrees.
+   Verify them in this order and stop at the first that fails:
 
    1. **The bead reads closed in the tracker** — `bd show <id>` shows
      `CLOSED`.
@@ -172,7 +167,7 @@ After each subagent returns:
    acceptance never happened, so leave the worktree standing (it is the
    in-flight signal) and surface it.
 
-   **Two signals this check deliberately does NOT use.** A
+   **Signals this check deliberately does NOT use.** A
    `"phase":"committed"` ledger event is written by the agent doing the work
    and stops when that agent stops — see `references/recovery.md`, "the
    ledger is a hint, never the authority" — so its absence proves nothing and
@@ -182,19 +177,9 @@ After each subagent returns:
    carries no findings and is not evidence of acceptance.
 5. **Snapshot the run directory** — `scripts/bb-backup-run.sh "$RUN_DIR"`, run
    from your own checkout on the sprint branch and **never from a bead's
-   worktree**: the snapshot is the whole run's record, and committing it inside
-   a bead's worktree would either pollute that bead's one commit or strand it
-   on a branch you are about to delete. Run it after **every** bead's
-   acceptance check, not once per wave — `$RUN_DIR` lives under
-   `${TMPDIR:-/tmp}` and dies with the container, taking `dispatch.md` and
-   every progress and handoff file with it, and a copy refreshed once mid-run
-   is indistinguishable from a complete one. It copies `$RUN_DIR` to
-   `.bonanza/<run-id>/`, writes a self-describing
-   `.bonanza/<run-id>/SNAPSHOT.md`, and commits that path alone; it prints
-   `unchanged` and makes no commit when no run file moved, so the per-bead
-   cadence costs nothing on a quiet bead. It does
-   **not** push — the snapshot rides the sprint branch, and an unpushed
-   snapshot dies with the container like everything else. Phase 4 deletes it.
+   worktree**. Run it after **every** bead's acceptance check, not once per
+   wave — a copy refreshed once mid-run is indistinguishable from a complete
+   one, and it prints `unchanged` without committing on a quiet bead.
 6. **Verify the working tree is clean** with `git status --porcelain`. If dirty,
    fall through to the recovery procedure below.
 7. If the bucket used `defer-push`, run `git push` for the bucket now.
@@ -208,16 +193,16 @@ environment issue, an under-groomed bead).
 
 `references/recovery.md` carries the progress-event schema, the procedure for a
 subagent that dies mid-ceremony, and the entry procedure for resuming a run
-after the *orchestrator* died. Two things the orchestrator does without being
-sent there: arm a `Monitor` on the progress file for any subagent expected to
-run past 5 minutes (any non-trivial bead, given full test runs) so the user
-sees per-phase events live, and — before the first dispatch — arm the durable
-out-of-session trigger that file's "Back the Monitor with a durable trigger"
-specifies, cancelling it in Phase 4.
+after the *orchestrator* died. Without being sent there, the orchestrator arms
+a `Monitor` on the progress file for any subagent expected to run past 5
+minutes (any non-trivial bead, given full test runs) so the user sees per-phase
+events live, and — before the first dispatch — arms the durable out-of-session
+trigger that file's "Back the Monitor with a durable trigger" specifies,
+cancelling it in Phase 4.
 
 ### Subagent prompt templates
 
-The four dispatch prompts — per-bead (sequential/worktree), doc/chore
+The dispatch prompts — per-bead (sequential/worktree), doc/chore
 fast lane, shared-surface batch, plus the orchestrator's worktree
 merge notes — are in `references/subagent-prompts.md`. **Read that file at
 dispatch** and fill in every `{PLACEHOLDER}` before sending. Do not
@@ -245,13 +230,9 @@ Load the one that matches where you are in the run:
 The reference files are one hop from here — read them in full rather
 than previewing.
 
-The five `scripts/` entries are **executed, not read**. They exist because
-each encodes an ordering, quoting or portability rule that is easy to state
-and easy to get wrong under pressure — the close ceremony's four ordering
-constraints, the progress event's quoting hazard, the two-sided skip check,
-pre-flight's ten probes across two platforms, and the snapshot's
-replace-wholesale-and-guard-the-destination rules. Run them rather than
-reproducing what they do.
+The `scripts/` entries are **executed, not read**. Each encodes an ordering,
+quoting or portability rule that is easy to state and easy to get wrong under
+pressure. Run them rather than reproducing what they do.
 
 Because they are not to be read, their interfaces are published here — an
 agent that must open a script to learn how to call it has already been sent
@@ -346,7 +327,7 @@ to the commit body, so no subagent needs `git commit --amend` to add them.
 WHEN the project states no trailer convention, leave `{TRAILERS_FILE}` unset
 and omit the flag; the close ceremony then appends no trailers.
 
-Two things no script can settle:
+What no script can settle:
 
 - **Draft PR.** WHEN `BB_PR_CI=yes`, ask the user once whether to open a draft
   PR from the working branch — every wave push then gets the full CI matrix in
@@ -364,9 +345,8 @@ every closure the run makes dies with the container — the exact loss the close
 ceremony exists to prevent. Stop and fix the environment; do not run and hope.
 `none` means no Dolt remote is configured, which is not a fault (the project
 may track beads another way) and `yes` is the normal case. Pre-flight measures
-it even where a SessionStart hook also does — a hook is registered from the
-project root only, so a session that attached this repo alongside another never
-ran one, and a green hook is not a substitute for this fact.
+it even where a project's own session hook also does; a green hook is not a
+substitute for this fact.
 
 `BB_WORKTREE_BASEREF` is the same kind of blocking fact — pre-flight now exits
 non-zero when it is not `head`. See "Every bead runs in its own worktree"
@@ -399,7 +379,7 @@ bead-bonanza dispatches **only groomed beads.** Every later phase already
 assumes grooming's outputs: Phase 1's `bd ready` ordering comes from the
 dependency graph grooming wires; this gate's own cheap check reads the
 `decision-required` label grooming sets (DoR check 9); Phase 2.5 reads the
-`tier:` assignment grooming makes. An ungroomed queue makes all three
+`tier:` assignment grooming makes. An ungroomed queue makes every one of them
 unreliable — and handing a fresh, zero-context subagent an under-specified
 bead is the single most expensive failure mode this skill has: it detonates
 mid-wave, after later beads have built on it.
@@ -413,7 +393,7 @@ authority; do not restate the checklist here.
 ### 1. Cheap check (orchestrator, read-only)
 
 Most runs pass in seconds because the user groomed first. Per bead, confirm the
-Definition of Ready's nine checks hold — read them from
+Definition of Ready's checks hold — read them from
 `references/shared/work-order-definition-of-ready.md`, not from memory — plus
 one signal it does not carry: `bd lint` is clean for the bead, WHERE the
 installed `bd` has it. Parallelize; this is read-only. A bead failing check 9
@@ -460,7 +440,7 @@ where it stops.
 
 **The test is necessity, not resemblance:** emergent work is in-scope only when
 a bead *already in the run* cannot be correctly and completely finished without
-it. Three shapes qualify:
+it. These shapes qualify:
 
 - **an unblocking prerequisite** — the assigned bead genuinely cannot be
   completed until this is done;
@@ -574,16 +554,12 @@ the dispatch plan established are independent.
 
 Entry conditions, both required and both about **safety**: **no shared
 `c4_changes` component** between any two beads in the wave, and the base-ref
-check re-verified for this wave. Two beads sharing a surface may batch; they
-SHALL NOT share a concurrent wave.
+check re-verified for this wave.
 
 **There is no minimum bead count, and do not reintroduce one** — a count in a
 list of safety conditions reads as one, and nothing about two concurrent beads
-is less safe than three. Every bead gets a worktree anyway, so the marginal
-cost of concurrency is one rebase per extra bead, measured in seconds: two
-beads that each take five minutes finish in five rather than ten. Whether a
-wave is *worth* dispatching concurrently is ordinary judgment; whether it is
-*safe* is the two conditions above.
+is less safe than three. Whether a wave is *worth* dispatching concurrently is
+ordinary judgment; whether it is *safe* is the entry conditions above.
 
 ### Choose a dispatch mode per bucket
 
@@ -603,8 +579,8 @@ ambiguous and breaks the in-flight signal for every reader.
 2. **Shared-surface batch** — `shared-surface` beads that cluster on the same
    fixture/code area. ONE subagent processes the cluster sequentially. Between
    beads: `<format>`, `<lint>`, `<build>`, **plus surface-relevant targeted
-   tests (non-negotiable, see Phase 3)**. ONE full `<test>` run at the END of
-   the batch. One commit per bead. Saves N–1 full test-suite runs.
+   tests (non-negotiable)**. ONE full `<test>` run at the END of the batch.
+   One commit per bead. Saves N–1 full test-suite runs.
 
    **Threshold:** use shared-surface batch when **≥2** beads share a surface and
    decisions are independent (bead A's choice doesn't change bead B's
@@ -619,10 +595,8 @@ ambiguous and breaks the in-flight signal for every reader.
 
 3. **Concurrent wave** — `isolated` beads dispatched at the same time rather
    than one after another, each in its own worktree. Every bead already runs in
-   a worktree, so this buys wall-clock and nothing else — which is worth having
-   on a wide, independent wave and worth nothing on a narrow one. Entry
-   conditions are in "Concurrent dispatch is ENABLED" above; both must hold,
-   and there is no minimum bead count.
+   a worktree, so this buys wall-clock and nothing else. Entry conditions are
+   in "Concurrent dispatch is ENABLED" above; both must hold.
 
 4. **Plain sequential** — reserved for: a single bead with no batch peers, OR a
    bead whose surface diverges from every other queued bead, OR explicit user
@@ -674,11 +648,9 @@ lineup` block in `AGENTS.md`, echoed by Phase 0. Honor these:
 - **Record every escalation** — the bead, the assigned tier, the tier
   that completed it, and what failed. This is a required line in the
   Phase 4 report (see "Tier escalations"), and it is the run's only
-  direct evidence about whether grooming's routing is calibrated.
-  **WHEN `CLAUDE_CODE_SUBAGENT_MODEL` env var is set** in this session's
-  environment, it overrides the per-invocation model on every dispatch, so no
-  tier routing occurs and the escalation table becomes fiction — omit it from
-  the Phase 4 report rather than printing one that cannot be true.
+  direct evidence about whether grooming's routing is calibrated. WHEN
+  `CLAUDE_CODE_SUBAGENT_MODEL` is set, report it as Phase 4's "Tier
+  escalations" section directs.
 - **Record the routing** — the dispatch plan's wave table carries a
   `Tier` column for every bead.
 
@@ -709,8 +681,7 @@ WHEN it is not, the run does NOT abort — it degrades to a defined mode:
   checklist rather than holding it in your head.
 - **No tier routing occurs.** You cannot dispatch at a resolved model
   when you are the one doing the work — every bead runs at the session's
-  own model regardless of its `tier`. Do not silently treat this as
-  routing that happened to succeed.
+  own model regardless of its `tier`.
 - **Say so once, at the top of the run**, so the user knows the tier
   labels were not honored.
 
@@ -737,7 +708,7 @@ run** — there is no queue-size or bucket-count exemption. Chat is the one stor
 that does not survive.
 
 Its format — run manifest, wave table, amendments — is in
-`references/dispatch-plan.md`, with the three rules that make it worth writing:
+`references/dispatch-plan.md`, with the rules that make it worth writing:
 the plan names beads and never a filter, the manifest carries what recovery
 cannot re-derive, and the plan is append-only and amended in place.
 
@@ -786,16 +757,6 @@ After the queue is drained (or the circuit breaker tripped), print:
    session model, and no bead's tier was honored.
    ```
 
-   An empty table read as `none` says "routing was tested and nothing
-   needed raising", which is the opposite of what happened: routing was
-   never exercised at all. Reporting the first as the second feeds
-   `groom-beads`' retro loop a calibration signal that does not exist.
-
-   This table is the whole point of routing by tier: it is the only
-   direct evidence a run produces about whether grooming predicted
-   capability correctly, and it is what `groom-beads`' retro loop
-   consumes to recalibrate the rubric.
-
    **Say this alongside the table**, because the reader will otherwise
    draw the wrong conclusion from a short one: escalations reveal
    *under*-routing only. A bead groomed `frontier` that a `light` model
@@ -816,10 +777,9 @@ After the queue is drained (or the circuit breaker tripped), print:
    ```
 
    State `none` explicitly when there were no over-routes — the null is
-   the result, not the absence of one. Together with the escalation table
-   this is the run's complete routing evidence: escalations expose
-   *under*-routing, this exposes *over*-routing, and `groom-beads`' retro
-   loop needs both to recalibrate the rubric.
+   the result, not the absence of one. This table and the escalation table
+   above are together the run's complete routing evidence, and
+   `groom-beads`' retro loop needs both to recalibrate the rubric.
 4. **Follow-up beads** — beads created mid-run via `bd create`, split into those
    admitted into the run (in-scope prerequisites / AC-decompositions / coverage
    gaps, with their outcome) and those left for the user (out-of-scope finds,
@@ -850,9 +810,7 @@ Do NOT create a PR or merge to main — that is a separate, explicit user action
 ### The sprint retro
 
 A run is a sprint; this is its retrospective. It runs on **every run that
-closed at least one bead**, not only on a run that struggled. Escalations
-expose *under*-routing while over-routing succeeds silently, so a smooth run
-is the one most likely to be hiding waste.
+closed at least one bead**, not only on a run that struggled.
 
 **Read the run's records; do not re-derive the run.** The inputs are the
 harvested `retro:` comments, the tables you just printed (3a escalations, 3b
@@ -869,8 +827,8 @@ closed and once unfiltered. A zero count across a drained run is a broken
 query, not a clean run: **stop, re-run it**, check the label spelling and
 confirm the beads really are closed, before aggregating anything.
 
-**Answer four questions. A question with no evidence gets `null result` in
-writing** — omit it and an unasked question is indistinguishable from an
+**Answer every question below. A question with no evidence gets `null result`
+in writing** — omit it and an unasked question is indistinguishable from an
 answered one.
 
 1. **Grooming** — which beads were under-groomed, and how did it surface
@@ -889,9 +847,9 @@ answered one.
    its references or its scripts.
 
 **Write one sprint report per run** at
-`rfcs/sprints/<YYYY-MM-DD>-<epic-slug>.md` — dated and slugged, because a run
-id means nothing to a human scanning the directory. It carries the four
-answers and **every harvested finding verbatim, including the tail that
+`rfcs/sprints/<YYYY-MM-DD>-<epic-slug>.md`, dated and slugged rather than
+named for the run id. It carries the answers and **every harvested finding
+verbatim, including the tail that
 warrants no RFC**, and it says so: `triage-rfc` defers on recurrence, so a
 finding recorded once and filtered out the next time can never be observed
 appearing twice. Filtering the report down to RFC-worthy findings breaks that
@@ -917,15 +875,12 @@ with any RFCs in a single commit before 6b's deletion commit.
 ## Operating principles
 
 - **Groom before you dispatch.** bead-bonanza executes *groomed* beads; it never
-  fixes an under-specified bead inline. Phase 1.5 gates the queue against
-  `groom-beads`'s Definition of Ready, delegates grooming of the rest to a
-  subagent, and bounces what can't be made ready. This holds for beads pulled
-  into scope mid-run too — a fresh subagent handed an ungroomed bead is this
-  skill's most expensive failure mode.
-- **Bias toward batching, not sequential.** Each plain-sequential bead burns a
-  full `<test>` run. Find the largest safe batch — surface-overlap is the
-  dominant signal, not bead complexity. Sequential is reserved for genuine
-  surface divergence or single-bead queues, not "I'm being cautious."
+  fixes an under-specified bead inline. Phase 1.5 is that gate, and it holds for
+  beads pulled into scope mid-run too.
+- **Bias toward batching, not sequential.** Find the largest safe batch —
+  surface-overlap is the dominant signal, not bead complexity. Sequential is
+  reserved for genuine surface divergence or single-bead queues, not "I'm being
+  cautious."
 - **The push is the gate.** Commits inside a branch are recoverable; only the
   push to origin is committed-to-the-world. Per-bead validation is
   regression-detection (catch issues before later beads build on them); the full
@@ -945,20 +900,16 @@ with any RFCs in a single commit before 6b's deletion commit.
   and nothing to squash. Full rule and resume path:
   `references/operating-principles.md`.
 - **The dispatch plan has no lean path.** It is written every run, whatever
-  its size, because it is what a recovering orchestrator reads instead of
-  re-deriving the run.
+  its size.
 - **Surface implicit decisions, don't bury them.** A bead with an open
   decision is bounced at Phase 1.5. A choice a subagent still makes silently
   — one the bead's Design didn't pin — belongs in its `retro:` comment, not
   the diff.
 - **Visible progress beats opacity, and the fast path alone doesn't survive an
-  interrupt.** Subagents write JSONL progress events. For any subagent past 5
-  minutes, arm `Monitor` on the progress file so the user sees per-phase
-  events live — but a Monitor dies with the turn that armed it, so it cannot
-  report its own death. Before the first dispatch, also arm the durable
-  out-of-session trigger described in `references/recovery.md` and cancel it
-  in Phase 4. Long opaque runs erode trust; a run whose only wake mechanism
-  is in-session cannot survive an interrupt that lands on the orchestrator.
+  interrupt.** Subagents write JSONL progress events; the orchestrator arms
+  both wake mechanisms over them ("Recovery and progress streaming" above).
+  Long opaque runs erode trust; a run whose only wake mechanism is in-session
+  cannot survive an interrupt that lands on the orchestrator.
 - **Subagents discard context on return.** This is why the skill prefers fresh
   subagents over `/compact`. Batch subagents (fast lane, shared-surface)
   compromise — they hold context for N beads but free it on return.
@@ -968,20 +919,16 @@ with any RFCs in a single commit before 6b's deletion commit.
 - **Capture decisions in the bead, not just in chat.** The bead description
   (selected options and alternatives, set by grooming) is the durable record;
   the dispatch plan is session-scratch.
-- **Fail loudly, recover quietly.** If a subagent blocks, log it and move on. If
-  three consecutive block, stop and surface — that's a systemic problem. If a
-  subagent crashes mid-step, follow the recovery procedure (the handoff file is
-  the anchor).
+- **Fail loudly, recover quietly.** If a subagent blocks, log it and move on;
+  the circuit breaker above is what stops the run. If a subagent crashes
+  mid-step, follow the recovery procedure (the handoff file is the anchor).
 - **Route by tier, and report every escalation.** A bead's `tier:` label is
   grooming's *prediction* of the capability the work needs; resolve it to a
   model via the project's `## model lineup` and dispatch there (Phase 2.5 → Tier
   selection). Assign nothing below the tier; escalate one tier on repeated
   failure; never downgrade to save cost mid-run. Every escalation is a required
   row in the Phase 4 report — it is the only routing evidence a run produces.
-  Note the asymmetry: escalations expose under-routing, while over-routing
-  succeeds silently and is paid for on every run, so a zero-escalation run is a
-  prompt to examine the routing, not a clean bill of health. Beads marked "do
-  not delegate" run in the orchestrator's own loop.
+  Beads marked "do not delegate" run in the orchestrator's own loop.
 - **Project rules win over skill defaults.** The gate profile is the source of
   truth for build/test/lint/format commands and any custom gates the project
   adds. Progress visibility defaults to the run checklist (above, Phase 0); task
@@ -997,11 +944,7 @@ with any RFCs in a single commit before 6b's deletion commit.
   per-wave prompts; the user gets a report per wave instead of a question per
   wave. Newly-filed beads that enter the queue mid-run (subagents filing
   adjacent issues) are admitted only by the mid-run scope test (Phase 1.5 step
-  4): in-scope when a bead already in the run can't be finished without them,
-  not merely when they match the filter. Admitted beads pass the grooming gate
-  before joining a wave; out-of-scope finds are filed, linked, and surfaced for
-  the user — never dispatched. The standing authorization finishes the launched
-  scope; it never enlarges it.
+  4), never merely because they match the filter.
 - **Keep an environmental-failure ledger; never re-diagnose per wave.** Suites
   that fail — or silently PASS for environmental reasons — in the local sandbox
   get diagnosed ONCE, recorded in the gate baseline pre-flight captured,
@@ -1026,10 +969,7 @@ with any RFCs in a single commit before 6b's deletion commit.
 
 ## Side effects — what each script leaves behind
 
-These are the artifacts each script creates, writes, or repoints. They are
-published for the same reason the usage lines are: the scripts are executed,
-not read, so an agent that obeys that rule cannot discover a side effect by
-opening the file.
+These are the artifacts each script creates, writes, or repoints.
 
 - **`scripts/pre-flight-check.sh`** — creates `$RUN_DIR` if it does not
   exist, repoints `$RUN_ROOT/current` symlink at the start of every run,
