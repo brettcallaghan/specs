@@ -14,10 +14,11 @@
 #   pre-flight-check.sh 1786345424-bbh --gate-baseline  # also run the gate suite
 #   pre-flight-check.sh --self-test                     # portability guards only
 #
-#   Run it WITHOUT dangerouslyDisableSandbox. The one write that the sandbox
-#   blocks is the global Dolt telemetry config; the script detects the block,
-#   skips it, and prints the single command to re-run with the sandbox off.
-#   Nothing else here needs elevated permission.
+#   The script never writes user-global state (~/.claude/settings.json, the
+#   global Dolt config). Where Dolt telemetry suppression or the
+#   eventsapi.dolthub.com deny entry is absent, it says so, notes that any
+#   related permission prompt is safe to deny, and prints the exact command
+#   to run yourself if you want it suppressed.
 #
 # Portability — this must run on macOS (bash 3.2, BSD userland) and on Linux.
 #   No associative arrays, no mapfile, no ${var^^}, no `declare -A`.
@@ -118,20 +119,15 @@ self_test() {
   st "ln -sfn repoints" "$fixture/run2" "$(readlink "$fixture/current")"
   st "ln -sfn does not nest" "" "$(ls "$fixture/run1" 2>/dev/null)"
 
-  # 6. The deny-entry edit is idempotent, and copes with an absent file.
+  # 6. deny_entry_present is read-only: it reports state, never writes.
   if command -v jq >/dev/null 2>&1; then
-    deny_settings="$fixture/settings.json"
-    add_deny_entry "$deny_settings" >/dev/null 2>&1
-    add_deny_entry "$deny_settings" >/dev/null 2>&1
-    n="$(jq '[.permissions.deny[] | select(. == "WebFetch(domain:eventsapi.dolthub.com)")] | length' "$deny_settings" 2>/dev/null)"
-    st "deny entry created once from nothing" 1 "$n"
+    st "deny entry absent on missing file" absent "$(deny_entry_present "$fixture/nope.json")"
     printf '%s\n' '{"permissions":{"deny":["WebFetch(domain:example.com)"],"allow":["Bash(ls)"]}}' > "$fixture/s2.json"
-    add_deny_entry "$fixture/s2.json" >/dev/null 2>&1
-    add_deny_entry "$fixture/s2.json" >/dev/null 2>&1
-    n2="$(jq '[.permissions.deny[] | select(. == "WebFetch(domain:eventsapi.dolthub.com)")] | length' "$fixture/s2.json" 2>/dev/null)"
-    keep="$(jq -r '.permissions.allow[0]' "$fixture/s2.json" 2>/dev/null)"
-    st "deny entry idempotent on existing file" 1 "$n2"
-    st "deny edit preserves siblings" "Bash(ls)" "$keep"
+    before="$(cat "$fixture/s2.json")"
+    st "deny entry absent when not listed" absent "$(deny_entry_present "$fixture/s2.json")"
+    st "deny_entry_present does not write" "$before" "$(cat "$fixture/s2.json")"
+    printf '%s\n' '{"permissions":{"deny":["WebFetch(domain:eventsapi.dolthub.com)"]}}' > "$fixture/s3.json"
+    st "deny entry present when listed" present "$(deny_entry_present "$fixture/s3.json")"
   else
     printf '  skip deny-entry tests (no jq)\n'
   fi
@@ -176,27 +172,18 @@ has_block() {
   if grep -q "^$2\$" "$1" 2>/dev/null; then printf 'present'; else printf 'absent'; fi
 }
 
-# Append the dolthub deny entry to a settings file, idempotently. Writes via a
-# temp file and mv — `sed -i` needs `-i ''` on BSD and plain `-i` on GNU, so it
-# is avoided entirely.
-add_deny_entry() {
+# Report whether the dolthub telemetry deny entry is present in a settings
+# file. Read-only — pre-flight detects and advises, it does not write
+# user-global state.
+deny_entry_present() {
   _s="$1"
   _e='WebFetch(domain:eventsapi.dolthub.com)'
-  command -v jq >/dev/null 2>&1 || { printf 'no-jq'; return 1; }
-  mkdir -p "$(dirname "$_s")" 2>/dev/null || { printf 'manual'; return 1; }
-  [ -f "$_s" ] || printf '%s\n' '{}' > "$_s" 2>/dev/null || { printf 'manual'; return 1; }
+  command -v jq >/dev/null 2>&1 || { printf 'unknown'; return 1; }
+  [ -f "$_s" ] || { printf 'absent'; return 0; }
   if jq -e --arg e "$_e" '(.permissions.deny // []) | index($e)' "$_s" >/dev/null 2>&1; then
     printf 'present'; return 0
   fi
-  _t="$_s.bb-preflight.$$"
-  if jq --arg e "$_e" \
-       '.permissions = (.permissions // {})
-        | .permissions.deny = ((.permissions.deny // []) + [$e])' \
-       "$_s" > "$_t" 2>/dev/null && mv -f "$_t" "$_s" 2>/dev/null; then
-    printf 'added'; return 0
-  fi
-  rm -f "$_t" 2>/dev/null
-  printf 'manual'; return 1
+  printf 'absent'; return 0
 }
 
 # ================================================================== arguments
@@ -266,19 +253,15 @@ GATE_LINES="$(awk '/^## bead-bonanza gates$/{f=1;next} /^### /{f=0} /^## /{if(f)
 head_ "Beads telemetry"
 if command -v dolt >/dev/null 2>&1; then
   DOLT=present
-  # Probe before writing: the global config write is sandbox-blocked, and a
-  # blind `dolt config --global --add` inside the sandbox fails in a way that
-  # looks like a dolt bug rather than a permission decision.
   if dolt config --global --list 2>/dev/null | grep -q '^metrics.disabled *= *true'; then
     DOLT_TELEMETRY=disabled
     say "dolt present; metrics.disabled already true"
-  elif dolt config --global --add metrics.disabled true >/dev/null 2>&1; then
-    DOLT_TELEMETRY=disabled
-    say "dolt present; metrics.disabled set to true"
   else
-    DOLT_TELEMETRY=skipped-sandbox
-    say "dolt present but the global config write was refused (sandbox)."
-    say "re-run this ONE command with the sandbox disabled:"
+    DOLT_TELEMETRY=not-suppressed
+    say "dolt present; telemetry is not suppressed globally."
+    say "a network permission prompt for Dolt's telemetry endpoint may appear"
+    say "during this run — it is safe to deny. To suppress it permanently,"
+    say "run this yourself:"
     say "  dolt config --global --add metrics.disabled true"
   fi
 else
@@ -287,13 +270,16 @@ else
   say "no dolt CLI — normal for a bd that embeds Dolt as a library. Nothing to configure."
 fi
 
-DENY_ENTRY="$(add_deny_entry "$HOME/.claude/settings.json")"
+DENY_ENTRY="$(deny_entry_present "$HOME/.claude/settings.json")"
 case "$DENY_ENTRY" in
-  present) say "deny entry for eventsapi.dolthub.com: already present" ;;
-  added)   say "deny entry for eventsapi.dolthub.com: added to ~/.claude/settings.json" ;;
-  *)       DENY_ENTRY=manual
-           say "could not edit ~/.claude/settings.json — add this to permissions.deny by hand:"
+  present) say "deny entry for eventsapi.dolthub.com: already present in ~/.claude/settings.json" ;;
+  absent)  say "deny entry for eventsapi.dolthub.com: not present."
+           say "a WebFetch permission prompt for that domain may appear during this"
+           say "run — it is safe to deny. To suppress it permanently, add this yourself"
+           say "to ~/.claude/settings.json under permissions.deny:"
            say '  "WebFetch(domain:eventsapi.dolthub.com)"' ;;
+  *)       DENY_ENTRY=unknown
+           say "could not read ~/.claude/settings.json to check for a deny entry (no jq)." ;;
 esac
 
 # ======================================================== 4. run dir + scripts
