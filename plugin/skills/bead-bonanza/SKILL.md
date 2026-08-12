@@ -144,6 +144,10 @@ mechanism and is sufficient. Some projects additionally offer `TaskCreate`/`Task
 use them only where the project has no durable tracker of its own (this one uses `bd`),
 and never alongside one — two dependency graphs is a correctness hazard, not redundancy.
 Note that a subagent in a cloud session may have no task tool at all.
+A **display-only** task-tool mirror of the checklist was proposed and
+**rejected** (`agent-plugins-92q.32`): the "mirror, never source" boundary
+erodes the first time a recovering orchestrator reads it, and nothing fails
+loudly when it does. Do not relitigate without new evidence.
 
 ## Phase 1.5 — Readiness gate (grooming)
 
