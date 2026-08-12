@@ -1,7 +1,7 @@
 {
   "name": "spec-driven-dev",
   "metadata": {
-    "description": "Marketplace for the sf (spec-first) plugin: spec-driven development skills (spec, groom-beads, groom-feature-blueprint, bead-bonanza, retro-spec, retro-skill)"
+    "description": "Marketplace for the sf (spec-first) plugin: spec-driven development skills (spec, groom-beads, groom-feature-blueprint, bead-bonanza, recover-sprint, retro-spec, retro-skill)"
   },
   "owner": {
     "name": "Brett Callaghan",

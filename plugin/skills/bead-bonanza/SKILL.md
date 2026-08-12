@@ -23,12 +23,14 @@ Read `CLAUDE.md` and `AGENTS.md` once at the start so you have repo conventions
 in scope before delegating.
 
 **After any compaction, before dispatching anything:** re-read this file from
-Phase 0 onward and re-read references/recovery.md. A compacted session re-injects
-only this file's first ~5,000 tokens, so the per-bead ceremony, the published
-script interfaces and the rule against paraphrasing a dispatch template are NOT
-in your context even though you have "read the skill". Then ls "$RUN_DIR" and
-re-run the queue query, to re-derive run state from the durable source rather
-than from a summary of it.
+Phase 0 onward, then invoke the **`recover-sprint`** skill. A compacted session
+re-injects only this file's first ~5,000 tokens, so the per-bead ceremony, the
+published script interfaces and the rule against paraphrasing a dispatch
+template are NOT in your context even though you have "read the skill".
+`recover-sprint` re-derives run state from the durable sources (the branch,
+`dispatch.md`, `git worktree list`, the tracker) rather than from a summary of
+it, and a skill name survives truncation where a relative path does not. Then
+re-run the queue query.
 
 **This skill is language-agnostic.** It never hard-codes build, test, lint, or
 format commands. Everything it needs to validate the work done for a bead comes
@@ -169,8 +171,8 @@ After each subagent returns:
 
    **Signals this check deliberately does NOT use.** A
    `"phase":"committed"` ledger event is written by the agent doing the work
-   and stops when that agent stops — see `references/recovery.md`, "the
-   ledger is a hint, never the authority" — so its absence proves nothing and
+   and stops when that agent stops — see `references/progress-streaming.md`,
+   "the ledger is a hint, never the authority" — so its absence proves nothing and
    its presence proves only that a line was appended, not that the sha in it
    is reachable. And there is no per-bead retro FILE: findings are `retro:`
    comments on the bead, and `<bead-id>.handoff.md` is a recovery anchor that
@@ -191,14 +193,20 @@ environment issue, an under-groomed bead).
 
 ### Recovery and progress streaming
 
-`references/recovery.md` carries the progress-event schema, the procedure for a
-subagent that dies mid-ceremony, and the entry procedure for resuming a run
-after the *orchestrator* died. Without being sent there, the orchestrator arms
-a `Monitor` on the progress file for any subagent expected to run past 5
-minutes (any non-trivial bead, given full test runs) so the user sees per-phase
-events live, and — before the first dispatch — arms the durable out-of-session
-trigger that file's "Back the Monitor with a durable trigger" specifies,
-cancelling it in Phase 4.
+Three situations, three loads — take the one you are in, not the whole corpus.
+A subagent past 5 minutes or any question about the progress events:
+`references/progress-streaming.md`. A subagent that crashed or timed out
+mid-ceremony: `references/recovery.md`. Resuming a run whose state you do not
+hold, because the *orchestrator* died or compacted: invoke the
+**`recover-sprint`** skill — a skill rather than a file, because the session
+that needs it may be fresh, with no bundle loaded and no path to resolve.
+
+Without being sent anywhere, the orchestrator arms a `Monitor` on the progress
+file for any subagent expected to run past 5 minutes (any non-trivial bead,
+given full test runs) so the user sees per-phase events live, and — before the
+first dispatch — arms the durable out-of-session trigger
+`references/progress-streaming.md`'s "Back the Monitor with a durable trigger"
+specifies, cancelling it in Phase 4.
 
 ### Subagent prompt templates
 
@@ -217,7 +225,9 @@ Load the one that matches where you are in the run:
 |------------|------|
 | Dispatching any subagent (Phase 1.5 grooming, Phase 3 execution) | `references/subagent-prompts.md` |
 | Writing or amending the Phase 2.5 dispatch plan | `references/dispatch-plan.md` |
-| A subagent that crashed, timed out, or is running past 5 minutes — or resuming a run whose state you do not hold | `references/recovery.md` |
+| A subagent running past 5 minutes; arming the Monitor and the durable trigger; reading progress events | `references/progress-streaming.md` |
+| A subagent that crashed or timed out mid-ceremony | `references/recovery.md` |
+| Resuming a run whose state you do not hold (the orchestrator died or compacted) | invoke the `recover-sprint` skill |
 | A project with no `## bead-bonanza gates` or `## model lineup` block | `references/project-setup.md` |
 | Resuming a bead interrupted mid-implementation (its worktree still exists) | `references/operating-principles.md` |
 | Phase 0 pre-flight: probe the environment, resolve `RUN_DIR`/`SCRIPTS` | run `scripts/pre-flight-check.sh` |
@@ -792,7 +802,8 @@ After the queue is drained (or the circuit breaker tripped), print:
     report, before 6b deletes the run snapshot it reads.
 6. **Pushes** — confirm all closed beads' commits are on the remote.
 6a. **Cancel the durable out-of-session trigger** armed at first dispatch
-    (`references/recovery.md`, "Back the Monitor with a durable trigger") —
+    (`references/progress-streaming.md`, "Back the Monitor with a durable
+    trigger") —
     a trigger left armed after the run drains wakes an agent into a finished
     sprint, which trains the reader to ignore it.
 6b. **Delete the run snapshot** — `git rm -r .bonanza/<run-id>/` as its own

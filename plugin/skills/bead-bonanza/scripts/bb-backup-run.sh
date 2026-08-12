@@ -8,8 +8,8 @@
 #   DIRECTORY is neither: dispatch.md, the per-bead .progress.jsonl and the
 #   per-bead .handoff.md live under ${TMPDIR:-/tmp} and die with the container,
 #   taking with them everything a fresh orchestrator would use to resume an
-#   interrupted run. references/recovery.md names the committed snapshot as the
-#   route that survives a reclaim; this script is what puts it there.
+#   interrupted run. The recover-sprint skill names the committed snapshot as
+#   the route that survives a reclaim; this script is what puts it there.
 #
 #   Committed, not gitignored. A gitignored copy sits in the working tree,
 #   which is reclaimed with the container exactly like /tmp — it would move the
