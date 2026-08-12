@@ -410,11 +410,9 @@ it even where a SessionStart hook also does — a hook is registered from the
 project root only, so a session that attached this repo alongside another never
 ran one, and a green hook is not a substitute for this fact.
 
-Every bead runs in a worktree, so confirm `BB_WORKTREE_BASEREF` is `head`
-before Phase 2.5. Unset, worktrees branch from the **default branch**, not
-session HEAD, and beads building on each other lose their foundation. It is
-user-scope global state this repo does not own, so re-verify per wave — see
-`references/subagent-prompts.md`, "The base-ref trap".
+`BB_WORKTREE_BASEREF` is the same kind of blocking fact — pre-flight now exits
+non-zero when it is not `head`. See "Every bead runs in its own worktree"
+above for the cadence and the fix.
 
 ## Phase 1 — Resolve the queue
 

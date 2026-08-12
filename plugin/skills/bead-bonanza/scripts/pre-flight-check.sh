@@ -399,10 +399,11 @@ else
   say "$SETTINGS_LOCAL: absent — expect a permission prompt per distinct command"
 fi
 
-# worktree.baseRef — advisory, never blocking. Most runs never dispatch a
-# worktree wave, but when one does, an unset baseRef silently branches each
-# worktree from the DEFAULT branch instead of session HEAD. Measured, because
-# this lives in user-scope settings that no repository owns.
+# worktree.baseRef — hard gate, blocking. Every bead runs in its own worktree
+# (universal, not opt-in — see SKILL.md, "Every bead runs in its own
+# worktree"), so an unset baseRef silently branches EVERY worktree from the
+# DEFAULT branch instead of session HEAD. Measured, because this lives in
+# user-scope settings that no repository owns.
 USER_SETTINGS="$HOME/.claude/settings.json"
 if [ "$JQ" = ok ] && [ -f "$USER_SETTINGS" ]; then
   WORKTREE_BASEREF="$(jq -r '.worktree.baseRef // "unset"' "$USER_SETTINGS" 2>/dev/null)"
@@ -410,11 +411,11 @@ if [ "$JQ" = ok ] && [ -f "$USER_SETTINGS" ]; then
 else
   WORKTREE_BASEREF=unknown
 fi
-say "worktree.baseRef: $WORKTREE_BASEREF (advisory)"
+say "worktree.baseRef: $WORKTREE_BASEREF"
 if [ "$WORKTREE_BASEREF" != head ]; then
   say "  ^ NOT 'head'. isolation:\"worktree\" will branch from the default branch,"
-  say "    not session HEAD. Harmless unless this run dispatches a worktree wave —"
-  say "    if it does, set it first: .worktree.baseRef = \"head\" in $USER_SETTINGS"
+  say "    not session HEAD, and every worktree wave loses the sprint branch's commits."
+  block "worktree.baseRef is '$WORKTREE_BASEREF', not 'head' — every worktree dispatched this run will branch from the default branch instead of session HEAD, silently dropping every commit the sprint branch carries, isolated beads included. Fix: set .worktree.baseRef = \"head\" in $USER_SETTINGS (user scope; takes effect immediately, no restart), then re-run pre-flight-check.sh before dispatching."
 fi
 
 
