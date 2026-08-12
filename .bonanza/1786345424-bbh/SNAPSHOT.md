@@ -8,12 +8,12 @@ reclaim. It is written by `scripts/bb-backup-run.sh` after every bead.
 | Field | Value |
 |---|---|
 | Run id | `1786345424-bbh` |
-| As of | `2026-08-12T06:39:13Z` |
+| As of | `2026-08-12T06:40:42Z` |
 | Live run directory | `/tmp/claude/bead-bonanza/1786345424-bbh` |
 | Repo | `/home/user/agent-plugins` |
 | Run branch | `claude/bead-bonanza-sprint-2-yqpua6` |
 | Default branch | `main` |
-| HEAD when taken | `5283e52` agent-plugins-6xn P2 references/final-report.md does not exist, but bead Designs reference it |
+| HEAD when taken | `b186a68` agent-plugins-7eh P2 validate-corpus.py skips GENERATED COPY files with no orphan check of its own |
 | Files copied | 66 |
 | Beads with artifacts | 30 |
 
@@ -27,7 +27,7 @@ lists every bead that has landed, one close commit each.
 | `agent-plugins-34g` | `committed` | `fcf6a10` | yes | no |
 | `agent-plugins-4sp` | `retro-written` |  | yes | yes |
 | `agent-plugins-6xn` | `committed` | `18a6dfa` | yes | yes |
-| `agent-plugins-7eh` | `retro-written` |  | yes | yes |
+| `agent-plugins-7eh` | `committed` | `8479cf6` | yes | yes |
 | `agent-plugins-92q.1` | `committed` | `223da6c` | yes | no |
 | `agent-plugins-92q.10` | `committed` | `d8af7f2` | yes | yes |
 | `agent-plugins-92q.11` | `committed` | `6c3f533` | yes | yes |
@@ -83,7 +83,7 @@ whether the live directory still exists and use it when it does:
     ls -A /tmp/claude/bead-bonanza/1786345424-bbh
 
 Read this copy only WHEN that directory is gone, and then state this
-snapshot's as-of time (`2026-08-12T06:39:13Z`) in whatever you conclude from it.
+snapshot's as-of time (`2026-08-12T06:40:42Z`) in whatever you conclude from it.
 
 **It preserves operational state, not findings.** Findings are `retro:`
 comments on the beads themselves, durable in the tracker independently of
