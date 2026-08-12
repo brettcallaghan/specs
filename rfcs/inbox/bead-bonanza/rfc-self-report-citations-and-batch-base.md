@@ -45,7 +45,7 @@ batch returns, so a batch's beads silently do not build on each other.
 | Runs observed | 1 |
 | Task | 17 enumerated beads: defect fixes to `pre-flight-check.sh`, a redundancy-cut epic over `SKILL.md` and its references, two new private skills, and a version-bump sweep |
 | Run dates | 2026-08-12, base sha `b8b36d1`, branch `claude/bead-bonanza-refinement-261qvk` (PR #20) |
-| Evidence base | The run's sprint report — 73 verbatim `retro:` findings plus the orchestrator's analysis — plus this session's direct observation while resuming the drained run. The report was deleted from the working tree in `ed6257f`; retrieve it with `git show 522f30d:rfcs/sprints/2026-08-12-bead-bonanza-hardening.md`. Every finding number cited below indexes that file. |
+| Evidence base | `rfcs/sprints/2026-08-12-bead-bonanza-hardening.md` (73 verbatim `retro:` findings plus the orchestrator's analysis), and this session's direct observation while resuming the drained run. Every finding number cited below indexes that file. |
 
 References and scripts invoked, at the versions run:
 `references/subagent-prompts.md`, `references/dispatch-plan.md`,
