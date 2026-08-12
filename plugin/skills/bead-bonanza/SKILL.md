@@ -380,12 +380,20 @@ state anything could change between waves, re-verify before **each** wave, not
 once per run — see `references/subagent-prompts.md`, "The base-ref trap".
 
 **Merge policy.** The **orchestrator** merges each bead's branch into the
-sprint branch as it is accepted, one at a time; subagents never merge. With
-the base-ref gate holding and waves running sequentially, every merge is a
-fast-forward. **A conflict therefore means an invariant broke — stop the wave
-and report it; do not resolve it inline.** The two invariants that produce one
-are a worktree branched from the wrong base, and two beads dispatched
-concurrently against a surface they share.
+sprint branch as it is accepted, one at a time; subagents never merge.
+
+- **Sequential wave:** every merge is a fast-forward, because each bead
+  branched from an already-updated head. Use `--ff-only`; **a refusal means an
+  invariant broke — stop the wave and report it, do not resolve it inline.**
+- **Concurrent wave:** only the FIRST merge can fast-forward. Every branch in
+  the wave shares one base, so the rest necessarily diverge and a `--ff-only`
+  refusal is expected rather than diagnostic (measured, `agent-plugins-bhl`).
+  Merge the first `--ff-only`, then **rebase each remaining branch onto the
+  updated sprint head and fast-forward it**. A rebase CONFLICT is the real
+  collision signal — two beads changed the same lines — and stops the wave.
+
+Either way the result is linear history and one commit per bead. See
+`references/subagent-prompts.md`, "The worktree lifecycle".
 
 **Concurrent dispatch is ENABLED.** Several beads may be dispatched at once
 within a wave, each in its own worktree, merged as each returns. The condition

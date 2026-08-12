@@ -327,12 +327,33 @@ it uses `worktree.baseRef` instead, which is why that setting is a hard gate.
    ```sh
    git -C "$REPO" merge --ff-only <suffix>
    ```
-   **`--ff-only` is deliberate.** With the base-ref gate holding and waves
-   running sequentially, every merge is a fast-forward. A refusal means an
-   invariant broke — a worktree branched from the wrong base, or two beads
-   dispatched concurrently against a shared surface. **Stop the wave and
-   report it; do not resolve it inline** and do not retry without `--ff-only`.
-   That is what makes the failure informative instead of silently absorbed.
+   **`--ff-only` is deliberate — in a SEQUENTIAL wave.** Each bead branches
+   from an already-updated head, so every merge is a fast-forward and a refusal
+   means an invariant broke: a worktree branched from the wrong base. **Stop
+   the wave and report it; do not resolve it inline** and do not retry without
+   `--ff-only`.
+
+   **In a CONCURRENT wave, only the first merge can fast-forward**, and that is
+   not a fault — every branch in the wave shares one base by construction, so
+   the second onward necessarily diverge. Measured 2026-08-12 on the first real
+   concurrent wave (`agent-plugins-bhl`): `--ff-only` fast-forwarded bead one
+   and then refused bead two with "Not possible to fast-forward" on a wave in
+   which nothing was wrong. Applying the sequential rule literally would stop
+   every concurrent wave of 2+ beads and report it as broken.
+
+   So for each branch after the first: **rebase it onto the updated sprint head,
+   then fast-forward.**
+
+   ```sh
+   git -C <worktree> rebase <sprint-head>   # replay this bead onto what landed
+   git merge --ff-only <suffix>             # now it fast-forwards
+   ```
+
+   Rebase keeps one-commit-per-bead and a linear history, so it is the
+   concurrent analogue of the sequential guarantee. **The collision signal moves
+   to the rebase:** a rebase CONFLICT means two beads genuinely changed the same
+   lines, which is the failure `--ff-only` was standing in for. Stop the wave on
+   a rebase conflict, exactly as you would on a sequential `--ff-only` refusal.
 4. **Remove the worktree — the final act of accepting the bead:**
    ```sh
    git -C "$REPO" worktree remove "$WT" && git -C "$REPO" branch -d <suffix>
