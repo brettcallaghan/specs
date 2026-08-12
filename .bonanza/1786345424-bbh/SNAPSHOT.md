@@ -8,14 +8,14 @@ reclaim. It is written by `scripts/bb-backup-run.sh` after every bead.
 | Field | Value |
 |---|---|
 | Run id | `1786345424-bbh` |
-| As of | `2026-08-12T06:31:49Z` |
+| As of | `2026-08-12T06:35:03Z` |
 | Live run directory | `/tmp/claude/bead-bonanza/1786345424-bbh` |
 | Repo | `/home/user/agent-plugins` |
 | Run branch | `claude/bead-bonanza-sprint-2-yqpua6` |
 | Default branch | `main` |
-| HEAD when taken | `1b97627` agent-plugins-qqm P1 bb-close-bead.sh excludes all of .beads/, silently dropping legitimate config changes |
-| Files copied | 60 |
-| Beads with artifacts | 28 |
+| HEAD when taken | `c35f056` agent-plugins-psw P3 bb-close-bead.sh header one-liner still says tracker export |
+| Files copied | 64 |
+| Beads with artifacts | 30 |
 
 Resume the run from the branch, not from this file: `git log --oneline main..claude/bead-bonanza-sprint-2-yqpua6`
 lists every bead that has landed, one close commit each.
@@ -25,8 +25,9 @@ lists every bead that has landed, one close commit each.
 | Bead | Last progress phase | Recorded sha | Progress | Handoff |
 |---|---|---|---|---|
 | `agent-plugins-34g` | `committed` | `fcf6a10` | yes | no |
-| `agent-plugins-4sp` | `implementing` |  | yes | no |
+| `agent-plugins-4sp` | `retro-written` |  | yes | yes |
 | `agent-plugins-6xn` | `implementing` |  | yes | no |
+| `agent-plugins-7eh` | `implementing` |  | yes | no |
 | `agent-plugins-92q.1` | `committed` | `223da6c` | yes | no |
 | `agent-plugins-92q.10` | `committed` | `d8af7f2` | yes | yes |
 | `agent-plugins-92q.11` | `committed` | `6c3f533` | yes | yes |
@@ -51,6 +52,7 @@ lists every bead that has landed, one close commit each.
 | `agent-plugins-92q.9` | `committed` | `faff74e` | yes | yes |
 | `agent-plugins-ht3` | `committed` | `4079abd` | yes | yes |
 | `agent-plugins-jh6` | `committed` | `8c54565` | yes | no |
+| `agent-plugins-psw` | `committed` | `c35f056` | yes | yes |
 | `agent-plugins-qqm` | `committed` | `1b97627` | yes | yes |
 
 The phase column is a **hint, never the authority** — the ledger stops when
@@ -81,7 +83,7 @@ whether the live directory still exists and use it when it does:
     ls -A /tmp/claude/bead-bonanza/1786345424-bbh
 
 Read this copy only WHEN that directory is gone, and then state this
-snapshot's as-of time (`2026-08-12T06:31:49Z`) in whatever you conclude from it.
+snapshot's as-of time (`2026-08-12T06:35:03Z`) in whatever you conclude from it.
 
 **It preserves operational state, not findings.** Findings are `retro:`
 comments on the beads themselves, durable in the tracker independently of
