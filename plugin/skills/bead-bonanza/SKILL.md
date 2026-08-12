@@ -1123,7 +1123,7 @@ opening the file.
   verified), 1 (not skipped), or 2 (invocation error).
 - **`scripts/bb-close-bead.sh`** — runs `bd update --status closed`, stages
   the specified paths (or, with none given, everything modified **except
-  `.beads/`**), makes one commit, then runs `bd dolt push` when a Dolt remote
+  `.beads/*.jsonl`**), makes one commit, then runs `bd dolt push` when a Dolt remote
   is configured. It does **not** write or stage `.beads/issues.jsonl`: the
   tracker's transport is `origin refs/dolt/data`, the JSONL exports are
   untracked, and a close commit carries code only.
