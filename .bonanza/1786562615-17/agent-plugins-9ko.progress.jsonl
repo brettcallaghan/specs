@@ -1,3 +1,0 @@
-{"bead":"agent-plugins-9ko","phase":"claimed"}
-{"bead":"agent-plugins-9ko","phase":"gates-running"}
-{"bead":"agent-plugins-9ko","phase":"blocked","reason":"Blocker agent-plugins-41z did not clear the bead-bonanza/SKILL.md size warning; check-skills.sh --strict still exits 1. Enabling --strict in CI would break the workflow."}
