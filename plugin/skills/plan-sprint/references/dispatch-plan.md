@@ -1,9 +1,14 @@
-# bead-bonanza Dispatch Plan Format
+# Dispatch Plan Format
 
 The format of `${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/dispatch.md`, the
-run's sprint plan. Read this at Phase 2.5 when you write the plan, and again
-whenever you amend it. It is written for whoever picks the sprint back up —
+run's sprint plan. Read this when you write the plan, and again whenever the
+orchestrator amends it. It is written for whoever picks the sprint back up —
 which may be an agent with no memory of having written it.
+
+**The run manifest is the orchestrator's, not yours.** It is already on disk
+when this skill is invoked; write the wave table below it and leave the header
+alone. The manifest's format is documented here so both authors write the same
+file.
 
 ## Contents
 
@@ -21,8 +26,9 @@ needs the plan exactly as much as a twenty-bead run does.
 
 ## Run manifest
 
-The header, before the wave table. Most of it is the stdout block from
-`../scripts/pre-flight-check.sh`; this file is where that output lands durably.
+The header, before the wave table, **written by the orchestrator itself**.
+Most of it is the stdout block from bead-bonanza's `scripts/pre-flight-check.sh`;
+this file is where that output lands durably.
 
 ```markdown
 # Dispatch plan — run <run-id>
@@ -41,11 +47,18 @@ The header, before the wave table. Most of it is the stdout block from
 
 ## Environmental ledger
 
-Facts established this run that no wave should re-diagnose. One line each,
-naming the command that proved it. Keep the numbering — dispatch prompts cite
+Facts established this run that no wave should re-diagnose. Admitted on
+evidence, not on reasoning: every entry — including a claim of sufficiency
+("this check verifies X"), not only a claim of impossibility — names the
+command that proved it and the result observed; run it first, record it
+after. Note the conditions the command ran under when they could change the
+result (attached repos, credentials, cache warmth, toolchain version). A
+claim that cannot be tested cheaply is recorded as `unverified` with what
+would settle it, not omitted. Keep the numbering — dispatch prompts cite
 entries by number ("ledger entry 1", "ledger entry 2").
 
 1. `<claim>` — proved by `<command>`, observed `<result>`
+1. `<claim>` — unverified; would be settled by `<command>`
 ```
 
 A gate recorded `fail` in the baseline is the bar for every bead in this run:

@@ -4,7 +4,7 @@
 #
 # Why this exists
 #   Every closed bead must land as exactly one commit, and the closure must be
-#   durable before the container goes away. Four ordering constraints, easy to
+#   durable before the container goes away. The ordering constraints, easy to
 #   state and easy to reorder under pressure:
 #
 #     1. close BEFORE staging, so the closure is inside the implementation
@@ -108,6 +108,13 @@ case "$branch" in
   main|master) fail "refusing to commit directly to '$branch' — switch to a working branch" ;;
 esac
 
+# Cleanup runs on every exit path — success, fail()'s exit 1, die()'s exit 2 —
+# so the commit-message temp file (created only when --trailers-file is
+# given, step 4 below) never survives a failed `git commit`.
+msgfile=""
+cleanup_msgfile() { [ -n "$msgfile" ] && rm -f "$msgfile"; }
+trap cleanup_msgfile EXIT
+
 # 1. Atomic close — status only. `bd close` would be a second write and a
 #    second commit; `--body-file` would overwrite the groomed description with
 #    a hand-retyped copy, which is how descriptions used to lose content.
@@ -158,11 +165,11 @@ git diff --staged --quiet && fail "nothing staged — no changes to commit for $
 #    caller ever needs to amend it back in.
 subject="$id P$priority $title"
 if [ -n "$trailers_file" ]; then
-  msgfile="/tmp/bb-commit-msg.$$"
+  msgfile="$(mktemp "${TMPDIR:-/tmp}/bb-commit-msg.XXXXXX")" \
+    || fail "cannot create commit-message temp file under ${TMPDIR:-/tmp}"
   { printf '%s\n\n' "$subject"; cat "$trailers_file"; } > "$msgfile"
   git commit -q -F "$msgfile" \
     || fail "git commit failed — hooks may have rejected it. Fix and re-run; the bead is already closed, so do not re-run bd update."
-  rm -f "$msgfile"
 else
   git commit -q -m "$subject" \
     || fail "git commit failed — hooks may have rejected it. Fix and re-run; the bead is already closed, so do not re-run bd update."

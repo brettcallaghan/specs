@@ -9,7 +9,7 @@ description: Evidence-based retrospective on a SKILL that an agent just
   especially one that struggled, improvised, or produced a wrong result,
   or when asked to retro a skill, critique a skill, or capture how a
   skill could be improved.
-version: "0.3"
+version: "0.4"
 ---
 
 # Skill Retro

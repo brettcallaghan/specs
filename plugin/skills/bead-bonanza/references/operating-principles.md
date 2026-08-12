@@ -8,8 +8,8 @@ statement.
 
 - One commit per bead, always — where an interrupted bead's work lives, and how
   to resume it or surrender it
-- Findings harvest — how to wire `retro:` capture, and the one pipeline that
-  harvests it without silently returning nothing
+- Findings harvest — how to wire `retro:` capture; the harvest pipeline
+  itself lives in the vendored findings-capture protocol, not here
 - Guard against foreign dirt — how the orchestrator and a subagent each stage a
   commit, when a tracker write may happen, and whose claims an agent may reset
 
@@ -57,41 +57,16 @@ no retro tooling silently produces no findings at all, which is the one
 outcome the channel exists to prevent. The comment channel IS the tooling.
 
 It is the same channel `retro-spec`, `groom-feature-blueprint` and the
-work-order template use — the findings-capture protocol, stated once in the
-`retro-spec` skill's references. Keep it wired regardless of how the harvest
-below is done; do not remove it anywhere.
+work-order template use — the findings-capture protocol, vendored at
+`shared/findings-capture-protocol.md`. Keep it wired regardless
+of how the harvest is done; do not remove it anywhere.
 
-### Harvesting: one `bd export | jq` pipeline, not `bd list` + `bd show --json`
+### Harvesting
 
-`bd show --json` omits comments entirely (bd 1.1.2); `bd show`'s text output
-prints them, but parsing that text is fragile — a bead's Description or Design
-can itself quote the word `retro:` in prose, which a naive `grep '^\s*retro:'`
-over the whole `bd show` output miscounts as a comment. `bd export` sidesteps
-both problems: it carries comments as a `comments` array on the issue record,
-covers every status in one pass (no `--status closed` flag to remember — and
-note that repeating `--status` overwrites rather than accumulates, so it cannot
-be used to combine open+closed in one invocation), and needs no text parsing:
-
-```
-bd export | jq -r 'select(.status=="closed")
-  | select((.labels//[]) | index("<slug>"))
-  | .comments[]? | select(.text|startswith("retro:")) | .text'
-```
-
-Drop the `select(.status=="closed")` clause (or run the pipeline a second
-time without it) to also catch findings on beads still open at aggregation
-time — a drained run is mostly closed but not necessarily all closed.
-
-**Assert the count is non-zero before aggregating — this is a required
-step with a stated failure action, not advice.** A harvest that returns
-zero findings across a completed feature is a broken query, not a clean
-run: an aggregated retro built on an empty set is worse than none, because
-it reads as a confident, clean-looking artifact instead of an obvious gap.
-WHEN the count is zero against a feature known to carry `retro:` comments,
-**stop and re-run the query** — check the label spelling and confirm with
-`bd show` that the beads you expect really are closed — before aggregating
-anything. Do not go looking at `.beads/issues.jsonl`: `bd export` writes
-stdout from the database at call time, so there is no stale file in this path.
+The harvest pipeline (`bd export | jq`, why not `bd list` + `bd show --json`,
+and the non-zero-count assertion) is the aggregation section of
+`shared/findings-capture-protocol.md` — read it there rather than
+here. This skill restates none of it.
 
 ## Guard against foreign dirt
 

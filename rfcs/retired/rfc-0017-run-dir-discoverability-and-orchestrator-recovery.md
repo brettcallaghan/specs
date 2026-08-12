@@ -553,9 +553,9 @@ it overlap at exactly one point, the P5/P2 merge above.
 RFC. Plugin 0.16.0→0.17.0, one MINOR bump covering this RFC and its two
 siblings.
 
-The `version` frontmatter of the changed shipped **skills** is not
-bumped here: those files were outside this closeout's scope, and the
-five affected (`bead-bonanza`, `groom-beads`, `groom-feature-blueprint`,
-`retro-skill`, `retro-spec`) are tracked by `agent-plugins-x8r`. Until
-that lands, `bead-bonanza` still reports `1.3` — the version all three
-of these RFCs were filed against — despite a near-total rewrite.
+The `version` frontmatter of the changed shipped **skills** has been
+bumped in `agent-plugins-x8r`: `bead-bonanza` 1.3→1.4 and `spec` 1.8→1.9.
+The other four (`groom-beads` 1.1→1.2, `groom-feature-blueprint`
+1.2→1.3, `retro-skill` 0.3→0.4, `retro-spec` 1.3.0→1.4.0) were bumped
+for the SKILL.md edits this RFC's own closeout made, which had gone
+unbumped since 2026-07-30.
