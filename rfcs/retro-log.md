@@ -20,6 +20,9 @@ decision.
 | 2026-08-01 | self | `triage-rfc` | RFC 0008 | 6 adopted (1 with refinement) |
 | 2026-08-01 | self | `triage-rfc` | RFC 0009 | 4 adopted (1 with refinement), 1 deferred, 1 triage-originated adopted |
 | 2026-08-06 | self | spec (frontmatter relationship vocabulary) | RFC 0012 | 8 adopted (4 with refinement) |
+| 2026-08-10 | self | `bead-bonanza` | RFC 0016 | 3 adopted (1 with refinement, 1 since retired), 1 rejected, 3 triage-originated adopted |
+| 2026-08-10 | self | `bead-bonanza` | RFC 0017 | 5 adopted (3 with refinement), 1 triage-originated adopted |
+| 2026-08-10 | self | `bead-bonanza` | RFC 0018 | 6 adopted (3 with refinement, 1 of those incomplete, 1 since retired), 2 triage-originated adopted |
 
 ## Run notes
 
@@ -99,3 +102,57 @@ cheapest possible test of it.
 this `bd` build. Exit 0 was not read as a clean bill of health;
 acyclicity was checked by hand. Worth remembering the next time that
 script returns success.
+
+**2026-08-10 — fourth triage run (RFCs 0016–0018).** 3 RFCs, 15
+proposals plus 6 triage-originated changes: 14 adopted (7 with
+refinement), 1 rejected, 0 deferred. The implementation ran as an epic
+(`agent-plugins-92q`) across two `bead-bonanza` sprints and closed on
+2026-08-12; the Resolutions were written last, against the tree as it
+stood at the end, rather than at classification time.
+
+**The first rejection in the log, and the first one produced by
+measurement.** RFC 0016's P3 asserted that a git worktree cannot see a
+`bd` database. Nobody had run the command. Two beads did, in two
+checkouts, and the claim is false — `bd` resolves the main checkout's
+database through git's common directory from any worktree. The
+consequence is larger than one row: the mode P3 asked to *exclude* became
+the run model for every bead in the second sprint. Zero rejections across
+three prior runs and 28 proposals was, as run 1's note allowed,
+"consistent with an author and a triager who share every assumption";
+what broke the streak was not a sharper triager but somebody typing the
+command the RFC reasoned about.
+
+**Writing Resolutions last was correct, and would have been wrong for a
+smaller batch.** Between classification and closeout, `agent-plugins-92q.30`
+(one worktree per bead) and `agent-plugins-92q.31` (Dolt remote as the
+tracker) deleted premises that adopted proposals rested on. Three
+proposals landed and were then retired inside the same epic — RFC 0016's
+P1 tracker-write deferral, RFC 0018's P5 WIP-commit exception, and RFC
+0017's P2 mtime liveness table. Resolutions written at approval time
+would now claim as current three rules the tree no longer contains. The
+cost of the ordering is the opposite risk: an approval sitting in the
+inbox with no Resolution for two days is exactly the silent-rejection
+failure the skill names, and it is only safe because one bead owned the
+closeout and ran last.
+
+**A self-adoption recorded as unfinished.** RFC 0018's P3 — fit the
+operative procedure under the 5,000-token re-injection cap — is adopted,
+decomposed into five beads, and still not met: `SKILL.md`'s body is
+61,153 bytes against a ~20,000-byte target, and the measurement bead that
+would have verified the fit was closed by the repository owner for a
+dedicated later round. The reordering that did land changes *what* is
+truncated, from the close ceremony and the script interfaces to
+explanatory prose, which is the whole of the improvement. It is recorded
+as incomplete rather than as landed because a Resolution claiming
+otherwise is what the next retro would read.
+
+**Still `origin: self` everywhere, and now demonstrably not independent.**
+All three RFCs come from this repository, two of them from the *same run*
+(`1786121603-ri`) — RFC 0018 says so itself and holds `runs_observed` at
+1. Their `model` fields are withheld under the harness policy tracked by
+`rfcs/inbox/retro-skill/rfc-self-retro-skill-withheld-model.md`, so
+same-agent authorship can be neither confirmed nor excluded, and each
+Resolution says that rather than implying independence. Four proposals
+across the three ratify decisions their own author made mid-run. The
+accumulation model has now processed 56 proposals across five runs
+without a single reporter who does not share the triager's assumptions.
