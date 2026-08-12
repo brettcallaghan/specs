@@ -8,14 +8,14 @@ reclaim. It is written by `scripts/bb-backup-run.sh` after every bead.
 | Field | Value |
 |---|---|
 | Run id | `1786562615-17` |
-| As of | `2026-08-12T20:24:20Z` |
+| As of | `2026-08-12T20:36:47Z` |
 | Live run directory | `/tmp/claude/bead-bonanza/1786562615-17` |
 | Repo | `/home/user/agent-plugins` |
 | Run branch | `claude/bead-bonanza-refinement-261qvk` |
 | Default branch | `main` |
-| HEAD when taken | `56731cf` agent-plugins-8ef.1 P1 Deduplicate rules stated in both SKILL.md and a reference file, choosing one canonical location each |
-| Files copied | 25 |
-| Beads with artifacts | 11 |
+| HEAD when taken | `d7fe4d7` agent-plugins-8ef.2 P1 Deduplicate SKILL.md against itself and trim rationale prose the repo's own standard bans |
+| Files copied | 27 |
+| Beads with artifacts | 12 |
 
 Resume the run from the branch, not from this file: `git log --oneline main..claude/bead-bonanza-refinement-261qvk`
 lists every bead that has landed, one close commit each.
@@ -26,6 +26,7 @@ lists every bead that has landed, one close commit each.
 |---|---|---|---|---|
 | `agent-plugins-0z0` | `committed` | `7405577` | yes | yes |
 | `agent-plugins-8ef.1` | `committed` | `56731cf` | yes | yes |
+| `agent-plugins-8ef.2` | `committed` | `d7fe4d7` | yes | yes |
 | `agent-plugins-8mv` | `committed` | `e0fd2a5` | yes | yes |
 | `agent-plugins-9p4` | `committed` | `9f79570` | yes | yes |
 | `agent-plugins-b13` | `committed` | `f892cc7` | yes | yes |
@@ -60,7 +61,7 @@ whether the live directory still exists and use it when it does:
     ls -A /tmp/claude/bead-bonanza/1786562615-17
 
 Read this copy only WHEN that directory is gone, and then state this
-snapshot's as-of time (`2026-08-12T20:24:20Z`) in whatever you conclude from it.
+snapshot's as-of time (`2026-08-12T20:36:47Z`) in whatever you conclude from it.
 
 **It preserves operational state, not findings.** Findings are `retro:`
 comments on the beads themselves, durable in the tracker independently of
