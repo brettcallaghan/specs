@@ -2,15 +2,6 @@
      Source of truth: plugin/skills/retro-spec/references/findings-capture-protocol.md (version 0.3)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
-<!-- Sync note (2026-08-11, agent-plugins-92q.18): this path is not
-     actually covered by scripts/sync-shared-references.sh's MAP
-     (verified: --check reports 11 vendored references and this file is
-     not among them), so the header above is aspirational rather than
-     enforced here. The Aggregation section was hand-synced to match
-     source v0.3's corrected harvest command. The same correction was
-     also sent upstream as an RFC against retro-spec
-     (rfcs/outbox/retro-spec/); once adopted there, re-verify this copy
-     still matches. -->
 
 ---
 title: Findings Capture Protocol
