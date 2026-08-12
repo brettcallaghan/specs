@@ -23,10 +23,18 @@ name: checks
 # names its root through specs.toml and the script below now fails rather
 # than passing over an empty set.
 
+# Triggers: a pull request that is ready for review, a merge to the default
+# branch, and manual dispatch. A push to a working branch runs nothing, and
+# neither does a draft pull request — see the `if` on each job below.
 on:
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
+    # ready_for_review is not in the default set (opened, synchronize,
+    # reopened); without it, taking a pull request out of draft would not
+    # start the run that the draft skipped.
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -39,6 +47,11 @@ jobs:
   checks:
     name: skill invariants and vendored references
     runs-on: ubuntu-latest
+    # Draft pull requests are skipped at the job rather than filtered at the
+    # trigger: a job that skips still reports a check run, which branch
+    # protection counts as satisfied, whereas a workflow that never triggers
+    # leaves a required check pending forever and blocks the merge.
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     steps:
       - uses: actions/checkout@v4
 
@@ -106,6 +119,7 @@ jobs:
   corpus:
     name: this repository's own specs conform
     runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     steps:
       - uses: actions/checkout@v4
 
