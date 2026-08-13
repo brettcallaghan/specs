@@ -5,8 +5,8 @@ description: The Spec CLI rewrites corpus wikilinks into markdown links,
   corpus's own layout, so a copy read without an index still resolves
 slug: frd-spec-markdown-links
 type: frd
-status: ready-for-review
-updated_at: 2026-08-14T00:20:00Z
+status: approved
+updated_at: 2026-08-14T01:00:00Z
 sources: [adr-018, frd-spec-reference-integrity]
 ---
 
