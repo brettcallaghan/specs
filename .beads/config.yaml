@@ -54,7 +54,9 @@
 # `bd export > .beads/issues.jsonl` by hand gives a snapshot for a viewer or for
 # interchange. It is not a backup.
 export:
-  auto: false
+    auto: false
+sync:
+    remote: "git+https://github.com/brettcallaghan/agent-plugins"
 
 # Integration settings (access with 'bd config get/set')
 # Non-secret keys (stored in the database):
