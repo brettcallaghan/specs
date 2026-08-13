@@ -175,8 +175,8 @@ because they conflict.
 | 1 | agent-plugins-61f.3 | shared | shared-batch #1 (chained) | standard | defer | co-edit: `bead-bonanza/SKILL.md`; `blocks` from .2 — branch from .2's branch |
 | 1 | agent-plugins-61f.6 | shared | shared-batch #1 (chained) | standard | defer | co-edit: `bead-bonanza/SKILL.md`; `blocks` from .3 — branch from .3's branch |
 | 1 | agent-plugins-61f.7 | shared | shared-batch #1 (chained) | standard | defer | co-edit: `bead-bonanza/SKILL.md`; MUST land last — owns the sole 1.4 → 1.5 bump and its AC requires the other four edits present in the tree first |
-| 2 | agent-plugins-61f.4 | shared | shared-batch #2 (chained) | **advanced** | defer | co-edit: `groom-beads` bundle with .5 (sources + regenerated `references/shared/`); chain head, branches from wave-1 sprint head |
-| 2 | agent-plugins-61f.5 | shared | shared-batch #2 (chained) | standard | defer | co-edit: `groom-beads` bundle; `blocks` from .4 — the DoR rule must exist before this bullet rejects against it; branch from .4's branch |
+| 2a | agent-plugins-61f.4 | shared | sequential #2a | **advanced** | push_per_bead | co-edit: `groom-beads` bundle with .5 (sources + regenerated `references/shared/`); chain head, branches from wave-1 sprint head |
+| 2b | agent-plugins-61f.5 | shared | sequential #2b | standard | push_per_bead | co-edit: `groom-beads` bundle; `blocks` from .4 — the DoR rule must exist before this bullet rejects against it; branch from .4's branch |
 
 Tier resolves at dispatch via the caller-supplied lineup (see the note under
 "Planning inputs not present in the manifest header"): 61f.4 → `opus`, the
@@ -307,4 +307,26 @@ Open question this raises, NOT yet settled: `persistent: true` is documented as
 "no timeout", yet the runtime still reported one. If the Monitor dies at ~30
 minutes despite `persistent: true`, then `61f.6`'s core remedy is insufficient
 and the re-arm fallback is the whole rule after all. Watch task `bhjo96kee`.
+
+### 2026-08-13 — wave 2 SPLIT into two sequential dispatches (was: one chained batch)
+
+The plan bucketed `61f.4` + `61f.5` as "shared-batch #2 (chained)" at tier
+`advanced` (the higher of the two). Reclassified to two sequential single-bead
+dispatches at their own tiers: `61f.4` -> `opus`, `61f.5` -> `sonnet`.
+
+Reason, from the skill's tier-batching rule: batching exists to avoid repeated
+full `<test>` runs, and "WHERE the gate baseline shows the suite completing in
+seconds, the saving is negligible and the correct tier wins." This run's
+measured suite is three shell scripts completing in seconds, so batching would
+buy almost nothing while dragging `61f.5` a full tier above its assignment.
+
+Second benefit: sequential means the orchestrator merges `61f.4` before `61f.5`
+is dispatched, so repo HEAD genuinely advances and `61f.5`'s worktree branches
+from HEAD correctly — no hand-applied chaining override, which is the run's one
+non-mechanical dispatch step. Wave 1's fix (`61f.2`) is now merged, so the
+preamble read from the sprint branch is correct for any future batch.
+
+Wave table rows for `61f.4` and `61f.5` updated in place: Bucket
+`sequential #2a` / `sequential #2b`, Tier `advanced` / `standard`,
+Push `push_per_bead`.
 

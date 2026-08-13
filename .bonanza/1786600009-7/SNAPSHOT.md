@@ -8,14 +8,14 @@ reclaim. It is written by `scripts/bb-backup-run.sh` after every bead.
 | Field | Value |
 |---|---|
 | Run id | `1786600009-7` |
-| As of | `2026-08-13T06:05:25Z` |
+| As of | `2026-08-13T06:10:11Z` |
 | Live run directory | `/tmp/claude/bead-bonanza/1786600009-7` |
 | Repo | `/home/user/agent-plugins` |
 | Run branch | `claude/triage-rfc-self-report-anchors-7vlncg` |
 | Default branch | `main` |
-| HEAD when taken | `f6986f1` agent-plugins-61f.7 P2 bead-bonanza: record the run's effort setting in the dispatch manifest, and carry it into routed RFCs (triage T1) |
-| Files copied | 44 |
-| Beads with artifacts | 5 |
+| HEAD when taken | `2d2d00d` agent-plugins-61f.4 P1 Definition of Ready and work-order template: require durable anchors, not line numbers |
+| Files copied | 54 |
+| Beads with artifacts | 6 |
 
 Resume the run from the branch, not from this file: `git log --oneline main..claude/triage-rfc-self-report-anchors-7vlncg`
 lists every bead that has landed, one close commit each.
@@ -27,6 +27,7 @@ lists every bead that has landed, one close commit each.
 | `agent-plugins-61f.1` | `committed` | `350485d` | yes | yes |
 | `agent-plugins-61f.2` | `committed` | `c329e9f` | yes | yes |
 | `agent-plugins-61f.3` | `committed` | `a04004e` | yes | yes |
+| `agent-plugins-61f.4` | `pushed` |  | yes | yes |
 | `agent-plugins-61f.6` | `committed` | `189bdb9` | yes | yes |
 | `agent-plugins-61f.7` | `committed` | `f6986f1` | yes | yes |
 
@@ -37,6 +38,7 @@ mean the bead is unfinished. Resolve any status question with
 
 ## Other files copied
 
+- `61f.4.json`
 - `agent-plugins-61f.1.build.out`
 - `agent-plugins-61f.1.close.out`
 - `agent-plugins-61f.1.gofmt.out`
@@ -50,6 +52,12 @@ mean the bead is unfinished. Resolve any status question with
 - `agent-plugins-61f.3.close.out`
 - `agent-plugins-61f.3.gofmt.out`
 - `agent-plugins-61f.3.lint.out`
+- `agent-plugins-61f.4.build.out`
+- `agent-plugins-61f.4.format.out`
+- `agent-plugins-61f.4.lint.out`
+- `agent-plugins-61f.4.strict.out`
+- `agent-plugins-61f.4.syncshared.out`
+- `agent-plugins-61f.4.syncstrata.out`
 - `agent-plugins-61f.6.build.out`
 - `agent-plugins-61f.6.close.out`
 - `agent-plugins-61f.6.gofmt.out`
@@ -69,6 +77,7 @@ mean the bead is unfinished. Resolve any status question with
 - `final.lint.out`
 - `final.sync-shared.out`
 - `final.sync-strata.out`
+- `postwave1.strict.out`
 - `trailers.txt`
 - `.ok`
 
@@ -85,7 +94,7 @@ whether the live directory still exists and use it when it does:
     ls -A /tmp/claude/bead-bonanza/1786600009-7
 
 Read this copy only WHEN that directory is gone, and then state this
-snapshot's as-of time (`2026-08-13T06:05:25Z`) in whatever you conclude from it.
+snapshot's as-of time (`2026-08-13T06:10:11Z`) in whatever you conclude from it.
 
 **It preserves operational state, not findings.** Findings are `retro:`
 comments on the beads themselves, durable in the tracker independently of
