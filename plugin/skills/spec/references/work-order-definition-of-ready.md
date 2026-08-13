@@ -5,8 +5,8 @@ description: The readiness gate a work order must pass before it can be
 slug: work-order-definition-of-ready
 type: standards
 status: active
-updated_at: 2026-08-10T00:00:00Z
-version: "1.3"
+updated_at: 2026-08-13T00:00:00Z
+version: "1.4"
 ---
 
 # Work Order Definition of Ready
@@ -48,6 +48,14 @@ Read the `## Problem` section as if you just woke up in the repo with no chat
 history. Can you act on it? It SHALL name concrete anchors — file paths,
 function/class names, endpoints, tables, user-facing behavior — not point at a
 conversation.
+
+An anchor SHALL be durable under edits to the same file. File paths, symbol
+names, headings and short quoted strings are durable; line numbers and line
+ranges are not, and neither are byte counts or item counts. WHERE a work order
+names a position, it SHALL name the content at that position — quote the
+heading or the first few words — and MAY give a line number only as a
+convenience alongside it. In a queue where several orders touch one file, every
+line number is stale before the second order is dispatched.
 
 Red flags that fail this check immediately: "as we discussed", "the file
 above", "like the last one", "continue the refactor", "you know the pattern",
