@@ -6,7 +6,7 @@ description: The Spec CLI rewrites corpus wikilinks into relative markdown
 slug: frd-spec-vendor-links
 type: frd
 status: ready-for-review
-updated_at: 2026-08-13T00:00:00Z
+updated_at: 2026-08-13T21:00:00Z
 ---
 
 # Vendored Reference Links
@@ -48,9 +48,10 @@ judgement would corrupt the teaching prose it was meant to preserve.
 - **Vendored copy** — a generated copy of a corpus document written
   outside the spec root for distribution, carrying a header that marks
   it generated.
-- **Vendor set** — the documents being copied in one vendoring
-  operation, and therefore the only documents a vendored copy may cite
-  by path.
+- **Vendor set** — the declared set of vendoring entries, and therefore
+  the only documents a vendored copy may cite by path.
+- **Vendoring entry** — one pairing of a corpus document's slug with the
+  destination path its copy will occupy.
 - **Wikilink** — a slug citation in `[[slug]]` or `[[slug#Heading Text]]`
   form, resolved through the index.
 - **Anchor** — the heading-text fragment of a wikilink, per
@@ -132,14 +133,15 @@ repository.
 
 ### REQ-SPECVND-003: Report what was rewritten
 
-- **AC-SPECVND-003.1:** WHEN a rewrite run completes, the CLI SHALL
-  report how many documents it processed and how many wikilinks it
-  rewrote.
+- **AC-SPECVND-003.1:** WHEN a rewrite completes, the CLI SHALL report
+  how many wikilinks it rewrote in that document.
 
-- **AC-SPECVND-003.2:** WHEN a run rewrites zero wikilinks across a
-  non-empty vendor set, the CLI SHALL report that fact rather than
-  reporting success silently, because a vendor set whose documents cite
-  nothing is more often a misconfigured invocation than a true result.
+  Example: rewriting `frontmatter-standards` reports 3 rewritten
+  citations.
+
+- **AC-SPECVND-003.2:** The CLI SHALL report that count on a stream
+  other than the one carrying the rewritten document, so that
+  redirecting the document to a file does not capture the report.
 
 ### REQ-SPECVND-004: Rewriting is repeatable
 
@@ -152,6 +154,67 @@ repository.
 
 - **AC-SPECVND-004.2:** The CLI SHALL NOT rewrite an existing markdown
   link.
+
+### REQ-SPECVND-005: Command surface and vendor-set input
+
+The CLI needs two things it cannot derive from the corpus: where each
+copy will land, and which copy it is rewriting right now. Relative
+targets are computed between destinations, so the destinations are
+input, not knowledge.
+
+- **AC-SPECVND-005.1:** The CLI SHALL rewrite exactly one document per
+  invocation.
+
+- **AC-SPECVND-005.2:** The CLI SHALL write the rewritten document to
+  standard output.
+
+  Example: the vendoring script loops over its map, invoking the command
+  once per entry and redirecting standard output to the destination.
+
+- **AC-SPECVND-005.3:** The CLI SHALL NOT create, modify or delete a
+  file at any destination path.
+
+- **AC-SPECVND-005.4:** The CLI SHALL read the vendor set from a TOML
+  file named by the caller.
+
+- **AC-SPECVND-005.5:** The CLI SHALL NOT read the vendor set from
+  `specs.toml`, which declares the corpus rather than any distribution
+  of it.
+
+- **AC-SPECVND-005.6:** The vendor set SHALL declare, for each entry,
+  the slug of a corpus document and the destination path its copy will
+  occupy relative to the repository root.
+
+  Example:
+
+  ```toml
+  [[entry]]
+  slug = "work-order-definition-of-ready"
+  destination = "plugin/skills/groom-beads/references/shared/work-order-definition-of-ready.md"
+  ```
+
+- **AC-SPECVND-005.7:** The vendor set MAY declare more than one entry
+  for the same slug, so that one document can be vendored to several
+  destinations.
+
+  Example: `work-order-definition-of-ready` ships to both `bead-bonanza`
+  and `groom-beads` today.
+
+- **AC-SPECVND-005.8:** The invocation SHALL identify which entry is
+  being rewritten, so that a document vendored to several destinations
+  resolves its targets from the destination it is being written to.
+
+- **AC-SPECVND-005.9:** WHERE a cited slug has more than one entry, the
+  CLI SHALL target the entry whose destination directory equals the
+  citing entry's destination directory.
+
+  Example: a copy in `groom-beads/references/shared/` citing
+  `work-order-definition-of-ready` targets the copy in that same
+  directory, not the one under `bead-bonanza/`.
+
+- **AC-SPECVND-005.10:** IF a cited slug has entries but none shares the
+  citing entry's destination directory, THEN the CLI SHALL report a
+  finding rather than emitting a link that escapes the directory.
 
 ## References
 
