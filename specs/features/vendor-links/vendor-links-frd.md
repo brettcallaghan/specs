@@ -1,12 +1,12 @@
 ---
 title: "Vendored Reference Links"
-description: The Spec CLI rewrites corpus wikilinks into relative markdown
-  links when a document is copied out of the corpus, so a vendored copy
-  cites its companions by a path that resolves where it lands
+description: The Spec CLI rewrites corpus wikilinks into markdown links
+  using a caller-supplied slug-to-path map, so a copy taken out of the
+  corpus cites its companions by a path rather than by an index it lacks
 slug: frd-spec-vendor-links
 type: frd
 status: ready-for-review
-updated_at: 2026-08-13T21:00:00Z
+updated_at: 2026-08-13T22:00:00Z
 ---
 
 # Vendored Reference Links
@@ -32,10 +32,12 @@ cites a document that does not ship, so every adopting repository already
 holds a dangling citation.
 
 This feature gives the Spec CLI one capability: rewrite a document's
-wikilinks into relative markdown links pointing at where its companions
-will sit after vendoring. The rewritten copy is self-contained — its
-links resolve by path, on disk, with no index. The capability belongs to
-the CLI rather than to the script that performs the copy because
+wikilinks into markdown links, substituting a path the caller supplies
+per slug. The rewritten copy is self-contained — its links are paths,
+resolvable without an index. The CLI does not decide what those paths
+are: whoever performs the copy knows where things land, and a CLI that
+guessed would encode one layout's assumptions into everyone's. The
+capability belongs to the CLI rather than to that caller because
 deciding *what is a reference* is corpus knowledge the CLI already owns:
 its extractor skips code spans, so an illustrative `` `[[module-<name>]]` ``
 in a guide is not a citation. A rewriter that did not share that
@@ -48,10 +50,12 @@ judgement would corrupt the teaching prose it was meant to preserve.
 - **Vendored copy** — a generated copy of a corpus document written
   outside the spec root for distribution, carrying a header that marks
   it generated.
-- **Vendor set** — the declared set of vendoring entries, and therefore
-  the only documents a vendored copy may cite by path.
-- **Vendoring entry** — one pairing of a corpus document's slug with the
-  destination path its copy will occupy.
+- **Link map** — the caller-supplied mapping from a document's slug to
+  the path a link to it should use. It is the whole of what the CLI
+  knows about where copies live: the CLI never derives, resolves or
+  normalizes a path, and never learns the destination of the document it
+  is rewriting. A slug absent from the map is a citation the copy may
+  not make.
 - **Wikilink** — a slug citation in `[[slug]]` or `[[slug#Heading Text]]`
   form, resolved through the index.
 - **Anchor** — the heading-text fragment of a wikilink, per
@@ -60,20 +64,19 @@ judgement would corrupt the teaching prose it was meant to preserve.
 
 ## Requirements
 
-### REQ-SPECVND-001: Rewrite wikilinks to relative markdown links
+### REQ-SPECVND-001: Rewrite wikilinks to markdown links
 
 The CLI converts slug citations into path citations, preserving what the
 author wrote as the visible link text.
 
 - **AC-SPECVND-001.1:** WHEN the CLI rewrites a document, it SHALL
-  replace each wikilink that resolves to a document in the vendor set
-  with a markdown link whose target is the path of that document's
-  vendored location, relative to the rewritten document's own vendored
-  location.
+  replace each wikilink whose slug appears in the link map with a
+  markdown link whose text is the slug and whose target is the mapped
+  path, used verbatim.
 
-  Example: vendoring `ac-traceability-standards` and
-  `template-authoring-standards` into the same directory, a citation of
-  `[[template-authoring-standards]]` in the first becomes
+  Example: with `template-authoring-standards` mapped to
+  `template-authoring-standards.md`, a citation of
+  `[[template-authoring-standards]]` becomes
   `[template-authoring-standards](template-authoring-standards.md)`.
 
 - **AC-SPECVND-001.2:** WHEN a wikilink carries an anchor, the CLI SHALL
@@ -101,32 +104,32 @@ author wrote as the visible link text.
 - **AC-SPECVND-001.6:** WHEN the CLI rewrites a document that contains no
   rewritable wikilink, it SHALL emit that document unchanged.
 
-### REQ-SPECVND-002: Refuse a citation that leaves the vendor set
+### REQ-SPECVND-002: Refuse a citation the link map does not cover
 
-A vendored copy may only cite documents vendored alongside it. This is
-the requirement that turns a packaging rule into a checkable one, and it
-is enforced at rewrite time rather than discovered in an adopting
-repository.
+A copy may only cite documents the caller has said it can reach. The
+link map is that statement, so it doubles as the shipped set: omitting a
+document from it makes every citation of that document a finding. This
+turns a packaging rule into a checkable one, enforced at rewrite time
+rather than discovered in an adopting repository.
 
-- **AC-SPECVND-002.1:** IF a wikilink resolves to a corpus document that
-  is not in the vendor set, THEN the CLI SHALL report a finding.
+- **AC-SPECVND-002.1:** IF a wikilink's slug is absent from the link
+  map, THEN the CLI SHALL report a finding.
 
   Example: `frontmatter-standards` cites
-  `[[document-relationship-standards]]`; vendoring the first without the
-  second reports that citation.
+  `[[document-relationship-standards]]`; a link map omitting the second
+  reports that citation.
 
-- **AC-SPECVND-002.2:** IF a wikilink resolves to a corpus document that
-  is not in the vendor set, THEN the CLI SHALL NOT emit a rewritten
-  document for the citing document.
+- **AC-SPECVND-002.2:** IF a wikilink's slug is absent from the link
+  map, THEN the CLI SHALL NOT emit a rewritten document.
 
 - **AC-SPECVND-002.3:** WHEN reporting that finding, the CLI SHALL name
   the citing document, the unresolvable slug, and the position of the
   citation.
 
-- **AC-SPECVND-002.4:** IF a wikilink resolves to no corpus document at
+- **AC-SPECVND-002.4:** IF a wikilink's slug names no corpus document at
   all, THEN the CLI SHALL report a finding distinguishable from
-  AC-SPECVND-002.1, because an absent document and an unvendored one
-  call for different fixes.
+  AC-SPECVND-002.1, because a slug nobody has written and a document
+  deliberately left out of the map call for different fixes.
 
 - **AC-SPECVND-002.5:** The CLI SHALL report every such finding in one
   run rather than stopping at the first.
@@ -155,12 +158,13 @@ repository.
 - **AC-SPECVND-004.2:** The CLI SHALL NOT rewrite an existing markdown
   link.
 
-### REQ-SPECVND-005: Command surface and vendor-set input
+### REQ-SPECVND-005: Command surface and link-map input
 
-The CLI needs two things it cannot derive from the corpus: where each
-copy will land, and which copy it is rewriting right now. Relative
-targets are computed between destinations, so the destinations are
-input, not knowledge.
+The CLI cannot know where a copy will live, and does not try to. The
+caller states, per slug, the path a link should use; the CLI substitutes
+it. Every question about how that path was constructed — absolute or
+relative, to what base, on a filesystem or a website — belongs to the
+caller and never reaches the CLI.
 
 - **AC-SPECVND-005.1:** The CLI SHALL rewrite exactly one document per
   invocation.
@@ -169,52 +173,38 @@ input, not knowledge.
   standard output.
 
   Example: the vendoring script loops over its map, invoking the command
-  once per entry and redirecting standard output to the destination.
+  once per output file and redirecting standard output to it.
 
-- **AC-SPECVND-005.3:** The CLI SHALL NOT create, modify or delete a
-  file at any destination path.
+- **AC-SPECVND-005.3:** The CLI SHALL NOT create, modify or delete any
+  file.
 
-- **AC-SPECVND-005.4:** The CLI SHALL read the vendor set from a TOML
-  file named by the caller.
+- **AC-SPECVND-005.4:** The CLI SHALL read the link map from a TOML file
+  named by the caller, in which each entry pairs a corpus document's
+  slug with the path a link to that document is to use.
 
-- **AC-SPECVND-005.5:** The CLI SHALL NOT read the vendor set from
-  `specs.toml`, which declares the corpus rather than any distribution
-  of it.
-
-- **AC-SPECVND-005.6:** The vendor set SHALL declare, for each entry,
-  the slug of a corpus document and the destination path its copy will
-  occupy relative to the repository root.
-
-  Example:
+  Example, for copies that land beside each other:
 
   ```toml
   [[entry]]
-  slug = "work-order-definition-of-ready"
-  destination = "plugin/skills/groom-beads/references/shared/work-order-definition-of-ready.md"
+  slug = "template-authoring-standards"
+  path = "template-authoring-standards.md"
+
+  [[entry]]
+  slug = "ac-traceability-standards"
+  path = "ac-traceability-standards.md"
   ```
 
-- **AC-SPECVND-005.7:** The vendor set MAY declare more than one entry
-  for the same slug, so that one document can be vendored to several
-  destinations.
+  Example, for the same documents published to a docs site:
 
-  Example: `work-order-definition-of-ready` ships to both `bead-bonanza`
-  and `groom-beads` today.
+  ```toml
+  [[entry]]
+  slug = "template-authoring-standards"
+  path = "/standards/template-authoring/"
+  ```
 
-- **AC-SPECVND-005.8:** The invocation SHALL identify which entry is
-  being rewritten, so that a document vendored to several destinations
-  resolves its targets from the destination it is being written to.
-
-- **AC-SPECVND-005.9:** WHERE a cited slug has more than one entry, the
-  CLI SHALL target the entry whose destination directory equals the
-  citing entry's destination directory.
-
-  Example: a copy in `groom-beads/references/shared/` citing
-  `work-order-definition-of-ready` targets the copy in that same
-  directory, not the one under `bead-bonanza/`.
-
-- **AC-SPECVND-005.10:** IF a cited slug has entries but none shares the
-  citing entry's destination directory, THEN the CLI SHALL report a
-  finding rather than emitting a link that escapes the directory.
+- **AC-SPECVND-005.5:** The CLI SHALL use a mapped path exactly as
+  written, without resolving it, normalizing it, or making it relative
+  to anything.
 
 ## References
 
