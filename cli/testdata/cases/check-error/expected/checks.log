@@ -1,4 +1,7 @@
-frontmatter/missing-property  error  docs/adrs/adr-001-missing-description.md:1:4  /: required property "description" is not declared
+checked 1 document
+
+docs/adrs/adr-001-missing-description.md:
+  frontmatter/missing-property  error  1:4  /: required property "description" is not declared
 
 checks:
   corpus/empty  passed

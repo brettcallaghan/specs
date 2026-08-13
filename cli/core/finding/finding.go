@@ -442,6 +442,38 @@ type Report struct {
 	results map[specmodel.RuleId]checkState
 	// findings is every finding recorded, unordered until rendering.
 	findings []specmodel.Finding
+
+	// documentCount and hasDocumentCount back [Report.SetDocumentCount].
+	// hasDocumentCount distinguishes "never told" from "told, and it was
+	// zero" — a caller that never calls SetDocumentCount (a specs.toml
+	// validation, a refs query) gets no count line from [Report.Text] at
+	// all, rather than a misleading "checked 0 documents".
+	documentCount    int
+	hasDocumentCount bool
+
+	// exclusions backs [Report.SetExclusions]. Nil (the default) renders
+	// no excluded section, exactly like documentCount's default.
+	exclusions []specmodel.IndexExclusion
+}
+
+// SetDocumentCount records how many documents the run examined, so
+// [Report.Text] prints a count line — on a clean run and a failing run
+// alike, which is what makes a zero-document run auditable by a human
+// reading output rather than only by [RuleCorpusEmpty]'s finding.
+//
+// Only a corpus-wide run has a meaningful count to report; a caller
+// checking one document leaves this unset.
+func (r *Report) SetDocumentCount(n int) {
+	r.documentCount = n
+	r.hasDocumentCount = true
+}
+
+// SetExclusions records the corpus's excluded candidate files, so
+// [Report.Text] lists each with its reason rather than letting a file
+// excluded for missing frontmatter or an unrecognized `type` read as
+// indistinguishable from one that was checked and passed.
+func (r *Report) SetExclusions(exclusions []specmodel.IndexExclusion) {
+	r.exclusions = exclusions
 }
 
 // checkState is the mutable half of one check's accounting.
@@ -635,24 +667,45 @@ func (r *Report) JSON() ([]byte, error) {
 
 // Text renders the report for a human reader.
 //
-// Findings come first, one per line, in the order [Report.Model] fixes:
+// When [Report.SetDocumentCount] was called, a count line opens the
+// report, on a clean run and a failing run alike, followed — when
+// [Report.SetExclusions] recorded any — by the excluded files and their
+// reasons. Neither section appears for a report that never received
+// them, so a report built for something other than a corpus scan (a
+// specs.toml validation, a refs query) renders exactly as before.
 //
-//	slug/pattern-mismatch  error  specs/adrs/adr-011.md:4:7  "adr-011-x" does not match pattern "^adr-[0-9]{3}$"
+// Findings follow, grouped under a header naming the file they are
+// against — [Report.Model] already sorts them by path first, so a run of
+// findings sharing a file is contiguous and this only inserts the
+// header:
 //
-// The check accounting follows, so a reader who sees no findings can tell
-// at a glance which checks that verdict actually covers.
+//	specs/adrs/adr-011.md:
+//	  slug/pattern-mismatch  error  4:7  "adr-011-x" does not match pattern "^adr-[0-9]{3}$"
+//
+// The check accounting follows last, so a reader who sees no findings can
+// tell at a glance which checks that verdict actually covers.
 func (r *Report) Text() string {
 	model := r.Model()
 	var b strings.Builder
 
-	if len(model.Findings) == 0 {
-		b.WriteString("no findings\n")
+	if r.hasDocumentCount {
+		fmt.Fprintf(&b, "checked %d document%s\n", r.documentCount, plural(r.documentCount))
 	}
-	for _, f := range model.Findings {
-		fmt.Fprintf(&b, "%s  %s  %s:%d:%d  %s\n",
-			f.Rule, f.Severity, f.Path,
-			f.Position.StartLine, f.Position.StartColumn, f.Message)
+	if len(r.exclusions) > 0 {
+		b.WriteString("\nexcluded:\n")
+		for _, ex := range r.exclusions {
+			fmt.Fprintf(&b, "  %s  %s", ex.Path, ex.Reason)
+			if ex.Type != nil && *ex.Type != "" {
+				fmt.Fprintf(&b, " (declared type %q)", *ex.Type)
+			}
+			b.WriteString("\n")
+		}
 	}
+	if r.hasDocumentCount || len(r.exclusions) > 0 {
+		b.WriteString("\n")
+	}
+
+	writeFindingsByFile(&b, model.Findings)
 
 	if len(model.Checks) == 0 {
 		return b.String()
@@ -666,4 +719,39 @@ func (r *Report) Text() string {
 		b.WriteString("\n")
 	}
 	return b.String()
+}
+
+// writeFindingsByFile renders findings grouped by the file they are
+// against: rule grouping (the checks section) answers "is this
+// systemic", file grouping answers "what do I fix next", and the text
+// report is read by whoever is fixing things.
+//
+// findings arrives sorted by path first, so a run of entries sharing a
+// Path is already contiguous; this only inserts the header between runs.
+func writeFindingsByFile(b *strings.Builder, findings []specmodel.Finding) {
+	if len(findings) == 0 {
+		b.WriteString("no findings\n")
+		return
+	}
+	last := ""
+	for i, f := range findings {
+		if i == 0 || f.Path != last {
+			if i > 0 {
+				b.WriteString("\n")
+			}
+			fmt.Fprintf(b, "%s:\n", f.Path)
+			last = f.Path
+		}
+		fmt.Fprintf(b, "  %s  %s  %d:%d  %s\n",
+			f.Rule, f.Severity, f.Position.StartLine, f.Position.StartColumn, f.Message)
+	}
+}
+
+// plural returns "" for a count of exactly one and "s" otherwise, so a
+// count line reads "1 document" rather than "1 documents".
+func plural(n int) string {
+	if n == 1 {
+		return ""
+	}
+	return "s"
 }

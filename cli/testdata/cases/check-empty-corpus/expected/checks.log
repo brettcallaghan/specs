@@ -1,4 +1,7 @@
-corpus/empty  error  docs:0:0  spec root "docs" holds no corpus members: the run checked zero documents
+checked 0 documents
+
+docs:
+  corpus/empty  error  0:0  spec root "docs" holds no corpus members: the run checked zero documents
 
 checks:
   corpus/empty  failed

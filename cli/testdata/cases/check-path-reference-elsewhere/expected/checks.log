@@ -1,5 +1,6 @@
-reference/unresolved  error  docs/adrs/adr-201-referrer.md:12:23  [[adr-999-absent]] matches no document's slug
-reference/retired-target  warning  docs/adrs/adr-201-referrer.md:13:3  "adr-202-retired" is retired
+docs/adrs/adr-201-referrer.md:
+  reference/unresolved  error  12:23  [[adr-999-absent]] matches no document's slug
+  reference/retired-target  warning  13:3  "adr-202-retired" is retired
 
 checks:
   corpus/empty  passed
