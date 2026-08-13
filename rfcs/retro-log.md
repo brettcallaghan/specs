@@ -24,6 +24,7 @@ decision.
 | 2026-08-10 | self | `bead-bonanza` | RFC 0017 | 5 adopted (3 with refinement), 1 triage-originated adopted |
 | 2026-08-10 | self | `bead-bonanza` | RFC 0018 | 6 adopted (3 with refinement, 1 of those incomplete, 1 since retired), 2 triage-originated adopted |
 | 2026-08-12 | self | `bead-bonanza` sprint (run `1786562615-17`) | [sprint report](sprints/2026-08-12-bead-bonanza-hardening.md) | 73 findings harvested, 16/17 beads closed; 11 cited by the two inbox RFCs, the remaining 62 unfiled and retained for recurrence |
+| 2026-08-13 | self | `bead-bonanza` run 1786603162-7 | [Sprint report](sprints/2026-08-13-template-drift-and-check-report.md) | 16 findings harvested; 1 follow-up bead filed (agent-plugins-nu2); RFCs pending owner triage |
 
 ## Run notes
 

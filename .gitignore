@@ -32,3 +32,7 @@ build/
 # .beads/.gitignore ignores *.lock but only inside .beads/, and the gate
 # lock is written at the repo root)
 *.gate.lock*
+
+# Harness-managed worktrees for isolated subagents (bead-bonanza runs).
+# Transient: each holds one in-flight bead and is removed when it is accepted.
+.claude/worktrees/
