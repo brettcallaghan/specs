@@ -10,7 +10,7 @@ description: Retrospective on a completed phase of spec-driven work —
   capture lessons learned about the documents a phase consumed. To
   critique the SKILLS, templates, or scripts that guided the phase, use
   the retro-skill skill instead.
-version: "1.4.0"
+version: "1.5.0"
 ---
 
 # Spec Retro
@@ -146,7 +146,8 @@ Retro progress:
    cites `[[template-authoring-standards]]`, whose canonical copy is the
    sibling spec skill's
    `references/shared/template-authoring-standards.md`), bundling every
-   qualifying finding as `audience: project`. File it under
+   qualifying finding into the project variant (a numbered slug —
+   see the template's Numbering and location). File it under
    `rfcs/inbox/<spec-type>/`, named
    `rfc-<nnnn>-<short-description>.md` with the repo's next free
    number. `<spec-type>` is the document type the findings most concern
@@ -156,7 +157,7 @@ Retro progress:
    readiness gate. Fix what it reports and re-run; do not proceed while it fails. After two full failed cycles, stop and surface the blocker rather than continuing to retry. Set status to
    `ready-for-review` only once the gate passes. Order proposals
    by expected impact. (Skill-lens findings go to `retro-skill`, which
-   authors its own `audience: skill-authors` RFC — do not file one from
+   authors its own skill-authors variant RFC — do not file one from
    here.)
 6. **Record a null result.** WHEN no finding clears the bar, write a
    retro note to

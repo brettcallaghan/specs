@@ -7,17 +7,26 @@ slug: rfc-<nnnn>-<short-description>  # numbered by the repo that
 type: rfc
 status: draft
 updated_at: <YYYY-MM-DDTHH:MM:SSZ>
-audience: project | skill-authors     # who resolves the proposals
 origin: <project-name>                # the project whose session
                                       # produced the evidence
+skill: retro-spec                     # this template is retro-spec's;
+                                      # every RFC it produces critiques
+                                      # the origin project's own docs
+skill_version: <X.Y>                  # retro-spec's SKILL.md
+                                      # frontmatter version at the
+                                      # time of the run
+model: <e.g. claude-opus-4-8[1m]>      # the model that ran the skill
+effort: <low | medium | high | xhigh | max>
+runs_observed: <N>                    # runs standing behind the evidence
+severity: <blocker | snag | polish>   # highest severity among
+                                      # proposals
 plugin_version: "<x.y.z>"             # spec-driven-dev plugin version
                                       # in use during that session
-                                      # would change (audience: project)
 ---
 
 <!--
 Template: Improvement RFC
-Version: 1.2
+Version: 1.3
 Source: spec-driven-dev framework (produced by the retro-spec skill)
 
 Sections (complete each, then delete its instruction block)
@@ -37,20 +46,23 @@ Purpose
   observed friction in one real session toward changes that prevent
   the same friction in the next one.
 
-Scope — one RFC per retro per audience
+Scope — one RFC per retro per variant
   An RFC bundles ALL qualifying proposals from one retro for one
-  audience; do NOT split proposals into separate RFC files. The
-  proposals share a single Evidence base and Provenance block — that
-  sharing is the point. The RFC is the envelope; the PROPOSAL is the
-  unit of decision, and review resolves each proposal individually
+  variant (project or skill-authors — see RFC variants below); do NOT
+  split proposals into separate RFC files. The proposals share a
+  single Evidence base and Provenance block — that sharing is the
+  point. The RFC is the envelope; the PROPOSAL is the unit of
+  decision, and review resolves each proposal individually
   (adopt / defer / reject) in the Resolution section.
 
 When to use
   - A retro (retro-spec skill) after a downstream phase has exercised
     upstream documents found improvements that clear the bar below
   - Any session that surfaced concrete, citable defects in the
-    project's specs (audience: project) or in the framework's skills,
-    templates, or standards (audience: skill-authors)
+    project's own specs (the project variant, authored from this
+    template) or in the framework's skills, templates, or standards
+    (the skill-authors variant, authored from retro-skill's
+    skill-rfc-template.md instead)
 
 When NOT to use
   - No concrete session evidence — an idea that "seems better" without
@@ -60,25 +72,27 @@ When NOT to use
     produces documents, or for structural gaps across them
   - Recording a design decision — that is an ADR
 
-Audience semantics
-  - `project` — proposals change the origin project's own documents
-    (its specs, blueprints, standards). Resolved in the origin
-    repo. File: the origin repo's rfcs/ directory.
-  - `skill-authors` — proposals change the spec-driven-dev framework
-    (skills, templates, standards, guides). Resolved by the
-    framework maintainers. File: the origin repo's rfcs/outbox/
-    directory, from which the human copies it into the framework
-    repo's rfcs/inbox/ for triage.
+RFC variants
+  - project — proposals change the origin project's own documents
+    (its specs, blueprints, standards). Resolved in the origin repo.
+    Identified by a numbered slug (rfc-<nnnn>-...) and filed in the
+    origin repo's rfcs/ directory. Authored from this template.
+  - skill-authors — proposals change the spec-driven-dev framework
+    (skills, templates, standards, guides). Resolved by the framework
+    maintainers. Identified by an unnumbered slug and filed in the
+    origin repo's rfcs/outbox/ directory, from which the human copies
+    it into the framework repo's rfcs/inbox/ for triage. Authored
+    from retro-skill's skill-rfc-template.md, not this one.
 
 Numbering and location
   - An RFC is numbered by the repo that resolves it, when it is
     resolved — numbering marks ownership of the outcome.
-  - audience: project — name it rfc-<nnnn>-<short-description>.md
-    using the origin repo's next free number, in rfcs/.
-  - audience: skill-authors — name it
-    rfc-<origin-project>-<short-description>.md (NO number) in
-    rfcs/outbox/. The framework repo's triage assigns its own number
-    when the RFC is ingested and moves it into that repo's rfcs/.
+  - project — name it rfc-<nnnn>-<short-description>.md using the
+    origin repo's next free number, in rfcs/.
+  - skill-authors — name it rfc-<origin-project>-<short-description>.md
+    (NO number) in rfcs/outbox/. The framework repo's triage assigns
+    its own number when the RFC is ingested and moves it into that
+    repo's rfcs/.
 
 Status lifecycle (controlled vocabulary per
 template-authoring-standards)
