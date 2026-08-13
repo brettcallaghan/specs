@@ -34,7 +34,12 @@ silently — the same treatment AC-SPEC-001.3 and AC-SPEC-001.4 require of
 the CLI, so that a document which should be a specification but is
 missing frontmatter is visible rather than absent.
 
-Requires: pip install jsonschema pyyaml
+Files opening with a GENERATED COPY header are not validated here. They
+are DELEGATED, not skipped: this script runs ORPHAN_AUTHORITY below and
+fails on its exit status, so the header cannot confer "somebody else
+checks this" without somebody else actually having checked it.
+
+Requires: python3 -m pip install jsonschema pyyaml
 
 Usage:
   scripts/validate-corpus.py            # report findings, exit 1 on any
@@ -44,6 +49,7 @@ from __future__ import annotations
 
 import json
 import pathlib
+import subprocess
 import sys
 import tomllib
 
@@ -51,7 +57,7 @@ try:
     import yaml
     from jsonschema import Draft7Validator
 except ImportError:  # pragma: no cover
-    sys.exit("error: pip install jsonschema pyyaml")
+    sys.exit("error: python3 -m pip install jsonschema pyyaml")
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -65,16 +71,38 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 # reported a healthy "checked 26 documents" drawn entirely from the other
 # two patterns. MIN_CHECKED below is the guard against a repeat.
 # Not listed: plugin/skills/*/references/shared/*.md, the vendored copies
-# sync-shared-references.sh writes. Each opens with a GENERATED COPY
-# comment, so read_frontmatter below sees no leading `---` and would
-# report every one of them as "no-frontmatter" — a wrong reason for a
-# file that has frontmatter three lines down. Their authored sources are
-# checked by the second pattern, and --check compares the copies byte for
-# byte against those sources, which is stronger than re-validating a copy.
+# sync-shared-references.sh writes. Their authored sources are checked by
+# the second pattern, and that script's --check compares the copies byte
+# for byte against those sources, which is stronger than re-validating a
+# copy. A vendored copy that lands inside SEARCH anyway is handled by the
+# delegation below, not dropped.
 SEARCH = [
     "rfcs/**/*.md",
     "plugin/skills/*/references/*.md",
 ]
+
+# A file opening with this comment declares itself a generated copy of a
+# source elsewhere in the repo. Its frontmatter sits below the header, so
+# read_frontmatter would call it "no-frontmatter" — a wrong reason for a
+# file that has frontmatter three lines down.
+GENERATED_COPY_HEADER = "<!-- GENERATED COPY"
+
+# The single authority on whether a GENERATED COPY header is honest: it
+# diffs every managed copy against its source, and fails on any tracked
+# *.md carrying the header that names no generator this repo can run.
+#
+# This script does not restate that logic — it runs it. Without that, the
+# header would confer "someone else checks this" in two places while only
+# one place checked, and a file could claim to be generated, be passed
+# over here, and have nothing regenerate it.
+#
+# Consequence to expect: the authority answers one question for the whole
+# repository, so when it fails this script reports its entire output,
+# including staleness that is not about any file matched by SEARCH. That
+# is the price of delegating instead of duplicating; filtering its output
+# would mean reimplementing its judgement here.
+ORPHAN_AUTHORITY = "scripts/sync-shared-references.sh"
+ORPHAN_AUTHORITY_ARGS = ["--check"]
 
 # The corpus root the CLI owns, read from specs.toml rather than hardcoded.
 # A SEARCH pattern reaching inside it is a configuration error, not a
@@ -117,6 +145,48 @@ def read_frontmatter(path: pathlib.Path) -> str | None:
         return None
     end = text.find("\n---", 4)
     return text[4:end] if end != -1 else None
+
+
+def opens_with_generated_copy_header(path: pathlib.Path) -> bool:
+    """True if the file's first line declares it a generated copy."""
+    with path.open(encoding="utf-8") as fh:
+        return fh.readline().startswith(GENERATED_COPY_HEADER)
+
+
+def delegated_orphan_findings(delegated: list[str]) -> list[tuple[str, str]]:
+    """Run ORPHAN_AUTHORITY over the files this script hands to it.
+
+    Returns findings, so a header that names no runnable generator fails
+    this gate too rather than only the sibling one. A missing or
+    non-executable authority is itself a finding: the delegation is the
+    only thing standing behind the files skipped above, so it may not
+    fail open.
+    """
+    authority = ROOT / ORPHAN_AUTHORITY
+    quoted = ", ".join(delegated)
+    if not authority.exists():
+        return [(ORPHAN_AUTHORITY, (
+            f"generated-copy/no-authority: orphan detection for {len(delegated)} "
+            f"generated-copy file(s) ({quoted}) is delegated to "
+            f"`{ORPHAN_AUTHORITY}`, which is not present. Restore it, or check "
+            "those files here."
+        ))]
+
+    proc = subprocess.run(
+        ["bash", str(authority), *ORPHAN_AUTHORITY_ARGS],
+        cwd=ROOT, capture_output=True, text=True,
+    )
+    if proc.returncode == 0:
+        return []
+
+    output = (proc.stdout + proc.stderr).strip() or f"exit status {proc.returncode}"
+    detail = "\n".join(f"    | {line}" for line in output.splitlines())
+    return [(ORPHAN_AUTHORITY, (
+        f"generated-copy/delegated: {len(delegated)} file(s) in this script's search "
+        f"scope ({quoted}) open with a GENERATED COPY header, so they are checked by "
+        f"`{ORPHAN_AUTHORITY} {' '.join(ORPHAN_AUTHORITY_ARGS)}` instead of here. "
+        f"That check failed (exit {proc.returncode}):\n{detail}"
+    ))]
 
 
 def cli_corpus_root() -> str | None:
@@ -162,6 +232,7 @@ def main() -> int:
 
     findings: list[tuple[str, str]] = []
     excluded: list[tuple[str, str]] = []
+    delegated: list[str] = []
     checked = 0
 
     seen: set[pathlib.Path] = set()
@@ -173,6 +244,14 @@ def main() -> int:
             if any(s in path.name for s in EXCLUDE_NAME_CONTAINS):
                 continue
             rel = str(path.relative_to(ROOT))
+
+            # Delegated, not skipped. Validating a copy's frontmatter here
+            # would gate the same bytes twice; whether the copy should
+            # exist at all is ORPHAN_AUTHORITY's question, and it is asked
+            # below on this list rather than assumed.
+            if opens_with_generated_copy_header(path):
+                delegated.append(rel)
+                continue
 
             raw = read_frontmatter(path)
             if raw is None:
@@ -207,6 +286,9 @@ def main() -> int:
                 loc = "/".join(map(str, e.absolute_path)) or "<root>"
                 findings.append((rel, f"frontmatter/schema: {loc}: {e.message}"))
 
+    if delegated:
+        findings.extend(delegated_orphan_findings(delegated))
+
     # The configuration file itself.
     specs_toml = ROOT / "specs.toml"
     if not specs_toml.exists():
@@ -237,8 +319,17 @@ def main() -> int:
             print()
             for rel, reason in excluded:
                 print(f"excluded  {rel}: {reason}")
+        # Printed on success too. A reader of this script's output alone
+        # must be able to see that these files were handed to a gate that
+        # ran, not passed over.
+        if delegated:
+            print()
+            for rel in delegated:
+                print(f"delegated  {rel}: generated copy — checked by "
+                      f"{ORPHAN_AUTHORITY} {' '.join(ORPHAN_AUTHORITY_ARGS)}")
         print()
-        print(f"checked {checked} documents, {len(findings)} findings, {len(excluded)} excluded")
+        print(f"checked {checked} documents, {len(findings)} findings, "
+              f"{len(excluded)} excluded, {len(delegated)} delegated")
 
     return 1 if findings else 0
 

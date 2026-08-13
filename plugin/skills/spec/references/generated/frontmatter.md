@@ -51,6 +51,12 @@ type extends this struct with its own relationship and classification
 properties, so the envelope is validated identically everywhere and only
 the extension differs.
 
+A relationship property here or on any extension is declared at one end
+only; the index derives the reverse from every other document's inbound
+edges. Before adding one, check it against the Document Relationship
+Standard — a property that merely mirrors the document's own prose
+citations does not earn its maintenance cost.
+
 **Inherits from:** [ElementRecord](#elementrecord)
 
 | Property | Type | Documentation |
@@ -61,7 +67,6 @@ the extension differs.
 | created_at | DateTime? | RFC 3339 timestamp of the document's creation. Optional. |
 | tags | Array<String>? | Free-form tags for filtering and search. |
 | superseded_by | [Slug](vocabulary.md#slug)? | The document that replaces this one.<br><br>Required in practice on any document at `status: retired` — a retired document with no resolvable successor is a dead end for anyone who follows a reference to it. |
-| related | Array<[Slug](vocabulary.md#slug)>? | Peer documents relevant to this one without a stronger relationship: the ADRs behind it, the standards it observes.<br><br>Every relationship property in this vocabulary names documents by slug, and every named slug must resolve to a corpus member. |
 
 
 ## ContractEdges
@@ -93,9 +98,9 @@ this edge belongs to the element, and ADR-009's rule is untouched.
 
 An architecture decision record.
 
-Carries no relationship properties of its own beyond the envelope's
-`related`: an ADR's connections to other decisions are argued in its
-prose, and the decisions it supersedes are named through
+Carries no relationship properties of its own: an ADR's connections to
+other decisions are argued in its prose, where the index reads them, and
+the decision it supersedes is named through the envelope's
 `superseded_by`.
 
 **Inherits from:** [DocumentFrontmatter](#documentfrontmatter)
@@ -145,29 +150,46 @@ across documents or components rather than to one of them.
 
 ## SystemBlueprint
 
-A C4 system blueprint: the containers a system bundles, the public
-contracts it provides, and the systems it depends on.
+A C4 system blueprint: the public contracts a system provides.
+
+The containers a system bundles are not listed here. Each container
+declares the system that composes it in its own `system` property, and
+the roster is derived from those inbound edges — one authoritative end,
+per the Document Relationship Standard.
+
+A system's dependency on another system is not recorded in frontmatter
+at all. Where the dependency is a named interface it is a contract, and
+`contracts_consumed` holds it. Where it is looser, the blueprint's own
+"Consumed Systems and Contracts" section says what is depended on and
+what for — which a slug list cannot, and which is what a reader actually
+needs. A repository spanning more than one system is rare enough that a
+frontmatter property for the untyped case would be maintained by nobody.
 
 **Inherits from:** [DocumentFrontmatter](#documentfrontmatter), [ContractEdges](#contractedges)
 
-| Property | Type | Documentation |
-|----------|------|---------------|
-| containers | Array<[Slug](vocabulary.md#slug)>? | Container blueprint slugs composed into this system. |
-| depends_on | Array<[Slug](vocabulary.md#slug)>? | Other systems this system depends on.<br><br>Systems only. A contract this system consumes is named in `contracts_consumed`, so the same dependency has exactly one home. |
+*No properties defined.*
 
 
 ## ContainerBlueprint
 
 A C4 container blueprint: one independently deployable or runnable
-artifact, and the modules and components composed into it.
+artifact.
+
+The modules and components composed into it are not listed here, and
+the two arrive by different routes. A module names its hosts itself, in
+`contained_by`, because a module may be composed into several containers
+and that set is a fact about the module. A component has exactly one
+parent, as C4 requires, and that edge is recorded where a reader meets
+it: the Components section of this document's body, where each child is
+a fenced record block XOR a `[[slug]]` blueprint link under its own
+heading, per ADR-008 and ADR-012. Either way the index derives this
+container's roster rather than reading it from frontmatter.
 
 **Inherits from:** [DocumentFrontmatter](#documentfrontmatter), [ContractEdges](#contractedges)
 
 | Property | Type | Documentation |
 |----------|------|---------------|
 | system | [Slug](vocabulary.md#slug)? | The system this container belongs to.<br><br>Omitted when the container is standalone — that is, when no system blueprint documents it. Absence records a documented fact rather than an oversight. |
-| components | Array<[Slug](vocabulary.md#slug)>? | Component blueprint slugs composed into this container. |
-| modules | Array<[Slug](vocabulary.md#slug)>? | Module blueprint slugs composed into this container. |
 
 
 ## ModuleBlueprint
@@ -175,13 +197,18 @@ artifact, and the modules and components composed into it.
 A C4 module blueprint: a coherent unit of code with an interface of its
 own, composed into a container.
 
+The components it composes are not listed in frontmatter. Each child is
+declared in this document's Components section — a fenced record block
+when un-promoted, a `[[slug]]` blueprint link once promoted, exactly one
+of the two per ADR-008 — and the index derives the roster from there.
+
 **Inherits from:** [DocumentFrontmatter](#documentfrontmatter), [ContractEdges](#contractedges)
 
 | Property | Type | Documentation |
 |----------|------|---------------|
 | kind | [BlueprintKind](vocabulary.md#blueprintkind) | Whether this blueprint documents one concrete module or a pattern several modules follow. |
 | visibility | [Visibility](vocabulary.md#visibility) | Whether the module is published to a registry, and therefore whether its package API is bound by a compatibility policy. |
-| components | Array<[Slug](vocabulary.md#slug)>? | Component or module blueprint slugs this module composes, where those children have been promoted to documents of their own.<br><br>A child is in exactly one state: promoted and linked here, or un-promoted and declared in a record block in the body. Never both. |
+| contained_by | Array<[Slug](vocabulary.md#slug)>? | The containers, or the modules, that compose this module.<br><br>**The only multi-parent relationship in the vocabulary, and the reason the module level exists.** C4 gives every element exactly one parent — a container belongs to one system, a component to one container — and that edge is recorded by the parent, in the roster section of its body. Module is this framework's addition to C4, and being composed into more than one container is its whole purpose: a unit shared by two containers is a module precisely because it is shared.<br><br>So this is a list, and it is declared here rather than derived from parent rosters, because a shared module's hosts are a fact about the module. It is the direction ADR-009 tells modules to point when it denies them a context view — no single outward-edge list is correct for a module, but the set of hosts is, and this is where it goes.<br><br>Omitted when no host has a blueprint of its own — absence records a documented fact rather than an oversight. |
 | source_paths | Array<String>? | Repository-relative source roots, so a reader can find the code. |
 | test_paths | Array<String>? | Repository-relative test roots. |
 | version | String? | The module's semantic version.<br><br>Required in practice when `visibility` is `public`, since a published package API owes its consumers a compatibility promise. |
@@ -192,6 +219,14 @@ own, composed into a container.
 A C4 component blueprint: a single component promoted out of its
 parent's roster into a document of its own, because it warrants more
 than a record block.
+
+Carries no parent property. A component has exactly one parent, as C4
+requires, and its parent's roster section already links it by
+`[[slug]]` under its own heading — so the edge is declared once, in the
+one place a reader meets the child, and the index derives the component's
+parent from that inbound link. `contained_by` is the module level's
+alone, because being composed into more than one container is what
+distinguishes a module from a component.
 
 **Inherits from:** [DocumentFrontmatter](#documentfrontmatter), [ContractEdges](#contractedges)
 
@@ -209,9 +244,13 @@ one feature.
 
 Unlike the blueprints it modifies, a feature blueprint describes a
 change rather than a state, so it reaches `in-progress` and then
-`retired` rather than `active`. Its `updates` and `creates` properties
-are what let tooling derive when the change is complete: the feature is
-not done until every document it names has been updated or activated.
+`retired` rather than `active`.
+
+The documents the change creates and updates are described in the
+blueprint's own "Documentation Changes" prose and tracked to completion
+in its `plan`, which records done-ness natively. They are not mirrored
+into frontmatter: a change set recorded in three places is three places
+that must agree.
 
 **Inherits from:** [DocumentFrontmatter](#documentfrontmatter)
 
@@ -219,9 +258,7 @@ not done until every document it names has been updated or activated.
 |----------|------|---------------|
 | delivery | [Delivery](vocabulary.md#delivery) | The delivery unit grooming plans against. When `staged`, each stage boundary is enumerated in the blueprint's Sequencing Constraints. |
 | plan | String? | Where this feature's implementation plan lives, stamped in by the groom-feature-blueprint skill once grooming serializes the plan: an epic id (`agent-plugins-bge`) when the plan is beads, or a repository-relative directory (`plans/<feature-slug>/`) when it is task files. Absent before grooming, since an ungroomed blueprint has no plan yet; present through `retired`, since the pointer retires with the document rather than being cleared. |
-| sources | Array<[Slug](vocabulary.md#slug)> | The FRD this blueprint realizes, one to one.<br><br>A feature blueprint answers how the system changes; the FRD it names answers what the change must achieve. |
-| updates | Array<[Slug](vocabulary.md#slug)>? | Slugs of existing documents this feature will change — blueprints at any C4 level, and contracts. |
-| creates | Array<[Slug](vocabulary.md#slug)>? | Slugs of new documents authored alongside this blueprint, such as draft contracts for interfaces the feature introduces. |
+| frd | [Slug](vocabulary.md#slug) | The FRD this blueprint realizes, one to one.<br><br>A feature blueprint answers how the system changes; the FRD it names answers what the change must achieve. Singular and required, so the one-to-one relationship is expressible in the schema rather than only in this comment, and named `frd` rather than `sources` so that one property name does not span two relationships — `Frd.sources` is optional, many-valued provenance, which is a different edge. |
 
 
 ## Rfc
@@ -256,9 +293,8 @@ A how-to document explaining a technique that other document types
 assume knowledge of — EARS syntax, C4 mapping, cross-document reference
 conventions.
 
-A guide carries no relationships of its own beyond the envelope's
-`related`: it explains a technique rather than participating in the
-architecture graph.
+A guide carries no relationships of its own: it explains a technique
+rather than participating in the architecture graph.
 
 **Inherits from:** [DocumentFrontmatter](#documentfrontmatter)
 

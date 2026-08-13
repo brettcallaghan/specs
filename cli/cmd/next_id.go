@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
 	"github.com/brettcallaghan/agent-plugins/cli/core/numbering"
 )
 
@@ -48,9 +47,9 @@ func runNextID(streams *ioStreams, configPath, docType string) error {
 		return err
 	}
 
-	c, _, err := corpus.Open(opts, corpus.IndexPath(opts, ""))
+	c, err := openCorpus(opts)
 	if err != nil {
-		return fmt.Errorf("cmd: opening the corpus: %w", err)
+		return err
 	}
 
 	next, err := numbering.Next(c.Index(), docType, cfg.Profile.DocumentTypes())

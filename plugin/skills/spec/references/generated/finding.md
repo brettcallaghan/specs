@@ -10,6 +10,10 @@
 - [FindingDuplicateSlug](#findingduplicateslug)
 - [FindingFrontmatterParse](#findingfrontmatterparse)
 - [FindingUnverified](#findingunverified)
+- [FindingUnresolvedReference](#findingunresolvedreference)
+- [FindingRetiredTarget](#findingretiredtarget)
+- [FindingIncompletePairing](#findingincompletepairing)
+- [FindingReferenceType](#findingreferencetype)
 - [FindingDetail](#findingdetail)
 - [Finding](#finding)
 - [CheckOutcome](#checkoutcome)
@@ -152,6 +156,75 @@ dependency, adjust configuration, or accept the gap.
 | reason | String | Why the check could not run, stated so that it needs no further lookup to act on. |
 
 
+## FindingUnresolvedReference
+
+A reference that reached no corpus member.
+
+The origin is carried because it decides how the defect reads: a `[[…]]`
+in prose is quoted back, while a value in a registered frontmatter
+property is reported by naming the property that holds it. The
+non-member half is carried because a slug that matched a file the index
+excluded or could not parse is a different problem with a different fix,
+and telling the reader which one they have saves them a search for a
+document that is right there.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| slug | String | The slug half of the reference, as written — everything before the first `#`, whose anchor half is not part of this defect. |
+| origin | [ReferenceOrigin](index.md#referenceorigin) | Where the reference was written: the document's body, or a named reference-bearing frontmatter property. |
+| non_member | [ReferenceNonMember](index.md#referencenonmember)? | The non-member file the slug matched, with the reason it is not a member.<br><br>Absent when the slug matched nothing at all, which is the ordinary case; present when the target exists beneath the spec root and is excluded or unparsable. |
+
+
+## FindingRetiredTarget
+
+A reference from a live document to one the active profile treats as
+retired.
+
+The target resolves — the reader reaches a real document that says it has
+been replaced — so this is a warning rather than an error. The successor
+is what makes it worth reporting at all: it is the one finding that tells
+an author what to cite instead.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| slug | String | The retired target's slug. |
+| successor | String? | The replacement the retired target names, read from the property the active profile registers for that purpose.<br><br>Absent where the target declares none. Not every retirement has a successor, and a finding that implied otherwise would send the reader looking for one. |
+
+
+## FindingIncompletePairing
+
+One half of a paired relationship the counterpart does not declare.
+
+Reported against both documents, each carrying this same detail, so that
+checking either one surfaces the half-built edge and the two copies
+describe the relationship in the same direction rather than each from its
+own point of view.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| property | String | The reference-bearing property the referring document declares. |
+| counterpart | String | The property the referenced document must declare in return, and does not. |
+| source_path | String | The referring document's path, relative to the repository root and written with forward slashes on every platform. |
+| target_path | String | The referenced document's path, relative to the repository root and written with forward slashes on every platform. |
+
+
+## FindingReferenceType
+
+A typed reference whose target declares a document type other than the
+one the active profile requires for that property.
+
+A frontmatter schema can require that a property holds exactly one slug;
+only the index knows what that slug resolves to, so the type half of the
+constraint is checked here and reported with both types quoted.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| property | String | The reference-bearing property whose target's type is constrained. |
+| slug | String | The slug the property names. |
+| expected_type | String | The document `type` the active profile requires the target to declare. |
+| actual_type | String | The `type` the target actually declares. |
+
+
 ## FindingDetail
 
 The structured detail of one finding, selected by the kind of defect.
@@ -176,6 +249,10 @@ identifier, the severity, the path, the span and the message.
 | "duplicate-slug" | DuplicateSlug | A slug declared by two corpus members. |
 | "frontmatter-parse" | FrontmatterParse | A frontmatter block that could not be read as a document envelope. |
 | "unverified" | Unverified | A requested check that could not run. |
+| "unresolved-reference" | UnresolvedReference | A reference whose slug matches no corpus member. |
+| "retired-target" | RetiredTarget | A reference from a live document to a retired one. |
+| "incomplete-pairing" | IncompletePairing | A paired relationship declared from one end only. |
+| "reference-type" | ReferenceType | A typed reference whose target declares a different document type. |
 
 
 ## Finding

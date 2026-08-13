@@ -4,5 +4,9 @@ checks:
   frontmatter/missing-property  passed
   frontmatter/parse  failed
   frontmatter/schema  passed
+  reference/pairing-incomplete  passed
+  reference/retired-target  passed
+  reference/type-mismatch  passed
+  reference/unresolved  passed
   slug/duplicate  passed
   slug/pattern-mismatch  passed

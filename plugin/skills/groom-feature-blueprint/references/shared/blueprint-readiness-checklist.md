@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: plugin/skills/spec/references/blueprint-readiness-checklist.md (version 0.5.0)
+     Source of truth: plugin/skills/spec/references/blueprint-readiness-checklist.md (version 0.6.0)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -12,7 +12,7 @@ slug: blueprint-readiness-checklist
 type: standards
 status: active
 updated_at: 2026-07-29T00:00:00Z
-version: "0.5.0"
+version: "0.6.0"
 ---
 
 # Blueprint Readiness Checklist
@@ -65,8 +65,7 @@ time.
    delta without marking exactly one as the proving delta is invalid
    (see the AC Coverage row validity rules in the feature blueprint
    template).
-5. Every `[[slug]]` reference resolves to an existing document; contracts
-   listed in `creates` exist with status `draft`.
+5. Every `[[slug]]` reference resolves to an existing document.
 6. Every component reference resolves to exactly one declaration across
    the referenced containers' and modules' Components sections — by name,
    qualified in prose where ambiguous (see element declarations in

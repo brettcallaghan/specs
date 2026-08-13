@@ -12,13 +12,12 @@ origin: <project-name>                # the project whose session
                                       # produced the evidence
 plugin_version: "<x.y.z>"             # spec-driven-dev plugin version
                                       # in use during that session
-related: []                           # slugs of documents the proposals
                                       # would change (audience: project)
 ---
 
 <!--
 Template: Improvement RFC
-Version: 1.1
+Version: 1.2
 Source: spec-driven-dev framework (produced by the retro-spec skill)
 
 Sections (complete each, then delete its instruction block)

@@ -6,20 +6,17 @@ description: The plugin that supplies this framework's document
 slug: module-spec-profile
 type: module-blueprint
 status: approved
-updated_at: 2026-08-05T00:00:00Z
+updated_at: 2026-08-07T00:00:00Z
 kind: standard
 visibility: internal
 contracts_provided: []
-components: []
+contained_by:
+  - "container-spec-cli"
 source_paths:
   - "cli/profile"
 test_paths:
   - "cli/profile"
-related:
-  - "frd-spec-validation-cli"
-  - "adr-008"
-  - "adr-012"
-version: "0.2"
+version: "0.3"
 ---
 
 # Spec-Driven Development Profile
@@ -28,11 +25,15 @@ version: "0.2"
 
 This module is the domain half of the CLI. It knows that an ADR is a
 document type, that its slug is `adr-<nnn>`, and that ADRs are numbered
-while FRDs are not. [[module-document-core]] knows none of that, and this
-module is how it arrives. A fuller vocabulary — that a container
-blueprint declares un-promoted components as fenced record blocks, that a
-retired document names its successor — is designed below and not yet
-registered.
+while FRDs are not. It also knows which of a document's frontmatter
+properties hold references to other documents, that a feature
+blueprint's `frd` must resolve to an FRD, and that `retired` is this
+framework's one status at which a document is no longer in effect.
+[[module-document-core]] knows none of that on its own; this module is
+how it arrives, as data for Document Core's checks to read rather than
+as a check this module runs itself. A fuller vocabulary — that a
+container blueprint declares un-promoted components as fenced record
+blocks — is designed below and not yet registered.
 
 It is a **plugin**: it holds no engine of its own and implements no
 parsing. Every capability it needs — frontmatter extraction, schema
@@ -45,20 +46,26 @@ profile and reuses the whole engine.
 
 Most of this module is configuration rather than code, and as built it is
 configuration almost exclusively: the vocabulary is one generated union
-schema plus a table of slug patterns and numbered flags, and the module's
-whole implementation is a single Go file supplying them. Only rules that
-cannot be expressed as data — the element-record invariants and the
-lifecycle integrity checks, neither yet implemented — would be code here.
+schema, the reference and lifecycle registrations derived from it, and a
+table of slug patterns and numbered flags — all supplied by a handful of
+Go files with no engine among them. The one rule left that cannot be
+expressed as data is the element-record invariant, not yet implemented.
+Lifecycle integrity looked like a second such rule; it turned out to be
+relational rather than an invariant on this module's own data, so its
+checks belong in Document Core instead (see Components, below) and this
+module's part of it is the registration alone.
 
 - **Role:** supply this framework's document vocabulary and its
   non-schema-expressible rules to Document Core.
 - **Scope:** in — the one union schema over every document type, each
-  type's slug pattern and numbered-ness, the convention defaults, and (as
-  later capabilities) required sections, named section sets, element
-  record blocks and their invariants, and status lifecycle integrity.
-  Out — all parsing, indexing and reference resolution, which belong to
-  Document Core; and all process-level concerns, which belong to the
-  command surface of [[container-spec-cli]].
+  type's slug pattern and numbered-ness, the reference-bearing
+  properties, typed references and pairings for each type, the status
+  lifecycle, the convention defaults, and (as later capabilities)
+  required sections, named section sets, and element record blocks and
+  their invariants. Out — all parsing, indexing, reference resolution
+  and lifecycle checking, which belong to Document Core; and all
+  process-level concerns, which belong to the command surface of
+  [[container-spec-cli]].
 - **Composed into:** [[container-spec-cli]] — a Go module in the same
   repository, imported as a package and activated by configuration. See
   that blueprint for this module's relationships to its sibling
@@ -95,18 +102,39 @@ interface. Everything else is internal.
 
 **Built — single-schema profile.** `cli/profile.New` returns a value
 satisfying `corpus.Profile`, registered under the name `spec-driven-dev`.
-It supplies three things and nothing else: **one** embedded union schema
+It supplies **one** embedded union schema
 (`cli/core/schema/spec-model.schema.json`, via Go's `//go:embed`, so the
 binary reads no schema file at runtime), a thin per-type table of slug
-pattern and numbered-ness for every `DocumentType`, and the `line_width`
-convention default of 80 codepoints. There is no per-type schema, no
-required-sections tree, no named section sets, no element-record
-registration and no lifecycle-rule registration.
+pattern and numbered-ness for every `DocumentType`, the `line_width`
+convention default of 80 codepoints, and — widened by the reference
+integrity feature's PREG delta — the reference, typed-reference and
+lifecycle registrations below. There is no per-type schema, no
+required-sections tree, no named section sets and no element-record
+registration.
+
+**This profile fills the whole of the host's extension point.**
+`corpus.DocumentTypeRules` carries a type's reference-bearing properties,
+its typed references and its pairings, and `corpus.Profile` carries a
+`Lifecycle()` member supplying the status vocabulary, the live and
+retired statuses and the successor property. This profile registers, for
+every frontmatter property `schemas/frontmatter.strata` types as a
+document slug, that property as reference-bearing; exactly one typed
+reference (a feature blueprint's `frd` must resolve to `type: frd`); no
+pairing, deliberately — every relationship this framework declares has
+its reverse derived from inbound edges, so
+[[document-relationship-standards]]'s pairing check has nothing to pair
+here; and a lifecycle naming `retired` as the only retired status, every
+other status as live, and `superseded_by` as the successor property. Both
+the reference set and the status vocabulary are derived from the
+generated schema rather than transcribed, so a property or a status added
+to the vocabulary is registered the moment it is declared. See
+`cli/profile/registration.go`.
 
 The components below have been reconciled to that shape: the separate
-Document Types "type registry" is gone, folded into Profile Registration,
-and Element Records and Lifecycle Rules are retained as designed but
-marked not yet built.
+Document Types "type registry" is gone, folded into Profile Registration;
+Lifecycle Rules is gone the same way, its registration folded into
+Profile Registration and its checks placed in Document Core; and Element
+Records is retained as designed but marked not yet built.
 
 **The registered patterns are grounded in this repository's corpus, not
 transcribed from the prefix registry**, and in three places the two
@@ -129,18 +157,30 @@ template change to come back here.
 C4Component
     title Components — Spec-Driven Development Profile
     Container_Boundary(profile, "Spec-Driven Development Profile") {
-        Component(reg, "Profile Registration", "Go package", "The plugin entry point: the union schema, the per-type slug and numbered table, and the convention defaults")
+        Component(reg, "Profile Registration", "Go package", "The plugin entry point: the union schema, the per-type slug and numbered table, the reference/typed-reference/lifecycle registrations, and the convention defaults")
         Component(records, "Element Records", "Go package (planned)", "Fenced element record blocks and the record-XOR-blueprint invariant")
-        Component(life, "Lifecycle Rules", "Go package (planned)", "Status vocabulary and supersession integrity")
     }
     Rel(reg, records, "Registers the block rules of")
-    Rel(reg, life, "Registers the integrity rules of")
 ```
 
 **One component is built.** Profile Registration is the whole of the
-module today — `cli/profile/profile.go`, one file. Element Records and
-Lifecycle Rules are planned and carry no package, so the two edges into
-them describe the intended wiring rather than an existing one.
+module today — `cli/profile/profile.go` and `cli/profile/registration.go`.
+Element Records is planned and carries no package, so its edge describes
+the intended wiring rather than an existing one.
+
+**Lifecycle rules are data, not a component.** The statuses, the
+successor property and the pairings are values Profile Registration
+supplies like everything else it registers, and the checks that read
+them — that a retired document names a resolvable successor, and that a
+live document citing a retired one is surfaced — live in
+[[module-document-core]] alongside the checks it already runs over the
+corpus. This module carries no package for them.
+`reference/retired-target`, `reference/pairing-incomplete` and
+`reference/type-mismatch` are those checks, and every judgement each one
+makes comes from the registration below. There is no relational logic
+left for a package in this module to hold, so the component is folded
+into Profile Registration rather than built where it was originally
+drawn.
 
 **The separate "Document Types" component has been removed.** The
 earlier design gave it a type registry holding a schema per type, and the
@@ -157,7 +197,7 @@ Profile Registration alongside the schema it complements.
 ```component
 title: Profile Registration
 slug: component-profile-registration
-description: The plugin entry point supplying the union schema, the per-type slug and numbered table, and the convention defaults
+description: The plugin entry point supplying the union schema, the per-type slug and numbered table, the reference/typed-reference/lifecycle registrations, and the convention defaults
 ```
 
 (Go package) — The plugin entry point supplying this framework's
@@ -166,25 +206,35 @@ it holds no engine and no parsing of its own. Its value is that the
 conformance surface is one file: whether this module is a well-behaved
 plugin is answerable by reading it.
 
-**Built** — `cli/profile`. `New` returns a `corpus.Profile` whose three
+**Built** — `cli/profile`. `New` returns a `corpus.Profile` whose four
 members are the whole of what this framework tells the host:
 
 | Member | Registers |
 |---|---|
 | `Schema()` | the embedded union schema over every document type |
-| `DocumentTypes()` | per type, its slug pattern and whether it is numbered |
+| `DocumentTypes()` | per type, its slug pattern and whether it is numbered (authored); its reference-bearing properties and its one typed reference (derived from the schema and authored, respectively); no pairings |
 | `Conventions()` | the `line_width` default of 80 codepoints |
+| `Lifecycle()` | the whole status vocabulary, `retired` as the only retired status, every other status as live, and `superseded_by` as the successor property |
 
 **The union schema is generated, not authored here.** It comes from
 `schemas/*.strata` through `scripts/generate-schemas.sh`, which emits
 `cli/core/schema/spec-model.schema.json` and the matching Go vocabulary
-in `cli/core/specmodel`. This module embeds the result. Two mechanisms
-keep the registered vocabulary and the generated `DocumentType`
-constants from drifting: the per-type table is keyed by those constants
+in `cli/core/specmodel`. This module embeds the result. Three mechanisms
+keep the registered vocabulary and the generated schema from drifting:
+the per-type table is keyed by the generated `DocumentType` constants
 rather than by string literals, so a renamed or removed type fails to
-compile here; and `TestDocumentTypesCoversEveryVocabularyValue` asserts
-one table entry, with a compiling slug pattern, for every value in the
-generated vocabulary, so an *added* type fails the suite.
+compile here; `TestDocumentTypesCoversEveryVocabularyValue` asserts one
+table entry, with a compiling slug pattern, for every value in the
+generated vocabulary, so an *added* type fails the suite; and
+`TestEverySlugTypedPropertyInTheVocabularyIsRegistered` asserts, for
+every document type, that every frontmatter property the schema types as
+`Slug` or `[Slug]` is registered as reference-bearing by that type and
+that nothing wider is registered — the same drift guard applied to the
+reference set. `cli/profile/registration.go` reads the reference
+properties and the status vocabulary from the decoded schema at package
+initialization; only the one typed reference (`frd` → `type: frd`) and
+the lifecycle's live/retired split are authored, because the schema has
+no way to state either.
 
 Required sections, named section sets and the heading-tree requirement
 described in [[contract-specs-configuration]] are later capabilities.
@@ -214,31 +264,11 @@ component to extract fenced blocks nor an extension-point member through
 which a tag could be registered. Building this component means widening
 the host first; it is not blocked on this module.
 
-### Lifecycle Rules
-
-```component
-title: Lifecycle Rules
-slug: component-lifecycle-rules
-description: The status vocabulary and the supersession and retirement integrity rules
-```
-
-(Go package) — The status vocabulary and the supersession and retirement
-integrity rules. The vocabulary itself is registered as a schema
-constraint on `status`; what needs code is the relational part — that a
-retired document names a resolvable successor, and that live documents
-referencing a retired one are surfaced.
-
-**Not yet built.** The status vocabulary itself *is* registered, because
-it is a schema constraint and the union schema carries it. The relational
-half is not: `superseded_by` naming a document that does not exist is
-currently unreported, since resolving it needs Document Core's References
-component, which is also not built.
-
-**Profile Registration → Element Records, Lifecycle Rules.** Registration
-is a pure wiring layer: each component exposes what it registers, and
-Registration hands it to the host. No component here reaches the host
-directly, so there is exactly one place to look when the plugin contract
-changes. Today it is the only place, because it is the only component.
+**Profile Registration → Element Records.** Registration is a pure
+wiring layer: it exposes what it registers, and hands it to the host. No
+component here reaches the host directly, so there is exactly one place
+to look when the plugin contract changes. Today it is the only built
+place, because it is the only built component.
 
 ## Cross-Cutting Standards
 
@@ -295,7 +325,7 @@ under Interface come from.
 - [[adr-008]] — element record blocks and the two-schema model this
   module's Element Records component will implement when it is built.
 - [[adr-012]] — the reference conventions the registered types rely on.
-- [[adr-018]] — acceptance-criteria extraction is a follow-on feature,
+- [[adr-020]] — acceptance-criteria extraction is a follow-on feature,
   so no component here registers AC rules yet.
 - [[adr-015]] — Go, and the profile-as-package composition model.
 
@@ -326,7 +356,13 @@ under Interface come from.
 ## References
 
 - `c4-guide.md` — C4 mapping rules and diagram conventions
+- [[frd-spec-validation-cli]] — the requirements this module's
+  registrations satisfy
 - [[container-spec-cli]] — the container this module is composed into
 - [[module-document-core]] — the host it registers into
 - [[contract-specs-configuration]] — the configuration surface it
   populates and extends
+- [[adr-008]] — the record-block-XOR-blueprint-link invariant this
+  profile registers as a rule
+- [[adr-012]] — the reference conventions its slug patterns resolve
+  against

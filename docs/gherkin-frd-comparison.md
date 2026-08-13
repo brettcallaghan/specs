@@ -2,7 +2,7 @@
 
 `specs/features/spec-index/spec-index-frd.md` (the original, EARS prose)
 rewritten as `docs/spec-index-frd-gherkin.md` (Gherkin blocks, per
-[[adr-018]]). Same feature, same 52 acceptance criteria.
+[[adr-020]]). Same feature, same 52 acceptance criteria.
 
 Overview, Terminology and the numbering note stay markdown — they are
 FRD-level, and Gherkin has no node above `Feature`. Everything at
@@ -318,7 +318,7 @@ real document rather than asserted.
 
 ## References
 
-- [[adr-018]] — the decision this exercise tests
+- [[adr-020]] — the decision this exercise tests
 - `docs/spec-index-frd-gherkin.md` — the variant
 - `specs/features/spec-index/spec-index-frd.md` — the original
 - `docs/plans/gherkin-extraction-findings.md` — the extraction contract

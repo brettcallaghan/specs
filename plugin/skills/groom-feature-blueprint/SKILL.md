@@ -7,7 +7,7 @@ description: Translate an approved feature blueprint and its FRD into an
   guessing. Use when a feature blueprint is ready for implementation
   planning, or when asked to groom, decompose, or plan a specified
   feature.
-version: "1.2"
+version: "1.3"
 ---
 
 # Groom Feature Blueprint
@@ -42,7 +42,8 @@ authoring and grooming can never disagree):
 - `references/shared/ac-traceability-standards.md` — test citation
   obligations
 - `references/shared/findings-capture-protocol.md` — the
-  retro-evidence protocol Phase 3 vendors into the target project
+  retro-evidence protocol the Retro section each work order carries is
+  drawn from
 
 ---
 
@@ -166,8 +167,9 @@ Deriving them here would fork routing logic that must live in one place.
   Findings, not
   analysis: the implementer is a sensor for item quality —
   self-sufficiency gaps, unpinned decisions, stale anchors,
-  unsatisfiable obligations. Phase 3 vendors the protocol into the
-  project and states the section's exact text per backend.
+  unsatisfiable obligations. Phase 3 states the section's exact text
+  per backend — short and self-sufficient, so the item carries the
+  instruction without carrying the protocol.
 - **A final item**: verify the Definition of Done — every delta folded,
   every AC cited at its declared level — set the blueprint's status
   to `retired`, and then run the `retro-spec` skill over the
@@ -197,14 +199,13 @@ store, per contract) — never by inventing new design seams.
 
 Detect the backend, then emit the same graph in one of two formats.
 
-First, for either backend, **vendor the findings capture protocol**:
-copy `references/shared/findings-capture-protocol.md` to
-`rfcs/findings-capture.md` in the target project (creating `rfcs/` if
-absent; overwrite an older copy). Work orders reference that
-repo-local path, so any implementing agent — including one without
-this plugin installed — can follow the protocol by reading a single
-file inside the project, with no permission prompts and no skill
-loading.
+Do NOT copy the findings capture protocol into the target project. The
+Retro section below is the whole instruction an implementing agent
+needs — it states the format, the channel and the friction-only rule
+in four lines, so a subagent that sees only its item can follow it
+with no file to open, no permission prompt and no skill loaded. A
+vendored copy adds a file the project must then keep current, to say
+what the item already says.
 
 **Beads** — IF the project uses beads (a `.beads/` directory exists or
 the project's docs say so), THEN serialize the canonical structure —
@@ -227,11 +228,11 @@ inputs produce identical graphs:
   ## Retro
 
   Before closing this item, record retro findings on this issue —
-  one `bd comment` per finding, prefixed `retro:` — following the
-  findings capture protocol in `rfcs/findings-capture.md`. Friction
-  only: what happened plus the item or spec text that caused it (or
-  the gap where guidance was missing). No analysis, no RFCs — the
-  plan's final DoD item runs the aggregated retro.
+  one `bd comment` per finding, prefixed `retro:`, 1-3 sentences.
+  Friction only: what happened plus the item or spec text that caused
+  it (or the gap where guidance was missing). No analysis, no RFCs —
+  the plan's final DoD item runs the aggregated retro. A clean item
+  records none; say so rather than inventing filler.
   ```
 - Label the epic, every created issue, and every pre-existing issue
   named in Tracker Reconciliation with the **feature slug from the
@@ -283,12 +284,12 @@ verify: [unit]          # levels from the AC Coverage table
   ## Retro
 
   Before setting this item done, record retro findings by appending
-  them to a `## Retro findings` section at the end of this file,
-  following the findings capture protocol in
-  `rfcs/findings-capture.md`. Friction only: what happened plus the
-  item or spec text that caused it (or the gap where guidance was
-  missing). No analysis, no RFCs — the plan's final DoD item runs
-  the aggregated retro.
+  them to a `## Retro findings` section at the end of this file —
+  one bullet per finding, 1-3 sentences. Friction only: what happened
+  plus the item or spec text that caused it (or the gap where
+  guidance was missing). No analysis, no RFCs — the plan's final DoD
+  item runs the aggregated retro. A clean item records none; say so
+  rather than inventing filler.
   ```
 
 Implementing agents claim an item by setting `status: in-progress`,

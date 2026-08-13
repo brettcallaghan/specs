@@ -6,20 +6,17 @@ description: The framework-agnostic engine that indexes markdown
 slug: module-document-core
 type: module-blueprint
 status: approved
-updated_at: 2026-08-05T00:00:00Z
+updated_at: 2026-08-09T00:00:00Z
 kind: standard
 visibility: internal
 contracts_provided: []
-components: []
+contained_by:
+  - "container-spec-cli"
 source_paths:
   - "cli/core"
 test_paths:
   - "cli/core"
-related:
-  - "frd-spec-validation-cli"
-  - "adr-015"
-  - "adr-016"
-version: "0.2"
+version: "0.3"
 ---
 
 # Document Core
@@ -98,6 +95,28 @@ the plugin, and no framework vocabulary is compiled into the host.
     frontmatter envelope declares `slug` once and a subtype cannot narrow
     an inherited property, and numbering because it is a query over the
     corpus rather than a property of a document.
+  - WHEN a profile registers a document type, the module SHALL treat the
+    frontmatter properties that type registers as reference-bearing as
+    the whole of what it holds a reference in. A property absent from
+    that registration contributes no reference however slug-shaped its
+    value is: what is a reference is registered, never guessed.
+  - The module SHALL take the lifecycle the active profile registers —
+    the statuses at which a document is in effect, the statuses at which
+    it is no longer, and the property in which one of the latter names
+    its replacement — as the authority for those judgements, and SHALL
+    contain no status and no property name of its own.
+  - WHEN a profile is activated, the module SHALL validate its
+    registration and SHALL report every defect it finds, naming the
+    offending key, rather than falling back to a default for that key
+    (AC-SPECREF-004.3). The defects are three: a pairing or a typed
+    reference naming a property the same type does not register as
+    reference-bearing; a typed reference naming a document type the
+    profile does not define; and a lifecycle registration naming a
+    status outside the profile's own status vocabulary.
+  - The module SHALL return those defects to the caller rather than
+    rendering them. A compiled-in registration has no file position of
+    its own, and the position a reader needs — the configuration value
+    that selected the profile — is known only to the caller.
   - The module SHALL express every position it reports as a `Span`, so a
     caller never receives a bare line number.
   - WHEN a document fails to parse, the module SHALL record the failure
@@ -107,28 +126,53 @@ the plugin, and no framework vocabulary is compiled into the host.
     and only to the destination the caller resolves. It modifies no
     document it reads.
 
-**Built** — the `Profile` interface in `cli/core/corpus` has three
+**Built** — the `Profile` interface in `cli/core/corpus` has four
 members and nothing else:
 
 | Member | Supplies |
 |---|---|
 | `Schema() []byte` | the one union schema every document type is validated against |
-| `DocumentTypes() map[string]DocumentTypeRules` | per type, its slug pattern and whether it is numbered — keyed by the value documents declare in `type` |
+| `DocumentTypes() map[string]DocumentTypeRules` | per type, its slug pattern, whether it is numbered, and which of its properties hold references — keyed by the value documents declare in `type` |
 | `Conventions() specmodel.ConventionsConfig` | the convention defaults resolved where an adopting repository's configuration omits them |
+| `Lifecycle() LifecycleRules` | the profile's status vocabulary, which of those statuses mean in effect and which mean superseded, and the property a superseded document names its replacement in |
 
-`DocumentTypeRules` carries a slug pattern and a numbered flag, and no
+`DocumentTypeRules` carries a slug pattern, a numbered flag, and the
+type's reference registration — `ReferenceProperties`, the properties
+that hold document slugs; `TypedReferenceProperties`, the mapping from
+such a property to the `type` its target must declare; and `Pairings`,
+the properties that must be declared from both ends. It carries no
 schema. The keys of `DocumentTypes` are the whole of the host's knowledge
 of which types exist, which is what makes the `unknown-type` exclusion a
 lookup rather than a judgement.
 
+`LifecycleRules` is profile-level rather than per-type, because `status`
+is a property of the shared envelope that every type carries and none
+narrows. It states the status vocabulary explicitly rather than leaving
+it to be inferred from the live and retired sets: their union is not the
+vocabulary — a status in neither is one the lifecycle says nothing about,
+which is the right answer for a draft — and without it the module could
+not report a lifecycle naming a status the profile does not define. The
+alternative, reading the vocabulary out of the union schema, would mean
+the host knowing where a schema keeps its status enum and passing
+vacuously against a profile that keeps it elsewhere.
+
+`ValidateRegistration` is the registration check, and it returns
+`RegistrationDefect` values carrying the document type, the offending key
+and what is wrong with it. It renders nothing and repairs nothing.
+
 The surface is narrow because it constrains everything downstream of it.
-Required sections, element records, reference properties and lifecycle
-rules are later capabilities and each widens this interface; per the
-Change Guidance in [[module-spec-profile]], that widening is a change to
-the host reviewed on its own merits, never a special case granted to one
-profile. Two tests hold the boundary: no package under `cli/core` imports
-a profile package, and no non-test source in `cli/core/corpus` contains a
-string literal matching any document type in the generated vocabulary.
+Required sections and element records are later capabilities and each
+widens this interface further; per the Change Guidance in
+[[module-spec-profile]], that widening is a change to the host reviewed
+on its own merits, never a special case granted to one profile. Two tests
+hold the boundary: no package under `cli/core` imports a profile package,
+and no non-test source in `cli/core/corpus` contains a string literal
+matching anything a profile registers through the extension point — any
+document type, any status, or any frontmatter property the generated
+vocabulary types as a slug or a list of slugs. All three sets are read
+from the generated schema rather than restated, so the boundary widens
+with the vocabulary; the identity property `slug` is excluded because it
+names the document declaring it rather than another document.
 
 The write guarantee is narrower in fact than in statement. The module's
 only write is `corpus.Write`, whose destination `corpus.IndexPath`
@@ -146,7 +190,7 @@ C4Component
         Component(span, "Spans", "Go package", "Position type and delimited-region scanning")
         Component(fm, "Frontmatter", "Go package", "Frontmatter extraction and YAML parsing with raw-text access")
         Component(md, "Markdown Structure", "Go package (planned)", "Headings, section spans, fenced blocks and comment blocks")
-        Component(refs, "References", "Go package (planned)", "Wikilink discovery, resolution and the reference graph")
+        Component(refs, "References", "Go package", "Wikilink and frontmatter reference extraction, resolution against corpus slugs, and the reference graph")
         Component(schema, "Schema Registry", "Go package", "Single-union JSON Schema validation dispatched by document type")
         Component(corpus, "Corpus", "Go package", "Discovery, membership, the index model and its emission")
         Component(num, "Numbering", "Go package", "Next-number derivation for numbered document types")
@@ -166,15 +210,18 @@ C4Component
     Rel(corpus, find, "Folds Check's findings through")
 ```
 
-Six of the eight are built and carry a **Built** paragraph naming the
-package that realizes them: Spans, Frontmatter, Schema Registry, Corpus,
-Numbering and Findings. **Markdown Structure and References are planned
-and not yet built** — `cli/core` holds no package for either, and the
-module has no markdown-parsing dependency at all. Their sections below
-describe a design, not an implementation, and the diagram edges into and
-out of them are likewise the intended shape. Everything the current
-corpus check does is reached without them, which is why the module ships
-useful without either.
+Seven of the eight are built and carry a **Built** paragraph naming the
+package that realizes them: Spans, Frontmatter, References, Schema
+Registry, Corpus, Numbering and Findings. The emitted index carries the
+resolved reference graph, and the corpus checks read it: a broken link,
+a live document citing a retired one, a half-declared pairing and a
+typed reference landing on the wrong document type are each reported
+against the document a reader must open. **Markdown
+Structure is planned and not yet built** — there is no `cli/core/markdown`
+package, and no heading is read anywhere in the module. Its section below
+describes a design, not an implementation, and the diagram edges into and
+out of it are likewise the intended shape. Everything the current corpus
+check does is reached without it.
 
 ### Spans
 
@@ -253,8 +300,20 @@ span of its value, the value's raw source text, and the parsed value.
 serving both, so a property's position and its value cannot disagree.
 `goccy/go-yaml` is the parser, per [[adr-015]].
 
-Five semantics are pinned by the implementation:
+Six semantics are pinned by the implementation:
 
+- **A sequence-valued property carries its elements individually.**
+  `Property.Items` holds one `Item` per element, each with the element's
+  own span, its source text and its parsed value; it is nil for a
+  property whose value is not a sequence and empty for one whose value is
+  the empty sequence, so the two are distinguishable. The whole value's
+  span is the right extent for a finding about the property and the wrong
+  one for a finding about one slug inside it: a reader told a list holds
+  a broken reference still has to find which element, and a rewrite of
+  one element cannot address the list. A scalar element is located by its
+  own token rather than by the extent running to the next element, which
+  in a block sequence would swallow the following element's `- `
+  indicator.
 - **`Parse` has three outcomes, and they are distinct.** A document and
   no error is a parsed block; no document and no error means the file
   carries no frontmatter, which is the caller's `no-frontmatter`
@@ -312,10 +371,12 @@ leftover-scaffolding hygiene. This is the component the
 extract-then-review pattern depends on: an agent asks for the spans of
 particular sections and reads only those.
 
-**Not yet built.** There is no `cli/core/markdown` package and no
-markdown parser in the module's dependencies; [[adr-015]]'s choice of
-`goldmark` arrives with this component rather than having arrived
-already.
+**Not yet built.** There is no `cli/core/markdown` package, and no
+heading is read anywhere in the module. [[adr-015]]'s choice of
+`goldmark` is already a module dependency — References brought it in for
+the code-region mask described under that component — so what this
+component still owes is the heading tree, the fenced-block extraction
+and the comment-block location, not the parser.
 
 ### References
 
@@ -333,11 +394,116 @@ inline code spans, because an illustrative reference inside backticks is
 not a reference. Inbound edges are derived, so no document maintains a
 list of its own referrers.
 
-**Not yet built.** There is no `cli/core/references` package, and the
-index model carries no reference collection yet — the additive shape
-described under Corpus is what lets one be attached later under the same
-`schema_version`. Until it exists, a `[[slug]]` naming no document is
-not reported by any check.
+**Built** — `cli/core/references`. `Extract` takes one
+document — its path, its bytes, its parsed frontmatter, and the
+reference-bearing property names the active profile registers for its
+type — and returns the references it makes as `specmodel.Reference`
+values, ordered by position: the registered frontmatter properties in
+declaration order, then the body in the order it is written. `Resolve`
+takes those references and one `SpecIndex` and records what each of them
+reached, in place. The two are separate because they know different
+things: extraction knows a document, resolution knows a corpus, and
+keeping the seam between them is what makes a reference impossible to put
+in the index without a corpus having been consulted.
+
+**Resolution is a lookup, and it reads nothing.** It matches a
+reference's slug half against the slugs the index's members declare, and
+that is the whole of its input — no document is opened, no frontmatter is
+re-parsed, and the answer is a function of the index alone, so the same
+references over the same index resolve identically on every platform and
+on every run. What it costs is the walk it rides on; see Corpus below for
+where it is called from.
+
+The graph the index carries is one collection of edges, and both
+directions are read from it. `Corpus` exposes `OutboundReferences` by the
+path a reference occurs in and `InboundReferences` by the path it
+resolved to, each built once when the corpus is built or opened, so a
+document's referrers are a lookup rather than a scan and no reverse edge
+is stored ([[adr-018]], AC-SPECREF-001.3).
+
+Five further semantics are pinned by the resolution half:
+
+- **Slugs are compared lowercased and trimmed** (AC-SPECREF-002.8),
+  matching the case-insensitive slug uniqueness AC-SPEC-003.4 already
+  establishes. The two rules have to agree: a corpus that refuses to hold
+  `adr-012` and `ADR-012` as distinct documents but resolves a reference
+  to only one of them is answering one question about one identifier two
+  ways.
+- **A reference resolves only within the workspace the run is against.**
+  A slug declared only in another repository's index is unresolved, per
+  the boundary [[frd-spec-reference-integrity]] states. The merged-graph
+  case is a known follow-on rather than a defect.
+- **A slug matching a file the index recorded as an exclusion, or as a
+  member whose frontmatter could not be read, resolves to `non-member`
+  rather than to nothing** (AC-SPECREF-002.7), carrying that file's path
+  and the reason or the parse failure. The reader's next step differs:
+  the document is right there and what is wrong is its frontmatter.
+- **A non-member is matched on its file name without the extension,
+  lowercased**, because it is the only handle such a file has — a parse
+  failure has no readable frontmatter to declare a slug, and a file
+  excluded for carrying no frontmatter has none either. The name is
+  recorded on the index, so the match is reproducible by anything reading
+  the artifact rather than resting on knowledge only the build held. The
+  consequence is deliberate and one-directional: a non-member whose
+  intended slug differs from its file name matches nothing and reports as
+  an ordinary unresolved reference, which is the answer it received
+  before this rule existed.
+- **A member always wins over a file named like one**, and where two
+  non-members share a name the first in path order is reported, decided
+  by comparison rather than by the order the index happens to hold its
+  collections in.
+
+Seven semantics are pinned by the extraction half:
+
+- **The body is what follows the frontmatter block,** so a frontmatter
+  value describing the notation — `description: References use [[slug]]
+  wikilinks` — is not read as a reference. It is the only unresolved
+  reference a scan of this repository's corpus produces, and it is a
+  false one. Frontmatter contributes references only through registered
+  properties.
+- **A registered property is the whole of what holds a reference in
+  frontmatter.** An unregistered property contributes nothing however
+  slug-shaped its value is, and a registered property whose value is not
+  text contributes nothing either — whether such a value belongs there is
+  the schema's question, not this component's.
+- **A sequence-valued property yields one reference per element,** at the
+  element's own span rather than the list's, which is the widening
+  recorded under Frontmatter.
+- **Code regions are located with `goldmark`, not with a backtick scan.**
+  Where an inline code span ends depends on matching backtick-run
+  lengths, and where a fenced block ends depends on the fence length and
+  its info string; a hand-rolled masker getting one of those wrong
+  produces exactly the false positive the exclusion exists to prevent. A
+  fence's info string is masked with its content. This brings `goldmark`
+  into the module ahead of Markdown Structure, and nothing here builds
+  that component: no heading is read.
+- **An HTML comment block is read as body text.** Only code is excluded,
+  and `template-authoring-standards.md` requires a finished document's
+  comment blocks to be deleted, so masking them would hide a reference in
+  a document that should not be carrying the block at all.
+- **A reference splits on its first `#`,** into the slug half this
+  feature resolves and the anchor half it records without interpreting.
+  No other separator is read: the display alias `[[slug|text]]` is
+  prohibited by the reference standard, so such a reference carries
+  `slug|text` as its slug half and reports as unresolved rather than
+  resolving quietly to something the standard forbids.
+- **Extraction leaves the resolution unset,** which is deliberately
+  unserializable, so a reference cannot reach the index without having
+  been resolved on the way. `Resolve` is what sets it, and it sets one on
+  every reference — including the ones that reached nothing, because the
+  index describes the corpus it found and reporting a broken link is a
+  check's job (AC-SPECREF-001.6).
+
+A reference's position covers what a reader is pointed at and what a
+rewrite replaces: for a body reference the text between the brackets, the
+brackets being notation rather than reference; for a frontmatter
+reference the value's own source text as written, quotes included.
+
+Reference-bearing values are read from the parsed frontmatter block and
+never from an index entry's typed envelope, which carries neither the
+per-type properties a profile registers nor the positions a reference
+needs (`agent-plugins-gz3`). A test in the package asserts the import is
+absent rather than leaving the boundary to review.
 
 ### Schema Registry
 
@@ -398,11 +564,11 @@ The vocabulary is:
 
 - **`SpecIndex`** — the root: a `schema_version`, the `workspace`
   identifier from configuration, an ordered list of `entries`, an
-  ordered list of `exclusions`, and the optional `input_hash` the warm
-  cache is decided by. Both collections are lists rather than maps
-  precisely so that the emitter owns their order and can make output
-  byte-identical across platforms (AC-SPEC-009.7) without a change to
-  the model.
+  ordered list of `exclusions`, an ordered list of `references`, and the
+  optional `input_hash` the warm cache is decided by. All three
+  collections are lists rather than maps precisely so that the emitter
+  owns their order and can make output byte-identical across platforms
+  (AC-SPEC-009.7) without a change to the model.
 - **`IndexEntry`** — one corpus member: its repository-relative `path`,
   its parsed `frontmatter`, and a `parse_error` carrying a located
   failure for a member whose frontmatter could not be read
@@ -411,6 +577,30 @@ The vocabulary is:
   `path`, a `reason` of `no-frontmatter` or `unknown-type`, and — where
   the reason is `unknown-type` — the `type` value the file declared
   (AC-SPEC-001.3, AC-SPEC-001.4).
+- **`Reference`** — one occurrence of one document referencing another:
+  the `path` it occurs in, the reference `text` as written, its `slug`
+  and `anchor` halves, its `origin`, its `position` as a `Span`, and its
+  `resolution`. References are their own collection rather than an array
+  on each entry, per [[adr-018]]: the attributes of a reference describe
+  the edge and not either endpoint, both directions are derived by
+  indexing the one list when the index is read, and merging two
+  repositories' indexes into one graph is appending rows. One row per
+  occurrence, so a document referencing the same target twice carries two
+  rows with two spans (AC-SPECREF-001.5). The `slug` half is a plain
+  string rather than a `Slug`, because a reference is hand-written and a
+  malformed one has to be representable in order to be reported.
+- **`ReferenceOrigin`** — a union discriminated on `kind`: a reference
+  parsed from the body, or one held by a named reference-bearing
+  frontmatter property, carrying that property's name
+  (AC-SPECREF-001.7). The origin decides how the defect reads and how a
+  rewrite finds it, so it belongs to the reference rather than being
+  inferred from where its span falls.
+- **`ReferenceResolution`** — a union discriminated on `state`:
+  `resolved` naming the target's path, `unresolved`, or `non-member`
+  carrying the matched file's path with either the exclusion reason or
+  the parse failure that keeps it out of the corpus (AC-SPECREF-002.7).
+  A reference that reaches nothing is recorded with a state rather than
+  dropped, because indexing never fails (AC-SPECREF-001.6).
 - **`Span`** and **`ParseError`** — the position type every component
   reports through, and a message paired with one. `Span` is declared
   here, in the generated model, because findings and parse errors carry
@@ -418,12 +608,23 @@ The vocabulary is:
   semantics and is the only place spans are computed.
 
 `schema_version` is required and pinned to `1.0` (AC-SPEC-002.2). The
-model is additive: later features attach headings, extracted record
-blocks and references to the same entry under this same version. Strata
-has no notion of a constant, so the emitted value lives in
-`cli/core/specindex` alongside the constructor that writes it —
-a separate package because `scripts/generate-schemas.sh` rebuilds
-`cli/core/specmodel/` from scratch on every run.
+model is additive: later features attach headings and extracted record
+blocks under this same version. The reference collection is the first
+exercise of that rule and it is a deliberate no-bump rather than an
+oversight — `references` is an addition alongside the existing shape,
+which is exactly what [[container-spec-cli]]'s additive rule permits at
+the same version, and the model and the emitted index changed in the
+same change as the Change Guidance below requires. The schema constrains
+`schema_version` by pattern (`String ~= /^1\.0$/`) rather than pinning
+it, so the generated model carries a validated field and not a constant;
+the emitted value lives in `cli/core/specindex` alongside the
+constructor that writes it — a separate package because
+`scripts/generate-schemas.sh` rebuilds `cli/core/specmodel/` from
+scratch on every run.
+
+Strata does support pinning a scalar to a single value with `==`, which
+would make the generated model carry the constant directly and remove
+the need for the separate package (`agent-plugins-13j`).
 
 The index is not yet a contract document, and that is now a recorded
 decision rather than an omission. It has one producer and no
@@ -437,7 +638,21 @@ Questions in [[container-spec-cli]], which owns that decision.
 `Corpus`: the populated `specmodel.SpecIndex`, the findings discovery
 raised over it, and the lookups the queries need — `Entry` by path,
 `Slug` by identifier, `Document` for the parsed frontmatter behind one
-member, and `FindingsFor` to narrow a whole-corpus result to one file.
+member, `OutboundReferences` and `InboundReferences` for the two
+directions of the reference graph, and `FindingsFor` to narrow a
+whole-corpus result to one file.
+
+**The reference graph rides the walk.** A member's references are
+extracted inside the same visit that reads its bytes and parses its
+frontmatter, so no document is read or parsed twice; resolution then runs
+once, after the walk, because what a reference reached is a question
+about the whole corpus and the first file read may name the last. The
+rows are ordered by the path a reference occurs in and then by its
+position within that document, which satisfies AC-SPECREF-001.5's
+document ordering and AC-SPEC-009.7's byte-identical output in one rule.
+Only a member contributes references: a file that is not a specification
+has no declared type, and what holds a reference in frontmatter is
+registered per type.
 
 `Check` and `CheckFor` run the Schema Registry's validation and the
 active profile's per-type slug-pattern check for every member with parsed
@@ -448,6 +663,66 @@ rather than reconciling discovery-time and check-time findings as two
 channels. `Corpus` reaches the Schema Registry only through the compiled
 union schema the active `Profile` already supplied to `Build`; nothing
 here names a document type.
+
+**They also report every reference the graph recorded as broken.** One
+rule, `reference/unresolved`, covers a body reference matching no corpus
+member, a reference-bearing frontmatter value matching no corpus member,
+and a slug matching a non-member — the last carrying the non-member's
+path and reason rather than reading as an ordinary unresolved slug
+(AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7). `CheckFor`
+narrows that result to the document named with one exception: every
+reference finding survives wherever it was written, reported against the
+*referring* document at the referrer's own span, because that is the file
+a reader must open to fix it (AC-SPECREF-002.9, AC-SPECREF-002.11).
+Renaming a document's slug, retiring it and changing its `type` all break
+references held by other files, so a result narrowed strictly by path is
+silent about the very defect a write-time check exists to catch — and
+worse than silent, since the run report would then declare those rules
+`passed` over findings it had discarded. Membership in the exception is a
+property of where a rule's findings land, not of its `reference/` prefix.
+The exception costs nothing: those findings are derived from the
+reference collection the corpus holds in memory regardless of which file
+was named, so the narrowing was the only thing discarding them, and
+AC-SPEC-009.2's single-document budget is untouched. What it does not do
+is separate breakage this edit caused from breakage already present — an
+edit invalidates the content fingerprint, so the check reads a freshly
+rebuilt graph with no memory of what those references resolved to.
+
+`CheckFor` also refuses a path no corpus member occupies, returning
+`ErrNotAMember` rather than a result. Narrowing by path means an unknown
+path selects nothing, and a caller cannot tell an empty result from a
+document that conformed; a mistyped path, a file outside the spec root
+and a file the index excluded would all read as success. Where the index
+recorded an exclusion the error carries its reason, so the answer to
+"why was this not checked" is the one the index already holds.
+
+**They also report what a resolved reference *means*, not only whether
+it lands.** Three rules walk the same already-resolved reference
+collection `reference/unresolved` reads, so each costs a lookup rather
+than a second corpus walk. `reference/retired-target` — the first rule
+this package emits at severity `warning` rather than `error` — fires
+when a document at a status the active profile's `Lifecycle` registers
+as live resolves a reference to one at a registered retired status,
+naming the retired target and, where it declares one, the value of the
+registered successor property (AC-SPECREF-002.6). Because the target
+still resolves, failing a build on it would punish a corpus for
+retiring anything; this is also what makes `--strict`'s boundary
+(AC-SPEC-006.7) reachable end to end for the first time, since every
+rule before it was `error`. `reference/pairing-incomplete` fires when
+the active profile registers a pairing and the resolved target does not
+declare the counterpart in return, reporting against both documents
+with the same structured detail — the declaring document at the
+declared value's span, the target at the span of its frontmatter block,
+because an absent property has no position of its own (AC-SPECREF-002.5).
+`reference/type-mismatch` fires when the active profile requires a
+reference-bearing property's target to declare a particular document
+`type` and the resolved target declares a different one, naming the
+property and both types (AC-SPECREF-002.10). A type or profile that
+registers no pairing and no typed reference is not a reason to skip
+either check: the loop runs its full length and matches nothing, which
+is what lets a run that requests these checks report them `passed`
+rather than `not-requested` even where the registration behind them is
+empty (AC-SPEC-006.9).
 
 **Output and warm cache** — the same package. `Write` emits the index to
 one destination, resolved by `IndexPath`: `specs.json` inside the
@@ -483,14 +758,27 @@ stale indexes or never serve one. What it folds in is every candidate
 file's repository-relative path and content digest, plus the inputs that
 change the index while the files stand still: the workspace identifier,
 the active profile's schema and per-type table, and the schema version.
-Absolute paths are deliberately excluded, so the same content checked
-out at another location hashes the same.
+The per-type table includes each type's **reference-bearing properties**,
+because they decide the index's content — a property registered today
+holds a reference the emitted graph carries and did not carry yesterday,
+while every file on disk stands still. The registration's other members
+are deliberately not folded in: typed references, pairings and the
+lifecycle are read by checks that run against the live profile on every
+invocation and reach nothing the index records, so a change to one of
+them cannot make a persisted index stale. Absolute paths are deliberately
+excluded, so the same content checked out at another location hashes the
+same.
 
 A corpus served warm has parsed no document. It reads and parses one on
 demand when a caller asks something only the source can answer — a
 slug's position for a duplicate finding, or a schema check — which is
 what keeps a single-document check against a warm index proportional to
-that document rather than to the corpus (AC-SPEC-009.2).
+that document rather than to the corpus (AC-SPEC-009.2). The reference
+graph is not one of those questions: the rows were resolved by the build
+that wrote them, so both directions are served from the persisted index
+with nothing parsed at all, which is what keeps a reference query and the
+inbound half of a single-document check inside the AC-SPEC-009.1 and
+AC-SPEC-009.2 budgets (AC-SPECREF-003.4).
 
 Six semantics are pinned by the implementation:
 
@@ -590,10 +878,17 @@ is:
   structured fields that make each defect self-contained: a schema
   violation with its JSON Pointer, constraint and raw value; a missing
   property with its name; a slug-pattern mismatch with both the slug and
-  the pattern; a duplicate slug with the other document's path; and an
-  unverified check with the reason it could not run. The message is
-  derivable from the variant, so a consumer branches on structure rather
-  than parsing prose.
+  the pattern; a duplicate slug with the other document's path; an
+  unverified check with the reason it could not run; an unresolved
+  reference with its slug, its origin and — where the slug matched a
+  file the index excluded or could not parse — that file and the reason
+  (AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7); a retired
+  target with its slug and the successor it names, where it names one
+  (AC-SPECREF-002.6); an incomplete pairing with both property names and
+  both documents (AC-SPECREF-002.5); and a reference-type mismatch with
+  the property, the expected `type` and the `type` the target declares
+  (AC-SPECREF-002.10). The message is derivable from the variant, so a
+  consumer branches on structure rather than parsing prose.
 - **`Severity`** — `error`, `warning` and `unverified`, the three
   [[frd-spec-validation-cli]] defines and no others.
 - **`FindingReport`** — the run envelope: every `Finding` produced, and a
@@ -633,14 +928,14 @@ concern. A later check adds a variant to the union without changing the
 envelope that carries it.
 
 The relationships below are stated for the module's whole component set.
-Where one names Markdown Structure or References it describes the
-intended edge rather than an existing one, since neither component is
-built yet.
+Where one names Markdown Structure it describes the intended edge rather
+than an existing one, since that component is not built.
 
 **Corpus → Frontmatter, Markdown Structure, References.** Corpus is the
 orchestrator: it walks files and delegates every act of parsing. A
 parser that Corpus does not call is unreachable, and parsing logic that
-lives in Corpus is misplaced. Today it delegates to Frontmatter alone.
+lives in Corpus is misplaced. It delegates to Frontmatter and to
+References, both on the one walk that reads each candidate's bytes.
 
 **Frontmatter, Markdown Structure, References → Spans.** All three
 locate regions through the shared scanner rather than implementing their
@@ -675,7 +970,15 @@ This module SHALL comply with:
 - WHEN the index model changes shape, the schema version and the emitted
   index SHALL be updated in the same change, per AC-SPEC-002.2.
 - WHEN a new parsing capability is added, it SHALL be built on the Spans
-  delimiter scanner rather than scanning independently.
+  delimiter scanner rather than scanning independently. One narrowing:
+  where a capability needs to know which regions of a document are *not*
+  to be scanned, it MAY take that mask from a markdown parser. References
+  does — it locates code regions with `goldmark`, because where an inline
+  code span ends depends on matching backtick-run lengths and where a
+  fence ends depends on the fence length and its info string, none of
+  which a delimiter scanner can derive. Every position is still computed
+  by the scanner, which is what the rule is for: one way of computing a
+  position, not one way of deciding where to look.
 - WHILE visibility is internal, this module and its in-repo consumers
   evolve together: a breaking change to the package API MAY be made in
   the same change as the consumer updates, with no compatibility window.
@@ -695,16 +998,20 @@ This module SHALL comply with:
 ## Key Decisions
 
 - [[adr-015]] — Go, `goccy/go-yaml`, `santhosh-tekuri/jsonschema` and
-  `goldmark` are the implementation choices this module is built on. The
-  first three are in use; `goldmark` is not a dependency yet and arrives
-  with the Markdown Structure component.
+  `goldmark` are the implementation choices this module is built on. All
+  four are in use; `goldmark` arrived with References rather than with
+  Markdown Structure, for the code-region mask described under that
+  component.
 - [[adr-016]] — Strata is the single source for generated models, which
   is why the index model this module emits is declared in
   `schemas/index.strata` rather than written as Go structs.
-- [[adr-018]] — settles the acceptance-criteria notation; extraction is
+- [[adr-020]] — settles the acceptance-criteria notation; extraction is
   a follow-on feature, so no component here parses it yet.
 - [[adr-012]] — the `[[slug]]` and heading-anchor conventions the
   References component implements.
+- [[adr-018]] — references are one top-level edge collection on the
+  index, with both directions derived from it, which is why the index
+  vocabulary above gains `Reference` rather than an array on each entry.
 
 ## Open Questions
 

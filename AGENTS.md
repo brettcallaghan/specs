@@ -49,7 +49,22 @@ Run the Go gates from `cli/` — that is the module root, so `./...` and the
 - **Format:** `cd cli && gofmt -l .` — must print nothing (`gofmt -w .` to fix)
 - **Lint:** `scripts/check-skills.sh` and, when `cli/` changed, `cd cli && go vet ./...`
 - **Build:** `cd cli && go build ./...` *(no build step for the docs corpus)*
-- **Test (full suite):** `scripts/check-skills.sh --strict && scripts/sync-shared-references.sh --check && scripts/sync-strata-docs.sh --check` and, when `cli/` changed, `cd cli && go test ./...`
+- **Test (full suite):** run the three checks independently — never chain them
+  with `&&`, since `check-skills.sh --strict` is known red (see the ledger
+  below) and would short-circuit the other two before they ever run:
+
+  ```bash
+  scripts/check-skills.sh --strict;            s1=$?
+  scripts/sync-shared-references.sh --check;    s2=$?
+  scripts/sync-strata-docs.sh --check;          s3=$?
+  echo "check-skills --strict:        exit=$s1"
+  echo "sync-shared-references --check: exit=$s2"
+  echo "sync-strata-docs --check:      exit=$s3"
+  [ "$s1" -eq 0 ] && [ "$s2" -eq 0 ] && [ "$s3" -eq 0 ]
+  ```
+
+  Report each check's exit status; the gate as a whole fails if any of the
+  three failed. And, when `cli/` changed, `cd cli && go test ./...`.
 
 ### Custom gates
 
@@ -61,6 +76,18 @@ scripts/generate-schemas.sh --check   # committed artifacts under cli/core/{sche
 Run it after any change to `schemas/*.strata`. The artifacts it checks are
 **generated — never hand-edit them**; regenerate with the same script without
 `--check` and commit the result in the same change.
+
+```bash
+python3 -m pip install jsonschema pyyaml   # once per container
+python3 scripts/validate-corpus.py         # frontmatter outside the CLI's corpus root
+```
+
+`validate-corpus.py` needs `jsonschema` and `pyyaml`. Without them it exits
+`error: python3 -m pip install jsonschema pyyaml` before reading a document, which
+is what a clean container does. The install line is the one `checks.yml` runs,
+so a local run and CI resolve the same dependencies. Add
+`--break-system-packages` if pip refuses on an externally-managed environment.
+Do not commit a virtualenv.
 
 ### What CI runs
 
@@ -110,12 +137,57 @@ synthetically instead, on every platform, by `cli/cmd/portability_test.go`.
 
 ### Environmental-failure ledger
 
+**Entries are admitted on evidence, not on reasoning.** An entry asserting
+what is impossible, unnecessary, unreachable, or already-verified — including
+a claim of sufficiency ("this check verifies X") — cites the command run and
+the output observed; run it first, record it after. A true premise plus a
+plausible inference is not evidence.
+
+State the conditions the command ran under when they could change the
+result: attached repositories, credentials present, cache warmth, toolchain
+version. A reachability or permission test run inside a session that already
+holds a grant measures the grant, not the capability.
+
+Where a claim cannot be tested cheaply, mark it **unverified** and state what
+would settle it — an unverified entry is useful; one that reads as settled
+and is not, is worse than absent.
+
+Cite the measurement that established the entry, not the date someone last
+re-ran it. "Re-verified `<date>`" is provenance for the audit rather than for
+the claim: it ages on its own, and a reader who trusts it inherits whatever
+the number happened to be that day. Where the fact is volatile — a file size,
+a warning count, a line number — record the command that measures it and no
+figure at all. Scope an entry to the repository, never to a session: "out of
+scope for this run's beads" tells a future reader nothing they can act on.
+
+- **`bd`'s JSONL export lags the database.** A close reaches the Dolt DB
+  seconds before it reaches `.beads/issues.jsonl`, so an export taken
+  immediately after `bd update --status closed` can still return pre-close
+  bytes. Measured 2026-08-10 in run `1786345424-bbh` on two consecutive
+  beads: `agent-plugins-92q.20` (`d5a6de5`) and `agent-plugins-92q.23`
+  (`905aee4`) each committed without `.beads/issues.jsonl`, and on the clean
+  tree straight afterwards
+  `jq -r 'select(.id=="agent-plugins-92q.20") | .status' .beads/issues.jsonl`
+  printed `open` while `bd export | jq -r 'select(...) | .status'` printed
+  `closed` — same for `92q.23`. Every other bead in the run exported
+  correctly, so this is intermittent, not a broken build. Do not re-diagnose
+  it: `scripts/bb-close-bead.sh` now re-exports a bounded number of times and
+  refuses to commit a closure the ledger does not carry, and any hand-rolled
+  close must verify the ledger the same way rather than trusting one export.
 - **KNOWN RED, pre-existing — `scripts/check-skills.sh --strict`.** It exits 1
-  on a *warning*: `plugin/skills/bead-bonanza/SKILL.md` is 859 lines against a
-  "under 500" guideline. Zero errors. Do not treat this as your change's
-  failure and do not try to fix it mid-run; shortening that skill is editorial
-  work with its own scope. The bar is **no new findings** — compare against
-  this baseline (`0 error(s), 1 warning(s)`) rather than expecting exit 0.
+  on a *warning*, not an error. Do not treat the warning as your change's
+  failure and do not try to fix it mid-run; it is editorial scope owned
+  elsewhere. The bar is **no findings beyond this baseline**, not exit 0.
+  Measure the baseline at pre-flight rather than quoting a number from here.
+  The warning is a body size that moves with every editorial bead, so any
+  figure recorded in this file is stale on arrival — and a stale baseline read
+  as current is how a real regression gets waved through. Capture `$?`
+  directly, never through a pipe; piping to `tail` reports the pager's status
+  and reads as a pass:
+
+  ```bash
+  scripts/check-skills.sh --strict >out 2>&1; echo $?
+  ```
 - **`scripts/generate-schemas.sh --check` fails when the installed `strata`
   predates `strata-lang/strata@8997153`.** That commit fixes
   `allowAdditionalProperties: false` silently dropping struct inheritance.
@@ -130,66 +202,116 @@ synthetically instead, on every platform, by `cli/cmd/portability_test.go`.
   cp -f target/release/strata /usr/local/bin/strata
   ```
 
-  Diagnosed 2026-08-04: the session hook had built `strata-cli 0.7.0` from
-  `44c1955` (2026-07-28), six days before the fix. Version strings are useless
-  here — both binaries report `0.7.0` — so check
-  `~/.cache/strata-cli/built-commit` against `8997153`, not `strata --version`.
+  **`strata --version` cannot identify a build** — every build in the range
+  that matters reports `strata-cli 0.7.0`. Check
+  `~/.cache/strata-cli/built-commit` instead.
+- **Build `strata` from `strata-lang/strata` HEAD**, against the manifest as
+  committed in this repo. A build that is merely "recent enough" is not
+  sufficient: the supported build tracks HEAD, and both older and mismatched
+  builds fail — older ones *silently*, by emitting document-type structs with
+  an empty `properties` map while exiting 0.
+
+  That silent mode is why `scripts/generate-schemas.sh` asserts on the emitted
+  shape (every document-type struct retains a non-empty `required` list)
+  rather than on a version string. Keep the assertion: it catches this class
+  of corruption from any build, not one known-bad commit.
+
+  **Both entries above are unverified**: no run has been cited showing the
+  empty-`properties` failure. Settle by running
+  `scripts/generate-schemas.sh --check` against a `strata` build older than
+  `8997153` and confirming the emitted schema shows empty `properties` maps
+  on inheriting types.
 - `bd`: not preinstalled. `.claude/hooks/session-start.sh` installs it via the
   official installer, which needs `libicu-dev` for the Dolt/ICU cgo dependency
   — without those headers the build fails at `unicode/uregex.h: No such file`.
+  **Partially re-verified 2026-08-12**: `dpkg -l | grep libicu` shows
+  `libicu-dev` and `libicu74` both installed in this container, consistent
+  with the hook needing them. The failure text itself is **unverified** —
+  reproducing it means uninstalling a package this session depends on.
 - `api.github.com` and `github.com/.../releases` return **403** through the
   egress proxy, so the installer's prebuilt-binary lookup always fails here
   and it falls back to a source build. `raw.githubusercontent.com` (200) and
   `proxy.golang.org` (in the proxy's no-proxy list) both work, which is why
-  the fallback path succeeds.
+  the fallback path succeeds. **Re-verified 2026-08-12** with `curl -o
+  /dev/null -w '%{http_code}'`: `api.github.com/repos/strata-lang/strata/
+  releases/latest` → 403; `github.com/strata-lang/strata/releases` → 403;
+  `raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh` (the
+  installer's actual URL) → 200; `proxy.golang.org/github.com/gastownhall/
+  beads/@v/list` → 200 (unproxied, per `no_proxy`). Same result set as
+  documented.
 - **Measured install cost:** ~175s on a cold container (both Go caches empty),
   ~110s with a warm build cache. Budget ~3 minutes for first session start.
   If release access is ever restored, the installer will pick the prebuilt
   binary automatically and this drops to seconds — no hook change needed.
+  **Unverified this session** — `bd` (`bd version 1.2.1`) was already
+  installed when this bead started, so no fresh cold/warm timing was taken.
 - The Dolt database (`.beads/embeddeddolt`) is gitignored, so **no clone ever
-  has one**. Every fresh container must run `bd init` + `bd import` before any
-  `bd` command works; the hook does this.
+  has one**. The hook bootstraps it from the Dolt remote with `bd bootstrap`
+  when both `.beads/embeddeddolt` and `.beads/dolt` are absent
+  (`.claude/hooks/session-start.sh`, step "2b. The database"). **Corrected
+  2026-08-12** — this entry previously said the hook runs `bd init` +
+  `bd import`; verified by reading the current hook source that it does not.
 - `strata`: not preinstalled either. The hook builds it from source — see
   "strata CLI" below.
-
-### strata CLI
-
-`.claude/hooks/session-start.sh` provisions the `strata` compiler because the
-`strata` skill's entire method is compiling what it writes. Notes measured in
-this environment:
-
-- **Source, not a release.** The published binaries lag `main`, and the point
-  is the latest code. `https://github.com/strata-lang/strata.git` clones fine
-  through the egress proxy (unauthenticated, over HTTPS).
-- **Measured build cost:** 1m50s for `cargo build --release -p strata-cli` on
-  a cold container, and ~470 MB in `target/`. The hook stamps the built commit
-  in `~/.cache/strata-cli/built-commit` and skips the build when it matches, so
-  only the first session of a container pays. The SessionStart hook's `timeout`
-  in `.claude/settings.json` is raised to 900s to cover it — at the 60s default
-  the build is killed partway.
-- **It never touches a checkout that has work in it.** An attached strata clone
-  is fast-forwarded only when it is on the default branch *and* clean;
-  otherwise it is built exactly as it sits.
-- **Escape hatches:** `STRATA_CLI_SKIP=1` skips the whole step,
-  `STRATA_SRC_DIR` points it at a specific checkout. Build output lands in
-  `~/.cache/strata-cli/build.log`.
-- **Prebuilt binaries are not an option here, so don't "optimize" to them.**
-  Measured 2026-08-01: `api.github.com` answers **200** (so a release *lookup*
-  succeeds and lists the Linux asset), but the asset download itself returns
-  **404** through the proxy, at both the `/releases/latest/download/` redirect
-  and the tagged URL. Release metadata being reachable is not the same as
-  release bytes being reachable — that is the trap. This also refines the 403
-  entry above: the bd installer's prebuilt lookup fails at the download, not
-  at the API.
-- **The clone is per-container, not shared.** `~/.cache/strata-src` and
-  `~/.cache/strata-cli` live on the session's ephemeral disk, so a new
-  container pays the full ~1m45s build once. The stamp only saves repeat
-  SessionStart fires within one container (resume, `/clear`), which cost 0.4s.
-- `bd init` **git-commits its own scaffolding**. The hook records HEAD and
-  unwinds that commit — a session hook must not leave commits nobody asked for.
+- **Corrected 2026-08-12, was stale:** this entry previously read "`bd init`
+  git-commits its own scaffolding; the hook records HEAD and unwinds that
+  commit." The hook no longer runs `bd init` (see above) and contains no
+  `git commit`, `git add`, or `git reset` call anywhere — verified by reading
+  the current `.claude/hooks/session-start.sh` in full. The underlying rule
+  still holds for any future hook logic: a session hook must not leave
+  commits nobody asked for.
 - `bd` has been observed once writing its global config to a **literal `./~/`**
   inside the repo rather than `$HOME`. Not reproducible on retry; the hook
   pins `HOME` and sweeps `./~` on exit, and `.gitignore` covers it.
+  **Re-verified 2026-08-12** by reading the hook source: it still exports
+  `HOME` and defines/traps a `sweep_literal_tilde` cleanup on exit.
+
+### strata CLI
+
+Local sessions already have `strata` on PATH; this section is about cloud
+sessions, where `.claude/hooks/session-start.sh` provisions it because the
+`strata` skill's entire method is compiling what it writes.
+
+- **Built from source at HEAD, not from a release.** The published binaries
+  lag `main` and the point is the latest code. Do not "optimize" this into a
+  release download: both the release API and the release assets are blocked by
+  the egress proxy, so a clone plus `cargo build` is the only path that works
+  here. **Re-verified 2026-08-12** (updates "403 and 404 respectively, last
+  measured 2026-08-09"): `api.github.com/repos/strata-lang/strata/
+  releases/latest` → 403; `github.com/strata-lang/strata/releases` → 403. A
+  direct download URL for a specific release asset returned 404, but that
+  asset/tag may simply not exist — not distinguishable from a block with the
+  URL tried, so the original "403 and 404 respectively" pairing is
+  **unverified** as stated; the net effect (no release path works) is
+  unchanged.
+- The hook prefers a checkout the session already has — an attached `strata`,
+  or `STRATA_SRC_DIR` — and clones only as a fallback. It never touches a
+  checkout with work in it: it fast-forwards only a clean default branch, and
+  otherwise builds what it finds. **Re-verified 2026-08-12** by reading the
+  hook source (candidate checkout search, and the fast-forward-only-a-clean-
+  default-branch guard).
+- **Escape hatches:** `STRATA_CLI_SKIP=1` skips the step entirely;
+  `STRATA_SRC_DIR` points at a checkout. Build output lands in
+  `~/.cache/strata-cli/build.log` and the built commit in
+  `~/.cache/strata-cli/built-commit`. **Re-verified 2026-08-12**: both
+  environment variables appear in the current hook source, and both cache
+  files exist in this container.
+- **If `strata` is missing, read the hook's warning** — it names the cause.
+  The common one is the clone: `strata-lang/strata` is private *today*, so a
+  cloud session with no attached checkout needs `STRATA_ACCESS_TOKEN` set on
+  the environment (`docs/session-bootstrap.md`). That requirement goes away
+  when the repository goes public — `agent-plugins-6gn` tracks removing it.
+  **Re-verified 2026-08-12**: the exact warning text is present in the hook
+  source.
+- **Cost:** ~1m50s and ~470 MB of `target/`, once per container. The
+  SessionStart `timeout` in `.claude/settings.json` is 900s to cover it; at
+  the 60s default the build is killed partway. **Re-verified 2026-08-12** from
+  this session's own build: `~/.cache/strata-cli/build.log` shows `Finished
+  \`release\` profile [optimized] target(s) in 2m 35s`, and
+  `du -sh ~/.cache/strata-src/target` → `470M` (exact match). The time is
+  higher than the documented ~1m50s on this run — cache warmth and container
+  CPU allocation can move it; treat ~1m50s–2m35s as the observed range rather
+  than a fixed number.
 
 ## model lineup
 
@@ -202,6 +324,58 @@ here at dispatch.
 - **frontier:** `fable`
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:970c3bf2 -->
+## Historical prose: don't
+
+Every skill file, reference, config comment and script header is loaded into an
+agent's context window. Tokens spent narrating how a rule came to exist are
+tokens not spent on the rule. Write the current state; leave the story out.
+
+**The test:** would a reader who has never seen this project's history behave
+differently for having read this sentence? If no, delete it.
+
+**State the fact and its failure mode. Drop the account of how it was learned.**
+
+- Yes: "`worktree.baseRef` must be `head`. Unset, a worktree branches from the
+  default branch instead of session HEAD, and the bead loses every commit the
+  sprint branch carries."
+- No: "This was misdiagnosed for a full session as X. The proof that settled it
+  was Y. It was then repaired at the source and pushed, and the hook re-checks
+  it each session as a regression guard."
+
+Both convey the rule. The second spends 4x the tokens on a story that changes
+nothing a reader does.
+
+**Where the history goes instead.** It is not lost, it moves to where it is
+retrievable but not re-read every session:
+
+| Content | Home |
+|---|---|
+| Why a rule exists; what was tried and rejected | the bead, and the commit message |
+| A measurement that justified a decision | the bead |
+| What a change retired, and why | the commit message |
+| The rule itself, and what breaks without it | the skill file |
+
+A commit message is the right place for a retirement narrative: it is attached
+to the change, `git log` finds it, and nothing loads it into context.
+
+**Three narrow exceptions** — keep it short even then:
+
+1. **A rule that looks removable but is not.** One sentence saying why the
+   obvious simplification is wrong, so it is not "fixed" every six months.
+2. **A trap with a plausible wrong answer.** Where an agent would otherwise
+   guess confidently and wrongly, name the wrong answer.
+3. **A non-obvious measured constraint.** State it as a current fact, not as a
+   discovery narrative — "`bd` resolves the shared database from any worktree
+   through git's common directory", not "we measured that…".
+
+**Do not cross-reference issue ids in skill files.** Skills are exported to
+other projects, where `<this-project>-abc.12` resolves to nothing. A reader
+there sees a dangling reference and cannot look it up. Cross-reference the bead
+in the COMMIT that makes the change; keep the skill file self-contained.
+This applies to `plugin/skills/**` and anything vendored from it. Files that
+never leave this repo — `CLAUDE.md`, `AGENTS.md`, `docs/`, `.beads/config.yaml`
+— may cite ids, and should still keep the narrative short.
+
 ## Beads Issue Tracker
 
 This project uses **bd (beads)** for issue tracking. Run `bd prime` to see full workflow context and commands.
@@ -259,58 +433,69 @@ This protocol applies when ending a Beads implementation workflow. It is subordi
 
 ## How beads persist in THIS project
 
-The managed block above states the upstream model — that sync uses
-`refs/dolt/data` on your git remote. **That is not how this project works,
-and following it will lose issues.** Read this section instead.
+**The Dolt remote is the source of truth.** Issues live in a Dolt database
+synced to `refs/dolt/data` on the GitHub remote. `.beads/*.jsonl` is **not
+tracked** and is not how issues travel.
 
-Sessions here run in ephemeral containers. `.beads/embeddeddolt/` is
-gitignored, so the Dolt database is created fresh in each session and
-destroyed with the container. `bd dolt push` cannot reach a remote: the
-egress proxy returns HTTP 403, and `refs/dolt/data` does not exist on the
-GitHub remote. Dolt is local and disposable, by design.
-
-**`.beads/issues.jsonl` is the only thing that carries issues between
-sessions and between branches.** It is committed to git. On a fresh
-container `.claude/hooks/session-start.sh` detects the missing database,
-runs `bd init`, unwinds the commit `bd init` makes, and imports this file.
-Verified end to end on 2026-07-31: a fresh clone has no database at all,
-`bd init` alone yields "No issues found", and `bd import .beads/issues.jsonl`
-restores every issue with its original `agent-plugins-` id and status.
+This is beads' documented model, and this project used to violate it. Until
+2026-08-11 the database was per-session and disposable, `.beads/issues.jsonl`
+was committed, and this section told you to run `bd export` before the
+container died or lose your work. `agent-plugins-92q.31` retired all of that.
 
 ### What this requires of you
 
-- **A bead that is not in `.beads/issues.jsonl` when the container dies is
-  gone.** Not recoverable — the database it lived in no longer exists.
-- Auto export is enabled in `.beads/config.yaml`, so creates and updates
-  reach the file without being asked for. Do not rely on that alone.
-- **Auto export is append/update-only. It does not propagate `bd delete`.**
-  Measured 2026-07-31: a deleted issue was still present 90 seconds later,
-  well past the 60s interval, and would have come back on the next import.
-- **The beads pre-commit hook does not save you here.** It runs the same
-  append/update path, so committing after a delete leaves the deleted record
-  in the file. Measured the same day: create a probe and commit — the file
-  gains it; delete the probe and commit again — the file still has it.
-- **Before ending a session, run the explicit export and commit it:**
+- **Nothing, on the happy path.** The SessionStart hook bootstraps the database
+  from the remote, and the close ceremony (`bb-close-bead.sh`) pushes after
+  every close. Beads you create or close are durable without ceremony.
+- **If you create or close beads outside the close ceremony, run `bd dolt
+  push`.** That is the one manual step. A closure sitting only in the local
+  database dies with the container, exactly as an unexported one used to.
+- **Never `bd export` as a persistence step.** It writes an untracked file and
+  persists nothing. Export only for a viewer or for interchange.
+- **`bd remember` memories are excluded from `bd export`** and are not
+  synced. Durable context belongs in an issue description, not a memory.
 
-  ```bash
-  bd export > .beads/issues.jsonl   # full rewrite; the only form that
-                                    # reflects deletions
-  git add .beads/issues.jsonl && git commit -m "..." && git push
-  ```
+### The environment must provide write access to `refs/dolt/data`
 
-- Diff the export before committing rather than trusting it. The intended
-  change is usually two or three fields on known ids; anything wider means
-  something else happened.
-- `bd remember` memories are **excluded** from `bd export` by default, and
-  the session-start hook imports without `--all`. Durable context belongs in
-  an issue description, not a memory.
-- Branches carry their own `.beads/issues.jsonl`. There is no merge driver
-  configured for it, so beads created on two branches will conflict
-  textually on merge. Prefer creating beads on one branch until that is
-  resolved.
+Not a preference — a precondition, and deliberately without a JSONL fallback.
+A session that can read but not write the tracker can close a bead and lose it.
+The hook therefore **verifies** write access on every session with a real probe
+push and **fails loudly** (exit 1) when it cannot, rather than degrading.
 
+Two things the environment supplies:
 
-<!-- BEGIN BEADS CODEX SETUP: generated by bd setup codex -->
+1. `AGENT_PLUGINS_ACCESS_TOKEN` — a GitHub PAT with push access, set at
+   container creation. Environment variables cannot be added to a running
+   container.
+2. **Direct, unproxied egress to `github.com`.** The egress proxy substitutes a
+   brokered GitHub App token scoped to `refs/heads`, which returns 403 on
+   `refs/dolt/*`. The hook configures `http.https://github.com/.proxy` empty
+   and a credential helper that reads the PAT from the environment at call
+   time, so the token is never written to disk.
+
+This was misdiagnosed for a full session as "GitHub refuses `refs/dolt/*`
+writes". It does not. The proof that settled it: a push with a **deliberately
+invalid** token succeeded, which is only possible if the proxy replaced the
+credential.
+
+See `.claude/hooks/session-start.sh` and `docs/session-bootstrap.md`. The
+`bead-bonanza` skill itself never names a credential — it requires only "write
+access to `refs/dolt/data`", and the mechanism is this repository's business.
+
+### Two hazards that remain
+
+- **The id prefix travels with the database.** A bootstrapped clone mints ids
+  from the database's configured `issue_prefix`, not from `.beads/config.yaml`
+  (measured: `config.yaml` said `agent-plugins`, `bd where` reported
+  `agent-plugins`, and a new bead came out `spec-driven-dev-w0n`). It was
+  repaired at the source with `bd rename-prefix agent-plugins --repair` and
+  pushed; the hook re-checks it each session as a regression guard.
+- **The hook is not always registered.** Claude Code loads hooks from the
+  project root only, so a session attaching this repo alongside another never
+  runs it — and then nothing bootstraps the database or establishes write
+  access. The manual fallback is at the top of this file; the durable fix is
+  the per-environment setup script in `docs/session-bootstrap.md`.
+
 ## Beads Issue Tracker
 
 Use Beads (`bd`) for durable task tracking in repositories that include it. Use the `beads` skill at `.agents/skills/beads/SKILL.md` (project install) or `~/.agents/skills/beads/SKILL.md` (global install) for Beads workflow guidance, then use the `bd` CLI for issue operations.

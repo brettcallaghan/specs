@@ -54,8 +54,8 @@ write either block silently.
      - `<path or surface>` → `<targeted test cmd>`
 
      ### Environmental-failure ledger
-     Suites that fail — or falsely PASS — only in the local sandbox, diagnosed once and passed into every subagent prompt as fact — never re-diagnosed per wave.
-     - `<suite>`: fails in sandbox — `<symptom>` → `<workaround / covered-by-CI note>`
+     Suites that fail — or falsely PASS — only in the local sandbox, diagnosed once and passed into every subagent prompt as fact — never re-diagnosed per wave. Admit an entry on evidence, not reasoning: name the command run and the result observed — this applies to a claim that a check is unnecessary or already-sufficient just as much as to a claim of failure. A claim not cheaply testable is recorded as `unverified` with what would settle it, rather than stated as settled.
+     - `<suite>`: fails in sandbox — `<symptom>`, proved by `<command>` → `<workaround / covered-by-CI note>`
      - `<suite>`: falsely GREEN — e.g. runs a stale prebuilt binary a plain test command doesn't rebuild → force a clean `<build>` before trusting the result
      ```
    - If the project genuinely has no build/test step (e.g. a pure-docs repo),
@@ -87,13 +87,16 @@ write either block silently.
 2. **Common command permissions.** Confirm these are in
    `.claude/settings.local.json` allow list. If any are missing, ask the user
    once whether to add them, then add (don't add silently):
-   - `Bash(bd:*)`, `Bash(bd create:*)`, `Bash(bd update:*)`, `Bash(bd close:*)`
+   - `Bash(bd:*)` — subsumes `bd create`, `bd update`, `bd close`, and every
+     other `bd` subcommand, so list it alone.
    - `Bash(wait)`, `Bash(wait %1)`, `Bash(jq:*)`
-   - This skill's bundled scripts — one entry covers every progress event,
-     skip check, and close ceremony in the run:
+   - This skill's bundled scripts — one entry per script covers every
+     progress event, skip check, backup, and close ceremony in the run:
+     `Bash(<skill-dir>/scripts/pre-flight-check.sh:*)`,
      `Bash(<skill-dir>/scripts/bb-progress.sh:*)`,
      `Bash(<skill-dir>/scripts/bb-verify-skip.sh:*)`,
-     `Bash(<skill-dir>/scripts/bb-close-bead.sh:*)`
+     `Bash(<skill-dir>/scripts/bb-close-bead.sh:*)`,
+     `Bash(<skill-dir>/scripts/bb-backup-run.sh:*)`
    - The gate-profile commands — whatever
      `<format>`/`<lint>`/`<build>`/`<test>`/`<regen>` resolve to for this
      project (e.g. `Bash(cargo:*)`, `Bash(npm run test:*)`, `Bash(go build:*)`,

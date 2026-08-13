@@ -1,6 +1,6 @@
 # Gherkin extraction: what the Go library gives us
 
-Research record behind [[adr-018]]. Everything here was measured against
+Research record behind [[adr-020]]. Everything here was measured against
 `github.com/cucumber/gherkin/go/v42` (v42.0.1) and
 `github.com/cucumber/messages/go/v34` (v34.2.0), both MIT.
 
@@ -94,7 +94,7 @@ Field provenance:
 
 **Note on `req`.** An early version of this record took `req` from
 `Rule.Name`, because the first trial mapped a requirement onto `Rule:`.
-[[adr-018]] constraint 1 corrects that: a requirement is a `Feature`,
+[[adr-020]] constraint 1 corrects that: a requirement is a `Feature`,
 and `Rule:` groups criteria under a genuine business rule. So `req` is
 `Feature.Name`, and a criterion may additionally sit under a `Rule`
 whose name is the rule it obeys. An extractor must walk **both** direct
@@ -218,7 +218,7 @@ store or to external tooling (it resolves it).
 
 ## References
 
-- [[adr-018]] — the decision this record supports
+- [[adr-020]] — the decision this record supports
 - `cli/core/span` — the `Span` type gap 1 and gap 2 are reconciled against
 - `docs/plans/gherkin-feature-description-guidance.md` — what belongs in a
   `Feature` description and what silently breaks one

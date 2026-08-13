@@ -6,17 +6,10 @@ description: The command-line binary that indexes a specification corpus
 slug: container-spec-cli
 type: container-blueprint
 status: approved
-updated_at: 2026-08-05T00:00:00Z
-components: []
-modules:
-  - "module-document-core"
-  - "module-spec-profile"
+updated_at: 2026-08-12T00:00:00Z
 contracts_provided:
   - "contract-specs-configuration"
 contracts_consumed: []
-related:
-  - "frd-spec-validation-cli"
-  - "adr-015"
 ---
 
 # Spec CLI
@@ -146,11 +139,22 @@ the built-in. `[profile].name` naming no entry in the registry is
 reported as a finding listing the registered names, not a bare lookup
 failure.
 
+Once `[profile].name` resolves to a registered profile, `Load` also runs
+`corpus.ValidateRegistration` against it. A registration is compiled in
+and has no position of its own, so every defect it reports is turned
+into a finding positioned at `[profile].name` — the one place in
+`specs.toml` that selected it — naming the offending key and, where the
+defect belongs to one document type rather than the profile's lifecycle
+registration, that type (AC-SPECREF-004.3). As with every other
+`specs.toml` defect, a registration defect is never defaulted around: no
+`Config` is resolved while one is reported.
+
 **Built (command tree)** — also `cli/cmd`, via `cobra`
-([[adr-015]]): `Execute` builds the four-subcommand tree — `index`,
-`check`, `slug-exists`, `next-id` — and converts each one's flags into
-calls against Document Core (`corpus.Build`, `corpus.Open`,
+([[adr-015]]): `Execute` builds the five-subcommand tree — `index`,
+`check`, `slug-exists`, `next-id`, `refs` — and converts each one's flags
+into calls against Document Core (`corpus.Build`, `corpus.Open`,
 `corpus.Corpus.Check`/`CheckFor`, `corpus.Corpus.Slug`,
+`corpus.Corpus.InboundReferences`/`OutboundReferences`,
 `numbering.Next`) and its result back into stdout and an exit status. No
 file here decides what makes a document valid or scores a check; every
 one of those calls is the whole of what a subcommand does with what it
@@ -175,7 +179,22 @@ warning or unverified findings alone exit 0 unless `--strict` is given
 corpus warm and answer `corpus.Corpus.Slug` and `numbering.Next`
 directly (AC-SPEC-011.3, AC-SPEC-011.4).
 
-A bare invocation or `--help` lists the four subcommands with their
+`refs` opens the corpus warm, the same as `check`, `slug-exists` and
+`next-id`, and takes one slug: by default it answers
+`corpus.Corpus.InboundReferences` — every corpus member whose body or a
+registered frontmatter property references it (AC-SPECREF-003.1) — and,
+given `--outbound`, `corpus.Corpus.OutboundReferences` instead, the
+documents that slug references (AC-SPECREF-003.2). `--json` marshals the
+generated `specmodel.Reference` values straight through, each already
+carrying its file path and span (AC-SPECREF-003.3). It converts a slug
+and a direction into that one corpus lookup and nothing else — the same
+no-domain-logic discipline every subcommand here holds to — and always
+exits zero: a slug the corpus resolves but nothing references, and a
+slug no corpus member declares at all — the same `corpus.Corpus.Slug`
+query AC-SPEC-007.2 defines for `slug-exists` — are reported as two
+different sentences rather than the same empty result (AC-SPECREF-003.5).
+
+A bare invocation or `--help` lists the five subcommands with their
 one-line synopses and, per subcommand, its own flags — cobra's default
 rendering of the `Use`, `Short` and flag declarations above, so the
 listed surface and the code that implements it cannot drift
@@ -245,12 +264,25 @@ artifacts, and any cache it keeps is derived and disposable.
 
 **Built** — there is no separate cache. The emitted index *is* the cache:
 `index` writes `specs.json` into the configured spec root, and `check`,
-`slug-exists` and `next-id` open that same artifact warm from that same
-default path. One file, one shape, one code path, so "delete the cache"
-and "delete the artifact" are the same act and neither can change an
-answer. An `index --out` naming somewhere else writes an artifact for a
-consumer rather than a cache for the reading commands, which simply find
-nothing at the default path and rebuild.
+`slug-exists`, `next-id` and `refs` open that same artifact warm from
+that same default path. One file, one shape, one code path, so "delete
+the cache" and "delete the artifact" are the same act and neither can
+change an answer. An `index --out` naming somewhere else writes an
+artifact for a consumer rather than a cache for the reading commands,
+which simply find nothing at the default path and rebuild.
+
+The reading commands **also write it when they had to build it**, which
+is what makes AC-SPEC-010.5's own example — "run twice in a row reads
+`specs.json` the second time" — true of a workflow that never invokes
+`index`. Until they did, only `index` ever created the artifact, and
+since nothing instructs an author to run it, every check and query in
+practice rebuilt from cold and the warm path the REQ-SPEC-009 budgets
+are stated against went unreached (`agent-plugins-9ur`). That write is
+best-effort and its failure is discarded: a read-only checkout or a race
+with a concurrent writer makes the answer no less correct, and a query
+that failed because it could not refresh a cache would be a worse tool
+than a slow one. AC-SPEC-010.4's atomic replace keeps a concurrent
+reader from seeing a partial file.
 
 **Staleness is decided by a content hash of the inputs, never by a
 modification time.** Every emitted index carries an `input_hash` folding
@@ -332,7 +364,7 @@ This container SHALL comply with:
   coverage obligations tying both back to acceptance criteria.
 
 The repository's other standards document,
-`docs/standards/skill-best-practices.md`, governs skill authoring and
+`specs/standards/skill-best-practices.md`, governs skill authoring and
 does not apply to a compiled binary.
 
 ## Change Guidance
@@ -362,7 +394,7 @@ does not apply to a compiled binary.
 
 - [[adr-015]] — Go is the implementation language; the measured basis
   and the rejected alternatives are recorded there.
-- [[adr-018]] — acceptance-criteria extraction is a follow-on feature,
+- [[adr-020]] — acceptance-criteria extraction is a follow-on feature,
   so no component here parses acceptance criteria yet.
 
 ## Open Questions

@@ -13,6 +13,7 @@ package corpus_test
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"sort"
@@ -35,6 +36,26 @@ const checkSchema = `{
       "type": "object",
       "required": ["decision"],
       "properties": {"decision": {"type": "string"}}
+    },
+    "Frd": {
+      "type": "object",
+      "properties": {}
+    }
+  }
+}`
+
+// envelopeCheckSchema requires "description" — a property of the shared
+// envelope rather than a type-specific one. checkSchema models only
+// "decision", so it cannot express the case
+// TestAMissingEnvelopePropertyIsAMissingPropertyNotAParseFailure needs:
+// a required property that the generated envelope decoder also knows
+// about, and would reject before any schema check could run.
+const envelopeCheckSchema = `{
+  "definitions": {
+    "Adr": {
+      "type": "object",
+      "required": ["description"],
+      "properties": {"description": {"type": "string"}}
     },
     "Frd": {
       "type": "object",
@@ -175,6 +196,68 @@ func TestCheckReportsASchemaInvalidMember(t *testing.T) {
 	}
 	if detail.Property != "decision" {
 		t.Errorf("property = %q, want %q", detail.Property, "decision")
+	}
+}
+
+// envelopeDocument renders a document missing one required property of
+// the shared envelope — the properties DocumentFrontmatter itself
+// declares, as opposed to the type-specific "decision" the test above
+// covers. Only these reach the generated envelope decoder.
+func envelopeDocument(docType, slug, title string) string {
+	return fmt.Sprintf(`---
+title: %q
+slug: %s
+type: %s
+status: approved
+updated_at: "2026-08-05T00:00:00Z"
+---
+
+# %s
+`, title, slug, docType, title)
+}
+
+// AC: AC-SPEC-003.1
+//
+// A member missing a required ENVELOPE property reports
+// frontmatter/missing-property, naming the property — never
+// frontmatter/parse.
+//
+// This guards a regression that regenerating the model can silently
+// reintroduce. Strata's Go target emits an UnmarshalJSON per struct that
+// rejects a missing required field, so decoding straight into
+// specmodel.DocumentFrontmatter turns every such document into a parse
+// failure and leaves frontmatter/missing-property unable to fire at all —
+// a check that reports success because it never runs. corpus.go decodes
+// through a defined type to drop that method; see envelopeShape there.
+//
+// TestCheckReportsASchemaInvalidMember does not cover this: "decision" is
+// type-specific, absent from the envelope, so the generated decoder never
+// sees it and that test passes either way.
+func TestAMissingEnvelopePropertyIsAMissingPropertyNotAParseFailure(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-001.md", envelopeDocument("adr", "adr-001", "First"))
+
+	built := buildChecked(t, repo, checkProfile(envelopeCheckSchema))
+
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+
+	if got := findingsWithRule(findings, finding.RuleFrontmatterParse, "specs/adrs/adr-001.md"); len(got) != 0 {
+		t.Errorf("got %d frontmatter/parse findings, want 0 — the envelope decode is enforcing required-ness: %+v", len(got), got)
+	}
+
+	missing := findingsWithRule(findings, finding.RuleMissingProperty, "specs/adrs/adr-001.md")
+	if len(missing) != 1 {
+		t.Fatalf("got %d missing-property findings, want 1: %+v", len(missing), findings)
+	}
+	detail, ok := missing[0].Detail.Value.(specmodel.FindingMissingProperty)
+	if !ok {
+		t.Fatalf("detail = %T, want FindingMissingProperty", missing[0].Detail.Value)
+	}
+	if detail.Property != "description" {
+		t.Errorf("property = %q, want %q", detail.Property, "description")
 	}
 }
 
@@ -528,5 +611,706 @@ func TestCheckRaisesNoParseFindingForAFileWithNoFrontmatter(t *testing.T) {
 	}
 	if len(built.Index().Exclusions) != 1 {
 		t.Fatalf("exclusions = %+v, want the README recorded as one", built.Index().Exclusions)
+	}
+}
+
+// Tests for reference/unresolved: the check that reports a reference the
+// graph recorded as unresolved or as reaching a non-member, and — for a
+// single-document check — the inbound edges that no longer resolve.
+
+// referenceCheckProfile is checkProfile(permissiveCheckSchema) with
+// property registered as reference-bearing on both fixture types, so
+// nothing about a document's schema or slug pattern can produce a
+// finding and only the reference itself can.
+func referenceCheckProfile(property string) corpus.Profile {
+	types := map[string]corpus.DocumentTypeRules{
+		"adr": {SlugPattern: `^adr-[0-9]{3}$`},
+		"frd": {SlugPattern: `^frd-[a-z0-9-]+$`},
+	}
+	for name, rules := range types {
+		rules.ReferenceProperties = []string{property}
+		types[name] = rules
+	}
+	return stubProfile{schema: []byte(permissiveCheckSchema), types: types}
+}
+
+// AC: AC-SPECREF-002.1
+func TestCheckReportsAnUnresolvedBodyReference(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-001.md", citing("adr", "adr-001", "First", "Refines [[adr-404]]."))
+
+	built := buildChecked(t, repo, referenceCheckProfile("superseded_by"))
+
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+
+	got := findingsWithRule(findings, finding.RuleUnresolvedReference, "specs/adrs/adr-001.md")
+	if len(got) != 1 {
+		t.Fatalf("got %d reference/unresolved findings, want 1: %+v", len(got), findings)
+	}
+	if got[0].Severity != finding.SeverityError {
+		t.Errorf("severity = %q, want error", got[0].Severity)
+	}
+	if got[0].Position.Length == 0 {
+		t.Error("finding carries an empty span")
+	}
+	detail, ok := got[0].Detail.Value.(specmodel.FindingUnresolvedReference)
+	if !ok {
+		t.Fatalf("detail = %T, want FindingUnresolvedReference", got[0].Detail.Value)
+	}
+	if detail.Slug != "adr-404" {
+		t.Errorf("slug = %q, want adr-404", detail.Slug)
+	}
+	if _, ok := detail.Origin.AsBody(); !ok {
+		t.Errorf("origin = %+v, want body", detail.Origin.Value)
+	}
+	if detail.NonMember != nil {
+		t.Errorf("non_member = %+v, want none: adr-404 matches no file at all", detail.NonMember)
+	}
+	if !strings.Contains(got[0].Message, "adr-404") {
+		t.Errorf("message = %q, want it to quote the reference back", got[0].Message)
+	}
+}
+
+// AC: AC-SPECREF-002.3
+func TestCheckReportsAnUnresolvedFrontmatterReference(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-001.md", strings.Replace(
+		document("adr", "adr-001", "First"),
+		"updated_at: \"2026-08-05T00:00:00Z\"",
+		"updated_at: \"2026-08-05T00:00:00Z\"\nsuperseded_by: adr-999",
+		1))
+
+	built := buildChecked(t, repo, referenceCheckProfile("superseded_by"))
+
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+
+	got := findingsWithRule(findings, finding.RuleUnresolvedReference, "specs/adrs/adr-001.md")
+	if len(got) != 1 {
+		t.Fatalf("got %d reference/unresolved findings, want 1: %+v", len(got), findings)
+	}
+	detail, ok := got[0].Detail.Value.(specmodel.FindingUnresolvedReference)
+	if !ok {
+		t.Fatalf("detail = %T, want FindingUnresolvedReference", got[0].Detail.Value)
+	}
+	if detail.Slug != "adr-999" {
+		t.Errorf("slug = %q, want adr-999", detail.Slug)
+	}
+	origin, ok := detail.Origin.AsFrontmatterProperty()
+	if !ok {
+		t.Fatalf("origin = %+v, want frontmatter-property", detail.Origin.Value)
+	}
+	if origin.Property != "superseded_by" {
+		t.Errorf("property = %q, want superseded_by", origin.Property)
+	}
+	if !strings.Contains(got[0].Message, "superseded_by") {
+		t.Errorf("message = %q, want it to name the property", got[0].Message)
+	}
+}
+
+// A slug matching a file the index recorded as a non-member reports with
+// that reason rather than as matching nothing.
+//
+// AC: AC-SPECREF-002.7
+func TestCheckReportsANonMemberReferenceWithItsReason(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-001.md", citing("adr", "adr-001", "First", "See [[loose]]."))
+	write(t, repo, "specs/notes/loose.md", "# No frontmatter at all\n")
+
+	built := buildChecked(t, repo, referenceCheckProfile("superseded_by"))
+
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+
+	got := findingsWithRule(findings, finding.RuleUnresolvedReference, "specs/adrs/adr-001.md")
+	if len(got) != 1 {
+		t.Fatalf("got %d reference/unresolved findings, want 1: %+v", len(got), findings)
+	}
+	detail, ok := got[0].Detail.Value.(specmodel.FindingUnresolvedReference)
+	if !ok {
+		t.Fatalf("detail = %T, want FindingUnresolvedReference", got[0].Detail.Value)
+	}
+	if detail.NonMember == nil {
+		t.Fatal("non_member is absent, want the excluded file")
+	}
+	if detail.NonMember.Path != "specs/notes/loose.md" {
+		t.Errorf("non-member path = %q", detail.NonMember.Path)
+	}
+	if !strings.Contains(got[0].Message, "not a corpus member") {
+		t.Errorf("message = %q, want it to say the target is not a corpus member", got[0].Message)
+	}
+}
+
+// Unresolved references are the one rule CheckFor does not narrow to the
+// file named: they surface wherever they were written, because the
+// document that breaks a reference is never the document that holds it
+// (AC-SPECREF-002.9). Every other rule stays scoped to the named file, so
+// this is an exception rather than the narrowing being abandoned.
+//
+// AC: AC-SPECREF-002.9
+func TestCheckForReportsUnresolvedReferencesWhereverTheyWereWritten(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-001.md", citing("adr", "adr-001", "First", "Refines [[adr-404]]."))
+	write(t, repo, "specs/adrs/adr-abc.md", document("adr", "adr-abc", "Unpatterned"))
+	write(t, repo, "specs/adrs/adr-002.md", document("adr", "adr-002", "Second"))
+
+	built := buildChecked(t, repo, referenceCheckProfile("superseded_by"))
+
+	findings, err := built.CheckFor("specs/adrs/adr-002.md")
+	if err != nil {
+		t.Fatalf("CheckFor: %v", err)
+	}
+	if got := findingsWithRule(findings, finding.RuleUnresolvedReference, "specs/adrs/adr-001.md"); len(got) != 1 {
+		t.Errorf("CheckFor(adr-002) reported %d of adr-001's unresolved references, want 1: %+v", len(got), findings)
+	}
+	// adr-abc's slug does not match the profile's pattern, and that
+	// finding belongs to a file this check did not name: the narrowing is
+	// intact for every rule but the one above.
+	if got := findingsWithRule(findings, finding.RuleSlugPattern, "specs/adrs/adr-abc.md"); len(got) != 0 {
+		t.Errorf("CheckFor(adr-002) reported another file's slug-pattern violation: %+v", got)
+	}
+
+	// A file's own unresolved reference is still reported when it is the
+	// file named, and is not reported twice for matching both arms.
+	findings, err = built.CheckFor("specs/adrs/adr-001.md")
+	if err != nil {
+		t.Fatalf("CheckFor: %v", err)
+	}
+	if got := findingsWithRule(findings, finding.RuleUnresolvedReference, "specs/adrs/adr-001.md"); len(got) != 1 {
+		t.Errorf("CheckFor(adr-001) reported %d of its own unresolved references, want 1: %+v", len(got), findings)
+	}
+}
+
+// AC-SPECREF-002.9's own scenario, end to end and through the real cache:
+// an agent renames a document's slug, and the write-time check on that one
+// file reports the references the rename broke — against the referring
+// document, at the referrer's own span, which is the file and the line a
+// reader has to open to fix it.
+//
+// The break is produced by editing a real file on disk, because that is
+// what the criterion describes and it is the only state production can
+// reach. The edit changes the corpus's input hash, so the check that
+// follows reads a freshly rebuilt graph in which the stale referrers are
+// recorded unresolved. An earlier implementation instead compared a warm
+// index's inbound edges against the document's slug read fresh from disk
+// and could only be exercised by planting a row in the persisted index:
+// Open's fingerprint is all-or-nothing over every candidate's content, so
+// one file's real bytes can never disagree with the rest of a warm index
+// (agent-plugins-fe1).
+//
+// AC: AC-SPECREF-002.9
+func TestCheckForReportsTheReferencesARenamedSlugBroke(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-001.md", citing("adr", "adr-001", "First", "Refines [[adr-002]]."))
+	write(t, repo, "specs/adrs/adr-002.md", document("adr", "adr-002", "Second"))
+
+	opts := checkingOptions(repo)
+	dest := buildAndWriteWith(t, opts)
+
+	// Before the rename the reference resolves, so the check on adr-002 is
+	// silent about adr-001 — establishing that what follows is caused by
+	// the edit and not merely present all along.
+	opened, warm, err := corpus.Open(opts, dest)
+	if err != nil {
+		t.Fatalf("Open: %v", err)
+	}
+	if !warm {
+		t.Fatal("Open rebuilt an index whose inputs are unchanged")
+	}
+	findings, err := opened.CheckFor("specs/adrs/adr-002.md")
+	if err != nil {
+		t.Fatalf("CheckFor: %v", err)
+	}
+	if got := findingsWithRule(findings, finding.RuleUnresolvedReference, "specs/adrs/adr-001.md"); len(got) != 0 {
+		t.Fatalf("adr-001's reference was reported broken before the rename: %+v", got)
+	}
+
+	// The rename. adr-003 still matches the profile's slug pattern, so the
+	// only defect this introduces is the broken inbound reference.
+	write(t, repo, "specs/adrs/adr-002.md", document("adr", "adr-003", "Second"))
+
+	opened, _, err = corpus.Open(opts, dest)
+	if err != nil {
+		t.Fatalf("Open after the rename: %v", err)
+	}
+
+	findings, err = opened.CheckFor("specs/adrs/adr-002.md")
+	if err != nil {
+		t.Fatalf("CheckFor after the rename: %v", err)
+	}
+
+	broken := findingsWithRule(findings, finding.RuleUnresolvedReference, "specs/adrs/adr-001.md")
+	if len(broken) != 1 {
+		t.Fatalf("got %d reference/unresolved findings against the referrer, want 1: %+v", len(broken), findings)
+	}
+	detail, ok := broken[0].Detail.Value.(specmodel.FindingUnresolvedReference)
+	if !ok {
+		t.Fatalf("detail = %T, want FindingUnresolvedReference", broken[0].Detail.Value)
+	}
+	if detail.Slug != "adr-002" {
+		t.Errorf("slug = %q, want adr-002 — the slug the referrer still names", detail.Slug)
+	}
+	outbound := opened.OutboundReferences("specs/adrs/adr-001.md")
+	if len(outbound) != 1 {
+		t.Fatalf("adr-001 holds %d references, want 1", len(outbound))
+	}
+	if broken[0].Position != outbound[0].Position {
+		t.Errorf("position = %+v, want the referrer's own span %+v", broken[0].Position, outbound[0].Position)
+	}
+}
+
+// Tests for reference/retired-target, reference/pairing-incomplete and
+// reference/type-mismatch — the LIFE delta's relational half of
+// reference integrity. Every registration these tests exercise is a
+// stubProfile of this test file's own, registered through the same
+// [corpus.Profile] extension point the command surface's real profile
+// implements — never a pairing added to that shipped profile, which
+// registers none by design (reference-integrity-blueprint.md's LIFE
+// section).
+
+// statusDocument renders a conforming document at the given status,
+// carrying any extra frontmatter lines verbatim — the control document(),
+// documentWithExtra() and citing() do not offer, and every LIFE fixture
+// below needs at least one of a non-default status, a successor value, or
+// a registered pairing's counterpart.
+func statusDocument(docType, slug, title, status string, extra ...string) string {
+	lines := []string{
+		"---",
+		fmt.Sprintf("title: %q", title),
+		`description: "A fixture document."`,
+		fmt.Sprintf("slug: %s", slug),
+		fmt.Sprintf("type: %s", docType),
+		fmt.Sprintf("status: %s", status),
+		`updated_at: "2026-08-05T00:00:00Z"`,
+	}
+	lines = append(lines, extra...)
+	lines = append(lines, "---", "", fmt.Sprintf("# %s", title), "")
+	return strings.Join(lines, "\n")
+}
+
+// citingAtStatus renders a conforming document at the given status whose
+// body is the given text — the status control statusDocument() offers,
+// combined with the body control citing() offers, for the one fixture
+// that needs both: a retired document that itself cites another one.
+func citingAtStatus(docType, slug, title, status, body string) string {
+	return fmt.Sprintf(`---
+title: %q
+description: "A fixture document."
+slug: %s
+type: %s
+status: %s
+updated_at: "2026-08-05T00:00:00Z"
+---
+
+# %s
+
+%s
+`, title, slug, docType, status, title, body)
+}
+
+// lifecycleCheckProfile registers "adr" and "frd" exactly as
+// referenceCheckProfile does, widened with a lifecycle registration:
+// draft and approved are live, retired is retired, and superseded_by is
+// the successor property — this framework's own registration, restated
+// here as test data rather than imported, so this package proves its
+// checks against a fixture it owns (module-spec-profile.md's Change
+// Guidance: Document Core imports no profile).
+func lifecycleCheckProfile() corpus.Profile {
+	return stubProfile{
+		schema: []byte(permissiveCheckSchema),
+		types: map[string]corpus.DocumentTypeRules{
+			"adr": {SlugPattern: `^adr-[0-9]{3}(-[a-z0-9-]+)*$`},
+			"frd": {SlugPattern: `^frd-[a-z0-9-]+$`},
+		},
+		lifecycle: corpus.LifecycleRules{
+			Statuses:          []string{"draft", "approved", "retired"},
+			LiveStatuses:      []string{"draft", "approved"},
+			RetiredStatuses:   []string{"retired"},
+			SuccessorProperty: "superseded_by",
+		},
+	}
+}
+
+// AC: AC-SPECREF-002.6
+func TestCheckReportsALiveDocumentReferencingARetiredOneWithASuccessor(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-900.md",
+		statusDocument("adr", "adr-900", "Old decision", "retired", "superseded_by: adr-901"))
+	write(t, repo, "specs/adrs/adr-901.md", document("adr", "adr-901", "New decision"))
+	write(t, repo, "specs/adrs/adr-800.md",
+		citing("adr", "adr-800", "Citing decision", "This decision refines [[adr-900]]."))
+
+	built := buildChecked(t, repo, lifecycleCheckProfile())
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+
+	got := findingsWithRule(findings, finding.RuleRetiredTarget, "specs/adrs/adr-800.md")
+	if len(got) != 1 {
+		t.Fatalf("got %d reference/retired-target findings, want 1: %+v", len(got), findings)
+	}
+	if got[0].Severity != finding.SeverityWarning {
+		t.Errorf("severity = %q, want %q — a reference to a retired document still resolves", got[0].Severity, finding.SeverityWarning)
+	}
+	detail, ok := got[0].Detail.Value.(specmodel.FindingRetiredTarget)
+	if !ok {
+		t.Fatalf("detail = %T, want FindingRetiredTarget", got[0].Detail.Value)
+	}
+	if detail.Slug != "adr-900" {
+		t.Errorf("slug = %q, want adr-900", detail.Slug)
+	}
+	if detail.Successor == nil || *detail.Successor != "adr-901" {
+		t.Errorf("successor = %v, want adr-901", detail.Successor)
+	}
+	if !strings.Contains(got[0].Message, "adr-900") || !strings.Contains(got[0].Message, "adr-901") {
+		t.Errorf("message = %q, want it to name both the retired target and its successor", got[0].Message)
+	}
+}
+
+// AC: AC-SPECREF-002.6
+//
+// Not every retirement has a successor (reference-integrity-blueprint.md,
+// LIFE): a retired target that declares none still raises the warning,
+// with an absent successor rather than one invented from nothing.
+func TestCheckReportsALiveDocumentReferencingARetiredOneWithNoSuccessor(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-900.md", statusDocument("adr", "adr-900", "Old decision", "retired"))
+	write(t, repo, "specs/adrs/adr-800.md",
+		citing("adr", "adr-800", "Citing decision", "This decision refines [[adr-900]]."))
+
+	built := buildChecked(t, repo, lifecycleCheckProfile())
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+
+	got := findingsWithRule(findings, finding.RuleRetiredTarget, "specs/adrs/adr-800.md")
+	if len(got) != 1 {
+		t.Fatalf("got %d reference/retired-target findings, want 1: %+v", len(got), findings)
+	}
+	detail, ok := got[0].Detail.Value.(specmodel.FindingRetiredTarget)
+	if !ok {
+		t.Fatalf("detail = %T, want FindingRetiredTarget", got[0].Detail.Value)
+	}
+	if detail.Successor != nil {
+		t.Errorf("successor = %v, want nil — the target declares none", detail.Successor)
+	}
+}
+
+// A reference between two live documents raises no retired-target
+// finding — the check the tests above would pass vacuously without.
+func TestCheckRaisesNoRetiredTargetFindingBetweenTwoLiveDocuments(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-900.md", document("adr", "adr-900", "Live decision"))
+	write(t, repo, "specs/adrs/adr-800.md",
+		citing("adr", "adr-800", "Citing decision", "This decision refines [[adr-900]]."))
+
+	built := buildChecked(t, repo, lifecycleCheckProfile())
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+	if got := findingsWithRule(findings, finding.RuleRetiredTarget, "specs/adrs/adr-800.md"); len(got) != 0 {
+		t.Errorf("got %d reference/retired-target findings between two live documents, want 0: %+v", len(got), findings)
+	}
+}
+
+// A retired document citing another retired one raises no finding: the
+// warning exists to tell a LIVE author what to cite instead, and the
+// referrer here is not one (reference-integrity-blueprint.md's LIFE
+// rationale for why every non-retired status is live).
+func TestCheckRaisesNoRetiredTargetFindingWhenTheReferringDocumentIsAlsoRetired(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-900.md", statusDocument("adr", "adr-900", "Old decision", "retired"))
+	write(t, repo, "specs/adrs/adr-850.md",
+		citingAtStatus("adr", "adr-850", "Also retired", "retired", "This decision refines [[adr-900]]."))
+
+	built := buildChecked(t, repo, lifecycleCheckProfile())
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+	if got := findingsWithRule(findings, finding.RuleRetiredTarget, "specs/adrs/adr-850.md"); len(got) != 0 {
+		t.Errorf("got %d reference/retired-target findings from a retired referrer, want 0: %+v", len(got), findings)
+	}
+}
+
+// pairingCheckProfile registers "owner"/"owned_by" as a pairing on "adr"
+// — a relationship this framework's own shipped profile deliberately
+// registers none of (LIFE's Design: "Do not add a pairing to the shipped
+// profile"). "owner" is also registered as reference-bearing, which a
+// pairing's Property must be per [corpus.ValidateRegistration].
+func pairingCheckProfile() corpus.Profile {
+	return stubProfile{
+		schema: []byte(permissiveCheckSchema),
+		types: map[string]corpus.DocumentTypeRules{
+			"adr": {
+				SlugPattern:         `^adr-[0-9]{3}(-[a-z0-9-]+)*$`,
+				ReferenceProperties: []string{"owner"},
+				Pairings: []specmodel.PropertyPairing{
+					{Property: "owner", Counterpart: "owned_by"},
+				},
+			},
+			"frd": {SlugPattern: `^frd-[a-z0-9-]+$`},
+		},
+	}
+}
+
+// AC: AC-SPECREF-002.5
+func TestCheckReportsAnIncompletePairingAgainstBothDocuments(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-100.md",
+		statusDocument("adr", "adr-100", "Owning decision", "approved", "owner: frd-team-ledger"))
+	write(t, repo, "specs/features/frd-team-ledger.md", document("frd", "frd-team-ledger", "Team Ledger"))
+
+	built := buildChecked(t, repo, pairingCheckProfile())
+	targetDoc, ok := built.Document("specs/features/frd-team-ledger.md")
+	if !ok {
+		t.Fatal("Document did not return the target's parsed frontmatter")
+	}
+
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+
+	source := findingsWithRule(findings, finding.RuleIncompletePairing, "specs/adrs/adr-100.md")
+	if len(source) != 1 {
+		t.Fatalf("got %d reference/pairing-incomplete findings against the declaring document, want 1: %+v", len(source), findings)
+	}
+	target := findingsWithRule(findings, finding.RuleIncompletePairing, "specs/features/frd-team-ledger.md")
+	if len(target) != 1 {
+		t.Fatalf("got %d reference/pairing-incomplete findings against the target, want 1: %+v", len(target), findings)
+	}
+
+	sourceDetail, ok := source[0].Detail.Value.(specmodel.FindingIncompletePairing)
+	if !ok {
+		t.Fatalf("source detail = %T, want FindingIncompletePairing", source[0].Detail.Value)
+	}
+	targetDetail, ok := target[0].Detail.Value.(specmodel.FindingIncompletePairing)
+	if !ok {
+		t.Fatalf("target detail = %T, want FindingIncompletePairing", target[0].Detail.Value)
+	}
+	if sourceDetail != targetDetail {
+		t.Errorf("source detail = %+v, target detail = %+v, want the same structured detail against both documents", sourceDetail, targetDetail)
+	}
+	if sourceDetail.Property != "owner" || sourceDetail.Counterpart != "owned_by" {
+		t.Errorf("detail = %+v, want property owner paired with owned_by", sourceDetail)
+	}
+	if sourceDetail.SourcePath != "specs/adrs/adr-100.md" || sourceDetail.TargetPath != "specs/features/frd-team-ledger.md" {
+		t.Errorf("detail = %+v, want both paths", sourceDetail)
+	}
+
+	// The declaring document's finding sits at the declared value's span;
+	// the target's sits at its frontmatter block's span, because an
+	// absent property has no position of its own.
+	if source[0].Position.Length == 0 {
+		t.Error("the declaring document's finding carries an empty span")
+	}
+	if target[0].Position != targetDoc.Region.Inner {
+		t.Errorf("target position = %+v, want the target's frontmatter-block span %+v", target[0].Position, targetDoc.Region.Inner)
+	}
+}
+
+// A pairing whose target declares the counterpart back raises no
+// finding — the check the test above would pass vacuously without.
+//
+// AC: AC-SPECREF-002.5
+func TestCheckRaisesNoIncompletePairingFindingWhenTheCounterpartIsDeclared(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-100.md",
+		statusDocument("adr", "adr-100", "Owning decision", "approved", "owner: frd-team-ledger"))
+	write(t, repo, "specs/features/frd-team-ledger.md",
+		statusDocument("frd", "frd-team-ledger", "Team Ledger", "approved", "owned_by: adr-100"))
+
+	built := buildChecked(t, repo, pairingCheckProfile())
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+	for _, f := range findings {
+		if f.Rule == finding.RuleIncompletePairing {
+			t.Errorf("got a reference/pairing-incomplete finding when the counterpart is declared: %+v", f)
+		}
+	}
+}
+
+// typeMismatchCheckProfile registers this framework's own typed
+// reference — a feature blueprint's frd must resolve to a document of
+// type frd — as test data, on the same terms lifecycleCheckProfile
+// restates the shipped lifecycle registration.
+func typeMismatchCheckProfile() corpus.Profile {
+	return stubProfile{
+		schema: []byte(`{
+  "definitions": {
+    "FeatureBlueprint": {"type": "object", "properties": {}},
+    "Frd": {"type": "object", "properties": {}},
+    "Adr": {"type": "object", "properties": {}}
+  }
+}`),
+		types: map[string]corpus.DocumentTypeRules{
+			"feature-blueprint": {
+				SlugPattern:              `^feature-[a-z0-9-]+$`,
+				ReferenceProperties:      []string{"frd"},
+				TypedReferenceProperties: map[string]string{"frd": "frd"},
+			},
+			"frd": {SlugPattern: `^frd-[a-z0-9-]+$`},
+			"adr": {SlugPattern: `^adr-[0-9]{3}$`},
+		},
+	}
+}
+
+// AC: AC-SPECREF-002.10
+func TestCheckReportsATypeMismatch(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/features/feature-checkout.md",
+		statusDocument("feature-blueprint", "feature-checkout", "Checkout", "approved", "frd: adr-009"))
+	write(t, repo, "specs/adrs/adr-009.md", document("adr", "adr-009", "Checkout decision"))
+
+	built := buildChecked(t, repo, typeMismatchCheckProfile())
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+
+	got := findingsWithRule(findings, finding.RuleTypeMismatch, "specs/features/feature-checkout.md")
+	if len(got) != 1 {
+		t.Fatalf("got %d reference/type-mismatch findings, want 1: %+v", len(got), findings)
+	}
+	detail, ok := got[0].Detail.Value.(specmodel.FindingReferenceType)
+	if !ok {
+		t.Fatalf("detail = %T, want FindingReferenceType", got[0].Detail.Value)
+	}
+	if detail.Property != "frd" {
+		t.Errorf("property = %q, want frd", detail.Property)
+	}
+	if detail.Slug != "adr-009" {
+		t.Errorf("slug = %q, want adr-009", detail.Slug)
+	}
+	if detail.ExpectedType != "frd" || detail.ActualType != "adr" {
+		t.Errorf("expected/actual = %q/%q, want frd/adr", detail.ExpectedType, detail.ActualType)
+	}
+	if !strings.Contains(got[0].Message, "frd") || !strings.Contains(got[0].Message, "adr-009") || !strings.Contains(got[0].Message, "adr") {
+		t.Errorf("message = %q, want it to name the property, the target and both types", got[0].Message)
+	}
+}
+
+// A typed reference whose target declares the required type raises no
+// finding — the check the test above would pass vacuously without.
+//
+// AC: AC-SPECREF-002.10
+func TestCheckRaisesNoTypeMismatchFindingWhenTheTargetDeclaresTheExpectedType(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/features/feature-checkout.md",
+		statusDocument("feature-blueprint", "feature-checkout", "Checkout", "approved", "frd: frd-checkout"))
+	write(t, repo, "specs/features/frd-checkout.md", document("frd", "frd-checkout", "Checkout"))
+
+	built := buildChecked(t, repo, typeMismatchCheckProfile())
+	findings, err := built.Check()
+	if err != nil {
+		t.Fatalf("Check: %v", err)
+	}
+	if got := findingsWithRule(findings, finding.RuleTypeMismatch, "specs/features/feature-checkout.md"); len(got) != 0 {
+		t.Errorf("got %d reference/type-mismatch findings when the target declares the expected type, want 0: %+v", len(got), findings)
+	}
+}
+
+// Every LIFE finding survives CheckFor's narrowing on the same terms
+// reference/unresolved does, because every one of them is raised against
+// the document holding the reference rather than the document the
+// reference is about (AC-SPECREF-002.11).
+//
+// Retiring a document is the case that motivates it: checking the
+// document just retired must name the live documents still citing it,
+// which is the write-time equivalent of the slug rename AC-SPECREF-002.9
+// covers. This test asserted the opposite until agent-plugins-bk4 — that
+// the finding was narrowed away — which is what let a single-document
+// check print "reference/retired-target passed" over findings it had
+// discarded.
+//
+// AC: AC-SPECREF-002.11
+func TestCheckForReportsLifecycleFindingsAgainstTheReferringDocument(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-900.md", statusDocument("adr", "adr-900", "Old decision", "retired"))
+	write(t, repo, "specs/adrs/adr-800.md",
+		citing("adr", "adr-800", "Citing decision", "This decision refines [[adr-900]]."))
+
+	built := buildChecked(t, repo, lifecycleCheckProfile())
+
+	// The document that was retired: the finding lands on its referrer,
+	// and checking the retired document is what an author does before
+	// flipping status.
+	findings, err := built.CheckFor("specs/adrs/adr-900.md")
+	if err != nil {
+		t.Fatalf("CheckFor: %v", err)
+	}
+	if got := findingsWithRule(findings, finding.RuleRetiredTarget, "specs/adrs/adr-800.md"); len(got) != 1 {
+		t.Errorf("CheckFor(adr-900) reported %d retired-target findings against the referrer, want 1: %+v", len(got), findings)
+	}
+
+	// The referrer itself still reports its own finding, exactly once.
+	findings, err = built.CheckFor("specs/adrs/adr-800.md")
+	if err != nil {
+		t.Fatalf("CheckFor: %v", err)
+	}
+	if got := findingsWithRule(findings, finding.RuleRetiredTarget, "specs/adrs/adr-800.md"); len(got) != 1 {
+		t.Errorf("CheckFor(adr-800) reported %d of its own retired-target findings, want 1: %+v", len(got), findings)
+	}
+}
+
+// A path that names no corpus member is an error, never a report with no
+// findings — the vacuous success agent-plugins-ltd is about. The index
+// already distinguishes a candidate it excluded, with the reason, from a
+// path discovery never saw, and both are reported as such.
+//
+// AC: AC-SPEC-001.2
+func TestCheckForRejectsAPathThatIsNotACorpusMember(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-001.md", document("adr", "adr-001", "First"))
+	write(t, repo, "specs/notes/loose.md", "# No frontmatter at all\n")
+	write(t, repo, "README.md", "# Outside the spec root\n")
+
+	built := buildChecked(t, repo, referenceCheckProfile("superseded_by"))
+
+	for _, tc := range []struct {
+		name string
+		path string
+		want string
+	}{
+		{"never discovered", "specs/adrs/does-not-exist.md", "no document at that path"},
+		{"outside the spec root", "README.md", "no document at that path"},
+		{"excluded candidate", "specs/notes/loose.md", "no-frontmatter"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			findings, err := built.CheckFor(tc.path)
+			if err == nil {
+				t.Fatalf("CheckFor(%s) returned %d findings and no error", tc.path, len(findings))
+			}
+			if !errors.Is(err, corpus.ErrNotAMember) {
+				t.Fatalf("error = %v, want it to wrap ErrNotAMember", err)
+			}
+			if findings != nil {
+				t.Errorf("findings = %+v, want none alongside the error", findings)
+			}
+			if !strings.Contains(err.Error(), tc.want) {
+				t.Errorf("error = %q, want it to mention %q", err, tc.want)
+			}
+			if !strings.Contains(err.Error(), tc.path) {
+				t.Errorf("error = %q, want it to name the path asked about", err)
+			}
+		})
+	}
+
+	// A real member is unaffected.
+	if _, err := built.CheckFor("specs/adrs/adr-001.md"); err != nil {
+		t.Errorf("CheckFor on a member returned %v", err)
 	}
 }

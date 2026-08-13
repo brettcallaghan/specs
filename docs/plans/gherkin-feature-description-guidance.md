@@ -2,11 +2,11 @@
 
 **Status: proposed.** This is drafted as a section for
 `plugin/skills/spec/references/frd-template.md`, to be folded in when
-[[adr-018]] is approved. It is kept here rather than in the template so
+[[adr-020]] is approved. It is kept here rather than in the template so
 that the `spec` skill does not start instructing agents to author
 Gherkin while the decision is still draft.
 
-Under [[adr-018]] a requirement maps to a `Feature`, and the `Feature`
+Under [[adr-020]] a requirement maps to a `Feature`, and the `Feature`
 description is the one free-text slot attached to it. This is what to
 put there.
 
@@ -120,7 +120,7 @@ from the AST walk; the pickle stream will not have them.
 
 ## References
 
-- [[adr-018]] — constraint 1, the requirement-to-`Feature` mapping
+- [[adr-020]] — constraint 1, the requirement-to-`Feature` mapping
 - `docs/spec-index-frd-gherkin.md` — nine worked descriptions
 - `docs/gherkin-frd-comparison.md` — what the trial showed
 - `docs/plans/gherkin-extraction-findings.md` — the extraction contract

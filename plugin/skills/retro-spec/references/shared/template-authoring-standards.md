@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: plugin/skills/spec/references/template-authoring-standards.md (version 0.12)
+     Source of truth: plugin/skills/spec/references/template-authoring-standards.md (version 0.13)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -13,10 +13,7 @@ slug: template-authoring-standards
 type: standards
 status: active
 updated_at: 2026-07-30T00:00:00Z
-version: "0.12"
-related:
-  - "frontmatter-standards"
-  - "cross-document-references"
+version: "0.13"
 ---
 
 # Template Authoring Standards
@@ -89,7 +86,7 @@ names the specific document.
 
 A slug encodes **identity only**. It SHALL NOT encode any mutable
 attribute — status, version, date, or containment/hierarchy. Those live
-in frontmatter (`status`, `version`, `parent_slug`, `composes`, …) where
+in frontmatter (`status`, `version`, `system`, `contained_by`, …) where
 they change without breaking references.
 
 WHEN a document's title or subject is rephrased, its slug SHOULD NOT
@@ -442,8 +439,9 @@ that all `[[document-slug]]` references point to existing documents.
 
 ### Dependency Graph
 
-WHEN documents include relationship properties (`depends_on`, `blocks`, 
-`sources`, `related`), tools SHOULD generate a dependency graph to:
+WHEN documents include relationship properties (`sources`, `system`,
+`contained_by`), tools SHOULD generate a dependency graph alongside the
+graph derived from body citations to:
 - Visualize document relationships
 - Detect circular dependencies
 - Enable impact analysis (what's affected if this changes?)

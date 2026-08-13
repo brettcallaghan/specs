@@ -1,0 +1,1 @@
+Error: cmd: docs/adrs/absent.md was not checked: corpus: docs/adrs/absent.md is not a corpus member: no document at that path was discovered under the spec root

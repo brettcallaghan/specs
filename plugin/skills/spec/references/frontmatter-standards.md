@@ -6,10 +6,8 @@ description: Required, relationship, and optional frontmatter properties for
 slug: frontmatter-standards
 type: standards
 status: active
-updated_at: 2026-08-01T00:00:00Z
-version: "0.1"
-related:
-  - "template-authoring-standards"
+updated_at: 2026-08-06T00:00:00Z
+version: "0.2"
 ---
 
 # Frontmatter Standards
@@ -19,8 +17,8 @@ related:
 - Format — YAML delimiters and placement
 - Required Properties — title, description, slug, type, status, updated_at,
   including the full `status` vocabulary and the state-vs-transient rule
-- Relationship Properties — parent/child, sources, composes, depends_on /
-  blocks, updates / creates, related
+- Relationship Properties — provenance, composition, and the typed edges a
+  consumer keys on
 - Optional Properties — version, created_at, tags, superseded_by
 - Embedded Element Records — the record-block XOR blueprint-link rule for
   declaring child components
@@ -114,33 +112,27 @@ is implemented, not "in effect."
 
 ### Relationship Properties
 
-WHEN a document has relationships to other documents, the template SHALL 
-include relationship properties in the frontmatter:
+A relationship property names other documents by `slug`. Which properties
+exist is owned by [[document-relationship-standards]] and by the schemas in
+`schemas/`; this section states how a template declares one.
+
+WHEN a document has a relationship a body citation cannot carry, the template
+SHALL include a relationship property for it in the frontmatter:
 
 ```yaml
 ---
-# Parent/child hierarchies
-parent_slug: "<parent document slug>"       # For nested documents
-children: []                                # Child document slugs
-
-# Source relationships (what this is based on)
+# Provenance (what this is derived from)
 sources: []                                 # Source document slugs
 
-# Composition relationships (what this uses)
-composes: []                                # Composed document slugs
+# Composition
+system: "<system slug>"                     # container -> its one system
+contained_by: []                            # module -> the containers
+                                            # composing it; a LIST, and the
+                                            # only multi-parent edge there is
 
-# Dependency relationships (ordering)
-depends_on: []                              # Prerequisite document slugs
-blocks: []                                  # Blocked document slugs
-
-# Change relationships (transient change documents)
-updates: []                                 # Existing document slugs this
-                                            # change will modify
-creates: []                                 # New document slugs authored
-                                            # alongside this document
-
-# Peer relationships
-related: []                                 # Related document slugs
+# Typed edges a machine consumer keys on
+contracts_provided: []                      # contract slugs this provides
+contracts_consumed: []                      # contract slugs this consumes
 ---
 ```
 
@@ -149,20 +141,25 @@ from the template.
 
 All relationship properties SHALL reference documents by their `slug` value.
 
-WHEN a document describes a change to the document set itself (e.g., a 
-feature blueprint that will modify architecture blueprints and author new 
-contracts), the template SHALL include the `updates` and `creates` 
-properties.
+A template SHALL NOT introduce a relationship property that only mirrors the
+document's own prose citations. Per [[document-relationship-standards]], a
+relationship is declared at exactly one end and the index derives the reverse,
+so a property earns its place only if it carries a typed relationship a
+consumer keys on, names a target not reliably present in the prose, or is the
+only home for the edge.
 
-The `updates` property SHALL list existing documents the change will 
-modify; the `creates` property SHALL list new documents authored 
-alongside the change document (e.g., draft contracts).
+WHEN a document describes a change to the document set itself (e.g., a
+feature blueprint that will modify architecture blueprints and author new
+contracts), the documents it creates and updates SHALL be named in its prose
+and tracked in its `plan`, not mirrored into frontmatter.
 
-**Rationale:** Relationship properties enable traceability, dependency 
-management, and impact analysis across documents. Change relationships 
-additionally let tooling derive completion criteria for in-flight 
-changes: the change is not done until every listed document has been 
-updated or activated.
+**Rationale:** Relationship properties enable traceability, dependency
+management, and impact analysis across documents — but only where the graph
+derived from prose citations cannot already answer the question. A parent's
+membership roster is derivable — from the child's own declaration where a
+child may have several parents, and otherwise from the parent's roster
+section, which links each promoted child by `[[slug]]` anyway — and a change
+set is tracked to completion by the plan, so neither is carried here.
 
 ### Optional Properties
 

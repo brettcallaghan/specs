@@ -11,12 +11,11 @@ visibility: <public | internal>
 consumers: []                        # known consumer slugs (containers/systems)
 specs: []                            # paths/URLs of machine-readable artifacts
 version: "1.0"
-related: []                          # related documents (ADRs, standards)
 ---
 
 <!--
 Template: Contract
-Version: 1.3
+Version: 1.4
 Source: Architecture documentation framework. C4 mapping rules and
   contract visibility tiers are defined in `c4-guide.md`.
 

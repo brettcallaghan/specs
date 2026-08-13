@@ -5,18 +5,13 @@ description: The specs.toml format an adopting repository authors, and
 slug: contract-specs-configuration
 type: contract
 status: approved
-updated_at: 2026-07-31T00:00:00Z
+updated_at: 2026-08-07T00:00:00Z
 provider: container-spec-cli
 visibility: public
 consumers: []
 specs:
   - "cli/core/schema/specs-config.schema.json"
 version: "1.0"
-related:
-  - "frd-spec-validation-cli"
-  - "module-document-core"
-  - "module-spec-profile"
-  - "testing-standards"
 ---
 
 # Specs Configuration
@@ -129,12 +124,82 @@ from one whose count is determined by content. Without it a tree can
 only express fixed documents, and the templates this profile mirrors are
 not all fixed.
 
+A profile also supplies, per document type, which of its frontmatter
+properties are reference-bearing, which of those are typed, and which
+are paired — three facts a JSON Schema cannot express, because what a
+slug-shaped value resolves to, and what its target must be, are
+questions about the corpus rather than about the value itself:
+
+- **Reference-bearing properties** are the frontmatter properties of the
+  type whose value is a document slug. A value in a property absent
+  from this list contributes no reference however slug-shaped it looks:
+  what is a reference is registered, never inferred from a value's
+  shape.
+- **Typed reference properties** narrow a reference-bearing property
+  further, to the one document type its target must declare — a
+  feature blueprint's `frd` property must resolve to a document of type
+  `frd`, for example. Registered as a mapping from the property's name
+  to the required type; every key also names a reference-bearing
+  property, since a typed property that is not reference-bearing has no
+  target to check the type of.
+- **Pairings** are the reference-bearing properties that must be
+  declared from both ends: a document naming a counterpart in one of
+  them, where the target declares nothing in return, is a half-built
+  edge. Each pairing names the property on this type and the
+  counterpart property the target must declare in return. A profile MAY
+  register none — a vocabulary whose relationships are all recoverable
+  by querying inbound references, rather than by requiring a reverse
+  declaration, registers an empty pairing set, and the check this feeds
+  is inert for it by design.
+
+```go
+type DocumentTypeRules struct {
+    ReferenceProperties      []string
+    TypedReferenceProperties map[string]string // property name -> required type
+    Pairings                 []PropertyPairing
+}
+
+type PropertyPairing struct {
+    Property    string // this type's property
+    Counterpart string // the property the target must declare in return
+}
+```
+
+A profile separately supplies one **lifecycle registration** for the
+whole of its document vocabulary, not per type, since status is a
+property of the shared document envelope rather than of any one type:
+the full status vocabulary its documents may declare, which of those
+statuses a document is in effect at (live) and which it is no longer in
+effect at (retired), and the frontmatter property in which a document
+at a retired status names its replacement. A profile MAY register no
+lifecycle — the zero value — describing a corpus whose documents have
+none; the checks that read the registration do not run for it.
+
+```go
+type LifecycleRules struct {
+    Statuses          []string
+    LiveStatuses      []string
+    RetiredStatuses   []string
+    SuccessorProperty string
+}
+```
+
 Because the public surface no longer overlaps the internal one, the
 relationship binding them into a single contract is naming rather than
 override: `[profile].name` selects one of these registrations, and
 `[conventions]` supplies values a registration reads. A profile whose
 name no adopter can select, or a convention no registration consumes, is
 a defect in this contract rather than in either module.
+
+`version` stays `"1.0"` for the whole of the internal surface described
+above, including the reference-bearing, typed-reference, pairing and
+lifecycle registrations: the Versioning and Change Policy section below
+exempts the internal registration surface from versioning while
+[[module-document-core]] and [[module-spec-profile]] are both
+`visibility: internal`, which they are, and this vocabulary is additive
+to that internal half only. The public `specs.toml` surface above is
+unchanged, so no adopting repository's file changes meaning under this
+version.
 
 ## Guarantees
 

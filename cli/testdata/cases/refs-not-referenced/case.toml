@@ -1,0 +1,5 @@
+description = "refs <slug> reports a declared slug no corpus member references, distinctly from an undeclared one, and exits zero"
+cites = ["AC-SPECREF-003.5"]
+artifacts = ["checks.log"]
+args = ["refs", "adr-800-current"]
+exit_code = 0

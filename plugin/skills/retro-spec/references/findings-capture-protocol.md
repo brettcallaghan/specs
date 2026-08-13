@@ -6,8 +6,8 @@ description: How agents record retro evidence in-flight during
 slug: findings-capture-protocol
 type: standards
 status: active
-updated_at: 2026-07-23T00:00:00Z
-version: "0.2"
+updated_at: 2026-08-12T00:00:00Z
+version: "0.4"
 ---
 
 # Findings Capture Protocol
@@ -17,11 +17,13 @@ multi-agent phase (implementing a groomed plan, where each work order
 may go to a different spawned agent) no single session holds it. This
 protocol is how that evidence is captured at the moment of friction.
 
-This document is deliberately self-contained: an agent implementing
-one work order needs ONLY this file — not the `retro-spec` skill that
-consumes the findings, and not the `groom-feature-blueprint` skill that produced
-the item. Work orders reference the copy of this document vendored
-into the project (`rfcs/findings-capture.md`).
+This document is the single statement of the protocol. Skills that
+capture or harvest findings vendor it into their own
+`references/shared/` and point at that copy; they do not restate it.
+Do not copy it into a target project, and do not restate it per work
+order or per issue — an item carries only the short standing
+instruction its grooming skill stamps, which is self-sufficient on its
+own.
 
 ## The finding
 
@@ -74,8 +76,22 @@ SHALL NOT be deleted after aggregation.
 
 The plan's final Definition-of-Done item runs ONE retro for the whole
 implementation phase (the `retro-spec` skill; never a retro per work
-item). It harvests the findings across the feature's closure set —
-`bd list --label <feature-slug>` then each issue's `retro:` comments,
-or each task file's Retro findings section — adds its own
-DoD-verification friction, and treats that pool as the phase's
-evidence.
+item). It harvests the findings across the feature's closure set with
+one `bd export | jq` pipeline, never `bd list` plus `bd show --json`:
+`bd list` defaults to open issues, and a drained closure set is almost
+entirely closed; `bd show --json` omits comments entirely even though
+the text output prints them. `bd export` carries comments as a
+`comments` array on the issue record and covers every status in one
+pass:
+
+```
+bd export | jq -r 'select((.labels//[]) | index("<feature-slug>"))
+  | .comments[]? | select(.text|startswith("retro:")) | .text'
+```
+
+(Task-file backend: each task file's Retro findings section instead.)
+Assert the count is non-zero before aggregating — a harvest that
+returns zero findings across a completed feature is a broken query,
+not a clean run, and an aggregated retro built on it is worse than
+none. Then add the DoD item's own verification friction, and treat
+that pool as the phase's evidence.

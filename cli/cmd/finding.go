@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
@@ -37,6 +38,16 @@ const (
 	// RuleConfigUnknownProfile covers a [profile].name naming no profile
 	// in the registry.
 	RuleConfigUnknownProfile specmodel.RuleId = "config/unknown-profile"
+	// RuleConfigInvalidRegistration covers a defect in the active
+	// profile's own registration — a pairing or typed reference naming a
+	// property never registered as reference-bearing, a typed reference
+	// naming a target type the profile does not define, or a lifecycle
+	// status outside the profile's own vocabulary — reported per
+	// [corpus.ValidateRegistration]. A registration is compiled in and so
+	// has no position of its own; every finding this rule covers is
+	// positioned at [profile].name, the configuration value that selected
+	// it (AC-SPECREF-004.3).
+	RuleConfigInvalidRegistration specmodel.RuleId = "config/invalid-registration"
 )
 
 // rootPointer is what an empty JSON Pointer renders as in a message, so a
@@ -158,6 +169,33 @@ func configUnknownProfile(path string, at specmodel.Span, name string, registere
 			Pointer:    "/profile/name",
 			Constraint: "known-profile",
 			Value:      name,
+		}),
+	}
+}
+
+// configRegistrationDefect reports one defect [corpus.ValidateRegistration]
+// found in the active profile's own registration, positioned at
+// [profile].name — the only file position a compiled-in registration has
+// (AC-SPECREF-004.3). key names the offending property or status,
+// qualified with its document type where the defect belongs to one, so a
+// reader sees exactly what [corpus.RegistrationDefect.Key] alone would
+// leave ambiguous between two document types registering the same
+// property name.
+func configRegistrationDefect(path string, at specmodel.Span, defect corpus.RegistrationDefect) specmodel.Finding {
+	key := defect.Key
+	if defect.DocumentType != "" {
+		key = fmt.Sprintf("%s.%s", defect.DocumentType, defect.Key)
+	}
+	return specmodel.Finding{
+		Rule:     RuleConfigInvalidRegistration,
+		Severity: finding.SeverityError,
+		Path:     path,
+		Position: at,
+		Message:  fmt.Sprintf("profile registration: %q %s", key, defect.Detail),
+		Detail: specmodel.NewFindingDetailSchemaViolation(specmodel.FindingSchemaViolation{
+			Pointer:    "/profile/name",
+			Constraint: "valid-registration",
+			Value:      key,
 		}),
 	}
 }

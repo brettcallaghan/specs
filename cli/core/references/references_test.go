@@ -1,0 +1,407 @@
+// Tests for reference extraction.
+//
+// Every fixture here is a whole document — frontmatter block and body —
+// because half the rules under test are about the boundary between the
+// two, and a fixture that starts at the body cannot exercise them.
+package references_test
+
+import (
+	"go/parser"
+	"go/token"
+	"os"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"testing"
+
+	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
+	"github.com/brettcallaghan/agent-plugins/cli/core/references"
+	"github.com/brettcallaghan/agent-plugins/cli/core/span"
+	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+)
+
+// extract parses src's frontmatter and extracts its references, which is
+// what every test here does first.
+func extract(t *testing.T, src string, properties ...string) ([]specmodel.Reference, []byte) {
+	t.Helper()
+
+	source := []byte(src)
+	front, perr := frontmatter.Parse(source)
+	if perr != nil {
+		t.Fatalf("parsing the fixture's frontmatter: %s", perr.Message)
+	}
+	return references.Extract(references.Options{
+		Path:                "specs/fixture.md",
+		Source:              source,
+		Frontmatter:         front,
+		ReferenceProperties: properties,
+	}), source
+}
+
+// slugs returns the slug half of each reference, which is what most of
+// these tests assert on.
+func slugs(found []specmodel.Reference) []string {
+	out := make([]string, 0, len(found))
+	for _, reference := range found {
+		out = append(out, reference.Slug)
+	}
+	return out
+}
+
+// AC: AC-SPECREF-001.1
+func TestEveryBodyReferenceIsRecordedWithItsSpan(t *testing.T) {
+	found, source := extract(t, `---
+title: A document
+---
+
+The decision is [[adr-012]], refining [[adr-009]].
+
+See also [[module-document-core#Components]].
+`)
+
+	if want := []string{"adr-012", "adr-009", "module-document-core"}; !equal(slugs(found), want) {
+		t.Fatalf("slugs = %v, want %v", slugs(found), want)
+	}
+
+	for _, reference := range found {
+		if reference.Path != "specs/fixture.md" {
+			t.Errorf("%q carries path %q", reference.Text, reference.Path)
+		}
+		if got := string(span.Slice(source, reference.Position)); got != reference.Text {
+			t.Errorf("the span of %q covers %q", reference.Text, got)
+		}
+		if reference.Position.StartLine == 0 || reference.Position.StartColumn == 0 {
+			t.Errorf("%q carries no line or column: %+v", reference.Text, reference.Position)
+		}
+		if _, ok := reference.Origin.AsBody(); !ok {
+			t.Errorf("%q is not recorded as a body reference", reference.Text)
+		}
+	}
+
+	// The position is the whole reference, at the line and column a
+	// reader opens, rather than a bare offset.
+	if first := found[0].Position; first.StartLine != 5 {
+		t.Errorf("the first reference is on line %d, want 5", first.StartLine)
+	}
+}
+
+// AC: AC-SPECREF-001.2
+func TestAReferenceInsideCodeIsNotRecorded(t *testing.T) {
+	found, _ := extract(t, "---\ntitle: A document\n---\n\n"+
+		"Write `[[security-standards]]` to cite a standard.\n\n"+
+		"```markdown\nSee [[adr-004]] and [[adr-006]].\n```\n\n"+
+		"    [[adr-indented]]\n\n"+
+		"A real one: [[adr-012]].\n\n"+
+		"``a code span with a [[double-backtick]] fence``\n\n"+
+		"``` \nfenced with a trailing space [[adr-007]]\n```\n")
+
+	if want := []string{"adr-012"}; !equal(slugs(found), want) {
+		t.Errorf("slugs = %v, want %v", slugs(found), want)
+	}
+}
+
+// A fence's info string is code too, so a reference written there is an
+// illustration on the same terms as one written inside the fence.
+func TestAReferenceInAFenceInfoStringIsNotRecorded(t *testing.T) {
+	found, _ := extract(t, "---\ntitle: A document\n---\n\n"+
+		"```[[adr-004]]\ncontent\n```\n\nReal: [[adr-012]].\n")
+
+	if want := []string{"adr-012"}; !equal(slugs(found), want) {
+		t.Errorf("slugs = %v, want %v", slugs(found), want)
+	}
+}
+
+// AC: AC-SPECREF-001.4
+func TestAReferenceInAFrontmatterValueIsNotRecorded(t *testing.T) {
+	// The description names the notation rather than a document. It is
+	// the only unresolved reference a scan of this repository's corpus
+	// produces, and it is a false one.
+	found, _ := extract(t, `---
+title: Reference conventions
+description: References use [[slug]] wikilinks rather than paths
+superseded_by: adr-013
+---
+
+The body cites [[adr-012]].
+`, "superseded_by")
+
+	if want := []string{"adr-013", "adr-012"}; !equal(slugs(found), want) {
+		t.Errorf("slugs = %v, want %v", slugs(found), want)
+	}
+}
+
+// AC: AC-SPECREF-001.5
+func TestRepeatedReferencesAreSeparateOccurrencesInSourceOrder(t *testing.T) {
+	found, source := extract(t, `---
+title: A document
+---
+
+The requirement cites [[adr-002]] in its Requirements.
+
+And again in its References: [[adr-002]].
+`)
+
+	if len(found) != 2 {
+		t.Fatalf("found %d references, want 2: %v", len(found), slugs(found))
+	}
+	if found[0].Position.Offset >= found[1].Position.Offset {
+		t.Errorf("references are out of source order: %d then %d",
+			found[0].Position.Offset, found[1].Position.Offset)
+	}
+	if found[0].Position == found[1].Position {
+		t.Error("both occurrences carry the same span")
+	}
+	for _, reference := range found {
+		if got := string(span.Slice(source, reference.Position)); got != "adr-002" {
+			t.Errorf("a span covers %q", got)
+		}
+	}
+}
+
+// AC: AC-SPECREF-001.7
+func TestRegisteredFrontmatterPropertiesContributeReferences(t *testing.T) {
+	found, source := extract(t, `---
+title: A module
+contained_by:
+  - "container-spec-cli"
+frd: frd-spec-reference-integrity
+tags:
+  - not-a-reference
+---
+
+The body cites [[adr-012]].
+`, "contained_by", "frd")
+
+	if want := []string{"container-spec-cli", "frd-spec-reference-integrity", "adr-012"}; !equal(slugs(found), want) {
+		t.Fatalf("slugs = %v, want %v", slugs(found), want)
+	}
+
+	origins := map[string]string{}
+	for _, reference := range found {
+		if property, ok := reference.Origin.AsFrontmatterProperty(); ok {
+			origins[reference.Slug] = property.Property
+			continue
+		}
+		if _, ok := reference.Origin.AsBody(); !ok {
+			t.Errorf("%q carries neither origin", reference.Slug)
+		}
+	}
+	if origins["container-spec-cli"] != "contained_by" {
+		t.Errorf(`the sequence value names property %q`, origins["container-spec-cli"])
+	}
+	if origins["frd-spec-reference-integrity"] != "frd" {
+		t.Errorf(`the scalar value names property %q`, origins["frd-spec-reference-integrity"])
+	}
+	if _, named := origins["adr-012"]; named {
+		t.Error("the body reference names a frontmatter property")
+	}
+
+	// The span of a frontmatter reference covers the value as written,
+	// quoting included, because that is the extent a rewrite replaces.
+	if got := string(span.Slice(source, found[0].Position)); got != `"container-spec-cli"` {
+		t.Errorf("the sequence element's span covers %q", got)
+	}
+	if got := string(span.Slice(source, found[1].Position)); got != "frd-spec-reference-integrity" {
+		t.Errorf("the scalar's span covers %q", got)
+	}
+}
+
+func TestASequenceValuedPropertyYieldsOneReferencePerItem(t *testing.T) {
+	found, source := extract(t, `---
+title: A component
+contracts_consumed:
+  - contract-specs-configuration
+  - "contract-payments-api"
+---
+
+Body.
+`, "contracts_consumed")
+
+	if want := []string{"contract-specs-configuration", "contract-payments-api"}; !equal(slugs(found), want) {
+		t.Fatalf("slugs = %v, want %v", slugs(found), want)
+	}
+	if found[0].Position == found[1].Position {
+		t.Fatal("both items carry the span of the whole list")
+	}
+	if got := string(span.Slice(source, found[0].Position)); got != "contract-specs-configuration" {
+		t.Errorf("the first item's span covers %q", got)
+	}
+	if found[0].Position.StartLine != 4 || found[1].Position.StartLine != 5 {
+		t.Errorf("items are on lines %d and %d, want 4 and 5",
+			found[0].Position.StartLine, found[1].Position.StartLine)
+	}
+}
+
+func TestAnAnchorIsSplitOnTheFirstHashAndNotInterpreted(t *testing.T) {
+	found, _ := extract(t, `---
+title: A document
+---
+
+[[container-spec-cli#Element Registry]] and [[adr-012#Decision#Nested]]
+and [[adr-009]] and [[slug|text]].
+`)
+
+	if want := []string{"container-spec-cli", "adr-012", "adr-009", "slug|text"}; !equal(slugs(found), want) {
+		t.Fatalf("slugs = %v, want %v", slugs(found), want)
+	}
+
+	if found[0].Anchor == nil || *found[0].Anchor != "Element Registry" {
+		t.Errorf("anchor = %v, want the heading text", found[0].Anchor)
+	}
+	// Split on the FIRST hash: what follows is recorded whole and not
+	// read as a second anchor.
+	if found[1].Anchor == nil || *found[1].Anchor != "Decision#Nested" {
+		t.Errorf("anchor = %v, want everything after the first hash", found[1].Anchor)
+	}
+	if found[2].Anchor != nil {
+		t.Errorf("a reference naming no anchor carries anchor %q", *found[2].Anchor)
+	}
+	// The display alias the reference standard forbids is not a
+	// separator: the whole of it is the slug half, so it reports as
+	// unresolved rather than resolving to something the standard bans.
+	if found[3].Anchor != nil {
+		t.Errorf("the display alias was read as an anchor: %q", *found[3].Anchor)
+	}
+	if found[3].Text != "slug|text" {
+		t.Errorf("text = %q, want the reference as written", found[3].Text)
+	}
+}
+
+func TestAnHTMLCommentBlockIsReadAsBodyText(t *testing.T) {
+	found, _ := extract(t, `---
+title: A document
+---
+
+<!-- Instructions: cite the decision as [[adr-012]] and delete this block. -->
+
+Real prose.
+`)
+
+	if want := []string{"adr-012"}; !equal(slugs(found), want) {
+		t.Errorf("slugs = %v, want %v", slugs(found), want)
+	}
+}
+
+func TestADocumentWithNoFrontmatterIsAllBody(t *testing.T) {
+	source := []byte("No frontmatter here, but a reference to [[adr-012]].\n")
+	front, perr := frontmatter.Parse(source)
+	if perr != nil {
+		t.Fatalf("parsing: %s", perr.Message)
+	}
+	if front != nil {
+		t.Fatal("the fixture parsed a frontmatter block it does not have")
+	}
+
+	found := references.Extract(references.Options{Path: "specs/fixture.md", Source: source})
+	if want := []string{"adr-012"}; !equal(slugs(found), want) {
+		t.Errorf("slugs = %v, want %v", slugs(found), want)
+	}
+}
+
+// An unregistered property holds no reference however slug-shaped its
+// value is: what is a reference is registered, never guessed.
+func TestAnUnregisteredPropertyContributesNothing(t *testing.T) {
+	found, _ := extract(t, `---
+title: A document
+superseded_by: adr-013
+---
+
+Body.
+`)
+
+	if len(found) != 0 {
+		t.Errorf("found %v with no property registered", slugs(found))
+	}
+}
+
+// A registered property whose value is not text contributes nothing.
+// Whether such a value belongs there is the schema's question.
+func TestANonTextValueContributesNoReference(t *testing.T) {
+	found, _ := extract(t, `---
+title: A document
+frd: 42
+sources:
+  - key: value
+  - a-real-slug
+---
+
+Body.
+`, "frd", "sources")
+
+	if want := []string{"a-real-slug"}; !equal(slugs(found), want) {
+		t.Errorf("slugs = %v, want %v", slugs(found), want)
+	}
+}
+
+// Extraction says nothing about what a reference reached. Leaving the
+// resolution unset is what makes an unresolved reference unserializable,
+// so one cannot reach the index without having been resolved on the way.
+func TestExtractionResolvesNothing(t *testing.T) {
+	found, _ := extract(t, "---\ntitle: A document\n---\n\n[[adr-012]]\n")
+
+	if len(found) != 1 {
+		t.Fatalf("found %d references, want 1", len(found))
+	}
+	if found[0].Resolution.Value != nil {
+		t.Errorf("extraction recorded a resolution: %+v", found[0].Resolution.Value)
+	}
+	if _, err := found[0].Resolution.MarshalJSON(); err == nil {
+		t.Error("an unresolved reference serialized; it must not reach the index")
+	}
+}
+
+// Every position this package reports is a Span from the Spans
+// component, checked at compile time as well as by every span assertion
+// above.
+var _ span.Span = specmodel.Reference{}.Position
+
+// The index's entries carry only the typed frontmatter envelope, which
+// holds neither the per-type properties a profile registers nor the
+// positions a reference needs. Reading one through it would lose both,
+// so this package reads the parsed block instead — enforced here rather
+// than left to review (agent-plugins-gz3).
+func TestExtractionReadsNoIndexEntry(t *testing.T) {
+	const forbidden = "github.com/brettcallaghan/agent-plugins/cli/core/specindex"
+
+	entries, err := os.ReadDir(".")
+	if err != nil {
+		t.Fatalf("reading the package directory: %v", err)
+	}
+	sources := 0
+	for _, entry := range entries {
+		name := entry.Name()
+		if entry.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+			continue
+		}
+		sources++
+		parsed, err := parser.ParseFile(token.NewFileSet(), filepath.FromSlash(name), nil, parser.ImportsOnly)
+		if err != nil {
+			t.Fatalf("parsing %s: %v", name, err)
+		}
+		for _, imported := range parsed.Imports {
+			path, err := strconv.Unquote(imported.Path.Value)
+			if err != nil {
+				t.Fatalf("%s: unquoting %s: %v", name, imported.Path.Value, err)
+			}
+			if path == forbidden {
+				t.Errorf("%s imports %s; a reference-bearing value must not be reached "+
+					"through an index entry's frontmatter", name, path)
+			}
+		}
+	}
+	if sources == 0 {
+		t.Fatal("found no non-test source in this package; the check would pass vacuously")
+	}
+}
+
+func equal(got, want []string) bool {
+	if len(got) != len(want) {
+		return false
+	}
+	for i := range got {
+		if got[i] != want[i] {
+			return false
+		}
+	}
+	return true
+}

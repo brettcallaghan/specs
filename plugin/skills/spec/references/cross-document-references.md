@@ -6,11 +6,8 @@ description: How documents reference each other and the elements they
 slug: cross-document-references
 type: standards
 status: active
-updated_at: 2026-07-30T00:00:00Z
-version: "0.1"
-related:
-  - "template-authoring-standards"
-  - "adr-012"
+updated_at: 2026-08-09T00:00:00Z
+version: "0.3"
 ---
 
 # Cross-Document Reference Standards
@@ -26,6 +23,17 @@ related:
 
 The decision behind these conventions is recorded in [[adr-012]].
 Companion to `template-authoring-standards.md`.
+
+These conventions are mechanically checked. `spec check` resolves every
+`[[slug]]` in a document's body and every slug-typed frontmatter
+property against the corpus, and reports the ones that resolve to
+nothing; `spec refs <slug>` answers who cites a document before you
+change it. `spec-cli.md` states what each rule reports and the three
+reference cases that are still yours. The rules below are what those
+checks enforce — which is also why the exceptions are worth knowing:
+a `[[slug]]` inside backticks or a fenced block is an illustration and
+is deliberately not treated as a reference, so this document can name
+the notation without citing documents that do not exist.
 
 ## Cross-Document References
 

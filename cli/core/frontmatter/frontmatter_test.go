@@ -355,3 +355,149 @@ func TestTheImplementationCallsTheSharedScanner(t *testing.T) {
 		}
 	}
 }
+
+// A sequence-valued property carries one item per element, each at its
+// own span. The whole value's span is the right extent for a finding
+// about the property and the wrong one for a finding about one of the
+// slugs inside it, so both are kept.
+func TestASequenceValuedPropertyCarriesPerItemSpans(t *testing.T) {
+	src := []byte("---\n" +
+		"block:\n" +
+		"  - \"quoted-one\"\n" +
+		"  - bare-two\n" +
+		"flow: [alpha, \"beta gamma\"]\n" +
+		"empty: []\n" +
+		"scalar: just-one\n" +
+		"composite:\n" +
+		"  - key: value\n" +
+		"  - other: value\n" +
+		"---\n\nBody\n")
+
+	doc, perr := frontmatter.Parse(src)
+	if perr != nil {
+		t.Fatalf("parse: %v", perr.Message)
+	}
+
+	for _, tc := range []struct {
+		property string
+		raws     []string
+		values   []any
+	}{
+		{"block", []string{`"quoted-one"`, "bare-two"}, []any{"quoted-one", "bare-two"}},
+		{"flow", []string{"alpha", `"beta gamma"`}, []any{"alpha", "beta gamma"}},
+		{"empty", nil, nil},
+		{"composite", []string{"key: value", "other: value"}, nil},
+	} {
+		property, ok := doc.Property(tc.property)
+		if !ok {
+			t.Fatalf("no property %q", tc.property)
+		}
+		if property.Items == nil {
+			t.Errorf("%s: Items is nil, want a sequence's items", tc.property)
+			continue
+		}
+		if len(property.Items) != len(tc.raws) {
+			t.Errorf("%s: %d items, want %d", tc.property, len(property.Items), len(tc.raws))
+			continue
+		}
+		for i, item := range property.Items {
+			if item.Raw != tc.raws[i] {
+				t.Errorf("%s[%d]: raw = %q, want %q", tc.property, i, item.Raw, tc.raws[i])
+			}
+			if covered := string(span.Slice(src, item.Position)); covered != tc.raws[i] {
+				t.Errorf("%s[%d]: span covers %q, want %q", tc.property, i, covered, tc.raws[i])
+			}
+			if tc.values != nil && item.Value != tc.values[i] {
+				t.Errorf("%s[%d]: value = %#v, want %#v", tc.property, i, item.Value, tc.values[i])
+			}
+		}
+	}
+
+	// Two items of the same list sit at two different positions, which
+	// is the whole point of recording them.
+	block, _ := doc.Property("block")
+	if block.Items[0].Position == block.Items[1].Position {
+		t.Error("both items of a list carry the same span")
+	}
+	if block.Items[0].Position.StartLine != 3 || block.Items[1].Position.StartLine != 4 {
+		t.Errorf("items are on lines %d and %d, want 3 and 4",
+			block.Items[0].Position.StartLine, block.Items[1].Position.StartLine)
+	}
+}
+
+// Spans are derived from a token's line and column, never from
+// tok.Position.Offset, because the YAML scanner's offset drifts one unit
+// per comment line and one per multi-byte codepoint (see absolute).
+// Deriving from the offset shifts every later span left and corrupts the
+// raw source text a format check reads: with three comments above the
+// list, item 0's Raw became " - contract-plaint".
+func TestSpansSurviveCommentsAndMultiByteText(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		before string
+	}{
+		{"nothing before the list", ""},
+		{"one comment", "# a comment\n"},
+		{"three comments", "# one\n# two\n# three\n"},
+		{"a multi-byte value", "title: alpha — beta\n"},
+		{"comments around a multi-byte value", "# one\ntitle: alpha — beta\n# two\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			src := []byte("---\n" + tc.before +
+				"refs:\n" +
+				"  - contract-plaintext\n" +
+				"  - adr-018\n" +
+				"---\n\nBody\n")
+
+			doc, perr := frontmatter.Parse(src)
+			if perr != nil {
+				t.Fatalf("parse: %v", perr.Message)
+			}
+			property, ok := doc.Property("refs")
+			if !ok {
+				t.Fatal("no property \"refs\"")
+			}
+
+			want := []string{"contract-plaintext", "adr-018"}
+			if len(property.Items) != len(want) {
+				t.Fatalf("%d items, want %d", len(property.Items), len(want))
+			}
+			for i, item := range property.Items {
+				if item.Raw != want[i] {
+					t.Errorf("item[%d]: raw = %q, want %q", i, item.Raw, want[i])
+				}
+				if covered := string(span.Slice(src, item.Position)); covered != want[i] {
+					t.Errorf("item[%d]: span covers %q, want %q", i, covered, want[i])
+				}
+				// Every element starts at the same column whatever
+				// precedes the block; a drifting offset moves it.
+				if item.Position.StartColumn != 5 {
+					t.Errorf("item[%d]: starts at column %d, want 5",
+						i, item.Position.StartColumn)
+				}
+			}
+		})
+	}
+}
+
+// A property whose value is not a sequence carries no items at all, so a
+// caller can tell "not a list" from "an empty list".
+func TestANonSequencePropertyCarriesNoItems(t *testing.T) {
+	doc, perr := frontmatter.Parse([]byte(valid))
+	if perr != nil {
+		t.Fatalf("parse: %v", perr.Message)
+	}
+
+	for _, name := range []string{"title", "slug", "nested"} {
+		property, ok := doc.Property(name)
+		if !ok {
+			t.Fatalf("no property %q", name)
+		}
+		if property.Items != nil {
+			t.Errorf("%s: Items = %v, want nil", name, property.Items)
+		}
+	}
+	if tags, _ := doc.Property("tags"); tags.Items == nil {
+		t.Error("tags: Items is nil, want a sequence's items")
+	}
+}

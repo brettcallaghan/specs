@@ -16,7 +16,6 @@ effort: high
 runs_observed: 1
 severity: blocker
 plugin_version: "n/a (repo-local skill)"
-related: []
 ---
 
 # The compile gate passed on a wrong schema

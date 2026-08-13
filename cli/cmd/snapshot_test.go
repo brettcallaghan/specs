@@ -64,7 +64,7 @@ type caseManifest struct {
 // checks its exit status against case.toml and its output against the
 // expected artifacts the case declares.
 //
-// AC: AC-SPEC-002.5, AC-SPEC-006.5, AC-SPEC-006.6, AC-SPEC-006.8, AC-SPEC-011.1, AC-SPEC-011.2, AC-SPEC-011.3, AC-SPEC-011.4, AC-SPEC-011.5
+// AC: AC-SPEC-002.5, AC-SPEC-006.5, AC-SPEC-006.6, AC-SPEC-006.7, AC-SPEC-006.8, AC-SPEC-007.2, AC-SPEC-011.1, AC-SPEC-011.2, AC-SPEC-011.3, AC-SPEC-011.4, AC-SPEC-011.5, AC-SPECREF-001.6, AC-SPECREF-002.6, AC-SPECREF-003.1, AC-SPECREF-003.2, AC-SPECREF-003.3, AC-SPECREF-003.5
 func TestSnapshotCases(t *testing.T) {
 	entries, err := os.ReadDir(casesDir)
 	if err != nil {
@@ -153,7 +153,33 @@ func runSnapshotCaseWith(t *testing.T, dir string, materialize func(src, dst str
 	}
 
 	checkChecksLog(t, dir, stdout.String(), manifest)
+	checkChecksErr(t, dir, stderr.String(), manifest)
 	checkManifest(t, dir, work, manifest.Args, stdout.String(), manifest)
+}
+
+// checkChecksErr compares actual standard error against
+// expected/checks.err, when the case declares one.
+//
+// Standard output is where findings go, so a run that refuses to check
+// anything at all produces none — and until this existed there was no way
+// for a case to assert what such a run told the caller instead. That is
+// the whole of the user-visible behaviour for an unusable argument, so
+// leaving it unassertable meant the error paths had no snapshot coverage
+// and a message could be silently emptied without a case noticing.
+func checkChecksErr(t *testing.T, dir, stderr string, manifest caseManifest) {
+	t.Helper()
+
+	if !slices.Contains(manifest.Artifacts, "checks.err") {
+		return
+	}
+
+	want, err := os.ReadFile(filepath.Join(dir, "expected", "checks.err"))
+	if err != nil {
+		t.Fatalf("reading expected/checks.err: %v", err)
+	}
+	if stderr != string(want) {
+		t.Errorf("stderr does not match expected/checks.err.\n--- got ---\n%s\n--- want ---\n%s", stderr, want)
+	}
 }
 
 // knownArtifacts is every expected/ filename this harness knows how to
@@ -163,6 +189,7 @@ func runSnapshotCaseWith(t *testing.T, dir string, materialize func(src, dst str
 var knownArtifacts = map[string]bool{
 	"checks.log":    true,
 	"checks.json":   true,
+	"checks.err":    true,
 	"manifest.json": true,
 }
 

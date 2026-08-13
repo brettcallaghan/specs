@@ -26,11 +26,13 @@ type stubProfile struct {
 	schema      []byte
 	types       map[string]corpus.DocumentTypeRules
 	conventions specmodel.ConventionsConfig
+	lifecycle   corpus.LifecycleRules
 }
 
 func (p stubProfile) Schema() []byte                                     { return p.schema }
 func (p stubProfile) DocumentTypes() map[string]corpus.DocumentTypeRules { return p.types }
 func (p stubProfile) Conventions() specmodel.ConventionsConfig           { return p.conventions }
+func (p stubProfile) Lifecycle() corpus.LifecycleRules                   { return p.lifecycle }
 
 // testRegistry registers exactly one profile, "test-profile", with a
 // line_width default of 100 — distinct from spec-driven-dev's 80, so a
@@ -347,6 +349,73 @@ func TestBuiltinRegistryRegistersSpecDrivenDev(t *testing.T) {
 	registry := cmd.BuiltinRegistry()
 	if _, ok := registry.Lookup("spec-driven-dev"); !ok {
 		t.Error("BuiltinRegistry does not register spec-driven-dev")
+	}
+}
+
+// registryWithBrokenRegistration registers "broken-profile": a pairing
+// over "successor" on document type "note", where "successor" is never
+// declared in ReferenceProperties — one of the three defects
+// [corpus.ValidateRegistration] finds, per its own doc comment.
+func registryWithBrokenRegistration() *cmd.Registry {
+	registry := cmd.NewRegistry()
+	registry.Register("broken-profile", stubProfile{
+		schema: []byte(`{"definitions":{}}`),
+		types: map[string]corpus.DocumentTypeRules{
+			"note": {
+				SlugPattern: `^note-[0-9]+$`,
+				Pairings: []specmodel.PropertyPairing{
+					{Property: "successor", Counterpart: "predecessor"},
+				},
+			},
+		},
+	})
+	return registry
+}
+
+// A profile registration [corpus.ValidateRegistration] rejects is
+// reported as a finding naming the offending key, positioned at
+// [profile].name — the only file position a compiled-in registration
+// has — and Load falls back to no Config rather than activating it.
+//
+// AC: AC-SPECREF-004.3
+func TestLoadReportsARegistrationDefectAtProfileNamePosition(t *testing.T) {
+	dir := t.TempDir()
+	path := writeConfig(t, dir, `
+[workspace]
+name = "acme"
+root = "docs"
+
+[profile]
+name = "broken-profile"
+`)
+
+	cfg, findings, err := cmd.Load(path, registryWithBrokenRegistration())
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg != nil {
+		t.Error("Load resolved a Config for a profile whose registration is defective — the offending key was activated rather than reported")
+	}
+	if len(findings) != 1 {
+		t.Fatalf("got %d findings, want 1: %+v", len(findings), findings)
+	}
+
+	f := findings[0]
+	if f.Rule != cmd.RuleConfigInvalidRegistration {
+		t.Errorf("rule = %q, want %q", f.Rule, cmd.RuleConfigInvalidRegistration)
+	}
+	if !strings.Contains(f.Message, "note.successor") {
+		t.Errorf("message %q does not name the offending key", f.Message)
+	}
+	if f.Position.StartLine == 0 {
+		t.Error("the finding carries no span")
+	}
+	detail, ok := f.Detail.Value.(specmodel.FindingSchemaViolation)
+	if !ok {
+		t.Fatalf("detail = %T, want FindingSchemaViolation", f.Detail.Value)
+	}
+	if detail.Pointer != "/profile/name" {
+		t.Errorf("pointer = %q, want %q (the only file position a compiled-in registration has)", detail.Pointer, "/profile/name")
 	}
 }
 

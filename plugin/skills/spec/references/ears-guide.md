@@ -6,9 +6,7 @@ slug: guide-ears
 type: guide
 status: draft
 updated_at: 2026-07-17T00:00:00Z
-version: "0.1"
-related:
-  - "template-authoring-standards"
+version: "0.2"
 ---
 
 # Writing Requirements with EARS

@@ -9,16 +9,13 @@ updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 system: system-<system-name>         # the system this container belongs to;
                                      # omit WHEN the container is standalone
                                      # (no documented system) — see below
-components: []                       # component blueprint slugs composed here
-modules: []                          # module blueprint slugs composed here
 contracts_provided: []               # contract slugs this container provides
 contracts_consumed: []               # contract slugs this container consumes
-related: []                          # related documents (ADRs, standards)
 ---
 
 <!--
 Template: Container Blueprint
-Version: 1.5
+Version: 1.6
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `c4-guide.md` — load it before authoring.
 

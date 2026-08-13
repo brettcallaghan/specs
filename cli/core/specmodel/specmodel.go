@@ -4,6 +4,7 @@ package specmodel
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 )
@@ -37,6 +38,29 @@ type SpecsConfig struct {
 	Conventions *ConventionsConfig `json:"conventions,omitempty"`
 }
 
+func (v *SpecsConfig) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["workspace"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SpecsConfig: required field \"workspace\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Workspace); err != nil {
+		return prefixField("workspace", err)
+	}
+	if m, ok := raw["profile"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SpecsConfig: required field \"profile\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Profile); err != nil {
+		return prefixField("profile", err)
+	}
+	if m, ok := raw["conventions"]; ok {
+		if err := json.Unmarshal(m, &v.Conventions); err != nil {
+			return prefixField("conventions", err)
+		}
+	}
+	return nil
+}
+
 // Identifies a repository's document collection.
 type WorkspaceConfig struct {
 	// The name this repository's documents are attributed to.
@@ -53,6 +77,24 @@ type WorkspaceConfig struct {
 	Root string `json:"root"`
 }
 
+func (v *WorkspaceConfig) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["name"]; !ok || string(m) == "null" {
+		return fmt.Errorf("WorkspaceConfig: required field \"name\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Name); err != nil {
+		return prefixField("name", err)
+	}
+	if m, ok := raw["root"]; !ok || string(m) == "null" {
+		return fmt.Errorf("WorkspaceConfig: required field \"root\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Root); err != nil {
+		return prefixField("root", err)
+	}
+	return nil
+}
+
 // Selects the active document vocabulary.
 type ProfileConfig struct {
 	// The name of a registered profile.
@@ -61,6 +103,19 @@ type ProfileConfig struct {
 	// registered profile is reported as a finding listing the names that are
 	// registered, rather than as a bare startup failure.
 	Name string `json:"name"`
+}
+
+func (v *ProfileConfig) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["name"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ProfileConfig: required field \"name\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Name); err != nil {
+		return prefixField("name", err)
+	}
+	return nil
 }
 
 // House conventions an adopting repository may set, and the profile
@@ -151,6 +206,29 @@ type FindingSchemaViolation struct {
 	Value string `json:"value"`
 }
 
+func (v *FindingSchemaViolation) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["pointer"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingSchemaViolation: required field \"pointer\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Pointer); err != nil {
+		return prefixField("pointer", err)
+	}
+	if m, ok := raw["constraint"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingSchemaViolation: required field \"constraint\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Constraint); err != nil {
+		return prefixField("constraint", err)
+	}
+	if m, ok := raw["value"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingSchemaViolation: required field \"value\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Value); err != nil {
+		return prefixField("value", err)
+	}
+	return nil
+}
+
 // A property the document's type requires and the document does not
 // declare.
 //
@@ -165,6 +243,24 @@ type FindingMissingProperty struct {
 	Property string `json:"property"`
 }
 
+func (v *FindingMissingProperty) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["pointer"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingMissingProperty: required field \"pointer\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Pointer); err != nil {
+		return prefixField("pointer", err)
+	}
+	if m, ok := raw["property"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingMissingProperty: required field \"property\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Property); err != nil {
+		return prefixField("property", err)
+	}
+	return nil
+}
+
 // A slug that does not match the pattern the active profile supplies for
 // the document's type.
 //
@@ -177,6 +273,24 @@ type FindingSlugPattern struct {
 	Pattern string `json:"pattern"`
 }
 
+func (v *FindingSlugPattern) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingSlugPattern: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["pattern"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingSlugPattern: required field \"pattern\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Pattern); err != nil {
+		return prefixField("pattern", err)
+	}
+	return nil
+}
+
 // A slug declared by more than one corpus member.
 //
 // Reported against each of the two documents, each naming the other, so
@@ -187,6 +301,24 @@ type FindingDuplicateSlug struct {
 	// The other document's path, relative to the repository root and written
 	// with forward slashes on every platform.
 	OtherPath string `json:"other_path"`
+}
+
+func (v *FindingDuplicateSlug) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingDuplicateSlug: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["other_path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingDuplicateSlug: required field \"other_path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.OtherPath); err != nil {
+		return prefixField("other_path", err)
+	}
+	return nil
 }
 
 // A frontmatter block that could not be read as a document envelope.
@@ -209,6 +341,19 @@ type FindingFrontmatterParse struct {
 	Message string `json:"message"`
 }
 
+func (v *FindingFrontmatterParse) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["message"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingFrontmatterParse: required field \"message\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Message); err != nil {
+		return prefixField("message", err)
+	}
+	return nil
+}
+
 // A check that was requested and could not run.
 //
 // This is the structured half of the `unverified` severity: the reason
@@ -218,6 +363,197 @@ type FindingUnverified struct {
 	// Why the check could not run, stated so that it needs no further lookup
 	// to act on.
 	Reason string `json:"reason"`
+}
+
+func (v *FindingUnverified) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["reason"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingUnverified: required field \"reason\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Reason); err != nil {
+		return prefixField("reason", err)
+	}
+	return nil
+}
+
+// A reference that reached no corpus member.
+//
+// The origin is carried because it decides how the defect reads: a `[[…]]`
+// in prose is quoted back, while a value in a registered frontmatter
+// property is reported by naming the property that holds it. The
+// non-member half is carried because a slug that matched a file the index
+// excluded or could not parse is a different problem with a different fix,
+// and telling the reader which one they have saves them a search for a
+// document that is right there.
+type FindingUnresolvedReference struct {
+	// The slug half of the reference, as written — everything before the
+	// first `#`, whose anchor half is not part of this defect.
+	Slug string `json:"slug"`
+	// Where the reference was written: the document's body, or a named
+	// reference-bearing frontmatter property.
+	Origin ReferenceOrigin `json:"origin"`
+	// The non-member file the slug matched, with the reason it is not a
+	// member.
+	//
+	// Absent when the slug matched nothing at all, which is the ordinary
+	// case; present when the target exists beneath the spec root and is
+	// excluded or unparsable.
+	NonMember *ReferenceNonMember `json:"non_member,omitempty"`
+}
+
+func (v *FindingUnresolvedReference) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingUnresolvedReference: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["origin"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingUnresolvedReference: required field \"origin\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Origin); err != nil {
+		return prefixField("origin", err)
+	}
+	if m, ok := raw["non_member"]; ok {
+		if err := json.Unmarshal(m, &v.NonMember); err != nil {
+			return prefixField("non_member", err)
+		}
+	}
+	return nil
+}
+
+// A reference from a live document to one the active profile treats as
+// retired.
+//
+// The target resolves — the reader reaches a real document that says it has
+// been replaced — so this is a warning rather than an error. The successor
+// is what makes it worth reporting at all: it is the one finding that tells
+// an author what to cite instead.
+type FindingRetiredTarget struct {
+	// The retired target's slug.
+	Slug string `json:"slug"`
+	// The replacement the retired target names, read from the property the
+	// active profile registers for that purpose.
+	//
+	// Absent where the target declares none. Not every retirement has a
+	// successor, and a finding that implied otherwise would send the reader
+	// looking for one.
+	Successor *string `json:"successor,omitempty"`
+}
+
+func (v *FindingRetiredTarget) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingRetiredTarget: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["successor"]; ok {
+		if err := json.Unmarshal(m, &v.Successor); err != nil {
+			return prefixField("successor", err)
+		}
+	}
+	return nil
+}
+
+// One half of a paired relationship the counterpart does not declare.
+//
+// Reported against both documents, each carrying this same detail, so that
+// checking either one surfaces the half-built edge and the two copies
+// describe the relationship in the same direction rather than each from its
+// own point of view.
+type FindingIncompletePairing struct {
+	// The reference-bearing property the referring document declares.
+	Property string `json:"property"`
+	// The property the referenced document must declare in return, and does
+	// not.
+	Counterpart string `json:"counterpart"`
+	// The referring document's path, relative to the repository root and
+	// written with forward slashes on every platform.
+	SourcePath string `json:"source_path"`
+	// The referenced document's path, relative to the repository root and
+	// written with forward slashes on every platform.
+	TargetPath string `json:"target_path"`
+}
+
+func (v *FindingIncompletePairing) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["property"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingIncompletePairing: required field \"property\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Property); err != nil {
+		return prefixField("property", err)
+	}
+	if m, ok := raw["counterpart"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingIncompletePairing: required field \"counterpart\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Counterpart); err != nil {
+		return prefixField("counterpart", err)
+	}
+	if m, ok := raw["source_path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingIncompletePairing: required field \"source_path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.SourcePath); err != nil {
+		return prefixField("source_path", err)
+	}
+	if m, ok := raw["target_path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingIncompletePairing: required field \"target_path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.TargetPath); err != nil {
+		return prefixField("target_path", err)
+	}
+	return nil
+}
+
+// A typed reference whose target declares a document type other than the
+// one the active profile requires for that property.
+//
+// A frontmatter schema can require that a property holds exactly one slug;
+// only the index knows what that slug resolves to, so the type half of the
+// constraint is checked here and reported with both types quoted.
+type FindingReferenceType struct {
+	// The reference-bearing property whose target's type is constrained.
+	Property string `json:"property"`
+	// The slug the property names.
+	Slug string `json:"slug"`
+	// The document `type` the active profile requires the target to declare.
+	ExpectedType string `json:"expected_type"`
+	// The `type` the target actually declares.
+	ActualType string `json:"actual_type"`
+}
+
+func (v *FindingReferenceType) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["property"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingReferenceType: required field \"property\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Property); err != nil {
+		return prefixField("property", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingReferenceType: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["expected_type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingReferenceType: required field \"expected_type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.ExpectedType); err != nil {
+		return prefixField("expected_type", err)
+	}
+	if m, ok := raw["actual_type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingReferenceType: required field \"actual_type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.ActualType); err != nil {
+		return prefixField("actual_type", err)
+	}
+	return nil
 }
 
 type FindingDetailVariant interface{ isFindingDetailVariant() }
@@ -237,12 +573,16 @@ type FindingDetail struct {
 	Value FindingDetailVariant
 }
 
-func (FindingSchemaViolation) isFindingDetailVariant()  {}
-func (FindingMissingProperty) isFindingDetailVariant()  {}
-func (FindingSlugPattern) isFindingDetailVariant()      {}
-func (FindingDuplicateSlug) isFindingDetailVariant()    {}
-func (FindingFrontmatterParse) isFindingDetailVariant() {}
-func (FindingUnverified) isFindingDetailVariant()       {}
+func (FindingSchemaViolation) isFindingDetailVariant()     {}
+func (FindingMissingProperty) isFindingDetailVariant()     {}
+func (FindingSlugPattern) isFindingDetailVariant()         {}
+func (FindingDuplicateSlug) isFindingDetailVariant()       {}
+func (FindingFrontmatterParse) isFindingDetailVariant()    {}
+func (FindingUnverified) isFindingDetailVariant()          {}
+func (FindingUnresolvedReference) isFindingDetailVariant() {}
+func (FindingRetiredTarget) isFindingDetailVariant()       {}
+func (FindingIncompletePairing) isFindingDetailVariant()   {}
+func (FindingReferenceType) isFindingDetailVariant()       {}
 
 func NewFindingDetailSchemaViolation(v FindingSchemaViolation) FindingDetail {
 	return FindingDetail{Value: v}
@@ -265,6 +605,22 @@ func NewFindingDetailFrontmatterParse(v FindingFrontmatterParse) FindingDetail {
 }
 
 func NewFindingDetailUnverified(v FindingUnverified) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailUnresolvedReference(v FindingUnresolvedReference) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailRetiredTarget(v FindingRetiredTarget) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailIncompletePairing(v FindingIncompletePairing) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailReferenceType(v FindingReferenceType) FindingDetail {
 	return FindingDetail{Value: v}
 }
 
@@ -298,6 +654,26 @@ func (u FindingDetail) AsUnverified() (FindingUnverified, bool) {
 	return v, ok
 }
 
+func (u FindingDetail) AsUnresolvedReference() (FindingUnresolvedReference, bool) {
+	v, ok := u.Value.(FindingUnresolvedReference)
+	return v, ok
+}
+
+func (u FindingDetail) AsRetiredTarget() (FindingRetiredTarget, bool) {
+	v, ok := u.Value.(FindingRetiredTarget)
+	return v, ok
+}
+
+func (u FindingDetail) AsIncompletePairing() (FindingIncompletePairing, bool) {
+	v, ok := u.Value.(FindingIncompletePairing)
+	return v, ok
+}
+
+func (u FindingDetail) AsReferenceType() (FindingReferenceType, bool) {
+	v, ok := u.Value.(FindingReferenceType)
+	return v, ok
+}
+
 func (u FindingDetail) MarshalJSON() ([]byte, error) {
 	var payload []byte
 	var tag string
@@ -320,6 +696,18 @@ func (u FindingDetail) MarshalJSON() ([]byte, error) {
 		payload, err = json.Marshal(v)
 	case FindingUnverified:
 		tag = "unverified"
+		payload, err = json.Marshal(v)
+	case FindingUnresolvedReference:
+		tag = "unresolved-reference"
+		payload, err = json.Marshal(v)
+	case FindingRetiredTarget:
+		tag = "retired-target"
+		payload, err = json.Marshal(v)
+	case FindingIncompletePairing:
+		tag = "incomplete-pairing"
+		payload, err = json.Marshal(v)
+	case FindingReferenceType:
+		tag = "reference-type"
 		payload, err = json.Marshal(v)
 	default:
 		return nil, fmt.Errorf("FindingDetail: nil or unknown variant")
@@ -392,6 +780,34 @@ func (u *FindingDetail) UnmarshalJSON(data []byte) error {
 		}
 		u.Value = v
 		return nil
+	case "unresolved-reference":
+		var v FindingUnresolvedReference
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "retired-target":
+		var v FindingRetiredTarget
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "incomplete-pairing":
+		var v FindingIncompletePairing
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "reference-type":
+		var v FindingReferenceType
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
 	}
 	return fmt.Errorf("FindingDetail: unknown kind %q", probe.Tag)
 }
@@ -421,6 +837,44 @@ type Finding struct {
 	Message string `json:"message"`
 	// The structured form of the same defect.
 	Detail FindingDetail `json:"detail"`
+}
+
+func (v *Finding) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["rule"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Finding: required field \"rule\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Rule); err != nil {
+		return prefixField("rule", err)
+	}
+	if m, ok := raw["severity"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Finding: required field \"severity\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Severity); err != nil {
+		return prefixField("severity", err)
+	}
+	if m, ok := raw["path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Finding: required field \"path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Path); err != nil {
+		return prefixField("path", err)
+	}
+	if m, ok := raw["position"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Finding: required field \"position\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Position); err != nil {
+		return prefixField("position", err)
+	}
+	if m, ok := raw["message"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Finding: required field \"message\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Message); err != nil {
+		return prefixField("message", err)
+	}
+	if m, ok := raw["detail"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Finding: required field \"detail\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Detail); err != nil {
+		return prefixField("detail", err)
+	}
+	return nil
 }
 
 // What became of one check in a run.
@@ -478,6 +932,29 @@ type CheckResult struct {
 	Reason *string `json:"reason,omitempty"`
 }
 
+func (v *CheckResult) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["rule"]; !ok || string(m) == "null" {
+		return fmt.Errorf("CheckResult: required field \"rule\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Rule); err != nil {
+		return prefixField("rule", err)
+	}
+	if m, ok := raw["outcome"]; !ok || string(m) == "null" {
+		return fmt.Errorf("CheckResult: required field \"outcome\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Outcome); err != nil {
+		return prefixField("outcome", err)
+	}
+	if m, ok := raw["reason"]; ok {
+		if err := json.Unmarshal(m, &v.Reason); err != nil {
+			return prefixField("reason", err)
+		}
+	}
+	return nil
+}
+
 // Everything one check run produced.
 //
 // The two collections answer different questions and neither substitutes
@@ -494,6 +971,24 @@ type FindingReport struct {
 	Checks []CheckResult `json:"checks"`
 	// Every finding the run produced, in the order the emitter fixes.
 	Findings []Finding `json:"findings"`
+}
+
+func (v *FindingReport) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["checks"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingReport: required field \"checks\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Checks); err != nil {
+		return prefixField("checks", err)
+	}
+	if m, ok := raw["findings"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingReport: required field \"findings\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Findings); err != nil {
+		return prefixField("findings", err)
+	}
+	return nil
 }
 
 // The three fields that identify any element the framework names.
@@ -530,6 +1025,29 @@ type ElementRecord struct {
 	Slug Slug `json:"slug"`
 }
 
+func (v *ElementRecord) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ElementRecord: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ElementRecord: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ElementRecord: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	return nil
+}
+
 // The metadata envelope every specification document carries.
 //
 // Membership in the corpus is determined by this envelope rather than by
@@ -538,6 +1056,12 @@ type ElementRecord struct {
 // type extends this struct with its own relationship and classification
 // properties, so the envelope is validated identically everywhere and only
 // the extension differs.
+//
+// A relationship property here or on any extension is declared at one end
+// only; the index derives the reverse from every other document's inbound
+// edges. Before adding one, check it against the Document Relationship
+// Standard — a property that merely mirrors the document's own prose
+// citations does not earn its maintenance cost.
 type DocumentFrontmatter struct {
 	// Human-readable title. Free text.
 	//
@@ -578,12 +1102,59 @@ type DocumentFrontmatter struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
+}
+
+func (v *DocumentFrontmatter) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("DocumentFrontmatter: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("DocumentFrontmatter: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("DocumentFrontmatter: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("DocumentFrontmatter: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("DocumentFrontmatter: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("DocumentFrontmatter: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	return nil
 }
 
 // The contract edges a C4 element owns: the interfaces it publishes, and
@@ -620,9 +1191,9 @@ type ContractEdges struct {
 
 // An architecture decision record.
 //
-// Carries no relationship properties of its own beyond the envelope's
-// `related`: an ADR's connections to other decisions are argued in its
-// prose, and the decisions it supersedes are named through
+// Carries no relationship properties of its own: an ADR's connections to
+// other decisions are argued in its prose, where the index reads them, and
+// the decision it supersedes is named through the envelope's
 // `superseded_by`.
 type Adr struct {
 	// Human-readable title. Free text.
@@ -664,12 +1235,59 @@ type Adr struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
+}
+
+func (v *Adr) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Adr: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Adr: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Adr: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Adr: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Adr: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Adr: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	return nil
 }
 
 // A feature requirements document: the user need, its scope boundaries and
@@ -714,15 +1332,67 @@ type Frd struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
 	// The documents this FRD is derived from — a brief, a research
 	// document, or an FRD it narrows.
 	Sources *[]Slug `json:"sources,omitempty"`
+}
+
+func (v *Frd) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Frd: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Frd: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Frd: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Frd: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Frd: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Frd: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	if m, ok := raw["sources"]; ok {
+		if err := json.Unmarshal(m, &v.Sources); err != nil {
+			return prefixField("sources", err)
+		}
+	}
+	return nil
 }
 
 // An interface specification governing an exchange across a boundary of
@@ -767,12 +1437,6 @@ type Contract struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
 	// The container or system that provides this interface.
 	//
 	// Exactly one, because a contract with two providers is two contracts.
@@ -795,6 +1459,84 @@ type Contract struct {
 	// state a compatibility promise, which is the only reason to write one
 	// down separately from the code that implements it.
 	Version string `json:"version"`
+}
+
+func (v *Contract) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Contract: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Contract: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Contract: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Contract: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Contract: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Contract: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	if m, ok := raw["provider"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Contract: required field \"provider\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Provider); err != nil {
+		return prefixField("provider", err)
+	}
+	if m, ok := raw["visibility"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Contract: required field \"visibility\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Visibility); err != nil {
+		return prefixField("visibility", err)
+	}
+	if m, ok := raw["consumers"]; ok {
+		if err := json.Unmarshal(m, &v.Consumers); err != nil {
+			return prefixField("consumers", err)
+		}
+	}
+	if m, ok := raw["specs"]; ok {
+		if err := json.Unmarshal(m, &v.Specs); err != nil {
+			return prefixField("specs", err)
+		}
+	}
+	if m, ok := raw["version"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Contract: required field \"version\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Version); err != nil {
+		return prefixField("version", err)
+	}
+	return nil
 }
 
 // Cross-cutting standards, policies, guidelines or constraints that apply
@@ -839,12 +1581,6 @@ type Standards struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
 	// The document's semantic version, quoted so YAML reads it as a string.
 	//
 	// Unquoted `0.1` is a floating-point number to a YAML parser and fails
@@ -853,8 +1589,78 @@ type Standards struct {
 	Version string `json:"version"`
 }
 
-// A C4 system blueprint: the containers a system bundles, the public
-// contracts it provides, and the systems it depends on.
+func (v *Standards) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Standards: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Standards: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Standards: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Standards: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Standards: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Standards: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	if m, ok := raw["version"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Standards: required field \"version\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Version); err != nil {
+		return prefixField("version", err)
+	}
+	return nil
+}
+
+// A C4 system blueprint: the public contracts a system provides.
+//
+// The containers a system bundles are not listed here. Each container
+// declares the system that composes it in its own `system` property, and
+// the roster is derived from those inbound edges — one authoritative end,
+// per the Document Relationship Standard.
+//
+// A system's dependency on another system is not recorded in frontmatter
+// at all. Where the dependency is a named interface it is a contract, and
+// `contracts_consumed` holds it. Where it is looser, the blueprint's own
+// "Consumed Systems and Contracts" section says what is depended on and
+// what for — which a slug list cannot, and which is what a reader actually
+// needs. A repository spanning more than one system is rare enough that a
+// frontmatter property for the untyped case would be maintained by nobody.
 type SystemBlueprint struct {
 	// Human-readable title. Free text.
 	//
@@ -895,12 +1701,6 @@ type SystemBlueprint struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
 	// Contract slugs this element provides.
 	//
 	// The interface is this element's own, so it is recorded here whatever
@@ -914,17 +1714,83 @@ type SystemBlueprint struct {
 	// listed here — those are neighbour edges, and per ADR-009 they belong
 	// to the parent that composes the elements, or to the code.
 	ContractsConsumed *[]Slug `json:"contracts_consumed,omitempty"`
-	// Container blueprint slugs composed into this system.
-	Containers *[]Slug `json:"containers,omitempty"`
-	// Other systems this system depends on.
-	//
-	// Systems only. A contract this system consumes is named in
-	// `contracts_consumed`, so the same dependency has exactly one home.
-	DependsOn *[]Slug `json:"depends_on,omitempty"`
+}
+
+func (v *SystemBlueprint) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SystemBlueprint: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SystemBlueprint: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SystemBlueprint: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SystemBlueprint: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SystemBlueprint: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SystemBlueprint: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	if m, ok := raw["contracts_provided"]; ok {
+		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
+			return prefixField("contracts_provided", err)
+		}
+	}
+	if m, ok := raw["contracts_consumed"]; ok {
+		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
+			return prefixField("contracts_consumed", err)
+		}
+	}
+	return nil
 }
 
 // A C4 container blueprint: one independently deployable or runnable
-// artifact, and the modules and components composed into it.
+// artifact.
+//
+// The modules and components composed into it are not listed here, and
+// the two arrive by different routes. A module names its hosts itself, in
+// `contained_by`, because a module may be composed into several containers
+// and that set is a fact about the module. A component has exactly one
+// parent, as C4 requires, and that edge is recorded where a reader meets
+// it: the Components section of this document's body, where each child is
+// a fenced record block XOR a `[[slug]]` blueprint link under its own
+// heading, per ADR-008 and ADR-012. Either way the index derives this
+// container's roster rather than reading it from frontmatter.
 type ContainerBlueprint struct {
 	// Human-readable title. Free text.
 	//
@@ -965,12 +1831,6 @@ type ContainerBlueprint struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
 	// Contract slugs this element provides.
 	//
 	// The interface is this element's own, so it is recorded here whatever
@@ -990,14 +1850,83 @@ type ContainerBlueprint struct {
 	// blueprint documents it. Absence records a documented fact rather than
 	// an oversight.
 	System *Slug `json:"system,omitempty"`
-	// Component blueprint slugs composed into this container.
-	Components *[]Slug `json:"components,omitempty"`
-	// Module blueprint slugs composed into this container.
-	Modules *[]Slug `json:"modules,omitempty"`
+}
+
+func (v *ContainerBlueprint) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ContainerBlueprint: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ContainerBlueprint: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ContainerBlueprint: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ContainerBlueprint: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ContainerBlueprint: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ContainerBlueprint: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	if m, ok := raw["contracts_provided"]; ok {
+		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
+			return prefixField("contracts_provided", err)
+		}
+	}
+	if m, ok := raw["contracts_consumed"]; ok {
+		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
+			return prefixField("contracts_consumed", err)
+		}
+	}
+	if m, ok := raw["system"]; ok {
+		if err := json.Unmarshal(m, &v.System); err != nil {
+			return prefixField("system", err)
+		}
+	}
+	return nil
 }
 
 // A C4 module blueprint: a coherent unit of code with an interface of its
 // own, composed into a container.
+//
+// The components it composes are not listed in frontmatter. Each child is
+// declared in this document's Components section — a fenced record block
+// when un-promoted, a `[[slug]]` blueprint link once promoted, exactly one
+// of the two per ADR-008 — and the index derives the roster from there.
 type ModuleBlueprint struct {
 	// Human-readable title. Free text.
 	//
@@ -1038,12 +1967,6 @@ type ModuleBlueprint struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
 	// Contract slugs this element provides.
 	//
 	// The interface is this element's own, so it is recorded here whatever
@@ -1063,12 +1986,25 @@ type ModuleBlueprint struct {
 	// Whether the module is published to a registry, and therefore whether
 	// its package API is bound by a compatibility policy.
 	Visibility Visibility `json:"visibility"`
-	// Component or module blueprint slugs this module composes, where those
-	// children have been promoted to documents of their own.
+	// The containers, or the modules, that compose this module.
 	//
-	// A child is in exactly one state: promoted and linked here, or
-	// un-promoted and declared in a record block in the body. Never both.
-	Components *[]Slug `json:"components,omitempty"`
+	// **The only multi-parent relationship in the vocabulary, and the reason
+	// the module level exists.** C4 gives every element exactly one parent —
+	// a container belongs to one system, a component to one container — and
+	// that edge is recorded by the parent, in the roster section of its body.
+	// Module is this framework's addition to C4, and being composed into more
+	// than one container is its whole purpose: a unit shared by two
+	// containers is a module precisely because it is shared.
+	//
+	// So this is a list, and it is declared here rather than derived from
+	// parent rosters, because a shared module's hosts are a fact about the
+	// module. It is the direction ADR-009 tells modules to point when it
+	// denies them a context view — no single outward-edge list is correct for
+	// a module, but the set of hosts is, and this is where it goes.
+	//
+	// Omitted when no host has a blueprint of its own — absence records a
+	// documented fact rather than an oversight.
+	ContainedBy *[]Slug `json:"contained_by,omitempty"`
 	// Repository-relative source roots, so a reader can find the code.
 	SourcePaths *[]string `json:"source_paths,omitempty"`
 	// Repository-relative test roots.
@@ -1080,9 +2016,110 @@ type ModuleBlueprint struct {
 	Version *string `json:"version,omitempty"`
 }
 
+func (v *ModuleBlueprint) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ModuleBlueprint: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ModuleBlueprint: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ModuleBlueprint: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ModuleBlueprint: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ModuleBlueprint: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ModuleBlueprint: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	if m, ok := raw["contracts_provided"]; ok {
+		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
+			return prefixField("contracts_provided", err)
+		}
+	}
+	if m, ok := raw["contracts_consumed"]; ok {
+		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
+			return prefixField("contracts_consumed", err)
+		}
+	}
+	if m, ok := raw["kind"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ModuleBlueprint: required field \"kind\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Kind); err != nil {
+		return prefixField("kind", err)
+	}
+	if m, ok := raw["visibility"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ModuleBlueprint: required field \"visibility\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Visibility); err != nil {
+		return prefixField("visibility", err)
+	}
+	if m, ok := raw["contained_by"]; ok {
+		if err := json.Unmarshal(m, &v.ContainedBy); err != nil {
+			return prefixField("contained_by", err)
+		}
+	}
+	if m, ok := raw["source_paths"]; ok {
+		if err := json.Unmarshal(m, &v.SourcePaths); err != nil {
+			return prefixField("source_paths", err)
+		}
+	}
+	if m, ok := raw["test_paths"]; ok {
+		if err := json.Unmarshal(m, &v.TestPaths); err != nil {
+			return prefixField("test_paths", err)
+		}
+	}
+	if m, ok := raw["version"]; ok {
+		if err := json.Unmarshal(m, &v.Version); err != nil {
+			return prefixField("version", err)
+		}
+	}
+	return nil
+}
+
 // A C4 component blueprint: a single component promoted out of its
 // parent's roster into a document of its own, because it warrants more
 // than a record block.
+//
+// Carries no parent property. A component has exactly one parent, as C4
+// requires, and its parent's roster section already links it by
+// `[[slug]]` under its own heading — so the edge is declared once, in the
+// one place a reader meets the child, and the index derives the component's
+// parent from that inbound link. `contained_by` is the module level's
+// alone, because being composed into more than one container is what
+// distinguishes a module from a component.
 type ComponentBlueprint struct {
 	// Human-readable title. Free text.
 	//
@@ -1123,12 +2160,6 @@ type ComponentBlueprint struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
 	// Contract slugs this element provides.
 	//
 	// The interface is this element's own, so it is recorded here whatever
@@ -1151,14 +2182,96 @@ type ComponentBlueprint struct {
 	TestPaths *[]string `json:"test_paths,omitempty"`
 }
 
+func (v *ComponentBlueprint) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ComponentBlueprint: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ComponentBlueprint: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ComponentBlueprint: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ComponentBlueprint: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ComponentBlueprint: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ComponentBlueprint: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	if m, ok := raw["contracts_provided"]; ok {
+		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
+			return prefixField("contracts_provided", err)
+		}
+	}
+	if m, ok := raw["contracts_consumed"]; ok {
+		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
+			return prefixField("contracts_consumed", err)
+		}
+	}
+	if m, ok := raw["kind"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ComponentBlueprint: required field \"kind\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Kind); err != nil {
+		return prefixField("kind", err)
+	}
+	if m, ok := raw["source_paths"]; ok {
+		if err := json.Unmarshal(m, &v.SourcePaths); err != nil {
+			return prefixField("source_paths", err)
+		}
+	}
+	if m, ok := raw["test_paths"]; ok {
+		if err := json.Unmarshal(m, &v.TestPaths); err != nil {
+			return prefixField("test_paths", err)
+		}
+	}
+	return nil
+}
+
 // A transient change document describing how the system changes to deliver
 // one feature.
 //
 // Unlike the blueprints it modifies, a feature blueprint describes a
 // change rather than a state, so it reaches `in-progress` and then
-// `retired` rather than `active`. Its `updates` and `creates` properties
-// are what let tooling derive when the change is complete: the feature is
-// not done until every document it names has been updated or activated.
+// `retired` rather than `active`.
+//
+// The documents the change creates and updates are described in the
+// blueprint's own "Documentation Changes" prose and tracked to completion
+// in its `plan`, which records done-ness natively. They are not mirrored
+// into frontmatter: a change set recorded in three places is three places
+// that must agree.
 type FeatureBlueprint struct {
 	// Human-readable title. Free text.
 	//
@@ -1199,12 +2312,6 @@ type FeatureBlueprint struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
 	// The delivery unit grooming plans against. When `staged`, each stage
 	// boundary is enumerated in the blueprint's Sequencing Constraints.
 	Delivery Delivery `json:"delivery"`
@@ -1219,14 +2326,80 @@ type FeatureBlueprint struct {
 	// The FRD this blueprint realizes, one to one.
 	//
 	// A feature blueprint answers how the system changes; the FRD it names
-	// answers what the change must achieve.
-	Sources []Slug `json:"sources"`
-	// Slugs of existing documents this feature will change — blueprints at
-	// any C4 level, and contracts.
-	Updates *[]Slug `json:"updates,omitempty"`
-	// Slugs of new documents authored alongside this blueprint, such as
-	// draft contracts for interfaces the feature introduces.
-	Creates *[]Slug `json:"creates,omitempty"`
+	// answers what the change must achieve. Singular and required, so the
+	// one-to-one relationship is expressible in the schema rather than only
+	// in this comment, and named `frd` rather than `sources` so that one
+	// property name does not span two relationships — `Frd.sources` is
+	// optional, many-valued provenance, which is a different edge.
+	Frd Slug `json:"frd"`
+}
+
+func (v *FeatureBlueprint) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FeatureBlueprint: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FeatureBlueprint: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FeatureBlueprint: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FeatureBlueprint: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FeatureBlueprint: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FeatureBlueprint: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	if m, ok := raw["delivery"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FeatureBlueprint: required field \"delivery\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Delivery); err != nil {
+		return prefixField("delivery", err)
+	}
+	if m, ok := raw["plan"]; ok {
+		if err := json.Unmarshal(m, &v.Plan); err != nil {
+			return prefixField("plan", err)
+		}
+	}
+	if m, ok := raw["frd"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FeatureBlueprint: required field \"frd\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Frd); err != nil {
+		return prefixField("frd", err)
+	}
+	return nil
 }
 
 // An improvement proposal raised against a skill by a run that exercised
@@ -1278,12 +2451,6 @@ type Rfc struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
 	// Where the run happened: `self` when this repository critiqued its own
 	// skill, otherwise the name of the project the run took place in.
 	Origin string `json:"origin"`
@@ -1314,13 +2481,105 @@ type Rfc struct {
 	PluginVersion string `json:"plugin_version"`
 }
 
+func (v *Rfc) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	if m, ok := raw["origin"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"origin\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Origin); err != nil {
+		return prefixField("origin", err)
+	}
+	if m, ok := raw["skill"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"skill\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Skill); err != nil {
+		return prefixField("skill", err)
+	}
+	if m, ok := raw["skill_version"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"skill_version\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.SkillVersion); err != nil {
+		return prefixField("skill_version", err)
+	}
+	if m, ok := raw["model"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"model\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Model); err != nil {
+		return prefixField("model", err)
+	}
+	if m, ok := raw["effort"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"effort\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Effort); err != nil {
+		return prefixField("effort", err)
+	}
+	if m, ok := raw["runs_observed"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"runs_observed\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.RunsObserved); err != nil {
+		return prefixField("runs_observed", err)
+	}
+	if m, ok := raw["severity"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"severity\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Severity); err != nil {
+		return prefixField("severity", err)
+	}
+	if m, ok := raw["plugin_version"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Rfc: required field \"plugin_version\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.PluginVersion); err != nil {
+		return prefixField("plugin_version", err)
+	}
+	return nil
+}
+
 // A how-to document explaining a technique that other document types
 // assume knowledge of — EARS syntax, C4 mapping, cross-document reference
 // conventions.
 //
-// A guide carries no relationships of its own beyond the envelope's
-// `related`: it explains a technique rather than participating in the
-// architecture graph.
+// A guide carries no relationships of its own: it explains a technique
+// rather than participating in the architecture graph.
 type Guide struct {
 	// Human-readable title. Free text.
 	//
@@ -1361,14 +2620,66 @@ type Guide struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Slug `json:"superseded_by,omitempty"`
-	// Peer documents relevant to this one without a stronger relationship:
-	// the ADRs behind it, the standards it observes.
-	//
-	// Every relationship property in this vocabulary names documents by
-	// slug, and every named slug must resolve to a corpus member.
-	Related *[]Slug `json:"related,omitempty"`
 	// The guide's semantic version, quoted so YAML reads it as a string.
 	Version *string `json:"version,omitempty"`
+}
+
+func (v *Guide) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Guide: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["description"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Guide: required field \"description\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Description); err != nil {
+		return prefixField("description", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Guide: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Guide: required field \"type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Type); err != nil {
+		return prefixField("type", err)
+	}
+	if m, ok := raw["status"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Guide: required field \"status\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Status); err != nil {
+		return prefixField("status", err)
+	}
+	if m, ok := raw["updated_at"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Guide: required field \"updated_at\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.UpdatedAt); err != nil {
+		return prefixField("updated_at", err)
+	}
+	if m, ok := raw["created_at"]; ok {
+		if err := json.Unmarshal(m, &v.CreatedAt); err != nil {
+			return prefixField("created_at", err)
+		}
+	}
+	if m, ok := raw["tags"]; ok {
+		if err := json.Unmarshal(m, &v.Tags); err != nil {
+			return prefixField("tags", err)
+		}
+	}
+	if m, ok := raw["superseded_by"]; ok {
+		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
+			return prefixField("superseded_by", err)
+		}
+	}
+	if m, ok := raw["version"]; ok {
+		if err := json.Unmarshal(m, &v.Version); err != nil {
+			return prefixField("version", err)
+		}
+	}
+	return nil
 }
 
 // A contiguous region of a document.
@@ -1401,6 +2712,44 @@ type Span struct {
 	EndColumn uint64 `json:"end_column"`
 }
 
+func (v *Span) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["offset"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Span: required field \"offset\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Offset); err != nil {
+		return prefixField("offset", err)
+	}
+	if m, ok := raw["length"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Span: required field \"length\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Length); err != nil {
+		return prefixField("length", err)
+	}
+	if m, ok := raw["start_line"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Span: required field \"start_line\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.StartLine); err != nil {
+		return prefixField("start_line", err)
+	}
+	if m, ok := raw["start_column"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Span: required field \"start_column\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.StartColumn); err != nil {
+		return prefixField("start_column", err)
+	}
+	if m, ok := raw["end_line"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Span: required field \"end_line\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.EndLine); err != nil {
+		return prefixField("end_line", err)
+	}
+	if m, ok := raw["end_column"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Span: required field \"end_column\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.EndColumn); err != nil {
+		return prefixField("end_column", err)
+	}
+	return nil
+}
+
 // A located failure to parse part of a document.
 //
 // Recorded against the document it occurred in rather than raised, because
@@ -1413,6 +2762,24 @@ type ParseError struct {
 	Message string `json:"message"`
 	// Where in the document the failure occurred.
 	Position Span `json:"position"`
+}
+
+func (v *ParseError) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["message"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ParseError: required field \"message\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Message); err != nil {
+		return prefixField("message", err)
+	}
+	if m, ok := raw["position"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ParseError: required field \"position\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Position); err != nil {
+		return prefixField("position", err)
+	}
+	return nil
 }
 
 // Why a candidate file beneath the spec root is not a corpus member.
@@ -1482,6 +2849,29 @@ type IndexEntry struct {
 	ParseError *ParseError `json:"parse_error,omitempty"`
 }
 
+func (v *IndexEntry) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("IndexEntry: required field \"path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Path); err != nil {
+		return prefixField("path", err)
+	}
+	if m, ok := raw["frontmatter"]; ok {
+		if err := json.Unmarshal(m, &v.Frontmatter); err != nil {
+			return prefixField("frontmatter", err)
+		}
+	}
+	if m, ok := raw["parse_error"]; ok {
+		if err := json.Unmarshal(m, &v.ParseError); err != nil {
+			return prefixField("parse_error", err)
+		}
+	}
+	return nil
+}
+
 // One candidate file that is not a corpus member, and why.
 type IndexExclusion struct {
 	// The excluded file's path, relative to the repository root and written
@@ -1493,6 +2883,431 @@ type IndexExclusion struct {
 	// `unknown-type` so that a reviewing agent can judge whether the profile
 	// or the document is wrong.
 	Type *string `json:"type,omitempty"`
+}
+
+func (v *IndexExclusion) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("IndexExclusion: required field \"path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Path); err != nil {
+		return prefixField("path", err)
+	}
+	if m, ok := raw["reason"]; !ok || string(m) == "null" {
+		return fmt.Errorf("IndexExclusion: required field \"reason\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Reason); err != nil {
+		return prefixField("reason", err)
+	}
+	if m, ok := raw["type"]; ok {
+		if err := json.Unmarshal(m, &v.Type); err != nil {
+			return prefixField("type", err)
+		}
+	}
+	return nil
+}
+
+// A reference written in a document's body.
+//
+// Carries nothing of its own. What a body reference adds beyond its
+// position is nothing, and its position is recorded on the reference
+// itself; this shape exists so that the origin is a value a consumer
+// branches on rather than a property it has to infer from the absence of
+// another.
+type ReferenceBodyOrigin struct{}
+
+// A reference held by a frontmatter property the active profile registers
+// as reference-bearing.
+type ReferenceFrontmatterOrigin struct {
+	// The name of the frontmatter property the reference was written in, so
+	// that a finding names the property without the document being reopened.
+	Property string `json:"property"`
+}
+
+func (v *ReferenceFrontmatterOrigin) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["property"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ReferenceFrontmatterOrigin: required field \"property\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Property); err != nil {
+		return prefixField("property", err)
+	}
+	return nil
+}
+
+type ReferenceOriginVariant interface{ isReferenceOriginVariant() }
+
+// Where a reference was written.
+//
+// The distinction is not decoration. A reference in prose and a reference
+// in a registered frontmatter property are reported differently — one
+// quotes the link, the other names the property that holds it — and they
+// are rewritten differently, so the origin belongs to the reference rather
+// than being inferred from where its span happens to fall.
+type ReferenceOrigin struct {
+	Value ReferenceOriginVariant
+}
+
+func (ReferenceBodyOrigin) isReferenceOriginVariant()        {}
+func (ReferenceFrontmatterOrigin) isReferenceOriginVariant() {}
+
+func NewReferenceOriginBody(v ReferenceBodyOrigin) ReferenceOrigin {
+	return ReferenceOrigin{Value: v}
+}
+
+func NewReferenceOriginFrontmatterProperty(v ReferenceFrontmatterOrigin) ReferenceOrigin {
+	return ReferenceOrigin{Value: v}
+}
+
+func (u ReferenceOrigin) AsBody() (ReferenceBodyOrigin, bool) {
+	v, ok := u.Value.(ReferenceBodyOrigin)
+	return v, ok
+}
+
+func (u ReferenceOrigin) AsFrontmatterProperty() (ReferenceFrontmatterOrigin, bool) {
+	v, ok := u.Value.(ReferenceFrontmatterOrigin)
+	return v, ok
+}
+
+func (u ReferenceOrigin) MarshalJSON() ([]byte, error) {
+	var payload []byte
+	var tag string
+	var err error
+	switch v := u.Value.(type) {
+	case ReferenceBodyOrigin:
+		tag = "body"
+		payload, err = json.Marshal(v)
+	case ReferenceFrontmatterOrigin:
+		tag = "frontmatter-property"
+		payload, err = json.Marshal(v)
+	default:
+		return nil, fmt.Errorf("ReferenceOrigin: nil or unknown variant")
+	}
+	if err != nil {
+		return nil, err
+	}
+	tagBytes, err := json.Marshal(tag)
+	if err != nil {
+		return nil, err
+	}
+	if len(payload) == 0 || payload[0] != '{' {
+		return nil, fmt.Errorf("ReferenceOrigin: variant produced non-object JSON")
+	}
+	prefix := append([]byte{'{'}, []byte("\"kind\":")...)
+	prefix = append(prefix, tagBytes...)
+	if payload[1] != '}' {
+		prefix = append(prefix, ',')
+	}
+	return append(prefix, payload[1:]...), nil
+}
+
+func (u *ReferenceOrigin) UnmarshalJSON(data []byte) error {
+	var probe struct {
+		Tag string `json:"kind"`
+	}
+	if err := json.Unmarshal(data, &probe); err != nil {
+		return err
+	}
+	switch probe.Tag {
+	case "body":
+		var v ReferenceBodyOrigin
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "frontmatter-property":
+		var v ReferenceFrontmatterOrigin
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	}
+	return fmt.Errorf("ReferenceOrigin: unknown kind %q", probe.Tag)
+}
+
+// A reference that reached a corpus member.
+type ReferenceResolved struct {
+	// The target's path, relative to the repository root and written with
+	// forward slashes on every platform.
+	//
+	// The path rather than the slug, because the slug is already on the
+	// reference and a consumer following the edge wants the file.
+	TargetPath string `json:"target_path"`
+}
+
+func (v *ReferenceResolved) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["target_path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ReferenceResolved: required field \"target_path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.TargetPath); err != nil {
+		return prefixField("target_path", err)
+	}
+	return nil
+}
+
+// A reference whose slug matches no corpus member and no file the index
+// knows about at all.
+//
+// Carries nothing: the slug that matched nothing is already on the
+// reference this resolution belongs to.
+type ReferenceUnresolved struct{}
+
+// A reference whose slug matches a file the index recorded as excluded or
+// as a parse failure rather than as a corpus member.
+//
+// Held apart from an ordinary unresolved reference because the reader's
+// next step differs: the document is right there, and what is wrong is its
+// frontmatter rather than the reference. Exactly one of `reason` and
+// `parse_error` is present — the two ways a file beneath the spec root
+// fails to become a member.
+type ReferenceNonMember struct {
+	// The matched file's path, relative to the repository root and written
+	// with forward slashes on every platform.
+	Path string `json:"path"`
+	// Why the file is not a member, present when the index recorded it as an
+	// exclusion.
+	Reason *ExclusionReason `json:"reason,omitempty"`
+	// The failure that prevented the file's frontmatter from being parsed,
+	// with its position, present when the index recorded it as a member
+	// whose frontmatter could not be read.
+	ParseError *ParseError `json:"parse_error,omitempty"`
+}
+
+func (v *ReferenceNonMember) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ReferenceNonMember: required field \"path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Path); err != nil {
+		return prefixField("path", err)
+	}
+	if m, ok := raw["reason"]; ok {
+		if err := json.Unmarshal(m, &v.Reason); err != nil {
+			return prefixField("reason", err)
+		}
+	}
+	if m, ok := raw["parse_error"]; ok {
+		if err := json.Unmarshal(m, &v.ParseError); err != nil {
+			return prefixField("parse_error", err)
+		}
+	}
+	return nil
+}
+
+type ReferenceResolutionVariant interface{ isReferenceResolutionVariant() }
+
+// What a reference reached.
+//
+// A reference that reaches nothing is recorded with this state rather than
+// dropped, because indexing never fails: the index describes the corpus it
+// found, including the parts of it that are broken, and reporting a broken
+// reference is a check's job rather than the indexer's.
+type ReferenceResolution struct {
+	Value ReferenceResolutionVariant
+}
+
+func (ReferenceResolved) isReferenceResolutionVariant()   {}
+func (ReferenceUnresolved) isReferenceResolutionVariant() {}
+func (ReferenceNonMember) isReferenceResolutionVariant()  {}
+
+func NewReferenceResolutionResolved(v ReferenceResolved) ReferenceResolution {
+	return ReferenceResolution{Value: v}
+}
+
+func NewReferenceResolutionUnresolved(v ReferenceUnresolved) ReferenceResolution {
+	return ReferenceResolution{Value: v}
+}
+
+func NewReferenceResolutionNonMember(v ReferenceNonMember) ReferenceResolution {
+	return ReferenceResolution{Value: v}
+}
+
+func (u ReferenceResolution) AsResolved() (ReferenceResolved, bool) {
+	v, ok := u.Value.(ReferenceResolved)
+	return v, ok
+}
+
+func (u ReferenceResolution) AsUnresolved() (ReferenceUnresolved, bool) {
+	v, ok := u.Value.(ReferenceUnresolved)
+	return v, ok
+}
+
+func (u ReferenceResolution) AsNonMember() (ReferenceNonMember, bool) {
+	v, ok := u.Value.(ReferenceNonMember)
+	return v, ok
+}
+
+func (u ReferenceResolution) MarshalJSON() ([]byte, error) {
+	var payload []byte
+	var tag string
+	var err error
+	switch v := u.Value.(type) {
+	case ReferenceResolved:
+		tag = "resolved"
+		payload, err = json.Marshal(v)
+	case ReferenceUnresolved:
+		tag = "unresolved"
+		payload, err = json.Marshal(v)
+	case ReferenceNonMember:
+		tag = "non-member"
+		payload, err = json.Marshal(v)
+	default:
+		return nil, fmt.Errorf("ReferenceResolution: nil or unknown variant")
+	}
+	if err != nil {
+		return nil, err
+	}
+	tagBytes, err := json.Marshal(tag)
+	if err != nil {
+		return nil, err
+	}
+	if len(payload) == 0 || payload[0] != '{' {
+		return nil, fmt.Errorf("ReferenceResolution: variant produced non-object JSON")
+	}
+	prefix := append([]byte{'{'}, []byte("\"state\":")...)
+	prefix = append(prefix, tagBytes...)
+	if payload[1] != '}' {
+		prefix = append(prefix, ',')
+	}
+	return append(prefix, payload[1:]...), nil
+}
+
+func (u *ReferenceResolution) UnmarshalJSON(data []byte) error {
+	var probe struct {
+		Tag string `json:"state"`
+	}
+	if err := json.Unmarshal(data, &probe); err != nil {
+		return err
+	}
+	switch probe.Tag {
+	case "resolved":
+		var v ReferenceResolved
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "unresolved":
+		var v ReferenceUnresolved
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "non-member":
+		var v ReferenceNonMember
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	}
+	return fmt.Errorf("ReferenceResolution: unknown state %q", probe.Tag)
+}
+
+// One occurrence of one document referencing another.
+//
+// A reference is an edge, and it is recorded as a row of its own rather
+// than as a property of either document it connects. The facts that make
+// it actionable — where it was written, whether it came from prose or from
+// a named frontmatter property, and what it reached — belong to neither
+// endpoint, and both directions of the graph are derived by indexing this
+// one collection rather than stored twice.
+//
+// One row per occurrence. A document that references the same target twice
+// contributes two rows carrying two spans, so a finding about either cites
+// the line the reader must open.
+type Reference struct {
+	// The path of the document the reference occurs in, relative to the
+	// repository root and written with forward slashes on every platform.
+	Path string `json:"path"`
+	// The reference exactly as written, without the delimiters that enclose
+	// it — `adr-012`, or `adr-012#Decision`, or the raw value of a
+	// reference-bearing frontmatter property.
+	//
+	// Recorded alongside the halves it splits into, because the text is what
+	// a reader sees and what a rewrite replaces, and neither is recoverable
+	// from the halves once letter case or spacing has been normalized.
+	Text string `json:"text"`
+	// The slug half: everything before the first `#`, or the whole reference
+	// where it names no anchor.
+	//
+	// A plain `String` rather than a `Slug`, deliberately. A reference is
+	// written by hand and may name something that is not a well-formed slug
+	// at all; constraining this property would make such a reference
+	// unrepresentable in the index, which is the one place it must be
+	// visible in order to be reported.
+	Slug string `json:"slug"`
+	// The anchor half: everything after the first `#`, absent where the
+	// reference names no anchor.
+	//
+	// Recorded and not interpreted. Resolving an anchor against the target's
+	// headings is a separate feature; splitting on the first `#` is the whole
+	// of what this shape knows about anchors, and it exists so that an
+	// anchored reference resolves on its slug rather than reporting as
+	// broken.
+	Anchor *string `json:"anchor,omitempty"`
+	// Where the reference was written.
+	Origin ReferenceOrigin `json:"origin"`
+	// Where in the containing document the reference occurs, as a span rather
+	// than a bare line number, so a report and a rewrite both address the
+	// reference itself.
+	Position Span `json:"position"`
+	// What the reference reached.
+	Resolution ReferenceResolution `json:"resolution"`
+}
+
+func (v *Reference) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Reference: required field \"path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Path); err != nil {
+		return prefixField("path", err)
+	}
+	if m, ok := raw["text"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Reference: required field \"text\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Text); err != nil {
+		return prefixField("text", err)
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Reference: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["anchor"]; ok {
+		if err := json.Unmarshal(m, &v.Anchor); err != nil {
+			return prefixField("anchor", err)
+		}
+	}
+	if m, ok := raw["origin"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Reference: required field \"origin\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Origin); err != nil {
+		return prefixField("origin", err)
+	}
+	if m, ok := raw["position"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Reference: required field \"position\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Position); err != nil {
+		return prefixField("position", err)
+	}
+	if m, ok := raw["resolution"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Reference: required field \"resolution\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Resolution); err != nil {
+		return prefixField("resolution", err)
+	}
+	return nil
 }
 
 // The machine-readable description of a repository's specification corpus,
@@ -1523,6 +3338,20 @@ type SpecIndex struct {
 	Entries []IndexEntry `json:"entries"`
 	// Every excluded candidate file, in the order the emitter fixes.
 	Exclusions []IndexExclusion `json:"exclusions"`
+	// Every reference any corpus member makes, in the order the emitter
+	// fixes: by the path the reference occurs in, then by its position within
+	// that document.
+	//
+	// One top-level collection rather than an array on each entry. A
+	// reference is an edge; its attributes describe the edge and not either
+	// endpoint, both directions are derived from this one list when the index
+	// is read, and merging the indexes of two repositories into one graph is
+	// appending rows rather than rewriting entries.
+	//
+	// Ordering by path and then by position is what makes a document's
+	// outbound references ordered by position in the document and the emitted
+	// file byte-identical across platforms, in one rule.
+	References []Reference `json:"references"`
 	// A hash of everything this index was built from, written as
 	// `sha256:` followed by lowercase hexadecimal.
 	//
@@ -1538,6 +3367,44 @@ type SpecIndex struct {
 	// Absent on an index that was not built by walking a corpus. An index
 	// carrying no hash is never served warm; it is rebuilt.
 	InputHash *string `json:"input_hash,omitempty"`
+}
+
+func (v *SpecIndex) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["schema_version"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SpecIndex: required field \"schema_version\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.SchemaVersion); err != nil {
+		return prefixField("schema_version", err)
+	}
+	if m, ok := raw["workspace"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SpecIndex: required field \"workspace\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Workspace); err != nil {
+		return prefixField("workspace", err)
+	}
+	if m, ok := raw["entries"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SpecIndex: required field \"entries\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Entries); err != nil {
+		return prefixField("entries", err)
+	}
+	if m, ok := raw["exclusions"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SpecIndex: required field \"exclusions\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Exclusions); err != nil {
+		return prefixField("exclusions", err)
+	}
+	if m, ok := raw["references"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SpecIndex: required field \"references\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.References); err != nil {
+		return prefixField("references", err)
+	}
+	if m, ok := raw["input_hash"]; ok {
+		if err := json.Unmarshal(m, &v.InputHash); err != nil {
+			return prefixField("input_hash", err)
+		}
+	}
+	return nil
 }
 
 // What a profile registers into Document Core.
@@ -1580,9 +3447,86 @@ type ProfileRegistration struct {
 	// Patterns whose presence in a finished document indicates unreplaced
 	// template scaffolding.
 	PlaceholderPatterns *[]string `json:"placeholder_patterns,omitempty"`
+	// The statuses at which a document is in effect, and therefore at which a
+	// reference it makes to a retired document is worth reporting.
+	//
+	// Profile-level rather than per-type because `status` is a property of
+	// the shared document envelope: every type this profile defines carries
+	// it, and none of them narrows it. A profile registering none of these
+	// three lifecycle keys registers no lifecycle, and the checks that read
+	// them do not run.
+	LiveStatuses *[]Status `json:"live_statuses,omitempty"`
+	// The statuses at which a document is no longer in effect, so that a live
+	// document still pointing at it is reported.
+	//
+	// Disjoint from `live_statuses` by construction; a status in neither is
+	// one the lifecycle says nothing about, which is the right answer for a
+	// draft.
+	RetiredStatuses *[]Status `json:"retired_statuses,omitempty"`
+	// The name of the frontmatter property in which a retired document names
+	// its replacement.
+	//
+	// Registered rather than assumed, because the engine that reports a
+	// retired target must not contain the name of the property this
+	// framework happens to use for it. Its value is quoted back in the
+	// finding, so a reader is told what to cite instead of what they cited.
+	SuccessorProperty *string `json:"successor_property,omitempty"`
 	// The convention values this profile supplies when `specs.toml` omits
 	// them.
 	Conventions *ConventionsConfig `json:"conventions,omitempty"`
+}
+
+func (v *ProfileRegistration) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["name"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ProfileRegistration: required field \"name\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Name); err != nil {
+		return prefixField("name", err)
+	}
+	if m, ok := raw["document_types"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ProfileRegistration: required field \"document_types\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.DocumentTypes); err != nil {
+		return prefixField("document_types", err)
+	}
+	if m, ok := raw["block_tags"]; ok {
+		if err := json.Unmarshal(m, &v.BlockTags); err != nil {
+			return prefixField("block_tags", err)
+		}
+	}
+	if m, ok := raw["finished_statuses"]; ok {
+		if err := json.Unmarshal(m, &v.FinishedStatuses); err != nil {
+			return prefixField("finished_statuses", err)
+		}
+	}
+	if m, ok := raw["placeholder_patterns"]; ok {
+		if err := json.Unmarshal(m, &v.PlaceholderPatterns); err != nil {
+			return prefixField("placeholder_patterns", err)
+		}
+	}
+	if m, ok := raw["live_statuses"]; ok {
+		if err := json.Unmarshal(m, &v.LiveStatuses); err != nil {
+			return prefixField("live_statuses", err)
+		}
+	}
+	if m, ok := raw["retired_statuses"]; ok {
+		if err := json.Unmarshal(m, &v.RetiredStatuses); err != nil {
+			return prefixField("retired_statuses", err)
+		}
+	}
+	if m, ok := raw["successor_property"]; ok {
+		if err := json.Unmarshal(m, &v.SuccessorProperty); err != nil {
+			return prefixField("successor_property", err)
+		}
+	}
+	if m, ok := raw["conventions"]; ok {
+		if err := json.Unmarshal(m, &v.Conventions); err != nil {
+			return prefixField("conventions", err)
+		}
+	}
+	return nil
 }
 
 // Everything the engine needs to check one document type.
@@ -1613,8 +3557,66 @@ type DocumentTypeRegistration struct {
 	// A value in one of these properties that matches no corpus member's
 	// slug is reported the same way an unresolved `[[slug]]` in the body is.
 	ReferenceProperties *[]string `json:"reference_properties,omitempty"`
+	// Reference-bearing properties whose target must declare a particular
+	// document `type`, keyed by property name with the required type as the
+	// value.
+	//
+	// A schema can require that `frd` holds exactly one slug; only the index
+	// knows what that slug resolves to, so the type half of the constraint is
+	// registered here. Every key must also appear in `reference_properties`
+	// — a typed property that is not reference-bearing would be checked
+	// against a target nothing resolved.
+	TypedReferenceProperties *map[string]string `json:"typed_reference_properties,omitempty"`
 	// Relationship properties that must be declared from both ends.
 	Pairings *[]PropertyPairing `json:"pairings,omitempty"`
+}
+
+func (v *DocumentTypeRegistration) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["schema"]; !ok || string(m) == "null" {
+		return fmt.Errorf("DocumentTypeRegistration: required field \"schema\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Schema); err != nil {
+		return prefixField("schema", err)
+	}
+	if m, ok := raw["slug_pattern"]; !ok || string(m) == "null" {
+		return fmt.Errorf("DocumentTypeRegistration: required field \"slug_pattern\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.SlugPattern); err != nil {
+		return prefixField("slug_pattern", err)
+	}
+	if m, ok := raw["numbered"]; !ok || string(m) == "null" {
+		return fmt.Errorf("DocumentTypeRegistration: required field \"numbered\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Numbered); err != nil {
+		return prefixField("numbered", err)
+	}
+	if m, ok := raw["sections"]; ok {
+		if err := json.Unmarshal(m, &v.Sections); err != nil {
+			return prefixField("sections", err)
+		}
+	}
+	if m, ok := raw["section_sets"]; ok {
+		if err := json.Unmarshal(m, &v.SectionSets); err != nil {
+			return prefixField("section_sets", err)
+		}
+	}
+	if m, ok := raw["reference_properties"]; ok {
+		if err := json.Unmarshal(m, &v.ReferenceProperties); err != nil {
+			return prefixField("reference_properties", err)
+		}
+	}
+	if m, ok := raw["typed_reference_properties"]; ok {
+		if err := json.Unmarshal(m, &v.TypedReferenceProperties); err != nil {
+			return prefixField("typed_reference_properties", err)
+		}
+	}
+	if m, ok := raw["pairings"]; ok {
+		if err := json.Unmarshal(m, &v.Pairings); err != nil {
+			return prefixField("pairings", err)
+		}
+	}
+	return nil
 }
 
 // A required heading, and the headings required beneath it.
@@ -1640,16 +3642,71 @@ type Section struct {
 	Children *[]Section `json:"children,omitempty"`
 }
 
+func (v *Section) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["title"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Section: required field \"title\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Title); err != nil {
+		return prefixField("title", err)
+	}
+	if m, ok := raw["required"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Section: required field \"required\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Required); err != nil {
+		return prefixField("required", err)
+	}
+	if m, ok := raw["repeated"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Section: required field \"repeated\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Repeated); err != nil {
+		return prefixField("repeated", err)
+	}
+	if m, ok := raw["children"]; ok {
+		if err := json.Unmarshal(m, &v.Children); err != nil {
+			return prefixField("children", err)
+		}
+	}
+	return nil
+}
+
 // One half of a relationship that must be declared from both ends.
 //
-// A blueprint naming a child in `children` where that child declares no
-// `parent_slug` is a half-built edge, and it is reported against both
-// documents rather than only the one that happens to be checked first.
+// A document naming a counterpart in one property where that counterpart
+// declares nothing in return is a half-built edge, and it is reported
+// against both documents rather than only the one that happens to be
+// checked first.
+//
+// Reserved for a relationship a reader of one document must see without
+// consulting the index. Because the index derives the reverse of every
+// declared edge, a pairing used to enforce a mirror the index already
+// computes can only ever fail on redundant hand-work — so the
+// spec-driven-dev profile registers none, and an adopting profile that
+// registers one is expected to argue the case. See the Document
+// Relationship Standard.
 type PropertyPairing struct {
 	// The property declared on this document.
 	Property string `json:"property"`
 	// The property the referenced document must declare in return.
 	Counterpart string `json:"counterpart"`
+}
+
+func (v *PropertyPairing) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["property"]; !ok || string(m) == "null" {
+		return fmt.Errorf("PropertyPairing: required field \"property\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Property); err != nil {
+		return prefixField("property", err)
+	}
+	if m, ok := raw["counterpart"]; !ok || string(m) == "null" {
+		return fmt.Errorf("PropertyPairing: required field \"counterpart\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Counterpart); err != nil {
+		return prefixField("counterpart", err)
+	}
+	return nil
 }
 
 // A fenced block whose contents carry structured data about an element
@@ -1666,6 +3723,29 @@ type BlockTagRegistration struct {
 	// as a JSON Pointer into the bundled schema or as a path to a
 	// standalone one.
 	Schema *string `json:"schema,omitempty"`
+}
+
+func (v *BlockTagRegistration) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["tag"]; !ok || string(m) == "null" {
+		return fmt.Errorf("BlockTagRegistration: required field \"tag\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Tag); err != nil {
+		return prefixField("tag", err)
+	}
+	if m, ok := raw["format"]; !ok || string(m) == "null" {
+		return fmt.Errorf("BlockTagRegistration: required field \"format\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Format); err != nil {
+		return prefixField("format", err)
+	}
+	if m, ok := raw["schema"]; ok {
+		if err := json.Unmarshal(m, &v.Schema); err != nil {
+			return prefixField("schema", err)
+		}
+	}
+	return nil
 }
 
 // The formats a registered fenced block's contents may be parsed as.
@@ -1968,4 +4048,18 @@ func (e *Delivery) UnmarshalJSON(data []byte) error {
 
 func (e Delivery) String() string {
 	return string(e)
+}
+
+// prefixField re-attaches a struct's key to a decode error raised inside a
+// property decoded on its own, so nested paths stay whole.
+func prefixField(key string, err error) error {
+	var typeErr *json.UnmarshalTypeError
+	if errors.As(err, &typeErr) {
+		if typeErr.Field == "" {
+			typeErr.Field = key
+		} else {
+			typeErr.Field = key + "." + typeErr.Field
+		}
+	}
+	return err
 }

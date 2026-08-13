@@ -8,8 +8,6 @@ type: frd
 status: draft
 updated_at: 2026-08-06T00:00:00Z
 sources: []
-related:
-  - "adr-018"
 ---
 
 <!--
@@ -708,7 +706,7 @@ Feature: Command Surface
 
 ## References
 
-- [[adr-018]] — the decision this variant implements
+- [[adr-020]] — the decision this variant implements
 - `specs/features/spec-index/spec-index-frd.md` — the original this is
   compared against
 - `docs/gherkin-frd-comparison.md` — what the exercise showed

@@ -154,6 +154,118 @@ struct FindingUnverified {
 }
 
 """
+A reference that reached no corpus member.
+
+The origin is carried because it decides how the defect reads: a `[[…]]`
+in prose is quoted back, while a value in a registered frontmatter
+property is reported by naming the property that holds it. The
+non-member half is carried because a slug that matched a file the index
+excluded or could not parse is a different problem with a different fix,
+and telling the reader which one they have saves them a search for a
+document that is right there.
+"""
+struct FindingUnresolvedReference {
+  """
+  The slug half of the reference, as written — everything before the
+  first `#`, whose anchor half is not part of this defect.
+  """
+  slug: String
+
+  """
+  Where the reference was written: the document's body, or a named
+  reference-bearing frontmatter property.
+  """
+  origin: ReferenceOrigin
+
+  """
+  The non-member file the slug matched, with the reason it is not a
+  member.
+
+  Absent when the slug matched nothing at all, which is the ordinary
+  case; present when the target exists beneath the spec root and is
+  excluded or unparsable.
+  """
+  non_member: ReferenceNonMember?
+}
+
+"""
+A reference from a live document to one the active profile treats as
+retired.
+
+The target resolves — the reader reaches a real document that says it has
+been replaced — so this is a warning rather than an error. The successor
+is what makes it worth reporting at all: it is the one finding that tells
+an author what to cite instead.
+"""
+struct FindingRetiredTarget {
+  """The retired target's slug."""
+  slug: String
+
+  """
+  The replacement the retired target names, read from the property the
+  active profile registers for that purpose.
+
+  Absent where the target declares none. Not every retirement has a
+  successor, and a finding that implied otherwise would send the reader
+  looking for one.
+  """
+  successor: String?
+}
+
+"""
+One half of a paired relationship the counterpart does not declare.
+
+Reported against both documents, each carrying this same detail, so that
+checking either one surfaces the half-built edge and the two copies
+describe the relationship in the same direction rather than each from its
+own point of view.
+"""
+struct FindingIncompletePairing {
+  """The reference-bearing property the referring document declares."""
+  property: String
+
+  """
+  The property the referenced document must declare in return, and does
+  not.
+  """
+  counterpart: String
+
+  """
+  The referring document's path, relative to the repository root and
+  written with forward slashes on every platform.
+  """
+  source_path: String
+
+  """
+  The referenced document's path, relative to the repository root and
+  written with forward slashes on every platform.
+  """
+  target_path: String
+}
+
+"""
+A typed reference whose target declares a document type other than the
+one the active profile requires for that property.
+
+A frontmatter schema can require that a property holds exactly one slug;
+only the index knows what that slug resolves to, so the type half of the
+constraint is checked here and reported with both types quoted.
+"""
+struct FindingReferenceType {
+  """The reference-bearing property whose target's type is constrained."""
+  property: String
+
+  """The slug the property names."""
+  slug: String
+
+  """The document `type` the active profile requires the target to declare."""
+  expected_type: String
+
+  """The `type` the target actually declares."""
+  actual_type: String
+}
+
+"""
 The structured detail of one finding, selected by the kind of defect.
 
 Every finding carries one. The message on the finding is derivable from
@@ -185,6 +297,18 @@ union FindingDetail {
 
   """A requested check that could not run."""
   @tag("unverified") Unverified: FindingUnverified
+
+  """A reference whose slug matches no corpus member."""
+  @tag("unresolved-reference") UnresolvedReference: FindingUnresolvedReference
+
+  """A reference from a live document to a retired one."""
+  @tag("retired-target") RetiredTarget: FindingRetiredTarget
+
+  """A paired relationship declared from one end only."""
+  @tag("incomplete-pairing") IncompletePairing: FindingIncompletePairing
+
+  """A typed reference whose target declares a different document type."""
+  @tag("reference-type") ReferenceType: FindingReferenceType
 }
 
 """

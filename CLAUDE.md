@@ -16,6 +16,9 @@ command -v bd >/dev/null && command -v strata >/dev/null || \
 It is idempotent, takes a few minutes cold (it builds `bd` from source
 and `strata` from a checkout), and is a no-op once both are installed.
 
+If it skips `strata`, read the warning it logs — `AGENTS.md` ("strata
+CLI") covers the causes. Everything else still lands either way.
+
 **Why this is needed.** `.claude/settings.json` registers that hook, and
 Claude Code loads hooks only from the **project root** — there is no
 mechanism for a multi-root workspace to register hooks per repository
@@ -98,55 +101,120 @@ This protocol applies when ending a Beads implementation workflow. It is subordi
 
 ## How beads persist in THIS project
 
-The managed block above states the upstream model — that sync uses
-`refs/dolt/data` on your git remote. **That is not how this project works,
-and following it will lose issues.** Read this section instead.
+**The Dolt remote is the source of truth.** Issues live in a Dolt database
+synced to `refs/dolt/data` on the GitHub remote. `.beads/*.jsonl` is **not
+tracked** and is not how issues travel.
 
-Sessions here run in ephemeral containers. `.beads/embeddeddolt/` is
-gitignored, so the Dolt database is created fresh in each session and
-destroyed with the container. `bd dolt push` cannot reach a remote: the
-egress proxy returns HTTP 403, and `refs/dolt/data` does not exist on the
-GitHub remote. Dolt is local and disposable, by design.
-
-**`.beads/issues.jsonl` is the only thing that carries issues between
-sessions and between branches.** It is committed to git. On a fresh
-container `.claude/hooks/session-start.sh` detects the missing database,
-runs `bd init`, unwinds the commit `bd init` makes, and imports this file.
-Verified end to end on 2026-07-31: a fresh clone has no database at all,
-`bd init` alone yields "No issues found", and `bd import .beads/issues.jsonl`
-restores every issue with its original `agent-plugins-` id and status.
+This is beads' documented model, and this project used to violate it. Until
+2026-08-11 the database was per-session and disposable, `.beads/issues.jsonl`
+was committed, and this section told you to run `bd export` before the
+container died or lose your work. `agent-plugins-92q.31` retired all of that.
 
 ### What this requires of you
 
-- **A bead that is not in `.beads/issues.jsonl` when the container dies is
-  gone.** Not recoverable — the database it lived in no longer exists.
-- Auto export is enabled in `.beads/config.yaml`, so creates and updates
-  reach the file without being asked for. Do not rely on that alone.
-- **Auto export is append/update-only. It does not propagate `bd delete`.**
-  Measured 2026-07-31: a deleted issue was still present 90 seconds later,
-  well past the 60s interval, and would have come back on the next import.
-- **The beads pre-commit hook does not save you here.** It runs the same
-  append/update path, so committing after a delete leaves the deleted record
-  in the file. Measured the same day: create a probe and commit — the file
-  gains it; delete the probe and commit again — the file still has it.
-- **Before ending a session, run the explicit export and commit it:**
+- **Nothing, on the happy path.** The SessionStart hook bootstraps the database
+  from the remote, and the close ceremony (`bb-close-bead.sh`) pushes after
+  every close. Beads you create or close are durable without ceremony.
+- **If you create or close beads outside the close ceremony, run `bd dolt
+  push`.** That is the one manual step. A closure sitting only in the local
+  database dies with the container, exactly as an unexported one used to.
+- **Never `bd export` as a persistence step.** It writes an untracked file and
+  persists nothing. Export only for a viewer or for interchange.
+- **`bd remember` memories are excluded from `bd export`** and are not
+  synced. Durable context belongs in an issue description, not a memory.
 
-  ```bash
-  bd export > .beads/issues.jsonl   # full rewrite; the only form that
-                                    # reflects deletions
-  git add .beads/issues.jsonl && git commit -m "..." && git push
-  ```
+### The environment must provide write access to `refs/dolt/data`
 
-- Diff the export before committing rather than trusting it. The intended
-  change is usually two or three fields on known ids; anything wider means
-  something else happened.
-- `bd remember` memories are **excluded** from `bd export` by default, and
-  the session-start hook imports without `--all`. Durable context belongs in
-  an issue description, not a memory.
-- Branches carry their own `.beads/issues.jsonl`. There is no merge driver
-  configured for it, so beads created on two branches will conflict
-  textually on merge. Prefer creating beads on one branch until that is
-  resolved.
+Not a preference — a precondition, and deliberately without a JSONL fallback.
+A session that can read but not write the tracker can close a bead and lose it.
+The hook therefore **verifies** write access on every session with a real probe
+push and **fails loudly** (exit 1) when it cannot, rather than degrading.
+
+Two things the environment supplies:
+
+1. `AGENT_PLUGINS_ACCESS_TOKEN` — a GitHub PAT with push access, set at
+   container creation. Environment variables cannot be added to a running
+   container.
+2. **Direct, unproxied egress to `github.com`.** The egress proxy substitutes a
+   brokered GitHub App token scoped to `refs/heads`, which returns 403 on
+   `refs/dolt/*`. The hook configures `http.https://github.com/.proxy` empty
+   and a credential helper that reads the PAT from the environment at call
+   time, so the token is never written to disk.
+
+This was misdiagnosed for a full session as "GitHub refuses `refs/dolt/*`
+writes". It does not. The proof that settled it: a push with a **deliberately
+invalid** token succeeded, which is only possible if the proxy replaced the
+credential.
+
+See `.claude/hooks/session-start.sh` and `docs/session-bootstrap.md`. The
+`bead-bonanza` skill itself never names a credential — it requires only "write
+access to `refs/dolt/data`", and the mechanism is this repository's business.
+
+### Two hazards that remain
+
+- **The id prefix travels with the database.** A bootstrapped clone mints ids
+  from the database's configured `issue_prefix`, not from `.beads/config.yaml`
+  (measured: `config.yaml` said `agent-plugins`, `bd where` reported
+  `agent-plugins`, and a new bead came out `spec-driven-dev-w0n`). It was
+  repaired at the source with `bd rename-prefix agent-plugins --repair` and
+  pushed; the hook re-checks it each session as a regression guard.
+- **The hook is not always registered.** Claude Code loads hooks from the
+  project root only, so a session attaching this repo alongside another never
+  runs it — and then nothing bootstraps the database or establishes write
+  access. The manual fallback is at the top of this file; the durable fix is
+  the per-environment setup script in `docs/session-bootstrap.md`.
+
+## Historical prose: don't
+
+Every skill file, reference, config comment and script header is loaded into an
+agent's context window. Tokens spent narrating how a rule came to exist are
+tokens not spent on the rule. Write the current state; leave the story out.
+
+**The test:** would a reader who has never seen this project's history behave
+differently for having read this sentence? If no, delete it.
+
+**State the fact and its failure mode. Drop the account of how it was learned.**
+
+- Yes: "`worktree.baseRef` must be `head`. Unset, a worktree branches from the
+  default branch instead of session HEAD, and the bead loses every commit the
+  sprint branch carries."
+- No: "This was misdiagnosed for a full session as X. The proof that settled it
+  was Y. It was then repaired at the source and pushed, and the hook re-checks
+  it each session as a regression guard."
+
+Both convey the rule. The second spends 4x the tokens on a story that changes
+nothing a reader does.
+
+**Where the history goes instead.** It is not lost, it moves to where it is
+retrievable but not re-read every session:
+
+| Content | Home |
+|---|---|
+| Why a rule exists; what was tried and rejected | the bead, and the commit message |
+| A measurement that justified a decision | the bead |
+| What a change retired, and why | the commit message |
+| The rule itself, and what breaks without it | the skill file |
+
+A commit message is the right place for a retirement narrative: it is attached
+to the change, `git log` finds it, and nothing loads it into context.
+
+**Three narrow exceptions** — keep it short even then:
+
+1. **A rule that looks removable but is not.** One sentence saying why the
+   obvious simplification is wrong, so it is not "fixed" every six months.
+2. **A trap with a plausible wrong answer.** Where an agent would otherwise
+   guess confidently and wrongly, name the wrong answer.
+3. **A non-obvious measured constraint.** State it as a current fact, not as a
+   discovery narrative — "`bd` resolves the shared database from any worktree
+   through git's common directory", not "we measured that…".
+
+**Do not cross-reference issue ids in skill files.** Skills are exported to
+other projects, where `<this-project>-abc.12` resolves to nothing. A reader
+there sees a dangling reference and cannot look it up. Cross-reference the bead
+in the COMMIT that makes the change; keep the skill file self-contained.
+This applies to `plugin/skills/**` and anything vendored from it. Files that
+never leave this repo — `CLAUDE.md`, `AGENTS.md`, `docs/`, `.beads/config.yaml`
+— may cite ids, and should still keep the narrative short.
 
 ## Build & Test
 

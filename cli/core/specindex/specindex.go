@@ -32,7 +32,7 @@ const SchemaVersion = "1.0"
 // New returns an empty index for the given workspace, with the schema
 // version already declared.
 //
-// Both collections are non-nil so that an index containing no members
+// Every collection is non-nil so that an index containing no members
 // marshals its collections as [] rather than as null. That matters
 // because the emitted index is compared byte for byte across platforms,
 // and a consumer that iterates a collection should not have to
@@ -43,5 +43,6 @@ func New(workspace string) specmodel.SpecIndex {
 		Workspace:     workspace,
 		Entries:       []specmodel.IndexEntry{},
 		Exclusions:    []specmodel.IndexExclusion{},
+		References:    []specmodel.Reference{},
 	}
 }

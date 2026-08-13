@@ -71,7 +71,55 @@ const (
 	// read as a document envelope, so no other check could examine the
 	// document at all.
 	RuleFrontmatterParse specmodel.RuleId = "frontmatter/parse"
+	// RuleUnresolvedReference covers a reference — written in a
+	// document's body or held by a frontmatter property the active
+	// profile registers as reference-bearing — whose slug matches no
+	// corpus member. One identifier covers all three ways this can
+	// happen (a body reference, a frontmatter reference, and a slug
+	// matching a file that exists but is not a member): they are the
+	// same defect reported from three places, not three defects.
+	RuleUnresolvedReference specmodel.RuleId = "reference/unresolved"
+	// RuleRetiredTarget covers a reference from a document at a status
+	// the active profile's lifecycle registration treats as live to one
+	// at a registered retired status. It is the first rule this package
+	// declares at [SeverityWarning] rather than [SeverityError]: the
+	// target still resolves, so this is not a conformance failure, but
+	// it is the one finding that tells an author what to cite instead.
+	RuleRetiredTarget specmodel.RuleId = "reference/retired-target"
+	// RuleIncompletePairing covers a pairing the active profile
+	// registers — a property declared from one end and a counterpart
+	// the resolved target must declare in return — where the target
+	// does not declare it.
+	RuleIncompletePairing specmodel.RuleId = "reference/pairing-incomplete"
+	// RuleTypeMismatch covers a reference-bearing property the active
+	// profile requires a specific target document `type` for, whose
+	// resolved target declares a different one.
+	RuleTypeMismatch specmodel.RuleId = "reference/type-mismatch"
 )
+
+// referenceRules is every rule whose finding is raised against the
+// document that *holds* a reference rather than the document the
+// reference is about.
+//
+// That distinction is what a single-document check turns on: an edit to
+// one document breaks references held by others, so these findings are
+// reported wherever they were written rather than narrowed to the file a
+// caller named (AC-SPECREF-002.9, AC-SPECREF-002.11). Membership is a
+// property of where a rule's findings land, not of its `reference/`
+// prefix — a future rule reported against the referenced document would
+// not belong here however it is named.
+var referenceRules = map[specmodel.RuleId]bool{
+	RuleUnresolvedReference: true,
+	RuleRetiredTarget:       true,
+	RuleIncompletePairing:   true,
+	RuleTypeMismatch:        true,
+}
+
+// IsReferenceRule reports whether findings of this rule are raised
+// against the referring document — see [referenceRules].
+func IsReferenceRule(rule specmodel.RuleId) bool {
+	return referenceRules[rule]
+}
 
 // rootPointer is what an empty JSON Pointer is rendered as, so a message
 // about the frontmatter object itself does not begin with a bare colon.
@@ -178,6 +226,138 @@ func FrontmatterParse(path string, at specmodel.Span, message string) specmodel.
 		Message:  fmt.Sprintf("frontmatter could not be read: %s", message),
 		Detail: specmodel.NewFindingDetailFrontmatterParse(specmodel.FindingFrontmatterParse{
 			Message: message,
+		}),
+	}
+}
+
+// UnresolvedReference reports a reference whose slug matches no corpus
+// member, or matches a file the index recorded as excluded or as a parse
+// failure rather than as a member.
+//
+// The message reads differently depending on origin, matching how the
+// defect is best fixed: a body reference is quoted back exactly as the
+// author wrote it, brackets included, while a frontmatter reference names
+// the property that holds it rather than making the reader search the
+// document for the offending value (AC-SPECREF-002.1, AC-SPECREF-002.3).
+// nonMember is nil for an ordinary unresolved slug and set when the slug
+// matched a non-member file, in which case the message states that
+// reason instead of "matches nothing" (AC-SPECREF-002.7).
+func UnresolvedReference(
+	path string, at specmodel.Span, text, slug string,
+	origin specmodel.ReferenceOrigin, nonMember *specmodel.ReferenceNonMember,
+) specmodel.Finding {
+	outcome := "matches no document's slug"
+	if nonMember != nil {
+		outcome = fmt.Sprintf("target exists but is not a corpus member: %s", nonMemberReason(*nonMember))
+	}
+
+	var message string
+	if fm, ok := origin.AsFrontmatterProperty(); ok {
+		message = fmt.Sprintf("%s: %q %s", fm.Property, text, outcome)
+	} else {
+		message = fmt.Sprintf("[[%s]] %s", text, outcome)
+	}
+
+	return specmodel.Finding{
+		Rule:     RuleUnresolvedReference,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message:  message,
+		Detail: specmodel.NewFindingDetailUnresolvedReference(specmodel.FindingUnresolvedReference{
+			Slug:      slug,
+			Origin:    origin,
+			NonMember: nonMember,
+		}),
+	}
+}
+
+// nonMemberReason states why a matched file is not a corpus member, for
+// [UnresolvedReference]'s message: the position of the parse failure that
+// kept it out, or the exclusion reason recorded against it. Exactly one
+// of the two is present on a [specmodel.ReferenceNonMember], per its own
+// doc comment.
+func nonMemberReason(nonMember specmodel.ReferenceNonMember) string {
+	if nonMember.ParseError != nil {
+		return fmt.Sprintf("parse failure at line %d", nonMember.ParseError.Position.StartLine)
+	}
+	if nonMember.Reason != nil {
+		return fmt.Sprintf("excluded: %s", *nonMember.Reason)
+	}
+	return "not a corpus member"
+}
+
+// RetiredTarget reports a reference from a document at a live status to
+// one at a registered retired status.
+//
+// It carries [SeverityWarning] rather than [SeverityError]: the target
+// still resolves — the reader reaches a real document that says it has
+// been replaced — so failing a build on it would punish a corpus for
+// retiring anything (AC-SPECREF-002.6). successor is nil where the
+// target declares none; not every retirement has a successor, and a
+// message that implied otherwise would send the reader looking for one.
+func RetiredTarget(path string, at specmodel.Span, slug string, successor *string) specmodel.Finding {
+	message := fmt.Sprintf("%q is retired", slug)
+	if successor != nil {
+		message += fmt.Sprintf(", superseded by %q", *successor)
+	}
+	return specmodel.Finding{
+		Rule:     RuleRetiredTarget,
+		Severity: SeverityWarning,
+		Path:     path,
+		Position: at,
+		Message:  message,
+		Detail: specmodel.NewFindingDetailRetiredTarget(specmodel.FindingRetiredTarget{
+			Slug:      slug,
+			Successor: successor,
+		}),
+	}
+}
+
+// IncompletePairing reports one half of a paired relationship the
+// resolved target does not declare the counterpart of.
+//
+// The caller raises this twice, once against sourcePath and once against
+// targetPath, both times with the same property, counterpart, sourcePath
+// and targetPath — the same structured detail from both calls, so the
+// two findings describe the relationship in one direction rather than
+// each from its own point of view (AC-SPECREF-002.5). at is the
+// declared value's span when path is sourcePath, and the target's
+// frontmatter-block span when path is targetPath: an absent property has
+// no position of its own.
+func IncompletePairing(path string, at specmodel.Span, property, counterpart, sourcePath, targetPath string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleIncompletePairing,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message: fmt.Sprintf("%s declares %q naming %s, which does not declare the paired property %q back",
+			sourcePath, property, targetPath, counterpart),
+		Detail: specmodel.NewFindingDetailIncompletePairing(specmodel.FindingIncompletePairing{
+			Property:    property,
+			Counterpart: counterpart,
+			SourcePath:  sourcePath,
+			TargetPath:  targetPath,
+		}),
+	}
+}
+
+// ReferenceType reports a reference-bearing property whose resolved
+// target declares a document `type` other than the one the active
+// profile requires for that property (AC-SPECREF-002.10).
+func ReferenceType(path string, at specmodel.Span, property, slug, expectedType, actualType string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleTypeMismatch,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message: fmt.Sprintf("%s expects type %q, target %q declares type %q",
+			property, expectedType, slug, actualType),
+		Detail: specmodel.NewFindingDetailReferenceType(specmodel.FindingReferenceType{
+			Property:     property,
+			Slug:         slug,
+			ExpectedType: expectedType,
+			ActualType:   actualType,
 		}),
 	}
 }

@@ -1,0 +1,13 @@
+reference/unresolved  error  docs/adrs/adr-201-referrer.md:12:23  [[adr-999-absent]] matches no document's slug
+reference/retired-target  warning  docs/adrs/adr-201-referrer.md:13:3  "adr-202-retired" is retired
+
+checks:
+  frontmatter/missing-property  passed
+  frontmatter/parse  passed
+  frontmatter/schema  passed
+  reference/pairing-incomplete  passed
+  reference/retired-target  failed
+  reference/type-mismatch  passed
+  reference/unresolved  failed
+  slug/duplicate  passed
+  slug/pattern-mismatch  passed

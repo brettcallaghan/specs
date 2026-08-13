@@ -17,7 +17,6 @@ delta: <KEY>                         # delta key from the blueprint's AC
 parent_slug: <work-order-epic-slug>  # the epic this order belongs to
 depends_on: []                       # orders that must complete first
 blocks: []                           # orders this one blocks
-related: []                          # relevant but non-blocking
 discovered_from: <work-order-slug>   # order whose execution surfaced this one
 
 # Dispatch metadata — what the orchestrator reads to route and pack
@@ -37,7 +36,7 @@ c4_docs: []                          # C4 doc files that may need updating
 
 <!--
 Template: Work Order
-Version: 1.2
+Version: 1.5
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]]. Readiness criteria are defined in
   [[work-order-definition-of-ready]] and `work-order-field-guide.md`.
@@ -139,6 +138,9 @@ The IMMUTABLE problem statement: what & why. This is the field a fresh agent
 reads first, so it SHALL survive the fresh-agent test — name concrete anchors
 (file paths, symbols, endpoints, tables, user-facing behavior), never point at
 a conversation ("as discussed", "the file above", "finish the earlier work").
+Anchors SHALL be durable under edits to the same file: name a position by the
+content at it — quote the heading or the first few words — and give a line
+number, range or count only alongside that quote, never instead of it.
 
 By `kind`:
   - bug   — steps to reproduce, expected vs. actual, where it manifests
@@ -158,8 +160,11 @@ context without searching. Maps to the bead `description`.
 
 <!--
 The MUTABLE approach: how. The chosen approach and the decisions that would
-otherwise be re-litigated by a time-pressured agent. It MAY hedge ("leaning X
-because Y; fall back to Z if the API can't do it"). Name existing code anchors;
+otherwise be re-litigated by a time-pressured agent. Record the alternatives
+weighed AND the one chosen; it SHALL NOT leave the choice open ("leaning X
+because Y; fall back to Z if that doesn't work out" is an open decision and
+fails the Definition of Ready). A fallback a fresh agent can resolve
+mechanically from the repo is fine. Name existing code anchors;
 do NOT prescribe new function signatures or file layouts — that is the
 executing agent's choice. Omit for `kind: epic`. Maps to the bead `design`.
 
@@ -195,9 +200,10 @@ The standing instruction to the executing agent (often a subagent that sees
 only this order) to record friction findings before closing. Reinforces the
 retro pipeline: the implementer is a sensor for work-order quality. The exact
 text and mechanism are backend-specific and STAMPED BY THE GROOMING SKILL at
-materialization (a `bd comment` prefixed `retro:` for beads), pointing at the
-project-local `rfcs/findings-capture.md`. Keep it verbatim as the grooming
-skill emits it; do not paraphrase.
+materialization (a `bd comment` prefixed `retro:` for beads). It is short and
+self-sufficient — it does not point at a protocol file, because an order that
+sends its agent elsewhere to learn the format is an order that gets skipped.
+Keep it verbatim as the grooming skill emits it; do not paraphrase.
 -->
 
 <Grooming stamps the backend-specific retro instruction here.>

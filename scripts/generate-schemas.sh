@@ -43,6 +43,83 @@ strata build "$SRC" --target ast --output "$WORK/ast" --error-format json
 strata build "$SRC" --target json-schema --output "$WORK/schema"
 mv "$WORK/schema/SpecModel.schema.json" "$WORK/schema/spec-model.schema.json"
 
+# 2.5. Sanity assertion: every document-type struct must retain a non-empty
+#      `required` list. strata commit 44c1955 (predating strata-lang/strata's
+#      fix in 8997153, "Fix: allowAdditionalProperties: false silently
+#      dropped struct inheritance (#289)") emitted structs like
+#      `Adr: DocumentFrontmatter {}` as
+#      {"additionalProperties": false, "properties": {}} — every inherited
+#      envelope property AND the required list silently gone — while strata
+#      itself still exited 0. `strata --version` cannot tell a good build
+#      from a bad one (both report strata-cli 0.7.0), so this checks the
+#      emitted SHAPE instead of the version string, which catches any future
+#      regression of this kind rather than only this one commit
+#      (agent-plugins-j7f).
+#
+#      The DocumentType enum (kebab-case values, e.g. "system-blueprint") is
+#      used to derive the document-type struct names (PascalCase, e.g.
+#      "SystemBlueprint") rather than hardcoding them, so the check stays
+#      correct as document types are added or renamed in schemas/*.strata.
+#      The enum itself is a plain string enum with no struct inheritance, so
+#      it is not vulnerable to the bug this check guards against and remains
+#      a reliable anchor even when the structs it names have been corrupted.
+python3 - "$WORK/schema/spec-model.schema.json" <<'PYEOF'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path) as f:
+    schema = json.load(f)
+
+defs = schema.get("definitions", {})
+
+doc_type_enum = defs.get("DocumentType", {}).get("enum")
+if not doc_type_enum:
+    print(
+        "error: generated schema has no definitions.DocumentType enum to "
+        "derive the document-type list from",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+missing = []
+broken = []
+for value in doc_type_enum:
+    name = "".join(word.capitalize() for word in value.split("-"))
+    definition = defs.get(name)
+    if definition is None:
+        missing.append(name)
+        continue
+    if not definition.get("required"):
+        broken.append(name)
+
+if missing:
+    print(
+        "error: generated schema is missing definitions for document "
+        f"type(s): {', '.join(missing)}",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+if broken:
+    print(
+        "error: generated schema has document type(s) with an empty or "
+        f"missing 'required' list: {', '.join(broken)}\n"
+        "  This is the shape of the regression fixed upstream by "
+        "strata-lang/strata commit 8997153 ('Fix: allowAdditionalProperties: "
+        "false silently dropped struct inheritance (#289)') — struct "
+        "inheritance (e.g. 'struct Adr: DocumentFrontmatter {}') silently "
+        "drops every inherited property and the required list, while strata "
+        "still exits 0 and 'strata --version' still reports strata-cli "
+        "0.7.0 either way.\n"
+        "  Check the strata build on PATH: cat "
+        "~/.cache/strata-cli/built-commit names the commit it was built "
+        "from. See .claude/skills/strata/SKILL.md to rebuild if needed.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+PYEOF
+
 # 3. The standalone specs.toml schema, filtered to SpecsConfig and its
 #    transitive dependencies. This is the artifact contract-specs-
 #    configuration.md names as normative for the shape of specs.toml.

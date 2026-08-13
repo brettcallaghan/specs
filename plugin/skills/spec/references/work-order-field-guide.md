@@ -7,10 +7,7 @@ slug: work-order-field-guide
 type: guide
 status: active
 updated_at: 2026-07-30T00:00:00Z
-version: "1.1"
-related:
-  - "work-order-template"
-  - "work-order-definition-of-ready"
+version: "1.2"
 ---
 
 # Work Order Field Guide
