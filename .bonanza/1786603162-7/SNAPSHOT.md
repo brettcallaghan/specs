@@ -8,13 +8,13 @@ reclaim. It is written by `scripts/bb-backup-run.sh` after every bead.
 | Field | Value |
 |---|---|
 | Run id | `1786603162-7` |
-| As of | `2026-08-13T06:57:53Z` |
+| As of | `2026-08-13T07:02:34Z` |
 | Live run directory | `/tmp/claude/bead-bonanza/1786603162-7` |
 | Repo | `/home/user/agent-plugins` |
 | Run branch | `claude/validate-corpus-spec-cli-0t0cxo` |
 | Default branch | `main` |
-| HEAD when taken | `c1c4c88` agent-plugins-k9j P2 Standards: AC identifiers are append-only and are never renumbered |
-| Files copied | 15 |
+| HEAD when taken | `dee1f97` agent-plugins-lwu P2 ADR: how an FRD evolves — living document, with deltas keyed on AC identifiers |
+| Files copied | 17 |
 | Beads with artifacts | 7 |
 
 Resume the run from the branch, not from this file: `git log --oneline main..claude/validate-corpus-spec-cli-0t0cxo`
@@ -27,8 +27,8 @@ lists every bead that has landed, one close commit each.
 | `agent-plugins-3xx` | `committed` | `a85b2dc` | yes | yes |
 | `agent-plugins-j5n` | `committed` | `0ecad82` | yes | yes |
 | `agent-plugins-k9j` | `committed` | `cfe3360` | yes | yes |
-| `agent-plugins-lwu` | — |  | yes | no |
-| `agent-plugins-qz9.2` | `claimed` |  | yes | no |
+| `agent-plugins-lwu` | `committed` | `332dea1` | yes | yes |
+| `agent-plugins-qz9.2` | `committed` | `04cb850` | yes | yes |
 | `agent-plugins-qz9.3` | — |  | yes | no |
 | `agent-plugins-ziv` | `committed` | `c0e9997` | yes | yes |
 
@@ -57,7 +57,7 @@ whether the live directory still exists and use it when it does:
     ls -A /tmp/claude/bead-bonanza/1786603162-7
 
 Read this copy only WHEN that directory is gone, and then state this
-snapshot's as-of time (`2026-08-13T06:57:53Z`) in whatever you conclude from it.
+snapshot's as-of time (`2026-08-13T07:02:34Z`) in whatever you conclude from it.
 
 **It preserves operational state, not findings.** Findings are `retro:`
 comments on the beads themselves, durable in the tracker independently of

@@ -134,7 +134,7 @@ different concurrent slots, to match the orchestrator's instruction literally.
 | 1 | agent-plugins-j5n | standard | shared-surface batch #1 (with k9j), run first | defer | Co-edit collision: same script + same directory as `agent-plugins-k9j` — both run `scripts/sync-shared-references.sh` and commit into `plugin/skills/*/references/shared/` (different files: work-order-template.md's two vendored copies vs. ac-traceability-standards.md's one). Batched sequential rather than concurrent to avoid two worktrees regenerating that tree in parallel. Also edits `scripts/check-template-drift.py` (named exclusion) — the other half of driving that gate to 0. |
 | 1 | agent-plugins-k9j | light | shared-surface batch #1 (with j5n), run second | defer | Co-edit collision: same script + same directory as `agent-plugins-j5n` (see j5n's row) — different files (`ac-traceability-standards.md` + its one vendored copy). Run after j5n in the same subagent. |
 | 1 | agent-plugins-qz9.2 | standard | isolated / sequential | — | `c4_changes: [module-document-core, container-spec-cli]` — no other bead dispatched in wave 1 shares those components, so it is isolated *within this wave*. Deliberately sequenced ahead of `agent-plugins-qz9.3` (wave 2), which shares the same components — see qz9.3's row. |
-| 2 | agent-plugins-lwu | standard | isolated / sequential | — | No `c4_changes`, no file overlap (authors `specs/adrs/ADR-020-*.md` only). `RELATED` to `agent-plugins-k9j`, no `BLOCKS` edge — not a hard dependency. Soft-sequenced into wave 2, after k9j (wave 1) has landed, so ADR-020's citation of the AC-append-only rule describes text that actually exists on the branch rather than a promise. This is an override of the "no dependency" reading of k9j's design note (see below) — see caller line 3. |
+| 1 | agent-plugins-lwu | standard | isolated / sequential | — | No `c4_changes`, no file overlap (authors `specs/adrs/ADR-020-*.md` only). `RELATED` to `agent-plugins-k9j`, no `BLOCKS` edge — not a hard dependency. Soft-sequenced into wave 2, after k9j (wave 1) has landed, so ADR-020's citation of the AC-append-only rule describes text that actually exists on the branch rather than a promise. This is an override of the "no dependency" reading of k9j's design note (see below) — see caller line 3. |
 | 2 | agent-plugins-qz9.3 | standard | isolated / sequential | — | Co-edit collision: same `c4_changes` (`module-document-core`, `container-spec-cli`) as `agent-plugins-qz9.2` — per fact 1, must not share a wave, so placed in wave 2 outright. Also a sequencing benefit, not just an avoidance: qz9.3 regenerates CLI snapshots (`scripts/regenerate-cli-snapshots.sh`); running it after qz9.2's rule/report-accounting change has landed means the committed goldens capture both changes in one regen pass instead of two. |
 
 ### Overrides of an obvious partition
@@ -206,3 +206,26 @@ text and the standards text drifting during authorship.
 
 Push mode for the whole wave: defer_push. The orchestrator pushes once after
 all four units merge, so four concurrent pushes cannot race.
+
+### 2026-08-13 — lwu resequenced out of wave 2 into wave 1
+
+agent-plugins-lwu was planned into wave 2 for one reason: its ADR must cite the
+append-only rule agent-plugins-k9j adds, so it needed k9j on the branch first.
+k9j merged at c1c4c88, so that precondition is satisfied and the reason to hold
+it is gone. Dispatched immediately rather than idling behind agent-plugins-qz9.2.
+
+Safety re-checked before dispatch, not assumed:
+  * lwu c4_changes = [] and qz9.2 c4_changes = [module-document-core,
+    container-spec-cli] — no shared component, so the concurrency entry
+    condition holds.
+  * No file overlap: lwu writes specs/adrs/, qz9.2 writes cli/. lwu is
+    explicitly forbidden from touching cli/ in its prompt.
+  * worktree.baseRef re-verified as `head` before creating the worktree.
+  * Ancestor check for lwu uses session HEAD 55cf378 (which contains k9j), so
+    a worktree on the wrong base is caught before the ADR cites a rule it
+    cannot see.
+
+agent-plugins-qz9.3 is NOT resequenced. It shares both c4_changes components
+with qz9.2, which is still in flight, so it stays in wave 2 behind it.
+
+Wave table rows updated in place: lwu now reads wave 1.
