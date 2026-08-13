@@ -8,12 +8,12 @@ reclaim. It is written by `scripts/bb-backup-run.sh` after every bead.
 | Field | Value |
 |---|---|
 | Run id | `1786603162-7` |
-| As of | `2026-08-13T06:56:55Z` |
+| As of | `2026-08-13T06:57:53Z` |
 | Live run directory | `/tmp/claude/bead-bonanza/1786603162-7` |
 | Repo | `/home/user/agent-plugins` |
 | Run branch | `claude/validate-corpus-spec-cli-0t0cxo` |
 | Default branch | `main` |
-| HEAD when taken | `e44f4a3` agent-plugins-3xx P1 retro-spec's rfc-template.md has drifted from the Rfc schema and from every RFC authored |
+| HEAD when taken | `c1c4c88` agent-plugins-k9j P2 Standards: AC identifiers are append-only and are never renumbered |
 | Files copied | 15 |
 | Beads with artifacts | 7 |
 
@@ -28,7 +28,7 @@ lists every bead that has landed, one close commit each.
 | `agent-plugins-j5n` | `committed` | `0ecad82` | yes | yes |
 | `agent-plugins-k9j` | `committed` | `cfe3360` | yes | yes |
 | `agent-plugins-lwu` | — |  | yes | no |
-| `agent-plugins-qz9.2` | — |  | yes | no |
+| `agent-plugins-qz9.2` | `claimed` |  | yes | no |
 | `agent-plugins-qz9.3` | — |  | yes | no |
 | `agent-plugins-ziv` | `committed` | `c0e9997` | yes | yes |
 
@@ -57,7 +57,7 @@ whether the live directory still exists and use it when it does:
     ls -A /tmp/claude/bead-bonanza/1786603162-7
 
 Read this copy only WHEN that directory is gone, and then state this
-snapshot's as-of time (`2026-08-13T06:56:55Z`) in whatever you conclude from it.
+snapshot's as-of time (`2026-08-13T06:57:53Z`) in whatever you conclude from it.
 
 **It preserves operational state, not findings.** Findings are `retro:`
 comments on the beads themselves, durable in the tracker independently of
