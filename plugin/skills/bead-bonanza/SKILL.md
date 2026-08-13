@@ -702,7 +702,10 @@ After the queue is drained (or the circuit breaker tripped), print:
     (`references/progress-streaming.md`, "Back the Monitor with a durable
     trigger") —
     a trigger left armed after the run drains wakes an agent into a finished
-    sprint, which trains the reader to ignore it.
+    sprint, which trains the reader to ignore it. **State its disposition in
+    the report**: `Durable trigger: cancelled (<id>)` or `Durable trigger:
+    none armed` — both branches are stateable, and an omitted line is
+    indistinguishable from a forgotten cancellation.
 6b. **Delete the run snapshot** — `git rm -r .bonanza/<run-id>/` as its own
     commit, **after** the report above is written and committed, never before.
     It is a working artifact of the run and must not reach the PR that carries
