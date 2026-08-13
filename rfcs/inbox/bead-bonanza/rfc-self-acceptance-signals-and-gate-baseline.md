@@ -135,8 +135,9 @@ The cause is documented in the script itself. `pre-flight-check.sh:168` —
 "Extract the command from an AGENTS.md gate bullet: the first backticked
 span" — and `:142-143` restate it. This project's test gate is not a
 backticked span; it is a fenced multi-line `bash` block, because the three
-checks must run independently rather than chained with `&&`. The parser has no representation
-for that, emits `unparsed` at `:443`, sets `$key=unparsed` at `:445`, and
+checks must run independently rather than chained with `&&`. The parser has no
+representation for that, emits `unparsed` at `:443`, sets `$key=unparsed` at
+`:445`, and
 `BB_GATE_BASELINE` is reported as `skipped`.
 
 **Minimal repro:** in any project whose `## bead-bonanza gates` block expresses
