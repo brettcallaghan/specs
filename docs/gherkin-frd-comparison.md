@@ -130,7 +130,7 @@ on the scenario. Worth adding to `agent-plugins-133`.
 
 ## Finding 3 — the criterion/example split holds up, and reads well
 
-ADR-018 claimed `Scenario Outline` preserves the split that
+ADR-020 claimed `Scenario Outline` preserves the split that
 `*Example:*` bullets provide. On a real document it does, and the
 tabular form is genuinely better where a criterion varies over data.
 AC-SPEC-001.6 is the clearest win — three prose clauses about `.md`,
@@ -232,7 +232,7 @@ Two consequences, both improvements on the first attempt:
   inherit it. An earlier version of this document concluded there was
   nowhere to put it; that was a consequence of the wrong mapping.
 
-For `.feature` emission (ADR-018 constraint 5), one FRD yields one file
+For `.feature` emission (ADR-020 constraint 5), one FRD yields one file
 per requirement rather than one file per FRD. That is normal for feature
 files and needs no special handling.
 
@@ -286,7 +286,7 @@ be discovered.
 only pickles silently loses every `Feature`, `Rule` and `Scenario`
 description.
 
-## What this changes about ADR-018
+## What this changes about ADR-020
 
 Nothing in the decision, but three things belong in the migration:
 
@@ -313,7 +313,7 @@ The +54% document growth is real and is the honest price. It buys a
 typed record per criterion — identifier, requirement, typed steps,
 example rows, tags and span — where prose gives one string, plus a
 described requirement where prose gave a story paragraph nothing could
-read. That is the trade ADR-018 makes deliberately, now measured on a
+read. That is the trade ADR-020 makes deliberately, now measured on a
 real document rather than asserted.
 
 ## References

@@ -17,7 +17,7 @@ This file lives in docs/, outside the spec root declared in specs.toml, so
 `spec check` does not see it and its slug cannot collide with the original's.
 
 It reproduces specs/features/spec-index/spec-index-frd.md under the mapping
-ADR-018 constraint 1 fixes:
+ADR-020 constraint 1 fixes:
 
   REQ        -> Feature:          (one fenced block each)
   User Story -> the Feature description, with a design note and scope fence

@@ -121,11 +121,23 @@ one is a finding rather than a warning.
 | `@manual` | on a hand-verified criterion | yes, where it applies |
 | `@level-<unit\|integration\|e2e>` | on a `Scenario` | optional |
 
-**On a `Scenario Outline` carrying more than one criterion, the
-identifier goes on each `Examples` block, not on the scenario.** Tagging
-the scenario collapses several criteria into one, in a document that
-parses cleanly with every scenario tagged and no check firing. This is
-the single most dangerous mistake in the notation:
+**Decide what an `Examples` block is before you tag it.** A
+`Scenario Outline` can mean two different things, and only you know
+which:
+
+- *One criterion, several named groups of data* — tag the **scenario**.
+  The blocks are presentation.
+- *Several criteria sharing one shape* — tag each **`Examples` block**.
+  Each block is its own criterion.
+
+Getting this wrong in the second direction is the most dangerous
+mistake in the notation: tag the scenario when you meant several
+criteria, and all but the first cease to exist, in a document that
+parses cleanly with every scenario tagged and no check firing. The CLI
+cannot read your intent, so it reports only *partial* tagging — some
+blocks tagged, others not. The rest is your judgment.
+
+Tag each block when they are separate criteria:
 
 ```gherkin
   Scenario Outline: Latency budgets against a 1,000-document corpus
@@ -241,7 +253,7 @@ most of what the CLI's semantic checks exist to catch.
 
 | Mistake | What happens |
 |---|---|
-| Tagging a multi-criterion `Scenario Outline` at scenario level | Every criterion but the first **disappears** |
+| Tagging a `Scenario Outline` at scenario level when its `Examples` blocks were meant as separate criteria | Every criterion but the first **disappears**; only partial tagging is machine-detectable |
 | `#` used as a markdown heading in a description | The line is a Gherkin comment: it **vanishes** from the description |
 | A description line beginning with a Gherkin keyword | Terminates the description and **becomes structure** — a sentence starting "Scenario:" creates a second, untagged scenario |
 | Free prose above the first `Scenario` | Silently absorbed into the `Feature` description; a criterion written this way is not a criterion |
