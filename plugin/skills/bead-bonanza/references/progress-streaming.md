@@ -78,6 +78,14 @@ Batch subagents (fast lane, shared-surface batch) write events for every bead th
 tail -n +1 -F <run-dir>/<bead-id>.progress.jsonl | grep -E --line-buffered '"phase":"(committed|blocked)"'
 ```
 
+Arm it with `persistent: true` and stop it with `TaskStop` when the wave
+drains. The default `timeout_ms` is five minutes — the exact threshold at
+which this rule requires a Monitor — so a Monitor armed without it expires on
+precisely the runs that need it. The `tail -F` pattern above never exits on
+its own, so under a timeout it stays armed until it is killed rather than
+ending when the work does. WHEN a Monitor does expire while its subagent is
+still live, re-arm it; expiry is not information about the bead.
+
 For batch subagents, tail multiple files in one Monitor. **Filter to `committed|blocked` only** — those are the events the orchestrator acts on. Relaying every phase (implementing, gates-running, …) wakes the orchestrator per event and adds a conversation turn each time for narration nobody needs; the per-bead progress files still hold the full phase history for crash recovery.
 
 ## Back the Monitor with a durable trigger

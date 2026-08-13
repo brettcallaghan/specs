@@ -9,7 +9,7 @@ description: Process many beads autonomously by orchestrating subagents. Use
   (doc fast lane / shared-surface batch / sequential), runs every bead in its
   own git worktree, streams per-bead progress, and lands each bead in a single
   commit.
-version: "1.4"
+version: "1.5"
 ---
 
 # bead-bonanza
@@ -87,7 +87,9 @@ that no repository owns, so anything could change between waves: re-verify
 before **each** wave, not once per run.
 
 **Merge policy.** The **orchestrator** merges each bead's branch into the
-sprint branch as it is accepted, one at a time; subagents never merge. Either
+sprint branch as it is accepted, one at a time; subagents never merge. A
+chained batch is merged by fast-forwarding the LAST bead's branch, which
+carries its predecessors — not by merging each bead's branch in turn. Either
 way the result is linear history and one commit per bead. What a `--ff-only`
 refusal means differs between a sequential and a concurrent wave, and reading
 it wrong stops a healthy wave — take that rule from the lifecycle named below
@@ -203,8 +205,9 @@ that needs it may be fresh, with no bundle loaded and no path to resolve.
 
 Without being sent anywhere, the orchestrator arms a `Monitor` on the progress
 file for any subagent expected to run past 5 minutes (any non-trivial bead,
-given full test runs) so the user sees per-phase events live, and — before the
-first dispatch — arms the durable out-of-session trigger
+given full test runs) so the user sees per-phase events live — armed
+`persistent`, stopped with `TaskStop` when the wave drains — and, before the
+first dispatch, arms the durable out-of-session trigger
 `references/progress-streaming.md`'s "Back the Monitor with a durable trigger"
 specifies, cancelling it in Phase 4.
 
@@ -512,8 +515,12 @@ Three things stay yours:
 
 1. **The run manifest.** Write
    `${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/dispatch.md`'s header — the
-   pre-flight stdout block, gate profile, gate baseline, model lineup, standing
-   authorization and environmental ledger — **before** you dispatch grooming.
+   pre-flight stdout block, gate profile, gate baseline, model lineup, the
+   run's effort setting, standing authorization and environmental ledger —
+   **before** you dispatch grooming. WHERE the harness exposes no effort
+   setting, write `unrecorded` — never omit the field and never guess a
+   value; an omitted field is indistinguishable from a forgotten one, and a
+   guessed value is worse than either.
    Recovery reads `dispatch.md` instead of re-deriving the run, so the run's
    most load-bearing artifact is not authored one delegation hop away.
    `plan-sprint` appends the wave table under your header and leaves it alone.
@@ -700,7 +707,10 @@ After the queue is drained (or the circuit breaker tripped), print:
     (`references/progress-streaming.md`, "Back the Monitor with a durable
     trigger") —
     a trigger left armed after the run drains wakes an agent into a finished
-    sprint, which trains the reader to ignore it.
+    sprint, which trains the reader to ignore it. **State its disposition in
+    the report**: `Durable trigger: cancelled (<id>)` or `Durable trigger:
+    none armed` — both branches are stateable, and an omitted line is
+    indistinguishable from a forgotten cancellation.
 6b. **Delete the run snapshot** — `git rm -r .bonanza/<run-id>/` as its own
     commit, **after** the report above is written and committed, never before.
     It is a working artifact of the run and must not reach the PR that carries
@@ -761,6 +771,15 @@ finding recorded once and filtered out the next time can never be observed
 appearing twice. Filtering the report down to RFC-worthy findings breaks that
 accumulation silently.
 
+**Number findings per bead, not globally: `<bead-id>#<ordinal>`** (e.g.
+`8ef.1#3`), the ordinal given by position within that finding's own
+`### agent-plugins-<id>` heading. Cite findings by this form everywhere the
+report's analysis references one. A per-bead id is stable the moment a
+finding is harvested; a global sequence number does not exist until the
+whole report is assembled, so analysis written before assembly — which is
+how this report gets written — would be citing a number that isn't there
+yet.
+
 **The bar for anything past the report: it changes how the next run is
 dispatched.** "Wave 2 needed three cycles" is a summary. "The `schema`-labelled
 beads were bucketed shared-surface but each regenerated the same fixture, so
@@ -772,7 +791,11 @@ findings that clear that bar become RFCs.
 Each route is one offer the user accepts or declines, naming the findings it
 would carry. RFCs land in `rfcs/inbox/<skill>/` and **cite the sprint report
 instead of re-inlining its evidence**, so report and RFC cannot disagree: the
-report is the testimony, the RFC is the proposal built on it.
+report is the testimony, the RFC is the proposal built on it. Every routed RFC
+SHALL carry the run's model lineup and effort setting from `dispatch.md`'s
+manifest header into its Provenance — the manifest records them precisely so
+this step can, and an RFC without them ships with an unfillable provenance
+field.
 
 The report itself is not an offer. Write it, append one row for the sprint to
 `rfcs/retro-log.md` so one index covers all retro activity, and commit both
