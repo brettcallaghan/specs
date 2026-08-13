@@ -205,8 +205,9 @@ that needs it may be fresh, with no bundle loaded and no path to resolve.
 
 Without being sent anywhere, the orchestrator arms a `Monitor` on the progress
 file for any subagent expected to run past 5 minutes (any non-trivial bead,
-given full test runs) so the user sees per-phase events live, and — before the
-first dispatch — arms the durable out-of-session trigger
+given full test runs) so the user sees per-phase events live — armed
+`persistent`, stopped with `TaskStop` when the wave drains — and, before the
+first dispatch, arms the durable out-of-session trigger
 `references/progress-streaming.md`'s "Back the Monitor with a durable trigger"
 specifies, cancelling it in Phase 4.
 
