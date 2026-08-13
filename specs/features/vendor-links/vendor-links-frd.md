@@ -6,7 +6,7 @@ description: The Spec CLI rewrites corpus wikilinks into markdown links
 slug: frd-spec-vendor-links
 type: frd
 status: ready-for-review
-updated_at: 2026-08-13T22:00:00Z
+updated_at: 2026-08-13T22:20:00Z
 ---
 
 # Vendored Reference Links
@@ -55,7 +55,8 @@ judgement would corrupt the teaching prose it was meant to preserve.
   knows about where copies live: the CLI never derives, resolves or
   normalizes a path, and never learns the destination of the document it
   is rewriting. A slug absent from the map is a citation the copy may
-  not make.
+  not make. The map may carry further per-slug data for the caller's own
+  use; the CLI reads the path and ignores the rest.
 - **Wikilink** — a slug citation in `[[slug]]` or `[[slug#Heading Text]]`
   form, resolved through the index.
 - **Anchor** — the heading-text fragment of a wikilink, per
@@ -166,6 +167,13 @@ it. Every question about how that path was constructed — absolute or
 relative, to what base, on a filesystem or a website — belongs to the
 caller and never reaches the CLI.
 
+The map is keyed by slug because that is what it is: one record per
+document. Each record may carry whatever else the caller needs about
+that document — where its copies are written, for instance — so that
+adding a document to the shipped set is one edit to one file, rather
+than two edits to two files that nothing keeps in agreement. The CLI
+reads the path out of each record and ignores everything beside it.
+
 - **AC-SPECVND-005.1:** The CLI SHALL rewrite exactly one document per
   invocation.
 
@@ -178,33 +186,52 @@ caller and never reaches the CLI.
 - **AC-SPECVND-005.3:** The CLI SHALL NOT create, modify or delete any
   file.
 
-- **AC-SPECVND-005.4:** The CLI SHALL read the link map from a TOML file
-  named by the caller, in which each entry pairs a corpus document's
-  slug with the path a link to that document is to use.
+- **AC-SPECVND-005.4:** The CLI SHALL read the link map from a YAML file
+  named by the caller: a mapping whose keys are corpus document slugs,
+  and whose value for each slug is a record declaring, in a `path`
+  property, the path a link to that document is to use.
 
-  Example, for copies that land beside each other:
+  Example, for copies that land beside each other. `destinations` here
+  belongs to the script that performs the copy; the CLI reads `path`
+  alone and never interprets the rest:
 
-  ```toml
-  [[entry]]
-  slug = "template-authoring-standards"
-  path = "template-authoring-standards.md"
-
-  [[entry]]
-  slug = "ac-traceability-standards"
-  path = "ac-traceability-standards.md"
+  ```yaml
+  template-authoring-standards:
+    path: template-authoring-standards.md
+    destinations:
+      - plugin/skills/groom-feature-blueprint/references/shared/
+  ac-traceability-standards:
+    path: ac-traceability-standards.md
+    destinations:
+      - plugin/skills/groom-feature-blueprint/references/shared/
+      - plugin/skills/spec/references/shared/
   ```
 
   Example, for the same documents published to a docs site:
 
-  ```toml
-  [[entry]]
-  slug = "template-authoring-standards"
-  path = "/standards/template-authoring/"
+  ```yaml
+  template-authoring-standards:
+    path: /standards/template-authoring/
   ```
 
 - **AC-SPECVND-005.5:** The CLI SHALL use a mapped path exactly as
   written, without resolving it, normalizing it, or making it relative
   to anything.
+
+- **AC-SPECVND-005.6:** The CLI SHALL ignore any property of a record
+  other than `path`, so that the link map can carry the caller's own
+  per-document data without the CLI having to know what it means.
+
+- **AC-SPECVND-005.7:** The CLI SHALL accept a link map written in JSON,
+  JSON being valid YAML, so that a generated map need not be emitted in
+  YAML syntax.
+
+- **AC-SPECVND-005.8:** IF the link map cannot be read, or a record
+  declares no `path`, THEN the CLI SHALL report a finding naming the
+  fault.
+
+- **AC-SPECVND-005.9:** IF the link map cannot be read, or a record
+  declares no `path`, THEN the CLI SHALL NOT emit a rewritten document.
 
 ## References
 
