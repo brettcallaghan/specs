@@ -5,8 +5,8 @@ description: How tests cite the acceptance criteria they verify, and how
 slug: ac-traceability-standards
 type: standards
 status: active
-updated_at: 2026-07-25T00:00:00Z
-version: "0.2.0"
+updated_at: 2026-08-13T00:00:00Z
+version: "0.3.0"
 ---
 
 # AC Traceability Standards
@@ -29,6 +29,21 @@ but the blueprint retires; long-term coverage verification is a function
 of active FRDs and test citations only. AC identifiers are never reused
 (see `frd-template.md` ID conventions), which is what makes this
 sound.
+
+---
+
+AC identifiers SHALL be append-only: an FRD SHALL NOT renumber an
+existing acceptance criterion's identifier. WHEN a new criterion is
+inserted conceptually between two existing identifiers, the FRD SHALL
+assign it the next unused number in that AC's sequence rather than
+shifting the surrounding identifiers (inserting between AC-SPEC-006.4
+and .5 assigns the new criterion the next unused number; it does not
+renumber .5 onward).
+
+**Rationale:** A renumbered identifier silently retargets every existing
+test citation and work-order source that pointed at it to different
+criteria, and it makes any identifier-keyed delta between two versions
+of an FRD meaningless.
 
 ---
 
