@@ -53,6 +53,15 @@ SEARCH = "plugin/skills/*/references/*-template.md"
 BUNDLE = "cli/core/schema/spec-model.schema.json"
 VOCABULARY = "DocumentType"
 
+# Matched by SEARCH but deliberately not corpus documents: a template
+# whose absent `type` is a decision, not a defect, so template/no-type
+# must not fire for it. Reversible in one line if the reason no longer
+# holds.
+NON_CORPUS = {
+    "plugin/skills/spec/references/work-order-template.md":
+        "materializes into a tracker issue, not a corpus document",
+}
+
 # A floor on how many templates must be found. The failure this guards
 # against is not "a template is wrong" but "this gate is pointed at
 # nothing and says so cheerfully". Deliberately well below the current
@@ -105,6 +114,9 @@ def main() -> int:
     for path in sorted(ROOT.glob(SEARCH)):
         rel = str(path.relative_to(ROOT))
         checked += 1
+
+        if rel in NON_CORPUS:
+            continue
 
         raw = frontmatter(path)
         if raw is None:
