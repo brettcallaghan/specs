@@ -6,7 +6,7 @@ description: The Spec CLI rewrites corpus wikilinks into markdown links,
 slug: frd-spec-markdown-links
 type: frd
 status: ready-for-review
-updated_at: 2026-08-13T23:55:00Z
+updated_at: 2026-08-14T00:20:00Z
 sources: [adr-018, frd-spec-reference-integrity]
 ---
 
@@ -118,41 +118,60 @@ reach the cited document without the index it was written against.
 - **AC-SPECMD-001.6:** WHEN the CLI rewrites a document that contains no
   rewritable wikilink, it SHALL emit that document unchanged.
 
-### REQ-SPECMD-002: Refuse a citation the link map does not cover
+### REQ-SPECMD-002: Report a citation the copy cannot reach
 
-**User Story:** As a framework maintainer, I want a citation of a
-document I have not shipped to fail the rewrite, so that I find out
-before the copy reaches an adopting repository rather than after.
+**User Story:** As a framework maintainer, I want the rewrite to tell me
+which citations will not resolve where the copy is read, so that I learn
+it before the copy reaches an adopting repository rather than after.
 
-A copy may only cite documents the caller has said it can reach. A link
-map is that statement, so it doubles as the shipped set: omitting a
-document from it makes every citation of that document a finding. This
-turns a packaging rule into a checkable one, enforced at rewrite time
-rather than discovered in an adopting repository. It is the reason a
+A citation fails to reach its target two ways, and they call for
+different answers. A slug naming a corpus document the caller left out
+of the link map is a packaging mistake: the caller stated the shipped
+set and this citation leaves it, so the copy would carry a link that is
+knowingly broken and the run refuses to produce one. It is the reason a
 given map is never completed by derivation — see AC-SPECMD-006.3.
+
+A slug naming no corpus document at all is usually not a citation. The
+templates and guides are written to teach citation syntax, so their
+prose is full of `[[adr-<nnn>]]` and `[[frd-checkout]]` that no author
+ever meant to resolve. Refusing those would refuse most of the documents
+this feature exists to serve, so the run reports each one and carries
+on, leaving the wikilink as written. The report is still worth making:
+the same signal covers a genuine mistyped slug.
 
 **Acceptance Criteria:**
 
 - **AC-SPECMD-002.1:** IF the caller names a link map AND a wikilink's
-  slug is absent from it, THEN the CLI SHALL report a finding.
+  slug names a corpus document the map does not cover, THEN the CLI
+  SHALL report a finding of severity error.
   - *Example:* `frontmatter-standards` cites
-    `[[document-relationship-standards]]`, a corpus document the plugin
-    does not ship; a link map omitting it reports both citations.
+    `[[document-relationship-standards]]`, a corpus document under
+    `specs/standards/` the plugin does not ship; a link map omitting it
+    reports both citations as errors.
 - **AC-SPECMD-002.2:** IF the caller names a link map AND a wikilink's
-  slug is absent from it, THEN the CLI SHALL NOT emit a rewritten
-  document.
-- **AC-SPECMD-002.3:** WHEN reporting that finding, the CLI SHALL name
-  the citing document, the unresolvable slug, and the position of the
-  citation.
-- **AC-SPECMD-002.4:** IF a wikilink's slug names no corpus document at
-  all, THEN the CLI SHALL report a finding distinguishable from
-  AC-SPECMD-002.1, because a slug nobody has written and a document
-  deliberately left out of the map call for different fixes.
+  slug names a corpus document the map does not cover, THEN the CLI
+  SHALL NOT emit a rewritten document.
+- **AC-SPECMD-002.3:** WHEN reporting any such finding, the CLI SHALL
+  name the citing document, the slug, and the position of the citation.
+- **AC-SPECMD-002.4:** IF a wikilink's slug names no corpus document AND
+  no link map entry covers it, THEN the CLI SHALL report a finding of
+  severity warning, distinguishable from AC-SPECMD-002.1's, because a
+  citation leaving a declared shipped set and an illustration that was
+  never a citation call for different fixes.
+  - *Example:* `c4-guide` writes `[[component-<name>]]` and
+    `[[module-<name>]]` in prose about element records; each is reported
+    as a warning.
 - **AC-SPECMD-002.5:** The CLI SHALL report every such finding in one
   run rather than stopping at the first.
-- **AC-SPECMD-002.6:** IF a wikilink's slug names no corpus document at
-  all, THEN the CLI SHALL NOT emit a rewritten document, whether or not
-  the caller named a link map.
+- **AC-SPECMD-002.6:** IF a wikilink's slug names no corpus document AND
+  no link map entry covers it, THEN the CLI SHALL emit the rewritten
+  document notwithstanding that finding.
+- **AC-SPECMD-002.7:** IF a wikilink's slug names no corpus document AND
+  no link map entry covers it, THEN the CLI SHALL leave that wikilink
+  exactly as the author wrote it.
+- **AC-SPECMD-002.8:** WHEN every finding a run reports is of severity
+  warning, the CLI SHALL exit zero, so that illustrative prose does not
+  fail a build that has nothing wrong with it.
 
 ### REQ-SPECMD-003: Report what was rewritten
 
