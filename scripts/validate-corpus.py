@@ -118,8 +118,10 @@ CLI_ROOT_KEY = ("workspace", "root")
 MIN_CHECKED = 20
 
 # Templates carry deliberate placeholder slugs and type values, and are
-# not corpus members. AC-SPEC-004.4 names this explicitly.
-EXCLUDE_NAME_CONTAINS = ["template"]
+# not corpus members. AC-SPEC-004.4 names this explicitly. Templates are
+# identified by the -template.md suffix, not by substring "template": see
+# check-template-drift.py, which uses the same rule.
+EXCLUDE_TEMPLATE_SUFFIX = "-template.md"
 
 # type -> definition name in the bundled schema. This mapping is what a
 # profile registers; it lives here until the Go profile module exists.
@@ -241,7 +243,7 @@ def main() -> int:
             if path in seen:
                 continue
             seen.add(path)
-            if any(s in path.name for s in EXCLUDE_NAME_CONTAINS):
+            if path.name.endswith(EXCLUDE_TEMPLATE_SUFFIX):
                 continue
             rel = str(path.relative_to(ROOT))
 
