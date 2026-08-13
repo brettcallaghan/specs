@@ -4,7 +4,7 @@ description: An FRD is a living document edited in place under a same-feature te
 slug: adr-020
 type: adr
 status: ready-for-review
-updated_at: 2026-08-13T16:15:00Z
+updated_at: 2026-08-13T18:25:00Z
 ---
 
 # ADR-020: FRDs Evolve in Place; Deltas Are Keyed on AC Identifiers
@@ -44,11 +44,19 @@ of amendments to learn the answer. Consequently:
    feature identity is already carried by the FRD's slug. Same feature
    → edit the FRD in place. New feature → new FRD.
 2. **Deltas between two versions of the same FRD are keyed on AC
-   identifiers, not on lines.** `in new, not in old` is new work; `in
-   both, text changed` means the blueprint sections and work orders
-   citing that identifier need revisiting; `in old, not in new` means
-   finding what implemented it, because that code may now be
-   unspecified.
+   identifiers, not on lines.** To find what changed, compare the set
+   of AC identifiers the old version declared against the set the new
+   version declares. Every identifier falls into one of three cases:
+
+   - **Only in the new version** — a criterion was added. This is new
+     work to implement and to test.
+   - **In both, but its text changed** — the requirement moved while
+     its identifier stayed put. Every blueprint section and work order
+     citing that identifier was written against the old wording, so
+     each needs revisiting.
+   - **Only in the old version** — a criterion was removed. Find
+     whatever implemented it, because that code may now be
+     unspecified.
 
 This depends on AC identifiers being append-only — an FRD never
 renumbers an existing acceptance criterion's identifier
