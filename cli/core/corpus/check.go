@@ -117,6 +117,17 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 	report := finding.NewReport()
 	report.Add(c.findings...)
 
+	// A whole-corpus run that indexed no members at all is a broken
+	// configuration, not a pass: nothing below has anything to check
+	// against, so every rule would otherwise report "passed" for a run
+	// that examined zero documents (agent-plugins-qz9.2). This is
+	// deliberately narrowed to only == nil: CheckFor resolves a single
+	// named member against the same index, and a one-member selection is
+	// not what "empty corpus" means.
+	if only == nil && len(c.index.Entries) == 0 {
+		report.Add(finding.CorpusEmpty(c.normalize(c.specRoot)))
+	}
+
 	for _, entry := range c.index.Entries {
 		if only != nil && entry.Path != *only {
 			continue

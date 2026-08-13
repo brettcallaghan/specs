@@ -281,6 +281,28 @@ func TestPairingAndTypeMismatchFindingsCarryError(t *testing.T) {
 	}
 }
 
+// CorpusEmpty carries severity error unconditionally — a caller must not
+// need --strict to see it — and names the configured spec root in both
+// its Path and its Message, since there is no document to report it
+// against and the whole point is telling the operator what they pointed
+// the tool at.
+func TestCorpusEmptyCarriesErrorAndNamesTheSpecRoot(t *testing.T) {
+	f := finding.CorpusEmpty("docs")
+
+	if f.Rule != finding.RuleCorpusEmpty {
+		t.Errorf("Rule = %q, want %q", f.Rule, finding.RuleCorpusEmpty)
+	}
+	if f.Severity != finding.SeverityError {
+		t.Errorf("Severity = %q, want %q", f.Severity, finding.SeverityError)
+	}
+	if f.Path != "docs" {
+		t.Errorf("Path = %q, want the configured spec root", f.Path)
+	}
+	if !strings.Contains(f.Message, `"docs"`) {
+		t.Errorf("Message %q does not name the configured spec root", f.Message)
+	}
+}
+
 // The two IncompletePairing findings the design calls for — one against
 // the declaring document, one against the target — carry the identical
 // structured detail, so checking either document surfaces the same

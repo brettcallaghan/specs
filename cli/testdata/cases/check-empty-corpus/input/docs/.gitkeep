@@ -1,0 +1,4 @@
+This directory holds the spec root for check-empty-corpus. It is
+deliberately empty of .md files: the case exercises a root that exists
+but was discovered to contain no corpus members. Git does not track
+empty directories, hence this placeholder.

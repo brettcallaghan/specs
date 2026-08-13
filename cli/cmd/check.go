@@ -40,6 +40,7 @@ var checkRules = []specmodel.RuleId{
 	finding.RuleRetiredTarget,
 	finding.RuleIncompletePairing,
 	finding.RuleTypeMismatch,
+	finding.RuleCorpusEmpty,
 }
 
 // newCheckCmd builds the `check` subcommand: run conformance checks over

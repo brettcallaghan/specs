@@ -1,6 +1,7 @@
 slug/pattern-mismatch  error  docs/adrs/adr-1-checked.md:4:7  "adr-1" does not match pattern "^adr-[0-9]{3,}(-[a-z0-9]+(-[a-z0-9]+)*)?$"
 
 checks:
+  corpus/empty  passed
   frontmatter/missing-property  passed
   frontmatter/parse  passed
   frontmatter/schema  passed

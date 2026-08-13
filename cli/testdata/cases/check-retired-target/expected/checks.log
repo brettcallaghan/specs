@@ -1,6 +1,7 @@
 reference/retired-target  warning  docs/adrs/adr-800-current.md:12:25  "adr-900-old-approach" is retired, superseded by "adr-901-new-approach"
 
 checks:
+  corpus/empty  passed
   frontmatter/missing-property  passed
   frontmatter/parse  passed
   frontmatter/schema  passed

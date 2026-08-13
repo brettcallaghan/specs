@@ -1,0 +1,5 @@
+description = "a spec root that exists but holds no corpus members fails corpus/empty and exits non-zero without --strict, rather than reporting no findings"
+cites = ["AC-SPEC-006.6"]
+artifacts = ["checks.log"]
+args = ["check"]
+exit_code = 1

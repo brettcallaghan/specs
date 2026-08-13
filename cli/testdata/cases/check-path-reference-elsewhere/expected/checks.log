@@ -2,6 +2,7 @@ reference/unresolved  error  docs/adrs/adr-201-referrer.md:12:23  [[adr-999-abse
 reference/retired-target  warning  docs/adrs/adr-201-referrer.md:13:3  "adr-202-retired" is retired
 
 checks:
+  corpus/empty  passed
   frontmatter/missing-property  passed
   frontmatter/parse  passed
   frontmatter/schema  passed

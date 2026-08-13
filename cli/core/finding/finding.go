@@ -95,6 +95,12 @@ const (
 	// profile requires a specific target document `type` for, whose
 	// resolved target declares a different one.
 	RuleTypeMismatch specmodel.RuleId = "reference/type-mismatch"
+	// RuleCorpusEmpty covers a check run whose corpus recorded no
+	// members at all: the spec root exists but discovery found nothing
+	// beneath it to check. A report with zero findings otherwise looks
+	// identical whether the run examined a clean corpus or examined
+	// nothing, and only this rule tells the two apart.
+	RuleCorpusEmpty specmodel.RuleId = "corpus/empty"
 )
 
 // referenceRules is every rule whose finding is raised against the
@@ -358,6 +364,32 @@ func ReferenceType(path string, at specmodel.Span, property, slug, expectedType,
 			Slug:         slug,
 			ExpectedType: expectedType,
 			ActualType:   actualType,
+		}),
+	}
+}
+
+// CorpusEmpty reports a check run whose corpus recorded no members: the
+// configured spec root exists but discovery found no document beneath
+// it to check.
+//
+// It carries [SeverityError], not a lesser severity, because a check
+// that examined nothing is a broken configuration — a typo'd root, a
+// moved directory, an over-broad ignore rule — not a corpus that
+// happens to be clean; a caller must not need --strict to see it. There
+// is no document to point the finding at, so Path names the spec root
+// itself (relative to the repository root, matching every other
+// finding's path) and Position is the zero span. root is repeated in
+// Path and quoted in Message so the finding reads the same whether a
+// consumer looks at the structured field or the rendered text.
+func CorpusEmpty(root string) specmodel.Finding {
+	message := fmt.Sprintf("spec root %q holds no corpus members: the run checked zero documents", root)
+	return specmodel.Finding{
+		Rule:     RuleCorpusEmpty,
+		Severity: SeverityError,
+		Path:     root,
+		Message:  message,
+		Detail: specmodel.NewFindingDetailFrontmatterParse(specmodel.FindingFrontmatterParse{
+			Message: message,
 		}),
 	}
 }
