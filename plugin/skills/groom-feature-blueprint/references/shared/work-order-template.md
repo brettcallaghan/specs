@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: plugin/skills/spec/references/work-order-template.md (version 1.4)
+     Source of truth: plugin/skills/spec/references/work-order-template.md (version 1.5)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -42,7 +42,7 @@ c4_docs: []                          # C4 doc files that may need updating
 
 <!--
 Template: Work Order
-Version: 1.4
+Version: 1.5
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]]. Readiness criteria are defined in
   [[work-order-definition-of-ready]] and `work-order-field-guide.md`.
@@ -158,6 +158,9 @@ The IMMUTABLE problem statement: what & why. This is the field a fresh agent
 reads first, so it SHALL survive the fresh-agent test — name concrete anchors
 (file paths, symbols, endpoints, tables, user-facing behavior), never point at
 a conversation ("as discussed", "the file above", "finish the earlier work").
+Anchors SHALL be durable under edits to the same file: name a position by the
+content at it — quote the heading or the first few words — and give a line
+number, range or count only alongside that quote, never instead of it.
 
 By `kind`:
   - bug   — steps to reproduce, expected vs. actual, where it manifests
