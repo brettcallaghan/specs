@@ -1,4 +1,0 @@
-=== check-skills ===
-  WARN  plugin/skills/bead-bonanza/SKILL.md: body is 52584 bytes (~13146 tokens); above ~20000 the tail is truncated from context after a compaction
---- 0 error(s), 1 warning(s) ---
-RESULT: PASS (warnings present)
