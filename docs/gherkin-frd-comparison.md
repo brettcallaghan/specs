@@ -278,7 +278,7 @@ half was dropped.
 The two unsupported cases are both silent. Neither errors — a `#` line
 disappears and a keyword line changes the document's shape — which is why
 they are stated as rules in
-`docs/plans/gherkin-feature-description-guidance.md` rather than left to
+`plugin/skills/spec/references/gherkin-guide.md` rather than left to
 be discovered.
 
 **Caveat for the structured store:** descriptions live on the AST only.
@@ -307,7 +307,7 @@ Nothing in the decision, but three things belong in the migration:
    — it is deleted.
 5. **`Feature` descriptions need authoring guidance**, because two ways
    of breaking them are silent. Drafted in
-   `docs/plans/gherkin-feature-description-guidance.md`.
+   `plugin/skills/spec/references/gherkin-guide.md`.
 
 The +54% document growth is real and is the honest price. It buys a
 typed record per criterion — identifier, requirement, typed steps,
@@ -322,5 +322,5 @@ real document rather than asserted.
 - `docs/spec-index-frd-gherkin.md` — the variant
 - `specs/features/spec-index/spec-index-frd.md` — the original
 - `docs/plans/gherkin-extraction-findings.md` — the extraction contract
-- `docs/plans/gherkin-feature-description-guidance.md` — proposed FRD
-  template section for writing `Feature` descriptions
+- `plugin/skills/spec/references/gherkin-guide.md` — how to write
+  conforming Gherkin

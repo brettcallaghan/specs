@@ -1,0 +1,266 @@
+---
+title: Gherkin Authoring Guide
+description: How to write features and acceptance criteria in Gherkin under
+  this framework — the document mapping, the tag vocabulary, what belongs in
+  each description slot, and the constructs that fail silently
+slug: gherkin-guide
+type: standards
+status: active
+updated_at: 2026-08-14T00:00:00Z
+version: "1.0.0"
+---
+
+# Gherkin Authoring Guide
+
+Features and acceptance criteria are written in Gherkin ([[adr-020]]).
+EARS governs every other normative statement — standards documents,
+contracts, blueprints ([[adr-002]]).
+
+This guide is what to write. Read it before authoring a feature.
+
+## Contents
+
+- The mapping — which FRD concept becomes which Gherkin keyword
+- Two admissible forms — fenced blocks and standalone files
+- Tags — the required vocabulary
+- Descriptions — what belongs in each slot
+- Writing good scenarios
+- Six ways to break a document silently
+- References
+
+---
+
+## The mapping
+
+| Concept | Gherkin |
+|---|---|
+| The document | frontmatter, and a `@frd-<slug>` tag on each `Feature` |
+| A requirement / feature | `Feature:` |
+| Its user story | the `Feature` description |
+| An acceptance criterion | `Scenario` or `Scenario Outline` |
+| A business rule grouping several criteria | `Rule:` |
+| A criterion's concrete example | an `Examples` row |
+| Rationale | a design note in the description, or a `Rule:` name |
+
+**A requirement is a `Feature`, not a `Rule`.** A `Rule` names a
+business rule — an assertion that can be true or false. "There can be
+only one" is a rule. "Configuration" is a topic, and a topic is a
+`Feature`. Getting this backwards is the most common structural error,
+and it cascades: with the requirement on `Rule:`, the only description
+slot is spent and the user story has nowhere to go.
+
+**A Gherkin document holds exactly one `Feature`.** Two `Feature:` lines
+in one document do not parse. So one requirement means one fenced block,
+or one `.feature` file.
+
+---
+
+## Two admissible forms
+
+### Fenced blocks inside an FRD — the default
+
+Use where the feature benefits from surrounding markdown: an overview,
+terminology, references, document frontmatter.
+
+````markdown
+### REQ-CHK-003: Payment Confirmation
+
+**Acceptance Criteria:**
+
+```gherkin
+@frd-checkout
+Feature: Payment Confirmation
+
+  As a customer
+  I want confirmation after my payment is processed
+  So that I know my order was placed
+
+  @AC-CHK-003.1
+  Scenario: A successful payment shows the order number
+    When payment processing succeeds
+    Then the confirmation page shows the order number and delivery date
+```
+````
+
+### Standalone `.feature` files
+
+Use where a feature needs no surrounding prose, and for publication to
+external tooling.
+
+Metadata goes in a **contiguous `#`-comment header** before the first
+tag or `Feature` line:
+
+```gherkin
+# ---
+# title: "Payment Confirmation"
+# slug: feat-checkout-payment
+# type: feature
+# status: approved
+# updated_at: 2026-08-14T00:00:00Z
+# ---
+@frd-checkout
+Feature: Payment Confirmation
+```
+
+**A raw `---` YAML block does not parse.** Gherkin rejects it at line 1.
+The comment form is the mechanism; there is no other.
+
+---
+
+## Tags
+
+Tags are how every record is addressed. They are required, and a missing
+one is a finding rather than a warning.
+
+| Tag | Where | Required |
+|---|---|---|
+| `@frd-<slug>` | on the `Feature` | yes — identifies the owning document |
+| feature slug | on the `Feature` | yes — addresses the feature itself |
+| `@AC-<PREFIX>-<nnn>.<n>` | on each `Scenario` | yes — one per criterion |
+| `@negative` | on a prohibition | yes, where the criterion forbids |
+| `@manual` | on a hand-verified criterion | yes, where it applies |
+| `@level-<unit\|integration\|e2e>` | on a `Scenario` | optional |
+
+**On a `Scenario Outline` carrying more than one criterion, the
+identifier goes on each `Examples` block, not on the scenario.** Tagging
+the scenario collapses several criteria into one, in a document that
+parses cleanly with every scenario tagged and no check firing. This is
+the single most dangerous mistake in the notation:
+
+```gherkin
+  Scenario Outline: Latency budgets against a 1,000-document corpus
+    Given a corpus of 1,000 documents
+    When the CLI performs "<operation>"
+    Then the CLI completes within "<budget>" at the 95th percentile
+
+    @AC-SPEC-009.1
+    Examples: an agent asking one question
+      | operation      | budget          |
+      | a corpus query | 50 milliseconds |
+
+    @AC-SPEC-009.2
+    Examples: a write-time hook checking one file
+      | operation               | budget           |
+      | a single-document check | 100 milliseconds |
+```
+
+Tags permit any non-whitespace text, so hierarchical slugs work in every
+separator — `@frd-checkout/payment`, `@frd-checkout.payment`,
+`@feat/checkout/payment-confirmation` all parse. Follow the separator
+the framework registers; the parser will not decide it for you.
+
+---
+
+## Descriptions
+
+Every `Feature`, `Rule` and `Scenario` has one free-text description
+slot. Use them deliberately.
+
+**`Feature` description** — three parts, in order. The first is
+required; the others are included when they have something to say.
+
+1. **The user story** — `As` / `I want` / `So that`. Keep the role
+   specific: "As an adopting team" earns its line; "As a user" does not.
+2. **A design note** — one or two sentences stating the constraint that
+   governs this capability and that no single criterion states.
+3. **A scope fence** — only where the feature has a tempting adjacent
+   behaviour it must *not* have.
+
+```gherkin
+@frd-spec-validation-cli
+Feature: Corpus Discovery and Membership
+
+  As an adopting team
+  I want the tool to work out for itself which files are specifications
+  So that I need not enumerate documents or restructure my directories
+
+  Membership is determined by content, not location: a `.md` file whose
+  frontmatter parses and declares a type the active profile knows.
+
+  This requirement reads frontmatter and path only. Resolving references
+  and walking body structure are follow-on features.
+```
+
+**`Rule` name** — carries rationale that states an assertion governing
+several criteria. If rationale can be phrased as a rule, it belongs
+here, where the parser sees it and the criteria it governs sit beneath:
+
+```gherkin
+  Rule: A build failure is the checker's job, not the indexer's
+
+    @AC-SPEC-002.4
+    Scenario: An unparseable document does not abort the index
+```
+
+**`Scenario` description** — per-criterion rationale only. It SHALL NOT
+contain a normative statement; prose there is reported as a probable
+untagged criterion.
+
+Descriptions hold **multiple paragraphs** — blank lines are preserved —
+and pass markdown through as literal text: emphasis, `code`, `[[slug]]`,
+bullets, blockquotes. Use it sparingly; consumers receive raw
+characters, not rendered output.
+
+---
+
+## Writing good scenarios
+
+**State constraints, not justification.** "Membership is by content, not
+path" tells a reader what they may not change. "This was added because
+reviewers kept missing it" is history, and history is what makes prose
+rot.
+
+**A step is one line, and may be as long as it needs to be.** There is
+no continuation syntax. There is also no length limit — Gherkin accepts
+a 412-character step, and this framework exempts fenced blocks from
+`line_width` (AC-SPECSTR-002.5). **Never shorten a step to fit a
+margin**: compressing "no runtime installed *beyond the CLI itself*"
+into "no runtime installed" inverts the criterion, and no reviewer
+diffing the file will see it. Decompose into more steps where that
+genuinely reads better; otherwise write the long line.
+
+**Prefer `Scenario Outline` where a criterion varies over data.** Three
+prose clauses about `.md`, `.json` and `.rst` become one legible table.
+Below two instances it is ceremony — a three-line `Examples` block
+holding one row costs more than the sentence it replaced.
+
+**An invariant is a `Then`-only scenario.** Criteria with no trigger are
+legal and common. A four-clause invariant reads worse as a
+`When`/`Then`/`And`/`And` pile than as a sentence; consider whether it
+is really several criteria.
+
+**Do not restate the criteria in prose.** If a description says what the
+scenarios below already say, delete it.
+
+---
+
+## Six ways to break a document silently
+
+Each of these parses. None raises a Gherkin error. Together they are
+most of what the CLI's semantic checks exist to catch.
+
+| Mistake | What happens |
+|---|---|
+| Tagging a multi-criterion `Scenario Outline` at scenario level | Every criterion but the first **disappears** |
+| `#` used as a markdown heading in a description | The line is a Gherkin comment: it **vanishes** from the description |
+| A description line beginning with a Gherkin keyword | Terminates the description and **becomes structure** — a sentence starting "Scenario:" creates a second, untagged scenario |
+| Free prose above the first `Scenario` | Silently absorbed into the `Feature` description; a criterion written this way is not a criterion |
+| A scenario with no steps | Parses as an empty scenario |
+| A duplicate `@AC-*` tag on two scenarios | Both accepted; the duplicate is invisible to the parser |
+
+The parser validates Gherkin's grammar and nothing else. It has no
+concept of an acceptance criterion — every check above is the spec
+CLI's, and every one of these mistakes is why they exist.
+
+---
+
+## References
+
+- [[adr-020]] — the decision, and the binding constraints this guide
+  implements
+- [[adr-002]] — EARS, which governs every normative statement that is
+  not a feature or an acceptance criterion
+- `docs/plans/gherkin-extraction-findings.md` — the measurements behind
+  the silent-failure table
+- `docs/spec-index-frd-gherkin.md` — a full FRD written this way
+- [Gherkin reference](https://cucumber.io/docs/gherkin/reference/)

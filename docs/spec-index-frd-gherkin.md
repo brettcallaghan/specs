@@ -29,7 +29,7 @@ Overview, Terminology and the numbering note remain markdown prose — they
 are FRD-level and Gherkin has no node above Feature. The nine per-requirement
 *Rationale:* paragraphs are gone: their durable content moved into the
 Feature descriptions, and the one that stated a real rule became a Rule:.
-See docs/plans/gherkin-feature-description-guidance.md.
+See plugin/skills/spec/references/gherkin-guide.md.
 
 Every block below was parsed with github.com/cucumber/gherkin/go/v42 and the
 extractor described in docs/plans/gherkin-extraction-findings.md: 9 blocks,

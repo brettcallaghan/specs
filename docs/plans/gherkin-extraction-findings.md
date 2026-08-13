@@ -9,7 +9,8 @@ what structure do we actually hold, and can we extract every field the
 spec index and a downstream structured store need?
 
 **Answer: yes, with five integration details that are easy to get wrong.
-All five are recorded below with their resolution.**
+All five are recorded below with their resolution, followed by three
+measurements that settled open design questions.**
 
 ---
 
@@ -189,7 +190,7 @@ lines are preserved; emphasis, `code`, `[[slug]]`, bullets and blockquotes
 pass through as literal text. Two things do not survive: a line beginning
 `#` becomes a comment and vanishes from the description, and a line
 beginning with a Gherkin keyword terminates the description and becomes
-structure. See `docs/plans/gherkin-feature-description-guidance.md`.
+structure. See `plugin/skills/spec/references/gherkin-guide.md`.
 
 **Descriptions are AST-only.** `Pickles()` rows carry no description
 field, so a store that loads only pickles loses every `Feature`,
@@ -201,6 +202,47 @@ through JSON. This is a typed carrier for richer per-criterion rationale
 if `Description` proves too thin.
 
 ---
+
+## 4b. Three measurements that settled design questions
+
+### A standalone `.feature` file CAN carry frontmatter — in comments
+
+| Header form | Result |
+|---|---|
+| Raw `---` YAML block before the tags | **Rejected.** `(1:1): expected: #EOF, #Language, #TagLine, #FeatureLine, #Comment, #Empty, got '---'` |
+| `# ---` … `# ---` wrapping `# key: value` lines | **Parses.** All five lines retained in `Comments` with their line numbers |
+| Bare `# key: value` lines before the tags | **Parses.** Retained the same way |
+| `#` comments *after* the `Feature:` line | Parses, but they are no longer a header |
+
+So a standalone file declares metadata as a contiguous `#`-comment block
+before the first tag or `Feature` line. An extractor strips the `# `
+prefix and parses the remainder as YAML. The raw `---` form used by
+markdown documents is not available and must not be attempted.
+
+### Hierarchical slugs are valid tags, in every separator
+
+`@frd-checkout`, `@frd-checkout/payment`, `@frd-checkout.payment`,
+`@frd-checkout:payment`, `@feat/checkout/payment-confirmation` and
+`@ac/frd-checkout/payment/001` all parse and round-trip unchanged. Tag
+syntax prohibits only whitespace, so the separator is a framework
+choice, not a Gherkin constraint.
+
+### A content hash answers "what changed locally"
+
+Node `Id`s are positional and shift on any edit above them (gap 3), so
+identity cannot come from them. A hash over a canonical form — the
+scenario keyword and name, each step's `KeywordType` and text, and each
+`Examples` header and row, with `Id`s and `Location`s excluded —
+behaves correctly:
+
+| | Hash |
+|---|---|
+| Original scenario | `9cfdfed25084` |
+| Same content, moved down by an inserted scenario | `9cfdfed25084` — **stable** |
+| One word edited in a step | `18b9a3ce7c98` — **changed** |
+
+That is what makes a "criteria changed since the last index" query
+possible without diffing markdown.
 
 ## 5. Beyond the AST: `Pickles()`
 
@@ -220,7 +262,7 @@ store or to external tooling (it resolves it).
 
 - [[adr-020]] — the decision this record supports
 - `cli/core/span` — the `Span` type gap 1 and gap 2 are reconciled against
-- `docs/plans/gherkin-feature-description-guidance.md` — what belongs in a
+- `plugin/skills/spec/references/gherkin-guide.md` — what belongs in a
   `Feature` description and what silently breaks one
 - [cucumber/messages](https://github.com/cucumber/messages) — the wire
   schema the extracted records conform to
