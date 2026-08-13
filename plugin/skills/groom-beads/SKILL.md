@@ -10,7 +10,7 @@ description: >-
   before a long-running or orchestrated session. Trigger even if the user
   just says "groom these" or "make these beads ready" in a repo that uses
   beads.
-version: "1.2"
+version: "1.3"
 ---
 
 # Bead Grooming
@@ -350,6 +350,9 @@ so it's never skipped.
 
 - Session-dependent language ("as discussed", "the above", "finish the earlier
   refactor"). Hard fail — inline the context.
+- An unquoted file:line citation — the position rots once an earlier order
+  edits the file, leaving nothing to relocate by. Inline the content the line
+  held.
 - A `feature`/`task` with no `acceptance`, or a `bug` with no repro.
 - Boulder beads masquerading as one unit of work → split into epic + children.
 - Ordering that lives only in priority numbers, with no dependency edges.
