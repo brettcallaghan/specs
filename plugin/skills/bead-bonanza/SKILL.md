@@ -761,6 +761,15 @@ finding recorded once and filtered out the next time can never be observed
 appearing twice. Filtering the report down to RFC-worthy findings breaks that
 accumulation silently.
 
+**Number findings per bead, not globally: `<bead-id>#<ordinal>`** (e.g.
+`8ef.1#3`), the ordinal given by position within that finding's own
+`### agent-plugins-<id>` heading. Cite findings by this form everywhere the
+report's analysis references one. A per-bead id is stable the moment a
+finding is harvested; a global sequence number does not exist until the
+whole report is assembled, so analysis written before assembly — which is
+how this report gets written — would be citing a number that isn't there
+yet.
+
 **The bar for anything past the report: it changes how the next run is
 dispatched.** "Wave 2 needed three cycles" is a summary. "The `schema`-labelled
 beads were bucketed shared-surface but each regenerated the same fixture, so
