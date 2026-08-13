@@ -1,1 +1,6 @@
 {"bead":"agent-plugins-3xx","phase":"claimed"}
+{"bead":"agent-plugins-3xx","phase":"implementing"}
+{"bead":"agent-plugins-3xx","phase":"gates-running"}
+{"bead":"agent-plugins-3xx","phase":"gates-passed"}
+{"bead":"agent-plugins-3xx","phase":"retro-written"}
+{"bead":"agent-plugins-3xx","phase":"committed","sha":"a85b2dc"}

@@ -3,3 +3,4 @@
 {"bead":"agent-plugins-j5n","phase":"gates-running"}
 {"bead":"agent-plugins-j5n","phase":"gates-passed"}
 {"bead":"agent-plugins-j5n","phase":"retro-written"}
+{"bead":"agent-plugins-j5n","phase":"committed","sha":"0ecad82"}
