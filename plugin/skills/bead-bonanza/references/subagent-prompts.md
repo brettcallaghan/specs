@@ -175,7 +175,12 @@ loss downstream.
 Read CLAUDE.md and AGENTS.md if you need conventions; gate commands are in AGENTS.md under "## bead-bonanza gates".
 
 Worktrees: one per bead, created by YOU, held ONE AT A TIME. Before each bead:
-  git -C <repo> worktree add -b <suffix> <repo>/../.bb-worktrees/<suffix> HEAD
+  First bead: git -C <repo> worktree add -b <id-1> <repo>/../.bb-worktrees/<id-1> HEAD
+  Each later bead: git -C <repo> worktree add -b <id-N> <repo>/../.bb-worktrees/<id-N> <id-N-1>
+  -- branch from the PREVIOUS bead's branch, not from HEAD. Inside a batch HEAD
+  does not move: the orchestrator merges only after the batch returns, so
+  branching every bead from HEAD gives beads that cannot see each other's work
+  and conflict on any shared file.
 Work that bead entirely inside its worktree. After its close commit lands, tell
 the orchestrator and move on — never hold two worktrees open at once, because a
 worktree that exists means "this bead is unfinished" to every other reader.

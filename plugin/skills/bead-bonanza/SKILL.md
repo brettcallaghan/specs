@@ -87,7 +87,9 @@ that no repository owns, so anything could change between waves: re-verify
 before **each** wave, not once per run.
 
 **Merge policy.** The **orchestrator** merges each bead's branch into the
-sprint branch as it is accepted, one at a time; subagents never merge. Either
+sprint branch as it is accepted, one at a time; subagents never merge. A
+chained batch is merged by fast-forwarding the LAST bead's branch, which
+carries its predecessors — not by merging each bead's branch in turn. Either
 way the result is linear history and one commit per bead. What a `--ff-only`
 refusal means differs between a sequential and a concurrent wave, and reading
 it wrong stops a healthy wave — take that rule from the lifecycle named below
