@@ -9,7 +9,7 @@ description: Process many beads autonomously by orchestrating subagents. Use
   (doc fast lane / shared-surface batch / sequential), runs every bead in its
   own git worktree, streams per-bead progress, and lands each bead in a single
   commit.
-version: "1.4"
+version: "1.5"
 ---
 
 # bead-bonanza
@@ -515,8 +515,12 @@ Three things stay yours:
 
 1. **The run manifest.** Write
    `${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/dispatch.md`'s header — the
-   pre-flight stdout block, gate profile, gate baseline, model lineup, standing
-   authorization and environmental ledger — **before** you dispatch grooming.
+   pre-flight stdout block, gate profile, gate baseline, model lineup, the
+   run's effort setting, standing authorization and environmental ledger —
+   **before** you dispatch grooming. WHERE the harness exposes no effort
+   setting, write `unrecorded` — never omit the field and never guess a
+   value; an omitted field is indistinguishable from a forgotten one, and a
+   guessed value is worse than either.
    Recovery reads `dispatch.md` instead of re-deriving the run, so the run's
    most load-bearing artifact is not authored one delegation hop away.
    `plan-sprint` appends the wave table under your header and leaves it alone.
@@ -787,7 +791,11 @@ findings that clear that bar become RFCs.
 Each route is one offer the user accepts or declines, naming the findings it
 would carry. RFCs land in `rfcs/inbox/<skill>/` and **cite the sprint report
 instead of re-inlining its evidence**, so report and RFC cannot disagree: the
-report is the testimony, the RFC is the proposal built on it.
+report is the testimony, the RFC is the proposal built on it. Every routed RFC
+SHALL carry the run's model lineup and effort setting from `dispatch.md`'s
+manifest header into its Provenance — the manifest records them precisely so
+this step can, and an RFC without them ships with an unfillable provenance
+field.
 
 The report itself is not an offer. Write it, append one row for the sprint to
 `rfcs/retro-log.md` so one index covers all retro activity, and commit both
