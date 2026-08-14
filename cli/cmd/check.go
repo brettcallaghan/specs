@@ -43,7 +43,7 @@ var checkRules = []specmodel.RuleId{
 }
 
 // newCheckCmd builds the `check` subcommand: run conformance checks over
-// the corpus, or over one document, per REQ-SPEC-006 (AC-SPEC-011.2).
+// the corpus, or over one document, per FEAT-SPEC-006 (AC-SPEC-011.2).
 func newCheckCmd(streams *ioStreams, configPath *string) *cobra.Command {
 	var jsonOut, strict bool
 	var only []string
@@ -79,7 +79,7 @@ func newCheckCmd(streams *ioStreams, configPath *string) *cobra.Command {
 // path empty means the whole corpus (corpus.Corpus.Check); path set
 // narrows to that one document (corpus.Corpus.CheckFor) — both proving
 // AC-SPEC-011.2. It opens the corpus warm (corpus.Open) rather than
-// building fresh, because a check is exactly the query REQ-SPEC-009's
+// building fresh, because a check is exactly the query FEAT-SPEC-009's
 // latency budgets are measured against, and a persisted index at the
 // default location answers it without re-walking the corpus.
 func runCheck(streams *ioStreams, configPath, path string, jsonOut, strict bool, only []string) error {

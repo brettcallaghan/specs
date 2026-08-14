@@ -308,14 +308,14 @@ cache" data made concrete.
 - The CLI SHALL detect staleness by a **content hash** of the index's
   inputs, not by modification time, so a fresh CI checkout whose files
   carry new mtimes but identical content is still served warm — the
-  condition REQ-SPEC-009.1's CI budget depends on (`agent-plugins-igc`).
+  condition FEAT-SPEC-009.1's CI budget depends on (`agent-plugins-igc`).
 - WHEN a query or single-document check runs and the persisted index's
   input hash is unchanged since it was written, the CLI SHALL answer from
   the persisted index without re-walking the corpus (AC-SPEC-010.5,
   AC-SPEC-009.1, AC-SPEC-009.2).
 - IF the persisted index is absent or any corpus input's hash has
   changed, THEN the CLI SHALL rebuild it before answering (AC-SPEC-010.6),
-  completing a cold 1,000-document build within the REQ-SPEC-009.3 budget.
+  completing a cold 1,000-document build within the FEAT-SPEC-009.3 budget.
 - The CLI SHALL produce identical output whether or not a warm index is
   present, so deleting `specs.json` is always safe.
 
@@ -362,7 +362,7 @@ registry into which the PROF delta's `spec-driven-dev` profile registers.
 
 ### Command Surface in [[container-spec-cli]] (added — command tree) — CLI
 
-**Intent:** Present the engine as the four-subcommand surface REQ-SPEC-011
+**Intent:** Present the engine as the four-subcommand surface FEAT-SPEC-011
 fixes, converting between the module's finding and index models and the
 process's stdout and exit status. Holds no domain logic — a check that
 lived here would be unavailable to a future API or MCP wrapper.
@@ -494,7 +494,7 @@ the repository currently has no CI (see Tracker Reconciliation).
   content hash of the corpus inputs (`input_hash`, a `sha256:` digest
   carried in the emitted index); mtime was rejected because a fresh CI
   checkout carries new mtimes over identical content, which would cold-
-  build every CI run and break the REQ-SPEC-009.1 budget the decision
+  build every CI run and break the FEAT-SPEC-009.1 budget the decision
   exists to protect. No second alternative was in contention, so the ADR
   would have recorded one rejected option and no open trade-off.
 - `agent-plugins-1ao`, `agent-plugins-h6c`, `agent-plugins-47r`,

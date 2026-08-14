@@ -57,7 +57,7 @@ Splitting and merging features
     task together, or are describable in one sentence
 
 ID conventions
-  - Requirements: REQ-<PREFIX>-NNN (zero-padded sequence, e.g. REQ-CHK-001)
+  - Requirements: FEAT-<PREFIX>-NNN (zero-padded sequence, e.g. FEAT-CHK-001)
   - Acceptance criteria: AC-<PREFIX>-NNN.N (e.g. AC-CHK-001.2)
   - Never reuse a retired ID
 
@@ -148,7 +148,7 @@ Examples
   where the criterion is unambiguous without one.
 -->
 
-### REQ-<PREFIX>-001: <Requirement Name>
+### FEAT-<PREFIX>-001: <Requirement Name>
 
 **User Story:** As a <role>, I want to <action>, so that I can <outcome>.
 
@@ -161,7 +161,7 @@ Examples
 - **AC-<PREFIX>-001.3:** IF <condition>, THEN the system SHALL <action>.
   - *Example:* <one concrete instance>.
 
-### REQ-<PREFIX>-002: <Requirement Name>
+### FEAT-<PREFIX>-002: <Requirement Name>
 
 **User Story:** As a <role>, I want to <action>, so that I can <outcome>.
 
@@ -181,7 +181,7 @@ Why it fails: generic role, no outcome, criteria are untestable, and no EARS
 trigger or condition is specified.
 
 Good example:
-  REQ-CHK-003: Payment Confirmation
+  FEAT-CHK-003: Payment Confirmation
   User Story: "As a customer, I want to receive confirmation after my
   payment is processed, so that I can know my order was placed successfully."
   AC-CHK-003.1: "WHEN payment processing succeeds, the system SHALL display

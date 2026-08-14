@@ -231,7 +231,7 @@ func TestIndexRecordsExclusionsWithTheirReason(t *testing.T) {
 	assertRoundTrips(t, index)
 }
 
-// The two reason values are exactly the vocabulary REQ-SPEC-001 names,
+// The two reason values are exactly the vocabulary FEAT-SPEC-001 names,
 // and nothing else decodes.
 //
 // AC: AC-SPEC-001.3, AC-SPEC-001.4

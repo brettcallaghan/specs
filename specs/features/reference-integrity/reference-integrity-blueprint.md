@@ -439,7 +439,7 @@ this repository's own corpus supplies.
 
 **Intent:** Expose the graph as a fifth subcommand and wire the new
 rules into the accounting the command surface already does. This extends
-the surface REQ-SPEC-011 fixed without renaming or repurposing any of
+the surface FEAT-SPEC-011 fixed without renaming or repurposing any of
 its four subcommands, which is the growth that requirement anticipated.
 The command surface holds no domain logic: `refs` converts a slug and a
 direction into a corpus lookup and the result into stdout.

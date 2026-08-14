@@ -220,10 +220,16 @@ if `Description` proves too thin.
 | Bare `# key: value` lines before the tags | **Parses.** Retained the same way |
 | `#` comments *after* the `Feature:` line | Parses, but they are no longer a header |
 
-So a standalone file declares metadata as a contiguous `#`-comment block
-before the first tag or `Feature` line. An extractor strips the `# `
-prefix and parses the remainder as YAML. The raw `---` form used by
-markdown documents is not available and must not be attempted.
+So a standalone file *could* declare metadata as a contiguous `#`-comment
+block before the first tag or `Feature` line, stripping the `# ` prefix
+and parsing the remainder as YAML. The raw `---` form used by markdown
+documents is not available and must not be attempted.
+
+*What the framework did with this:* deferred it. [[adr-020]] makes a
+`.feature` file a feature source rather than a document — its owning
+document is the one its tag names — so it needs no metadata of its own.
+The measurement stands as a record that the mechanism exists if that
+changes.
 
 ### Hierarchical slugs are valid tags, in every separator
 

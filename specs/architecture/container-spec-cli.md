@@ -67,7 +67,7 @@ is the command tree and its `--help` output.
 
 **Coding Agent → Spec CLI.** An agent invokes the CLI as a subprocess
 and parses its JSON output, rather than reading documents itself. This
-is the interaction the latency requirements in REQ-SPEC-009 exist for:
+is the interaction the latency requirements in FEAT-SPEC-009 exist for:
 the agent asks one question and acts on the answer.
 
 **CI Pipeline → Spec CLI.** An adopting repository runs the CLI in its
@@ -256,7 +256,7 @@ artifacts, and any cache it keeps is derived and disposable.
 
 - **Index cache** (on-disk, derived) — the built index, retained so a
   subsequent query answers without re-reading the corpus. This is the
-  "warm index" REQ-SPEC-009.1 and REQ-SPEC-009.2 are measured against.
+  "warm index" FEAT-SPEC-009.1 and FEAT-SPEC-009.2 are measured against.
   - WHEN any input the index was built from has changed, the CLI SHALL
     rebuild rather than serve a stale answer.
   - The CLI SHALL produce identical output whether or not a cache is
@@ -276,7 +276,7 @@ is what makes AC-SPEC-010.5's own example — "run twice in a row reads
 `specs.json` the second time" — true of a workflow that never invokes
 `index`. Until they did, only `index` ever created the artifact, and
 since nothing instructs an author to run it, every check and query in
-practice rebuilt from cold and the warm path the REQ-SPEC-009 budgets
+practice rebuilt from cold and the warm path the FEAT-SPEC-009 budgets
 are stated against went unreached (`agent-plugins-9ur`). That write is
 best-effort and its failure is discarded: a read-only checkout or a race
 with a concurrent writer makes the answer no less correct, and a query
@@ -295,7 +295,7 @@ file, an unreadable one, one of another `schema_version`, one carrying no
 hash — rebuilds. The reason for hashing rather than stat-ing is the
 environment the latency budget is claimed in: a fresh CI checkout gives
 every file a new mtime and identical bytes, so an mtime-keyed cache would
-be cold on every CI run and REQ-SPEC-009.1 would never hold there.
+be cold on every CI run and FEAT-SPEC-009.1 would never hold there.
 Absolute paths are deliberately excluded from the hash, so the same
 content checked out at another location is still warm.
 
@@ -318,7 +318,7 @@ section is authoritative for its deployment.
 - **Exclusive infrastructure:** none. The CLI has no database, no queue,
   and no network dependency at runtime.
 - **Deployment:** the CLI is distributed as a per-platform binary.
-  REQ-SPEC-009.4 through REQ-SPEC-009.6 govern the shape: it runs with
+  FEAT-SPEC-009.4 through FEAT-SPEC-009.6 govern the shape: it runs with
   no language runtime installed beyond itself, it retrieves no
   executable content at install time, and it is installable from at
   least one package registry that supports on-premises mirroring.
@@ -430,7 +430,7 @@ does not apply to a compiled binary.
       `agent-plugins-h6c` is for.
 - [ ] Whether the CLI ships a `serve` mode holding the index in memory
       across queries. Not required — the measured margin against
-      REQ-SPEC-009.1 is wide — but it is the natural home for filesystem
+      FEAT-SPEC-009.1 is wide — but it is the natural home for filesystem
       watching, which is listed as a follow-on capability.
 
 ## References

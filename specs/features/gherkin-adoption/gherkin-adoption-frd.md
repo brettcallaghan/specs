@@ -64,26 +64,25 @@ chose a parsed notation over prose.
   `Examples` block of an outline.
 - **Tag vocabulary** — the set of tags the framework assigns meaning to,
   as distinct from tags a project adds for its own purposes.
-- **Comment header** — the contiguous run of `#` comment lines at the
-  top of a standalone `.feature` file, before its first tag or
-  `Feature` line, carrying the metadata a markdown document carries in
-  frontmatter.
 - **Content hash** — a digest over a criterion's name and text, used to
   detect that a criterion changed rather than moved.
+- **Feature source** — a `.feature` file, which holds features but is not
+  itself a document: it carries no frontmatter, and its owning document
+  is the one its tag names.
 - **Feature code** — the short uppercase code that groups features by
   topic, domain or capability. Features share a code; a code and a number
   together identify one.
 - **Feature identifier** — a feature's durable address, composed of a
-  prefix, its group code and its number: `REQ-GHK-001`.
+  prefix, its group code and its number: `FEAT-GHK-001`.
 
 ## Requirements
 
-### REQ-GHK-001: Admissible Gherkin Sources
+### FEAT-GHK-001: Admissible Gherkin Sources
 
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption @REQ-GHK-001
+@frd-gherkin-adoption @FEAT-GHK-001
 Feature: Admissible Gherkin Sources
 
   As an authoring team
@@ -99,6 +98,11 @@ Feature: Admissible Gherkin Sources
   to, in specs/features/<feature-slug>/, which is where FRDs live today.
   Discovery therefore needs no new location to search.
 
+  A standalone file carries no frontmatter. It is a feature source rather
+  than a document: its owning document is the one its tag names, and its
+  metadata is that document's. Whether such a file should ever carry
+  metadata of its own is deferred.
+
   Executing scenarios is out of scope; these are specification records.
 
   @AC-GHK-001.1
@@ -111,8 +115,8 @@ Feature: Admissible Gherkin Sources
   Scenario: A .feature file beneath the spec root is a Gherkin source
     Given a file whose name ends in .feature beneath the spec root
     When the CLI discovers the corpus
-    Then the CLI treats that file as a corpus member
-    And the CLI parses its whole contents as a Gherkin document
+    Then the CLI parses its whole contents as a Gherkin document
+    And the CLI attributes its features to the document their owning-document tag names
 
   @AC-GHK-001.3
   Scenario: Both forms yield the same records
@@ -141,15 +145,17 @@ Feature: Admissible Gherkin Sources
 
 *Note:* AC-GHK-001.2 requires a change to [[frd-spec-validation-cli]],
 whose AC-SPEC-001.6 admits only files ending in `.md` as corpus
-candidates. That criterion is amended by this feature rather than
-worked around.
+candidates. A `.feature` file is not a corpus member — it carries no
+frontmatter and is not a document — so what that criterion needs is a
+second discovery pass for feature sources, not an exception to corpus
+membership.
 
-### REQ-GHK-002: Tag Vocabulary
+### FEAT-GHK-002: Tag Vocabulary
 
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption @REQ-GHK-002
+@frd-gherkin-adoption @FEAT-GHK-002
 Feature: Tag Vocabulary
 
   As an agent addressing a feature or a criterion
@@ -253,12 +259,12 @@ where a human or agent can apply judgment. An earlier draft made the
 multi-block case itself an error, and this document would have failed
 it.
 
-### REQ-GHK-003: Feature Identity and Grouping
+### FEAT-GHK-003: Feature Identity and Grouping
 
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption @REQ-GHK-003
+@frd-gherkin-adoption @FEAT-GHK-003
 Feature: Feature Identity and Grouping
 
   As an architecture owner
@@ -266,7 +272,7 @@ Feature: Feature Identity and Grouping
   So that a feature is addressable independently of the document that holds it
 
   A feature is identified by its code together with its number —
-  REQ-GHK-001, REQ-SPEC-009. The identifier is durable: moving a feature
+  FEAT-GHK-001, FEAT-SPEC-009. The identifier is durable: moving a feature
   between documents, or promoting a fenced block into a standalone file,
   does not change it.
 
@@ -321,62 +327,69 @@ together identify. The separate slug is dropped because the identifier
 already is the durable address, and a second one would be a second thing
 to keep in step.
 
-### REQ-GHK-004: Metadata in Standalone Feature Files
+### FEAT-GHK-004: References Inside Gherkin
 
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption @REQ-GHK-004
-Feature: Metadata in Standalone Feature Files
+@frd-gherkin-adoption @FEAT-GHK-004
+Feature: References Inside Gherkin
 
-  As an adopting team
-  I want a standalone feature file to declare the same metadata a markdown document does
-  So that it is a corpus member on the same terms as everything else
+  As a reviewer relying on reference integrity
+  I want a wikilink inside Gherkin to count as a reference
+  So that a feature cannot cite a document the index does not know about
 
-  Gherkin has no frontmatter mechanism. A comment header is the only
-  form that parses: the comment lines are retained with their positions,
-  so a header can be recovered and read as YAML. A raw fenced block is
-  rejected by the parser at the first line and is not an option.
+  Gherkin never sees a wikilink. Measured: `[[adr-012]]` parses as
+  ordinary text in a feature description, a scenario name, a step, a rule
+  name and an examples cell, and raises nothing anywhere. That makes the
+  question purely this framework's, and the answer is that a reference is
+  a reference wherever it is written.
 
   @AC-GHK-004.1
-  Scenario: Metadata is declared in a contiguous comment header
-    Given a .feature file whose first lines are comments before any tag or Feature line
-    When the CLI reads the file
-    Then the CLI parses those comment lines, with their comment markers removed, as YAML
-    And the resulting properties are the document's metadata
+  Scenario Outline: A wikilink anywhere in a Gherkin source is a reference
+    Given a Gherkin source carrying a wikilink in its "<position>"
+    When the CLI extracts references
+    Then the CLI records a reference with the span of the wikilink
+
+    Examples:
+      | position            |
+      | feature description |
+      | scenario name       |
+      | step text           |
+      | rule name           |
+      | examples cell       |
 
   @AC-GHK-004.2
-  Scenario: The header ends at the first non-comment line
-    Given a .feature file with comments before its tags and further comments further down
-    When the CLI reads its comment header
-    Then the CLI reads only the contiguous run before the first tag or Feature line
+  Scenario: A reference inside a fenced block is positioned in its document
+    Given a wikilink inside a fenced gherkin block
+    When the CLI records the reference
+    Then the span addresses the wikilink's position in the containing document
 
   @AC-GHK-004.3
-  Scenario: A standalone file satisfies the same metadata rules as a markdown document
-    Given a .feature file whose comment header declares the metadata its type requires
-    When the CLI validates it
-    Then the CLI applies the same metadata checks it applies to a markdown document
+  Scenario: References inside Gherkin resolve like any other
+    Given a wikilink inside a Gherkin source naming no corpus member
+    When the CLI checks references
+    Then the CLI reports it unresolved as it would in prose
 
   @AC-GHK-004.4 @negative
-  Scenario: A YAML frontmatter block is not accepted in a feature file
-    Given a .feature file opening with a fenced YAML frontmatter block
-    When the CLI reads it
-    Then the CLI reports a finding naming the comment header as the required form
-    And the CLI does not report the parser's raw syntax error alone
-
-  @AC-GHK-004.5
-  Scenario: A standalone file with no comment header is reported
-    Given a .feature file with no comment header
-    When the CLI validates it
-    Then the CLI reports a finding naming the metadata properties it requires
+  Scenario: An anchor is not resolved against Gherkin structure
+    Given a wikilink inside a Gherkin source naming an anchor
+    When the CLI records the reference
+    Then the CLI splits the slug from the anchor as it does elsewhere
+    And the CLI does not attempt to resolve the anchor against a Feature, Rule or Scenario name
 ```
 
-### REQ-GHK-005: Feature and Criterion Records
+*Rationale for AC-GHK-004.4:* a scenario name is not a heading, and
+anchors resolve against headings. Recording the anchor without resolving
+it keeps this feature from silently inventing a second anchor namespace
+that [[frd-spec-reference-integrity]] does not define.
+
+### FEAT-GHK-005: Feature and Criterion Records
 
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption @REQ-GHK-005
+@frd-gherkin-adoption @FEAT-GHK-005
 Feature: Feature and Criterion Records
 
   As a consumer of the index
@@ -456,12 +469,12 @@ centre of a framework that treats the notation as replaceable. The index
 schema is additive, so decomposition can be introduced when a consumer
 needs it; withdrawing it later could not be.
 
-### REQ-GHK-006: Validation and Diagnostics
+### FEAT-GHK-006: Validation and Diagnostics
 
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption @REQ-GHK-006
+@frd-gherkin-adoption @FEAT-GHK-006
 Feature: Validation and Diagnostics
 
   As an authoring agent
@@ -540,12 +553,12 @@ Feature: Validation and Diagnostics
     And the CLI resolves identifier uniqueness against the whole corpus
 ```
 
-### REQ-GHK-007: Queries by Tag
+### FEAT-GHK-007: Queries by Tag
 
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption @REQ-GHK-007
+@frd-gherkin-adoption @FEAT-GHK-007
 Feature: Queries by Tag
 
   As an agent working a single unit of work
@@ -600,12 +613,12 @@ Feature: Queries by Tag
 behaviour [[frd-spec-validation-cli]] already specifies, rather than
 restating a latency budget this feature does not own.
 
-### REQ-GHK-008: Local Change Detection
+### FEAT-GHK-008: Local Change Detection
 
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption @REQ-GHK-008
+@frd-gherkin-adoption @FEAT-GHK-008
 Feature: Local Change Detection
 
   As a reviewer or an agent preparing a change
@@ -644,12 +657,12 @@ Feature: Local Change Detection
       | absent now, present before     | removed        |
 ```
 
-### REQ-GHK-009: Publication and Coexistence
+### FEAT-GHK-009: Publication and Coexistence
 
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption @REQ-GHK-009
+@frd-gherkin-adoption @FEAT-GHK-009
 Feature: Publication and Coexistence
 
   As an organization publishing specifications outward
@@ -690,18 +703,12 @@ Feature: Publication and Coexistence
 
 ## Open Questions
 
-- **Does the feature identifier become `FEAT-` rather than `REQ-`?** A
-  requirement heading is `REQ-GHK-001` today, and a feature is what a
-  requirement maps onto, so `FEAT-GHK-001` reads truer. The rename is not
-  local: `frd-template.md` fixes the convention, three existing FRDs use
-  it, and [[adr-015]] and [[frd-spec-validation-cli]] cite `REQ-SPEC-009`
-  by name. Deciding it here without deciding the migration would leave
-  two conventions in the corpus.
-- **Are `[[slug]]` references inside Gherkin resolved or ignored?** The
-  reference extractor scans document bodies. Whether a wikilink inside a
-  fenced block or a `.feature` file is a reference the index records, or
-  text the extractor skips, is undecided; this document avoids them inside
-  Gherkin so the question stays open.
+- **Should a standalone `.feature` file be able to carry metadata of its
+  own?** It carries none today: it is a feature source whose owning
+  document is the one its tag names. A `#`-comment header is the only
+  form Gherkin admits, and it parses — but whether a feature file should
+  ever be a document in its own right, with a status and an
+  `updated_at`, is undecided and nothing here depends on it.
 
 ## References
 
@@ -710,12 +717,12 @@ Feature: Publication and Coexistence
 - [[adr-002]] — EARS, which continues to govern every normative
   statement that is not a feature or an acceptance criterion
 - [[frd-spec-validation-cli]] — the index, the finding record, the warm
-  index these queries answer from, and AC-SPEC-001.6, which REQ-GHK-001
+  index these queries answer from, and AC-SPEC-001.6, which FEAT-GHK-001
   amends
 - [[frd-spec-reference-integrity]] — the reference extraction whose
   treatment of wikilinks inside Gherkin is an open question above
 - `schemas/feature.strata` — the `Feature` and `Criterion` record shapes
-  REQ-GHK-005 specifies, and the `features` collection they occupy on
+  FEAT-GHK-005 specifies, and the `features` collection they occupy on
   `SpecIndex`. The Strata definition is the contract; the JSON Schema, Go
   types and generated documentation are transpiled from it
 - `plugin/skills/spec/references/gherkin-guide.md` — how to write

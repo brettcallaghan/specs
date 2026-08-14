@@ -11,7 +11,7 @@ alias FeatureCode: String ~= /^[A-Z][A-Z0-9]*$/
 """
 The identifier of one feature — its prefix, its group code and its number.
 
-`REQ-SPEC-009`, `REQ-GHK-001`. This is the feature's durable address: it
+`FEAT-SPEC-009`, `FEAT-GHK-001`. This is the feature's durable address: it
 does not change when the feature moves between documents or between the
 two admissible forms, and it is what every acceptance-criterion identifier
 beneath the feature is derived from.

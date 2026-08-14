@@ -91,7 +91,7 @@ deliberately, not overlooked:
 
 ## Requirements
 
-### REQ-SPECANCH-001: Anchor Extraction in the Index
+### FEAT-SPECANCH-001: Anchor Extraction in the Index
 
 **User Story:** As an architecture owner, I want the anchor half of
 every reference recorded in the index, so that a query can tell which
@@ -140,7 +140,7 @@ syntax that is *about* presentation leak into the part that is *about*
 identity. Both were free to get wrong at the moment the corpus contains
 no instance of either form, and expensive to change once it does.
 
-### REQ-SPECANCH-002: Anchor Resolution Checks
+### FEAT-SPECANCH-002: Anchor Resolution Checks
 
 **User Story:** As a document author, I want an anchor that names no
 real heading reported, so that a reference into a section survives the
@@ -230,8 +230,8 @@ That principle has one consequence worth stating plainly, because it
 constrains this framework's own most likely use of anchors. Obsidian
 matches a heading anchor against the *whole* heading text, so a
 reference to a requirement in an FRD must name the heading in full —
-`[[frd-spec-reference-integrity#REQ-SPECREF-002: Reference Integrity
-Checks]]` — and the terser `#REQ-SPECREF-002` resolves to nothing. The
+`[[frd-spec-reference-integrity#FEAT-SPECREF-002: Reference Integrity
+Checks]]` — and the terser `#FEAT-SPECREF-002` resolves to nothing. The
 terse form could be made to work by matching an anchor against a
 leading identifier token, but that is a resolver that only this tool
 understands, and it breaks the moment an author clicks the link in
@@ -240,7 +240,7 @@ what the heading says, not what the resolver accepts — which is a
 template decision for [[frd-spec-structure-conformance]]'s required
 headings, not a rule this feature can adopt on its own.
 
-### REQ-SPECANCH-003: Anchor Impact Queries
+### FEAT-SPECANCH-003: Anchor Impact Queries
 
 **User Story:** As an authoring agent, I want to ask what references
 point into a section before I rename or move it, so that I learn the

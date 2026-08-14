@@ -79,7 +79,7 @@ deliberately, not overlooked:
 - **Rendering or diagram generation**, and export to any third-party
   architecture format.
 - **Choosing an implementation language, runtime, or distribution
-  channel.** REQ-SPEC-009 states the latency, portability, and
+  channel.** FEAT-SPEC-009 states the latency, portability, and
   installation requirements; the choice that satisfies them is recorded
   in a separate ADR.
 
@@ -114,11 +114,11 @@ deliberately, not overlooked:
   line itself.
 - **Warm index** — a persisted index whose inputs are unchanged since it
   was built, so a query or single-document check can be answered without
-  re-reading the corpus (REQ-SPEC-010).
+  re-reading the corpus (FEAT-SPEC-010).
 
 ## Requirements
 
-### REQ-SPEC-001: Corpus Discovery and Membership
+### FEAT-SPEC-001: Corpus Discovery and Membership
 
 **User Story:** As an adopting team, I want to point the tool at my
 repository and have it work out which files are specifications, so that
@@ -165,7 +165,7 @@ rather than dropping them is what lets an agent notice that a document
 which *should* be a specification is missing frontmatter — a judgment
 the CLI cannot make.
 
-### REQ-SPEC-002: Document Index
+### FEAT-SPEC-002: Document Index
 
 **User Story:** As an architecture owner, I want one machine-readable
 artifact describing every specification document and how they relate, so
@@ -208,7 +208,7 @@ indexer's. The index is deliberately additive: this sprint fills
 frontmatter and path, and later features populate the remaining
 properties without changing the schema's shape or its version.
 
-### REQ-SPEC-003: Metadata Conformance
+### FEAT-SPEC-003: Metadata Conformance
 
 **User Story:** As a reviewer, I want frontmatter errors reported
 mechanically, so that review attention goes to whether a document says
@@ -256,7 +256,7 @@ the right thing rather than whether it is shaped correctly.
 presupposes parsed frontmatter, so before this was written the worst-formed
 document in a corpus was the one the checker was guaranteed to be silent
 about — the severity of a defect and the tool's willingness to mention it
-ran in opposite directions. REQ-SPEC-002's rationale already assigned this
+ran in opposite directions. FEAT-SPEC-002's rationale already assigned this
 work: an index containing parse failures exits zero because "a build
 failure is the checker's job, not the indexer's". This is the criterion
 that makes the checker do that job. A file with no frontmatter at all
@@ -264,14 +264,14 @@ remains an exclusion under AC-SPEC-001.3 and is *not* covered here; it
 never claimed to be a specification, whereas a member with a parse error
 did and got the claim wrong.
 
-*Note on numbering:* REQ-SPEC-004 (reference integrity) and REQ-SPEC-005
+*Note on numbering:* FEAT-SPEC-004 (reference integrity) and FEAT-SPEC-005
 (structure and hygiene conformance) covered behavior deferred to
 follow-on features. Their numbers are intentionally left unused here
-rather than reassigned: the retained requirements REQ-SPEC-006, -008,
+rather than reassigned: the retained requirements FEAT-SPEC-006, -008,
 and -009 are cited by ADRs and keep their numbers, so renumbering around
 the gap would break those citations. The gap is deliberate.
 
-### REQ-SPEC-006: Findings, Severities, and Diagnostics
+### FEAT-SPEC-006: Findings, Severities, and Diagnostics
 
 **User Story:** As an agent acting on the output, I want findings that
 name the rule and cite where it is defined, so that I can fix the
@@ -318,7 +318,7 @@ that quotes the violated constraint and the offending value is
 self-contained: the agent fixes it without opening the standard that
 defines the rule.
 
-### REQ-SPEC-007: Corpus Queries
+### FEAT-SPEC-007: Corpus Queries
 
 **User Story:** As an authoring agent, I want to ask the corpus direct
 questions, so that I can pick a conforming identifier and understand
@@ -343,7 +343,7 @@ documents reference this slug", "return the spans of headings matching a
 selection" — are deferred to the later features that populate those
 parts of the index.
 
-### REQ-SPEC-008: Configuration
+### FEAT-SPEC-008: Configuration
 
 **User Story:** As an adopting team, I want to declare my own document
 types and conventions, so that the tool enforces my framework rather
@@ -361,7 +361,7 @@ than the one it shipped with.
   frontmatter.
   - *Example:* A `[[type]]` table for `adr` declares
     `slug_pattern = "^adr-[0-9]{3}$"` and points at the schema
-    REQ-SPEC-003 validates against. Later features add each type's
+    FEAT-SPEC-003 validates against. Later features add each type's
     required headings, its line-width limit, and its reference-bearing
     properties to this same file; the config schema is additive.
 - **AC-SPEC-008.3:** WHEN no configuration file is present, the CLI
@@ -377,7 +377,7 @@ than the one it shipped with.
   framework's own document types that an adopting repository can use
   without authoring one.
 
-### REQ-SPEC-009: Invocation, Performance, and Portability
+### FEAT-SPEC-009: Invocation, Performance, and Portability
 
 **User Story:** As a platform engineer, I want to run this in locked-down
 CI and in an editing loop that fires on every file write, so that neither
@@ -425,7 +425,7 @@ common packaging pattern of downloading a binary during install fails in
 exactly the networks that most need this tool, and adds a supply-chain
 surface an adopting security review will reject.
 
-### REQ-SPEC-010: Index Output and Persistence
+### FEAT-SPEC-010: Index Output and Persistence
 
 **User Story:** As a CI pipeline and as an authoring agent, I want the
 index written to one known file that I can publish and that later
@@ -459,9 +459,9 @@ the same one that answers my next query without re-reading the corpus.
 - **AC-SPEC-010.5:** WHEN a corpus query or single-document check runs
   and the index file exists with inputs unchanged since it was written,
   the CLI SHALL answer from that persisted index — the warm index of
-  REQ-SPEC-009 — without re-walking the corpus.
+  FEAT-SPEC-009 — without re-walking the corpus.
   - *Example:* `slug-exists frd-checkout` run twice in a row reads
-    `specs.json` the second time and returns within the REQ-SPEC-009.1
+    `specs.json` the second time and returns within the FEAT-SPEC-009.1
     budget.
 - **AC-SPEC-010.6:** IF the index file is absent or any corpus input has
   changed since it was written, THEN the CLI SHALL rebuild the index
@@ -471,11 +471,11 @@ the same one that answers my next query without re-reading the corpus.
     the warm index.
 
 *Rationale:* The index artifact and the check report are different
-outputs: REQ-SPEC-006.5 writes the *findings* of a check run to standard
+outputs: FEAT-SPEC-006.5 writes the *findings* of a check run to standard
 output, while this requirement governs where the *index* — the primary
-artifact of REQ-SPEC-002 — is persisted. One file serves both of the
+artifact of FEAT-SPEC-002 — is persisted. One file serves both of the
 index's roles: the deliverable a CI job publishes to a catalogue, and
-the warm cache that satisfies the latency budgets of REQ-SPEC-009.
+the warm cache that satisfies the latency budgets of FEAT-SPEC-009.
 Placing `specs.json` inside the spec root keeps the artifact beside the
 documents it describes, and because discovery reads only `.md` files
 (AC-SPEC-001.6) the index is never mistaken for a corpus member. A fixed
@@ -485,7 +485,7 @@ the CI-publish and pipe-to-stdout cases first-class. Whether an adopting
 repository commits the file or ignores it is the adopter's choice; the
 CLI requires neither.
 
-### REQ-SPEC-011: Command Surface
+### FEAT-SPEC-011: Command Surface
 
 **User Story:** As a human or agent developer integrating the tool, I
 want a small, named set of subcommands, so that skills, hooks, and CI
@@ -495,13 +495,13 @@ behavior.
 **Acceptance Criteria:**
 
 - **AC-SPEC-011.1:** The CLI SHALL expose an `index` subcommand that
-  builds the index and writes it per REQ-SPEC-010, accepting the
+  builds the index and writes it per FEAT-SPEC-010, accepting the
   output-path option named there.
   - *Example:* `index` writes the default `specs.json`; `index --out -`
     streams it to standard output.
 - **AC-SPEC-011.2:** The CLI SHALL expose a `check` subcommand that runs
   conformance checks over the corpus, or over a single document when
-  given a path, and reports findings per REQ-SPEC-006, accepting the
+  given a path, and reports findings per FEAT-SPEC-006, accepting the
   `--json`, `--strict`, and `--only` options.
   - *Example:* `check` validates the whole corpus;
     `check docs/adrs/ADR-004-module-blueprint-and-atomic-component.md
@@ -529,7 +529,7 @@ it.
 ## References
 
 - [[adr-015]] — records Go as the implementation language, deferred to
-  by REQ-SPEC-009
+  by FEAT-SPEC-009
 - [[adr-020]] — settles the acceptance-criteria notation, whose
   extraction is a follow-on feature rather than part of this one
 - [[adr-002]] — EARS, the notation these acceptance criteria are

@@ -64,12 +64,12 @@ Use where the feature benefits from surrounding markdown: an overview,
 terminology, references, document frontmatter.
 
 ````markdown
-### REQ-CHK-003: Payment Confirmation
+### FEAT-CHK-003: Payment Confirmation
 
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-checkout @REQ-CHK-003
+@frd-checkout @FEAT-CHK-003
 Feature: Payment Confirmation
 
   As a customer
@@ -88,23 +88,17 @@ Feature: Payment Confirmation
 Use where a feature needs no surrounding prose, and for publication to
 external tooling.
 
-Metadata goes in a **contiguous `#`-comment header** before the first
-tag or `Feature` line:
+A feature file carries **no frontmatter**. It is a feature source, not a
+document: its owning document is the one its `@frd-<slug>` tag names, and
+its metadata is that document's.
 
 ```gherkin
-# ---
-# title: "Payment Confirmation"
-# slug: feat-checkout-payment
-# type: feature
-# status: approved
-# updated_at: 2026-08-14T00:00:00Z
-# ---
-@frd-checkout @REQ-CHK-003
+@frd-checkout @FEAT-CHK-003
 Feature: Payment Confirmation
 ```
 
-**A raw `---` YAML block does not parse.** Gherkin rejects it at line 1.
-The comment form is the mechanism; there is no other.
+**A raw `---` YAML block does not parse.** Gherkin rejects it at line 1,
+so there is no frontmatter to write even if a file wanted one.
 
 **Gherkin has only `#` line comments.** There is no block-comment
 delimiter — no `/* */`, no `<!-- -->`. Both were measured, and they fail
@@ -184,7 +178,7 @@ path — `/`, `.` and `:` all parse — but a framework slug admits only
 lowercase alphanumerics and hyphens, so a hyphenated slug cannot be split
 back into segments unambiguously. The code carries the grouping instead,
 and a criterion identifier derives from its feature's: `AC-CHK-003.1`
-belongs to `REQ-CHK-003` without anything having to be parsed.
+belongs to `FEAT-CHK-003` without anything having to be parsed.
 
 ---
 
@@ -204,7 +198,7 @@ required; the others are included when they have something to say.
    behaviour it must *not* have.
 
 ```gherkin
-@frd-spec-validation-cli @REQ-SPEC-001
+@frd-spec-validation-cli @FEAT-SPEC-001
 Feature: Corpus Discovery and Membership
 
   As an adopting team
@@ -235,8 +229,14 @@ untagged criterion.
 
 Descriptions hold **multiple paragraphs** — blank lines are preserved —
 and pass markdown through as literal text: emphasis, `code`, `[[slug]]`,
-bullets, blockquotes. Use it sparingly; consumers receive raw
-characters, not rendered output.
+bullets, blockquotes. Use it sparingly; consumers receive raw characters,
+not rendered output.
+
+**A `[[slug]]` anywhere in a Gherkin source is a reference.** Gherkin
+never sees it — it is ordinary text in a description, a scenario name, a
+step, a rule name or an examples cell — but this framework records it and
+resolves it exactly as it would in prose. Cite a document that does not
+exist inside a scenario and the check reports it.
 
 ---
 

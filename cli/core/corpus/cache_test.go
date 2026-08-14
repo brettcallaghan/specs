@@ -395,7 +395,7 @@ func TestAWarmIndexIsServedWithoutRewalkingTheCorpus(t *testing.T) {
 }
 
 // referencePlatform reports whether this machine is the one the
-// REQ-SPEC-009 budgets are enforced on.
+// FEAT-SPEC-009 budgets are enforced on.
 //
 // The budgets in AC-SPEC-009.1 and AC-SPEC-009.2 are product requirements
 // about a developer's machine, and they are met there. They are not
@@ -523,7 +523,7 @@ func TestWarmQueriesAndChecksMeetTheirBudgets(t *testing.T) {
 }
 
 // percentile95 returns the 95th percentile of a sample, which is the
-// statistic REQ-SPEC-009's budgets are stated at.
+// statistic FEAT-SPEC-009's budgets are stated at.
 func percentile95(samples []time.Duration) time.Duration {
 	ordered := append([]time.Duration{}, samples...)
 	sort.Slice(ordered, func(i, j int) bool { return ordered[i] < ordered[j] })
@@ -538,7 +538,7 @@ func percentile95(samples []time.Duration) time.Duration {
 // A fresh checkout is the case the whole content-hash decision exists
 // for: every file carries a new modification time and identical bytes,
 // and the index must still be served warm — otherwise the warm-index
-// budget of REQ-SPEC-009.1 is never met in CI, where every checkout is
+// budget of FEAT-SPEC-009.1 is never met in CI, where every checkout is
 // fresh.
 //
 // AC: AC-SPEC-010.5

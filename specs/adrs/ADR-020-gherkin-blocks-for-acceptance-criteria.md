@@ -243,12 +243,12 @@ Both carry the same tagged content and produce the same extracted
 records; the spec CLI parses them with the official Go parser and
 performs semantic validation itself.
 
-An earlier revision of this ADR admitted only the first form, because a
-`.feature` file appeared unable to carry the frontmatter corpus
-membership requires. That is measured and false: a `#`-comment header
-parses cleanly and is retained with line positions, so a standalone file
-can declare the same metadata a markdown document does. A raw `---`
-block does **not** parse and is not the mechanism.
+An earlier revision admitted only the first form, because a `.feature`
+file cannot carry frontmatter. It cannot — a raw `---` block does not
+parse — but that was the wrong objection: a feature file is not a
+document. It holds features, its owning document is the one its tag
+names, and it needs no metadata of its own. Whether it should ever have
+any is left open by the adoption FRD.
 
 EARS remains the notation for every other normative statement —
 standards documents, contracts, blueprints, and requirement-level
@@ -292,7 +292,7 @@ Binding constraints:
    prose criteria, which the notation-agnostic constraint carried
    forward from ADR-014 already requires.
 10. Every `Feature` SHALL carry an identifier composed of a prefix, a
-    short uppercase group code and a number — `REQ-GHK-001` — identifying
+    short uppercase group code and a number — `FEAT-GHK-001` — identifying
     it independently of the document that holds it. Features SHALL share
     a code, which is what makes the code a grouping axis; a code and a
     number together identify one feature. Every acceptance-criterion
@@ -301,12 +301,16 @@ Binding constraints:
     framework's slug vocabulary admits only lowercase alphanumerics and
     hyphens, so a hyphenated slug cannot be split back into segments
     unambiguously.
-11. A standalone `.feature` file SHALL declare its metadata in a
-    contiguous `#`-comment header before the first tag or `Feature`
-    line. Corpus membership admits only `.md` files today
-    (AC-SPEC-001.6), so admitting `.feature` files amends that
-    criterion; the amendment is specified by the adoption FRD rather
-    than assumed here.
+11. A standalone `.feature` file SHALL be a feature source rather than a
+    document: it carries no frontmatter, and its owning document is the
+    one its tag names. Corpus membership admits only `.md` files
+    (AC-SPEC-001.6) and continues to; feature sources are discovered
+    separately rather than admitted as members.
+14. A wikilink written anywhere inside a Gherkin source SHALL be recorded
+    as a reference. Gherkin treats `[[slug]]` as ordinary text in every
+    position — description, scenario name, step, rule name, examples cell
+    — so nothing about the notation argues for treating it differently
+    from a wikilink in prose.
 12. The extracted record SHALL carry a content hash over the criterion's
     name and text, excluding node `Id`s and `Location`s, so that a
     criterion which moved but did not change hashes identically.

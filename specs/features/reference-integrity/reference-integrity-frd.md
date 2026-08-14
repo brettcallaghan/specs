@@ -42,8 +42,8 @@ reference-bearing frontmatter, records the outbound and inbound
 references in the shared index, and reports every reference that
 resolves to no corpus member. It does not introduce a new artifact or a
 new engine: it populates the reference properties of the index defined
-in REQ-SPEC-002 and emits findings through the engine defined in
-REQ-SPEC-006. Corpus discovery, membership, output location, and the
+in FEAT-SPEC-002 and emits findings through the engine defined in
+FEAT-SPEC-006. Corpus discovery, membership, output location, and the
 warm index are inherited unchanged from that FRD and are not restated
 here.
 
@@ -72,7 +72,7 @@ deliberately, not overlooked:
 - **Suggesting a correction for a broken reference.** Findings state
   the fact and leave the fix to a reviewing agent.
 - **Repairing or rewriting references.** This feature only reads and
-  reports, as REQ-SPEC-002's ordering requires. Rewriting every
+  reports, as FEAT-SPEC-002's ordering requires. Rewriting every
   reference to a slug when that slug is deliberately renamed is
   specified in [[frd-spec-slug-rename]], a sub-feature of this one. The
   boundary holds in both documents: a check never edits what it merely
@@ -143,7 +143,7 @@ deliberately, not overlooked:
 
 ## Requirements
 
-### REQ-SPECREF-001: Reference Extraction in the Index
+### FEAT-SPECREF-001: Reference Extraction in the Index
 
 **User Story:** As an architecture owner, I want every document's
 outbound and inbound references recorded in the index, so that impact
@@ -192,7 +192,7 @@ same artifact instead of re-deriving it.
   index and SHALL exit zero.
   - *Example:* A corpus with eleven broken links still produces a
     complete index; the eleven are reported by `check`, per the ordering
-    REQ-SPEC-002 sets — indexing never fails, validation may.
+    FEAT-SPEC-002 sets — indexing never fails, validation may.
 - **AC-SPECREF-001.7:** WHEN the CLI builds the index, the CLI SHALL
   record every value held by a frontmatter property the active profile
   registers as reference-bearing as an outbound reference of that
@@ -210,7 +210,7 @@ applied to the two places a reference is written about rather than
 written: a backticked example, and a frontmatter value describing the
 notation. Both were observed in this corpus, and both are false
 positives a reader would have to dismiss by hand — the failure mode that
-makes a checker get ignored. AC-SPECREF-001.6 restates REQ-SPEC-002's
+makes a checker get ignored. AC-SPECREF-001.6 restates FEAT-SPEC-002's
 ordering for this feature specifically, because a reference graph is the
 part of the index most likely to tempt an implementer into failing the
 build from the indexer.
@@ -220,11 +220,11 @@ only the body, and everything downstream assumes frontmatter references
 are in the index: AC-SPECREF-002.3 checks them, AC-SPECREF-003.1 answers
 for them, AC-SPECREF-002.5 compares a pairing across two documents, and
 AC-SPECREN-001.4 rewrites them from their recorded spans. Left implicit,
-the reasonable reading of REQ-SPECREF-001 is that the index holds prose
+the reasonable reading of FEAT-SPECREF-001 is that the index holds prose
 links only — which passes every criterion in this requirement and
 silently drops the half of the graph a catalogue reads first.
 
-### REQ-SPECREF-002: Reference Integrity Checks
+### FEAT-SPECREF-002: Reference Integrity Checks
 
 **User Story:** As a document author, I want every cross-reference
 checked, so that a link that silently stopped resolving is caught before
@@ -385,7 +385,7 @@ while the same corpus checked whole reported findings the narrowing had
 dropped. A check that reports a rule as passed on evidence it discarded
 is worse than one that does not run the rule.
 
-### REQ-SPECREF-003: Reference Queries
+### FEAT-SPECREF-003: Reference Queries
 
 **User Story:** As an authoring agent, I want to ask which documents
 reference a slug, so that I understand the blast radius of retiring or
@@ -417,7 +417,7 @@ renaming a document without reading every file.
     nothing is the answer that a document is unreferenced, not a
     failure — the same contract `slug-exists` sets in AC-SPEC-007.2.
 
-*Rationale:* This extends the command surface REQ-SPEC-011 fixed without
+*Rationale:* This extends the command surface FEAT-SPEC-011 fixed without
 renaming or repurposing any of its four subcommands, which is the growth
 that requirement anticipated. Both directions are exposed because the
 index carries both (AC-SPECREF-001.3) and the two questions are asked at
@@ -425,7 +425,7 @@ different moments — "what breaks if I retire this" before a change,
 "what does this depend on" before an edit. Answering either by reading
 the corpus is the behavior the tool exists to replace.
 
-### REQ-SPECREF-004: Reference Configuration
+### FEAT-SPECREF-004: Reference Configuration
 
 **User Story:** As an adopting team, I want to declare which of my
 frontmatter properties hold references and which form pairs, so that the
@@ -436,7 +436,7 @@ tool checks my conventions rather than assuming a fixed set.
 - **AC-SPECREF-004.1:** The configuration SHALL determine which
   frontmatter properties are reference-bearing and which pairs of
   properties form a paired relationship, extending the configuration
-  file of REQ-SPEC-008 without a separate file.
+  file of FEAT-SPEC-008 without a separate file.
   - *Example:* `reference_properties` and `pairings` are already
     declared per document type in [[contract-specs-configuration]] and
     in `schemas/profile.strata`; this feature is the first consumer of
@@ -462,7 +462,7 @@ tool checks my conventions rather than assuming a fixed set.
     silently checking nothing — the vacuous-success failure this
     project has now observed in three independently built tools.
 
-*Rationale:* Configuration is what makes the checks in REQ-SPECREF-002
+*Rationale:* Configuration is what makes the checks in FEAT-SPECREF-002
 belong to the adopting team rather than to this framework. A team whose
 documents relate through `depends_on` and `required_by` gets the same
 paired-relationship check without this repository knowing those names
@@ -472,9 +472,9 @@ registered property to compare, and reports success.
 
 *Note on numbering:* this feature's requirements carry the `SPECREF`
 prefix rather than continuing [[frd-spec-validation-cli]]'s sequence.
-REQ-SPEC-004, the number reference integrity held before the split, is
+FEAT-SPEC-004, the number reference integrity held before the split, is
 left unused in that document rather than reclaimed here, so the ADRs
-citing REQ-SPEC-006, -008 and -009 keep resolving. The gap there and the
+citing FEAT-SPEC-006, -008 and -009 keep resolving. The gap there and the
 new prefix here are the same decision. AC-SPECREF-002.4 is unused for
 the same reason: it required a retired document to declare a successor,
 which is not true of every retirement, and it is removed rather than
@@ -491,7 +491,7 @@ renumbered.
 - [[frd-spec-structure-conformance]] — supplies the document headings
   the anchor sub-feature resolves an anchor against
 - [[contract-specs-configuration]] — the configuration surface
-  REQ-SPECREF-004 consumes, whose `reference_properties` and `pairings`
+  FEAT-SPECREF-004 consumes, whose `reference_properties` and `pairings`
   are already declared
 - [[adr-012]] — the `[[slug]]` convention this feature parses and
   resolves, and the heading-anchor convention it defers

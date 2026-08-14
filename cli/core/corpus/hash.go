@@ -23,7 +23,7 @@ const hashAlgorithm = "sha256"
 // That is the pinned decision behind the whole warm-cache path: a fresh
 // CI checkout gives every file a new mtime and identical bytes, and it
 // must still be served warm, because the warm-index latency budget of
-// REQ-SPEC-009.1 is claimed in exactly that environment. An mtime-based
+// FEAT-SPEC-009.1 is claimed in exactly that environment. An mtime-based
 // cache is cheaper and would be cold on every CI run.
 //
 // Two properties make the result comparable across machines:

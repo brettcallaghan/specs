@@ -87,7 +87,7 @@ deliberately, not overlooked:
 
 ## Requirements
 
-### REQ-SPECREN-001: Rename a Slug and Its References
+### FEAT-SPECREN-001: Rename a Slug and Its References
 
 **User Story:** As a document author, I want renaming a slug to update
 every reference to it, so that the corpus is never left citing a name
@@ -149,7 +149,7 @@ reason this command belongs in this tool rather than in a shell script
 is that this tool already knows which occurrences are references — it
 had to, to check them — and a script never can.
 
-### REQ-SPECREN-002: Preflight and Preview
+### FEAT-SPECREN-002: Preflight and Preview
 
 **User Story:** As a document author, I want to see exactly what a
 rename will change before it changes anything, so that a corpus-wide
@@ -194,7 +194,7 @@ Preview-by-default (AC-SPECREN-002.1) is the same argument as the
 ordering [[frd-spec-validation-cli]] sets between indexing and checking:
 the destructive step is always the one you opt into.
 
-### REQ-SPECREN-003: Outcome
+### FEAT-SPECREN-003: Outcome
 
 **User Story:** As a reviewing agent, I want a rename to report what it
 changed and to leave the corpus resolving, so that I can verify the
@@ -229,7 +229,7 @@ implemented, and it is the one an author actually cares about — the
 others describe how the command behaves, this one says the thing it was
 built to guarantee is true.
 
-### REQ-SPECREN-004: Command Surface and Skill Adoption
+### FEAT-SPECREN-004: Command Surface and Skill Adoption
 
 **User Story:** As an authoring agent, I want to know this command
 exists at the moment I am about to rename a slug, so that I reach for it
@@ -239,7 +239,7 @@ instead of editing every reference by hand.
 
 - **AC-SPECREN-004.1:** The CLI SHALL expose a `rename` subcommand
   accepting the current slug and the new slug, previewing by default and
-  writing only when instructed, per REQ-SPECREN-002.
+  writing only when instructed, per FEAT-SPECREN-002.
   - *Example:* `spec rename adr-011-targeted-verification-gates adr-011`
     previews; the same command with the write flag performs it. The
     subcommand vocabulary AC-SPEC-011.5 lists gains a fifth entry, and

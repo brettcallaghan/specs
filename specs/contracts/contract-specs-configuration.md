@@ -332,7 +332,7 @@ does:
 - [[container-spec-cli]] — the provider's blueprint
 - [[module-document-core]] — the host the internal surface registers into
 - [[module-spec-profile]] — the profile that populates it
-- [[frd-spec-validation-cli]] — REQ-SPEC-008, the requirements this
+- [[frd-spec-validation-cli]] — FEAT-SPEC-008, the requirements this
   contract realizes, and AC-SPEC-006.1, the finding shape configuration
   checks emit
 - [[testing-standards]] — the snapshot cases that exercise the

@@ -29,8 +29,8 @@ blocks in the shared index, and reports documents that omit a required
 section, exceed the configured line width, or retain placeholder or
 scaffolding text. Like [[frd-spec-reference-integrity]], it introduces
 no new artifact or engine: it populates the structure properties of the
-index defined in REQ-SPEC-002 and emits findings through the engine
-defined in REQ-SPEC-006. Corpus discovery, membership, output location,
+index defined in FEAT-SPEC-002 and emits findings through the engine
+defined in FEAT-SPEC-006. Corpus discovery, membership, output location,
 and the warm index are inherited unchanged and are not restated here.
 
 **Out of scope for this feature.** Judging whether a section says the
@@ -55,7 +55,7 @@ this feature extracts is specified in its sub-feature,
 
 ## Requirements
 
-### REQ-SPECSTR-001: Structure Extraction in the Index
+### FEAT-SPECSTR-001: Structure Extraction in the Index
 
 **User Story:** As an architecture owner and a reviewing agent, I want
 each document's headings, section spans, and record blocks recorded in
@@ -79,7 +79,7 @@ from the shared artifact instead of re-parsing the corpus.
     appear in the index as structured data under the heading that
     declares it.
 
-### REQ-SPECSTR-002: Required Sections and Hygiene
+### FEAT-SPECSTR-002: Required Sections and Hygiene
 
 **User Story:** As a reviewer, I want documents checked for skipped
 sections and leftover authoring scaffolding, so that an unfinished
@@ -124,7 +124,7 @@ document cannot reach review looking finished.
   - *Example:* A `component` block containing malformed YAML is reported
     at the line the block opens, with the parser's message.
 
-### REQ-SPECSTR-003: Structure Queries
+### FEAT-SPECSTR-003: Structure Queries
 
 **User Story:** As a reviewing agent, I want to request the spans of
 headings matching a selection, so that I review only the normative text
@@ -145,7 +145,7 @@ well as cheap. Two runs that review the same extracted spans have
 reviewed the same text; two agents told to "review the requirements"
 have not.
 
-### REQ-SPECSTR-004: Structure Configuration
+### FEAT-SPECSTR-004: Structure Configuration
 
 **User Story:** As an adopting team, I want to declare my required
 sections, my record-block tags, and my line width, so that the tool
@@ -156,7 +156,7 @@ enforces my templates rather than the ones it shipped with.
 - **AC-SPECSTR-004.1:** The configuration SHALL determine, for each
   registered document type, its required headings, the registered
   record-block tags with their formats, the placeholder patterns, and
-  the line-width limit, extending the configuration file of REQ-SPEC-008
+  the line-width limit, extending the configuration file of FEAT-SPEC-008
   without a separate file.
   - *Example:* The shipped configuration sets a width of 80, registers
     the `component` tag with format `yaml`, and lists the required

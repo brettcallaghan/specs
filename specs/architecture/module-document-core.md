@@ -750,7 +750,7 @@ safe.
 **Staleness is a content hash, never a modification time**, and the
 reason is the environment the latency budget is claimed in. A fresh CI
 checkout gives every file a new mtime and identical bytes; an
-mtime-keyed cache would be cold on every CI run, and REQ-SPEC-009.1's
+mtime-keyed cache would be cold on every CI run, and FEAT-SPEC-009.1's
 warm-index budget would never hold there. `Fingerprint` computes that
 hash over the same walk `Build` uses — the property the whole path rests
 on, since a fingerprint that drifted from the build would either serve
@@ -1017,7 +1017,7 @@ This module SHALL comply with:
 
 - [x] **Resolved — the index cache is invalidated by content hash, never
       by file modification time.** Mtime is cheaper, and it is wrong in
-      exactly the environment the warm-index latency of REQ-SPEC-009.1 is
+      exactly the environment the warm-index latency of FEAT-SPEC-009.1 is
       claimed in: a fresh CI checkout gives every file a new mtime and
       identical bytes, so an mtime-keyed cache would be cold on every CI
       run. `Fingerprint` folds each candidate's repository-relative path
