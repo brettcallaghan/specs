@@ -1,16 +1,27 @@
 """
-The short code that groups one feature by topic, domain or capability.
+The short code that groups features by topic, domain or capability.
 
-Uppercase and terse — `GHK`, `SPEC`, `CHK` — because it is written into
-every acceptance-criterion identifier beneath the feature, and it is what
-makes an identifier legible about where it belongs. Two features never
-share a code.
-
-The code is the grouping axis. Criteria carry it inside their identifiers,
-so a criterion resolves to its feature by reading the identifier rather
-than by searching for the document that holds it.
+Uppercase and terse — `GHK`, `SPEC`, `CHK`. **Features share a code**:
+`SPEC` covers eleven requirements of the spec-index feature, and that is
+what makes it a grouping rather than an identity. A feature is identified
+by its code together with its number.
 """
 alias FeatureCode: String ~= /^[A-Z][A-Z0-9]*$/
+
+"""
+The identifier of one feature — its prefix, its group code and its number.
+
+`REQ-SPEC-009`, `REQ-GHK-001`. This is the feature's durable address: it
+does not change when the feature moves between documents or between the
+two admissible forms, and it is what every acceptance-criterion identifier
+beneath the feature is derived from.
+
+The prefix is `REQ` in the corpus today. Whether it becomes `FEAT` — a
+feature is what a requirement maps onto, so the latter reads truer — is an
+open question in the adoption FRD, and the pattern admits either rather
+than presuming the answer.
+"""
+alias FeatureId: String ~= /^[A-Z]+-[A-Z0-9]+-[0-9]{3}$/
 
 """
 The identifier of one acceptance criterion, as written in the tag that
@@ -23,8 +34,10 @@ pattern is the one `ac-traceability-standards.md` already fixes, minus
 the leading `@` that makes it a Gherkin tag — the identifier is the
 value, and the tag is only how it is written down.
 
-The middle segment is the owning feature's code, which is what allows a
-criterion to name its feature without carrying a second property.
+The middle segments are the owning feature's code and number, which is
+what allows a criterion to name its feature without carrying a second
+property: `AC-GHK-001.1` belongs to the feature coded `GHK` numbered
+`001`.
 """
 alias CriterionId: String ~= /^AC-[A-Z0-9]+-[0-9]{3}\.[0-9]+$/
 
@@ -246,18 +259,16 @@ criterion is one index built over this tree when the index is read.
 """
 struct Feature {
   """
-  The feature's short code, which groups it and which every one of its
-  criteria carries inside its identifier.
+  The feature's identifier — its durable address, carrying the group code
+  and the number that distinguishes it within that group.
+  """
+  id: FeatureId
+
+  """
+  The code the identifier groups this feature under, recorded so that a
+  consumer selecting a group does not have to split the identifier.
   """
   code: FeatureCode
-
-  """
-  The feature's slug.
-
-  This is the feature's durable address. It does not change when the
-  feature moves between documents or between the two admissible forms.
-  """
-  slug: Slug
 
   """
   The slug of the document that owns this feature, from the tag that

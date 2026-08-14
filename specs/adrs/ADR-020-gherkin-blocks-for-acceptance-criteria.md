@@ -291,13 +291,16 @@ Binding constraints:
 9. Extraction SHALL accept both notations while any FRD still carries
    prose criteria, which the notation-agnostic constraint carried
    forward from ADR-014 already requires.
-10. Every `Feature` SHALL carry a slug identifying it independently of
-    the document that holds it, and a short uppercase code grouping it by
-    topic, domain or capability. Every acceptance-criterion identifier
-    beneath a feature SHALL embed that code. Grouping is by code rather
-    than by a path-shaped slug: the framework's slug vocabulary admits
-    only lowercase alphanumerics and hyphens, so a hyphenated slug cannot
-    be split back into segments unambiguously.
+10. Every `Feature` SHALL carry an identifier composed of a prefix, a
+    short uppercase group code and a number — `REQ-GHK-001` — identifying
+    it independently of the document that holds it. Features SHALL share
+    a code, which is what makes the code a grouping axis; a code and a
+    number together identify one feature. Every acceptance-criterion
+    identifier SHALL derive its code and number from its feature's.
+    Grouping is by code rather than by a path-shaped slug because the
+    framework's slug vocabulary admits only lowercase alphanumerics and
+    hyphens, so a hyphenated slug cannot be split back into segments
+    unambiguously.
 11. A standalone `.feature` file SHALL declare its metadata in a
     contiguous `#`-comment header before the first tag or `Feature`
     line. Corpus membership admits only `.md` files today

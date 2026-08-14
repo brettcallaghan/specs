@@ -70,9 +70,11 @@ chose a parsed notation over prose.
   frontmatter.
 - **Content hash** — a digest over a criterion's name and text, used to
   detect that a criterion changed rather than moved.
-- **Feature code** — the short uppercase code that groups a feature by
-  topic, domain or capability, and that every acceptance-criterion
-  identifier beneath it embeds.
+- **Feature code** — the short uppercase code that groups features by
+  topic, domain or capability. Features share a code; a code and a number
+  together identify one.
+- **Feature identifier** — a feature's durable address, composed of a
+  prefix, its group code and its number: `REQ-GHK-001`.
 
 ## Requirements
 
@@ -81,7 +83,7 @@ chose a parsed notation over prose.
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption
+@frd-gherkin-adoption @REQ-GHK-001
 Feature: Admissible Gherkin Sources
 
   As an authoring team
@@ -147,7 +149,7 @@ worked around.
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption
+@frd-gherkin-adoption @REQ-GHK-002
 Feature: Tag Vocabulary
 
   As an agent addressing a feature or a criterion
@@ -173,10 +175,9 @@ Feature: Tag Vocabulary
       | @frd-<slug>      | Feature  | the document that owns the feature |
 
     Examples: identity
-      | tag                | element  | meaning                          |
-      | @feat-<slug>       | Feature  | the feature's durable address    |
-      | @<CODE>            | Feature  | the code that groups the feature |
-      | @AC-<CODE>-NNN.N   | Scenario | the criterion's identifier       |
+      | tag                  | element  | meaning                        |
+      | @<PREFIX>-<CODE>-NNN | Feature  | the feature's identifier       |
+      | @AC-<CODE>-NNN.N     | Scenario | the criterion's identifier     |
 
     Examples: qualifiers
       | tag        | element  | meaning                              |
@@ -185,10 +186,10 @@ Feature: Tag Vocabulary
       | @level-*   | Scenario | the intended verification level      |
 
   @AC-GHK-002.2
-  Scenario: Every feature carries an owning-document tag and a slug tag
+  Scenario: Every feature carries an owning-document tag and an identifier tag
     Given a Feature in any Gherkin source
     When the CLI validates it
-    Then the CLI requires exactly one owning-document tag and exactly one feature slug tag
+    Then the CLI requires exactly one owning-document tag and exactly one feature identifier tag
 
   @AC-GHK-002.3
   Scenario Outline: An acceptance criterion identifier is well formed
@@ -257,75 +258,75 @@ it.
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption
+@frd-gherkin-adoption @REQ-GHK-003
 Feature: Feature Identity and Grouping
 
   As an architecture owner
-  I want a feature to carry a durable address and a grouping code
+  I want a feature to carry a durable identifier and a grouping code
   So that a feature is addressable independently of the document that holds it
 
-  A feature carries two identifiers doing two jobs. Its slug is its
-  durable address: moving a feature between documents, or promoting a
-  fenced block into a standalone file, does not change it. Its code groups
-  it by topic, domain or capability, and is what every acceptance-criterion
-  identifier beneath it embeds.
+  A feature is identified by its code together with its number —
+  REQ-GHK-001, REQ-SPEC-009. The identifier is durable: moving a feature
+  between documents, or promoting a fenced block into a standalone file,
+  does not change it.
 
-  Grouping is by code rather than by a path-shaped slug. A slug admits
-  lowercase alphanumerics and hyphens only, so a hyphen is the only
-  separator available and a hyphenated slug cannot be split back into
-  segments unambiguously. The code carries the grouping instead, and
-  nothing has to be parsed to recover it.
+  Features share a code. SPEC covers eleven requirements of the
+  spec-index feature, which is what makes a code a grouping rather than
+  an identity. Grouping by code rather than by a path-shaped slug is
+  forced: a framework slug admits only lowercase alphanumerics and
+  hyphens, so a hyphenated slug cannot be split back into segments
+  unambiguously.
 
   @AC-GHK-003.1
-  Scenario: A feature slug identifies a feature independently of its document
-    Given a feature whose slug is unchanged
+  Scenario: A feature identifier survives its feature moving
+    Given a feature whose identifier is unchanged
     When the feature moves from a fenced block into a standalone file
-    Then a query for that slug returns the feature from its new location
+    Then a query for that identifier returns the feature from its new location
 
   @AC-GHK-003.2
-  Scenario: A feature carries a short grouping code
+  Scenario: A feature record carries its identifier and its code
     When the CLI extracts a feature
-    Then the record carries the feature's code
+    Then the record carries the identifier and the code that identifier groups it under
 
   @AC-GHK-003.3
   Scenario: A code selects every feature grouped under it
-    Given several features declaring the same code
+    Given several features sharing a code
     When a query names that code
     Then the CLI returns every one of them
 
   @AC-GHK-003.4
-  Scenario Outline: A feature slug and a feature code are each unique
-    Given two features declaring the same "<identifier>"
+  Scenario: A feature identifier is unique across the corpus
+    Given two features declaring the same identifier
     When the CLI validates the corpus
     Then the CLI reports a finding against each, naming the other's location
 
-    Examples:
-      | identifier |
-      | slug       |
-      | code       |
+  @AC-GHK-003.5 @negative
+  Scenario: Sharing a code is not a defect
+    Given several features declaring the same code with different numbers
+    When the CLI validates the corpus
+    Then the CLI reports no finding for the shared code
 
-  @AC-GHK-003.5
-  Scenario: A criterion identifier embeds its feature's code
+  @AC-GHK-003.6
+  Scenario: A criterion identifier derives from its feature's identifier
     Given a criterion beneath a feature
     When the CLI validates it
-    Then the CLI requires the identifier's middle segment to be that feature's code
+    Then the CLI requires the identifier's code and number to be that feature's
 ```
 
-*Rationale:* this requirement previously specified a path-shaped
-hierarchical slug and left the separator open. The separator question
-dissolves rather than resolves: the framework's slug vocabulary admits
-only lowercase alphanumerics and hyphens, so `feat-checkout-payment`
-cannot be split back into `checkout` and `payment` without knowing which
-hyphens are separators. AC-GHK-003.5 gives the grouping a mechanism that
-needs no parsing, and makes the criterion identifier verifiable against
-its feature rather than merely conventional.
+*Rationale:* an earlier draft of this requirement made a feature's code
+unique and gave the feature a separate slug. Both were wrong, and the
+corpus says so: `AC-SPEC-001.1` through `AC-SPEC-011.5` share the code
+`SPEC` across eleven requirements. A code groups; a code and a number
+together identify. The separate slug is dropped because the identifier
+already is the durable address, and a second one would be a second thing
+to keep in step.
 
 ### REQ-GHK-004: Metadata in Standalone Feature Files
 
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption
+@frd-gherkin-adoption @REQ-GHK-004
 Feature: Metadata in Standalone Feature Files
 
   As an adopting team
@@ -375,7 +376,7 @@ Feature: Metadata in Standalone Feature Files
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption
+@frd-gherkin-adoption @REQ-GHK-005
 Feature: Feature and Criterion Records
 
   As a consumer of the index
@@ -460,7 +461,7 @@ needs it; withdrawing it later could not be.
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption
+@frd-gherkin-adoption @REQ-GHK-006
 Feature: Validation and Diagnostics
 
   As an authoring agent
@@ -493,7 +494,7 @@ Feature: Validation and Diagnostics
       | a Scenario carrying no acceptance-criterion identifier   |
       | a malformed acceptance-criterion identifier              |
       | an identifier duplicated elsewhere in the corpus         |
-      | a Feature carrying no slug tag                           |
+      | a Feature carrying no identifier tag                     |
 
     Examples: content
       | defect                                                   |
@@ -544,7 +545,7 @@ Feature: Validation and Diagnostics
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption
+@frd-gherkin-adoption @REQ-GHK-007
 Feature: Queries by Tag
 
   As an agent working a single unit of work
@@ -556,8 +557,8 @@ Feature: Queries by Tag
   inherit the latency budgets the index already carries.
 
   @AC-GHK-007.1
-  Scenario: A feature is fetched by its slug
-    When a query names a feature slug
+  Scenario: A feature is fetched by its identifier
+    When a query names a feature identifier
     Then the CLI returns that feature's record, including its criteria
 
   @AC-GHK-007.2
@@ -579,7 +580,7 @@ Feature: Queries by Tag
 
   @AC-GHK-007.4
   Scenario: A query for an unknown name reports absence rather than emptiness
-    When a query names a slug or identifier no record declares
+    When a query names an identifier no record declares
     Then the CLI reports that nothing declares it
     And the CLI exits non-zero
 
@@ -604,7 +605,7 @@ restating a latency budget this feature does not own.
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption
+@frd-gherkin-adoption @REQ-GHK-008
 Feature: Local Change Detection
 
   As a reviewer or an agent preparing a change
@@ -648,7 +649,7 @@ Feature: Local Change Detection
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption
+@frd-gherkin-adoption @REQ-GHK-009
 Feature: Publication and Coexistence
 
   As an organization publishing specifications outward
