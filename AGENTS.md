@@ -77,18 +77,6 @@ Run it after any change to `schemas/*.strata`. The artifacts it checks are
 **generated — never hand-edit them**; regenerate with the same script without
 `--check` and commit the result in the same change.
 
-```bash
-python3 -m pip install jsonschema pyyaml   # once per container
-python3 scripts/validate-corpus.py         # frontmatter outside the CLI's corpus root
-```
-
-`validate-corpus.py` needs `jsonschema` and `pyyaml`. Without them it exits
-`error: python3 -m pip install jsonschema pyyaml` before reading a document, which
-is what a clean container does. The install line is the one `checks.yml` runs,
-so a local run and CI resolve the same dependencies. Add
-`--break-system-packages` if pip refuses on an externally-managed environment.
-Do not commit a virtualenv.
-
 ### What CI runs
 
 Three workflows under `.github/workflows/`, all on push and pull request
@@ -96,7 +84,10 @@ except the last:
 
 - `checks.yml` — the docs-corpus gates on one Linux runner:
   `check-skills.sh` (not `--strict`), `sync-shared-references.sh --check`,
-  `validate-corpus.py`.
+  `check-reference-links.py`, `check-template-drift.py`. Its `corpus` job
+  builds the Spec CLI and runs `spec check --strict` over `specs/`, then
+  `spec check --config rfcs/specs.toml` over the RFC queue with a narrowed
+  `--only` rule set.
 - `cli.yml` — the Go gates. `go vet`, `go build` and `go test ./...` on
   ubuntu, macOS and Windows (the matrix is the cross-platform half of
   AC-SPEC-009.7: one committed set of expected bytes, three platforms);

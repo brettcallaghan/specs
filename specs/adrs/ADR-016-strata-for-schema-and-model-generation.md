@@ -77,9 +77,9 @@ repository remains buildable and correct if Strata is removed.
 - One definition produces the three artifacts that previously disagreed,
   and the disagreement in Context becomes mechanically impossible rather
   than a review responsibility.
-- `scripts/validate-corpus.py` now checks every document's frontmatter
-  against the generated schema on each push, and found two documents
-  writing an unquoted `version` that YAML reads as a float.
+- `spec check` now checks every document's frontmatter against the
+  generated schema on each push, and found two documents writing an
+  unquoted `version` that YAML reads as a float.
 - Doc comments written once reach three audiences — the JSON Schema a
   tool reads, the Go doc comment a maintainer reads, and the Markdown an
   author reads.
@@ -102,8 +102,8 @@ repository remains buildable and correct if Strata is removed.
   evaluation exited zero and emitted well-formed, wrong JSON Schema; it
   was caught by inspection, not by any gate. That specific defect is
   fixed, but the general exposure is not: until Strata ships such a
-  check, `scripts/validate-corpus.py` is the only thing standing in for
-  it, and it only covers what a stock JSON Schema validator can see.
+  check, `spec check` is the only thing standing in for it, and it only
+  covers what a stock JSON Schema validator can see.
 - **The schemas track Strata's `main`, not a release.** The fix landed
   after `0.7.0`, so `scripts/generate-schemas.sh` must run against a
   compiler built from source until the next release. The binary reports
