@@ -6,9 +6,10 @@ description: Builds a Gherkin component and the fenced-block half of
   and exposes the records as checks, queries and emitted feature files
 slug: feature-gherkin-adoption
 type: feature-blueprint
-status: ready-for-review
+status: in-progress
 updated_at: 2026-08-14T00:00:00Z
 delivery: staged
+plan: agent-plugins-wvd
 frd: frd-gherkin-adoption
 ---
 
