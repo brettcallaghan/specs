@@ -1,0 +1,5 @@
+description = "links --help lists its --map option, derived from the same declaration that defines it, and its synopsis distinguishes it from refs: refs answers what cites what, links emits a rewritten document"
+cites = ["AC-SPEC-011.5"]
+artifacts = ["checks.log"]
+args = ["links", "--help"]
+exit_code = 0

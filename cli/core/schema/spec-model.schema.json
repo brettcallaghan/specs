@@ -1007,6 +1007,38 @@
           "then": {
             "$ref": "#/definitions/FindingReferenceType"
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "unmapped-citation"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FindingUnmappedCitation"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "unresolved-citation"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FindingUnresolvedCitation"
+          }
         }
       ],
       "description": "The structured detail of one finding, selected by the kind of defect.\n\nEvery finding carries one. The message on the finding is derivable from\nthis value, so a consumer branches on structure rather than parsing\nprose, and a renderer that wants to offer a fix reads the fields it needs\nas values.\n\nThe union is open to extension in the sense that matters: a later check\nadds a variant without changing the envelope that carries it, and a\nconsumer that does not recognise a variant still has the rule\nidentifier, the severity, the path, the span and the message.",
@@ -1022,7 +1054,9 @@
             "unresolved-reference",
             "retired-target",
             "incomplete-pairing",
-            "reference-type"
+            "reference-type",
+            "unmapped-citation",
+            "unresolved-citation"
           ],
           "type": "string"
         }
@@ -1228,6 +1262,49 @@
       "required": [
         "slug",
         "pattern"
+      ],
+      "type": "object"
+    },
+    "FindingUnmappedCitation": {
+      "additionalProperties": false,
+      "description": "A citation whose slug names a corpus document the caller's link map does\nnot cover.\n\nDistinct from `FindingUnresolvedCitation`: the slug does resolve to a\nreal corpus document, so the defect is a gap in the map rather than a\nbad citation, and the fix is to add the missing entry rather than to fix\nthe prose. The map's path is carried alongside the slug and the citing\ndocument so the finding is actionable without the caller having the map\nopen.",
+      "properties": {
+        "citing_path": {
+          "description": "The citing document's path, relative to the repository root and\nwritten with forward slashes on every platform.",
+          "type": "string"
+        },
+        "map_path": {
+          "description": "The link map's path, relative to the repository root and written with\nforward slashes on every platform.",
+          "type": "string"
+        },
+        "slug": {
+          "description": "The slug the citation names.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "slug",
+        "citing_path",
+        "map_path"
+      ],
+      "type": "object"
+    },
+    "FindingUnresolvedCitation": {
+      "additionalProperties": false,
+      "description": "A citation whose slug names no corpus document at all.\n\nDistinct from `FindingUnmappedCitation`: nothing in the corpus resolves\nthe slug, so the citation is as likely to be illustrative prose — a\ntemplate teaching citation syntax — as a mistyped reference, and the two\ncannot be told apart by the tool. Carrying only the slug and the citing\ndocument (no map path) reflects that a link map, present or absent, is\nnot what decided this outcome.",
+      "properties": {
+        "citing_path": {
+          "description": "The citing document's path, relative to the repository root and\nwritten with forward slashes on every platform.",
+          "type": "string"
+        },
+        "slug": {
+          "description": "The slug the citation names.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "slug",
+        "citing_path"
       ],
       "type": "object"
     },

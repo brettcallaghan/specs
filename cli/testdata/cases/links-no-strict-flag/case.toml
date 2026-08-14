@@ -1,0 +1,5 @@
+description = "links has no --strict option: warnings exit zero unconditionally under AC-SPECMD-002.8, so an option that reversed it would contradict the criterion rather than narrow it"
+cites = []
+artifacts = ["checks.err"]
+args = ["links", "docs/adrs/adr-800-current.md", "--strict"]
+exit_code = 1

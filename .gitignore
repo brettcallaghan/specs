@@ -25,10 +25,23 @@ local/
 # Spec CLI index output — a build artifact and cache, never source.
 # `spec index` writes it here by default (AC-SPEC-010.1); deleting it is
 # always safe, since any changed input triggers a rebuild (AC-SPEC-010.6).
+# One entry per spec root: `rfcs/specs.toml` declares a second root, and a
+# `spec check` against it writes an index there too.
 specs/specs.json
+rfcs/specs.json
 
 build/
 # Beads / Dolt runtime locks (bd init flags this as a required pattern;
 # .beads/.gitignore ignores *.lock but only inside .beads/, and the gate
 # lock is written at the repo root)
 *.gate.lock*
+
+# Harness-managed worktrees for isolated subagents (bead-bonanza runs).
+# Transient: each holds one in-flight bead and is removed when it is accepted.
+.claude/worktrees/
+
+# Python bytecode caches. Several repo scripts are Python; running one in a
+# bead's worktree leaves __pycache__/ behind, and the close ceremony stages
+# everything dirty in that worktree.
+__pycache__/
+*.pyc

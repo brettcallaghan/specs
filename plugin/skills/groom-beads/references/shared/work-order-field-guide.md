@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: plugin/skills/spec/references/work-order-field-guide.md (version 1.2)
+     Source of truth: specs/guides/work-order-field-guide.md (version 1.2)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 

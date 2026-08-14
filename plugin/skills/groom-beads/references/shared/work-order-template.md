@@ -7,7 +7,8 @@
 title: "Work Order: <imperative summary of the unit of work>"
 description: <One-sentence summary of the work this order encapsulates>
 slug: work-order-<identifier>
-type: work-order
+                                     # No `type` property: see "Non-corpus"
+                                     # below — do not add one.
 kind: task                           # epic | feature | task | bug | chore
 priority: 2                          # 0 (critical) .. 4 (backlog)
 updated_at: <YYYY-MM-DDTHH:MM:SSZ>
@@ -30,7 +31,7 @@ tier: standard                       # light | standard | advanced | frontier
                                      # Assign the LOWEST tier that can do the
                                      # work; the orchestrator resolves tier ->
                                      # model from the project's model lineup.
-tier_reason: <one line: what about this order drove the tier choice>
+tier_reason: <one line — what about this order drove the tier choice>
 # model: <name>                      # OPTIONAL override — set only when a
                                      # specific named model is required.
 est_size: M                          # XS | S | M | L | XL
@@ -44,7 +45,7 @@ Template: Work Order
 Version: 1.5
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]]. Readiness criteria are defined in
-  [[work-order-definition-of-ready]] and `work-order-field-guide.md`.
+  [[work-order-definition-of-ready]] and [[work-order-field-guide]].
 
 Sections (complete each, then delete its instruction block)
   - Problem
@@ -74,6 +75,20 @@ This document is GENERATED, not hand-authored
   This template is the canonical FORMAT those skills target and validate
   against; the `spec` skill owns the format and the readiness bar, the
   grooming skills own production.
+
+Non-corpus: no `type` frontmatter property
+  Every other template in this framework declares `type` from the
+  DocumentType vocabulary (adr, frd, contract, standards, the blueprint
+  kinds, rfc, guide), which is how the schema and
+  `scripts/check-template-drift.py` govern it. A work order deliberately
+  has no `type`: it materializes into a tracker issue (a bead) and stops
+  existing as a document, so corpus membership — persisting, being cited
+  by slug, appearing in the index — does not apply to it.
+  `groom-beads`'s bead schema governs its actual shape.
+  REVISIT WHEN a project has no tracker and work orders persist as files
+  instead of materializing into beads (see "Storage" below) — corpus
+  membership should be reconsidered then. Until that path exists, do NOT
+  add `work-order` to the DocumentType vocabulary.
 
 Storage — beads now, files later
   A work order is a LOGICAL schema, not (yet) a file on disk. Today it is
@@ -111,7 +126,7 @@ Reference syntax
   [[container-<name>#Component Name]]
                    — a C4 component, by a wikilink heading anchor into
                      its parent's Components roster (see
-                     `c4-guide.md`); c4_changes / c4_impacts
+                     [[c4-standards]]); c4_changes / c4_impacts
                      list the same component names
   `ElementName`    — code-level anchors: paths, symbols, endpoints, tables
 
@@ -174,7 +189,7 @@ do NOT prescribe new function signatures or file layouts — that is the
 executing agent's choice. Omit for `kind: epic`. Maps to the bead `design`.
 
 If a line tells you WHAT TO TYPE, it belongs here. If it tells you WHAT MUST
-BE TRUE when finished, it belongs in Acceptance. See `work-order-field-guide.md`.
+BE TRUE when finished, it belongs in Acceptance. See [[work-order-field-guide]].
 -->
 
 <The chosen approach and key decisions.>

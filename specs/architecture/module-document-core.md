@@ -195,6 +195,7 @@ C4Component
         Component(corpus, "Corpus", "Go package", "Discovery, membership, the index model and its emission")
         Component(num, "Numbering", "Go package", "Next-number derivation for numbered document types")
         Component(find, "Findings", "Go package", "Finding and severity model, and report emission")
+        Component(mdlinks, "Markdown Links", "Go package", "Wikilink-to-markdown-link substitution and target resolution")
     }
     Rel(corpus, fm, "Extracts frontmatter via")
     Rel(corpus, md, "Extracts structure via")
@@ -208,16 +209,20 @@ C4Component
     Rel(schema, find, "Reports through")
     Rel(refs, find, "Reports through")
     Rel(corpus, find, "Folds Check's findings through")
+    Rel(mdlinks, refs, "Settles targets from the resolved references of")
+    Rel(mdlinks, span, "Locates the extents it replaces with")
+    Rel(mdlinks, find, "Reports through")
 ```
 
-Seven of the eight are built and carry a **Built** paragraph naming the
+Eight of the nine are built and carry a **Built** paragraph naming the
 package that realizes them: Spans, Frontmatter, References, Schema
-Registry, Corpus, Numbering and Findings. The emitted index carries the
-resolved reference graph, and the corpus checks read it: a broken link,
-a live document citing a retired one, a half-declared pairing and a
-typed reference landing on the wrong document type are each reported
-against the document a reader must open. **Markdown
-Structure is planned and not yet built** — there is no `cli/core/markdown`
+Registry, Corpus, Numbering, Findings and Markdown Links. The emitted
+index carries the resolved reference graph, and the corpus checks read
+it: a broken link, a live document citing a retired one, a
+half-declared pairing and a typed reference landing on the wrong
+document type are each reported against the document a reader must
+open. **Markdown Structure is planned and not yet built** — there is
+no `cli/core/markdown`
 package, and no heading is read anywhere in the module. Its section below
 describes a design, not an implementation, and the diagram edges into and
 out of it are likewise the intended shape. Everything the current corpus
@@ -885,9 +890,14 @@ is:
   (AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7); a retired
   target with its slug and the successor it names, where it names one
   (AC-SPECREF-002.6); an incomplete pairing with both property names and
-  both documents (AC-SPECREF-002.5); and a reference-type mismatch with
+  both documents (AC-SPECREF-002.5); a reference-type mismatch with
   the property, the expected `type` and the `type` the target declares
-  (AC-SPECREF-002.10). The message is derivable from the variant, so a
+  (AC-SPECREF-002.10); an unmapped citation with its slug, the citing
+  document's path and the link map's path, for a citation whose slug
+  names a corpus document the map does not cover; and an unresolved
+  citation with its slug and the citing document's path, for a citation
+  whose slug names no corpus document at all (AC-SPECMD-002.3,
+  AC-SPECMD-002.4). The message is derivable from the variant, so a
   consumer branches on structure rather than parsing prose.
 - **`Severity`** — `error`, `warning` and `unverified`, the three
   [[frd-spec-validation-cli]] defines and no others.
@@ -927,6 +937,87 @@ the diagram validation AC-SPEC-006.3 illustrates is a structure-feature
 concern. A later check adds a variant to the union without changing the
 envelope that carries it.
 
+### Markdown Links
+
+```component
+title: Markdown Links
+slug: component-markdown-links
+description: Wikilink-to-markdown-link substitution and target resolution
+```
+
+(Go package) — Wikilink-to-markdown-link substitution and target
+resolution. Decides what a resolved `[[slug]]` or `[[slug#Anchor]]`
+reference should point at before any byte is rewritten, and reports the
+two ways it can fail to: a caller-supplied link map takes precedence
+where it names the slug, a corpus-resolved reference with no map instead
+derives its target from the resolved document's own path, and a
+reference that settles neither way is reported rather than guessed at.
+Replacing the `[[...]]` construct with the markdown link these targets
+settle is a separate half of this component, built on top of the targets
+this half settles.
+
+**Built** — `cli/core/mdlinks`. `Resolve` takes the corpus-resolved
+`specmodel.Reference` values the References component already produced
+and an optional link map, and returns, aligned by index, the settled
+target for each reference — nil where none settled — plus every
+`links/unmapped` and `links/unresolved` finding the pass raised, through
+the Findings component's constructors.
+
+Four semantics are pinned by the implementation:
+
+- **A link map entry wins outright.** WHERE the caller supplies a map
+  and the reference's slug is a key in it, the target is that entry's
+  path exactly as held — no resolution against the corpus, no
+  normalization (AC-SPECMD-005.5).
+- **With no map, a resolved reference derives its target from the
+  corpus.** The cited document's own repository-relative path, taken
+  relative to the directory of the citing document's own
+  repository-relative path — supplied by the caller rather than derived,
+  so a citing document outside the corpus resolves the same way one
+  inside it does — with no other normalization: the cited file's own
+  name and extension are kept, never a name built from the slug
+  (AC-SPECMD-006.1, AC-SPECMD-006.2).
+- **A map, once given, is never completed by derivation.** A
+  corpus-resolved slug the map omits raises `links/unmapped` at
+  `error`; a slug naming no corpus document at all raises
+  `links/unresolved` at `warning`, mapped or not. Either way the
+  reference settles no target (AC-SPECMD-002.1, AC-SPECMD-006.3).
+- **An anchor becomes a target fragment by GitHub's heading-anchor
+  rule:** lowercase the anchor text, drop every character that is not a
+  letter, digit, space, hyphen or underscore, then replace each
+  remaining space with a hyphen (AC-SPECMD-001.3).
+
+Every reference is settled in one pass and every finding returned, never
+just the first (AC-SPECMD-002.5).
+
+`Substitute` is the component's other half: it takes a document's bytes
+alongside the same references and the targets `Resolve` settled for
+them, and returns the rewritten bytes plus a count of the references it
+replaced (AC-SPECMD-003.1). Three semantics are pinned:
+
+- **A reference with a settled target replaces the whole `[[...]]`
+  construct it occupies** with a markdown link — text the reference's
+  text as written, anchor included (AC-SPECMD-001.2), target the
+  settled target, anchor fragment already appended by `Resolve`
+  (AC-SPECMD-001.1). A reference with no settled target is copied
+  through exactly as written instead (AC-SPECMD-002.7), and every byte
+  no reference's span covers is copied through unchanged, which is what
+  makes "alters nothing else" (AC-SPECMD-001.5) and idempotence
+  (AC-SPECMD-004.1) the same property: a second pass finds no
+  wikilinks left to replace.
+- **The construct's extent is derived from `Reference.Position`, using
+  `cli/core/span`, rather than rescanned.** A reference's `Position`
+  covers the text between the brackets, so the construct is that span
+  widened by the wikilink delimiters' own fixed width on each side.
+  Code-region exclusion (AC-SPECMD-001.4) is therefore a property of
+  the References component's output rather than a rule reimplemented
+  here: a reference is never handed to `Substitute` for a wikilink
+  written inside a code span, an indented block, or a fenced block.
+- **Only a body-origin reference is rewritten.** A frontmatter-origin
+  reference's `Position` covers the property's raw YAML value rather
+  than a `[[...]]` construct, so `Substitute` leaves it untouched even
+  where it settled a target.
+
 The relationships below are stated for the module's whole component set.
 Where one names Markdown Structure it describes the intended edge rather
 than an existing one, since that component is not built.
@@ -946,6 +1037,11 @@ document model Frontmatter produces. It never reads files.
 
 **Numbering → Corpus.** Numbering is a query over the built index, not
 an independent scan.
+
+**Markdown Links → References, Spans, Findings.** It settles targets
+from References' already-resolved reference collection, uses Spans for
+the extents its substitution half replaces, and reports through
+Findings like every other component that can find a problem.
 
 **Schema Registry, References → Findings.** Every component that can
 report a problem produces `Finding` values; none of them formats output.

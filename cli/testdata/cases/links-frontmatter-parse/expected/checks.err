@@ -1,0 +1,5 @@
+docs/adrs/adr-800-current.md:
+  frontmatter/parse  error  2:8  frontmatter could not be read: could not find end character of double-quoted text
+
+checks:
+  frontmatter/parse  failed

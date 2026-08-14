@@ -40,6 +40,7 @@ var checkRules = []specmodel.RuleId{
 	finding.RuleRetiredTarget,
 	finding.RuleIncompletePairing,
 	finding.RuleTypeMismatch,
+	finding.RuleCorpusEmpty,
 }
 
 // newCheckCmd builds the `check` subcommand: run conformance checks over
@@ -121,6 +122,15 @@ func runCheck(streams *ioStreams, configPath, path string, jsonOut, strict bool,
 	}
 
 	report := buildCheckReport(raw, only)
+	if path == "" {
+		// Document count and exclusions describe the whole corpus, not
+		// one document, so they attach here only for the unnarrowed run
+		// — the same corpus-wide reach [RuleCorpusEmpty] is scoped to
+		// (corpus/check.go's `only == nil` guard).
+		index := c.Index()
+		report.SetDocumentCount(len(index.Entries))
+		report.SetExclusions(index.Exclusions)
+	}
 	if err := renderReport(streams, report, jsonOut); err != nil {
 		return err
 	}

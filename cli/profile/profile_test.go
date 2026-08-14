@@ -150,9 +150,10 @@ var realSlugs = []struct {
 	{"frd", "frd-spec-reference-integrity", "specs/features/reference-integrity/reference-integrity-frd.md"},
 	{"contract", "contract-specs-configuration", "specs/contracts/contract-specs-configuration.md"},
 	{"standards", "testing-standards", "specs/standards/testing-standards.md"},
-	{"standards", "cross-document-references", "plugin/skills/spec/references/cross-document-references.md"},
-	{"standards", "blueprint-readiness-checklist", "plugin/skills/spec/references/blueprint-readiness-checklist.md"},
-	{"standards", "findings-capture-protocol", "plugin/skills/retro-spec/references/findings-capture-protocol.md"},
+	{"standards", "cross-document-references", "specs/standards/cross-document-references.md"},
+	{"standards", "blueprint-readiness-checklist", "specs/standards/blueprint-readiness-checklist.md"},
+	{"standards", "findings-capture-protocol", "specs/standards/findings-capture-protocol.md"},
+	{"standards", "c4-standards", "specs/standards/c4-guide.md"},
 	{"container-blueprint", "container-spec-cli", "specs/architecture/container-spec-cli.md"},
 	{"module-blueprint", "module-spec-profile", "specs/architecture/module-spec-profile.md"},
 	{"module-blueprint", "module-document-core", "specs/architecture/module-document-core.md"},
@@ -160,9 +161,8 @@ var realSlugs = []struct {
 	{"rfc", "rfc-0007", "rfcs/retired/rfc-0007-spec-architecture-templates.md"},
 	{"rfc", "rfc-0001-spec-document-self-check", "rfcs/retired/rfc-0001-spec-document-self-check.md"},
 	{"rfc", "rfc-self-strata-compile-gate", "rfcs/inbox/strata/rfc-self-strata-compile-gate.md"},
-	{"guide", "guide-c4", "plugin/skills/spec/references/c4-guide.md"},
-	{"guide", "guide-ears", "plugin/skills/spec/references/ears-guide.md"},
-	{"guide", "work-order-field-guide", "plugin/skills/spec/references/work-order-field-guide.md"},
+	{"guide", "guide-ears", "specs/guides/ears-guide.md"},
+	{"guide", "work-order-field-guide", "specs/guides/work-order-field-guide.md"},
 }
 
 // AC: AC-SPEC-003.5

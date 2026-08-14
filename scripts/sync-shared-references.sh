@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# sync-shared-references.sh — vendor spec-owned reference files into the
+# sync-shared-references.sh — vendor authored reference documents into the
 # skills that consume them, so every skill's references live inside its own
 # directory instead of behind a `../<sibling>/` path.
 #
@@ -13,6 +13,14 @@
 #   So: exactly one authored copy, N generated copies, and a check that
 #   fails the build when they diverge. Each generated file carries a header
 #   naming its source, so nobody edits it by mistake.
+#
+#   A MAP source is either a `specs/...` path (the authored copy is a
+#   corpus member under `specs/`, and every skill that ships it — including
+#   the skill that used to author it directly — receives a generated copy)
+#   or a `<skill>/references/...` path (the authored copy is still a
+#   template or prose file that stays inside a skill's own tree, not a
+#   corpus member). Editing a generated copy is always wrong either way:
+#   fix the source the header names, then re-run this script.
 #
 #   `--check` also audits the reverse direction: every file in the repository
 #   carrying that header must be one something actually regenerates. See the
@@ -46,23 +54,39 @@ case "${1-}" in
   *)       echo "usage: $(basename "$0") [--check]" >&2; exit 2 ;;
 esac
 
-# consumer-skill  <TAB>  owning-skill/references/file.md
+# consumer-skill  <TAB>  source path — `specs/...` for a corpus-member
+# standard/guide, or `owning-skill/references/file.md` for a template or
+# prose file that still lives inside a skill's own tree.
 # Keep this list in sync with what the SKILL.md files actually load; the
 # consistency check cross-references it against their `references/shared/`
 # citations.
 MAP=$(cat <<'EOF'
-bead-bonanza	spec/references/work-order-definition-of-ready.md
-bead-bonanza	retro-spec/references/findings-capture-protocol.md
-groom-beads	spec/references/work-order-definition-of-ready.md
-groom-beads	spec/references/work-order-field-guide.md
+bead-bonanza	specs/standards/work-order-definition-of-ready.md
+bead-bonanza	specs/standards/findings-capture-protocol.md
+groom-beads	specs/standards/work-order-definition-of-ready.md
+groom-beads	specs/guides/work-order-field-guide.md
 groom-beads	spec/references/work-order-template.md
-groom-feature-blueprint	spec/references/ac-traceability-standards.md
-groom-feature-blueprint	spec/references/blueprint-readiness-checklist.md
+groom-feature-blueprint	specs/standards/ac-traceability-standards.md
+groom-feature-blueprint	specs/standards/blueprint-readiness-checklist.md
 groom-feature-blueprint	spec/references/feature-blueprint-template.md
 groom-feature-blueprint	spec/references/work-order-template.md
-groom-feature-blueprint	retro-spec/references/findings-capture-protocol.md
-retro-skill	retro-spec/references/findings-capture-protocol.md
-retro-spec	spec/references/template-authoring-standards.md
+groom-feature-blueprint	specs/standards/findings-capture-protocol.md
+retro-skill	specs/standards/findings-capture-protocol.md
+retro-spec	specs/standards/template-authoring-standards.md
+retro-spec	specs/standards/findings-capture-protocol.md
+spec	specs/standards/ac-traceability-standards.md
+spec	specs/standards/blueprint-readiness-checklist.md
+spec	specs/standards/c4-guide.md
+spec	specs/standards/cross-document-references.md
+spec	specs/standards/document-readiness-checklist.md
+spec	specs/standards/frontmatter-standards.md
+spec	specs/standards/template-authoring-standards.md
+spec	specs/standards/work-order-definition-of-ready.md
+spec	specs/guides/anti-patterns.md
+spec	specs/guides/document-type-boundaries.md
+spec	specs/guides/ears-guide.md
+spec	specs/guides/spec-cli.md
+spec	specs/guides/work-order-field-guide.md
 EOF
 )
 
@@ -107,9 +131,27 @@ source_version() {
   printf '%s' "${v:-unversioned}"
 }
 
+# A MAP/PATH_MAP source is repo-root-relative when it starts with `specs/`
+# (a corpus member) and plugin/skills-relative otherwise (a template or
+# prose file still authored inside a skill's own tree). Both forms reduce
+# to an absolute path and a repo-relative label here, so nothing below
+# this pair needs to know which kind a given entry is.
+src_abs() {  # $1 = source rel path as stored in MAP/PATH_MAP
+  case "$1" in
+    specs/*) printf '%s/%s' "$REPO_ROOT" "$1" ;;
+    *)       printf '%s/%s' "$SKILLS" "$1" ;;
+  esac
+}
+src_label() {  # $1 = source rel path as stored in MAP/PATH_MAP
+  case "$1" in
+    specs/*) printf '%s' "$1" ;;
+    *)       printf 'plugin/skills/%s' "$1" ;;
+  esac
+}
+
 render() {  # $1 = source path, $2 = source rel path
   printf '%s — DO NOT EDIT.\n' "$HEADER_OPEN"
-  printf '     Source of truth: plugin/skills/%s (version %s)\n' "$2" "$(source_version "$1")"
+  printf '     Source of truth: %s (version %s)\n' "$(src_label "$2")" "$(source_version "$1")"
   printf '     Regenerate with: %s\n' "$SELF_REL"
   printf '     Edit the source, then re-run that script. -->\n\n'
   cat "$1"
@@ -118,9 +160,9 @@ render() {  # $1 = source path, $2 = source rel path
 stale=0 wrote=0 checked=0
 while IFS=$'\t' read -r dest_rel src_rel; do
   [ -n "$dest_rel" ] || continue
-  src="$SKILLS/$src_rel"
+  src="$(src_abs "$src_rel")"
   if [ ! -f "$src" ]; then
-    echo "error: source not found: plugin/skills/$src_rel" >&2
+    echo "error: source not found: $(src_label "$src_rel")" >&2
     exit 2
   fi
   dest="$REPO_ROOT/$dest_rel"

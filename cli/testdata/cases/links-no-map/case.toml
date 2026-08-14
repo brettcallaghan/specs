@@ -1,0 +1,5 @@
+description = "links <path> with no --map rewrites a resolved wikilink to the cited document's corpus-relative path, reports the replacement count on standard error, and exits zero"
+cites = ["AC-SPECMD-005.1", "AC-SPECMD-005.2", "AC-SPECMD-005.10", "AC-SPECMD-003.1", "AC-SPECMD-003.2"]
+artifacts = ["checks.log", "checks.err"]
+args = ["links", "docs/adrs/adr-800-current.md"]
+exit_code = 0

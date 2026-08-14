@@ -1,5 +1,5 @@
-// Command tree wiring for the Spec CLI's five-subcommand surface (index,
-// check, slug-exists, next-id, refs), per REQ-SPEC-011 of
+// Command tree wiring for the Spec CLI's six-subcommand surface (index,
+// check, slug-exists, next-id, refs, links), per REQ-SPEC-011 of
 // specs/features/spec-index/spec-index-frd.md, the reference-integrity
 // blueprint's CMD delta, and the Command Surface component in
 // specs/architecture/container-spec-cli.md.
@@ -80,11 +80,12 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 	return streams.exitCode
 }
 
-// newRootCmd builds the five-subcommand tree: index, check, slug-exists,
-// next-id and refs (AC-SPEC-011.1 through AC-SPEC-011.5,
-// AC-SPECREF-003.1 through AC-SPECREF-003.5). refs is the growth
-// REQ-SPEC-011 anticipated; the four established subcommands are neither
-// renamed nor repurposed by its addition.
+// newRootCmd builds the six-subcommand tree: index, check, slug-exists,
+// next-id, refs and links (AC-SPEC-011.1 through AC-SPEC-011.5,
+// AC-SPECREF-003.1 through AC-SPECREF-003.5, AC-SPECMD-005.1 through
+// AC-SPECMD-005.10). refs and links are the growth REQ-SPEC-011
+// anticipated; the four established subcommands are neither renamed nor
+// repurposed by either addition.
 //
 // The root carries no Run of its own. Cobra's own default behavior for a
 // command with subcommands and no Run — print the usage, which lists
@@ -122,6 +123,7 @@ func newRootCmd(streams *ioStreams) *cobra.Command {
 	root.AddCommand(newSlugExistsCmd(streams, &configPath))
 	root.AddCommand(newNextIDCmd(streams, &configPath))
 	root.AddCommand(newRefsCmd(streams, &configPath))
+	root.AddCommand(newLinksCmd(streams, &configPath))
 
 	return root
 }

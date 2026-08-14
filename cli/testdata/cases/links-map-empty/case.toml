@@ -1,0 +1,5 @@
+description = "a --map file that parses to zero entries is still a supplied map: a citation it does not cover raises links/unmapped, no rewritten document is emitted, and the run exits non-zero — the non-nil-vs-nil LinkMap distinction the CMD/mdlinks wiring depends on"
+cites = ["AC-SPECMD-002.2"]
+artifacts = ["checks.err"]
+args = ["links", "docs/adrs/adr-800-current.md", "--map", "map.yaml"]
+exit_code = 1

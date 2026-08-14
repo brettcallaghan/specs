@@ -85,6 +85,12 @@ see Open Questions.
 configuration file, and writes nothing. Read-only operation is a
 property of this feature, not an implementation detail:
 [[frd-spec-validation-cli]] places document modification out of scope.
+`links` re-affirms rather than narrows this: its rewritten document goes
+only to standard output, and it creates, modifies and deletes no file
+(AC-SPECMD-005.3) — including the derived index cache the "Data" section
+below describes `check`, `refs`, `slug-exists` and `next-id` writing on a
+cold cache, which `links` opens warm without persisting for exactly this
+reason.
 
 ## Components
 
@@ -149,13 +155,34 @@ registration, that type (AC-SPECREF-004.3). As with every other
 `specs.toml` defect, a registration defect is never defaulted around: no
 `Config` is resolved while one is reported.
 
+**Built (link-map reading)** — also `cli/cmd`, beside `Load` and reading
+the same way: `LoadLinkMap` takes a caller-named YAML file — a mapping
+whose keys are corpus document slugs and whose value per slug is a
+record carrying a `path` string — and resolves it to a `LinkMap`
+(AC-SPECMD-005.4). A property other than `path` is ignored, so the file
+can carry a caller's own per-document data the CLI never interprets
+(AC-SPECMD-005.6); decoding with `goccy/go-yaml` ([[adr-015]]) means a
+map written in JSON is accepted unchanged, JSON being valid YAML
+(AC-SPECMD-005.7). The link map is caller-supplied file input, not
+repository configuration, so unlike `specs.toml` there is no
+not-found contract of its own: a file that cannot be read or parsed, or
+a record declaring no `path`, is reported as a finding naming the file
+and the fault, with no map resolved at all — never partially, the same
+discipline `Load` applies to `specs.toml` (AC-SPECMD-005.8). A slug
+repeated as a top-level key is a parse fault `goccy/go-yaml` itself
+rejects as a duplicate mapping key, rather than one record silently
+winning. `LoadLinkMap` performs no interpretation, resolution or
+normalization of a `path` value; it is read and returned exactly as
+written.
+
 **Built (command tree)** — also `cli/cmd`, via `cobra`
-([[adr-015]]): `Execute` builds the five-subcommand tree — `index`,
-`check`, `slug-exists`, `next-id`, `refs` — and converts each one's flags
-into calls against Document Core (`corpus.Build`, `corpus.Open`,
-`corpus.Corpus.Check`/`CheckFor`, `corpus.Corpus.Slug`,
-`corpus.Corpus.InboundReferences`/`OutboundReferences`,
-`numbering.Next`) and its result back into stdout and an exit status. No
+([[adr-015]]): `Execute` builds the six-subcommand tree — `index`,
+`check`, `slug-exists`, `next-id`, `refs`, `links` — and converts each
+one's flags into calls against Document Core (`corpus.Build`,
+`corpus.Open`, `corpus.Corpus.Check`/`CheckFor`, `corpus.Corpus.Slug`,
+`corpus.Corpus.InboundReferences`/`OutboundReferences`, `numbering.Next`,
+`references.Extract`/`Resolve`, `mdlinks.Resolve`/`Substitute`) and its
+result back into stdout and an exit status. No
 file here decides what makes a document valid or scores a check; every
 one of those calls is the whole of what a subcommand does with what it
 receives.
@@ -194,7 +221,25 @@ slug no corpus member declares at all — the same `corpus.Corpus.Slug`
 query AC-SPEC-007.2 defines for `slug-exists` — are reported as two
 different sentences rather than the same empty result (AC-SPECREF-003.5).
 
-A bare invocation or `--help` lists the five subcommands with their
+`links` takes one operand, the path of a markdown document, and an
+optional `--map` naming a link-map file; it does not require the operand
+to be a corpus member. It extracts the document's references
+(`references.Extract`), resolves them against the corpus
+(`references.Resolve`), settles each one's markdown-link target and
+raises the two reachability findings (`mdlinks.Resolve`), and rewrites
+the document (`mdlinks.Substitute`). Unlike `refs`, which always exits
+zero, `links` writes the rewritten document to standard output only when
+no finding of severity error was raised, and exits 1 otherwise
+(AC-SPECMD-002.2); a run whose only findings are warnings still emits
+the document and exits 0 (AC-SPECMD-002.6, AC-SPECMD-002.8). Findings
+and the replacement count go to standard error, never to the stream
+carrying the document (AC-SPECMD-003.2). `links` carries no `--strict`
+option: AC-SPECMD-002.8 already fixes the exit status a warning-only run
+takes, so a flag reversing it would contradict the criterion rather than
+narrow it — the same reasoning `check`'s own `--strict` does not apply
+to.
+
+A bare invocation or `--help` lists the six subcommands with their
 one-line synopses and, per subcommand, its own flags — cobra's default
 rendering of the `Use`, `Short` and flag declarations above, so the
 listed surface and the code that implements it cannot drift

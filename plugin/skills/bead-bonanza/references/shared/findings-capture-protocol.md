@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: plugin/skills/retro-spec/references/findings-capture-protocol.md (version 0.4)
+     Source of truth: specs/standards/findings-capture-protocol.md (version 0.4)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 

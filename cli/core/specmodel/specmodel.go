@@ -556,6 +556,83 @@ func (v *FindingReferenceType) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// A citation whose slug names a corpus document the caller's link map does
+// not cover.
+//
+// Distinct from `FindingUnresolvedCitation`: the slug does resolve to a
+// real corpus document, so the defect is a gap in the map rather than a
+// bad citation, and the fix is to add the missing entry rather than to fix
+// the prose. The map's path is carried alongside the slug and the citing
+// document so the finding is actionable without the caller having the map
+// open.
+type FindingUnmappedCitation struct {
+	// The slug the citation names.
+	Slug string `json:"slug"`
+	// The citing document's path, relative to the repository root and
+	// written with forward slashes on every platform.
+	CitingPath string `json:"citing_path"`
+	// The link map's path, relative to the repository root and written with
+	// forward slashes on every platform.
+	MapPath string `json:"map_path"`
+}
+
+func (v *FindingUnmappedCitation) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingUnmappedCitation: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["citing_path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingUnmappedCitation: required field \"citing_path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.CitingPath); err != nil {
+		return prefixField("citing_path", err)
+	}
+	if m, ok := raw["map_path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingUnmappedCitation: required field \"map_path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.MapPath); err != nil {
+		return prefixField("map_path", err)
+	}
+	return nil
+}
+
+// A citation whose slug names no corpus document at all.
+//
+// Distinct from `FindingUnmappedCitation`: nothing in the corpus resolves
+// the slug, so the citation is as likely to be illustrative prose — a
+// template teaching citation syntax — as a mistyped reference, and the two
+// cannot be told apart by the tool. Carrying only the slug and the citing
+// document (no map path) reflects that a link map, present or absent, is
+// not what decided this outcome.
+type FindingUnresolvedCitation struct {
+	// The slug the citation names.
+	Slug string `json:"slug"`
+	// The citing document's path, relative to the repository root and
+	// written with forward slashes on every platform.
+	CitingPath string `json:"citing_path"`
+}
+
+func (v *FindingUnresolvedCitation) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingUnresolvedCitation: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["citing_path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingUnresolvedCitation: required field \"citing_path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.CitingPath); err != nil {
+		return prefixField("citing_path", err)
+	}
+	return nil
+}
+
 type FindingDetailVariant interface{ isFindingDetailVariant() }
 
 // The structured detail of one finding, selected by the kind of defect.
@@ -583,6 +660,8 @@ func (FindingUnresolvedReference) isFindingDetailVariant() {}
 func (FindingRetiredTarget) isFindingDetailVariant()       {}
 func (FindingIncompletePairing) isFindingDetailVariant()   {}
 func (FindingReferenceType) isFindingDetailVariant()       {}
+func (FindingUnmappedCitation) isFindingDetailVariant()    {}
+func (FindingUnresolvedCitation) isFindingDetailVariant()  {}
 
 func NewFindingDetailSchemaViolation(v FindingSchemaViolation) FindingDetail {
 	return FindingDetail{Value: v}
@@ -621,6 +700,14 @@ func NewFindingDetailIncompletePairing(v FindingIncompletePairing) FindingDetail
 }
 
 func NewFindingDetailReferenceType(v FindingReferenceType) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailUnmappedCitation(v FindingUnmappedCitation) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailUnresolvedCitation(v FindingUnresolvedCitation) FindingDetail {
 	return FindingDetail{Value: v}
 }
 
@@ -674,6 +761,16 @@ func (u FindingDetail) AsReferenceType() (FindingReferenceType, bool) {
 	return v, ok
 }
 
+func (u FindingDetail) AsUnmappedCitation() (FindingUnmappedCitation, bool) {
+	v, ok := u.Value.(FindingUnmappedCitation)
+	return v, ok
+}
+
+func (u FindingDetail) AsUnresolvedCitation() (FindingUnresolvedCitation, bool) {
+	v, ok := u.Value.(FindingUnresolvedCitation)
+	return v, ok
+}
+
 func (u FindingDetail) MarshalJSON() ([]byte, error) {
 	var payload []byte
 	var tag string
@@ -708,6 +805,12 @@ func (u FindingDetail) MarshalJSON() ([]byte, error) {
 		payload, err = json.Marshal(v)
 	case FindingReferenceType:
 		tag = "reference-type"
+		payload, err = json.Marshal(v)
+	case FindingUnmappedCitation:
+		tag = "unmapped-citation"
+		payload, err = json.Marshal(v)
+	case FindingUnresolvedCitation:
+		tag = "unresolved-citation"
 		payload, err = json.Marshal(v)
 	default:
 		return nil, fmt.Errorf("FindingDetail: nil or unknown variant")
@@ -803,6 +906,20 @@ func (u *FindingDetail) UnmarshalJSON(data []byte) error {
 		return nil
 	case "reference-type":
 		var v FindingReferenceType
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "unmapped-citation":
+		var v FindingUnmappedCitation
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "unresolved-citation":
+		var v FindingUnresolvedCitation
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}

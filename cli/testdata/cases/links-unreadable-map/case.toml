@@ -1,0 +1,5 @@
+description = "a --map naming a file that cannot be read raises linkmap/invalid, no rewritten document is emitted, and the run exits non-zero"
+cites = ["AC-SPECMD-005.9"]
+artifacts = ["checks.err"]
+args = ["links", "docs/adrs/adr-800-current.md", "--map", "does-not-exist.yaml"]
+exit_code = 1
