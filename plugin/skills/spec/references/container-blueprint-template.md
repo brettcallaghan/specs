@@ -17,7 +17,7 @@ contracts_consumed: []               # contract slugs this container consumes
 Template: Container Blueprint
 Version: 1.6
 Source: Architecture documentation framework. C4 mapping rules are
-  defined in `c4-guide.md` — load it before authoring.
+  defined in `shared/c4-guide.md` — load it before authoring.
 
 Sections (complete each, then delete its instruction block)
   - Overview
@@ -52,7 +52,7 @@ When NOT to use
   - A shared library, package, or complex component → component blueprint
   - An interface's shape and semantics → `contract-template.md`
 
-Contract visibility (see `c4-guide.md` for full rules)
+Contract visibility (see `shared/c4-guide.md` for full rules)
   public   — consumed outside the owning system. Standalone contract doc.
   internal — consumed by other containers within the system, not outside.
              Standalone contract doc, marked internal.
@@ -67,7 +67,7 @@ Standalone containers
   A container MAY be documented without a system blueprint: omit
   `system`. Standalone containers are valid; the system level is
   introduced when a second container needs shared context worth
-  modeling (see `c4-guide.md`). WHEN there is no system blueprint, this
+  modeling (see `shared/c4-guide.md`). WHEN there is no system blueprint, this
   document's Infrastructure and Deployment section is authoritative
   for this container's deployment.
 
@@ -102,7 +102,7 @@ Keep reasoning out — decisions go in Key Decisions.
 ## Container Context
 
 <!--
-A Container Context Diagram (defined in `c4-guide.md`): THIS container in the
+A Container Context Diagram (defined in `shared/c4-guide.md`): THIS container in the
 center, plus only the containers, systems, and actors it directly
 communicates with — in either direction — regardless of system boundary.
 Not the whole system; the system-wide view lives in the system blueprint.
@@ -135,7 +135,7 @@ The container's full component roster — every component and module this
 container composes, enumerated here. They are DECLARED in the list
 below; the C4 Component diagram is a view rendered from those
 declarations and from the component/module blueprints this container
-composes (see `c4-guide.md`). This container owns the relationships AMONG
+composes (see `shared/c4-guide.md`). This container owns the relationships AMONG
 its components.
 
 Each declaration captures: the name (canonical — used verbatim on
@@ -167,7 +167,7 @@ every container that composes it updates its roster in the same change
 Components are code-level groupings with defined interfaces; they are
 not separately deployable. A composed unit that is shared or published
 across containers, or is composite, is a MODULE (module blueprint); an
-atomic in-container unit is a component. See `c4-guide.md` for the
+atomic in-container unit is a component. See `shared/c4-guide.md` for the
 definitions this framework uses (a deliberate superset of C4's).
 
 Each component is declared under its own `### <Component Name>` heading
@@ -312,7 +312,7 @@ C4Deployment
 Standards this container complies with, by reference. Platform choices
 that apply to every container (logging platform, mesh, authN provider)
 are mentioned in prose or standards docs, never modeled as elements on
-this container's diagrams — see `c4-guide.md`.
+this container's diagrams — see `shared/c4-guide.md`.
 -->
 
 This container SHALL comply with:
@@ -376,5 +376,5 @@ status becomes active.
 
 ## References
 
-- `c4-guide.md` — C4 mapping rules and diagram conventions
+- `shared/c4-guide.md` — C4 mapping rules and diagram conventions
 - <Additional references>

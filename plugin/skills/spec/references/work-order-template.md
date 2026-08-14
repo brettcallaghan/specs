@@ -121,7 +121,7 @@ Reference syntax
   [[container-<name>#Component Name]]
                    — a C4 component, by a wikilink heading anchor into
                      its parent's Components roster (see
-                     `c4-guide.md`); c4_changes / c4_impacts
+                     [[c4-standards]]); c4_changes / c4_impacts
                      list the same component names
   `ElementName`    — code-level anchors: paths, symbols, endpoints, tables
 

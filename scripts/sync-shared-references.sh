@@ -76,6 +76,7 @@ retro-spec	specs/standards/template-authoring-standards.md
 retro-spec	specs/standards/findings-capture-protocol.md
 spec	specs/standards/ac-traceability-standards.md
 spec	specs/standards/blueprint-readiness-checklist.md
+spec	specs/standards/c4-guide.md
 spec	specs/standards/cross-document-references.md
 spec	specs/standards/document-readiness-checklist.md
 spec	specs/standards/frontmatter-standards.md

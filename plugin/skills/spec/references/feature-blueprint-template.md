@@ -111,7 +111,7 @@ Reference syntax
   [[container-<name>#Component Name]]
                    — a cross-reference to an un-promoted component, by a
                      wikilink heading anchor into its parent's Components
-                     roster (see `c4-guide.md`)
+                     roster (see [[c4-standards]])
   `ElementName`    — a code-level element that is not a modeled
                      component: a schema, domain type, event, flag, table
 
@@ -463,6 +463,6 @@ state "None." explicitly — the absence of questions is information.
 
 ## References
 
-- `c4-guide.md` — the system, container, module, and component definitions
+- [[c4-standards]] — the system, container, module, and component definitions
   that component references and delta blocks are written against
 - <Additional references>
