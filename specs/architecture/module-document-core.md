@@ -988,9 +988,35 @@ Four semantics are pinned by the implementation:
   remaining space with a hyphen (AC-SPECMD-001.3).
 
 Every reference is settled in one pass and every finding returned, never
-just the first (AC-SPECMD-002.5). Substitution — the other half of this
-component, using `cli/core/span` for the extents replaced — is tracked
-separately (`agent-plugins-ia5.3`).
+just the first (AC-SPECMD-002.5).
+
+`Substitute` is the component's other half: it takes a document's bytes
+alongside the same references and the targets `Resolve` settled for
+them, and returns the rewritten bytes plus a count of the references it
+replaced (AC-SPECMD-003.1). Three semantics are pinned:
+
+- **A reference with a settled target replaces the whole `[[...]]`
+  construct it occupies** with a markdown link — text the reference's
+  text as written, anchor included (AC-SPECMD-001.2), target the
+  settled target, anchor fragment already appended by `Resolve`
+  (AC-SPECMD-001.1). A reference with no settled target is copied
+  through exactly as written instead (AC-SPECMD-002.7), and every byte
+  no reference's span covers is copied through unchanged, which is what
+  makes "alters nothing else" (AC-SPECMD-001.5) and idempotence
+  (AC-SPECMD-004.1) the same property: a second pass finds no
+  wikilinks left to replace.
+- **The construct's extent is derived from `Reference.Position`, using
+  `cli/core/span`, rather than rescanned.** A reference's `Position`
+  covers the text between the brackets, so the construct is that span
+  widened by the wikilink delimiters' own fixed width on each side.
+  Code-region exclusion (AC-SPECMD-001.4) is therefore a property of
+  the References component's output rather than a rule reimplemented
+  here: a reference is never handed to `Substitute` for a wikilink
+  written inside a code span, an indented block, or a fenced block.
+- **Only a body-origin reference is rewritten.** A frontmatter-origin
+  reference's `Position` covers the property's raw YAML value rather
+  than a `[[...]]` construct, so `Substitute` leaves it untouched even
+  where it settled a target.
 
 The relationships below are stated for the module's whole component set.
 Where one names Markdown Structure it describes the intended edge rather

@@ -1,19 +1,24 @@
-// Package mdlinks settles what a wikilink resolves to and raises the two
-// findings that decide it: [finding.RuleUnmappedCitation] for a citation
-// naming a corpus document a caller-supplied link map leaves out, and
-// [finding.RuleUnresolvedCitation] for a citation naming no corpus
-// document at all.
+// Package mdlinks settles what a wikilink resolves to, raises the two
+// findings that decide it, and substitutes the settled targets into a
+// document's bytes.
 //
-// It is deliberately the resolution half only. Replacing a `[[...]]`
-// construct with the markdown link these targets settle is a separate
-// concern — it needs the document's bytes and the extents to rewrite,
-// where this package needs neither — and is built on top of this
-// package's output rather than folded into it.
+// The two halves stay separate functions rather than one merged pass.
+// Resolve settles what a reference reaches and needs only the reference's
+// already-computed [specmodel.ReferenceResolution]; Substitute consumes
+// Resolve's targets alongside the document's bytes and the extents to
+// rewrite, which Resolve itself never touches.
+// [finding.RuleUnmappedCitation] marks a citation naming a corpus document
+// a caller-supplied link map leaves out, and
+// [finding.RuleUnresolvedCitation] marks one naming no corpus document at
+// all.
 //
 // Resolve reads a reference's [specmodel.ReferenceResolution], which
 // [references.Resolve] already computed against the corpus. This package
 // never consults an index directly: whether a slug names a corpus
 // document is a question the reference already carries the answer to.
+// Substitute likewise never rescans the document for `[[...]]` constructs
+// or code regions: it trusts each reference's Position, which
+// [references.Extract] already computed by scanning once.
 package mdlinks
 
 import (
