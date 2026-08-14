@@ -29,6 +29,17 @@ const (
 // exclude code regions (AC-SPECMD-001.4): that exclusion is a property of
 // the References component's output, not a rule reimplemented here.
 //
+// refs SHALL be ordered by ascending Position, which is what
+// [references.Extract] returns ("the registered frontmatter properties
+// first, in the order the document declares them, then the body in the
+// order it is written"). This function copies src forward through a single
+// cursor and never seeks backwards, so a body reference positioned before
+// the cursor is not merely mis-substituted — it slices src with a high
+// bound below its low one and panics. Passing Extract's output through
+// unchanged satisfies this; filtering it does too, since filtering
+// preserves order. Sorting or concatenating reference slices from two
+// documents does not.
+//
 // count reports how many references were actually replaced
 // (AC-SPECMD-003.1). A count of zero is always accompanied by out
 // byte-identical to src (AC-SPECMD-001.6, AC-SPECMD-002.7).

@@ -74,15 +74,17 @@ func Resolve(refs []specmodel.Reference, options Options) (targets []*string, fi
 	return targets, findings
 }
 
-// resolveOne settles one reference's target, per the delta's Behavior:
+// resolveOne settles one reference's target, per the delta's Behavior, in
+// the order the checks below run:
 //
 //   - a mapped slug wins outright, whether or not it also names a corpus
-//     document (AC-SPECMD-005.5);
-//   - otherwise a corpus-resolved slug either derives its target from the
-//     corpus, when no map was given, or — when a map was given and simply
-//     omits it — raises links/unmapped, never both (AC-SPECMD-006.3);
-//   - a slug naming no corpus document raises links/unresolved, mapped or
-//     not, once the map itself has been checked.
+//     document (AC-SPECMD-005.5), and raises nothing;
+//   - otherwise a slug naming no corpus document raises links/unresolved
+//     and settles no target — reached only when the map did not cover it,
+//     since a mapped slug has already returned;
+//   - otherwise a corpus-resolved slug raises links/unmapped when a map
+//     was given and simply omits it (AC-SPECMD-006.3), and derives its
+//     target from the corpus when no map was given at all — never both.
 func resolveOne(ref specmodel.Reference, options Options) (*string, *specmodel.Finding) {
 	fragment := anchorFragment(ref.Anchor)
 
