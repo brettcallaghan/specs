@@ -10,8 +10,13 @@ slug: rfc-0019-gherkin-frd-unverifiable-and-implied-work
 type: rfc
 status: ready-for-review
 updated_at: 2026-08-14T00:00:00Z
-audience: project
-origin: agent-plugins
+origin: self
+skill: spec
+skill_version: "1.9"
+model: "<withheld by session policy — see Provenance>"
+effort: unknown
+runs_observed: 1
+severity: snag
 plugin_version: "0.17.0"
 ---
 
@@ -34,6 +39,7 @@ blueprint, where they die when the blueprint retires.
 | Field | Value |
 |-------|-------|
 | Origin project | agent-plugins |
+| Audience | project — resolved in this repository, which is what filing under `rfcs/inbox/frd/` records; the generated `Rfc` schema has no `audience` property |
 | Phase executed | Authored a feature blueprint from an approved FRD |
 | Documents exercised | [[frd-gherkin-adoption]]; [[adr-020]]; [[container-spec-cli]], [[module-document-core]], [[module-spec-profile]]; [[contract-specs-configuration]]; [[testing-standards]]; `plugin/skills/spec/references/gherkin-guide.md`; `schemas/feature.strata`, `schemas/index.strata` |
 | Documents produced | [[feature-gherkin-adoption]] |
