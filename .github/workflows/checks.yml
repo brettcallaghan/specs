@@ -73,6 +73,14 @@ jobs:
       - name: Vendored shared references are current
         run: scripts/sync-shared-references.sh --check
 
+      # A skill's reference directory travels to an adopting repository
+      # with no corpus index behind it, so a markdown link that does not
+      # resolve to a co-located file is dead on arrival there. `spec
+      # check` only walks the corpus (the `corpus` job below) and does
+      # not see this surface at all.
+      - name: Reference links resolve
+        run: scripts/check-reference-links.py
+
       # Structural check on the templates every document is authored from:
       # the property set a template declares must match its type's schema.
       # Runs before the pip step because it needs no dependency — only the
