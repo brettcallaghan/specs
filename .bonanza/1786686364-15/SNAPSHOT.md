@@ -8,13 +8,13 @@ reclaim. It is written by `scripts/bb-backup-run.sh` after every bead.
 | Field | Value |
 |---|---|
 | Run id | `1786686364-15` |
-| As of | `2026-08-14T07:20:14Z` |
+| As of | `2026-08-14T07:27:43Z` |
 | Live run directory | `/tmp/claude/bead-bonanza/1786686364-15` |
 | Repo | `/home/user/agent-plugins` |
 | Run branch | `claude/validate-corpus-spec-cli-0t0cxo` |
 | Default branch | `main` |
-| HEAD when taken | `28ae2a2` agent-plugins-eaa.4 P2 Move c4-guide into specs/standards and ship it, closing the 14th document |
-| Files copied | 86 |
+| HEAD when taken | `f00900e` agent-plugins-ia5.6 P2 DOD: verify the Definition of Done, retire the blueprint, run retro-spec |
+| Files copied | 87 |
 | Beads with artifacts | 13 |
 
 Resume the run from the branch, not from this file: `git log --oneline main..claude/validate-corpus-spec-cli-0t0cxo`
@@ -35,7 +35,7 @@ lists every bead that has landed, one close commit each.
 | `agent-plugins-ia5.3` | `committed` | `daa7f3c` | yes | yes |
 | `agent-plugins-ia5.4` | `committed` | `59d8c05` | yes | yes |
 | `agent-plugins-ia5.5` | `committed` | `b008ff5` | yes | yes |
-| `agent-plugins-ia5.6` | `implementing` |  | yes | no |
+| `agent-plugins-ia5.6` | `committed` | `ef20d88` | yes | yes |
 | `agent-plugins-wu1` | `committed` | `e171605` | yes | yes |
 
 The phase column is a **hint, never the authority** — the ledger stops when
@@ -62,7 +62,7 @@ whether the live directory still exists and use it when it does:
     ls -A /tmp/claude/bead-bonanza/1786686364-15
 
 Read this copy only WHEN that directory is gone, and then state this
-snapshot's as-of time (`2026-08-14T07:20:14Z`) in whatever you conclude from it.
+snapshot's as-of time (`2026-08-14T07:27:43Z`) in whatever you conclude from it.
 
 **It preserves operational state, not findings.** Findings are `retro:`
 comments on the beads themselves, durable in the tracker independently of

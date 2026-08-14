@@ -1,0 +1,3 @@
+# agent-plugins-ia5.6 handoff
+
+Caveat: the Definition of Done verified TRUE on every item and the blueprint is retired, but three defects found during verification are recorded rather than fixed — the FRD assigns no AC id to the unreadable-operand path (two snapshot cases ship citing `= []`), 38 backticked path citations across `specs/` name documents that `agent-plugins-eaa.2`/`eaa.3` moved into the corpus (filed as `agent-plugins-jn6`), and the five ia5 delta commits left `updated_at` stale on both folded architecture blueprints (filed as `agent-plugins-thb`); all three plus two more are proposed in `rfcs/inbox/feature-blueprint/rfc-0019-implementing-markdown-links.md`, which is human-gated at review.
