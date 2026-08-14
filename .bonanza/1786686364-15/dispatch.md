@@ -281,6 +281,46 @@ edited. Numbering is local to this section.
 
 ## Amendments
 
+### 2026-08-14 — `agent-plugins-eaa.4` admitted mid-run; wave 6 split into 6a and 6b
+
+**Admitted under the mid-run scope test as an acceptance-criteria
+decomposition** of `agent-plugins-eaa`, whose AC-1 reads "The **14**
+corpus-shaped documents live under `specs/`". `eaa.2` moved 8, `eaa.3` moved 5
+— 13. The fourteenth, `plugin/skills/spec/references/c4-guide.md`, moved in
+neither and has no entry in `scripts/sync-shared-references.sh`'s MAP.
+
+Cause is a three-bead seam, and it is the run's clearest planning finding:
+`wu1` (wave 1) retyped the document guide→standards; `eaa.2`'s Design had
+already been written and declined it as "guides are separate"; `eaa.3`
+confirmed it was standards-typed and therefore outside its 5 guides, recorded
+the gap in a `retro:` comment, and **did not file a bead**. Each bead was
+individually correct. The gap lives between them, which is exactly what an
+AC-level check on the parent epic catches and a per-bead check does not.
+
+**The epic cannot close until this lands** — AC-1 counts 13/14 and the
+"vendored from `specs/` as the single source" criterion is unmet for this
+document. Filing it is not scope creep; closing `eaa` without it would be
+recording a false completion.
+
+Edges wired: `parent = agent-plugins-eaa`; `discovered-from
+agent-plugins-eaa.3`; **`agent-plugins-47b` now depends on it**.
+
+**Wave 6 is therefore split**, because `47b` builds a script that records a
+glob file-count floor over `plugin/skills/*/references/**` — the exact tree
+`eaa.4` mutates. Running them concurrently would compute the floor against a
+tree in motion. That collision is invisible to the C4 check (both are
+`c4_changes: []`) and to a pure co-edit analysis (`47b` *reads* the tree rather
+than editing it), which is a second `plan-sprint` finding: **a bead that
+measures a surface collides with a bead that changes it, without co-editing a
+single file.**
+
+- **Wave 6a** — `ia5.6` (advanced) + `eaa.4` (standard), concurrent. Disjoint
+  surfaces: `specs/architecture/` + the markdown-links blueprint + `cli/testdata`
+  against `specs/standards/` + `scripts/sync-shared-references.sh` +
+  `cli/profile`.
+- **Wave 6b** — `47b` (standard), then close the `eaa` epic.
+- **Wave 7** — `92u`, unchanged.
+
 ### 2026-08-14 — wave 2 concurrency produced a TGT/MAP interface hazard; carry it into ia5.5
 
 `ia5.2` (TGT) and `ia5.4` (MAP) ran concurrently, so neither could see the
