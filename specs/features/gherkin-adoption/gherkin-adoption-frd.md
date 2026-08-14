@@ -5,7 +5,7 @@ description: The CLI parses Gherkin from FRD blocks and standalone feature
   and acceptance criteria into the index, and answers queries by tag
 slug: frd-gherkin-adoption
 type: frd
-status: draft
+status: approved
 updated_at: 2026-08-14T00:00:00Z
 sources: []
 ---
