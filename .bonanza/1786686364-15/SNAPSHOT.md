@@ -8,14 +8,14 @@ reclaim. It is written by `scripts/bb-backup-run.sh` after every bead.
 | Field | Value |
 |---|---|
 | Run id | `1786686364-15` |
-| As of | `2026-08-14T07:10:02Z` |
+| As of | `2026-08-14T07:20:14Z` |
 | Live run directory | `/tmp/claude/bead-bonanza/1786686364-15` |
 | Repo | `/home/user/agent-plugins` |
 | Run branch | `claude/validate-corpus-spec-cli-0t0cxo` |
 | Default branch | `main` |
-| HEAD when taken | `a894938` agent-plugins-eaa.3 P3 Move the 6 shipped guides into specs/guides and vendor them outward |
-| Files copied | 83 |
-| Beads with artifacts | 11 |
+| HEAD when taken | `28ae2a2` agent-plugins-eaa.4 P2 Move c4-guide into specs/standards and ship it, closing the 14th document |
+| Files copied | 86 |
+| Beads with artifacts | 13 |
 
 Resume the run from the branch, not from this file: `git log --oneline main..claude/validate-corpus-spec-cli-0t0cxo`
 lists every bead that has landed, one close commit each.
@@ -29,11 +29,13 @@ lists every bead that has landed, one close commit each.
 | `agent-plugins-eaa.1` | `committed` | `4e50612` | yes | yes |
 | `agent-plugins-eaa.2` | `committed` | `ea10378` | yes | yes |
 | `agent-plugins-eaa.3` | `committed` | `a894938` | yes | yes |
+| `agent-plugins-eaa.4` | `committed` | `28ae2a2` | yes | yes |
 | `agent-plugins-ia5.1` | `committed` | `c9bf3ab` | yes | yes |
 | `agent-plugins-ia5.2` | `committed` | `d4b84ec` | yes | yes |
 | `agent-plugins-ia5.3` | `committed` | `daa7f3c` | yes | yes |
 | `agent-plugins-ia5.4` | `committed` | `59d8c05` | yes | yes |
 | `agent-plugins-ia5.5` | `committed` | `b008ff5` | yes | yes |
+| `agent-plugins-ia5.6` | `implementing` |  | yes | no |
 | `agent-plugins-wu1` | `committed` | `e171605` | yes | yes |
 
 The phase column is a **hint, never the authority** — the ledger stops when
@@ -60,7 +62,7 @@ whether the live directory still exists and use it when it does:
     ls -A /tmp/claude/bead-bonanza/1786686364-15
 
 Read this copy only WHEN that directory is gone, and then state this
-snapshot's as-of time (`2026-08-14T07:10:02Z`) in whatever you conclude from it.
+snapshot's as-of time (`2026-08-14T07:20:14Z`) in whatever you conclude from it.
 
 **It preserves operational state, not findings.** Findings are `retro:`
 comments on the beads themselves, durable in the tracker independently of
