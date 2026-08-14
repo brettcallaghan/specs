@@ -48,6 +48,16 @@ const (
 	// positioned at [profile].name, the configuration value that selected
 	// it (AC-SPECREF-004.3).
 	RuleConfigInvalidRegistration specmodel.RuleId = "config/invalid-registration"
+	// RuleLinkMapInvalid covers a link map that cannot be read at all, or
+	// that go-yaml cannot parse — including a slug repeated as a
+	// top-level key, which go-yaml itself rejects as a duplicate mapping
+	// key. A record missing its path property is modelled separately as
+	// [RuleLinkMapMissingPath], the same missing-property split
+	// [RuleConfigMissingProperty] makes from [RuleConfigSchema].
+	RuleLinkMapInvalid specmodel.RuleId = "linkmap/invalid"
+	// RuleLinkMapMissingPath covers a link-map record that declares no
+	// path property.
+	RuleLinkMapMissingPath specmodel.RuleId = "linkmap/missing-path"
 )
 
 // rootPointer is what an empty JSON Pointer renders as in a message, so a
@@ -196,6 +206,64 @@ func configRegistrationDefect(path string, at specmodel.Span, defect corpus.Regi
 			Pointer:    "/profile/name",
 			Constraint: "valid-registration",
 			Value:      key,
+		}),
+	}
+}
+
+// linkMapUnreadable reports a link map [LoadLinkMap] could not open at
+// all — most plausibly a path naming nothing, per
+// [[container-spec-cli#Command Surface]]'s AC-SPECMD-005.8. There is no
+// source to derive a span from, so the finding carries the position an
+// empty file would.
+func linkMapUnreadable(path string, err error) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleLinkMapInvalid,
+		Severity: finding.SeverityError,
+		Path:     path,
+		Position: wholeFile(nil),
+		Message:  fmt.Sprintf("cannot be read: %s", err),
+		Detail: specmodel.NewFindingDetailSchemaViolation(specmodel.FindingSchemaViolation{
+			Pointer:    "",
+			Constraint: "readable",
+			Value:      err.Error(),
+		}),
+	}
+}
+
+// linkMapUnparseable reports a link map go-yaml could not decode —
+// invalid YAML syntax, or a slug repeated as a top-level key, which
+// go-yaml itself rejects as a duplicate mapping key rather than letting
+// one silently win (AC-SPECMD-005.8).
+func linkMapUnparseable(path string, src []byte, err error) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleLinkMapInvalid,
+		Severity: finding.SeverityError,
+		Path:     path,
+		Position: wholeFile(src),
+		Message:  fmt.Sprintf("cannot be parsed as YAML: %s", err),
+		Detail: specmodel.NewFindingDetailSchemaViolation(specmodel.FindingSchemaViolation{
+			Pointer:    "",
+			Constraint: "yaml-syntax",
+			Value:      err.Error(),
+		}),
+	}
+}
+
+// linkMapMissingPath reports a link-map record for slug that declares no
+// path property (AC-SPECMD-005.8). The pointer names the slug the same
+// way a JSON Pointer would, though the source is YAML rather than the
+// JSON a schema violation elsewhere in this package points into.
+func linkMapMissingPath(path string, src []byte, slug string) specmodel.Finding {
+	pointer := "/" + slug
+	return specmodel.Finding{
+		Rule:     RuleLinkMapMissingPath,
+		Severity: finding.SeverityError,
+		Path:     path,
+		Position: wholeFile(src),
+		Message:  fmt.Sprintf("%s: required property %q is not declared", pointer, "path"),
+		Detail: specmodel.NewFindingDetailMissingProperty(specmodel.FindingMissingProperty{
+			Pointer:  pointer,
+			Property: "path",
 		}),
 	}
 }
