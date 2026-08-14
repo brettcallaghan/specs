@@ -8,14 +8,14 @@ reclaim. It is written by `scripts/bb-backup-run.sh` after every bead.
 | Field | Value |
 |---|---|
 | Run id | `1786686364-15` |
-| As of | `2026-08-14T07:34:50Z` |
+| As of | `2026-08-14T08:40:57Z` |
 | Live run directory | `/tmp/claude/bead-bonanza/1786686364-15` |
 | Repo | `/home/user/agent-plugins` |
 | Run branch | `claude/validate-corpus-spec-cli-0t0cxo` |
 | Default branch | `main` |
-| HEAD when taken | `c74456d` agent-plugins-47b P2 Verify every markdown link in a shipped reference resolves to a co-located file |
-| Files copied | 89 |
-| Beads with artifacts | 14 |
+| HEAD when taken | `afed0e0` agent-plugins-92u: retire validate-corpus.py from CI, check rfcs/ with the CLI |
+| Files copied | 96 |
+| Beads with artifacts | 15 |
 
 Resume the run from the branch, not from this file: `git log --oneline main..claude/validate-corpus-spec-cli-0t0cxo`
 lists every bead that has landed, one close commit each.
@@ -26,6 +26,7 @@ lists every bead that has landed, one close commit each.
 |---|---|---|---|---|
 | `agent-plugins-47b` | `committed` | `c74456d` | yes | yes |
 | `agent-plugins-8ko` | `committed` | `152b1dc` | yes | yes |
+| `agent-plugins-92u` | `pushed` |  | yes | yes |
 | `agent-plugins-cb9` | `committed` | `df4786d` | yes | yes |
 | `agent-plugins-eaa.1` | `committed` | `4e50612` | yes | yes |
 | `agent-plugins-eaa.2` | `committed` | `ea10378` | yes | yes |
@@ -46,7 +47,12 @@ mean the bead is unfinished. Resolve any status question with
 
 ## Other files copied
 
+- `agent-plugins-92u.workflow-fragment.md`
 - `dispatch.md`
+- `g1.txt`
+- `g2.txt`
+- `g3.txt`
+- `spec`
 - `trailers.txt`
 - `.ok`
 
@@ -63,7 +69,7 @@ whether the live directory still exists and use it when it does:
     ls -A /tmp/claude/bead-bonanza/1786686364-15
 
 Read this copy only WHEN that directory is gone, and then state this
-snapshot's as-of time (`2026-08-14T07:34:50Z`) in whatever you conclude from it.
+snapshot's as-of time (`2026-08-14T08:40:57Z`) in whatever you conclude from it.
 
 **It preserves operational state, not findings.** Findings are `retro:`
 comments on the beads themselves, durable in the tracker independently of

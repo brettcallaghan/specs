@@ -398,3 +398,44 @@ at 15–30 minute intervals. This harness's recurring-trigger minimum is
 substituting a re-armed one-shot, because the reference's stated reason for
 preferring a recurring trigger — the agent forgetting to re-arm is the failure
 mode being defended against — outweighs the interval gap.
+
+### 2026-08-14 — the run stalled at wave 6b's push: PAT lacks `workflow` scope
+
+**This is what ended the run, and nothing reported it.** `agent-plugins-47b`
+committed cleanly (`c74456d`) and its worktree was removed, so every liveness
+signal read "drained". The push then failed and the orchestrator stopped:
+
+```
+! [remote rejected] ... (refusing to allow a Personal Access Token to create
+  or update workflow `.github/workflows/checks.yml` without `workflow` scope)
+```
+
+Two commits sat unpushed for ~20 minutes with zero worktrees and a clean tree —
+a state indistinguishable from "finished" to every check the recovery skill
+prescribes except comparing HEAD against the upstream ref.
+
+**Resolution applied.** `c74456d` held exactly two files, so it was split
+(unpushed, so no history anyone held was rewritten; safety ref
+`bb-stall-backup` kept at the original HEAD):
+
+- `scripts/check-reference-links.py` re-committed as `6456fa3` and pushed
+  normally with the snapshot commit `1d52da8`.
+- `.github/workflows/checks.yml` applied through the GitHub App via
+  `create_or_update_file` → `a56b7ca`. The resulting blob sha is `2e84b2b`,
+  byte-identical to what `c74456d` carried (`index 146ecb9..2e84b2b`), so the
+  split changed nothing about the delivered content.
+
+**Carry into wave 7.** `agent-plugins-92u` replaces the "Frontmatter conforms
+outside the corpus root" step in the same file and will hit the same rejection.
+Its subagent MUST leave `.github/workflows/checks.yml` untouched in the tree and
+hand the intended content back for the orchestrator to apply through the App.
+The bead's own acceptance criteria already say the edit goes through that path;
+what they did not say is that a commit *containing* the file poisons the whole
+push, not just that file.
+
+**Finding for the skill.** `BB_PUSH_NEEDS_REFSPEC=no` and
+`BB_GIT_CONFIG_WRITABLE=yes` were probed at pre-flight; push *scope* against a
+protected path was not. A pre-flight probe that pushed a scratch commit touching
+`.github/workflows/**` would have caught this before wave 1 rather than at wave
+6b, and the wave table would have routed every workflow-touching bead
+accordingly.
