@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0",
+  "workspace": "acme",
+  "entries": [
+    {
+      "path": "docs/adrs/adr-800-current.md",
+      "frontmatter": {
+        "title": "ADR-800: Current Decision",
+        "description": "A live decision citing a slug nothing declares.",
+        "slug": "adr-800-current",
+        "type": "adr",
+        "status": "approved",
+        "updated_at": "2026-08-01T00:00:00Z"
+      }
+    }
+  ],
+  "exclusions": [],
+  "references": [
+    {
+      "path": "docs/adrs/adr-800-current.md",
+      "text": "adr-999-absent",
+      "slug": "adr-999-absent",
+      "origin": {
+        "kind": "body"
+      },
+      "position": {
+        "offset": 238,
+        "length": 14,
+        "start_line": 12,
+        "start_column": 23,
+        "end_line": 12,
+        "end_column": 37
+      },
+      "resolution": {
+        "state": "unresolved"
+      }
+    }
+  ],
+  "input_hash": "sha256:b7df96d90c47c4d66f6f6023cde47528b4772d5031605794326869287f599742"
+}

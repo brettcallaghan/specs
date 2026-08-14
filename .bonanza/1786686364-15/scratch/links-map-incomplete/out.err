@@ -1,0 +1,5 @@
+docs/adrs/adr-800-current.md:
+  links/unmapped  error  12:25  [[adr-900-old-approach]] is not covered by link map map.yaml
+
+checks:
+  links/unmapped  failed
