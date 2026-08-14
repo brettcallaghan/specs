@@ -8,12 +8,12 @@ reclaim. It is written by `scripts/bb-backup-run.sh` after every bead.
 | Field | Value |
 |---|---|
 | Run id | `1786686364-15` |
-| As of | `2026-08-14T06:22:21Z` |
+| As of | `2026-08-14T06:23:20Z` |
 | Live run directory | `/tmp/claude/bead-bonanza/1786686364-15` |
 | Repo | `/home/user/agent-plugins` |
 | Run branch | `claude/validate-corpus-spec-cli-0t0cxo` |
 | Default branch | `main` |
-| HEAD when taken | `59d8c05` agent-plugins-ia5.4 P2 MAP: read the YAML link map in the command surface |
+| HEAD when taken | `56ec2bf` agent-plugins-ia5.2 P2 TGT: target resolution and both reachability findings |
 | Files copied | 17 |
 | Beads with artifacts | 7 |
 
@@ -28,7 +28,7 @@ lists every bead that has landed, one close commit each.
 | `agent-plugins-cb9` | `committed` | `df4786d` | yes | yes |
 | `agent-plugins-eaa.1` | `retro-written` |  | yes | yes |
 | `agent-plugins-ia5.1` | `committed` | `c9bf3ab` | yes | yes |
-| `agent-plugins-ia5.2` | `retro-written` |  | yes | yes |
+| `agent-plugins-ia5.2` | `committed` | `d4b84ec` | yes | yes |
 | `agent-plugins-ia5.4` | `committed` | `59d8c05` | yes | yes |
 | `agent-plugins-wu1` | `committed` | `e171605` | yes | yes |
 
@@ -56,7 +56,7 @@ whether the live directory still exists and use it when it does:
     ls -A /tmp/claude/bead-bonanza/1786686364-15
 
 Read this copy only WHEN that directory is gone, and then state this
-snapshot's as-of time (`2026-08-14T06:22:21Z`) in whatever you conclude from it.
+snapshot's as-of time (`2026-08-14T06:23:20Z`) in whatever you conclude from it.
 
 **It preserves operational state, not findings.** Findings are `retro:`
 comments on the beads themselves, durable in the tracker independently of
