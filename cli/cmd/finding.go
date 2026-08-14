@@ -1,13 +1,40 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"strings"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
+
+// readErrorText renders a failure to open a file in wording that does not
+// vary by operating system.
+//
+// [os.Open] returns a [fs.PathError] whose text is the platform's own
+// syscall message — "no such file or directory" on Unix, "The system
+// cannot find the file specified." on Windows — so interpolating it
+// verbatim makes a finding, and every fixture that captures one,
+// platform-specific. The path is already carried in the finding's Path
+// field and rendered as its header, so nothing is lost by reporting only
+// the category here.
+//
+// An error matching neither category keeps its own text: an unanticipated
+// failure is worth surfacing in full, and it is rare enough not to be
+// worth a fixture.
+func readErrorText(err error) string {
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		return "no such file"
+	case errors.Is(err, fs.ErrPermission):
+		return "permission denied"
+	default:
+		return err.Error()
+	}
+}
 
 // The rule identifiers this package's checks raise.
 //
@@ -226,11 +253,11 @@ func linkMapUnreadable(path string, err error) specmodel.Finding {
 		Severity: finding.SeverityError,
 		Path:     path,
 		Position: wholeFile(nil),
-		Message:  fmt.Sprintf("cannot be read: %s", err),
+		Message:  fmt.Sprintf("cannot be read: %s", readErrorText(err)),
 		Detail: specmodel.NewFindingDetailSchemaViolation(specmodel.FindingSchemaViolation{
 			Pointer:    "",
 			Constraint: "readable",
-			Value:      err.Error(),
+			Value:      readErrorText(err),
 		}),
 	}
 }
@@ -266,11 +293,11 @@ func documentUnreadable(path string, err error) specmodel.Finding {
 		Severity: finding.SeverityError,
 		Path:     path,
 		Position: wholeFile(nil),
-		Message:  fmt.Sprintf("cannot be read: %s", err),
+		Message:  fmt.Sprintf("cannot be read: %s", readErrorText(err)),
 		Detail: specmodel.NewFindingDetailSchemaViolation(specmodel.FindingSchemaViolation{
 			Pointer:    "",
 			Constraint: "readable",
-			Value:      err.Error(),
+			Value:      readErrorText(err),
 		}),
 	}
 }
