@@ -14,6 +14,8 @@
 - [FindingRetiredTarget](#findingretiredtarget)
 - [FindingIncompletePairing](#findingincompletepairing)
 - [FindingReferenceType](#findingreferencetype)
+- [FindingUnmappedCitation](#findingunmappedcitation)
+- [FindingUnresolvedCitation](#findingunresolvedcitation)
 - [FindingDetail](#findingdetail)
 - [Finding](#finding)
 - [CheckOutcome](#checkoutcome)
@@ -225,6 +227,42 @@ constraint is checked here and reported with both types quoted.
 | actual_type | String | The `type` the target actually declares. |
 
 
+## FindingUnmappedCitation
+
+A citation whose slug names a corpus document the caller's link map does
+not cover.
+
+Distinct from `FindingUnresolvedCitation`: the slug does resolve to a
+real corpus document, so the defect is a gap in the map rather than a
+bad citation, and the fix is to add the missing entry rather than to fix
+the prose. The map's path is carried alongside the slug and the citing
+document so the finding is actionable without the caller having the map
+open.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| slug | String | The slug the citation names. |
+| citing_path | String | The citing document's path, relative to the repository root and written with forward slashes on every platform. |
+| map_path | String | The link map's path, relative to the repository root and written with forward slashes on every platform. |
+
+
+## FindingUnresolvedCitation
+
+A citation whose slug names no corpus document at all.
+
+Distinct from `FindingUnmappedCitation`: nothing in the corpus resolves
+the slug, so the citation is as likely to be illustrative prose — a
+template teaching citation syntax — as a mistyped reference, and the two
+cannot be told apart by the tool. Carrying only the slug and the citing
+document (no map path) reflects that a link map, present or absent, is
+not what decided this outcome.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| slug | String | The slug the citation names. |
+| citing_path | String | The citing document's path, relative to the repository root and written with forward slashes on every platform. |
+
+
 ## FindingDetail
 
 The structured detail of one finding, selected by the kind of defect.
@@ -253,6 +291,8 @@ identifier, the severity, the path, the span and the message.
 | "retired-target" | RetiredTarget | A reference from a live document to a retired one. |
 | "incomplete-pairing" | IncompletePairing | A paired relationship declared from one end only. |
 | "reference-type" | ReferenceType | A typed reference whose target declares a different document type. |
+| "unmapped-citation" | UnmappedCitation | A citation whose slug names a corpus document the link map does not cover. |
+| "unresolved-citation" | UnresolvedCitation | A citation whose slug names no corpus document. |
 
 
 ## Finding

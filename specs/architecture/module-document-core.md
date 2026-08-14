@@ -885,9 +885,14 @@ is:
   (AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7); a retired
   target with its slug and the successor it names, where it names one
   (AC-SPECREF-002.6); an incomplete pairing with both property names and
-  both documents (AC-SPECREF-002.5); and a reference-type mismatch with
+  both documents (AC-SPECREF-002.5); a reference-type mismatch with
   the property, the expected `type` and the `type` the target declares
-  (AC-SPECREF-002.10). The message is derivable from the variant, so a
+  (AC-SPECREF-002.10); an unmapped citation with its slug, the citing
+  document's path and the link map's path, for a citation whose slug
+  names a corpus document the map does not cover; and an unresolved
+  citation with its slug and the citing document's path, for a citation
+  whose slug names no corpus document at all (AC-SPECMD-002.3,
+  AC-SPECMD-002.4). The message is derivable from the variant, so a
   consumer branches on structure rather than parsing prose.
 - **`Severity`** — `error`, `warning` and `unverified`, the three
   [[frd-spec-validation-cli]] defines and no others.

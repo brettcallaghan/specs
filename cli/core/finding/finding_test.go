@@ -203,6 +203,36 @@ func TestEveryFindingIsSelfContained(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:     "unmapped citation",
+			finding:  finding.UnmappedCitation("specs/adrs/adr-011.md", position, "document-relationship-standards", "links.yaml"),
+			rule:     finding.RuleUnmappedCitation,
+			contains: []string{"document-relationship-standards", "links.yaml"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsUnmappedCitation()
+				if !ok {
+					t.Fatalf("detail is not an unmapped citation: %#v", d.Value)
+				}
+				if v.Slug != "document-relationship-standards" || v.CitingPath != "specs/adrs/adr-011.md" || v.MapPath != "links.yaml" {
+					t.Errorf("detail = %#v, want the slug, the citing path and the map path", v)
+				}
+			},
+		},
+		{
+			name:     "unresolved citation",
+			finding:  finding.UnresolvedCitation("specs/adrs/adr-011.md", position, "adr-404"),
+			rule:     finding.RuleUnresolvedCitation,
+			contains: []string{"adr-404"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsUnresolvedCitation()
+				if !ok {
+					t.Fatalf("detail is not an unresolved citation: %#v", d.Value)
+				}
+				if v.Slug != "adr-404" || v.CitingPath != "specs/adrs/adr-011.md" {
+					t.Errorf("detail = %#v, want the slug and the citing path", v)
+				}
+			},
+		},
 	}
 
 	for _, c := range cases {
@@ -300,6 +330,83 @@ func TestCorpusEmptyCarriesErrorAndNamesTheSpecRoot(t *testing.T) {
 	}
 	if !strings.Contains(f.Message, `"docs"`) {
 		t.Errorf("Message %q does not name the configured spec root", f.Message)
+	}
+}
+
+// The two unreachable-citation findings carry distinct `detail.kind`
+// values and distinct severities — an unmapped citation is an error, an
+// unresolved one a warning — so a JSON consumer branches on structure
+// rather than parsing prose to tell a gap in the map from a citation
+// that names no corpus document at all.
+//
+// AC: AC-SPECMD-002.4
+func TestUnmappedAndUnresolvedCitationsAreDistinguishableByKind(t *testing.T) {
+	unmapped := finding.UnmappedCitation("specs/adrs/adr-011.md", at(t), "document-relationship-standards", "links.yaml")
+	unresolved := finding.UnresolvedCitation("specs/adrs/adr-011.md", at(t), "adr-404")
+
+	if unmapped.Detail.Value == unresolved.Detail.Value {
+		t.Errorf("the two details compare equal: %#v", unmapped.Detail.Value)
+	}
+	if _, ok := unmapped.Detail.AsUnresolvedCitation(); ok {
+		t.Error("an unmapped citation's detail also reads as an unresolved citation")
+	}
+	if _, ok := unresolved.Detail.AsUnmappedCitation(); ok {
+		t.Error("an unresolved citation's detail also reads as an unmapped citation")
+	}
+
+	if unmapped.Severity != finding.SeverityError {
+		t.Errorf("unmapped severity = %q, want %q", unmapped.Severity, finding.SeverityError)
+	}
+	if unresolved.Severity != finding.SeverityWarning {
+		t.Errorf("unresolved severity = %q, want %q", unresolved.Severity, finding.SeverityWarning)
+	}
+
+	encodedUnmapped, err := json.Marshal(unmapped)
+	if err != nil {
+		t.Fatalf("marshal unmapped: %v", err)
+	}
+	encodedUnresolved, err := json.Marshal(unresolved)
+	if err != nil {
+		t.Fatalf("marshal unresolved: %v", err)
+	}
+	if !strings.Contains(string(encodedUnmapped), `"kind":"unmapped-citation"`) {
+		t.Errorf("unmapped JSON = %s, want detail.kind %q", encodedUnmapped, "unmapped-citation")
+	}
+	if !strings.Contains(string(encodedUnresolved), `"kind":"unresolved-citation"`) {
+		t.Errorf("unresolved JSON = %s, want detail.kind %q", encodedUnresolved, "unresolved-citation")
+	}
+}
+
+// Both citation findings name the citing document (as Path), the slug
+// (in Message and in the structured detail) and the position of the
+// citation (as Position) — the three facts a reader needs without
+// re-opening the document.
+//
+// AC: AC-SPECMD-002.3
+func TestCitationFindingsNameTheCitingDocumentSlugAndPosition(t *testing.T) {
+	position := at(t)
+
+	cases := []struct {
+		name    string
+		finding specmodel.Finding
+		slug    string
+	}{
+		{"unmapped", finding.UnmappedCitation("specs/adrs/adr-011.md", position, "document-relationship-standards", "links.yaml"), "document-relationship-standards"},
+		{"unresolved", finding.UnresolvedCitation("specs/adrs/adr-011.md", position, "adr-404"), "adr-404"},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if c.finding.Path != "specs/adrs/adr-011.md" {
+				t.Errorf("Path = %q, want the citing document", c.finding.Path)
+			}
+			if c.finding.Position != position {
+				t.Errorf("Position = %#v, want the citation's position", c.finding.Position)
+			}
+			if !strings.Contains(c.finding.Message, c.slug) {
+				t.Errorf("Message %q does not name the slug %q", c.finding.Message, c.slug)
+			}
+		})
 	}
 }
 

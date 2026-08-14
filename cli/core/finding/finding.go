@@ -101,6 +101,16 @@ const (
 	// identical whether the run examined a clean corpus or examined
 	// nothing, and only this rule tells the two apart.
 	RuleCorpusEmpty specmodel.RuleId = "corpus/empty"
+	// RuleUnmappedCitation covers a citation whose slug names a corpus
+	// document the caller's link map does not cover. The slug resolves;
+	// the map is incomplete.
+	RuleUnmappedCitation specmodel.RuleId = "links/unmapped"
+	// RuleUnresolvedCitation covers a citation whose slug names no
+	// corpus document at all, with or without a link map. Distinct from
+	// [RuleUnmappedCitation]: nothing resolves the slug, so this may be
+	// a mistyped reference or illustrative prose that was never meant to
+	// resolve.
+	RuleUnresolvedCitation specmodel.RuleId = "links/unresolved"
 )
 
 // referenceRules is every rule whose finding is raised against the
@@ -364,6 +374,53 @@ func ReferenceType(path string, at specmodel.Span, property, slug, expectedType,
 			Slug:         slug,
 			ExpectedType: expectedType,
 			ActualType:   actualType,
+		}),
+	}
+}
+
+// UnmappedCitation reports a citation whose slug names a corpus document
+// the caller's link map does not cover.
+//
+// It carries [SeverityError]: the slug resolves to a real document, so a
+// build that renders the map's target set incomplete must not pass
+// silently (AC-SPECMD-002.1). citingPath is the document that wrote the
+// citation, and the finding is raised against it; mapPath is carried
+// alongside so the finding is actionable without the caller having the
+// map open.
+func UnmappedCitation(citingPath string, at specmodel.Span, slug, mapPath string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleUnmappedCitation,
+		Severity: SeverityError,
+		Path:     citingPath,
+		Position: at,
+		Message:  fmt.Sprintf("[[%s]] is not covered by link map %s", slug, mapPath),
+		Detail: specmodel.NewFindingDetailUnmappedCitation(specmodel.FindingUnmappedCitation{
+			Slug:       slug,
+			CitingPath: citingPath,
+			MapPath:    mapPath,
+		}),
+	}
+}
+
+// UnresolvedCitation reports a citation whose slug names no corpus
+// document at all.
+//
+// It carries [SeverityWarning] rather than [SeverityError]: a slug that
+// resolves to nothing is as often illustrative prose — a template
+// teaching citation syntax — as it is a mistyped reference, and the two
+// cannot be told apart, so a build with no other finding must not fail
+// on it (AC-SPECMD-002.4). citingPath is the document that wrote the
+// citation, and the finding is raised against it.
+func UnresolvedCitation(citingPath string, at specmodel.Span, slug string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleUnresolvedCitation,
+		Severity: SeverityWarning,
+		Path:     citingPath,
+		Position: at,
+		Message:  fmt.Sprintf("[[%s]] matches no corpus document", slug),
+		Detail: specmodel.NewFindingDetailUnresolvedCitation(specmodel.FindingUnresolvedCitation{
+			Slug:       slug,
+			CitingPath: citingPath,
 		}),
 	}
 }
