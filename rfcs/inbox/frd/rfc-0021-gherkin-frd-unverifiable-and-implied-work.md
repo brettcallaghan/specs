@@ -6,7 +6,7 @@ description: Decide what an owning-document tag that resolves to nothing
   does, settle whether the FRD warns about a tag its own guide calls
   optional, make AC-GHK-001.6 a behavior or mark it manual, and resolve a
   note claiming another FRD must change
-slug: rfc-0019-gherkin-frd-unverifiable-and-implied-work
+slug: rfc-0021-gherkin-frd-unverifiable-and-implied-work
 type: rfc
 status: ready-for-review
 updated_at: 2026-08-14T00:00:00Z
