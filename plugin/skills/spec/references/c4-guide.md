@@ -3,8 +3,8 @@ title: Mapping Architecture to C4
 description: How to map concrete architectural elements to C4 levels, which
   document and diagram each belongs in, and when to model an element vs
   mention it in prose
-slug: guide-c4
-type: guide
+slug: c4-standards
+type: standards
 status: draft
 updated_at: 2026-07-29T00:00:00Z
 version: "0.2"
