@@ -13,7 +13,7 @@ origin: self
 skill: bead-bonanza
 skill_version: "1.5"
 model: claude-opus-5
-effort: unknown
+effort: unrecorded
 runs_observed: 1
 severity: blocker
 plugin_version: "n/a (in-repo dogfooding)"
@@ -46,6 +46,8 @@ criterion, not by the run.
 | Task the skill was applied to | 16 beads across 7 waves under two epics — `agent-plugins-ia5` (a CLI feature: new Document Core component + `links` subcommand) and `agent-plugins-eaa` (moving 14 shipped documents into `specs/` and inverting the vendoring), on branch `claude/validate-corpus-spec-cli-0t0cxo`, draft PR #22 |
 | References / scripts / templates invoked | `bead-bonanza/SKILL.md` v1.5; `references/subagent-prompts.md`; `scripts/pre-flight-check.sh`; `scripts/bb-progress.sh`; `scripts/bb-close-bead.sh`; `scripts/bb-backup-run.sh`; `plan-sprint` v0.1; `recover-sprint` v0.1 |
 | Run dates | 2026-08-14 |
+| Model lineup (from `dispatch.md` manifest) | light `haiku`, standard `sonnet`, advanced `opus`, frontier `fable`; `CLAUDE_CODE_SUBAGENT_MODEL` unset, so tier assignments were honoured |
+| Testimony of record | `rfcs/sprints/2026-08-14-markdown-links-and-shipped-specs.md` — the run's sprint report. Findings below are cited by its `<bead-id>#<ordinal>` ids; where this RFC quotes one, the report is authoritative |
 
 ## Evidence
 
@@ -111,7 +113,7 @@ pre-flight (it reports no blocker), then commit any change under
 > could not satisfy an acceptance criterion as declared; a sequencing surprise."
 
 A discovered scope gap satisfies both. `agent-plugins-eaa.3` hit exactly one
-and took step 6:
+and took step 6 (sprint report finding `eaa.3#1`):
 
 > `retro: Confirmed at start (per this bead's own AC item): agent-plugins-wu1
 > already retyped c4-guide.md to standards, and agent-plugins-eaa.2's Design

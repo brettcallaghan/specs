@@ -12,7 +12,7 @@ origin: self
 skill: bead-bonanza
 skill_version: "1.5"
 model: claude-opus-5
-effort: unknown
+effort: unrecorded
 runs_observed: 1
 severity: blocker
 plugin_version: "0.17.0"
@@ -54,6 +54,8 @@ document crossing into the corpus.
 | Plugin version | 0.17.0 |
 | Evidence base | 64 `retro:` comments across all 15 dispatched beads. `rfc-0019` rests on `ia5.1`–`ia5.5` plus DoD findings; this RFC rests on the nine beads that RFC does not cover — `wu1`, `8ko`, `cb9`, `eaa.1`–`eaa.4`, `47b`, `92u` |
 | Run dates | 2026-08-14 |
+| Model lineup (from `dispatch.md` manifest) | light `haiku`, standard `sonnet`, advanced `opus`, frontier `fable`; `CLAUDE_CODE_SUBAGENT_MODEL` unset, so tier assignments were honoured |
+| Testimony of record | `rfcs/sprints/2026-08-14-markdown-links-and-shipped-specs.md` — the run's sprint report. Findings below are cited by its `<bead-id>#<ordinal>` ids; where this RFC quotes one, the report is authoritative |
 
 ## Evidence
 
@@ -67,7 +69,7 @@ document crossing into the corpus.
    repository from a tracker record rather than from a specification.
 
 2. **The invariant is not closed under transitivity, and the implementer
-   discovered that at consume time.** `agent-plugins-eaa.2`:
+   discovered that at consume time.** `agent-plugins-eaa.2` (`eaa.2#2`):
 
    > `retro: Silent decision — frontmatter-standards.md's two
    > [[document-relationship-standards]] wikilinks were backticked (inert
@@ -94,7 +96,8 @@ document crossing into the corpus.
 
    Vendoring falsifies the rationale. A file vendored into another skill lives
    at `references/shared/`, one level below its authored location, so one
-   relative string cannot be right in both. `agent-plugins-eaa.3` hit it:
+   relative string cannot be right in both. `agent-plugins-eaa.3` hit it
+   (`eaa.3#2`):
 
    > `retro: work-order-template.md (a template, not moved) bare-cited
    > work-order-field-guide.md by filename. After the move that citation is
@@ -105,7 +108,7 @@ document crossing into the corpus.
    > both places`
 
    `agent-plugins-eaa.4` hit the same thing on the same two files and reached
-   the same workaround independently, naming it as a general shape:
+   the same workaround independently, naming it as a general shape (`eaa.4#2`):
 
    > `Shape 2 (a relative path that can't work from both the authored spot and
    > a shared/ copy one level deeper): feature-blueprint-template.md and
@@ -120,7 +123,7 @@ document crossing into the corpus.
 
 4. **A measurement in a spec went stale between authoring and execution, by
    17x.** The epic and `agent-plugins-eaa.1` both state "~50" illustrative
-   wikilinks needing backticks. `eaa.1` measured the truth:
+   wikilinks needing backticks. `eaa.1` measured the truth (`eaa.1#1`):
 
    > `The bead's ~50-dangling estimate was measured before agent-plugins-wu1
    > landed (which trimmed c4-guide.md's wikilink count sharply); the actual
@@ -134,7 +137,7 @@ document crossing into the corpus.
 5. **A work order's acceptance criterion excluded the only correct
    implementation.** `agent-plugins-92u`'s criterion said the new CI step goes
    "in place of" the deleted one, inside the `checks` job.
-   `agent-plugins-92u`:
+   `agent-plugins-92u` (`92u#2`):
 
    > `The bead should have pinned WHICH JOB the new step lands in. The
    > replacement needs the spec binary and the checks job is bash+python3 only

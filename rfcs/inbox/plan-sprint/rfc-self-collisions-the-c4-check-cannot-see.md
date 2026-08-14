@@ -12,7 +12,7 @@ origin: self
 skill: plan-sprint
 skill_version: "0.1"
 model: claude-opus-5
-effort: unknown
+effort: unrecorded
 runs_observed: 1
 severity: snag
 plugin_version: "n/a (in-repo dogfooding)"
@@ -40,6 +40,8 @@ are mechanical enough to plan for.
 | Task the skill was applied to | Phase 2.5 planning for a 16-bead, 7-wave bead-bonanza run across two epics — a CLI feature and a documentation move — on branch `claude/validate-corpus-spec-cli-0t0cxo` |
 | References / scripts / templates invoked | `plan-sprint` v0.1 (invoked from `bead-bonanza` v1.5 Phase 2.5); the wave table and `## Amendments` in `/tmp/claude/bead-bonanza/1786686364-15/dispatch.md` |
 | Run dates | 2026-08-14 |
+| Model lineup (from `dispatch.md` manifest) | light `haiku`, standard `sonnet`, advanced `opus`, frontier `fable`; `CLAUDE_CODE_SUBAGENT_MODEL` unset, so tier assignments were honoured |
+| Testimony of record | `rfcs/sprints/2026-08-14-markdown-links-and-shipped-specs.md` — the run's sprint report. Findings below are cited by its `<bead-id>#<ordinal>` ids; where this RFC quotes one, the report is authoritative |
 
 ## Evidence
 
@@ -55,7 +57,7 @@ recorded justification, from the run's wave table:
 They edit different components (`module-document-core` and
 `container-spec-cli`), so the co-edit test passed. But `ia5.4` *produces* the
 link map and `ia5.2` *consumes* one, and neither could see the other's types
-while running. `ia5.2` recorded the consequence:
+while running. `ia5.2` recorded the consequence (`ia5.2#2`):
 
 > With no link-map type in existence yet, it defined its own `mdlinks.LinkMap`
 > (`map[string]string`) and leans on Go's nil vs non-nil map distinction to
@@ -83,7 +85,7 @@ editing it — they are both creating it.
 
 ### E2 — a bead that measures a surface collided with one that changes it [gap, snag]
 
-`agent-plugins-47b` builds a script that walks
+Sprint report §3 records this pair. `agent-plugins-47b` builds a script that walks
 `plugin/skills/*/references/**` and records a floor on how many files it
 examined, so a glob that stops matching fails loudly. `agent-plugins-eaa.4`
 moves a document into that same tree.

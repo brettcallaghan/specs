@@ -12,7 +12,7 @@ origin: self
 skill: recover-sprint
 skill_version: "0.1"
 model: claude-opus-5
-effort: unknown
+effort: unrecorded
 runs_observed: 1
 severity: blocker
 plugin_version: "n/a (in-repo dogfooding)"
@@ -41,6 +41,8 @@ running a check the skill does not list.
 | Task the skill was applied to | Recovering bead-bonanza run `1786686364-15` — 16 beads, 7 waves, two epics — in a session that no longer held the run's state, on branch `claude/validate-corpus-spec-cli-0t0cxo` |
 | References / scripts / templates invoked | `recover-sprint` v0.1; `bead-bonanza` v1.5 (`scripts/bb-backup-run.sh`, `scripts/bb-close-bead.sh`); the run's `dispatch.md` and per-bead progress ledgers |
 | Run dates | 2026-08-14 |
+| Model lineup (from `dispatch.md` manifest) | light `haiku`, standard `sonnet`, advanced `opus`, frontier `fable`; `CLAUDE_CODE_SUBAGENT_MODEL` unset, so tier assignments were honoured |
+| Testimony of record | `rfcs/sprints/2026-08-14-markdown-links-and-shipped-specs.md` — the run's sprint report. Findings below are cited by its `<bead-id>#<ordinal>` ids; where this RFC quotes one, the report is authoritative |
 
 ## Evidence
 

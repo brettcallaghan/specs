@@ -26,6 +26,7 @@ decision.
 | 2026-08-12 | self | `bead-bonanza` sprint (run `1786562615-17`) | [sprint report](sprints/2026-08-12-bead-bonanza-hardening.md) | 73 findings harvested, 16/17 beads closed; 11 cited by the two inbox RFCs, the remaining 62 unfiled and retained for recurrence |
 | 2026-08-13 | self | `bead-bonanza` sprint (run `1786600009-7`) | [sprint report](sprints/2026-08-13-rfc-triage-adoption.md) | 14 findings harvested, 7/7 beads closed; implements the 2026-08-13 triage of RFCs `rfc-self-report-citations-and-batch-base` and `rfc-self-line-anchors-rot-across-a-sprint` |
 | 2026-08-13 | self | `bead-bonanza` sprint (run `1786603162-7`) | [sprint report](sprints/2026-08-13-template-drift-and-check-report.md) | 16 findings harvested, 7/7 beads closed; 1 follow-up bead filed (agent-plugins-nu2); RFCs pending owner triage |
+| 2026-08-14 | self | `bead-bonanza` sprint (run `1786686364-15`) | [sprint report](sprints/2026-08-14-markdown-links-and-shipped-specs.md) | 64 findings harvested, 16/16 beads closed (15 queued + 1 admitted mid-run); 4 RFCs filed — `bead-bonanza`, `plan-sprint`, `recover-sprint`, `standards` (rfc-0020); tier calibration not routed (zero escalations, no over-route signal); report written after the RFCs because Phase 4 was skipped and reconstructed |
 
 ## Run notes
 
