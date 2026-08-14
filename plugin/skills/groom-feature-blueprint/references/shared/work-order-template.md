@@ -45,7 +45,7 @@ Template: Work Order
 Version: 1.5
 Source: This specification framework. Reference conventions follow
   [[template-authoring-standards]]. Readiness criteria are defined in
-  [[work-order-definition-of-ready]] and `work-order-field-guide.md`.
+  [[work-order-definition-of-ready]] and [[work-order-field-guide]].
 
 Sections (complete each, then delete its instruction block)
   - Problem
@@ -189,7 +189,7 @@ do NOT prescribe new function signatures or file layouts — that is the
 executing agent's choice. Omit for `kind: epic`. Maps to the bead `design`.
 
 If a line tells you WHAT TO TYPE, it belongs here. If it tells you WHAT MUST
-BE TRUE when finished, it belongs in Acceptance. See `work-order-field-guide.md`.
+BE TRUE when finished, it belongs in Acceptance. See [[work-order-field-guide]].
 -->
 
 <The chosen approach and key decisions.>

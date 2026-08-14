@@ -64,7 +64,7 @@ MAP=$(cat <<'EOF'
 bead-bonanza	specs/standards/work-order-definition-of-ready.md
 bead-bonanza	specs/standards/findings-capture-protocol.md
 groom-beads	specs/standards/work-order-definition-of-ready.md
-groom-beads	spec/references/work-order-field-guide.md
+groom-beads	specs/guides/work-order-field-guide.md
 groom-beads	spec/references/work-order-template.md
 groom-feature-blueprint	specs/standards/ac-traceability-standards.md
 groom-feature-blueprint	specs/standards/blueprint-readiness-checklist.md
@@ -81,6 +81,11 @@ spec	specs/standards/document-readiness-checklist.md
 spec	specs/standards/frontmatter-standards.md
 spec	specs/standards/template-authoring-standards.md
 spec	specs/standards/work-order-definition-of-ready.md
+spec	specs/guides/anti-patterns.md
+spec	specs/guides/document-type-boundaries.md
+spec	specs/guides/ears-guide.md
+spec	specs/guides/spec-cli.md
+spec	specs/guides/work-order-field-guide.md
 EOF
 )
 

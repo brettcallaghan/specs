@@ -115,7 +115,7 @@ WHEN two types both look plausible, or the obvious answer may be the
 wrong one — component vs. module, a private schema vs. a Contract, a
 work order vs. the FRD and blueprint upstream of it, an "architectural"
 question that is really a requirements question, what may live only in a
-feature blueprint — read `references/document-type-boundaries.md` and
+feature blueprint — read `references/shared/document-type-boundaries.md` and
 decide from it rather than by analogy.
 
 ### Ordering
@@ -161,7 +161,7 @@ specs.
 3. **Write every normative statement in EARS** with capitalized RFC 2119
    modal verbs (SHALL / SHOULD / MAY). This applies to acceptance
    criteria in FRDs and every requirement in standards documents. Load
-   `references/ears-guide.md` before writing requirements. In FRDs,
+   `references/shared/ears-guide.md` before writing requirements. In FRDs,
    follow each acceptance criterion with one concrete example that
    instantiates it (specific actor, data, observed result) — the example
    is illustrative, never normative, and edge-case enumeration belongs in
@@ -182,7 +182,7 @@ specs.
    learn what a document depends on before editing it, `spec refs <slug>
    --outbound`. Each is one subprocess and each is checkable by a
    reviewer; a scan you did yourself is neither.
-   `references/spec-cli.md` covers the rest of the command surface,
+   `references/shared/spec-cli.md` covers the rest of the command surface,
    including reading the whole index when you need many documents'
    metadata at once.
 5. **Treat specs as living documents.** Update them when requirements
@@ -243,22 +243,22 @@ correctly, and loading them together is one hop rather than a chain.
 
 | Working on | Load together |
 |------------|---------------|
-| Checking a document, picking an identifier, querying the corpus | `references/spec-cli.md` |
-| Choosing between two document types that both look plausible | `references/document-type-boundaries.md` |
-| Reviewing a draft, or self-reviewing before `ready-for-review` | `references/anti-patterns.md` + `references/shared/document-readiness-checklist.md` |
+| Checking a document, picking an identifier, querying the corpus | `references/shared/spec-cli.md` |
+| Choosing between two document types that both look plausible | `references/shared/document-type-boundaries.md` |
+| Reviewing a draft, or self-reviewing before `ready-for-review` | `references/shared/anti-patterns.md` + `references/shared/document-readiness-checklist.md` |
 | Recording an architecture or technology decision | `references/adr-template.md` |
-| Specifying a feature (user stories + acceptance criteria) | `references/frd-template.md` + `references/ears-guide.md` |
-| Defining cross-cutting standards, policies, or constraints | `references/standards-template.md` + `references/ears-guide.md` |
+| Specifying a feature (user stories + acceptance criteria) | `references/frd-template.md` + `references/shared/ears-guide.md` |
+| Defining cross-cutting standards, policies, or constraints | `references/standards-template.md` + `references/shared/ears-guide.md` |
 | Documenting a system (context, containers, deployment) | `references/system-blueprint-template.md` + `references/c4-guide.md` |
 | Documenting a deployable unit (app or owned data store) | `references/container-blueprint-template.md` + `references/c4-guide.md` |
 | Documenting an atomic component of one container | `references/component-blueprint-template.md` + `references/c4-guide.md` |
 | Documenting a shared/published or composite unit (a module) | `references/module-blueprint-template.md` + `references/c4-guide.md` |
 | Designing how a specified feature will be built (deltas, AC coverage) | `references/feature-blueprint-template.md` + `references/shared/ac-traceability-standards.md` + `references/c4-guide.md` |
-| Understanding, filling, or gating a work order | `references/work-order-template.md` + `references/work-order-field-guide.md` + `references/shared/work-order-definition-of-ready.md` |
+| Understanding, filling, or gating a work order | `references/work-order-template.md` + `references/shared/work-order-field-guide.md` + `references/shared/work-order-definition-of-ready.md` |
 | Preflighting a feature blueprint before review handoff | `references/shared/blueprint-readiness-checklist.md` |
 | Specifying an interface's semantics, SLOs, and change policy | `references/contract-template.md` + `references/c4-guide.md` |
 | Mapping any element to a C4 level; diagram conventions | `references/c4-guide.md` |
-| Writing any requirement or acceptance criterion | `references/ears-guide.md` |
+| Writing any requirement or acceptance criterion | `references/shared/ears-guide.md` |
 | Slugs, instruction blocks, versioning, placeholders, validation | `references/shared/template-authoring-standards.md` |
 | Frontmatter properties, status vocabulary, element records | `references/shared/frontmatter-standards.md` |
 | `[[slug]]` wikilinks, heading anchors, backticked paths | `references/shared/cross-document-references.md` |
@@ -271,7 +271,7 @@ reached at the second hop tends to get previewed rather than read.
 
 ## Anti-Patterns
 
-`references/anti-patterns.md` names the failure modes of spec-first
+`references/shared/anti-patterns.md` names the failure modes of spec-first
 authoring and what each one costs — wrong document type, untestable prose
 requirements, duplicated content, checks reported without being run, and
 feature-blueprint deltas that never get folded back into the owning

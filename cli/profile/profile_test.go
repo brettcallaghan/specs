@@ -161,8 +161,8 @@ var realSlugs = []struct {
 	{"rfc", "rfc-0007", "rfcs/retired/rfc-0007-spec-architecture-templates.md"},
 	{"rfc", "rfc-0001-spec-document-self-check", "rfcs/retired/rfc-0001-spec-document-self-check.md"},
 	{"rfc", "rfc-self-strata-compile-gate", "rfcs/inbox/strata/rfc-self-strata-compile-gate.md"},
-	{"guide", "guide-ears", "plugin/skills/spec/references/ears-guide.md"},
-	{"guide", "work-order-field-guide", "plugin/skills/spec/references/work-order-field-guide.md"},
+	{"guide", "guide-ears", "specs/guides/ears-guide.md"},
+	{"guide", "work-order-field-guide", "specs/guides/work-order-field-guide.md"},
 }
 
 // AC: AC-SPEC-003.5
