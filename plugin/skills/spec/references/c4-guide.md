@@ -133,9 +133,9 @@ Each declaration SHALL capture these facts:
 
 Elements are referenced by document link or heading anchor. A promoted
 element (one with its own blueprint) is referenced by its blueprint slug
-([[component-<name>]] / [[module-<name>]]). An un-promoted element is
+(`[[component-<name>]]` / `[[module-<name>]]`). An un-promoted element is
 referenced by a wikilink heading anchor into its parent's roster —
-[[container-<name>#Element Name]] — where each element is declared under
+`[[container-<name>#Element Name]]` — where each element is declared under
 its own `### <Name>` heading in the parent's Components section. The
 roster heading persists after promotion (it then carries the blueprint
 link in place of the record block), so an anchor reference keeps
