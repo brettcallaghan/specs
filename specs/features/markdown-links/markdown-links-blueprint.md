@@ -5,9 +5,10 @@ description: Adds a Markdown Links component to Document Core that
   variants, and a links subcommand that reads an optional YAML link map
 slug: feature-spec-markdown-links
 type: feature-blueprint
-status: ready-for-review
-updated_at: 2026-08-14T02:00:00Z
+status: in-progress
+updated_at: 2026-08-14T05:45:00Z
 delivery: single-pr
+plan: agent-plugins-ia5
 frd: frd-spec-markdown-links
 ---
 
