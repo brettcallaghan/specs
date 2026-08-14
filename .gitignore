@@ -36,3 +36,9 @@ build/
 # Harness-managed worktrees for isolated subagents (bead-bonanza runs).
 # Transient: each holds one in-flight bead and is removed when it is accepted.
 .claude/worktrees/
+
+# Python bytecode caches. Several repo scripts are Python; running one in a
+# bead's worktree leaves __pycache__/ behind, and the close ceremony stages
+# everything dirty in that worktree.
+__pycache__/
+*.pyc
