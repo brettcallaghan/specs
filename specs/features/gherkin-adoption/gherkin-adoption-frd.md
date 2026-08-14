@@ -173,9 +173,10 @@ Feature: Tag Vocabulary
       | @frd-<slug>      | Feature  | the document that owns the feature |
 
     Examples: identity
-      | tag              | element  | meaning                            |
-      | @feat-<slug>     | Feature  | the feature's own slug             |
-      | @AC-<PREFIX>-NNN.N | Scenario | the criterion's identifier       |
+      | tag                | element  | meaning                          |
+      | @feat-<slug>       | Feature  | the feature's durable address    |
+      | @<CODE>            | Feature  | the code that groups the feature |
+      | @AC-<CODE>-NNN.N   | Scenario | the criterion's identifier       |
 
     Examples: qualifiers
       | tag        | element  | meaning                              |
@@ -572,7 +573,7 @@ Feature: Queries by Tag
     Examples:
       | selection                     | result                                  |
       | all features                  | every feature record in the corpus      |
-      | features beneath a slug prefix | every feature whose slug descends from it |
+      | features carrying a code      | every feature grouped under that code   |
       | criteria of a feature         | every criterion beneath that feature    |
       | criteria carrying a qualifier | every criterion tagged with it          |
 
@@ -703,7 +704,7 @@ Feature: Publication and Coexistence
 
 ## References
 
-- [[adr-020]] — the decision this feature implements, and the twelve
+- [[adr-020]] — the decision this feature implements, and the thirteen
   constraints its requirements realize
 - [[adr-002]] — EARS, which continues to govern every normative
   statement that is not a feature or an acceptance criterion
@@ -712,13 +713,14 @@ Feature: Publication and Coexistence
   amends
 - [[frd-spec-reference-integrity]] — the reference extraction whose
   treatment of wikilinks inside Gherkin is an open question above
-- `schemas/feature.strata` — the `Feature` and `Criterion` record
-  shapes REQ-GHK-005 specifies, and the two collections they occupy on
-  `SpecIndex`. The Strata definition is the contract; the JSON Schema,
-  Go types and generated documentation are transpiled from it
+- `schemas/feature.strata` — the `Feature` and `Criterion` record shapes
+  REQ-GHK-005 specifies, and the `features` collection they occupy on
+  `SpecIndex`. The Strata definition is the contract; the JSON Schema, Go
+  types and generated documentation are transpiled from it
 - `plugin/skills/spec/references/gherkin-guide.md` — how to write
   conforming Gherkin; the authoring counterpart to this document's rules
 - `plugin/skills/spec/references/ac-traceability-standards.md` — the
   citation format that consumes these identifiers
-- `docs/research/gherkin/extraction-findings.md` — the measurements behind
-  the comment header, the hierarchy separators and the content hash
+- `docs/research/gherkin/extraction-findings.md` — the measurements
+  behind the comment header, the absence of block comments, and the
+  content hash

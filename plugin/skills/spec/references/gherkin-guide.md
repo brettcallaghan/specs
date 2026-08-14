@@ -129,7 +129,8 @@ severity, and this one fails a run.
 | Tag | Where | Required |
 |---|---|---|
 | `@frd-<slug>` | on the `Feature` | yes — identifies the owning document |
-| feature slug | on the `Feature` | yes — addresses the feature itself |
+| feature slug | on the `Feature` | yes — the feature's durable address |
+| feature code | on the `Feature` | yes — groups it, and every criterion identifier beneath embeds it |
 | `@AC-<PREFIX>-<nnn>.<n>` | on each `Scenario` | yes — one per criterion |
 | `@negative` | on a prohibition | yes, where the criterion forbids |
 | `@manual` | on a hand-verified criterion | yes, where it applies |
@@ -170,10 +171,13 @@ Tag each block when they are separate criteria:
       | a single-document check | 100 milliseconds |
 ```
 
-Tags permit any non-whitespace text, so hierarchical slugs work in every
-separator — `@frd-checkout/payment`, `@frd-checkout.payment`,
-`@feat/checkout/payment-confirmation` all parse. Follow the separator
-the framework registers; the parser will not decide it for you.
+**Grouping is by code, not by a path-shaped slug.** Tags would permit a
+path — `/`, `.` and `:` all parse — but a framework slug admits only
+lowercase alphanumerics and hyphens, so `feat-checkout-payment` cannot be
+split back into segments unambiguously. The feature's short code carries
+the grouping instead, and every criterion identifier beneath the feature
+embeds it: `AC-CHK-003.1` belongs to the feature coded `CHK` without
+anything having to be parsed.
 
 ---
 

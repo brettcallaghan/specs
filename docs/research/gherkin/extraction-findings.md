@@ -233,6 +233,12 @@ markdown documents is not available and must not be attempted.
 syntax prohibits only whitespace, so the separator is a framework
 choice, not a Gherkin constraint.
 
+*What the framework did with this:* nothing. [[adr-020]] groups features
+by a short code instead, because a framework slug admits only lowercase
+alphanumerics and hyphens — so a path-shaped slug would either not be a
+slug, or could not be split back into segments unambiguously. The
+measurement stands as a record that Gherkin was not the constraint.
+
 ### A content hash answers "what changed locally"
 
 Node `Id`s are positional and shift on any edit above them (gap 3), so
