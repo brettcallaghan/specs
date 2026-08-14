@@ -1,3 +1,8 @@
+<!-- GENERATED COPY — DO NOT EDIT.
+     Source of truth: specs/standards/frontmatter-standards.md (version 0.2)
+     Regenerate with: scripts/sync-shared-references.sh
+     Edit the source, then re-run that script. -->
+
 ---
 title: Frontmatter Standards
 description: Required, relationship, and optional frontmatter properties for
@@ -113,7 +118,7 @@ is implemented, not "in effect."
 ### Relationship Properties
 
 A relationship property names other documents by `slug`. Which properties
-exist is owned by [[document-relationship-standards]] and by the schemas in
+exist is owned by `[[document-relationship-standards]]` and by the schemas in
 `schemas/`; this section states how a template declares one.
 
 WHEN a document has a relationship a body citation cannot carry, the template
@@ -142,7 +147,7 @@ from the template.
 All relationship properties SHALL reference documents by their `slug` value.
 
 A template SHALL NOT introduce a relationship property that only mirrors the
-document's own prose citations. Per [[document-relationship-standards]], a
+document's own prose citations. Per `[[document-relationship-standards]]`, a
 relationship is declared at exactly one end and the index derives the reverse,
 so a property earns its place only if it carries a typed relationship a
 consumer keys on, names a target not reliably present in the prose, or is the

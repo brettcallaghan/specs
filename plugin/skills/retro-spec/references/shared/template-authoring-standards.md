@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: plugin/skills/spec/references/template-authoring-standards.md (version 0.13)
+     Source of truth: specs/standards/template-authoring-standards.md (version 0.13)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 

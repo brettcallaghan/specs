@@ -201,8 +201,8 @@ the fact and leave the fix to you.
 
 This matters because a clean `check` looks like a clean document. It is
 not: it means the mechanized rules passed. The rules that are still
-yours are named in `document-readiness-checklist.md`, which marks each
-check with who decides it.
+yours are named in `shared/document-readiness-checklist.md`, which marks
+each check with who decides it.
 
 **A document the tool could not read** — frontmatter that parses as YAML
 but does not fit the document envelope, most often a `status` outside the
@@ -227,6 +227,6 @@ or unpack a release archive from the repository's releases page onto
 Reading the corpus by hand is the correct fallback for a project that
 has chosen not to install it — but it is a fallback, and the human
 should know that is what happened. The checks in
-`document-readiness-checklist.md` are defined independently of the tool,
-so all of them can be run by hand; the cost is that the result is an
-assertion rather than a verifiable one.
+`shared/document-readiness-checklist.md` are defined independently of
+the tool, so all of them can be run by hand; the cost is that the result
+is an assertion rather than a verifiable one.

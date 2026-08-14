@@ -202,7 +202,7 @@ specs.
    fact — `refs` is how you see it before.
 6. **Preflight feature blueprints.** Before setting a feature blueprint
    to `ready-for-review`, run the decision sweep and self-check against
-   `references/blueprint-readiness-checklist.md`, then re-run the checklist
+   `references/shared/blueprint-readiness-checklist.md`, then re-run the checklist
    after fixing what it surfaced — a first pass that fixes check 4 often
    breaks check 8. Do not set `ready-for-review` while any check fails — the same checks
    `groom-feature-blueprint` enforces at its Phase 1 gate, so a first-pass
@@ -216,7 +216,7 @@ specs.
    can start).
 7. **Self-check the finished document.** Before setting any document to
    `ready-for-review`, run `spec check <path>` and then
-   `references/document-readiness-checklist.md` against it. The
+   `references/shared/document-readiness-checklist.md` against it. The
    checklist marks which of its eight checks the CLI settles and which
    are yours; a clean `spec check` is not a passing document, and the
    checks it does not yet make are named there rather than left to
@@ -245,7 +245,7 @@ correctly, and loading them together is one hop rather than a chain.
 |------------|---------------|
 | Checking a document, picking an identifier, querying the corpus | `references/spec-cli.md` |
 | Choosing between two document types that both look plausible | `references/document-type-boundaries.md` |
-| Reviewing a draft, or self-reviewing before `ready-for-review` | `references/anti-patterns.md` + `references/document-readiness-checklist.md` |
+| Reviewing a draft, or self-reviewing before `ready-for-review` | `references/anti-patterns.md` + `references/shared/document-readiness-checklist.md` |
 | Recording an architecture or technology decision | `references/adr-template.md` |
 | Specifying a feature (user stories + acceptance criteria) | `references/frd-template.md` + `references/ears-guide.md` |
 | Defining cross-cutting standards, policies, or constraints | `references/standards-template.md` + `references/ears-guide.md` |
@@ -253,15 +253,15 @@ correctly, and loading them together is one hop rather than a chain.
 | Documenting a deployable unit (app or owned data store) | `references/container-blueprint-template.md` + `references/c4-guide.md` |
 | Documenting an atomic component of one container | `references/component-blueprint-template.md` + `references/c4-guide.md` |
 | Documenting a shared/published or composite unit (a module) | `references/module-blueprint-template.md` + `references/c4-guide.md` |
-| Designing how a specified feature will be built (deltas, AC coverage) | `references/feature-blueprint-template.md` + `references/ac-traceability-standards.md` + `references/c4-guide.md` |
-| Understanding, filling, or gating a work order | `references/work-order-template.md` + `references/work-order-field-guide.md` + `references/work-order-definition-of-ready.md` |
-| Preflighting a feature blueprint before review handoff | `references/blueprint-readiness-checklist.md` |
+| Designing how a specified feature will be built (deltas, AC coverage) | `references/feature-blueprint-template.md` + `references/shared/ac-traceability-standards.md` + `references/c4-guide.md` |
+| Understanding, filling, or gating a work order | `references/work-order-template.md` + `references/work-order-field-guide.md` + `references/shared/work-order-definition-of-ready.md` |
+| Preflighting a feature blueprint before review handoff | `references/shared/blueprint-readiness-checklist.md` |
 | Specifying an interface's semantics, SLOs, and change policy | `references/contract-template.md` + `references/c4-guide.md` |
 | Mapping any element to a C4 level; diagram conventions | `references/c4-guide.md` |
 | Writing any requirement or acceptance criterion | `references/ears-guide.md` |
-| Slugs, instruction blocks, versioning, placeholders, validation | `references/template-authoring-standards.md` |
-| Frontmatter properties, status vocabulary, element records | `references/frontmatter-standards.md` |
-| `[[slug]]` wikilinks, heading anchors, backticked paths | `references/cross-document-references.md` |
+| Slugs, instruction blocks, versioning, placeholders, validation | `references/shared/template-authoring-standards.md` |
+| Frontmatter properties, status vocabulary, element records | `references/shared/frontmatter-standards.md` |
+| `[[slug]]` wikilinks, heading anchors, backticked paths | `references/shared/cross-document-references.md` |
 
 Every file above is one hop from here. Read the bundle up front rather
 than following a pointer out of a template mid-authoring — a reference

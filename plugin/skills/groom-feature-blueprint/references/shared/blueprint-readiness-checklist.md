@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: plugin/skills/spec/references/blueprint-readiness-checklist.md (version 0.6.0)
+     Source of truth: specs/standards/blueprint-readiness-checklist.md (version 0.6.0)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 

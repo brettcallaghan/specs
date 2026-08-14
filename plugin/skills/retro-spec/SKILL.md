@@ -67,7 +67,7 @@ be captured while it exists:
 
 ## Findings capture protocol
 
-Defined once in `references/findings-capture-protocol.md` — load and
+Defined once in `references/shared/findings-capture-protocol.md` — load and
 follow it from that document; do not restate it. In brief: the
 capturing agent is a sensor that records findings (friction only,
 zero analysis) as `retro:`-prefixed `bd comment`s on its own item
@@ -77,9 +77,10 @@ closure set, adds its own DoD-verification friction, and proceeds
 from Workflow step 3 with that pool as the step-2 output. Findings
 stay on closed items permanently as raw provenance.
 
-The protocol document is the single statement of this channel: skills
-that capture or harvest findings vendor it into their own
-`references/shared/` and point at that copy. It is never copied into a
+The protocol document's authored copy lives under `specs/standards/`; it
+is the single statement of this channel, and every skill that captures
+or harvests findings — including this one — vendors it into its own
+`references/shared/` and points at that copy. It is never copied into a
 target project, and never restated per item — an item carries only the
 short standing instruction its grooming skill stamps, which is
 self-sufficient, so an implementing agent that sees nothing but its own
