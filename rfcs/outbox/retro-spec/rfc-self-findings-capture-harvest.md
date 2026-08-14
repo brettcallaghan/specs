@@ -4,7 +4,7 @@ title: "RFC: The findings-capture protocol's Aggregation harvest returns
 description: bd list defaults to open issues and bd show --json omits
   comments, so the protocol's prescribed harvest silently returns
   nothing against a drained closure set; bd export | jq fixes both.
-slug: rfc-agent-plugins-findings-capture-harvest
+slug: rfc-self-findings-capture-harvest
 type: rfc
 status: ready-for-review
 updated_at: 2026-08-11T00:00:00Z
