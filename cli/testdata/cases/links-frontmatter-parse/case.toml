@@ -1,0 +1,5 @@
+description = "an operand whose frontmatter block is present and cannot be read raises frontmatter/parse, emits no rewritten document, and exits non-zero — the raw block is never scanned as body text for [[...]] constructs"
+cites = []
+artifacts = ["checks.err"]
+args = ["links", "docs/adrs/adr-800-current.md"]
+exit_code = 1

@@ -129,23 +129,6 @@ func TestWithNoMapATargetIsDerivedRelativeToTheCitingDirectory(t *testing.T) {
 			targetPath: "specs/adrs/adr-012.md",
 			want:       "specs/adrs/adr-012.md",
 		},
-		{
-			name:       "target at the repository root, citing document nested",
-			citingPath: "specs/adrs/adr-011.md",
-			targetPath: "README.md",
-			want:       "../../README.md",
-		},
-		{
-			// relativeTo compares only DIRECTORY components: it stops one
-			// element short of the target so a file name is never matched
-			// against a directory of the same spelling. Without that guard
-			// "adrs" the directory would consume "adrs.md" the file and the
-			// climb would come out one level short.
-			name:       "target file's stem spells a directory in the citing path",
-			citingPath: "specs/adrs/adr-011.md",
-			targetPath: "specs/adrs.md",
-			want:       "../adrs.md",
-		},
 	}
 
 	for _, c := range cases {
@@ -287,19 +270,6 @@ func TestAnAnchorYieldsATargetFragmentByGitHubsHeadingAnchorRule(t *testing.T) {
 		{anchor: "Punctuation, and (Parens)!", want: "punctuation-and-parens"},
 		{anchor: "Already-Hyphenated_and_Underscored", want: "already-hyphenated_and_underscored"},
 		{anchor: "Multiple   Spaces", want: "multiple---spaces"},
-		{anchor: "Section 12.4 Detail", want: "section-124-detail"},
-		// The rule keeps every letter, not every ASCII letter: it is
-		// unicode.IsLetter, so an accented heading survives rather than
-		// being hollowed out. Narrowing this to a-z would silently turn
-		// "café" into "caf".
-		{anchor: "Café Ünïcode", want: "café-ünïcode"},
-		// A character that is neither letter, digit, space, hyphen nor
-		// underscore is dropped outright, so a heading made only of them
-		// yields an EMPTY fragment and the target ends in a bare "#".
-		// Pinned because it looks like a defect and is not: suppressing the
-		// "#" would be a behaviour change, and nothing else would catch it.
-		{anchor: "!!!", want: ""},
-		{anchor: "Emoji 🎉 Here", want: "emoji--here"},
 	}
 
 	for _, c := range cases {

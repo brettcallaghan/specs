@@ -1,0 +1,5 @@
+description = "an anchored citation keeps the anchor in the emitted link's visible text and appends to the derived target a fragment produced from it by the heading-anchor rule, with the comma dropped and each space hyphenated"
+cites = ["AC-SPECMD-001.2", "AC-SPECMD-001.3"]
+artifacts = ["checks.log", "checks.err"]
+args = ["links", "docs/adrs/adr-800-current.md"]
+exit_code = 0
