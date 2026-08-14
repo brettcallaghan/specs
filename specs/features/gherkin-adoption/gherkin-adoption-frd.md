@@ -366,6 +366,10 @@ Feature: Feature and Criterion Records
   Identity never comes from a parser node id. Those are positional
   counters that shift when anything above them is edited.
 
+  The shape these criteria describe is defined in schemas/feature.strata
+  and transpiled; this requirement states what it must carry, not how it
+  is written down.
+
   @AC-GHK-005.1
   Scenario: A feature record carries its identity, prose and provenance
     When the CLI extracts a feature
@@ -691,6 +695,10 @@ Feature: Publication and Coexistence
   amends
 - [[frd-spec-reference-integrity]] — the reference extraction whose
   treatment of wikilinks inside Gherkin is an open question above
+- `schemas/feature.strata` — the `Feature` and `Criterion` record
+  shapes REQ-GHK-005 specifies, and the two collections they occupy on
+  `SpecIndex`. The Strata definition is the contract; the JSON Schema,
+  Go types and generated documentation are transpiled from it
 - `plugin/skills/spec/references/gherkin-guide.md` — how to write
   conforming Gherkin; the authoring counterpart to this document's rules
 - `plugin/skills/spec/references/ac-traceability-standards.md` — the

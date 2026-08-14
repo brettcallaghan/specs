@@ -30,6 +30,7 @@ scripts/validate-corpus.py            # check this repo's own documents
 | `config.strata` | `SpecsConfig` — the public `specs.toml` surface |
 | `profile.strata` | The internal profile registration surface |
 | `index.strata` | `SpecIndex` — the emitted `specs.json`, its entries and exclusions, plus the `Span` and `ParseError` positions every report carries |
+| `feature.strata` | `Feature` and `Criterion` — the feature and acceptance-criterion records `specs.json` carries, their steps, example rows, qualifiers and content hashes |
 
 ## Design decisions
 
