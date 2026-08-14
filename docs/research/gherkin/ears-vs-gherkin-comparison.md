@@ -1,8 +1,13 @@
 # EARS vs Gherkin on a real FRD: what the exercise showed
 
 `specs/features/spec-index/spec-index-frd.md` (the original, EARS prose)
-rewritten as `docs/spec-index-frd-gherkin.md` (Gherkin blocks, per
-[[adr-020]]). Same feature, same 52 acceptance criteria.
+rewritten as a Gherkin variant of itself, per [[adr-020]]. Same feature,
+same 52 acceptance criteria.
+
+**The variant document was removed** once [[frd-gherkin-adoption]] became
+the framework's worked example of Gherkin in an FRD. This record is kept
+for its measurements and its findings, which is what the exercise was
+for; the counts below describe the variant as it stood.
 
 Overview, Terminology and the numbering note stay markdown — they are
 FRD-level, and Gherkin has no node above `Feature`. Everything at
@@ -13,7 +18,7 @@ No `*Rationale:*` paragraph remains.
 
 Every block in the variant was parsed with
 `github.com/cucumber/gherkin/go/v42` and run through the extractor from
-`docs/plans/gherkin-extraction-findings.md`. **All 9 blocks parse and
+`docs/research/gherkin/extraction-findings.md`. **All 9 blocks parse and
 all 52 AC identifiers extract, with no duplicates and no untagged
 scenarios.** The numbers and the friction below are from doing it, not
 from predicting it.
@@ -319,8 +324,9 @@ real document rather than asserted.
 ## References
 
 - [[adr-020]] — the decision this exercise tests
-- `docs/spec-index-frd-gherkin.md` — the variant
+- [[frd-gherkin-adoption]] — the live worked example that replaced the
+  trial variant
 - `specs/features/spec-index/spec-index-frd.md` — the original
-- `docs/plans/gherkin-extraction-findings.md` — the extraction contract
+- `docs/research/gherkin/extraction-findings.md` — the extraction contract
 - `plugin/skills/spec/references/gherkin-guide.md` — how to write
   conforming Gherkin

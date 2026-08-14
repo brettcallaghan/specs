@@ -185,6 +185,12 @@ they are *not* hung off the scenario beneath them. Associating a comment
 with a criterion is proximity logic we would own. Prefer
 `Rule.Description` / `Scenario.Description`, which are attached.
 
+**Gherkin has only `#` line comments.** There is no block-comment
+delimiter. `/* */` before the `Feature` line is a parse error; *inside*
+the feature body it is silently absorbed into the description, delimiters
+included. `<!-- -->` is a parse error in both positions. A multi-line
+comment is several `#` lines.
+
 **A `Feature` description holds multiple paragraphs and markdown.** Blank
 lines are preserved; emphasis, `code`, `[[slug]]`, bullets and blockquotes
 pass through as literal text. Two things do not survive: a line beginning

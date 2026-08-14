@@ -68,6 +68,14 @@ scenario "Slug pattern mismatch is reported with actual and expected"
 result as an enum, produced by a maintained parser rather than by our
 regexes over English.
 
+**Constraint 13 declines to persist this.** The capability is real and it
+is what distinguishes a parsed notation from prose, but nothing this
+framework does operates below the level of a whole criterion, and a
+record carrying typed steps would be fillable from Gherkin alone — a
+Gherkin-shaped model in a framework that treats the notation as
+replaceable. The AST keeps the capability available for the day a
+consumer needs it; the manifest does not spend it in advance.
+
 ### Measured: `Scenario Outline` preserves the criterion/example split
 
 An earlier draft of this ADR found that a Gherkin scenario collapses the
@@ -149,7 +157,7 @@ duplicate identifiers all reported; and separately end to end into this
 project's `Span`, whose byte offsets were confirmed by slicing the
 source. **MDG (`.feature.md`) is JavaScript-only and is not needed.**
 The full extraction contract and its five gotchas are recorded in
-`docs/plans/gherkin-extraction-findings.md`.
+`docs/research/gherkin/extraction-findings.md`.
 
 Semantic validation stays in the spec CLI by design: the parser
 enforces Gherkin's grammar, and the CLI enforces that every scenario
@@ -163,9 +171,8 @@ constraint 1 it legitimately carries the user story and design note.
 
 The whole of [[frd-spec-validation-cli]] was rewritten in Gherkin as a
 trial — 52 criteria, nine blocks — and parsed with the extractor
-(`docs/spec-index-frd-gherkin.md`, findings in
-`docs/gherkin-frd-comparison.md`). All nine blocks parse and all 52
-identifiers extract, so the design holds.
+(findings in `docs/research/gherkin/ears-vs-gherkin-comparison.md`). All
+nine blocks parse and all 52 identifiers extract, so the design holds.
 
 The trial also settled where the FRD's other prose goes. Overview,
 Terminology and the numbering note stay markdown, being FRD-level with
@@ -284,21 +291,30 @@ Binding constraints:
 9. Extraction SHALL accept both notations while any FRD still carries
    prose criteria, which the notation-agnostic constraint carried
    forward from ADR-014 already requires.
-10. Every `Feature` SHALL carry a slug tag identifying it, and feature
-    slugs SHALL form a hierarchy so a feature can be addressed
-    independently of the document that holds it. Tag syntax permits
-    every separator considered — measured: `/`, `.` and `:` all parse.
+10. Every `Feature` SHALL carry a slug identifying it independently of
+    the document that holds it, and a short uppercase code grouping it by
+    topic, domain or capability. Every acceptance-criterion identifier
+    beneath a feature SHALL embed that code. Grouping is by code rather
+    than by a path-shaped slug: the framework's slug vocabulary admits
+    only lowercase alphanumerics and hyphens, so a hyphenated slug cannot
+    be split back into segments unambiguously.
 11. A standalone `.feature` file SHALL declare its metadata in a
     contiguous `#`-comment header before the first tag or `Feature`
     line. Corpus membership admits only `.md` files today
     (AC-SPEC-001.6), so admitting `.feature` files amends that
     criterion; the amendment is specified by the adoption FRD rather
     than assumed here.
-12. The extracted record SHALL carry a content hash over a canonical
-    form that excludes node `Id`s and `Location`s, so that a criterion
-    which moved but did not change hashes identically. Measured: the
-    same scenario shifted down a file hashes the same, and a one-word
-    edit changes the hash.
+12. The extracted record SHALL carry a content hash over the criterion's
+    name and text, excluding node `Id`s and `Location`s, so that a
+    criterion which moved but did not change hashes identically.
+    Measured: the same scenario shifted down a file hashes the same, and
+    a one-word edit changes the hash.
+13. The extracted record SHALL treat the criterion as the atomic unit,
+    carrying its body as text rather than decomposing it into typed steps
+    and example rows. Decomposition models one notation — those parts are
+    recoverable from Gherkin and from almost nothing else — and no
+    consumer this framework has needs them. The index schema is additive,
+    so decomposition can be introduced later; withdrawing it could not.
 
 Constraint 12 is what makes "which criteria changed locally" answerable.
 Node `Id`s are positional counters and shift on any edit above them, so
@@ -410,9 +426,10 @@ the target shape directly.
   release history
 - [cucumber/messages](https://github.com/cucumber/messages) — the
   published interchange schema the extracted records conform to
-- `docs/plans/gherkin-extraction-findings.md` — the measured extraction
+- `docs/research/gherkin/extraction-findings.md` — the measured extraction
   contract, the AST type hierarchy, and the five integration gotchas
-- `docs/spec-index-frd-gherkin.md`, `docs/gherkin-frd-comparison.md` —
-  the trial migration of a real FRD and what it cost
+- `docs/research/gherkin/ears-vs-gherkin-comparison.md` — the trial
+  migration of a real FRD and what it cost. The trial document itself was
+  removed once [[frd-gherkin-adoption]] became the worked example
 - `plugin/skills/spec/references/gherkin-guide.md` — how to write
   conforming Gherkin under this decision

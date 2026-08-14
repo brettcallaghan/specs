@@ -375,32 +375,19 @@ struct SpecIndex {
   references: [Reference]
 
   """
-  Every feature any corpus member declares, in the order the emitter
-  fixes: by the path the feature is written in, then by its position
-  within that file.
+  Every feature any corpus member declares, with its acceptance criteria
+  nested beneath it, in the order the emitter fixes: by the path the
+  feature is written in, then by its position within that file.
 
-  One top-level collection rather than an array on each entry, for the
-  reason `references` is one. A feature is addressed by its slug and not
-  by the document that happens to hold it, so nesting it under an entry
-  would make its address depend on its location — exactly what the slug
-  exists to avoid. Listing every feature beneath a parent slug, or
-  merging two repositories' features into one graph, is then reading or
-  appending rows.
+  A top-level collection because a feature is addressed by its slug and
+  not by the document that happens to hold it — nesting features under
+  entries would make a feature's address depend on its location, which is
+  what the slug exists to avoid. Criteria, by contrast, are nested inside
+  their feature: a criterion belongs to exactly one, and its identifier
+  carries that feature's code, so lookup by identifier is an index built
+  over this tree rather than a reason to flatten it.
   """
   features: [Feature]
-
-  """
-  Every acceptance criterion any corpus member declares, in the order the
-  emitter fixes: by the path the criterion is written in, then by its
-  position within that file.
-
-  Flat for the same reason, and for one more. A criterion is fetched by
-  its identifier alone, and the identifier is unique across the corpus,
-  so a lookup is one index over this collection rather than a walk of
-  every feature. Which feature a criterion belongs to is carried on the
-  criterion, so both directions are derived from this one list.
-  """
-  criteria: [Criterion]
 
   """
   A hash of everything this index was built from, written as

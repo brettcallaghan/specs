@@ -25,7 +25,7 @@ This guide is what to write. Read it before authoring a feature.
 - Tags — the required vocabulary
 - Descriptions — what belongs in each slot
 - Writing good scenarios
-- Six ways to break a document silently
+- Seven ways to break a document silently
 - References
 
 ---
@@ -105,12 +105,26 @@ Feature: Payment Confirmation
 **A raw `---` YAML block does not parse.** Gherkin rejects it at line 1.
 The comment form is the mechanism; there is no other.
 
+**Gherkin has only `#` line comments.** There is no block-comment
+delimiter — no `/* */`, no `<!-- -->`. Both were measured, and they fail
+in different ways:
+
+- Before the `Feature` line, `/*` is a parse error.
+- **Inside the feature body, `/* */` is silently absorbed into the
+  description.** It raises nothing; the delimiters and the text between
+  them become part of the requirement's prose.
+
+So a multi-line comment is several `#` lines. Nothing else is a comment,
+and the thing that looks most like one in other languages ends up in
+your specification text.
+
 ---
 
 ## Tags
 
 Tags are how every record is addressed. They are required, and a missing
-one is a finding rather than a warning.
+one is reported as an **error**, not a warning — findings carry a
+severity, and this one fails a run.
 
 | Tag | Where | Required |
 |---|---|---|
@@ -246,7 +260,7 @@ scenarios below already say, delete it.
 
 ---
 
-## Six ways to break a document silently
+## Seven ways to break a document silently
 
 Each of these parses. None raises a Gherkin error. Together they are
 most of what the CLI's semantic checks exist to catch.
@@ -259,6 +273,7 @@ most of what the CLI's semantic checks exist to catch.
 | Free prose above the first `Scenario` | Silently absorbed into the `Feature` description; a criterion written this way is not a criterion |
 | A scenario with no steps | Parses as an empty scenario |
 | A duplicate `@AC-*` tag on two scenarios | Both accepted; the duplicate is invisible to the parser |
+| `/* */` used as a comment inside a feature body | **Absorbed into the description** — the delimiters and their contents become requirement prose |
 
 The parser validates Gherkin's grammar and nothing else. It has no
 concept of an acceptance criterion — every check above is the spec
@@ -272,7 +287,7 @@ CLI's, and every one of these mistakes is why they exist.
   implements
 - [[adr-002]] — EARS, which governs every normative statement that is
   not a feature or an acceptance criterion
-- `docs/plans/gherkin-extraction-findings.md` — the measurements behind
+- `docs/research/gherkin/extraction-findings.md` — the measurements behind
   the silent-failure table
-- `docs/spec-index-frd-gherkin.md` — a full FRD written this way
+- [[frd-gherkin-adoption]] — a full FRD written this way
 - [Gherkin reference](https://cucumber.io/docs/gherkin/reference/)

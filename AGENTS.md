@@ -324,6 +324,31 @@ here at dispatch.
 - **frontier:** `fable`
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:970c3bf2 -->
+## Where documents live
+
+Three homes, distinguished by what the document is *for* rather than by
+what it is about.
+
+| Home | Holds | Lifespan |
+|---|---|---|
+| `specs/` | The specification corpus — ADRs, FRDs, standards, blueprints, contracts. Indexed, validated, referenced by `[[slug]]` | Durable |
+| `docs/research/<topic>/` | Research findings, recorded objectively | Kept while useful |
+| `docs/plans/` | Plans for carrying out a change in this repository | Transient — delete when the change lands |
+
+**A research document is not an ADR.** Research records what was
+measured and what the answer turned out to be, without deciding
+anything. An ADR decides something, and cites research where research is
+what settled it. The two are separable on one test: if the document would
+still be true had the decision gone the other way, it is research.
+
+Keep a research document when it answers a question someone will ask
+again, or when it supports a decision not yet made. Sometimes the whole
+value is having asked a question and confirmed the answer — that is worth
+keeping and is not worth an ADR.
+
+Research documents are not corpus members. They live outside `specs/`,
+carry no slug, and are cited by path.
+
 ## Historical prose: don't
 
 Every skill file, reference, config comment and script header is loaded into an

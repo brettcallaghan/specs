@@ -1,4 +1,18 @@
 """
+The short code that groups one feature by topic, domain or capability.
+
+Uppercase and terse — `GHK`, `SPEC`, `CHK` — because it is written into
+every acceptance-criterion identifier beneath the feature, and it is what
+makes an identifier legible about where it belongs. Two features never
+share a code.
+
+The code is the grouping axis. Criteria carry it inside their identifiers,
+so a criterion resolves to its feature by reading the identifier rather
+than by searching for the document that holds it.
+"""
+alias FeatureCode: String ~= /^[A-Z][A-Z0-9]*$/
+
+"""
 The identifier of one acceptance criterion, as written in the tag that
 declares it.
 
@@ -8,28 +22,18 @@ the citation a test carries, and the row a central store holds. The
 pattern is the one `ac-traceability-standards.md` already fixes, minus
 the leading `@` that makes it a Gherkin tag — the identifier is the
 value, and the tag is only how it is written down.
+
+The middle segment is the owning feature's code, which is what allows a
+criterion to name its feature without carrying a second property.
 """
 alias CriterionId: String ~= /^AC-[A-Z0-9]+-[0-9]{3}\.[0-9]+$/
 
 """
-The slug that addresses one feature.
+A digest over a criterion's content, written as `sha256:` followed by
+lowercase hexadecimal.
 
-Deliberately unconstrained, for two reasons. The separator that composes
-a hierarchical slug is not yet fixed, and a Strata regex literal cannot
-contain a forward slash — so a pattern here could not express the
-leading candidate even once it is chosen. Until the separator is
-settled, the shape is stated and the check belongs to the CLI, which can
-report a malformed slug with the position that makes it fixable.
-"""
-alias FeatureSlug: String
-
-"""
-A digest over a criterion's canonical form, written as `sha256:`
-followed by lowercase hexadecimal.
-
-What is hashed is the criterion's content and nothing else: its keyword
-and name, each step's role and text, and each example row. Parser node
-identifiers and source positions are excluded on purpose — node
+What is hashed is the criterion's name and text and nothing else. Source
+positions and parser node identifiers are excluded on purpose — node
 identifiers are positional counters that shift whenever anything above
 them is edited, and a criterion that moved has not changed.
 
@@ -37,46 +41,6 @@ This is what makes "which criteria changed since the last index" a
 comparison of records rather than a diff of markdown.
 """
 alias ContentHash: String ~= /^sha256:[0-9a-f]{64}$/
-
-"""
-What a step contributes to its criterion.
-
-Taken from the step's keyword rather than inferred from its text, so
-that a consumer building a typed record gets precondition, trigger and
-outcome as values instead of having to parse English. This is the whole
-reason a parsed notation was adopted over prose: prose yields one
-string, and this yields fields.
-"""
-enum StepRole {
-  """A state or fact that holds before the trigger — a `Given` step."""
-  Precondition: "precondition"
-
-  """The action or event under test — a `When` step."""
-  Trigger: "trigger"
-
-  """The required result — a `Then` step."""
-  Outcome: "outcome"
-
-  """
-  A step that continues whichever role preceded it — an `And` or `But`
-  step.
-
-  Recorded as its own role rather than resolved to the preceding one.
-  The notation does not say which role a continuation belongs to, and
-  guessing would put a fact in the index that the source does not
-  contain.
-  """
-  Continuation: "continuation"
-
-  """
-  A step whose role the notation does not determine.
-
-  Present so that an unrecognised keyword is representable. A record the
-  model cannot hold is a record the index silently drops, and indexing
-  never fails.
-  """
-  Unknown: "unknown"
-}
 
 """
 The level at which a criterion is intended to be verified.
@@ -101,10 +65,10 @@ enum VerificationLevel {
 The notation a criterion was written in.
 
 Recorded on every criterion rather than assumed for the corpus, because
-the criterion notation is a replaceable input: prose criteria and
-Gherkin criteria coexist for as long as any document still carries the
-former, and a consumer that must treat them differently should branch on
-a value rather than on which properties happen to be populated.
+the criterion notation is a replaceable input: prose criteria and Gherkin
+criteria coexist for as long as any document still carries the former,
+and a consumer that must treat them differently should branch on a value
+rather than on which properties happen to be populated.
 """
 enum CriterionNotation {
   """A Gherkin scenario, scenario outline, or tagged examples block."""
@@ -122,9 +86,9 @@ struct FeatureSourceBlock {
   The extent of the fenced block, opening and closing fences included.
 
   Recorded because the feature's own span covers the Gherkin inside the
-  fence, and a caller that replaces or extracts the whole construct
-  needs the fence too. This is the same distinction the framework's
-  region scanner already draws between an inner and an outer extent.
+  fence, and a caller that replaces or extracts the whole construct needs
+  the fence too. This is the same distinction the framework's region
+  scanner already draws between an inner and an outer extent.
   """
   block: Span
 }
@@ -145,8 +109,8 @@ Which admissible form a feature was written in.
 
 The distinction survives into the index because it changes what a
 consumer may do. A fenced block sits inside a document that owns
-frontmatter, terminology and references, and rewriting it means editing
-a region of markdown. A standalone file carries its own metadata in a
+frontmatter, terminology and references, and rewriting it means editing a
+region of markdown. A standalone file carries its own metadata in a
 comment header and is the form external tooling ingests directly.
 """
 @discriminator("form")
@@ -159,94 +123,47 @@ union FeatureSource {
 }
 
 """
-One step of one acceptance criterion.
-"""
-struct CriterionStep {
-  """What this step contributes to the criterion."""
-  role: StepRole
+One acceptance criterion.
 
-  """
-  The keyword exactly as written — `Given`, `When`, `Then`, `And`,
-  `But`, or a localized equivalent.
+**The criterion is the atomic unit.** Its body is carried as text rather
+than decomposed into steps and example rows, and that is a deliberate
+narrowing of an earlier design.
 
-  Kept alongside the role because the role is a normalization and the
-  keyword is what the author chose. A rewrite restores the author's
-  word; a report quotes it.
-  """
-  keyword: String
+Decomposition would model one notation. Steps typed by role and example
+rows keyed by a header are recoverable from Gherkin and from almost
+nothing else: a prose criterion has no steps to type, so those properties
+would sit empty for every criterion the corpus has not yet migrated, and
+populating them from any other notation would need inference rather than
+parsing. A model that only one notation can fill is a model of that
+notation.
 
-  """The step's text, with the keyword and its trailing space removed."""
-  text: String
-}
-
-"""
-One cell of one example row, named by the column it sits under.
-"""
-struct ExampleValue {
-  """The column name, taken from the example table's header row."""
-  name: String
-
-  """The cell's value, exactly as written."""
-  value: String
-}
-
-"""
-One concrete instance of a parameterized criterion.
-
-A row rather than a sentence. Where a prose criterion carries its
-example as unparseable text, this carries it as values a consumer can
-query, which is most of what a parameterized criterion is worth.
-"""
-struct ExampleRow {
-  """
-  The row's cells, in the order the table's header declares them.
-
-  A list of named values rather than a map. Column order is meaningful
-  to a reader and map iteration order is not guaranteed, and a header
-  that repeats a column name stays representable rather than losing a
-  cell.
-  """
-  values: [ExampleValue]
-}
-
-"""
-One acceptance criterion, extracted from whichever notation it was
-written in.
-
-A criterion is addressed by its identifier and nothing else. It is
-recorded as a row of its own rather than nested inside the feature it
-belongs to, for the reason the index already records references that
-way: a consumer fetching one criterion by identifier reads one row, a
-consumer listing a feature's criteria indexes this collection by
-`feature_slug`, and merging two repositories' indexes into one graph is
-appending rows rather than rewriting entries.
+Nothing this framework does today operates below the level of a whole
+criterion. Queries fetch one by identifier, change detection compares
+hashes, validation reads tags. Decomposition is additive if a consumer
+ever needs it — the index schema grows without a breaking change — and
+removing it later would not be.
 """
 struct Criterion {
   """The criterion's identifier, from the tag that declares it."""
   id: CriterionId
 
   """
-  The slug of the feature this criterion belongs to.
-
-  The slug rather than a position, so that a criterion survives its
-  feature moving between documents or between the two admissible forms.
-  """
-  feature_slug: FeatureSlug
-
-  """
-  The path of the document the criterion is written in, relative to the
-  repository root and written with forward slashes on every platform.
-
-  Recorded even though the feature carries it too, so that a finding
-  about a criterion cites a file without a join.
-  """
-  path: String
-
-  """
   The criterion's name — the text following the `Scenario`,
   `Scenario Outline` or `Examples` keyword that declares it.
+
+  Absent for a notation that gives a criterion no name, as prose does.
   """
-  name: String
+  name: String?
+
+  """
+  The criterion's body, exactly as written.
+
+  For a Gherkin criterion this is its steps and any example table,
+  verbatim, with the block's common indentation removed. For a prose
+  criterion it is the sentence. One property serves both because the
+  criterion is the unit, and its text is what every notation has.
+  """
+  text: String
 
   """
   Rationale attached to this criterion alone, absent where none was
@@ -259,31 +176,31 @@ struct Criterion {
   description: String?
 
   """
-  The name of the business rule this criterion sits beneath, absent
-  where it sits directly under its feature.
+  The name of the business rule this criterion sits beneath, absent where
+  it sits directly under its feature.
 
-  The rule's name is an assertion — "a build failure is the checker's
-  job, not the indexer's" — so recording it puts the reason several
-  criteria exist together in the index, scoped explicitly rather than
-  inferred from position in a document.
+  The rule's name is an assertion — "a build failure is the checker's job,
+  not the indexer's" — so recording it puts the reason several criteria
+  exist together in the index, scoped explicitly rather than inferred from
+  position in a document.
   """
   rule: String?
 
   """
   Whether the criterion states a prohibition.
 
-  Carried as its own property because a prohibition loses its
-  grammatical marking in this notation: where prose wrote `SHALL NOT`,
-  a scenario writes an ordinary sentence, and the fact that it forbids
-  rather than requires would otherwise be unrecoverable from the record.
+  Carried as its own property because a prohibition loses its grammatical
+  marking in Gherkin: where prose wrote `SHALL NOT`, a scenario writes an
+  ordinary sentence, and the fact that it forbids rather than requires
+  would otherwise be unrecoverable from the record.
   """
   negative: Bool
 
   """
   Whether the criterion can only be verified by hand.
 
-  A criterion marked this way is exempt from the obligation that some
-  test cite it.
+  A criterion marked this way is exempt from the obligation that some test
+  cite it.
   """
   manual: Bool
 
@@ -293,29 +210,20 @@ struct Criterion {
   """
   level: VerificationLevel?
 
-  """The criterion's steps, in the order they were written."""
-  steps: [CriterionStep]
-
-  """
-  The criterion's concrete instances, empty where it is not
-  parameterized.
-  """
-  examples: [ExampleRow]
-
   """The notation this criterion was written in."""
   notation: CriterionNotation
 
   """
-  A hash of the criterion's content, excluding its position.
+  A hash of the criterion's name and text, excluding its position.
 
-  Two indexes of the same criterion agree on this value whether or not
-  the criterion moved; they disagree the moment its wording changes.
+  Two indexes of the same criterion agree on this value whether or not the
+  criterion moved; they disagree the moment its wording changes.
   """
   content_hash: ContentHash
 
   """
-  Where in its document the criterion is written, as a span rather than
-  a bare line number, so that a report and a rewrite both address the
+  Where in its document the criterion is written, as a span rather than a
+  bare line number, so that a report and a rewrite both address the
   criterion itself.
   """
   position: Span
@@ -326,41 +234,38 @@ One feature, extracted from a fenced Gherkin block or a standalone
 feature file.
 
 A feature is the unit a requirement maps onto: one cohesive capability,
-independently testable, with its own slug. It is recorded as a row of
-its own for the same reason its criteria are — a feature is addressable
-without the document that happens to hold it, and moving one between
-documents changes where it lives rather than what it is.
+independently testable, with its own code and slug. Its criteria are
+nested beneath it because that is what they are — a criterion has no
+meaning apart from the feature it qualifies, and the containment is the
+data's own shape rather than an index's convenience.
+
+Lookup does not need the collection flattened. An acceptance-criterion
+identifier carries its feature's code, so resolving a criterion to its
+feature is reading the identifier, and resolving an identifier to a
+criterion is one index built over this tree when the index is read.
 """
 struct Feature {
   """
-  The feature's own slug, from the tag that declares it.
-
-  This is the feature's identity. It does not change when the feature
-  moves between documents or between the two admissible forms, which is
-  what makes it a durable address.
+  The feature's short code, which groups it and which every one of its
+  criteria carries inside its identifier.
   """
-  slug: FeatureSlug
+  code: FeatureCode
 
   """
-  The feature slug's segments, outermost first, as the framework's
-  separator divides it.
+  The feature's slug.
 
-  Recorded rather than left to be re-derived. The separator is a
-  framework convention, and a consumer merging indexes from several
-  repositories — or querying every feature beneath a parent — should not
-  have to know it in order to walk the hierarchy.
-
-  A feature whose slug has no separator contributes a single segment.
+  This is the feature's durable address. It does not change when the
+  feature moves between documents or between the two admissible forms.
   """
-  segments: [String]
+  slug: Slug
 
   """
   The slug of the document that owns this feature, from the tag that
   declares it.
 
   Ownership is stated rather than derived from the containing file,
-  because a standalone feature file is not the document that owns it,
-  and a feature must name its owner in either form.
+  because a standalone feature file is not the document that owns it, and
+  a feature must name its owner in either form.
   """
   document_slug: Slug
 
@@ -374,8 +279,8 @@ struct Feature {
   name: String
 
   """
-  The feature's description: its user story, and any design note or
-  scope fence written beneath it.
+  The feature's description: its user story, and any design note or scope
+  fence written beneath it.
 
   Absent where none was written, which is reported as a caution rather
   than a failure — a feature with no story is legible but poorer, and
@@ -387,11 +292,20 @@ struct Feature {
   source: FeatureSource
 
   """
-  Where in its file the feature is written, as a span covering the
-  Gherkin itself.
+  Where in its file the feature is written, as a span covering the Gherkin
+  itself.
 
-  For a feature written as a fenced block, this covers the Gherkin
-  inside the fence; the fence's own extent is carried by `source`.
+  For a feature written as a fenced block, this covers the Gherkin inside
+  the fence; the fence's own extent is carried by `source`.
   """
   position: Span
+
+  """
+  The feature's acceptance criteria, in the order they are written.
+
+  Nested rather than held in a sibling collection. A criterion belongs to
+  exactly one feature, its identifier already names which, and a consumer
+  fetching a feature wants its criteria with it.
+  """
+  criteria: [Criterion]
 }

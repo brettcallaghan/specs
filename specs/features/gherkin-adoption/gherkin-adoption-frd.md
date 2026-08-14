@@ -68,8 +68,11 @@ chose a parsed notation over prose.
   top of a standalone `.feature` file, before its first tag or
   `Feature` line, carrying the metadata a markdown document carries in
   frontmatter.
-- **Content hash** — a digest over a criterion's canonical form, used to
+- **Content hash** — a digest over a criterion's name and text, used to
   detect that a criterion changed rather than moved.
+- **Feature code** — the short uppercase code that groups a feature by
+  topic, domain or capability, and that every acceptance-criterion
+  identifier beneath it embeds.
 
 ## Requirements
 
@@ -89,6 +92,10 @@ Feature: Admissible Gherkin Sources
   is the default, because most features benefit from the overview,
   terminology and references around them. A standalone file suits a
   feature that needs none, and is the form external tooling ingests.
+
+  A standalone file lives beside the documents of the feature it belongs
+  to, in specs/features/<feature-slug>/, which is where FRDs live today.
+  Discovery therefore needs no new location to search.
 
   Executing scenarios is out of scope; these are specification records.
 
@@ -122,6 +129,12 @@ Feature: Admissible Gherkin Sources
   Scenario: Positions never point at the synthetic header
     When the CLI reports any finding or span within a fenced block
     Then the CLI does not report a position that the synthetic header occupies
+
+  @AC-GHK-001.6
+  Scenario: A standalone feature file sits with the documents of its feature
+    Given a feature owned by an FRD with the slug frd-checkout
+    When that feature is written as a standalone file
+    Then the file sits in the same directory as the FRD that owns it
 ```
 
 *Note:* AC-GHK-001.2 requires a change to [[frd-spec-validation-cli]],
@@ -139,7 +152,7 @@ Feature: Tag Vocabulary
 
   As an agent addressing a feature or a criterion
   I want every one of them to carry an identifying tag
-  So that I can fetch one by name instead of searching for it
+  So that I can fetch one by tag instead of searching for it
 
   Tags are the addressing scheme, so they are required rather than
   encouraged. The Gherkin parser accepts any non-whitespace tag and
@@ -238,24 +251,29 @@ where a human or agent can apply judgment. An earlier draft made the
 multi-block case itself an error, and this document would have failed
 it.
 
-### REQ-GHK-003: Feature Slug Hierarchy
+### REQ-GHK-003: Feature Identity and Grouping
 
 **Acceptance Criteria:**
 
 ```gherkin
 @frd-gherkin-adoption
-Feature: Feature Slug Hierarchy
+Feature: Feature Identity and Grouping
 
   As an architecture owner
-  I want feature slugs to compose into a hierarchy
+  I want a feature to carry a durable address and a grouping code
   So that a feature is addressable independently of the document that holds it
 
-  A feature slug identifies the feature, not its location. Moving a
-  feature between documents, or promoting a fenced block into a
-  standalone file, does not change how it is addressed.
+  A feature carries two identifiers doing two jobs. Its slug is its
+  durable address: moving a feature between documents, or promoting a
+  fenced block into a standalone file, does not change it. Its code groups
+  it by topic, domain or capability, and is what every acceptance-criterion
+  identifier beneath it embeds.
 
-  Tag syntax prohibits only whitespace, so the separator is a framework
-  choice rather than a Gherkin constraint.
+  Grouping is by code rather than by a path-shaped slug. A slug admits
+  lowercase alphanumerics and hyphens only, so a hyphen is the only
+  separator available and a hyphenated slug cannot be split back into
+  segments unambiguously. The code carries the grouping instead, and
+  nothing has to be parsed to recover it.
 
   @AC-GHK-003.1
   Scenario: A feature slug identifies a feature independently of its document
@@ -264,35 +282,42 @@ Feature: Feature Slug Hierarchy
     Then a query for that slug returns the feature from its new location
 
   @AC-GHK-003.2
-  Scenario Outline: A feature slug composes hierarchically
-    Given the feature slug "<slug>"
-    When the CLI extracts it
-    Then the CLI records its segments as "<segments>"
-
-    Examples:
-      | slug                          | segments               |
-      | feat-checkout                 | checkout               |
-      | feat-checkout/payment         | checkout, payment      |
-      | feat-checkout/payment/confirm | checkout, payment, confirm |
+  Scenario: A feature carries a short grouping code
+    When the CLI extracts a feature
+    Then the record carries the feature's code
 
   @AC-GHK-003.3
-  Scenario: A parent slug selects its descendants
-    Given features slugged feat-checkout/payment and feat-checkout/refund
-    When a query names the parent slug feat-checkout
-    Then the CLI returns both features
+  Scenario: A code selects every feature grouped under it
+    Given several features declaring the same code
+    When a query names that code
+    Then the CLI returns every one of them
 
   @AC-GHK-003.4
-  Scenario: A feature slug is unique across the corpus
-    Given two features declaring the same slug
+  Scenario Outline: A feature slug and a feature code are each unique
+    Given two features declaring the same "<identifier>"
     When the CLI validates the corpus
     Then the CLI reports a finding against each, naming the other's location
 
+    Examples:
+      | identifier |
+      | slug       |
+      | code       |
+
   @AC-GHK-003.5
-  Scenario: Criteria are addressed within their feature
+  Scenario: A criterion identifier embeds its feature's code
     Given a criterion beneath a feature
-    When the CLI extracts the criterion record
-    Then the record names the feature slug it belongs to
+    When the CLI validates it
+    Then the CLI requires the identifier's middle segment to be that feature's code
 ```
+
+*Rationale:* this requirement previously specified a path-shaped
+hierarchical slug and left the separator open. The separator question
+dissolves rather than resolves: the framework's slug vocabulary admits
+only lowercase alphanumerics and hyphens, so `feat-checkout-payment`
+cannot be split back into `checkout` and `payment` without knowing which
+hyphens are separators. AC-GHK-003.5 gives the grouping a mechanism that
+needs no parsing, and makes the criterion identifier verifiable against
+its feature rather than merely conventional.
 
 ### REQ-GHK-004: Metadata in Standalone Feature Files
 
@@ -353,15 +378,20 @@ Feature: Metadata in Standalone Feature Files
 Feature: Feature and Criterion Records
 
   As a consumer of the index
-  I want features and criteria as typed records
+  I want features and criteria as addressable records
   So that a structured store or a knowledge graph loads them without re-parsing prose
 
-  The record is the framework's own model rather than a copy of the
-  Gherkin AST. It carries what Gherkin expresses — typed steps, example
-  rows, descriptions — and adds what Gherkin has no concept of: a slug,
-  a source span, a content hash, and which form the source took. That
-  keeps the criterion notation a replaceable input, as this framework
-  has required since the notation was first deferred.
+  The criterion is the atomic unit. A criterion's body is carried as text
+  rather than decomposed into typed steps and example rows, because
+  decomposition would model one notation: those parts are recoverable from
+  Gherkin and from almost nothing else, so they would sit empty for every
+  prose criterion and could not be filled from another notation by
+  parsing. Nothing this framework does today operates below the level of a
+  whole criterion.
+
+  Criteria nest inside their feature. A criterion belongs to exactly one,
+  and its identifier carries that feature's code, so lookup by identifier
+  is an index over the tree rather than a reason to flatten it.
 
   Identity never comes from a parser node id. Those are positional
   counters that shift when anything above them is edited.
@@ -373,36 +403,29 @@ Feature: Feature and Criterion Records
   @AC-GHK-005.1
   Scenario: A feature record carries its identity, prose and provenance
     When the CLI extracts a feature
-    Then the record carries its slug, its owning document, its name, its description, its source form and its span
+    Then the record carries its code, its slug, its owning document, its name, its description, its source form and its span
 
   @AC-GHK-005.2
-  Scenario: A criterion record carries its identity, structure and provenance
+  Scenario: A criterion record carries its identity, its text and its provenance
     When the CLI extracts a criterion
-    Then the record carries its identifier, its feature slug, its name, its qualifiers, its steps, its examples, its description and its span
+    Then the record carries its identifier, its name, its text, its qualifiers, its description and its span
 
   @AC-GHK-005.3
-  Scenario Outline: A step carries its semantic role, not only its text
-    Given a step written with the keyword "<keyword>"
-    When the CLI extracts the criterion
-    Then the step record carries the role "<role>"
-
-    Examples:
-      | keyword | role        |
-      | Given   | precondition |
-      | When    | trigger      |
-      | Then    | outcome      |
-      | And     | continuation |
+  Scenario: A criterion's body is recorded as text, not decomposed
+    Given a criterion written as a scenario with steps and an examples table
+    When the CLI extracts it
+    Then the record carries the steps and the table verbatim as the criterion's text
+    And the record does not decompose them into separate step or row properties
 
   @AC-GHK-005.4
-  Scenario: An outline's example rows are structured, not prose
-    Given a Scenario Outline with an Examples table
-    When the CLI extracts the criterion
-    Then each example row is recorded as named values keyed by the table's header
+  Scenario: Criteria are nested within their feature
+    When the CLI extracts a feature
+    Then the feature record carries its criteria in the order they are written
 
   @AC-GHK-005.5
   Scenario: A criterion record carries a content hash
     When the CLI extracts a criterion
-    Then the record carries a hash over the criterion's name, its steps and their roles, and its example rows
+    Then the record carries a hash over the criterion's name and text
 
   @AC-GHK-005.6 @negative
   Scenario: The content hash excludes position and parser identity
@@ -412,15 +435,24 @@ Feature: Feature and Criterion Records
 
   @AC-GHK-005.7
   Scenario: Editing a criterion changes its hash
-    Given a criterion whose step text is edited
+    Given a criterion whose text is edited
     When the corpus is re-indexed
     Then the criterion's content hash changes
 
   @AC-GHK-005.8
   Scenario: Records reach the index under its declared schema
     When the CLI builds the index
-    Then feature and criterion records are present in the index under its schema version
+    Then feature records are present in the index under its schema version
 ```
+
+*Rationale:* an earlier draft of this requirement decomposed a criterion
+into typed steps and keyed example rows, on the argument that a parsed
+notation yields fields where prose yields one string. It does — but no
+requirement in this document consumes those fields, and they are fillable
+from Gherkin alone. Carrying them would put a Gherkin-shaped model at the
+centre of a framework that treats the notation as replaceable. The index
+schema is additive, so decomposition can be introduced when a consumer
+needs it; withdrawing it later could not be.
 
 ### REQ-GHK-006: Validation and Diagnostics
 
@@ -515,7 +547,7 @@ Feature: Validation and Diagnostics
 Feature: Queries by Tag
 
   As an agent working a single unit of work
-  I want to fetch one feature or one criterion by name
+  I want to fetch one feature or one criterion by tag
   So that I read what I need instead of the document that contains it
 
   These queries are what make the extracted records worth building. They
@@ -656,33 +688,18 @@ Feature: Publication and Coexistence
 
 ## Open Questions
 
-- **How general should the record model be?** This document specifies a
-  framework model that carries Gherkin's structure plus a slug, a span,
-  a hash and a notation (REQ-GHK-005), rather than mirroring the Gherkin
-  AST. That keeps the notation replaceable and lets the record hold
-  fields Gherkin has no concept of, at the cost of a translation layer
-  and of not being the published interchange shape that external tooling
-  already reads. The alternative — adopt the AST shape directly and add
-  framework fields beside it — is cheaper to implement and harder to
-  change. **Recommendation: as specified**, revisited when the central
-  store's schema is designed, which is also the trigger [[adr-020]]
-  names.
-- **What separator do hierarchical feature slugs use?** `/`, `.` and `:`
-  all parse as tags. REQ-GHK-003 requires a hierarchy without fixing the
-  separator. It should be fixed before implementation, and the choice
-  interacts with the slug patterns the profile already registers.
-- **Does a feature slug need a type prefix?** Document slugs carry one
-  (`adr-`, `frd-`). A feature is not a document when it lives in a
-  fenced block, so whether `feat-` is required, and whether feature
-  slugs share the document slug namespace, is unsettled.
+- **Does the feature identifier become `FEAT-` rather than `REQ-`?** A
+  requirement heading is `REQ-GHK-001` today, and a feature is what a
+  requirement maps onto, so `FEAT-GHK-001` reads truer. The rename is not
+  local: `frd-template.md` fixes the convention, three existing FRDs use
+  it, and [[adr-015]] and [[frd-spec-validation-cli]] cite `REQ-SPEC-009`
+  by name. Deciding it here without deciding the migration would leave
+  two conventions in the corpus.
 - **Are `[[slug]]` references inside Gherkin resolved or ignored?** The
   reference extractor scans document bodies. Whether a wikilink inside a
   fenced block or a `.feature` file is a reference the index records, or
-  text the extractor skips, is undecided; this document avoids them
-  inside Gherkin so the question stays open.
-- **Where do feature files live?** Whether standalone `.feature` files
-  sit beside the FRD that owns them, in their own tree, or anywhere
-  beneath the spec root is unsettled, and affects discovery.
+  text the extractor skips, is undecided; this document avoids them inside
+  Gherkin so the question stays open.
 
 ## References
 
@@ -703,5 +720,5 @@ Feature: Publication and Coexistence
   conforming Gherkin; the authoring counterpart to this document's rules
 - `plugin/skills/spec/references/ac-traceability-standards.md` — the
   citation format that consumes these identifiers
-- `docs/plans/gherkin-extraction-findings.md` — the measurements behind
+- `docs/research/gherkin/extraction-findings.md` — the measurements behind
   the comment header, the hierarchy separators and the content hash
