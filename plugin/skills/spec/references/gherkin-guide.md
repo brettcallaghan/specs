@@ -68,7 +68,7 @@ terminology, references, document frontmatter.
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-checkout
+@frd-checkout @feat-checkout-payment @CHK
 Feature: Payment Confirmation
 
   As a customer
@@ -98,7 +98,7 @@ tag or `Feature` line:
 # status: approved
 # updated_at: 2026-08-14T00:00:00Z
 # ---
-@frd-checkout
+@frd-checkout @feat-checkout-payment @CHK
 Feature: Payment Confirmation
 ```
 
@@ -131,10 +131,14 @@ severity, and this one fails a run.
 | `@frd-<slug>` | on the `Feature` | yes — identifies the owning document |
 | feature slug | on the `Feature` | yes — the feature's durable address |
 | feature code | on the `Feature` | yes — groups it, and every criterion identifier beneath embeds it |
-| `@AC-<PREFIX>-<nnn>.<n>` | on each `Scenario` | yes — one per criterion |
+| `@AC-<CODE>-<nnn>.<n>` | on each `Scenario` | yes — one per criterion; `<CODE>` is the feature's code |
 | `@negative` | on a prohibition | yes, where the criterion forbids |
 | `@manual` | on a hand-verified criterion | yes, where it applies |
 | `@level-<unit\|integration\|e2e>` | on a `Scenario` | optional |
+
+A `Feature` therefore carries three tags: the document that owns it, its
+own slug, and its code. A `Scenario` carries one identifier plus whatever
+qualifiers apply.
 
 **Decide what an `Examples` block is before you tag it.** A
 `Scenario Outline` can mean two different things, and only you know
@@ -197,7 +201,7 @@ required; the others are included when they have something to say.
    behaviour it must *not* have.
 
 ```gherkin
-@frd-spec-validation-cli
+@frd-spec-validation-cli @feat-corpus-discovery @SPEC
 Feature: Corpus Discovery and Membership
 
   As an adopting team
