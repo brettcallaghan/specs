@@ -2,3 +2,4 @@
 {"bead":"agent-plugins-eaa.1","phase":"gates-running"}
 {"bead":"agent-plugins-eaa.1","phase":"gates-passed"}
 {"bead":"agent-plugins-eaa.1","phase":"retro-written"}
+{"bead":"agent-plugins-eaa.1","phase":"committed","sha":"4e50612"}

@@ -281,6 +281,52 @@ edited. Numbering is local to this section.
 
 ## Amendments
 
+### 2026-08-14 — wave 2 concurrency produced a TGT/MAP interface hazard; carry it into ia5.5
+
+`ia5.2` (TGT) and `ia5.4` (MAP) ran concurrently, so neither could see the
+other's types. `ia5.2` recorded the consequence in a `retro:` comment: with no
+link-map type in existence yet, it defined its own
+`mdlinks.LinkMap` (`map[string]string`) and leans on Go's **nil vs non-nil map**
+distinction to separate "no map supplied" from "a map supplied that resolves
+zero entries" — AC-SPECMD-006.3 requires the latter to still raise
+`links/unmapped`. `ia5.4` independently built `cli/cmd/linkmap.go`.
+
+Nothing is broken at the merge: the two live in different packages and both
+gate green. The hazard is at the seam, and `ia5.5` (CMD, wave 4) is the bead
+that wires them. **Its dispatch prompt must carry this**: MAP must hand
+`mdlinks` a **non-nil** map even when the YAML decodes to zero entries, or the
+two components disagree about whether a map was given and
+`links/unmapped` silently stops firing.
+
+This is the C4-collision rule working as designed — the two beads were
+correctly judged non-colliding on *files* — and also its limit: a shared
+*interface* that does not exist yet is invisible to a co-edit analysis. Worth a
+`plan-sprint` finding.
+
+`ia5.4` separately split the map-reading fault into two rule ids
+(`linkmap/invalid`, `linkmap/missing-path`) mirroring the package's existing
+`config/schema` vs `config/missing-property` split, where the Design named the
+three faults together. `ia5.5` should expect two rule ids, not one.
+
+### 2026-08-14 — CI does not run on pushes to this branch (corrects the Phase 0 record)
+
+The Phase 0 "Decisions" entry says the draft PR means "every wave push gets the
+full CI matrix". **That is wrong.** Both `.github/workflows/checks.yml` and
+`cli.yml` declare `push: branches: [main]` only, and each job's `if` skips
+draft pull requests. A push to this working branch triggers nothing, draft or
+not. `workflow_dispatch` against the branch ref is the only validation path.
+
+Consequence for the run: the slim-gate policy the shared-surface batch template
+offers (skip the in-batch full suite when "a PR is open so pushes trigger full
+CI") **must not be taken** in this run. Every bead and every wave runs the full
+local gate suite, which is what has happened so far.
+
+`cli.yml` and `checks.yml` were dispatched manually at 06:22Z against head
+`2157379` (wave 1 complete) — the first CI this sprint's work has seen. Not
+re-dispatched per wave: the matrix is the most expensive thing the repo runs
+(macOS 10x, Windows 2x on a private repo). One more dispatch when the run
+drains.
+
 ### 2026-08-14 — push mode inside concurrent waves
 
 The wave table's `Push` column marks one bead per wave as the wave's push
