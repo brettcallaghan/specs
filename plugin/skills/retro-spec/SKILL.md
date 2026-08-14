@@ -10,7 +10,7 @@ description: Retrospective on a completed phase of spec-driven work —
   capture lessons learned about the documents a phase consumed. To
   critique the SKILLS, templates, or scripts that guided the phase, use
   the retro-skill skill instead.
-version: "1.4.0"
+version: "1.5.0"
 ---
 
 # Spec Retro
@@ -67,7 +67,7 @@ be captured while it exists:
 
 ## Findings capture protocol
 
-Defined once in `references/findings-capture-protocol.md` — load and
+Defined once in `references/shared/findings-capture-protocol.md` — load and
 follow it from that document; do not restate it. In brief: the
 capturing agent is a sensor that records findings (friction only,
 zero analysis) as `retro:`-prefixed `bd comment`s on its own item
@@ -77,9 +77,10 @@ closure set, adds its own DoD-verification friction, and proceeds
 from Workflow step 3 with that pool as the step-2 output. Findings
 stay on closed items permanently as raw provenance.
 
-The protocol document is the single statement of this channel: skills
-that capture or harvest findings vendor it into their own
-`references/shared/` and point at that copy. It is never copied into a
+The protocol document's authored copy lives under `specs/standards/`; it
+is the single statement of this channel, and every skill that captures
+or harvests findings — including this one — vendors it into its own
+`references/shared/` and points at that copy. It is never copied into a
 target project, and never restated per item — an item carries only the
 short standing instruction its grooming skill stamps, which is
 self-sufficient, so an implementing agent that sees nothing but its own
@@ -146,7 +147,8 @@ Retro progress:
    cites `[[template-authoring-standards]]`, whose canonical copy is the
    sibling spec skill's
    `references/shared/template-authoring-standards.md`), bundling every
-   qualifying finding as `audience: project`. File it under
+   qualifying finding into the project variant (a numbered slug —
+   see the template's Numbering and location). File it under
    `rfcs/inbox/<spec-type>/`, named
    `rfc-<nnnn>-<short-description>.md` with the repo's next free
    number. `<spec-type>` is the document type the findings most concern
@@ -156,7 +158,7 @@ Retro progress:
    readiness gate. Fix what it reports and re-run; do not proceed while it fails. After two full failed cycles, stop and surface the blocker rather than continuing to retry. Set status to
    `ready-for-review` only once the gate passes. Order proposals
    by expected impact. (Skill-lens findings go to `retro-skill`, which
-   authors its own `audience: skill-authors` RFC — do not file one from
+   authors its own skill-authors variant RFC — do not file one from
    here.)
 6. **Record a null result.** WHEN no finding clears the bar, write a
    retro note to

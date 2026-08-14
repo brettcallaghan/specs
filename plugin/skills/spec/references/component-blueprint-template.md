@@ -18,7 +18,7 @@ test_paths: []                       # repo-relative test roots
 Template: Component Blueprint
 Version: 1.6
 Source: Architecture documentation framework. C4 mapping rules are
-  defined in `c4-guide.md` — load it before authoring.
+  defined in `shared/c4-guide.md` — load it before authoring.
 
 Sections (complete each, then delete its instruction block)
   - Overview
@@ -42,7 +42,7 @@ Purpose
   internal components of its own, it is a MODULE — use a module blueprint.
   The dividing line is the same one the framework draws for contract
   visibility: does it cross a boundary of independent change? See
-  `c4-guide.md`.
+  `shared/c4-guide.md`.
 
 When to use — the trigger is the promotion predicate
   A component earns its own blueprint WHEN it has an interface other
@@ -187,7 +187,7 @@ specification.
 <!--
 Standards this component complies with, by reference. Platform choices
 that apply everywhere are mentioned in prose or standards docs, never
-modeled as elements on this component's diagrams — see `c4-guide.md`.
+modeled as elements on this component's diagrams — see `shared/c4-guide.md`.
 -->
 
 This component SHALL comply with:
@@ -250,6 +250,6 @@ status becomes active.
 
 ## References
 
-- `c4-guide.md` — C4 mapping rules and diagram conventions
+- `shared/c4-guide.md` — C4 mapping rules and diagram conventions
 - [[container-<name>]] — the container this component is composed into
 - <Additional references>

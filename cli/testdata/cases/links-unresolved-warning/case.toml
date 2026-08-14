@@ -1,0 +1,5 @@
+description = "a citation naming no corpus document at all raises only a warning: the rewritten document is still emitted, with that wikilink left as written, and the run exits zero"
+cites = ["AC-SPECMD-002.6", "AC-SPECMD-002.8"]
+artifacts = ["checks.log", "checks.err"]
+args = ["links", "docs/adrs/adr-800-current.md"]
+exit_code = 0

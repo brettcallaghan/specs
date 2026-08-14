@@ -1,0 +1,5 @@
+docs/adrs/absent.md:
+  document/unreadable  error  1:1  cannot be read: no such file
+
+checks:
+  document/unreadable  failed

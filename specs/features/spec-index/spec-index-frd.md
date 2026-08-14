@@ -68,7 +68,7 @@ deliberately, not overlooked:
   Deriving `updated_at` from git history and rewriting frontmatter is a
   follow-on feature.
 - **Acceptance-criteria and feature-definition validation.** Out of
-  scope for this feature. [[adr-020]] settles the notation and assigns
+  scope for this feature. [[adr-021]] settles the notation and assigns
   the extraction to a follow-on feature; the technology decision this
   feature defers to an ADR had to preserve the ability to parse and
   validate structured feature definitions later, and does.
@@ -530,7 +530,7 @@ it.
 
 - [[adr-015]] — records Go as the implementation language, deferred to
   by FEAT-SPEC-009
-- [[adr-020]] — settles the acceptance-criteria notation, whose
+- [[adr-021]] — settles the acceptance-criteria notation, whose
   extraction is a follow-on feature rather than part of this one
 - [[adr-002]] — EARS, the notation these acceptance criteria are
   written in

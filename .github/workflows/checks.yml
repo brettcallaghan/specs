@@ -7,21 +7,17 @@ name: checks
 # Two jobs, because they answer different questions with different
 # blast radii:
 #
-#   checks — are this repository's skills and vendored copies intact?
-#            bash and python3 only.
+#   checks — are this repository's skills, vendored copies and templates
+#            intact? bash and stdlib python3 only, no dependency install.
 #   corpus — do this repository's own specification documents conform,
 #            according to the Spec CLI it ships? Needs a Go toolchain to
-#            build that binary.
+#            build that binary. Covers specs/ and rfcs/.
 #
-# The corpus job is the dogfooding one. It exists because the gate that
-# preceded it did not do what its name claimed: scripts/validate-corpus.py
-# globbed docs/**/*.md, and the specs/ reorganization (4388c06) emptied
-# that path. It kept reporting "checked 26 documents" — every one of them
-# an RFC or a skill reference — while every document under specs/ went
-# unchecked from the reorg until this job landed. A gate that reports a
-# healthy count over the wrong files is worse than no gate, so this job
-# names its root through specs.toml and the script below now fails rather
-# than passing over an empty set.
+# The corpus job is the dogfooding one: this repository's own documents,
+# checked by the binary it ships. It names its roots through specs.toml
+# — specs/ at the repository root, rfcs/ through rfcs/specs.toml — rather
+# than through globs, and the corpus/empty rule fails a root that matched
+# nothing rather than reporting a healthy count over an empty set.
 
 # Triggers: a pull request that is ready for review, a merge to the default
 # branch, and manual dispatch. A push to a working branch runs nothing, and
@@ -73,25 +69,27 @@ jobs:
       - name: Vendored shared references are current
         run: scripts/sync-shared-references.sh --check
 
-      - name: Install schema validation dependencies
-        run: python3 -m pip install --quiet jsonschema pyyaml
+      # A skill's reference directory travels to an adopting repository
+      # with no corpus index behind it, so a markdown link that does not
+      # resolve to a co-located file is dead on arrival there. `spec
+      # check` only walks the corpus (the `corpus` job below) and does
+      # not see this surface at all.
+      - name: Reference links resolve
+        run: scripts/check-reference-links.py
 
-      # Validates frontmatter against the generated JSON Schema for each
-      # document's type, for the documents that live OUTSIDE the Spec
-      # CLI's corpus root — rfcs/ and the skills' bundled references.
-      # specs/ is checked by the `corpus` job below, with the real
-      # binary. See the script's own docstring for why the split exists.
+      # Structural check on the templates every document is authored from:
+      # the property set a template declares must match its type's schema.
+      # Needs no dependency — only the generated bundle and the
+      # frontmatter keys.
       #
-      # Not gated anywhere yet: that the generated artifacts under cli/
-      # and plugin/skills/spec/references/generated/ are current with
-      # schemas/*.strata. That check is scripts/generate-schemas.sh
-      # --check, and it needs the strata compiler, which has no
-      # installable release binary yet — building it from source would
-      # add a Rust toolchain and several minutes to every run. Until then
-      # regeneration is a local step, and the drift it would catch shows
-      # up as an unexplained diff in review.
-      - name: Frontmatter conforms outside the corpus root
-        run: scripts/validate-corpus.py
+      # continue-on-error until agent-plugins-3xx (rfc-template has drifted
+      # from the Rfc schema) and agent-plugins-j5n (work-order is not in the
+      # DocumentType vocabulary) close. Both need a decision rather than a
+      # fix, and gating on defects that predate this step would land CI red.
+      # agent-plugins-9fx flips it to gating.
+      - name: Templates match their type's schema
+        continue-on-error: true
+        run: scripts/check-template-drift.py
 
   # Dogfooding: this repository's own specs/ corpus, checked by the
   # binary this repository ships.
@@ -156,3 +154,17 @@ jobs:
       # findings it has decided to live with.
       - name: Check every document
         run: ./spec check --strict
+
+      # The RFC queue, checked by the same binary through a second
+      # specs.toml (rfcs/specs.toml, root "."). RFCs carry the same
+      # frontmatter as corpus members and drift the same way, but they
+      # are their own slug namespace and cite documents outside that
+      # root, so the rule set is narrowed to the document-local rules.
+      # The corpus-global rules (reference/*, slug/duplicate) are
+      # deliberately not requested — cross-root citations would report as
+      # unresolved. The report renders them not-requested rather than
+      # passed, so the narrowed scope is visible rather than implied.
+      - name: The RFC queue conforms
+        run: |
+          ./spec check --config rfcs/specs.toml \
+            --only frontmatter/parse,frontmatter/schema,frontmatter/missing-property,slug/pattern-mismatch

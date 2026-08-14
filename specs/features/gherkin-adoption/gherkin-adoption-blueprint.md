@@ -18,7 +18,7 @@ frd: frd-gherkin-adoption
 
 **FRD:** [[frd-gherkin-adoption]]
 
-[[adr-020]] settles the notation and the parser; nothing reads either.
+[[adr-021]] settles the notation and the parser; nothing reads either.
 [[module-document-core]] declares a **Markdown Structure** component and
 records that it is not built — there is no `cli/core/markdown` package
 and no fenced block is extracted anywhere — so a ` ```gherkin ` block is
@@ -189,7 +189,7 @@ with C4 could use it, and a vault with `.feature` files can.
 **Behavior:**
 
 - The component SHALL parse a source with the official Go Gherkin parser
-  [[adr-020]] measured.
+  [[adr-021]] measured.
 - The component SHALL produce one feature record per `Feature`, with its
   criteria nested beneath it in the order they are written
   (AC-GHK-005.4).
@@ -233,7 +233,7 @@ with C4 could use it, and a vault with `.feature` files can.
 
 **Anchors:** a new `cli/core/gherkin` package;
 `github.com/cucumber/gherkin/go/v42` and
-`github.com/cucumber/messages/go/v34`, the libraries [[adr-020]]
+`github.com/cucumber/messages/go/v34`, the libraries [[adr-021]]
 measured; `cli/core/span` for every position; the generated
 `specmodel.Feature` and `specmodel.Criterion` from MODEL.
 
@@ -487,7 +487,7 @@ product and quality tooling.
 - `spec feature <id> --emit` SHALL write a valid Gherkin feature file
   carrying that feature's tags, description and criteria, to standard
   output by default and to a named path where `--out` gives one
-  (AC-GHK-009.1). One feature yields one file, as [[adr-020]]'s
+  (AC-GHK-009.1). One feature yields one file, as [[adr-021]]'s
   constraint 8 requires.
 - An emitted file SHALL carry the owning-document tag, which the source
   fenced block does not: the emitted file is a feature source, and a
@@ -588,7 +588,7 @@ sides of the comparison.
   isolate.
 - `agent-plugins-a7u` — **out-of-scope** (sequenced follow-on):
   "migrate acceptance criteria in the three FRDs to Gherkin." Nothing
-  here reads a prose criterion ([[adr-020]] constraint 9), so until that
+  here reads a prose criterion ([[adr-021]] constraint 9), so until that
   bead lands, three of this corpus's four FRDs contribute no feature
   records and a corpus-wide query under-reports. That is a translation
   job, not a blocker on this feature, and it is named here so no later
@@ -772,7 +772,7 @@ reason.
 
 ## Key Decisions
 
-- [[adr-020]] — Gherkin is the notation for features and acceptance
+- [[adr-021]] — Gherkin is the notation for features and acceptance
   criteria, the official Go parser is the implementation, and the
   fourteen binding constraints every delta here realizes.
 - [[adr-016]] — Strata is the single source for generated models, which
@@ -799,14 +799,14 @@ retirement rather than dying with this document.
     and comment blocks still outstanding; Interface records the widened
     `Profile`; Corpus's index vocabulary gains `Feature` and
     `Criterion`; References records the narrowed code mask; Findings
-    records the new detail variants; Key Decisions' [[adr-020]] line no
+    records the new detail variants; Key Decisions' [[adr-021]] line no
     longer says extraction is a follow-on
   - [ ] [[module-spec-profile]] — Interface and Profile Registration
-    record the tag registration; Key Decisions' [[adr-020]] line no
+    record the tag registration; Key Decisions' [[adr-021]] line no
     longer says no component registers AC rules
   - [ ] [[container-spec-cli]] — Components' Command Surface records
     `feature` and `criterion` and their flags; Change Guidance's
-    verification gates cover them; Key Decisions' [[adr-020]] line no
+    verification gates cover them; Key Decisions' [[adr-021]] line no
     longer says no component parses acceptance criteria
 - [ ] [[contract-specs-configuration]] — the internal registration
   surface enumerates the tag vocabulary; no `version` bump
@@ -826,7 +826,7 @@ None.
 - `c4-guide.md` — the container, module and component definitions the
   delta blocks are written against
 - [[frd-gherkin-adoption]] — the requirements these deltas realize
-- [[adr-020]] — the decision, its measurements, and its binding
+- [[adr-021]] — the decision, its measurements, and its binding
   constraints
 - [[module-document-core]] — the host every parsing delta lands in
 - [[module-spec-profile]] — the plugin PREG registers through
@@ -835,6 +835,6 @@ None.
   warm index these deltas build on
 - [[frd-spec-reference-integrity]] — the reference extraction GREF
   narrows the code mask of
-- `plugin/skills/spec/references/gherkin-guide.md` — the authoring rules
+- [[gherkin-guide]] — the authoring rules
   PREG's registered patterns mirror
 - `schemas/feature.strata` — the record contract MODEL compiles

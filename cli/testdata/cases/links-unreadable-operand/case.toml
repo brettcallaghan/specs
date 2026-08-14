@@ -1,0 +1,5 @@
+description = "an operand naming a file that cannot be read raises document/unreadable, no rewritten document is emitted, and the run exits non-zero"
+cites = []
+artifacts = ["checks.err"]
+args = ["links", "docs/adrs/absent.md"]
+exit_code = 1

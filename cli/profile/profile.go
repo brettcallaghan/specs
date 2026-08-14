@@ -40,9 +40,9 @@ const Name = "spec-driven-dev"
 
 // defaultLineWidth is the line_width convention this profile supplies
 // when specs.toml omits [conventions].line_width. 80 is the limit
-// plugin/skills/spec/references/template-authoring-standards.md fixes
-// ("The width of any line SHALL NOT exceed 80 characters"), measured in
-// Unicode codepoints per that same standard.
+// specs/standards/template-authoring-standards.md fixes ("The width of
+// any line SHALL NOT exceed 80 characters"), measured in Unicode
+// codepoints per that same standard.
 const defaultLineWidth = 80
 
 // documentTypes is the authored half of the per-type table: a slug

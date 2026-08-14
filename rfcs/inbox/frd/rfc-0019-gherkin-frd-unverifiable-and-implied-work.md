@@ -43,7 +43,7 @@ than in the blueprint, where they die when the blueprint retires.
 | Origin project | agent-plugins |
 | Audience | project — resolved in this repository, which is what filing under `rfcs/inbox/frd/` records; the generated `Rfc` schema has no `audience` property |
 | Phase executed | Authored a feature blueprint from an approved FRD |
-| Documents exercised | [[frd-gherkin-adoption]]; [[adr-020]]; [[container-spec-cli]], [[module-document-core]], [[module-spec-profile]]; [[contract-specs-configuration]]; [[testing-standards]]; `plugin/skills/spec/references/gherkin-guide.md`; `schemas/feature.strata`, `schemas/index.strata` |
+| Documents exercised | [[frd-gherkin-adoption]]; [[adr-021]]; [[container-spec-cli]], [[module-document-core]], [[module-spec-profile]]; [[contract-specs-configuration]]; [[testing-standards]]; `specs/standards/gherkin-guide.md`; `schemas/feature.strata`, `schemas/index.strata` |
 | Documents produced | [[feature-gherkin-adoption]] |
 | Skill(s) followed | spec v1.9; groom-feature-blueprint (Phase 1 gate only) |
 | Templates / standards read | feature-blueprint-template v1.4; `blueprint-readiness-checklist.md` v0.6.0; `document-readiness-checklist.md` v0.4; `ac-traceability-standards.md` v0.2.0 |
@@ -102,7 +102,7 @@ verifier should search for the quoted text rather than trust an offset.
 4. **The FRD specifies a warning it would raise against every one of
    its own criteria.** AC-GHK-006.6 declares, at line 577:
    `| a criterion carrying no verification level    | warning  |`,
-   while `plugin/skills/spec/references/gherkin-guide.md:132` records
+   while `specs/standards/gherkin-guide.md:132` records
    the same tag as
    `| `@level-<unit\|integration\|e2e>` | on a `Scenario` | optional |`.
    Not one criterion in [[frd-gherkin-adoption]] carries a `@level-*`
@@ -217,7 +217,7 @@ gains and file the bead.
   premise rather than the wording: a compatibility reader is
   transitional machinery for a transition of three documents, and
   translating them costs less than a second extractor that would outlive
-  the transition in the model and in every consumer of it. [[adr-020]]
+  the transition in the model and in every consumer of it. [[adr-021]]
   constraint 9 now narrows extraction to Gherkin only, AC-GHK-009.3 is
   withdrawn, and `agent-plugins-a7u` carries the translation. Finding 2
   still stands and its lesson is the general one: an eight-word clause
@@ -246,7 +246,7 @@ gains and file the bead.
 
 ## Non-Goals
 
-- No change to the Gherkin notation, the tag vocabulary, or [[adr-020]]'s
+- No change to the Gherkin notation, the tag vocabulary, or [[adr-021]]'s
   fourteen constraints. Every proposal here adds or repairs requirement
   text within the shape those already fix.
 - No weakening of a downstream check to make authoring easier. P3 may
@@ -259,7 +259,7 @@ gains and file the bead.
 
 P1 through P4 are independently adoptable and touch one document each
 except P2, which changes [[frd-gherkin-adoption]] and
-`plugin/skills/spec/references/gherkin-guide.md` together and must land
+`specs/standards/gherkin-guide.md` together and must land
 as one change.
 
 All five are backward compatible in the sense that matters here: every

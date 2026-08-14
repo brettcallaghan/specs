@@ -65,6 +65,17 @@ type caseManifest struct {
 // case declares at most one of them.
 var stdoutArtifacts = []string{"checks.log", "checks.json"}
 
+// stderrArtifact is the name a case gives its standard-error artifact.
+//
+// The `links` subcommand writes the rewritten document to stdout and its
+// findings to stderr, so a case asserting on a diagnostic asserts on this
+// file and on no other. Until it was handled here the generator wrote
+// stdout artifacts and the manifest only, and silently skipped every case
+// whose sole artifact was this one — regenerating them was a no-op that
+// reported success, so a fixture holding platform-specific text could not
+// be refreshed and nothing said why.
+const stderrArtifact = "checks.err"
+
 // manifestArtifact is the name a case gives the index a run produced.
 const manifestArtifact = "manifest.json"
 
@@ -163,6 +174,12 @@ func regenerate(dir, name string) error {
 			continue
 		}
 		if err := os.WriteFile(filepath.Join(expectedDir, artifact), []byte(stdout.String()), 0o644); err != nil {
+			return err
+		}
+	}
+
+	if manifest.declares(stderrArtifact) {
+		if err := os.WriteFile(filepath.Join(expectedDir, stderrArtifact), []byte(stderr.String()), 0o644); err != nil {
 			return err
 		}
 	}

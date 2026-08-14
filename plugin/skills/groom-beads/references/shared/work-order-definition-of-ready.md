@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: plugin/skills/spec/references/work-order-definition-of-ready.md (version 1.4)
+     Source of truth: specs/standards/work-order-definition-of-ready.md (version 1.4)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 

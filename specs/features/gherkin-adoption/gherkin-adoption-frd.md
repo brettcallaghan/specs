@@ -14,7 +14,7 @@ sources: []
 
 ## Overview
 
-[[adr-020]] adopts Gherkin as the notation for features and acceptance
+[[adr-021]] adopts Gherkin as the notation for features and acceptance
 criteria. Nothing implements it. Today an acceptance criterion is a
 markdown bullet that no tool reads: the CLI indexes a document's
 frontmatter and location, and the criteria inside it are prose to
@@ -31,7 +31,7 @@ The payoff is addressability. An agent implementing a work order asks
 for one criterion instead of reading an FRD. A reviewer asks which
 criteria changed since the last index instead of reading a diff. An
 organization publishes the index to a central store and gets features
-and criteria as rows rather than paragraphs — the reason [[adr-020]]
+and criteria as rows rather than paragraphs — the reason [[adr-021]]
 chose a parsed notation over prose.
 
 **Out of scope for this feature.** Each is deferred deliberately:
@@ -43,7 +43,7 @@ chose a parsed notation over prose.
 - **Migrating existing criteria.** Rewriting the prose criteria in the
   three existing FRDs is separate work, tracked on its own. It is a
   translation, not a compatibility problem: extraction reads Gherkin
-  only ([[adr-020]] constraint 9), so until a document is translated it
+  only ([[adr-021]] constraint 9), so until a document is translated it
   contributes no feature records rather than being read a second way.
 - **Reading prose criteria.** No extractor recognises a prose
   criterion. An earlier revision required one, and it was withdrawn:
@@ -711,7 +711,7 @@ Feature: Publication
 
   Extraction reads Gherkin only. The documents still carrying prose
   criteria are translated rather than read by a second extractor, so
-  nothing here is a compatibility mode ([[adr-020]] constraint 9).
+  nothing here is a compatibility mode ([[adr-021]] constraint 9).
 
   @AC-GHK-009.1
   Scenario: A conforming feature file is emitted for a feature
@@ -733,7 +733,7 @@ Feature: Publication
 
 ## References
 
-- [[adr-020]] — the decision this feature implements, and the fourteen
+- [[adr-021]] — the decision this feature implements, and the fourteen
   constraints its requirements realize
 - [[adr-002]] — EARS, which continues to govern every normative
   statement that is not a feature or an acceptance criterion
@@ -746,7 +746,7 @@ Feature: Publication
   FEAT-GHK-005 specifies, and the `features` collection they occupy on
   `SpecIndex`. The Strata definition is the contract; the JSON Schema, Go
   types and generated documentation are transpiled from it
-- `plugin/skills/spec/references/gherkin-guide.md` — how to write
+- [[gherkin-guide]] — how to write
   conforming Gherkin; the authoring counterpart to this document's rules
 - `plugin/skills/spec/references/ac-traceability-standards.md` — the
   citation format that consumes these identifiers

@@ -1,0 +1,200 @@
+#!/usr/bin/env python3
+"""Check every skill template's property set against its type's schema.
+
+A template's values are placeholders, so it cannot be validated as an
+instance — `updated_at: <YYYY-MM-DDTHH:MM:SSZ>` is deliberately not a
+timestamp. Its structure can be: every document authored from a template
+inherits the template's property set, so that set must match the
+definition the template's declared `type` selects.
+
+What it reports, and only this:
+
+  * a property the type's definition requires that the template omits
+  * a property the template declares that the definition does not define
+  * a declared `type` outside the DocumentType vocabulary
+  * an optional property the schema defines that the template omits (advisory only)
+
+Templates ship inside the plugin, so a drifted one is a defect
+distributed to every adopting repository, authored into every document
+copied from it.
+
+Reads the frontmatter keys and the generated schema bundle, nothing else:
+no corpus, no third-party dependency, and deliberately no YAML parse.
+Template frontmatter is not required to be valid YAML and several blocks
+are not — a placeholder such as `<one line: what drove the choice>` puts
+a bare `:` in a value — so keys are read from the source text.
+
+Exit status: returns 1 if any error-level findings (missing-required,
+unknown-property, unknown-type, no-definition, no-frontmatter, no-type,
+underpopulated). Advisory findings (omitted-optional) do not affect exit
+status and are reported separately.
+
+Usage:
+  scripts/check-template-drift.py            # report findings, exit 1 on errors only
+  scripts/check-template-drift.py --quiet    # exit status only
+"""
+from __future__ import annotations
+
+import json
+import pathlib
+import re
+import sys
+
+ROOT = pathlib.Path(__file__).resolve().parent.parent
+
+# Templates are identified by suffix, never by the substring "template":
+# template-authoring-standards.md is a standards document, and a
+# substring match silently excludes it from whatever gate applies the
+# rule.
+SEARCH = "plugin/skills/*/references/*-template.md"
+
+# Not matched by SEARCH, one directory deeper: the vendored copies under
+# references/shared/. Their authored sources are checked here, and
+# sync-shared-references.sh --check compares the copies against those
+# sources byte for byte, which is stronger than re-deriving this
+# judgement about a copy.
+
+# The generated bundle, and the enum naming the document types a profile
+# may register.
+BUNDLE = "cli/core/schema/spec-model.schema.json"
+VOCABULARY = "DocumentType"
+
+# Matched by SEARCH but deliberately not corpus documents: a template
+# whose absent `type` is a decision, not a defect, so template/no-type
+# must not fire for it. Reversible in one line if the reason no longer
+# holds.
+NON_CORPUS = {
+    "plugin/skills/spec/references/work-order-template.md":
+        "materializes into a tracker issue, not a corpus document",
+}
+
+# A floor on how many templates must be found. The failure this guards
+# against is not "a template is wrong" but "this gate is pointed at
+# nothing and says so cheerfully". Deliberately well below the current
+# count: a smoke alarm for a glob that stopped matching, not an inventory
+# to keep in sync.
+MIN_TEMPLATES = 8
+
+# A frontmatter key: a property name at column zero, before its colon.
+# Anything indented belongs to a value, and a commented-out key is not
+# declared.
+KEY = re.compile(r'^["\']?([A-Za-z_][A-Za-z0-9_]*)["\']?[ \t]*:', re.MULTILINE)
+
+TYPE = re.compile(r"^type:[ \t]*(\S+)", re.MULTILINE)
+
+
+def frontmatter(path: pathlib.Path) -> str | None:
+    """Return the raw frontmatter text, or None if the file has none."""
+    text = path.read_text(encoding="utf-8")
+    if not text.startswith("---\n"):
+        return None
+    end = text.find("\n---", 4)
+    return text[4:end] if end != -1 else None
+
+
+def definition_name(declared: str) -> str:
+    """Return the schema definition a document type selects.
+
+    Derived from the type's own spelling rather than transcribed into a
+    table, so a type added to the vocabulary is covered here with no
+    second list to maintain.
+    """
+    return "".join(part.capitalize() for part in declared.split("-"))
+
+
+def main() -> int:
+    quiet = "--quiet" in sys.argv
+
+    bundle_path = ROOT / BUNDLE
+    if not bundle_path.exists():
+        print(f"error: {BUNDLE} is missing — run scripts/generate-schemas.sh",
+              file=sys.stderr)
+        return 1
+    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    definitions = bundle.get("definitions", {})
+    vocabulary = set(definitions.get(VOCABULARY, {}).get("enum", []))
+
+    errors: list[tuple[str, str]] = []
+    advisories: list[tuple[str, str]] = []
+    checked = 0
+
+    for path in sorted(ROOT.glob(SEARCH)):
+        rel = str(path.relative_to(ROOT))
+        checked += 1
+
+        if rel in NON_CORPUS:
+            continue
+
+        raw = frontmatter(path)
+        if raw is None:
+            errors.append((rel, "template/no-frontmatter: a template declares the "
+                                  "frontmatter every document authored from it carries"))
+            continue
+
+        match = TYPE.search(raw)
+        if match is None:
+            errors.append((rel, "template/no-type: no `type` property, so there is no "
+                                  "definition to check the property set against"))
+            continue
+
+        declared = match.group(1)
+        if declared not in vocabulary:
+            errors.append((rel, (
+                f"template/unknown-type: `{declared}` is not in the {VOCABULARY} "
+                f"vocabulary ({', '.join(sorted(vocabulary))}), so no schema governs "
+                "documents authored from this template"
+            )))
+            continue
+
+        defname = definition_name(declared)
+        definition = definitions.get(defname)
+        if definition is None:
+            errors.append((rel, (
+                f"template/no-definition: `{declared}` is in the {VOCABULARY} "
+                f"vocabulary but the bundle defines no {defname}"
+            )))
+            continue
+
+        keys = set(KEY.findall(raw))
+        required = set(definition.get("required", []))
+        known = set(definition.get("properties", {}))
+
+        for name in sorted(required - keys):
+            errors.append((rel, (
+                f"template/missing-required: `{name}` is required of every {declared}, "
+                "so a document authored from this template is born non-conforming"
+            )))
+        for name in sorted(keys - known):
+            errors.append((rel, (
+                f"template/unknown-property: `{name}` is not defined for {declared}, "
+                "so a document authored from this template carries a property no "
+                "schema governs"
+            )))
+        for name in sorted(known - keys):
+            advisories.append((rel, (
+                f"template/omitted-optional: `{name}` is an optional property for {declared}, "
+                "not included in this template (authors may legitimately omit rarely-used fields)"
+            )))
+
+    if checked < MIN_TEMPLATES:
+        errors.append(("scripts/check-template-drift.py", (
+            f"search/underpopulated: matched {checked} templates against a floor of "
+            f"{MIN_TEMPLATES}. Either the templates moved or SEARCH stopped matching. "
+            "Fix the pattern — do not lower the floor to make this pass."
+        )))
+
+    if not quiet:
+        for rel, message in errors:
+            print(f"error  {rel}: {message}")
+        for rel, message in advisories:
+            print(f"info   {rel}: {message}")
+        total_findings = len(errors) + len(advisories)
+        if total_findings:
+            print()
+        print(f"checked {checked} templates, {len(errors)} errors, {len(advisories)} advisories")
+
+    return 1 if errors else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

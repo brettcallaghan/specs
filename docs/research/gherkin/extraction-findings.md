@@ -1,6 +1,6 @@
 # Gherkin extraction: what the Go library gives us
 
-Research record behind [[adr-020]]. Everything here was measured against
+Research record behind [[adr-021]]. Everything here was measured against
 `github.com/cucumber/gherkin/go/v42` (v42.0.1) and
 `github.com/cucumber/messages/go/v34` (v34.2.0), both MIT.
 
@@ -95,7 +95,7 @@ Field provenance:
 
 **Note on `req`.** An early version of this record took `req` from
 `Rule.Name`, because the first trial mapped a requirement onto `Rule:`.
-[[adr-020]] constraint 1 corrects that: a requirement is a `Feature`,
+[[adr-021]] constraint 1 corrects that: a requirement is a `Feature`,
 and `Rule:` groups criteria under a genuine business rule. So `req` is
 `Feature.Name`, and a criterion may additionally sit under a `Rule`
 whose name is the rule it obeys. An extractor must walk **both** direct
@@ -225,7 +225,7 @@ block before the first tag or `Feature` line, stripping the `# ` prefix
 and parsing the remainder as YAML. The raw `---` form used by markdown
 documents is not available and must not be attempted.
 
-*What the framework did with this:* deferred it. [[adr-020]] makes a
+*What the framework did with this:* deferred it. [[adr-021]] makes a
 `.feature` file a feature source rather than a document — its owning
 document is the one its tag names — so it needs no metadata of its own.
 The measurement stands as a record that the mechanism exists if that
@@ -239,7 +239,7 @@ changes.
 syntax prohibits only whitespace, so the separator is a framework
 choice, not a Gherkin constraint.
 
-*What the framework did with this:* nothing. [[adr-020]] groups features
+*What the framework did with this:* nothing. [[adr-021]] groups features
 by a short code instead, because a framework slug admits only lowercase
 alphanumerics and hyphens — so a path-shaped slug would either not be a
 slug, or could not be split back into segments unambiguously. The
@@ -278,7 +278,7 @@ store or to external tooling (it resolves it).
 
 ## References
 
-- [[adr-020]] — the decision this record supports
+- [[adr-021]] — the decision this record supports
 - `cli/core/span` — the `Span` type gap 1 and gap 2 are reconciled against
 - `plugin/skills/spec/references/gherkin-guide.md` — what belongs in a
   `Feature` description and what silently breaks one

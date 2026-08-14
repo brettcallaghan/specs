@@ -1,0 +1,16 @@
+checked 0 documents
+
+docs:
+  corpus/empty  error  0:0  spec root "docs" holds no corpus members: the run checked zero documents
+
+checks:
+  corpus/empty  failed
+  frontmatter/missing-property  passed
+  frontmatter/parse  passed
+  frontmatter/schema  passed
+  reference/pairing-incomplete  passed
+  reference/retired-target  passed
+  reference/type-mismatch  passed
+  reference/unresolved  passed
+  slug/duplicate  passed
+  slug/pattern-mismatch  passed
