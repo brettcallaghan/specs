@@ -288,9 +288,15 @@ Binding constraints:
 8. The CLI SHALL be able to emit conforming `.feature` files from the
    extracted blocks, so publication to external tooling needs no second
    authoring format. One requirement yields one file.
-9. Extraction SHALL accept both notations while any FRD still carries
-   prose criteria, which the notation-agnostic constraint carried
-   forward from ADR-014 already requires.
+9. Extraction SHALL read Gherkin only. The FRDs still carrying prose
+   criteria SHALL be translated rather than read by a second extractor:
+   a compatibility reader is transitional machinery for a transition of
+   three documents, and it would outlive the transition in the model and
+   in every consumer of it. The extracted record SHALL still state the
+   notation it was written in, so the model stays notation-agnostic
+   where that costs one property rather than a parser. This narrows the
+   notation-agnostic constraint carried forward from ADR-014, which
+   assumed a compatibility window this corpus is too small to need.
 10. Every `Feature` SHALL carry an identifier composed of a prefix, a
     short uppercase group code and a number — `FEAT-GHK-001` — identifying
     it independently of the document that holds it. Features SHALL share

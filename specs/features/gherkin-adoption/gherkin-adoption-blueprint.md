@@ -47,8 +47,7 @@ component) → **DISC** (discovery, ownership and the index collection) →
 **PREG** (this framework's tag registrations) → **VTAG** (identity
 checks) → **VCON** (content and diagnostic checks) → **GREF**
 (references inside Gherkin) → **QRY** (feature and criterion queries) →
-**PROSE** (prose criterion extraction) → **EMIT** (feature file
-emission) → **CHG** (local change detection).
+**EMIT** (feature file emission) → **CHG** (local change detection).
 
 ## Element Deltas
 
@@ -476,45 +475,6 @@ container already has and add no latency budget of their own.
 `cli/core/corpus` (`Open`); `cli/testdata/cases/` and
 `scripts/regenerate-cli-snapshots.sh`.
 
-### Prose criterion extraction in [[module-document-core]] (added) — PROSE
-
-**Intent:** Migration proceeds one document at a time, so both notations
-have to be readable at once — otherwise adopting Gherkin in one FRD
-makes the other three invisible to every query this feature adds. A
-prose criterion yields the same record with a different `notation`, and
-the properties Gherkin fills and prose cannot are absent rather than
-empty.
-
-**Behavior:**
-
-- The component SHALL record, as a criterion with `notation: prose`,
-  each list item in a document body whose text begins with a bolded
-  identifier matching the registered criterion pattern followed by a
-  colon — the form `ac-traceability-standards.md` already fixes and the
-  three existing FRDs already use (AC-GHK-009.3).
-- A prose criterion's text SHALL be the item's text with the identifier
-  prefix removed, and its name SHALL be absent: prose gives a criterion
-  no name (AC-GHK-005.2).
-- The component SHALL attribute a prose criterion to the feature its own
-  identifier's code and number name.
-- The component SHALL synthesize that feature's record from the heading
-  line declaring it — a line whose text begins with the feature
-  identifier followed by a colon — taking the text after the colon as the
-  feature's name. The heading tree is not consulted, because Markdown
-  Structure's heading capability is not built and this feature does not
-  build it.
-- A prose criterion SHALL carry a content hash over its text on the same
-  terms as a Gherkin one, so change detection is one comparison across
-  both notations.
-- The component SHALL report no finding merely because a document uses
-  prose (AC-GHK-009.3). The identity checks in VTAG apply to a prose
-  criterion's identifier; the content checks in VCON, which are about
-  Gherkin constructs, do not.
-- Every criterion record SHALL state its notation (AC-GHK-009.4).
-
-**Anchors:** `cli/core/corpus`; the `goldmark` list walk already
-available in the module; the registered criterion pattern from PREG.
-
 ### Feature file emission in [[container-spec-cli]] (modified) — EMIT
 
 **Intent:** Emission is what makes the fenced form the default rather
@@ -626,10 +586,14 @@ sides of the comparison.
   first would compound a known regression underneath AC-GHK-007.6's
   answer-from-the-index requirement and make the cause harder to
   isolate.
-- `agent-plugins-a7u` — **out-of-scope**: "migrate acceptance criteria
-  in the three FRDs to Gherkin." [[frd-gherkin-adoption]] defers
-  migration explicitly, and PROSE is what makes deferring it safe. The
-  boundary: no delta here rewrites a criterion in an existing FRD.
+- `agent-plugins-a7u` — **out-of-scope** (sequenced follow-on):
+  "migrate acceptance criteria in the three FRDs to Gherkin." Nothing
+  here reads a prose criterion ([[adr-020]] constraint 9), so until that
+  bead lands, three of this corpus's four FRDs contribute no feature
+  records and a corpus-wide query under-reports. That is a translation
+  job, not a blocker on this feature, and it is named here so no later
+  agent re-derives a compatibility reader. The boundary: no delta here
+  rewrites a criterion in an existing FRD.
 - `agent-plugins-8rr` — **out-of-scope** (coordination): Strata regex
   literals cannot contain a forward slash, even escaped. Neither pattern
   in `feature.strata` contains one, which is why the file could be
@@ -680,8 +644,8 @@ sides of the comparison.
   - **Stage 2 — checks and queries:** VTAG, VCON, GREF, QRY. The checks
     report, the queries answer, and exit status becomes sensitive to
     Gherkin for the first time.
-  - **Stage 3 — coexistence and publication:** PROSE, EMIT, CHG. The
-    three deltas that no other delta depends on.
+  - **Stage 3 — publication:** EMIT and CHG, the two deltas no other
+    delta depends on.
 - The MODEL delta SHALL land before every other delta: all of them
   consume types it generates.
 - The XPT delta SHALL land before PREG, which populates the widened
@@ -731,8 +695,8 @@ Markdown Structure (fenced blocks); GHK = the Gherkin component; DISC =
 Corpus (discovery and records); PREG = tag registrations in
 [[module-spec-profile]]; VTAG = identity checks; VCON = content and
 diagnostic checks; GREF = References (Gherkin sources); QRY = Command
-Surface (queries); PROSE = prose criterion extraction; EMIT = Command
-Surface (emission); CHG = Command Surface (change detection).
+Surface (queries); EMIT = Command Surface (emission); CHG = Command
+Surface (change detection).
 
 | AC | Satisfied by | Verified by |
 |----|--------------|-------------|
@@ -765,7 +729,7 @@ Surface (emission); CHG = Command Surface (change detection).
 | AC-GHK-004.3 | **GREF (proves)** | case + unit |
 | AC-GHK-004.4 | **GREF (proves)** | unit |
 | AC-GHK-005.1 | **GHK (proves)**, MODEL, DISC | unit |
-| AC-GHK-005.2 | **GHK (proves)**, MODEL, PROSE | unit |
+| AC-GHK-005.2 | **GHK (proves)**, MODEL | unit |
 | AC-GHK-005.3 | **MODEL (proves)**, GHK | unit |
 | AC-GHK-005.4 | **MODEL (proves)**, GHK | unit |
 | AC-GHK-005.5 | **GHK (proves)**, MODEL | unit |
@@ -790,8 +754,7 @@ Surface (emission); CHG = Command Surface (change detection).
 | AC-GHK-008.3 | **CHG (proves)** | integration |
 | AC-GHK-009.1 | **EMIT (proves)**, GHK | integration |
 | AC-GHK-009.2 | **EMIT (proves)**, GHK | unit |
-| AC-GHK-009.3 | **PROSE (proves)**, DISC | unit |
-| AC-GHK-009.4 | **PROSE (proves)**, MODEL, GHK | unit |
+| AC-GHK-009.4 | **GHK (proves)**, MODEL | unit |
 
 AC-GHK-001.6 is `manual` because it states an authoring convention
 rather than a behavior of the CLI: a feature source sits beside the

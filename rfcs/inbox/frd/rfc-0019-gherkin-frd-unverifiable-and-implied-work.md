@@ -1,11 +1,11 @@
 ---
 title: "RFC: The Gherkin adoption FRD carries one criterion nothing can
   verify, one clause that implies a subsystem, and a warning it would
-  raise against all 56 of its own criteria"
-description: Make AC-GHK-001.6 a behavior or mark it manual, give prose
-  criterion extraction a requirement of its own, decide what an
-  owning-document tag that resolves to nothing does, and settle whether
-  the FRD warns about a tag its own guide calls optional
+  raise against every one of its own criteria"
+description: Decide what an owning-document tag that resolves to nothing
+  does, settle whether the FRD warns about a tag its own guide calls
+  optional, make AC-GHK-001.6 a behavior or mark it manual, and resolve a
+  note claiming another FRD must change
 slug: rfc-0019-gherkin-frd-unverifiable-and-implied-work
 type: rfc
 status: ready-for-review
@@ -26,13 +26,15 @@ plugin_version: "0.17.0"
 
 A feature blueprint was authored from [[frd-gherkin-adoption]] — the
 first document in this corpus to write its own acceptance criteria in
-Gherkin, and by some distance the most thorough FRD here: 56 criteria,
-nine requirements, a rationale under four of them. It still left the
-blueprint deciding five things no criterion states, and one of those
-decisions — how a prose criterion is recognised and attributed — is a
-whole delta of work implied by the second clause of a single criterion.
-The proposals below close the gaps at their source rather than in the
-blueprint, where they die when the blueprint retires.
+Gherkin, and by some distance the most thorough FRD here: 56 criteria
+at the time, nine requirements, a rationale under four of them. It still
+left the blueprint deciding five things no criterion states. The largest
+— how a prose criterion is recognised and attributed — was a delta of
+work implied by the second clause of one criterion, and review answered
+it by withdrawing the capability rather than specifying it (see
+Considered and Not Proposed, and the criterion count is 55 since). The
+four proposals below close the remaining gaps at their source rather
+than in the blueprint, where they die when the blueprint retires.
 
 ## Provenance
 
@@ -49,6 +51,10 @@ blueprint, where they die when the blueprint retires.
 | Session date | 2026-08-14 |
 
 ## Evidence
+
+Line numbers below are against the revision observed, commit `ee3e332`.
+The FRD was edited during the same review that produced this RFC, so a
+verifier should search for the quoted text rather than trust an offset.
 
 1. **AC-GHK-001.6 could not be assigned a verification level, because
    it describes no behavior of the CLI.** It reads, at
@@ -78,7 +84,10 @@ blueprint, where they die when the blueprint retires.
    a criterion no name), and how it finds its feature (its identifier's
    code and number, with the feature record synthesized from the
    heading line, because Markdown Structure's heading tree is not
-   built). None is inferable from the clause.
+   built). None is inferable from the clause. Reviewed on PR #13 after
+   this RFC was drafted, the capability was withdrawn outright — the
+   remaining FRDs are translated instead — which is the resolution
+   recorded under Considered and Not Proposed.
 
 3. **An owning-document tag that resolves to nothing has no criterion.**
    AC-GHK-001.2 requires, at line 130: "`And the CLI attributes its
@@ -91,7 +100,7 @@ blueprint, where they die when the blueprint retires.
    emitting a feature attributed to a document that does not exist.
 
 4. **The FRD specifies a warning it would raise against every one of
-   its own 56 criteria.** AC-GHK-006.6 declares, at line 577:
+   its own criteria.** AC-GHK-006.6 declares, at line 577:
    `| a criterion carrying no verification level    | warning  |`,
    while `plugin/skills/spec/references/gherkin-guide.md:132` records
    the same tag as
@@ -100,7 +109,7 @@ blueprint, where they die when the blueprint retires.
    tag — the only two occurrences of the string in the document are the
    out-of-scope note at line 41 and the vocabulary table at line 210.
    The document that defines the check is the document the check fires
-   56 times against, and the guide calls the tag optional.
+   55 times against, and the guide calls the tag optional.
 
 5. **A note asserts an obligation on another FRD that the design does
    not discharge, and nothing tracks it.** At line 164: "`*Note:*
@@ -114,29 +123,7 @@ blueprint, where they die when the blueprint retires.
 
 ## Proposals
 
-### P1 — Give prose criterion extraction a requirement of its own
-
-**Problem.** AC-GHK-009.3's second clause ("`Then the CLI records
-criteria from both notations`", line 725) is the only requirement text
-covering a capability that reads a second notation out of markdown. A
-criterion of a coexistence requirement is not where a parser is
-specified, and the three decisions listed in finding 2 had to be made
-by the blueprint's author with nothing to constrain them.
-
-**Change.** Add FEAT-GHK-010, *Prose Criterion Extraction*, carrying
-criteria for: which markdown form the CLI recognises as a prose
-criterion; that a prose criterion has no name; that it is attributed to
-the feature its identifier's code and number name; and that it carries
-a content hash on the same terms as a Gherkin criterion so change
-detection spans both notations. Leave AC-GHK-009.3 as the coexistence
-statement it is — no finding merely because a document uses prose — and
-cross-reference the new requirement from it.
-
-**Evidence.** Finding 2. The next author derives the PROSE delta from
-requirement text instead of inventing it, and the three decisions
-become reviewable before the blueprint rather than inside it.
-
-### P2 — Decide what an owning-document tag that resolves to nothing does
+### P1 — Decide what an owning-document tag that resolves to nothing does
 
 **Problem.** No text exists where this rule should live. FEAT-GHK-002
 covers the tag's presence, its uniqueness and its agreement with the
@@ -157,18 +144,18 @@ that retires with the blueprint, and the second clause pins the part
 that matters most — a feature is not indexed against a document that
 does not exist.
 
-### P3 — Settle whether a verification level is optional or warned about
+### P2 — Settle whether a verification level is optional or warned about
 
 **Problem.** `gherkin-adoption-frd.md:577` makes an absent level a
 `warning`; `gherkin-guide.md:132` calls the tag `optional`. Both are
-current, and the FRD would raise 56 warnings against itself on the day
-the check ships.
+current, and the FRD would raise one warning per criterion against
+itself on the day the check ships.
 
 **Change.** Pick one and make both documents say it. The recommended
 resolution is to keep the warning and tag the FRD's own criteria,
 because the level is what [[testing-standards]] and the blueprint's AC
 Coverage table both consume — in which case `gherkin-guide.md`'s tag
-table changes `optional` to `yes, on every criterion` and the FRD's 56
+table changes `optional` to `yes, on every criterion` and the FRD's own
 criteria gain `@level-*` tags. The alternative — drop the row from
 AC-GHK-006.6's severity table — is cheaper and loses the only machine
 signal that a criterion was never assigned a verification level.
@@ -176,7 +163,7 @@ signal that a criterion was never assigned a verification level.
 **Evidence.** Finding 4. Whichever way it resolves, the first corpus
 the check runs against stops being a counterexample to it.
 
-### P4 — Make AC-GHK-001.6 a behavior, or mark it manual
+### P3 — Make AC-GHK-001.6 a behavior, or mark it manual
 
 **Problem.** AC-GHK-001.6 (lines 150-154, quoted in finding 1) states
 where a human puts a file. An acceptance criterion is a claim about the
@@ -204,7 +191,7 @@ needed a paragraph of justification, and the manual-level reconciliation
 that `rfc-self-readiness-checklist-frontmatter-and-manual-acs` P2
 proposes becomes checkable on this feature.
 
-### P5 — Resolve the note that claims another FRD must change
+### P4 — Resolve the note that claims another FRD must change
 
 **Problem.** Line 164 states "`AC-GHK-001.2 requires a change to
 [[frd-spec-validation-cli]]`" and the blueprint changes that document
@@ -223,6 +210,19 @@ gains and file the bead.
 
 ## Considered and Not Proposed
 
+- **Giving prose criterion extraction a requirement of its own.** This
+  RFC's original P1 proposed a FEAT-GHK-010 specifying which markdown
+  form is a prose criterion, that it has no name, how it is attributed
+  to a feature, and that it carries a content hash. Review rejected the
+  premise rather than the wording: a compatibility reader is
+  transitional machinery for a transition of three documents, and
+  translating them costs less than a second extractor that would outlive
+  the transition in the model and in every consumer of it. [[adr-020]]
+  constraint 9 now narrows extraction to Gherkin only, AC-GHK-009.3 is
+  withdrawn, and `agent-plugins-a7u` carries the translation. Finding 2
+  still stands and its lesson is the general one: an eight-word clause
+  of a coexistence criterion implied a subsystem, and nothing caught it
+  until a blueprint costed it.
 - **Requiring FEAT-GHK-007 to name the command surface.** The FRD says
   "a query names a feature identifier" and never `spec feature`, which
   left the blueprint to invent the whole subcommand surface and its
@@ -250,34 +250,33 @@ gains and file the bead.
   fourteen constraints. Every proposal here adds or repairs requirement
   text within the shape those already fix.
 - No weakening of a downstream check to make authoring easier. P3 may
-  resolve toward tagging 56 criteria rather than dropping a warning,
+  resolve toward tagging every criterion rather than dropping a warning,
   and that is the direction preferred.
 - No renumbering of existing criteria, so every citation already
   written stays valid.
 
 ## Adoption
 
-P1 through P5 are independently adoptable and touch one document each
-except P3, which changes [[frd-gherkin-adoption]] and
+P1 through P4 are independently adoptable and touch one document each
+except P2, which changes [[frd-gherkin-adoption]] and
 `plugin/skills/spec/references/gherkin-guide.md` together and must land
 as one change.
 
 All five are backward compatible in the sense that matters here: every
 existing criterion identifier keeps its meaning, and no document
-currently conforming stops conforming. P1 adds a requirement rather
-than altering one. P2 adds a criterion. P3, resolved as recommended,
-adds a tag to 56 criteria — a mechanical edit with no identifier
-churn — and changes one table row in the guide. P4 rewrites one
-criterion's body while keeping its identifier, so the one citation to
-it (this feature's blueprint) stays valid and needs its coverage row's
-level changed from `manual` to `unit`. P5 rewrites one prose note.
+currently conforming stops conforming. P1 adds a criterion. P2,
+resolved as recommended, adds a tag to each of the FRD's criteria — a
+mechanical edit with no identifier churn — and changes one table row in
+the guide. P3 rewrites one criterion's body while keeping its
+identifier, so the one citation to it (this feature's blueprint) stays
+valid and needs its coverage row's level changed from `manual` to
+`unit`. P4 rewrites one prose note.
 
 [[feature-gherkin-adoption]] is `ready-for-review` and not yet groomed,
-so adopting P1, P2 and P4 before approval costs one blueprint revision
-rather than a re-groom: P1 adds a delta whose design the blueprint
-already carries, P2 adds a criterion the blueprint already implements,
-and P4 changes one coverage row. Adopting them after grooming costs the
-work orders derived from those deltas as well.
+so adopting P1 and P3 before approval costs one blueprint revision
+rather than a re-groom: P1 adds a criterion the blueprint already
+implements, and P3 changes one coverage row. Adopting them after
+grooming costs the work orders derived from them as well.
 
 The expected effect is that the next feature blueprint authored from
 this FRD makes no design decision the FRD leaves open, and that the

@@ -76,10 +76,13 @@ enum VerificationLevel {
 The notation a criterion was written in.
 
 Recorded on every criterion rather than assumed for the corpus, because
-the criterion notation is a replaceable input: prose criteria and Gherkin
-criteria coexist for as long as any document still carries the former,
-and a consumer that must treat them differently should branch on a value
-rather than on which properties happen to be populated.
+the notation is a replaceable input and a consumer should branch on a
+stated value rather than on which properties happen to be populated.
+
+This framework's extractor emits `gherkin` only — nothing reads a prose
+criterion. The second value is what keeps the property meaningful: a
+one-value enum states nothing, and a record that came from a migration
+snapshot or another producer needs somewhere to say so.
 """
 enum CriterionNotation {
   """A Gherkin scenario, scenario outline, or tagged examples block."""

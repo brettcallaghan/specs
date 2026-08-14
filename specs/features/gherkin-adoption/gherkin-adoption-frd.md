@@ -41,8 +41,15 @@ chose a parsed notation over prose.
   adopted, and the `@level-*` tag records intent rather than driving
   execution.
 - **Migrating existing criteria.** Rewriting the prose criteria in the
-  three existing FRDs is separate work. This feature makes both
-  notations readable so that migration can happen incrementally.
+  three existing FRDs is separate work, tracked on its own. It is a
+  translation, not a compatibility problem: extraction reads Gherkin
+  only ([[adr-020]] constraint 9), so until a document is translated it
+  contributes no feature records rather than being read a second way.
+- **Reading prose criteria.** No extractor recognises a prose
+  criterion. An earlier revision required one, and it was withdrawn:
+  a second reader is transitional machinery for a transition of three
+  documents, and it would outlive the transition in the model and in
+  every consumer.
 - **Judging criterion quality.** Whether a criterion is atomic,
   testable, or well-phrased stays with a reviewing agent. This feature
   reports structural defects only.
@@ -687,13 +694,13 @@ Feature: Local Change Detection
       | absent now, present before     | removed        |
 ```
 
-### FEAT-GHK-009: Publication and Coexistence
+### FEAT-GHK-009: Publication
 
 **Acceptance Criteria:**
 
 ```gherkin
 @FEAT-GHK-009
-Feature: Publication and Coexistence
+Feature: Publication
 
   As an organization publishing specifications outward
   I want conforming feature files emitted from whatever form the source took
@@ -702,9 +709,9 @@ Feature: Publication and Coexistence
   Emission is what makes the fenced form the default rather than a
   compromise: a feature authored inside an FRD is still publishable.
 
-  Coexistence matters for as long as any document still carries prose
-  criteria. Extraction accepts both notations so migration can proceed
-  one document at a time.
+  Extraction reads Gherkin only. The documents still carrying prose
+  criteria are translated rather than read by a second extractor, so
+  nothing here is a compatibility mode ([[adr-020]] constraint 9).
 
   @AC-GHK-009.1
   Scenario: A conforming feature file is emitted for a feature
@@ -717,13 +724,6 @@ Feature: Publication and Coexistence
     Given an emitted feature file
     When the CLI parses it
     Then the extracted records equal those extracted from the source, except for their source location
-
-  @AC-GHK-009.3
-  Scenario: Prose criteria remain readable while migration proceeds
-    Given a corpus containing both Gherkin criteria and prose criteria
-    When the CLI builds the index
-    Then the CLI records criteria from both notations
-    And the CLI reports no finding merely because a document uses prose
 
   @AC-GHK-009.4
   Scenario: The notation of a record is stated
