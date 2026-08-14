@@ -16,10 +16,8 @@ does not change when the feature moves between documents or between the
 two admissible forms, and it is what every acceptance-criterion identifier
 beneath the feature is derived from.
 
-The prefix is `REQ` in the corpus today. Whether it becomes `FEAT` — a
-feature is what a requirement maps onto, so the latter reads truer — is an
-open question in the adoption FRD, and the pattern admits either rather
-than presuming the answer.
+The pattern admits any uppercase prefix rather than fixing `FEAT`, so that
+a project adopting the framework can carry its own.
 """
 alias FeatureId: String ~= /^[A-Z]+-[A-Z0-9]+-[0-9]{3}$/
 
@@ -123,8 +121,8 @@ Which admissible form a feature was written in.
 The distinction survives into the index because it changes what a
 consumer may do. A fenced block sits inside a document that owns
 frontmatter, terminology and references, and rewriting it means editing a
-region of markdown. A standalone file carries its own metadata in a
-comment header and is the form external tooling ingests directly.
+region of markdown. A standalone file has no such document around it and
+is the form external tooling ingests directly.
 """
 @discriminator("form")
 union FeatureSource {
@@ -271,12 +269,13 @@ struct Feature {
   code: FeatureCode
 
   """
-  The slug of the document that owns this feature, from the tag that
-  declares it.
+  The slug of the document that owns this feature.
 
-  Ownership is stated rather than derived from the containing file,
-  because a standalone feature file is not the document that owns it, and
-  a feature must name its owner in either form.
+  Populated for both source forms, but established differently: a fenced
+  block inherits the slug of the document it is written in, and a
+  standalone feature file — being no document — names its owner in a tag.
+  Derivation is preferred wherever it is available, so that the record
+  cannot disagree with the document holding it.
   """
   document_slug: Slug
 

@@ -34,7 +34,7 @@ This guide is what to write. Read it before authoring a feature.
 
 | Concept | Gherkin |
 |---|---|
-| The document | frontmatter, and a `@frd-<slug>` tag on each `Feature` |
+| The document | its own frontmatter — a fenced block inherits it |
 | A feature's identity | a `@<PREFIX>-<CODE>-<nnn>` tag on the `Feature` |
 | A requirement / feature | `Feature:` |
 | Its user story | the `Feature` description |
@@ -69,7 +69,7 @@ terminology, references, document frontmatter.
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-checkout @FEAT-CHK-003
+@FEAT-CHK-003
 Feature: Payment Confirmation
 
   As a customer
@@ -90,7 +90,8 @@ external tooling.
 
 A feature file carries **no frontmatter**. It is a feature source, not a
 document: its owning document is the one its `@frd-<slug>` tag names, and
-its metadata is that document's.
+its metadata is that document's. This is the one place that tag is
+written — a fenced block sits inside its owning document already.
 
 ```gherkin
 @frd-checkout @FEAT-CHK-003
@@ -123,16 +124,21 @@ severity, and this one fails a run.
 
 | Tag | Where | Required |
 |---|---|---|
-| `@frd-<slug>` | on the `Feature` | yes — identifies the owning document |
 | `@<PREFIX>-<CODE>-<nnn>` | on the `Feature` | yes — the feature's identifier |
+| `@frd-<slug>` | on the `Feature`, in a `.feature` file only | yes there — names the owning document |
 | `@AC-<CODE>-<nnn>.<n>` | on each `Scenario` | yes — one per criterion, deriving its code and number from the feature |
 | `@negative` | on a prohibition | yes, where the criterion forbids |
 | `@manual` | on a hand-verified criterion | yes, where it applies |
 | `@level-<unit\|integration\|e2e>` | on a `Scenario` | optional |
 
-A `Feature` therefore carries two tags: the document that owns it and its
-own identifier. A `Scenario` carries one identifier plus whatever
-qualifiers apply.
+A `Feature` in a fenced block therefore carries one tag: its identifier.
+Ownership is not written down, because the block is inside the document
+that owns it and the CLI reads the slug from that document's
+frontmatter. A tag would restate it, and could come to disagree with it —
+writing one that names a different document is an error. Only a
+standalone file, having no document around it, names its owner.
+
+A `Scenario` carries one identifier plus whatever qualifiers apply.
 
 **Features share a code; a code and a number together identify one.**
 `SPEC` covers eleven requirements of the spec-index feature. That is what
@@ -198,7 +204,7 @@ required; the others are included when they have something to say.
    behaviour it must *not* have.
 
 ```gherkin
-@frd-spec-validation-cli @FEAT-SPEC-001
+@FEAT-SPEC-001
 Feature: Corpus Discovery and Membership
 
   As an adopting team

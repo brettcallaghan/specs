@@ -303,9 +303,13 @@ Binding constraints:
     unambiguously.
 11. A standalone `.feature` file SHALL be a feature source rather than a
     document: it carries no frontmatter, and its owning document is the
-    one its tag names. Corpus membership admits only `.md` files
-    (AC-SPEC-001.6) and continues to; feature sources are discovered
-    separately rather than admitted as members.
+    one its `@frd-<slug>` tag names. Corpus membership admits only `.md`
+    files (AC-SPEC-001.6) and continues to; feature sources are
+    discovered separately rather than admitted as members. A feature
+    written as a fenced block SHALL NOT carry that tag: the block is
+    written inside the document that owns it, whose frontmatter already
+    declares the slug, so the tag would restate a fact the CLI derives
+    and could come to contradict it.
 14. A wikilink written anywhere inside a Gherkin source SHALL be recorded
     as a reference. Gherkin treats `[[slug]]` as ordinary text in every
     position — description, scenario name, step, rule name, examples cell

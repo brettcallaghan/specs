@@ -46,6 +46,11 @@ chose a parsed notation over prose.
 - **Judging criterion quality.** Whether a criterion is atomic,
   testable, or well-phrased stays with a reviewing agent. This feature
   reports structural defects only.
+- **Metadata on a standalone `.feature` file.** A feature file carries
+  none: it is a feature source, and its metadata is its owning
+  document's. Whether it should ever be a document in its own right,
+  with a status and an `updated_at`, is a later question — nothing here
+  depends on the answer.
 - **Rendering or diagram generation** from feature records.
 - **Test-to-criterion coverage reconciliation.** Enumerating criteria is
   the prerequisite and is delivered here; comparing them against test
@@ -57,8 +62,8 @@ chose a parsed notation over prose.
   either a fenced ` ```gherkin ` block inside a markdown document, or a
   standalone `.feature` file.
 - **Feature record** — the extracted representation of one Gherkin
-  `Feature`: its slug, name, description, owning document, source span,
-  and the criteria beneath it.
+  `Feature`: its identifier, name, description, owning document, source
+  span, and the criteria beneath it.
 - **Criterion record** — the extracted representation of one acceptance
   criterion: a `Scenario`, a `Scenario Outline`, or one tagged
   `Examples` block of an outline.
@@ -68,7 +73,10 @@ chose a parsed notation over prose.
   detect that a criterion changed rather than moved.
 - **Feature source** — a `.feature` file, which holds features but is not
   itself a document: it carries no frontmatter, and its owning document
-  is the one its tag names.
+  is the one its `@frd-<slug>` tag names.
+- **Owning document** — the document a feature belongs to. For a fenced
+  block it is the document the block is written in; a feature file, being
+  no document, names its owner with a tag.
 - **Feature code** — the short uppercase code that groups features by
   topic, domain or capability. Features share a code; a code and a number
   together identify one.
@@ -82,7 +90,7 @@ chose a parsed notation over prose.
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption @FEAT-GHK-001
+@FEAT-GHK-001
 Feature: Admissible Gherkin Sources
 
   As an authoring team
@@ -100,8 +108,11 @@ Feature: Admissible Gherkin Sources
 
   A standalone file carries no frontmatter. It is a feature source rather
   than a document: its owning document is the one its tag names, and its
-  metadata is that document's. Whether such a file should ever carry
-  metadata of its own is deferred.
+  metadata is that document's.
+
+  Ownership is derived wherever it can be. A fenced block is written
+  inside the document that owns it, so nothing needs to be declared; only
+  a feature file, having no document around it, names its owner.
 
   Executing scenarios is out of scope; these are specification records.
 
@@ -141,6 +152,13 @@ Feature: Admissible Gherkin Sources
     Given a feature owned by an FRD with the slug frd-checkout
     When that feature is written as a standalone file
     Then the file sits in the same directory as the FRD that owns it
+
+  @AC-GHK-001.7
+  Scenario: A fenced block is owned by the document it is written in
+    Given a fenced gherkin block in a document whose frontmatter declares a slug
+    When the CLI extracts the features in that block
+    Then the CLI attributes them to that document
+    And the CLI requires no tag on them to say so
 ```
 
 *Note:* AC-GHK-001.2 requires a change to [[frd-spec-validation-cli]],
@@ -155,7 +173,7 @@ membership.
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption @FEAT-GHK-002
+@FEAT-GHK-002
 Feature: Tag Vocabulary
 
   As an agent addressing a feature or a criterion
@@ -177,8 +195,8 @@ Feature: Tag Vocabulary
     Then the CLI reads "<tag>" on a "<element>" as "<meaning>"
 
     Examples: document ownership
-      | tag              | element  | meaning                            |
-      | @frd-<slug>      | Feature  | the document that owns the feature |
+      | tag         | element                               | meaning                            |
+      | @frd-<slug> | Feature in a standalone .feature file | the document that owns the feature |
 
     Examples: identity
       | tag                  | element  | meaning                        |
@@ -192,10 +210,22 @@ Feature: Tag Vocabulary
       | @level-*   | Scenario | the intended verification level      |
 
   @AC-GHK-002.2
-  Scenario: Every feature carries an owning-document tag and an identifier tag
+  Scenario: Every feature carries an identifier tag
     Given a Feature in any Gherkin source
     When the CLI validates it
-    Then the CLI requires exactly one owning-document tag and exactly one feature identifier tag
+    Then the CLI requires exactly one feature identifier tag
+
+  @AC-GHK-002.10
+  Scenario: A feature in a standalone file names its owning document
+    Given a Feature in a standalone .feature file
+    When the CLI validates it
+    Then the CLI requires exactly one owning-document tag
+
+  @AC-GHK-002.11 @negative
+  Scenario: An owning-document tag in a fenced block may not contradict its document
+    Given a Feature in a fenced block carrying an owning-document tag that names another document
+    When the CLI validates it
+    Then the CLI reports a finding naming both documents
 
   @AC-GHK-002.3
   Scenario Outline: An acceptance criterion identifier is well formed
@@ -264,7 +294,7 @@ it.
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption @FEAT-GHK-003
+@FEAT-GHK-003
 Feature: Feature Identity and Grouping
 
   As an architecture owner
@@ -332,7 +362,7 @@ to keep in step.
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption @FEAT-GHK-004
+@FEAT-GHK-004
 Feature: References Inside Gherkin
 
   As a reviewer relying on reference integrity
@@ -389,7 +419,7 @@ that [[frd-spec-reference-integrity]] does not define.
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption @FEAT-GHK-005
+@FEAT-GHK-005
 Feature: Feature and Criterion Records
 
   As a consumer of the index
@@ -418,7 +448,7 @@ Feature: Feature and Criterion Records
   @AC-GHK-005.1
   Scenario: A feature record carries its identity, prose and provenance
     When the CLI extracts a feature
-    Then the record carries its code, its slug, its owning document, its name, its description, its source form and its span
+    Then the record carries its identifier, its code, its owning document, its name, its description, its source form and its span
 
   @AC-GHK-005.2
   Scenario: A criterion record carries its identity, its text and its provenance
@@ -474,7 +504,7 @@ needs it; withdrawing it later could not be.
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption @FEAT-GHK-006
+@FEAT-GHK-006
 Feature: Validation and Diagnostics
 
   As an authoring agent
@@ -558,7 +588,7 @@ Feature: Validation and Diagnostics
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption @FEAT-GHK-007
+@FEAT-GHK-007
 Feature: Queries by Tag
 
   As an agent working a single unit of work
@@ -618,7 +648,7 @@ restating a latency budget this feature does not own.
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption @FEAT-GHK-008
+@FEAT-GHK-008
 Feature: Local Change Detection
 
   As a reviewer or an agent preparing a change
@@ -662,7 +692,7 @@ Feature: Local Change Detection
 **Acceptance Criteria:**
 
 ```gherkin
-@frd-gherkin-adoption @FEAT-GHK-009
+@FEAT-GHK-009
 Feature: Publication and Coexistence
 
   As an organization publishing specifications outward
@@ -701,26 +731,17 @@ Feature: Publication and Coexistence
     Then the record states which notation it was written in
 ```
 
-## Open Questions
-
-- **Should a standalone `.feature` file be able to carry metadata of its
-  own?** It carries none today: it is a feature source whose owning
-  document is the one its tag names. A `#`-comment header is the only
-  form Gherkin admits, and it parses — but whether a feature file should
-  ever be a document in its own right, with a status and an
-  `updated_at`, is undecided and nothing here depends on it.
-
 ## References
 
-- [[adr-020]] — the decision this feature implements, and the thirteen
+- [[adr-020]] — the decision this feature implements, and the fourteen
   constraints its requirements realize
 - [[adr-002]] — EARS, which continues to govern every normative
   statement that is not a feature or an acceptance criterion
 - [[frd-spec-validation-cli]] — the index, the finding record, the warm
-  index these queries answer from, and AC-SPEC-001.6, which FEAT-GHK-001
-  amends
-- [[frd-spec-reference-integrity]] — the reference extraction whose
-  treatment of wikilinks inside Gherkin is an open question above
+  index these queries answer from, and AC-SPEC-001.6, whose `.md`-only
+  corpus membership FEAT-GHK-001 leaves standing
+- [[frd-spec-reference-integrity]] — the reference extraction that
+  FEAT-GHK-004 extends over Gherkin sources
 - `schemas/feature.strata` — the `Feature` and `Criterion` record shapes
   FEAT-GHK-005 specifies, and the `features` collection they occupy on
   `SpecIndex`. The Strata definition is the contract; the JSON Schema, Go
