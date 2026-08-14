@@ -58,6 +58,11 @@ const (
 	// RuleLinkMapMissingPath covers a link-map record that declares no
 	// path property.
 	RuleLinkMapMissingPath specmodel.RuleId = "linkmap/missing-path"
+	// RuleDocumentUnreadable covers the `links` operand itself failing to
+	// open — a mistyped path, a permissions error — distinct from
+	// [finding.RuleFrontmatterParse], which covers a document that opened
+	// but whose frontmatter block did not parse.
+	RuleDocumentUnreadable specmodel.RuleId = "document/unreadable"
 )
 
 // rootPointer is what an empty JSON Pointer renders as in a message, so a
@@ -244,6 +249,27 @@ func linkMapUnparseable(path string, src []byte, err error) specmodel.Finding {
 		Detail: specmodel.NewFindingDetailSchemaViolation(specmodel.FindingSchemaViolation{
 			Pointer:    "",
 			Constraint: "yaml-syntax",
+			Value:      err.Error(),
+		}),
+	}
+}
+
+// documentUnreadable reports the `links` operand itself failing to open,
+// per the delta's Behavior ("IF the named document cannot be read... the
+// links subcommand SHALL report an error finding and write no rewritten
+// document"). There is no source to derive a span from, so the finding
+// carries the position an empty file would — the same fallback
+// [linkMapUnreadable] uses for its own no-source case.
+func documentUnreadable(path string, err error) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleDocumentUnreadable,
+		Severity: finding.SeverityError,
+		Path:     path,
+		Position: wholeFile(nil),
+		Message:  fmt.Sprintf("cannot be read: %s", err),
+		Detail: specmodel.NewFindingDetailSchemaViolation(specmodel.FindingSchemaViolation{
+			Pointer:    "",
+			Constraint: "readable",
 			Value:      err.Error(),
 		}),
 	}
