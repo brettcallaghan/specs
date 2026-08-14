@@ -1,6 +1,0 @@
-[workspace]
-name = "acme"
-root = "docs"
-
-[profile]
-name = "spec-driven-dev"

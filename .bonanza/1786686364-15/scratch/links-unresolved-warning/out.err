@@ -1,6 +1,0 @@
-docs/adrs/adr-800-current.md:
-  links/unresolved  warning  12:23  [[adr-999-absent]] matches no corpus document
-
-checks:
-  links/unresolved  failed
-0 link(s) rewritten
