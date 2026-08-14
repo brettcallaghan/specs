@@ -12,6 +12,7 @@ What it reports, and only this:
   * a property the type's definition requires that the template omits
   * a property the template declares that the definition does not define
   * a declared `type` outside the DocumentType vocabulary
+  * an optional property the schema defines that the template omits (advisory only)
 
 Templates ship inside the plugin, so a drifted one is a defect
 distributed to every adopting repository, authored into every document
@@ -23,8 +24,13 @@ Template frontmatter is not required to be valid YAML and several blocks
 are not — a placeholder such as `<one line: what drove the choice>` puts
 a bare `:` in a value — so keys are read from the source text.
 
+Exit status: returns 1 if any error-level findings (missing-required,
+unknown-property, unknown-type, no-definition, no-frontmatter, no-type,
+underpopulated). Advisory findings (omitted-optional) do not affect exit
+status and are reported separately.
+
 Usage:
-  scripts/check-template-drift.py            # report findings, exit 1 on any
+  scripts/check-template-drift.py            # report findings, exit 1 on errors only
   scripts/check-template-drift.py --quiet    # exit status only
 """
 from __future__ import annotations
@@ -108,7 +114,8 @@ def main() -> int:
     definitions = bundle.get("definitions", {})
     vocabulary = set(definitions.get(VOCABULARY, {}).get("enum", []))
 
-    findings: list[tuple[str, str]] = []
+    errors: list[tuple[str, str]] = []
+    advisories: list[tuple[str, str]] = []
     checked = 0
 
     for path in sorted(ROOT.glob(SEARCH)):
@@ -120,19 +127,19 @@ def main() -> int:
 
         raw = frontmatter(path)
         if raw is None:
-            findings.append((rel, "template/no-frontmatter: a template declares the "
+            errors.append((rel, "template/no-frontmatter: a template declares the "
                                   "frontmatter every document authored from it carries"))
             continue
 
         match = TYPE.search(raw)
         if match is None:
-            findings.append((rel, "template/no-type: no `type` property, so there is no "
+            errors.append((rel, "template/no-type: no `type` property, so there is no "
                                   "definition to check the property set against"))
             continue
 
         declared = match.group(1)
         if declared not in vocabulary:
-            findings.append((rel, (
+            errors.append((rel, (
                 f"template/unknown-type: `{declared}` is not in the {VOCABULARY} "
                 f"vocabulary ({', '.join(sorted(vocabulary))}), so no schema governs "
                 "documents authored from this template"
@@ -142,7 +149,7 @@ def main() -> int:
         defname = definition_name(declared)
         definition = definitions.get(defname)
         if definition is None:
-            findings.append((rel, (
+            errors.append((rel, (
                 f"template/no-definition: `{declared}` is in the {VOCABULARY} "
                 f"vocabulary but the bundle defines no {defname}"
             )))
@@ -153,32 +160,40 @@ def main() -> int:
         known = set(definition.get("properties", {}))
 
         for name in sorted(required - keys):
-            findings.append((rel, (
+            errors.append((rel, (
                 f"template/missing-required: `{name}` is required of every {declared}, "
                 "so a document authored from this template is born non-conforming"
             )))
         for name in sorted(keys - known):
-            findings.append((rel, (
+            errors.append((rel, (
                 f"template/unknown-property: `{name}` is not defined for {declared}, "
                 "so a document authored from this template carries a property no "
                 "schema governs"
             )))
+        for name in sorted(known - keys):
+            advisories.append((rel, (
+                f"template/omitted-optional: `{name}` is an optional property for {declared}, "
+                "not included in this template (authors may legitimately omit rarely-used fields)"
+            )))
 
     if checked < MIN_TEMPLATES:
-        findings.append(("scripts/check-template-drift.py", (
+        errors.append(("scripts/check-template-drift.py", (
             f"search/underpopulated: matched {checked} templates against a floor of "
             f"{MIN_TEMPLATES}. Either the templates moved or SEARCH stopped matching. "
             "Fix the pattern — do not lower the floor to make this pass."
         )))
 
     if not quiet:
-        for rel, message in findings:
+        for rel, message in errors:
             print(f"error  {rel}: {message}")
-        if findings:
+        for rel, message in advisories:
+            print(f"info   {rel}: {message}")
+        total_findings = len(errors) + len(advisories)
+        if total_findings:
             print()
-        print(f"checked {checked} templates, {len(findings)} findings")
+        print(f"checked {checked} templates, {len(errors)} errors, {len(advisories)} advisories")
 
-    return 1 if findings else 0
+    return 1 if errors else 0
 
 
 if __name__ == "__main__":
