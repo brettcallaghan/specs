@@ -128,7 +128,8 @@ if command -v bd >/dev/null 2>&1; then
   # from wherever the agent happens to run it:
   #
   #   1. A credential helper that reads the PAT from the environment at call
-  #      time. The token is never written to disk.
+  #      time. The token is never written to disk. It is registered under a
+  #      URL-scoped key, never the bare `credential.helper` — see below.
   #   2. Proxy bypass for github.com. The egress proxy REPLACES the
   #      Authorization header with a brokered GitHub App installation token,
   #      which is scoped to refs/heads and returns 403 on refs/dolt/*. This was
@@ -143,23 +144,57 @@ if command -v bd >/dev/null 2>&1; then
   # a credential. See docs/session-bootstrap.md.
   BB_DOLT_FATAL=""
   BB_STRATA_FATAL="${BB_STRATA_FATAL:-}"
+  # The helper body is guarded exactly like STRATA_CRED_HELPER further down.
+  # `[ "$1" = get ]` because git invokes a helper for get, store and erase, and
+  # only get wants an answer; the token test because an unset token would
+  # otherwise emit `password=` and authenticate as the empty string instead of
+  # declining. One printf rather than two echos: echo with a backslash in the
+  # value is implementation-defined in sh.
+  DOLT_CRED_HELPER='!f() { [ "$1" = get ] || exit 0; [ -n "${AGENT_PLUGINS_ACCESS_TOKEN:-}" ] || exit 0; printf "username=x-access-token\npassword=%s\n" "$AGENT_PLUGINS_ACCESS_TOKEN"; }; f'
+
   if [ -z "${AGENT_PLUGINS_ACCESS_TOKEN:-}" ]; then
     BB_DOLT_FATAL="AGENT_PLUGINS_ACCESS_TOKEN is not set in this container."
   else
-    git config --global credential.helper \
-      '!f() { echo username=x-access-token; echo "password=$AGENT_PLUGINS_ACCESS_TOKEN"; }; f'
-    git config --global 'http.https://github.com/.proxy' ''
+    # Scoped to origin's URL, NEVER the bare `credential.helper` key.
+    # credential.helper is multi-valued and git tries global values before
+    # local ones, so a bare global helper wins over any per-clone helper and
+    # hands this repository's PAT to a clone of an unrelated private repo —
+    # which GitHub rejects with a 403 "Write access to repository not granted",
+    # a write-shaped message for a read that was never permitted.
+    #
+    # Registered under both the suffixless and the `.git` form: git matches the
+    # config key's path component against the request's path, and the URL git
+    # uses on the wire may or may not carry the suffix. Registering both
+    # removes the guess. The bare key is unset, not merely shadowed — leaving
+    # it in place would keep answering for every host, which is the defect.
+    _origin="$(git remote get-url origin 2>/dev/null || true)"
+    _origin="${_origin%.git}"
+    case "$_origin" in
+      https://*) _origin_scoped=1 ;;
+      *)         _origin_scoped=0 ;;
+    esac
 
-    # Verify rather than assume. Pushing HEAD (already on the remote in any
-    # normal clone) to a scratch ref under refs/dolt/ transfers no objects and
-    # exercises the exact permission that matters, then removes it.
-    _probe="refs/dolt/write-probe-$$"
-    if git push -q origin "HEAD:$_probe" >/dev/null 2>&1; then
-      git push -q origin --delete "$_probe" >/dev/null 2>&1 || \
-        log "note: left a stray probe ref $_probe on origin — delete it by hand"
-      log "verified write access to refs/dolt/* (probe pushed and removed)"
+    if [ "$_origin_scoped" = 0 ]; then
+      BB_DOLT_FATAL="origin is '${_origin:-<none>}', not an https:// URL — an https credential helper cannot be scoped to it, and a bare one would capture every other host."
     else
-      BB_DOLT_FATAL="a probe push to refs/dolt/* was rejected."
+      git config --global --unset-all credential.helper 2>/dev/null || true
+      git config --global "credential.${_origin}.helper" "$DOLT_CRED_HELPER"
+      git config --global "credential.${_origin}.git.helper" "$DOLT_CRED_HELPER"
+      git config --global 'http.https://github.com/.proxy' ''
+
+      # Verify rather than assume — a mis-scoped helper breaks nothing in the
+      # session that writes it and everything in the next one. Pushing HEAD
+      # (already on the remote in any normal clone) to a scratch ref under
+      # refs/dolt/ transfers no objects and exercises the exact permission that
+      # matters, then removes it.
+      _probe="refs/dolt/write-probe-$$"
+      if git push -q origin "HEAD:$_probe" >/dev/null 2>&1; then
+        git push -q origin --delete "$_probe" >/dev/null 2>&1 || \
+          log "note: left a stray probe ref $_probe on origin — delete it by hand"
+        log "verified write access to refs/dolt/* (probe pushed and removed)"
+      else
+        BB_DOLT_FATAL="a probe push to refs/dolt/* was rejected."
+      fi
     fi
   fi
 
@@ -293,14 +328,15 @@ if [ "${STRATA_CLI_SKIP:-}" != "1" ]; then
     # vendored doc with the commit that last touched it, which a --depth 1
     # clone cannot answer. Falls back to a full clone if the git proxy in this
     # environment refuses partial-clone filters.
-    # `-c credential.helper=` FIRST, and it is load-bearing. credential.helper
-    # is multi-valued and git tries helpers in listed order; the Dolt block
-    # above installs an unguarded GLOBAL helper that answers every request for
-    # every host with $AGENT_PLUGINS_ACCESS_TOKEN. That PAT has no access to
-    # strata-lang/strata, so without this reset the clone authenticates as the
-    # wrong identity and GitHub answers 403 "Write access to repository not
-    # granted" — a write-shaped message for a read that was never permitted.
-    # The empty value resets the list so only the strata helper answers.
+    # `-c credential.helper=` FIRST — defence in depth, and cheap. The Dolt
+    # block's helper is scoped to this repository's own remote and so does not
+    # answer for strata-lang/strata, but credential.helper is multi-valued and
+    # global values are tried before local ones: any bare global helper this
+    # environment (or a stale ~/.gitconfig) still carries would answer with the
+    # wrong identity, and GitHub reports that as 403 "Write access to
+    # repository not granted" — a write-shaped message for a read that was
+    # never permitted. The empty value resets the list so only the strata
+    # helper answers.
     if git clone --filter=blob:none --quiet \
          -c credential.helper= -c "credential.helper=$STRATA_CRED_HELPER" \
          https://github.com/strata-lang/strata.git \
