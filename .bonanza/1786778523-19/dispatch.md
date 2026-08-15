@@ -280,3 +280,23 @@ the extension point XPT widened and validates them against the generated
 
 Wave table updated in place: wave 4 is now `wvd.4` + `wvd.6`; wave 5 is
 `wvd.5` alone.
+
+### 2026-08-15 — amendment 5: wave 4 agents completed but never returned
+
+Both wave-4 agents (`wvd.4`, `wvd.6`) ran the full ceremony to `pushed` — 08:37
+and 08:23 — and neither returned a summary line; the session resumed in between
+and the notifications were lost.
+
+Recovered without re-running anything. The durable signals were unambiguous and
+agreed: the last progress event for each bead was `pushed`, `bd show` read
+CLOSED for both, and each bead's commit existed on its branch. A stale
+`bd list --status in_progress` read taken at check-in time disagreed and was
+wrong — the per-bead progress JSONL plus `bd show` are the authority, a list
+query is not.
+
+Both accepted normally: base-ref verified, merged (ff then rebase+ff), worktrees
+removed, gates green.
+
+Lesson for the remaining waves: a missing completion notification is not
+evidence a bead is unfinished. Check `<bead>.progress.jsonl`'s last phase and
+`bd show` before assuming anything needs re-dispatch.
