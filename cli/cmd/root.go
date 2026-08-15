@@ -1,8 +1,8 @@
-// Command tree wiring for the Spec CLI's six-subcommand surface (index,
-// check, slug-exists, next-id, refs, links), per FEAT-SPEC-011 of
+// Command tree wiring for the Spec CLI's command surface (index, check,
+// slug-exists, next-id, refs, links, feature), per FEAT-SPEC-011 of
 // specs/features/spec-index/spec-index-frd.md, the reference-integrity
-// blueprint's CMD delta, and the Command Surface component in
-// specs/architecture/container-spec-cli.md.
+// blueprint's CMD delta, the gherkin-adoption blueprint's EMIT delta, and
+// the Command Surface component in specs/architecture/container-spec-cli.md.
 //
 // Everything in this file is orchestration: it builds the cobra command
 // tree, converts flags into calls against cli/core/corpus,
@@ -80,12 +80,13 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 	return streams.exitCode
 }
 
-// newRootCmd builds the six-subcommand tree: index, check, slug-exists,
-// next-id, refs and links (AC-SPEC-011.1 through AC-SPEC-011.5,
+// newRootCmd builds the command tree: index, check, slug-exists, next-id,
+// refs, links and feature (AC-SPEC-011.1 through AC-SPEC-011.5,
 // AC-SPECREF-003.1 through AC-SPECREF-003.5, AC-SPECMD-005.1 through
-// AC-SPECMD-005.10). refs and links are the growth FEAT-SPEC-011
-// anticipated; the four established subcommands are neither renamed nor
-// repurposed by either addition.
+// AC-SPECMD-005.10, AC-GHK-009.1). refs and links are the growth
+// FEAT-SPEC-011 anticipated; feature is the gherkin-adoption blueprint's
+// EMIT delta. None renames or repurposes a subcommand another delta
+// established.
 //
 // The root carries no Run of its own. Cobra's own default behavior for a
 // command with subcommands and no Run — print the usage, which lists
@@ -124,6 +125,7 @@ func newRootCmd(streams *ioStreams) *cobra.Command {
 	root.AddCommand(newNextIDCmd(streams, &configPath))
 	root.AddCommand(newRefsCmd(streams, &configPath))
 	root.AddCommand(newLinksCmd(streams, &configPath))
+	root.AddCommand(newFeatureCmd(streams, &configPath))
 
 	return root
 }

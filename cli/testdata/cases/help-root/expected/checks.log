@@ -5,6 +5,7 @@ Usage:
 
 Available Commands:
   check       Check the corpus, or a single document, for conformance
+  feature     Emit a feature as a standalone Gherkin file
   help        Help about any command
   index       Build the spec index and write it to disk
   links       Rewrite a document's wikilinks into markdown links

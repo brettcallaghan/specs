@@ -176,13 +176,13 @@ normalization of a `path` value; it is read and returned exactly as
 written.
 
 **Built (command tree)** — also `cli/cmd`, via `cobra`
-([[adr-015]]): `Execute` builds the six-subcommand tree — `index`,
-`check`, `slug-exists`, `next-id`, `refs`, `links` — and converts each
+([[adr-015]]): `Execute` builds the command tree — `index`, `check`,
+`slug-exists`, `next-id`, `refs`, `links`, `feature` — and converts each
 one's flags into calls against Document Core (`corpus.Build`,
 `corpus.Open`, `corpus.Corpus.Check`/`CheckFor`, `corpus.Corpus.Slug`,
 `corpus.Corpus.InboundReferences`/`OutboundReferences`, `numbering.Next`,
-`references.Extract`/`Resolve`, `mdlinks.Resolve`/`Substitute`) and its
-result back into stdout and an exit status. No
+`references.Extract`/`Resolve`, `mdlinks.Resolve`/`Substitute`,
+`gherkin.Render`) and its result back into stdout and an exit status. No
 file here decides what makes a document valid or scores a check; every
 one of those calls is the whole of what a subcommand does with what it
 receives.
@@ -239,12 +239,32 @@ takes, so a flag reversing it would contradict the criterion rather than
 narrow it — the same reasoning `check`'s own `--strict` does not apply
 to.
 
-A bare invocation or `--help` lists the six subcommands with their
-one-line synopses and, per subcommand, its own flags — cobra's default
-rendering of the `Use`, `Short` and flag declarations above, so the
-listed surface and the code that implements it cannot drift
-(AC-SPEC-011.5, and the Change Guidance below). No hand-written help
-text exists anywhere in this component.
+`feature <id> --emit` writes that feature — its tags, description and
+criteria, looked up by identifier from the warm corpus index the same
+way `refs` and `slug-exists` look one up — as a standalone `.feature`
+file: to standard output by default, to the path `--out` names
+otherwise (AC-GHK-009.1). One feature yields one file, per
+[[adr-021]]'s constraint 8. The rendering itself is `gherkin.Render`,
+Document Core's inverse of `gherkin.Parse`; this component's own part is
+converting an index record's identifier, negation, manual-verification
+and verification-level properties back into the tags that name them —
+the same vocabulary `cli/profile` registers for parsing, read in
+reverse — and writing the result. An emitted file always carries the
+owning-document tag, `@frd-<slug>`, even where the feature's own source
+was a fenced block that carried none: the emitted file is a feature
+source in its own right, and per [[adr-021]] constraint 11 a feature
+source names its owner. An identifier naming no feature in the index is
+reported distinctly, the same "not the same as an empty answer"
+discipline `refs` and `slug-exists` apply, and exits non-zero. Querying
+a feature without `--emit` — the plain `spec feature <id>` lookup — is
+not yet built; only the flags EMIT needs are.
+
+A bare invocation or `--help` lists the subcommands with their one-line
+synopses and, per subcommand, its own flags — cobra's default rendering
+of the `Use`, `Short` and flag declarations above, so the listed surface
+and the code that implements it cannot drift (AC-SPEC-011.5, and the
+Change Guidance below). No hand-written help text exists anywhere in
+this component.
 
 Observable command-tree behavior is verified by the snapshot cases
 under `cli/testdata/cases/`, replayed by `cli/cmd/snapshot_test.go`,
