@@ -45,8 +45,9 @@ document taxonomy reuse the engine.
 - **Role:** parse, index and check a corpus of frontmatter-bearing
   markdown documents, driven entirely by registered configuration.
 - **Scope:** in — corpus discovery, frontmatter parsing, JSON Schema
-  validation, markdown structure and span extraction, reference graph
-  construction, numbering, the index and finding models. Out — any
+  validation, markdown structure and span extraction, Gherkin parsing,
+  reference graph construction, numbering, the index and finding models.
+  Out — any
   document-type vocabulary, any framework-specific rule, and all
   process-level concerns (argument parsing, output rendering, exit
   codes), which belong to the command surface of
@@ -234,6 +235,7 @@ C4Component
         Component(span, "Spans", "Go package", "Position type and delimited-region scanning")
         Component(fm, "Frontmatter", "Go package", "Frontmatter extraction and YAML parsing with raw-text access")
         Component(md, "Markdown Structure", "Go package (fences built)", "Headings, section spans, fenced blocks and comment blocks")
+        Component(gherkin, "Gherkin", "Go package", "Gherkin parsing into feature and criterion records, with tags read as strings")
         Component(refs, "References", "Go package", "Wikilink and frontmatter reference extraction, resolution against corpus slugs, and the reference graph")
         Component(schema, "Schema Registry", "Go package", "Single-union JSON Schema validation dispatched by document type")
         Component(corpus, "Corpus", "Go package", "Discovery, membership, the index model and its emission")
@@ -243,10 +245,12 @@ C4Component
     }
     Rel(corpus, fm, "Extracts frontmatter via")
     Rel(corpus, md, "Extracts structure via")
+    Rel(corpus, gherkin, "Extracts features and criteria via")
     Rel(corpus, refs, "Extracts references via")
     Rel(corpus, schema, "Runs Check's per-member validation through")
     Rel(fm, span, "Locates delimited regions with")
     Rel(md, span, "Locates delimited regions with")
+    Rel(gherkin, span, "Reports every position through")
     Rel(refs, span, "Locates occurrences with")
     Rel(schema, fm, "Validates records produced by")
     Rel(num, corpus, "Queries the index of")
@@ -258,19 +262,21 @@ C4Component
     Rel(mdlinks, find, "Reports through")
 ```
 
-Eight of the nine are built and carry a **Built** paragraph naming the
-package that realizes them: Spans, Frontmatter, References, Schema
-Registry, Corpus, Numbering, Findings and Markdown Links. The emitted
-index carries the resolved reference graph, and the corpus checks read
-it: a broken link, a live document citing a retired one, a
+Nine of the ten are built and carry a **Built** paragraph naming the
+package that realizes them: Spans, Frontmatter, Gherkin, References,
+Schema Registry, Corpus, Numbering, Findings and Markdown Links. The
+emitted index carries the resolved reference graph, and the corpus checks
+read it: a broken link, a live document citing a retired one, a
 half-declared pairing and a typed reference landing on the wrong
 document type are each reported against the document a reader must
 open. **Markdown Structure is built for one of its three capabilities.**
 `cli/core/markdown` locates fenced blocks by info string; the heading
 tree and comment-block location remain not yet built, and the diagram
 edges into and out of those two are still the intended shape rather than
-an exercised one. Nothing in Corpus calls `cli/core/markdown` yet, so
-everything the current corpus check does is reached without it.
+an exercised one. Nothing in Corpus calls `cli/core/markdown` or
+`cli/core/gherkin` yet, so everything the current corpus check does is
+reached without either, and the two edges from Corpus are likewise the
+intended shape.
 
 ### Spans
 
@@ -439,6 +445,88 @@ question for that tag's own consumer, not for this package.
 The heading tree and the comment-block location remain **not yet
 built**. Nothing reads a heading anywhere in the module, and no
 `cli/core/markdown` surface locates an HTML comment block yet.
+
+### Gherkin
+
+```component
+title: Gherkin
+slug: component-gherkin
+description: Gherkin parsing into feature and criterion records, with tags read as strings
+```
+
+(Go package) — Gherkin parsing into feature and criterion records, with
+tags read as strings. Parses a source with the official Go Gherkin parser
+[[adr-021]] measured and returns one feature record with its criteria
+nested beneath it, each carrying its text, its tags and its position.
+Both admissible forms — a fenced block inside a document, and a
+standalone `.feature` file — are the same parse over a different region.
+
+**The whole of Gherkin lives here, and none of this framework's
+vocabulary does.** Parsing is general: which constructs a source
+declares, where each of them ends, and what a tag says are questions
+about a notation, and a vault of `.feature` files with nothing to do with
+C4 could ask them. Meaning is not general: which tag identifies a
+feature, which identifies a criterion, and which qualifiers count are
+facts about one document vocabulary, and they arrive through the Profile
+extension point. The component asks the caller to resolve a set of tags
+to an identity and takes back an answer or nothing; it never inspects a
+tag's spelling. This is the module's host-and-plugin split applied to a
+notation rather than to a document type, and it is why no identifier
+pattern and no qualifier name appears in this package.
+
+**Built** — `cli/core/gherkin`. Its surface is `Parse`, over a source
+that is a document in its own right, and `ParseRegion`, over a region of
+a containing document such as a fenced block; both take an `Options`
+carrying the two functions that resolve tags to a feature identity and to
+a criterion identifier. Each returns a `Feature` — the generated
+`specmodel.Feature` populated with what Gherkin establishes, the tags as
+written, and the `Criterion` values beneath it — or a `*ParseError`
+carrying every failure the parser reported as a located
+`specmodel.ParseError`. `ContentHashOf` computes a criterion's hash from
+a name and a text alone, so a second producer of criteria hashes them the
+same way.
+
+Four semantics are pinned by the implementation:
+
+- **A source that declares no `Feature` is parsed behind a synthetic
+  header,** and no position the header occupies is ever reported
+  (AC-GHK-001.4, AC-GHK-001.5). Every reported line is the line in the
+  containing document: the source's start line, plus the parser's line,
+  less the lines the header added. The feature such a source yields
+  carries no name, because a name invented here would be reported as
+  though an author had written it.
+- **A criterion's content hash covers its name and its text and nothing
+  else** (AC-GHK-005.5). Spans and parser node identifiers are excluded:
+  a node identifier is a positional counter that shifts whenever anything
+  above it is edited, so including one would report every criterion below
+  an insertion as changed. The text is hashed normalized — LF line
+  endings, common indentation removed, trailing whitespace stripped per
+  line — so a reindent or a CRLF checkout hashes as before, and only a
+  wording change moves the hash (AC-GHK-005.6, AC-GHK-005.7).
+- **A criterion's body is text.** It is the steps and any example table
+  verbatim with the block's common indentation removed, never decomposed
+  into typed steps or keyed example rows: decomposition would model one
+  notation, and nothing in the framework operates below the level of a
+  whole criterion.
+- **A construct ends where the next one begins,** trimmed back over
+  trailing blank and comment lines. Deriving an extent this way rather
+  than from the last step, table row or doc-string delimiter means no
+  construct needs arithmetic of its own, and a doc string's contents —
+  which may look like anything, comment lines included — sit inside the
+  range rather than at its edge.
+
+A scenario carrying `Examples` blocks divides on identity: where any
+block is identified, each block becomes its own criterion, and where none
+is, the scenario is one criterion whose text covers every block
+(AC-GHK-002.6, AC-GHK-002.9). An unidentified block beside an identified
+one still becomes a criterion, carrying no identifier — the partial
+tagging is a defect for a check to report, and a check can only report
+what the records carry.
+
+A parse failure is returned instead of records rather than alongside
+them, and never panics: a half-parsed source yields a feature missing
+criteria its author wrote, and an index that silently lost one is worse
+than an index that recorded why (AC-GHK-006.1).
 
 ### References
 
@@ -1196,8 +1284,8 @@ This module SHALL comply with:
 - [[adr-016]] — Strata is the single source for generated models, which
   is why the index model this module emits is declared in
   `schemas/index.strata` rather than written as Go structs.
-- [[adr-021]] — settles the acceptance-criteria notation; extraction is
-  a follow-on feature, so no component here parses it yet.
+- [[adr-021]] — settles the acceptance-criteria notation and the parser
+  the Gherkin component is built on.
 - [[adr-012]] — the `[[slug]]` and heading-anchor conventions the
   References component implements.
 - [[adr-018]] — references are one top-level edge collection on the
