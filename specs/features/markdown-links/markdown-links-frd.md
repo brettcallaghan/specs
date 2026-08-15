@@ -6,7 +6,7 @@ description: The Spec CLI rewrites corpus wikilinks into markdown links,
 slug: frd-spec-markdown-links
 type: frd
 status: approved
-updated_at: 2026-08-14T01:00:00Z
+updated_at: 2026-08-15T00:00:00Z
 sources: [adr-018, frd-spec-reference-integrity]
 ---
 
@@ -82,236 +82,349 @@ meant to preserve.
 
 ## Requirements
 
-### REQ-SPECMD-001: Rewrite wikilinks to markdown links
+A note on the blocks below. A wikilink written anywhere in a Gherkin
+source is recorded as a reference ([[adr-021]] constraint 14), so this
+feature — whose whole subject is wikilink syntax — writes its
+illustrations in backticked markdown beside each block rather than in a
+step, where a literal citation would enter the index as a reference this
+document never made.
 
-**User Story:** As an agent reading a reference shipped inside a skill,
-I want every citation in it to be a link I can follow, so that I can
-reach the cited document without the index it was written against.
-
-**Acceptance Criteria:**
-
-- **AC-SPECMD-001.1:** WHEN the CLI rewrites a document, it SHALL
-  replace each wikilink it is able to target with a markdown link whose
-  text is the wikilink's own text and whose target is the path settled
-  for that slug.
-  - *Example:* with `template-authoring-standards` mapped to
-    `template-authoring-standards.md`, a citation of
-    `[[template-authoring-standards]]` becomes
-    `[template-authoring-standards](template-authoring-standards.md)`.
-- **AC-SPECMD-001.2:** WHEN a wikilink carries an anchor, the CLI SHALL
-  keep the anchor in the emitted link's text, so that the text remains
-  the citation as the author wrote it.
-  - *Example:* `[[container-api#Request Router]]` emits
-    `container-api#Request Router` as the visible text.
-- **AC-SPECMD-001.3:** WHEN a wikilink carries an anchor, the CLI SHALL
-  append to the settled path a fragment derived from that anchor.
-  - *Example:* with `container-api` mapped to `container-api.md`,
-    `[[container-api#Request Router]]` targets
-    `container-api.md#request-router`.
-- **AC-SPECMD-001.4:** The CLI SHALL NOT rewrite a wikilink that occurs
-  inside a code span, an indented code block, or a fenced code block.
-  - *Example:* a guide explaining citation syntax writes
-    `` `[[document-slug]]` `` as an illustration; it is unchanged by the
-    rewrite.
-- **AC-SPECMD-001.5:** The CLI SHALL NOT alter any content of the
-  document other than the wikilinks it rewrites.
-- **AC-SPECMD-001.6:** WHEN the CLI rewrites a document that contains no
-  rewritable wikilink, it SHALL emit that document unchanged.
-
-### REQ-SPECMD-002: Report a citation the copy cannot reach
-
-**User Story:** As a framework maintainer, I want the rewrite to tell me
-which citations will not resolve where the copy is read, so that I learn
-it before the copy reaches an adopting repository rather than after.
-
-A citation fails to reach its target two ways, and they call for
-different answers. A slug naming a corpus document the caller left out
-of the link map is a packaging mistake: the caller stated the shipped
-set and this citation leaves it, so the copy would carry a link that is
-knowingly broken and the run refuses to produce one. It is the reason a
-given map is never completed by derivation — see AC-SPECMD-006.3.
-
-A slug naming no corpus document at all is usually not a citation. The
-templates and guides are written to teach citation syntax, so their
-prose is full of `[[adr-<nnn>]]` and `[[frd-checkout]]` that no author
-ever meant to resolve. Refusing those would refuse most of the documents
-this feature exists to serve, so the run reports each one and carries
-on, leaving the wikilink as written. The report is still worth making:
-the same signal covers a genuine mistyped slug.
+### FEAT-SPECMD-001: Rewrite wikilinks to markdown links
 
 **Acceptance Criteria:**
 
-- **AC-SPECMD-002.1:** IF the caller names a link map AND a wikilink's
-  slug names a corpus document the map does not cover, THEN the CLI
-  SHALL report a finding of severity error.
-  - *Example:* `frontmatter-standards` cites
-    `[[document-relationship-standards]]`, a corpus document under
-    `specs/standards/` the plugin does not ship; a link map omitting it
-    reports both citations as errors.
-- **AC-SPECMD-002.2:** IF the caller names a link map AND a wikilink's
-  slug names a corpus document the map does not cover, THEN the CLI
-  SHALL NOT emit a rewritten document.
-- **AC-SPECMD-002.3:** WHEN reporting any such finding, the CLI SHALL
-  name the citing document, the slug, and the position of the citation.
-- **AC-SPECMD-002.4:** IF a wikilink's slug names no corpus document AND
-  no link map entry covers it, THEN the CLI SHALL report a finding of
-  severity warning, distinguishable from AC-SPECMD-002.1's, because a
-  citation leaving a declared shipped set and an illustration that was
-  never a citation call for different fixes.
-  - *Example:* `c4-guide` writes `[[component-<name>]]` and
-    `[[module-<name>]]` in prose about element records; each is reported
-    as a warning.
-- **AC-SPECMD-002.5:** The CLI SHALL report every such finding in one
-  run rather than stopping at the first.
-- **AC-SPECMD-002.6:** IF a wikilink's slug names no corpus document AND
-  no link map entry covers it, THEN the CLI SHALL emit the rewritten
-  document notwithstanding that finding.
-- **AC-SPECMD-002.7:** IF a wikilink's slug names no corpus document AND
-  no link map entry covers it, THEN the CLI SHALL leave that wikilink
-  exactly as the author wrote it.
-- **AC-SPECMD-002.8:** WHEN every finding a run reports is of severity
-  warning, the CLI SHALL exit zero, so that illustrative prose does not
-  fail a build that has nothing wrong with it.
+```gherkin
+@FEAT-SPECMD-001
+Feature: Rewrite wikilinks to markdown links
 
-### REQ-SPECMD-003: Report what was rewritten
+  As an agent reading a reference shipped inside a skill
+  I want every citation in it to be a link I can follow
+  So that I can reach the cited document without the index it was written against
 
-**User Story:** As a framework maintainer, I want the rewrite to tell me
-how many citations it changed, so that I can tell a document that was
-processed from one that merely had nothing to rewrite.
+  Deciding what is a reference is corpus knowledge the CLI already owns:
+  it reads references through the same extractor the check uses, which
+  excludes any wikilink overlapping a code span, an indented block or a
+  fenced block.
 
-**Acceptance Criteria:**
+  @AC-SPECMD-001.1
+  Scenario: Each targetable wikilink becomes a markdown link
+    When the CLI rewrites a document
+    Then the CLI replaces each wikilink it is able to target with a markdown link whose text is the wikilink's own text and whose target is the path settled for that slug
 
-- **AC-SPECMD-003.1:** WHEN a rewrite completes, the CLI SHALL report
-  how many wikilinks it rewrote in that document.
-  - *Example:* `document-readiness-checklist` carries six wikilinks
-    outside code regions, citing three documents; rewriting it reports
-    six rewritten citations.
-- **AC-SPECMD-003.2:** The CLI SHALL report that count on a stream
-  other than the one carrying the rewritten document, so that
-  redirecting the document to a file does not capture the report.
+  @AC-SPECMD-001.2
+  Scenario: An anchor stays in the emitted link's text
+    Given a wikilink carrying an anchor
+    When the CLI rewrites the document
+    Then the emitted link's text keeps the anchor, so that the text remains the citation as the author wrote it
 
-### REQ-SPECMD-004: Rewriting is repeatable
+  @AC-SPECMD-001.3
+  Scenario: An anchor becomes a fragment on the settled path
+    Given a wikilink carrying an anchor
+    When the CLI rewrites the document
+    Then the CLI appends to the settled path a fragment derived from that anchor
 
-**User Story:** As a framework maintainer, I want re-running the rewrite
-to be a no-op, so that I can run it in a check that fails only on real
-drift.
+  @AC-SPECMD-001.4 @negative
+  Scenario Outline: A wikilink inside a code region is left as written
+    Given a wikilink occurring inside "<region>"
+    When the CLI rewrites the document
+    Then the CLI does not rewrite that wikilink
 
-**Acceptance Criteria:**
+    Examples:
+      | region                 |
+      | a code span            |
+      | an indented code block |
+      | a fenced code block    |
 
-- **AC-SPECMD-004.1:** WHEN the CLI rewrites a document whose wikilinks
-  have already been rewritten, it SHALL emit that document unchanged.
-  - *Example:* a copy of `ac-traceability-standards.md` produced by an
-    earlier run, fed back through the rewrite, comes out byte-identical:
-    its citations are already markdown links and no wikilink remains.
-- **AC-SPECMD-004.2:** The CLI SHALL NOT rewrite an existing markdown
-  link.
+  @AC-SPECMD-001.5 @negative
+  Scenario: Nothing but the rewritten wikilinks changes
+    When the CLI rewrites a document
+    Then the CLI alters no content of the document other than the wikilinks it rewrites
 
-### REQ-SPECMD-005: Command surface and link-map input
+  @AC-SPECMD-001.6
+  Scenario: A document with no rewritable wikilink is emitted unchanged
+    Given a document containing no rewritable wikilink
+    When the CLI rewrites it
+    Then the CLI emits that document unchanged
+```
 
-**User Story:** As the author of the script that performs the copy, I
-want to state the link paths myself, so that I can write copies into a
-layout the CLI knows nothing about.
+*Examples:* with `template-authoring-standards` mapped to
+`template-authoring-standards.md`, a citation of
+`` `[[template-authoring-standards]]` `` becomes
+`[template-authoring-standards](template-authoring-standards.md)`
+(AC-SPECMD-001.1). With `container-api` mapped to `container-api.md`,
+`` `[[container-api#Request Router]]` `` emits
+`container-api#Request Router` as its visible text (AC-SPECMD-001.2) and
+targets `container-api.md#request-router` (AC-SPECMD-001.3). A guide
+explaining citation syntax writes `` `[[document-slug]]` `` as an
+illustration, and the rewrite leaves it alone (AC-SPECMD-001.4).
 
-The CLI cannot know where a copy will live, and does not try to. The
-caller states, per slug, the path a link should use; the CLI substitutes
-it. Every question about how that path was constructed — absolute or
-relative, to what base, on a filesystem or a website — belongs to the
-caller and never reaches the CLI.
-
-The map is keyed by slug because that is what it is: one record per
-document. Each record may carry whatever else the caller needs about
-that document — where its copies are written, for instance — so that
-adding a document to the shipped set is one edit to one file, rather
-than two edits to two files that nothing keeps in agreement. The CLI
-reads the path out of each record and ignores everything beside it.
+### FEAT-SPECMD-002: Report a citation the copy cannot reach
 
 **Acceptance Criteria:**
 
-- **AC-SPECMD-005.1:** The CLI SHALL rewrite exactly one document per
-  invocation.
-- **AC-SPECMD-005.2:** The CLI SHALL write the rewritten document to
-  standard output.
-  - *Example:* the copying script loops over its map, invoking the
-    command once per output file and redirecting standard output to it.
-- **AC-SPECMD-005.3:** The CLI SHALL NOT create, modify or delete any
-  file.
-- **AC-SPECMD-005.4:** WHEN the caller names a link map, the CLI SHALL
-  read it from a YAML file: a mapping whose keys are corpus document
-  slugs, and whose value for each slug is a record declaring, in a
-  `path` property, the path a link to that document is to use.
-  - *Example:* for copies that land beside each other. `destinations`
-    here belongs to the script that performs the copy; the CLI reads
-    `path` alone and never interprets the rest:
+```gherkin
+@FEAT-SPECMD-002
+Feature: Report a citation the copy cannot reach
 
-    ```yaml
-    template-authoring-standards:
-      path: template-authoring-standards.md
-      destinations:
-        - plugin/skills/groom-feature-blueprint/references/shared/
-    ac-traceability-standards:
-      path: ac-traceability-standards.md
-      destinations:
-        - plugin/skills/groom-feature-blueprint/references/shared/
-        - plugin/skills/spec/references/shared/
-    ```
+  As a framework maintainer
+  I want the rewrite to tell me which citations will not resolve where the copy is read
+  So that I learn it before the copy reaches an adopting repository rather than after
 
-    The same documents published to a docs site are the same map with
-    different paths, and no other change:
+  A citation fails to reach its target two ways, and they call for
+  different answers, which is what the two rules below separate.
 
-    ```yaml
-    template-authoring-standards:
-      path: /standards/template-authoring/
-    ```
-- **AC-SPECMD-005.5:** The CLI SHALL use a mapped path exactly as
-  written, without resolving it, normalizing it, or making it relative
-  to anything.
-- **AC-SPECMD-005.6:** The CLI SHALL ignore any property of a record
-  other than `path`, so that the link map can carry the caller's own
-  per-document data without the CLI having to know what it means.
-- **AC-SPECMD-005.7:** The CLI SHALL accept a link map written in JSON,
-  JSON being valid YAML, so that a generated map need not be emitted in
-  YAML syntax.
-- **AC-SPECMD-005.8:** IF the link map cannot be read, or a record
-  declares no `path`, THEN the CLI SHALL report a finding naming the
-  fault.
-- **AC-SPECMD-005.9:** IF the link map cannot be read, or a record
-  declares no `path`, THEN the CLI SHALL NOT emit a rewritten document.
-- **AC-SPECMD-005.10:** The CLI SHALL accept an invocation that names no
-  link map.
+  A slug naming a corpus document the caller left out of the link map is
+  a packaging mistake: the caller stated the shipped set and this
+  citation leaves it. A slug naming no corpus document at all is usually
+  not a citation — the templates and guides are written to teach citation
+  syntax, so their prose is full of illustrations no author ever meant to
+  resolve. Refusing those would refuse most of the documents this feature
+  exists to serve. The report is still worth making: the same signal
+  covers a genuine mistyped slug.
 
-### REQ-SPECMD-006: Target the corpus's own layout when no map is given
+  @AC-SPECMD-002.3
+  Scenario: A finding names the citation a reader must open
+    When the CLI reports a finding about a citation it cannot target
+    Then the CLI names the citing document, the slug, and the position of the citation
 
-**User Story:** As someone publishing the corpus as a browsable set of
-pages, I want citations to become links between those pages, so that I
-do not have to write a map whose only content is the layout the CLI can
-already see.
+  @AC-SPECMD-002.5
+  Scenario: Every such finding is reported in one run
+    When the CLI rewrites a document carrying several such citations
+    Then the CLI reports every one of them rather than stopping at the first
 
-Exporting the corpus whole is the case where the caller has nothing to
-add: every cited document is present, at a path the index already
-records, and the copy keeps the corpus's shape. Deriving the target is
-correct there for exactly the reason it is wrong under a map — the
-destination is the corpus layout itself, so there is no external layout
-to guess at.
+  @AC-SPECMD-002.8
+  Scenario: Warnings alone do not fail the run
+    Given a run whose every finding is of severity warning
+    Then the CLI exits zero, so that illustrative prose does not fail a build that has nothing wrong with it
+
+  Rule: A citation leaving a declared shipped set is a packaging mistake, and the run refuses to produce it
+
+    @AC-SPECMD-002.1
+    Scenario: A slug the map omits is an error
+      Given the caller names a link map
+      And a wikilink's slug names a corpus document the map does not cover
+      Then the CLI reports a finding of severity error
+
+    @AC-SPECMD-002.2 @negative
+    Scenario: A slug the map omits stops the rewritten document
+      Given the caller names a link map
+      And a wikilink's slug names a corpus document the map does not cover
+      Then the CLI does not emit a rewritten document
+
+  Rule: A slug naming no corpus document was probably never a citation, so the run reports it and carries on
+
+    @AC-SPECMD-002.4
+    Scenario: A slug naming no corpus document is a warning
+      Given a wikilink whose slug names no corpus document
+      And no link map entry covers it
+      Then the CLI reports a finding of severity warning, distinguishable from the one a shipped-set omission reports, because the two call for different fixes
+
+    @AC-SPECMD-002.6
+    Scenario: A slug naming no corpus document still yields a rewritten document
+      Given a wikilink whose slug names no corpus document
+      And no link map entry covers it
+      Then the CLI emits the rewritten document notwithstanding that finding
+
+    @AC-SPECMD-002.7
+    Scenario: A slug naming no corpus document is left as the author wrote it
+      Given a wikilink whose slug names no corpus document
+      And no link map entry covers it
+      Then the CLI leaves that wikilink exactly as the author wrote it
+```
+
+*Examples:* `frontmatter-standards` cites
+`` `[[document-relationship-standards]]` ``, a corpus document under
+`specs/standards/` the plugin does not ship; a link map omitting it
+reports both citations as errors (AC-SPECMD-002.1). `c4-guide` writes
+`` `[[component-<name>]]` `` and `` `[[module-<name>]]` `` in prose about
+element records, and each is reported as a warning (AC-SPECMD-002.4).
+
+*Note:* AC-SPECMD-002.1 is the reason a given map is never completed by
+derivation — see AC-SPECMD-006.3.
+
+### FEAT-SPECMD-003: Report what was rewritten
 
 **Acceptance Criteria:**
 
-- **AC-SPECMD-006.1:** IF the caller names no link map, THEN the CLI
-  SHALL target each rewritten citation with the path of the cited
-  document relative to the directory holding the citing document.
-  - *Example:* `specs/features/markdown-links/markdown-links-frd.md`
-    cites `[[adr-018]]`, whose document is
-    `specs/adrs/ADR-018-references-as-index-edges.md`; the emitted
-    target is `../../adrs/ADR-018-references-as-index-edges.md`.
-- **AC-SPECMD-006.2:** IF the caller names no link map, THEN the CLI
-  SHALL use the cited document's file name as the corpus holds it,
-  changing neither its spelling nor its extension.
-  - *Example:* the target above keeps
-    `ADR-018-references-as-index-edges.md`, rather than a name derived
-    from the `adr-018` slug.
-- **AC-SPECMD-006.3:** IF the caller names a link map, THEN the CLI
-  SHALL NOT derive a path for any slug, so that a slug the map omits is
-  the finding AC-SPECMD-002.1 requires rather than a link the caller
-  never asked for.
+```gherkin
+@FEAT-SPECMD-003
+Feature: Report what was rewritten
+
+  As a framework maintainer
+  I want the rewrite to tell me how many citations it changed
+  So that I can tell a document that was processed from one that merely had nothing to rewrite
+
+  @AC-SPECMD-003.1
+  Scenario: A completed rewrite reports how many citations it changed
+    Given a document carrying six wikilinks outside code regions, citing three documents
+    When the rewrite completes
+    Then the CLI reports six rewritten citations for that document
+
+  @AC-SPECMD-003.2
+  Scenario: The count does not travel with the document
+    Then the CLI reports that count on a stream other than the one carrying the rewritten document, so that redirecting the document to a file does not capture the report
+```
+
+### FEAT-SPECMD-004: Rewriting is repeatable
+
+**Acceptance Criteria:**
+
+```gherkin
+@FEAT-SPECMD-004
+Feature: Rewriting is repeatable
+
+  As a framework maintainer
+  I want re-running the rewrite to be a no-op
+  So that I can run it in a check that fails only on real drift
+
+  @AC-SPECMD-004.1
+  Scenario: A rewritten copy fed back through the rewrite comes out byte-identical
+    Given a copy produced by an earlier run, whose citations are already markdown links and in which no wikilink remains
+    When the CLI rewrites it
+    Then the CLI emits that document unchanged
+
+  @AC-SPECMD-004.2 @negative
+  Scenario: An existing markdown link is not rewritten
+    Given a document containing a markdown link
+    When the CLI rewrites it
+    Then the CLI does not rewrite that link
+```
+
+### FEAT-SPECMD-005: Command surface and link-map input
+
+**Acceptance Criteria:**
+
+```gherkin
+@FEAT-SPECMD-005
+Feature: Command surface and link-map input
+
+  As the author of the script that performs the copy
+  I want to state the link paths myself
+  So that I can write copies into a layout the CLI knows nothing about
+
+  The CLI cannot know where a copy will live, and does not try to. The
+  caller states, per slug, the path a link should use; the CLI
+  substitutes it. Every question about how that path was constructed —
+  absolute or relative, to what base, on a filesystem or a website —
+  belongs to the caller and never reaches the CLI.
+
+  The map is keyed by slug because that is what it is: one record per
+  document. Each record may carry whatever else the caller needs about
+  that document, so that adding a document to the shipped set is one edit
+  to one file rather than two edits to two files that nothing keeps in
+  agreement.
+
+  @AC-SPECMD-005.1
+  Scenario: One document per invocation
+    Then the CLI rewrites exactly one document per invocation
+
+  @AC-SPECMD-005.2
+  Scenario: The rewritten document goes to standard output
+    Then the CLI writes the rewritten document to standard output
+
+  @AC-SPECMD-005.3 @negative
+  Scenario: The rewrite touches no file
+    Then the CLI creates, modifies and deletes no file
+
+  @AC-SPECMD-005.4
+  Scenario: A link map is a YAML mapping from slug to a record carrying a path
+    Given the caller names a link map
+    When the CLI reads it
+    Then the CLI reads a YAML file: a mapping whose keys are corpus document slugs, and whose value for each slug is a record declaring, in a "path" property, the path a link to that document is to use
+      """
+      template-authoring-standards:
+        path: template-authoring-standards.md
+        destinations:
+          - plugin/skills/groom-feature-blueprint/references/shared/
+      ac-traceability-standards:
+        path: ac-traceability-standards.md
+        destinations:
+          - plugin/skills/groom-feature-blueprint/references/shared/
+          - plugin/skills/spec/references/shared/
+      """
+
+  @AC-SPECMD-005.5
+  Scenario: A mapped path is used exactly as written
+    Then the CLI uses a mapped path without resolving it, normalizing it, or making it relative to anything
+
+  @AC-SPECMD-005.6
+  Scenario: A record's other properties are the caller's business
+    Then the CLI ignores any property of a record other than "path", so that the link map can carry the caller's own per-document data without the CLI having to know what it means
+
+  @AC-SPECMD-005.7
+  Scenario: A link map may be written in JSON
+    Then the CLI accepts a link map written in JSON, JSON being valid YAML, so that a generated map need not be emitted in YAML syntax
+
+  @AC-SPECMD-005.8
+  Scenario: A link map that cannot be read is named
+    Given a link map that cannot be read, or a record that declares no "path"
+    Then the CLI reports a finding naming the fault
+
+  @AC-SPECMD-005.9 @negative
+  Scenario: A link map that cannot be read stops the rewritten document
+    Given a link map that cannot be read, or a record that declares no "path"
+    Then the CLI does not emit a rewritten document
+
+  @AC-SPECMD-005.10
+  Scenario: An invocation naming no link map is accepted
+    Then the CLI accepts an invocation that names no link map
+```
+
+*Example:* the map above is written for copies that land beside each
+other, and `destinations` belongs to the script that performs the copy.
+The same documents published to a docs site are the same map with
+different paths, and no other change:
+
+```yaml
+template-authoring-standards:
+  path: /standards/template-authoring/
+```
+
+The copying script loops over its map, invoking the command once per
+output file and redirecting standard output to it (AC-SPECMD-005.2).
+
+### FEAT-SPECMD-006: Target the corpus's own layout when no map is given
+
+**Acceptance Criteria:**
+
+```gherkin
+@FEAT-SPECMD-006
+Feature: Target the corpus's own layout when no map is given
+
+  As someone publishing the corpus as a browsable set of pages
+  I want citations to become links between those pages
+  So that I do not have to write a map whose only content is the layout the CLI can already see
+
+  Exporting the corpus whole is the case where the caller has nothing to
+  add: every cited document is present, at a path the index already
+  records, and the copy keeps the corpus's shape. Deriving the target is
+  correct there for exactly the reason it is wrong under a map — the
+  destination is the corpus layout itself, so there is no external layout
+  to guess at.
+
+  @AC-SPECMD-006.1
+  Scenario: With no map, a citation targets the cited document's corpus-relative path
+    Given the caller names no link map
+    When the CLI rewrites a citation
+    Then the CLI targets it with the path of the cited document relative to the directory holding the citing document
+
+  @AC-SPECMD-006.2
+  Scenario: With no map, the cited document's file name is used as the corpus holds it
+    Given the caller names no link map
+    When the CLI rewrites a citation
+    Then the CLI uses the cited document's file name as the corpus holds it, changing neither its spelling nor its extension
+
+  @AC-SPECMD-006.3 @negative
+  Scenario: Under a map, no path is ever derived
+    Given the caller names a link map
+    Then the CLI derives a path for no slug, so that a slug the map omits is the finding AC-SPECMD-002.1 requires rather than a link the caller never asked for
+```
+
+*Example:* this FRD cites `` `[[adr-018]]` ``, whose document is
+`specs/adrs/ADR-018-references-as-index-edges.md`; with no map the
+emitted target is `../../adrs/ADR-018-references-as-index-edges.md`
+(AC-SPECMD-006.1), keeping that file name rather than one derived from
+the `adr-018` slug (AC-SPECMD-006.2).
 
 ## References
 

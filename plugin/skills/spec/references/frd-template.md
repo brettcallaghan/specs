@@ -10,10 +10,10 @@ sources: []                          # slugs of documents this FRD is based on
 
 <!--
 Template: Feature Requirements Document (FRD)
-Version: 1.2
+Version: 1.3
 Source: Adapted from the 8090 Requirements Writing Guide
   (https://www.8090.ai/docs/opinions/requirements-writing-guide), modified to
-  use EARS for acceptance criteria per [[template-authoring-standards]].
+  use tagged Gherkin for features and acceptance criteria per [[adr-021]].
 
 Sections (complete each, then delete its instruction block)
   - Overview
@@ -41,14 +41,16 @@ When NOT to use
 
 Instructions
   1. Update the frontmatter with the actual feature details
-  2. Choose a short uppercase PREFIX derived from the feature name
-     (e.g. CHK for Checkout) and use it in all REQ and AC IDs
+  2. Choose a short uppercase CODE derived from the feature name
+     (e.g. CHK for Checkout) and use it in all FEAT and AC IDs
   3. Complete each section below, following the guidance in comments
   4. Remove all HTML comment blocks after completing the document
   5. Set status using the controlled vocabulary:
      draft | ready-for-review | approved | active | retired
   6. Cross-reference other documents with [[slug]] notation rather than
-     duplicating their content
+     duplicating their content — but NOT inside a gherkin block, where a
+     wikilink is recorded as a real reference and an illustrative one
+     enters the index as a citation the document never made
 
 Splitting and merging features
   - Split into separate FRDs when each feature delivers complete value
@@ -57,17 +59,21 @@ Splitting and merging features
     task together, or are describable in one sentence
 
 ID conventions
-  - Requirements: FEAT-<PREFIX>-NNN (zero-padded sequence, e.g. FEAT-CHK-001)
-  - Acceptance criteria: AC-<PREFIX>-NNN.N (e.g. AC-CHK-001.2)
+  - Requirements: FEAT-<CODE>-NNN (zero-padded sequence, e.g. FEAT-CHK-001),
+    written as a tag on the Feature
+  - Acceptance criteria: AC-<CODE>-NNN.N (e.g. AC-CHK-001.2), written as a
+    tag on the Scenario, deriving its code and number from its Feature's
+  - Features share a CODE; a code and a number together identify one
   - Never reuse a retired ID
 
 Verification and traceability
   Automated tests cite the acceptance criteria they verify per
   [[ac-traceability-standards]] — AC identifiers are the durable
   traceability keys, which is why retired IDs are never reused.
-  IF an acceptance criterion can only be verified manually, THEN append
-  the marker "(manual)" to the end of the criterion text; manual
-  criteria are exempt from the test citation obligation.
+  IF an acceptance criterion can only be verified manually, THEN tag it
+  @manual; manual criteria are exempt from the test citation obligation.
+  A criterion stating a prohibition SHALL carry @negative, which is what
+  replaces the grammatical marking SHALL NOT carried in prose.
 
 Slug format
   - Use lowercase kebab-case with the frd- type prefix: frd-<feature-name>
@@ -120,83 +126,151 @@ Requirement quality bar:
   - Testable: every AC clear enough to write a test from
   - Atomic: one behavior per criterion
 
-Acceptance criteria use EARS (Easy Approach to Requirements Syntax) with
-capitalized keywords. Choose the pattern that fits each behavior:
+Notation: one fenced gherkin block per requirement. Read
+[[gherkin-guide]] before writing the first one — it holds the tag
+vocabulary, what belongs in each description slot, and the seven
+constructs that parse cleanly while destroying meaning.
 
-  | Pattern      | Syntax                                          |
-  |--------------|-------------------------------------------------|
-  | Ubiquitous   | The system SHALL <action>                       |
-  | Event-driven | WHEN <event>, the system SHALL <action>         |
-  | State-driven | WHILE <state>, the system SHALL <action>        |
-  | Conditional  | IF <condition>, THEN the system SHALL <action>  |
-  | Negative     | The system SHALL NOT <action>                   |
+  | FRD concept                             | Gherkin        |
+  |-----------------------------------------|----------------|
+  | A requirement                           | Feature:       |
+  | Its user story                          | the Feature description |
+  | An acceptance criterion                 | Scenario / Scenario Outline |
+  | A business rule grouping several ACs    | Rule:          |
+  | A criterion's concrete example          | an Examples row |
 
-Modality (RFC 2119): SHALL = mandatory, SHOULD = recommended, MAY = optional.
-Keywords are always capitalized.
+A gherkin document holds exactly ONE Feature, so one block per
+requirement is the only legal arrangement. A requirement is a Feature,
+NOT a Rule — Rule: names an assertion that can be true or false ("there
+can be only one"), and a topic is a Feature. Getting this backwards
+leaves the user story with nowhere to go.
+
+The Feature description carries the user story first, then a design note
+stating a constraint no single criterion states, then a scope fence where
+one is needed. It must NOT use "#" (Gherkin reads it as a comment and the
+line vanishes) and no line in it may begin with a Gherkin keyword.
+
+A Scenario description is reported as a probable untagged criterion, so
+put per-criterion rationale in the Feature description, in a Rule: name,
+or in markdown outside the block.
 
 Examples
-  Each acceptance criterion SHOULD be followed by exactly one concrete
-  example that instantiates it with specific data (actor, values, formats,
-  observed result). Writing the example forces precision — "which fields,
-  exactly?" — at spec time, before implementation.
+  WHERE a criterion carries concrete example data, prefer a Scenario
+  Outline with an Examples table over prose. Below two instances that is
+  ceremony — fold the data into Given steps instead, or leave the
+  criterion general and put the illustration in markdown beside the block.
 
-  Examples are illustrative, not normative: the EARS sentence carries the
-  requirement; the example clarifies it. IF the example and the criterion
-  conflict, THEN the criterion governs and the example SHALL be corrected.
-  Keep to ONE canonical example per criterion; exhaustive edge-case
-  enumeration belongs in tests, not in this document. Omit the example
-  where the criterion is unambiguous without one.
+  Decide what an Examples block IS before tagging it. One criterion shown
+  as several named data groups: tag the SCENARIO. Several criteria sharing
+  one shape: tag each EXAMPLES BLOCK. Tag the scenario when you meant the
+  second and every criterion but the first ceases to exist, in a document
+  that parses cleanly with no check firing.
+
+  Examples are illustrative, not normative: the steps carry the
+  requirement. IF an example and the criterion conflict, THEN the
+  criterion governs and the example SHALL be corrected.
+
+Verify with the CLI rather than by reading: `spec check <path>` reports
+untagged criteria, malformed or duplicate identifiers, empty scenarios,
+prose in a Scenario description, and partially tagged Examples blocks.
 -->
 
-### FEAT-<PREFIX>-001: <Requirement Name>
-
-**User Story:** As a <role>, I want to <action>, so that I can <outcome>.
+### FEAT-<CODE>-001: <Requirement Name>
 
 **Acceptance Criteria:**
-- **AC-<PREFIX>-001.1:** WHEN <event>, the system SHALL <action>.
-  - *Example:* <one concrete instance: specific actor, data, and observed
-    result>.
-- **AC-<PREFIX>-001.2:** WHILE <state>, the system SHALL <action>.
-  - *Example:* <one concrete instance>.
-- **AC-<PREFIX>-001.3:** IF <condition>, THEN the system SHALL <action>.
-  - *Example:* <one concrete instance>.
 
-### FEAT-<PREFIX>-002: <Requirement Name>
+```gherkin
+@FEAT-<CODE>-001
+Feature: <Requirement Name>
 
-**User Story:** As a <role>, I want to <action>, so that I can <outcome>.
+  As a <role>
+  I want to <action>
+  So that I can <outcome>
+
+  <A design note: the constraint that governs this capability and that no
+  single criterion states. Omit where there is nothing to say.>
+
+  @AC-<CODE>-001.1
+  Scenario: <what this criterion establishes>
+    When <event>
+    Then <observable outcome>
+
+  @AC-<CODE>-001.2
+  Scenario: <what this criterion establishes>
+    Given <state>
+    Then <observable outcome>
+
+  @AC-<CODE>-001.3
+  Scenario: <what this criterion establishes>
+    Given <condition>
+    When <event>
+    Then <observable outcome>
+```
+
+### FEAT-<CODE>-002: <Requirement Name>
 
 **Acceptance Criteria:**
-- **AC-<PREFIX>-002.1:** WHEN <event>, the system SHALL <action>.
-  - *Example:* <one concrete instance>.
-- **AC-<PREFIX>-002.2:** The system SHALL NOT <action>.
+
+```gherkin
+@FEAT-<CODE>-002
+Feature: <Requirement Name>
+
+  As a <role>
+  I want to <action>
+  So that I can <outcome>
+
+  @AC-<CODE>-002.1
+  Scenario Outline: <the criterion, stated once over its data>
+    When the system receives "<input>"
+    Then the system responds with "<result>"
+
+    Examples:
+      | input   | result   |
+      | <value> | <value>  |
+      | <value> | <value>  |
+
+  @AC-<CODE>-002.2 @negative
+  Scenario: <what this criterion forbids>
+    Then <the system does not do the forbidden thing>
+```
 
 <!--
-Add more REQ blocks as needed. Never reuse a retired ID.
+Add more requirement blocks as needed. Never reuse a retired ID.
 
 Anti-example (do not do this):
-  User Story: "As a user, I want payment to work."
-  AC-CHK-003.1: "The system should show a message."
-  AC-CHK-003.2: "Errors should be handled appropriately."
-Why it fails: generic role, no outcome, criteria are untestable, and no EARS
-trigger or condition is specified.
+  @FEAT-CHK-003
+  Feature: Payment
+    As a user
+    I want payment to work
+    So that I can pay
+
+    Scenario: A message is shown
+      Then the system shows a message
+Why it fails: generic role, no outcome, the criterion is untestable and
+carries no identifier tag, and "Payment" is a topic with no user need in it.
 
 Good example:
-  FEAT-CHK-003: Payment Confirmation
-  User Story: "As a customer, I want to receive confirmation after my
-  payment is processed, so that I can know my order was placed successfully."
-  AC-CHK-003.1: "WHEN payment processing succeeds, the system SHALL display
-    a confirmation page with the order number and estimated delivery date."
-    Example: "Alice completes checkout for 2 items totaling $45.00 with
-    standard shipping. Payment succeeds. The confirmation page shows order
-    number ORD-20260716-001 and estimated delivery July 23, 2026."
-  AC-CHK-003.2: "IF payment processing fails, THEN the system SHALL return
-    the user to the payment form with an error message describing the
-    failure reason."
-    Example: "Alice's card is declined. She is returned to the payment form
-    with the message 'Payment declined — please try another card.'"
-  AC-CHK-003.3: "WHEN the user navigates away during processing, the system
-    SHALL complete the transaction and display the confirmation on their
-    next visit."
+  @FEAT-CHK-003
+  Feature: Payment Confirmation
+
+    As a customer
+    I want confirmation after my payment is processed
+    So that I know my order was placed
+
+    @AC-CHK-003.1
+    Scenario: A successful payment shows the order number
+      When payment processing succeeds
+      Then the confirmation page shows the order number and estimated delivery date
+
+    @AC-CHK-003.2
+    Scenario: A declined payment returns the customer to the form
+      Given payment processing fails
+      Then the customer is returned to the payment form with an error message describing the failure reason
+
+    @AC-CHK-003.3
+    Scenario: Navigating away does not lose the transaction
+      When the customer navigates away during processing
+      Then the system completes the transaction and displays the confirmation on their next visit
 -->
 
 ## References

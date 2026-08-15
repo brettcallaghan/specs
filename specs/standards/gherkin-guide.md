@@ -6,8 +6,8 @@ description: How to write features and acceptance criteria in Gherkin under
 slug: gherkin-guide
 type: standards
 status: active
-updated_at: 2026-08-14T00:00:00Z
-version: "1.0.0"
+updated_at: 2026-08-15T00:00:00Z
+version: "1.1.0"
 ---
 
 # Gherkin Authoring Guide
@@ -211,7 +211,12 @@ required; the others are included when they have something to say.
 3. **A scope fence** — only where the feature has a tempting adjacent
    behaviour it must *not* have.
 
-```gherkin
+Shown here as plain text, not as a `gherkin` fence: the identifier it
+illustrates is a real one, and written as a live block this excerpt would
+be extracted as a second feature declaring it — a duplicate identifier
+across the corpus.
+
+```text
 @FEAT-SPEC-001
 Feature: Corpus Discovery and Membership
 
@@ -229,6 +234,13 @@ Feature: Corpus Discovery and Membership
 **`Rule` name** — carries rationale that states an assertion governing
 several criteria. If rationale can be phrased as a rule, it belongs
 here, where the parser sees it and the criteria it governs sit beneath.
+
+**A `Rule:` claims every scenario after it, whatever the indentation.**
+Gherkin's indentation is decorative. Once a rule opens there is no way to
+leave it, so any scenario the rules do not govern must be written
+*before* the first `Rule:` line — dedenting one back to feature level
+looks right and changes nothing.
+
 Shown here as plain text, not as a `gherkin` fence, for the same reason
 as the excerpt above — no enclosing `Feature:` header:
 
@@ -239,9 +251,11 @@ as the excerpt above — no enclosing `Feature:` header:
     Scenario: An unparseable document does not abort the index
 ```
 
-**`Scenario` description** — per-criterion rationale only. It SHALL NOT
-contain a normative statement; prose there is reported as a probable
-untagged criterion.
+**`Scenario` description** — leave it empty. *Any* non-empty scenario
+description is reported as a probable untagged criterion, not only a
+normative one, so there is nowhere in a scenario for rationale to sit.
+Per-criterion rationale goes in the `Feature` description, in a `Rule:`
+name, or in markdown beside the block.
 
 Descriptions hold **multiple paragraphs** — blank lines are preserved —
 and pass markdown through as literal text: emphasis, `code`, `[[slug]]`,
@@ -253,6 +267,14 @@ never sees it — it is ordinary text in a description, a scenario name, a
 step, a rule name or an examples cell — but this framework records it and
 resolves it exactly as it would in prose. Cite a document that does not
 exist inside a scenario and the check reports it.
+
+**So a wikilink cannot be illustrated inside a block.** Backticks are not
+a code span here; there is no code span. An FRD whose subject is the
+notation itself — anything about references, anchors or rewriting — must
+describe a wikilink in a step ("a wikilink naming the slug X") and keep
+the literal syntax in backticked markdown beside the block. Written
+literally, an illustration either enters the index as a citation the
+document never made, or fails the run as an unresolved reference.
 
 ---
 

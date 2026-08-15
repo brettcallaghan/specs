@@ -6,7 +6,7 @@ description: Parses cross-document references from a spec corpus, records
 slug: frd-spec-reference-integrity
 type: frd
 status: approved
-updated_at: 2026-08-09T00:00:00Z
+updated_at: 2026-08-15T00:00:00Z
 sources:
   - "frd-spec-validation-cli"
 ---
@@ -145,65 +145,90 @@ deliberately, not overlooked:
 
 ### FEAT-SPECREF-001: Reference Extraction in the Index
 
-**User Story:** As an architecture owner, I want every document's
-outbound and inbound references recorded in the index, so that impact
-analysis and a central catalogue read the relationship graph from the
-same artifact instead of re-deriving it.
-
 **Acceptance Criteria:**
 
-- **AC-SPECREF-001.1:** WHEN the CLI builds the index, the CLI SHALL add
-  to every corpus member's entry a `references` property holding every
-  `[[slug]]` parsed from its body, each with the span at which it occurs.
-  - *Example:* `adr-011`'s entry gains outbound references to `adr-004`
-    and `adr-006`, each carrying the byte offset and line/column of the
-    link.
-- **AC-SPECREF-001.2:** The CLI SHALL NOT record text inside a fenced
-  code block or an inline code span as a reference.
-  - *Example:* The sentence "write `` `[[security-standards]]` `` to
-    cite a standard" contributes no reference, because the link is an
-    illustration.
-- **AC-SPECREF-001.3:** WHEN the CLI builds the index, the CLI SHALL add
-  inbound references for every document, derived from the outbound
-  references of all other corpus members.
-  - *Example:* `adr-004`'s entry lists `adr-005`, `adr-006` and
-    `adr-007` as inbound, without any of them declaring the relationship
-    in frontmatter.
-- **AC-SPECREF-001.4:** The CLI SHALL NOT record a `[[slug]]` occurring
-  in a frontmatter value as a reference; frontmatter contributes
-  references only through the properties the active profile registers as
-  reference-bearing.
-  - *Example:* `specs/adrs/ADR-012-reference-conventions.md` line 3
-    carries `description: References use [[slug]] wikilinks …`, which
-    names the notation rather than a document. A parser reading the
-    whole file rather than the body reports it as unresolved — the only
-    unresolved reference a scan of this corpus produces today, and a
-    false one.
-- **AC-SPECREF-001.5:** WHEN a document references the same target more
-  than once, the CLI SHALL record each occurrence with its own span, and
-  SHALL order a document's outbound references by position in the
-  document.
-  - *Example:* An FRD citing `[[adr-002]]` in its Requirements and again
-    in its References carries two entries, so a finding against either
-    cites the line the reader must open. Ordering by position is what
-    makes the index byte-identical across platforms per AC-SPEC-009.7.
-- **AC-SPECREF-001.6:** WHEN a document's outbound references include
-  one that resolves to no corpus member, the CLI SHALL record it in the
-  index and SHALL exit zero.
-  - *Example:* A corpus with eleven broken links still produces a
-    complete index; the eleven are reported by `check`, per the ordering
-    FEAT-SPEC-002 sets — indexing never fails, validation may.
-- **AC-SPECREF-001.7:** WHEN the CLI builds the index, the CLI SHALL
-  record every value held by a frontmatter property the active profile
-  registers as reference-bearing as an outbound reference of that
-  document, each with the span at which it occurs, distinguishable from
-  a reference parsed from the body.
-  - *Example:* A document's `related: ["adr-012", "adr-002"]` records
-    two outbound references naming the property they came from, so
-    AC-SPECREF-002.3 can name it in a finding, AC-SPECREF-003.1 can
-    answer for a document cited only in frontmatter, and the inbound
-    edges of AC-SPECREF-001.3 include the relational graph rather than
-    only the prose one.
+```gherkin
+@FEAT-SPECREF-001
+Feature: Reference Extraction in the Index
+
+  As an architecture owner
+  I want every document's outbound and inbound references recorded in the index
+  So that impact analysis and a central catalogue read the relationship graph from the same artifact instead of re-deriving it
+
+  A reference written *about* rather than written is not a reference. The
+  two places that happens are a backticked illustration and a frontmatter
+  value describing the notation, and both are excluded.
+
+  Indexing never fails. A document's outbound references are recorded
+  whether or not they resolve, and reporting an unresolved one is the
+  checker's job.
+
+  @AC-SPECREF-001.1
+  Scenario: Every wikilink in a document's body is recorded with its span
+    When the CLI builds the index
+    Then every corpus member's entry carries a references property holding every wikilink parsed from its body, each with the span at which it occurs
+
+  @AC-SPECREF-001.2 @negative
+  Scenario Outline: A wikilink inside a code region is not a reference
+    Given a wikilink occurring inside "<region>"
+    When the CLI builds the index
+    Then the CLI does not record it as a reference
+
+    Examples:
+      | region                |
+      | a fenced code block   |
+      | an inline code span   |
+
+  @AC-SPECREF-001.3
+  Scenario: Inbound references are derived for every document
+    When the CLI builds the index
+    Then the CLI adds inbound references for every document, derived from the outbound references of all other corpus members
+
+  @AC-SPECREF-001.4 @negative
+  Scenario: A wikilink in a frontmatter value is not a reference
+    Given a wikilink occurring in a frontmatter value
+    When the CLI builds the index
+    Then the CLI does not record it as a reference
+    And frontmatter contributes references only through the properties the active profile registers as reference-bearing
+
+  @AC-SPECREF-001.5
+  Scenario: Repeated references are recorded separately and in document order
+    Given a document referencing the same target more than once
+    When the CLI builds the index
+    Then the CLI records each occurrence with its own span
+    And the CLI orders that document's outbound references by position in the document
+
+  @AC-SPECREF-001.6
+  Scenario: An unresolved reference is indexed rather than fatal
+    Given a document whose outbound references include one that resolves to no corpus member
+    When the CLI builds the index
+    Then the CLI records that reference in the index
+    And the CLI exits zero
+
+  @AC-SPECREF-001.7
+  Scenario: A reference-bearing frontmatter property contributes outbound references
+    When the CLI builds the index
+    Then the CLI records every value held by a frontmatter property the active profile registers as reference-bearing as an outbound reference of that document, each with the span at which it occurs, distinguishable from a reference parsed from the body
+```
+
+*Examples:* `adr-011`'s entry gains outbound references to `adr-004` and
+`adr-006`, each carrying the byte offset and line/column of the link
+(AC-SPECREF-001.1). The sentence "write `` `[[security-standards]]` ``
+to cite a standard" contributes no reference, because the link is an
+illustration (AC-SPECREF-001.2). `adr-004`'s entry lists `adr-005`,
+`adr-006` and `adr-007` as inbound, without any of them declaring the
+relationship in frontmatter (AC-SPECREF-001.3).
+`specs/adrs/ADR-012-reference-conventions.md` line 3 carries
+`description: References use [[slug]] wikilinks …`, which names the
+notation rather than a document (AC-SPECREF-001.4). An FRD citing
+`` `[[adr-021]]` `` in its Requirements and again in its References
+carries two entries, so a finding against either cites the line the
+reader must open; ordering by position is what makes the index
+byte-identical across platforms per AC-SPEC-009.7 (AC-SPECREF-001.5). A
+corpus with eleven broken links still produces a complete index
+(AC-SPECREF-001.6). A document's `related: ["adr-012", "adr-002"]`
+records two outbound references naming the property they came from
+(AC-SPECREF-001.7).
 
 *Rationale:* AC-SPECREF-001.2 and AC-SPECREF-001.4 are the same rule
 applied to the two places a reference is written about rather than
@@ -226,106 +251,113 @@ silently drops the half of the graph a catalogue reads first.
 
 ### FEAT-SPECREF-002: Reference Integrity Checks
 
-**User Story:** As a document author, I want every cross-reference
-checked, so that a link that silently stopped resolving is caught before
-a reader follows it into nothing.
-
 **Acceptance Criteria:**
 
-- **AC-SPECREF-002.1:** WHEN a document body contains a `[[slug]]`
-  reference that matches no corpus member's slug, the CLI SHALL report a
-  finding of severity `error` with the file, span, and unresolved slug.
-  - *Example:* `reference/unresolved  error
-    specs/adrs/ADR-004-module-blueprint-and-atomic-component.md:88:12`
-    "`[[adr-011]]` matches no document's slug". This was this
-    repository's own state until the slugs were migrated to the
-    number-only form [[adr-012]] decided; the check exists so the next
-    such drift is caught by the build rather than by a prototype.
-- **AC-SPECREF-002.2:** WHEN a reference names a heading anchor, the CLI
-  SHALL resolve the reference on its slug portion alone, and SHALL NOT
-  report a finding about the anchor.
-  - *Example:* `[[container-spec-cli#Element Registry]]` resolves iff a
-    corpus member declares `slug: container-spec-cli`; whether that
-    document has an `Element Registry` heading is not asked here.
-    Splitting on the first `#` is the whole of this feature's anchor
-    handling — without it the slug half would be read as
-    `container-spec-cli#Element Registry`, matching nothing, and every
-    anchor reference in a corpus would report as broken.
-- **AC-SPECREF-002.3:** WHEN a frontmatter property registered by the
-  active profile as reference-bearing contains a value matching no
-  corpus member's slug, the CLI SHALL report a finding of severity
-  `error` naming the property and the value.
-  - *Example:* `related: ["work-order-template"]` reports as unresolved,
-    because templates carry placeholder slugs and are not corpus
-    members.
-- **AC-SPECREF-002.5:** WHEN the active profile registers a frontmatter
-  property as one half of a paired relationship and the named document
-  does not declare the matching counterpart, the CLI SHALL report a
-  finding of severity `error` against both documents.
-  - *Example:* In an adopting profile that pairs `owner` with
-    `owned_by`, a document declaring `owner: team-ledger` where
-    `team-ledger` declares no matching `owned_by` produces a finding on
-    each. No pairing is registered by the profile this framework ships,
-    so this check is inert for its own corpus by design.
-- **AC-SPECREF-002.6:** WHEN a document at a status the profile treats
-  as live references a document at `status: retired`, the CLI SHALL
-  report a finding of severity `warning` naming the retired target and
-  its `superseded_by` value when it has one.
-  - *Example:* An approved blueprint citing a retired ADR reports
-    `reference/retired-target  warning … "adr-009 is retired,
-    superseded by adr-013"`, which does not fail a build but is the one
-    finding that tells an author what to cite instead.
-- **AC-SPECREF-002.7:** WHEN a reference's slug matches a file the index
-  recorded as excluded or as a parse failure rather than a corpus
-  member, the CLI SHALL report the finding with that reason rather than
-  as a slug matching nothing.
-  - *Example:* A reference to a document whose frontmatter does not
-    parse reports "target exists but is not a corpus member: parse
-    failure at line 28" — one lookup for the reader instead of a search
-    for a document that is right there.
-- **AC-SPECREF-002.8:** The CLI SHALL resolve a reference against corpus
-  slugs without regard to letter case.
-  - *Example:* `[[ADR-012]]` resolves to the document declaring
-    `slug: adr-012`, matching the case-insensitive slug uniqueness
-    AC-SPEC-003.4 already establishes — the two rules must agree, or a
-    corpus can hold a reference that resolves to two documents that
-    cannot both exist.
-- **AC-SPECREF-002.9:** WHEN the CLI checks a single document, the CLI
-  SHALL report inbound references to that document that no longer
-  resolve at the severity AC-SPECREF-002.1 assigns, each cited at the
-  span in the referring document, in addition to findings against the
-  document named.
-  - *Example:* An agent changes an ADR's slug and the write-time check
-    on that one file reports the seven documents now pointing at
-    nothing, at their own lines. Without this, the edit most likely to
-    break references is the one a single-document check cannot see: the
-    seven referrers were not the file that was written, so nothing
-    examines them until CI.
-- **AC-SPECREF-002.10:** WHEN the active profile declares a required
-  target `type` for a reference-bearing property and the resolved
-  document declares a different `type`, the CLI SHALL report a finding
-  of severity `error` naming the property, the type expected and the
-  type the target declares.
-  - *Example:* A feature blueprint whose `frd` names `adr-009` reports
-    "frd expects type 'frd', target 'adr-009' declares type 'adr'". The
-    schema can require that `frd` holds exactly one slug; only the index
-    knows what that slug resolves to, so this half of the constraint has
-    to live here.
-- **AC-SPECREF-002.11:** WHEN the CLI checks a single document, the CLI
-  SHALL report every reference finding against the document that holds
-  the reference, whichever document that is, in addition to findings
-  against the document named — the retired target of AC-SPECREF-002.6,
-  the incomplete pairing of AC-SPECREF-002.5 and the type mismatch of
-  AC-SPECREF-002.10, on the same terms AC-SPECREF-002.9 states for an
-  unresolved reference.
-  - *Example:* An agent sets an ADR to `status: retired` and the
-    write-time check on that one file reports the four live documents
-    still citing it, at their own lines. Under AC-SPECREF-002.9 alone
-    that same check reported nothing and printed
-    `reference/retired-target passed`: retiring a document does not stop
-    its references resolving, so the edit whose entire purpose is to
-    change what those references *mean* was invisible to the check an
-    author runs before flipping status.
+```gherkin
+@FEAT-SPECREF-002
+Feature: Reference Integrity Checks
+
+  As a document author
+  I want every cross-reference checked
+  So that a link that silently stopped resolving is caught before a reader follows it into nothing
+
+  Severity is assigned here rather than left to implementation, because
+  it is what the exit status of a build depends on.
+
+  A finding belongs to the document a reader must open to fix it, which
+  for a reference is the referring document rather than the one that was
+  edited. That is why the last two criteria widen a single-document check
+  rather than narrowing it.
+
+  @AC-SPECREF-002.1
+  Scenario: A body reference matching no corpus member is an error
+    Given a document body containing a wikilink whose slug matches no corpus member's slug
+    When the CLI checks the corpus
+    Then the CLI reports a finding of severity error with the file, the span, and the unresolved slug
+
+  @AC-SPECREF-002.2
+  Scenario: A reference naming an anchor is resolved on its slug alone
+    Given a reference naming a heading anchor
+    When the CLI checks it
+    Then the CLI resolves the reference on its slug portion alone
+    And the CLI reports no finding about the anchor
+
+  @AC-SPECREF-002.3
+  Scenario: A reference-bearing frontmatter value matching no corpus member is an error
+    Given a frontmatter property the active profile registers as reference-bearing
+    And its value matches no corpus member's slug
+    When the CLI checks the document
+    Then the CLI reports a finding of severity error naming the property and the value
+
+  @AC-SPECREF-002.5
+  Scenario: A pairing with no counterpart is an error against both documents
+    Given the active profile registers a frontmatter property as one half of a paired relationship
+    And the document it names does not declare the matching counterpart
+    When the CLI checks the corpus
+    Then the CLI reports a finding of severity error against both documents
+
+  @AC-SPECREF-002.6
+  Scenario: A live document citing a retired one is a warning naming the successor
+    Given a document at a status the profile treats as live
+    And it references a document at status retired
+    When the CLI checks the corpus
+    Then the CLI reports a finding of severity warning naming the retired target and its superseded_by value when it has one
+
+  @AC-SPECREF-002.7
+  Scenario: A slug matching an excluded or unparsable file is reported with that reason
+    Given a reference whose slug matches a file the index recorded as excluded or as a parse failure rather than a corpus member
+    When the CLI checks the corpus
+    Then the CLI reports the finding with that reason rather than as a slug matching nothing
+
+  @AC-SPECREF-002.8
+  Scenario: Resolution ignores letter case
+    Then the CLI resolves a reference against corpus slugs without regard to letter case
+
+  @AC-SPECREF-002.9
+  Scenario: A single-document check reports inbound references that no longer resolve
+    When the CLI checks a single document
+    Then the CLI reports inbound references to that document that no longer resolve, at the severity AC-SPECREF-002.1 assigns, each cited at the span in the referring document, in addition to findings against the document named
+
+  @AC-SPECREF-002.10
+  Scenario: A typed reference resolving to the wrong type is an error
+    Given the active profile declares a required target type for a reference-bearing property
+    And the resolved document declares a different type
+    When the CLI checks the document
+    Then the CLI reports a finding of severity error naming the property, the type expected and the type the target declares
+
+  @AC-SPECREF-002.11
+  Scenario: A single-document check reports every reference finding at the document holding the reference
+    When the CLI checks a single document
+    Then the CLI reports every reference finding against the document that holds the reference, whichever document that is, in addition to findings against the document named
+    And that covers the retired target of AC-SPECREF-002.6, the incomplete pairing of AC-SPECREF-002.5 and the type mismatch of AC-SPECREF-002.10, on the same terms AC-SPECREF-002.9 states for an unresolved reference
+```
+
+*Examples:* `reference/unresolved  error
+specs/adrs/ADR-004-module-blueprint-and-atomic-component.md:88:12`
+"`[[adr-011]]` matches no document's slug" (AC-SPECREF-002.1).
+`` `[[container-spec-cli#Element Registry]]` `` resolves iff a corpus
+member declares `slug: container-spec-cli`; whether that document has an
+`Element Registry` heading is not asked here (AC-SPECREF-002.2).
+`related: ["work-order-template"]` reports as unresolved, because
+templates carry placeholder slugs and are not corpus members
+(AC-SPECREF-002.3). In an adopting profile that pairs `owner` with
+`owned_by`, a document declaring `owner: team-ledger` where
+`team-ledger` declares no matching `owned_by` produces a finding on each;
+no pairing is registered by the profile this framework ships, so the
+check is inert for its own corpus by design (AC-SPECREF-002.5). An
+approved blueprint citing a retired ADR reports
+`reference/retired-target  warning … "adr-009 is retired, superseded by
+adr-013"` (AC-SPECREF-002.6). A reference to a document whose
+frontmatter does not parse reports "target exists but is not a corpus
+member: parse failure at line 28" (AC-SPECREF-002.7). `` `[[ADR-012]]` ``
+resolves to the document declaring `slug: adr-012` (AC-SPECREF-002.8). An
+agent changes an ADR's slug and the write-time check on that one file
+reports the seven documents now pointing at nothing, at their own lines
+(AC-SPECREF-002.9). A feature blueprint whose `frd` names `adr-009`
+reports "frd expects type 'frd', target 'adr-009' declares type 'adr'"
+(AC-SPECREF-002.10). An agent sets an ADR to `status: retired` and the
+write-time check on that one file reports the four live documents still
+citing it, at their own lines (AC-SPECREF-002.11).
 
 *Rationale:* Severity is assigned here rather than left to
 implementation because it is what the exit status of a build depends on.
@@ -387,35 +419,56 @@ is worse than one that does not run the rule.
 
 ### FEAT-SPECREF-003: Reference Queries
 
-**User Story:** As an authoring agent, I want to ask which documents
-reference a slug, so that I understand the blast radius of retiring or
-renaming a document without reading every file.
-
 **Acceptance Criteria:**
 
-- **AC-SPECREF-003.1:** The CLI SHALL expose a `refs` subcommand that,
-  given a slug, returns every corpus member whose body or registered
-  frontmatter properties reference it.
-  - *Example:* `spec refs adr-007` returns the four documents citing it,
-    so an author retiring it knows the blast radius.
-- **AC-SPECREF-003.2:** WHEN the `refs` subcommand is invoked with an
-  option selecting the outbound direction, the CLI SHALL return the
-  documents the named slug references instead of those referencing it.
-  - *Example:* `spec refs frd-spec-reference-integrity --outbound`
-    lists the nine documents this FRD cites, so an agent about to edit
-    it knows what it depends on without reading it.
-- **AC-SPECREF-003.3:** WHEN the `refs` subcommand is invoked with the
-  `--json` option, the CLI SHALL emit each returned reference with its
-  file path and span.
-  - *Example:* An agent pipes the result into a rewrite, opening only
-    the lines that carry the reference rather than each citing document.
-- **AC-SPECREF-003.4:** The `refs` subcommand SHALL answer from the warm
-  index within the budget AC-SPEC-009.1 sets for a corpus query.
-- **AC-SPECREF-003.5:** WHEN no corpus member references the named slug,
-  the CLI SHALL report that and exit zero.
-  - *Example:* `spec refs frd-spec-reference-integrity` returning
-    nothing is the answer that a document is unreferenced, not a
-    failure — the same contract `slug-exists` sets in AC-SPEC-007.2.
+```gherkin
+@FEAT-SPECREF-003
+Feature: Reference Queries
+
+  As an authoring agent
+  I want to ask which documents reference a slug
+  So that I understand the blast radius of retiring or renaming a document without reading every file
+
+  Both directions are exposed because the index carries both and the two
+  questions are asked at different moments — what breaks if I retire this,
+  before a change, and what does this depend on, before an edit.
+
+  @AC-SPECREF-003.1
+  Scenario: A refs query returns every document that references a slug
+    Then the CLI exposes a refs subcommand that, given a slug, returns every corpus member whose body or registered frontmatter properties reference it
+
+  @AC-SPECREF-003.2
+  Scenario: The outbound direction returns what the named slug references
+    When the refs subcommand is invoked with an option selecting the outbound direction
+    Then the CLI returns the documents the named slug references instead of those referencing it
+
+  @AC-SPECREF-003.3
+  Scenario: JSON output carries each reference's file path and span
+    When the refs subcommand is invoked with the JSON option
+    Then the CLI emits each returned reference with its file path and span
+
+  @AC-SPECREF-003.4
+  Scenario: A refs query answers from the warm index
+    Then the refs subcommand answers from the warm index within the budget AC-SPEC-009.1 sets for a corpus query
+
+  @AC-SPECREF-003.5
+  Scenario: An unreferenced slug is an answer rather than a failure
+    Given no corpus member references the named slug
+    When the refs subcommand runs
+    Then the CLI reports that
+    And the CLI exits zero
+```
+
+*Examples:* `spec refs adr-007` returns the four documents citing it, so
+an author retiring it knows the blast radius (AC-SPECREF-003.1).
+`spec refs frd-spec-reference-integrity --outbound` lists the documents
+this FRD cites, so an agent about to edit it knows what it depends on
+without reading it (AC-SPECREF-003.2). An agent pipes a `--json` result
+into a rewrite, opening only the lines that carry the reference rather
+than each citing document (AC-SPECREF-003.3).
+`spec refs frd-spec-reference-integrity` returning nothing is the answer
+that a document is unreferenced, not a failure — the same contract
+`slug-exists` sets in AC-SPEC-007.2 (AC-SPECREF-003.5).
 
 *Rationale:* This extends the command surface FEAT-SPEC-011 fixed without
 renaming or repurposing any of its four subcommands, which is the growth
@@ -427,40 +480,50 @@ the corpus is the behavior the tool exists to replace.
 
 ### FEAT-SPECREF-004: Reference Configuration
 
-**User Story:** As an adopting team, I want to declare which of my
-frontmatter properties hold references and which form pairs, so that the
-tool checks my conventions rather than assuming a fixed set.
-
 **Acceptance Criteria:**
 
-- **AC-SPECREF-004.1:** The configuration SHALL determine which
-  frontmatter properties are reference-bearing and which pairs of
-  properties form a paired relationship, extending the configuration
-  file of FEAT-SPEC-008 without a separate file.
-  - *Example:* `reference_properties` and `pairings` are already
-    declared per document type in [[contract-specs-configuration]] and
-    in `schemas/profile.strata`; this feature is the first consumer of
-    properties the configuration schema already carries. It adds one:
-    `typed_reference_properties`, mapping a reference-bearing property
-    to the document `type` its target must declare (AC-SPECREF-002.10).
-- **AC-SPECREF-004.2:** The CLI SHALL ship a configuration registering
-  this framework's own reference-bearing properties and pairings, which
-  an adopting repository can use without authoring one.
-  - *Example:* The shipped configuration marks `superseded_by`,
-    `sources`, `frd`, `system`, `contained_by`,
-    `contracts_provided` and `contracts_consumed` as reference-bearing,
-    and registers **no** pairing — every relationship this framework
-    declares has its reverse derived from inbound edges, and
-    [[document-relationship-standards]] reserves a pairing for the case
-    that does not. It registers one typed reference: a feature
-    blueprint's `frd` must resolve to a document of type `frd`.
-- **AC-SPECREF-004.3:** IF a pairing names a property that is not
-  registered as reference-bearing, THEN the CLI SHALL report the
-  offending key and its position and SHALL NOT fall back to a default.
-  - *Example:* A pairing of `children` with `parent` where only
-    `parent_slug` is registered names the key and line, rather than
-    silently checking nothing — the vacuous-success failure this
-    project has now observed in three independently built tools.
+```gherkin
+@FEAT-SPECREF-004
+Feature: Reference Configuration
+
+  As an adopting team
+  I want to declare which of my frontmatter properties hold references and which form pairs
+  So that the tool checks my conventions rather than assuming a fixed set
+
+  @AC-SPECREF-004.1
+  Scenario: One configuration file carries the reference vocabulary
+    Then the configuration determines which frontmatter properties are reference-bearing and which pairs of properties form a paired relationship
+    And it does so by extending the configuration file of FEAT-SPEC-008 rather than by a separate file
+
+  @AC-SPECREF-004.2
+  Scenario: A configuration for this framework's own properties ships with the CLI
+    Then the CLI ships a configuration registering this framework's own reference-bearing properties and pairings, which an adopting repository can use without authoring one
+
+  @AC-SPECREF-004.3
+  Scenario: A pairing naming an unregistered property is reported rather than silently ignored
+    Given a pairing that names a property not registered as reference-bearing
+    When the CLI reads the configuration
+    Then the CLI reports the offending key and its position
+    And the CLI falls back to no default for it
+```
+
+*Examples:* `reference_properties` and `pairings` are already declared
+per document type in [[contract-specs-configuration]] and in
+`schemas/profile.strata`; this feature is the first consumer of
+properties the configuration schema already carries, and it adds one —
+`typed_reference_properties`, mapping a reference-bearing property to the
+document `type` its target must declare (AC-SPECREF-004.1, and
+AC-SPECREF-002.10). The shipped configuration marks `superseded_by`,
+`sources`, `frd`, `system`, `contained_by`, `contracts_provided` and
+`contracts_consumed` as reference-bearing, and registers **no**
+pairing — every relationship this framework declares has its reverse
+derived from inbound edges, and [[document-relationship-standards]]
+reserves a pairing for the case that does not. It registers one typed
+reference: a feature blueprint's `frd` must resolve to a document of type
+`frd` (AC-SPECREF-004.2). A pairing of `children` with `parent` where
+only `parent_slug` is registered names the key and line, rather than
+silently checking nothing — the vacuous-success failure this project has
+now observed in three independently built tools (AC-SPECREF-004.3).
 
 *Rationale:* Configuration is what makes the checks in FEAT-SPECREF-002
 belong to the adopting team rather than to this framework. A team whose
@@ -495,8 +558,9 @@ renumbered.
   are already declared
 - [[adr-012]] — the `[[slug]]` convention this feature parses and
   resolves, and the heading-anchor convention it defers
-- [[adr-002]] — EARS, the notation these acceptance criteria are written
-  in
+- [[adr-021]] — Gherkin, the notation these features and acceptance
+  criteria are written in
+- [[gherkin-guide]] — how to write them
 - [[module-document-core]] — declares the References component this
   feature builds, and records that it is not yet built
 - [[module-spec-profile]] — declares the Lifecycle Rules component whose

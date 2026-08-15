@@ -4,7 +4,7 @@ description: Adopt EARS (Easy Approach to Requirements Syntax) for writing clear
 slug: adr-002
 type: adr
 status: active
-updated_at: 2026-08-05T00:00:00Z
+updated_at: 2026-08-15T00:00:00Z
 ---
 
 # ADR-002: Use EARS Notation for Requirements
@@ -30,13 +30,36 @@ functional and non-functional requirements in specification documents. EARS
 provides five syntax patterns: ubiquitous, event-driven, state-driven, optional
 feature, and unwanted behavior requirements.
 
+### Scope
+
+This decision governs **every normative statement that is not a feature or
+an acceptance criterion** — standards documents, contracts, blueprints, and
+requirement-level statements wherever they are written.
+
+Features and acceptance criteria are written in Gherkin, decided by
+[[adr-021]] and authored per [[gherkin-guide]]. That narrows this ADR's
+scope; it does not retire it. The two surfaces are distinguished by what
+they hold, so an author can tell which applies without consulting either
+document:
+
+| Surface | Notation |
+|---|---|
+| An FRD's features and acceptance criteria | Gherkin |
+| Every other normative statement, in any document type | EARS |
+
+The split runs along a real boundary. Acceptance criteria are
+scenario-shaped, externally consumed, and destined to leave the repository
+for product and QA tooling. Standards documents, contracts and blueprints
+are invariant-shaped, internally consumed, and stay — and their modality
+genuinely varies, where an acceptance criterion's does not.
+
 ## Alternatives Considered
 
 | Option | Pros | Cons | Why rejected |
 |--------|------|------|--------------|
 | Free-form prose requirements | No learning curve<br>Natural language flexibility<br>Familiar to all team members | High ambiguity<br>Inconsistent structure<br>Hard to validate completeness<br>Difficult to trace to tests | Creates the problem we're trying to solve;<br>lacks the precision needed for implementation |
 | RFC 2119 keywords (MUST/SHOULD/MAY) | Industry standard<br>Clear priority levels<br>Minimal syntax | Doesn't structure conditions or triggers<br>Still allows ambiguous prose<br>No guidance on requirement patterns | Addresses priority but not structure;<br>requirements can still be ambiguous despite using MUST/SHOULD |
-| Gherkin-style Given/When/Then | Familiar to QA/testing teams<br>Direct mapping to BDD tests<br>Structured format | Too granular for high-level requirements<br>Verbose for simple cases<br>Scenario-focused rather than system-focused | Better suited for acceptance criteria and test cases than system requirements;<br>wrong level of abstraction |
+| Gherkin-style Given/When/Then | Familiar to QA/testing teams<br>Direct mapping to BDD tests<br>Structured format | Too granular for high-level requirements<br>Verbose for simple cases<br>Scenario-focused rather than system-focused | Rejected here for *system* requirements, which is the scope this ADR keeps. [[adr-021]] later adopted it for acceptance criteria, on the ground this row already names — that it suits them |
 | EARS notation | Standardized syntax patterns<br>Reduces ambiguity<br>Clear separation of conditions and requirements<br>Industry-proven approach | Learning curve for new users<br>Can feel rigid for simple cases<br>Requires discipline to maintain | N/A — selected |
 
 ## Consequences
@@ -60,9 +83,16 @@ feature, and unwanted behavior requirements.
 - Simple requirements become more verbose (e.g., "The system shall log errors"
   becomes "While the system is operational, if an error occurs, the system shall
   log...")
+- Authors must know which surface they are on, since acceptance criteria are
+  written in Gherkin and everything else in EARS, and both readiness
+  checklists carry two notations.
 
 ## References
 
-- `references/ears-guide.md` — EARS format reference and examples
+- [[adr-021]] — Gherkin for features and acceptance criteria, which narrows
+  this decision's scope to non-AC normative statements
+- [[guide-ears]] — EARS format reference and examples
+- [[gherkin-guide]] — the authoring guide for the surface this ADR no longer
+  governs
 - EARS notation originated from work by John Terzakis at Intel and Rolls-Royce
 - Mavin, A., et al. (2009). "Easy Approach to Requirements Syntax (EARS)"

@@ -129,137 +129,194 @@ deliberately, not overlooked:
 
 ### FEAT-SPEC-001: Corpus Discovery and Membership
 
-**User Story:** As an adopting team, I want to point the tool at my
-repository and have it work out which files are specifications, so that
-I do not have to enumerate documents or restructure my directories.
-
 **Acceptance Criteria:**
 
-- **AC-SPEC-001.1:** WHEN the CLI is invoked against a directory, the
-  CLI SHALL treat every `.md` file beneath it whose frontmatter parses
-  and declares a `type` known to the active profile as a member of the
-  corpus.
-  - *Example:* Invoked against `docs/`, it admits
-    `docs/adrs/ADR-011-targeted-verification-gates.md`, which declares
-    `type: adr`.
-- **AC-SPEC-001.2:** WHEN the CLI is invoked against a single file path,
-  the CLI SHALL check that file and resolve its references against the
-  full corpus discovered from the configured spec root.
-  - *Example:* Checking one ADR still reports a `[[slug]]` in it that
-    matches no document anywhere in `docs/`.
-- **AC-SPEC-001.3:** IF a `.md` file beneath the spec root has no
-  frontmatter, THEN the CLI SHALL record it in the index as excluded
-  with the reason `no-frontmatter` rather than omitting it silently.
-  - *Example:* `docs/plans/plan.md` appears in the index's exclusions
-    list with reason `no-frontmatter`.
-- **AC-SPEC-001.4:** IF a `.md` file declares a `type` the active
-  profile does not define, THEN the CLI SHALL record it as excluded with
-  the reason `unknown-type` and report the declared value.
-  - *Example:* A file declaring `type: rfc` under a profile with no
-    `rfc` type is listed with `"type": "rfc"`, so a reviewing agent can
-    judge whether the profile or the document is wrong.
-- **AC-SPEC-001.5:** The CLI SHALL NOT read files outside the configured
-  spec root when resolving corpus membership.
-- **AC-SPEC-001.6:** The CLI SHALL consider only files whose name ends
-  in `.md` as candidate corpus members, and SHALL pass over any other
-  file silently rather than recording it as an exclusion.
-  - *Example:* `docs/specs/specs.json` and `docs/adrs/README.rst` are
-    ignored without appearing in the exclusions list, while
-    `docs/adrs/ADR-004-module-blueprint-and-atomic-component.md` is
-    considered.
+```gherkin
+@FEAT-SPEC-001
+Feature: Corpus Discovery and Membership
 
-*Rationale:* Membership by content rather than path is what lets the
-tool run against a repository it did not design. Recording exclusions
-rather than dropping them is what lets an agent notice that a document
-which *should* be a specification is missing frontmatter — a judgment
-the CLI cannot make.
+  As an adopting team
+  I want the tool to work out for itself which files are specifications
+  So that I need not enumerate documents or restructure my directories
+
+  Membership is determined by content, not location: a .md file whose
+  frontmatter parses and declares a type the active profile knows. That
+  is what lets the tool run against a repository it did not design.
+
+  An exclusion is recorded rather than dropped, so that an agent can
+  notice that a document which should be a specification is missing
+  frontmatter — a judgment the CLI cannot make.
+
+  @AC-SPEC-001.1
+  Scenario: A directory yields every conforming markdown file beneath it
+    When the CLI is invoked against a directory
+    Then the CLI treats every ".md" file beneath it whose frontmatter parses and declares a type known to the active profile as a member of the corpus
+
+  @AC-SPEC-001.2
+  Scenario: A single file is checked against the whole corpus
+    When the CLI is invoked against a single file path
+    Then the CLI checks that file
+    And the CLI resolves its references against the full corpus discovered from the configured spec root
+
+  @AC-SPEC-001.3
+  Scenario: A markdown file with no frontmatter is recorded as an exclusion
+    Given a ".md" file beneath the spec root that has no frontmatter
+    When the CLI discovers the corpus
+    Then the CLI records it in the index as excluded with the reason "no-frontmatter" rather than omitting it silently
+
+  @AC-SPEC-001.4
+  Scenario: A markdown file declaring an unknown type is recorded with the value it declared
+    Given a ".md" file declaring a type the active profile does not define
+    When the CLI discovers the corpus
+    Then the CLI records it as excluded with the reason "unknown-type"
+    And the CLI reports the declared value
+
+  @AC-SPEC-001.5 @negative
+  Scenario: Nothing outside the spec root is read
+    When the CLI resolves corpus membership
+    Then the CLI reads no file outside the configured spec root
+
+  @AC-SPEC-001.6
+  Scenario: A file that is not markdown is passed over silently
+    Then the CLI considers only files whose name ends in ".md" as candidate corpus members
+    And the CLI passes over any other file silently rather than recording it as an exclusion
+```
+
+*Examples:* invoked against `docs/`, the CLI admits
+`docs/adrs/ADR-011-targeted-verification-gates.md`, which declares
+`type: adr` (AC-SPEC-001.1). Checking one ADR still reports a wikilink in
+it that matches no document anywhere in `docs/` (AC-SPEC-001.2).
+`docs/plans/plan.md` appears in the index's exclusions list with reason
+`no-frontmatter` (AC-SPEC-001.3). A file declaring `type: rfc` under a
+profile with no `rfc` type is listed with `"type": "rfc"`, so a reviewing
+agent can judge whether the profile or the document is wrong
+(AC-SPEC-001.4). `docs/specs/specs.json` and `docs/adrs/README.rst` are
+ignored without appearing in the exclusions list, while
+`docs/adrs/ADR-004-module-blueprint-and-atomic-component.md` is
+considered (AC-SPEC-001.6).
 
 ### FEAT-SPEC-002: Document Index
 
-**User Story:** As an architecture owner, I want one machine-readable
-artifact describing every specification document and how they relate, so
-that CI, agents, and a central catalogue all read the same source of
-truth instead of each re-deriving it.
-
 **Acceptance Criteria:**
 
-- **AC-SPEC-002.1:** WHEN the CLI builds an index, the CLI SHALL emit a
-  JSON document containing, for every corpus member, its frontmatter
-  properties and its file path.
-  - *Example:* The entry for `adr-011` carries its six frontmatter
-    properties and its path
-    `docs/adrs/ADR-011-targeted-verification-gates.md`. Its headings and
-    outbound references are added to the same entry by later features.
-- **AC-SPEC-002.2:** The index SHALL declare a schema version
-  identifier.
-  - *Example:* The emitted JSON opens with
-    `"schema_version": "1.0"`. Later features add properties under this
-    same version line without a breaking bump.
-- **AC-SPEC-002.3:** The index SHALL declare the workspace identifier
-  from configuration for every document it contains.
-  - *Example:* Every entry carries `"workspace": "agent-plugins"`, so
-    merging this index with another repository's cannot collide two
-    documents that both use the slug `adr-001`.
-- **AC-SPEC-002.4:** WHEN a document in the corpus cannot be parsed, the
-  CLI SHALL index every other document and record the failure against
-  the offending document rather than aborting the index.
-  - *Example:* `work-order-template.md` fails YAML parsing at line 28;
-    the index still contains the other 49 documents and lists that file
-    with its parse error and position.
-- **AC-SPEC-002.5:** The CLI SHALL exit zero after building an index
-  that contains parse failures.
+```gherkin
+@FEAT-SPEC-002
+Feature: Document Index
+
+  As an architecture owner
+  I want one machine-readable artifact describing every specification document and how they relate
+  So that CI, agents and a central catalogue all read the same source of truth instead of each re-deriving it
+
+  The index is deliberately additive: this sprint fills frontmatter and
+  path, and later features populate the remaining properties without
+  changing the schema's shape or its version.
+
+  Rule: A build failure is the checker's job, not the indexer's
+
+    @AC-SPEC-002.1
+    Scenario: The index carries every corpus member's frontmatter and path
+      When the CLI builds an index
+      Then the CLI emits a JSON document containing, for every corpus member, its frontmatter properties and its file path
+
+    @AC-SPEC-002.2
+    Scenario: The index declares a schema version
+      Then the index declares a schema version identifier
+
+    @AC-SPEC-002.3
+    Scenario: Every entry declares its workspace
+      Then the index declares the workspace identifier from configuration for every document it contains
+
+    @AC-SPEC-002.4
+    Scenario: An unparseable document does not abort the index
+      Given a document in the corpus that cannot be parsed
+      When the CLI builds an index
+      Then the CLI indexes every other document
+      And the CLI records the failure against the offending document rather than aborting the index
+
+    @AC-SPEC-002.5
+    Scenario: An index containing parse failures still exits zero
+      When the CLI has built an index that contains parse failures
+      Then the CLI exits zero
+```
+
+*Examples:* the entry for `adr-011` carries its six frontmatter
+properties and its path
+`docs/adrs/ADR-011-targeted-verification-gates.md`, and later features
+add its headings and outbound references to the same entry
+(AC-SPEC-002.1). The emitted JSON opens with `"schema_version": "1.0"`
+(AC-SPEC-002.2). Every entry carries `"workspace": "agent-plugins"`, so
+merging this index with another repository's cannot collide two
+documents that both use the slug `adr-001` (AC-SPEC-002.3).
+`work-order-template.md` fails YAML parsing at line 28; the index still
+contains the other 49 documents and lists that file with its parse error
+and position (AC-SPEC-002.4).
 
 *Rationale:* AC-SPEC-002.4 and AC-SPEC-002.5 together are what make the
 index usable as an architecture artifact. A repository with three broken
 documents must still contribute its other nine hundred to an
-organization's graph; a build failure is the checker's job, not the
-indexer's. The index is deliberately additive: this sprint fills
-frontmatter and path, and later features populate the remaining
-properties without changing the schema's shape or its version.
+organization's graph.
 
 ### FEAT-SPEC-003: Metadata Conformance
 
-**User Story:** As a reviewer, I want frontmatter errors reported
-mechanically, so that review attention goes to whether a document says
-the right thing rather than whether it is shaped correctly.
-
 **Acceptance Criteria:**
 
-- **AC-SPEC-003.1:** WHEN the CLI checks a document, the CLI SHALL
-  validate its frontmatter against the JSON Schema the active profile
-  registers for that document's `type`.
-  - *Example:* A document declaring `type: adr` but omitting
-    `description` produces one finding naming the missing property.
-- **AC-SPEC-003.2:** WHEN the CLI validates a frontmatter property whose
-  schema constrains its textual format, the CLI SHALL validate the raw
-  text of the property as written in the file.
-  - *Example:* `updated_at: 2026-07-29` fails an RFC 3339 date-time
-    check, even though a YAML parser would coerce it to a valid
-    timestamp before any check could see it.
-- **AC-SPEC-003.3:** WHEN two corpus members declare the same slug, the
-  CLI SHALL report a finding against each, naming the other's path.
-  - *Example:* Two documents both declaring `slug: adr-012` each produce
-    a finding citing the other's file path.
-- **AC-SPEC-003.4:** The CLI SHALL compare slugs for uniqueness without
-  regard to letter case.
-  - *Example:* `frd-checkout` and `FRD-Checkout` are reported as
-    duplicates, because a case-insensitive filesystem cannot hold both
-    as distinct files.
-- **AC-SPEC-003.5:** WHEN a document's slug does not match the pattern
-  the active profile registers for its `type`, the CLI SHALL report a
-  finding naming both the actual slug and the expected pattern.
-  - *Example:* `slug: adr-011-targeted-verification-gates` under a
-    profile registering `^adr-[0-9]{3}$` for type `adr` produces a
-    finding quoting both.
-- **AC-SPEC-003.6:** WHEN a corpus member is indexed with a parse error
-  rather than parsed frontmatter, the CLI SHALL report a finding
-  carrying that error's message and span, and SHALL NOT report the
-  document as having passed any check.
-  - *Example:* A document copied from a template and not yet completed
-    carries `updated_at: <YYYY-MM-DDTHH:MM:SSZ>`, which is not an RFC
-    3339 date-time. The check run reports it and exits non-zero, rather
-    than reporting four passed checks against a document nothing was
-    able to read.
+```gherkin
+@FEAT-SPEC-003
+Feature: Metadata Conformance
+
+  As a reviewer
+  I want frontmatter errors reported mechanically
+  So that review attention goes to whether a document says the right thing rather than whether it is shaped correctly
+
+  @AC-SPEC-003.1
+  Scenario: Frontmatter is validated against the schema for its type
+    When the CLI checks a document
+    Then the CLI validates its frontmatter against the JSON Schema the active profile registers for that document's type
+
+  @AC-SPEC-003.2
+  Scenario: A textual format is checked against the raw text in the file
+    When the CLI validates a frontmatter property whose schema constrains its textual format
+    Then the CLI validates the raw text of the property as written in the file
+
+  @AC-SPEC-003.3
+  Scenario: Two members declaring one slug each name the other
+    Given two corpus members declaring the same slug
+    When the CLI checks the corpus
+    Then the CLI reports a finding against each, naming the other's path
+
+  @AC-SPEC-003.4
+  Scenario: Slug uniqueness ignores letter case
+    Then the CLI compares slugs for uniqueness without regard to letter case
+
+  @AC-SPEC-003.5
+  Scenario: A slug not matching its type's pattern is reported with both
+    Given a document whose slug does not match the pattern the active profile registers for its type
+    When the CLI checks the document
+    Then the CLI reports a finding naming both the actual slug and the expected pattern
+
+  @AC-SPEC-003.6
+  Scenario: A member indexed with a parse error is reported, never reported as passing
+    Given a corpus member indexed with a parse error rather than parsed frontmatter
+    When the CLI checks it
+    Then the CLI reports a finding carrying that error's message and span
+    And the CLI reports the document as having passed no check
+```
+
+*Examples:* a document declaring `type: adr` but omitting `description`
+produces one finding naming the missing property (AC-SPEC-003.1).
+`updated_at: 2026-07-29` fails an RFC 3339 date-time check, even though a
+YAML parser would coerce it to a valid timestamp before any check could
+see it (AC-SPEC-003.2). Two documents both declaring `slug: adr-012` each
+produce a finding citing the other's file path (AC-SPEC-003.3).
+`frd-checkout` and `FRD-Checkout` are reported as duplicates, because a
+case-insensitive filesystem cannot hold both as distinct files
+(AC-SPEC-003.4). `slug: adr-011-targeted-verification-gates` under a
+profile registering `^adr-[0-9]{3}$` for type `adr` produces a finding
+quoting both (AC-SPEC-003.5). A document copied from a template and not
+yet completed carries `updated_at: <YYYY-MM-DDTHH:MM:SSZ>`, which is not
+an RFC 3339 date-time; the check run reports it and exits non-zero,
+rather than reporting four passed checks against a document nothing was
+able to read (AC-SPEC-003.6).
 
 *Rationale for AC-SPEC-003.6:* every other criterion in this requirement
 presupposes parsed frontmatter, so before this was written the worst-formed
@@ -282,158 +339,235 @@ the gap would break those citations. The gap is deliberate.
 
 ### FEAT-SPEC-006: Findings, Severities, and Diagnostics
 
-**User Story:** As an agent acting on the output, I want findings that
-name the rule and cite where it is defined, so that I can fix the
-problem without loading the standards documents that define it.
-
 **Acceptance Criteria:**
 
-- **AC-SPEC-006.1:** Every finding the CLI reports SHALL carry a stable
-  rule identifier, a severity, a file path, a span, and a message
-  stating the violated constraint and the value that violated it.
-  - *Example:* `slug/pattern-mismatch  error
-    docs/adrs/ADR-011-targeted-verification-gates.md:4:7`
-    "'adr-011-targeted-verification-gates' does not match pattern
-    '^adr-[0-9]{3}$'" — self-contained, so the fixing agent needs no
-    further lookup.
-- **AC-SPEC-006.3:** WHEN the CLI is asked to perform a check it cannot
-  run, the CLI SHALL report that check with severity `unverified`.
-  - *Example:* Asked to validate mermaid diagrams with no diagram
-    validator available, it emits one `unverified` finding per diagram
-    naming the missing dependency.
-- **AC-SPEC-006.4:** The CLI SHALL NOT report a check it could not run
-  as passed.
-- **AC-SPEC-006.5:** WHEN the `check` subcommand is invoked with the
-  `--json` option, the CLI SHALL write the full finding set as JSON to
-  standard output.
-- **AC-SPEC-006.6:** WHEN a check run produces at least one finding of
-  severity `error`, the CLI SHALL exit with a non-zero status.
-- **AC-SPEC-006.7:** WHEN a check run produces findings only of severity
-  `warning` or `unverified`, the CLI SHALL exit zero unless invoked with
-  the `--strict` option.
-- **AC-SPEC-006.8:** WHEN the `check` subcommand is invoked with the
-  `--only` option naming a subset of checks, the CLI SHALL run only the
-  named checks.
-  - *Example:* An agent running `check --only slug-uniqueness` gets a
-    report covering that check alone.
-- **AC-SPEC-006.9:** The CLI SHALL NOT report a check that was not
-  requested as passed.
-  - *Example:* A `--only slug-uniqueness` report distinguishes "slug
-    uniqueness passed" from "frontmatter schema was not checked".
+```gherkin
+@FEAT-SPEC-006
+Feature: Findings, Severities, and Diagnostics
 
-*Rationale:* AC-SPEC-006.1's message requirement is what allows the
-`spec` skill to stop preloading verification procedure. A diagnostic
-that quotes the violated constraint and the offending value is
-self-contained: the agent fixes it without opening the standard that
-defines the rule.
+  As an agent acting on the output
+  I want findings that name the rule and cite where it is defined
+  So that I can fix the problem without loading the standards documents that define it
+
+  A diagnostic that quotes the violated constraint and the offending
+  value is self-contained: the agent fixes it without opening the
+  standard that defines the rule. That is what lets the spec skill stop
+  preloading verification procedure.
+
+  @AC-SPEC-006.1
+  Scenario: Every finding is self-contained
+    Then every finding the CLI reports carries a stable rule identifier, a severity, a file path, a span, and a message stating the violated constraint and the value that violated it
+
+  @AC-SPEC-006.3
+  Scenario: A check that cannot run is reported as unverified
+    When the CLI is asked to perform a check it cannot run
+    Then the CLI reports that check with severity "unverified"
+
+  @AC-SPEC-006.4 @negative
+  Scenario: A check that could not run is never reported as passed
+    Then the CLI does not report a check it could not run as passed
+
+  @AC-SPEC-006.5
+  Scenario: The full finding set is available as JSON
+    When the check subcommand is invoked with the JSON option
+    Then the CLI writes the full finding set as JSON to standard output
+
+  @AC-SPEC-006.6
+  Scenario: An error fails the run
+    Given a check run producing at least one finding of severity "error"
+    Then the CLI exits with a non-zero status
+
+  @AC-SPEC-006.7
+  Scenario: Warnings and unverified findings pass unless strict
+    Given a check run producing findings only of severity "warning" or "unverified"
+    Then the CLI exits zero unless invoked with the strict option
+
+  @AC-SPEC-006.8
+  Scenario: A named subset of checks runs alone
+    When the check subcommand is invoked with an option naming a subset of checks
+    Then the CLI runs only the named checks
+
+  @AC-SPEC-006.9 @negative
+  Scenario: A check that was not requested is never reported as passed
+    Then the CLI does not report a check that was not requested as passed
+```
+
+*Examples:* `slug/pattern-mismatch  error
+docs/adrs/ADR-011-targeted-verification-gates.md:4:7`
+"'adr-011-targeted-verification-gates' does not match pattern
+'^adr-[0-9]{3}$'" — self-contained, so the fixing agent needs no further
+lookup (AC-SPEC-006.1). Asked to validate mermaid diagrams with no
+diagram validator available, the CLI emits one `unverified` finding per
+diagram naming the missing dependency (AC-SPEC-006.3). An agent running
+`check --only slug-uniqueness` gets a report covering that check alone
+(AC-SPEC-006.8), and that report distinguishes "slug uniqueness passed"
+from "frontmatter schema was not checked" (AC-SPEC-006.9).
 
 ### FEAT-SPEC-007: Corpus Queries
 
-**User Story:** As an authoring agent, I want to ask the corpus direct
-questions, so that I can pick a conforming identifier and understand
-impact without reading every document.
-
 **Acceptance Criteria:**
 
-- **AC-SPEC-007.1:** WHEN the `next-id` subcommand is invoked for a
-  document type the active profile registers as numbered, the CLI SHALL
-  return one greater than the highest number in use for that type.
-  - *Example:* With ADRs numbered 001 through 013 in the corpus,
-    `next-id adr` returns `014`.
-- **AC-SPEC-007.2:** WHEN the `slug-exists` subcommand is invoked with a
-  slug, the CLI SHALL report whether a corpus member declares it and, IF
-  one does, the path of that member.
-  - *Example:* `slug-exists adr-004` reports the slug in use and names
-    `docs/adrs/ADR-004-module-blueprint-and-atomic-component.md`.
+```gherkin
+@FEAT-SPEC-007
+Feature: Corpus Queries
 
-*Rationale:* Both queries answer from frontmatter and path alone, so
-they belong in this sprint. Queries that need more of the index — "which
-documents reference this slug", "return the spans of headings matching a
-selection" — are deferred to the later features that populate those
-parts of the index.
+  As an authoring agent
+  I want to ask the corpus direct questions
+  So that I can pick a conforming identifier and understand impact without reading every document
+
+  Both queries answer from frontmatter and path alone, which is why they
+  belong here. Queries that need more of the index are deferred to the
+  later features that populate those parts of it.
+
+  @AC-SPEC-007.1
+  Scenario: The next identifier for a numbered type is one past the highest in use
+    When the next-id subcommand is invoked for a document type the active profile registers as numbered
+    Then the CLI returns one greater than the highest number in use for that type
+
+  @AC-SPEC-007.2
+  Scenario: A slug query reports whether it is claimed, and by which document
+    When the slug-exists subcommand is invoked with a slug
+    Then the CLI reports whether a corpus member declares it
+    And where one does, the CLI reports the path of that member
+```
+
+*Examples:* with ADRs numbered 001 through 013 in the corpus,
+`next-id adr` returns `014` (AC-SPEC-007.1). `slug-exists adr-004`
+reports the slug in use and names
+`docs/adrs/ADR-004-module-blueprint-and-atomic-component.md`
+(AC-SPEC-007.2).
 
 ### FEAT-SPEC-008: Configuration
 
-**User Story:** As an adopting team, I want to declare my own document
-types and conventions, so that the tool enforces my framework rather
-than the one it shipped with.
-
 **Acceptance Criteria:**
 
-- **AC-SPEC-008.1:** The CLI SHALL read its configuration from a TOML
-  file at the repository root.
-  - *Example:* `specs.toml` declares `root = "docs/specs"` and the
-    workspace identifier.
-- **AC-SPEC-008.2:** The configuration SHALL determine the spec root,
-  the workspace identifier, and the registered document types with their
-  slug patterns and the JSON Schema that validates each type's
-  frontmatter.
-  - *Example:* A `[[type]]` table for `adr` declares
-    `slug_pattern = "^adr-[0-9]{3}$"` and points at the schema
-    FEAT-SPEC-003 validates against. Later features add each type's
-    required headings, its line-width limit, and its reference-bearing
-    properties to this same file; the config schema is additive.
-- **AC-SPEC-008.3:** WHEN no configuration file is present, the CLI
-  SHALL report the absence and exit non-zero rather than assuming a
-  layout.
-  - *Example:* Run in a repository with no `specs.toml`, it names the
-    file it looked for and the path it looked in.
-- **AC-SPEC-008.4:** IF the configuration is present but invalid, THEN
-  the CLI SHALL report the offending key and its position.
-- **AC-SPEC-008.5:** IF the configuration is present but invalid, THEN
-  the CLI SHALL NOT fall back to a default value for the offending key.
-- **AC-SPEC-008.6:** The CLI SHALL ship a configuration for this
-  framework's own document types that an adopting repository can use
-  without authoring one.
+```gherkin
+@FEAT-SPEC-008
+Feature: Configuration
+
+  As an adopting team
+  I want to declare my own document types and conventions
+  So that the tool enforces my framework rather than the one it shipped with
+
+  @AC-SPEC-008.1
+  Scenario: Configuration is one TOML file at the repository root
+    Then the CLI reads its configuration from a TOML file at the repository root
+
+  @AC-SPEC-008.2
+  Scenario: The configuration carries the root, the workspace and the type vocabulary
+    Then the configuration determines the spec root, the workspace identifier, and the registered document types with their slug patterns and the JSON Schema that validates each type's frontmatter
+
+  @AC-SPEC-008.3
+  Scenario: An absent configuration is reported rather than guessed at
+    Given no configuration file is present
+    When the CLI runs
+    Then the CLI reports the absence
+    And the CLI exits non-zero rather than assuming a layout
+
+  @AC-SPEC-008.4
+  Scenario: An invalid configuration names the offending key and its position
+    Given a configuration that is present but invalid
+    When the CLI reads it
+    Then the CLI reports the offending key and its position
+
+  @AC-SPEC-008.5 @negative
+  Scenario: An invalid key is never quietly defaulted
+    Given a configuration that is present but invalid
+    When the CLI reads it
+    Then the CLI falls back to no default value for the offending key
+
+  @AC-SPEC-008.6
+  Scenario: A configuration for this framework's own types ships with the CLI
+    Then the CLI ships a configuration for this framework's own document types that an adopting repository can use without authoring one
+```
+
+*Examples:* `specs.toml` declares `root = "docs/specs"` and the workspace
+identifier (AC-SPEC-008.1). A `[[type]]` table for `adr` declares
+`slug_pattern = "^adr-[0-9]{3}$"` and points at the schema FEAT-SPEC-003
+validates against; later features add each type's required headings, its
+line-width limit and its reference-bearing properties to this same file,
+the config schema being additive (AC-SPEC-008.2). Run in a repository
+with no `specs.toml`, the CLI names the file it looked for and the path
+it looked in (AC-SPEC-008.3).
 
 ### FEAT-SPEC-009: Invocation, Performance, and Portability
 
-**User Story:** As a platform engineer, I want to run this in locked-down
-CI and in an editing loop that fires on every file write, so that neither
-the build nor the author waits on it.
-
 **Acceptance Criteria:**
 
-- **AC-SPEC-009.1:** WHEN the CLI answers a corpus query against a
-  1,000-document corpus with a warm index, the CLI SHALL hold a latency
-  target of 50 milliseconds at the 95th percentile.
-  - *Example:* An agent asking `slug-exists frd-checkout` before writing
-    a document waits imperceptibly.
-- **AC-SPEC-009.2:** WHEN the CLI checks a single document against a
-  warm index for a 1,000-document corpus, the CLI SHALL hold a latency
-  target of 100 milliseconds at the 95th percentile.
-  - *Example:* A validation hook firing on every document write does not
-    make editing feel slow.
-- **AC-SPEC-009.3:** WHEN the CLI builds an index for a 1,000-document
-  corpus with no cache, the CLI SHALL hold a latency target of 1 second
-  at the 95th percentile.
-- **AC-SPEC-009.4:** The CLI SHALL run on a machine with no language
-  runtime, interpreter, or package manager installed beyond the CLI
-  itself. (manual)
-  - *Example:* It runs in a container image containing only a shell and
-    the CLI binary.
-- **AC-SPEC-009.5:** The CLI SHALL NOT retrieve executable content from
-  a network location during installation. (manual)
-  - *Example:* Installing from a package registry mirrored inside a
-    network that blocks all other outbound traffic succeeds.
-- **AC-SPEC-009.6:** The CLI SHALL be installable from at least one
-  package registry that supports on-premises mirroring. (manual)
-- **AC-SPEC-009.7:** WHEN the CLI runs against identical corpus content
-  on Linux, macOS, and Windows, the CLI SHALL report the same findings
-  in the same order.
-  - *Example:* A corpus checked out with CRLF line endings on Windows
-    yields byte-identical JSON output to the same corpus on Linux.
-- **AC-SPEC-009.8:** The CLI SHALL emit file paths in the index and in
-  findings using forward slashes as separators, relative to the
-  repository root.
-- **AC-SPEC-009.9:** The latency targets of AC-SPEC-009.1 through
-  AC-SPEC-009.3 SHALL be measured and reported on every platform the
-  test suite runs on, and SHALL fail a run that exceeds one only in a
-  reference environment.
-  - *Example:* A contended shared runner that measures 82 milliseconds
-    against the 50-millisecond query target reports the number and
-    passes; the same measurement on a machine declared a reference
-    environment fails.
+```gherkin
+@FEAT-SPEC-009
+Feature: Invocation, Performance, and Portability
+
+  As a platform engineer
+  I want to run this in locked-down CI and in an editing loop that fires on every file write
+  So that neither the build nor the author waits on it
+
+  The three latency figures are targets rather than gates. They are
+  stated against no hardware, and the same code measures 13.7 ms on
+  Linux, 69.1 ms on macOS and 123.6 ms on Windows, so a shared runner's
+  number measures the runner. Gated, they would also make any change that
+  costs milliseconds for correctness' sake indistinguishable from a
+  defect.
+
+  Scenario Outline: Latency targets against a 1,000-document corpus
+    Given a corpus of 1,000 documents
+    When the CLI performs "<operation>"
+    Then the CLI holds a latency target of "<target>" at the 95th percentile
+
+    @AC-SPEC-009.1
+    Examples: an agent asking one question
+      | operation                           | target          |
+      | a corpus query against a warm index | 50 milliseconds |
+
+    @AC-SPEC-009.2
+    Examples: a write-time hook checking one file
+      | operation                                    | target           |
+      | a single-document check against a warm index | 100 milliseconds |
+
+    @AC-SPEC-009.3
+    Examples: a build with nothing cached
+      | operation                    | target   |
+      | an index build with no cache | 1 second |
+
+  @AC-SPEC-009.4 @manual
+  Scenario: The CLI needs no runtime beyond itself
+    Then the CLI runs on a machine with no language runtime, interpreter, or package manager installed beyond the CLI itself
+
+  @AC-SPEC-009.5 @manual @negative
+  Scenario: Installation retrieves no executable content from a network location
+    Then the CLI retrieves no executable content from a network location during installation
+
+  @AC-SPEC-009.6 @manual
+  Scenario: The CLI is installable from a mirrorable registry
+    Then the CLI is installable from at least one package registry that supports on-premises mirroring
+
+  @AC-SPEC-009.7
+  Scenario: Identical content yields identical findings on every platform
+    When the CLI runs against identical corpus content on Linux, macOS and Windows
+    Then the CLI reports the same findings in the same order
+
+  @AC-SPEC-009.8
+  Scenario: Paths are forward-slashed and repository-relative
+    Then the CLI emits file paths in the index and in findings using forward slashes as separators, relative to the repository root
+
+  @AC-SPEC-009.9
+  Scenario: The latency targets are measured everywhere and enforced only in a reference environment
+    Then the latency targets of AC-SPEC-009.1 through AC-SPEC-009.3 are measured and reported on every platform the test suite runs on
+    And they fail a run that exceeds one only in a reference environment
+```
+
+*Examples:* an agent asking `slug-exists frd-checkout` before writing a
+document waits imperceptibly (AC-SPEC-009.1), and a validation hook
+firing on every document write does not make editing feel slow
+(AC-SPEC-009.2). The CLI runs in a container image containing only a
+shell and the CLI binary (AC-SPEC-009.4). Installing from a package
+registry mirrored inside a network that blocks all other outbound traffic
+succeeds (AC-SPEC-009.5). A corpus checked out with CRLF line endings on
+Windows yields byte-identical JSON output to the same corpus on Linux
+(AC-SPEC-009.7). A contended shared runner that measures 82 milliseconds
+against the 50-millisecond query target reports the number and passes;
+the same measurement on a machine declared a reference environment fails
+(AC-SPEC-009.9).
 
 *Rationale:* AC-SPEC-009.1 through AC-SPEC-009.3 come from the two
 invocation patterns that dominate: an agent asking one question, and a
@@ -454,48 +588,72 @@ surface an adopting security review will reject.
 
 ### FEAT-SPEC-010: Index Output and Persistence
 
-**User Story:** As a CI pipeline and as an authoring agent, I want the
-index written to one known file that I can publish and that later
-invocations reuse, so that the artifact pushed to a central catalogue is
-the same one that answers my next query without re-reading the corpus.
-
 **Acceptance Criteria:**
 
-- **AC-SPEC-010.1:** WHEN the CLI is asked to build the index, the CLI
-  SHALL write the JSON to a single file named `specs.json` inside the
-  configured spec root.
-  - *Example:* With `root = "docs/specs"` in the configuration, running
-    `index` with no output option writes `docs/specs/specs.json` and the
-    CLI prints that relative path.
-- **AC-SPEC-010.2:** WHEN invoked with an output-path option naming a
-  location, the CLI SHALL write the index to that location instead of
-  the default.
-  - *Example:* `--out build/spec-index.json` writes the artifact under
-    `build/` for a CI job that publishes everything in that directory.
-- **AC-SPEC-010.3:** WHEN invoked with the output-path option set to
-  `-`, the CLI SHALL write the index to standard output and SHALL NOT
-  create or modify the default file.
-  - *Example:* `--out -` lets an agent pipe the index straight into
-    `jq` without leaving a file behind.
-- **AC-SPEC-010.4:** WHEN the CLI writes the index to a file, the CLI
-  SHALL replace any existing file atomically, so that a concurrent
-  reader observes either the old complete index or the new one and never
-  a partially written file.
-  - *Example:* A `PostToolUse` hook rebuilding the index while a query
-    reads it never yields the query a truncated document.
-- **AC-SPEC-010.5:** WHEN a corpus query or single-document check runs
-  and the index file exists with inputs unchanged since it was written,
-  the CLI SHALL answer from that persisted index — the warm index of
-  FEAT-SPEC-009 — without re-walking the corpus.
-  - *Example:* `slug-exists frd-checkout` run twice in a row reads
-    `specs.json` the second time and returns within the FEAT-SPEC-009.1
-    budget.
-- **AC-SPEC-010.6:** IF the index file is absent or any corpus input has
-  changed since it was written, THEN the CLI SHALL rebuild the index
-  before answering rather than serving a stale result.
-  - *Example:* Editing one ADR and immediately querying returns an
-    answer reflecting the edit, because the changed input invalidated
-    the warm index.
+```gherkin
+@FEAT-SPEC-010
+Feature: Index Output and Persistence
+
+  As a CI pipeline and as an authoring agent
+  I want the index written to one known file that I can publish and that later invocations reuse
+  So that the artifact pushed to a central catalogue is the same one that answers my next query without re-reading the corpus
+
+  One file serves both of the index's roles: the deliverable a CI job
+  publishes to a catalogue, and the warm cache that satisfies the latency
+  targets of FEAT-SPEC-009. Placing it inside the spec root keeps the
+  artifact beside the documents it describes, and because discovery reads
+  only ".md" files it is never mistaken for a corpus member.
+
+  Whether an adopting repository commits the file or ignores it is the
+  adopter's choice; the CLI requires neither.
+
+  @AC-SPEC-010.1
+  Scenario: The index lands at one known path by default
+    When the CLI is asked to build the index
+    Then the CLI writes the JSON to a single file named "specs.json" inside the configured spec root
+
+  @AC-SPEC-010.2
+  Scenario: An output path overrides the default location
+    When the CLI is invoked with an output-path option naming a location
+    Then the CLI writes the index to that location instead of the default
+
+  @AC-SPEC-010.3
+  Scenario: An output path of a single dash streams the index and leaves no file
+    When the CLI is invoked with the output-path option set to a single dash
+    Then the CLI writes the index to standard output
+    And the CLI neither creates nor modifies the default file
+
+  @AC-SPEC-010.4
+  Scenario: A concurrent reader never observes a half-written index
+    When the CLI writes the index to a file
+    Then the CLI replaces any existing file atomically, so that a concurrent reader observes either the old complete index or the new one and never a partially written file
+
+  @AC-SPEC-010.5
+  Scenario: A warm index answers without re-walking the corpus
+    Given the index file exists with inputs unchanged since it was written
+    When a corpus query or single-document check runs
+    Then the CLI answers from that persisted index — the warm index of FEAT-SPEC-009 — without re-walking the corpus
+
+  @AC-SPEC-010.6
+  Scenario: A stale or absent index is rebuilt rather than served
+    Given the index file is absent, or any corpus input has changed since it was written
+    When a query runs
+    Then the CLI rebuilds the index before answering rather than serving a stale result
+```
+
+*Examples:* with `root = "docs/specs"` in the configuration, running
+`index` with no output option writes `docs/specs/specs.json` and the CLI
+prints that relative path (AC-SPEC-010.1). `--out build/spec-index.json`
+writes the artifact under `build/` for a CI job that publishes everything
+in that directory (AC-SPEC-010.2). `--out -` lets an agent pipe the index
+straight into `jq` without leaving a file behind (AC-SPEC-010.3). A
+`PostToolUse` hook rebuilding the index while a query reads it never
+yields the query a truncated document (AC-SPEC-010.4).
+`slug-exists frd-checkout` run twice in a row reads `specs.json` the
+second time and returns within the AC-SPEC-009.1 budget
+(AC-SPEC-010.5). Editing one ADR and immediately querying returns an
+answer reflecting the edit, because the changed input invalidated the
+warm index (AC-SPEC-010.6).
 
 *Rationale:* The index artifact and the check report are different
 outputs: FEAT-SPEC-006.5 writes the *findings* of a check run to standard
@@ -514,36 +672,54 @@ CLI requires neither.
 
 ### FEAT-SPEC-011: Command Surface
 
-**User Story:** As a human or agent developer integrating the tool, I
-want a small, named set of subcommands, so that skills, hooks, and CI
-scripts call a stable interface rather than reverse-engineering it from
-behavior.
-
 **Acceptance Criteria:**
 
-- **AC-SPEC-011.1:** The CLI SHALL expose an `index` subcommand that
-  builds the index and writes it per FEAT-SPEC-010, accepting the
-  output-path option named there.
-  - *Example:* `index` writes the default `specs.json`; `index --out -`
-    streams it to standard output.
-- **AC-SPEC-011.2:** The CLI SHALL expose a `check` subcommand that runs
-  conformance checks over the corpus, or over a single document when
-  given a path, and reports findings per FEAT-SPEC-006, accepting the
-  `--json`, `--strict`, and `--only` options.
-  - *Example:* `check` validates the whole corpus;
-    `check docs/adrs/ADR-004-module-blueprint-and-atomic-component.md
-    --json` validates one document and emits JSON.
-- **AC-SPEC-011.3:** The CLI SHALL expose a `slug-exists` subcommand
-  answering the query of AC-SPEC-007.2.
-  - *Example:* `slug-exists frd-checkout`.
-- **AC-SPEC-011.4:** The CLI SHALL expose a `next-id` subcommand
-  answering the query of AC-SPEC-007.1.
-  - *Example:* `next-id adr` returns `014`.
-- **AC-SPEC-011.5:** WHEN invoked with no subcommand or with `--help`,
-  the CLI SHALL list the available subcommands and their options rather
-  than performing a default action.
-  - *Example:* Bare invocation prints the four subcommands above with a
-    one-line synopsis of each.
+```gherkin
+@FEAT-SPEC-011
+Feature: Command Surface
+
+  As a human or agent developer integrating the tool
+  I want a small, named set of subcommands
+  So that skills, hooks and CI scripts call a stable interface rather than reverse-engineering it from behaviour
+
+  The subcommand vocabulary is the tool's public interface, so it is
+  fixed here rather than left to implementation. Later features extend
+  the check subcommand and add their own query subcommands, but they do
+  not rename or repurpose the four established here.
+
+  The name of the executable itself is a distribution decision recorded
+  separately; this requirement fixes only the subcommands beneath it.
+
+  @AC-SPEC-011.1
+  Scenario: An index subcommand builds and writes the index
+    Then the CLI exposes an index subcommand that builds the index and writes it per FEAT-SPEC-010, accepting the output-path option named there
+
+  @AC-SPEC-011.2
+  Scenario: A check subcommand runs the conformance checks
+    Then the CLI exposes a check subcommand that runs conformance checks over the corpus, or over a single document when given a path, and reports findings per FEAT-SPEC-006, accepting the JSON, strict and only options
+
+  @AC-SPEC-011.3
+  Scenario: A slug-exists subcommand answers the slug query
+    Then the CLI exposes a slug-exists subcommand answering the query of AC-SPEC-007.2
+
+  @AC-SPEC-011.4
+  Scenario: A next-id subcommand answers the numbering query
+    Then the CLI exposes a next-id subcommand answering the query of AC-SPEC-007.1
+
+  @AC-SPEC-011.5
+  Scenario: A bare invocation lists the surface rather than acting
+    When the CLI is invoked with no subcommand or with the help option
+    Then the CLI lists the available subcommands and their options rather than performing a default action
+```
+
+*Examples:* `index` writes the default `specs.json` and `index --out -`
+streams it to standard output (AC-SPEC-011.1). `check` validates the
+whole corpus, while
+`check docs/adrs/ADR-004-module-blueprint-and-atomic-component.md --json`
+validates one document and emits JSON (AC-SPEC-011.2).
+`slug-exists frd-checkout` (AC-SPEC-011.3). `next-id adr` returns `014`
+(AC-SPEC-011.4). Bare invocation prints the four subcommands above with a
+one-line synopsis of each (AC-SPEC-011.5).
 
 *Rationale:* The subcommand vocabulary is the tool's public interface,
 so it is fixed here rather than left to implementation. Later features
@@ -557,10 +733,10 @@ it.
 
 - [[adr-015]] — records Go as the implementation language, deferred to
   by FEAT-SPEC-009
-- [[adr-021]] — settles the acceptance-criteria notation, whose
-  extraction is a follow-on feature rather than part of this one
-- [[adr-002]] — EARS, the notation these acceptance criteria are
-  written in
+- [[adr-021]] — Gherkin, the notation these features and acceptance
+  criteria are written in, whose extraction is a follow-on feature
+  rather than part of this one
+- [[gherkin-guide]] — how to write them
 - `plugin/skills/spec/references/template-authoring-standards.md` —
   frontmatter properties, slug conventions, and the frontmatter index
   this feature implements

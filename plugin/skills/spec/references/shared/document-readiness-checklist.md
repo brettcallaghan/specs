@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/standards/document-readiness-checklist.md (version 0.4)
+     Source of truth: specs/standards/document-readiness-checklist.md (version 0.5)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -7,12 +7,12 @@
 title: Document Readiness Checklist
 description: The type-independent self-check every spec document passes
   before it is set to ready-for-review — frontmatter, slug, status, EARS
-  conformance, line width, instruction blocks, reference resolution
+  and Gherkin conformance, line width, instruction blocks, references
 slug: document-readiness-checklist
 type: standards
 status: active
-updated_at: 2026-08-09T00:00:00Z
-version: "0.4"
+updated_at: 2026-08-15T00:00:00Z
+version: "0.5"
 ---
 
 # Document Readiness Checklist
@@ -20,12 +20,15 @@ version: "0.4"
 ## Contents
 
 - Who decides — which checks the `spec` CLI settles and which are yours
+- Two notations, two surfaces — which of #4–#5 and #9 applies where
 - Frontmatter checks #1–#3 — does the metadata conform? (required
   properties, slug, status vocabulary)
-- Normative-statement checks #4–#5 — are the requirements well formed?
-  (EARS coverage, compound modal verbs)
+- Normative-statement checks #4–#5 — are the EARS requirements well
+  formed? (EARS coverage, compound modal verbs)
 - Finished-document checks #6–#8 — is the document finished? (line
   width, instruction blocks, reference resolution)
+- Gherkin check #9 — are the features and acceptance criteria well
+  formed?
 
 One list, every document type. The `spec` skill runs these checks before
 any document is set to `ready-for-review`. The checks are defined only
@@ -45,9 +48,28 @@ here in this document's own voice.
 
 ---
 
+## Two notations, two surfaces
+
+Normative statements are written in two notations, and which one applies
+is decided by *what the statement is*, not by the document type:
+
+| Surface | Notation | Checks |
+|---|---|---|
+| An FRD's features and acceptance criteria — its fenced `gherkin` blocks | Gherkin ([[adr-021]], [[gherkin-guide]]) | 9 |
+| Every other normative statement, in every document type — including an FRD's prose outside those blocks | EARS ([[adr-002]], `ears-guide.md`) | 4, 5 |
+
+Most documents have only the second surface and run only checks 4 and 5.
+An FRD has both: its blocks run check 9, and the prose around them still
+runs 4 and 5. Applying the wrong list is the failure this table exists to
+prevent — an EARS sentence inside a `gherkin` block does not parse, and a
+`Then` step in a standards document is a criterion nothing traces.
+
+---
+
 ## Who decides
 
-Run `spec check <path>` first. It settles checks 1–3 and 8 outright: it
+Run `spec check <path>` first. It settles checks 1–3 and 8 outright, and
+the machine-checkable half of check 9: it
 parses the frontmatter, validates every property against the schema for
 the document's `type`, matches the slug against that type's registered
 pattern, reports a slug already claimed elsewhere in the corpus, and
@@ -79,7 +101,7 @@ file exists but was excluded. It never reports a clean document for a
 path the corpus does not hold.
 
 A `frontmatter/parse` finding (row 0 below) comes before all of them and
-is not one of the eight: it means the frontmatter could not be read as a
+is not one of the nine: it means the frontmatter could not be read as a
 document envelope, so no other check examined this document. Fix it and
 re-run before reading anything else in the report. The usual cause is a
 template placeholder left unfilled — `updated_at:
@@ -91,16 +113,17 @@ template placeholder left unfilled — `updated_at:
 | 1 | Required properties present and parseable | `spec check` |
 | 2 | Slug matches the pattern for this type; unique | `spec check` |
 | 3 | Status is in the controlled vocabulary | `spec check` |
-| 4 | Every normative statement uses an EARS pattern | you |
+| 4 | Every EARS normative statement uses an EARS pattern | you |
 | 5 | No requirement joins two modal verbs | you |
 | 6 | No prose line exceeds the width limit | you — CLI planned |
 | 7 | No template instruction blocks survive | you |
 | 8 | Every `[[slug]]` reference resolves | `spec check` |
+| 9 | Every feature and criterion is well formed and identified | `spec check`, plus you |
 
 **A clean `spec check` is not a passing document.** It means row 0 and
-checks 1–3 and 8 passed. Checks 4, 5 and 7 are judgement the tool does
-not make, and 6 is specified but not built — a silent tool is not a
-passing grade for them.
+checks 1–3, 8 and the machine-checkable half of 9 passed. Checks 4, 5 and
+7 are judgement the tool does not make, and 6 is specified but not
+built — a silent tool is not a passing grade for them.
 
 Check 8 has one part the CLI still leaves to you: it resolves the slug
 half of a reference and does not interpret a **heading anchor**, so
@@ -132,6 +155,9 @@ reviewer. `spec-cli.md` covers installation.
 
 ## Normative-statement checks
 
+These two cover the EARS surface. An FRD's fenced `gherkin` blocks are
+check 9's; the prose around them is still these.
+
 4. Every normative statement uses an EARS pattern. A sentence carrying a
    capitalized SHALL, SHOULD or MAY is a requirement, and a requirement
    with no EARS trigger — ubiquitous, event-driven, state-driven,
@@ -159,6 +185,31 @@ reviewer. `spec-cli.md` covers installation.
    successor it names instead — and a `reference/type-mismatch` means
    the property resolved to a document of the wrong type.
 
+## Gherkin check
+
+Run this one only on a document holding fenced `gherkin` blocks — in
+practice an FRD. `gherkin-guide.md` owns every rule it tests for.
+
+9. Every feature and criterion is well formed and identified. `spec
+   check` settles the machine-checkable half: an untagged or malformed
+   identifier, a duplicate one, a criterion whose code does not derive
+   from its feature's, an empty scenario, prose in a `Scenario`
+   description, and partially tagged `Examples` blocks. It reports the
+   findings under `gherkin/*` rule identifiers.
+
+   Three parts are yours, because the tool cannot read intent:
+
+   - **An `Examples` block that should have been its own criterion.**
+     Tag the scenario when you meant several criteria and all but the
+     first cease to exist, in a document that parses cleanly and against
+     which no check fires. Only *partial* tagging is machine-detectable.
+   - **A prohibition with no `@negative`, or a hand-verified criterion
+     with no `@manual`.** Gherkin has no grammatical negative, so the tag
+     is the whole of the marking.
+   - **A step shortened to fit a margin.** No width limit applies inside
+     a fence; compressing a step to satisfy one silently changes what the
+     criterion says.
+
 ---
 
 ## Running the checklist
@@ -173,12 +224,14 @@ while any check fails.
 
 ## References
 
-- `spec-cli.md` — the CLI that settles checks 1–3 and 8, and what it
-  does not yet check
+- `spec-cli.md` — the CLI that settles checks 1–3, 8 and most of 9, and
+  what it does not yet check
 - `template-authoring-standards.md` (same directory) — frontmatter
   properties, slug conventions, line width, instruction blocks
 - `frontmatter-standards.md` — the `status` controlled vocabulary
 - `cross-document-references.md` — how a `[[slug]]` resolves
 - `ears-guide.md` — the EARS patterns checks 4 and 5 test for
+- `gherkin-guide.md` — the tag vocabulary, description slots and silent
+  failures check 9 tests for
 - `blueprint-readiness-checklist.md` — the separate groomability gate
   that feature blueprints also run

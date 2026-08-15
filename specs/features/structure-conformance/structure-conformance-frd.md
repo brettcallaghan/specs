@@ -7,7 +7,7 @@ description: Extracts document headings, section spans, and record blocks
 slug: frd-spec-structure-conformance
 type: frd
 status: draft
-updated_at: 2026-08-04T00:00:00Z
+updated_at: 2026-08-15T00:00:00Z
 sources: []
 ---
 
@@ -57,110 +57,143 @@ this feature extracts is specified in its sub-feature,
 
 ### FEAT-SPECSTR-001: Structure Extraction in the Index
 
-**User Story:** As an architecture owner and a reviewing agent, I want
-each document's headings, section spans, and record blocks recorded in
-the index, so that section-level tooling and targeted review read them
-from the shared artifact instead of re-parsing the corpus.
-
 **Acceptance Criteria:**
 
-- **AC-SPECSTR-001.1:** WHEN the CLI builds the index, the CLI SHALL add
-  to every corpus member's entry its headings, each with the span of the
-  content beneath it.
-  - *Example:* `adr-011`'s entry gains the spans of its Context,
-    Decision, Alternatives Considered, Consequences and References
-    headings.
-- **AC-SPECSTR-001.2:** WHEN the CLI encounters a fenced block whose
-  info string matches a tag the active profile registers, the CLI SHALL
-  parse its content as the configured format and attach the parsed data
-  to the containing document and heading in the index.
-  - *Example:* A profile registering the tag `component` with format
-    `yaml` causes each component record block in a container blueprint to
-    appear in the index as structured data under the heading that
-    declares it.
+```gherkin
+@FEAT-SPECSTR-001
+Feature: Structure Extraction in the Index
+
+  As an architecture owner and a reviewing agent
+  I want each document's headings, section spans and record blocks recorded in the index
+  So that section-level tooling and targeted review read them from the shared artifact instead of re-parsing the corpus
+
+  This requirement populates the structure properties of the index
+  FEAT-SPEC-002 defines and reports through the finding engine
+  FEAT-SPEC-006 defines. Corpus discovery, membership, output location and
+  the warm index are inherited unchanged and are not restated.
+
+  @AC-SPECSTR-001.1
+  Scenario: Every corpus member's headings are recorded with their section spans
+    When the CLI builds the index
+    Then every corpus member's entry carries its headings, each with the span of the content beneath it
+
+  @AC-SPECSTR-001.2
+  Scenario: A registered record block is parsed and attached to its document and heading
+    Given a fenced block whose info string matches a tag the active profile registers
+    When the CLI builds the index
+    Then the CLI parses that block's content as the format configured for the tag
+    And the CLI attaches the parsed data to the containing document and heading in the index
+```
 
 ### FEAT-SPECSTR-002: Required Sections and Hygiene
 
-**User Story:** As a reviewer, I want documents checked for skipped
-sections and leftover authoring scaffolding, so that an unfinished
-document cannot reach review looking finished.
-
 **Acceptance Criteria:**
 
-- **AC-SPECSTR-002.1:** WHEN the active profile registers required
-  headings for a document's `type` and a document omits one, the CLI
-  SHALL report a finding naming the missing heading.
-  - *Example:* A document declaring `type: adr` with no "Alternatives
-    Considered" heading produces a finding naming it.
-- **AC-SPECSTR-002.2:** WHEN a document contains an HTML comment block
-  outside a fenced code block and outside an inline code span, the CLI
-  SHALL report a finding with its span.
-  - *Example:* A finished ADR still carrying its template's Context
-    instruction block is reported at the position the block opens, while
-    a module blueprint whose prose describes the `<!--` delimiter inside
-    backticks produces no finding.
-- **AC-SPECSTR-002.3:** WHEN a prose line exceeds the configured width,
-  the CLI SHALL report a finding naming the line and its length.
-  - *Example:* A line of 85 characters is reported when the configured
-    width is 80.
-- **AC-SPECSTR-002.4:** The CLI SHALL measure line width in Unicode
-  codepoints.
-  - *Example:* A line containing an em dash counts that dash as one
-    character, not as its three UTF-8 bytes.
-- **AC-SPECSTR-002.5:** The CLI SHALL NOT report a width finding for a
-  line inside a fenced code block, a table row, or a line containing a
-  URL.
-  - *Example:* An 88-character table row and a 120-character line whose
-    length is a single URL both pass.
-- **AC-SPECSTR-002.6:** WHEN a document whose `status` the active profile
-  marks as finished contains a configured placeholder pattern, the CLI
-  SHALL report a finding.
-  - *Example:* A document at `status: approved` containing
-    `<Feature Name>` is reported; the same text in a `draft` document is
-    not.
-- **AC-SPECSTR-002.7:** WHEN a registered record block fails to parse as
-  its configured format, the CLI SHALL report a finding with the parse
-  error and its position within the document.
-  - *Example:* A `component` block containing malformed YAML is reported
-    at the line the block opens, with the parser's message.
+```gherkin
+@FEAT-SPECSTR-002
+Feature: Required Sections and Hygiene
+
+  As a reviewer
+  I want documents checked for skipped sections and leftover authoring scaffolding
+  So that an unfinished document cannot reach review looking finished
+
+  A width finding is about prose. Code, tables and URLs are text whose
+  width the author does not control, so the limit does not reach them.
+
+  @AC-SPECSTR-002.1
+  Scenario: A document omitting a required heading is reported
+    Given the active profile registers required headings for a document's type
+    And the document omits one of them
+    When the CLI checks the document
+    Then the CLI reports a finding naming the missing heading
+
+  @AC-SPECSTR-002.2
+  Scenario: An HTML comment block surviving in a document is reported
+    Given a document containing an HTML comment block outside a fenced code block and outside an inline code span
+    When the CLI checks the document
+    Then the CLI reports a finding with the span of that block
+
+  @AC-SPECSTR-002.3
+  Scenario: A prose line over the configured width is reported
+    Given a configured line width of 80 characters
+    And a prose line of 85 characters
+    When the CLI checks the document
+    Then the CLI reports a finding naming the line and its length
+
+  @AC-SPECSTR-002.4
+  Scenario: Line width is measured in Unicode codepoints
+    Given a prose line containing an em dash
+    Then the CLI counts that dash as one character rather than as its three UTF-8 bytes
+
+  @AC-SPECSTR-002.5 @negative
+  Scenario Outline: Lines the width limit does not reach are not reported
+    Given a line that exceeds the configured width and is "<kind>"
+    When the CLI checks the document
+    Then the CLI does not report a width finding for that line
+
+    Examples:
+      | kind                                     |
+      | a line inside a fenced code block        |
+      | an 88-character table row                |
+      | a 120-character line that is a single URL |
+
+  @AC-SPECSTR-002.6
+  Scenario: A placeholder surviving into a finished document is reported
+    Given a document whose status the active profile marks as finished
+    And the document contains a configured placeholder pattern
+    When the CLI checks the document
+    Then the CLI reports a finding
+
+  @AC-SPECSTR-002.7
+  Scenario: A record block that does not parse is reported where it opens
+    Given a registered record block that fails to parse as its configured format
+    When the CLI checks the document
+    Then the CLI reports a finding carrying the parse error and its position within the document
+```
+
+*Note:* AC-SPECSTR-002.6 reports the placeholder only at a finished
+status — the same `<Feature Name>` text in a `draft` document is
+unfinished work rather than a defect.
 
 ### FEAT-SPECSTR-003: Structure Queries
 
-**User Story:** As a reviewing agent, I want to request the spans of
-headings matching a selection, so that I review only the normative text
-of many documents instead of reading them whole, and the review is
-auditable.
-
 **Acceptance Criteria:**
 
-- **AC-SPECSTR-003.1:** WHEN asked for the spans of headings matching a
-  configured selection, the CLI SHALL return each match as a file path,
-  heading text, and the span of the content beneath it.
-  - *Example:* A reviewing agent requests the normative sections of
-    eleven standards documents and receives spans totalling a fraction
-    of those documents' text, then reviews only that text.
+```gherkin
+@FEAT-SPECSTR-003
+Feature: Structure Queries
 
-*Rationale:* AC-SPECSTR-003.1 exists to make agent review auditable as
-well as cheap. Two runs that review the same extracted spans have
-reviewed the same text; two agents told to "review the requirements"
-have not.
+  As a reviewing agent
+  I want to request the spans of headings matching a selection
+  So that I review only the normative text of many documents instead of reading them whole
+
+  This query is what makes agent review auditable as well as cheap. Two
+  runs that review the same extracted spans have reviewed the same text;
+  two agents told to review the requirements have not.
+
+  @AC-SPECSTR-003.1
+  Scenario: A heading selection returns each match with its section span
+    When the CLI is asked for the spans of headings matching a configured selection
+    Then the CLI returns each match as a file path, heading text, and the span of the content beneath it
+```
 
 ### FEAT-SPECSTR-004: Structure Configuration
 
-**User Story:** As an adopting team, I want to declare my required
-sections, my record-block tags, and my line width, so that the tool
-enforces my templates rather than the ones it shipped with.
-
 **Acceptance Criteria:**
 
-- **AC-SPECSTR-004.1:** The configuration SHALL determine, for each
-  registered document type, its required headings, the registered
-  record-block tags with their formats, the placeholder patterns, and
-  the line-width limit, extending the configuration file of FEAT-SPEC-008
-  without a separate file.
-  - *Example:* The shipped configuration sets a width of 80, registers
-    the `component` tag with format `yaml`, and lists the required
-    headings for each of this framework's document types.
+```gherkin
+@FEAT-SPECSTR-004
+Feature: Structure Configuration
+
+  As an adopting team
+  I want to declare my required sections, my record-block tags and my line width
+  So that the tool enforces my templates rather than the ones it shipped with
+
+  @AC-SPECSTR-004.1
+  Scenario: One configuration file carries the structure vocabulary
+    Then the configuration determines, for each registered document type, its required headings, the registered record-block tags with their formats, the placeholder patterns, and the line-width limit
+    And it does so by extending the configuration file of FEAT-SPEC-008 rather than by a separate file
+```
 
 ## References
 
@@ -172,8 +205,9 @@ enforces my templates rather than the ones it shipped with.
   reference, and defers the anchor half to that sub-feature
 - [[adr-008]] — the element record blocks this feature extracts and
   validates
-- [[adr-002]] — EARS, the notation these acceptance criteria are written
-  in
+- [[adr-021]] — Gherkin, the notation these features and acceptance
+  criteria are written in
+- [[gherkin-guide]] — how to write them
 - `plugin/skills/spec/references/template-authoring-standards.md` —
   frontmatter properties, slug conventions, line width, and required
   sections
