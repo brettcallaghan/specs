@@ -8,14 +8,14 @@ reclaim. It is written by `scripts/bb-backup-run.sh` after every bead.
 | Field | Value |
 |---|---|
 | Run id | `1786778523-19` |
-| As of | `2026-08-15T17:24:14Z` |
+| As of | `2026-08-15T17:39:52Z` |
 | Live run directory | `/tmp/claude/bead-bonanza/1786778523-19` |
 | Repo | `/home/user/agent-plugins` |
 | Run branch | `claude/gherkin-adoption-strategy-fikj4i` |
 | Default branch | `main` |
-| HEAD when taken | `9c00498` agent-plugins-wvd.8 P1 VCON: content and diagnostic checks over Gherkin records |
-| Files copied | 48 |
-| Beads with artifacts | 16 |
+| HEAD when taken | `6ca1fd1` agent-plugins-wvd.10 P1 QRY: spec feature and spec criterion queries |
+| Files copied | 51 |
+| Beads with artifacts | 18 |
 
 Resume the run from the branch, not from this file: `git log --oneline main..claude/gherkin-adoption-strategy-fikj4i`
 lists every bead that has landed, one close commit each.
@@ -26,10 +26,12 @@ lists every bead that has landed, one close commit each.
 |---|---|---|---|---|
 | `agent-plugins-0i6` | `retro-written` |  | yes | yes |
 | `agent-plugins-4vz` | `pushed` |  | yes | yes |
+| `agent-plugins-a7u` | `implementing` |  | yes | no |
 | `agent-plugins-krb` | `committed` | `83c575d` | yes | yes |
 | `agent-plugins-nu2` | `committed` | `ff839a8` | yes | yes |
 | `agent-plugins-r19` | `pushed` |  | yes | yes |
 | `agent-plugins-wvd.1` | `pushed` |  | yes | yes |
+| `agent-plugins-wvd.10` | `pushed` |  | yes | yes |
 | `agent-plugins-wvd.11` | `pushed` |  | yes | yes |
 | `agent-plugins-wvd.12` | `pushed` |  | yes | yes |
 | `agent-plugins-wvd.2` | `committed` | `a7a8df2` | yes | yes |
@@ -71,7 +73,7 @@ whether the live directory still exists and use it when it does:
     ls -A /tmp/claude/bead-bonanza/1786778523-19
 
 Read this copy only WHEN that directory is gone, and then state this
-snapshot's as-of time (`2026-08-15T17:24:14Z`) in whatever you conclude from it.
+snapshot's as-of time (`2026-08-15T17:39:52Z`) in whatever you conclude from it.
 
 **It preserves operational state, not findings.** Findings are `retro:`
 comments on the beads themselves, durable in the tracker independently of
