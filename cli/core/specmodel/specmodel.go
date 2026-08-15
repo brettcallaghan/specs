@@ -861,6 +861,33 @@ func (v *FindingFrontmatterParse) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// A configured spec root beneath which discovery found no corpus member.
+//
+// The only finding whose subject is the corpus rather than a document, and
+// the reason it carries a variant of its own: a consumer keying off the
+// kind must be able to tell "the run examined nothing" from a defect in
+// some file, and there is no file here to name. The root is carried
+// because it is the whole of what an operator acts on — a typo'd path, a
+// moved directory, an ignore rule that swallowed the corpus.
+type FindingCorpusEmpty struct {
+	// The configured spec root, relative to the repository root, that holds
+	// no corpus member.
+	Root string `json:"root"`
+}
+
+func (v *FindingCorpusEmpty) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["root"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingCorpusEmpty: required field \"root\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Root); err != nil {
+		return prefixField("root", err)
+	}
+	return nil
+}
+
 // A check that was requested and could not run.
 //
 // This is the structured half of the `unverified` severity: the reason
@@ -1310,6 +1337,7 @@ func (FindingMissingProperty) isFindingDetailVariant()        {}
 func (FindingSlugPattern) isFindingDetailVariant()            {}
 func (FindingDuplicateSlug) isFindingDetailVariant()          {}
 func (FindingFrontmatterParse) isFindingDetailVariant()       {}
+func (FindingCorpusEmpty) isFindingDetailVariant()            {}
 func (FindingUnverified) isFindingDetailVariant()             {}
 func (FindingUnresolvedReference) isFindingDetailVariant()    {}
 func (FindingRetiredTarget) isFindingDetailVariant()          {}
@@ -1340,6 +1368,10 @@ func NewFindingDetailDuplicateSlug(v FindingDuplicateSlug) FindingDetail {
 }
 
 func NewFindingDetailFrontmatterParse(v FindingFrontmatterParse) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailCorpusEmpty(v FindingCorpusEmpty) FindingDetail {
 	return FindingDetail{Value: v}
 }
 
@@ -1413,6 +1445,11 @@ func (u FindingDetail) AsDuplicateSlug() (FindingDuplicateSlug, bool) {
 
 func (u FindingDetail) AsFrontmatterParse() (FindingFrontmatterParse, bool) {
 	v, ok := u.Value.(FindingFrontmatterParse)
+	return v, ok
+}
+
+func (u FindingDetail) AsCorpusEmpty() (FindingCorpusEmpty, bool) {
+	v, ok := u.Value.(FindingCorpusEmpty)
 	return v, ok
 }
 
@@ -1495,6 +1532,9 @@ func (u FindingDetail) MarshalJSON() ([]byte, error) {
 		payload, err = json.Marshal(v)
 	case FindingFrontmatterParse:
 		tag = "frontmatter-parse"
+		payload, err = json.Marshal(v)
+	case FindingCorpusEmpty:
+		tag = "corpus-empty"
 		payload, err = json.Marshal(v)
 	case FindingUnverified:
 		tag = "unverified"
@@ -1591,6 +1631,13 @@ func (u *FindingDetail) UnmarshalJSON(data []byte) error {
 		return nil
 	case "frontmatter-parse":
 		var v FindingFrontmatterParse
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "corpus-empty":
+		var v FindingCorpusEmpty
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}

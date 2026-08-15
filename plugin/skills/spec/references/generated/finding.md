@@ -9,6 +9,7 @@
 - [FindingSlugPattern](#findingslugpattern)
 - [FindingDuplicateSlug](#findingduplicateslug)
 - [FindingFrontmatterParse](#findingfrontmatterparse)
+- [FindingCorpusEmpty](#findingcorpusempty)
 - [FindingUnverified](#findingunverified)
 - [FindingUnresolvedReference](#findingunresolvedreference)
 - [FindingRetiredTarget](#findingretiredtarget)
@@ -148,6 +149,22 @@ something says otherwise.
 | Property | Type | Documentation |
 |----------|------|---------------|
 | message | String | What could not be read, quoted from the parser so the message needs no further lookup to act on. |
+
+
+## FindingCorpusEmpty
+
+A configured spec root beneath which discovery found no corpus member.
+
+The only finding whose subject is the corpus rather than a document, and
+the reason it carries a variant of its own: a consumer keying off the
+kind must be able to tell "the run examined nothing" from a defect in
+some file, and there is no file here to name. The root is carried
+because it is the whole of what an operator acts on — a typo'd path, a
+moved directory, an ignore rule that swallowed the corpus.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| root | String | The configured spec root, relative to the repository root, that holds no corpus member. |
 
 
 ## FindingUnverified
@@ -377,6 +394,7 @@ identifier, the severity, the path, the span and the message.
 | "slug-pattern" | SlugPattern | A slug not matching the pattern registered for its type. |
 | "duplicate-slug" | DuplicateSlug | A slug declared by two corpus members. |
 | "frontmatter-parse" | FrontmatterParse | A frontmatter block that could not be read as a document envelope. |
+| "corpus-empty" | CorpusEmpty | A spec root beneath which discovery found no corpus member. |
 | "unverified" | Unverified | A requested check that could not run. |
 | "unresolved-reference" | UnresolvedReference | A reference whose slug matches no corpus member. |
 | "retired-target" | RetiredTarget | A reference from a live document to a retired one. |

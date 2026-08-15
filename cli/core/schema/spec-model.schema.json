@@ -1127,6 +1127,20 @@
       ],
       "type": "object"
     },
+    "FindingCorpusEmpty": {
+      "additionalProperties": false,
+      "description": "A configured spec root beneath which discovery found no corpus member.\n\nThe only finding whose subject is the corpus rather than a document, and\nthe reason it carries a variant of its own: a consumer keying off the\nkind must be able to tell \"the run examined nothing\" from a defect in\nsome file, and there is no file here to name. The root is carried\nbecause it is the whole of what an operator acts on — a typo'd path, a\nmoved directory, an ignore rule that swallowed the corpus.",
+      "properties": {
+        "root": {
+          "description": "The configured spec root, relative to the repository root, that holds\nno corpus member.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "root"
+      ],
+      "type": "object"
+    },
     "FindingDetail": {
       "allOf": [
         {
@@ -1207,6 +1221,22 @@
           },
           "then": {
             "$ref": "#/definitions/FindingFrontmatterParse"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "corpus-empty"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FindingCorpusEmpty"
           }
         },
         {
@@ -1411,6 +1441,7 @@
             "slug-pattern",
             "duplicate-slug",
             "frontmatter-parse",
+            "corpus-empty",
             "unverified",
             "unresolved-reference",
             "retired-target",

@@ -333,6 +333,36 @@ func TestCorpusEmptyCarriesErrorAndNamesTheSpecRoot(t *testing.T) {
 	}
 }
 
+// A consumer keying off `detail.kind` must be told what this finding is,
+// not what some other check reports. The text rendering has always been
+// right; the structured half is what a catalogue consuming the index
+// acts on, and a corpus-level finding announcing itself as a frontmatter
+// parse failure sends that consumer looking for a document that does not
+// exist.
+func TestCorpusEmptyDetailNamesItsOwnKind(t *testing.T) {
+	encoded, err := json.Marshal(finding.CorpusEmpty("docs"))
+	if err != nil {
+		t.Fatalf("encoding the finding: %v", err)
+	}
+
+	var decoded struct {
+		Detail struct {
+			Kind string `json:"kind"`
+			Root string `json:"root"`
+		} `json:"detail"`
+	}
+	if err := json.Unmarshal(encoded, &decoded); err != nil {
+		t.Fatalf("decoding the finding: %v", err)
+	}
+
+	if decoded.Detail.Kind != "corpus-empty" {
+		t.Errorf("detail.kind = %q, want %q", decoded.Detail.Kind, "corpus-empty")
+	}
+	if decoded.Detail.Root != "docs" {
+		t.Errorf("detail.root = %q, want the configured spec root", decoded.Detail.Root)
+	}
+}
+
 // The two unreachable-citation findings carry distinct `detail.kind`
 // values and distinct severities — an unmapped citation is an error, an
 // unresolved one a warning — so a JSON consumer branches on structure

@@ -967,7 +967,10 @@ is:
   violation with its JSON Pointer, constraint and raw value; a missing
   property with its name; a slug-pattern mismatch with both the slug and
   the pattern; a duplicate slug with the other document's path; an
-  unverified check with the reason it could not run; an unresolved
+  unverified check with the reason it could not run; a spec root beneath
+  which discovery found no corpus member, carrying that root — the one
+  variant whose subject is the corpus rather than a document, which is
+  why it is not folded into a document-level one; an unresolved
   reference with its slug, its origin and — where the slug matched a
   file the index excluded or could not parse — that file and the reason
   (AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7); a retired

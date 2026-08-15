@@ -139,6 +139,24 @@ struct FindingFrontmatterParse {
 }
 
 """
+A configured spec root beneath which discovery found no corpus member.
+
+The only finding whose subject is the corpus rather than a document, and
+the reason it carries a variant of its own: a consumer keying off the
+kind must be able to tell "the run examined nothing" from a defect in
+some file, and there is no file here to name. The root is carried
+because it is the whole of what an operator acts on — a typo'd path, a
+moved directory, an ignore rule that swallowed the corpus.
+"""
+struct FindingCorpusEmpty {
+  """
+  The configured spec root, relative to the repository root, that holds
+  no corpus member.
+  """
+  root: String
+}
+
+"""
 A check that was requested and could not run.
 
 This is the structured half of the `unverified` severity: the reason
@@ -452,6 +470,9 @@ union FindingDetail {
 
   """A frontmatter block that could not be read as a document envelope."""
   @tag("frontmatter-parse") FrontmatterParse: FindingFrontmatterParse
+
+  """A spec root beneath which discovery found no corpus member."""
+  @tag("corpus-empty") CorpusEmpty: FindingCorpusEmpty
 
   """A requested check that could not run."""
   @tag("unverified") Unverified: FindingUnverified

@@ -436,17 +436,22 @@ func UnresolvedCitation(citingPath string, at specmodel.Span, slug string) specm
 // is no document to point the finding at, so Path names the spec root
 // itself (relative to the repository root, matching every other
 // finding's path) and Position is the zero span. root is repeated in
-// Path and quoted in Message so the finding reads the same whether a
-// consumer looks at the structured field or the rendered text.
+// Path, in the detail and quoted in Message so the finding reads the
+// same whether a consumer looks at the structured field or the rendered
+// text.
+//
+// Its detail is the corpus-level variant rather than any document-level
+// one: a consumer keying off detail.kind reads a kind that matches the
+// rule, and is not sent looking for a file this finding does not have.
 func CorpusEmpty(root string) specmodel.Finding {
-	message := fmt.Sprintf("spec root %q holds no corpus members: the run checked zero documents", root)
 	return specmodel.Finding{
 		Rule:     RuleCorpusEmpty,
 		Severity: SeverityError,
 		Path:     root,
-		Message:  message,
-		Detail: specmodel.NewFindingDetailFrontmatterParse(specmodel.FindingFrontmatterParse{
-			Message: message,
+		Message: fmt.Sprintf(
+			"spec root %q holds no corpus members: the run checked zero documents", root),
+		Detail: specmodel.NewFindingDetailCorpusEmpty(specmodel.FindingCorpusEmpty{
+			Root: root,
 		}),
 	}
 }
