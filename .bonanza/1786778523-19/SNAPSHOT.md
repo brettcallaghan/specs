@@ -8,14 +8,14 @@ reclaim. It is written by `scripts/bb-backup-run.sh` after every bead.
 | Field | Value |
 |---|---|
 | Run id | `1786778523-19` |
-| As of | `2026-08-15T07:44:59Z` |
+| As of | `2026-08-15T07:47:49Z` |
 | Live run directory | `/tmp/claude/bead-bonanza/1786778523-19` |
 | Repo | `/home/user/agent-plugins` |
 | Run branch | `claude/gherkin-adoption-strategy-fikj4i` |
 | Default branch | `main` |
-| HEAD when taken | `135ceab` agent-plugins-r19 P2 The Dolt credential helper is global and unguarded, so it captures every private-repo clone |
-| Files copied | 9 |
-| Beads with artifacts | 3 |
+| HEAD when taken | `21cfc72` agent-plugins-krb P2 [bug] regenerate-cli-snapshots.sh was a no-op — fixed; add a gate so it cannot silently regress |
+| Files copied | 11 |
+| Beads with artifacts | 4 |
 
 Resume the run from the branch, not from this file: `git log --oneline main..claude/gherkin-adoption-strategy-fikj4i`
 lists every bead that has landed, one close commit each.
@@ -24,6 +24,7 @@ lists every bead that has landed, one close commit each.
 
 | Bead | Last progress phase | Recorded sha | Progress | Handoff |
 |---|---|---|---|---|
+| `agent-plugins-0i6` | `retro-written` |  | yes | yes |
 | `agent-plugins-4vz` | `pushed` |  | yes | yes |
 | `agent-plugins-krb` | `committed` | `83c575d` | yes | yes |
 | `agent-plugins-r19` | `pushed` |  | yes | yes |
@@ -52,7 +53,7 @@ whether the live directory still exists and use it when it does:
     ls -A /tmp/claude/bead-bonanza/1786778523-19
 
 Read this copy only WHEN that directory is gone, and then state this
-snapshot's as-of time (`2026-08-15T07:44:59Z`) in whatever you conclude from it.
+snapshot's as-of time (`2026-08-15T07:47:49Z`) in whatever you conclude from it.
 
 **It preserves operational state, not findings.** Findings are `retro:`
 comments on the beads themselves, durable in the tracker independently of

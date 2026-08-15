@@ -247,3 +247,19 @@ tier/tier_reason/est_size/sprint on those six and tagged C4 on the thirteen
 file-path signal instead, which is sound for beads this small, and re-grooming
 them now would invalidate a wave table already written. Recorded as a grooming
 finding for the sprint retro.
+
+### 2026-08-15 — amendment 3: orchestrator merge error on wave 1 (recovered)
+
+Merging `4vz` I rebased its branch onto `135ceab` — the sha `r19` merged at —
+rather than onto current HEAD, which the run-directory snapshot commit had
+already advanced to `0becc94`. The `--ff-only` correctly refused, and I then
+deleted the branch before re-checking, leaving the rebased commit unreferenced.
+
+Recovered: the commit was still in the object store, re-rebased onto the actual
+HEAD and fast-forwarded. Sprint branch is linear, one commit per bead, no work
+lost.
+
+Cause: `bb-backup-run.sh` commits to the sprint branch, so HEAD moves between a
+bead's acceptance and the next bead's merge. The rebase target in a concurrent
+wave is therefore always `git rev-parse HEAD` read at merge time, never a sha
+noted earlier in the wave. Remaining waves take it that way.
