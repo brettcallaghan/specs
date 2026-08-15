@@ -40,6 +40,21 @@ import (
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
+// FenceTag is the info string a fenced block holding Gherkin carries.
+//
+// It names a notation rather than a vocabulary, which is why it belongs
+// here and not in a profile: a fence labelled this way holds Gherkin
+// wherever it is written, and a caller with no document types at all
+// still reads it the same way.
+const FenceTag = "gherkin"
+
+// FenceTags returns the info strings that mark a fenced block as a
+// Gherkin source, in the form a fenced-block lookup takes them.
+//
+// A function rather than a package-level slice, so a caller cannot
+// rewrite the vocabulary every later caller reads.
+func FenceTags() []string { return []string{FenceTag} }
+
 // syntheticHeader is prepended to a source whose content begins with a
 // keyword other than a feature keyword, so that the parser is handed a
 // document it accepts. It carries no name, because a name here would be

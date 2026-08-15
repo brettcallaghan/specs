@@ -383,6 +383,9 @@ func fromIndex(index specmodel.SpecIndex, opts Options) (*Corpus, error) {
 	if index.References == nil {
 		index.References = []specmodel.Reference{}
 	}
+	if index.Features == nil {
+		index.Features = []specmodel.Feature{}
+	}
 
 	c := &Corpus{
 		repoRoot: repoRoot,

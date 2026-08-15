@@ -484,7 +484,11 @@ written, and the `Criterion` values beneath it — or a `*ParseError`
 carrying every failure the parser reported as a located
 `specmodel.ParseError`. `ContentHashOf` computes a criterion's hash from
 a name and a text alone, so a second producer of criteria hashes them the
-same way.
+same way. `FenceTags` names the info strings that mark a fenced block as
+a Gherkin source: that names a notation rather than a vocabulary, so it
+belongs here and not in a profile, and both the discovery that extracts
+those blocks and the reference extraction that declines to mask them
+read it from one place.
 
 Four semantics are pinned by the implementation:
 
@@ -699,9 +703,10 @@ description: Discovery, membership determination, the index model and its versio
 (Go package) — Discovery, membership determination, the index model and
 its versioned emission. Walks the configured spec root, decides
 membership from frontmatter and declared type, records exclusions with
-their reason rather than dropping them, and assembles the index every
-other capability queries. It orchestrates the parsing components but
-holds no parsing logic of its own.
+their reason rather than dropping them, extracts the features written in
+either admissible source form, and assembles the index every other
+capability queries. It orchestrates the parsing components but holds no
+parsing logic of its own.
 
 **The index model is `SpecIndex`, and it is generated.** The index
 crosses a boundary — CI, agents and a central architecture catalogue all
@@ -815,7 +820,8 @@ Questions in [[container-spec-cli]], which owns that decision.
 raised over it, and the lookups the queries need — `Entry` by path,
 `Slug` by identifier, `Document` for the parsed frontmatter behind one
 member, `OutboundReferences` and `InboundReferences` for the two
-directions of the reference graph, and `FindingsFor` to narrow a
+directions of the reference graph, `FeatureFailures` for every Gherkin
+source that would not parse, and `FindingsFor` to narrow a
 whole-corpus result to one file.
 
 **The reference graph rides the walk.** A member's references are
@@ -829,6 +835,57 @@ document ordering and AC-SPEC-009.7's byte-identical output in one rule.
 Only a member contributes references: a file that is not a specification
 has no declared type, and what holds a reference in frontmatter is
 registered per type.
+
+**Feature discovery rides the same walk, over two kinds of source.** A
+`.md` candidate is offered to the membership decision as before; a
+regular file whose name ends in `.feature`, matched without regard to
+letter case, is offered as a **feature source** (AC-GHK-001.2). Both are
+read through the one `os.Root` handle and the one line-ending
+normalization every other read passes through, and both are offered by
+one walk rather than by two passes over the same tree — which is what
+puts a feature source's bytes into the input hash on the same terms a
+candidate's are.
+
+A feature source produces **neither an entry nor an exclusion**. It
+carries no frontmatter and is no document, so AC-SPEC-001.6's silent
+pass-over of a non-`.md` file stands and no exception to corpus
+membership is introduced. What it produces is features, and the
+`features` collection is where they land, ordered by the path a feature
+is written in and then by its position within that file — the rule the
+reference collection is ordered by, for the same reason.
+
+**Ownership is the one fact the two forms establish differently.** A
+fenced block is written inside the document that owns it, so it needs no
+tag to say so and is attributed to the slug that document declares
+(AC-GHK-001.7). That slug is read from the *parsed frontmatter*, not
+from the typed envelope: a document whose slug is absent or malformed
+does not reach the envelope, and its features would then be attributed
+to nothing while the document itself still indexed. A feature source,
+having no document around it, names its owner in a tag; the tag is the
+slug, and the profile's registered owner prefix is only how that tag is
+told apart from the others on the feature (AC-GHK-001.2). Discovery
+therefore needs no location of its own — a feature source sits with the
+documents of its feature and is found wherever beneath the spec root it
+sits (AC-GHK-001.6).
+
+**This is where the registered patterns meet the Gherkin component.**
+That component reads tags as strings and resolves no pattern of its own,
+so the profile's `FeatureTags` registration is compiled once per build
+and handed to it as two identity functions. The code a feature is
+grouped under is derived from the matched identifier itself — the
+identifier's composition is the generated model's, a prefix, the group
+code and the number — rather than from a named capture group, which
+would mean the host knowing what a profile called that group. A pattern
+that does not compile leaves its half of the vocabulary unresolved
+rather than failing the build: `ValidateRegistration` is where a
+malformed registration is reported, and a build under one still indexes
+every document.
+
+A source that will not parse is recorded as a failure against its own
+file and the walk continues, so indexing never fails as a whole
+(AC-SPEC-002.4). A parse failure is not on the index — a persisted index
+records what was extracted — so a corpus served warm carries none, the
+same shape a duplicate-slug finding has.
 
 `Check` and `CheckFor` run the Schema Registry's validation and the
 active profile's per-type slug-pattern check for every member with parsed
@@ -930,10 +987,13 @@ mtime-keyed cache would be cold on every CI run, and FEAT-SPEC-009.1's
 warm-index budget would never hold there. `Fingerprint` computes that
 hash over the same walk `Build` uses — the property the whole path rests
 on, since a fingerprint that drifted from the build would either serve
-stale indexes or never serve one. What it folds in is every candidate
-file's repository-relative path and content digest, plus the inputs that
+stale indexes or never serve one. What it folds in is every source
+file's repository-relative path and content digest — **candidates and
+feature sources alike**, each under its own label so the two can never
+collide — plus the inputs that
 change the index while the files stand still: the workspace identifier,
-the active profile's schema and per-type table, and the schema version.
+the active profile's schema, per-type table and registered feature tags,
+and the schema version.
 The per-type table includes each type's **reference-bearing properties**,
 because they decide the index's content — a property registered today
 holds a reference the emitted graph carries and did not carry yesterday,
@@ -944,6 +1004,20 @@ invocation and reach nothing the index records, so a change to one of
 them cannot make a persisted index stale. Absolute paths are deliberately
 excluded, so the same content checked out at another location hashes the
 same.
+
+**A hash covering only `.md` candidates would be a silent wrong
+answer**, which is why the feature sources are folded in on the same
+walk rather than by a pass of their own: a `.feature` file edited under
+a persisted index would leave every query over features answering from
+the index built before the edit, with nothing to see. The registered
+feature-tag **patterns, owner prefix and qualifiers** are folded in for
+the same reason a reference-bearing property is — a changed pattern
+records a different identifier, a changed prefix attributes a feature
+source to a different document, and a qualifier registered today
+populates a criterion property that was empty before. The registration's
+shared captures are not folded in: they are read only by the check that
+compares a criterion identifier against its feature's, which runs
+against the live profile on every invocation.
 
 A corpus served warm has parsed no document. It reads and parses one on
 demand when a caller asks something only the source can answer — a
@@ -969,7 +1043,8 @@ Six semantics are pinned by the implementation:
   line and column — what a human or an editor acts on — are unaffected.
 - **Only regular files ending in `.md` are candidates**, matched without
   regard to letter case, and everything else is passed over without being
-  recorded (AC-SPEC-001.6). Excluding symlinks is what closes the one
+  recorded (AC-SPEC-001.6) — a `.feature` file included, which the same
+  walk offers as a feature source rather than as a candidate. Excluding symlinks is what closes the one
   route by which a walk could leave the spec root, since `filepath.WalkDir`
   already declines to descend into a symlinked directory; reads go through
   an `os.Root` handle on top of that, so a path resolving outside the root
