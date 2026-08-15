@@ -1,0 +1,5 @@
+description = "feature <id> returns that feature's record including its criteria, for a feature written as a fenced block"
+cites = ["AC-GHK-007.1"]
+artifacts = ["checks.log"]
+args = ["feature", "FEAT-CHK-001"]
+exit_code = 0

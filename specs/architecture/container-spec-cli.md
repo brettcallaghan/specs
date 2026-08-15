@@ -181,6 +181,8 @@ written.
 converts each one's flags into calls against Document Core
 (`corpus.Build`, `corpus.Open`, `corpus.Load`, `corpus.Corpus.Check`/`CheckFor`,
 `corpus.Corpus.Slug`, `corpus.Corpus.InboundReferences`/`OutboundReferences`,
+`corpus.Corpus.Feature`/`Features`/`FeaturesByCode`,
+`corpus.Corpus.Criterion`/`CriteriaOf`/`CriteriaByTag`,
 `numbering.Next`, `references.Extract`/`Resolve`,
 `mdlinks.Resolve`/`Substitute`, `gherkin.Render`) and its result back into
 stdout and an exit status. No file here decides what makes a document
@@ -255,9 +257,27 @@ was a fenced block that carried none: the emitted file is a feature
 source in its own right, and per [[adr-021]] constraint 11 a feature
 source names its owner. An identifier naming no feature in the index is
 reported distinctly, the same "not the same as an empty answer"
-discipline `refs` and `slug-exists` apply, and exits non-zero. Querying
-a feature without `--emit` — the plain `spec feature <id>` lookup — is
-not yet built; only the flags EMIT needs are.
+discipline `refs` and `slug-exists` apply, and exits non-zero.
+
+Querying a feature without `--emit` reads the same warm index by a
+different corpus call. `feature <id>` returns that feature's record,
+including its criteria, via `corpus.Corpus.Feature` (AC-GHK-007.1);
+`feature --code <CODE>` returns every feature `corpus.Corpus.FeaturesByCode`
+groups under that code, and `feature` with no argument and no `--code`
+every feature `corpus.Corpus.Features` holds (AC-GHK-003.3, AC-GHK-007.3).
+A feature identifier resolves the same way regardless of which admissible
+form or file it sits in, because the lookup reads the index's `Id` field
+and never its `Path` (AC-GHK-003.1). `--json` marshals the matching
+`specmodel.Feature` value — or, for a selection, a `specmodel.Feature`
+array — straight through, the same generated-JSON discipline `refs`
+applies to `specmodel.Reference` (AC-GHK-007.5). An identifier naming no
+feature is reported distinctly and exits non-zero, exactly as `--emit`'s
+lookup does (AC-GHK-007.4); `--code` naming a group nothing carries is an
+empty selection instead, and exits zero — a selector is not an identifier,
+so it cannot itself be "unknown". `--code` and `--json` cannot be
+combined with `--emit`, and an identifier and `--code` cannot both be
+given: the command's `Args` validator and `RunE` branch on `--emit` before
+either flag-conversion path runs, so the two never share logic.
 
 `criterion --changed` lists every acceptance criterion whose content
 hash differs between the persisted index and the current corpus,
@@ -275,10 +295,38 @@ criterion whose content hash is unchanged is never listed, regardless of
 whether its position moved (AC-GHK-008.2): only identifier and content
 hash are compared, never a position or a markdown diff. Where no
 persisted index exists to compare against, the command says so rather
-than reporting every criterion as added. Querying a criterion by
-identifier — the plain `spec criterion <id>` lookup, plus `--code`,
-`--of`, `--tag` and `--json` — is not yet built; only the flag CHG
-needs is.
+than reporting every criterion as added.
+
+Querying a criterion without `--changed` reads the same warm index by a
+different corpus call. `criterion <id>` returns that criterion's record
+via `corpus.Corpus.Criterion` (AC-GHK-007.2). `criterion --of <feature-id>`
+returns every criterion `corpus.Corpus.CriteriaOf` that feature holds, and
+`criterion --tag <qualifier>` every criterion `corpus.Corpus.CriteriaByTag`
+matches against the active profile's registered qualifier vocabulary —
+the same `Negative`/`Manual`/`Level` properties and `FeatureTagRules.Qualifiers`
+registration `--emit`'s `criterionTags` reads in the write direction
+(AC-GHK-007.3). `--json` marshals the matching `specmodel.Criterion` value
+or array straight through (AC-GHK-007.5). An identifier naming no
+criterion is reported distinctly and exits non-zero (AC-GHK-007.4); `--of`
+naming a feature nothing declares, or `--tag` naming a qualifier no
+criterion carries, is an empty selection instead, and exits zero for the
+same reason `--code` does on `feature`. `--changed` cannot be combined
+with an identifier, `--of`, `--tag` or `--json`; an identifier cannot be
+combined with `--of` or `--tag`; and `--of` and `--tag` cannot both be
+given — `criterion`'s `RunE` validates these combinations before either
+flag-conversion path runs, the same separation `feature` keeps between
+`--emit` and its query surface.
+
+Both `feature` and `criterion` open the corpus warm (`corpus.Open`), the
+same as `check`, `slug-exists`, `next-id` and `refs`, so a query answers
+from the persisted index without re-walking the corpus when its inputs
+are unchanged (AC-GHK-007.6). Every corpus call this paragraph and the one
+above it name is a linear scan over the warm index's in-memory
+`SpecIndex.Features`, not a second on-disk structure — "warm" already
+means no filesystem walk happens, and the two subcommands hold to the
+same no-domain-logic discipline `refs` does: each converts its flags into
+one corpus lookup and the result into stdout and an exit status, with no
+selection or matching logic of its own.
 
 A bare invocation or `--help` lists the subcommands with their one-line
 synopses and, per subcommand, its own flags — cobra's default rendering

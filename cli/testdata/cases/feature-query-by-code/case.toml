@@ -1,0 +1,5 @@
+description = "feature --code <CODE> returns every feature grouped under that code, whether written as a fenced block or a standalone file"
+cites = ["AC-GHK-003.1", "AC-GHK-003.3", "AC-GHK-007.3"]
+artifacts = ["checks.log"]
+args = ["feature", "--code", "CHK"]
+exit_code = 0

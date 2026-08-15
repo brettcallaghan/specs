@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -14,36 +15,58 @@ import (
 )
 
 // newFeatureCmd builds the `feature` subcommand: emit a feature as a
-// standalone Gherkin file, per the EMIT delta's --emit and --out flags
-// (AC-GHK-009.1).
+// standalone Gherkin file (EMIT's --emit and --out, AC-GHK-009.1), and
+// query the corpus by feature identifier or code (QRY's --code and
+// --json, AC-GHK-007.1, AC-GHK-007.3).
 //
-// Querying a feature by identifier — the plain `spec feature <id>` the
-// Use line advertises, plus --code, --json and the rest of QRY's surface
-// — is agent-plugins-wvd.10's addition and is not built here. This file
-// carries only what EMIT needs, so QRY extends the same command rather
-// than replacing it.
+// --emit and the query surface are mutually exclusive: --emit always
+// takes exactly one identifier, the query surface takes zero or one plus
+// the flags below, and the RunE closure branches between them before
+// either flag-conversion function is called.
 func newFeatureCmd(streams *ioStreams, configPath *string) *cobra.Command {
 	var emit bool
 	var out string
+	var code string
+	var jsonOut bool
 
 	cmd := &cobra.Command{
-		Use:   "feature <id>",
-		Short: "Emit a feature as a standalone Gherkin file",
-		Long: "feature --emit writes the named feature as a valid Gherkin .feature " +
+		Use:   "feature [<id>]",
+		Short: "Query a feature, or emit one as a standalone Gherkin file",
+		Long: "feature <id> returns that feature's record, including its criteria. " +
+			"feature --code <CODE> returns every feature grouped under that code, and " +
+			"feature with no argument every feature in the corpus. --json writes the " +
+			"matching records as JSON to standard output. An identifier no feature " +
+			"declares is reported as such and exits non-zero. " +
+			"feature <id> --emit writes the named feature as a valid Gherkin .feature " +
 			"file, carrying its tags, description and criteria, to standard output " +
 			"by default and to the path --out names.",
-		Args: cobra.ExactArgs(1),
-		RunE: func(_ *cobra.Command, args []string) error {
-			if !emit {
-				return errors.New("spec feature: querying without --emit is not yet supported")
+		Args: func(c *cobra.Command, args []string) error {
+			if emit {
+				return cobra.ExactArgs(1)(c, args)
 			}
-			return runFeatureEmit(streams, *configPath, args[0], out)
+			return cobra.MaximumNArgs(1)(c, args)
+		},
+		RunE: func(_ *cobra.Command, args []string) error {
+			if emit {
+				if code != "" || jsonOut {
+					return errors.New("spec feature: --code and --json cannot be combined with --emit")
+				}
+				return runFeatureEmit(streams, *configPath, args[0], out)
+			}
+			if code != "" && len(args) == 1 {
+				return errors.New("spec feature: an identifier and --code cannot both be given")
+			}
+			return runFeatureQuery(streams, *configPath, args, code, jsonOut)
 		},
 	}
 	cmd.Flags().BoolVar(&emit, "emit", false,
 		"write the feature as a standalone .feature file instead of querying it")
 	cmd.Flags().StringVar(&out, "out", "",
 		"where to write the emitted file: a path, or omitted for standard output")
+	cmd.Flags().StringVar(&code, "code", "",
+		"list every feature grouped under this code")
+	cmd.Flags().BoolVar(&jsonOut, "json", false,
+		"write the matching feature records as JSON to standard output")
 	return cmd
 }
 
@@ -74,7 +97,7 @@ func runFeatureEmit(streams *ioStreams, configPath, id, out string) error {
 		return err
 	}
 
-	feature, found := findFeature(c, specmodel.FeatureId(id))
+	feature, found := c.Feature(specmodel.FeatureId(id))
 	if !found {
 		fmt.Fprintf(streams.err, "%s: not found\n", id)
 		streams.exitCode = 1
@@ -108,18 +131,118 @@ func runFeatureEmit(streams *ioStreams, configPath, id, out string) error {
 	return nil
 }
 
-// findFeature returns the feature id names from c's index.
+// runFeatureQuery converts args and the --code and --json flags into one
+// corpus lookup and renders the result — the whole of what this command's
+// query surface does (AC-GHK-007.1, AC-GHK-007.3, AC-GHK-007.5).
 //
-// A linear scan over Index().Features rather than a lookup structure:
-// this is the whole of what EMIT needs from a corpus query, and building
-// an indexed lookup is QRY's job once agent-plugins-wvd.10 lands.
-func findFeature(c *corpus.Corpus, id specmodel.FeatureId) (specmodel.Feature, bool) {
-	for _, feature := range c.Index().Features {
-		if feature.Id == id {
-			return feature, true
-		}
+// The corpus is opened warm (corpus.Open), the same as check, slug-exists,
+// next-id and refs, so a query answers from the persisted index without
+// re-walking the corpus when its inputs are unchanged (AC-GHK-007.6).
+//
+// An identifier argument selects one feature by [corpus.Corpus.Feature];
+// naming no record is reported distinctly and exits non-zero
+// (AC-GHK-007.4). Otherwise --code selects every feature
+// [corpus.Corpus.FeaturesByCode] grouped under it, or, given neither, every
+// feature in the corpus — both are selections, and an empty selection
+// exits zero rather than being confused with an unknown identifier.
+func runFeatureQuery(streams *ioStreams, configPath string, args []string, code string, jsonOut bool) error {
+	cfg, findings, err := Load(configPath, BuiltinRegistry())
+	if err != nil {
+		return err
 	}
-	return specmodel.Feature{}, false
+	if findings != nil {
+		return reportAndExit(streams, findings, jsonOut)
+	}
+
+	opts, err := corpusOptions(cfg, configPath)
+	if err != nil {
+		return err
+	}
+
+	c, err := openCorpus(opts)
+	if err != nil {
+		return err
+	}
+
+	if len(args) == 1 {
+		id := args[0]
+		feature, found := c.Feature(specmodel.FeatureId(id))
+		if !found {
+			fmt.Fprintf(streams.err, "%s: not found\n", id)
+			streams.exitCode = 1
+			return nil
+		}
+		return renderFeature(streams, feature, jsonOut)
+	}
+
+	var features []specmodel.Feature
+	if code != "" {
+		features = c.FeaturesByCode(specmodel.FeatureCode(code))
+	} else {
+		features = c.Features()
+	}
+	return renderFeatures(streams, features, jsonOut)
+}
+
+// renderFeature writes one feature, including its criteria, to
+// streams.out: the generated [specmodel.Feature] JSON in --json mode, and
+// a short human summary otherwise — the feature's identifier and name, one
+// tab-indented `<id>\t<name>` line per criterion beneath it, matching the
+// tab-separated shape `criterion --changed` already writes.
+func renderFeature(streams *ioStreams, feature specmodel.Feature, asJSON bool) error {
+	if asJSON {
+		data, err := json.Marshal(feature)
+		if err != nil {
+			return fmt.Errorf("cmd: rendering the feature as JSON: %w", err)
+		}
+		fmt.Fprintf(streams.out, "%s\n", data)
+		return nil
+	}
+
+	fmt.Fprintf(streams.out, "%s\t%s\n", feature.Id, feature.Name)
+	for _, criterion := range feature.Criteria {
+		fmt.Fprintf(streams.out, "\t%s\t%s\n", criterion.Id, criterionName(criterion))
+	}
+	return nil
+}
+
+// renderFeatures writes a feature selection to streams.out: the generated
+// [specmodel.Feature] JSON array in --json mode (AC-GHK-007.5), and one
+// `<id>\t<name>` line per feature otherwise. An empty selection writes a
+// fixed sentence in text mode and `[]` in JSON mode — it is a valid answer,
+// never the non-zero "not found" an unknown identifier produces
+// (AC-GHK-007.4).
+func renderFeatures(streams *ioStreams, features []specmodel.Feature, asJSON bool) error {
+	if features == nil {
+		features = []specmodel.Feature{}
+	}
+	if asJSON {
+		data, err := json.Marshal(features)
+		if err != nil {
+			return fmt.Errorf("cmd: rendering the feature selection as JSON: %w", err)
+		}
+		fmt.Fprintf(streams.out, "%s\n", data)
+		return nil
+	}
+
+	if len(features) == 0 {
+		fmt.Fprintln(streams.out, "no matching features")
+		return nil
+	}
+	for _, feature := range features {
+		fmt.Fprintf(streams.out, "%s\t%s\n", feature.Id, feature.Name)
+	}
+	return nil
+}
+
+// criterionName returns c's Name, or the empty string where the notation
+// gave it none — the same nil-to-empty reading [toRenderCriterion] applies
+// for `--emit`.
+func criterionName(c specmodel.Criterion) string {
+	if c.Name == nil {
+		return ""
+	}
+	return *c.Name
 }
 
 // toRenderFeature converts an index record into what [gherkin.Render]

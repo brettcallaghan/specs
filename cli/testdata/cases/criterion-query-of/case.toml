@@ -1,0 +1,5 @@
+description = "criterion --of <feature-id> returns every criterion beneath one feature"
+cites = ["AC-GHK-007.3"]
+artifacts = ["checks.log"]
+args = ["criterion", "--of", "FEAT-CHK-001"]
+exit_code = 0

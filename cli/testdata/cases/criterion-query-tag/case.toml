@@ -1,0 +1,5 @@
+description = "criterion --tag <qualifier> returns every criterion carrying that qualifier"
+cites = ["AC-GHK-007.3"]
+artifacts = ["checks.log"]
+args = ["criterion", "--tag", "manual"]
+exit_code = 0

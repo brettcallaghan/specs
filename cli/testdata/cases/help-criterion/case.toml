@@ -1,0 +1,5 @@
+description = "criterion --help lists its --of, --tag, --json and --changed options, derived from the same declaration that defines them"
+cites = ["AC-SPEC-011.5"]
+artifacts = ["checks.log"]
+args = ["criterion", "--help"]
+exit_code = 0
