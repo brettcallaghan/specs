@@ -159,10 +159,12 @@ func TestReportsAMalformedCriterionIdentifier(t *testing.T) {
 	}
 }
 
-// AC-GHK-002.8: a tag matching no registered pattern and named by no
-// qualifier is ignored, not reported — including by
-// gherkin/identifier-malformed, which must not treat an unrelated
-// project tag as a near-miss identifier.
+// A tag matching no registered pattern and named by no qualifier is
+// ignored, not reported — including by gherkin/identifier-malformed,
+// which must not treat an unrelated project tag as a near-miss
+// identifier.
+//
+// AC: AC-GHK-002.8
 func TestNoFindingForATagMatchingNoRegisteredPattern(t *testing.T) {
 	repo := t.TempDir()
 	write(t, repo, "specs/features/frd-checkout.md", document("frd", "frd-checkout", "Checkout"))
@@ -270,10 +272,11 @@ func TestReportsADuplicateCriterionIdentifierAgainstBothOccurrences(t *testing.T
 	}
 }
 
-// AC-GHK-003.5: several features declaring the same code with different
-// numbers is a grouping, not a defect — the negative test
-// gherkin/identifier-duplicate and gherkin/criterion-code-mismatch would
-// both fail without.
+// Several features declaring the same code with different numbers is a
+// grouping, not a defect — the negative test gherkin/identifier-duplicate
+// and gherkin/criterion-code-mismatch would both fail without.
+//
+// AC: AC-GHK-003.5
 func TestNoFindingForSeveralFeaturesSharingACode(t *testing.T) {
 	repo := t.TempDir()
 	write(t, repo, "specs/features/frd-checkout.md", document("frd", "frd-checkout", "Checkout"))

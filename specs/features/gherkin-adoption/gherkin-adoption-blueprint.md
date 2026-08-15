@@ -6,8 +6,8 @@ description: Builds a Gherkin component and the fenced-block half of
   and exposes the records as checks, queries and emitted feature files
 slug: feature-gherkin-adoption
 type: feature-blueprint
-status: in-progress
-updated_at: 2026-08-14T00:00:00Z
+status: retired
+updated_at: 2026-08-15T00:00:00Z
 delivery: staged
 plan: agent-plugins-wvd
 frd: frd-gherkin-adoption
@@ -706,7 +706,7 @@ Surface (change detection).
 | AC-GHK-001.3 | **GHK (proves)**, DISC | unit |
 | AC-GHK-001.4 | **GHK (proves)** | unit |
 | AC-GHK-001.5 | **GHK (proves)**, MDS | unit |
-| AC-GHK-001.6 | **DISC (proves)** | manual |
+| AC-GHK-001.6 | **DISC (proves)** | unit ‡ |
 | AC-GHK-001.7 | **DISC (proves)** | unit |
 | AC-GHK-002.1 | **PREG (proves)**, XPT, GHK | unit |
 | AC-GHK-002.2 | **VTAG (proves)**, PREG | unit |
@@ -757,12 +757,16 @@ Surface (change detection).
 | AC-GHK-009.2 | **EMIT (proves)**, GHK | unit |
 | AC-GHK-009.4 | **GHK (proves)**, MODEL | unit |
 
-AC-GHK-001.6 is `manual` because it states an authoring convention
-rather than a behavior of the CLI: a feature source sits beside the
-documents of its feature, and nothing in the tool places it there. DISC
-is named as its proving delta because discovery over the spec root is
-what makes the convention sufficient — after it, a file placed as the
-criterion describes is found, which is the observable half of the claim.
+‡ AC-GHK-001.6 was declared `manual` at design time, on the reading that
+it states an authoring convention rather than a behavior of the CLI: a
+feature source sits beside the documents of its feature, and nothing in
+the tool places it there. DISC was named as its proving delta because
+discovery over the spec root is what makes the convention sufficient.
+The level was corrected to `unit` at retirement — that observable half
+is exactly what
+`TestAFeatureSourceIsFoundWhereverBeneathTheSpecRootItSits` asserts, so
+the criterion is verified automatically and nothing about it is left to
+a human to check.
 
 † AC-GHK-007.6 is verified by a Go test rather than a snapshot case,
 because the state it is about — an index served warm, with nothing
@@ -793,30 +797,55 @@ retirement rather than dying with this document.
 
 ## Definition of Done
 
-- [ ] Every delta above is folded into its owning blueprint:
-  - [ ] [[module-document-core]] — Components gains **Gherkin**;
-    Markdown Structure's "not yet built" paragraph is replaced by a
-    **Built** paragraph scoped to fenced blocks, with the heading tree
-    and comment blocks still outstanding; Interface records the widened
-    `Profile`; Corpus's index vocabulary gains `Feature` and
-    `Criterion`; References records the narrowed code mask; Findings
-    records the new detail variants; Key Decisions' [[adr-021]] line no
-    longer says extraction is a follow-on
-  - [ ] [[module-spec-profile]] — Interface and Profile Registration
-    record the tag registration; Key Decisions' [[adr-021]] line no
-    longer says no component registers AC rules
-  - [ ] [[container-spec-cli]] — Components' Command Surface records
-    `feature` and `criterion` and their flags; Change Guidance's
-    verification gates cover them; Key Decisions' [[adr-021]] line no
-    longer says no component parses acceptance criteria
-- [ ] [[contract-specs-configuration]] — the internal registration
-  surface enumerates the tag vocabulary; no `version` bump
-- [ ] Every AC in the coverage table is verified at its declared level
-  and cited from its tests per `ac-traceability-standards.md`
-- [ ] Every issue listed as subsumed in Tracker Reconciliation is closed
-  or re-scoped — `agent-plugins-133` re-scoped to the sequence check it
-  asks for and this feature does not deliver
-- [ ] This blueprint's status → retired
+- [x] Every delta above is folded into its owning blueprint:
+  - [x] [[module-document-core]] — Components gains **Gherkin**;
+        Markdown Structure carries a **Built — fenced blocks only**
+        paragraph, with the heading tree and comment blocks still named
+        as outstanding; Interface records the widened `Profile` as a
+        fifth member, `FeatureTags()`, and the two new registration
+        defects `ValidateRegistration` reports; Corpus's index
+        vocabulary gains `Feature` and `Criterion`; References records
+        the narrowed code mask; Findings records the new detail
+        variants; Key Decisions' [[adr-021]] line names the parser the
+        Gherkin component is built on rather than a follow-on.
+        Reconciled at retirement: the Components prose still said
+        nothing in Corpus called `cli/core/markdown` or
+        `cli/core/gherkin`, which DISC made false.
+  - [x] [[module-spec-profile]] — Interface and Profile Registration
+        record the tag registration and the structural guard holding the
+        registered patterns against the generated ones; Key Decisions'
+        [[adr-021]] line names what Profile Registration registers.
+  - [x] [[container-spec-cli]] — Command Surface records `feature` and
+        `criterion`, the `--emit`/`--out`, `--code`, `--of`, `--tag`,
+        `--changed` and `--json` flags and their mutual exclusions;
+        Change Guidance's verification gates cover them under the
+        general command-surface rule. Reconciled at retirement: Key
+        Decisions' [[adr-021]] line still read "acceptance-criteria
+        extraction is a follow-on feature, so no component here parses
+        acceptance criteria yet".
+- [x] [[contract-specs-configuration]] — the internal registration
+      surface enumerates the tag vocabulary: the two identifier
+      patterns, the owning-document tag prefix, the shared captures and
+      the qualifier tags with their meanings. `version` stays `"1.0"`,
+      the recorded no-bump being the satisfying act — the revision is
+      additive and to the internal half only, which that contract's own
+      change policy exempts WHILE both modules are `visibility:
+      internal`.
+- [x] Every AC in the coverage table is verified at its declared level
+      and cited from its tests per `ac-traceability-standards.md`. All
+      55 carry an `AC:` citation or a case manifest `cites` entry, and
+      no citation names a criterion [[frd-gherkin-adoption]] does not
+      define. Two — AC-GHK-002.8 and AC-GHK-003.5, both negative
+      criteria — had a test each carrying the identifier in prose rather
+      than behind the `AC:` marker, and were given proper citations at
+      retirement.
+- [x] Every issue listed as subsumed in Tracker Reconciliation is closed
+      or re-scoped: `agent-plugins-dc6` (MODEL), `agent-plugins-3wd`
+      (DISC) and `agent-plugins-d1g` (EMIT) closed; `agent-plugins-133`
+      re-scoped to the criterion-number sequence check alone, which no
+      criterion in [[frd-gherkin-adoption]] requires and this feature
+      does not deliver.
+- [x] This blueprint's status → retired.
 
 ## Open Questions
 

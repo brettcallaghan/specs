@@ -528,8 +528,12 @@ does not apply to a compiled binary.
 
 - [[adr-015]] — Go is the implementation language; the measured basis
   and the rejected alternatives are recorded there.
-- [[adr-021]] — acceptance-criteria extraction is a follow-on feature,
-  so no component here parses acceptance criteria yet.
+- [[adr-021]] — Gherkin is the notation for features and acceptance
+  criteria. Command Surface queries the feature and criterion records
+  Document Core extracts, emits a feature back out as a standalone
+  `.feature` file, and reports which criteria changed locally; the
+  parsing and the rendering are Document Core's, and the tag vocabulary
+  is [[module-spec-profile]]'s.
 
 ## Open Questions
 

@@ -272,11 +272,12 @@ document type are each reported against the document a reader must
 open. **Markdown Structure is built for one of its three capabilities.**
 `cli/core/markdown` locates fenced blocks by info string; the heading
 tree and comment-block location remain not yet built, and the diagram
-edges into and out of those two are still the intended shape rather than
-an exercised one. Nothing in Corpus calls `cli/core/markdown` or
-`cli/core/gherkin` yet, so everything the current corpus check does is
-reached without either, and the two edges from Corpus are likewise the
-intended shape.
+edges that would carry those two are still the intended shape rather
+than an exercised one. Both edges from Corpus into Markdown Structure
+and Gherkin are exercised: the walk extracts a fenced Gherkin block
+through `markdown.Fenced` and parses every feature source through
+`gherkin.Parse`, and the `gherkin/` checks recompute from the same two
+packages.
 
 ### Spans
 
