@@ -1,0 +1,104 @@
+{
+  "schema_version": "1.0",
+  "workspace": "acme",
+  "entries": [
+    {
+      "path": "docs/features/frd-checkout.md",
+      "frontmatter": {
+        "title": "Checkout",
+        "description": "A feature requirements document used by a snapshot case.",
+        "slug": "frd-checkout",
+        "type": "frd",
+        "status": "approved",
+        "updated_at": "2026-08-01T00:00:00Z"
+      }
+    }
+  ],
+  "exclusions": [],
+  "references": [],
+  "features": [
+    {
+      "id": "FEAT-CHK-001",
+      "code": "CHK",
+      "document_slug": "frd-checkout",
+      "path": "docs/features/frd-checkout.md",
+      "name": "Checkout",
+      "description": "As a shopper\nI want to pay for a basket\nSo that the goods are mine",
+      "source": {
+        "form": "fenced-block",
+        "block": {
+          "offset": 188,
+          "length": 615,
+          "start_line": 12,
+          "start_column": 1,
+          "end_line": 38,
+          "end_column": 1
+        }
+      },
+      "position": {
+        "offset": 199,
+        "length": 600,
+        "start_line": 13,
+        "start_column": 1,
+        "end_line": 37,
+        "end_column": 1
+      },
+      "criteria": [
+        {
+          "id": "AC-CHK-001.1",
+          "name": "A basket with something in it can be paid for",
+          "text": "Given a basket holding one item\nWhen the shopper pays\nThen the order is placed",
+          "negative": false,
+          "manual": false,
+          "level": "unit",
+          "notation": "gherkin",
+          "content_hash": "sha256:6c0b89a15617d8f8bb006d3bf0b26d151593cfb34b99a2ce46c29566669c02c1",
+          "position": {
+            "offset": 306,
+            "length": 176,
+            "start_line": 20,
+            "start_column": 1,
+            "end_line": 24,
+            "end_column": 29
+          }
+        },
+        {
+          "id": "AC-CHK-001.2",
+          "name": "An empty basket cannot be paid for",
+          "text": "Given an empty basket\nWhen the shopper pays\nThen payment is refused",
+          "negative": true,
+          "manual": false,
+          "level": "unit",
+          "notation": "gherkin",
+          "content_hash": "sha256:8e942b2d2200afa08ac2db1b9aa3dd44aa5b80cb696a0ee8640ed44baa80985b",
+          "position": {
+            "offset": 484,
+            "length": 164,
+            "start_line": 26,
+            "start_column": 1,
+            "end_line": 30,
+            "end_column": 28
+          }
+        },
+        {
+          "id": "AC-CHK-001.3",
+          "name": "A cancelled order is not charged",
+          "text": "Given a cancelled order\nWhen settlement runs\nThen no charge is made",
+          "negative": false,
+          "manual": true,
+          "notation": "gherkin",
+          "content_hash": "sha256:e98cdb47190c267cf32e4c57588515889b219a8e33f0e21bbbb27d5a35836569",
+          "position": {
+            "offset": 650,
+            "length": 148,
+            "start_line": 32,
+            "start_column": 1,
+            "end_line": 36,
+            "end_column": 27
+          }
+        }
+      ]
+    }
+  ],
+  "input_hash": "sha256:5108ecda10849d20367229fc93ee934a504c55ed9de938486428b01b0fe17552"
+}

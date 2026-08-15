@@ -177,15 +177,15 @@ written.
 
 **Built (command tree)** — also `cli/cmd`, via `cobra`
 ([[adr-015]]): `Execute` builds the command tree — `index`, `check`,
-`slug-exists`, `next-id`, `refs`, `links`, `feature` — and converts each
-one's flags into calls against Document Core (`corpus.Build`,
-`corpus.Open`, `corpus.Corpus.Check`/`CheckFor`, `corpus.Corpus.Slug`,
-`corpus.Corpus.InboundReferences`/`OutboundReferences`, `numbering.Next`,
-`references.Extract`/`Resolve`, `mdlinks.Resolve`/`Substitute`,
-`gherkin.Render`) and its result back into stdout and an exit status. No
-file here decides what makes a document valid or scores a check; every
-one of those calls is the whole of what a subcommand does with what it
-receives.
+`slug-exists`, `next-id`, `refs`, `links`, `feature`, `criterion` — and
+converts each one's flags into calls against Document Core
+(`corpus.Build`, `corpus.Open`, `corpus.Load`, `corpus.Corpus.Check`/`CheckFor`,
+`corpus.Corpus.Slug`, `corpus.Corpus.InboundReferences`/`OutboundReferences`,
+`numbering.Next`, `references.Extract`/`Resolve`,
+`mdlinks.Resolve`/`Substitute`, `gherkin.Render`) and its result back into
+stdout and an exit status. No file here decides what makes a document
+valid or scores a check; every one of those calls is the whole of what a
+subcommand does with what it receives.
 
 `index` always builds fresh (`corpus.Build`, not the warm-cache
 `corpus.Open`) and writes through `corpus.Write`, accepting the
@@ -258,6 +258,27 @@ reported distinctly, the same "not the same as an empty answer"
 discipline `refs` and `slug-exists` apply, and exits non-zero. Querying
 a feature without `--emit` — the plain `spec feature <id>` lookup — is
 not yet built; only the flags EMIT needs are.
+
+`criterion --changed` lists every acceptance criterion whose content
+hash differs between the persisted index and the current corpus,
+classifying each as changed, added or removed by whether its identifier
+is present in both, only now, or only before (AC-GHK-008.1,
+AC-GHK-008.3). It reads the persisted side with `corpus.Load` rather
+than through `corpus.Open`'s warm cache: `Open` rebuilds silently on a
+hash mismatch and hands back the corpus it just built, discarding the
+earlier state this comparison needs, which is exactly the case
+`--changed` exists to report. The current side always builds fresh
+(`corpus.Build`), and neither call writes the artifact back — a
+`--changed` run must never replace the baseline it is comparing against
+with the state it is reporting as different from that baseline. A
+criterion whose content hash is unchanged is never listed, regardless of
+whether its position moved (AC-GHK-008.2): only identifier and content
+hash are compared, never a position or a markdown diff. Where no
+persisted index exists to compare against, the command says so rather
+than reporting every criterion as added. Querying a criterion by
+identifier — the plain `spec criterion <id>` lookup, plus `--code`,
+`--of`, `--tag` and `--json` — is not yet built; only the flag CHG
+needs is.
 
 A bare invocation or `--help` lists the subcommands with their one-line
 synopses and, per subcommand, its own flags — cobra's default rendering

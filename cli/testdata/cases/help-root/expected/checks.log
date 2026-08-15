@@ -5,6 +5,7 @@ Usage:
 
 Available Commands:
   check       Check the corpus, or a single document, for conformance
+  criterion   List acceptance criteria that changed locally
   feature     Emit a feature as a standalone Gherkin file
   help        Help about any command
   index       Build the spec index and write it to disk

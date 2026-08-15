@@ -126,6 +126,7 @@ func newRootCmd(streams *ioStreams) *cobra.Command {
 	root.AddCommand(newRefsCmd(streams, &configPath))
 	root.AddCommand(newLinksCmd(streams, &configPath))
 	root.AddCommand(newFeatureCmd(streams, &configPath))
+	root.AddCommand(newCriterionCmd(streams, &configPath))
 
 	return root
 }
