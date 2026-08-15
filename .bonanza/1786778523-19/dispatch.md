@@ -263,3 +263,20 @@ Cause: `bb-backup-run.sh` commits to the sprint branch, so HEAD moves between a
 bead's acceptance and the next bead's merge. The rebase target in a concurrent
 wave is therefore always `git rev-parse HEAD` read at merge time, never a sha
 noted earlier in the wave. Remaining waves take it that way.
+
+### 2026-08-15 — amendment 4: wvd.6 pulled forward from wave 5 into wave 4
+
+The plan put `wvd.6` (PREG) in wave 5, batched behind `wvd.5` (DISC), to honour
+the advisory C4 edge "wvd.6 consumes component-corpus, changed by wvd.5".
+
+`wvd.6`'s only dependency edge is `wvd.2` (XPT), which closed in wave 3, so it
+is dispatchable now. Its `c4_changes` is `component-profile-registration`;
+`wvd.4`'s is `component-gherkin`. Disjoint, so the concurrency entry conditions
+hold and the two run together.
+
+The consumes-edge is advisory, not a dependency: PREG registers patterns into
+the extension point XPT widened and validates them against the generated
+`CriterionId`/`FeatureId` from MODEL. Neither is DISC's work. Saves one wave.
+
+Wave table updated in place: wave 4 is now `wvd.4` + `wvd.6`; wave 5 is
+`wvd.5` alone.

@@ -8,14 +8,14 @@ reclaim. It is written by `scripts/bb-backup-run.sh` after every bead.
 | Field | Value |
 |---|---|
 | Run id | `1786778523-19` |
-| As of | `2026-08-15T08:14:59Z` |
+| As of | `2026-08-15T11:05:38Z` |
 | Live run directory | `/tmp/claude/bead-bonanza/1786778523-19` |
 | Repo | `/home/user/agent-plugins` |
 | Run branch | `claude/gherkin-adoption-strategy-fikj4i` |
 | Default branch | `main` |
-| HEAD when taken | `4edbd7a` agent-plugins-nu2 P2 corpus/empty findings report detail.kind "frontmatter-parse", misleading every JSON consumer |
-| Files copied | 19 |
-| Beads with artifacts | 8 |
+| HEAD when taken | `54a74be` agent-plugins-wvd.6 P1 PREG: register this framework's Gherkin tag vocabulary |
+| Files copied | 28 |
+| Beads with artifacts | 10 |
 
 Resume the run from the branch, not from this file: `git log --oneline main..claude/gherkin-adoption-strategy-fikj4i`
 lists every bead that has landed, one close commit each.
@@ -32,6 +32,8 @@ lists every bead that has landed, one close commit each.
 | `agent-plugins-wvd.1` | `pushed` |  | yes | yes |
 | `agent-plugins-wvd.2` | `committed` | `a7a8df2` | yes | yes |
 | `agent-plugins-wvd.3` | `pushed` |  | yes | yes |
+| `agent-plugins-wvd.4` | `pushed` |  | yes | yes |
+| `agent-plugins-wvd.6` | `pushed` |  | yes | yes |
 
 The phase column is a **hint, never the authority** — the ledger stops when
 the agent writing it stops, so a trail ending before `committed` does not
@@ -40,7 +42,12 @@ mean the bead is unfinished. Resolve any status question with
 
 ## Other files copied
 
+- `check-skills.log`
 - `dispatch.md`
+- `generate-schemas-check.log`
+- `go-test.log`
+- `sync-shared-references.log`
+- `sync-strata-docs.log`
 - `trailers.txt`
 - `.ok`
 
@@ -57,7 +64,7 @@ whether the live directory still exists and use it when it does:
     ls -A /tmp/claude/bead-bonanza/1786778523-19
 
 Read this copy only WHEN that directory is gone, and then state this
-snapshot's as-of time (`2026-08-15T08:14:59Z`) in whatever you conclude from it.
+snapshot's as-of time (`2026-08-15T11:05:38Z`) in whatever you conclude from it.
 
 **It preserves operational state, not findings.** Findings are `retro:`
 comments on the beads themselves, durable in the tracker independently of
