@@ -105,14 +105,30 @@ the plugin, and no framework vocabulary is compiled into the host.
     it is no longer, and the property in which one of the latter names
     its replacement — as the authority for those judgements, and SHALL
     contain no status and no property name of its own.
+  - The module SHALL take the tag vocabulary the active profile
+    registers — the pattern a feature identifier matches, the pattern a
+    criterion identifier matches, the prefix an owning-document tag
+    carries, the capture groups a criterion identifier shares with its
+    feature's, and the qualifier tags together with what each of them
+    means — as the authority for reading a tag, and SHALL contain no tag
+    spelling of its own (AC-GHK-002.1). A tag matching no registered
+    pattern and named by no qualifier is carried on the record and
+    reported by nothing (AC-GHK-002.8).
+  - The module SHALL check a criterion identifier's derivation from its
+    feature's by comparing only the capture groups the registration
+    names as shared, so that neither pattern's internal structure is
+    known to it (AC-GHK-003.6).
   - WHEN a profile is activated, the module SHALL validate its
     registration and SHALL report every defect it finds, naming the
     offending key, rather than falling back to a default for that key
-    (AC-SPECREF-004.3). The defects are three: a pairing or a typed
+    (AC-SPECREF-004.3). The defects are five: a pairing or a typed
     reference naming a property the same type does not register as
     reference-bearing; a typed reference naming a document type the
-    profile does not define; and a lifecycle registration naming a
-    status outside the profile's own status vocabulary.
+    profile does not define; a lifecycle registration naming a status
+    outside the profile's own status vocabulary; a feature-tag
+    registration whose identifier pattern does not compile; and a
+    feature-tag registration whose shared captures name a capture group
+    an identifier pattern does not define.
   - The module SHALL return those defects to the caller rather than
     rendering them. A compiled-in registration has no file position of
     its own, and the position a reader needs — the configuration value
@@ -126,7 +142,7 @@ the plugin, and no framework vocabulary is compiled into the host.
     and only to the destination the caller resolves. It modifies no
     document it reads.
 
-**Built** — the `Profile` interface in `cli/core/corpus` has four
+**Built** — the `Profile` interface in `cli/core/corpus` has five
 members and nothing else:
 
 | Member | Supplies |
@@ -135,6 +151,7 @@ members and nothing else:
 | `DocumentTypes() map[string]DocumentTypeRules` | per type, its slug pattern, whether it is numbered, and which of its properties hold references — keyed by the value documents declare in `type` |
 | `Conventions() specmodel.ConventionsConfig` | the convention defaults resolved where an adopting repository's configuration omits them |
 | `Lifecycle() LifecycleRules` | the profile's status vocabulary, which of those statuses mean in effect and which mean superseded, and the property a superseded document names its replacement in |
+| `FeatureTags() FeatureTagRules` | the tag vocabulary: the identifier patterns a feature and a criterion match, the prefix an owning-document tag carries, the captures a criterion identifier shares with its feature's, and the qualifier tags with their meanings |
 
 `DocumentTypeRules` carries a slug pattern, a numbered flag, and the
 type's reference registration — `ReferenceProperties`, the properties
@@ -156,6 +173,29 @@ alternative, reading the vocabulary out of the union schema, would mean
 the host knowing where a schema keeps its status enum and passing
 vacuously against a profile that keeps it elsewhere.
 
+`FeatureTagRules` is profile-level for a different reason: a feature is
+not a document type. It is written inside a document of any type, or in
+a file that is no document at all, and the tags that identify it are the
+same in both. It carries the two identifier patterns, the
+owning-document tag prefix, `SharedCaptures`, and `Qualifiers` — each
+one a tag paired with the criterion property it populates. Every member
+is independent and a profile may register some and not others: a
+registration that identifies features and not criteria describes a
+corpus with no criteria in it.
+
+`SharedCaptures` is how a criterion identifier's derivation from its
+feature's is stated as data. The host compiles both patterns, captures
+both identifiers, and compares only the groups named there, so it checks
+the derivation while knowing nothing of either pattern's internal
+structure. A profile whose two patterns share nothing registers none and
+no derivation is checked.
+
+A qualifier's meaning is the generated vocabulary's own type rather than
+a string the profile invents, because the set of meanings is fixed by
+the criterion record — a qualifier can only mean one of the things a
+criterion has somewhere to put. What the profile chooses is each tag's
+spelling and which meaning it carries.
+
 `ValidateRegistration` is the registration check, and it returns
 `RegistrationDefect` values carrying the document type, the offending key
 and what is wrong with it. It renders nothing and repairs nothing.
@@ -168,11 +208,15 @@ on its own merits, never a special case granted to one profile. Two tests
 hold the boundary: no package under `cli/core` imports a profile package,
 and no non-test source in `cli/core/corpus` contains a string literal
 matching anything a profile registers through the extension point — any
-document type, any status, or any frontmatter property the generated
-vocabulary types as a slug or a list of slugs. All three sets are read
-from the generated schema rather than restated, so the boundary widens
-with the vocabulary; the identity property `slug` is excluded because it
-names the document declaring it rather than another document.
+document type, any status, any frontmatter property the generated
+vocabulary types as a slug or a list of slugs, and any value a qualifier
+tag is liable to be spelled after, which is a boolean property of the
+criterion record or a verification level. All four sets are read from the
+generated schema rather than restated, so the boundary widens with the
+vocabulary; the identity property `slug` is excluded because it names the
+document declaring it rather than another document. Identifier patterns
+are not read, because a pattern is registered whole and the host holds no
+part of one.
 
 The write guarantee is narrower in fact than in statement. The module's
 only write is `corpus.Write`, whose destination `corpus.IndexPath`

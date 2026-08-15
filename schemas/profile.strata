@@ -89,10 +89,125 @@ struct ProfileRegistration {
   successor_property: String?
 
   """
+  The tag vocabulary this profile assigns meaning to.
+
+  Absent for a profile whose documents carry no tagged features, which
+  is a corpus without them rather than a malformed registration; the
+  checks that read it do not run.
+  """
+  feature_tags: FeatureTagRegistration?
+
+  """
   The convention values this profile supplies when `specs.toml` omits
   them.
   """
   conventions: ConventionsConfig?
+}
+
+"""
+The tags a profile assigns meaning to on a feature and its criteria.
+
+Which tag identifies a feature, which identifies a criterion, which
+prefix names the document a feature belongs to, and which qualifiers
+carry meaning are facts about a document vocabulary rather than about
+Gherkin. They are registered here so that the engine reads a tag as a
+string and attaches meaning to none of it.
+
+Every member is optional and a profile MAY register none of them. A
+partial registration is honest rather than defective: a profile that
+identifies features and not criteria has a corpus with no criteria in
+it.
+"""
+struct FeatureTagRegistration {
+  """
+  The pattern the identifier of a feature matches, without the leading
+  marker that makes it a tag.
+
+  Named capture groups in this pattern are what `shared_captures`
+  selects from, so a profile that derives criterion identifiers from
+  feature identifiers names the shared parts here.
+  """
+  feature_pattern: String?
+
+  """
+  The pattern the identifier of an acceptance criterion matches, without
+  the leading marker that makes it a tag.
+  """
+  criterion_pattern: String?
+
+  """
+  The prefix carried by the tag in which a feature names the document
+  that owns it, where the feature is not written inside that document.
+
+  A feature written as a standalone file has no frontmatter to inherit
+  an owner from, so it names one in a tag; the prefix is what
+  distinguishes that tag from every other tag on the feature.
+  """
+  owner_prefix: String?
+
+  """
+  The named capture groups a criterion identifier shares with the
+  identifier of the feature it belongs to.
+
+  This is how a criterion identifier's derivation from its feature's is
+  stated without the engine knowing the internal structure of either
+  pattern: it compiles both, captures both identifiers, and compares
+  only the groups named here. Every name must be a capture group both
+  patterns define.
+  """
+  shared_captures: [String]?
+
+  """
+  The tags that qualify a criterion, and what each of them means.
+  """
+  qualifiers: [QualifierTagRegistration]?
+}
+
+"""
+One tag a profile assigns meaning to on a criterion, and the meaning it
+assigns.
+
+A tag absent from this list is carried on the record and reported by
+nothing: an unregistered tag is a tag the vocabulary says nothing
+about, which is the right answer for an annotation the author added for
+their own reasons.
+"""
+struct QualifierTagRegistration {
+  """
+  The tag, without the leading marker that makes it a tag.
+  """
+  tag: String
+
+  """The property of a criterion this tag populates."""
+  meaning: QualifierMeaning
+
+  """
+  The verification level this tag records, for a tag whose meaning is
+  `verification-level` and for no other.
+  """
+  level: VerificationLevel?
+}
+
+"""
+What a registered qualifier tag says about the criterion carrying it.
+
+The set is fixed by the criterion record rather than by any profile: a
+qualifier can only mean one of the things a criterion has somewhere to
+put. A profile chooses the spelling of each tag and which of these
+meanings it carries, and nothing else.
+"""
+enum QualifierMeaning {
+  """The criterion states a prohibition."""
+  Negation: "negation"
+
+  """The criterion can only be verified by hand."""
+  ManualVerification: "manual-verification"
+
+  """
+  The criterion records the level it is intended to be verified at,
+  which the tag's own `level` names.
+  """
+  VerificationLevel: "verification-level"
 }
 
 """

@@ -4360,6 +4360,12 @@ type ProfileRegistration struct {
 	// framework happens to use for it. Its value is quoted back in the
 	// finding, so a reader is told what to cite instead of what they cited.
 	SuccessorProperty *string `json:"successor_property,omitempty"`
+	// The tag vocabulary this profile assigns meaning to.
+	//
+	// Absent for a profile whose documents carry no tagged features, which
+	// is a corpus without them rather than a malformed registration; the
+	// checks that read it do not run.
+	FeatureTags *FeatureTagRegistration `json:"feature_tags,omitempty"`
 	// The convention values this profile supplies when `specs.toml` omits
 	// them.
 	Conventions *ConventionsConfig `json:"conventions,omitempty"`
@@ -4410,12 +4416,143 @@ func (v *ProfileRegistration) UnmarshalJSON(data []byte) error {
 			return prefixField("successor_property", err)
 		}
 	}
+	if m, ok := raw["feature_tags"]; ok {
+		if err := json.Unmarshal(m, &v.FeatureTags); err != nil {
+			return prefixField("feature_tags", err)
+		}
+	}
 	if m, ok := raw["conventions"]; ok {
 		if err := json.Unmarshal(m, &v.Conventions); err != nil {
 			return prefixField("conventions", err)
 		}
 	}
 	return nil
+}
+
+// The tags a profile assigns meaning to on a feature and its criteria.
+//
+// Which tag identifies a feature, which identifies a criterion, which
+// prefix names the document a feature belongs to, and which qualifiers
+// carry meaning are facts about a document vocabulary rather than about
+// Gherkin. They are registered here so that the engine reads a tag as a
+// string and attaches meaning to none of it.
+//
+// Every member is optional and a profile MAY register none of them. A
+// partial registration is honest rather than defective: a profile that
+// identifies features and not criteria has a corpus with no criteria in
+// it.
+type FeatureTagRegistration struct {
+	// The pattern the identifier of a feature matches, without the leading
+	// marker that makes it a tag.
+	//
+	// Named capture groups in this pattern are what `shared_captures`
+	// selects from, so a profile that derives criterion identifiers from
+	// feature identifiers names the shared parts here.
+	FeaturePattern *string `json:"feature_pattern,omitempty"`
+	// The pattern the identifier of an acceptance criterion matches, without
+	// the leading marker that makes it a tag.
+	CriterionPattern *string `json:"criterion_pattern,omitempty"`
+	// The prefix carried by the tag in which a feature names the document
+	// that owns it, where the feature is not written inside that document.
+	//
+	// A feature written as a standalone file has no frontmatter to inherit
+	// an owner from, so it names one in a tag; the prefix is what
+	// distinguishes that tag from every other tag on the feature.
+	OwnerPrefix *string `json:"owner_prefix,omitempty"`
+	// The named capture groups a criterion identifier shares with the
+	// identifier of the feature it belongs to.
+	//
+	// This is how a criterion identifier's derivation from its feature's is
+	// stated without the engine knowing the internal structure of either
+	// pattern: it compiles both, captures both identifiers, and compares
+	// only the groups named here. Every name must be a capture group both
+	// patterns define.
+	SharedCaptures *[]string `json:"shared_captures,omitempty"`
+	// The tags that qualify a criterion, and what each of them means.
+	Qualifiers *[]QualifierTagRegistration `json:"qualifiers,omitempty"`
+}
+
+// One tag a profile assigns meaning to on a criterion, and the meaning it
+// assigns.
+//
+// A tag absent from this list is carried on the record and reported by
+// nothing: an unregistered tag is a tag the vocabulary says nothing
+// about, which is the right answer for an annotation the author added for
+// their own reasons.
+type QualifierTagRegistration struct {
+	// The tag, without the leading marker that makes it a tag.
+	Tag string `json:"tag"`
+	// The property of a criterion this tag populates.
+	Meaning QualifierMeaning `json:"meaning"`
+	// The verification level this tag records, for a tag whose meaning is
+	// `verification-level` and for no other.
+	Level *VerificationLevel `json:"level,omitempty"`
+}
+
+func (v *QualifierTagRegistration) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["tag"]; !ok || string(m) == "null" {
+		return fmt.Errorf("QualifierTagRegistration: required field \"tag\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Tag); err != nil {
+		return prefixField("tag", err)
+	}
+	if m, ok := raw["meaning"]; !ok || string(m) == "null" {
+		return fmt.Errorf("QualifierTagRegistration: required field \"meaning\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Meaning); err != nil {
+		return prefixField("meaning", err)
+	}
+	if m, ok := raw["level"]; ok {
+		if err := json.Unmarshal(m, &v.Level); err != nil {
+			return prefixField("level", err)
+		}
+	}
+	return nil
+}
+
+// What a registered qualifier tag says about the criterion carrying it.
+//
+// The set is fixed by the criterion record rather than by any profile: a
+// qualifier can only mean one of the things a criterion has somewhere to
+// put. A profile chooses the spelling of each tag and which of these
+// meanings it carries, and nothing else.
+type QualifierMeaning string
+
+const (
+	// The criterion states a prohibition.
+	QualifierMeaningNegation QualifierMeaning = "negation"
+	// The criterion can only be verified by hand.
+	QualifierMeaningManualVerification QualifierMeaning = "manual-verification"
+	// The criterion records the level it is intended to be verified at,
+	// which the tag's own `level` names.
+	QualifierMeaningVerificationLevel QualifierMeaning = "verification-level"
+)
+
+func (e QualifierMeaning) MarshalJSON() ([]byte, error) {
+	switch e {
+	case QualifierMeaningNegation, QualifierMeaningManualVerification, QualifierMeaningVerificationLevel:
+		return json.Marshal(string(e))
+	}
+	return nil, fmt.Errorf("QualifierMeaning: unknown value %q", string(e))
+}
+
+func (e *QualifierMeaning) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	switch QualifierMeaning(s) {
+	case QualifierMeaningNegation, QualifierMeaningManualVerification, QualifierMeaningVerificationLevel:
+		*e = QualifierMeaning(s)
+		return nil
+	}
+	return fmt.Errorf("QualifierMeaning: unknown value %q", s)
+}
+
+func (e QualifierMeaning) String() string {
+	return string(e)
 }
 
 // Everything the engine needs to check one document type.

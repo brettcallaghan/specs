@@ -2,6 +2,7 @@ package corpus
 
 import (
 	"fmt"
+	"regexp"
 	"sort"
 )
 
@@ -44,7 +45,7 @@ type RegistrationDefect struct {
 // registration the caller was told is wrong is better than a registration
 // silently repaired into one that checks less than it says.
 //
-// Three defects are found, and they are the whole of what a registration
+// Five defects are found, and they are the whole of what a registration
 // can get wrong on its own terms:
 //
 //   - a pairing or a typed reference naming a property the same document
@@ -52,16 +53,25 @@ type RegistrationDefect struct {
 //   - a typed reference naming a required target type the profile does
 //     not define;
 //   - a lifecycle registration naming a status outside the profile's own
-//     status vocabulary.
+//     status vocabulary;
+//   - a feature-tag registration whose identifier pattern does not
+//     compile;
+//   - a feature-tag registration whose shared captures name a capture
+//     group an identifier pattern does not define.
 //
-// Everything else a registration can get wrong — a slug pattern that does
-// not compile, a schema that is not JSON — is found by the component that
-// uses it, against the document it was used on.
+// The last two are found here rather than where they are used because
+// both are defects of the registration against itself, which is what
+// this validation is for: a pattern that cannot compile matches nothing,
+// and a derivation over a capture no pattern defines compares two empty
+// values and passes. Everything else a registration can get wrong — a
+// slug pattern that does not compile, a schema that is not JSON — is
+// found by the component that uses it, against the document it was used
+// on.
 //
 // The result is empty for a registration with no defect, and ordered
 // deterministically: by document type, then by key, with the
-// profile-level lifecycle defects last. Callers render it, so its order
-// is output.
+// profile-level lifecycle defects and then the feature-tag defects last.
+// Callers render it, so its order is output.
 func ValidateRegistration(profile Profile) []RegistrationDefect {
 	if profile == nil {
 		return nil
@@ -72,7 +82,8 @@ func ValidateRegistration(profile Profile) []RegistrationDefect {
 	for _, name := range sortedKeys(types) {
 		defects = append(defects, documentTypeDefects(name, types[name], types)...)
 	}
-	return append(defects, lifecycleDefects(profile.Lifecycle())...)
+	defects = append(defects, lifecycleDefects(profile.Lifecycle())...)
+	return append(defects, featureTagDefects(profile.FeatureTags())...)
 }
 
 // documentTypeDefects reports the defects in one document type's rules.
@@ -151,6 +162,62 @@ func lifecycleDefects(lifecycle LifecycleRules) []RegistrationDefect {
 				Key: status,
 				Detail: "is registered as a status " + registered.meaning +
 					", but is not one of the statuses this profile defines",
+			})
+		}
+	}
+	return defects
+}
+
+// featureTagDefects reports the faults in a feature-tag registration
+// that are visible in the registration alone: an identifier pattern that
+// does not compile, and a shared capture that one of those patterns does
+// not define.
+//
+// A profile registering no feature tags has no defect: the zero value is
+// a corpus with no tagged features. A profile that registers shared
+// captures but no pattern has one defect per capture, which is the
+// honest reading — the empty pattern defines no capture group at all —
+// and it is what keeps this check from passing vacuously on the
+// registration most likely to be half-written.
+func featureTagDefects(tags FeatureTagRules) []RegistrationDefect {
+	patterns := []struct {
+		expression string
+		role       string
+	}{
+		{tags.FeaturePattern, "a feature identifier"},
+		{tags.CriterionPattern, "an acceptance criterion identifier"},
+	}
+
+	var defects []RegistrationDefect
+	captures := make([]map[string]bool, len(patterns))
+	for i, pattern := range patterns {
+		compiled, err := regexp.Compile(pattern.expression)
+		if err != nil {
+			defects = append(defects, RegistrationDefect{
+				Key: pattern.expression,
+				Detail: fmt.Sprintf("is registered as the pattern %s matches, "+
+					"but does not compile as a regular expression: %v", pattern.role, err),
+			})
+			continue
+		}
+		captures[i] = map[string]bool{}
+		for _, name := range compiled.SubexpNames() {
+			if name != "" {
+				captures[i][name] = true
+			}
+		}
+	}
+
+	for _, capture := range tags.SharedCaptures {
+		for i, pattern := range patterns {
+			if captures[i] == nil || captures[i][capture] {
+				continue
+			}
+			defects = append(defects, RegistrationDefect{
+				Key: capture,
+				Detail: fmt.Sprintf("is registered as shared by a criterion identifier and its "+
+					"feature's, but the pattern %s matches defines no capture group of that name, "+
+					"so the derivation would compare a value nothing captured", pattern.role),
 			})
 		}
 	}

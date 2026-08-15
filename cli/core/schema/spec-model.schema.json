@@ -1040,6 +1040,54 @@
       "properties": {},
       "type": "object"
     },
+    "FeatureTagRegistration": {
+      "additionalProperties": false,
+      "description": "The tags a profile assigns meaning to on a feature and its criteria.\n\nWhich tag identifies a feature, which identifies a criterion, which\nprefix names the document a feature belongs to, and which qualifiers\ncarry meaning are facts about a document vocabulary rather than about\nGherkin. They are registered here so that the engine reads a tag as a\nstring and attaches meaning to none of it.\n\nEvery member is optional and a profile MAY register none of them. A\npartial registration is honest rather than defective: a profile that\nidentifies features and not criteria has a corpus with no criteria in\nit.",
+      "properties": {
+        "criterion_pattern": {
+          "description": "The pattern the identifier of an acceptance criterion matches, without\nthe leading marker that makes it a tag.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "feature_pattern": {
+          "description": "The pattern the identifier of a feature matches, without the leading\nmarker that makes it a tag.\n\nNamed capture groups in this pattern are what `shared_captures`\nselects from, so a profile that derives criterion identifiers from\nfeature identifiers names the shared parts here.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "owner_prefix": {
+          "description": "The prefix carried by the tag in which a feature names the document\nthat owns it, where the feature is not written inside that document.\n\nA feature written as a standalone file has no frontmatter to inherit\nan owner from, so it names one in a tag; the prefix is what\ndistinguishes that tag from every other tag on the feature.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "qualifiers": {
+          "description": "The tags that qualify a criterion, and what each of them means.",
+          "items": {
+            "$ref": "#/definitions/QualifierTagRegistration"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "shared_captures": {
+          "description": "The named capture groups a criterion identifier shares with the\nidentifier of the feature it belongs to.\n\nThis is how a criterion identifier's derivation from its feature's is\nstated without the engine knowing the internal structure of either\npattern: it compiles both, captures both identifiers, and compares\nonly the groups named here. Every name must be a capture group both\npatterns define.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
     "Finding": {
       "additionalProperties": false,
       "description": "One reported conformance result.\n\nEvery check in this tool reports through this shape, so a consumer\nrenders one thing and a check added later is readable by a consumer\nwritten before it. The five common properties are what make a diagnostic\nself-contained — the rule that raised it, how badly it bears on the run,\nwhich file, where in that file, and what is wrong — and `detail` carries\nthe same information again in structured form for a consumer that acts\non it rather than printing it.",
@@ -2188,6 +2236,17 @@
           },
           "type": "object"
         },
+        "feature_tags": {
+          "description": "The tag vocabulary this profile assigns meaning to.\n\nAbsent for a profile whose documents carry no tagged features, which\nis a corpus without them rather than a malformed registration; the\nchecks that read it do not run.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/FeatureTagRegistration"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "finished_statuses": {
           "description": "The statuses at which a document is considered finished, and therefore\nat which leftover template placeholders are a defect rather than\nwork in progress.",
           "items": {
@@ -2262,6 +2321,45 @@
       "required": [
         "property",
         "counterpart"
+      ],
+      "type": "object"
+    },
+    "QualifierMeaning": {
+      "description": "What a registered qualifier tag says about the criterion carrying it.\n\nThe set is fixed by the criterion record rather than by any profile: a\nqualifier can only mean one of the things a criterion has somewhere to\nput. A profile chooses the spelling of each tag and which of these\nmeanings it carries, and nothing else.",
+      "enum": [
+        "negation",
+        "manual-verification",
+        "verification-level"
+      ],
+      "type": "string"
+    },
+    "QualifierTagRegistration": {
+      "additionalProperties": false,
+      "description": "One tag a profile assigns meaning to on a criterion, and the meaning it\nassigns.\n\nA tag absent from this list is carried on the record and reported by\nnothing: an unregistered tag is a tag the vocabulary says nothing\nabout, which is the right answer for an annotation the author added for\ntheir own reasons.",
+      "properties": {
+        "level": {
+          "description": "The verification level this tag records, for a tag whose meaning is\n`verification-level` and for no other.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/VerificationLevel"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "meaning": {
+          "$ref": "#/definitions/QualifierMeaning",
+          "description": "The property of a criterion this tag populates."
+        },
+        "tag": {
+          "description": "The tag, without the leading marker that makes it a tag.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tag",
+        "meaning"
       ],
       "type": "object"
     },

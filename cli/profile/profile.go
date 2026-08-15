@@ -178,3 +178,12 @@ func (specDrivenDev) Conventions() specmodel.ConventionsConfig {
 func (specDrivenDev) Lifecycle() corpus.LifecycleRules {
 	return lifecycle()
 }
+
+// FeatureTags returns this profile's tag vocabulary, which is empty: no
+// tag on a feature or a criterion carries meaning here yet. Registering
+// this framework's identifier patterns and qualifier tags belongs to the
+// change that starts reading them, not to the widening of the extension
+// point that made them expressible.
+func (specDrivenDev) FeatureTags() corpus.FeatureTagRules {
+	return corpus.FeatureTagRules{}
+}

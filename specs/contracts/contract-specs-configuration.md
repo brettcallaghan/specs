@@ -184,6 +184,55 @@ type LifecycleRules struct {
 }
 ```
 
+A profile separately supplies one **tag vocabulary** for the whole of
+its documents, again not per type, because a feature is not a document
+type: it is written inside a document of any type, or in a file that is
+no document at all, and the tags identifying it are the same in both. It
+states the pattern a feature identifier matches, the pattern a criterion
+identifier matches, the prefix carried by the tag in which a feature
+written outside any document names its owner, the capture groups a
+criterion identifier shares with its feature's, and the tags that
+qualify a criterion together with what each of them means. Neither
+pattern includes the leading marker that makes an identifier a tag: the
+identifier is the value, and the tag is only how it is written down.
+
+`SharedCaptures` is the derivation rule, stated as data. A criterion
+identifier is derived from its feature's, and the engine checks that
+derivation by compiling both patterns, capturing both identifiers, and
+comparing only the groups named here — so it knows nothing of either
+pattern's internal structure. Every name must be a capture group both
+patterns define; one that is not is reported rather than defaulted,
+because a comparison of two values nothing captured passes.
+
+A qualifier's meaning is drawn from a fixed set rather than invented by
+the profile, since a qualifier can only mean one of the things a
+criterion record has somewhere to put: that the criterion states a
+prohibition, that it can only be verified by hand, or that it records
+the level it is intended to be verified at. What a profile chooses is
+each tag's spelling and which of those meanings it carries. A tag
+matching neither pattern and named by no qualifier is carried on the
+record and reported by nothing.
+
+Every member is independent and a profile MAY register none of them —
+the zero value describes a corpus with no tagged features, and the
+checks that read the registration do not run for it.
+
+```go
+type FeatureTagRules struct {
+    FeaturePattern   string
+    CriterionPattern string
+    OwnerPrefix      string
+    SharedCaptures   []string // capture groups both identifier patterns define
+    Qualifiers       []QualifierTag
+}
+
+type QualifierTag struct {
+    Tag     string
+    Meaning specmodel.QualifierMeaning  // negation, manual verification, verification level
+    Level   specmodel.VerificationLevel // for a verification-level tag and no other
+}
+```
+
 Because the public surface no longer overlaps the internal one, the
 relationship binding them into a single contract is naming rather than
 override: `[profile].name` selects one of these registrations, and
@@ -192,8 +241,9 @@ name no adopter can select, or a convention no registration consumes, is
 a defect in this contract rather than in either module.
 
 `version` stays `"1.0"` for the whole of the internal surface described
-above, including the reference-bearing, typed-reference, pairing and
-lifecycle registrations: the Versioning and Change Policy section below
+above, including the reference-bearing, typed-reference, pairing,
+lifecycle and tag-vocabulary registrations: the Versioning and Change
+Policy section below
 exempts the internal registration surface from versioning while
 [[module-document-core]] and [[module-spec-profile]] are both
 `visibility: internal`, which they are, and this vocabulary is additive
