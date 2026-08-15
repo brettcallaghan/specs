@@ -129,7 +129,12 @@ go install github.com/steveyegge/beads/cmd/bd@latest >/dev/null 2>&1 || true
 # in /opt/strata-src/.git/config.
 if [ ! -x /usr/local/bin/strata ] && [ -n "${STRATA_ACCESS_TOKEN:-}" ]; then
   helper='!f() { [ "$1" = get ] || exit 0; printf "username=x-access-token\npassword=%s\n" "$STRATA_ACCESS_TOKEN"; }; f'
-  git clone --filter=blob:none --quiet -c "credential.helper=$helper" \
+  # The empty helper FIRST resets the list. credential.helper is multi-valued
+  # and git tries helpers in order, so any global helper already configured —
+  # this repository's own hook installs one for the Dolt remote — would answer
+  # first, with a token that has no access to strata-lang/strata.
+  git clone --filter=blob:none --quiet \
+    -c credential.helper= -c "credential.helper=$helper" \
     https://github.com/strata-lang/strata.git /opt/strata-src >/dev/null 2>&1 || true
   if [ -f /opt/strata-src/crates/strata-cli/Cargo.toml ]; then
     ( cd /opt/strata-src && cargo build --release -p strata-cli ) >/dev/null 2>&1 || true
@@ -196,7 +201,19 @@ cat ~/.cache/strata-cli/build.log   # the hook's strata build output
 A build log ending in `could not read Username for 'https://github.com'`
 means the clone was unauthenticated — `STRATA_ACCESS_TOKEN` is unset or its
 PAT no longer reads `strata-lang/strata`. Re-running the hook by hand with
-the variable set recovers it; nothing else here depends on `strata`.
+the variable set recovers it.
+
+A build log ending in **`remote: Write access to repository not granted`**
+and a **403** means something different, and the message is misleading twice
+over: it names *write* access for a read-only clone, and it looks like a
+proxy or a scope problem. It is neither. `credential.helper` is multi-valued
+and git tries helpers in the order they are listed, so the **global** helper
+this hook installs for the Dolt remote — unguarded, answering every request
+for every host with `AGENT_PLUGINS_ACCESS_TOKEN` — answers before the strata
+clone's own helper. That PAT cannot read `strata-lang/strata`, so GitHub
+refuses. The remedy is `-c credential.helper=` before the strata helper, which
+resets the inherited list; the hook and the script above both do this. Measured:
+the identical clone returns 403 without the reset and succeeds with it.
 
 `bd` and `strata` are the only signal that the hook (or the setup
 script) ran; the skills under `.claude/skills/` are committed symlinks

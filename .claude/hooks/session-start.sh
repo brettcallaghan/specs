@@ -142,6 +142,7 @@ if command -v bd >/dev/null 2>&1; then
   # bead-bonanza requires only "write access to refs/dolt/data" and never names
   # a credential. See docs/session-bootstrap.md.
   BB_DOLT_FATAL=""
+  BB_STRATA_FATAL="${BB_STRATA_FATAL:-}"
   if [ -z "${AGENT_PLUGINS_ACCESS_TOKEN:-}" ]; then
     BB_DOLT_FATAL="AGENT_PLUGINS_ACCESS_TOKEN is not set in this container."
   else
@@ -292,15 +293,26 @@ if [ "${STRATA_CLI_SKIP:-}" != "1" ]; then
     # vendored doc with the commit that last touched it, which a --depth 1
     # clone cannot answer. Falls back to a full clone if the git proxy in this
     # environment refuses partial-clone filters.
-    if git clone --filter=blob:none --quiet -c "credential.helper=$STRATA_CRED_HELPER" \
+    # `-c credential.helper=` FIRST, and it is load-bearing. credential.helper
+    # is multi-valued and git tries helpers in listed order; the Dolt block
+    # above installs an unguarded GLOBAL helper that answers every request for
+    # every host with $AGENT_PLUGINS_ACCESS_TOKEN. That PAT has no access to
+    # strata-lang/strata, so without this reset the clone authenticates as the
+    # wrong identity and GitHub answers 403 "Write access to repository not
+    # granted" — a write-shaped message for a read that was never permitted.
+    # The empty value resets the list so only the strata helper answers.
+    if git clone --filter=blob:none --quiet \
+         -c credential.helper= -c "credential.helper=$STRATA_CRED_HELPER" \
          https://github.com/strata-lang/strata.git \
          "$STRATA_CLONE" >>"$STRATA_CACHE/build.log" 2>&1 \
-       || git clone --quiet -c "credential.helper=$STRATA_CRED_HELPER" \
+       || git clone --quiet \
+            -c credential.helper= -c "credential.helper=$STRATA_CRED_HELPER" \
             https://github.com/strata-lang/strata.git \
             "$STRATA_CLONE" >>"$STRATA_CACHE/build.log" 2>&1; then
       strata_src="$STRATA_CLONE"
     else
-      log "WARNING: could not clone strata (see $STRATA_CACHE/build.log) — CLI unavailable"
+      BB_STRATA_FATAL="the clone failed (see $STRATA_CACHE/build.log)."
+      log "ERROR: could not clone strata (see $STRATA_CACHE/build.log) — CLI unavailable"
     fi
   fi
 
@@ -313,7 +325,11 @@ if [ "${STRATA_CLI_SKIP:-}" != "1" ]; then
     # as a hook that rebases their branch.
     if [ "$strata_src" = "$STRATA_CLONE" ] \
        && git -C "$strata_src" rev-parse --git-dir >/dev/null 2>&1; then
-      git -C "$strata_src" config credential.helper "$STRATA_CRED_HELPER" 2>/dev/null || true
+      # Two values, in this order: the empty one resets the list inherited
+      # from global config, then the strata helper answers. A lone local
+      # helper would still lose, because global is tried first.
+      git -C "$strata_src" config --replace-all credential.helper "" 2>/dev/null || true
+      git -C "$strata_src" config --add credential.helper "$STRATA_CRED_HELPER" 2>/dev/null || true
     fi
 
     # Fast-forward only, and only when there is nothing to lose. A session may
@@ -414,6 +430,29 @@ fi
 # reported against a fully set-up session rather than aborting halfway. But it
 # IS a failure — this repository's issue tracker lives on the Dolt remote, and
 # a session that cannot write to it will lose any bead it closes.
+if [ -n "${BB_STRATA_FATAL:-}" ] && [ -z "${STRATA_CLI_SKIP:-}" ]; then
+  log ""
+  log "ERROR: no strata compiler in this session — $BB_STRATA_FATAL"
+  log ""
+  log "  Every model this repository ships is generated from schemas/*.strata"
+  log "  by scripts/generate-schemas.sh, which needs this compiler. A session"
+  log "  without it can still EDIT a .strata file and cannot compile one, and"
+  log "  that is how schemas/feature.strata came to be authored, reviewed and"
+  log "  committed having never been transpiled."
+  log ""
+  log "  This is fatal rather than a warning for that reason. To start a"
+  log "  session that deliberately does no schema work, set STRATA_CLI_SKIP=1."
+  log ""
+  log "  Otherwise the environment must provide ONE of:"
+  log "    1. STRATA_ACCESS_TOKEN — a fine-grained PAT with read access to"
+  log "       strata-lang/strata, set at container creation. See"
+  log "       docs/session-bootstrap.md."
+  log "    2. STRATA_SRC_DIR — a path to a checkout already on disk."
+  log "    3. strata-lang/strata attached to the session as a source."
+  log ""
+  exit 1
+fi
+
 if [ -n "${BB_DOLT_FATAL:-}" ]; then
   log ""
   log "ERROR: no write access to the beads tracker — $BB_DOLT_FATAL"
