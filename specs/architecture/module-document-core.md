@@ -569,11 +569,12 @@ The vocabulary is:
 
 - **`SpecIndex`** — the root: a `schema_version`, the `workspace`
   identifier from configuration, an ordered list of `entries`, an
-  ordered list of `exclusions`, an ordered list of `references`, and the
-  optional `input_hash` the warm cache is decided by. All three
-  collections are lists rather than maps precisely so that the emitter
-  owns their order and can make output byte-identical across platforms
-  (AC-SPEC-009.7) without a change to the model.
+  ordered list of `exclusions`, an ordered list of `references`, an
+  ordered list of `features`, and the optional `input_hash` the warm
+  cache is decided by. Every collection is a list rather than a map
+  precisely so that the emitter owns their order and can make output
+  byte-identical across platforms (AC-SPEC-009.7) without a change to the
+  model.
 - **`IndexEntry`** — one corpus member: its repository-relative `path`,
   its parsed `frontmatter`, and a `parse_error` carrying a located
   failure for a member whose frontmatter could not be read
@@ -606,6 +607,30 @@ The vocabulary is:
   the parse failure that keeps it out of the corpus (AC-SPECREF-002.7).
   A reference that reaches nothing is recorded with a state rather than
   dropped, because indexing never fails (AC-SPECREF-001.6).
+- **`Feature`** — one feature declared by the corpus: its `id`, the
+  `code` that groups it, the `document_slug` of the document that owns
+  it, the `path` it is written in, its `name`, its `description`, its
+  `source`, its `position` as a `Span`, and its nested `criteria`
+  (AC-GHK-005.1). Features are a top-level collection because a feature
+  is addressed by its identifier and not by the document that happens to
+  hold it, ordered by the path a feature occurs in and then by its
+  position within that file.
+- **`FeatureSource`** — a union discriminated on `form`: a
+  `fenced-block` carrying the extent of the fence around the Gherkin, or
+  a `feature-file` carrying nothing, the file being the feature. The form
+  changes what a consumer may do with the feature, so it is a value
+  rather than something inferred from an absent property.
+- **`Criterion`** — one acceptance criterion, nested inside the feature
+  it qualifies rather than held in a sibling collection: its `id`, its
+  `name`, its body as `text`, its `description`, the `rule` it sits
+  beneath, the `negative` and `manual` qualifiers, its verification
+  `level`, its `notation`, its `content_hash`, and its `position`
+  (AC-GHK-005.2, AC-GHK-005.4). The body is one string and is not
+  decomposed into typed steps and keyed example rows: a criterion is the
+  atomic unit here, and a decomposed shape could be filled from one
+  notation only (AC-GHK-005.3). The `content_hash` covers the criterion's
+  name and text and nothing else, so a criterion that moved has not
+  changed (AC-GHK-005.5).
 - **`Span`** and **`ParseError`** — the position type every component
   reports through, and a message paired with one. `Span` is declared
   here, in the generated model, because findings and parse errors carry
@@ -619,7 +644,8 @@ exercise of that rule and it is a deliberate no-bump rather than an
 oversight — `references` is an addition alongside the existing shape,
 which is exactly what [[container-spec-cli]]'s additive rule permits at
 the same version, and the model and the emitted index changed in the
-same change as the Change Guidance below requires. The schema constrains
+same change as the Change Guidance below requires. The `features`
+collection is the second exercise, and is a no-bump for the same reason. The schema constrains
 `schema_version` by pattern (`String ~= /^1\.0$/`) rather than pinning
 it, so the generated model carries a validated field and not a constant;
 the emitted value lives in `cli/core/specindex` alongside the
@@ -897,7 +923,15 @@ is:
   names a corpus document the map does not cover; and an unresolved
   citation with its slug and the citing document's path, for a citation
   whose slug names no corpus document at all (AC-SPECMD-002.3,
-  AC-SPECMD-002.4). The message is derivable from the variant, so a
+  AC-SPECMD-002.4); a Gherkin parse failure with the parser's own
+  expectation (AC-GHK-006.1); an identifier tag that is absent or
+  malformed, with the identifier as written where there is one and the
+  pattern it must match (AC-GHK-006.5); a duplicate identifier with the
+  other occurrence's path and span; a partially tagged scenario outline
+  with the spans of the untagged examples blocks; and an owning-document
+  defect with the slug the feature's tag names and the slug of the
+  document the feature is written in, each absent where that defect
+  leaves it unknown. The message is derivable from the variant, so a
   consumer branches on structure rather than parsing prose.
 - **`Severity`** — `error`, `warning` and `unverified`, the three
   [[frd-spec-validation-cli]] defines and no others.

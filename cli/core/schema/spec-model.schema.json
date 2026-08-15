@@ -363,6 +363,11 @@
       ],
       "type": "object"
     },
+    "ContentHash": {
+      "description": "A digest over a criterion's content, written as `sha256:` followed by\nlowercase hexadecimal.\n\nWhat is hashed is the criterion's name and text and nothing else. Source\npositions and parser node identifiers are excluded on purpose — node\nidentifiers are positional counters that shift whenever anything above\nthem is edited, and a criterion that moved has not changed.\n\nThis is what makes \"which criteria changed since the last index\" a\ncomparison of records rather than a diff of markdown.",
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
     "Contract": {
       "additionalProperties": false,
       "description": "An interface specification governing an exchange across a boundary of\nindependent change.",
@@ -511,6 +516,95 @@
         }
       },
       "type": "object"
+    },
+    "Criterion": {
+      "additionalProperties": false,
+      "description": "One acceptance criterion.\n\n**The criterion is the atomic unit.** Its body is carried as text rather\nthan decomposed into steps and example rows, and that is a deliberate\nnarrowing of an earlier design.\n\nDecomposition would model one notation. Steps typed by role and example\nrows keyed by a header are recoverable from Gherkin and from almost\nnothing else: a prose criterion has no steps to type, so those properties\nwould sit empty for every criterion the corpus has not yet migrated, and\npopulating them from any other notation would need inference rather than\nparsing. A model that only one notation can fill is a model of that\nnotation.\n\nNothing this framework does today operates below the level of a whole\ncriterion. Queries fetch one by identifier, change detection compares\nhashes, validation reads tags. Decomposition is additive if a consumer\never needs it — the index schema grows without a breaking change — and\nremoving it later would not be.",
+      "properties": {
+        "content_hash": {
+          "$ref": "#/definitions/ContentHash",
+          "description": "A hash of the criterion's name and text, excluding its position.\n\nTwo indexes of the same criterion agree on this value whether or not the\ncriterion moved; they disagree the moment its wording changes."
+        },
+        "description": {
+          "description": "Rationale attached to this criterion alone, absent where none was\nwritten.\n\nNormative statements do not belong here; prose in this position is\nreported as a probable untagged criterion rather than recorded as\nrequirement text.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "id": {
+          "$ref": "#/definitions/CriterionId",
+          "description": "The criterion's identifier, from the tag that declares it."
+        },
+        "level": {
+          "description": "The level at which the criterion is intended to be verified, absent\nwhere the author declared none.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/VerificationLevel"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "manual": {
+          "description": "Whether the criterion can only be verified by hand.\n\nA criterion marked this way is exempt from the obligation that some test\ncite it.",
+          "type": "boolean"
+        },
+        "name": {
+          "description": "The criterion's name — the text following the `Scenario`,\n`Scenario Outline` or `Examples` keyword that declares it.\n\nAbsent for a notation that gives a criterion no name, as prose does.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "negative": {
+          "description": "Whether the criterion states a prohibition.\n\nCarried as its own property because a prohibition loses its grammatical\nmarking in Gherkin: where prose wrote `SHALL NOT`, a scenario writes an\nordinary sentence, and the fact that it forbids rather than requires\nwould otherwise be unrecoverable from the record.",
+          "type": "boolean"
+        },
+        "notation": {
+          "$ref": "#/definitions/CriterionNotation",
+          "description": "The notation this criterion was written in."
+        },
+        "position": {
+          "$ref": "#/definitions/Span",
+          "description": "Where in its document the criterion is written, as a span rather than a\nbare line number, so that a report and a rewrite both address the\ncriterion itself."
+        },
+        "rule": {
+          "description": "The name of the business rule this criterion sits beneath, absent where\nit sits directly under its feature.\n\nThe rule's name is an assertion — \"a build failure is the checker's job,\nnot the indexer's\" — so recording it puts the reason several criteria\nexist together in the index, scoped explicitly rather than inferred from\nposition in a document.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "description": "The criterion's body, exactly as written.\n\nFor a Gherkin criterion this is its steps and any example table,\nverbatim, with the block's common indentation removed. For a prose\ncriterion it is the sentence. One property serves both because the\ncriterion is the unit, and its text is what every notation has.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "text",
+        "negative",
+        "manual",
+        "notation",
+        "content_hash",
+        "position"
+      ],
+      "type": "object"
+    },
+    "CriterionId": {
+      "description": "The identifier of one acceptance criterion, as written in the tag that\ndeclares it.\n\nConstrained here rather than checked in code, because this is the join\nbetween three things that must agree: the criterion in a specification,\nthe citation a test carries, and the row a central store holds. The\npattern is the one the framework's acceptance-criterion traceability\nstandard already fixes, minus\nthe leading `@` that makes it a Gherkin tag — the identifier is the\nvalue, and the tag is only how it is written down.\n\nThe middle segments are the owning feature's code and number, which is\nwhat allows a criterion to name its feature without carrying a second\nproperty: `AC-GHK-001.1` belongs to the feature coded `GHK` numbered\n`001`.",
+      "pattern": "^AC-[A-Z0-9]+-[0-9]{3}\\.[0-9]+$",
+      "type": "string"
+    },
+    "CriterionNotation": {
+      "description": "The notation a criterion was written in.\n\nRecorded on every criterion rather than assumed for the corpus, because\nthe notation is a replaceable input and a consumer should branch on a\nstated value rather than on which properties happen to be populated.\n\nThis framework's extractor emits `gherkin` only — nothing reads a prose\ncriterion. The second value is what keeps the property meaningful: a\none-value enum states nothing, and a record that came from a migration\nsnapshot or another producer needs somewhere to say so.",
+      "enum": [
+        "gherkin",
+        "prose"
+      ],
+      "type": "string"
     },
     "Delivery": {
       "description": "The delivery unit a feature blueprint is groomed against.",
@@ -721,6 +815,65 @@
       ],
       "type": "string"
     },
+    "Feature": {
+      "additionalProperties": false,
+      "description": "One feature, extracted from a fenced Gherkin block or a standalone\nfeature file.\n\nA feature is the unit a requirement maps onto: one cohesive capability,\nindependently testable, with its own code and slug. Its criteria are\nnested beneath it because that is what they are — a criterion has no\nmeaning apart from the feature it qualifies, and the containment is the\ndata's own shape rather than an index's convenience.\n\nLookup does not need the collection flattened. An acceptance-criterion\nidentifier carries its feature's code, so resolving a criterion to its\nfeature is reading the identifier, and resolving an identifier to a\ncriterion is one index built over this tree when the index is read.",
+      "properties": {
+        "code": {
+          "$ref": "#/definitions/FeatureCode",
+          "description": "The code the identifier groups this feature under, recorded so that a\nconsumer selecting a group does not have to split the identifier."
+        },
+        "criteria": {
+          "description": "The feature's acceptance criteria, in the order they are written.\n\nNested rather than held in a sibling collection. A criterion belongs to\nexactly one feature, its identifier already names which, and a consumer\nfetching a feature wants its criteria with it.",
+          "items": {
+            "$ref": "#/definitions/Criterion"
+          },
+          "type": "array"
+        },
+        "description": {
+          "description": "The feature's description: its user story, and any design note or scope\nfence written beneath it.\n\nAbsent where none was written, which is reported as a caution rather\nthan a failure — a feature with no story is legible but poorer, and\nrefusing to index it would help nobody.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "document_slug": {
+          "$ref": "#/definitions/Slug",
+          "description": "The slug of the document that owns this feature.\n\nPopulated for both source forms, but established differently: a fenced\nblock inherits the slug of the document it is written in, and a\nstandalone feature file — being no document — names its owner in a tag.\nDerivation is preferred wherever it is available, so that the record\ncannot disagree with the document holding it."
+        },
+        "id": {
+          "$ref": "#/definitions/FeatureId",
+          "description": "The feature's identifier — its durable address, carrying the group code\nand the number that distinguishes it within that group."
+        },
+        "name": {
+          "description": "The feature's name — the text following the `Feature` keyword.",
+          "type": "string"
+        },
+        "path": {
+          "description": "The path of the file the feature is written in, relative to the\nrepository root and written with forward slashes on every platform.",
+          "type": "string"
+        },
+        "position": {
+          "$ref": "#/definitions/Span",
+          "description": "Where in its file the feature is written, as a span covering the Gherkin\nitself.\n\nFor a feature written as a fenced block, this covers the Gherkin inside\nthe fence; the fence's own extent is carried by `source`."
+        },
+        "source": {
+          "$ref": "#/definitions/FeatureSource",
+          "description": "Which admissible form the feature was written in."
+        }
+      },
+      "required": [
+        "id",
+        "code",
+        "document_slug",
+        "path",
+        "name",
+        "source",
+        "position",
+        "criteria"
+      ],
+      "type": "object"
+    },
     "FeatureBlueprint": {
       "additionalProperties": false,
       "description": "A transient change document describing how the system changes to deliver\none feature.\n\nUnlike the blueprints it modifies, a feature blueprint describes a\nchange rather than a state, so it reaches `in-progress` and then\n`retired` rather than `active`.\n\nThe documents the change creates and updates are described in the\nblueprint's own \"Documentation Changes\" prose and tracked to completion\nin its `plan`, which records done-ness natively. They are not mirrored\ninto frontmatter: a change set recorded in three places is three places\nthat must agree.",
@@ -805,6 +958,86 @@
         "delivery",
         "frd"
       ],
+      "type": "object"
+    },
+    "FeatureCode": {
+      "description": "The short code that groups features by topic, domain or capability.\n\nUppercase and terse — `GHK`, `SPEC`, `CHK`. **Features share a code**:\n`SPEC` covers eleven requirements of the spec-index feature, and that is\nwhat makes it a grouping rather than an identity. A feature is identified\nby its code together with its number.",
+      "pattern": "^[A-Z][A-Z0-9]*$",
+      "type": "string"
+    },
+    "FeatureId": {
+      "description": "The identifier of one feature — its prefix, its group code and its number.\n\n`FEAT-SPEC-009`, `FEAT-GHK-001`. This is the feature's durable address: it\ndoes not change when the feature moves between documents or between the\ntwo admissible forms, and it is what every acceptance-criterion identifier\nbeneath the feature is derived from.\n\nThe pattern admits any uppercase prefix rather than fixing `FEAT`, so that\na project adopting the framework can carry its own.",
+      "pattern": "^[A-Z]+-[A-Z0-9]+-[0-9]{3}$",
+      "type": "string"
+    },
+    "FeatureSource": {
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "form": {
+                "const": "fenced-block"
+              }
+            },
+            "required": [
+              "form"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FeatureSourceBlock"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "form": {
+                "const": "feature-file"
+              }
+            },
+            "required": [
+              "form"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FeatureSourceFile"
+          }
+        }
+      ],
+      "description": "Which admissible form a feature was written in.\n\nThe distinction survives into the index because it changes what a\nconsumer may do. A fenced block sits inside a document that owns\nfrontmatter, terminology and references, and rewriting it means editing a\nregion of markdown. A standalone file has no such document around it and\nis the form external tooling ingests directly.",
+      "properties": {
+        "form": {
+          "enum": [
+            "fenced-block",
+            "feature-file"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "form"
+      ],
+      "type": "object"
+    },
+    "FeatureSourceBlock": {
+      "additionalProperties": false,
+      "description": "A feature written as a fenced Gherkin block inside a markdown document.",
+      "properties": {
+        "block": {
+          "$ref": "#/definitions/Span",
+          "description": "The extent of the fenced block, opening and closing fences included.\n\nRecorded because the feature's own span covers the Gherkin inside the\nfence, and a caller that replaces or extracts the whole construct needs\nthe fence too. This is the same distinction the framework's region\nscanner already draws between an inner and an outer extent."
+        }
+      },
+      "required": [
+        "block"
+      ],
+      "type": "object"
+    },
+    "FeatureSourceFile": {
+      "additionalProperties": false,
+      "description": "A feature written as a standalone `.feature` file.\n\nCarries nothing of its own. The file is the feature, so its path is\nalready on the feature and its extent is the whole document; this shape\nexists so the source form is a value a consumer branches on rather than\none it infers from the absence of another property.",
+      "properties": {},
       "type": "object"
     },
     "Finding": {
@@ -1039,6 +1272,86 @@
           "then": {
             "$ref": "#/definitions/FindingUnresolvedCitation"
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "gherkin-parse"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FindingGherkinParse"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "identifier-pattern"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FindingIdentifierPattern"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "duplicate-identifier"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FindingDuplicateIdentifier"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "partially-tagged-outline"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FindingPartiallyTaggedOutline"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "owning-document"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FindingOwningDocument"
+          }
         }
       ],
       "description": "The structured detail of one finding, selected by the kind of defect.\n\nEvery finding carries one. The message on the finding is derivable from\nthis value, so a consumer branches on structure rather than parsing\nprose, and a renderer that wants to offer a fix reads the fields it needs\nas values.\n\nThe union is open to extension in the sense that matters: a later check\nadds a variant without changing the envelope that carries it, and a\nconsumer that does not recognise a variant still has the rule\nidentifier, the severity, the path, the span and the message.",
@@ -1056,13 +1369,42 @@
             "incomplete-pairing",
             "reference-type",
             "unmapped-citation",
-            "unresolved-citation"
+            "unresolved-citation",
+            "gherkin-parse",
+            "identifier-pattern",
+            "duplicate-identifier",
+            "partially-tagged-outline",
+            "owning-document"
           ],
           "type": "string"
         }
       },
       "required": [
         "kind"
+      ],
+      "type": "object"
+    },
+    "FindingDuplicateIdentifier": {
+      "additionalProperties": false,
+      "description": "An identifier declared by more than one record in the corpus.\n\nReported against each of the two records, each naming the other, so that\nchecking either one surfaces the collision. The other occurrence's span\nis carried alongside its path because a file holds many records and an\nidentifier is not a heading: without the span the reader is told which\nfile to open and left to search it.",
+      "properties": {
+        "identifier": {
+          "description": "The identifier both records declare.",
+          "type": "string"
+        },
+        "other_path": {
+          "description": "The other occurrence's path, relative to the repository root and\nwritten with forward slashes on every platform.",
+          "type": "string"
+        },
+        "other_position": {
+          "$ref": "#/definitions/Span",
+          "description": "Where in that file the other occurrence is written."
+        }
+      },
+      "required": [
+        "identifier",
+        "other_path",
+        "other_position"
       ],
       "type": "object"
     },
@@ -1096,6 +1438,41 @@
       },
       "required": [
         "message"
+      ],
+      "type": "object"
+    },
+    "FindingGherkinParse": {
+      "additionalProperties": false,
+      "description": "A Gherkin source that could not be parsed.\n\nHeld apart from a frontmatter parse failure because the two are found by\ndifferent readers and fixed in different places: a Gherkin source sits\ninside a document whose envelope parsed perfectly well, and only the\nfeature it declares is lost. The parser's own expectation is carried so\nthat the author is told what was admissible at that position rather than\nonly that something was not.",
+      "properties": {
+        "expected": {
+          "description": "What the parser expected at the offending position, quoted from the\nparser so the message needs no further lookup to act on.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "expected"
+      ],
+      "type": "object"
+    },
+    "FindingIdentifierPattern": {
+      "additionalProperties": false,
+      "description": "A record whose identifier tag is absent or does not match the pattern\nregistered for it.\n\nOne shape for both defects, because the fix is the same act — write a\nconforming identifier — and the two are told apart by the rule that\nraised the finding. The pattern is carried in either case: an author who\nwrote no identifier needs to know the form of the one to write just as\nmuch as an author who wrote a wrong one.",
+      "properties": {
+        "identifier": {
+          "description": "The identifier as written, absent where the record carries no\nidentifier tag at all.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "pattern": {
+          "description": "The pattern the active profile registers for identifiers of this kind.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pattern"
       ],
       "type": "object"
     },
@@ -1144,6 +1521,44 @@
       "required": [
         "pointer",
         "property"
+      ],
+      "type": "object"
+    },
+    "FindingOwningDocument": {
+      "additionalProperties": false,
+      "description": "A feature whose owning-document tag is absent, names a document other\nthan the one the feature is written in, or names no corpus member at all.\n\nThe three defects share a shape because they share a question — which\ndocument owns this feature — and the rule that raised the finding says\nwhich of them occurred. Both slugs are optional because each defect\nleaves a different half unknown: a feature carrying no tag has no slug to\nquote, and a standalone feature file is no document and so has none of\nits own to disagree with.",
+      "properties": {
+        "document_slug": {
+          "description": "The slug of the document the feature is written in, absent where the\nfeature is a standalone feature file rather than a fenced block.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "slug": {
+          "description": "The slug the feature's owning-document tag names, as written, absent\nwhere the feature carries no such tag.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "FindingPartiallyTaggedOutline": {
+      "additionalProperties": false,
+      "description": "A scenario outline whose examples blocks are inconsistently tagged: some\ncarry an identifier and others do not.\n\nThe defect is the inconsistency, not the several blocks — an outline\nwhose blocks are all tagged is several criteria, and one whose blocks are\nall untagged is a single criterion written in named groups. Both are\nadmissible, and the mixture is what no reader can resolve.\n\nThe untagged blocks are carried as spans so that a report points at the\nblocks to fix rather than at the outline containing them.",
+      "properties": {
+        "untagged": {
+          "description": "Where each untagged examples block is written, in the order the blocks\noccur.",
+          "items": {
+            "$ref": "#/definitions/Span"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "untagged"
       ],
       "type": "object"
     },
@@ -2318,6 +2733,13 @@
           },
           "type": "array"
         },
+        "features": {
+          "description": "Every feature any corpus member declares, with its acceptance criteria\nnested beneath it, in the order the emitter fixes: by the path the\nfeature is written in, then by its position within that file.\n\nA top-level collection because a feature is addressed by its slug and\nnot by the document that happens to hold it — nesting features under\nentries would make a feature's address depend on its location, which is\nwhat the slug exists to avoid. Criteria, by contrast, are nested inside\ntheir feature: a criterion belongs to exactly one, and its identifier\ncarries that feature's code, so lookup by identifier is an index built\nover this tree rather than a reason to flatten it.",
+          "items": {
+            "$ref": "#/definitions/Feature"
+          },
+          "type": "array"
+        },
         "input_hash": {
           "description": "A hash of everything this index was built from, written as\n`sha256:` followed by lowercase hexadecimal.\n\nThis is what makes the emitted file double as a warm cache: a later\ninvocation recomputes the hash of the corpus's current inputs and\nserves this index unchanged when the two agree, rather than\nrebuilding. It is a hash of **content** — every candidate file's\nrepository-relative path and bytes, plus the active profile's\nvocabulary — and never of modification time, so a fresh checkout\nwhose files all carry new timestamps and identical content is still\nserved warm.\n\nAbsent on an index that was not built by walking a corpus. An index\ncarrying no hash is never served warm; it is rebuilt.",
           "type": [
@@ -2347,7 +2769,8 @@
         "workspace",
         "entries",
         "exclusions",
-        "references"
+        "references",
+        "features"
       ],
       "type": "object"
     },
@@ -2555,6 +2978,15 @@
         "updated_at"
       ],
       "type": "object"
+    },
+    "VerificationLevel": {
+      "description": "The level at which a criterion is intended to be verified.\n\nIntent, not instruction. Nothing here executes a scenario or selects a\nsuite; the value records the judgement made when the criterion was\nwritten, so that a coverage report can compare it against what tests\nactually cite.",
+      "enum": [
+        "unit",
+        "integration",
+        "e2e"
+      ],
+      "type": "string"
     },
     "Visibility": {
       "description": "Whether an interface or module is published beyond the repository that\ndeclares it.\n\nVisibility governs the compatibility obligation, not the access\nmodifier: a public surface owes adopters a versioning policy, while an\ninternal one may change in lockstep with its only consumers.",

@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -64,7 +66,7 @@ func TestNewEmitsEmptyCollectionsRatherThanNull(t *testing.T) {
 		t.Fatalf("marshal: %v", err)
 	}
 
-	want := `{"schema_version":"1.0","workspace":"agent-plugins","entries":[],"exclusions":[],"references":[]}`
+	want := `{"schema_version":"1.0","workspace":"agent-plugins","entries":[],"exclusions":[],"references":[],"features":[]}`
 	if string(encoded) != want {
 		t.Errorf("emitted index =\n  %s\nwant\n  %s", encoded, want)
 	}
@@ -99,9 +101,9 @@ func TestSchemaRequiresAndPinsTheSchemaVersion(t *testing.T) {
 	}
 }
 
-// The index root declares exactly the properties this sprint pins: four
-// required ones — the version, the workspace, and the two ordered
-// collections — and the optional input hash the warm cache is decided by.
+// The index root declares exactly the properties it pins: the required
+// ones — the version, the workspace, and the ordered collections — and the
+// optional input hash the warm cache is decided by.
 //
 // The hash is optional because absence is meaningful: an index that
 // records no hash was not built by walking a corpus, and is never served
@@ -111,7 +113,7 @@ func TestSchemaRequiresAndPinsTheSchemaVersion(t *testing.T) {
 func TestSchemaDeclaresTheIndexRootShape(t *testing.T) {
 	definition := loadDefinition(t, "SpecIndex")
 
-	required := []string{"schema_version", "workspace", "entries", "exclusions", "references"}
+	required := []string{"schema_version", "workspace", "entries", "exclusions", "references", "features"}
 	want := append(append([]string{}, required...), "input_hash")
 	if got := propertyNames(t, definition); !reflect.DeepEqual(got, want) {
 		t.Errorf("SpecIndex properties = %v, want %v", got, want)
@@ -246,6 +248,148 @@ func TestExclusionReasonVocabularyIsClosed(t *testing.T) {
 	var reason specmodel.ExclusionReason
 	if err := json.Unmarshal([]byte(`"not-a-reason"`), &reason); err == nil {
 		t.Error("decoding an unregistered reason succeeded; the vocabulary must be closed")
+	}
+}
+
+// A criterion's body is one string. The model carries the steps and the
+// examples table exactly as they were written, and declares no property
+// that would hold either of them decomposed — a shape only one notation
+// could fill.
+//
+// The schema is read rather than the Go struct, because the schema is the
+// boundary a consumer reads and it is what a later loosening of the model
+// would show up in first.
+//
+// AC: AC-GHK-005.3
+func TestACriterionsBodyIsCarriedAsTextRatherThanDecomposed(t *testing.T) {
+	definition := loadDefinition(t, "Criterion")
+
+	want := []string{
+		"id", "text", "negative", "manual", "notation", "content_hash", "position",
+		"name", "description", "rule", "level",
+	}
+	got := propertyNames(t, definition)
+	sort.Strings(got)
+	sort.Strings(want)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("Criterion properties = %v, want %v", got, want)
+	}
+
+	if kind, _ := propertyOf(t, definition, "text")["type"].(string); kind != "string" {
+		t.Errorf("Criterion.text type = %q, want %q", kind, "string")
+	}
+
+	body := "    Given a criterion written as a scenario\n" +
+		"    When the CLI extracts it\n" +
+		"    Then the record carries the steps verbatim\n" +
+		"\n" +
+		"    Examples:\n" +
+		"      | defect                | severity |\n" +
+		"      | an untagged criterion | error    |\n"
+	criterion := gherkinCriterion("AC-GHK-005.3", "A criterion's body is recorded as text")
+	criterion.Text = body
+
+	index := specindex.New("agent-plugins")
+	index.Features = append(index.Features, featureWith("FEAT-GHK-005", criterion))
+
+	if got := index.Features[0].Criteria[0].Text; got != body {
+		t.Errorf("criterion text =\n%q\nwant\n%q", got, body)
+	}
+
+	assertRoundTrips(t, index)
+}
+
+// Criteria are nested inside the feature they qualify, in the order they
+// were written, and the order survives a round trip through the emitted
+// JSON.
+//
+// AC: AC-GHK-005.4
+func TestCriteriaAreNestedWithinTheirFeatureInWrittenOrder(t *testing.T) {
+	written := []specmodel.CriterionId{"AC-GHK-005.1", "AC-GHK-005.2", "AC-GHK-005.3"}
+
+	feature := featureWith("FEAT-GHK-005")
+	for _, id := range written {
+		feature.Criteria = append(feature.Criteria, gherkinCriterion(id, "A criterion"))
+	}
+
+	index := specindex.New("agent-plugins")
+	index.Features = append(index.Features, feature)
+
+	encoded, err := json.Marshal(index)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+	var decoded specmodel.SpecIndex
+	if err := json.Unmarshal(encoded, &decoded); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+
+	if len(decoded.Features) != 1 {
+		t.Fatalf("decoded features = %d, want 1", len(decoded.Features))
+	}
+	got := make([]specmodel.CriterionId, 0, len(decoded.Features[0].Criteria))
+	for _, criterion := range decoded.Features[0].Criteria {
+		got = append(got, criterion.Id)
+	}
+	if !reflect.DeepEqual(got, written) {
+		t.Errorf("criteria = %v, want %v", got, written)
+	}
+
+	// Nested, not a sibling collection: the index root carries no
+	// top-level criteria property to hold them instead.
+	var root map[string]json.RawMessage
+	if err := json.Unmarshal(encoded, &root); err != nil {
+		t.Fatalf("unmarshal root: %v", err)
+	}
+	if _, ok := root["criteria"]; ok {
+		t.Error("the index root declares a criteria collection; criteria are nested on their feature")
+	}
+
+	assertRoundTrips(t, index)
+}
+
+// featureWith returns a minimally populated feature record carrying the
+// given criteria, so a test states only what it is about.
+func featureWith(id specmodel.FeatureId, criteria ...specmodel.Criterion) specmodel.Feature {
+	if criteria == nil {
+		criteria = []specmodel.Criterion{}
+	}
+	return specmodel.Feature{
+		Id:           id,
+		Code:         "GHK",
+		DocumentSlug: specmodel.Slug("frd-gherkin-adoption"),
+		Path:         "specs/features/gherkin-adoption/gherkin-adoption-frd.md",
+		Name:         "Feature and Criterion Records",
+		Source:       specmodel.NewFeatureSourceFencedBlock(specmodel.FeatureSourceBlock{Block: span(400, 900)}),
+		Position:     span(420, 860),
+		Criteria:     criteria,
+	}
+}
+
+// gherkinCriterion returns a minimally populated Gherkin criterion.
+func gherkinCriterion(id specmodel.CriterionId, name string) specmodel.Criterion {
+	return specmodel.Criterion{
+		Id:          id,
+		Name:        &name,
+		Text:        "    Given a corpus\n    When the CLI extracts it\n    Then a record is produced\n",
+		Negative:    false,
+		Manual:      false,
+		Notation:    specmodel.CriterionNotationGherkin,
+		ContentHash: specmodel.ContentHash("sha256:" + strings.Repeat("0", 64)),
+		Position:    span(512, 128),
+	}
+}
+
+// span returns a one-line span at the given extent, since none of the
+// tests above turn on where a record sits.
+func span(offset, length uint64) specmodel.Span {
+	return specmodel.Span{
+		Offset:      offset,
+		Length:      length,
+		StartLine:   1,
+		StartColumn: 1,
+		EndLine:     1,
+		EndColumn:   1,
 	}
 }
 

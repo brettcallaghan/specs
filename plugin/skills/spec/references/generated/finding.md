@@ -16,6 +16,11 @@
 - [FindingReferenceType](#findingreferencetype)
 - [FindingUnmappedCitation](#findingunmappedcitation)
 - [FindingUnresolvedCitation](#findingunresolvedcitation)
+- [FindingGherkinParse](#findinggherkinparse)
+- [FindingIdentifierPattern](#findingidentifierpattern)
+- [FindingDuplicateIdentifier](#findingduplicateidentifier)
+- [FindingPartiallyTaggedOutline](#findingpartiallytaggedoutline)
+- [FindingOwningDocument](#findingowningdocument)
 - [FindingDetail](#findingdetail)
 - [Finding](#finding)
 - [CheckOutcome](#checkoutcome)
@@ -263,6 +268,92 @@ not what decided this outcome.
 | citing_path | String | The citing document's path, relative to the repository root and written with forward slashes on every platform. |
 
 
+## FindingGherkinParse
+
+A Gherkin source that could not be parsed.
+
+Held apart from a frontmatter parse failure because the two are found by
+different readers and fixed in different places: a Gherkin source sits
+inside a document whose envelope parsed perfectly well, and only the
+feature it declares is lost. The parser's own expectation is carried so
+that the author is told what was admissible at that position rather than
+only that something was not.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| expected | String | What the parser expected at the offending position, quoted from the parser so the message needs no further lookup to act on. |
+
+
+## FindingIdentifierPattern
+
+A record whose identifier tag is absent or does not match the pattern
+registered for it.
+
+One shape for both defects, because the fix is the same act — write a
+conforming identifier — and the two are told apart by the rule that
+raised the finding. The pattern is carried in either case: an author who
+wrote no identifier needs to know the form of the one to write just as
+much as an author who wrote a wrong one.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| identifier | String? | The identifier as written, absent where the record carries no identifier tag at all. |
+| pattern | String | The pattern the active profile registers for identifiers of this kind. |
+
+
+## FindingDuplicateIdentifier
+
+An identifier declared by more than one record in the corpus.
+
+Reported against each of the two records, each naming the other, so that
+checking either one surfaces the collision. The other occurrence's span
+is carried alongside its path because a file holds many records and an
+identifier is not a heading: without the span the reader is told which
+file to open and left to search it.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| identifier | String | The identifier both records declare. |
+| other_path | String | The other occurrence's path, relative to the repository root and written with forward slashes on every platform. |
+| other_position | [Span](index.md#span) | Where in that file the other occurrence is written. |
+
+
+## FindingPartiallyTaggedOutline
+
+A scenario outline whose examples blocks are inconsistently tagged: some
+carry an identifier and others do not.
+
+The defect is the inconsistency, not the several blocks — an outline
+whose blocks are all tagged is several criteria, and one whose blocks are
+all untagged is a single criterion written in named groups. Both are
+admissible, and the mixture is what no reader can resolve.
+
+The untagged blocks are carried as spans so that a report points at the
+blocks to fix rather than at the outline containing them.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| untagged | Array<[Span](index.md#span)> | Where each untagged examples block is written, in the order the blocks occur. |
+
+
+## FindingOwningDocument
+
+A feature whose owning-document tag is absent, names a document other
+than the one the feature is written in, or names no corpus member at all.
+
+The three defects share a shape because they share a question — which
+document owns this feature — and the rule that raised the finding says
+which of them occurred. Both slugs are optional because each defect
+leaves a different half unknown: a feature carrying no tag has no slug to
+quote, and a standalone feature file is no document and so has none of
+its own to disagree with.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| slug | String? | The slug the feature's owning-document tag names, as written, absent where the feature carries no such tag. |
+| document_slug | String? | The slug of the document the feature is written in, absent where the feature is a standalone feature file rather than a fenced block. |
+
+
 ## FindingDetail
 
 The structured detail of one finding, selected by the kind of defect.
@@ -293,6 +384,11 @@ identifier, the severity, the path, the span and the message.
 | "reference-type" | ReferenceType | A typed reference whose target declares a different document type. |
 | "unmapped-citation" | UnmappedCitation | A citation whose slug names a corpus document the link map does not cover. |
 | "unresolved-citation" | UnresolvedCitation | A citation whose slug names no corpus document. |
+| "gherkin-parse" | GherkinParse | A Gherkin source that could not be parsed. |
+| "identifier-pattern" | IdentifierPattern | An identifier tag that is absent or malformed. |
+| "duplicate-identifier" | DuplicateIdentifier | An identifier declared by two records in the corpus. |
+| "partially-tagged-outline" | PartiallyTaggedOutline | A scenario outline whose examples blocks are inconsistently tagged. |
+| "owning-document" | OwningDocument | A feature whose owning document is unstated, mismatched or unresolved. |
 
 
 ## Finding

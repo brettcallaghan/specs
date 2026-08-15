@@ -28,7 +28,8 @@ declares it.
 Constrained here rather than checked in code, because this is the join
 between three things that must agree: the criterion in a specification,
 the citation a test carries, and the row a central store holds. The
-pattern is the one `ac-traceability-standards.md` already fixes, minus
+pattern is the one the framework's acceptance-criterion traceability
+standard already fixes, minus
 the leading `@` that makes it a Gherkin tag — the identifier is the
 value, and the tag is only how it is written down.
 
