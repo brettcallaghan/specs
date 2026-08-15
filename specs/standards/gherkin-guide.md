@@ -93,7 +93,12 @@ document: its owning document is the one its `@frd-<slug>` tag names, and
 its metadata is that document's. This is the one place that tag is
 written — a fenced block sits inside its owning document already.
 
-```gherkin
+Shown here as plain text, not as a `gherkin` fence: written as one, this
+snippet would itself be extracted as a fenced-block feature of this
+guide, and its illustrative `@frd-checkout` tag would then contradict
+the document it actually sits in.
+
+```text
 @frd-checkout @FEAT-CHK-003
 Feature: Payment Confirmation
 ```
@@ -160,9 +165,12 @@ parses cleanly with every scenario tagged and no check firing. The CLI
 cannot read your intent, so it reports only *partial* tagging — some
 blocks tagged, others not. The rest is your judgment.
 
-Tag each block when they are separate criteria:
+Tag each block when they are separate criteria. Shown here as plain
+text, not as a `gherkin` fence — it is an excerpt with no `Feature:`
+header of its own, and a `gherkin` fence would extract it as one that
+carries no identifier tag:
 
-```gherkin
+```text
   Scenario Outline: Latency budgets against a 1,000-document corpus
     Given a corpus of 1,000 documents
     When the CLI performs "<operation>"
@@ -220,9 +228,11 @@ Feature: Corpus Discovery and Membership
 
 **`Rule` name** — carries rationale that states an assertion governing
 several criteria. If rationale can be phrased as a rule, it belongs
-here, where the parser sees it and the criteria it governs sit beneath:
+here, where the parser sees it and the criteria it governs sit beneath.
+Shown here as plain text, not as a `gherkin` fence, for the same reason
+as the excerpt above — no enclosing `Feature:` header:
 
-```gherkin
+```text
   Rule: A build failure is the checker's job, not the indexer's
 
     @AC-SPEC-002.4

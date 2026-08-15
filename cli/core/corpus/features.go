@@ -186,45 +186,97 @@ func (v vocabulary) qualify(record *specmodel.Criterion, tags []string) {
 	}
 }
 
-// extractBlockFeatures records the features written in one member's
-// fenced Gherkin blocks, from the bytes the walk has already read.
+// failureOf builds one recorded failure from a Gherkin parse error,
+// locating every error the parser reported when err wraps
+// [gherkin.ParseError], and a single unlocated one otherwise (an I/O
+// failure reading the source, which carries no position of its own).
 //
-// Ownership needs no tag: a fenced block is written inside the document
-// that owns it, so the owning slug is the one that document declares
-// (AC-GHK-001.7). It is read from the parsed frontmatter rather than from
-// the typed envelope, because the envelope's slug is a validated value
-// and a document whose slug is absent or malformed still holds features
-// that have to be attributed to what it actually wrote.
+// A free function rather than a builder method so that a check
+// recomputing Gherkin structure against a warm corpus (identity.go,
+// content.go) records a failure the identical way [Build] does, without
+// needing a builder to do it.
+func failureOf(reported string, err error) SourceFailure {
+	failure := SourceFailure{Path: reported}
+	var parse *gherkin.ParseError
+	if errors.As(err, &parse) {
+		failure.Errors = parse.Errors
+	} else {
+		failure.Errors = []specmodel.ParseError{{
+			Message:  err.Error(),
+			Position: span.Of(nil, 0, 0),
+		}}
+	}
+	return failure
+}
+
+// blockFeatures parses every fenced Gherkin block in one document's
+// bytes, attributing each to the document's own slug (AC-GHK-001.7). It
+// is read from the parsed frontmatter rather than from the typed
+// envelope, because the envelope's slug is a validated value and a
+// document whose slug is absent or malformed still holds features that
+// have to be attributed to what it actually wrote.
 //
 // The whole of src is offered to the fenced-block lookup, frontmatter
 // included, so that every span a block yields is already in the
 // document's own coordinates and needs no second arithmetic to become
 // one.
-func (b *builder) extractBlockFeatures(reported string, src []byte, doc *frontmatter.Document) {
+//
+// A free function, not a builder method, so that [builder.extractBlockFeatures]
+// (a cold build) and a check recomputing Gherkin structure against a warm
+// corpus (identity.go, content.go — MODEL's Feature and Criterion keep
+// only the resolved identity, never the tags that produced it, so both
+// paths reach for the source) perform the identical parse rather than
+// two implementations of it that could drift apart.
+func blockFeatures(vocab vocabulary, reported string, src []byte, doc *frontmatter.Document) (features []*gherkin.Feature, failures []SourceFailure) {
 	slug := declaredSlug(doc)
 	for _, block := range markdown.Fenced(src, gherkin.FenceTags()) {
-		parsed, err := gherkin.ParseRegion(src, block.Inner, b.vocabulary.options())
+		parsed, err := gherkin.ParseRegion(src, block.Inner, vocab.options())
 		if err != nil {
-			b.recordFailure(reported, err)
+			failures = append(failures, failureOf(reported, err))
 			continue
 		}
 		if parsed == nil {
 			continue
 		}
-		source := specmodel.NewFeatureSourceFencedBlock(specmodel.FeatureSourceBlock{Block: block.Outer})
-		b.addFeature(reported, slug, source, parsed)
+		parsed.Record.Path = reported
+		parsed.Record.DocumentSlug = slug
+		parsed.Record.Source = specmodel.NewFeatureSourceFencedBlock(specmodel.FeatureSourceBlock{Block: block.Outer})
+		features = append(features, parsed)
+	}
+	return features, failures
+}
+
+// featureFileFeature parses one `.feature` file's whole content: the
+// Gherkin half of what [builder.visitFeatureSource] does at build time,
+// factored out for the same reason [blockFeatures] is. Ownership is read
+// from the parsed tags — having no document around it to inherit from, a
+// feature source names its owner in a tag (AC-GHK-001.2).
+func featureFileFeature(vocab vocabulary, reported string, src []byte) (*gherkin.Feature, []SourceFailure) {
+	parsed, err := gherkin.Parse(src, vocab.options())
+	if err != nil {
+		return nil, []SourceFailure{failureOf(reported, err)}
+	}
+	if parsed == nil {
+		return nil, nil
+	}
+	parsed.Record.Path = reported
+	parsed.Record.DocumentSlug = vocab.owningSlug(parsed.Tags)
+	parsed.Record.Source = specmodel.NewFeatureSourceFeatureFile(specmodel.FeatureSourceFile{})
+	return parsed, nil
+}
+
+// extractBlockFeatures records the features written in one member's
+// fenced Gherkin blocks, from the bytes the walk has already read.
+func (b *builder) extractBlockFeatures(reported string, src []byte, doc *frontmatter.Document) {
+	features, failures := blockFeatures(b.vocabulary, reported, src, doc)
+	b.failures = append(b.failures, failures...)
+	for _, f := range features {
+		b.addFeature(f)
 	}
 }
 
 // visitFeatureSource records the feature one `.feature` file holds, and
 // the references its Gherkin makes.
-//
-// The file is the source, so the whole of it is parsed. Ownership is the
-// one fact this form establishes differently: having no document around
-// it to inherit from, a feature source names its owner in a tag
-// (AC-GHK-001.2), and discovery therefore needs no location of its own —
-// a feature source sits wherever the documents of its feature sit
-// (AC-GHK-001.6).
 //
 // References are extracted against the file's own path even though a
 // feature source is not a corpus member (GREF): an edge's endpoints are
@@ -237,7 +289,7 @@ func (b *builder) extractBlockFeatures(reported string, src []byte, doc *frontma
 // file carries no fences of its own.
 func (b *builder) visitFeatureSource(reported string, src []byte, readErr error) {
 	if readErr != nil {
-		b.recordFailure(reported, readErr)
+		b.failures = append(b.failures, failureOf(reported, readErr))
 		return
 	}
 	b.references = append(b.references, references.Extract(references.Options{
@@ -245,31 +297,19 @@ func (b *builder) visitFeatureSource(reported string, src []byte, readErr error)
 		Source: src,
 	})...)
 
-	parsed, err := gherkin.Parse(src, b.vocabulary.options())
-	if err != nil {
-		b.recordFailure(reported, err)
-		return
+	parsed, failures := featureFileFeature(b.vocabulary, reported, src)
+	b.failures = append(b.failures, failures...)
+	if parsed != nil {
+		b.addFeature(parsed)
 	}
-	if parsed == nil {
-		return
-	}
-	source := specmodel.NewFeatureSourceFeatureFile(specmodel.FeatureSourceFile{})
-	b.addFeature(reported, b.vocabulary.owningSlug(parsed.Tags), source, parsed)
 }
 
-// addFeature completes one parsed feature with the facts Gherkin does not
-// establish — where it was written, which form it was written in, and
-// which document owns it — and records it.
-func (b *builder) addFeature(
-	reported string,
-	slug specmodel.Slug,
-	source specmodel.FeatureSource,
-	parsed *gherkin.Feature,
-) {
+// addFeature completes one parsed feature with the qualifier properties
+// its criteria's tags carry, and records it. Path, DocumentSlug and
+// Source are already set on parsed.Record by [blockFeatures] or
+// [featureFileFeature].
+func (b *builder) addFeature(parsed *gherkin.Feature) {
 	record := parsed.Record
-	record.Path = reported
-	record.DocumentSlug = slug
-	record.Source = source
 	record.Criteria = make([]specmodel.Criterion, 0, len(parsed.Criteria))
 	for _, criterion := range parsed.Criteria {
 		nested := criterion.Record
@@ -277,23 +317,6 @@ func (b *builder) addFeature(
 		record.Criteria = append(record.Criteria, nested)
 	}
 	b.features = append(b.features, record)
-}
-
-// recordFailure records a source that would not parse against the file it
-// was read from, so that the walk continues and the failure is still
-// answerable (AC-SPEC-002.4).
-func (b *builder) recordFailure(reported string, err error) {
-	failure := SourceFailure{Path: reported}
-	var parse *gherkin.ParseError
-	if errors.As(err, &parse) {
-		failure.Errors = parse.Errors
-	} else {
-		failure.Errors = []specmodel.ParseError{{
-			Message:  err.Error(),
-			Position: span.Of(nil, 0, 0),
-		}}
-	}
-	b.failures = append(b.failures, failure)
 }
 
 // FeatureFailures returns every Gherkin source that would not parse, in

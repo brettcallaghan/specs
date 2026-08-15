@@ -115,6 +115,24 @@ type Feature struct {
 	// Criteria are the feature's criteria in the order written, across
 	// every `Rule` beneath it.
 	Criteria []Criterion
+
+	// PartialOutlines is every Scenario Outline beneath this feature whose
+	// Examples blocks are inconsistently tagged, in the order written.
+	PartialOutlines []PartialOutline
+}
+
+// PartialOutline is one Scenario Outline whose Examples blocks are
+// inconsistently tagged: some carry an identifier and others do not.
+//
+// The defect is the inconsistency, not the several blocks — an outline
+// whose blocks are all tagged is several criteria, and one whose blocks
+// are all untagged is a single criterion written in named groups
+// (AC-GHK-002.9). Both are admissible, which is why this is populated
+// only when at least one block matched an identifier and at least one
+// did not; a caller checking for it needs nothing but len > 0.
+type PartialOutline struct {
+	// Untagged is the span of each untagged block, in the order written.
+	Untagged []span.Span
 }
 
 // Criterion is one parsed criterion: a `Scenario`, or one `Examples` block
@@ -451,14 +469,21 @@ func (s *source) feature(parsed *messages.Feature, opts Options) *Feature {
 	}
 
 	built := &Feature{Record: record, Tags: tags}
+	add := func(scenario *messages.Scenario, rule string) {
+		criteria, partial := s.criteria(scenario, rule, opts)
+		built.Criteria = append(built.Criteria, criteria...)
+		if partial != nil {
+			built.PartialOutlines = append(built.PartialOutlines, *partial)
+		}
+	}
 	for _, child := range parsed.Children {
 		switch {
 		case child.Scenario != nil:
-			built.Criteria = append(built.Criteria, s.criteria(child.Scenario, "", opts)...)
+			add(child.Scenario, "")
 		case child.Rule != nil:
 			for _, sub := range child.Rule.Children {
 				if sub.Scenario != nil {
-					built.Criteria = append(built.Criteria, s.criteria(sub.Scenario, child.Rule.Name, opts)...)
+					add(sub.Scenario, child.Rule.Name)
 				}
 			}
 		}
@@ -471,8 +496,10 @@ type lineRange struct{ from, to int }
 
 // criteria builds the criteria one scenario yields: one per identified
 // `Examples` block where any block is identified, and otherwise one for
-// the scenario, its text covering every block it carries.
-func (s *source) criteria(parsed *messages.Scenario, rule string, opts Options) []Criterion {
+// the scenario, its text covering every block it carries. The second
+// return is non-nil exactly when the outline's blocks are inconsistently
+// tagged (AC-GHK-002.7) — see [PartialOutline].
+func (s *source) criteria(parsed *messages.Scenario, rule string, opts Options) ([]Criterion, *PartialOutline) {
 	anchor := s.anchor(parsed.Tags, parsed.Location)
 	tags := tagNames(parsed.Tags)
 
@@ -493,10 +520,18 @@ func (s *source) criteria(parsed *messages.Scenario, rule string, opts Options) 
 		// untagged beside a tagged one is a defect for a check to report,
 		// and a check can only report what the records carry.
 		built := make([]Criterion, 0, len(parsed.Examples))
+		var untagged []span.Span
+		anyTagged := false
 		for _, examples := range parsed.Examples {
 			own := tagNames(examples.Tags)
-			id, _ := opts.identify(own)
+			id, ok := opts.identify(own)
 			block := s.block(examples)
+			position := s.spanOf(s.anchor(examples.Tags, examples.Location), block.to)
+			if ok {
+				anyTagged = true
+			} else {
+				untagged = append(untagged, position)
+			}
 			built = append(built, s.criterion(draft{
 				id:          id,
 				name:        examples.Name,
@@ -504,10 +539,14 @@ func (s *source) criteria(parsed *messages.Scenario, rule string, opts Options) 
 				rule:        rule,
 				tags:        append(append([]string{}, tags...), own...),
 				text:        s.textOf(steps, block),
-				position:    s.spanOf(s.anchor(examples.Tags, examples.Location), block.to),
+				position:    position,
 			}))
 		}
-		return built
+		var partial *PartialOutline
+		if anyTagged && len(untagged) > 0 {
+			partial = &PartialOutline{Untagged: untagged}
+		}
+		return built, partial
 	}
 
 	last := s.extent[anchor]
@@ -526,7 +565,7 @@ func (s *source) criteria(parsed *messages.Scenario, rule string, opts Options) 
 		tags:        tags,
 		text:        s.textOf(ranges...),
 		position:    s.spanOf(anchor, last),
-	})}
+	})}, nil
 }
 
 // block returns the lines of an Examples block: its keyword line through

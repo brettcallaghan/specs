@@ -233,6 +233,145 @@ func TestEveryFindingIsSelfContained(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:     "feature untagged",
+			finding:  finding.FeatureUntagged("specs/adrs/adr-011.md", position, `^FEAT-[A-Z0-9]+-[0-9]{3}$`),
+			rule:     finding.RuleFeatureUntagged,
+			contains: []string{`^FEAT-[A-Z0-9]+-[0-9]{3}$`},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsIdentifierPattern()
+				if !ok {
+					t.Fatalf("detail is not an identifier pattern: %#v", d.Value)
+				}
+				if v.Identifier != nil {
+					t.Errorf("Identifier = %v, want nil: the feature carries no identifier tag at all", v.Identifier)
+				}
+			},
+		},
+		{
+			name:     "criterion untagged",
+			finding:  finding.CriterionUntagged("specs/adrs/adr-011.md", position, `^AC-[A-Z0-9]+-[0-9]{3}$`),
+			rule:     finding.RuleCriterionUntagged,
+			contains: []string{`^AC-[A-Z0-9]+-[0-9]{3}$`},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsIdentifierPattern()
+				if !ok {
+					t.Fatalf("detail is not an identifier pattern: %#v", d.Value)
+				}
+				if v.Identifier != nil {
+					t.Errorf("Identifier = %v, want nil", v.Identifier)
+				}
+			},
+		},
+		{
+			name:     "identifier malformed",
+			finding:  finding.IdentifierMalformed("specs/adrs/adr-011.md", position, "AC-chk-3.1", `^AC-[A-Z0-9]+-[0-9]{3}$`),
+			rule:     finding.RuleIdentifierMalformed,
+			contains: []string{"AC-chk-3.1", `^AC-[A-Z0-9]+-[0-9]{3}$`},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsIdentifierPattern()
+				if !ok {
+					t.Fatalf("detail is not an identifier pattern: %#v", d.Value)
+				}
+				if v.Identifier == nil || *v.Identifier != "AC-chk-3.1" {
+					t.Errorf("Identifier = %v, want the tag as written", v.Identifier)
+				}
+			},
+		},
+		{
+			name:     "identifier multiple",
+			finding:  finding.IdentifierMultiple("specs/adrs/adr-011.md", position, []string{"AC-CHK-001.1", "AC-CHK-001.2"}, `^AC-[A-Z0-9]+-[0-9]{3}\.[0-9]+$`),
+			rule:     finding.RuleIdentifierMultiple,
+			contains: []string{"AC-CHK-001.1", "AC-CHK-001.2"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsIdentifierPattern()
+				if !ok {
+					t.Fatalf("detail is not an identifier pattern: %#v", d.Value)
+				}
+				if v.Identifier == nil || !strings.Contains(*v.Identifier, "AC-CHK-001.1") || !strings.Contains(*v.Identifier, "AC-CHK-001.2") {
+					t.Errorf("Identifier = %v, want both tags named", v.Identifier)
+				}
+			},
+		},
+		{
+			name: "identifier duplicate",
+			finding: finding.IdentifierDuplicate("specs/adrs/adr-011.md", position,
+				"AC-CHK-001.1", "specs/adrs/other.md", position),
+			rule:     finding.RuleIdentifierDuplicate,
+			contains: []string{"AC-CHK-001.1", "specs/adrs/other.md"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsDuplicateIdentifier()
+				if !ok {
+					t.Fatalf("detail is not a duplicate identifier: %#v", d.Value)
+				}
+				if v.Identifier != "AC-CHK-001.1" || v.OtherPath != "specs/adrs/other.md" || v.OtherPosition != position {
+					t.Errorf("detail = %#v, want the identifier and the other occurrence's location", v)
+				}
+			},
+		},
+		{
+			name:     "criterion code mismatch",
+			finding:  finding.CriterionCodeMismatch("specs/adrs/adr-011.md", position, "AC-REF-001.1", "FEAT-CHK-001", `^AC-[A-Z0-9]+-[0-9]{3}\.[0-9]+$`),
+			rule:     finding.RuleCriterionCodeMismatch,
+			contains: []string{"AC-REF-001.1", "FEAT-CHK-001"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsIdentifierPattern()
+				if !ok {
+					t.Fatalf("detail is not an identifier pattern: %#v", d.Value)
+				}
+				if v.Identifier == nil || *v.Identifier != "AC-REF-001.1" {
+					t.Errorf("Identifier = %v, want %q", v.Identifier, "AC-REF-001.1")
+				}
+			},
+		},
+		{
+			name:     "owner missing",
+			finding:  finding.OwnerMissing("specs/adrs/adr-011.md", position, "frd-"),
+			rule:     finding.RuleOwnerMissing,
+			contains: []string{"frd-"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsOwningDocument()
+				if !ok {
+					t.Fatalf("detail is not an owning document: %#v", d.Value)
+				}
+				if v.Slug != nil || v.DocumentSlug != nil {
+					t.Errorf("detail = %#v, want both halves absent", v)
+				}
+			},
+		},
+		{
+			name:     "owner mismatch",
+			finding:  finding.OwnerMismatch("specs/adrs/adr-011.md", position, "frd-checkout", "frd-refunds"),
+			rule:     finding.RuleOwnerMismatch,
+			contains: []string{"frd-checkout", "frd-refunds"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsOwningDocument()
+				if !ok {
+					t.Fatalf("detail is not an owning document: %#v", d.Value)
+				}
+				if v.Slug == nil || *v.Slug != "frd-checkout" || v.DocumentSlug == nil || *v.DocumentSlug != "frd-refunds" {
+					t.Errorf("detail = %#v, want both slugs", v)
+				}
+			},
+		},
+		{
+			name:     "owner unresolved",
+			finding:  finding.OwnerUnresolved("specs/adrs/adr-011.md", position, "frd-does-not-exist"),
+			rule:     finding.RuleOwnerUnresolved,
+			contains: []string{"frd-does-not-exist"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsOwningDocument()
+				if !ok {
+					t.Fatalf("detail is not an owning document: %#v", d.Value)
+				}
+				if v.Slug == nil || *v.Slug != "frd-does-not-exist" {
+					t.Errorf("Slug = %v, want %q", v.Slug, "frd-does-not-exist")
+				}
+				if v.DocumentSlug != nil {
+					t.Errorf("DocumentSlug = %v, want nil", v.DocumentSlug)
+				}
+			},
+		},
 	}
 
 	for _, c := range cases {

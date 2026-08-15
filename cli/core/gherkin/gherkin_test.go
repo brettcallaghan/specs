@@ -392,6 +392,59 @@ func TestAnUntaggedExamplesBlockBesideATaggedOneIsItsOwnCriterion(t *testing.T) 
 	if got := feature.Criteria[1].Record.Id; got != "" {
 		t.Errorf("second Id = %q, want none — the block carries no identifier", got)
 	}
+	if len(feature.PartialOutlines) != 1 {
+		t.Fatalf("PartialOutlines = %v, want exactly one outline recorded", feature.PartialOutlines)
+	}
+	if got := feature.PartialOutlines[0].Untagged; len(got) != 1 || got[0] != feature.Criteria[1].Record.Position {
+		t.Errorf("PartialOutlines[0].Untagged = %v, want the untagged block's own position %v",
+			got, feature.Criteria[1].Record.Position)
+	}
+}
+
+// AC-GHK-002.9's own case must not be reported as partially tagged: an
+// outline whose blocks are ALL untagged is one criterion in named
+// groups, and PartialOutlines exists to flag the mixture, not the
+// several-block case itself.
+func TestAnOutlineWithAllUntaggedBlocksRecordsNoPartialOutline(t *testing.T) {
+	feature := parse(t, "Feature: Checkout\n\n"+
+		"  Scenario Outline: pays with <method>\n"+
+		"    Given a basket\n\n"+
+		"    Examples: accepted\n"+
+		"      | method |\n"+
+		"      | card   |\n\n"+
+		"    Examples: declined\n"+
+		"      | method |\n"+
+		"      | cash   |\n")
+
+	if len(feature.Criteria) != 1 {
+		t.Fatalf("feature carries %d criteria, want 1 — untagged blocks are one criterion in named groups", len(feature.Criteria))
+	}
+	if len(feature.PartialOutlines) != 0 {
+		t.Errorf("PartialOutlines = %v, want none: no block is tagged, so there is no mixture to report", feature.PartialOutlines)
+	}
+}
+
+// A fully tagged outline — every block identified — is likewise no
+// mixture, and records no PartialOutline.
+func TestAFullyTaggedOutlineRecordsNoPartialOutline(t *testing.T) {
+	feature := parse(t, "Feature: Checkout\n\n"+
+		"  Scenario Outline: pays with <method>\n"+
+		"    Given a basket\n\n"+
+		"    @AC-CHK-001.1\n"+
+		"    Examples: accepted\n"+
+		"      | method |\n"+
+		"      | card   |\n\n"+
+		"    @AC-CHK-001.2\n"+
+		"    Examples: declined\n"+
+		"      | method |\n"+
+		"      | cash   |\n")
+
+	if len(feature.Criteria) != 2 {
+		t.Fatalf("feature carries %d criteria, want one per Examples block", len(feature.Criteria))
+	}
+	if len(feature.PartialOutlines) != 0 {
+		t.Errorf("PartialOutlines = %v, want none: every block is tagged", feature.PartialOutlines)
+	}
 }
 
 // AC: AC-GHK-002.6

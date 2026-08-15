@@ -30,6 +30,9 @@ import (
 // is what lets --only name each of the reference-integrity checks and
 // what lets --strict reach the reference/retired-target warning even on
 // a corpus that never triggers it.
+// The nine gherkin/* identity rules (VTAG) are declared for the same
+// reason: without it, a corpus with no Gherkin defect at all would leave
+// them out of the accounting entirely, rather than showing "passed".
 var checkRules = []specmodel.RuleId{
 	finding.RuleFrontmatterParse,
 	finding.RuleSchemaViolation,
@@ -41,6 +44,15 @@ var checkRules = []specmodel.RuleId{
 	finding.RuleIncompletePairing,
 	finding.RuleTypeMismatch,
 	finding.RuleCorpusEmpty,
+	finding.RuleCriterionUntagged,
+	finding.RuleFeatureUntagged,
+	finding.RuleIdentifierMalformed,
+	finding.RuleIdentifierMultiple,
+	finding.RuleIdentifierDuplicate,
+	finding.RuleCriterionCodeMismatch,
+	finding.RuleOwnerMissing,
+	finding.RuleOwnerMismatch,
+	finding.RuleOwnerUnresolved,
 }
 
 // newCheckCmd builds the `check` subcommand: run conformance checks over

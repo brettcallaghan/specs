@@ -188,6 +188,18 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 	report.Add(c.pairingIncompleteFindings()...)
 	report.Add(c.typeMismatchFindings()...)
 
+	// The Gherkin identity checks (VTAG) recompute their own structure from
+	// source — see [Corpus.recomputeGherkin] — rather than reading from the
+	// index or from c.findings, so they run once here regardless of only:
+	// gherkin/identifier-duplicate needs the whole corpus even on a
+	// single-document check, and the narrowing below scopes every other
+	// Gherkin finding to one file exactly as it does for every other rule.
+	identityFindings, err := c.gherkinIdentityFindings()
+	if err != nil {
+		return nil, err
+	}
+	report.Add(identityFindings...)
+
 	findings := report.Model().Findings
 	if only == nil {
 		return findings, nil
@@ -228,7 +240,7 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 	// disk, whose age is unbounded.
 	var narrowed []specmodel.Finding
 	for _, f := range findings {
-		if f.Path == *only || finding.IsReferenceRule(f.Rule) {
+		if f.Path == *only || finding.IsCorpusWideRule(f.Rule) {
 			narrowed = append(narrowed, f)
 		}
 	}

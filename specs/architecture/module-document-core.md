@@ -985,6 +985,76 @@ is what lets a run that requests these checks report them `passed`
 rather than `not-requested` even where the registration behind them is
 empty (AC-SPEC-006.9).
 
+**They also report whether a feature or a criterion is addressed,
+addressed once, and whether its address agrees with where it sits** —
+VTAG's nine identity rules, all raised from `gherkinIdentityFindings`.
+`gherkin/feature-untagged` and `gherkin/criterion-untagged` fire for a
+`Feature` or a `Scenario` resolving no identifier at all (AC-GHK-002.2);
+`gherkin/identifier-malformed` fires instead of the untagged rule when
+one that resolved none nonetheless carries a tag sharing its pattern's
+literal prefix but not matching it in full — the near-miss the FRD's own
+`@AC-chk-003.1` / `@AC-CHK-3.1` / `@AC-CHK-003` examples describe
+(AC-GHK-002.3, AC-GHK-006.5). A pattern with no literal run before its
+first capture group, such as the shipped profile's own `FeaturePattern`,
+never yields a near miss, so `identifier-malformed` fires there for a
+criterion but never for a feature — a limit of the mechanism under that
+particular registration, not of the rule. `gherkin/identifier-multiple`
+fires for an element carrying more than one tag matching its pattern,
+naming every one of them (AC-GHK-002.5). `gherkin/identifier-duplicate`
+fires for a feature or a criterion identifier declared by two records in
+the corpus, against each and naming the other's location — features and
+criteria compared separately, the Gherkin analogue of `slug/duplicate`
+(AC-GHK-002.4, AC-GHK-003.4) — and is the one rule in this set that
+survives `CheckFor`'s narrowing on the same terms `reference/unresolved`
+does: `finding.IsCorpusWideRule` (renamed from `IsReferenceRule` to admit
+a non-`reference/`-prefixed member) now covers it alongside the four
+reference rules. `gherkin/criterion-code-mismatch` fires when a
+criterion's identifier and its feature's disagree on the capture values
+the profile's `SharedCaptures` name (AC-GHK-003.6) — read from the two
+compiled patterns' own named captures, never from `Feature.Code`, which
+groups several features under one code by design and would make sharing
+a code look like a defect (AC-GHK-003.5). `gherkin/owner-missing`,
+`gherkin/owner-mismatch` and `gherkin/owner-unresolved` cover whether a
+feature's owning document is stated, whether a fenced block's own owner
+tag (if it carries one) agrees with the document it is written in
+(AC-GHK-002.11), and whether a standalone source's owner tag resolves to
+a corpus member at all (AC-GHK-002.10) — the last reading as an
+unresolved reference rather than an ordinary mismatch, because ownership
+that names nothing has not been recorded.
+
+**Every one of the nine reads from a fresh Gherkin parse, on a warm
+corpus and a cold one alike.** `specmodel.Feature` and `.Criterion` keep
+only a construct's *resolved* identity — an empty `Id` where nothing
+matched — never the tag that failed to match or the second tag that
+matched alongside the first, so `gherkinIdentityFindings` recomputes
+through `Corpus.recomputeGherkin`, which walks the same `scanSources`
+`Build` does and calls the same extraction `blockFeatures` and
+`featureFileFeature` that a cold build's `builder` calls (features.go),
+factored out so the two paths can never silently drift into two
+implementations of one parse. A fenced block is only extracted from a
+path the corpus already knows is a member with fully-decoded
+frontmatter, the same condition `classifyDocument` gates it on at build
+time — consulted from the already-built index rather than re-derived, so
+this walk is never a second, divergeable notion of corpus membership.
+This is a real, unavoidable cost: every `Check` and `CheckFor` call re-
+parses every Gherkin source in the corpus, proportional to the corpus
+rather than to the one file a single-document check names, wider than
+the AC-SPEC-009.2 budget the rest of this component holds itself to. A
+recompute confined to what only fires cold would report nothing in the
+overwhelmingly common warm case, which is a worse defect than the cost.
+
+**A Scenario Outline's inconsistently tagged Examples blocks are not
+double-counted.** `gherkin.Feature.PartialOutlines`, populated by the
+Gherkin component's own `criteria` alongside the criterion records
+themselves, names the untagged blocks of an outline where at least one
+sibling block matched and at least one did not (AC-GHK-002.7); VTAG's
+untagged check excludes exactly those positions, deferring the
+block-level defect to VCON's `gherkin/examples-partially-tagged`
+entirely rather than reporting the same block under two rules. An
+outline whose blocks are all tagged, and one whose blocks are all
+untagged — one criterion in named groups, per AC-GHK-002.9 — both record
+no `PartialOutline` at all.
+
 **Output and warm cache** — the same package. `Write` emits the index to
 one destination, resolved by `IndexPath`: `specs.json` inside the
 configured spec root by default (AC-SPEC-010.1), a named path when the
@@ -1216,6 +1286,15 @@ pinned by the implementation:
   and findings by path, then position, then rule and message, so the same
   run yields byte-identical output (AC-SPEC-009.7) and snapshot cases stay
   stable.
+- **Which rules survive a single-document check's narrowing is decided
+  here, by membership rather than by a `reference/` prefix.**
+  `IsCorpusWideRule` (renamed from `IsReferenceRule` by VTAG) reports
+  whether a rule's findings are raised against the declaring document
+  rather than confined to the one file `CheckFor` named — true for the
+  four reference-integrity rules and for `gherkin/identifier-duplicate`,
+  which needs the same treatment for the same reason: an edit to one
+  document can duplicate an identifier declared in another, and a result
+  narrowed strictly by path would be silent about it.
 
 The unverified mechanism is built and no check registers against it yet;
 the diagram validation AC-SPEC-006.3 illustrates is a structure-feature
