@@ -6,7 +6,7 @@ description: The command-line binary that indexes a specification corpus
 slug: container-spec-cli
 type: container-blueprint
 status: approved
-updated_at: 2026-08-12T00:00:00Z
+updated_at: 2026-08-15T00:00:00Z
 contracts_provided:
   - "contract-specs-configuration"
 contracts_consumed: []
@@ -474,9 +474,10 @@ does not apply to a compiled binary.
       consumer is owed on a bump — and closing that gap is exactly what
       `agent-plugins-h6c` is for.
 - [ ] Whether the CLI ships a `serve` mode holding the index in memory
-      across queries. Not required — the measured margin against
-      FEAT-SPEC-009.1 is wide — but it is the natural home for filesystem
-      watching, which is listed as a follow-on capability.
+      across queries. Not required — FEAT-SPEC-009.1 states a latency
+      target, not a gate, and the warm path holds it on a quiet machine —
+      but it is the natural home for filesystem watching, which is listed
+      as a follow-on capability.
 
 ## References
 

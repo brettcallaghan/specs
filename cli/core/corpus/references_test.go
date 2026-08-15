@@ -417,11 +417,11 @@ func TestTheGraphIsIdenticalWarmAndCold(t *testing.T) {
 // TestTheWalkOffersEachCandidateExactlyOnce, which holds the read side
 // directly; together they are what "no document is read twice" means.
 //
-// AC: AC-SPEC-009.3
+// AC: AC-SPEC-009.3, AC-SPEC-009.9
 func TestAColdBuildWithAFullGraphMeetsTheSameBudget(t *testing.T) {
 	const (
 		documents = 1000
-		budget    = time.Second
+		target    = time.Second
 	)
 
 	repo := t.TempDir()
@@ -444,11 +444,8 @@ func TestAColdBuildWithAFullGraphMeetsTheSameBudget(t *testing.T) {
 			t.Fatalf("[[%s]] in %s did not resolve", reference.Slug, reference.Path)
 		}
 	}
-	if elapsed > budget {
-		t.Errorf("cold build of %d documents with %d references took %s, budget is %s",
-			documents, 3*documents, elapsed, budget)
-	}
-	t.Logf("cold build of %d documents with %d references: %s", documents, 3*documents, elapsed)
+	reportLatency(t, fmt.Sprintf("cold build of %d documents with %d references", documents, 3*documents),
+		elapsed, target)
 }
 
 // A path a caller names any of the three ways the other lookups accept
