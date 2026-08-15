@@ -8,14 +8,14 @@ reclaim. It is written by `scripts/bb-backup-run.sh` after every bead.
 | Field | Value |
 |---|---|
 | Run id | `1786778523-19` |
-| As of | `2026-08-15T17:04:15Z` |
+| As of | `2026-08-15T17:24:14Z` |
 | Live run directory | `/tmp/claude/bead-bonanza/1786778523-19` |
 | Repo | `/home/user/agent-plugins` |
 | Run branch | `claude/gherkin-adoption-strategy-fikj4i` |
 | Default branch | `main` |
-| HEAD when taken | `71ba642` agent-plugins-wvd.12 P1 CHG: list acceptance criteria that changed locally |
-| Files copied | 45 |
-| Beads with artifacts | 15 |
+| HEAD when taken | `9c00498` agent-plugins-wvd.8 P1 VCON: content and diagnostic checks over Gherkin records |
+| Files copied | 48 |
+| Beads with artifacts | 16 |
 
 Resume the run from the branch, not from this file: `git log --oneline main..claude/gherkin-adoption-strategy-fikj4i`
 lists every bead that has landed, one close commit each.
@@ -37,7 +37,8 @@ lists every bead that has landed, one close commit each.
 | `agent-plugins-wvd.4` | `pushed` |  | yes | yes |
 | `agent-plugins-wvd.5` | `pushed` |  | yes | yes |
 | `agent-plugins-wvd.6` | `pushed` |  | yes | yes |
-| `agent-plugins-wvd.7` | `implementing` |  | yes | no |
+| `agent-plugins-wvd.7` | `committed` | `b41c9db` | yes | yes |
+| `agent-plugins-wvd.8` | `pushed` |  | yes | yes |
 | `agent-plugins-wvd.9` | `pushed` |  | yes | yes |
 
 The phase column is a **hint, never the authority** — the ledger stops when
@@ -70,7 +71,7 @@ whether the live directory still exists and use it when it does:
     ls -A /tmp/claude/bead-bonanza/1786778523-19
 
 Read this copy only WHEN that directory is gone, and then state this
-snapshot's as-of time (`2026-08-15T17:04:15Z`) in whatever you conclude from it.
+snapshot's as-of time (`2026-08-15T17:24:14Z`) in whatever you conclude from it.
 
 **It preserves operational state, not findings.** Findings are `retro:`
 comments on the beads themselves, durable in the tracker independently of
