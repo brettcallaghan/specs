@@ -545,8 +545,13 @@ inbound and outbound reference graph. Finds every `[[slug]]` and
 `[[slug#Anchor]]` in a document body, records the span at which each
 occurs, and resolves them against the corpus. It never scans fenced or
 inline code spans, because an illustrative reference inside backticks is
-not a reference. Inbound edges are derived, so no document maintains a
-list of its own referrers.
+not a reference — except a fenced block whose info string names a
+registered Gherkin tag (Gherkin's `FenceTags`, above), which is Gherkin
+content rather than an illustration and is scanned like the rest of the
+body. It also extracts from a `.feature` source read whole, recording
+references against that file's own path though the file is not a corpus
+member. Inbound edges are derived, so no document maintains a list of its
+own referrers.
 
 **Built** — `cli/core/references`. `Extract` takes one
 document — its path, its bytes, its parsed frontmatter, and the
@@ -607,7 +612,7 @@ Five further semantics are pinned by the resolution half:
   by comparison rather than by the order the index happens to hold its
   collections in.
 
-Seven semantics are pinned by the extraction half:
+Nine semantics are pinned by the extraction half:
 
 - **The body is what follows the frontmatter block,** so a frontmatter
   value describing the notation — `description: References use [[slug]]
@@ -627,20 +632,43 @@ Seven semantics are pinned by the extraction half:
   Where an inline code span ends depends on matching backtick-run
   lengths, and where a fenced block ends depends on the fence length and
   its info string; a hand-rolled masker getting one of those wrong
-  produces exactly the false positive the exclusion exists to prevent. A
-  fence's info string is masked with its content. This brings `goldmark`
-  into the module ahead of Markdown Structure, and nothing here builds
-  that component: no heading is read.
+  produces exactly the false positive the exclusion exists to prevent.
+  This brings `goldmark` into the module ahead of Markdown Structure, and
+  nothing here builds that component: no heading is read.
+- **The code-region mask is narrowed by fence info string, not removed.**
+  A fenced block whose info string exactly matches one of Gherkin's
+  `FenceTags` is left unmasked — a wikilink in a feature description, a
+  scenario name, a step, a rule name or an examples cell is extracted
+  like any other body reference — because that content is Gherkin, not
+  an illustration. Every other fenced block, every indented code block,
+  and every inline code span stays masked, and a fence's info string is
+  always masked regardless of its tag: it is notation naming the block,
+  never a place Gherkin content is written. Reading the tag vocabulary
+  from Gherkin's exported `FenceTags` rather than a literal keeps the two
+  components from drifting when that vocabulary changes.
+- **A `.feature` source is extracted the same way a document body is,**
+  with no frontmatter and no reference-bearing properties: the whole
+  file is body from its first byte, so a wikilink anywhere in it is
+  found by the same scan, and the reference is recorded against that
+  file's own path even though it is not a corpus member — an edge's
+  endpoints are paths, and the referring file is the one a reader must
+  open to fix it. It resolves exactly as a reference written in prose
+  does; an unresolved one is reported by Corpus's `reference/unresolved`
+  check, below, rather than by a rule of its own.
 - **An HTML comment block is read as body text.** Only code is excluded,
   and `template-authoring-standards.md` requires a finished document's
   comment blocks to be deleted, so masking them would hide a reference in
   a document that should not be carrying the block at all.
 - **A reference splits on its first `#`,** into the slug half this
-  feature resolves and the anchor half it records without interpreting.
-  No other separator is read: the display alias `[[slug|text]]` is
-  prohibited by the reference standard, so such a reference carries
-  `slug|text` as its slug half and reports as unresolved rather than
-  resolving quietly to something the standard forbids.
+  feature resolves and the anchor half it records without interpreting —
+  inside a Gherkin source exactly as elsewhere, so an anchor is never
+  matched against a `Feature`, `Rule` or `Scenario` name: a scenario name
+  is not a heading, and nothing in this component resolves an anchor
+  against a heading either. No other separator is read: the display alias
+  `[[slug|text]]` is prohibited by the reference standard, so such a
+  reference carries `slug|text` as its slug half and reports as
+  unresolved rather than resolving quietly to something the standard
+  forbids.
 - **Extraction leaves the resolution unset,** which is deliberately
   unserializable, so a reference cannot reach the index without having
   been resolved on the way. `Resolve` is what sets it, and it sets one on

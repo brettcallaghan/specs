@@ -4,6 +4,8 @@ import (
 	"github.com/yuin/goldmark"
 	markdown "github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/text"
+
+	"github.com/brettcallaghan/agent-plugins/cli/core/gherkin"
 )
 
 // parser is the markdown parser code regions are located with. It is the
@@ -36,7 +38,11 @@ func (r regions) covers(start, stop int) bool {
 }
 
 // codeRegions returns the byte ranges of body that are code: fenced code
-// blocks, indented code blocks, and inline code spans.
+// blocks, indented code blocks, and inline code spans — except a fenced
+// block's content lines where the fence's info string names a registered
+// Gherkin tag ([gherkin.FenceTags]), which is Gherkin rather than an
+// illustration and is left unmasked so a wikilink written inside it is
+// extracted like any other.
 //
 // This is the one thing a hand-rolled backtick scan cannot be trusted
 // with, and the reason [[adr-015]]'s markdown parser arrives with this
@@ -47,11 +53,17 @@ func (r regions) covers(start, stop int) bool {
 // illustration and reports it as a broken reference — the false positive
 // the exclusion exists to prevent.
 //
+// A fence's info string is masked whether or not its tag is registered:
+// it is notation naming the block, never a place Gherkin content is
+// written, so nothing about narrowing the content mask bears on it.
+//
 // An HTML comment block is deliberately absent from this list. Only code
 // is excluded, and the template standard requires a finished document's
 // comment blocks to be deleted, so masking them would hide a reference in
 // a document that should not be carrying the block at all.
 func codeRegions(body []byte) regions {
+	gherkinFence := tagSet(gherkin.FenceTags())
+
 	var found regions
 	document := parser.Parse(text.NewReader(body))
 
@@ -61,9 +73,13 @@ func codeRegions(body []byte) regions {
 		}
 		switch typed := node.(type) {
 		case *markdown.FencedCodeBlock:
-			found = append(found, linesOf(typed)...)
+			var tag string
 			if info := typed.Info; info != nil {
 				found = append(found, regionRange{info.Segment.Start, info.Segment.Stop})
+				tag = string(info.Segment.Value(body))
+			}
+			if !gherkinFence[tag] {
+				found = append(found, linesOf(typed)...)
 			}
 		case *markdown.CodeBlock:
 			found = append(found, linesOf(typed)...)
@@ -79,6 +95,16 @@ func codeRegions(body []byte) regions {
 		return found
 	}
 	return found
+}
+
+// tagSet builds a lookup set from a fence tag vocabulary, so membership is
+// a map access per fenced block rather than a scan of tags for each one.
+func tagSet(tags []string) map[string]bool {
+	set := make(map[string]bool, len(tags))
+	for _, tag := range tags {
+		set[tag] = true
+	}
+	return set
 }
 
 // linesOf returns the byte ranges of a block node's content lines. For a

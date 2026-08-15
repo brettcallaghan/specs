@@ -8,6 +8,7 @@ import (
 	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
 	"github.com/brettcallaghan/agent-plugins/cli/core/gherkin"
 	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
+	"github.com/brettcallaghan/agent-plugins/cli/core/references"
 	"github.com/brettcallaghan/agent-plugins/cli/core/span"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
@@ -215,7 +216,8 @@ func (b *builder) extractBlockFeatures(reported string, src []byte, doc *frontma
 	}
 }
 
-// visitFeatureSource records the feature one `.feature` file holds.
+// visitFeatureSource records the feature one `.feature` file holds, and
+// the references its Gherkin makes.
 //
 // The file is the source, so the whole of it is parsed. Ownership is the
 // one fact this form establishes differently: having no document around
@@ -223,11 +225,26 @@ func (b *builder) extractBlockFeatures(reported string, src []byte, doc *frontma
 // (AC-GHK-001.2), and discovery therefore needs no location of its own —
 // a feature source sits wherever the documents of its feature sit
 // (AC-GHK-001.6).
+//
+// References are extracted against the file's own path even though a
+// feature source is not a corpus member (GREF): an edge's endpoints are
+// paths, and the referring file is the one a reader must open to fix a
+// broken one. Extraction runs whether or not the Gherkin itself goes on
+// to parse — a wikilink is a reference on the strength of what is
+// written, not of whether the rest of the file is well-formed — and
+// [references.Options.Frontmatter] is left nil, so the whole file is read
+// as body and its info-string mask never comes into play: a `.feature`
+// file carries no fences of its own.
 func (b *builder) visitFeatureSource(reported string, src []byte, readErr error) {
 	if readErr != nil {
 		b.recordFailure(reported, readErr)
 		return
 	}
+	b.references = append(b.references, references.Extract(references.Options{
+		Path:   reported,
+		Source: src,
+	})...)
+
 	parsed, err := gherkin.Parse(src, b.vocabulary.options())
 	if err != nil {
 		b.recordFailure(reported, err)

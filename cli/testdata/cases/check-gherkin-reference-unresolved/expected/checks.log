@@ -1,0 +1,16 @@
+checked 1 document
+
+docs/features/refunds.feature:
+  reference/unresolved  error  5:40  [[refund-policy-absent]] matches no document's slug
+
+checks:
+  corpus/empty  passed
+  frontmatter/missing-property  passed
+  frontmatter/parse  passed
+  frontmatter/schema  passed
+  reference/pairing-incomplete  passed
+  reference/retired-target  passed
+  reference/type-mismatch  passed
+  reference/unresolved  failed
+  slug/duplicate  passed
+  slug/pattern-mismatch  passed
