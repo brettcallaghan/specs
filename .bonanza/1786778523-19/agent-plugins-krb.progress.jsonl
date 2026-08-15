@@ -1,0 +1,6 @@
+{"bead":"agent-plugins-krb","phase":"claimed"}
+{"bead":"agent-plugins-krb","phase":"implementing"}
+{"bead":"agent-plugins-krb","phase":"gates-running"}
+{"bead":"agent-plugins-krb","phase":"gates-passed"}
+{"bead":"agent-plugins-krb","phase":"retro-written"}
+{"bead":"agent-plugins-krb","phase":"committed","sha":"83c575d"}
