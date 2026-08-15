@@ -259,9 +259,10 @@ that no schema can express, because it is a constraint between a block
 and a sibling link rather than a constraint on a value.
 
 **Not yet built.** No fence tag is registered and no record schema is
-supplied, because Document Core has neither a Markdown Structure
-component to extract fenced blocks nor an extension-point member through
-which a tag could be registered. Building this component means widening
+supplied. Document Core's Markdown Structure component now locates a
+fenced block by a caller-supplied tag, but nothing yet lets a profile
+register one: the host carries no extension-point member through which
+a tag could reach that lookup. Building this component means widening
 the host first; it is not blocked on this module.
 
 **Profile Registration → Element Records.** Registration is a pure

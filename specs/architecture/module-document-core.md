@@ -189,7 +189,7 @@ C4Component
     Container_Boundary(core, "Document Core") {
         Component(span, "Spans", "Go package", "Position type and delimited-region scanning")
         Component(fm, "Frontmatter", "Go package", "Frontmatter extraction and YAML parsing with raw-text access")
-        Component(md, "Markdown Structure", "Go package (planned)", "Headings, section spans, fenced blocks and comment blocks")
+        Component(md, "Markdown Structure", "Go package (fences built)", "Headings, section spans, fenced blocks and comment blocks")
         Component(refs, "References", "Go package", "Wikilink and frontmatter reference extraction, resolution against corpus slugs, and the reference graph")
         Component(schema, "Schema Registry", "Go package", "Single-union JSON Schema validation dispatched by document type")
         Component(corpus, "Corpus", "Go package", "Discovery, membership, the index model and its emission")
@@ -221,12 +221,12 @@ index carries the resolved reference graph, and the corpus checks read
 it: a broken link, a live document citing a retired one, a
 half-declared pairing and a typed reference landing on the wrong
 document type are each reported against the document a reader must
-open. **Markdown Structure is planned and not yet built** — there is
-no `cli/core/markdown`
-package, and no heading is read anywhere in the module. Its section below
-describes a design, not an implementation, and the diagram edges into and
-out of it are likewise the intended shape. Everything the current corpus
-check does is reached without it.
+open. **Markdown Structure is built for one of its three capabilities.**
+`cli/core/markdown` locates fenced blocks by info string; the heading
+tree and comment-block location remain not yet built, and the diagram
+edges into and out of those two are still the intended shape rather than
+an exercised one. Nothing in Corpus calls `cli/core/markdown` yet, so
+everything the current corpus check does is reached without it.
 
 ### Spans
 
@@ -370,18 +370,31 @@ description: Headings with their section spans, fenced blocks by info string, an
 (Go package) — Headings with their section spans, fenced blocks by info
 string, and HTML comment blocks. Produces the heading tree with the span
 of content beneath each heading, extracts fenced blocks whose info
-string matches a registered tag and parses their content in the declared
-format, and locates HTML comment blocks both as content and as
-leftover-scaffolding hygiene. This is the component the
+string matches a registered tag, and locates HTML comment blocks both as
+content and as leftover-scaffolding hygiene. This is the component the
 extract-then-review pattern depends on: an agent asks for the spans of
 particular sections and reads only those.
 
-**Not yet built.** There is no `cli/core/markdown` package, and no
-heading is read anywhere in the module. [[adr-015]]'s choice of
-`goldmark` is already a module dependency — References brought it in for
-the code-region mask described under that component — so what this
-component still owes is the heading tree, the fenced-block extraction
-and the comment-block location, not the parser.
+**Built — fenced blocks only.** `cli/core/markdown`. Its surface is
+`Fenced`, which takes a document body and a set of registered tags and
+returns every fenced block whose info string matches one of them, in
+document order, as a `Block`: `Content` — the bytes between the fences —
+alongside `Outer`, over the whole construct including both fence lines
+in full, and `Inner`, over the content alone. Fence recognition comes
+from `goldmark` — [[adr-015]]'s choice, already a module dependency via
+References — rather than from a hand-rolled scan, because where a fence
+ends depends on the fence character, its run length and its info string.
+Every position is still computed by Spans's `Of`, so a fenced block's
+position is comparable to a frontmatter or reference position. An
+unterminated fence — content running to the end of the document with no
+closing line — yields no block, matching the Spans scanner's refusal to
+guess at a dangling delimiter. `Fenced` locates and returns bytes only:
+parsing a matched block's content in its tag's declared format is a
+question for that tag's own consumer, not for this package.
+
+The heading tree and the comment-block location remain **not yet
+built**. Nothing reads a heading anywhere in the module, and no
+`cli/core/markdown` surface locates an HTML comment block yet.
 
 ### References
 
@@ -1053,8 +1066,9 @@ replaced (AC-SPECMD-003.1). Three semantics are pinned:
   where it settled a target.
 
 The relationships below are stated for the module's whole component set.
-Where one names Markdown Structure it describes the intended edge rather
-than an existing one, since that component is not built.
+The Corpus → Markdown Structure edge is still the intended shape rather
+than an existing one: nothing in Corpus calls `cli/core/markdown` yet.
+Markdown Structure → Spans is now real for the fenced-block half.
 
 **Corpus → Frontmatter, Markdown Structure, References.** Corpus is the
 orchestrator: it walks files and delegates every act of parsing. A
