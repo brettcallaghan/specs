@@ -78,6 +78,52 @@ const defaultLineWidth = 80
 // self- document, which is worse than not offering next-id for the
 // type. rfcs/inbox/groom-feature-blueprint/rfc-self-delta-keys-and-tracker-vocabulary.md
 // tracks this split scheme as an open concern in its own right.
+// featureIDPattern and criterionIDPattern are this framework's Gherkin
+// identifier patterns (specs/standards/gherkin-guide.md, AC-GHK-002.1,
+// AC-GHK-002.3).
+//
+// Each is the pattern schemas/feature.strata fixes for the generated
+// FeatureId and CriterionId aliases —
+// `^[A-Z]+-[A-Z0-9]+-[0-9]{3}$` and `^AC-[A-Z0-9]+-[0-9]{3}\.[0-9]+$` —
+// widened with two named capture groups, code and number, so the
+// SharedCaptures in [featureTags] can state the derivation rule that a
+// criterion identifier's code and number are its feature's (AC-GHK-003.6)
+// without the host reading either pattern's internal structure. Naming a
+// capture group changes nothing a pattern matches, so this widening does
+// not diverge from the generated pattern it mirrors —
+// TestFeatureTagPatternsMatchTheGeneratedIdentifiers in registration_test.go
+// checks the two against each other directly.
+const (
+	featureIDPattern   = `^[A-Z]+-(?P<code>[A-Z0-9]+)-(?P<number>[0-9]{3})$`
+	criterionIDPattern = `^AC-(?P<code>[A-Z0-9]+)-(?P<number>[0-9]{3})\.[0-9]+$`
+)
+
+// featureTags is this profile's tag vocabulary: the whole of
+// [[frd-gherkin-adoption]]'s AC-GHK-002.1 table and nothing beyond it.
+//
+//   - FeaturePattern and CriterionPattern are [featureIDPattern] and
+//     [criterionIDPattern].
+//   - OwnerPrefix is `frd-`, the prefix on the tag in which a feature
+//     written as a standalone `.feature` file names the document that
+//     owns it — `@frd-<slug>`.
+//   - SharedCaptures is `code` and `number`, the capture groups the two
+//     identifier patterns share.
+//   - Qualifiers is `negative`, `manual`, and the `level-` prefixed
+//     vocabulary `unit`, `integration` and `e2e` — nothing beyond that.
+var featureTags = corpus.FeatureTagRules{
+	FeaturePattern:   featureIDPattern,
+	CriterionPattern: criterionIDPattern,
+	OwnerPrefix:      "frd-",
+	SharedCaptures:   []string{"code", "number"},
+	Qualifiers: []corpus.QualifierTag{
+		{Tag: "negative", Meaning: specmodel.QualifierMeaningNegation},
+		{Tag: "manual", Meaning: specmodel.QualifierMeaningManualVerification},
+		{Tag: "level-unit", Meaning: specmodel.QualifierMeaningVerificationLevel, Level: specmodel.VerificationLevelUnit},
+		{Tag: "level-integration", Meaning: specmodel.QualifierMeaningVerificationLevel, Level: specmodel.VerificationLevelIntegration},
+		{Tag: "level-e2e", Meaning: specmodel.QualifierMeaningVerificationLevel, Level: specmodel.VerificationLevelEndToEnd},
+	},
+}
+
 var documentTypes = map[string]corpus.DocumentTypeRules{
 	string(specmodel.DocumentTypeAdr): {
 		SlugPattern: `^adr-[0-9]{3,}(-[a-z0-9]+(-[a-z0-9]+)*)?$`,
@@ -179,11 +225,11 @@ func (specDrivenDev) Lifecycle() corpus.LifecycleRules {
 	return lifecycle()
 }
 
-// FeatureTags returns this profile's tag vocabulary, which is empty: no
-// tag on a feature or a criterion carries meaning here yet. Registering
-// this framework's identifier patterns and qualifier tags belongs to the
-// change that starts reading them, not to the widening of the extension
-// point that made them expressible.
+// FeatureTags returns this profile's tag vocabulary: the feature and
+// criterion identifier patterns, the owning-document tag prefix, the
+// derivation rule linking a criterion's code and number to its feature's,
+// and the qualifier tags this framework assigns meaning to. See
+// [featureTags].
 func (specDrivenDev) FeatureTags() corpus.FeatureTagRules {
-	return corpus.FeatureTagRules{}
+	return featureTags
 }
