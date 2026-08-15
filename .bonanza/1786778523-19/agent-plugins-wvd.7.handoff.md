@@ -1,3 +1,0 @@
-# agent-plugins-wvd.7 handoff
-
-Caveat: VCON (wvd.8) reuses this bead's `Corpus.recomputeGherkin` and the `blockFeatures`/`featureFileFeature` helpers in `cli/core/corpus/features.go` and `gherkin_recompute.go` — call `c.recomputeGherkin()` once per `check()` invocation and pass the result to both the identity and content finding functions rather than recomputing twice. `gherkin.Feature.PartialOutlines` (new in `cli/core/gherkin/gherkin.go`) is what `gherkin/examples-partially-tagged` reads. `checkRules` in `cli/cmd/check.go` needs VCON's four rules added the same way VTAG's nine were, and `scripts/regenerate-cli-snapshots.sh` needs a re-run afterward — review the diff, it should be mechanical `passed` additions only, exactly as VTAG's was.

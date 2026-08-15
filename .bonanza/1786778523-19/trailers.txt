@@ -1,2 +1,0 @@
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
-Claude-Session: https://claude.ai/code/session_011T7mmuUYg1qpTTeiAW21wT
