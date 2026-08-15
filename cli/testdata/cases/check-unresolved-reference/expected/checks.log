@@ -14,7 +14,9 @@ checks:
   frontmatter/parse  passed
   frontmatter/schema  passed
   gherkin/criterion-code-mismatch  passed
+  gherkin/criterion-empty  passed
   gherkin/criterion-untagged  passed
+  gherkin/examples-partially-tagged  passed
   gherkin/feature-untagged  passed
   gherkin/identifier-duplicate  passed
   gherkin/identifier-malformed  passed
@@ -22,6 +24,8 @@ checks:
   gherkin/owner-mismatch  passed
   gherkin/owner-missing  passed
   gherkin/owner-unresolved  passed
+  gherkin/parse  passed
+  gherkin/scenario-prose  passed
   reference/pairing-incomplete  passed
   reference/retired-target  passed
   reference/type-mismatch  passed

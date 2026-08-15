@@ -1026,8 +1026,8 @@ that names nothing has not been recorded.
 corpus and a cold one alike.** `specmodel.Feature` and `.Criterion` keep
 only a construct's *resolved* identity — an empty `Id` where nothing
 matched — never the tag that failed to match or the second tag that
-matched alongside the first, so `gherkinIdentityFindings` recomputes
-through `Corpus.recomputeGherkin`, which walks the same `scanSources`
+matched alongside the first, so `gherkinIdentityFindings` reads from
+`Corpus.recomputeGherkin`'s result, which walks the same `scanSources`
 `Build` does and calls the same extraction `blockFeatures` and
 `featureFileFeature` that a cold build's `builder` calls (features.go),
 factored out so the two paths can never silently drift into two
@@ -1042,6 +1042,10 @@ rather than to the one file a single-document check names, wider than
 the AC-SPEC-009.2 budget the rest of this component holds itself to. A
 recompute confined to what only fires cold would report nothing in the
 overwhelmingly common warm case, which is a worse defect than the cost.
+`check()` calls `recomputeGherkin` exactly once per `Check` or `CheckFor`
+call and hands the one result to both `gherkinIdentityFindings` and
+VCON's `gherkinContentFindings` below, so the two rule families cost one
+parse together rather than one each.
 
 **A Scenario Outline's inconsistently tagged Examples blocks are not
 double-counted.** `gherkin.Feature.PartialOutlines`, populated by the
@@ -1054,6 +1058,32 @@ entirely rather than reporting the same block under two rules. An
 outline whose blocks are all tagged, and one whose blocks are all
 untagged — one criterion in named groups, per AC-GHK-002.9 — both record
 no `PartialOutline` at all.
+
+**They also report what the parser accepted and a reader would not** —
+VCON's four content and diagnostic rules, raised from
+`gherkinContentFindings` over the same `recomputeGherkin` result VTAG
+reads. `gherkin/parse` reports a Gherkin source that would not parse at
+all, at the line and column of the offending text with the parser's own
+expectation quoted (AC-GHK-006.1) — the one VCON rule that cannot be
+found from features alone, since a source that fails to parse produces
+no feature record and so is invisible to every walk but the full
+recompute that already produced `recomputeGherkin`'s second result,
+`failures`. `gherkin/criterion-empty` fires for a criterion whose `Text`
+is empty — a Scenario with no steps (AC-GHK-006.2). `gherkin/scenario-prose`
+fires for a criterion carrying a non-empty `Description`, reported at
+severity `warning` rather than `error` as a *probable* untagged
+criterion rather than a certain one; it reads only
+`Criterion.Description`, never `Feature.Description`, which is what
+makes AC-GHK-006.4's exemption for a Feature's user story a property of
+the check's shape rather than a condition it tests and could get wrong.
+`gherkin/examples-partially-tagged` raises one finding per
+`PartialOutline`, naming every untagged block (AC-GHK-002.7); its
+severity is `error`, matching `criterion-untagged`'s tier rather than
+`scenario-prose`'s, because the blueprint frames the mixture itself as
+unambiguous where a normative description is merely probable. Checking
+one document reports that document's own content findings and nothing
+more, on the same path-scoped narrowing every VTAG rule but
+`gherkin/identifier-duplicate` gets (AC-GHK-006.7).
 
 **Output and warm cache** — the same package. `Write` emits the index to
 one destination, resolved by `IndexPath`: `specs.json` inside the

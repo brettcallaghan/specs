@@ -188,17 +188,24 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 	report.Add(c.pairingIncompleteFindings()...)
 	report.Add(c.typeMismatchFindings()...)
 
-	// The Gherkin identity checks (VTAG) recompute their own structure from
-	// source — see [Corpus.recomputeGherkin] — rather than reading from the
-	// index or from c.findings, so they run once here regardless of only:
-	// gherkin/identifier-duplicate needs the whole corpus even on a
-	// single-document check, and the narrowing below scopes every other
-	// Gherkin finding to one file exactly as it does for every other rule.
-	identityFindings, err := c.gherkinIdentityFindings()
+	// The Gherkin identity (VTAG) and content (VCON) checks share one
+	// recomputed structure from source — see [Corpus.recomputeGherkin] —
+	// rather than reading from the index or from c.findings, so a Check or
+	// CheckFor call parses the corpus's Gherkin once for both rather than
+	// twice. Both run here regardless of only: gherkin/identifier-duplicate
+	// needs the whole corpus even on a single-document check, gherkin/parse
+	// can only be found by a full recompute in the first place (a source
+	// that fails to parse produces no feature and so is invisible to any
+	// narrower walk), and the narrowing below scopes every other Gherkin
+	// finding to one file exactly as it does for every other rule.
+	rules := c.profile.FeatureTags()
+	vocab := newVocabulary(rules)
+	gherkinFeatures, gherkinFailures, err := c.recomputeGherkin()
 	if err != nil {
 		return nil, err
 	}
-	report.Add(identityFindings...)
+	report.Add(c.gherkinIdentityFindings(vocab, rules, gherkinFeatures)...)
+	report.Add(gherkinContentFindings(rules, gherkinFeatures, gherkinFailures)...)
 
 	findings := report.Model().Findings
 	if only == nil {

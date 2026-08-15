@@ -372,6 +372,69 @@ func TestEveryFindingIsSelfContained(t *testing.T) {
 				}
 			},
 		},
+		{
+			name:     "gherkin parse",
+			finding:  finding.GherkinParse("specs/adrs/adr-011.md", position, "a step keyword"),
+			rule:     finding.RuleGherkinParse,
+			contains: []string{"a step keyword"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsGherkinParse()
+				if !ok {
+					t.Fatalf("detail is not a gherkin parse failure: %#v", d.Value)
+				}
+				if v.Expected != "a step keyword" {
+					t.Errorf("Expected = %q, want %q", v.Expected, "a step keyword")
+				}
+			},
+		},
+		{
+			name:     "criterion empty",
+			finding:  finding.CriterionEmpty("specs/adrs/adr-011.md", position),
+			rule:     finding.RuleCriterionEmpty,
+			contains: []string{"no steps"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsMissingProperty()
+				if !ok {
+					t.Fatalf("detail is not a missing property: %#v", d.Value)
+				}
+				if v.Property != "steps" {
+					t.Errorf("Property = %q, want %q", v.Property, "steps")
+				}
+			},
+		},
+		{
+			name:     "scenario prose",
+			finding:  finding.ScenarioProse("specs/adrs/adr-011.md", position, `^AC-[A-Z0-9]+-[0-9]{3}$`),
+			rule:     finding.RuleScenarioProse,
+			contains: []string{"normative", "untagged criterion"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsIdentifierPattern()
+				if !ok {
+					t.Fatalf("detail is not an identifier pattern: %#v", d.Value)
+				}
+				if v.Identifier != nil {
+					t.Errorf("Identifier = %v, want nil: this is prose, not an attempted identifier", v.Identifier)
+				}
+				if v.Pattern != `^AC-[A-Z0-9]+-[0-9]{3}$` {
+					t.Errorf("Pattern = %q, want the registered criterion pattern", v.Pattern)
+				}
+			},
+		},
+		{
+			name:     "examples partially tagged",
+			finding:  finding.ExamplesPartiallyTagged("specs/adrs/adr-011.md", []specmodel.Span{position}),
+			rule:     finding.RuleExamplesPartiallyTagged,
+			contains: []string{"1 Examples block"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsPartiallyTaggedOutline()
+				if !ok {
+					t.Fatalf("detail is not a partially tagged outline: %#v", d.Value)
+				}
+				if len(v.Untagged) != 1 || v.Untagged[0] != position {
+					t.Errorf("Untagged = %v, want exactly the one span %#v", v.Untagged, position)
+				}
+			},
+		},
 	}
 
 	for _, c := range cases {

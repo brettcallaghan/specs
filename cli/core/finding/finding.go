@@ -679,6 +679,82 @@ func OwnerUnresolved(path string, at specmodel.Span, slug string) specmodel.Find
 	}
 }
 
+// GherkinParse reports a Gherkin source that could not be parsed, at the
+// line and column of the offending text in the containing document, with
+// the parser's own expectation quoted in the message (AC-GHK-006.1).
+func GherkinParse(path string, at specmodel.Span, expected string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleGherkinParse,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message:  fmt.Sprintf("Gherkin source could not be parsed: %s", expected),
+		Detail: specmodel.NewFindingDetailGherkinParse(specmodel.FindingGherkinParse{
+			Expected: expected,
+		}),
+	}
+}
+
+// CriterionEmpty reports a criterion with no steps (AC-GHK-006.2). It
+// carries no structured detail beyond the shared envelope: unlike a
+// malformed identifier, an empty criterion has no offending value to
+// quote — only its own absence, which the message states.
+func CriterionEmpty(path string, at specmodel.Span) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleCriterionEmpty,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message:  "criterion carries no steps",
+		Detail: specmodel.NewFindingDetailMissingProperty(specmodel.FindingMissingProperty{
+			Property: "steps",
+		}),
+	}
+}
+
+// ScenarioProse reports a non-empty Scenario description as a probable
+// untagged criterion — the same shape [CriterionUntagged] carries,
+// because the fix this rule points toward is the same act: write the
+// description as a tagged criterion of its own, or delete it if it was
+// never meant to be one.
+func ScenarioProse(path string, at specmodel.Span, pattern string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleScenarioProse,
+		Severity: SeverityWarning,
+		Path:     path,
+		Position: at,
+		Message:  "Scenario description reads as a normative statement, which is a probable untagged criterion",
+		Detail: specmodel.NewFindingDetailIdentifierPattern(specmodel.FindingIdentifierPattern{
+			Pattern: pattern,
+		}),
+	}
+}
+
+// ExamplesPartiallyTagged reports a Scenario Outline whose Examples
+// blocks carry an identifier on some and not others, naming the
+// untagged blocks (AC-GHK-002.7, AC-GHK-006.2). Position is the first
+// untagged block's own span — every one of them is carried in the
+// detail, and the message points a reader at the first if they open
+// nothing else.
+func ExamplesPartiallyTagged(path string, untagged []specmodel.Span) specmodel.Finding {
+	var at specmodel.Span
+	if len(untagged) > 0 {
+		at = untagged[0]
+	}
+	return specmodel.Finding{
+		Rule:     RuleExamplesPartiallyTagged,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message: fmt.Sprintf(
+			"Scenario Outline is partially tagged: %d Examples block(s) carry no identifier while at least one sibling does",
+			len(untagged)),
+		Detail: specmodel.NewFindingDetailPartiallyTaggedOutline(specmodel.FindingPartiallyTaggedOutline{
+			Untagged: untagged,
+		}),
+	}
+}
+
 // renderPointer renders a JSON Pointer for a message, substituting the
 // root pointer for the empty string the JSON Pointer spec uses for it.
 func renderPointer(pointer string) string {

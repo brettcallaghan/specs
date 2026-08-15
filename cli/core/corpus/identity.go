@@ -10,32 +10,26 @@ import (
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
-// gherkinIdentityFindings reports every VTAG identity defect over freshly
-// recomputed Gherkin structure: whether a feature or a criterion is
-// addressed, addressed once, and whether its address agrees with where
-// it sits.
+// gherkinIdentityFindings reports every VTAG identity defect over
+// features: whether a feature or a criterion is addressed, addressed
+// once, and whether its address agrees with where it sits.
 //
-// It recomputes rather than reading [Corpus.index].Features, because the
-// persisted record keeps only a construct's *resolved* identity — an
-// empty Id where nothing matched — and several of these checks turn on
-// the tags that produced (or failed to produce) that resolution, which
-// the persisted shape does not retain either warm or cold.
-func (c *Corpus) gherkinIdentityFindings() ([]specmodel.Finding, error) {
-	rules := c.profile.FeatureTags()
-	vocab := newVocabulary(rules)
-
-	features, _, err := c.recomputeGherkin()
-	if err != nil {
-		return nil, err
-	}
-
+// features comes from [Corpus.recomputeGherkin] rather than
+// [Corpus.index].Features, because the persisted record keeps only a
+// construct's *resolved* identity — an empty Id where nothing matched —
+// and several of these checks turn on the tags that produced (or failed
+// to produce) that resolution, which the persisted shape does not retain
+// either warm or cold. The recompute is the caller's (check.go), shared
+// with content.go's VCON checks, so that one Check or CheckFor call
+// parses the corpus's Gherkin once rather than twice.
+func (c *Corpus) gherkinIdentityFindings(vocab vocabulary, rules FeatureTagRules, features []*gherkin.Feature) []specmodel.Finding {
 	var findings []specmodel.Finding
 	findings = append(findings, untaggedOrMalformedFindings(vocab, rules, features)...)
 	findings = append(findings, multipleFindings(vocab, rules, features)...)
 	findings = append(findings, duplicateIdentifierFindings(features)...)
 	findings = append(findings, codeMismatchFindings(vocab, rules, features)...)
 	findings = append(findings, ownershipFindings(c, vocab, features)...)
-	return findings, nil
+	return findings
 }
 
 // untaggedSpans returns the set of criterion positions this feature's
