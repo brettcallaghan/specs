@@ -6,7 +6,7 @@ description: Unit testing for components, harness-independent snapshot
 slug: testing-standards
 type: standards
 status: approved
-updated_at: 2026-07-31T00:00:00Z
+updated_at: 2026-08-15T00:00:00Z
 version: "0.1"
 ---
 
@@ -214,6 +214,51 @@ because a consumer parsing the JSON depends on it too.
 ---
 
 ## Coverage
+
+### Statement Coverage
+
+Statement coverage SHALL be measured across every test layer and
+reported as a single merged profile.
+
+**Rationale:** the layers reach different code. Reporting one of them
+alone understates what is tested, and reporting them side by side leaves
+the union — the only figure that answers "is this statement tested at
+all" — uncomputed.
+
+---
+
+The end-to-end layer SHALL be measured through the binary it runs,
+rather than exempted from measurement because it crosses a process
+boundary.
+
+**Rationale:** `go test -coverprofile` observes only the test process,
+so the layer that verifies exit statuses and the argument vector would
+report as zero coverage and its subject would appear untested. A binary
+built with `go build -cover`, writing counters to `GOCOVERDIR`, closes
+that gap.
+
+---
+
+Machine-generated source SHALL be excluded from the reported figures,
+and the exclusion SHALL be stated wherever the figures are published.
+
+**Rationale:** generated code is a function of its generator and its
+schema, not of the tests, and it is large enough here to dominate the
+total. Excluding it silently would be indistinguishable from having a
+better-tested codebase, which is why the exclusion travels with the
+number.
+
+---
+
+The reported figures SHALL be committed, and CI SHALL fail when they do
+not match a fresh measurement.
+
+**Rationale:** a coverage figure regenerated only on demand records
+whenever it was last convenient to look, so a drop arrives without an
+author. A committed figure makes the change visible in the diff that
+caused it.
+
+---
 
 ### Rule Coverage
 

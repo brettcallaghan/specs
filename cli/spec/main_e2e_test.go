@@ -28,6 +28,46 @@ import (
 	"testing"
 )
 
+// coverDirEnv is the variable scripts/coverage.sh sets to an absolute
+// directory. When it is present these tests build an instrumented binary
+// and point each run's GOCOVERDIR at that directory, so what the process
+// executes lands in the same coverage profile as the in-process tests.
+// Unset — the ordinary `go test` path — nothing here changes.
+const coverDirEnv = "SPEC_E2E_COVERDIR"
+
+// coverPkg is the pattern the instrumented binary is built to measure.
+// It has to be the module path rather than ./..., because `go build`
+// resolves a relative pattern against the package being built and would
+// instrument this directory alone, leaving cmd/ and core/ — everything
+// the binary actually spends its time in — uninstrumented and silently
+// reported as zero.
+const coverPkg = "github.com/brettcallaghan/agent-plugins/cli/..."
+
+// coverDir returns the directory end-to-end runs write coverage data
+// into, or "" when the run is not being measured.
+func coverDir(t *testing.T) string {
+	t.Helper()
+
+	dir := os.Getenv(coverDirEnv)
+	if dir == "" {
+		return ""
+	}
+	// Every run below sets cmd.Dir to a materialized corpus, and the Go
+	// runtime resolves GOCOVERDIR against the process's working
+	// directory — a relative path would scatter one directory per corpus
+	// into temporary directories that are deleted when the test ends.
+	if !filepath.IsAbs(dir) {
+		t.Fatalf("%s must be an absolute path, got %q", coverDirEnv, dir)
+	}
+	// An instrumented binary whose GOCOVERDIR does not exist fails at
+	// exit, which would surface as an unexplained non-zero status rather
+	// than as a coverage problem.
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatalf("creating the coverage directory %s: %v", dir, err)
+	}
+	return dir
+}
+
 // buildSpec builds the spec binary once per test binary and returns its
 // path. It uses the module the test itself lives in, so it always builds
 // the working tree's code rather than anything previously installed.
@@ -51,12 +91,35 @@ func buildSpec(t *testing.T) string {
 		name += ".exe"
 	}
 	bin := filepath.Join(t.TempDir(), name)
-	build := exec.Command("go", "build", "-o", bin, ".")
+	args := []string{"build"}
+	if coverDir(t) != "" {
+		args = append(args, "-cover", "-coverpkg="+coverPkg)
+	}
+	args = append(args, "-o", bin, ".")
+	build := exec.Command("go", args...)
 	build.Dir = "."
 	if out, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("building the spec binary: %v\n%s", err, out)
 	}
 	return bin
+}
+
+// specCommand prepares a run of the built binary in dir, with the
+// coverage environment applied when the run is being measured.
+//
+// Every process started by these tests goes through here: a run started
+// with exec.Command directly inherits no GOCOVERDIR, and an instrumented
+// binary without one writes nothing while still passing, so the coverage
+// it contributes would silently drop to zero.
+func specCommand(t *testing.T, bin, dir string, args ...string) *exec.Cmd {
+	t.Helper()
+
+	cmd := exec.Command(bin, args...)
+	cmd.Dir = dir
+	if cover := coverDir(t); cover != "" {
+		cmd.Env = append(os.Environ(), "GOCOVERDIR="+cover)
+	}
+	return cmd
 }
 
 // corpusFrom materializes a snapshot case's committed input/ corpus into
@@ -105,8 +168,7 @@ func corpusFrom(t *testing.T, caseName string) string {
 func run(t *testing.T, bin, dir string, args ...string) (string, int) {
 	t.Helper()
 
-	cmd := exec.Command(bin, args...)
-	cmd.Dir = dir
+	cmd := specCommand(t, bin, dir, args...)
 	out, err := cmd.Output()
 	if err != nil {
 		var exit *exec.ExitError
@@ -205,8 +267,7 @@ func TestBinaryReportsAMissingConfigurationAndExitsNonZero(t *testing.T) {
 	bin := buildSpec(t)
 	dir := t.TempDir() // deliberately empty: no specs.toml anywhere
 
-	cmd := exec.Command(bin, "check")
-	cmd.Dir = dir
+	cmd := specCommand(t, bin, dir, "check")
 	out, err := cmd.CombinedOutput()
 
 	var exit *exec.ExitError

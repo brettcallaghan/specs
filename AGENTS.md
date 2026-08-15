@@ -93,7 +93,10 @@ except the last:
   AC-SPEC-009.7: one committed set of expected bytes, three platforms);
   `gofmt -l` on ubuntu only; a cross-compile of all six release targets;
   and a run of the static binary inside a busybox image, which is
-  AC-SPEC-009.4's worked example executed rather than asserted.
+  AC-SPEC-009.4's worked example executed rather than asserted. Its
+  `coverage` job runs `scripts/coverage.sh --check` on ubuntu, which
+  measures the unit, snapshot and end-to-end layers separately and fails
+  if `README.md` does not already carry the resulting figures.
 - `release.yml` — on a `cli/vX.Y.Z` tag. Cross-compiles the six targets
   on one Linux runner, packages one archive each plus `SHA256SUMS`, and
   publishes a GitHub Release.
@@ -110,7 +113,11 @@ synthetically instead, on every platform, by `cli/cmd/portability_test.go`.
 
 ### Targeted tests by surface
 
-- `cli/**` → `cd cli && gofmt -l . && go vet ./... && go test ./...`
+- `cli/**` → `cd cli && gofmt -l . && go vet ./... && go test ./...`, then
+  `scripts/coverage.sh` from the repository root and commit the README diff
+  it produces (CI runs `scripts/coverage.sh --check` and fails on a stale
+  figure). Use the Go version in `cli/go.mod`: statement counts come from
+  the toolchain.
 - `schemas/*.strata` → `scripts/generate-schemas.sh --check`, then
   `cd cli && go build ./...` (the generated Go must still compile)
 
