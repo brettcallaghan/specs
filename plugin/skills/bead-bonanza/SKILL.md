@@ -155,20 +155,15 @@ After each subagent returns:
      state rather than testimony, and no subagent summary can forge it.
    5. **Findings were recorded** — at least one `retro:` comment on the bead,
      or the subagent's explicit "clean bead, no findings". A silent bead is
-     neither, and is not accepted. Check with the export pipeline, never with
-     `bd show`:
+     neither, and is not accepted. Check with the export pipeline:
 
      ```
      bd export | jq -r 'select(.id=="<bead-id>")
        | [.comments[]?|select(.text|startswith("retro:"))] | length'
      ```
 
-     `bd show <id> --json` reports `comment_count: 0` even for a bead that has
-     comments, so checking this signal with it fails every bead in the run at
-     once. That is the same reason Phase 4's harvest mandates the export
-     pipeline; this check happens here, waves earlier. The workaround exists
-     because `bd show --json` omits comment bodies — WHEN a `bd` release
-     reports them, it becomes removable rather than mysterious.
+     Not `bd show <id> --json` — it reports `comment_count: 0` for a bead that
+     has comments, so it fails every bead in the run at once.
 
    Applies **per bead, not per subagent**. A fast-lane subagent that
    processed six beads is checked six times — that is exactly where a silent
@@ -200,12 +195,11 @@ After each subagent returns:
    whether a bead is still *working* rather than finished, read its
    `<bead-id>.progress.jsonl` last phase **together with** `bd show <id>`: a
    terminal phase (`committed`/`pushed`/`blocked`) plus a closed tracker
-   record is conclusive. This does not soften the rule above — the ledger
-   still proves nothing on its own and is never an acceptance signal; it is
+   record is conclusive. The ledger is still never an acceptance signal: it is
    read here only to separate "still running" from "finished", and only
-   alongside tracker state. Do NOT use `bd list --status in_progress` for
-   this: it is a query over a moving set and has disagreed with both durable
-   signals in practice. **Never re-dispatch on a missing return alone.**
+   alongside tracker state. Not `bd list --status in_progress` — it is a query
+   over a moving set and has disagreed with both durable signals.
+   **Never re-dispatch on a missing return alone.**
 
    **Note a missing terminal event, do not act on it.** WHERE a subagent
    returned `completed` but its progress file carries no `committed` event,
