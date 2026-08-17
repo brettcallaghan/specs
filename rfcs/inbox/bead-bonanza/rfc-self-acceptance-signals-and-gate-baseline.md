@@ -460,4 +460,44 @@ text continues to work, and P2's stricter verdict applies at the next Phase 0.
 
 ## Resolution
 
-<!-- Filled at triage. -->
+**Partial triage 2026-08-17. This RFC is NOT retired** — P2 through P6 are
+recommended but not yet approved.
+
+| Proposal | Outcome |
+|---|---|
+| P1 — name signal 5's command, and name the one that lies | **adopted, trimmed.** The `bd export \| jq` selector landed at `SKILL.md` signal 5, and the `bd show --json` trap is named in one clause: "Not `bd show <id> --json` — it reports `comment_count: 0` for a bead that has comments, so it fails every bead in the run at once." Two explanatory sentences the proposal implies were cut at review: the cross-reference to Phase 4's harvest, and a note on when the workaround becomes removable. Neither changed what a reader does, and `SKILL.md` is 2.8x over the re-injection cap. What survives is the trap itself, kept under `CLAUDE.md`'s exception for "a trap with a plausible wrong answer" — `bd show --json` returns a plausible `0` rather than an error, which is what produced five false acceptance failures in one wave. |
+| P2 — make `--gate-baseline` fail loudly on a gate it cannot parse | **recommended adopt; not yet approved.** Triage's sufficiency check disagrees with this RFC's Adoption note that part 2 alone is coherent: this project's own test gate is fenced, so part 2 without part 1 blocks every pre-flight in this repository until `AGENTS.md` is rewritten. Adopt both parts, part 1 first. |
+| P3 — distinguish a pending removal from a failed one | **recommended adopt; not yet approved.** Edits the same acceptance block as P1 and must be sequenced onto it, as this RFC's Adoption section says. |
+| P4 — pass the tier-batching cost test to the planner | **recommended adopt; not yet approved.** |
+| P5 — settle whether `persistent` defeats the cap | **recommended adopt; not yet approved.** Confirmed live: `references/progress-streaming.md:82–87` carries the re-arm rule but records neither the measured 1,800,000 ms ceiling nor the unverified status of `persistent: true`. |
+| P6 — give the durable trigger a drained-run branch | **recommended adopt; not yet approved.** The **only 2-run recurrence** in this batch: `rfc-self-wave-chaining-and-lost-returns` corroborates it from a later run rather than re-proposing it, deliberately keeping one decision in one place. |
+
+**Provenance check.** `bead-bonanza` v1.4 cited; **v1.5 current at triage**, so
+every citation was re-verified rather than assumed. Signal 5 at
+`SKILL.md:156–158` was present verbatim with no command, while signals 2 and 4
+carried theirs — E1's asymmetry confirmed. `pre-flight-check.sh:443` still
+emits `unparsed (no command in backticks)`. E3's signal-4 repair contradiction
+is present verbatim.
+
+**One proposal from a sibling RFC was found already fixed by this run.** This
+RFC's Considered-and-Not-Proposed correctly reports that bead
+`agent-plugins-61f.2` fixed the batch template's base mid-run;
+`references/subagent-prompts.md:178–179` confirms it. That closes
+`rfc-self-report-citations-and-batch-base` P2 as already-implemented — the
+nearest thing in this batch to an independent check, since a later run refuted
+an earlier RFC's live premise.
+
+**Dedupe.** P4 extends RFC 0016 P4 (tier-batching rule, adopted) rather than
+duplicating it — the rule exists, the planner does not receive it. P6 extends
+RFC 0017 P3 (durable trigger, adopted) with the firing case that adoption did
+not cover. No proposal here re-litigates a prior outcome.
+
+**Self-authorship, disclosed.** `origin: self`, `model: claude-opus-5`; this
+session is configured for `claude-opus-5`. **The RFC was authored and triaged
+by the same model.** P1's adoption ratifies the workaround its own author used
+to read the acceptance check correctly during the run being described.
+
+**Files changed.** `plugin/skills/bead-bonanza/SKILL.md`.
+
+**Version bumps.** `bead-bonanza` 1.5 → 1.6 (shared with the sibling RFCs
+adopted in this pass). Plugin 0.18.0 → 0.19.0.

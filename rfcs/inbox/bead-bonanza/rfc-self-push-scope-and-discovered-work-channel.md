@@ -264,3 +264,36 @@ fact and a routing rule, and the failure that cost it a two-wave-late scope gap
 becomes a filed bead at the moment of discovery.
 
 ## Resolution
+
+**Partial triage 2026-08-17. This RFC is NOT retired** — P1 and P3 are
+recommended but not yet approved.
+
+| Proposal | Outcome |
+|---|---|
+| P1 — probe push scope against a protected path at pre-flight | **recommended adopt-with-refinement; not yet approved.** Confirmed live: `scripts/pre-flight-check.sh` emits no `BB_PUSH_WORKFLOW_SCOPE`. Note for whoever implements it — the script already enumerates `.github/workflows/*.y{a,}ml` at line 415 for CI detection, so the directory probe has a precedent to follow rather than inventing one. **This is the root cause of the failure P2 makes visible**; adopting P2 without P1 means the stall still happens, just discovered in one fetch instead of twenty minutes. |
+| P2 — make "compare HEAD to the remote ref" a landing check | **adopted with refinement.** The comparison was lifted out of the `BB_PUSH_NEEDS_REFSPEC=yes` conditional at `SKILL.md:328–332` — which now explicitly says verifying a push **landed** is not conditional on that fact — and stated as a rule at Phase 3 step 7, with the fetch-and-compare commands and the whole-push-rejection consequence. |
+| P3 — name one channel for discovered work | **recommended adopt; not yet approved.** Confirmed live at `references/subagent-prompts.md:104` and `:118`, including the "friction only, no root-causing" framing this RFC identifies as inviting the wrong choice. |
+
+**Refinement applied to P2, and why.** This proposal and
+`rfcs/inbox/recover-sprint/rfc-self-worktree-absence-is-not-completion` P1 are
+**the same check in two skills**, from the running and recovering sides of one
+incident. Each now names the other in the same form so the two cannot silently
+diverge. See that RFC's Resolution for the full note and for the shared-vendoring
+option that was considered and deferred.
+
+**Provenance check.** `bead-bonanza` v1.5 cited; v1.5 current at triage.
+`SKILL.md:329–331` was present verbatim, with the landing check nested inside
+the refspec conditional exactly as E1 describes.
+
+**Dedupe.** No match in retired RFCs 0001–0023. P2 overlaps the
+`recover-sprint` RFC at one point, handled above. P1 is the causal partner of
+that same cluster and is recommended alongside it.
+
+**Self-authorship, disclosed.** `origin: self`, `model: claude-opus-5`; this
+session is configured for `claude-opus-5`. **The RFC was authored and triaged
+by the same model.** P2's adoption ratifies the check its own author ran to
+discover the stall.
+
+**Files changed.** `plugin/skills/bead-bonanza/SKILL.md`.
+
+**Version bumps.** `bead-bonanza` 1.5 → 1.6 (shared). Plugin 0.18.0 → 0.19.0.

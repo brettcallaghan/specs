@@ -9,7 +9,7 @@ description: Reconstruct the state of an in-flight bead-bonanza sprint from
   closed and which are still in flight from git, the tracker and the run's
   dispatch.md rather than from a summary. Requires no prior context and takes
   no required input.
-version: "0.1"
+version: "0.2"
 user-invocable: false
 ---
 
@@ -109,7 +109,8 @@ could not read the plan is a *reconstruction*, and says so — it is not a plan.
    have moved since it was first written, and the amendments log is where it
    moved.
 
-3. **Establish what is in flight — `git worktree list` is the whole answer.**
+3. **Establish what is in flight — `git worktree list` answers "is an agent
+   still working", and nothing else.**
    Every dispatched bead runs in its own worktree named for its hash suffix,
    and the orchestrator removes that worktree only when the bead's branch has
    merged. **A worktree that exists is a bead that is not finished.** The state
@@ -141,6 +142,26 @@ could not read the plan is a *reconstruction*, and says so — it is not a plan.
    whether it has committed. No path enumeration and no ownership question —
    everything in that tree belongs to that bead.
 
+3b. **Establish what has LANDED — compare the branch against its remote.**
+
+   ```sh
+   git fetch "$REMOTE" "$BRANCH"
+   git log --oneline "$REMOTE/$BRANCH..HEAD"    # must be empty
+   ```
+
+   An orchestrator that dies between committing and pushing, or whose push is
+   **rejected**, leaves a state in which every other signal reads "finished":
+   no worktrees (they are removed before the push), a clean tree, the beads
+   closed in the tracker, and the progress ledger's last phase `pushed`. Only
+   this comparison distinguishes a landed wave from an unlanded one.
+
+   WHEN commits are unpushed, push them before concluding anything about the
+   run, and record why they were not pushed — a rejection has a cause that
+   will recur on the next wave. A credential refused for
+   `.github/workflows/**` rejects the WHOLE push, so a single workflow file
+   strands every commit behind it. `bead-bonanza` Phase 3 step 7 runs the
+   same check from the other side; keep the two in the same form.
+
 4. **Classify each in-scope bead, then corroborate — the tail is a hint.**
    Take `<bead-id>.progress.jsonl`'s last phase as a *starting hypothesis*.
    The ledger is written by the agent doing the work and stops the instant
@@ -165,6 +186,11 @@ could not read the plan is a *reconstruction*, and says so — it is not a plan.
      wrote it.
    - **`committed`** — verify the recorded sha is an ancestor of `HEAD`
      (`git merge-base --is-ancestor <sha> HEAD`) before believing it.
+   - **`pushed`** — the subagent pushed its OWN bead branch, which is all the
+     per-bead prompt asks of it. It says nothing about whether the sprint
+     branch landed; in a concurrent wave that push is the orchestrator's job
+     and happens after this event is written. Verify with step 3b, never by
+     reading this phase.
 
 5. **Verify every claim against `bd` and `git` yourself.** A completion
    notification is not proof — notifications go missing entirely. Neither is a
