@@ -1,0 +1,5 @@
+description = "feature <id> for an identifier no corpus member declares reports that distinctly and exits non-zero"
+cites = ["AC-GHK-007.4"]
+artifacts = ["checks.err"]
+args = ["feature", "FEAT-CHK-999"]
+exit_code = 1

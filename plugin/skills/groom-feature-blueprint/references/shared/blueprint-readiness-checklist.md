@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/standards/blueprint-readiness-checklist.md (version 0.6.0)
+     Source of truth: specs/standards/blueprint-readiness-checklist.md (version 0.7.0)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -11,8 +11,8 @@ description: The single definition of "ready to groom" for a feature
 slug: blueprint-readiness-checklist
 type: standards
 status: active
-updated_at: 2026-07-29T00:00:00Z
-version: "0.6.0"
+updated_at: 2026-08-15T00:00:00Z
+version: "0.7.0"
 ---
 
 # Blueprint Readiness Checklist
@@ -24,7 +24,8 @@ version: "0.6.0"
 - Content checks #4–#10 — is the approved design plannable? (AC Coverage
   rows, `[[slug]]` resolution, component references, design intent, delta
   keys, lockstep rules, Tracker Reconciliation)
-- The decision sweep — the authoring preflight for check 7
+- The decision sweep — the authoring preflight for check 7, and which
+  notation a delta's behavior lines use
 
 One list, two consumers. The `spec` skill runs these checks as a
 **preflight** before a feature blueprint is set to `ready-for-review`;
@@ -65,6 +66,13 @@ time.
    delta without marking exactly one as the proving delta is invalid
    (see the AC Coverage row validity rules in the feature blueprint
    template).
+
+   **Enumerate the FRD's ACs with `spec feature <id>` rather than by
+   reading it.** An acceptance criterion is a tagged Gherkin `Scenario`
+   ([[adr-021]]), so the set is a query. Reading for them by eye misses
+   the case the notation is worst at: several `Examples` blocks under one
+   outline, where each tagged block is its own criterion and only the
+   first looks like a criterion in a diff.
 5. Every `[[slug]]` reference resolves to an existing document.
 6. Every component reference resolves to exactly one declaration across
    the referenced containers' and modules' Components sections — by name,
@@ -110,6 +118,12 @@ behavior and on-disk surfaces only. The blueprint template's "anchors,
 not signatures" rule guards against pinning too much; this sweep
 guards against pinning too little.
 
+**A delta's behavior lines are EARS, not Gherkin.** A feature blueprint
+holds no features and no acceptance criteria — those live in its FRD, in
+tagged Gherkin blocks, and a blueprint that restates them has duplicated
+the document it traces to. [[adr-002]] governs everything a blueprint
+writes; [[adr-021]] governs nothing in it.
+
 ## References
 
 - `feature-blueprint-template.md` (same directory) — the document
@@ -117,3 +131,5 @@ guards against pinning too little.
 - `c4-guide.md` — element declarations and reference rules
 - [[ac-traceability-standards]] — the test citation obligations the AC
   Coverage table feeds
+- [[gherkin-guide]] — the notation the FRD's acceptance criteria are
+  written in, which check 4 enumerates against

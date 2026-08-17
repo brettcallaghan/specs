@@ -6,7 +6,7 @@ description: The command-line binary that indexes a specification corpus
 slug: container-spec-cli
 type: container-blueprint
 status: approved
-updated_at: 2026-08-12T00:00:00Z
+updated_at: 2026-08-15T00:00:00Z
 contracts_provided:
   - "contract-specs-configuration"
 contracts_consumed: []
@@ -67,7 +67,7 @@ is the command tree and its `--help` output.
 
 **Coding Agent → Spec CLI.** An agent invokes the CLI as a subprocess
 and parses its JSON output, rather than reading documents itself. This
-is the interaction the latency requirements in REQ-SPEC-009 exist for:
+is the interaction the latency requirements in FEAT-SPEC-009 exist for:
 the agent asks one question and acts on the answer.
 
 **CI Pipeline → Spec CLI.** An adopting repository runs the CLI in its
@@ -176,16 +176,18 @@ normalization of a `path` value; it is read and returned exactly as
 written.
 
 **Built (command tree)** — also `cli/cmd`, via `cobra`
-([[adr-015]]): `Execute` builds the six-subcommand tree — `index`,
-`check`, `slug-exists`, `next-id`, `refs`, `links` — and converts each
-one's flags into calls against Document Core (`corpus.Build`,
-`corpus.Open`, `corpus.Corpus.Check`/`CheckFor`, `corpus.Corpus.Slug`,
-`corpus.Corpus.InboundReferences`/`OutboundReferences`, `numbering.Next`,
-`references.Extract`/`Resolve`, `mdlinks.Resolve`/`Substitute`) and its
-result back into stdout and an exit status. No
-file here decides what makes a document valid or scores a check; every
-one of those calls is the whole of what a subcommand does with what it
-receives.
+([[adr-015]]): `Execute` builds the command tree — `index`, `check`,
+`slug-exists`, `next-id`, `refs`, `links`, `feature`, `criterion` — and
+converts each one's flags into calls against Document Core
+(`corpus.Build`, `corpus.Open`, `corpus.Load`, `corpus.Corpus.Check`/`CheckFor`,
+`corpus.Corpus.Slug`, `corpus.Corpus.InboundReferences`/`OutboundReferences`,
+`corpus.Corpus.Feature`/`Features`/`FeaturesByCode`,
+`corpus.Corpus.Criterion`/`CriteriaOf`/`CriteriaByTag`,
+`numbering.Next`, `references.Extract`/`Resolve`,
+`mdlinks.Resolve`/`Substitute`, `gherkin.Render`) and its result back into
+stdout and an exit status. No file here decides what makes a document
+valid or scores a check; every one of those calls is the whole of what a
+subcommand does with what it receives.
 
 `index` always builds fresh (`corpus.Build`, not the warm-cache
 `corpus.Open`) and writes through `corpus.Write`, accepting the
@@ -239,12 +241,99 @@ takes, so a flag reversing it would contradict the criterion rather than
 narrow it — the same reasoning `check`'s own `--strict` does not apply
 to.
 
-A bare invocation or `--help` lists the six subcommands with their
-one-line synopses and, per subcommand, its own flags — cobra's default
-rendering of the `Use`, `Short` and flag declarations above, so the
-listed surface and the code that implements it cannot drift
-(AC-SPEC-011.5, and the Change Guidance below). No hand-written help
-text exists anywhere in this component.
+`feature <id> --emit` writes that feature — its tags, description and
+criteria, looked up by identifier from the warm corpus index the same
+way `refs` and `slug-exists` look one up — as a standalone `.feature`
+file: to standard output by default, to the path `--out` names
+otherwise (AC-GHK-009.1). One feature yields one file, per
+[[adr-021]]'s constraint 8. The rendering itself is `gherkin.Render`,
+Document Core's inverse of `gherkin.Parse`; this component's own part is
+converting an index record's identifier, negation, manual-verification
+and verification-level properties back into the tags that name them —
+the same vocabulary `cli/profile` registers for parsing, read in
+reverse — and writing the result. An emitted file always carries the
+owning-document tag, `@frd-<slug>`, even where the feature's own source
+was a fenced block that carried none: the emitted file is a feature
+source in its own right, and per [[adr-021]] constraint 11 a feature
+source names its owner. An identifier naming no feature in the index is
+reported distinctly, the same "not the same as an empty answer"
+discipline `refs` and `slug-exists` apply, and exits non-zero.
+
+Querying a feature without `--emit` reads the same warm index by a
+different corpus call. `feature <id>` returns that feature's record,
+including its criteria, via `corpus.Corpus.Feature` (AC-GHK-007.1);
+`feature --code <CODE>` returns every feature `corpus.Corpus.FeaturesByCode`
+groups under that code, and `feature` with no argument and no `--code`
+every feature `corpus.Corpus.Features` holds (AC-GHK-003.3, AC-GHK-007.3).
+A feature identifier resolves the same way regardless of which admissible
+form or file it sits in, because the lookup reads the index's `Id` field
+and never its `Path` (AC-GHK-003.1). `--json` marshals the matching
+`specmodel.Feature` value — or, for a selection, a `specmodel.Feature`
+array — straight through, the same generated-JSON discipline `refs`
+applies to `specmodel.Reference` (AC-GHK-007.5). An identifier naming no
+feature is reported distinctly and exits non-zero, exactly as `--emit`'s
+lookup does (AC-GHK-007.4); `--code` naming a group nothing carries is an
+empty selection instead, and exits zero — a selector is not an identifier,
+so it cannot itself be "unknown". `--code` and `--json` cannot be
+combined with `--emit`, and an identifier and `--code` cannot both be
+given: the command's `Args` validator and `RunE` branch on `--emit` before
+either flag-conversion path runs, so the two never share logic.
+
+`criterion --changed` lists every acceptance criterion whose content
+hash differs between the persisted index and the current corpus,
+classifying each as changed, added or removed by whether its identifier
+is present in both, only now, or only before (AC-GHK-008.1,
+AC-GHK-008.3). It reads the persisted side with `corpus.Load` rather
+than through `corpus.Open`'s warm cache: `Open` rebuilds silently on a
+hash mismatch and hands back the corpus it just built, discarding the
+earlier state this comparison needs, which is exactly the case
+`--changed` exists to report. The current side always builds fresh
+(`corpus.Build`), and neither call writes the artifact back — a
+`--changed` run must never replace the baseline it is comparing against
+with the state it is reporting as different from that baseline. A
+criterion whose content hash is unchanged is never listed, regardless of
+whether its position moved (AC-GHK-008.2): only identifier and content
+hash are compared, never a position or a markdown diff. Where no
+persisted index exists to compare against, the command says so rather
+than reporting every criterion as added.
+
+Querying a criterion without `--changed` reads the same warm index by a
+different corpus call. `criterion <id>` returns that criterion's record
+via `corpus.Corpus.Criterion` (AC-GHK-007.2). `criterion --of <feature-id>`
+returns every criterion `corpus.Corpus.CriteriaOf` that feature holds, and
+`criterion --tag <qualifier>` every criterion `corpus.Corpus.CriteriaByTag`
+matches against the active profile's registered qualifier vocabulary —
+the same `Negative`/`Manual`/`Level` properties and `FeatureTagRules.Qualifiers`
+registration `--emit`'s `criterionTags` reads in the write direction
+(AC-GHK-007.3). `--json` marshals the matching `specmodel.Criterion` value
+or array straight through (AC-GHK-007.5). An identifier naming no
+criterion is reported distinctly and exits non-zero (AC-GHK-007.4); `--of`
+naming a feature nothing declares, or `--tag` naming a qualifier no
+criterion carries, is an empty selection instead, and exits zero for the
+same reason `--code` does on `feature`. `--changed` cannot be combined
+with an identifier, `--of`, `--tag` or `--json`; an identifier cannot be
+combined with `--of` or `--tag`; and `--of` and `--tag` cannot both be
+given — `criterion`'s `RunE` validates these combinations before either
+flag-conversion path runs, the same separation `feature` keeps between
+`--emit` and its query surface.
+
+Both `feature` and `criterion` open the corpus warm (`corpus.Open`), the
+same as `check`, `slug-exists`, `next-id` and `refs`, so a query answers
+from the persisted index without re-walking the corpus when its inputs
+are unchanged (AC-GHK-007.6). Every corpus call this paragraph and the one
+above it name is a linear scan over the warm index's in-memory
+`SpecIndex.Features`, not a second on-disk structure — "warm" already
+means no filesystem walk happens, and the two subcommands hold to the
+same no-domain-logic discipline `refs` does: each converts its flags into
+one corpus lookup and the result into stdout and an exit status, with no
+selection or matching logic of its own.
+
+A bare invocation or `--help` lists the subcommands with their one-line
+synopses and, per subcommand, its own flags — cobra's default rendering
+of the `Use`, `Short` and flag declarations above, so the listed surface
+and the code that implements it cannot drift (AC-SPEC-011.5, and the
+Change Guidance below). No hand-written help text exists anywhere in
+this component.
 
 Observable command-tree behavior is verified by the snapshot cases
 under `cli/testdata/cases/`, replayed by `cli/cmd/snapshot_test.go`,
@@ -301,7 +390,7 @@ artifacts, and any cache it keeps is derived and disposable.
 
 - **Index cache** (on-disk, derived) — the built index, retained so a
   subsequent query answers without re-reading the corpus. This is the
-  "warm index" REQ-SPEC-009.1 and REQ-SPEC-009.2 are measured against.
+  "warm index" FEAT-SPEC-009.1 and FEAT-SPEC-009.2 are measured against.
   - WHEN any input the index was built from has changed, the CLI SHALL
     rebuild rather than serve a stale answer.
   - The CLI SHALL produce identical output whether or not a cache is
@@ -321,7 +410,7 @@ is what makes AC-SPEC-010.5's own example — "run twice in a row reads
 `specs.json` the second time" — true of a workflow that never invokes
 `index`. Until they did, only `index` ever created the artifact, and
 since nothing instructs an author to run it, every check and query in
-practice rebuilt from cold and the warm path the REQ-SPEC-009 budgets
+practice rebuilt from cold and the warm path the FEAT-SPEC-009 budgets
 are stated against went unreached (`agent-plugins-9ur`). That write is
 best-effort and its failure is discarded: a read-only checkout or a race
 with a concurrent writer makes the answer no less correct, and a query
@@ -340,7 +429,7 @@ file, an unreadable one, one of another `schema_version`, one carrying no
 hash — rebuilds. The reason for hashing rather than stat-ing is the
 environment the latency budget is claimed in: a fresh CI checkout gives
 every file a new mtime and identical bytes, so an mtime-keyed cache would
-be cold on every CI run and REQ-SPEC-009.1 would never hold there.
+be cold on every CI run and FEAT-SPEC-009.1 would never hold there.
 Absolute paths are deliberately excluded from the hash, so the same
 content checked out at another location is still warm.
 
@@ -363,7 +452,7 @@ section is authoritative for its deployment.
 - **Exclusive infrastructure:** none. The CLI has no database, no queue,
   and no network dependency at runtime.
 - **Deployment:** the CLI is distributed as a per-platform binary.
-  REQ-SPEC-009.4 through REQ-SPEC-009.6 govern the shape: it runs with
+  FEAT-SPEC-009.4 through FEAT-SPEC-009.6 govern the shape: it runs with
   no language runtime installed beyond itself, it retrieves no
   executable content at install time, and it is installable from at
   least one package registry that supports on-premises mirroring.
@@ -439,8 +528,12 @@ does not apply to a compiled binary.
 
 - [[adr-015]] — Go is the implementation language; the measured basis
   and the rejected alternatives are recorded there.
-- [[adr-014]] — acceptance-criteria and feature-definition validation
-  are deferred, so no component here parses them.
+- [[adr-021]] — Gherkin is the notation for features and acceptance
+  criteria. Command Surface queries the feature and criterion records
+  Document Core extracts, emits a feature back out as a standalone
+  `.feature` file, and reports which criteria changed locally; the
+  parsing and the rendering are Document Core's, and the tag vocabulary
+  is [[module-spec-profile]]'s.
 
 ## Open Questions
 
@@ -474,9 +567,10 @@ does not apply to a compiled binary.
       consumer is owed on a bump — and closing that gap is exactly what
       `agent-plugins-h6c` is for.
 - [ ] Whether the CLI ships a `serve` mode holding the index in memory
-      across queries. Not required — the measured margin against
-      REQ-SPEC-009.1 is wide — but it is the natural home for filesystem
-      watching, which is listed as a follow-on capability.
+      across queries. Not required — FEAT-SPEC-009.1 states a latency
+      target, not a gate, and the warm path holds it on a quiet machine —
+      but it is the natural home for filesystem watching, which is listed
+      as a follow-on capability.
 
 ## References
 

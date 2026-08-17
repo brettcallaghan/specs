@@ -99,6 +99,13 @@ interface. Everything else is internal.
     in v1, so the reason is not adopter override but reviewability: a
     registered pattern is checkable against the template it mirrors,
     while the same rule buried in a predicate is not.
+  - The module SHALL register this framework's Gherkin tag vocabulary —
+    the feature and criterion identifier patterns, the owning-document
+    tag prefix, the derivation rule linking a criterion's code and
+    number to its feature's, and the qualifier tags it assigns
+    meaning to. The identifier patterns SHALL be checkable against the
+    generated `FeatureId` and `CriterionId` patterns
+    (`cli/core/specmodel`) rather than transcribed independently.
 
 **Built — single-schema profile.** `cli/profile.New` returns a value
 satisfying `corpus.Profile`, registered under the name `spec-driven-dev`.
@@ -108,9 +115,12 @@ binary reads no schema file at runtime), a thin per-type table of slug
 pattern and numbered-ness for every `DocumentType`, the `line_width`
 convention default of 80 codepoints, and — widened by the reference
 integrity feature's PREG delta — the reference, typed-reference and
-lifecycle registrations below. There is no per-type schema, no
-required-sections tree, no named section sets and no element-record
-registration.
+lifecycle registrations below. Widened again by the Gherkin adoption
+feature's PREG delta, it also supplies this framework's tag vocabulary:
+the feature and criterion identifier patterns, the owning-document tag
+prefix, the code/number derivation rule, and the qualifier tag table.
+There is no per-type schema, no required-sections tree, no named section
+sets and no element-record registration.
 
 **This profile fills the whole of the host's extension point.**
 `corpus.DocumentTypeRules` carries a type's reference-bearing properties,
@@ -129,6 +139,20 @@ the reference set and the status vocabulary are derived from the
 generated schema rather than transcribed, so a property or a status added
 to the vocabulary is registered the moment it is declared. See
 `cli/profile/registration.go`.
+
+`corpus.Profile`'s fifth member, `FeatureTags()`, is populated the same
+way: the feature identifier pattern `^[A-Z]+-[A-Z0-9]+-[0-9]{3}$`, the
+criterion identifier pattern `^AC-[A-Z0-9]+-[0-9]{3}\.[0-9]+$`, the
+owning-document tag prefix `frd-`, the `code`/`number` capture groups the
+two identifier patterns share (the derivation rule that a criterion's
+code and number are its feature's), and the qualifier tags `negative`,
+`manual`, and the `level-` prefixed vocabulary `unit`, `integration` and
+`e2e`. The two identifier patterns are authored with named capture
+groups added over the generated `FeatureId` and `CriterionId` patterns,
+rather than transcribed independently — stripping the names recovers
+the generated pattern exactly, which is what
+`TestFeatureTagPatternsMatchTheGeneratedIdentifiers` checks. See
+`cli/profile/profile.go`.
 
 The components below have been reconciled to that shape: the separate
 Document Types "type registry" is gone, folded into Profile Registration;
@@ -157,7 +181,7 @@ template change to come back here.
 C4Component
     title Components — Spec-Driven Development Profile
     Container_Boundary(profile, "Spec-Driven Development Profile") {
-        Component(reg, "Profile Registration", "Go package", "The plugin entry point: the union schema, the per-type slug and numbered table, the reference/typed-reference/lifecycle registrations, and the convention defaults")
+        Component(reg, "Profile Registration", "Go package", "The plugin entry point: the union schema, the per-type slug and numbered table, the reference/typed-reference/lifecycle registrations, the Gherkin tag vocabulary, and the convention defaults")
         Component(records, "Element Records", "Go package (planned)", "Fenced element record blocks and the record-XOR-blueprint invariant")
     }
     Rel(reg, records, "Registers the block rules of")
@@ -197,7 +221,7 @@ Profile Registration alongside the schema it complements.
 ```component
 title: Profile Registration
 slug: component-profile-registration
-description: The plugin entry point supplying the union schema, the per-type slug and numbered table, the reference/typed-reference/lifecycle registrations, and the convention defaults
+description: The plugin entry point supplying the union schema, the per-type slug and numbered table, the reference/typed-reference/lifecycle registrations, the Gherkin tag vocabulary, and the convention defaults
 ```
 
 (Go package) — The plugin entry point supplying this framework's
@@ -206,7 +230,7 @@ it holds no engine and no parsing of its own. Its value is that the
 conformance surface is one file: whether this module is a well-behaved
 plugin is answerable by reading it.
 
-**Built** — `cli/profile`. `New` returns a `corpus.Profile` whose four
+**Built** — `cli/profile`. `New` returns a `corpus.Profile` whose five
 members are the whole of what this framework tells the host:
 
 | Member | Registers |
@@ -215,6 +239,7 @@ members are the whole of what this framework tells the host:
 | `DocumentTypes()` | per type, its slug pattern and whether it is numbered (authored); its reference-bearing properties and its one typed reference (derived from the schema and authored, respectively); no pairings |
 | `Conventions()` | the `line_width` default of 80 codepoints |
 | `Lifecycle()` | the whole status vocabulary, `retired` as the only retired status, every other status as live, and `superseded_by` as the successor property |
+| `FeatureTags()` | the feature and criterion identifier patterns, the owning-document tag prefix `frd-`, the `code`/`number` capture groups the two identifier patterns share, and the qualifier tags `negative`, `manual`, and the `level-` prefixed vocabulary `unit`, `integration`, `e2e` |
 
 **The union schema is generated, not authored here.** It comes from
 `schemas/*.strata` through `scripts/generate-schemas.sh`, which emits
@@ -235,6 +260,19 @@ properties and the status vocabulary from the decoded schema at package
 initialization; only the one typed reference (`frd` → `type: frd`) and
 the lifecycle's live/retired split are authored, because the schema has
 no way to state either.
+
+**The Gherkin identifier patterns carry the same guard, structurally
+rather than by derivation.** `FeaturePattern` and `CriterionPattern` are
+authored as the generated `FeatureId` and `CriterionId` patterns
+(`cli/core/schema/spec-model.schema.json`) plus named capture groups —
+adding a name changes nothing a pattern matches — so
+`TestFeatureTagPatternsMatchTheGeneratedIdentifiers` strips the names
+back off and asserts equality against the generated pattern directly.
+Unlike the reference set and the status vocabulary, the patterns
+themselves are not derived at package initialization, because the named
+capture groups the derivation rule needs have no generated counterpart
+to derive from; the drift guard is the test rather than the
+construction.
 
 Required sections, named section sets and the heading-tree requirement
 described in [[contract-specs-configuration]] are later capabilities.
@@ -259,9 +297,10 @@ that no schema can express, because it is a constraint between a block
 and a sibling link rather than a constraint on a value.
 
 **Not yet built.** No fence tag is registered and no record schema is
-supplied, because Document Core has neither a Markdown Structure
-component to extract fenced blocks nor an extension-point member through
-which a tag could be registered. Building this component means widening
+supplied. Document Core's Markdown Structure component now locates a
+fenced block by a caller-supplied tag, but nothing yet lets a profile
+register one: the host carries no extension-point member through which
+a tag could reach that lookup. Building this component means widening
 the host first; it is not blocked on this module.
 
 **Profile Registration → Element Records.** Registration is a pure
@@ -325,8 +364,10 @@ under Interface come from.
 - [[adr-008]] — element record blocks and the two-schema model this
   module's Element Records component will implement when it is built.
 - [[adr-012]] — the reference conventions the registered types rely on.
-- [[adr-014]] — acceptance-criteria validation is deferred, so no
-  component here registers AC rules.
+- [[adr-021]] — Gherkin is where features and acceptance criteria are
+  authored; Profile Registration registers this framework's feature and
+  criterion identifier patterns and qualifier tag vocabulary for
+  [[module-document-core]]'s checks to apply.
 - [[adr-015]] — Go, and the profile-as-package composition model.
 
 ## Open Questions

@@ -1,0 +1,240 @@
+# Feature 
+
+## Table of Contents
+
+- [FeatureCode](#featurecode)
+- [FeatureId](#featureid)
+- [CriterionId](#criterionid)
+- [ContentHash](#contenthash)
+- [VerificationLevel](#verificationlevel)
+- [CriterionNotation](#criterionnotation)
+- [FeatureSourceBlock](#featuresourceblock)
+- [FeatureSourceFile](#featuresourcefile)
+- [FeatureSource](#featuresource)
+- [Criterion](#criterion)
+- [Feature](#feature)
+
+## Type Alias: FeatureCode
+
+The short code that groups features by topic, domain or capability.
+
+Uppercase and terse — `GHK`, `SPEC`, `CHK`. **Features share a code**:
+`SPEC` covers eleven requirements of the spec-index feature, and that is
+what makes it a grouping rather than an identity. A feature is identified
+by its code together with its number.
+
+**Definition:**
+
+```strata
+alias FeatureCode: String ~= `/^[A-Z][A-Z0-9]*$/`
+```
+
+
+## Type Alias: FeatureId
+
+The identifier of one feature — its prefix, its group code and its number.
+
+`FEAT-SPEC-009`, `FEAT-GHK-001`. This is the feature's durable address: it
+does not change when the feature moves between documents or between the
+two admissible forms, and it is what every acceptance-criterion identifier
+beneath the feature is derived from.
+
+The pattern admits any uppercase prefix rather than fixing `FEAT`, so that
+a project adopting the framework can carry its own.
+
+**Definition:**
+
+```strata
+alias FeatureId: String ~= `/^[A-Z]+-[A-Z0-9]+-[0-9]{3}$/`
+```
+
+
+## Type Alias: CriterionId
+
+The identifier of one acceptance criterion, as written in the tag that
+declares it.
+
+Constrained here rather than checked in code, because this is the join
+between three things that must agree: the criterion in a specification,
+the citation a test carries, and the row a central store holds. The
+pattern is the one the framework's acceptance-criterion traceability
+standard already fixes, minus
+the leading `@` that makes it a Gherkin tag — the identifier is the
+value, and the tag is only how it is written down.
+
+The middle segments are the owning feature's code and number, which is
+what allows a criterion to name its feature without carrying a second
+property: `AC-GHK-001.1` belongs to the feature coded `GHK` numbered
+`001`.
+
+**Definition:**
+
+```strata
+alias CriterionId: String ~= `/^AC-[A-Z0-9]+-[0-9]{3}\.[0-9]+$/`
+```
+
+
+## Type Alias: ContentHash
+
+A digest over a criterion's content, written as `sha256:` followed by
+lowercase hexadecimal.
+
+What is hashed is the criterion's name and text and nothing else. Source
+positions and parser node identifiers are excluded on purpose — node
+identifiers are positional counters that shift whenever anything above
+them is edited, and a criterion that moved has not changed.
+
+This is what makes "which criteria changed since the last index" a
+comparison of records rather than a diff of markdown.
+
+**Definition:**
+
+```strata
+alias ContentHash: String ~= `/^sha256:[0-9a-f]{64}$/`
+```
+
+
+## VerificationLevel
+
+The level at which a criterion is intended to be verified.
+
+Intent, not instruction. Nothing here executes a scenario or selects a
+suite; the value records the judgement made when the criterion was
+written, so that a coverage report can compare it against what tests
+actually cite.
+
+**Value Type:** String
+
+| Name | Value | Documentation |
+|------|-------|---------------|
+| Unit | "unit" | Verified against a unit in isolation. |
+| Integration | "integration" | Verified against several units working together. |
+| EndToEnd | "e2e" | Verified against the assembled system. |
+
+
+## CriterionNotation
+
+The notation a criterion was written in.
+
+Recorded on every criterion rather than assumed for the corpus, because
+the notation is a replaceable input and a consumer should branch on a
+stated value rather than on which properties happen to be populated.
+
+This framework's extractor emits `gherkin` only — nothing reads a prose
+criterion. The second value is what keeps the property meaningful: a
+one-value enum states nothing, and a record that came from a migration
+snapshot or another producer needs somewhere to say so.
+
+**Value Type:** String
+
+| Name | Value | Documentation |
+|------|-------|---------------|
+| Gherkin | "gherkin" | A Gherkin scenario, scenario outline, or tagged examples block. |
+| Prose | "prose" | A prose acceptance criterion in a markdown list. |
+
+
+## FeatureSourceBlock
+
+A feature written as a fenced Gherkin block inside a markdown document.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| block | [Span](index.md#span) | The extent of the fenced block, opening and closing fences included.<br><br>Recorded because the feature's own span covers the Gherkin inside the fence, and a caller that replaces or extracts the whole construct needs the fence too. This is the same distinction the framework's region scanner already draws between an inner and an outer extent. |
+
+
+## FeatureSourceFile
+
+A feature written as a standalone `.feature` file.
+
+Carries nothing of its own. The file is the feature, so its path is
+already on the feature and its extent is the whole document; this shape
+exists so the source form is a value a consumer branches on rather than
+one it infers from the absence of another property.
+
+*No properties defined.*
+
+
+## FeatureSource
+
+Which admissible form a feature was written in.
+
+The distinction survives into the index because it changes what a
+consumer may do. A fenced block sits inside a document that owns
+frontmatter, terminology and references, and rewriting it means editing a
+region of markdown. A standalone file has no such document around it and
+is the form external tooling ingests directly.
+
+**Discriminator:** form (String)
+
+| Tag | Type | Documentation |
+|-----|------|---------------|
+| "fenced-block" | FencedBlock | A fenced Gherkin block within a markdown document. |
+| "feature-file" | FeatureFile | A standalone Gherkin feature file. |
+
+
+## Criterion
+
+One acceptance criterion.
+
+**The criterion is the atomic unit.** Its body is carried as text rather
+than decomposed into steps and example rows, and that is a deliberate
+narrowing of an earlier design.
+
+Decomposition would model one notation. Steps typed by role and example
+rows keyed by a header are recoverable from Gherkin and from almost
+nothing else: a prose criterion has no steps to type, so those properties
+would sit empty for every criterion the corpus has not yet migrated, and
+populating them from any other notation would need inference rather than
+parsing. A model that only one notation can fill is a model of that
+notation.
+
+Nothing this framework does today operates below the level of a whole
+criterion. Queries fetch one by identifier, change detection compares
+hashes, validation reads tags. Decomposition is additive if a consumer
+ever needs it — the index schema grows without a breaking change — and
+removing it later would not be.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| id | [CriterionId](#criterionid) | The criterion's identifier, from the tag that declares it. |
+| name | String? | The criterion's name — the text following the `Scenario`, `Scenario Outline` or `Examples` keyword that declares it.<br><br>Absent for a notation that gives a criterion no name, as prose does. |
+| text | String | The criterion's body, exactly as written.<br><br>For a Gherkin criterion this is its steps and any example table, verbatim, with the block's common indentation removed. For a prose criterion it is the sentence. One property serves both because the criterion is the unit, and its text is what every notation has. |
+| description | String? | Rationale attached to this criterion alone, absent where none was written.<br><br>Normative statements do not belong here; prose in this position is reported as a probable untagged criterion rather than recorded as requirement text. |
+| rule | String? | The name of the business rule this criterion sits beneath, absent where it sits directly under its feature.<br><br>The rule's name is an assertion — "a build failure is the checker's job, not the indexer's" — so recording it puts the reason several criteria exist together in the index, scoped explicitly rather than inferred from position in a document. |
+| negative | Bool | Whether the criterion states a prohibition.<br><br>Carried as its own property because a prohibition loses its grammatical marking in Gherkin: where prose wrote `SHALL NOT`, a scenario writes an ordinary sentence, and the fact that it forbids rather than requires would otherwise be unrecoverable from the record. |
+| manual | Bool | Whether the criterion can only be verified by hand.<br><br>A criterion marked this way is exempt from the obligation that some test cite it. |
+| level | [VerificationLevel](#verificationlevel)? | The level at which the criterion is intended to be verified, absent where the author declared none. |
+| notation | [CriterionNotation](#criterionnotation) | The notation this criterion was written in. |
+| content_hash | [ContentHash](#contenthash) | A hash of the criterion's name and text, excluding its position.<br><br>Two indexes of the same criterion agree on this value whether or not the criterion moved; they disagree the moment its wording changes. |
+| position | [Span](index.md#span) | Where in its document the criterion is written, as a span rather than a bare line number, so that a report and a rewrite both address the criterion itself. |
+
+
+## Feature
+
+One feature, extracted from a fenced Gherkin block or a standalone
+feature file.
+
+A feature is the unit a requirement maps onto: one cohesive capability,
+independently testable, with its own code and slug. Its criteria are
+nested beneath it because that is what they are — a criterion has no
+meaning apart from the feature it qualifies, and the containment is the
+data's own shape rather than an index's convenience.
+
+Lookup does not need the collection flattened. An acceptance-criterion
+identifier carries its feature's code, so resolving a criterion to its
+feature is reading the identifier, and resolving an identifier to a
+criterion is one index built over this tree when the index is read.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| id | [FeatureId](#featureid) | The feature's identifier — its durable address, carrying the group code and the number that distinguishes it within that group. |
+| code | [FeatureCode](#featurecode) | The code the identifier groups this feature under, recorded so that a consumer selecting a group does not have to split the identifier. |
+| document_slug | [Slug](vocabulary.md#slug) | The slug of the document that owns this feature.<br><br>Populated for both source forms, but established differently: a fenced block inherits the slug of the document it is written in, and a standalone feature file — being no document — names its owner in a tag. Derivation is preferred wherever it is available, so that the record cannot disagree with the document holding it. |
+| path | String | The path of the file the feature is written in, relative to the repository root and written with forward slashes on every platform. |
+| name | String | The feature's name — the text following the `Feature` keyword. |
+| description | String? | The feature's description: its user story, and any design note or scope fence written beneath it.<br><br>Absent where none was written, which is reported as a caution rather than a failure — a feature with no story is legible but poorer, and refusing to index it would help nobody. |
+| source | [FeatureSource](#featuresource) | Which admissible form the feature was written in. |
+| position | [Span](index.md#span) | Where in its file the feature is written, as a span covering the Gherkin itself.<br><br>For a feature written as a fenced block, this covers the Gherkin inside the fence; the fence's own extent is carried by `source`. |
+| criteria | Array<[Criterion](#criterion)> | The feature's acceptance criteria, in the order they are written.<br><br>Nested rather than held in a sibling collection. A criterion belongs to exactly one feature, its identifier already names which, and a consumer fetching a feature wants its criteria with it. |
+
+

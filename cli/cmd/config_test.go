@@ -27,12 +27,14 @@ type stubProfile struct {
 	types       map[string]corpus.DocumentTypeRules
 	conventions specmodel.ConventionsConfig
 	lifecycle   corpus.LifecycleRules
+	featureTags corpus.FeatureTagRules
 }
 
 func (p stubProfile) Schema() []byte                                     { return p.schema }
 func (p stubProfile) DocumentTypes() map[string]corpus.DocumentTypeRules { return p.types }
 func (p stubProfile) Conventions() specmodel.ConventionsConfig           { return p.conventions }
 func (p stubProfile) Lifecycle() corpus.LifecycleRules                   { return p.lifecycle }
+func (p stubProfile) FeatureTags() corpus.FeatureTagRules                { return p.featureTags }
 
 // testRegistry registers exactly one profile, "test-profile", with a
 // line_width default of 100 — distinct from spec-driven-dev's 80, so a

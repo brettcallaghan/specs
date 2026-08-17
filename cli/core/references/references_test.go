@@ -111,6 +111,145 @@ func TestAReferenceInAFenceInfoStringIsNotRecorded(t *testing.T) {
 	}
 }
 
+// A fenced block tagged `gherkin` is Gherkin, not an illustration, so its
+// content is not masked: a wikilink written in a feature description, a
+// rule name, a scenario name, a step or an examples cell is extracted
+// like any other body reference.
+//
+// AC: AC-GHK-004.1
+func TestAWikilinkInsideAGherkinFenceIsExtracted(t *testing.T) {
+	found, _ := extract(t, "---\ntitle: A document\n---\n\n"+
+		"```gherkin\n"+
+		"Feature: Refunds cite [[gk-description]]\n"+
+		"\n"+
+		"  Rule: [[gk-rule]] governs partial refunds\n"+
+		"\n"+
+		"    Scenario: A wikilink in the name [[gk-scenario]]\n"+
+		"      Given a step naming [[gk-step]]\n"+
+		"      When nothing else happens\n"+
+		"      Then done\n"+
+		"\n"+
+		"    Scenario Outline: parameterized citing <method>\n"+
+		"      Given a method\n"+
+		"      Examples:\n"+
+		"        | method          |\n"+
+		"        | [[gk-examples]] |\n"+
+		"```\n")
+
+	want := []string{"gk-description", "gk-rule", "gk-scenario", "gk-step", "gk-examples"}
+	if !equal(slugs(found), want) {
+		t.Fatalf("slugs = %v, want %v", slugs(found), want)
+	}
+	for _, reference := range found {
+		if _, ok := reference.Origin.AsBody(); !ok {
+			t.Errorf("%q is not recorded as a body reference", reference.Text)
+		}
+	}
+}
+
+// A reference extracted from inside a fenced gherkin block still carries
+// the span of the wikilink in the whole document, exactly as one written
+// in prose does — the fence changes what is masked, not how a position
+// is computed.
+//
+// AC: AC-GHK-004.2
+func TestAGherkinFenceReferenceIsPositionedInTheContainingDocument(t *testing.T) {
+	found, source := extract(t, "---\ntitle: A document\n---\n\n"+
+		"Prose before the block.\n\n"+
+		"```gherkin\n"+
+		"Feature: Refunds\n"+
+		"\n"+
+		"  Scenario: A step names a reference\n"+
+		"    Given a step citing [[gk-positioned]]\n"+
+		"    When nothing else happens\n"+
+		"    Then done\n"+
+		"```\n")
+
+	if len(found) != 1 {
+		t.Fatalf("found %d references, want 1: %v", len(found), slugs(found))
+	}
+	reference := found[0]
+	if got := string(span.Slice(source, reference.Position)); got != "gk-positioned" {
+		t.Errorf("the span covers %q, want the reference text", got)
+	}
+	if reference.Position.StartLine == 0 || reference.Position.StartColumn == 0 {
+		t.Errorf("%q carries no line or column: %+v", reference.Text, reference.Position)
+	}
+}
+
+// A reference written inside Gherkin resolves through the same lookup a
+// prose reference does: this package extracts it the same way, and
+// [references.Resolve] never asks where a reference was written.
+//
+// AC: AC-GHK-004.3
+func TestAReferenceInsideGherkinResolvesLikeAProseReference(t *testing.T) {
+	found, _ := extract(t, "---\ntitle: A document\n---\n\n"+
+		"```gherkin\n"+
+		"Feature: Refunds\n"+
+		"\n"+
+		"  Scenario: A step names references\n"+
+		"    Given a step citing [[adr-012]] and [[adr-999-absent]]\n"+
+		"    When nothing else happens\n"+
+		"    Then done\n"+
+		"```\n")
+
+	if want := []string{"adr-012", "adr-999-absent"}; !equal(slugs(found), want) {
+		t.Fatalf("slugs = %v, want %v", slugs(found), want)
+	}
+
+	index := indexOf([]specmodel.IndexEntry{member("specs/adrs/adr-012.md", "adr-012")})
+	references.Resolve(found, index)
+
+	if got := targetOf(t, found[0].Resolution); got != "specs/adrs/adr-012.md" {
+		t.Errorf("the reference resolved to %q, want the member it names", got)
+	}
+	if _, ok := found[1].Resolution.AsUnresolved(); !ok {
+		t.Errorf("a reference naming no corpus member resolved as %+v, want unresolved — "+
+			"the report a prose reference to the same absent slug would receive", found[1].Resolution.Value)
+	}
+}
+
+// An anchor written on a wikilink inside Gherkin is split from the slug
+// on the first `#`, as it is everywhere else, and recorded without being
+// interpreted: nothing resolves it against the Feature, Rule or Scenario
+// name it happens to read like, because a scenario name is not a
+// heading.
+//
+// AC: AC-GHK-004.4
+func TestAGherkinReferenceAnchorIsSplitButNotResolvedAgainstGherkinStructure(t *testing.T) {
+	found, _ := extract(t, "---\ntitle: A document\n---\n\n"+
+		"```gherkin\n"+
+		"Feature: Refunds\n"+
+		"\n"+
+		"  Scenario: A step names an anchored reference\n"+
+		"    Given a step citing [[adr-012#Scenario: A step names an anchored reference]]\n"+
+		"    When nothing else happens\n"+
+		"    Then done\n"+
+		"```\n")
+
+	if len(found) != 1 {
+		t.Fatalf("found %d references, want 1: %v", len(found), slugs(found))
+	}
+	reference := found[0]
+	if reference.Slug != "adr-012" {
+		t.Errorf("slug = %q, want adr-012", reference.Slug)
+	}
+	const wantAnchor = "Scenario: A step names an anchored reference"
+	if reference.Anchor == nil || *reference.Anchor != wantAnchor {
+		t.Errorf("anchor = %v, want %q recorded verbatim", reference.Anchor, wantAnchor)
+	}
+
+	// Resolution reads the slug half alone. Nothing here — or anywhere
+	// resolution runs — treats the anchor as naming a Feature, Rule or
+	// Scenario, so an anchor that happens to read like one plays no part
+	// in what the reference resolves to.
+	index := indexOf([]specmodel.IndexEntry{member("specs/adrs/adr-012.md", "adr-012")})
+	references.Resolve(found, index)
+	if got := targetOf(t, found[0].Resolution); got != "specs/adrs/adr-012.md" {
+		t.Errorf("resolved to %q; the anchor should play no part in resolution", got)
+	}
+}
+
 // AC: AC-SPECREF-001.4
 func TestAReferenceInAFrontmatterValueIsNotRecorded(t *testing.T) {
 	// The description names the notation rather than a document. It is

@@ -1,0 +1,5 @@
+description = "feature with no argument and no --code returns every feature in the corpus"
+cites = ["AC-GHK-007.3"]
+artifacts = ["checks.log"]
+args = ["feature"]
+exit_code = 0

@@ -11,7 +11,7 @@
     {
       "name": "sf",
       "source": "./plugin",
-      "description": "Spec-first development: authoring specs in EARS (ADRs, FRDs, requirements documents, architecture and feature blueprints, contracts), grooming approved feature blueprints into executable implementation plans, and retrospectives that produce evidence-backed improvement RFCs"
+      "description": "Spec-first development: authoring specs in Gherkin and EARS (ADRs, FRDs, requirements documents, architecture and feature blueprints, contracts), grooming approved feature blueprints into executable implementation plans, and retrospectives that produce evidence-backed improvement RFCs"
     }
   ]
 }

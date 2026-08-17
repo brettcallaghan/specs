@@ -130,6 +130,513 @@ type ConventionsConfig struct {
 	LineWidth *uint64 `json:"line_width,omitempty"`
 }
 
+// The short code that groups features by topic, domain or capability.
+//
+// Uppercase and terse — `GHK`, `SPEC`, `CHK`. **Features share a code**:
+// `SPEC` covers eleven requirements of the spec-index feature, and that is
+// what makes it a grouping rather than an identity. A feature is identified
+// by its code together with its number.
+type FeatureCode string
+
+// The identifier of one feature — its prefix, its group code and its number.
+//
+// `FEAT-SPEC-009`, `FEAT-GHK-001`. This is the feature's durable address: it
+// does not change when the feature moves between documents or between the
+// two admissible forms, and it is what every acceptance-criterion identifier
+// beneath the feature is derived from.
+//
+// The pattern admits any uppercase prefix rather than fixing `FEAT`, so that
+// a project adopting the framework can carry its own.
+type FeatureId string
+
+// The identifier of one acceptance criterion, as written in the tag that
+// declares it.
+//
+// Constrained here rather than checked in code, because this is the join
+// between three things that must agree: the criterion in a specification,
+// the citation a test carries, and the row a central store holds. The
+// pattern is the one the framework's acceptance-criterion traceability
+// standard already fixes, minus
+// the leading `@` that makes it a Gherkin tag — the identifier is the
+// value, and the tag is only how it is written down.
+//
+// The middle segments are the owning feature's code and number, which is
+// what allows a criterion to name its feature without carrying a second
+// property: `AC-GHK-001.1` belongs to the feature coded `GHK` numbered
+// `001`.
+type CriterionId string
+
+// A digest over a criterion's content, written as `sha256:` followed by
+// lowercase hexadecimal.
+//
+// What is hashed is the criterion's name and text and nothing else. Source
+// positions and parser node identifiers are excluded on purpose — node
+// identifiers are positional counters that shift whenever anything above
+// them is edited, and a criterion that moved has not changed.
+//
+// This is what makes "which criteria changed since the last index" a
+// comparison of records rather than a diff of markdown.
+type ContentHash string
+
+// The level at which a criterion is intended to be verified.
+//
+// Intent, not instruction. Nothing here executes a scenario or selects a
+// suite; the value records the judgement made when the criterion was
+// written, so that a coverage report can compare it against what tests
+// actually cite.
+type VerificationLevel string
+
+const (
+	// Verified against a unit in isolation.
+	VerificationLevelUnit VerificationLevel = "unit"
+	// Verified against several units working together.
+	VerificationLevelIntegration VerificationLevel = "integration"
+	// Verified against the assembled system.
+	VerificationLevelEndToEnd VerificationLevel = "e2e"
+)
+
+func (e VerificationLevel) MarshalJSON() ([]byte, error) {
+	switch e {
+	case VerificationLevelUnit, VerificationLevelIntegration, VerificationLevelEndToEnd:
+		return json.Marshal(string(e))
+	}
+	return nil, fmt.Errorf("VerificationLevel: unknown value %q", string(e))
+}
+
+func (e *VerificationLevel) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	switch VerificationLevel(s) {
+	case VerificationLevelUnit, VerificationLevelIntegration, VerificationLevelEndToEnd:
+		*e = VerificationLevel(s)
+		return nil
+	}
+	return fmt.Errorf("VerificationLevel: unknown value %q", s)
+}
+
+func (e VerificationLevel) String() string {
+	return string(e)
+}
+
+// The notation a criterion was written in.
+//
+// Recorded on every criterion rather than assumed for the corpus, because
+// the notation is a replaceable input and a consumer should branch on a
+// stated value rather than on which properties happen to be populated.
+//
+// This framework's extractor emits `gherkin` only — nothing reads a prose
+// criterion. The second value is what keeps the property meaningful: a
+// one-value enum states nothing, and a record that came from a migration
+// snapshot or another producer needs somewhere to say so.
+type CriterionNotation string
+
+const (
+	// A Gherkin scenario, scenario outline, or tagged examples block.
+	CriterionNotationGherkin CriterionNotation = "gherkin"
+	// A prose acceptance criterion in a markdown list.
+	CriterionNotationProse CriterionNotation = "prose"
+)
+
+func (e CriterionNotation) MarshalJSON() ([]byte, error) {
+	switch e {
+	case CriterionNotationGherkin, CriterionNotationProse:
+		return json.Marshal(string(e))
+	}
+	return nil, fmt.Errorf("CriterionNotation: unknown value %q", string(e))
+}
+
+func (e *CriterionNotation) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	switch CriterionNotation(s) {
+	case CriterionNotationGherkin, CriterionNotationProse:
+		*e = CriterionNotation(s)
+		return nil
+	}
+	return fmt.Errorf("CriterionNotation: unknown value %q", s)
+}
+
+func (e CriterionNotation) String() string {
+	return string(e)
+}
+
+// A feature written as a fenced Gherkin block inside a markdown document.
+type FeatureSourceBlock struct {
+	// The extent of the fenced block, opening and closing fences included.
+	//
+	// Recorded because the feature's own span covers the Gherkin inside the
+	// fence, and a caller that replaces or extracts the whole construct needs
+	// the fence too. This is the same distinction the framework's region
+	// scanner already draws between an inner and an outer extent.
+	Block Span `json:"block"`
+}
+
+func (v *FeatureSourceBlock) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["block"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FeatureSourceBlock: required field \"block\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Block); err != nil {
+		return prefixField("block", err)
+	}
+	return nil
+}
+
+// A feature written as a standalone `.feature` file.
+//
+// Carries nothing of its own. The file is the feature, so its path is
+// already on the feature and its extent is the whole document; this shape
+// exists so the source form is a value a consumer branches on rather than
+// one it infers from the absence of another property.
+type FeatureSourceFile struct{}
+
+type FeatureSourceVariant interface{ isFeatureSourceVariant() }
+
+// Which admissible form a feature was written in.
+//
+// The distinction survives into the index because it changes what a
+// consumer may do. A fenced block sits inside a document that owns
+// frontmatter, terminology and references, and rewriting it means editing a
+// region of markdown. A standalone file has no such document around it and
+// is the form external tooling ingests directly.
+type FeatureSource struct {
+	Value FeatureSourceVariant
+}
+
+func (FeatureSourceBlock) isFeatureSourceVariant() {}
+func (FeatureSourceFile) isFeatureSourceVariant()  {}
+
+func NewFeatureSourceFencedBlock(v FeatureSourceBlock) FeatureSource {
+	return FeatureSource{Value: v}
+}
+
+func NewFeatureSourceFeatureFile(v FeatureSourceFile) FeatureSource {
+	return FeatureSource{Value: v}
+}
+
+func (u FeatureSource) AsFencedBlock() (FeatureSourceBlock, bool) {
+	v, ok := u.Value.(FeatureSourceBlock)
+	return v, ok
+}
+
+func (u FeatureSource) AsFeatureFile() (FeatureSourceFile, bool) {
+	v, ok := u.Value.(FeatureSourceFile)
+	return v, ok
+}
+
+func (u FeatureSource) MarshalJSON() ([]byte, error) {
+	var payload []byte
+	var tag string
+	var err error
+	switch v := u.Value.(type) {
+	case FeatureSourceBlock:
+		tag = "fenced-block"
+		payload, err = json.Marshal(v)
+	case FeatureSourceFile:
+		tag = "feature-file"
+		payload, err = json.Marshal(v)
+	default:
+		return nil, fmt.Errorf("FeatureSource: nil or unknown variant")
+	}
+	if err != nil {
+		return nil, err
+	}
+	tagBytes, err := json.Marshal(tag)
+	if err != nil {
+		return nil, err
+	}
+	if len(payload) == 0 || payload[0] != '{' {
+		return nil, fmt.Errorf("FeatureSource: variant produced non-object JSON")
+	}
+	prefix := append([]byte{'{'}, []byte("\"form\":")...)
+	prefix = append(prefix, tagBytes...)
+	if payload[1] != '}' {
+		prefix = append(prefix, ',')
+	}
+	return append(prefix, payload[1:]...), nil
+}
+
+func (u *FeatureSource) UnmarshalJSON(data []byte) error {
+	var probe struct {
+		Tag string `json:"form"`
+	}
+	if err := json.Unmarshal(data, &probe); err != nil {
+		return err
+	}
+	switch probe.Tag {
+	case "fenced-block":
+		var v FeatureSourceBlock
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "feature-file":
+		var v FeatureSourceFile
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	}
+	return fmt.Errorf("FeatureSource: unknown form %q", probe.Tag)
+}
+
+// One acceptance criterion.
+//
+// **The criterion is the atomic unit.** Its body is carried as text rather
+// than decomposed into steps and example rows, and that is a deliberate
+// narrowing of an earlier design.
+//
+// Decomposition would model one notation. Steps typed by role and example
+// rows keyed by a header are recoverable from Gherkin and from almost
+// nothing else: a prose criterion has no steps to type, so those properties
+// would sit empty for every criterion the corpus has not yet migrated, and
+// populating them from any other notation would need inference rather than
+// parsing. A model that only one notation can fill is a model of that
+// notation.
+//
+// Nothing this framework does today operates below the level of a whole
+// criterion. Queries fetch one by identifier, change detection compares
+// hashes, validation reads tags. Decomposition is additive if a consumer
+// ever needs it — the index schema grows without a breaking change — and
+// removing it later would not be.
+type Criterion struct {
+	// The criterion's identifier, from the tag that declares it.
+	Id CriterionId `json:"id"`
+	// The criterion's name — the text following the `Scenario`,
+	// `Scenario Outline` or `Examples` keyword that declares it.
+	//
+	// Absent for a notation that gives a criterion no name, as prose does.
+	Name *string `json:"name,omitempty"`
+	// The criterion's body, exactly as written.
+	//
+	// For a Gherkin criterion this is its steps and any example table,
+	// verbatim, with the block's common indentation removed. For a prose
+	// criterion it is the sentence. One property serves both because the
+	// criterion is the unit, and its text is what every notation has.
+	Text string `json:"text"`
+	// Rationale attached to this criterion alone, absent where none was
+	// written.
+	//
+	// Normative statements do not belong here; prose in this position is
+	// reported as a probable untagged criterion rather than recorded as
+	// requirement text.
+	Description *string `json:"description,omitempty"`
+	// The name of the business rule this criterion sits beneath, absent where
+	// it sits directly under its feature.
+	//
+	// The rule's name is an assertion — "a build failure is the checker's job,
+	// not the indexer's" — so recording it puts the reason several criteria
+	// exist together in the index, scoped explicitly rather than inferred from
+	// position in a document.
+	Rule *string `json:"rule,omitempty"`
+	// Whether the criterion states a prohibition.
+	//
+	// Carried as its own property because a prohibition loses its grammatical
+	// marking in Gherkin: where prose wrote `SHALL NOT`, a scenario writes an
+	// ordinary sentence, and the fact that it forbids rather than requires
+	// would otherwise be unrecoverable from the record.
+	Negative bool `json:"negative"`
+	// Whether the criterion can only be verified by hand.
+	//
+	// A criterion marked this way is exempt from the obligation that some test
+	// cite it.
+	Manual bool `json:"manual"`
+	// The level at which the criterion is intended to be verified, absent
+	// where the author declared none.
+	Level *VerificationLevel `json:"level,omitempty"`
+	// The notation this criterion was written in.
+	Notation CriterionNotation `json:"notation"`
+	// A hash of the criterion's name and text, excluding its position.
+	//
+	// Two indexes of the same criterion agree on this value whether or not the
+	// criterion moved; they disagree the moment its wording changes.
+	ContentHash ContentHash `json:"content_hash"`
+	// Where in its document the criterion is written, as a span rather than a
+	// bare line number, so that a report and a rewrite both address the
+	// criterion itself.
+	Position Span `json:"position"`
+}
+
+func (v *Criterion) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["id"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Criterion: required field \"id\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Id); err != nil {
+		return prefixField("id", err)
+	}
+	if m, ok := raw["name"]; ok {
+		if err := json.Unmarshal(m, &v.Name); err != nil {
+			return prefixField("name", err)
+		}
+	}
+	if m, ok := raw["text"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Criterion: required field \"text\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Text); err != nil {
+		return prefixField("text", err)
+	}
+	if m, ok := raw["description"]; ok {
+		if err := json.Unmarshal(m, &v.Description); err != nil {
+			return prefixField("description", err)
+		}
+	}
+	if m, ok := raw["rule"]; ok {
+		if err := json.Unmarshal(m, &v.Rule); err != nil {
+			return prefixField("rule", err)
+		}
+	}
+	if m, ok := raw["negative"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Criterion: required field \"negative\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Negative); err != nil {
+		return prefixField("negative", err)
+	}
+	if m, ok := raw["manual"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Criterion: required field \"manual\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Manual); err != nil {
+		return prefixField("manual", err)
+	}
+	if m, ok := raw["level"]; ok {
+		if err := json.Unmarshal(m, &v.Level); err != nil {
+			return prefixField("level", err)
+		}
+	}
+	if m, ok := raw["notation"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Criterion: required field \"notation\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Notation); err != nil {
+		return prefixField("notation", err)
+	}
+	if m, ok := raw["content_hash"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Criterion: required field \"content_hash\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.ContentHash); err != nil {
+		return prefixField("content_hash", err)
+	}
+	if m, ok := raw["position"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Criterion: required field \"position\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Position); err != nil {
+		return prefixField("position", err)
+	}
+	return nil
+}
+
+// One feature, extracted from a fenced Gherkin block or a standalone
+// feature file.
+//
+// A feature is the unit a requirement maps onto: one cohesive capability,
+// independently testable, with its own code and slug. Its criteria are
+// nested beneath it because that is what they are — a criterion has no
+// meaning apart from the feature it qualifies, and the containment is the
+// data's own shape rather than an index's convenience.
+//
+// Lookup does not need the collection flattened. An acceptance-criterion
+// identifier carries its feature's code, so resolving a criterion to its
+// feature is reading the identifier, and resolving an identifier to a
+// criterion is one index built over this tree when the index is read.
+type Feature struct {
+	// The feature's identifier — its durable address, carrying the group code
+	// and the number that distinguishes it within that group.
+	Id FeatureId `json:"id"`
+	// The code the identifier groups this feature under, recorded so that a
+	// consumer selecting a group does not have to split the identifier.
+	Code FeatureCode `json:"code"`
+	// The slug of the document that owns this feature.
+	//
+	// Populated for both source forms, but established differently: a fenced
+	// block inherits the slug of the document it is written in, and a
+	// standalone feature file — being no document — names its owner in a tag.
+	// Derivation is preferred wherever it is available, so that the record
+	// cannot disagree with the document holding it.
+	DocumentSlug Slug `json:"document_slug"`
+	// The path of the file the feature is written in, relative to the
+	// repository root and written with forward slashes on every platform.
+	Path string `json:"path"`
+	// The feature's name — the text following the `Feature` keyword.
+	Name string `json:"name"`
+	// The feature's description: its user story, and any design note or scope
+	// fence written beneath it.
+	//
+	// Absent where none was written, which is reported as a caution rather
+	// than a failure — a feature with no story is legible but poorer, and
+	// refusing to index it would help nobody.
+	Description *string `json:"description,omitempty"`
+	// Which admissible form the feature was written in.
+	Source FeatureSource `json:"source"`
+	// Where in its file the feature is written, as a span covering the Gherkin
+	// itself.
+	//
+	// For a feature written as a fenced block, this covers the Gherkin inside
+	// the fence; the fence's own extent is carried by `source`.
+	Position Span `json:"position"`
+	// The feature's acceptance criteria, in the order they are written.
+	//
+	// Nested rather than held in a sibling collection. A criterion belongs to
+	// exactly one feature, its identifier already names which, and a consumer
+	// fetching a feature wants its criteria with it.
+	Criteria []Criterion `json:"criteria"`
+}
+
+func (v *Feature) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["id"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Feature: required field \"id\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Id); err != nil {
+		return prefixField("id", err)
+	}
+	if m, ok := raw["code"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Feature: required field \"code\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Code); err != nil {
+		return prefixField("code", err)
+	}
+	if m, ok := raw["document_slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Feature: required field \"document_slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.DocumentSlug); err != nil {
+		return prefixField("document_slug", err)
+	}
+	if m, ok := raw["path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Feature: required field \"path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Path); err != nil {
+		return prefixField("path", err)
+	}
+	if m, ok := raw["name"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Feature: required field \"name\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Name); err != nil {
+		return prefixField("name", err)
+	}
+	if m, ok := raw["description"]; ok {
+		if err := json.Unmarshal(m, &v.Description); err != nil {
+			return prefixField("description", err)
+		}
+	}
+	if m, ok := raw["source"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Feature: required field \"source\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Source); err != nil {
+		return prefixField("source", err)
+	}
+	if m, ok := raw["position"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Feature: required field \"position\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Position); err != nil {
+		return prefixField("position", err)
+	}
+	if m, ok := raw["criteria"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Feature: required field \"criteria\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Criteria); err != nil {
+		return prefixField("criteria", err)
+	}
+	return nil
+}
+
 // The identifier of one check, stable across releases.
 //
 // Every finding names the rule that raised it, and the run report accounts
@@ -350,6 +857,33 @@ func (v *FindingFrontmatterParse) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("FindingFrontmatterParse: required field \"message\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Message); err != nil {
 		return prefixField("message", err)
+	}
+	return nil
+}
+
+// A configured spec root beneath which discovery found no corpus member.
+//
+// The only finding whose subject is the corpus rather than a document, and
+// the reason it carries a variant of its own: a consumer keying off the
+// kind must be able to tell "the run examined nothing" from a defect in
+// some file, and there is no file here to name. The root is carried
+// because it is the whole of what an operator acts on — a typo'd path, a
+// moved directory, an ignore rule that swallowed the corpus.
+type FindingCorpusEmpty struct {
+	// The configured spec root, relative to the repository root, that holds
+	// no corpus member.
+	Root string `json:"root"`
+}
+
+func (v *FindingCorpusEmpty) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["root"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingCorpusEmpty: required field \"root\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Root); err != nil {
+		return prefixField("root", err)
 	}
 	return nil
 }
@@ -633,6 +1167,154 @@ func (v *FindingUnresolvedCitation) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// A Gherkin source that could not be parsed.
+//
+// Held apart from a frontmatter parse failure because the two are found by
+// different readers and fixed in different places: a Gherkin source sits
+// inside a document whose envelope parsed perfectly well, and only the
+// feature it declares is lost. The parser's own expectation is carried so
+// that the author is told what was admissible at that position rather than
+// only that something was not.
+type FindingGherkinParse struct {
+	// What the parser expected at the offending position, quoted from the
+	// parser so the message needs no further lookup to act on.
+	Expected string `json:"expected"`
+}
+
+func (v *FindingGherkinParse) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["expected"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingGherkinParse: required field \"expected\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Expected); err != nil {
+		return prefixField("expected", err)
+	}
+	return nil
+}
+
+// A record whose identifier tag is absent or does not match the pattern
+// registered for it.
+//
+// One shape for both defects, because the fix is the same act — write a
+// conforming identifier — and the two are told apart by the rule that
+// raised the finding. The pattern is carried in either case: an author who
+// wrote no identifier needs to know the form of the one to write just as
+// much as an author who wrote a wrong one.
+type FindingIdentifierPattern struct {
+	// The identifier as written, absent where the record carries no
+	// identifier tag at all.
+	Identifier *string `json:"identifier,omitempty"`
+	// The pattern the active profile registers for identifiers of this kind.
+	Pattern string `json:"pattern"`
+}
+
+func (v *FindingIdentifierPattern) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["identifier"]; ok {
+		if err := json.Unmarshal(m, &v.Identifier); err != nil {
+			return prefixField("identifier", err)
+		}
+	}
+	if m, ok := raw["pattern"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingIdentifierPattern: required field \"pattern\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Pattern); err != nil {
+		return prefixField("pattern", err)
+	}
+	return nil
+}
+
+// An identifier declared by more than one record in the corpus.
+//
+// Reported against each of the two records, each naming the other, so that
+// checking either one surfaces the collision. The other occurrence's span
+// is carried alongside its path because a file holds many records and an
+// identifier is not a heading: without the span the reader is told which
+// file to open and left to search it.
+type FindingDuplicateIdentifier struct {
+	// The identifier both records declare.
+	Identifier string `json:"identifier"`
+	// The other occurrence's path, relative to the repository root and
+	// written with forward slashes on every platform.
+	OtherPath string `json:"other_path"`
+	// Where in that file the other occurrence is written.
+	OtherPosition Span `json:"other_position"`
+}
+
+func (v *FindingDuplicateIdentifier) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["identifier"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingDuplicateIdentifier: required field \"identifier\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Identifier); err != nil {
+		return prefixField("identifier", err)
+	}
+	if m, ok := raw["other_path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingDuplicateIdentifier: required field \"other_path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.OtherPath); err != nil {
+		return prefixField("other_path", err)
+	}
+	if m, ok := raw["other_position"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingDuplicateIdentifier: required field \"other_position\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.OtherPosition); err != nil {
+		return prefixField("other_position", err)
+	}
+	return nil
+}
+
+// A scenario outline whose examples blocks are inconsistently tagged: some
+// carry an identifier and others do not.
+//
+// The defect is the inconsistency, not the several blocks — an outline
+// whose blocks are all tagged is several criteria, and one whose blocks are
+// all untagged is a single criterion written in named groups. Both are
+// admissible, and the mixture is what no reader can resolve.
+//
+// The untagged blocks are carried as spans so that a report points at the
+// blocks to fix rather than at the outline containing them.
+type FindingPartiallyTaggedOutline struct {
+	// Where each untagged examples block is written, in the order the blocks
+	// occur.
+	Untagged []Span `json:"untagged"`
+}
+
+func (v *FindingPartiallyTaggedOutline) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["untagged"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingPartiallyTaggedOutline: required field \"untagged\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Untagged); err != nil {
+		return prefixField("untagged", err)
+	}
+	return nil
+}
+
+// A feature whose owning-document tag is absent, names a document other
+// than the one the feature is written in, or names no corpus member at all.
+//
+// The three defects share a shape because they share a question — which
+// document owns this feature — and the rule that raised the finding says
+// which of them occurred. Both slugs are optional because each defect
+// leaves a different half unknown: a feature carrying no tag has no slug to
+// quote, and a standalone feature file is no document and so has none of
+// its own to disagree with.
+type FindingOwningDocument struct {
+	// The slug the feature's owning-document tag names, as written, absent
+	// where the feature carries no such tag.
+	Slug *string `json:"slug,omitempty"`
+	// The slug of the document the feature is written in, absent where the
+	// feature is a standalone feature file rather than a fenced block.
+	DocumentSlug *string `json:"document_slug,omitempty"`
+}
+
 type FindingDetailVariant interface{ isFindingDetailVariant() }
 
 // The structured detail of one finding, selected by the kind of defect.
@@ -650,18 +1332,24 @@ type FindingDetail struct {
 	Value FindingDetailVariant
 }
 
-func (FindingSchemaViolation) isFindingDetailVariant()     {}
-func (FindingMissingProperty) isFindingDetailVariant()     {}
-func (FindingSlugPattern) isFindingDetailVariant()         {}
-func (FindingDuplicateSlug) isFindingDetailVariant()       {}
-func (FindingFrontmatterParse) isFindingDetailVariant()    {}
-func (FindingUnverified) isFindingDetailVariant()          {}
-func (FindingUnresolvedReference) isFindingDetailVariant() {}
-func (FindingRetiredTarget) isFindingDetailVariant()       {}
-func (FindingIncompletePairing) isFindingDetailVariant()   {}
-func (FindingReferenceType) isFindingDetailVariant()       {}
-func (FindingUnmappedCitation) isFindingDetailVariant()    {}
-func (FindingUnresolvedCitation) isFindingDetailVariant()  {}
+func (FindingSchemaViolation) isFindingDetailVariant()        {}
+func (FindingMissingProperty) isFindingDetailVariant()        {}
+func (FindingSlugPattern) isFindingDetailVariant()            {}
+func (FindingDuplicateSlug) isFindingDetailVariant()          {}
+func (FindingFrontmatterParse) isFindingDetailVariant()       {}
+func (FindingCorpusEmpty) isFindingDetailVariant()            {}
+func (FindingUnverified) isFindingDetailVariant()             {}
+func (FindingUnresolvedReference) isFindingDetailVariant()    {}
+func (FindingRetiredTarget) isFindingDetailVariant()          {}
+func (FindingIncompletePairing) isFindingDetailVariant()      {}
+func (FindingReferenceType) isFindingDetailVariant()          {}
+func (FindingUnmappedCitation) isFindingDetailVariant()       {}
+func (FindingUnresolvedCitation) isFindingDetailVariant()     {}
+func (FindingGherkinParse) isFindingDetailVariant()           {}
+func (FindingIdentifierPattern) isFindingDetailVariant()      {}
+func (FindingDuplicateIdentifier) isFindingDetailVariant()    {}
+func (FindingPartiallyTaggedOutline) isFindingDetailVariant() {}
+func (FindingOwningDocument) isFindingDetailVariant()         {}
 
 func NewFindingDetailSchemaViolation(v FindingSchemaViolation) FindingDetail {
 	return FindingDetail{Value: v}
@@ -680,6 +1368,10 @@ func NewFindingDetailDuplicateSlug(v FindingDuplicateSlug) FindingDetail {
 }
 
 func NewFindingDetailFrontmatterParse(v FindingFrontmatterParse) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailCorpusEmpty(v FindingCorpusEmpty) FindingDetail {
 	return FindingDetail{Value: v}
 }
 
@@ -711,6 +1403,26 @@ func NewFindingDetailUnresolvedCitation(v FindingUnresolvedCitation) FindingDeta
 	return FindingDetail{Value: v}
 }
 
+func NewFindingDetailGherkinParse(v FindingGherkinParse) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailIdentifierPattern(v FindingIdentifierPattern) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailDuplicateIdentifier(v FindingDuplicateIdentifier) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailPartiallyTaggedOutline(v FindingPartiallyTaggedOutline) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailOwningDocument(v FindingOwningDocument) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
 func (u FindingDetail) AsSchemaViolation() (FindingSchemaViolation, bool) {
 	v, ok := u.Value.(FindingSchemaViolation)
 	return v, ok
@@ -733,6 +1445,11 @@ func (u FindingDetail) AsDuplicateSlug() (FindingDuplicateSlug, bool) {
 
 func (u FindingDetail) AsFrontmatterParse() (FindingFrontmatterParse, bool) {
 	v, ok := u.Value.(FindingFrontmatterParse)
+	return v, ok
+}
+
+func (u FindingDetail) AsCorpusEmpty() (FindingCorpusEmpty, bool) {
+	v, ok := u.Value.(FindingCorpusEmpty)
 	return v, ok
 }
 
@@ -771,6 +1488,31 @@ func (u FindingDetail) AsUnresolvedCitation() (FindingUnresolvedCitation, bool) 
 	return v, ok
 }
 
+func (u FindingDetail) AsGherkinParse() (FindingGherkinParse, bool) {
+	v, ok := u.Value.(FindingGherkinParse)
+	return v, ok
+}
+
+func (u FindingDetail) AsIdentifierPattern() (FindingIdentifierPattern, bool) {
+	v, ok := u.Value.(FindingIdentifierPattern)
+	return v, ok
+}
+
+func (u FindingDetail) AsDuplicateIdentifier() (FindingDuplicateIdentifier, bool) {
+	v, ok := u.Value.(FindingDuplicateIdentifier)
+	return v, ok
+}
+
+func (u FindingDetail) AsPartiallyTaggedOutline() (FindingPartiallyTaggedOutline, bool) {
+	v, ok := u.Value.(FindingPartiallyTaggedOutline)
+	return v, ok
+}
+
+func (u FindingDetail) AsOwningDocument() (FindingOwningDocument, bool) {
+	v, ok := u.Value.(FindingOwningDocument)
+	return v, ok
+}
+
 func (u FindingDetail) MarshalJSON() ([]byte, error) {
 	var payload []byte
 	var tag string
@@ -790,6 +1532,9 @@ func (u FindingDetail) MarshalJSON() ([]byte, error) {
 		payload, err = json.Marshal(v)
 	case FindingFrontmatterParse:
 		tag = "frontmatter-parse"
+		payload, err = json.Marshal(v)
+	case FindingCorpusEmpty:
+		tag = "corpus-empty"
 		payload, err = json.Marshal(v)
 	case FindingUnverified:
 		tag = "unverified"
@@ -811,6 +1556,21 @@ func (u FindingDetail) MarshalJSON() ([]byte, error) {
 		payload, err = json.Marshal(v)
 	case FindingUnresolvedCitation:
 		tag = "unresolved-citation"
+		payload, err = json.Marshal(v)
+	case FindingGherkinParse:
+		tag = "gherkin-parse"
+		payload, err = json.Marshal(v)
+	case FindingIdentifierPattern:
+		tag = "identifier-pattern"
+		payload, err = json.Marshal(v)
+	case FindingDuplicateIdentifier:
+		tag = "duplicate-identifier"
+		payload, err = json.Marshal(v)
+	case FindingPartiallyTaggedOutline:
+		tag = "partially-tagged-outline"
+		payload, err = json.Marshal(v)
+	case FindingOwningDocument:
+		tag = "owning-document"
 		payload, err = json.Marshal(v)
 	default:
 		return nil, fmt.Errorf("FindingDetail: nil or unknown variant")
@@ -876,6 +1636,13 @@ func (u *FindingDetail) UnmarshalJSON(data []byte) error {
 		}
 		u.Value = v
 		return nil
+	case "corpus-empty":
+		var v FindingCorpusEmpty
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
 	case "unverified":
 		var v FindingUnverified
 		if err := json.Unmarshal(data, &v); err != nil {
@@ -920,6 +1687,41 @@ func (u *FindingDetail) UnmarshalJSON(data []byte) error {
 		return nil
 	case "unresolved-citation":
 		var v FindingUnresolvedCitation
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "gherkin-parse":
+		var v FindingGherkinParse
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "identifier-pattern":
+		var v FindingIdentifierPattern
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "duplicate-identifier":
+		var v FindingDuplicateIdentifier
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "partially-tagged-outline":
+		var v FindingPartiallyTaggedOutline
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "owning-document":
+		var v FindingOwningDocument
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
@@ -3469,6 +4271,18 @@ type SpecIndex struct {
 	// outbound references ordered by position in the document and the emitted
 	// file byte-identical across platforms, in one rule.
 	References []Reference `json:"references"`
+	// Every feature any corpus member declares, with its acceptance criteria
+	// nested beneath it, in the order the emitter fixes: by the path the
+	// feature is written in, then by its position within that file.
+	//
+	// A top-level collection because a feature is addressed by its slug and
+	// not by the document that happens to hold it — nesting features under
+	// entries would make a feature's address depend on its location, which is
+	// what the slug exists to avoid. Criteria, by contrast, are nested inside
+	// their feature: a criterion belongs to exactly one, and its identifier
+	// carries that feature's code, so lookup by identifier is an index built
+	// over this tree rather than a reason to flatten it.
+	Features []Feature `json:"features"`
 	// A hash of everything this index was built from, written as
 	// `sha256:` followed by lowercase hexadecimal.
 	//
@@ -3515,6 +4329,11 @@ func (v *SpecIndex) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("SpecIndex: required field \"references\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.References); err != nil {
 		return prefixField("references", err)
+	}
+	if m, ok := raw["features"]; !ok || string(m) == "null" {
+		return fmt.Errorf("SpecIndex: required field \"features\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Features); err != nil {
+		return prefixField("features", err)
 	}
 	if m, ok := raw["input_hash"]; ok {
 		if err := json.Unmarshal(m, &v.InputHash); err != nil {
@@ -3588,6 +4407,12 @@ type ProfileRegistration struct {
 	// framework happens to use for it. Its value is quoted back in the
 	// finding, so a reader is told what to cite instead of what they cited.
 	SuccessorProperty *string `json:"successor_property,omitempty"`
+	// The tag vocabulary this profile assigns meaning to.
+	//
+	// Absent for a profile whose documents carry no tagged features, which
+	// is a corpus without them rather than a malformed registration; the
+	// checks that read it do not run.
+	FeatureTags *FeatureTagRegistration `json:"feature_tags,omitempty"`
 	// The convention values this profile supplies when `specs.toml` omits
 	// them.
 	Conventions *ConventionsConfig `json:"conventions,omitempty"`
@@ -3638,12 +4463,143 @@ func (v *ProfileRegistration) UnmarshalJSON(data []byte) error {
 			return prefixField("successor_property", err)
 		}
 	}
+	if m, ok := raw["feature_tags"]; ok {
+		if err := json.Unmarshal(m, &v.FeatureTags); err != nil {
+			return prefixField("feature_tags", err)
+		}
+	}
 	if m, ok := raw["conventions"]; ok {
 		if err := json.Unmarshal(m, &v.Conventions); err != nil {
 			return prefixField("conventions", err)
 		}
 	}
 	return nil
+}
+
+// The tags a profile assigns meaning to on a feature and its criteria.
+//
+// Which tag identifies a feature, which identifies a criterion, which
+// prefix names the document a feature belongs to, and which qualifiers
+// carry meaning are facts about a document vocabulary rather than about
+// Gherkin. They are registered here so that the engine reads a tag as a
+// string and attaches meaning to none of it.
+//
+// Every member is optional and a profile MAY register none of them. A
+// partial registration is honest rather than defective: a profile that
+// identifies features and not criteria has a corpus with no criteria in
+// it.
+type FeatureTagRegistration struct {
+	// The pattern the identifier of a feature matches, without the leading
+	// marker that makes it a tag.
+	//
+	// Named capture groups in this pattern are what `shared_captures`
+	// selects from, so a profile that derives criterion identifiers from
+	// feature identifiers names the shared parts here.
+	FeaturePattern *string `json:"feature_pattern,omitempty"`
+	// The pattern the identifier of an acceptance criterion matches, without
+	// the leading marker that makes it a tag.
+	CriterionPattern *string `json:"criterion_pattern,omitempty"`
+	// The prefix carried by the tag in which a feature names the document
+	// that owns it, where the feature is not written inside that document.
+	//
+	// A feature written as a standalone file has no frontmatter to inherit
+	// an owner from, so it names one in a tag; the prefix is what
+	// distinguishes that tag from every other tag on the feature.
+	OwnerPrefix *string `json:"owner_prefix,omitempty"`
+	// The named capture groups a criterion identifier shares with the
+	// identifier of the feature it belongs to.
+	//
+	// This is how a criterion identifier's derivation from its feature's is
+	// stated without the engine knowing the internal structure of either
+	// pattern: it compiles both, captures both identifiers, and compares
+	// only the groups named here. Every name must be a capture group both
+	// patterns define.
+	SharedCaptures *[]string `json:"shared_captures,omitempty"`
+	// The tags that qualify a criterion, and what each of them means.
+	Qualifiers *[]QualifierTagRegistration `json:"qualifiers,omitempty"`
+}
+
+// One tag a profile assigns meaning to on a criterion, and the meaning it
+// assigns.
+//
+// A tag absent from this list is carried on the record and reported by
+// nothing: an unregistered tag is a tag the vocabulary says nothing
+// about, which is the right answer for an annotation the author added for
+// their own reasons.
+type QualifierTagRegistration struct {
+	// The tag, without the leading marker that makes it a tag.
+	Tag string `json:"tag"`
+	// The property of a criterion this tag populates.
+	Meaning QualifierMeaning `json:"meaning"`
+	// The verification level this tag records, for a tag whose meaning is
+	// `verification-level` and for no other.
+	Level *VerificationLevel `json:"level,omitempty"`
+}
+
+func (v *QualifierTagRegistration) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["tag"]; !ok || string(m) == "null" {
+		return fmt.Errorf("QualifierTagRegistration: required field \"tag\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Tag); err != nil {
+		return prefixField("tag", err)
+	}
+	if m, ok := raw["meaning"]; !ok || string(m) == "null" {
+		return fmt.Errorf("QualifierTagRegistration: required field \"meaning\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Meaning); err != nil {
+		return prefixField("meaning", err)
+	}
+	if m, ok := raw["level"]; ok {
+		if err := json.Unmarshal(m, &v.Level); err != nil {
+			return prefixField("level", err)
+		}
+	}
+	return nil
+}
+
+// What a registered qualifier tag says about the criterion carrying it.
+//
+// The set is fixed by the criterion record rather than by any profile: a
+// qualifier can only mean one of the things a criterion has somewhere to
+// put. A profile chooses the spelling of each tag and which of these
+// meanings it carries, and nothing else.
+type QualifierMeaning string
+
+const (
+	// The criterion states a prohibition.
+	QualifierMeaningNegation QualifierMeaning = "negation"
+	// The criterion can only be verified by hand.
+	QualifierMeaningManualVerification QualifierMeaning = "manual-verification"
+	// The criterion records the level it is intended to be verified at,
+	// which the tag's own `level` names.
+	QualifierMeaningVerificationLevel QualifierMeaning = "verification-level"
+)
+
+func (e QualifierMeaning) MarshalJSON() ([]byte, error) {
+	switch e {
+	case QualifierMeaningNegation, QualifierMeaningManualVerification, QualifierMeaningVerificationLevel:
+		return json.Marshal(string(e))
+	}
+	return nil, fmt.Errorf("QualifierMeaning: unknown value %q", string(e))
+}
+
+func (e *QualifierMeaning) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	switch QualifierMeaning(s) {
+	case QualifierMeaningNegation, QualifierMeaningManualVerification, QualifierMeaningVerificationLevel:
+		*e = QualifierMeaning(s)
+		return nil
+	}
+	return fmt.Errorf("QualifierMeaning: unknown value %q", s)
+}
+
+func (e QualifierMeaning) String() string {
+	return string(e)
 }
 
 // Everything the engine needs to check one document type.

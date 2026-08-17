@@ -21,7 +21,7 @@ import (
 // container-spec-cli.md's Command Surface (modified — links) delta
 // (AC-SPECMD-005.1 through AC-SPECMD-005.10).
 //
-// This is the sixth subcommand REQ-SPEC-011 anticipated growing into; it
+// This is the sixth subcommand FEAT-SPEC-011 anticipated growing into; it
 // neither renames nor repurposes the five established here. Unlike refs,
 // which answers what cites what and always exits zero, links transforms
 // a document and can refuse.

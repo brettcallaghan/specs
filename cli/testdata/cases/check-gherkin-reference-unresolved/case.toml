@@ -1,0 +1,5 @@
+description = "a wikilink written inside a Gherkin .feature source is extracted as a reference against that file's own path, and reported reference/unresolved exactly as a prose one would be"
+cites = ["AC-GHK-004.3"]
+artifacts = ["checks.log"]
+args = ["check"]
+exit_code = 1

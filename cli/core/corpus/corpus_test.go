@@ -683,11 +683,11 @@ func equal(got, want []string) bool {
 	return true
 }
 
-// AC: AC-SPEC-009.3
+// AC: AC-SPEC-009.3, AC-SPEC-009.9
 func TestAColdThousandDocumentBuildMeetsTheBudget(t *testing.T) {
 	const (
 		documents = 1000
-		budget    = time.Second
+		target    = time.Second
 	)
 
 	repo := t.TempDir()
@@ -711,10 +711,7 @@ func TestAColdThousandDocumentBuildMeetsTheBudget(t *testing.T) {
 	if len(built.Findings()) != 0 {
 		t.Fatalf("findings = %+v, want none", built.Findings())
 	}
-	if elapsed > budget {
-		t.Errorf("cold build of %d documents took %s, budget is %s", documents, elapsed, budget)
-	}
-	t.Logf("cold build of %d documents: %s", documents, elapsed)
+	reportLatency(t, fmt.Sprintf("cold build of %d documents", documents), elapsed, target)
 }
 
 func TestBuildRejectsAnUnusableConfiguration(t *testing.T) {

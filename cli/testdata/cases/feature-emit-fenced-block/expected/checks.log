@@ -1,0 +1,18 @@
+@frd-checkout @FEAT-CHK-001
+Feature: Checkout
+
+  As a shopper
+  I want to pay for a basket
+  So that the goods are mine
+
+  @AC-CHK-001.1 @level-unit
+  Scenario: A basket with something in it can be paid for
+    Given a basket holding one item
+    When the shopper pays
+    Then the order is placed
+
+  @AC-CHK-001.2 @negative @level-unit
+  Scenario: An empty basket cannot be paid for
+    Given an empty basket
+    When the shopper pays
+    Then payment is refused

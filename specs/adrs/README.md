@@ -17,13 +17,17 @@ This directory contains Architecture Decision Records documenting significant de
 - [ADR-011: Blueprints Declare Targeted Verification Gates](ADR-011-targeted-verification-gates.md) — each blueprint names the minimal tests to run on change; agents run that set, CI runs the full suite
 - [ADR-012: Wikilink and Anchor Reference Conventions](ADR-012-reference-conventions.md) — `[[slug]]` for documents, heading anchors for un-promoted components, backticks for code; replaces `@` and the `#` element convention
 - [ADR-013: Work Order as the Name for the Atomic Unit of Executable Work](ADR-013-work-order-terminology.md) — the portable unit is a work order and its beads materialization is a bead; "work item" and "task" are retired as synonyms
-- [ADR-014: Defer Gherkin as the Acceptance-Criteria Notation](ADR-014-gherkin-for-acceptance-criteria.md) — prose EARS criteria with AC identifiers stay; AC extraction is kept notation-agnostic so the choice stays reversible
 - [ADR-015: Go as the Implementation Language for the Spec Corpus CLI](ADR-015-go-for-the-spec-cli.md) — Go ties Rust on every discriminating measure and is the only candidate with an official in-process Gherkin parser
 - [ADR-016: Strata as the Single Source for Schemas and Generated Types](ADR-016-strata-for-schema-and-model-generation.md) — one definition emits JSON Schema, Go structs and Markdown; TypeSpec and Smithy are API IDLs that produce neither plain Go structs nor Markdown
 - [ADR-017: The Spec CLI Is a Prerequisite of the sf Plugin, Not a Payload](ADR-017-spec-cli-as-a-plugin-prerequisite.md) — the plugin stays pure markdown and names the binary as a prerequisite; skills call it in a single path rather than branching on its absence
 - [ADR-018: References Are an Edge Collection in the Index](ADR-018-references-as-index-edges.md) — one top-level `references` list carries each occurrence with its span, origin and resolution; both directions are derived from it rather than mirrored into each entry
 - [ADR-019: Orchestrate Work Orders with a Skill Composing Native Subagents](ADR-019-skill-composed-subagent-orchestration.md) — `bead-bonanza` composes the `Agent` primitive rather than adopting agent teams, background sessions, `/batch` or dynamic workflows, whose durability and input models do not fit an hours-long run that commits
 - [ADR-020: FRDs Evolve in Place; Deltas Are Keyed on AC Identifiers](ADR-020-frd-lifecycle-and-ac-keyed-deltas.md) — an FRD is a living document edited in place under a same-feature test keyed on its slug, never amended by a successor FRD; changes between versions are diffed by AC identifier, not by line
+- [ADR-021: Adopt Gherkin for Features and Acceptance Criteria](ADR-021-gherkin-blocks-for-acceptance-criteria.md) — the AST yields typed records a central store can load where prose yields one string; `Scenario Outline` keeps the criterion/example split and makes examples queryable; EARS keeps every other normative statement
+
+ADR-014 is unused: a draft at that number deliberated the same question
+ADR-021 settles, and was replaced by it rather than retained as a retired
+record.
 
 ## About ADRs
 

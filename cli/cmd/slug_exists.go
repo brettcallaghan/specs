@@ -29,7 +29,7 @@ func newSlugExistsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 // It always exits zero: whether a slug is in use is a fact about the
 // corpus, not a failure of the command that asked. The corpus is opened
 // warm (corpus.Open), the same as check, because this is exactly the
-// corpus query REQ-SPEC-009.1's latency budget is measured against.
+// corpus query FEAT-SPEC-009.1's latency budget is measured against.
 func runSlugExists(streams *ioStreams, configPath, slug string) error {
 	cfg, findings, err := Load(configPath, BuiltinRegistry())
 	if err != nil {

@@ -20,10 +20,10 @@ import "github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 // profile is active per operation, and the caller chooses which.
 //
 // The surface is deliberately narrow — a schema, a per-type table, the
-// convention defaults, and the lifecycle registration — because it
-// constrains everything downstream of it. Required sections and element
-// records are later capabilities, and each will widen this interface
-// further. Per the Change Guidance in
+// convention defaults, the lifecycle registration and the tag
+// vocabulary — because it constrains everything downstream of it.
+// Required sections and element records are later capabilities, and each
+// will widen this interface further. Per the Change Guidance in
 // specs/architecture/module-spec-profile.md, that widening is a change to
 // the host reviewed on its own merits, never a special case granted to
 // one profile.
@@ -74,6 +74,108 @@ type Profile interface {
 	// the checks that read it do not run. That is a profile describing a
 	// corpus whose documents have no lifecycle, not a malformed one.
 	Lifecycle() LifecycleRules
+
+	// FeatureTags returns the tag vocabulary this profile assigns
+	// meaning to: which tag identifies a feature, which identifies a
+	// criterion, which prefix names a feature's owning document, how a
+	// criterion identifier derives from its feature's, and which
+	// qualifier tags carry meaning.
+	//
+	// Profile-level rather than per-type, because a feature is not a
+	// document type: it is written inside a document of any type, or in
+	// a file that is no document at all, and the tags that identify it
+	// are the same in both.
+	//
+	// Registered as data the host reads rather than as a rule the host
+	// applies, exactly as the lifecycle is. The host compiles the
+	// patterns, matches tags against them, and reports what it finds; it
+	// holds no tag spelling of its own and no knowledge of what any
+	// pattern's internals mean.
+	//
+	// A profile that registers none returns the zero value, and the
+	// checks that read it do not run. That is a profile describing a
+	// corpus with no tagged features, not a malformed one.
+	FeatureTags() FeatureTagRules
+}
+
+// FeatureTagRules is what a profile tells the host about the tags that
+// identify a feature and its criteria, and about the tags that qualify
+// a criterion.
+//
+// The host holds none of these values. It does not know that a criterion
+// identifier begins with any particular letters, that an owning document
+// is named in a tag prefixed one way rather than another, or that a
+// criterion is marked by hand-verification with one spelling rather than
+// another — it knows only that some tag matches an identifier pattern,
+// some tag carries an owner, and some tags populate a criterion's
+// qualifier properties.
+//
+// Every member is independent, and a profile may register some and not
+// others. A partial registration is honest rather than defective: a
+// profile that identifies features and not criteria describes a corpus
+// with no criteria in it, and only [ValidateRegistration]'s two checks —
+// a pattern that does not compile, and a shared capture no pattern
+// defines — say a registration contradicts itself.
+type FeatureTagRules struct {
+	// FeaturePattern is the regular expression the identifier of a
+	// feature matches, without the leading marker that makes it a tag.
+	//
+	// The marker is excluded because the identifier is the value and the
+	// tag is only how it is written down: the same identifier appears in
+	// a citation and in a report, neither of which is a tag.
+	FeaturePattern string
+
+	// CriterionPattern is the regular expression the identifier of an
+	// acceptance criterion matches, without the leading marker.
+	CriterionPattern string
+
+	// OwnerPrefix is the prefix carried by the tag in which a feature
+	// names the document that owns it.
+	//
+	// A feature written outside any document has no frontmatter to
+	// inherit an owner from and names one in a tag instead; this prefix
+	// is the whole of how that tag is told apart from every other tag on
+	// the feature.
+	OwnerPrefix string
+
+	// SharedCaptures are the named capture groups a criterion identifier
+	// shares with the identifier of the feature it belongs to.
+	//
+	// This is how the derivation of a criterion identifier from its
+	// feature's is stated without the host knowing the internal
+	// structure of either pattern. The host compiles both, captures both
+	// identifiers, and compares only the groups named here; a profile
+	// whose two patterns share nothing registers none and no derivation
+	// is checked.
+	SharedCaptures []string
+
+	// Qualifiers are the tags that qualify a criterion, and what each of
+	// them means.
+	//
+	// A tag matching neither identifier pattern and named by no
+	// qualifier is carried on the record and reported by nothing: an
+	// unregistered tag is one the vocabulary says nothing about.
+	Qualifiers []QualifierTag
+}
+
+// QualifierTag is one tag a profile assigns meaning to on a criterion,
+// and the meaning it assigns.
+type QualifierTag struct {
+	// Tag is the tag itself, without the leading marker.
+	Tag string
+
+	// Meaning is the criterion property this tag populates.
+	//
+	// The set of meanings is fixed by the criterion record rather than by
+	// any profile — a qualifier can only mean one of the things a
+	// criterion has somewhere to put — so it is the generated
+	// vocabulary's own type. What a profile chooses is the spelling of
+	// each tag and which meaning it carries.
+	Meaning specmodel.QualifierMeaning
+
+	// Level is the verification level this tag records, for a tag whose
+	// Meaning is the verification level and for no other.
+	Level specmodel.VerificationLevel
 }
 
 // LifecycleRules is what a profile tells the host about the lifecycle

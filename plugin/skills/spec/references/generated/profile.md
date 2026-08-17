@@ -3,6 +3,9 @@
 ## Table of Contents
 
 - [ProfileRegistration](#profileregistration)
+- [FeatureTagRegistration](#featuretagregistration)
+- [QualifierTagRegistration](#qualifiertagregistration)
+- [QualifierMeaning](#qualifiermeaning)
 - [DocumentTypeRegistration](#documenttyperegistration)
 - [Section](#section)
 - [PropertyPairing](#propertypairing)
@@ -41,7 +44,67 @@ so that promoting a key to `specs.toml` is a move rather than a rename.
 | live_statuses | Array<[Status](vocabulary.md#status)>? | The statuses at which a document is in effect, and therefore at which a reference it makes to a retired document is worth reporting.<br><br>Profile-level rather than per-type because `status` is a property of the shared document envelope: every type this profile defines carries it, and none of them narrows it. A profile registering none of these three lifecycle keys registers no lifecycle, and the checks that read them do not run. |
 | retired_statuses | Array<[Status](vocabulary.md#status)>? | The statuses at which a document is no longer in effect, so that a live document still pointing at it is reported.<br><br>Disjoint from `live_statuses` by construction; a status in neither is one the lifecycle says nothing about, which is the right answer for a draft. |
 | successor_property | String? | The name of the frontmatter property in which a retired document names its replacement.<br><br>Registered rather than assumed, because the engine that reports a retired target must not contain the name of the property this framework happens to use for it. Its value is quoted back in the finding, so a reader is told what to cite instead of what they cited. |
+| feature_tags | [FeatureTagRegistration](#featuretagregistration)? | The tag vocabulary this profile assigns meaning to.<br><br>Absent for a profile whose documents carry no tagged features, which is a corpus without them rather than a malformed registration; the checks that read it do not run. |
 | conventions | [ConventionsConfig](config.md#conventionsconfig)? | The convention values this profile supplies when `specs.toml` omits them. |
+
+
+## FeatureTagRegistration
+
+The tags a profile assigns meaning to on a feature and its criteria.
+
+Which tag identifies a feature, which identifies a criterion, which
+prefix names the document a feature belongs to, and which qualifiers
+carry meaning are facts about a document vocabulary rather than about
+Gherkin. They are registered here so that the engine reads a tag as a
+string and attaches meaning to none of it.
+
+Every member is optional and a profile MAY register none of them. A
+partial registration is honest rather than defective: a profile that
+identifies features and not criteria has a corpus with no criteria in
+it.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| feature_pattern | String? | The pattern the identifier of a feature matches, without the leading marker that makes it a tag.<br><br>Named capture groups in this pattern are what `shared_captures` selects from, so a profile that derives criterion identifiers from feature identifiers names the shared parts here. |
+| criterion_pattern | String? | The pattern the identifier of an acceptance criterion matches, without the leading marker that makes it a tag. |
+| owner_prefix | String? | The prefix carried by the tag in which a feature names the document that owns it, where the feature is not written inside that document.<br><br>A feature written as a standalone file has no frontmatter to inherit an owner from, so it names one in a tag; the prefix is what distinguishes that tag from every other tag on the feature. |
+| shared_captures | Array<String>? | The named capture groups a criterion identifier shares with the identifier of the feature it belongs to.<br><br>This is how a criterion identifier's derivation from its feature's is stated without the engine knowing the internal structure of either pattern: it compiles both, captures both identifiers, and compares only the groups named here. Every name must be a capture group both patterns define. |
+| qualifiers | Array<[QualifierTagRegistration](#qualifiertagregistration)>? | The tags that qualify a criterion, and what each of them means. |
+
+
+## QualifierTagRegistration
+
+One tag a profile assigns meaning to on a criterion, and the meaning it
+assigns.
+
+A tag absent from this list is carried on the record and reported by
+nothing: an unregistered tag is a tag the vocabulary says nothing
+about, which is the right answer for an annotation the author added for
+their own reasons.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| tag | String | The tag, without the leading marker that makes it a tag. |
+| meaning | [QualifierMeaning](#qualifiermeaning) | The property of a criterion this tag populates. |
+| level | [VerificationLevel](feature.md#verificationlevel)? | The verification level this tag records, for a tag whose meaning is `verification-level` and for no other. |
+
+
+## QualifierMeaning
+
+What a registered qualifier tag says about the criterion carrying it.
+
+The set is fixed by the criterion record rather than by any profile: a
+qualifier can only mean one of the things a criterion has somewhere to
+put. A profile chooses the spelling of each tag and which of these
+meanings it carries, and nothing else.
+
+**Value Type:** String
+
+| Name | Value | Documentation |
+|------|-------|---------------|
+| Negation | "negation" | The criterion states a prohibition. |
+| ManualVerification | "manual-verification" | The criterion can only be verified by hand. |
+| VerificationLevel | "verification-level" | The criterion records the level it is intended to be verified at, which the tag's own `level` names. |
 
 
 ## DocumentTypeRegistration

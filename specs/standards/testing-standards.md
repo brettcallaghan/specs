@@ -96,7 +96,7 @@ cli/testdata/cases/<case-name>/
                           whole or partial
 ```
 
-`manifest.json` holds the index REQ-SPEC-002 of
+`manifest.json` holds the index FEAT-SPEC-002 of
 [[frd-spec-validation-cli]] defines. These standards use the file name
 the artifact is written under; where this document says *manifest* of an
 expected artifact and *case manifest* of `case.toml`, the qualifier is
@@ -189,7 +189,7 @@ that produced it is the only change in view.
 Expected artifacts SHALL be byte-identical across Linux, macOS, and
 Windows for identical input.
 
-**Rationale:** REQ-SPEC-009.7 of [[frd-spec-validation-cli]] requires the
+**Rationale:** FEAT-SPEC-009.7 of [[frd-spec-validation-cli]] requires the
 CLI to report the same findings in the same order on every platform.
 Snapshot artifacts are how that requirement is verified rather than
 asserted.

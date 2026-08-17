@@ -1,0 +1,5 @@
+description = "criterion --changed says there is no persisted index to compare against, rather than reporting every criterion as added, when specs.json has never been written"
+cites = ["AC-GHK-008.1"]
+artifacts = ["checks.log"]
+args = ["criterion", "--changed"]
+exit_code = 0

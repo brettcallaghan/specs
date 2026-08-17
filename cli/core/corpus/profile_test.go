@@ -37,12 +37,14 @@ type stubProfile struct {
 	types       map[string]corpus.DocumentTypeRules
 	conventions specmodel.ConventionsConfig
 	lifecycle   corpus.LifecycleRules
+	featureTags corpus.FeatureTagRules
 }
 
 func (p stubProfile) Schema() []byte                                     { return p.schema }
 func (p stubProfile) DocumentTypes() map[string]corpus.DocumentTypeRules { return p.types }
 func (p stubProfile) Conventions() specmodel.ConventionsConfig           { return p.conventions }
 func (p stubProfile) Lifecycle() corpus.LifecycleRules                   { return p.lifecycle }
+func (p stubProfile) FeatureTags() corpus.FeatureTagRules                { return p.featureTags }
 
 // The interface is satisfiable, checked at compile time rather than only
 // when a test runs.
@@ -148,12 +150,13 @@ func TestDocumentCoreImportsNoProfilePackage(t *testing.T) {
 	}
 }
 
-// The extension point must not name a document type, a status, or a
-// frontmatter property that holds a reference, because a host that knows
-// any of them by name is no longer framework-agnostic and an adopting
-// repository with a different taxonomy cannot reuse it.
+// The extension point must not name a document type, a status, a
+// frontmatter property that holds a reference, or a criterion qualifier,
+// because a host that knows any of them by name is no longer
+// framework-agnostic and an adopting repository with a different taxonomy
+// cannot reuse it.
 //
-// The three vocabularies are read from the generated schema rather than
+// The four vocabularies are read from the generated schema rather than
 // listed here, so the check keeps holding as each of them grows. This is
 // what stops the widened extension point becoming a place to smuggle
 // vocabulary into the host: a registration member is only a seam while
@@ -164,7 +167,9 @@ func TestTheExtensionPointNamesNoRegisteredVocabulary(t *testing.T) {
 	for _, kind := range vocabulary {
 		read[kind]++
 	}
-	for _, kind := range []string{"document type", "status", "reference-bearing property"} {
+	for _, kind := range []string{
+		"document type", "status", "reference-bearing property", "criterion qualifier",
+	} {
 		if read[kind] == 0 {
 			t.Fatalf("read no %s from the generated schema; the check would pass vacuously for that kind", kind)
 		}
@@ -242,13 +247,21 @@ const identityProperty = "slug"
 // extension point from the generated schema rather than restating them,
 // mapping each to the kind of thing it is so a failure says what leaked.
 //
-// Three kinds travel through the extension point: the document types
+// Four kinds travel through the extension point: the document types
 // DocumentTypes is keyed by, the statuses a lifecycle registration names,
-// and the frontmatter properties a document type registers as
-// reference-bearing. The last are derived the same way the profile
-// derives its own registration — every property whose value is a slug or
-// a list of slugs — so a property added to the schema is covered here
-// before anything registers it.
+// the frontmatter properties a document type registers as
+// reference-bearing, and the qualifier tags a feature-tag registration
+// assigns meaning to. The reference-bearing properties are derived the
+// same way the profile derives its own registration — every property
+// whose value is a slug or a list of slugs — so a property added to the
+// schema is covered here before anything registers it.
+//
+// A qualifier tag is spelled by the profile, but what it can mean is
+// fixed by the criterion record: a qualifier either sets one of the
+// criterion's boolean properties or names one of the verification
+// levels, so those are the values a profile is liable to spell a tag
+// after. The identifier patterns are not read, because a pattern is
+// registered whole and the host holds no part of one.
 func registeredVocabulary(t *testing.T) map[string]string {
 	t.Helper()
 
@@ -268,6 +281,10 @@ func registeredVocabulary(t *testing.T) map[string]string {
 				Items struct {
 					Ref string `json:"$ref"`
 				} `json:"items"`
+				// Raw, because a nullable property's type is a list
+				// rather than a name and decoding it into a string
+				// would fail the whole document.
+				Type json.RawMessage `json:"type"`
 			} `json:"properties"`
 		} `json:"definitions"`
 	}
@@ -282,6 +299,14 @@ func registeredVocabulary(t *testing.T) map[string]string {
 	}
 	for _, value := range bundle.Definitions["Status"].Enum {
 		vocabulary[value] = "status"
+	}
+	for _, value := range bundle.Definitions["VerificationLevel"].Enum {
+		vocabulary[value] = "criterion qualifier"
+	}
+	for name, property := range bundle.Definitions["Criterion"].Properties {
+		if string(property.Type) == `"boolean"` {
+			vocabulary[name] = "criterion qualifier"
+		}
 	}
 	for _, definition := range bundle.Definitions {
 		for name, property := range definition.Properties {

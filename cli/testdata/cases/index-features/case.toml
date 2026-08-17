@@ -1,0 +1,5 @@
+description = "index records both admissible feature sources — a fenced gherkin block and a standalone .feature file — in the features collection under the index's declared schema version"
+cites = ["AC-GHK-001.2", "AC-GHK-001.7", "AC-GHK-005.8"]
+artifacts = ["checks.log", "manifest.json"]
+args = ["index"]
+exit_code = 0

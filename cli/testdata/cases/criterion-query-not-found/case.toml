@@ -1,0 +1,5 @@
+description = "criterion <id> for an identifier no corpus member declares reports that distinctly and exits non-zero"
+cites = ["AC-GHK-007.4"]
+artifacts = ["checks.err"]
+args = ["criterion", "AC-CHK-999.1"]
+exit_code = 1

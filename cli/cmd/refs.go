@@ -13,7 +13,7 @@ import (
 // reference a given slug, or which documents that slug itself
 // references, per AC-SPECREF-003.1 through AC-SPECREF-003.5.
 //
-// This is the fifth subcommand REQ-SPEC-011 anticipated growing into
+// This is the fifth subcommand FEAT-SPEC-011 anticipated growing into
 // (container-spec-cli.md's Change Guidance); it neither renames nor
 // repurposes the four `newRootCmd` already builds.
 func newRefsCmd(streams *ioStreams, configPath *string) *cobra.Command {
@@ -65,7 +65,7 @@ type refsResult struct {
 // (AC-SPECREF-003.5, and the undeclared-slug case matching the
 // slug-exists contract per AC-SPEC-007.2). The corpus is opened warm
 // (corpus.Open), the same as check, slug-exists and next-id, because this
-// is exactly the corpus query REQ-SPEC-009.1's latency budget is measured
+// is exactly the corpus query FEAT-SPEC-009.1's latency budget is measured
 // against (AC-SPECREF-003.4).
 func runRefs(streams *ioStreams, configPath, slug string, outbound, jsonOut bool) error {
 	cfg, findings, err := Load(configPath, BuiltinRegistry())

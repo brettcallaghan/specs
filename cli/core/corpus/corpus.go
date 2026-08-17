@@ -93,6 +93,10 @@ type Corpus struct {
 	specRoot string
 	index    specmodel.SpecIndex
 	findings []specmodel.Finding
+	// failures is every Gherkin source the walk could not parse. It is not
+	// on the index — a persisted index records what was extracted, not
+	// what would not parse — so a corpus served warm carries none.
+	failures []SourceFailure
 	byPath   map[string]int
 	bySlug   map[string]int
 
@@ -169,17 +173,18 @@ func Build(opts Options) (*Corpus, error) {
 	}
 
 	b := &builder{
-		specRoot:  specRoot,
-		repoRoot:  repoRoot,
-		profile:   opts.Profile,
-		types:     opts.Profile.DocumentTypes(),
-		index:     specindex.New(opts.Workspace),
-		byPath:    map[string]int{},
-		alsoKnown: map[string]int{},
-		docs:      map[string]*frontmatter.Document{},
+		specRoot:   specRoot,
+		repoRoot:   repoRoot,
+		profile:    opts.Profile,
+		types:      opts.Profile.DocumentTypes(),
+		vocabulary: newVocabulary(opts.Profile.FeatureTags()),
+		index:      specindex.New(opts.Workspace),
+		byPath:     map[string]int{},
+		alsoKnown:  map[string]int{},
+		docs:       map[string]*frontmatter.Document{},
 	}
 
-	if err := scanCandidates(specRoot, repoRoot, b.visit); err != nil {
+	if err := scanSources(specRoot, repoRoot, b.visit); err != nil {
 		return nil, err
 	}
 
@@ -221,7 +226,29 @@ func (opts Options) roots() (specRoot, repoRoot string, err error) {
 	return specRoot, repoRoot, nil
 }
 
-// scanCandidates walks specRoot and offers every candidate file to visit,
+// sourceKind is what one file the walk offers is: a candidate the
+// membership decision is made over, or a feature source.
+//
+// The two are offered by one walk rather than by two passes over the same
+// tree, which is what makes a feature source's bytes reach the input hash
+// on the same terms a candidate's do. A hash covering only candidates
+// would serve a stale index to every query over features while a
+// `.feature` file was edited under it — a silent wrong answer rather than
+// a visible failure.
+type sourceKind int
+
+const (
+	// markdownCandidate is a `.md` file: a candidate for corpus
+	// membership, admitted or excluded by what its frontmatter declares.
+	markdownCandidate sourceKind = iota
+
+	// featureSource is a `.feature` file: a Gherkin source that is no
+	// document and no candidate, and produces neither an entry nor an
+	// exclusion.
+	featureSource
+)
+
+// scanSources walks specRoot and offers every source file to visit,
 // naming it in the form the index reports — relative to repoRoot and
 // forward-slashed on every platform (AC-SPEC-009.8).
 //
@@ -231,10 +258,10 @@ func (opts Options) roots() (specRoot, repoRoot string, err error) {
 // the corpus is made of — the property the whole warm-cache path rests
 // on.
 //
-// A candidate that cannot be read is offered with readErr set and nil
-// bytes rather than aborting the walk: losing a file silently is worse
-// than recording that it could not be read.
-func scanCandidates(specRoot, repoRoot string, visit func(reported string, src []byte, readErr error)) error {
+// A file that cannot be read is offered with readErr set and nil bytes
+// rather than aborting the walk: losing a file silently is worse than
+// recording that it could not be read.
+func scanSources(specRoot, repoRoot string, visit func(kind sourceKind, reported string, src []byte, readErr error)) error {
 	// Every read of a candidate goes through this handle rather than
 	// through a bare os.ReadFile, so that a path which resolves outside
 	// the spec root is refused by the operating system rather than by a
@@ -256,7 +283,13 @@ func scanCandidates(specRoot, repoRoot string, visit func(reported string, src [
 		if d.IsDir() || !d.Type().IsRegular() {
 			return nil
 		}
-		if !strings.EqualFold(filepath.Ext(d.Name()), candidateExtension) {
+		var kind sourceKind
+		switch extension := filepath.Ext(d.Name()); {
+		case strings.EqualFold(extension, candidateExtension):
+			kind = markdownCandidate
+		case strings.EqualFold(extension, featureExtension):
+			kind = featureSource
+		default:
 			return nil
 		}
 
@@ -269,8 +302,11 @@ func scanCandidates(specRoot, repoRoot string, visit func(reported string, src [
 			return err
 		}
 
+		// Both kinds are read through the one handle and the one line-ending
+		// normalization every other read passes through, so a feature source
+		// read from a CRLF checkout hashes and spans as it does anywhere else.
 		src, readErr := readUnder(root, rel)
-		visit(filepath.ToSlash(reported), src, readErr)
+		visit(kind, filepath.ToSlash(reported), src, readErr)
 		return nil
 	}
 
@@ -338,6 +374,9 @@ type builder struct {
 	repoRoot string
 	profile  Profile
 	types    map[string]DocumentTypeRules
+	// vocabulary is opts.Profile.FeatureTags() compiled once, the seam
+	// through which the registered patterns reach the Gherkin component.
+	vocabulary vocabulary
 
 	// hasher accumulates the content hash of everything the walk reads,
 	// so that the fingerprint the emitted index records is a by-product of
@@ -360,12 +399,27 @@ type builder struct {
 	// corpus is known: what a reference reached is a question about the
 	// corpus rather than about the document it was written in.
 	references []specmodel.Reference
+	// features is every feature the walk extracted, in walk order, ordered
+	// in [builder.finish] by the path it was written in and then by its
+	// position within that file.
+	features []specmodel.Feature
+	// failures is every Gherkin source that would not parse, recorded
+	// against its own file so the walk continues (AC-SPEC-002.4).
+	failures []SourceFailure
 }
 
-// visit classifies one candidate the walk offered, and folds its bytes
-// into the build's input hash.
-func (b *builder) visit(reported string, src []byte, readErr error) {
-	b.hasher.add(reported, src, readErr)
+// visit classifies one source the walk offered, and folds its bytes into
+// the build's input hash.
+func (b *builder) visit(kind sourceKind, reported string, src []byte, readErr error) {
+	b.hasher.add(kind, reported, src, readErr)
+
+	if kind == featureSource {
+		// A feature source is no candidate: it produces no entry and no
+		// exclusion whatever it holds, so membership is never consulted for
+		// it and AC-SPEC-001.6's silent pass-over stands.
+		b.visitFeatureSource(reported, src, readErr)
+		return
+	}
 
 	if readErr != nil {
 		// An unreadable candidate is recorded against itself for the same
@@ -446,6 +500,7 @@ func (b *builder) classifyDocument(reported string, src []byte, doc *frontmatter
 		member{path: reported, slug: string(envelope.Slug), slugAt: slugSpan(doc), doc: doc},
 	)
 	b.extractReferences(reported, src, doc, b.types[declared])
+	b.extractBlockFeatures(reported, src, doc)
 }
 
 // extractReferences records the references one member makes, from the
@@ -517,6 +572,7 @@ func (b *builder) finish(opts Options) *Corpus {
 	// the only pass over the corpus.
 	b.index.References = append(b.index.References, orderedReferences(b.references)...)
 	references.Resolve(b.index.References, b.index)
+	b.index.Features = append(b.index.Features, orderedFeatures(b.features)...)
 
 	report := finding.NewReport()
 	report.Add(duplicateSlugs(b.members)...)
@@ -532,6 +588,7 @@ func (b *builder) finish(opts Options) *Corpus {
 		specRoot: b.specRoot,
 		index:    b.index,
 		findings: report.Model().Findings,
+		failures: b.failures,
 		byPath:   b.byPath,
 		bySlug:   b.alsoKnown,
 		profile:  b.profile,
@@ -564,6 +621,26 @@ func orderedReferences(refs []specmodel.Reference) []specmodel.Reference {
 		return refs[i].Position.Offset < refs[j].Position.Offset
 	})
 	return refs
+}
+
+// orderedFeatures returns features in the order the emitted index carries
+// them: by the path the feature is written in, then by its position
+// within that file.
+//
+// The same rule the reference collection is ordered by, for the same
+// reason: the order is a function of corpus content rather than of the
+// filesystem's iteration order, which is what makes the emitted index
+// byte-identical across platforms and across runs (AC-SPEC-009.7). Two
+// features cannot begin at the same offset in the same file, so the order
+// is total.
+func orderedFeatures(features []specmodel.Feature) []specmodel.Feature {
+	sort.Slice(features, func(i, j int) bool {
+		if features[i].Path != features[j].Path {
+			return features[i].Path < features[j].Path
+		}
+		return features[i].Position.Offset < features[j].Position.Offset
+	})
+	return features
 }
 
 // indexReferences builds the two direction lookups over the index's one
@@ -648,6 +725,26 @@ func declaredType(doc *frontmatter.Document) (string, bool) {
 		return value, true
 	}
 	return property.Raw, true
+}
+
+// declaredSlug returns the slug a document declares, as it declared it.
+//
+// It reads the parsed block rather than the typed envelope on purpose. A
+// feature written in a document is attributed to the slug that document
+// actually wrote, and the envelope's value is a validated one that a
+// document with a malformed or absent slug does not reach — which would
+// leave its features attributed to nothing while the document itself
+// indexes. A non-string value is reported as its source text, for the
+// same reason [declaredType] reports one.
+func declaredSlug(doc *frontmatter.Document) specmodel.Slug {
+	property, ok := doc.Property(slugProperty)
+	if !ok {
+		return ""
+	}
+	if value, isString := property.Value.(string); isString {
+		return specmodel.Slug(value)
+	}
+	return specmodel.Slug(property.Raw)
 }
 
 // slugSpan locates a document's slug property, falling back to the

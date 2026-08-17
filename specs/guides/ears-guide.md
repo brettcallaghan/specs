@@ -1,18 +1,20 @@
 ---
 title: Writing Requirements with EARS
 description: How to use EARS (Easy Approach to Requirements Syntax) to author
-  clear, testable requirements in any document
+  clear, testable requirements in any document — every normative statement
+  except an FRD's features and acceptance criteria
 slug: guide-ears
 type: guide
 status: draft
-updated_at: 2026-07-17T00:00:00Z
-version: "0.2"
+updated_at: 2026-08-15T00:00:00Z
+version: "0.3"
 ---
 
 # Writing Requirements with EARS
 
 ## Contents
 
+- Where EARS applies — and the one surface it does not
 - Why EARS — what the syntax buys over free-form prose
 - Sentence Patterns — ubiquitous, event-driven, state-driven, optional
   feature, conditional, negative (plus pattern selection and complex
@@ -26,10 +28,15 @@ version: "0.2"
 - References
 
 EARS (Easy Approach to Requirements Syntax) is the convention for authoring
-requirements in this project. It applies to **all** requirement types —
-functional requirements, non-functional requirements, system invariants,
-policies, constraints, and acceptance criteria — in any document that
-expresses them.
+requirements in this project — functional requirements, non-functional
+requirements, system invariants, policies and constraints, in any document
+that expresses them ([[adr-002]]).
+
+**Acceptance criteria are the exception, and features with them.** Those
+are written in Gherkin ([[adr-021]]); [[gherkin-guide]] is how. Nothing
+below applies to an FRD's `Feature` blocks. Everything below applies to
+every other normative statement, including the ones in an FRD's prose and
+in the standards, contracts and blueprints an FRD cites.
 
 EARS is a writing convention, not a document type. Any document may contain
 EARS requirements; this guide defines how to write them.
@@ -227,7 +234,8 @@ HTML comment blocks after completing each section.
 
 EARS governs the sentences, not the document. Whatever the document type —
 a requirements document, a standard, a specification, a template — the
-normative statements within it follow this convention:
+normative statements within it follow this convention, with an FRD's
+`Feature` blocks excepted as above:
 
 - Group related requirements under descriptive section headings.
 - Surrounding prose (context, rationale, examples) is welcome and SHOULD
@@ -257,6 +265,9 @@ Before committing a requirement, verify:
 
 ## References
 
+- [[adr-002]] — the decision this guide implements, and the scope it keeps
+- [[gherkin-guide]] — the notation for features and acceptance criteria, the
+  one surface this guide does not cover
 - [[template-authoring-standards]] — Frontmatter, references, and modal verb
   standards
 - Mavin, A., et al. (2009). "Easy Approach to Requirements Syntax (EARS)"

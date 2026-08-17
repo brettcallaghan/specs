@@ -1,0 +1,5 @@
+description = "feature --emit writes the fenced-block feature FEAT-CHK-001 as a standalone .feature file, adding the @frd-checkout owning-document tag its source never carried"
+cites = ["AC-GHK-009.1"]
+artifacts = ["checks.log"]
+args = ["feature", "FEAT-CHK-001", "--emit"]
+exit_code = 0
