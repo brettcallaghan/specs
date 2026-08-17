@@ -375,6 +375,21 @@ struct SpecIndex {
   references: [Reference]
 
   """
+  Every feature any corpus member declares, with its acceptance criteria
+  nested beneath it, in the order the emitter fixes: by the path the
+  feature is written in, then by its position within that file.
+
+  A top-level collection because a feature is addressed by its slug and
+  not by the document that happens to hold it — nesting features under
+  entries would make a feature's address depend on its location, which is
+  what the slug exists to avoid. Criteria, by contrast, are nested inside
+  their feature: a criterion belongs to exactly one, and its identifier
+  carries that feature's code, so lookup by identifier is an index built
+  over this tree rather than a reason to flatten it.
+  """
+  features: [Feature]
+
+  """
   A hash of everything this index was built from, written as
   `sha256:` followed by lowercase hexadecimal.
 

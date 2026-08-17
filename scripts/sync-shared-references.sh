@@ -85,6 +85,7 @@ spec	specs/standards/work-order-definition-of-ready.md
 spec	specs/guides/anti-patterns.md
 spec	specs/guides/document-type-boundaries.md
 spec	specs/guides/ears-guide.md
+spec	specs/standards/gherkin-guide.md
 spec	specs/guides/spec-cli.md
 spec	specs/guides/work-order-field-guide.md
 EOF

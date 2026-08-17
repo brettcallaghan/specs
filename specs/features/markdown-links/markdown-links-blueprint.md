@@ -69,7 +69,7 @@ rewrites from scratch on every run (`agent-plugins-a7m`).
 
 **Intent:** One judgement decides, per citation, what a link points at
 or why it cannot. Keeping it apart from substitution is what lets the
-two modes REQ-SPECMD-005 and REQ-SPECMD-006 describe share one
+two modes FEAT-SPECMD-005 and FEAT-SPECMD-006 describe share one
 substitution path, and it puts both reachability findings in one place
 rather than spread across the rewrite.
 

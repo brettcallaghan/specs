@@ -10,7 +10,7 @@ import (
 )
 
 // newIndexCmd builds the `index` subcommand: build the corpus index and
-// write it, per REQ-SPEC-010 (AC-SPEC-011.1).
+// write it, per FEAT-SPEC-010 (AC-SPEC-011.1).
 func newIndexCmd(streams *ioStreams, configPath *string) *cobra.Command {
 	var out string
 

@@ -1,0 +1,5 @@
+description = "feature --code <CODE> for a code no feature carries is an empty selection, distinct from an unknown identifier, and exits zero"
+cites = ["AC-GHK-007.3"]
+artifacts = ["checks.log"]
+args = ["feature", "--code", "NOPE"]
+exit_code = 0

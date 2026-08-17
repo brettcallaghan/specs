@@ -1,0 +1,5 @@
+description = "feature --help lists its --code, --json, --emit and --out options, derived from the same declaration that defines them"
+cites = ["AC-SPEC-011.5"]
+artifacts = ["checks.log"]
+args = ["feature", "--help"]
+exit_code = 0

@@ -10,9 +10,9 @@ description: Spec-first development using this framework's specification
   constraints, writing acceptance criteria, designing how a specified
   feature will be implemented, or documenting the architecture of a
   system, container, component, or interface. Covers choosing the right
-  document type and authoring it from the framework templates using EARS
-  syntax and the C4 model.
-version: "1.9"
+  document type and authoring it from the framework templates using Gherkin
+  and EARS syntax and the C4 model.
+version: "1.10"
 ---
 
 # Spec-First Development
@@ -27,8 +27,9 @@ Why spec first:
 
 - **Disputes are cheap before code exists.** A wrong requirement costs a
   sentence edit at spec time and rework at implementation time.
-- **Testable by construction.** Requirements written in EARS are precise
-  enough to write a failing test from, so implementation is verified
+- **Testable by construction.** An acceptance criterion written as a
+  tagged scenario, and a requirement written in EARS, are both precise
+  enough to write a failing test from — so implementation is verified
   against the spec rather than against intuition.
 - **Decision memory.** Recorded decisions prevent relitigating settled
   questions and prevent accidental reversals by future maintainers (human
@@ -67,7 +68,7 @@ skill.
 | Type | Captures | One per |
 |------|----------|---------|
 | **ADR** — Architecture Decision Record | A significant decision: the context, alternatives considered, the choice, and its consequences | Decision |
-| **FRD** — Feature Requirements Document | The WHY (user story) and WHAT (EARS acceptance criteria) for a single feature | Feature |
+| **FRD** — Feature Requirements Document | The WHY (user story) and WHAT (Gherkin acceptance criteria) for a single feature | Feature |
 | **Standards** | Cross-cutting standards, policies, invariants, or constraints that span features or systems (the type name is shorthand for this whole family) | Domain or scope |
 | **System Blueprint** | A system's context, containers, public contracts, and deployment (C4 levels 1-2) | System |
 | **Container Blueprint** | One deployable unit: its context, components, provided/consumed contracts, owned data, and change guidance for feature work | Container |
@@ -158,14 +159,28 @@ specs.
    guidance in HTML comment blocks — when to use it, how to complete each
    section, ID and slug conventions. Read them, complete the section, then
    **delete the comment blocks** from the finished document.
-3. **Write every normative statement in EARS** with capitalized RFC 2119
-   modal verbs (SHALL / SHOULD / MAY). This applies to acceptance
-   criteria in FRDs and every requirement in standards documents. Load
-   `references/shared/ears-guide.md` before writing requirements. In FRDs,
-   follow each acceptance criterion with one concrete example that
-   instantiates it (specific actor, data, observed result) — the example
-   is illustrative, never normative, and edge-case enumeration belongs in
-   tests, not the spec.
+3. **Write normative statements in the notation their surface uses.**
+   Two notations, and which applies is decided by what the statement is,
+   not by the document type:
+
+   - **An FRD's features and acceptance criteria are tagged Gherkin** —
+     one fenced ` ```gherkin ` block per requirement, the requirement on
+     `Feature:`, its user story in that Feature's description, each
+     criterion a `Scenario` or `Scenario Outline` carrying an
+     `@AC-<CODE>-NNN.N` tag. Load
+     `references/shared/gherkin-guide.md` before writing one; it holds
+     the tag vocabulary, what belongs in each description slot, and the
+     seven constructs that parse cleanly while losing meaning. Prefer a
+     `Scenario Outline` with an `Examples` table where a criterion
+     carries concrete example data.
+   - **Every other normative statement is EARS** with capitalized RFC
+     2119 modal verbs (SHALL / SHOULD / MAY) — standards documents,
+     contracts, blueprints, and an FRD's own prose outside its blocks.
+     Load `references/shared/ears-guide.md` before writing them.
+
+   Either way the illustration is never normative: the criterion or the
+   EARS sentence carries the requirement, and edge-case enumeration
+   belongs in tests, not the spec.
 4. **Follow the template-authoring standards** for frontmatter (title,
    description, slug, type, status, updated_at), kebab-case slugs with
    type prefixes, 80-character lines, and `[[document-slug]]`
@@ -217,7 +232,7 @@ specs.
 7. **Self-check the finished document.** Before setting any document to
    `ready-for-review`, run `spec check <path>` and then
    `references/shared/document-readiness-checklist.md` against it. The
-   checklist marks which of its eight checks the CLI settles and which
+   checklist marks which of its nine checks the CLI settles and which
    are yours; a clean `spec check` is not a passing document, and the
    checks it does not yet make are named there rather than left to
    silence. Fix what both report and re-run; do not set
@@ -247,7 +262,7 @@ correctly, and loading them together is one hop rather than a chain.
 | Choosing between two document types that both look plausible | `references/shared/document-type-boundaries.md` |
 | Reviewing a draft, or self-reviewing before `ready-for-review` | `references/shared/anti-patterns.md` + `references/shared/document-readiness-checklist.md` |
 | Recording an architecture or technology decision | `references/adr-template.md` |
-| Specifying a feature (user stories + acceptance criteria) | `references/frd-template.md` + `references/shared/ears-guide.md` |
+| Specifying a feature (user stories + acceptance criteria) | `references/frd-template.md` + `references/shared/gherkin-guide.md` |
 | Defining cross-cutting standards, policies, or constraints | `references/standards-template.md` + `references/shared/ears-guide.md` |
 | Documenting a system (context, containers, deployment) | `references/system-blueprint-template.md` + `references/shared/c4-guide.md` |
 | Documenting a deployable unit (app or owned data store) | `references/container-blueprint-template.md` + `references/shared/c4-guide.md` |
@@ -258,7 +273,8 @@ correctly, and loading them together is one hop rather than a chain.
 | Preflighting a feature blueprint before review handoff | `references/shared/blueprint-readiness-checklist.md` |
 | Specifying an interface's semantics, SLOs, and change policy | `references/contract-template.md` + `references/shared/c4-guide.md` |
 | Mapping any element to a C4 level; diagram conventions | `references/shared/c4-guide.md` |
-| Writing any requirement or acceptance criterion | `references/shared/ears-guide.md` |
+| Writing a feature or an acceptance criterion (Gherkin) | `references/shared/gherkin-guide.md` |
+| Writing any other normative statement (EARS) | `references/shared/ears-guide.md` |
 | Slugs, instruction blocks, versioning, placeholders, validation | `references/shared/template-authoring-standards.md` |
 | Frontmatter properties, status vocabulary, element records | `references/shared/frontmatter-standards.md` |
 | `[[slug]]` wikilinks, heading anchors, backticked paths | `references/shared/cross-document-references.md` |

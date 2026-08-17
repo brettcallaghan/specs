@@ -1,0 +1,14 @@
+criterion <id> returns that criterion's record. criterion --of <feature-id> returns every criterion beneath one feature, and criterion --tag <qualifier> every criterion carrying one qualifier. --json writes the matching records as JSON to standard output. An identifier no criterion declares is reported as such and exits non-zero. criterion --changed compares the current corpus against the persisted index and lists every acceptance criterion whose content hash differs, classifying each as changed, added or removed.
+
+Usage:
+  spec criterion [<id>] [flags]
+
+Flags:
+      --changed      list acceptance criteria whose content differs from the persisted index
+  -h, --help         help for criterion
+      --json         write the matching criterion records as JSON to standard output
+      --of string    list every criterion beneath this feature
+      --tag string   list every criterion carrying this qualifier
+
+Global Flags:
+      --config string   path to the repository's specs.toml (default "specs.toml")

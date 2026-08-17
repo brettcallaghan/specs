@@ -1,0 +1,5 @@
+description = "criterion --changed compares the current corpus against a persisted index recording an earlier state: AC-CHK-001.1 moved within the feature but kept its content and is not listed, AC-CHK-001.2's text changed, AC-CHK-001.3 was removed, and AC-CHK-001.4 is new"
+cites = ["AC-GHK-008.1", "AC-GHK-008.2", "AC-GHK-008.3"]
+artifacts = ["checks.log"]
+args = ["criterion", "--changed"]
+exit_code = 0

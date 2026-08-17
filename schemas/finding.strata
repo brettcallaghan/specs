@@ -139,6 +139,24 @@ struct FindingFrontmatterParse {
 }
 
 """
+A configured spec root beneath which discovery found no corpus member.
+
+The only finding whose subject is the corpus rather than a document, and
+the reason it carries a variant of its own: a consumer keying off the
+kind must be able to tell "the run examined nothing" from a defect in
+some file, and there is no file here to name. The root is carried
+because it is the whole of what an operator acts on — a typo'd path, a
+moved directory, an ignore rule that swallowed the corpus.
+"""
+struct FindingCorpusEmpty {
+  """
+  The configured spec root, relative to the repository root, that holds
+  no corpus member.
+  """
+  root: String
+}
+
+"""
 A check that was requested and could not run.
 
 This is the structured half of the `unverified` severity: the reason
@@ -315,6 +333,115 @@ struct FindingUnresolvedCitation {
 }
 
 """
+A Gherkin source that could not be parsed.
+
+Held apart from a frontmatter parse failure because the two are found by
+different readers and fixed in different places: a Gherkin source sits
+inside a document whose envelope parsed perfectly well, and only the
+feature it declares is lost. The parser's own expectation is carried so
+that the author is told what was admissible at that position rather than
+only that something was not.
+"""
+struct FindingGherkinParse {
+  """
+  What the parser expected at the offending position, quoted from the
+  parser so the message needs no further lookup to act on.
+  """
+  expected: String
+}
+
+"""
+A record whose identifier tag is absent or does not match the pattern
+registered for it.
+
+One shape for both defects, because the fix is the same act — write a
+conforming identifier — and the two are told apart by the rule that
+raised the finding. The pattern is carried in either case: an author who
+wrote no identifier needs to know the form of the one to write just as
+much as an author who wrote a wrong one.
+"""
+struct FindingIdentifierPattern {
+  """
+  The identifier as written, absent where the record carries no
+  identifier tag at all.
+  """
+  identifier: String?
+
+  """
+  The pattern the active profile registers for identifiers of this kind.
+  """
+  pattern: String
+}
+
+"""
+An identifier declared by more than one record in the corpus.
+
+Reported against each of the two records, each naming the other, so that
+checking either one surfaces the collision. The other occurrence's span
+is carried alongside its path because a file holds many records and an
+identifier is not a heading: without the span the reader is told which
+file to open and left to search it.
+"""
+struct FindingDuplicateIdentifier {
+  """The identifier both records declare."""
+  identifier: String
+
+  """
+  The other occurrence's path, relative to the repository root and
+  written with forward slashes on every platform.
+  """
+  other_path: String
+
+  """Where in that file the other occurrence is written."""
+  other_position: Span
+}
+
+"""
+A scenario outline whose examples blocks are inconsistently tagged: some
+carry an identifier and others do not.
+
+The defect is the inconsistency, not the several blocks — an outline
+whose blocks are all tagged is several criteria, and one whose blocks are
+all untagged is a single criterion written in named groups. Both are
+admissible, and the mixture is what no reader can resolve.
+
+The untagged blocks are carried as spans so that a report points at the
+blocks to fix rather than at the outline containing them.
+"""
+struct FindingPartiallyTaggedOutline {
+  """
+  Where each untagged examples block is written, in the order the blocks
+  occur.
+  """
+  untagged: [Span]
+}
+
+"""
+A feature whose owning-document tag is absent, names a document other
+than the one the feature is written in, or names no corpus member at all.
+
+The three defects share a shape because they share a question — which
+document owns this feature — and the rule that raised the finding says
+which of them occurred. Both slugs are optional because each defect
+leaves a different half unknown: a feature carrying no tag has no slug to
+quote, and a standalone feature file is no document and so has none of
+its own to disagree with.
+"""
+struct FindingOwningDocument {
+  """
+  The slug the feature's owning-document tag names, as written, absent
+  where the feature carries no such tag.
+  """
+  slug: String?
+
+  """
+  The slug of the document the feature is written in, absent where the
+  feature is a standalone feature file rather than a fenced block.
+  """
+  document_slug: String?
+}
+
+"""
 The structured detail of one finding, selected by the kind of defect.
 
 Every finding carries one. The message on the finding is derivable from
@@ -344,6 +471,9 @@ union FindingDetail {
   """A frontmatter block that could not be read as a document envelope."""
   @tag("frontmatter-parse") FrontmatterParse: FindingFrontmatterParse
 
+  """A spec root beneath which discovery found no corpus member."""
+  @tag("corpus-empty") CorpusEmpty: FindingCorpusEmpty
+
   """A requested check that could not run."""
   @tag("unverified") Unverified: FindingUnverified
 
@@ -364,6 +494,21 @@ union FindingDetail {
 
   """A citation whose slug names no corpus document."""
   @tag("unresolved-citation") UnresolvedCitation: FindingUnresolvedCitation
+
+  """A Gherkin source that could not be parsed."""
+  @tag("gherkin-parse") GherkinParse: FindingGherkinParse
+
+  """An identifier tag that is absent or malformed."""
+  @tag("identifier-pattern") IdentifierPattern: FindingIdentifierPattern
+
+  """An identifier declared by two records in the corpus."""
+  @tag("duplicate-identifier") DuplicateIdentifier: FindingDuplicateIdentifier
+
+  """A scenario outline whose examples blocks are inconsistently tagged."""
+  @tag("partially-tagged-outline") PartiallyTaggedOutline: FindingPartiallyTaggedOutline
+
+  """A feature whose owning document is unstated, mismatched or unresolved."""
+  @tag("owning-document") OwningDocument: FindingOwningDocument
 }
 
 """

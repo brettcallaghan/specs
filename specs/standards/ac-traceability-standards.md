@@ -5,8 +5,8 @@ description: How tests cite the acceptance criteria they verify, and how
 slug: ac-traceability-standards
 type: standards
 status: active
-updated_at: 2026-08-13T00:00:00Z
-version: "0.3.0"
+updated_at: 2026-08-15T00:00:00Z
+version: "0.4.0"
 ---
 
 # AC Traceability Standards
@@ -21,6 +21,16 @@ version: "0.3.0"
 Requirements binding automated tests to the acceptance criteria (ACs)
 they verify. They apply to every project adopting this framework's FRDs
 and feature blueprints.
+
+An acceptance criterion is a tagged Gherkin `Scenario` or `Scenario
+Outline` inside an FRD ([[adr-021]], [[gherkin-guide]]). Its identifier
+is the `@AC-<CODE>-NNN.N` tag it carries, and that tag is what every
+citation below names. Nothing else in this document depends on the
+notation: the identifier format, the append-only rule, and the citation
+marker are unchanged by it.
+
+The requirements in this document are EARS, not Gherkin — a standards
+document states invariants rather than scenarios ([[adr-002]]).
 
 The durable traceability pair is the **FRD** and the **annotated test
 suite**. A feature blueprint's AC Coverage table declares intent at
@@ -116,12 +126,20 @@ declared in the feature blueprint's AC Coverage table
 proof suffices. It is SHOULD, not SHALL, because the blueprint retires
 and the level is not durably machine-checkable afterward.
 
+WHERE a criterion carries a `@level-<unit|integration|e2e>` tag, that tag
+is the FRD's own statement of the same judgment and outlives the
+blueprint. The tag is optional; the AC Coverage table is not.
+
 ---
 
 IF an acceptance criterion can only be verified manually, THEN the FRD
-SHALL record that designation by appending the marker `(manual)` to the
-criterion text, and the criterion is exempt from the citation
-obligation.
+SHALL record that designation with the `@manual` tag on the criterion,
+and the criterion is exempt from the citation obligation.
+
+**Rationale:** The tag replaces the `(manual)` text marker an earlier
+revision required. A marker inside the criterion text is greppable and
+nothing more; a tag is a record property, so "which criteria are exempt"
+is a query rather than a search.
 
 ---
 
@@ -159,9 +177,13 @@ blueprints.
 
 ## References
 
-- `frd-template.md` (same directory) — AC identifier format, no-reuse
-  rule, and the `(manual)` designation (templates are not documents
-  and have no slugs; they are referenced by path)
+- `frd-template.md` (same directory) — AC identifier format and the
+  no-reuse rule (templates are not documents and have no slugs; they are
+  referenced by path)
+- [[gherkin-guide]] — the tag vocabulary these identifiers are written
+  in, including `@manual` and `@level-*`
+- [[adr-021]] — the decision that makes an acceptance criterion a tagged
+  Gherkin scenario
 - `feature-blueprint-template.md` (same directory) — AC Coverage
   table and Definition of Done
 - [[template-authoring-standards]] — EARS and referencing conventions

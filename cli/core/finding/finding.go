@@ -111,30 +111,74 @@ const (
 	// a mistyped reference or illustrative prose that was never meant to
 	// resolve.
 	RuleUnresolvedCitation specmodel.RuleId = "links/unresolved"
+
+	// RuleCriterionUntagged covers a Scenario carrying no identifier tag.
+	RuleCriterionUntagged specmodel.RuleId = "gherkin/criterion-untagged"
+	// RuleFeatureUntagged covers a Feature carrying no identifier tag.
+	RuleFeatureUntagged specmodel.RuleId = "gherkin/feature-untagged"
+	// RuleIdentifierMalformed covers an identifier tag that does not
+	// match the pattern registered for identifiers of its kind.
+	RuleIdentifierMalformed specmodel.RuleId = "gherkin/identifier-malformed"
+	// RuleIdentifierMultiple covers a Feature or a Scenario carrying more
+	// than one tag matching its identifier pattern.
+	RuleIdentifierMultiple specmodel.RuleId = "gherkin/identifier-multiple"
+	// RuleIdentifierDuplicate covers a feature or a criterion identifier
+	// declared by two records in the corpus — the Gherkin analogue of
+	// [RuleDuplicateSlug].
+	RuleIdentifierDuplicate specmodel.RuleId = "gherkin/identifier-duplicate"
+	// RuleCriterionCodeMismatch covers a criterion whose identifier's
+	// code and number are not its feature's.
+	RuleCriterionCodeMismatch specmodel.RuleId = "gherkin/criterion-code-mismatch"
+	// RuleOwnerMissing covers a feature in a standalone feature source
+	// carrying no owning-document tag.
+	RuleOwnerMissing specmodel.RuleId = "gherkin/owner-missing"
+	// RuleOwnerMismatch covers a feature in a fenced block carrying an
+	// owning-document tag that names a document other than the one it is
+	// written in.
+	RuleOwnerMismatch specmodel.RuleId = "gherkin/owner-mismatch"
+	// RuleOwnerUnresolved covers an owning-document tag whose slug names
+	// no corpus member.
+	RuleOwnerUnresolved specmodel.RuleId = "gherkin/owner-unresolved"
+
+	// RuleGherkinParse covers a Gherkin source that could not be parsed.
+	RuleGherkinParse specmodel.RuleId = "gherkin/parse"
+	// RuleCriterionEmpty covers a criterion with no steps.
+	RuleCriterionEmpty specmodel.RuleId = "gherkin/criterion-empty"
+	// RuleScenarioProse covers a non-empty Scenario description, reported
+	// as a probable untagged criterion rather than the rationale a
+	// well-formed criterion carries alongside its steps.
+	RuleScenarioProse specmodel.RuleId = "gherkin/scenario-prose"
+	// RuleExamplesPartiallyTagged covers a Scenario Outline whose
+	// Examples blocks carry an identifier on some and not others.
+	RuleExamplesPartiallyTagged specmodel.RuleId = "gherkin/examples-partially-tagged"
 )
 
-// referenceRules is every rule whose finding is raised against the
-// document that *holds* a reference rather than the document the
-// reference is about.
+// corpusWideRules is every rule whose finding is raised against the
+// document that *holds* the defect's declaration rather than the
+// document or record the defect is about.
 //
 // That distinction is what a single-document check turns on: an edit to
-// one document breaks references held by others, so these findings are
-// reported wherever they were written rather than narrowed to the file a
-// caller named (AC-SPECREF-002.9, AC-SPECREF-002.11). Membership is a
-// property of where a rule's findings land, not of its `reference/`
-// prefix — a future rule reported against the referenced document would
-// not belong here however it is named.
-var referenceRules = map[specmodel.RuleId]bool{
+// one document breaks a reference or a duplicated identifier held by
+// another, so these findings are reported wherever they were written
+// rather than narrowed to the file a caller named (AC-SPECREF-002.9,
+// AC-SPECREF-002.11, and — for the Gherkin identifier rule — VTAG's own
+// corpus-wide uniqueness requirement). Membership is a property of where
+// a rule's findings land, not of a `reference/` prefix: the Gherkin rule
+// below belongs here on exactly the same test the reference rules do,
+// despite carrying no such prefix itself.
+var corpusWideRules = map[specmodel.RuleId]bool{
 	RuleUnresolvedReference: true,
 	RuleRetiredTarget:       true,
 	RuleIncompletePairing:   true,
 	RuleTypeMismatch:        true,
+	RuleIdentifierDuplicate: true,
 }
 
-// IsReferenceRule reports whether findings of this rule are raised
-// against the referring document — see [referenceRules].
-func IsReferenceRule(rule specmodel.RuleId) bool {
-	return referenceRules[rule]
+// IsCorpusWideRule reports whether findings of this rule are raised
+// against the declaring document rather than narrowed to the one file a
+// single-document check named — see [corpusWideRules].
+func IsCorpusWideRule(rule specmodel.RuleId) bool {
+	return corpusWideRules[rule]
 }
 
 // rootPointer is what an empty JSON Pointer is rendered as, so a message
@@ -436,17 +480,22 @@ func UnresolvedCitation(citingPath string, at specmodel.Span, slug string) specm
 // is no document to point the finding at, so Path names the spec root
 // itself (relative to the repository root, matching every other
 // finding's path) and Position is the zero span. root is repeated in
-// Path and quoted in Message so the finding reads the same whether a
-// consumer looks at the structured field or the rendered text.
+// Path, in the detail and quoted in Message so the finding reads the
+// same whether a consumer looks at the structured field or the rendered
+// text.
+//
+// Its detail is the corpus-level variant rather than any document-level
+// one: a consumer keying off detail.kind reads a kind that matches the
+// rule, and is not sent looking for a file this finding does not have.
 func CorpusEmpty(root string) specmodel.Finding {
-	message := fmt.Sprintf("spec root %q holds no corpus members: the run checked zero documents", root)
 	return specmodel.Finding{
 		Rule:     RuleCorpusEmpty,
 		Severity: SeverityError,
 		Path:     root,
-		Message:  message,
-		Detail: specmodel.NewFindingDetailFrontmatterParse(specmodel.FindingFrontmatterParse{
-			Message: message,
+		Message: fmt.Sprintf(
+			"spec root %q holds no corpus members: the run checked zero documents", root),
+		Detail: specmodel.NewFindingDetailCorpusEmpty(specmodel.FindingCorpusEmpty{
+			Root: root,
 		}),
 	}
 }
@@ -467,6 +516,241 @@ func Unverified(rule specmodel.RuleId, path string, at specmodel.Span, reason st
 		Message:  fmt.Sprintf("check %s could not run: %s", rule, reason),
 		Detail: specmodel.NewFindingDetailUnverified(specmodel.FindingUnverified{
 			Reason: reason,
+		}),
+	}
+}
+
+// FeatureUntagged reports a Feature carrying no identifier tag
+// (AC-GHK-002.2).
+func FeatureUntagged(path string, at specmodel.Span, pattern string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleFeatureUntagged,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message:  fmt.Sprintf("Feature carries no identifier tag matching %q", pattern),
+		Detail: specmodel.NewFindingDetailIdentifierPattern(specmodel.FindingIdentifierPattern{
+			Pattern: pattern,
+		}),
+	}
+}
+
+// CriterionUntagged reports a Scenario carrying no identifier tag
+// (AC-GHK-002.2, AC-GHK-006.2).
+func CriterionUntagged(path string, at specmodel.Span, pattern string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleCriterionUntagged,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message:  fmt.Sprintf("Scenario carries no identifier tag matching %q", pattern),
+		Detail: specmodel.NewFindingDetailIdentifierPattern(specmodel.FindingIdentifierPattern{
+			Pattern: pattern,
+		}),
+	}
+}
+
+// IdentifierMalformed reports an identifier tag that does not match the
+// pattern registered for identifiers of its kind, quoting both
+// (AC-GHK-002.3, AC-GHK-006.5).
+func IdentifierMalformed(path string, at specmodel.Span, identifier, pattern string) specmodel.Finding {
+	id := identifier
+	return specmodel.Finding{
+		Rule:     RuleIdentifierMalformed,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message:  fmt.Sprintf("%q does not match pattern %q", identifier, pattern),
+		Detail: specmodel.NewFindingDetailIdentifierPattern(specmodel.FindingIdentifierPattern{
+			Identifier: &id,
+			Pattern:    pattern,
+		}),
+	}
+}
+
+// IdentifierMultiple reports a Feature or a Scenario carrying more than
+// one tag matching its identifier pattern, naming every one of them
+// (AC-GHK-002.5).
+func IdentifierMultiple(path string, at specmodel.Span, tags []string, pattern string) specmodel.Finding {
+	joined := strings.Join(tags, ", ")
+	return specmodel.Finding{
+		Rule:     RuleIdentifierMultiple,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message:  fmt.Sprintf("carries %d tags matching pattern %q: %s", len(tags), pattern, joined),
+		Detail: specmodel.NewFindingDetailIdentifierPattern(specmodel.FindingIdentifierPattern{
+			Identifier: &joined,
+			Pattern:    pattern,
+		}),
+	}
+}
+
+// IdentifierDuplicate reports a feature or a criterion identifier
+// declared by two records in the corpus, against one of them and naming
+// the other's location (AC-GHK-002.4, AC-GHK-003.4).
+//
+// The caller raises one of these against each record, so that checking
+// either one surfaces the collision — the same shape [DuplicateSlug]
+// has for two documents.
+func IdentifierDuplicate(path string, at specmodel.Span, identifier, otherPath string, otherPosition specmodel.Span) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleIdentifierDuplicate,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message:  fmt.Sprintf("identifier %q is also declared by %s", identifier, otherPath),
+		Detail: specmodel.NewFindingDetailDuplicateIdentifier(specmodel.FindingDuplicateIdentifier{
+			Identifier:    identifier,
+			OtherPath:     otherPath,
+			OtherPosition: otherPosition,
+		}),
+	}
+}
+
+// CriterionCodeMismatch reports a criterion whose identifier's code and
+// number are not its feature's (AC-GHK-003.6). pattern is the registered
+// criterion pattern criterionId matches — this is not a malformed
+// identifier, so the pattern is quoted for context rather than as the
+// constraint that failed; the message states the derivation that did.
+func CriterionCodeMismatch(path string, at specmodel.Span, criterionId, featureId, pattern string) specmodel.Finding {
+	id := criterionId
+	return specmodel.Finding{
+		Rule:     RuleCriterionCodeMismatch,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message:  fmt.Sprintf("%q does not carry feature %q's code and number", criterionId, featureId),
+		Detail: specmodel.NewFindingDetailIdentifierPattern(specmodel.FindingIdentifierPattern{
+			Identifier: &id,
+			Pattern:    pattern,
+		}),
+	}
+}
+
+// OwnerMissing reports a feature in a standalone feature source carrying
+// no owning-document tag (AC-GHK-002.10). Both halves of the detail are
+// absent: there is no tag to quote, and a standalone feature file is no
+// document, so it names none of its own to disagree with.
+func OwnerMissing(path string, at specmodel.Span, ownerPrefix string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleOwnerMissing,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message:  fmt.Sprintf("carries no owning-document tag (expected one prefixed %q)", ownerPrefix),
+		Detail:   specmodel.NewFindingDetailOwningDocument(specmodel.FindingOwningDocument{}),
+	}
+}
+
+// OwnerMismatch reports a feature in a fenced block carrying an
+// owning-document tag that names a document other than the one it is
+// written in, naming both (AC-GHK-002.11).
+func OwnerMismatch(path string, at specmodel.Span, taggedSlug, documentSlug string) specmodel.Finding {
+	tagged, doc := taggedSlug, documentSlug
+	return specmodel.Finding{
+		Rule:     RuleOwnerMismatch,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message:  fmt.Sprintf("owning-document tag names %q, but is written in %q", taggedSlug, documentSlug),
+		Detail: specmodel.NewFindingDetailOwningDocument(specmodel.FindingOwningDocument{
+			Slug:         &tagged,
+			DocumentSlug: &doc,
+		}),
+	}
+}
+
+// OwnerUnresolved reports an owning-document tag whose slug names no
+// corpus member. The FRD requires ownership to be recorded, and a tag
+// that names nothing cannot record it — this reads as the unresolved
+// reference it is rather than an ordinary owner mismatch.
+func OwnerUnresolved(path string, at specmodel.Span, slug string) specmodel.Finding {
+	s := slug
+	return specmodel.Finding{
+		Rule:     RuleOwnerUnresolved,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message:  fmt.Sprintf("owning-document tag names %q, which matches no corpus member", slug),
+		Detail: specmodel.NewFindingDetailOwningDocument(specmodel.FindingOwningDocument{
+			Slug: &s,
+		}),
+	}
+}
+
+// GherkinParse reports a Gherkin source that could not be parsed, at the
+// line and column of the offending text in the containing document, with
+// the parser's own expectation quoted in the message (AC-GHK-006.1).
+func GherkinParse(path string, at specmodel.Span, expected string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleGherkinParse,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message:  fmt.Sprintf("Gherkin source could not be parsed: %s", expected),
+		Detail: specmodel.NewFindingDetailGherkinParse(specmodel.FindingGherkinParse{
+			Expected: expected,
+		}),
+	}
+}
+
+// CriterionEmpty reports a criterion with no steps (AC-GHK-006.2). It
+// carries no structured detail beyond the shared envelope: unlike a
+// malformed identifier, an empty criterion has no offending value to
+// quote — only its own absence, which the message states.
+func CriterionEmpty(path string, at specmodel.Span) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleCriterionEmpty,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message:  "criterion carries no steps",
+		Detail: specmodel.NewFindingDetailMissingProperty(specmodel.FindingMissingProperty{
+			Property: "steps",
+		}),
+	}
+}
+
+// ScenarioProse reports a non-empty Scenario description as a probable
+// untagged criterion — the same shape [CriterionUntagged] carries,
+// because the fix this rule points toward is the same act: write the
+// description as a tagged criterion of its own, or delete it if it was
+// never meant to be one.
+func ScenarioProse(path string, at specmodel.Span, pattern string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleScenarioProse,
+		Severity: SeverityWarning,
+		Path:     path,
+		Position: at,
+		Message:  "Scenario description reads as a normative statement, which is a probable untagged criterion",
+		Detail: specmodel.NewFindingDetailIdentifierPattern(specmodel.FindingIdentifierPattern{
+			Pattern: pattern,
+		}),
+	}
+}
+
+// ExamplesPartiallyTagged reports a Scenario Outline whose Examples
+// blocks carry an identifier on some and not others, naming the
+// untagged blocks (AC-GHK-002.7, AC-GHK-006.2). Position is the first
+// untagged block's own span — every one of them is carried in the
+// detail, and the message points a reader at the first if they open
+// nothing else.
+func ExamplesPartiallyTagged(path string, untagged []specmodel.Span) specmodel.Finding {
+	var at specmodel.Span
+	if len(untagged) > 0 {
+		at = untagged[0]
+	}
+	return specmodel.Finding{
+		Rule:     RuleExamplesPartiallyTagged,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message: fmt.Sprintf(
+			"Scenario Outline is partially tagged: %d Examples block(s) carry no identifier while at least one sibling does",
+			len(untagged)),
+		Detail: specmodel.NewFindingDetailPartiallyTaggedOutline(specmodel.FindingPartiallyTaggedOutline{
+			Untagged: untagged,
 		}),
 	}
 }

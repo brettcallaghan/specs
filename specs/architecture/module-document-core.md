@@ -45,8 +45,9 @@ document taxonomy reuse the engine.
 - **Role:** parse, index and check a corpus of frontmatter-bearing
   markdown documents, driven entirely by registered configuration.
 - **Scope:** in — corpus discovery, frontmatter parsing, JSON Schema
-  validation, markdown structure and span extraction, reference graph
-  construction, numbering, the index and finding models. Out — any
+  validation, markdown structure and span extraction, Gherkin parsing,
+  reference graph construction, numbering, the index and finding models.
+  Out — any
   document-type vocabulary, any framework-specific rule, and all
   process-level concerns (argument parsing, output rendering, exit
   codes), which belong to the command surface of
@@ -105,14 +106,30 @@ the plugin, and no framework vocabulary is compiled into the host.
     it is no longer, and the property in which one of the latter names
     its replacement — as the authority for those judgements, and SHALL
     contain no status and no property name of its own.
+  - The module SHALL take the tag vocabulary the active profile
+    registers — the pattern a feature identifier matches, the pattern a
+    criterion identifier matches, the prefix an owning-document tag
+    carries, the capture groups a criterion identifier shares with its
+    feature's, and the qualifier tags together with what each of them
+    means — as the authority for reading a tag, and SHALL contain no tag
+    spelling of its own (AC-GHK-002.1). A tag matching no registered
+    pattern and named by no qualifier is carried on the record and
+    reported by nothing (AC-GHK-002.8).
+  - The module SHALL check a criterion identifier's derivation from its
+    feature's by comparing only the capture groups the registration
+    names as shared, so that neither pattern's internal structure is
+    known to it (AC-GHK-003.6).
   - WHEN a profile is activated, the module SHALL validate its
     registration and SHALL report every defect it finds, naming the
     offending key, rather than falling back to a default for that key
-    (AC-SPECREF-004.3). The defects are three: a pairing or a typed
+    (AC-SPECREF-004.3). The defects are five: a pairing or a typed
     reference naming a property the same type does not register as
     reference-bearing; a typed reference naming a document type the
-    profile does not define; and a lifecycle registration naming a
-    status outside the profile's own status vocabulary.
+    profile does not define; a lifecycle registration naming a status
+    outside the profile's own status vocabulary; a feature-tag
+    registration whose identifier pattern does not compile; and a
+    feature-tag registration whose shared captures name a capture group
+    an identifier pattern does not define.
   - The module SHALL return those defects to the caller rather than
     rendering them. A compiled-in registration has no file position of
     its own, and the position a reader needs — the configuration value
@@ -126,7 +143,7 @@ the plugin, and no framework vocabulary is compiled into the host.
     and only to the destination the caller resolves. It modifies no
     document it reads.
 
-**Built** — the `Profile` interface in `cli/core/corpus` has four
+**Built** — the `Profile` interface in `cli/core/corpus` has five
 members and nothing else:
 
 | Member | Supplies |
@@ -135,6 +152,7 @@ members and nothing else:
 | `DocumentTypes() map[string]DocumentTypeRules` | per type, its slug pattern, whether it is numbered, and which of its properties hold references — keyed by the value documents declare in `type` |
 | `Conventions() specmodel.ConventionsConfig` | the convention defaults resolved where an adopting repository's configuration omits them |
 | `Lifecycle() LifecycleRules` | the profile's status vocabulary, which of those statuses mean in effect and which mean superseded, and the property a superseded document names its replacement in |
+| `FeatureTags() FeatureTagRules` | the tag vocabulary: the identifier patterns a feature and a criterion match, the prefix an owning-document tag carries, the captures a criterion identifier shares with its feature's, and the qualifier tags with their meanings |
 
 `DocumentTypeRules` carries a slug pattern, a numbered flag, and the
 type's reference registration — `ReferenceProperties`, the properties
@@ -156,6 +174,29 @@ alternative, reading the vocabulary out of the union schema, would mean
 the host knowing where a schema keeps its status enum and passing
 vacuously against a profile that keeps it elsewhere.
 
+`FeatureTagRules` is profile-level for a different reason: a feature is
+not a document type. It is written inside a document of any type, or in
+a file that is no document at all, and the tags that identify it are the
+same in both. It carries the two identifier patterns, the
+owning-document tag prefix, `SharedCaptures`, and `Qualifiers` — each
+one a tag paired with the criterion property it populates. Every member
+is independent and a profile may register some and not others: a
+registration that identifies features and not criteria describes a
+corpus with no criteria in it.
+
+`SharedCaptures` is how a criterion identifier's derivation from its
+feature's is stated as data. The host compiles both patterns, captures
+both identifiers, and compares only the groups named there, so it checks
+the derivation while knowing nothing of either pattern's internal
+structure. A profile whose two patterns share nothing registers none and
+no derivation is checked.
+
+A qualifier's meaning is the generated vocabulary's own type rather than
+a string the profile invents, because the set of meanings is fixed by
+the criterion record — a qualifier can only mean one of the things a
+criterion has somewhere to put. What the profile chooses is each tag's
+spelling and which meaning it carries.
+
 `ValidateRegistration` is the registration check, and it returns
 `RegistrationDefect` values carrying the document type, the offending key
 and what is wrong with it. It renders nothing and repairs nothing.
@@ -168,11 +209,15 @@ on its own merits, never a special case granted to one profile. Two tests
 hold the boundary: no package under `cli/core` imports a profile package,
 and no non-test source in `cli/core/corpus` contains a string literal
 matching anything a profile registers through the extension point — any
-document type, any status, or any frontmatter property the generated
-vocabulary types as a slug or a list of slugs. All three sets are read
-from the generated schema rather than restated, so the boundary widens
-with the vocabulary; the identity property `slug` is excluded because it
-names the document declaring it rather than another document.
+document type, any status, any frontmatter property the generated
+vocabulary types as a slug or a list of slugs, and any value a qualifier
+tag is liable to be spelled after, which is a boolean property of the
+criterion record or a verification level. All four sets are read from the
+generated schema rather than restated, so the boundary widens with the
+vocabulary; the identity property `slug` is excluded because it names the
+document declaring it rather than another document. Identifier patterns
+are not read, because a pattern is registered whole and the host holds no
+part of one.
 
 The write guarantee is narrower in fact than in statement. The module's
 only write is `corpus.Write`, whose destination `corpus.IndexPath`
@@ -189,7 +234,8 @@ C4Component
     Container_Boundary(core, "Document Core") {
         Component(span, "Spans", "Go package", "Position type and delimited-region scanning")
         Component(fm, "Frontmatter", "Go package", "Frontmatter extraction and YAML parsing with raw-text access")
-        Component(md, "Markdown Structure", "Go package (planned)", "Headings, section spans, fenced blocks and comment blocks")
+        Component(md, "Markdown Structure", "Go package (fences built)", "Headings, section spans, fenced blocks and comment blocks")
+        Component(gherkin, "Gherkin", "Go package", "Gherkin parsing into feature and criterion records, with tags read as strings")
         Component(refs, "References", "Go package", "Wikilink and frontmatter reference extraction, resolution against corpus slugs, and the reference graph")
         Component(schema, "Schema Registry", "Go package", "Single-union JSON Schema validation dispatched by document type")
         Component(corpus, "Corpus", "Go package", "Discovery, membership, the index model and its emission")
@@ -199,10 +245,12 @@ C4Component
     }
     Rel(corpus, fm, "Extracts frontmatter via")
     Rel(corpus, md, "Extracts structure via")
+    Rel(corpus, gherkin, "Extracts features and criteria via")
     Rel(corpus, refs, "Extracts references via")
     Rel(corpus, schema, "Runs Check's per-member validation through")
     Rel(fm, span, "Locates delimited regions with")
     Rel(md, span, "Locates delimited regions with")
+    Rel(gherkin, span, "Reports every position through")
     Rel(refs, span, "Locates occurrences with")
     Rel(schema, fm, "Validates records produced by")
     Rel(num, corpus, "Queries the index of")
@@ -214,19 +262,22 @@ C4Component
     Rel(mdlinks, find, "Reports through")
 ```
 
-Eight of the nine are built and carry a **Built** paragraph naming the
-package that realizes them: Spans, Frontmatter, References, Schema
-Registry, Corpus, Numbering, Findings and Markdown Links. The emitted
-index carries the resolved reference graph, and the corpus checks read
-it: a broken link, a live document citing a retired one, a
+Nine of the ten are built and carry a **Built** paragraph naming the
+package that realizes them: Spans, Frontmatter, Gherkin, References,
+Schema Registry, Corpus, Numbering, Findings and Markdown Links. The
+emitted index carries the resolved reference graph, and the corpus checks
+read it: a broken link, a live document citing a retired one, a
 half-declared pairing and a typed reference landing on the wrong
 document type are each reported against the document a reader must
-open. **Markdown Structure is planned and not yet built** — there is
-no `cli/core/markdown`
-package, and no heading is read anywhere in the module. Its section below
-describes a design, not an implementation, and the diagram edges into and
-out of it are likewise the intended shape. Everything the current corpus
-check does is reached without it.
+open. **Markdown Structure is built for one of its three capabilities.**
+`cli/core/markdown` locates fenced blocks by info string; the heading
+tree and comment-block location remain not yet built, and the diagram
+edges that would carry those two are still the intended shape rather
+than an exercised one. Both edges from Corpus into Markdown Structure
+and Gherkin are exercised: the walk extracts a fenced Gherkin block
+through `markdown.Fenced` and parses every feature source through
+`gherkin.Parse`, and the `gherkin/` checks recompute from the same two
+packages.
 
 ### Spans
 
@@ -370,18 +421,117 @@ description: Headings with their section spans, fenced blocks by info string, an
 (Go package) — Headings with their section spans, fenced blocks by info
 string, and HTML comment blocks. Produces the heading tree with the span
 of content beneath each heading, extracts fenced blocks whose info
-string matches a registered tag and parses their content in the declared
-format, and locates HTML comment blocks both as content and as
-leftover-scaffolding hygiene. This is the component the
+string matches a registered tag, and locates HTML comment blocks both as
+content and as leftover-scaffolding hygiene. This is the component the
 extract-then-review pattern depends on: an agent asks for the spans of
 particular sections and reads only those.
 
-**Not yet built.** There is no `cli/core/markdown` package, and no
-heading is read anywhere in the module. [[adr-015]]'s choice of
-`goldmark` is already a module dependency — References brought it in for
-the code-region mask described under that component — so what this
-component still owes is the heading tree, the fenced-block extraction
-and the comment-block location, not the parser.
+**Built — fenced blocks only.** `cli/core/markdown`. Its surface is
+`Fenced`, which takes a document body and a set of registered tags and
+returns every fenced block whose info string matches one of them, in
+document order, as a `Block`: `Content` — the bytes between the fences —
+alongside `Outer`, over the whole construct including both fence lines
+in full, and `Inner`, over the content alone. Fence recognition comes
+from `goldmark` — [[adr-015]]'s choice, already a module dependency via
+References — rather than from a hand-rolled scan, because where a fence
+ends depends on the fence character, its run length and its info string.
+Every position is still computed by Spans's `Of`, so a fenced block's
+position is comparable to a frontmatter or reference position. An
+unterminated fence — content running to the end of the document with no
+closing line — yields no block, matching the Spans scanner's refusal to
+guess at a dangling delimiter. `Fenced` locates and returns bytes only:
+parsing a matched block's content in its tag's declared format is a
+question for that tag's own consumer, not for this package.
+
+The heading tree and the comment-block location remain **not yet
+built**. Nothing reads a heading anywhere in the module, and no
+`cli/core/markdown` surface locates an HTML comment block yet.
+
+### Gherkin
+
+```component
+title: Gherkin
+slug: component-gherkin
+description: Gherkin parsing into feature and criterion records, with tags read as strings
+```
+
+(Go package) — Gherkin parsing into feature and criterion records, with
+tags read as strings. Parses a source with the official Go Gherkin parser
+[[adr-021]] measured and returns one feature record with its criteria
+nested beneath it, each carrying its text, its tags and its position.
+Both admissible forms — a fenced block inside a document, and a
+standalone `.feature` file — are the same parse over a different region.
+
+**The whole of Gherkin lives here, and none of this framework's
+vocabulary does.** Parsing is general: which constructs a source
+declares, where each of them ends, and what a tag says are questions
+about a notation, and a vault of `.feature` files with nothing to do with
+C4 could ask them. Meaning is not general: which tag identifies a
+feature, which identifies a criterion, and which qualifiers count are
+facts about one document vocabulary, and they arrive through the Profile
+extension point. The component asks the caller to resolve a set of tags
+to an identity and takes back an answer or nothing; it never inspects a
+tag's spelling. This is the module's host-and-plugin split applied to a
+notation rather than to a document type, and it is why no identifier
+pattern and no qualifier name appears in this package.
+
+**Built** — `cli/core/gherkin`. Its surface is `Parse`, over a source
+that is a document in its own right, and `ParseRegion`, over a region of
+a containing document such as a fenced block; both take an `Options`
+carrying the two functions that resolve tags to a feature identity and to
+a criterion identifier. Each returns a `Feature` — the generated
+`specmodel.Feature` populated with what Gherkin establishes, the tags as
+written, and the `Criterion` values beneath it — or a `*ParseError`
+carrying every failure the parser reported as a located
+`specmodel.ParseError`. `ContentHashOf` computes a criterion's hash from
+a name and a text alone, so a second producer of criteria hashes them the
+same way. `FenceTags` names the info strings that mark a fenced block as
+a Gherkin source: that names a notation rather than a vocabulary, so it
+belongs here and not in a profile, and both the discovery that extracts
+those blocks and the reference extraction that declines to mask them
+read it from one place.
+
+Four semantics are pinned by the implementation:
+
+- **A source that declares no `Feature` is parsed behind a synthetic
+  header,** and no position the header occupies is ever reported
+  (AC-GHK-001.4, AC-GHK-001.5). Every reported line is the line in the
+  containing document: the source's start line, plus the parser's line,
+  less the lines the header added. The feature such a source yields
+  carries no name, because a name invented here would be reported as
+  though an author had written it.
+- **A criterion's content hash covers its name and its text and nothing
+  else** (AC-GHK-005.5). Spans and parser node identifiers are excluded:
+  a node identifier is a positional counter that shifts whenever anything
+  above it is edited, so including one would report every criterion below
+  an insertion as changed. The text is hashed normalized — LF line
+  endings, common indentation removed, trailing whitespace stripped per
+  line — so a reindent or a CRLF checkout hashes as before, and only a
+  wording change moves the hash (AC-GHK-005.6, AC-GHK-005.7).
+- **A criterion's body is text.** It is the steps and any example table
+  verbatim with the block's common indentation removed, never decomposed
+  into typed steps or keyed example rows: decomposition would model one
+  notation, and nothing in the framework operates below the level of a
+  whole criterion.
+- **A construct ends where the next one begins,** trimmed back over
+  trailing blank and comment lines. Deriving an extent this way rather
+  than from the last step, table row or doc-string delimiter means no
+  construct needs arithmetic of its own, and a doc string's contents —
+  which may look like anything, comment lines included — sit inside the
+  range rather than at its edge.
+
+A scenario carrying `Examples` blocks divides on identity: where any
+block is identified, each block becomes its own criterion, and where none
+is, the scenario is one criterion whose text covers every block
+(AC-GHK-002.6, AC-GHK-002.9). An unidentified block beside an identified
+one still becomes a criterion, carrying no identifier — the partial
+tagging is a defect for a check to report, and a check can only report
+what the records carry.
+
+A parse failure is returned instead of records rather than alongside
+them, and never panics: a half-parsed source yields a feature missing
+criteria its author wrote, and an index that silently lost one is worse
+than an index that recorded why (AC-GHK-006.1).
 
 ### References
 
@@ -396,8 +546,13 @@ inbound and outbound reference graph. Finds every `[[slug]]` and
 `[[slug#Anchor]]` in a document body, records the span at which each
 occurs, and resolves them against the corpus. It never scans fenced or
 inline code spans, because an illustrative reference inside backticks is
-not a reference. Inbound edges are derived, so no document maintains a
-list of its own referrers.
+not a reference — except a fenced block whose info string names a
+registered Gherkin tag (Gherkin's `FenceTags`, above), which is Gherkin
+content rather than an illustration and is scanned like the rest of the
+body. It also extracts from a `.feature` source read whole, recording
+references against that file's own path though the file is not a corpus
+member. Inbound edges are derived, so no document maintains a list of its
+own referrers.
 
 **Built** — `cli/core/references`. `Extract` takes one
 document — its path, its bytes, its parsed frontmatter, and the
@@ -458,7 +613,7 @@ Five further semantics are pinned by the resolution half:
   by comparison rather than by the order the index happens to hold its
   collections in.
 
-Seven semantics are pinned by the extraction half:
+Nine semantics are pinned by the extraction half:
 
 - **The body is what follows the frontmatter block,** so a frontmatter
   value describing the notation — `description: References use [[slug]]
@@ -478,20 +633,43 @@ Seven semantics are pinned by the extraction half:
   Where an inline code span ends depends on matching backtick-run
   lengths, and where a fenced block ends depends on the fence length and
   its info string; a hand-rolled masker getting one of those wrong
-  produces exactly the false positive the exclusion exists to prevent. A
-  fence's info string is masked with its content. This brings `goldmark`
-  into the module ahead of Markdown Structure, and nothing here builds
-  that component: no heading is read.
+  produces exactly the false positive the exclusion exists to prevent.
+  This brings `goldmark` into the module ahead of Markdown Structure, and
+  nothing here builds that component: no heading is read.
+- **The code-region mask is narrowed by fence info string, not removed.**
+  A fenced block whose info string exactly matches one of Gherkin's
+  `FenceTags` is left unmasked — a wikilink in a feature description, a
+  scenario name, a step, a rule name or an examples cell is extracted
+  like any other body reference — because that content is Gherkin, not
+  an illustration. Every other fenced block, every indented code block,
+  and every inline code span stays masked, and a fence's info string is
+  always masked regardless of its tag: it is notation naming the block,
+  never a place Gherkin content is written. Reading the tag vocabulary
+  from Gherkin's exported `FenceTags` rather than a literal keeps the two
+  components from drifting when that vocabulary changes.
+- **A `.feature` source is extracted the same way a document body is,**
+  with no frontmatter and no reference-bearing properties: the whole
+  file is body from its first byte, so a wikilink anywhere in it is
+  found by the same scan, and the reference is recorded against that
+  file's own path even though it is not a corpus member — an edge's
+  endpoints are paths, and the referring file is the one a reader must
+  open to fix it. It resolves exactly as a reference written in prose
+  does; an unresolved one is reported by Corpus's `reference/unresolved`
+  check, below, rather than by a rule of its own.
 - **An HTML comment block is read as body text.** Only code is excluded,
   and `template-authoring-standards.md` requires a finished document's
   comment blocks to be deleted, so masking them would hide a reference in
   a document that should not be carrying the block at all.
 - **A reference splits on its first `#`,** into the slug half this
-  feature resolves and the anchor half it records without interpreting.
-  No other separator is read: the display alias `[[slug|text]]` is
-  prohibited by the reference standard, so such a reference carries
-  `slug|text` as its slug half and reports as unresolved rather than
-  resolving quietly to something the standard forbids.
+  feature resolves and the anchor half it records without interpreting —
+  inside a Gherkin source exactly as elsewhere, so an anchor is never
+  matched against a `Feature`, `Rule` or `Scenario` name: a scenario name
+  is not a heading, and nothing in this component resolves an anchor
+  against a heading either. No other separator is read: the display alias
+  `[[slug|text]]` is prohibited by the reference standard, so such a
+  reference carries `slug|text` as its slug half and reports as
+  unresolved rather than resolving quietly to something the standard
+  forbids.
 - **Extraction leaves the resolution unset,** which is deliberately
   unserializable, so a reference cannot reach the index without having
   been resolved on the way. `Resolve` is what sets it, and it sets one on
@@ -554,9 +732,10 @@ description: Discovery, membership determination, the index model and its versio
 (Go package) — Discovery, membership determination, the index model and
 its versioned emission. Walks the configured spec root, decides
 membership from frontmatter and declared type, records exclusions with
-their reason rather than dropping them, and assembles the index every
-other capability queries. It orchestrates the parsing components but
-holds no parsing logic of its own.
+their reason rather than dropping them, extracts the features written in
+either admissible source form, and assembles the index every other
+capability queries. It orchestrates the parsing components but holds no
+parsing logic of its own.
 
 **The index model is `SpecIndex`, and it is generated.** The index
 crosses a boundary — CI, agents and a central architecture catalogue all
@@ -569,11 +748,12 @@ The vocabulary is:
 
 - **`SpecIndex`** — the root: a `schema_version`, the `workspace`
   identifier from configuration, an ordered list of `entries`, an
-  ordered list of `exclusions`, an ordered list of `references`, and the
-  optional `input_hash` the warm cache is decided by. All three
-  collections are lists rather than maps precisely so that the emitter
-  owns their order and can make output byte-identical across platforms
-  (AC-SPEC-009.7) without a change to the model.
+  ordered list of `exclusions`, an ordered list of `references`, an
+  ordered list of `features`, and the optional `input_hash` the warm
+  cache is decided by. Every collection is a list rather than a map
+  precisely so that the emitter owns their order and can make output
+  byte-identical across platforms (AC-SPEC-009.7) without a change to the
+  model.
 - **`IndexEntry`** — one corpus member: its repository-relative `path`,
   its parsed `frontmatter`, and a `parse_error` carrying a located
   failure for a member whose frontmatter could not be read
@@ -606,6 +786,30 @@ The vocabulary is:
   the parse failure that keeps it out of the corpus (AC-SPECREF-002.7).
   A reference that reaches nothing is recorded with a state rather than
   dropped, because indexing never fails (AC-SPECREF-001.6).
+- **`Feature`** — one feature declared by the corpus: its `id`, the
+  `code` that groups it, the `document_slug` of the document that owns
+  it, the `path` it is written in, its `name`, its `description`, its
+  `source`, its `position` as a `Span`, and its nested `criteria`
+  (AC-GHK-005.1). Features are a top-level collection because a feature
+  is addressed by its identifier and not by the document that happens to
+  hold it, ordered by the path a feature occurs in and then by its
+  position within that file.
+- **`FeatureSource`** — a union discriminated on `form`: a
+  `fenced-block` carrying the extent of the fence around the Gherkin, or
+  a `feature-file` carrying nothing, the file being the feature. The form
+  changes what a consumer may do with the feature, so it is a value
+  rather than something inferred from an absent property.
+- **`Criterion`** — one acceptance criterion, nested inside the feature
+  it qualifies rather than held in a sibling collection: its `id`, its
+  `name`, its body as `text`, its `description`, the `rule` it sits
+  beneath, the `negative` and `manual` qualifiers, its verification
+  `level`, its `notation`, its `content_hash`, and its `position`
+  (AC-GHK-005.2, AC-GHK-005.4). The body is one string and is not
+  decomposed into typed steps and keyed example rows: a criterion is the
+  atomic unit here, and a decomposed shape could be filled from one
+  notation only (AC-GHK-005.3). The `content_hash` covers the criterion's
+  name and text and nothing else, so a criterion that moved has not
+  changed (AC-GHK-005.5).
 - **`Span`** and **`ParseError`** — the position type every component
   reports through, and a message paired with one. `Span` is declared
   here, in the generated model, because findings and parse errors carry
@@ -619,7 +823,8 @@ exercise of that rule and it is a deliberate no-bump rather than an
 oversight — `references` is an addition alongside the existing shape,
 which is exactly what [[container-spec-cli]]'s additive rule permits at
 the same version, and the model and the emitted index changed in the
-same change as the Change Guidance below requires. The schema constrains
+same change as the Change Guidance below requires. The `features`
+collection is the second exercise, and is a no-bump for the same reason. The schema constrains
 `schema_version` by pattern (`String ~= /^1\.0$/`) rather than pinning
 it, so the generated model carries a validated field and not a constant;
 the emitted value lives in `cli/core/specindex` alongside the
@@ -644,7 +849,8 @@ Questions in [[container-spec-cli]], which owns that decision.
 raised over it, and the lookups the queries need — `Entry` by path,
 `Slug` by identifier, `Document` for the parsed frontmatter behind one
 member, `OutboundReferences` and `InboundReferences` for the two
-directions of the reference graph, and `FindingsFor` to narrow a
+directions of the reference graph, `FeatureFailures` for every Gherkin
+source that would not parse, and `FindingsFor` to narrow a
 whole-corpus result to one file.
 
 **The reference graph rides the walk.** A member's references are
@@ -658,6 +864,57 @@ document ordering and AC-SPEC-009.7's byte-identical output in one rule.
 Only a member contributes references: a file that is not a specification
 has no declared type, and what holds a reference in frontmatter is
 registered per type.
+
+**Feature discovery rides the same walk, over two kinds of source.** A
+`.md` candidate is offered to the membership decision as before; a
+regular file whose name ends in `.feature`, matched without regard to
+letter case, is offered as a **feature source** (AC-GHK-001.2). Both are
+read through the one `os.Root` handle and the one line-ending
+normalization every other read passes through, and both are offered by
+one walk rather than by two passes over the same tree — which is what
+puts a feature source's bytes into the input hash on the same terms a
+candidate's are.
+
+A feature source produces **neither an entry nor an exclusion**. It
+carries no frontmatter and is no document, so AC-SPEC-001.6's silent
+pass-over of a non-`.md` file stands and no exception to corpus
+membership is introduced. What it produces is features, and the
+`features` collection is where they land, ordered by the path a feature
+is written in and then by its position within that file — the rule the
+reference collection is ordered by, for the same reason.
+
+**Ownership is the one fact the two forms establish differently.** A
+fenced block is written inside the document that owns it, so it needs no
+tag to say so and is attributed to the slug that document declares
+(AC-GHK-001.7). That slug is read from the *parsed frontmatter*, not
+from the typed envelope: a document whose slug is absent or malformed
+does not reach the envelope, and its features would then be attributed
+to nothing while the document itself still indexed. A feature source,
+having no document around it, names its owner in a tag; the tag is the
+slug, and the profile's registered owner prefix is only how that tag is
+told apart from the others on the feature (AC-GHK-001.2). Discovery
+therefore needs no location of its own — a feature source sits with the
+documents of its feature and is found wherever beneath the spec root it
+sits (AC-GHK-001.6).
+
+**This is where the registered patterns meet the Gherkin component.**
+That component reads tags as strings and resolves no pattern of its own,
+so the profile's `FeatureTags` registration is compiled once per build
+and handed to it as two identity functions. The code a feature is
+grouped under is derived from the matched identifier itself — the
+identifier's composition is the generated model's, a prefix, the group
+code and the number — rather than from a named capture group, which
+would mean the host knowing what a profile called that group. A pattern
+that does not compile leaves its half of the vocabulary unresolved
+rather than failing the build: `ValidateRegistration` is where a
+malformed registration is reported, and a build under one still indexes
+every document.
+
+A source that will not parse is recorded as a failure against its own
+file and the walk continues, so indexing never fails as a whole
+(AC-SPEC-002.4). A parse failure is not on the index — a persisted index
+records what was extracted — so a corpus served warm carries none, the
+same shape a duplicate-slug finding has.
 
 `Check` and `CheckFor` run the Schema Registry's validation and the
 active profile's per-type slug-pattern check for every member with parsed
@@ -729,6 +986,106 @@ is what lets a run that requests these checks report them `passed`
 rather than `not-requested` even where the registration behind them is
 empty (AC-SPEC-006.9).
 
+**They also report whether a feature or a criterion is addressed,
+addressed once, and whether its address agrees with where it sits** —
+VTAG's nine identity rules, all raised from `gherkinIdentityFindings`.
+`gherkin/feature-untagged` and `gherkin/criterion-untagged` fire for a
+`Feature` or a `Scenario` resolving no identifier at all (AC-GHK-002.2);
+`gherkin/identifier-malformed` fires instead of the untagged rule when
+one that resolved none nonetheless carries a tag sharing its pattern's
+literal prefix but not matching it in full — the near-miss the FRD's own
+`@AC-chk-003.1` / `@AC-CHK-3.1` / `@AC-CHK-003` examples describe
+(AC-GHK-002.3, AC-GHK-006.5). A pattern with no literal run before its
+first capture group, such as the shipped profile's own `FeaturePattern`,
+never yields a near miss, so `identifier-malformed` fires there for a
+criterion but never for a feature — a limit of the mechanism under that
+particular registration, not of the rule. `gherkin/identifier-multiple`
+fires for an element carrying more than one tag matching its pattern,
+naming every one of them (AC-GHK-002.5). `gherkin/identifier-duplicate`
+fires for a feature or a criterion identifier declared by two records in
+the corpus, against each and naming the other's location — features and
+criteria compared separately, the Gherkin analogue of `slug/duplicate`
+(AC-GHK-002.4, AC-GHK-003.4) — and is the one rule in this set that
+survives `CheckFor`'s narrowing on the same terms `reference/unresolved`
+does: `finding.IsCorpusWideRule` (renamed from `IsReferenceRule` to admit
+a non-`reference/`-prefixed member) now covers it alongside the four
+reference rules. `gherkin/criterion-code-mismatch` fires when a
+criterion's identifier and its feature's disagree on the capture values
+the profile's `SharedCaptures` name (AC-GHK-003.6) — read from the two
+compiled patterns' own named captures, never from `Feature.Code`, which
+groups several features under one code by design and would make sharing
+a code look like a defect (AC-GHK-003.5). `gherkin/owner-missing`,
+`gherkin/owner-mismatch` and `gherkin/owner-unresolved` cover whether a
+feature's owning document is stated, whether a fenced block's own owner
+tag (if it carries one) agrees with the document it is written in
+(AC-GHK-002.11), and whether a standalone source's owner tag resolves to
+a corpus member at all (AC-GHK-002.10) — the last reading as an
+unresolved reference rather than an ordinary mismatch, because ownership
+that names nothing has not been recorded.
+
+**Every one of the nine reads from a fresh Gherkin parse, on a warm
+corpus and a cold one alike.** `specmodel.Feature` and `.Criterion` keep
+only a construct's *resolved* identity — an empty `Id` where nothing
+matched — never the tag that failed to match or the second tag that
+matched alongside the first, so `gherkinIdentityFindings` reads from
+`Corpus.recomputeGherkin`'s result, which walks the same `scanSources`
+`Build` does and calls the same extraction `blockFeatures` and
+`featureFileFeature` that a cold build's `builder` calls (features.go),
+factored out so the two paths can never silently drift into two
+implementations of one parse. A fenced block is only extracted from a
+path the corpus already knows is a member with fully-decoded
+frontmatter, the same condition `classifyDocument` gates it on at build
+time — consulted from the already-built index rather than re-derived, so
+this walk is never a second, divergeable notion of corpus membership.
+This is a real, unavoidable cost: every `Check` and `CheckFor` call re-
+parses every Gherkin source in the corpus, proportional to the corpus
+rather than to the one file a single-document check names, wider than
+the AC-SPEC-009.2 budget the rest of this component holds itself to. A
+recompute confined to what only fires cold would report nothing in the
+overwhelmingly common warm case, which is a worse defect than the cost.
+`check()` calls `recomputeGherkin` exactly once per `Check` or `CheckFor`
+call and hands the one result to both `gherkinIdentityFindings` and
+VCON's `gherkinContentFindings` below, so the two rule families cost one
+parse together rather than one each.
+
+**A Scenario Outline's inconsistently tagged Examples blocks are not
+double-counted.** `gherkin.Feature.PartialOutlines`, populated by the
+Gherkin component's own `criteria` alongside the criterion records
+themselves, names the untagged blocks of an outline where at least one
+sibling block matched and at least one did not (AC-GHK-002.7); VTAG's
+untagged check excludes exactly those positions, deferring the
+block-level defect to VCON's `gherkin/examples-partially-tagged`
+entirely rather than reporting the same block under two rules. An
+outline whose blocks are all tagged, and one whose blocks are all
+untagged — one criterion in named groups, per AC-GHK-002.9 — both record
+no `PartialOutline` at all.
+
+**They also report what the parser accepted and a reader would not** —
+VCON's four content and diagnostic rules, raised from
+`gherkinContentFindings` over the same `recomputeGherkin` result VTAG
+reads. `gherkin/parse` reports a Gherkin source that would not parse at
+all, at the line and column of the offending text with the parser's own
+expectation quoted (AC-GHK-006.1) — the one VCON rule that cannot be
+found from features alone, since a source that fails to parse produces
+no feature record and so is invisible to every walk but the full
+recompute that already produced `recomputeGherkin`'s second result,
+`failures`. `gherkin/criterion-empty` fires for a criterion whose `Text`
+is empty — a Scenario with no steps (AC-GHK-006.2). `gherkin/scenario-prose`
+fires for a criterion carrying a non-empty `Description`, reported at
+severity `warning` rather than `error` as a *probable* untagged
+criterion rather than a certain one; it reads only
+`Criterion.Description`, never `Feature.Description`, which is what
+makes AC-GHK-006.4's exemption for a Feature's user story a property of
+the check's shape rather than a condition it tests and could get wrong.
+`gherkin/examples-partially-tagged` raises one finding per
+`PartialOutline`, naming every untagged block (AC-GHK-002.7); its
+severity is `error`, matching `criterion-untagged`'s tier rather than
+`scenario-prose`'s, because the blueprint frames the mixture itself as
+unambiguous where a normative description is merely probable. Checking
+one document reports that document's own content findings and nothing
+more, on the same path-scoped narrowing every VTAG rule but
+`gherkin/identifier-duplicate` gets (AC-GHK-006.7).
+
 **Output and warm cache** — the same package. `Write` emits the index to
 one destination, resolved by `IndexPath`: `specs.json` inside the
 configured spec root by default (AC-SPEC-010.1), a named path when the
@@ -755,14 +1112,17 @@ safe.
 **Staleness is a content hash, never a modification time**, and the
 reason is the environment the latency budget is claimed in. A fresh CI
 checkout gives every file a new mtime and identical bytes; an
-mtime-keyed cache would be cold on every CI run, and REQ-SPEC-009.1's
+mtime-keyed cache would be cold on every CI run, and FEAT-SPEC-009.1's
 warm-index budget would never hold there. `Fingerprint` computes that
 hash over the same walk `Build` uses — the property the whole path rests
 on, since a fingerprint that drifted from the build would either serve
-stale indexes or never serve one. What it folds in is every candidate
-file's repository-relative path and content digest, plus the inputs that
+stale indexes or never serve one. What it folds in is every source
+file's repository-relative path and content digest — **candidates and
+feature sources alike**, each under its own label so the two can never
+collide — plus the inputs that
 change the index while the files stand still: the workspace identifier,
-the active profile's schema and per-type table, and the schema version.
+the active profile's schema, per-type table and registered feature tags,
+and the schema version.
 The per-type table includes each type's **reference-bearing properties**,
 because they decide the index's content — a property registered today
 holds a reference the emitted graph carries and did not carry yesterday,
@@ -773,6 +1133,20 @@ invocation and reach nothing the index records, so a change to one of
 them cannot make a persisted index stale. Absolute paths are deliberately
 excluded, so the same content checked out at another location hashes the
 same.
+
+**A hash covering only `.md` candidates would be a silent wrong
+answer**, which is why the feature sources are folded in on the same
+walk rather than by a pass of their own: a `.feature` file edited under
+a persisted index would leave every query over features answering from
+the index built before the edit, with nothing to see. The registered
+feature-tag **patterns, owner prefix and qualifiers** are folded in for
+the same reason a reference-bearing property is — a changed pattern
+records a different identifier, a changed prefix attributes a feature
+source to a different document, and a qualifier registered today
+populates a criterion property that was empty before. The registration's
+shared captures are not folded in: they are read only by the check that
+compares a criterion identifier against its feature's, which runs
+against the live profile on every invocation.
 
 A corpus served warm has parsed no document. It reads and parses one on
 demand when a caller asks something only the source can answer — a
@@ -798,7 +1172,8 @@ Six semantics are pinned by the implementation:
   line and column — what a human or an editor acts on — are unaffected.
 - **Only regular files ending in `.md` are candidates**, matched without
   regard to letter case, and everything else is passed over without being
-  recorded (AC-SPEC-001.6). Excluding symlinks is what closes the one
+  recorded (AC-SPEC-001.6) — a `.feature` file included, which the same
+  walk offers as a feature source rather than as a candidate. Excluding symlinks is what closes the one
   route by which a walk could leave the spec root, since `filepath.WalkDir`
   already declines to descend into a symlinked directory; reads go through
   an `os.Root` handle on top of that, so a path resolving outside the root
@@ -884,7 +1259,10 @@ is:
   violation with its JSON Pointer, constraint and raw value; a missing
   property with its name; a slug-pattern mismatch with both the slug and
   the pattern; a duplicate slug with the other document's path; an
-  unverified check with the reason it could not run; an unresolved
+  unverified check with the reason it could not run; a spec root beneath
+  which discovery found no corpus member, carrying that root — the one
+  variant whose subject is the corpus rather than a document, which is
+  why it is not folded into a document-level one; an unresolved
   reference with its slug, its origin and — where the slug matched a
   file the index excluded or could not parse — that file and the reason
   (AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7); a retired
@@ -897,7 +1275,15 @@ is:
   names a corpus document the map does not cover; and an unresolved
   citation with its slug and the citing document's path, for a citation
   whose slug names no corpus document at all (AC-SPECMD-002.3,
-  AC-SPECMD-002.4). The message is derivable from the variant, so a
+  AC-SPECMD-002.4); a Gherkin parse failure with the parser's own
+  expectation (AC-GHK-006.1); an identifier tag that is absent or
+  malformed, with the identifier as written where there is one and the
+  pattern it must match (AC-GHK-006.5); a duplicate identifier with the
+  other occurrence's path and span; a partially tagged scenario outline
+  with the spans of the untagged examples blocks; and an owning-document
+  defect with the slug the feature's tag names and the slug of the
+  document the feature is written in, each absent where that defect
+  leaves it unknown. The message is derivable from the variant, so a
   consumer branches on structure rather than parsing prose.
 - **`Severity`** — `error`, `warning` and `unverified`, the three
   [[frd-spec-validation-cli]] defines and no others.
@@ -931,6 +1317,15 @@ pinned by the implementation:
   and findings by path, then position, then rule and message, so the same
   run yields byte-identical output (AC-SPEC-009.7) and snapshot cases stay
   stable.
+- **Which rules survive a single-document check's narrowing is decided
+  here, by membership rather than by a `reference/` prefix.**
+  `IsCorpusWideRule` (renamed from `IsReferenceRule` by VTAG) reports
+  whether a rule's findings are raised against the declaring document
+  rather than confined to the one file `CheckFor` named — true for the
+  four reference-integrity rules and for `gherkin/identifier-duplicate`,
+  which needs the same treatment for the same reason: an edit to one
+  document can duplicate an identifier declared in another, and a result
+  narrowed strictly by path would be silent about it.
 
 The unverified mechanism is built and no check registers against it yet;
 the diagram validation AC-SPEC-006.3 illustrates is a structure-feature
@@ -1019,8 +1414,9 @@ replaced (AC-SPECMD-003.1). Three semantics are pinned:
   where it settled a target.
 
 The relationships below are stated for the module's whole component set.
-Where one names Markdown Structure it describes the intended edge rather
-than an existing one, since that component is not built.
+The Corpus → Markdown Structure edge is still the intended shape rather
+than an existing one: nothing in Corpus calls `cli/core/markdown` yet.
+Markdown Structure → Spans is now real for the fenced-block half.
 
 **Corpus → Frontmatter, Markdown Structure, References.** Corpus is the
 orchestrator: it walks files and delegates every act of parsing. A
@@ -1101,8 +1497,8 @@ This module SHALL comply with:
 - [[adr-016]] — Strata is the single source for generated models, which
   is why the index model this module emits is declared in
   `schemas/index.strata` rather than written as Go structs.
-- [[adr-014]] — acceptance-criteria notation is deferred, so no
-  component here parses acceptance criteria.
+- [[adr-021]] — settles the acceptance-criteria notation and the parser
+  the Gherkin component is built on.
 - [[adr-012]] — the `[[slug]]` and heading-anchor conventions the
   References component implements.
 - [[adr-018]] — references are one top-level edge collection on the
@@ -1113,7 +1509,7 @@ This module SHALL comply with:
 
 - [x] **Resolved — the index cache is invalidated by content hash, never
       by file modification time.** Mtime is cheaper, and it is wrong in
-      exactly the environment the warm-index latency of REQ-SPEC-009.1 is
+      exactly the environment the warm-index latency of FEAT-SPEC-009.1 is
       claimed in: a fresh CI checkout gives every file a new mtime and
       identical bytes, so an mtime-keyed cache would be cold on every CI
       run. `Fingerprint` folds each candidate's repository-relative path

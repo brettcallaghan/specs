@@ -1,11 +1,12 @@
 // Tests for the widened half of the Profile extension point: the
-// reference registration a document type carries, the lifecycle
-// registration a profile carries, and the validation of both.
+// reference registration a document type carries, the lifecycle and tag
+// vocabulary a profile carries, and the validation of all three.
 //
 // Every profile here registers a vocabulary of its own invention —
-// "thing" types, "current" and "sunset" statuses — because a test that
-// reached for this framework's vocabulary would be asserting that the
-// host works for one profile rather than for any.
+// "thing" types, "current" and "sunset" statuses, identifiers spelled
+// nothing like this framework's — because a test that reached for this
+// framework's vocabulary would be asserting that the host works for one
+// profile rather than for any.
 package corpus_test
 
 import (
@@ -40,6 +41,29 @@ func registeringProfile() stubProfile {
 			LiveStatuses:      []string{"current"},
 			RetiredStatuses:   []string{"sunset"},
 			SuccessorProperty: "replaced_by",
+		},
+		featureTags: registeredFeatureTags(),
+	}
+}
+
+// registeredFeatureTags is a defect-free tag vocabulary of this test's
+// own invention: identifiers whose two shared parts are captured under
+// names both patterns define, an owner prefix, and one qualifier of each
+// meaning.
+func registeredFeatureTags() corpus.FeatureTagRules {
+	return corpus.FeatureTagRules{
+		FeaturePattern:   `^F-(?P<group>[A-Z]+)-(?P<number>[0-9]+)$`,
+		CriterionPattern: `^C-(?P<group>[A-Z]+)-(?P<number>[0-9]+)\.[0-9]+$`,
+		OwnerPrefix:      "belongs-to",
+		SharedCaptures:   []string{"group", "number"},
+		Qualifiers: []corpus.QualifierTag{
+			{Tag: "forbids", Meaning: specmodel.QualifierMeaningNegation},
+			{Tag: "by-hand", Meaning: specmodel.QualifierMeaningManualVerification},
+			{
+				Tag:     "in-isolation",
+				Meaning: specmodel.QualifierMeaningVerificationLevel,
+				Level:   specmodel.VerificationLevelUnit,
+			},
 		},
 	}
 }
@@ -103,15 +127,124 @@ func TestProfileMayRegisterNoLifecycle(t *testing.T) {
 	}
 }
 
+func TestProfileSuppliesTheFeatureTagRegistration(t *testing.T) {
+	var profile corpus.Profile = registeringProfile()
+
+	tags := profile.FeatureTags()
+	if tags.FeaturePattern == "" || tags.CriterionPattern == "" {
+		t.Fatalf("FeatureTags carries no identifier pattern: %+v", tags)
+	}
+	if tags.OwnerPrefix != "belongs-to" {
+		t.Errorf("OwnerPrefix = %q, want %q", tags.OwnerPrefix, "belongs-to")
+	}
+	if want := []string{"group", "number"}; !reflect.DeepEqual(tags.SharedCaptures, want) {
+		t.Errorf("SharedCaptures = %v, want %v", tags.SharedCaptures, want)
+	}
+
+	// The meaning travels with the tag, so a host reading the
+	// registration never has to know what any spelling means.
+	meanings := map[string]specmodel.QualifierMeaning{}
+	for _, qualifier := range tags.Qualifiers {
+		meanings[qualifier.Tag] = qualifier.Meaning
+	}
+	if meaning := meanings["forbids"]; meaning != specmodel.QualifierMeaningNegation {
+		t.Errorf(`Qualifiers["forbids"] means %q, want a negation`, meaning)
+	}
+	if meaning := meanings["by-hand"]; meaning != specmodel.QualifierMeaningManualVerification {
+		t.Errorf(`Qualifiers["by-hand"] means %q, want manual verification`, meaning)
+	}
+	for _, qualifier := range tags.Qualifiers {
+		if qualifier.Tag != "in-isolation" {
+			continue
+		}
+		if qualifier.Level != specmodel.VerificationLevelUnit {
+			t.Errorf("a verification-level qualifier records level %q", qualifier.Level)
+		}
+	}
+}
+
+// A profile registering no tag vocabulary is a profile whose corpus has
+// no tagged features, not one the host has to reject or repair.
+func TestProfileMayRegisterNoFeatureTags(t *testing.T) {
+	var profile corpus.Profile = stubProfile{}
+
+	if tags := profile.FeatureTags(); !reflect.DeepEqual(tags, corpus.FeatureTagRules{}) {
+		t.Errorf("FeatureTags = %+v, want the zero registration", tags)
+	}
+	if defects := corpus.ValidateRegistration(profile); len(defects) != 0 {
+		t.Errorf("a profile registering no feature tags has defects: %+v", defects)
+	}
+}
+
+// A pattern that does not compile matches nothing, so every check reading
+// it would pass by finding no identifier at all.
+func TestValidateRegistrationReportsAnUncompilableIdentifierPattern(t *testing.T) {
+	const broken = `^C-(?P<group>[A-Z]+$`
+	profile := stubProfile{featureTags: corpus.FeatureTagRules{CriterionPattern: broken}}
+
+	defects := corpus.ValidateRegistration(profile)
+
+	if len(defects) != 1 {
+		t.Fatalf("defects = %+v, want exactly one", defects)
+	}
+	if defects[0].Key != broken {
+		t.Errorf("defect names %q, want the offending pattern", defects[0].Key)
+	}
+	if defects[0].DocumentType != "" {
+		t.Errorf("a feature-tag defect is attributed to document type %q", defects[0].DocumentType)
+	}
+	if defects[0].Detail == "" {
+		t.Error("the defect carries no detail")
+	}
+}
+
+// A derivation over a capture group neither pattern defines compares two
+// empty values, which is the vacuous pass this check turns into a
+// finding. It is reported once per pattern that fails to define it, so
+// the reader is told which of the two to fix.
+func TestValidateRegistrationReportsASharedCaptureNoPatternDefines(t *testing.T) {
+	tags := registeredFeatureTags()
+	tags.SharedCaptures = append(tags.SharedCaptures, "edition")
+	profile := stubProfile{featureTags: tags}
+
+	defects := corpus.ValidateRegistration(profile)
+
+	if len(defects) != 2 {
+		t.Fatalf("defects = %+v, want one per identifier pattern", defects)
+	}
+	for _, defect := range defects {
+		if defect.Key != "edition" {
+			t.Errorf("defect names %q, want the offending capture", defect.Key)
+		}
+	}
+	if defects[0].Detail == defects[1].Detail {
+		t.Errorf("both defects read %q, so neither says which pattern to fix", defects[0].Detail)
+	}
+}
+
+// A registration that names shared captures but no pattern at all is the
+// half-written case: nothing defines the captures, so nothing is
+// compared, and the check must not pass by finding no pattern to check
+// against.
+func TestValidateRegistrationReportsSharedCapturesWithNoPattern(t *testing.T) {
+	profile := stubProfile{featureTags: corpus.FeatureTagRules{SharedCaptures: []string{"group"}}}
+
+	if defects := corpus.ValidateRegistration(profile); len(defects) != 2 {
+		t.Errorf("defects = %+v, want one per identifier pattern", defects)
+	}
+}
+
 func TestValidateRegistrationAcceptsACompleteRegistration(t *testing.T) {
 	if defects := corpus.ValidateRegistration(registeringProfile()); len(defects) != 0 {
 		t.Errorf("a registration with no defect reports %+v", defects)
 	}
 }
 
-// All three defect classes, in one registration, so the test also proves
+// All five defect classes, in one registration, so the test also proves
 // that validation reports every defect it finds rather than the first.
 func TestValidateRegistrationReportsEveryDefectClass(t *testing.T) {
+	const brokenPattern = `^C-(?P<group>[A-Z]+$`
+
 	profile := registeringProfile()
 	profile.types["plan"] = corpus.DocumentTypeRules{
 		SlugPattern: `^plan-[a-z0-9-]+$`,
@@ -128,12 +261,20 @@ func TestValidateRegistrationReportsEveryDefectClass(t *testing.T) {
 	}
 	profile.lifecycle.LiveStatuses = []string{"current", "provisional"}
 	profile.lifecycle.RetiredStatuses = []string{"archived"}
+	// The criterion pattern no longer compiles, and "edition" is a
+	// capture the surviving pattern does not define.
+	profile.featureTags.CriterionPattern = brokenPattern
+	profile.featureTags.SharedCaptures = append(profile.featureTags.SharedCaptures, "edition")
 
 	defects := corpus.ValidateRegistration(profile)
 
 	// "supports" produces two defects of its own: it is neither
 	// reference-bearing nor does it name a defined type.
-	wantKeys := []string{"realizes", "sponsor", "supports", "supports", "provisional", "archived"}
+	wantKeys := []string{
+		"realizes", "sponsor", "supports", "supports",
+		"provisional", "archived",
+		brokenPattern, "edition",
+	}
 	var gotKeys []string
 	for _, defect := range defects {
 		gotKeys = append(gotKeys, defect.Key)
@@ -147,9 +288,9 @@ func TestValidateRegistrationReportsEveryDefectClass(t *testing.T) {
 
 	for _, defect := range defects {
 		switch defect.Key {
-		case "provisional", "archived":
+		case "provisional", "archived", brokenPattern, "edition":
 			if defect.DocumentType != "" {
-				t.Errorf("lifecycle defect %+v is attributed to a document type", defect)
+				t.Errorf("profile-level defect %+v is attributed to a document type", defect)
 			}
 		default:
 			if defect.DocumentType != "plan" {

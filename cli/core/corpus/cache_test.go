@@ -394,71 +394,53 @@ func TestAWarmIndexIsServedWithoutRewalkingTheCorpus(t *testing.T) {
 	}
 }
 
-// referencePlatform reports whether this machine is the one the
-// REQ-SPEC-009 budgets are enforced on.
+// referenceEnvironmentEnv declares this machine to be the reference
+// environment [[frd-spec-validation-cli]]'s AC-SPEC-009.9 enforces the
+// FEAT-SPEC-009 latency targets in. Set it to any non-empty value there.
 //
-// The budgets in AC-SPEC-009.1 and AC-SPEC-009.2 are product requirements
-// about a developer's machine, and they are met there. They are not
-// statements about a shared CI runner, and asserting them as hard failures
-// on every runner in the matrix measures the runner rather than the tool.
-// Measured on the crates matrix for this branch: Linux passes; macOS
-// reported 69.1 ms against the 50 ms query budget on one run and passed
-// the run before it on identical code; Windows reported 123.6 ms and
-// 110.2 ms. The dominant cost on the warm path is the freshness check —
-// one stat per document — and a thousand stat calls on a contended
-// Windows runner is a platform number, not a regression signal.
-//
-// So the budgets are enforced on Linux, which is where the primary CI job
-// runs and where a real regression will show up, and reported everywhere
-// else. Reported, not skipped: the measurement still runs on every
-// platform and still prints, so a genuine slowdown is visible in the log
-// of any job rather than only in one. Recording the reference platform in
-// the FRD itself is tracked separately.
-func referencePlatform() bool {
-	return runtime.GOOS == "linux"
+// Unset (the default) the targets are measured and reported, not
+// enforced: they are stated against no hardware, and the dominant cost
+// on the warm path is one stat per document, so a contended shared
+// runner's number measures the runner. Nothing about this switch changes
+// what the tests measure or log — only whether a measurement over target
+// fails the run.
+const referenceEnvironmentEnv = "SPEC_LATENCY_REFERENCE_ENVIRONMENT"
+
+// referenceEnvironment reports whether a measurement over target should
+// fail this run. See referenceEnvironmentEnv and AC-SPEC-009.9.
+func referenceEnvironment() bool {
+	return os.Getenv(referenceEnvironmentEnv) != ""
 }
 
-// warmBudgetEnforceEnv is the opt-in switch for turning the warm-path
-// budgets in AC-SPEC-009.1 and AC-SPEC-009.2 from a reported measurement
-// into a hard test failure. Unset (the default) means report-only.
+// reportLatency records one measurement against its target: always
+// logged, failing the run only in a reference environment.
 //
-// The 50ms query budget predates the generated UnmarshalJSON methods on
-// every specmodel type. Those methods are required for correctness — a
-// missing or JSON-null value for a required scalar property must be
-// reported as an error rather than silently accepted as that type's Go
-// zero value, and the struct-tag-driven default decoder cannot tell
-// "absent" from "present and zero" — so their cost on the warm path is
-// deliberate, not a regression to chase. That makes the 50ms number
-// itself stale, not the code slow. Measured on the shared cloud
-// container this suite also runs on: 10 runs of the committed artifacts
-// went 6 pass / 4 fail (51.5ms, 54.9ms against the 50ms budget); 10 runs
-// against strata-HEAD-regenerated artifacts went 1 pass / 9 fail. The
-// container was already unreliable for this assertion before any change
-// here; asserting on it fails the build on noise rather than on a
-// regression.
-//
-// Enforcement stays available, opt-in, for whichever environment is
-// actually the reference machine for these budgets — set
-// STRATA_ENFORCE_WARM_BUDGET=1 there. Nothing here reduces what the test
-// measures or logs; only whether an over-budget result fails the run.
-const warmBudgetEnforceEnv = "STRATA_ENFORCE_WARM_BUDGET"
+// AC: AC-SPEC-009.9
+func reportLatency(t *testing.T, what string, measured, target time.Duration) {
+	t.Helper()
 
-// enforceWarmBudget reports whether an over-budget warm-path result
-// should fail this run. See warmBudgetEnforceEnv.
-func enforceWarmBudget() bool {
-	return referencePlatform() && os.Getenv(warmBudgetEnforceEnv) != ""
+	t.Logf("%s/%s: %s = %s (target %s)", runtime.GOOS, runtime.GOARCH, what, measured, target)
+	if measured <= target {
+		return
+	}
+	if !referenceEnvironment() {
+		t.Logf("%s is over target on %s; reported, not enforced (set %s=1 on a reference environment to enforce)",
+			what, runtime.GOOS, referenceEnvironmentEnv)
+		return
+	}
+	t.Errorf("%s = %s, over the %s target", what, measured, target)
 }
 
 // A query and a single-document check against a warm index for a
-// thousand-document corpus stay within their budgets.
+// thousand-document corpus hold their latency targets.
 //
-// AC: AC-SPEC-009.1, AC-SPEC-009.2, AC-SPEC-010.5
+// AC: AC-SPEC-009.1, AC-SPEC-009.2, AC-SPEC-009.9, AC-SPEC-010.5
 func TestWarmQueriesAndChecksMeetTheirBudgets(t *testing.T) {
 	const (
 		documents   = 1000
 		samples     = 20
-		queryBudget = 50 * time.Millisecond
-		checkBudget = 100 * time.Millisecond
+		queryTarget = 50 * time.Millisecond
+		checkTarget = 100 * time.Millisecond
 	)
 
 	repo := t.TempDir()
@@ -502,28 +484,14 @@ func TestWarmQueriesAndChecksMeetTheirBudgets(t *testing.T) {
 		checks = append(checks, time.Since(started))
 	}
 
-	queryP95, checkP95 := percentile95(queries), percentile95(checks)
-	t.Logf("%s/%s: warm query p95 = %s (budget %s), warm check p95 = %s (budget %s)",
-		runtime.GOOS, runtime.GOARCH, queryP95, queryBudget, checkP95, checkBudget)
-
-	if !enforceWarmBudget() {
-		if queryP95 > queryBudget || checkP95 > checkBudget {
-			t.Logf("over budget on %s; reported, not enforced (set %s=1 to enforce on a reference machine)",
-				runtime.GOOS, warmBudgetEnforceEnv)
-		}
-		return
-	}
-	if queryP95 > queryBudget {
-		t.Errorf("warm query p95 over %d documents = %s, budget is %s", documents, queryP95, queryBudget)
-	}
-	if checkP95 > checkBudget {
-		t.Errorf("warm single-document check p95 over %d documents = %s, budget is %s",
-			documents, checkP95, checkBudget)
-	}
+	reportLatency(t, fmt.Sprintf("warm query p95 over %d documents", documents),
+		percentile95(queries), queryTarget)
+	reportLatency(t, fmt.Sprintf("warm single-document check p95 over %d documents", documents),
+		percentile95(checks), checkTarget)
 }
 
 // percentile95 returns the 95th percentile of a sample, which is the
-// statistic REQ-SPEC-009's budgets are stated at.
+// statistic FEAT-SPEC-009's latency targets are stated at.
 func percentile95(samples []time.Duration) time.Duration {
 	ordered := append([]time.Duration{}, samples...)
 	sort.Slice(ordered, func(i, j int) bool { return ordered[i] < ordered[j] })
@@ -538,7 +506,7 @@ func percentile95(samples []time.Duration) time.Duration {
 // A fresh checkout is the case the whole content-hash decision exists
 // for: every file carries a new modification time and identical bytes,
 // and the index must still be served warm — otherwise the warm-index
-// budget of REQ-SPEC-009.1 is never met in CI, where every checkout is
+// budget of FEAT-SPEC-009.1 is never met in CI, where every checkout is
 // fresh.
 //
 // AC: AC-SPEC-010.5

@@ -1,0 +1,5 @@
+description = "criterion <id> returns that criterion's record"
+cites = ["AC-GHK-007.2"]
+artifacts = ["checks.log"]
+args = ["criterion", "AC-CHK-001.1"]
+exit_code = 0

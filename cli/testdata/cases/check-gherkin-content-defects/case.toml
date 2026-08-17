@@ -1,0 +1,5 @@
+description = "check --json reports all four VCON content and diagnostic rules from one corpus: a Gherkin source that will not parse, a criterion with no steps, a normative Scenario description, and a Scenario Outline whose Examples blocks are inconsistently tagged"
+cites = ["AC-GHK-006.1", "AC-GHK-006.2", "AC-GHK-006.3", "AC-GHK-006.6"]
+artifacts = ["checks.json"]
+args = ["check", "--json"]
+exit_code = 1

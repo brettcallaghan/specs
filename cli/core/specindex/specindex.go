@@ -44,5 +44,6 @@ func New(workspace string) specmodel.SpecIndex {
 		Entries:       []specmodel.IndexEntry{},
 		Exclusions:    []specmodel.IndexExclusion{},
 		References:    []specmodel.Reference{},
+		Features:      []specmodel.Feature{},
 	}
 }

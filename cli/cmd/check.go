@@ -30,6 +30,10 @@ import (
 // is what lets --only name each of the reference-integrity checks and
 // what lets --strict reach the reference/retired-target warning even on
 // a corpus that never triggers it.
+// The nine gherkin/* identity rules (VTAG) and four gherkin/* content
+// rules (VCON) are declared for the same reason: without it, a corpus
+// with no Gherkin defect at all would leave them out of the accounting
+// entirely, rather than showing "passed".
 var checkRules = []specmodel.RuleId{
 	finding.RuleFrontmatterParse,
 	finding.RuleSchemaViolation,
@@ -41,10 +45,23 @@ var checkRules = []specmodel.RuleId{
 	finding.RuleIncompletePairing,
 	finding.RuleTypeMismatch,
 	finding.RuleCorpusEmpty,
+	finding.RuleCriterionUntagged,
+	finding.RuleFeatureUntagged,
+	finding.RuleIdentifierMalformed,
+	finding.RuleIdentifierMultiple,
+	finding.RuleIdentifierDuplicate,
+	finding.RuleCriterionCodeMismatch,
+	finding.RuleOwnerMissing,
+	finding.RuleOwnerMismatch,
+	finding.RuleOwnerUnresolved,
+	finding.RuleGherkinParse,
+	finding.RuleCriterionEmpty,
+	finding.RuleScenarioProse,
+	finding.RuleExamplesPartiallyTagged,
 }
 
 // newCheckCmd builds the `check` subcommand: run conformance checks over
-// the corpus, or over one document, per REQ-SPEC-006 (AC-SPEC-011.2).
+// the corpus, or over one document, per FEAT-SPEC-006 (AC-SPEC-011.2).
 func newCheckCmd(streams *ioStreams, configPath *string) *cobra.Command {
 	var jsonOut, strict bool
 	var only []string
@@ -80,7 +97,7 @@ func newCheckCmd(streams *ioStreams, configPath *string) *cobra.Command {
 // path empty means the whole corpus (corpus.Corpus.Check); path set
 // narrows to that one document (corpus.Corpus.CheckFor) — both proving
 // AC-SPEC-011.2. It opens the corpus warm (corpus.Open) rather than
-// building fresh, because a check is exactly the query REQ-SPEC-009's
+// building fresh, because a check is exactly the query FEAT-SPEC-009's
 // latency budgets are measured against, and a persisted index at the
 // default location answers it without re-walking the corpus.
 func runCheck(streams *ioStreams, configPath, path string, jsonOut, strict bool, only []string) error {

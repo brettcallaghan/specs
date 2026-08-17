@@ -10,6 +10,7 @@ package profile_test
 
 import (
 	"encoding/json"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -217,6 +218,122 @@ func TestTheRegistrationHasNoDefects(t *testing.T) {
 	if defects := corpus.ValidateRegistration(profile.New()); len(defects) != 0 {
 		t.Errorf("ValidateRegistration reported %d defects: %+v", len(defects), defects)
 	}
+}
+
+// The identifier patterns this profile registers are the ones
+// schemas/feature.strata fixes for the generated FeatureId and
+// CriterionId aliases, widened only with the named capture groups
+// SharedCaptures needs. Stripping those group names must recover the
+// generated pattern exactly, so the registration cannot silently
+// diverge from the model it mirrors.
+//
+// AC: AC-GHK-002.1, AC-GHK-002.3
+func TestFeatureTagPatternsMatchTheGeneratedIdentifiers(t *testing.T) {
+	tags := profile.New().FeatureTags()
+
+	cases := []struct {
+		definition, registered string
+	}{
+		{"FeatureId", tags.FeaturePattern},
+		{"CriterionId", tags.CriterionPattern},
+	}
+	for _, tc := range cases {
+		generated := generatedIdentifierPattern(t, tc.definition)
+		if stripped := stripNamedCaptures(tc.registered); stripped != generated {
+			t.Errorf("%s: registered pattern %q strips to %q, want the generated pattern %q",
+				tc.definition, tc.registered, stripped, generated)
+		}
+	}
+}
+
+// The owning-document tag prefix is frd-, and the two identifier patterns
+// share exactly the capture groups the derivation rule needs.
+//
+// AC: AC-GHK-002.1, AC-GHK-003.6
+func TestFeatureTagsRegistersTheOwnerPrefixAndSharedCaptures(t *testing.T) {
+	tags := profile.New().FeatureTags()
+
+	if tags.OwnerPrefix != "frd-" {
+		t.Errorf("OwnerPrefix = %q, want %q", tags.OwnerPrefix, "frd-")
+	}
+	if want := []string{"code", "number"}; !equalStrings(tags.SharedCaptures, want) {
+		t.Errorf("SharedCaptures = %v, want %v", tags.SharedCaptures, want)
+	}
+}
+
+// The profile registers negative and manual as their fixed meanings, and
+// the level- prefixed vocabulary as the verification level each names —
+// specs/standards/gherkin-guide.md's whole qualifier table, and nothing
+// beyond it.
+//
+// AC: AC-GHK-002.1
+func TestFeatureTagsRegistersTheQualifierVocabulary(t *testing.T) {
+	tags := profile.New().FeatureTags()
+
+	want := map[string]corpus.QualifierTag{
+		"negative": {Tag: "negative", Meaning: specmodel.QualifierMeaningNegation},
+		"manual":   {Tag: "manual", Meaning: specmodel.QualifierMeaningManualVerification},
+		"level-unit": {Tag: "level-unit", Meaning: specmodel.QualifierMeaningVerificationLevel,
+			Level: specmodel.VerificationLevelUnit},
+		"level-integration": {Tag: "level-integration", Meaning: specmodel.QualifierMeaningVerificationLevel,
+			Level: specmodel.VerificationLevelIntegration},
+		"level-e2e": {Tag: "level-e2e", Meaning: specmodel.QualifierMeaningVerificationLevel,
+			Level: specmodel.VerificationLevelEndToEnd},
+	}
+	if len(tags.Qualifiers) != len(want) {
+		t.Errorf("Qualifiers has %d entries, want %d", len(tags.Qualifiers), len(want))
+	}
+	for _, qualifier := range tags.Qualifiers {
+		expected, ok := want[qualifier.Tag]
+		if !ok {
+			t.Errorf("registers unexpected qualifier %q", qualifier.Tag)
+			continue
+		}
+		if qualifier != expected {
+			t.Errorf("qualifier %q = %+v, want %+v", qualifier.Tag, qualifier, expected)
+		}
+	}
+}
+
+// generatedIdentifierPattern reads one definition's `pattern` from the
+// generated schema, walked independently of registration.go's own
+// decoder — see this file's package comment.
+func generatedIdentifierPattern(t *testing.T, definition string) string {
+	t.Helper()
+
+	var bundle map[string]any
+	if err := json.Unmarshal(schema.SpecModel, &bundle); err != nil {
+		t.Fatalf("reading the generated schema: %v", err)
+	}
+	definitions, ok := bundle["definitions"].(map[string]any)
+	if !ok {
+		t.Fatal("the generated schema has no definitions object")
+	}
+	branch, ok := definitions[definition].(map[string]any)
+	if !ok {
+		t.Fatalf("the generated schema declares no branch %q", definition)
+	}
+	pattern, ok := branch["pattern"].(string)
+	if !ok || pattern == "" {
+		t.Fatalf("the generated schema's %q branch declares no pattern", definition)
+	}
+	return pattern
+}
+
+// namedCapture matches one Go regexp named capture group — `(?P<code>`,
+// its content, and its closing paren — provided that content nests no
+// further group. Neither of this profile's identifier patterns nests
+// one, so that is the whole of what [stripNamedCaptures] needs to
+// handle.
+var namedCapture = regexp.MustCompile(`\(\?P<[A-Za-z0-9_]+>([^()]*)\)`)
+
+// stripNamedCaptures removes named-capture-group wrapping from a
+// pattern, recovering the plain expression underneath. Naming a capture
+// group changes nothing a pattern matches, so this is the whole of what
+// may distinguish a registered pattern from the generated one it
+// mirrors.
+func stripNamedCaptures(pattern string) string {
+	return namedCapture.ReplaceAllString(pattern, "$1")
 }
 
 // slugTypedPropertiesOf returns the properties the generated schema types

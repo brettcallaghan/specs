@@ -13,6 +13,16 @@
 // repository's own corpus, and a checker that reported either is a
 // checker every reader learns to dismiss.
 //
+// One exception to the first rule: a fenced block whose info string names
+// a registered Gherkin tag ([gherkin.FenceTags]) is Gherkin, not an
+// illustration, so a `[[…]]` written in its feature description, a
+// scenario name, a step, a rule name or an examples cell is extracted
+// like any other body reference. A `.feature` file gets the same
+// treatment for free — [Options.Source] is the whole file with
+// [Options.Frontmatter] nil, so its body is Gherkin from the first byte
+// and every wikilink in it is extracted and recorded against that file's
+// own [Options.Path], even though the file is not a corpus member.
+//
 // Nothing here resolves anything. What a reference reached is a question
 // about the corpus, answered where the corpus is known; this package
 // leaves [specmodel.Reference.Resolution] unset, which is deliberately
