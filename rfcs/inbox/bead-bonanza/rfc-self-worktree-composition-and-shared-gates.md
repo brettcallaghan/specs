@@ -453,3 +453,44 @@ them again, differently, and that the improvisations are only as good as
 whoever is holding the run.
 
 ## Resolution
+
+**Partial triage 2026-08-17. This RFC is NOT retired** — six of its seven
+proposals are recommended but not yet approved.
+
+| Proposal | Outcome |
+|---|---|
+| P1 — state which worktree model wins under harness isolation | **recommended adopt; not yet approved.** Confirmed live: `references/subagent-prompts.md:177` still requires one worktree per bead created by the subagent, while concurrent dispatch provisions one per agent. |
+| P2 — give the harness worktree location a rule, and gitignore it | **recommended adopt-with-refinement; not yet approved.** Triage found `.claude/worktrees/` is **already present in this repository's `.gitignore:41`**, so the repository half of this proposal is done here. The *rule* must still ship: projects installing the plugin do not inherit this repo's `.gitignore`, and the Phase 0 check is what makes it self-enforcing. Adopt the skill text and the Phase 0 item; make no repository change. |
+| P3 — define baseline ownership when two beads share a gate | **recommended adopt-with-refinement; not yet approved.** Triage's extent check found **three** `Gates:` blocks — `references/subagent-prompts.md:89` (per-bead), `:206` (doc/chore batch), `:229` (shared-surface batch) — not the two the proposal names. The optional `Your target for <gate>:` line belongs in all three. |
+| P4 — give the findings harvest a selector that matches an enumerated queue | **recommended adopt; not yet approved.** Confirmed live: `references/shared/findings-capture-protocol.md:93–94` still filters on a shared label, which a `bead-bonanza` queue does not have by construction. |
+| P5 — scope the base-ref ancestor check to every worktree subagent | **recommended adopt; not yet approved.** Confirmed live at `references/subagent-prompts.md:285` (cited as `:280`; the line moved, the text did not). |
+| P6 — reconcile a returned subagent against its terminal progress event | **adopted** as written, placed in Phase 3 step 4 after the no-return branch, with the Monitor's `committed\|blocked` filter cited as the reason the gap is invisible. |
+| P7 — say what to do when a draft PR already exists | **recommended adopt; not yet approved.** Confirmed live: the Draft PR bullet at `SKILL.md:346` assumes the PR does not exist. |
+
+**Dedupe — P6 and a sibling RFC.** P6 and
+`rfc-self-wave-chaining-and-lost-returns` P3 close **opposite directions** of
+one gap: P6 covers "returned, but no terminal event", P3 covers "never
+returned". Neither subsumes the other, as both RFCs independently state. Both
+were adopted in this pass and land adjacent to each other in the same block.
+
+**Dedupe — the batch template.** This RFC asks (correctly) to be triaged
+alongside `rfc-self-report-citations-and-batch-base`, whose P2 concerns the
+same text. That P2 is now closed as already-implemented — the chaining fix
+landed mid-run via bead `agent-plugins-61f.2` and is visible at
+`references/subagent-prompts.md:178–179`. P1 here is unaffected: it is about
+that block's *composition* with harness isolation, which is still live.
+
+**Provenance check.** `bead-bonanza` v1.4 cited; **v1.5 current at triage**, so
+every citation was re-verified. All seven anchors were still present. E2's
+observation that the harness places worktrees inside the repository was not
+re-measured — no run was in flight — but the gitignore entry corroborates that
+someone hit it.
+
+**Self-authorship, disclosed.** `origin: self`, `model: claude-opus-5`; this
+session is configured for `claude-opus-5`. **The RFC was authored and triaged
+by the same model.** P6's adoption ratifies an observation its own author made
+about a run it was orchestrating.
+
+**Files changed.** `plugin/skills/bead-bonanza/SKILL.md`.
+
+**Version bumps.** `bead-bonanza` 1.5 → 1.6 (shared). Plugin 0.18.0 → 0.19.0.

@@ -352,9 +352,16 @@ it uses `worktree.baseRef` instead, which is why that setting is a hard gate.
    then fast-forward.**
 
    ```sh
-   git -C <worktree> rebase <sprint-head>   # replay this bead onto what landed
-   git merge --ff-only <suffix>             # now it fast-forwards
+   # Run from your own checkout, standing on the sprint branch.
+   git -C <worktree> rebase "$(git rev-parse HEAD)"  # read the target NOW
+   git merge --ff-only <suffix>                      # now it fast-forwards
    ```
+
+   **Read the target at merge time, never earlier in the wave.**
+   `../scripts/bb-backup-run.sh` commits to the sprint branch after *every*
+   bead's acceptance check (`SKILL.md` Phase 3 step 5), so accepting the
+   wave's first bead moves the head before its second is merged. A sha noted
+   at wave start is already stale, and `--ff-only` is right to refuse it.
 
    Rebase keeps one-commit-per-bead and a linear history, so it is the
    concurrent analogue of the sequential guarantee. **The collision signal moves
@@ -365,6 +372,11 @@ it uses `worktree.baseRef` instead, which is why that setting is a hard gate.
    ```sh
    git -C "$REPO" worktree remove "$WT" && git -C "$REPO" branch -d <suffix>
    ```
+   **Do not delete the branch until the fast-forward has succeeded.** A rebase
+   onto a stale target leaves the rebased commit unreferenced, and deleting the
+   branch is what makes it unreachable — recoverable only from the object
+   store, and only if someone notices.
+
    Removal is the orchestrator's, not the subagent's: an agent cannot remove
    the tree it is standing in. Because removal happens *after* the merge, a
    surviving worktree means "not yet accepted", which is the stronger reading

@@ -338,4 +338,40 @@ retroactively.
 
 ## Resolution
 
-<!-- Filled at triage. -->
+**Partial triage 2026-08-17. This RFC is NOT retired** — P3, P5 and P6 are
+still undecided. Recorded now because the provenance check settled three
+proposals outright, and that result should not have to be re-derived.
+
+| Proposal | Outcome |
+|---|---|
+| P1a — number findings per bead rather than globally | **adopted — already implemented.** Present at `SKILL.md` Phase 4 ("Number findings per bead, not globally: `<bead-id>#<ordinal>`"), carrying this proposal's own rationale about a global counter not existing until assembly. Landed by earlier work, not by this triage. The proposal was right; nothing was bumped for it. |
+| P1b — add `scripts/bb-check-citations.py` and gate the commit on it | **recommended defer; not yet approved.** With P1a landed the residual risk is much smaller — a per-bead id names its own bead, so a mis-citation is visible on its face rather than only to a script. A new script for what remains wants a second run's evidence. Theme `report-citations`. |
+| P2 — chain each bead in a batch onto its predecessor | **adopted — already implemented.** `references/subagent-prompts.md:178–179` now reads "First bead: … HEAD" / "Each later bead: … `<id-N-1>`", which is this proposal verbatim. Landed mid-run by bead `agent-plugins-61f.2` and independently reported as fixed by `rfc-self-acceptance-signals-and-gate-baseline`. |
+| P3 — redirect gate output outside the worktree | **recommended defer; not yet approved.** Triage could not find the defect site: no template or skill passage shows the `cmd >out 2>&1` pattern. The evidence describes an *orchestrator-authored* dispatch prompt, not skill text, so this is preventive guidance rather than a fix. The only exit-status advice in the bundle is `SKILL.md:332`, about a pipe to `tail` masking a push's status. Theme `close-ceremony`. |
+| P4 — state the Monitor cap and the re-arm expectation | **adopted — already implemented.** `references/progress-streaming.md:82–87` carries the re-arm rule and the five-minute default. The *measured* 30-minute ceiling is still unrecorded; that residue is `rfc-self-acceptance-signals-and-gate-baseline` P5, which is where it should be decided rather than split across two RFCs. |
+| P5 — make the trigger's disposition a line in the final report | **recommended adopt; not yet approved.** |
+| P6 — name verification-by-reconstruction for assembled prompts | **recommended defer; not yet approved.** Sound, but it is skill-authoring guidance sitting in a skill that does not own the subject; it belongs against the skill-authoring standard. Theme `skill-authoring`. |
+
+**Provenance check — the reason three rows above read "already
+implemented".** `bead-bonanza` v1.3 cited; **v1.5 current at triage**, two
+minor versions on. Each citation was re-read against the tree rather than
+assumed, and three had been fixed in the interim. Under this skill's own test
+these are *adopted — already implemented* rather than *rejected — already
+addressed*: each would have been adopted had the tree been untouched, so
+triage is ruling on the merits and a future triage should read them as settled
+rather than as evidence that went stale.
+
+**Dedupe.** P2's text is also the subject of
+`rfc-self-worktree-composition-and-shared-gates` P1, which concerns the same
+block for a different defect (composition with harness-managed isolation) and
+is unaffected by this fix. No match in retired RFCs 0001–0023.
+
+**Self-authorship, disclosed.** `origin: self`, `model: claude-opus-5`; this
+session is configured for `claude-opus-5`. **The RFC was authored and triaged
+by the same model.** The three already-implemented rows are the exception that
+cuts the other way: they were settled by measurement against the tree and by a
+later run's independent report, not by this triage's judgement.
+
+**Files changed.** None — every decided proposal here was already present.
+
+**Version bumps.** None attributable to this RFC.

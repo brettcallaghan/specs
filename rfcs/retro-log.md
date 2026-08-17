@@ -161,3 +161,59 @@ Resolution says that rather than implying independence. Four proposals
 across the three ratify decisions their own author made mid-run. The
 accumulation model has now processed 56 proposals across five runs
 without a single reporter who does not share the triager's assumptions.
+
+**2026-08-17 — partial triage of the orchestration inbox.** 8 RFCs across
+`bead-bonanza` (6), `plan-sprint` (1) and `recover-sprint` (1); 37
+proposals classified, **8 adopted, 0 deferred, 0 rejected, 3 closed as
+already-implemented, 26 left undecided.** No table rows are added yet:
+every one of the 8 RFCs still holds undecided proposals, so a row carrying
+per-proposal counts would read as a completed triage. **Rows are owed for
+all 8 when the remaining 26 are decided** — the interim outcomes are in
+each RFC's Resolution, and all 8 stay in `rfcs/inbox/`, unnumbered and
+unretired.
+
+*What the provenance check bought.* Three proposals were already fixed
+between the version they cite and the tree — the batch-base chaining fix
+(landed mid-run by `agent-plugins-61f.2`), per-bead finding numbering, and
+the Monitor re-arm rule. Two RFCs cite v1.3 and two cite v1.4 against a
+v1.5 tree, which is where all three hits came from. Recorded as *adopted —
+already implemented* rather than *rejected — already addressed*, since
+each would have been adopted on its merits.
+
+*What the extent and sufficiency checks changed.* Four proposals were
+resized rather than accepted as scoped. `rfc-self-wave-chaining` P4 cites
+one worktree assertion; there are two. `rfc-self-worktree-composition` P3
+names two `Gates:` blocks; there are three. `rfc-self-acceptance-signals`
+P2 states that its part 2 can land alone; it cannot — this project's own
+test gate is fenced, so part 2 without part 1 would block every pre-flight
+here. And `rfc-self-report-citations` P3 has no defect site at all: the
+pattern it fixes appears in an orchestrator-authored prompt, not in any
+skill text.
+
+*The dedupe result was the opposite of the expectation.* One genuine
+duplicate in 37 proposals. The RFCs read each other and routed around
+overlap deliberately — `rfc-self-wave-chaining` P3 and
+`rfc-self-worktree-composition` P6 close opposite directions of one gap
+and say so; `rfc-self-wave-chaining` declines to re-propose the
+drained-run trigger because a sibling already owns it. The one real
+convergence is a *cross-skill* one that no single RFC could have seen:
+`rfc-self-push-scope` P2 and `rfc-self-worktree-absence` P1 are the same
+check written into two skills, and were adopted together with each naming
+the other so they cannot drift.
+
+*The tracker was empty at triage.* `bd list` across every status returned
+0 issues and `bd label list-all` found no `theme:` keys, so dedupe against
+prior deferrals was impossible and ran against the 13 retired RFCs
+instead. No deferral bead could be filed for the 4 recommended deferrals
+either. Whatever is wrong with the Dolt bootstrap, the accumulation
+signal this pipeline depends on is currently unavailable — that is a
+prerequisite for the next triage, not a footnote.
+
+*Self-authorship, unchanged and now unambiguous for six of eight.* All 8
+carry `origin: self`. Six name `claude-opus-5`, which is the model that
+triaged them — **authored and triaged by the same model**, stated in each
+Resolution rather than implied. Two withhold the model under the harness
+policy. Six of the eight adopted proposals ratify a workaround their own
+author improvised during the run being described. The accumulation model
+has now processed 93 proposals without one reporter outside this
+repository.

@@ -9,7 +9,7 @@ description: Process many beads autonomously by orchestrating subagents. Use
   (doc fast lane / shared-surface batch / sequential), runs every bead in its
   own git worktree, streams per-bead progress, and lands each bead in a single
   commit.
-version: "1.5"
+version: "1.6"
 ---
 
 # bead-bonanza
@@ -155,7 +155,20 @@ After each subagent returns:
      state rather than testimony, and no subagent summary can forge it.
    5. **Findings were recorded** — at least one `retro:` comment on the bead,
      or the subagent's explicit "clean bead, no findings". A silent bead is
-     neither, and is not accepted.
+     neither, and is not accepted. Check with the export pipeline, never with
+     `bd show`:
+
+     ```
+     bd export | jq -r 'select(.id=="<bead-id>")
+       | [.comments[]?|select(.text|startswith("retro:"))] | length'
+     ```
+
+     `bd show <id> --json` reports `comment_count: 0` even for a bead that has
+     comments, so checking this signal with it fails every bead in the run at
+     once. That is the same reason Phase 4's harvest mandates the export
+     pipeline; this check happens here, waves earlier. The workaround exists
+     because `bd show --json` omits comment bodies — WHEN a `bd` release
+     reports them, it becomes removable rather than mysterious.
 
    Applies **per bead, not per subagent**. A fast-lane subagent that
    processed six beads is checked six times — that is exactly where a silent
@@ -179,6 +192,29 @@ After each subagent returns:
    is reachable. And there is no per-bead retro FILE: findings are `retro:`
    comments on the bead, and `<bead-id>.handoff.md` is a recovery anchor that
    carries no findings and is not evidence of acceptance.
+
+   **A subagent that never returns is checked by these same five signals.** A
+   lost completion notification is not evidence of an unfinished bead, and it
+   is common enough to plan for. The five signals read state, not testimony,
+   so they hold with or without a return — run them unchanged. To decide
+   whether a bead is still *working* rather than finished, read its
+   `<bead-id>.progress.jsonl` last phase **together with** `bd show <id>`: a
+   terminal phase (`committed`/`pushed`/`blocked`) plus a closed tracker
+   record is conclusive. This does not soften the rule above — the ledger
+   still proves nothing on its own and is never an acceptance signal; it is
+   read here only to separate "still running" from "finished", and only
+   alongside tracker state. Do NOT use `bd list --status in_progress` for
+   this: it is a query over a moving set and has disagreed with both durable
+   signals in practice. **Never re-dispatch on a missing return alone.**
+
+   **Note a missing terminal event, do not act on it.** WHERE a subagent
+   returned `completed` but its progress file carries no `committed` event,
+   the Monitor never fired for that bead — `references/progress-streaming.md`
+   filters to `committed|blocked` — and the user saw silence for its whole
+   run. This does not affect acceptance, since the check above reads state
+   rather than the ledger, but say so in the Phase 4 report: an unremarked
+   gap trains the reader to trust a stream that has silently stopped covering
+   part of the run.
 5. **Snapshot the run directory** — `scripts/bb-backup-run.sh "$RUN_DIR"`, run
    from your own checkout on the sprint branch and **never from a bead's
    worktree**. Run it after **every** bead's acceptance check, not once per
@@ -187,6 +223,22 @@ After each subagent returns:
 6. **Verify the working tree is clean** with `git status --porcelain`. If dirty,
    fall through to the recovery procedure below.
 7. If the bucket used `defer-push`, run `git push` for the bucket now.
+
+   **A wave is not complete until its push is verified landed.** After
+   pushing, fetch and confirm nothing is left behind:
+
+   ```sh
+   git fetch <remote> <branch>
+   git log --oneline <remote>/<branch>..HEAD    # must be empty
+   ```
+
+   A push can be rejected for reasons that leave the tree clean, the
+   worktrees removed and the beads closed — every other signal reads
+   "finished". This is the only one that distinguishes a landed wave from a
+   rejected one, and it costs one fetch. A credential refused for
+   `.github/workflows/**` rejects the WHOLE push, so one workflow file
+   strands every commit behind it. `recover-sprint` step 3b runs the same
+   check from the other side; keep the two in the same form.
 8. Move to the next bucket/bead.
 
 **Circuit breaker:** if 3 consecutive beads return `blocked` or fail, stop the
@@ -327,9 +379,10 @@ called it wrong.
 Those facts are ledger lines with a command behind them. **Do not re-assert
 from memory what the script just measured** — push mechanics in particular
 vary by container. WHEN `BB_PUSH_NEEDS_REFSPEC=yes`, push with an explicit
-refspec (`git push <remote> <branch>`) every time; verify landings with
-`git rev-parse <remote>/<branch>` after fetch, not `git status -sb`; and never
-let a pipe to `tail` mask a push's exit status.
+refspec (`git push <remote> <branch>`) every time, and never let a pipe to
+`tail` mask a push's exit status. Verifying that a push **landed** is not
+conditional on that fact and is not `git status -sb` — it is the end-of-wave
+check at Phase 3 step 7, which every run performs.
 
 **Commit trailers.** WHEN `CLAUDE.md`/`AGENTS.md` states a commit-trailer
 convention (`Co-Authored-By`, a session URL, etc.), resolve it once here and
@@ -870,10 +923,15 @@ with any RFCs in a single commit before 6b's deletion commit.
   point) for standing approval: "re-resolve the queue after each push and
   dispatch the next wave until dry, implicit decisions defaulted, explicit
   `decision-required` beads still stop." With it granted, waves flow without
-  per-wave prompts; the user gets a report per wave instead of a question per
-  wave. Newly-filed beads that enter the queue mid-run (subagents filing
-  adjacent issues) are admitted only by the mid-run scope test (Phase 1.5 step
-  4), never merely because they match the filter.
+  per-wave prompts: emit the wave's report and **dispatch the next wave in
+  the same turn**. The report is a progress notice, not a checkpoint — under
+  standing authorization the turn ends only when the queue is dry, a
+  `decision-required` bead is reached, or the circuit breaker trips (Phase 3:
+  3 consecutive beads `blocked` or failed). Ending a turn with a non-empty
+  queue and none of those causes is a defect, not a pause: nobody is waiting
+  to restart it. Newly-filed beads that enter the queue mid-run (subagents
+  filing adjacent issues) are admitted only by the mid-run scope test
+  (Phase 1.5 step 4), never merely because they match the filter.
 - **Keep an environmental-failure ledger; never re-diagnose per wave.** Suites
   that fail — or silently PASS for environmental reasons — in the local sandbox
   get diagnosed ONCE, recorded in the gate baseline pre-flight captured,
