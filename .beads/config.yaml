@@ -55,9 +55,6 @@
 # interchange. It is not a backup.
 export:
     auto: false
-sync:
-    remote: "git+https://github.com/brettcallaghan/agent-plugins"
-
 # Integration settings (access with 'bd config get/set')
 # Non-secret keys (stored in the database):
 # - jira.url, jira.project
