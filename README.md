@@ -307,7 +307,7 @@ alone is visible rather than averaged away.
 | `cli/spec` | 1 | 1 | 100.0% |
 | **Total** | **2,775** | **2,483** | **89.5%** |
 
-Generated code is excluded from these figures: 1,758 statements in 1 file (`specmodel.go`) carrying the `// Code generated … DO NOT EDIT.` marker. It is still instrumented, and appears in the HTML report `scripts/coverage.sh` writes.
+Generated code is excluded from these figures: 1,758 statements in 1 file (`specmodel.go`) carrying the `// Code generated … DO NOT EDIT.` marker. It is excluded from the coverage profile too, so every report derived from it agrees with this table.
 <!-- coverage:table:end -->
 
 CI regenerates this and fails if it is stale

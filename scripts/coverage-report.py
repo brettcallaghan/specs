@@ -295,12 +295,6 @@ def main() -> int:
             print(f"error: {err}", file=sys.stderr)
             return 2
 
-    # The merged profile is written before any exclusion, so that
-    # `go tool cover -html` annotates every file the tests compiled —
-    # excluded or not, the source is still worth reading.
-    if args.merged_out:
-        write_merged(args.merged_out, union(layers))
-
     footnote = ""
     if args.exclude_generated:
         if not args.source_root:
@@ -329,12 +323,21 @@ def main() -> int:
                 f"Generated code is excluded from these figures: {excluded_stmt:,} "
                 f"statements in {len(generated)} "
                 f"{'file' if len(generated) == 1 else 'files'} ({files}) carrying the "
-                "`// Code generated … DO NOT EDIT.` marker. It is still instrumented, "
-                "and appears in the HTML report `scripts/coverage.sh` writes."
+                "`// Code generated … DO NOT EDIT.` marker. It is excluded from the "
+                "coverage profile too, so every report derived from it agrees with "
+                "this table."
             )
 
     combined = union(layers)
     total_stmt, total_covered = totals(combined)
+
+    # Written after the exclusion, so that `go tool cover -func` and
+    # `-html` over this profile report the same total the README
+    # publishes. A profile that still carried the generated files would
+    # put a second, larger, equally official-looking percentage in the
+    # same artifact.
+    if args.merged_out:
+        write_merged(args.merged_out, combined)
 
     table = render_table(layers, args.module, footnote)
     badge = render_badge(total_covered, total_stmt)

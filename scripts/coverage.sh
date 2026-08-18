@@ -24,8 +24,12 @@
 #   scripts/coverage.sh --check      measure, fail if the README is stale
 #   scripts/coverage.sh --min 70     also fail below a total percentage
 #
-# Reports are written to build/coverage/ (gitignored): coverage.out is
-# the merged profile, coverage.html the annotated source.
+# Reports are written to build/coverage/ (gitignored):
+#
+#   summary.md         the badge and the tables, as published in the README
+#   coverage-func.txt  per-function coverage and the total
+#   coverage.html      annotated source, one file at a time
+#   coverage.out       the merged profile — input to other tools, not a report
 #
 # Regenerate with the Go version in cli/go.mod. Statement counts come
 # from the toolchain, so a different one can move the numbers and make
@@ -127,7 +131,15 @@ python3 "$REPO_ROOT/scripts/coverage-report.py" \
   "${REPORT_ARGS[@]+"${REPORT_ARGS[@]}"}" || report_status=$?
 
 if [ -f "$OUT_DIR/coverage.out" ]; then
+  # Three shapes, because they answer different questions and only the
+  # first is readable without a browser: the tables (summary.md, written
+  # by the report above), the per-function list, and the annotated
+  # source. coverage.out itself is a machine profile — it is kept for
+  # tooling, not for reading.
+  go tool cover -func="$OUT_DIR/coverage.out" -o "$OUT_DIR/coverage-func.txt"
   go tool cover -html="$OUT_DIR/coverage.out" -o "$OUT_DIR/coverage.html"
+  echo "tables:           build/coverage/summary.md"
+  echo "per function:     build/coverage/coverage-func.txt"
   echo "annotated source: build/coverage/coverage.html"
 fi
 

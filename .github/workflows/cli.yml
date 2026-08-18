@@ -147,8 +147,10 @@ jobs:
         with:
           name: cli-coverage
           path: |
-            build/coverage/coverage.out
+            build/coverage/summary.md
+            build/coverage/coverage-func.txt
             build/coverage/coverage.html
+            build/coverage/coverage.out
           if-no-files-found: warn
 
   # AC-SPEC-009.7's "produced by cross-compilation from a single source":
