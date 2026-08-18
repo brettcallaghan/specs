@@ -22,7 +22,7 @@
 #   replayed by hand during crash recovery. One script means one behavior.
 #
 # Usage
-#   bb-close-bead.sh [--trailers-file <path>] <bead-id> <priority> <title> [path ...]
+#   bb-close-bead.sh [--run-dir <path>] [--trailers-file <path>] <bead-id> <priority> <title> [path ...]
 #
 #   --trailers-file <path>  optional; must precede <bead-id>. Its contents
 #       are appended to the commit message body after a blank line (e.g.
@@ -47,8 +47,15 @@
 #
 #   The close does NOT touch the bead's description: grooming wrote it, and
 #   closing must not rewrite it. Findings belong in `retro:`-prefixed
-#   `bd comment`s on the bead; the run directory's <bead-id>.handoff.md is an
-#   artifact the orchestrator's acceptance check reads, not an input here.
+#   `bd comment`s on the bead.
+#
+#   The run directory's <bead-id>.handoff.md is the crash-recovery anchor. The
+#   agent is meant to write it before closing; WHEN --run-dir is given and the
+#   file is absent, this script writes a minimal one BEFORE the close, so a
+#   crash anywhere in the ceremony still leaves an anchor. The phase and the file were separable, and the one bead
+#   that ever needed the anchor is the one that died between them. A thin
+#   anchor beats none, and it says it is thin so a recovering agent can tell.
+#   Written OUTSIDE the worktree, so it is never staged.
 #
 # Exit status
 #   0  bead closed, committed, tracker pushed (short sha on stdout)
@@ -66,8 +73,18 @@ die()  { echo "bb-close-bead: $*" >&2; exit 2; }
 fail() { echo "bb-close-bead: $*" >&2; exit 1; }
 
 trailers_file=""
+run_dir=""
 while [ $# -gt 0 ]; do
   case "$1" in
+    --run-dir)
+      [ $# -ge 2 ] || die "--run-dir requires a path argument"
+      run_dir="$2"
+      shift 2
+      ;;
+    --run-dir=*)
+      run_dir="${1#--run-dir=}"
+      shift
+      ;;
     --trailers-file)
       [ $# -ge 2 ] || die "--trailers-file requires a path argument"
       trailers_file="$2"
@@ -90,7 +107,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-[ $# -ge 3 ] || die "usage: bb-close-bead.sh [--trailers-file <path>] <bead-id> <priority> <title> [path ...]"
+[ $# -ge 3 ] || die "usage: bb-close-bead.sh [--run-dir <path>] [--trailers-file <path>] <bead-id> <priority> <title> [path ...]"
 id="$1"; priority="$2"; title="$3"; shift 3
 
 if [ -n "$trailers_file" ]; then
@@ -114,6 +131,26 @@ esac
 msgfile=""
 cleanup_msgfile() { [ -n "$msgfile" ] && rm -f "$msgfile"; }
 trap cleanup_msgfile EXIT
+
+# 0b. Guarantee the crash-recovery anchor exists. Outside the worktree, so it
+#     is not staged and cannot reach the commit.
+if [ -n "$run_dir" ]; then
+  if [ ! -d "$run_dir" ]; then
+    fail "--run-dir: no such directory: $run_dir"
+  fi
+  _handoff="$run_dir/$id.handoff.md"
+  if [ ! -s "$_handoff" ]; then
+    {
+      printf '# %s handoff\n' "$id"
+      printf 'Caveat: none recorded — written by the close ceremony, not by the agent.\n'
+      printf '  The agent reached the close without leaving an anchor, so nothing here\n'
+      printf '  is its testimony and no caveat should be inferred. This file records\n'
+      printf '  only that the close was attempted; derive the bead state from git and\n'
+      printf '  the tracker.\n'
+    } > "$_handoff" || fail "could not write $_handoff"
+    echo "bb-close-bead: wrote minimal handoff (agent left none): $_handoff" >&2
+  fi
+fi
 
 # 1. Atomic close — status only. `bd close` would be a second write and a
 #    second commit; `--body-file` would overwrite the groomed description with
