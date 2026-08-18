@@ -9,7 +9,7 @@ description: Process many beads autonomously by orchestrating subagents. Use
   (doc fast lane / shared-surface batch / sequential), runs every bead in its
   own git worktree, streams per-bead progress, and lands each bead in a single
   commit.
-version: "1.6"
+version: "1.7"
 ---
 
 # bead-bonanza
