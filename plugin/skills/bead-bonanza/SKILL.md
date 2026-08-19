@@ -9,7 +9,7 @@ description: Process many beads autonomously by orchestrating subagents. Use
   (doc fast lane / shared-surface batch / sequential), runs every bead in its
   own git worktree, streams per-bead progress, and lands each bead in a single
   commit.
-version: "1.6"
+version: "1.7"
 ---
 
 # bead-bonanza
@@ -179,6 +179,23 @@ After each subagent returns:
    acceptance never happened, so leave the worktree standing (it is the
    in-flight signal) and surface it.
 
+   **A standing worktree is one of three things — read signal 4 against the
+   dispatch mode before calling it a failure.**
+   1. *Removal still pending.* Removal is the orchestrator's own final act, so
+      between a bead's return and that act the worktree ALWAYS survives. Do the
+      removal (`git worktree remove <path>`), then re-run
+      `git worktree prune && git worktree list`. This is the normal state, not
+      a failure.
+   2. *A batch is still running.* A batch dispatched into one
+      harness-provisioned worktree holds it for EVERY bead it carries, so beads
+      already closed inside it have a surviving worktree by construction. Accept them on
+      signals 1–3 and 5, and read signal 4 once, against the batch, when it
+      returns. Charging each bead for a worktree its siblings are still using
+      fails the whole batch but the last bead.
+   3. *A real signal-4 failure.* Removal itself failed, or a worktree the
+      orchestrator never created survives. Leave it standing and surface it.
+
+
    **Signals this check deliberately does NOT use.** A
    `"phase":"committed"` ledger event is written by the agent doing the work
    and stops when that agent stops — see `references/progress-streaming.md`,
@@ -302,7 +319,7 @@ to read it:
 pre-flight-check.sh <run-id> [--gate-baseline] [--self-test]   # sandbox ON
 bb-progress.sh   <run-dir> <bead-id> <phase> [key=value ...]
 bb-verify-skip.sh [pathspec ...]        # no pathspec = whole working tree
-bb-close-bead.sh [--trailers-file <path>] <bead-id> <priority> <title> [path ...]
+bb-close-bead.sh [--run-dir <path>] [--trailers-file <path>] <bead-id> <priority> <title> [path ...]
 bb-backup-run.sh <run-dir> [<dest>]     # <dest> defaults to <repo>/.bonanza/<run-id>
 ```
 
@@ -396,6 +413,11 @@ What no script can settle:
   which is what makes the slim local gate policy (below) safe. (`gh` fails TLS
   verification inside the sandbox; run it with sandbox disabled.) WHEN
   `BB_PR_CI=no`, don't ask.
+- **Harness worktree directory.** Confirm it is gitignored: create the first
+  worktree, then check `git status --porcelain` is clean. Checking only before
+  that worktree exists tests nothing — the harness may place it inside the
+  repo, and untracked worktrees there read as uncommitted work to anything
+  that inspects `git status`.
 - **Agent-tool availability.** Whether you have an Agent/Task tool at all is a
   harness property, invisible from a shell. No script can check it — you must.
   WHEN you have none, nothing can be delegated (not grooming, not planning, not

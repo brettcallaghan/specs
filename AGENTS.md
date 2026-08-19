@@ -498,6 +498,18 @@ See `.claude/hooks/session-start.sh` and `docs/session-bootstrap.md`. The
 `bead-bonanza` skill itself never names a credential — it requires only "write
 access to `refs/dolt/data`", and the mechanism is this repository's business.
 
+### `sync.remote` and the empty-tracker trap
+
+**Do not commit `sync.remote` in `.beads/config.yaml`, and do not restore it
+when the SessionStart hook strips it.** `bd` refuses the value on a fresh clone
+and then reports success anyway, leaving an empty tracker. The full rationale
+is a comment beside the key in `.beads/config.yaml`, which is where anyone
+about to reintroduce it will be looking.
+
+The hook handles the rest mechanically: it verifies the tracker by issue count,
+moves a stale empty database aside, bootstraps, and fails loudly if the count is
+still zero. Nothing here needs an agent to act.
+
 ### Two hazards that remain
 
 - **The id prefix travels with the database.** A bootstrapped clone mints ids
@@ -511,26 +523,3 @@ access to `refs/dolt/data`", and the mechanism is this repository's business.
   runs it — and then nothing bootstraps the database or establishes write
   access. The manual fallback is at the top of this file; the durable fix is
   the per-environment setup script in `docs/session-bootstrap.md`.
-
-## Beads Issue Tracker
-
-Use Beads (`bd`) for durable task tracking in repositories that include it. Use the `beads` skill at `.agents/skills/beads/SKILL.md` (project install) or `~/.agents/skills/beads/SKILL.md` (global install) for Beads workflow guidance, then use the `bd` CLI for issue operations.
-
-### Quick Reference
-
-```bash
-bd ready                # Find available work
-bd show <id>            # View issue details
-bd update <id> --claim  # Claim work
-bd close <id>           # Complete work
-bd prime                # Refresh Beads context
-```
-
-### Rules
-
-- Use `bd` for all task tracking; do not create markdown TODO lists.
-- Run `bd prime` when Beads context is missing or stale. Codex 0.129.0+ can load Beads context automatically through native hooks; use `/hooks` to inspect or toggle them.
-- Keep persistent project memory in Beads via `bd remember`; do not create ad hoc memory files.
-
-**Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md for details and anti-patterns.
-<!-- END BEADS CODEX SETUP -->

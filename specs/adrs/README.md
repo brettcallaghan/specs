@@ -24,6 +24,7 @@ This directory contains Architecture Decision Records documenting significant de
 - [ADR-019: Orchestrate Work Orders with a Skill Composing Native Subagents](ADR-019-skill-composed-subagent-orchestration.md) — `bead-bonanza` composes the `Agent` primitive rather than adopting agent teams, background sessions, `/batch` or dynamic workflows, whose durability and input models do not fit an hours-long run that commits
 - [ADR-020: FRDs Evolve in Place; Deltas Are Keyed on AC Identifiers](ADR-020-frd-lifecycle-and-ac-keyed-deltas.md) — an FRD is a living document edited in place under a same-feature test keyed on its slug, never amended by a successor FRD; changes between versions are diffed by AC identifier, not by line
 - [ADR-021: Adopt Gherkin for Features and Acceptance Criteria](ADR-021-gherkin-blocks-for-acceptance-criteria.md) — the AST yields typed records a central store can load where prose yields one string; `Scenario Outline` keeps the criterion/example split and makes examples queryable; EARS keeps every other normative statement
+- [ADR-022: Projects Declare Checkpoint Scripts](ADR-022-project-declared-checkpoint-scripts.md) — a project declares gate commands as executables referenced from a plugin-scoped `sf.toml` and they report findings with paths, because prose cannot express a multi-command gate and an exit code cannot express a known-red baseline
 
 ADR-014 is unused: a draft at that number deliberated the same question
 ADR-021 settles, and was replaced by it rather than retained as a retired

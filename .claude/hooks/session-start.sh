@@ -199,23 +199,72 @@ if command -v bd >/dev/null 2>&1; then
   fi
 
   # --- 2b. The database -------------------------------------------------------
-  # Gitignored, so a fresh container has none and every bd command fails with
-  # "no beads database found". Test for the directory rather than running bd:
-  # an unrelated bd failure should not trigger a re-bootstrap.
-  if [ -z "$BB_DOLT_FATAL" ] && [ -d .beads ] \
-     && [ ! -d .beads/embeddeddolt ] && [ ! -d .beads/dolt ]; then
-    log "no beads database in this clone — bootstrapping from the Dolt remote"
-    _bootstrap_out="$(bd bootstrap 2>&1)"
+  # The database is gitignored, so a fresh clone has none and every bd command
+  # fails with "no beads database found".
+  #
+  # Verify by ISSUE COUNT, never by directory existence, and never by exit code.
+  # Two independent failures make every weaker test lie:
+  #   1. `bd bootstrap`'s "database already exists" probe matches the .beads
+  #      DIRECTORY, which is git-tracked here (config.yaml, metadata.json,
+  #      hooks/). On a fresh clone with no database at all it prints
+  #      "Database already exists ... Nothing to do" and exits 0.
+  #   2. A stale, empty `.beads/embeddeddolt/` can survive into a new container.
+  #      A guard that skips bootstrap when that directory exists then skips it
+  #      exactly when it is needed.
+  # Both produce a session with an empty tracker that reports itself healthy,
+  # and a closed bead written into it is lost when the container is reclaimed.
+  if [ -z "$BB_DOLT_FATAL" ] && [ -d .beads ]; then
+    _count() { bd stats 2>/dev/null | sed -n 's/^[[:space:]]*Total Issues:[[:space:]]*\([0-9][0-9]*\).*/\1/p' | head -1; }
+    _n="$(_count)"; [ -n "$_n" ] || _n=0
 
-    # Verify the POST-CONDITION, never the exit code. `bd bootstrap` exits 0
-    # after doing nothing: its "database already exists" probe matches the
-    # .beads DIRECTORY, which is committed here, so a clone that produced no
-    # database still reports success. Trusting the status is how every fresh
-    # session silently came up with an empty tracker.
-    if [ -d .beads/embeddeddolt ] || [ -d .beads/dolt ]; then
-      log "beads DB bootstrapped from origin refs/dolt/data"
+    if [ "$_n" -eq 0 ]; then
+      log "tracker is empty ($_n issues) — bootstrapping from origin refs/dolt/data"
+      # A stale empty database short-circuits bootstrap's own probe. Move it
+      # aside rather than deleting it: if the remote turns out to be the empty
+      # one, the copy is the only remaining evidence.
+      if [ -d .beads/embeddeddolt ]; then
+        _stale=".beads/embeddeddolt.stale.$$"
+        mv .beads/embeddeddolt "$_stale" \
+          && log "moved a stale empty database aside: $_stale"
+      fi
+      _bootstrap_out="$(BD_NON_INTERACTIVE=1 bd bootstrap --yes 2>&1)"
+      _n="$(_count)"; [ -n "$_n" ] || _n=0
+      if [ "$_n" -gt 0 ]; then
+        log "beads DB bootstrapped from origin refs/dolt/data ($_n issues)"
+      else
+        BB_DOLT_FATAL="bootstrap left the tracker empty ($_n issues); it may have exited 0 anyway. Output: $(printf '%s' "$_bootstrap_out" | tr '\n' ' ' | cut -c1-300)"
+      fi
     else
-      BB_DOLT_FATAL="bd bootstrap produced no database (it may have exited 0 anyway). Output: $(printf '%s' "$_bootstrap_out" | tr '\n' ' ' | cut -c1-300)"
+      log "tracker present ($_n issues)"
+    fi
+  fi
+
+  # `sync.remote` in .beads/config.yaml must stay UNSET in git, and bd fights
+  # this: `bd bootstrap` WRITES the key back after a successful clone, with the
+  # exact value its own clone path refuses on the next fresh clone —
+  # "looks like a git code-repository URL, not a Dolt remote — skipping clone",
+  # after which it falls through to "database already exists" and leaves the
+  # tracker empty. The writer and the validator disagree; that is a bd bug, and
+  # until it is fixed the committed file is what breaks every clone at once.
+  #
+  # Strip it rather than warn. A dirty tracked config.yaml is not cosmetic here:
+  # bead-bonanza's close ceremony stages everything in the tree, so the key
+  # would ride into a bead's close commit and re-break future clones. Bootstrap
+  # derives the same remote from git origin's refs/dolt/data and wires it in the
+  # Dolt config, which is where it belongs and is not tracked.
+  if [ -z "$BB_DOLT_FATAL" ] && grep -q '^sync:' .beads/config.yaml 2>/dev/null; then
+    if python3 - <<'PYEOF' 2>/dev/null
+import io,re,sys
+p='.beads/config.yaml'
+s=io.open(p,encoding='utf-8').read()
+n=re.sub(r'(?m)^sync:\n(?:[ \t]+.*\n)*\n?','',s)
+if n==s: sys.exit(1)
+io.open(p,'w',encoding='utf-8').write(n)
+PYEOF
+    then
+      log "stripped sync.remote from .beads/config.yaml (bd re-adds it; committing it breaks the next clone)"
+    else
+      log "WARNING: .beads/config.yaml sets sync.remote and could not be stripped — do NOT commit it; it breaks bootstrap on a fresh clone"
     fi
   fi
 

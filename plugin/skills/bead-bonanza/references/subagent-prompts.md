@@ -101,7 +101,7 @@ and appends the JSON itself — never hand-write an event.
 
 1. `bb-progress.sh "$RUN_DIR" {ID} claimed`. Claim: `bd update {ID} --status in_progress`
 2. Read full details: `bd show {ID}`
-3. `bb-progress.sh "$RUN_DIR" {ID} implementing`. Implement the change. **If this bead fixes a defect or regression, first write (or locate) a test that reproduces it and observe it FAIL for the stated reason BEFORE you fix it** — a test written after the fix encodes the fix's own assumptions and can stay green while the defect is live. Record the observed failure; it goes in a `retro:` comment (step 6). Stay strictly within this bead's scope. If you find work beyond it, file a new bead via `bd create` with a `discovered-from` link to {ID}, noting in one line whether it *blocks* this bead (a prerequisite, an acceptance-criteria decomposition, or an expected test-coverage gap) or is merely adjacent — the orchestrator decides whether it enters the run. Do NOT implement it or pull it into your own scope. If this bead genuinely cannot be finished without it, take the Blocked path naming the new bead as the blocker; otherwise continue with the original — do NOT expand scope inline. For any implicit decision you must make, record what you chose (and why) — it goes in a `retro:` comment (step 6).
+3. `bb-progress.sh "$RUN_DIR" {ID} implementing`. Implement the change. **If this bead fixes a defect or regression, first write (or locate) a test that reproduces it and observe it FAIL for the stated reason BEFORE you fix it** — a test written after the fix encodes the fix's own assumptions and can stay green while the defect is live. Record the observed failure; it goes in a `retro:` comment (step 6). Stay strictly within this bead's scope. If you find work beyond it, file a new bead via `bd create` with a `discovered-from` link to {ID}, noting in one line whether it *blocks* this bead (a prerequisite, an acceptance-criteria decomposition, or an expected test-coverage gap) or is merely adjacent — the orchestrator decides whether it enters the run. Do NOT implement it or pull it into your own scope. This includes a gap you can see that is not yours to close — a document no bead in the queue claims, a step every adjacent bead assumed another would take. **"Not this bead's to close" is a reason to FILE it, not a reason to leave it unfiled.** If this bead genuinely cannot be finished without it, take the Blocked path naming the new bead as the blocker; otherwise continue with the original — do NOT expand scope inline. For any implicit decision you must make, record what you chose (and why) — it goes in a `retro:` comment (step 6).
 4. `bb-progress.sh "$RUN_DIR" {ID} gates-running`. **The push is the gate** — this is a single-bead push, so full gates run here before pushing. If the change affects generated output the tests compare against (codegen, snapshots, golden files, schemas) AND the gate profile defines a regen step, run `{REGEN}` BEFORE the test step.
    - `{FORMAT}`
    - `{LINT}`
@@ -115,13 +115,17 @@ and appends the JSON itself — never hand-write an event.
    **No `Paths:` line.** You are in this bead's own worktree, so everything dirty here is yours by construction and the close stages all of it — a path list can only be too narrow.
 
    Three lines total is typical. Do NOT restate the phase (the progress JSONL has it), the diff, the gates, or the bead, and do NOT put findings in it — those are step 6. Run `bb-progress.sh "$RUN_DIR" {ID} retro-written` after the file is on disk (the phase vocabulary keeps that name).
-6. **Record findings as `retro:` comments on {ID}** — one `bd comment` per finding, prefixed `retro:`, 1–3 sentences each, friction only, no root-causing. That comment channel is what downstream retros and RFCs actually read. Trigger list — record one WHEN: you needed information the bead and its references did not carry; you had to settle something the bead or spec should have pinned; the bead contradicted repo reality; you could not satisfy an acceptance criterion as declared; a sequencing surprise. **A clean bead records none — say so rather than inventing filler.** Record each of these as its own `retro:` comment too:
+6. **Record findings as `retro:` comments on {ID}** — one `bd comment` per finding, prefixed `retro:`, 1–3 sentences each, friction only, no root-causing. That comment channel is what downstream retros and RFCs actually read. Trigger list — record one WHEN: you needed information the bead and its references did not carry; you had to settle something the bead or spec should have pinned; the bead contradicted repo reality; you could not satisfy an acceptance criterion as declared; a sequencing surprise. **Work, not friction.** IF what you found is a unit of work someone must do — a gap in scope, a missing artifact, a prerequisite — it is a BEAD (step 3), not a retro comment, even when it also reads as friction. File it, then optionally record a `retro:` comment about *why the gap existed*. A retro comment is read by a later retrospective; a bead is read by this run's orchestrator, and routing work here means nothing acts on it before the run ends. **A clean bead records none — say so rather than inventing filler.** Record each of these as its own `retro:` comment too:
      - **What you tried that did not work** — the reading you took first and abandoned, and why. The diff shows only the reading that survived, so this is unrecoverable later.
      - **What you decided silently** — only choices a diff-reader would not recognise AS choices. Narrower than "every implicit decision": an internal helper's name or the order of two independent guard clauses qualifies; the approach the bead already specified does not.
      - **For a defect bead: the observed pre-fix failure**, quoted from actual output. If you could not reproduce it, say so and say what you substituted.
 7. Close and commit in one step — run the bundled script. WHEN `{TRAILERS_FILE}` is not "none", pass it first so the trailers land in the same commit and no amend is ever needed:
-   `{SCRIPTS}/bb-close-bead.sh --trailers-file {TRAILERS_FILE} {ID} {PRIORITY} "{TITLE}"`
-   Otherwise (`{TRAILERS_FILE}` is "none"): `{SCRIPTS}/bb-close-bead.sh {ID} {PRIORITY} "{TITLE}"`
+   `{SCRIPTS}/bb-close-bead.sh --run-dir {RUN_DIR} --trailers-file {TRAILERS_FILE} {ID} {PRIORITY} "{TITLE}"`
+   Otherwise (`{TRAILERS_FILE}` is "none"): `{SCRIPTS}/bb-close-bead.sh --run-dir {RUN_DIR} {ID} {PRIORITY} "{TITLE}"`
+   `--run-dir` lets the ceremony guarantee the crash-recovery anchor: WHEN step
+   5's handoff file is missing it writes a minimal one BEFORE the close, so a
+   crash anywhere in the ceremony still leaves an anchor. It never overwrites
+   yours, is written outside the worktree, and is never staged.
    **Pass no paths.** You are in this bead's own worktree, so everything modified here is this bead's work and the script stages all of it. A path list can only be too narrow.
    It performs the whole ceremony in the required order: atomic close (`bd update --status closed`, never `bd close` — that would be a second commit), verify the close against the DATABASE (`bd show`) before anything is staged, stage **code only** (`git add -A -- ':!.beads/*.jsonl'`), one commit messaged `{ID} P{PRIORITY} {TITLE}` (plus the trailers file's contents in the body, when given), then `bd dolt push` — the push, not a file, is what makes the closure durable. It writes and stages no `.beads/` export, and neither do you. It does not touch the description — grooming owns that. It refuses to run on `main` or with nothing staged. Do not perform these steps by hand, and do not `git commit --amend` afterward — if a required trailer is missing, that means `{TRAILERS_FILE}` was resolved wrong at Phase 0, not something to patch here.
 8. `{SCRIPTS}/bb-progress.sh "{RUN_DIR}" {ID} committed sha=$(git rev-parse --short HEAD)` — read the sha from the branch, not from the script's printout, so any rewrite between steps 7 and 8 cannot desync the ledger from what actually landed.
@@ -174,7 +178,10 @@ loss downstream.
 ```
 Read CLAUDE.md and AGENTS.md if you need conventions; gate commands are in AGENTS.md under "## bead-bonanza gates".
 
-Worktrees: one per bead, created by YOU, held ONE AT A TIME. Before each bead:
+Worktrees: **where the orchestrator already provisioned one for you (the harness's
+`isolation: "worktree"`), you have exactly ONE worktree for EVERY bead in this batch —
+process them in order, one commit each, and do NOT create more.** Where it did not,
+create one per bead yourself, held ONE AT A TIME. Before each bead:
   First bead: git -C <repo> worktree add -b <id-1> <repo>/../.bb-worktrees/<id-1> HEAD
   Each later bead: git -C <repo> worktree add -b <id-N> <repo>/../.bb-worktrees/<id-N> <id-N-1>
   -- branch from the PREVIOUS bead's branch, not from HEAD. Inside a batch HEAD
@@ -182,8 +189,12 @@ Worktrees: one per bead, created by YOU, held ONE AT A TIME. Before each bead:
   branching every bead from HEAD gives beads that cannot see each other's work
   and conflict on any shared file.
 Work that bead entirely inside its worktree. After its close commit lands, tell
-the orchestrator and move on — never hold two worktrees open at once, because a
-worktree that exists means "this bead is unfinished" to every other reader.
+the orchestrator and move on. WHERE you create your own, never hold two open at
+once: a worktree that exists means "this bead is unfinished" to every other reader.
+WHERE you were given one for the whole batch, that signal is coarser by
+construction — it means "this BATCH is unfinished" — so report each bead's close
+as it lands, because your report is the only per-bead signal the orchestrator has
+until the batch returns.
 Run dir: {RUN_DIR}
 Scripts: {SCRIPTS}
 Trailers file: {TRAILERS_FILE or "none"}   (Phase 0 resolved; pass to bb-close-bead.sh --trailers-file)
@@ -323,7 +334,13 @@ run takes, which is why it is a sibling.
 Branching from `HEAD` — the sprint branch as it stands *now*, after the
 previous bead merged — is what makes each bead build on the last. Where the
 harness creates the worktree for you (`Agent` with `isolation: "worktree"`),
-it uses `worktree.baseRef` instead, which is why that setting is a hard gate.
+it uses `worktree.baseRef` instead, which is why that setting is a hard gate —
+**and it may place the worktree INSIDE the repository (observed:
+`.claude/worktrees/`), which the sibling rule above exists to prevent. The path
+is not yours to choose, so neutralise it: ensure the harness's worktree
+directory is gitignored before the first dispatch.** Untracked worktrees inside
+the repo are reported as uncommitted work by anything reading `git status`, and
+committing them lands in-flight bead state on the sprint branch.
 
 1. **Dispatch** the subagent with the per-bead template, telling it to work in
    `$WT`. It implements, gates, writes its handoff, records findings, and

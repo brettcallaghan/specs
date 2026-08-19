@@ -270,9 +270,9 @@ recommended but not yet approved.
 
 | Proposal | Outcome |
 |---|---|
-| P1 — probe push scope against a protected path at pre-flight | **recommended adopt-with-refinement; not yet approved.** Confirmed live: `scripts/pre-flight-check.sh` emits no `BB_PUSH_WORKFLOW_SCOPE`. Note for whoever implements it — the script already enumerates `.github/workflows/*.y{a,}ml` at line 415 for CI detection, so the directory probe has a precedent to follow rather than inventing one. **This is the root cause of the failure P2 makes visible**; adopting P2 without P1 means the stall still happens, just discovered in one fetch instead of twenty minutes. |
+| P1 — probe push scope against a protected path at pre-flight | **deferred** 2026-08-17 by owner decision — file a bead. Bead not yet filed: the tracker holds 0 issues and no Dolt remote is configured locally, so nothing can be recorded durably. BLOCKED on tracker repair. |
 | P2 — make "compare HEAD to the remote ref" a landing check | **adopted with refinement.** The comparison was lifted out of the `BB_PUSH_NEEDS_REFSPEC=yes` conditional at `SKILL.md:328–332` — which now explicitly says verifying a push **landed** is not conditional on that fact — and stated as a rule at Phase 3 step 7, with the fetch-and-compare commands and the whole-push-rejection consequence. |
-| P3 — name one channel for discovered work | **recommended adopt; not yet approved.** Confirmed live at `references/subagent-prompts.md:104` and `:118`, including the "friction only, no root-causing" framing this RFC identifies as inviting the wrong choice. |
+| P3 — name one channel for discovered work | **adopted** as written 2026-08-17, both halves — the "Work, not friction" exclusion in step 6 and the "not this bead's to close is a reason to FILE it" case in step 3. Extent check: the batch templates inherit the shared per-bead workflow rather than restating it, so the single edit covers every dispatch mode. |
 
 **Refinement applied to P2, and why.** This proposal and
 `rfcs/inbox/recover-sprint/rfc-self-worktree-absence-is-not-completion` P1 are
