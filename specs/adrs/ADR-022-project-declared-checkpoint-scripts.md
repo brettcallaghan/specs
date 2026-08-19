@@ -1,7 +1,8 @@
 ---
 title: "ADR-022: Projects Declare Checkpoint Scripts"
 description: A project declares its gate commands as executable checkpoint
-  scripts referenced from specs.toml, and those scripts report findings with
+  scripts referenced from a plugin-scoped sf.toml, and those scripts report
+  findings with
   paths rather than a bare exit code, because a prose gate profile cannot
   express a multi-command gate and a bare exit code cannot express a
   known-red baseline
@@ -55,8 +56,9 @@ one workflow.
 ## Decision
 
 A project declares **checkpoint scripts** — executables it owns — through
-optional fields in `specs.toml`, referenced by repository-root-relative path.
-`bead-bonanza` runs them and reads their output; it parses no prose.
+`sf.toml`, a plugin-scoped config file at the repository root, referenced by
+repository-root-relative path. `bead-bonanza` runs them and reads their
+output; it parses no prose.
 
 Two checkpoints, the ones `AGENTS.md` gives instructions for today:
 
@@ -101,7 +103,9 @@ is why it is the wrong channel for anything anyone must act on.
 | Keep parsing `AGENTS.md`, teach the parser fenced blocks | Smallest change; no project migration | Fixes one shape of a general defect; still cannot express per-surface tests, conditional gates, or a findings count; the parser silently takes a wrong span when prose precedes the command | Treats the instance, not the class. The parser would still return a string where the baseline needs a count |
 | Discovery by `.specs/hooks/<name>` convention | Zero configuration; nothing to declare | Introduces a dotted directory one character from the existing `specs/` corpus root and meaning something entirely different; a magic directory is undiscoverable until it is documented, which is the problem being solved | The `specs/` / `.specs/` confusability is a standing trap for every reader of this repository |
 | A strict machine-readable contract (JSON schema for findings) | Unambiguous; validatable | A schema the project must satisfy makes writing a checkpoint script a specification exercise; projects with a one-line lint gate would pay the full cost | Disproportionate. The contract is guidance plus a thin emission convention, below |
-| Declare scripts in `specs.toml`, findings-with-paths, guideline contract | Explicit and greppable; no new directory; the project chooses where its scripts live; reuses the `BB_*` key=value emission convention `pre-flight-check.sh` already uses | `specs.toml` is nominally the spec-corpus config and now also carries build-adjacent declarations | N/A — selected |
+| Declare scripts in `specs.toml` | No new file; `specs.toml` already exists and the CLI already reads it | `specs.toml` is a **per-corpus-root manifest**, not a per-repo one — this repository has two real instances (`./specs.toml` declaring `specs/`, `./rfcs/specs.toml` declaring `rfcs/`) plus ~50 CLI fixtures. "Which `specs.toml` holds the checkpoint scripts?" has no answer, and every fixture would have to tolerate a field unrelated to a corpus | Structurally wrong file. `bead-bonanza` requires groomed beads, not a spec corpus; coupling its config to a corpus manifest couples two things this framework deliberately keeps separate |
+| Environment variables in a `.env` file | No new format; the run already reads some env (`CLAUDE_CODE_SUBAGENT_MODEL`) | `.env` is conventionally per-environment and commonly gitignored, so the declaration would not travel with the repository — and a checkpoint script path is project structure shared by the team, not an environment knob or a secret. Flat keys express no structure, so multiple checkpoints become `SF_HOOK_PREFLIGHT`-style stringly-typed conventions | The declaration must be committed and shared; `.env` is the wrong lifetime and the wrong shape |
+| Declare scripts in a plugin-scoped `sf.toml`, findings-with-paths, guideline contract | Explicit and greppable; per-repo, matching the plugin's own scope; the project points at scripts it already has rather than moving them; reuses the `BB_*` key=value emission convention `pre-flight-check.sh` already uses | One more config file at the repository root | N/A — selected |
 
 ## Consequences
 
@@ -121,7 +125,8 @@ is why it is the wrong channel for anything anyone must act on.
 **Negative:**
 - A project must write and maintain executables to use `bead-bonanza`, where
   today it writes a Markdown bullet. The floor for a trivial project rises.
-- `specs.toml` carries declarations that are not about the spec corpus.
+- One more config file at the repository root, alongside `specs.toml`,
+  `.beads/config.yaml` and `.claude/settings.json`.
 - A checkpoint script is opaque to a reader who will not open it, where the
   `AGENTS.md` bullet was readable in place. Accepted: it is the project's own
   script, and prose that must also be machine-parsed is what this ADR retires.

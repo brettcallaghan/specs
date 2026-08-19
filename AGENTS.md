@@ -498,43 +498,17 @@ See `.claude/hooks/session-start.sh` and `docs/session-bootstrap.md`. The
 `bead-bonanza` skill itself never names a credential — it requires only "write
 access to `refs/dolt/data`", and the mechanism is this repository's business.
 
-### The one thing that must never be committed
+### `sync.remote` and the empty-tracker trap
 
-**`sync.remote` must stay UNSET in `.beads/config.yaml`.** The file is tracked,
-so the key breaks every clone at once, and the failure is silent: on a fresh
-clone `bd bootstrap` refuses the value —
+**Do not commit `sync.remote` in `.beads/config.yaml`, and do not restore it
+when the SessionStart hook strips it.** `bd` refuses the value on a fresh clone
+and then reports success anyway, leaving an empty tracker. The full rationale
+is a comment beside the key in `.beads/config.yaml`, which is where anyone
+about to reintroduce it will be looking.
 
-```
-error: sync.remote "git+https://github.com/…" looks like a git code-repository
-URL, not a Dolt remote — skipping clone
-✓ Database already exists: …/.beads    Nothing to do.
-```
-
-— and then matches the tracked `.beads` DIRECTORY with its "already exists"
-probe, exits 0, and leaves a session with an empty tracker that reports itself
-healthy. Every bead closed into it dies with the container.
-
-`bd` fights this: **`bd bootstrap` writes the key back** after a successful
-clone, with the exact value its own clone path refuses next time. The writer and
-the validator disagree — a `bd` bug (measured on 1.2.1). Until it is fixed, the
-SessionStart hook strips the key on every session. Do not commit it, and do not
-"restore" it when you see the hook remove it. The remote it names is not lost:
-bootstrap derives the same one from git origin's `refs/dolt/data` and stores it
-in the Dolt config, which is where `bd dolt remote list` reads it from and which
-is not tracked.
-
-Stripping it is not cosmetic. `bead-bonanza`'s close ceremony stages everything
-dirty in the tree, so a re-added key rides into a bead's close commit and
-re-breaks every future clone.
-
-### Verify the tracker by issue count, never by directory existence
-
-Three things independently report a healthy tracker when it is empty: `bd
-bootstrap`'s exit code, its "database already exists" probe (which matches the
-tracked directory), and the presence of `.beads/embeddeddolt/` (which can
-survive into a new container, stale and empty). `bd stats` reporting a non-zero
-issue count is the only check that distinguishes them, and it is what the hook
-uses.
+The hook handles the rest mechanically: it verifies the tracker by issue count,
+moves a stale empty database aside, bootstraps, and fails loudly if the count is
+still zero. Nothing here needs an agent to act.
 
 ### Two hazards that remain
 
