@@ -75,6 +75,25 @@ recorded fact and, where the fact says so, a follow-up bead.
 | S6 | **Is `bd worktree create/remove` better than raw `git worktree` here?** The beads skill says always use it; this skill measured that `bd` already resolves the shared database through git's common directory, so the redirect files it configures may be moot. Its removal safety checks may still earn it. | N6 | standard |
 | S7 | **Does embedded Dolt contend under concurrent subagents?** Dispatch a concurrent wave with `BD_OTEL_STDOUT=true` and read `bd_db_lock_wait_ms`. | how far concurrency scales | advanced |
 
+### Wave 0 results — CLOSED 2026-08-20
+
+All seven settled. Full measurements live in each bead; the verdicts and what
+they change:
+
+| id | Verdict | Effect on the plan |
+|----|---------|--------------------|
+| S1 `epju` | **Split.** The per-invocation `model` parameter demonstrably routes when the variable is unset — two subagents served by `claude-haiku-4-5-20251001` and `claude-opus-5`, read from their transcripts. The variable was `NOTSET` and **cannot be injected into a running session**, so the precedence claim is unverified. | **E6 BLOCKED.** New gate `pr8l.1` probes it with the variable set at launch. Do not delete the routing tables until then. |
+| S2 `wyun` | Event beads cost 0.68s each and take `bd dolt push` from 0.63s → 5.36s (8.5x); deleting them returns it only to 1.56s, because Dolt keeps history — **the weight is permanent**. `set-state` is a replacing label, no churn. Metadata takes nested objects, arrays and 100 KB values, and merges across writes. | **D2 needs a volume budget or a cheaper carrier.** M5 cheap. **D9 works — but written via `bd update --metadata`, not through the graph file**, whose importer is `map[string]string`. |
+| S3 `—` | `bd ready --parent` traverses two levels; `bd swarm validate` does not. | P4 runs per wave epic. |
+| S4 `0len` | **Superseded by S5.** | Not run. |
+| S5 `89gy` | **Issue hooks exist** — `.beads/hooks/{on_create,on_update,on_close}`, executable, `hook <id> <event>` with issue JSON on stdin, async and timeout-bounded. No config key, which is why the docs search found nothing. **`on_close` does NOT fire on `bd update --status closed`** — this project's own close path — but `on_update` does. | **E1 unblocked.** The push signal comes from the tracker write itself. Use `on_update`. Hazard: `.beads/hooks/` is bd's git-hook directory, is tracked here, and `bd init` rewrites it. |
+| S6 `7axi` | Database sharing is **identical** both ways (`no redirect` in both). The one real difference: on a clean worktree holding **unpushed commits**, `git worktree remove` deletes it silently while `bd worktree remove` refuses. | **N6 adopts it, on removal safety only.** Two hazards to handle: it edits the main repo's tracked `.gitignore`, and a bare name nests the worktree inside the repo. |
+| S7 `xf70` | **No failures at any concurrency — it serializes instead.** 1/2/4/8 writers all sustain 3.3–4.0 writes/sec while wall time scales linearly; a tracker write is ~0.28s of globally exclusive time. `BD_OTEL_STDOUT` emits traces, not the metrics (1.6 MB per single write) — outcome measured directly instead. | Budget tracker writes per bead; prefer one write carrying several facts. Compounds S2's verdict on D2. |
+
+Two facts worth carrying beyond this plan: a subagent **cannot** learn its own
+model from `get_session` (it reports the parent session's), and `bd doctor` is
+**unavailable in embedded mode**, which is what this project runs.
+
 **Acceptance for the wave:** every spike closes with a recorded measurement in
 the form the repo's ledger admission rule requires — the command run, the
 conditions, the result observed — and either a follow-up bead or an explicit
