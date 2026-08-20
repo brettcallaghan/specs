@@ -514,6 +514,59 @@ follows, and 3 is preferable if a machine with `dolt` is at hand, because the
 fix replicates either way and is better performed somewhere the blast radius is
 visible.
 
+### What the fix is actually for — a conflation corrected
+
+The blocker is **not** about being able to use event beads. Two different things
+share the name, and the first draft of this section ran them together.
+
+| | What it is | Status in v1.2.2 |
+|---|---|---|
+| **The `events` table** | `bd`'s **internal audit trail**. `recordEvent(ctx, tx, issueID, eventType, actor, oldValue, newValue)` in `internal/storage/dolt/issues.go` writes a row *inside the same transaction* as every issue mutation. It is listed in `permanentIssueAuxTables` beside `issues`, `labels`, `dependencies` and `comments`. | **Core and current.** Not deprecated. |
+| **The "events journal"** | A separate 1.2.x feature. `~/.beads/eventsData/*.evtq` is its spool, and this container has been filling it since session start. | **Withdrawn.** The recovery guide lists it with work leases, sync federation, the HTTP API server and provenance events as *"1.2.x-only features … **not** included"* in v1.2.2, returning in a properly tested release. |
+
+So: **beads did not deprecate the thing that is broken.** The audit table is
+load-bearing 1.1-line infrastructure. What broke is that a 1.2.x migration
+relocated it somewhere the v1.2.2 binary cannot see, and v1.2.2 still writes to
+it on every mutation.
+
+**Which means the fix is for writing to the tracker at all** — `bd create`,
+`bd update`, labels, closes. Filing this plan's 52 beads with plain `bd create`
+is blocked just as `--graph` was. The D2 dispatch-record design is not what is
+at stake; it is one of many things downstream of a tracker that cannot be
+written.
+
+**A correction to D2 that this investigation surfaced.** `internal/types`
+declares `TypeEvent` as *"a system-internal type used by `set-state` for audit
+trail beads"*, and `TypeEvent.IsValid()` returns **false**. So
+`bd create --type=event` may be rejected outright, and the supported way to
+write an event bead is `bd set-state`, which creates one for you. That
+strengthens §10.7's conclusion — `set-state`, not raw event beads — and makes
+D2's wording wrong. Folded into spike S2 to settle.
+
+### Is there a better-advertised remedy? Not yet, but one path is unexplored
+
+- **No newer release.** `proxy.golang.org` lists v1.2.2 as latest; there is no
+  upgrade-forward that speaks v65.
+- **`bd migrate schema` cannot help.** Its own help says migrations *"run
+  automatically on store open, so this subcommand is typically a no-op"* — and
+  the database claims to be *ahead* of the binary, so there is nothing pending
+  to apply.
+- **`bd doctor` is unavailable**: *"not yet supported in embedded mode."*
+- **Unexplored, and the most favorable lead: server mode.** `bd doctor`'s own
+  fallback advice ends with *"Switch to server mode: `bd init --server`"*, and
+  `bd sql` refuses only *"in embedded mode"*. Since `bd` embeds Dolt as a
+  library, `bd dolt start` may give a SQL surface **without the `dolt` CLI at
+  all** — enough to run `SHOW TABLES`, see whether `events` exists, and apply
+  the repair directly. That is a smaller and better-targeted step than building
+  dolt from source, and it should be tried first.
+
+**One honesty caveat about the guide's recommended fix.** Rolling the schema
+cursor back changes *metadata*; `table not found` is a SQL-level error. It is
+not certain the rollback alone restores the table — the guide's *optional* step
+(re-tracking `events` out of `dolt_ignore`) may be the operative one, or the
+table may genuinely be absent and need recreating. Establishing which is the
+first thing a SQL surface would answer.
+
 ### The re-clone reproduced the documented `sync.remote` trap
 
 *Measured, as a side effect of trying option 1.* Running `bd bootstrap` by hand
