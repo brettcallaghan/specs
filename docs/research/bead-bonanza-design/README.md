@@ -592,25 +592,24 @@ The chat version should summarise and link, not re-author.
 
 ### 6.2 One log, or one store?
 
-**Not one log — one store.** Per-bead files are correct; a shared append-only
-log across concurrent worktree agents is a contention and interleaving hazard
-for no gain. The problem is not the split, it is that the store is `/tmp` and
-therefore needs `bb-backup-run.sh` committing ~N snapshot commits per run to
-stay alive.
+*Superseded by §10.10 — the answer turned out to be neither.* This section
+originally argued that per-bead files were right and only the store was wrong,
+and proposed moving the ledger into the tracker. A phase-by-phase audit does not
+support keeping the ledger at all: seven of its eight phases are answered by
+`bd` status, `git log`, or a file-existence check, and the eighth
+(`gates-passed`) changes behaviour only by letting recovery skip a gate re-run
+on testimony — the exact failure mode the 2026-08-15 run recorded.
 
-Beads already has the right store. An event bead
-(`bd create --type event --event-category bb.gates-passed --event-target <id>
---event-payload '{"caveat":"…"}'`) is durable, synced on the same push that
-makes the closure durable, queryable, and visible to any session without a run
-directory. That single move retires `bb-backup-run.sh`, the per-bead snapshot
-commits, the deletion commit, the "live directory is authoritative" rule in
-three documents, and the squash-merge defect in 2.2.
+What survives from this section is the narrower claim, which is still right and
+still worth stating: **whatever the store, concurrent agents must not contend on
+a single write target.** A shared append-only log across concurrent worktree
+agents is an interleaving hazard for no gain, and that holds identically for a
+file and for a shared bead. It just no longer implies keeping a stream at all.
 
-*Unverified:* the write cost. N×8 event beads per run against a Dolt database,
-plus their sync. Settled by writing 100 event beads and timing `bd dolt push`
-before and after. The fallback is wisps (`--ephemeral --wisp-type heartbeat`),
-designed for high-volume operational records and TTL-compacted — but wisps are
-*not synced*, which puts them back in `/tmp`'s durability class.
+The other conclusion survives intact: `bb-backup-run.sh` exists to make
+`$RUN_DIR` durable, and once the ledger and the handoff file are gone, `$RUN_DIR`
+holds the plan and a trailers file — so the plan moves to the sprint epic (R3)
+and the script deletes.
 
 ### 6.3 Structured formats
 
@@ -631,7 +630,7 @@ Two files are prose that wants to be data:
 | Today | Proposed | Why |
 |---|---|---|
 | `dispatch.md` in /tmp | `dispatch.json` + rendered view, attached to the sprint epic in `bd` | durable without a backup script; mechanically checkable; found by epic id, not an unguessable run id |
-| `<id>.progress.jsonl` | event beads on the bead | durable, synced, queryable, survives reclaim |
+| `<id>.progress.jsonl` | *deleted* — 7 of 8 phases duplicate `bd`/`git`, the 8th is testimony (§10.10) | 605 lines of machinery for one untrustworthy bit per bead |
 | `<id>.handoff.md` | *deleted* — caveat becomes a field on `gates-passed` | written 23×, needed 1×, absent when needed |
 | `.bonanza/<run-id>/` + N commits + deletion commit | *deleted* | only exists to make /tmp durable; its own fallback does not survive a squash merge |
 | `trailers.txt` | keep | per-session, correctly not committed |
@@ -782,15 +781,22 @@ three waves of one run. *Effort:* medium.
 
 ### Tier 2 — removes ceremony
 
-**R5. Move the progress ledger into the tracker; delete the backup script.**
-Replace `<id>.progress.jsonl` with `bd set-state <id> phase=<value>` — which
-writes an event bead *and* a lookup label in one atomic operation, giving both
-the append-only history and the cheap "what phase is this bead in" query — and
-delete `bb-backup-run.sh`,
-its ~N snapshot commits, its deletion commit, and the "live directory is
-authoritative" rule in three documents. Fold the handoff caveat into the
-`gates-passed` event and delete `<id>.handoff.md`. Measure the write cost
-first — this is the one recommendation with an unverified precondition.
+**R5. Delete the progress ledger; delete the backup script.** *Revised — the
+first pass proposed moving it, and the audit in §10.10 does not support keeping
+it.* Of eight phases, `claimed` and `blocked` duplicate `bd` statuses;
+`committed`, `pushed` and `retro-written` duplicate acceptance signal 2, Phase 3
+step 7 and a file-existence check; `implementing` and `gates-running` are read
+by nothing. Only `gates-passed` changes behaviour — it lets the happy crash path
+skip a gate re-run — and it does so on testimony, which is the exact failure the
+2026-08-15 run recorded and the exact case where the tail is measured wrong.
+Delete all eight, re-run gates on recovery (~3% of beads), and delete
+`bb-progress.sh`, `bb-backup-run.sh` with its ~N snapshot commits and deletion
+commit, `progress-streaming.md`'s schema section, the "ledger is a hint" rule in
+four places, and `recover-sprint`'s per-phase distrust table. Fold the handoff
+caveat into the bead as a `retro:`-adjacent note or a metadata key and delete
+`<id>.handoff.md`. *Evidence:* 605 lines of machinery for one untrustworthy bit
+per bead. *Effort:* medium. *Cost:* the live stream becomes a poll over
+`git log` rather than a `tail -F` push — unverified.
 
 **R6. Triage the retro into beads in the same turn.** §7.1's six-step shape.
 Keep the report complete; make the RFC an escalation rather than the default;
@@ -891,12 +897,11 @@ Stated explicitly so a later reader does not mistake omission for oversight.
 - **One commit per bead, in its own worktree.** Landed 23 consecutive beads
   across a container restart with zero loss. "An interrupted bead's work stays
   uncommitted in its worktree" removes an entire class of WIP-commit ceremony.
-- **Per-bead streams, not one shared append target.** Concurrent agents
-  appending to a single file or a single bead is a contention and interleaving
-  hazard for no gain. The store is the problem, not the split — and note that
-  after R5 **no per-bead *file* remains**: the stream survives as events keyed
-  to each bead, `trailers.txt` is per-run rather than per-bead, and `$RUN_DIR`
-  holds nothing else.
+- **No shared append target, if any stream survives at all.** Concurrent
+  agents appending to a single file or a single bead is an interleaving hazard
+  for no gain. This is the residue of a stronger claim the audit retired: after
+  R5 there is no per-bead stream *and* no per-bead file — the run's state is
+  `bd` and `git`, which is where every recovery path already looks (§10.10).
 
 ---
 
@@ -1271,3 +1276,120 @@ store, concurrent agents must not contend on a single write target — one file,
 or one shared bead. Keying the stream to each bead is what makes that true, and
 it holds identically whether the stream is a file or a sequence of state
 transitions. §8 amended.
+
+### 10.10 Does the progress ledger buy anything `bd` statuses don't?
+
+**No. Seven of the eight phases are redundant, and the eighth is the one the
+skill forbids trusting.** This is a stronger conclusion than §10.7 reached, and
+it changes R5.
+
+The test is not "is this phase derivable" but **"does any procedure behave
+differently because this phase is present?"** Run it phase by phase:
+
+| Phase | Changes any behaviour? | Already answered by |
+|---|---|---|
+| `claimed` | no | `bd show` — status `in_progress` (and `bd ready --claim` makes it atomic) |
+| `implementing` | no | the worktree exists. The skill itself says a trail ending here "proves nothing but its own last write" |
+| `gates-running` | no | nothing reads it |
+| `gates-passed` | **yes** | **nothing** — see below |
+| `retro-written` | no | the handoff file's existence — and the name is a misnomer the skill concedes: it is emitted after the *handoff file*, not after the `retro:` comments |
+| `committed` | no | `git log --oneline --grep=<id>` — acceptance signal 2 |
+| `pushed` | no | `git log <remote>/<branch>..HEAD` — Phase 3 step 7, which the skill already says is the *only* signal that distinguishes a landed wave |
+| `blocked` | no | `bd show` — status `blocked` |
+
+**Only `gates-passed` changes anything**, and what it changes is this: on
+`recovery.md`'s "happy crash path", the orchestrator reads `gates-passed`
+without `committed` and goes **straight to the close ceremony**. It does not
+re-run the gates. So your question — "will gates be re-run after recovery
+anyway?" — has the answer *no*, and that skip is the ledger's entire net
+contribution.
+
+**And that skip is exactly the thing the run's own evidence says not to do.**
+Run `1786778523-19` found a handoff reporting a gate clean that exits 1 with 222
+findings, and concluded: *"A gate claim in a handoff is testimony, not
+evidence."* `gates-passed` is the same claim in a different file. The measured
+accuracy makes it worse, not better: across 31 beads the ledger's tail was right
+29 times, and *"the tail is accurate precisely when nothing is wrong and
+misleading precisely when something is"* — the two exceptions were the two
+failures. A signal that is 94% right and wrong exactly when consulted is worse
+than absent, because it will be believed.
+
+**The ledger's only unique contribution to the retro is self-referential.**
+Phase 3's "note a missing terminal event" rule exists to detect a subagent that
+returned `completed` with no `committed` event — which means the Monitor never
+fired and the user saw silence. True and worth knowing, but the fact it uniquely
+establishes is *whether the ledger worked*. Nothing else in the retro reads it:
+the four questions draw on `retro:` comments, the amendments log, the routing
+tables and `git log`.
+
+**And the live stream carries only derivable events.** The Monitor filters to
+`committed|blocked` — "those are the events the orchestrator acts on" — and both
+are in the table above as answered by `git` and `bd`. So the six phases that are
+*not* relayed are written for a recovery path that reads state anyway, and the
+two that *are* relayed duplicate signals the acceptance check independently
+verifies.
+
+**What it costs.** *Measured:* 605 lines of bundled machinery —
+`bb-progress.sh` (80), `bb-backup-run.sh` (349, which exists to make `$RUN_DIR`
+survive a container reclaim), `progress-streaming.md` (122) and `recovery.md`
+(54) — plus the "the ledger is a hint, never the authority" rule restated in
+four places, plus `recover-sprint` step 4's per-phase distrust table, plus the
+closed phase vocabulary every dispatch prompt has to carry.
+
+#### R5, revised: delete the ledger rather than move it
+
+The first pass proposed moving `<id>.progress.jsonl` into the tracker via
+`bd set-state`. That was the right *store* and the wrong *scope* — it preserves
+eight phases when the audit supports one, and the one is untrustworthy. The
+revision:
+
+1. **`claimed` and `blocked` are already `bd` statuses.** Stop writing them
+   twice. `bd ready --claim` makes the first atomic, which the ledger never
+   did.
+2. **`committed`, `pushed`, `retro-written` delete outright** — each is
+   acceptance signal 2, Phase 3 step 7, and a file-existence check
+   respectively, all of which the run already performs.
+3. **`implementing` and `gates-running` delete** — nothing reads them, and the
+   skill already says the first proves nothing.
+4. **`gates-passed` deletes too, and recovery re-runs the gates.** The cost is
+   bounded and small: in the one run audited at file level, 1 bead of 31
+   crashed, and on that bead the handoff was missing anyway, so the shortcut
+   did not fire. Re-running a suite on ~3% of beads is cheaper than a
+   procedure that trusts testimony about whether a suite passed.
+5. **`bb-progress.sh`, `bb-backup-run.sh` and `progress-streaming.md`'s schema
+   section go with them**, and `recovery.md` collapses from a per-phase table
+   into "run `bb-status.sh`, then act" (R2).
+
+**If the gate re-run is genuinely too expensive to accept**, the fix is not to
+keep the claim — it is to make it evidence. Record the gate result keyed to the
+tree it applies to (`git write-tree` after staging, or a `git stash create`
+hash), so recovery can recompute the hash and confirm the tree has not moved
+since the gates ran. That converts the one load-bearing phase from testimony
+into verifiable state, and it is the only form in which the phase is worth
+keeping. At ~3% incidence it probably is not.
+
+**What genuinely disappears, stated plainly.** The ledger is the only *push*
+signal in the run: `tail -F` on a file wakes the Monitor the moment an event
+lands, where `git log` and `bd show` have to be polled. So the live stream
+becomes a poll, most naturally over `git log --oneline <branch>` — one line per
+bead close, which is exactly the `committed` event the Monitor already filters
+for, taken from state instead of testimony. *Unverified:* whether the Monitor
+mechanism performs acceptably against a polled command rather than
+`tail -F`. Settled by arming one of each over a wave and comparing latency.
+
+*Unverified, and worth checking before settling the stream question:* `bd`
+appears to fire a script hook on `create`/`update`/`close` — `OBSERVABILITY.md`
+documents a `hook.exec` span with `hook.event ∈ {create, update, close}` and a
+`hook.path` — which would give a push signal from the tracker write itself, with
+no parallel file. The configuration key is not in `CONFIG.md` and `bd config
+list` shows none. Settled by grepping the `bd` source for the hooks directory it
+resolves.
+
+#### What this leaves `bd set-state` for
+
+Narrower than §10.7 implied, and still worth having: the **`health=` wellness
+dimension**, which has no equivalent anywhere today and is not derivable from
+git or from status. A stuck agent, a degraded run, a wave that has stopped
+making progress — none of those are states the tracker or the branch can
+express, and all of them are what a watchdog needs to read. That is a real gap;
+the phase ledger was not.
