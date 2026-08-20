@@ -235,36 +235,15 @@ if command -v bd >/dev/null 2>&1; then
         BB_DOLT_FATAL="bootstrap left the tracker empty ($_n issues); it may have exited 0 anyway. Output: $(printf '%s' "$_bootstrap_out" | tr '\n' ' ' | cut -c1-300)"
       fi
     else
-      log "tracker present ($_n issues)"
-    fi
-  fi
-
-  # `sync.remote` in .beads/config.yaml must stay UNSET in git, and bd fights
-  # this: `bd bootstrap` WRITES the key back after a successful clone, with the
-  # exact value its own clone path refuses on the next fresh clone —
-  # "looks like a git code-repository URL, not a Dolt remote — skipping clone",
-  # after which it falls through to "database already exists" and leaves the
-  # tracker empty. The writer and the validator disagree; that is a bd bug, and
-  # until it is fixed the committed file is what breaks every clone at once.
-  #
-  # Strip it rather than warn. A dirty tracked config.yaml is not cosmetic here:
-  # bead-bonanza's close ceremony stages everything in the tree, so the key
-  # would ride into a bead's close commit and re-break future clones. Bootstrap
-  # derives the same remote from git origin's refs/dolt/data and wires it in the
-  # Dolt config, which is where it belongs and is not tracked.
-  if [ -z "$BB_DOLT_FATAL" ] && grep -q '^sync:' .beads/config.yaml 2>/dev/null; then
-    if python3 - <<'PYEOF' 2>/dev/null
-import io,re,sys
-p='.beads/config.yaml'
-s=io.open(p,encoding='utf-8').read()
-n=re.sub(r'(?m)^sync:\n(?:[ \t]+.*\n)*\n?','',s)
-if n==s: sys.exit(1)
-io.open(p,'w',encoding='utf-8').write(n)
-PYEOF
-    then
-      log "stripped sync.remote from .beads/config.yaml (bd re-adds it; committing it breaks the next clone)"
-    else
-      log "WARNING: .beads/config.yaml sets sync.remote and could not be stripped — do NOT commit it; it breaks bootstrap on a fresh clone"
+      # A container can be reused across sessions, so a non-empty tracker is
+      # not necessarily a CURRENT one. Pull rather than assume; a no-op pull
+      # costs ~2s.
+      if timeout 300 bd dolt pull >/dev/null 2>&1; then
+        _n="$(_count)"; [ -n "$_n" ] || _n=0
+        log "tracker pulled from origin refs/dolt/data ($_n issues)"
+      else
+        log "WARNING: \`bd dolt pull\` failed — the tracker may be behind origin"
+      fi
     fi
   fi
 

@@ -460,12 +460,11 @@ container died or lose your work. `agent-plugins-92q.31` retired all of that.
 
 ### What this requires of you
 
-- **Nothing, on the happy path.** The SessionStart hook bootstraps the database
-  from the remote, and the close ceremony (`bb-close-bead.sh`) pushes after
-  every close. Beads you create or close are durable without ceremony.
-- **If you create or close beads outside the close ceremony, run `bd dolt
-  push`.** That is the one manual step. A closure sitting only in the local
-  database dies with the container, exactly as an unexported one used to.
+- **Nothing.** The SessionStart hook bootstraps the database when it is empty
+  and otherwise pulls; a `Stop` hook (`.claude/hooks/dolt-push.sh`) pushes at
+  the end of every turn. Beads you create or close are durable without
+  ceremony, in or out of the close ceremony. Pushing by hand is never wrong,
+  just redundant.
 - **Never `bd export` as a persistence step.** It writes an untracked file and
   persists nothing. Export only for a viewer or for interchange.
 - **`bd remember` memories are excluded from `bd export`** and are not
@@ -498,17 +497,22 @@ See `.claude/hooks/session-start.sh` and `docs/session-bootstrap.md`. The
 `bead-bonanza` skill itself never names a credential — it requires only "write
 access to `refs/dolt/data`", and the mechanism is this repository's business.
 
-### `sync.remote` and the empty-tracker trap
+### `sync.remote` is configured normally — keep it that way
 
-**Do not commit `sync.remote` in `.beads/config.yaml`, and do not restore it
-when the SessionStart hook strips it.** `bd` refuses the value on a fresh clone
-and then reports success anyway, leaving an empty tracker. The full rationale
-is a comment beside the key in `.beads/config.yaml`, which is where anyone
-about to reintroduce it will be looking.
+`.beads/config.yaml` sets `sync.remote` to
+`git+https://github.com/brettcallaghan/agent-plugins.git`, exactly as beads'
+own documentation says to, and exactly the value `bd bootstrap` derives and
+writes for itself.
 
-The hook handles the rest mechanically: it verifies the tracker by issue count,
-moves a stale empty database aside, bootstraps, and fails loudly if the count is
-still zero. Nothing here needs an agent to act.
+It was deliberately unset until 2026-08-20, on a bd 1.2.1 behaviour that 1.2.2
+does not have. Unset, `bd prime` tells every agent "No git remote configured.
+Issues are saved locally only" and omits `bd dolt push`/`pull` from its command
+reference — so the tracker's own guidance contradicted the way this repository
+works, every session.
+
+The hook still verifies the tracker by issue count rather than by directory
+existence, moves a stale empty database aside, bootstraps, and fails loudly if
+the count is still zero. Nothing here needs an agent to act.
 
 ### Two hazards that remain
 
