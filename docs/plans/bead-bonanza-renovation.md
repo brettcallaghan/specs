@@ -674,6 +674,61 @@ unique ids, 542 comments) is on disk, two copies of the v65 database are
 retained, and the working checkout was restored to a clean clone whose id set
 diffs identically against that snapshot.
 
+### RESOLVED IN PRINCIPLE — the cursor fix landed; the table fix is proven and pending
+
+**The schema-cursor rollback worked and replicated.** A fresh `bd bootstrap`
+clone from the remote now reports **no schema-skew warning** and 265 issues.
+`refs/dolt/data` moved `cdb3b85a` → `42583fdb`. That half is done.
+
+**Writes still fail, for the reason predicted.** On that same fresh clone,
+`bd create` and `bd update --add-label` both still fail with `table not found:
+events`. The cursor is versioned and travels; the `events` table is in
+`dolt_ignore`, is never committed, and therefore never reaches any clone.
+
+**Three repair paths were tested and do not work** (all on a throwaway clone):
+
+| Attempt | Result |
+|---|---|
+| `bd dolt pull` into the existing database | writes still fail |
+| Fresh `bd bootstrap` clone from the fixed remote | writes still fail |
+| `bd init --reinit-local --discard-remote --destroy-token=…` | **keeps the existing database** — never re-creates the schema, so the table stays missing |
+| `bd doctor` | not supported in embedded mode |
+
+**One path works, and it is lossless.** A database built from *nothing* — `bd
+init` in a directory with no existing database *and no origin to bootstrap
+from* — carries the full v53 schema including `events`. Importing the export
+into it restores everything:
+
+| Property | Original | Rebuilt |
+|---|---|---|
+| Issues | 265 | 265 |
+| Unique ids | 265, identical set | 265, identical set |
+| Comments | 542 | 542 |
+| Dependencies | 362 | 362 |
+| Statuses | 1 blocked / 201 closed / 11 deferred / 1 in_progress / 51 open | identical |
+| **`bd create`** | **fails** | **succeeds** |
+
+**The proven procedure**, needing no `dolt` CLI:
+
+```sh
+bd export --all -o recovery-backup.jsonl        # from any readable clone
+mkdir /tmp/rebuild && cd /tmp/rebuild && git init      # NO origin: bd must not
+BD_NON_INTERACTIVE=1 bd init --prefix agent-plugins    #   bootstrap the broken
+bd import recovery-backup.jsonl                        #   schema back in
+bd create --title probe --type task                    # confirm a write works
+# then move .beads/embeddeddolt into the real checkout, re-add the Dolt remote,
+# and push — which replaces the remote's Dolt history.
+```
+
+**The guide's caveat about resurrecting deleted issues does not apply here.**
+That warning concerns restoring an *old* backup; this export is taken from the
+current post-migration state, so nothing deleted comes back. The only loss is
+audit-event history, which is the thing already broken.
+
+**The remaining step is outward-facing and unrun:** the final push replaces the
+remote's Dolt history (a `--discard-remote` force-push). It needs a decision,
+not a discovery.
+
 ### One stray artifact
 
 A one-word `probe` comment landed on `agent-plugins-92q` while establishing
