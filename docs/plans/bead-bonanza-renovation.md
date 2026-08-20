@@ -451,7 +451,59 @@ Three facts that change the remedy, all measured after the first write failure:
 | 3 | **Fix it on a machine that already has `dolt`** and push; this container pulls. | Same as 2, but performed where the tooling and the judgment already live. | minutes | High |
 | 4 | **Work around it.** File the beads by a path that avoids the events write. No such path exists for `bd create` — every create fails identically — so this is not viable. | — | — | Ruled out |
 
-**Recommendation: try 1, then 2 or 3.** Option 1 is free, local, reversible and
+### Outcome — options 1 and 2 are both ruled out, measured
+
+**Option 1 was tried and failed.** `.beads/embeddeddolt` was moved aside (not
+deleted) and `bd bootstrap --yes` re-cloned from `origin refs/dolt/data`. The
+clone succeeded — 15,402 chunks, 265 issues, remote wired — and came down
+**already at v65**:
+
+```
+Warning: post-clone store init failed (wisp tables may be missing):
+  embeddeddolt: init schema: schema version mismatch:
+  database is at v65, binary knows up to v53 (12 migrations ahead)
+```
+
+`bd create` on the fresh clone fails identically. **So the migrated cursor is on
+the remote**, exactly as the guide warns it replicates — this is not a
+local-clone problem and no amount of re-cloning fixes it. Nothing was lost: the
+fresh clone is intact and the pre-recovery copy is retained at
+`.beads/embeddeddolt.pre-recovery.*` (gitignored).
+
+**Option 2 is not available in this container.** The `dolt` CLI is not
+installed, and it cannot be: `proxy.golang.org` serves
+`github.com/dolthub/dolt/go` only up to **v0.40.4 (2022-05-19)**, far too old to
+point at a current database, and `github.com/.../releases` returns 403 through
+the egress proxy.
+
+**That leaves option 3, and it is now the only path:** the fix has to be applied
+on a machine that already has `dolt`, then pushed once. Because the cursor
+replicates, one machine fixing and pushing repairs every clone — including this
+container, which then only has to `bd dolt pull`.
+
+The two commands, from the guide, run in `.beads/embeddeddolt/beads`:
+
+```sh
+# 1. the recommended fix — roll the schema cursor back to v53
+dolt sql -q "DELETE FROM schema_migrations WHERE version > 53; \
+  CALL DOLT_ADD('schema_migrations'); \
+  CALL DOLT_COMMIT('-m', 'recovery: roll schema cursor back to v53 (accidental v1.2.1)', \
+                   '--author', 'bd recovery <recovery@beads.invalid>')"
+
+# 2. optional, restores audit-event versioning
+dolt sql -q "DELETE FROM dolt_ignore WHERE pattern = 'events'; \
+  CALL DOLT_ADD('-f', 'events'); \
+  CALL DOLT_COMMIT('-m', 'recovery: re-track events table', \
+                   '--author', 'bd recovery <recovery@beads.invalid>')"
+
+bd dolt push
+```
+
+Back the workspace up first (`cp -a .beads .beads.backup-pre-recovery`), and
+make sure no machine still has a v1.2.1 binary — one touch re-migrates the
+database and the cursor replicates again.
+
+**Superseded recommendation, kept for the record: try 1, then 2 or 3.** Option 1 is free, local, reversible and
 answers the question definitively in two minutes: either the fresh clone writes,
 or it does not and we know the cursor is on the remote. Option 2 or 3 then
 follows, and 3 is preferable if a machine with `dolt` is at hand, because the
