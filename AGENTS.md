@@ -238,10 +238,36 @@ scope for this run's beads" tells a future reader nothing they can act on.
   installed when this bead started, so no fresh cold/warm timing was taken.
 - The Dolt database (`.beads/embeddeddolt`) is gitignored, so **no clone ever
   has one**. The hook bootstraps it from the Dolt remote with `bd bootstrap`
-  when both `.beads/embeddeddolt` and `.beads/dolt` are absent
-  (`.claude/hooks/session-start.sh`, step "2b. The database"). **Corrected
-  2026-08-12** — this entry previously said the hook runs `bd init` +
-  `bd import`; verified by reading the current hook source that it does not.
+  when the tracker reports zero issues.
+- **`bd stats` exits non-zero when there is no database, and the hook runs under
+  `set -euo pipefail`.** Until 2026-08-20 that combination made the hook die at
+  `_n="$(_count)"` — silently, no message, exit 1 — on any clone without a
+  database, which is the one case the bootstrap step exists for. Measured on a
+  fresh clone against both the then-current hook and its predecessor: two lines
+  of output, exit 1, no bootstrap attempted. `_count` now swallows the status
+  internally. Any future edit there must keep doing so.
+- **A database-name mismatch is the one tracker failure bd does NOT report.**
+  Measured on bd 1.2.2 against a database holding 318 issues: setting
+  `.beads/metadata.json`'s `dolt_database` to a name absent from
+  `.beads/embeddeddolt/` makes bd CREATE an empty database under that name;
+  `bd stats` then prints `Total Issues: 0` and `bd ready` prints "No open
+  issues", both exit 0, no warning. The hook checks this **before** anything
+  reads the tracker and treats it as fatal — ordered after the issue count, the
+  measured sequence was worse than the bug itself: the count read 0, the hook
+  moved the real database aside as stale, re-cloned under the wrong name, and
+  the guard then saw the directory present and stayed silent.
+- **Bootstrap cannot clone over an existing database, and says so.** Measured on
+  1.2.2 with a genuinely initialised empty database in place: exit 1,
+  `can't create database beads; database exists`. An empty *directory* at
+  `.beads/embeddeddolt/` does not block it. This is why the hook moves a stale
+  database aside rather than skipping bootstrap when the directory exists.
+  1.2.2 also compares `metadata.json`'s `project_id` against the database's and
+  refuses loudly on a mismatch — measured: `workspace identity mismatch
+  detected`.
+- **The issue prefix comes from the database, not `config.yaml`.** Measured on
+  1.2.2: with `issue-prefix: "zzztest"` in `.beads/config.yaml` and a database
+  configured `agent-plugins`, `bd create` minted `agent-plugins-4731`. The file
+  key is ignored entirely.
 - `strata`: not preinstalled either. The hook builds it from source — see
   "strata CLI" below.
 - **Corrected 2026-08-12, was stale:** this entry previously read "`bd init`
@@ -488,10 +514,28 @@ Two things the environment supplies:
    and a credential helper that reads the PAT from the environment at call
    time, so the token is never written to disk.
 
-This was misdiagnosed for a full session as "GitHub refuses `refs/dolt/*`
-writes". It does not. The proof that settled it: a push with a **deliberately
-invalid** token succeeded, which is only possible if the proxy replaced the
-credential.
+Both re-measured 2026-08-20 on this repository, four pushes:
+
+| proxy | token | target | result |
+|---|---|---|---|
+| bypassed | real PAT | `refs/dolt/*` | succeeds |
+| enabled | real PAT | `refs/dolt/*` | **403** |
+| enabled | garbage | `refs/heads/*` | **succeeds** |
+| bypassed | garbage | `refs/dolt/*` | auth failed |
+
+Row 3 is the one that settles it: a push authenticated with a deliberately
+invalid token cannot succeed unless the proxy replaced the credential. So this
+is not GitHub refusing `refs/dolt/*` writes — it is the proxy's brokered token
+being scoped to `refs/heads`.
+
+The credential helper is registered under **both** the suffixless and the
+`.git` form of origin's URL because git matches the config key's path against
+the request's path exactly, and only the matching form answers — measured
+against a clone whose origin carries `.git`: suffixless key alone → `could not
+read Username for 'https://github.com'`; `.git` key alone → push succeeds.
+This repository's origin currently has no suffix, so the suffixless key is the
+live one and the other is the spare; which is which depends on how the clone
+was made.
 
 See `.claude/hooks/session-start.sh` and `docs/session-bootstrap.md`. The
 `bead-bonanza` skill itself never names a credential — it requires only "write
