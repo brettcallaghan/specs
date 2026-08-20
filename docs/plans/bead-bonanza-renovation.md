@@ -514,6 +514,39 @@ follows, and 3 is preferable if a machine with `dolt` is at hand, because the
 fix replicates either way and is better performed somewhere the blast radius is
 visible.
 
+### The re-clone reproduced the documented `sync.remote` trap
+
+*Measured, as a side effect of trying option 1.* Running `bd bootstrap` by hand
+re-introduced the key the repository forbids: `.beads/config.yaml` came back
+carrying
+
+```yaml
+sync:
+    remote: "git+https://github.com/brettcallaghan/agent-plugins"
+```
+
+two lines above its own comment reading *"DO NOT ADD `sync.remote` HERE, and do
+not restore it if you see it removed."* Committing it breaks bootstrap on every
+fresh clone — `bd` refuses the value it just wrote, then reports success anyway
+and leaves the tracker empty. `bd bootstrap` also rewrote
+`.beads/metadata.json` without its trailing newline.
+
+Both were reverted, uncommitted. The tracker still reads correctly afterwards
+and the Dolt remote is still wired — because it lives in
+`.beads/embeddeddolt/beads/.dolt/repo_state.json`, which is untracked, and that
+is where it belongs.
+
+**The gap this exposes:** the SessionStart hook strips `sync.remote` after *its*
+bootstrap, but the strip runs only at session start. Any `bd bootstrap` invoked
+later — by a human, by a recovery procedure, or by an agent doing exactly what
+this session did — re-introduces the key with nothing to remove it, and
+`bead-bonanza`'s close ceremony stages everything in the tree, so it would ride
+into a bead's close commit. Filed below.
+
+| id | Item | Wave |
+|----|------|------|
+| E10 | **Strip `sync.remote` after any bootstrap, not just the hook's.** Make the strip a step of whatever performs a bootstrap rather than a step of session start, so a mid-session re-clone cannot leave the forbidden key in a tracked file for the close ceremony to commit. Reproduced this session. | 1 |
+
 ### One stray artifact
 
 A one-word `probe` comment landed on `agent-plugins-92q` while establishing
