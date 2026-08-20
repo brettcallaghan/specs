@@ -56,7 +56,7 @@
 export:
     auto: false
 sync:
-    remote: "git+ssh://github.com/brettcallaghan/agent-plugins"
+    remote: "git+https://github.com/brettcallaghan/agent-plugins"
 
 # DO NOT ADD `sync.remote` HERE, and do not restore it if you see it removed.
 #
