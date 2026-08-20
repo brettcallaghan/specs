@@ -246,90 +246,186 @@ Wave 5 has no inbound edges.
 
 ---
 
-## Open decisions this plan still needs
+## Decisions resolved in the second review
 
-1. **Where the dispatch plan lives on the epic** (P3) — the `design` field, or a
-   child bead. Depends on whether `bd` bounds field size; untested.
-2. **Whether `$RUN_DIR` survives at all.** After E1–E3 and P3 it holds
-   `trailers.txt`. That could move to the epic too, or stay as the one
-   genuinely per-session file.
-3. **What happens to the 27 queued RFCs** when the self-RFC path retires (T4).
-4. **Whether wave 0 runs as a bead-bonanza sprint.** It is seven independent
-   spikes with no shared surface — the best-shaped concurrent wave this
-   backlog has produced, and a real test of the skill as it stands before any
-   of it changes.
+### D9 — Where the plan lives on the epic
+
+**The wave table is not stored at all — it is derived.** Once P5 takes the
+dependency waves from `bd swarm validate` and P9 wires sequencing constraints as
+real `blocks` edges, the wave table is a *view over the graph*, recomputable at
+any moment and stale the instant it is written down. Storing it creates the
+exact drift the amendments log exists to police. That collapses the question
+from "where does the plan live" to "where do the two things that are *not*
+derivable live":
+
+| Artifact | Home | Why |
+|---|---|---|
+| **The manifest** — gate profile, gate baseline, model lineup, effort, standing authorization, environmental ledger, base sha | `--metadata` JSON on the epic | Structured, queryable, small, read by machines. `bd show <epic> --json \| jq .metadata` is the whole retrieval. |
+| **The amendments log** | `bd comment` on the epic, prefixed `amend:` | Append-only and timestamped by construction — no concurrent-write blob, no ordering rule to state. It is the same channel `retro:` findings already use, which means one harvest pipeline covers both. |
+| **The wave table** | derived, `bd swarm validate <epic>` | Recomputed, never recorded |
+
+Options considered and rejected:
+
+- **The `design` field.** Free text, so it holds the manifest and the amendments
+  together — but it is a *mutable single blob*. Every amendment is a
+  read-modify-write of the whole field, which is precisely the concurrency
+  hazard the plan's own rules avoid elsewhere, and it makes the structured half
+  unqueryable.
+- **A child bead holding the plan.** Durable and appendable, but it puts a
+  non-work item in the epic's child set, which corrupts `bd epic status`,
+  `bd ready --parent` and `bd swarm validate` — every graph command the pivot
+  exists to unlock. Self-defeating.
+- **A committed file** (`docs/sprints/<epic>.md`). Durable and diffable, but
+  re-introduces a second store the tracker has to agree with, and a run's plan
+  is not a durable project artifact — the sprint report already is.
+- **A poured molecule** (`bd mol pour`). The most interesting alternative: it
+  makes the plan *be* the bead graph. Rejected for now only because it requires
+  a formula and the epic already carries the graph; worth revisiting once
+  wave 3 lands.
+
+*Unverified:* whether `bd` bounds metadata size, and whether `--metadata`
+round-trips a nested object. `bd create --graph` types metadata as
+`map[string]string`, so **array-valued metadata cannot go through the graph
+format** and must be set afterwards with `bd update --metadata '<json>'`. Folded
+into S2.
+
+### D10 — `$RUN_DIR` holds more than `trailers.txt`, and that is the point
+
+You are right, and the plan understated it. The run-level facts injected into
+**every** child prompt are the gate profile (`{FORMAT}` `{LINT}` `{BUILD}`
+`{TEST}` `{REGEN}` `{CUSTOM_GATES}`), the **gate baseline**
+(`{GATE_BASELINE}`), the **environmental-failure ledger** — the known-red
+verdicts, diagnosed once and passed forward as fact — plus the model lineup,
+the standing authorization, and `{TRAILERS_FILE}`.
+
+All of those live in `dispatch.md`'s manifest today. So they are not an
+argument for keeping `$RUN_DIR`; they are the **contents of D9's manifest**, and
+D9 already moves them to the epic. Once it does:
+
+- gate profile → resolved by the `checks` script (N1), not stored
+- gate baseline, environmental ledger, lineup, standing authorization →
+  epic metadata (D9)
+- trailers → epic metadata, except the session URL, which
+  `bd update <id> --session` records natively and better (this also closes bead
+  `agent-plugins-oyf`)
+
+**`$RUN_DIR` then holds nothing, and the concept retires** along with the run
+root, the `current` symlink, and the run id. That is a cleaner outcome than the
+plan claimed, and it makes P3 load-bearing rather than tidy-up.
+
+### D11 — The RFC path is partitioned by audience, not retired
+
+Correcting D5. The split is **whose problem is it**:
+
+- **`bead-bonanza`'s retro finds issues in the user's project** — a spec that
+  was wrong, a defect the sprint surfaced, work the sprint implied. Those
+  become **beads in that project**, decided one at a time by a human. No RFC:
+  the audience is the project itself, and it has a tracker.
+- **`retro-skill` and `retro-spec` find issues with the skills this project
+  vends.** Those stay **RFCs**, because they are proposals about a product
+  shipped to other projects, they need the evidence-and-proposals structure,
+  and `triage-rfc`'s dedupe-and-defer machinery is what accumulates recurrence
+  across projects. Only this repository cares about them, and they must not be
+  folded into a downstream project's backlog.
+
+So the retro's first act becomes a **routing decision**, and it is mechanical
+once a finding names its target (R7/T3). T4 changes from "retire the self path"
+to "make the audience split explicit in each skill", plus a review pass over
+the 27 queued RFCs.
+
+### D12 — Wave 0 is run by hand, using the commands we intend to adopt
+
+Adopting your inversion. The skill as it stands has been exercised over five
+sprints; another run teaches little. Wave 0 instead becomes a **deliberate
+trial of the target state**: create the epic, nest the wave epics, claim with
+`bd update <id> --claim`, drive status with `bd swarm status --json`, validate
+with `bd swarm validate`, and record what each command actually does.
+
+This has a useful side effect: **filing this plan's own beads exercises S3
+immediately.** The bead graph below is a root epic parenting seven wave epics
+parenting the work — so `bd ready --parent <root>` and
+`bd swarm validate <root>` either traverse two levels or they do not, and we
+find out before anything depends on it.
 
 ---
 
-## The workflow, as it changes
+## Filing status — BLOCKED on a tracker write failure
 
-**Where the live map lives.** The research document's §1 is the workflow **as
-measured on 2026-08-19** — a frozen baseline, and it stays frozen, because a
-research record that quietly rewrites itself stops being evidence. This section
-is the **living map**: every wave that changes a step records the delta here,
-keyed to the baseline's step numbers, so the two read side by side as
-before-and-after.
+The 52-bead graph is built, validated and committed at
+`.beads/plans/bb-renovation.json` (generator:
+`.beads/plans/build-bb-renovation-graph.py`). It is **not filed**, because
+**this container cannot write the tracker.**
 
-Update this table in the same commit as the change, never after. An entry names
-the step, the operation, and the wave item responsible.
+### What was measured
 
-### Delta log
+`bd create --graph` failed and rolled back cleanly — zero beads landed:
 
-*Empty — no wave has executed yet. Format below, with the deltas this plan
-already implies, marked `planned` until their bead closes.*
+```
+graph create: batch create: failed to record event for agent-plugins-w68d:
+record event in events: Error 1146: table not found: events
+```
 
-| Step | Op | Change | By | Status |
-|------|----|--------|----|--------|
-| 0.1 | update | `--gate-baseline` removed; baseline is unconditional | E4 | planned |
-| 0.1.5 | delete | gate-profile prose parsing — replaced by the `checks` script | N1 | planned |
-| 0.1.7 | update | `$RUN_DIR` no longer load-bearing; `current` symlink retires | P1, P3 | planned |
-| 0.1.12 | delete | `CLAUDE_CODE_SUBAGENT_MODEL` detection | E6 | planned |
-| 0.1.16 | update | gate baseline runs via `checks`, always | N1, E4 | planned |
-| 0.3 | update | `trailers.txt` — may move to the epic (open decision 2) | P3 | planned |
-| 0.6 | update | becomes a **blocking** condition; `BB_ASSUME_NO_AGENT` asserts it | E7, R14 | planned |
-| 1.2–1.4 | update | queue becomes `bd ready --parent <epic>` | P2 | planned |
-| 1.5.1b | update | readiness gate becomes a mechanical check | B3 | planned |
-| 1.5.2b | update | tier written to `execution_*` keys alongside `tier` | N5 | planned |
-| 1.5.4 | update | bounce goes through `bd human` | N7 | planned |
-| **1.5.x** | **add** | epic-level Definition of Ready | P8 | planned |
-| **1.5.y** | **add** | grooming wires sequencing constraints as `blocks` edges | P9 | planned |
-| 2.5.1 | update | manifest attaches to the epic, not `$RUN_DIR/dispatch.md` | P3 | planned |
-| 2.5.2 | delete | "pass enumerated ids, never the filter" | P2 | planned |
-| 2.5.3–2.5.5 | update | dependency waves from `bd swarm validate`; `plan-sprint` keeps co-edit packing only | P5 | planned |
-| **2.5.z** | **add** | `bd swarm create <epic>` registers the run | P4 | planned |
-| 3.0 | update | durable trigger carries the epic id alone | P1 | planned |
-| 3.5 | update | Monitor source changes (polled `git log`, or a `bd` hook) | E1, S4/S5 | planned |
-| **3.x** | **add** | dispatch record — two event beads per subagent | B5 | planned |
-| 3.6.1 | update | `bd update <id> --claim` | N2 | planned |
-| 3.6.3–3.6.4 | update | progress events removed; gates run via `checks` | E1, N1 | planned |
-| 3.6.5 | delete | handoff file; caveat folds onto the bead | E3 | planned |
-| 3.6.8–3.6.9 | delete | `committed` / `pushed` events | E1 | planned |
-| 3.9 | update | five signals become `bb-status.sh` output | A1, B1 | planned |
-| 3.9.3 | update | merge serialized by `bd merge-slot` | N3 | planned |
-| 3.10 | delete | `bb-backup-run.sh` snapshot | E2 | planned |
-| 3.12 | update | landing check inside `bb-status.sh` | A3 | planned |
-| 4.1–4.7 | update | report sections checked mechanically | A4 | planned |
-| 4.4–4.5 | update | both `N/A` branches delete if S1 says the env var is inert | E6 | planned |
-| 4.8.6–4.8.7 | update | RFC route replaced by the triage list | T2 | planned |
-| **4.x** | **add** | run-level Definition of Done via `bd epic status` | P7 | planned |
-| 4.10 | update | trigger disposition read from the epic | P1 | planned |
-| 4.11 | delete | `.bonanza/<run-id>/` removal commit | E2 | planned |
-| X.1 | update | subagent crash recovery collapses to `bb-status.sh` | B4 | planned |
-| X.3 | delete | main-loop fallback | E7 | planned |
-| **skills** | **add** | per-bead ceremony skill | X1 | planned |
-| **skills** | **add** | `start-sprint`, `close-sprint` | X2, X3 | planned |
+The failure is not specific to `--graph`. Probing each write path:
 
-**Counting the deltas:** 8 deletions of whole steps, 24 updates, 7 additions,
-and 3 new skills — against a baseline of roughly 95 steps. The net is a shorter
-procedure with more of it mechanized, which is the point.
+| Operation | Result |
+|---|---|
+| `bd create --graph <plan>` | **fails**, whole transaction rolled back |
+| `bd create --title …` | **fails**, same error |
+| `bd update <id> --add-label` | **fails**, same error |
+| `bd comment <id> …` | **succeeds** |
+| every read (`bd list`, `show`, `export`, `swarm validate`, `stats`) | succeeds |
 
-### How to keep it current
+So it is precisely the writes that record an audit event. Root cause is in
+`bd`'s own recovery guide: the accidental v1.2.1 release migrated this database
+from schema v53 to v65, and *"one v1.2.x migration moved the `events` audit
+table off Dolt's versioned plane"* — it sits in `dolt_ignore`, so the v1.2.2
+binary cannot see it.
 
-- A bead that changes a step **updates its row and flips the status** in the
-  same commit. A row still reading `planned` after its bead closes is a defect.
-- A bead that changes a step this table does not list **adds a row**. The table
-  is the record of drift between the baseline and the running procedure.
-- When every row reads `done`, regenerate §1 of the research document as a
-  second dated snapshot — not by editing the first — and this plan can be
-  deleted, per the `docs/plans/` convention.
+**The recovery guide's stopgap claim is false in this container.** It states
+that under `BD_IGNORE_SCHEMA_SKEW=1` *"reads are identical and writes work,
+because the v1.2.x schema additions are invisible to the 1.1 line"*. Writes that
+record an event do not work. Worth reporting upstream.
 
+### Why this was not fixed here
+
+Both candidate fixes are Dolt-level writes to the shared tracker that
+**replicate to every clone on the next push**, on the project's real data:
+
+1. **Roll the schema cursor back** (the guide's recommended fix) —
+   `DELETE FROM schema_migrations WHERE version > 53`, then `DOLT_ADD` +
+   `DOLT_COMMIT`.
+2. **Re-track the events table** (the guide's optional step, and the narrower
+   one that targets exactly what is broken) —
+   `DELETE FROM dolt_ignore WHERE pattern = 'events'`, then `DOLT_ADD -f
+   events` + `DOLT_COMMIT`.
+
+Neither is reversible from inside the session, and the guide's own warning is
+that *"the migrated cursor replicates: either recover every clone, or recover
+one and push"*. **And the `dolt` CLI is not installed here**, so neither can be
+run in this container regardless.
+
+Both need a decision and a machine with `dolt`. Until then the graph waits.
+
+### The finding this produces for the review
+
+Pre-flight would have declared this environment green. Step 0.1.10 checks that
+`bd` is on `PATH` and that `bd where` resolves a database — both true. Step
+0.1.17's `BB_DOLT_WRITE` probe pushes a **git ref**, which measures credential
+and egress, not whether the tracker accepts a write. So a run would have passed
+pre-flight and died at the first `bd create`, after grooming, with the queue
+resolved and nothing to show.
+
+**Pre-flight must probe a tracker WRITE, not just a tracker READ and a git-ref
+push.** A create-then-delete against a scratch bead is the obvious probe, and it
+is the same shape as the existing ref probe. Filed as a wave-1 addition below.
+
+| id | Item | Wave |
+|----|------|------|
+| E8 | **Pre-flight probes a real tracker write.** Create a scratch bead, confirm it, delete it, and block the run when the write fails. Today `BB_DOLT_WRITE` probes a git ref push, which passes while every `bd create` fails. | 1 |
+
+### One stray artifact
+
+A one-word `probe` comment landed on `agent-plugins-92q` while establishing
+which write paths work (`bd comment` is the one that succeeds). `bd comments`
+has no delete subcommand, so it remains. Harmless, and named here rather than
+left for someone to wonder about.
