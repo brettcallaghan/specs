@@ -372,11 +372,10 @@ committing them lands in-flight bead state on the sprint branch.
    git merge --ff-only <suffix>                      # now it fast-forwards
    ```
 
-   **Read the target at merge time, never earlier in the wave.**
-   `../scripts/bb-backup-run.sh` commits to the sprint branch after *every*
-   bead's acceptance check (`SKILL.md` Phase 3 step 5), so accepting the
-   wave's first bead moves the head before its second is merged. A sha noted
-   at wave start is already stale, and `--ff-only` is right to refuse it.
+   **Read the target at merge time, never earlier in the wave.** Each bead is
+   merged into the sprint branch as it is accepted, so accepting the wave's
+   first bead moves the head before its second is merged. A sha noted at wave
+   start is already stale, and `--ff-only` is right to refuse it.
 
    Rebase keeps one-commit-per-bead and a linear history, so it is the
    concurrent analogue of the sequential guarantee. **The collision signal moves

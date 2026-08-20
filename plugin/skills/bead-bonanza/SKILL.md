@@ -210,14 +210,9 @@ After each subagent returns:
    a removed worktree is conclusive. Not `bd list --status in_progress` — it is
    a query over a moving set and has disagreed with both durable signals.
    **Never re-dispatch on a missing return alone.**
-5. **Snapshot the run directory** — `scripts/bb-backup-run.sh "$RUN_DIR"`, run
-   from your own checkout on the sprint branch and **never from a bead's
-   worktree**. Run it after **every** bead's acceptance check, not once per
-   wave — a copy refreshed once mid-run is indistinguishable from a complete
-   one, and it prints `unchanged` without committing on a quiet bead.
-6. **Verify the working tree is clean** with `git status --porcelain`. If dirty,
+5. **Verify the working tree is clean** with `git status --porcelain`. If dirty,
    fall through to the recovery procedure below.
-7. If the bucket used `defer-push`, run `git push` for the bucket now.
+6. If the bucket used `defer-push`, run `git push` for the bucket now.
 
    **A wave is not complete until its push is verified landed.** After
    pushing, fetch and confirm nothing is left behind:
@@ -284,7 +279,6 @@ Load the one that matches where you are in the run:
 | Phase 0 pre-flight: probe the environment, resolve `RUN_DIR`/`SCRIPTS` | run `scripts/pre-flight-check.sh` |
 | Checking a `skipped` claim against the tree | run `scripts/bb-verify-skip.sh` |
 | Closing a bead: close + verify + stage + commit + push the tracker | run `scripts/bb-close-bead.sh` |
-| Snapshotting the run directory after each bead's acceptance check | run `scripts/bb-backup-run.sh` |
 | The Definition of Ready the Phase 1.5 gate enforces | `references/shared/work-order-definition-of-ready.md` |
 
 The reference files are one hop from here — read them in full rather
@@ -302,7 +296,6 @@ to read it:
 pre-flight-check.sh <run-id> [--gate-baseline] [--self-test]   # sandbox ON
 bb-verify-skip.sh [pathspec ...]        # no pathspec = whole working tree
 bb-close-bead.sh [--run-dir <path>] [--trailers-file <path>] <bead-id> <priority> <title> [path ...]
-bb-backup-run.sh <run-dir> [<dest>]     # <dest> defaults to <repo>/.bonanza/<run-id>
 ```
 
 - **`scripts/pre-flight-check.sh`** — Phase 0, mechanized. Human report on
@@ -332,20 +325,6 @@ bb-backup-run.sh <run-dir> [<dest>]     # <dest> defaults to <repo>/.bonanza/<ru
   the commit it runs `bd dolt push`; a push failure is a WARNING, not an
   error — the bead IS closed and committed, and the repair is another push,
   never a second `bd update`.
-- **`scripts/bb-backup-run.sh`** — commits a self-describing copy of the live
-  run directory to `.bonanza/<run-id>/` on the run's branch, so `dispatch.md`
-  and the per-bead progress and handoff files survive a container reclaim.
-  Run it per bead, after each acceptance check, from the orchestrator's own
-  checkout — it refuses to commit to `main`/`master`, and a snapshot taken
-  inside a bead's worktree lands on a branch that is deleted after merge.
-  `<run-dir>` may be the `current` symlink; it is resolved to its physical
-  path so the snapshot is named for the run. Idempotent: each invocation
-  replaces the copy wholesale, and prints `unchanged` without committing when
-  no run file moved. Exit 0 committed (short sha on stdout) or already
-  current (`unchanged`), 1 a step failed, 2 bad invocation. **The live run
-  directory is authoritative and this copy never is** — read the snapshot only
-  WHEN `$RUN_DIR` is gone, and then state its as-of time in whatever you
-  conclude from it.
 
 ## Phase 0 — Pre-flight
 
@@ -746,7 +725,7 @@ After the queue is drained (or the circuit breaker tripped), print:
 5a. **Sprint retro** — synthesize the run's own evidence into how the next
     sprint runs better. Specified in "The sprint retro" below. It runs on
     every run that closed at least one bead, and it runs *here*: after the
-    report, before 6b deletes the run snapshot it reads.
+    report, whose tables it reads.
 6. **Pushes** — confirm all closed beads' commits are on the remote.
 6a. **Cancel the durable out-of-session trigger** armed at first dispatch
     (`references/progress-streaming.md`, "Back the Monitor with a durable
@@ -756,15 +735,8 @@ After the queue is drained (or the circuit breaker tripped), print:
     the report**: `Durable trigger: cancelled (<id>)` or `Durable trigger:
     none armed` — both branches are stateable, and an omitted line is
     indistinguishable from a forgotten cancellation.
-6b. **Delete the run snapshot** — `git rm -r .bonanza/<run-id>/` as its own
-    commit, **after** the report above is written and committed, never before.
-    It is a working artifact of the run and must not reach the PR that carries
-    the run's actual work. Nothing is lost: the commits that added it stay in
-    the branch history, found with
-    `git log --diff-filter=A -- '.bonanza/<run-id>/'` and read back with
-    `git show <sha>:<path>`.
 7. Path to `${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/` so the user can
-   review the dispatch plan and progress files.
+   review the dispatch plan.
 
 Do NOT create a PR or merge to main — that is a separate, explicit user action.
 
@@ -843,7 +815,7 @@ field.
 
 The report itself is not an offer. Write it, append one row for the sprint to
 `rfcs/retro-log.md` so one index covers all retro activity, and commit both
-with any RFCs in a single commit before 6b's deletion commit.
+with any RFCs in a single commit.
 
 ## Operating principles
 
@@ -968,12 +940,6 @@ These are the artifacts each script creates, writes, or repoints.
   is configured. It does **not** write or stage `.beads/issues.jsonl`: the
   tracker's transport is `origin refs/dolt/data`, the JSONL exports are
   untracked, and a close commit carries code only.
-- **`scripts/bb-backup-run.sh`** — creates and replaces
-  `<repo>/.bonanza/<run-id>/` (or `<dest>`), writes a
-  `.bonanza/<run-id>/SNAPSHOT.md` inside it, and makes one commit of that path
-  alone. It stages by pathspec, so it cannot swallow unrelated staged work in
-  the orchestrator's checkout. It does not push, and it deletes nothing —
-  Phase 4 removes the directory.
 
 Each script's own header carries the same usage line. WHEN a usage line
 here disagrees with the script, the script is authoritative — and that

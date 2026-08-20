@@ -70,34 +70,17 @@ could not read the plan is a *reconstruction*, and says so — it is not a plan.
    - `ls -l "${TMPDIR:-/tmp}/claude/bead-bonanza/current"` — a symlink the
      pre-flight script repoints at the start of every run. Convenient while
      the container lives; gone after a reclaim.
-   - The committed snapshot under `.bonanza/<run-id>/` on the branch, which is
-     what survives a reclaim. `ls .bonanza/` and take the directory the branch
-     carries. It is written by bead-bonanza's `scripts/bb-backup-run.sh` after
-     every bead's acceptance check, and `.bonanza/<run-id>/SNAPSHOT.md` is
-     self-describing: the run id, the as-of time, the live directory's path,
-     the run branch, the HEAD when it was taken, and every bead id that had a
-     handoff file. Read that file first — it tells you
-     which run you are looking at without your knowing the run id.
-
-   **The live run directory is authoritative; a snapshot never is.** Any
-   procedure that reads the backup — this recovery, a retro, a DoD audit —
-   first checks whether the live directory still exists and uses it when it
-   does. Read the backup only WHEN `$RUN_DIR` is gone, and then **state the
-   snapshot's as-of time** in whatever you conclude from it. A copy taken
-   mid-run is indistinguishable from a complete one once it is detached from
-   its timestamp, and it goes stale within the half hour.
-
-   **Refresh it as you go.** WHEN you resume a run and keep working it, run
-   bead-bonanza's `scripts/bb-backup-run.sh "$RUN_DIR"` after each bead's
-   acceptance check, exactly as the original orchestrator was to. A snapshot
-   that is committed but never pushed dies with the container like everything
-   else — push the branch.
+   **The run directory does not survive a container reclaim, and nothing
+   copies it.** WHEN it is gone, reconstruct from durable state rather than
+   looking for a backup: the sprint branch's `git log`, `git worktree list`,
+   and the tracker. Those are the same sources every other step here reads,
+   and unlike a copy they cannot be stale.
 
    **Never guess the run from directory mtimes.** "Take the newest run-id
    directory under the run root" is wrong whenever an older run's directory is
-   touched after a newer one starts. WHEN neither the snapshot nor the symlink
-   resolves, reconstruct from `git log` and `bd list`, and **say so in the
-   report**: a reconstruction is not a plan.
+   touched after a newer one starts. WHEN the symlink does not resolve,
+   reconstruct from `git log` and `bd list`, and **say so in the report**: a
+   reconstruction is not a plan.
 
 2. **Read `dispatch.md` in full.** It carries the mandate, the enumerated bead
    list, the standing authorization, the wave table, the gate profile and the
