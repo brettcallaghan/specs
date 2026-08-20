@@ -351,8 +351,12 @@ find out before anything depends on it.
 
 ## Filing status — FILED
 
-**52 beads filed 2026-08-20** from `.beads/plans/bb-renovation.json`, after the
-tracker was repaired (see below). Root epic **`agent-plugins-1ilc`**.
+**52 beads filed 2026-08-20** with `bd create --graph`, after the tracker was
+repaired (see below). Root epic **`agent-plugins-1ilc`**. The graph file and
+its generator were deleted once consumed — they are a second copy of issue
+content, they cannot be re-applied without minting duplicates, and the tracker
+is the source of truth. `git show 5709a7b` has them if the construction ever
+needs auditing.
 
 | Wave | Epic | Leaves |
 |---|---|---|
