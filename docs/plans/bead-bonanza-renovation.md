@@ -422,6 +422,41 @@ is the same shape as the existing ref probe. Filed as a wave-1 addition below.
 | id | Item | Wave |
 |----|------|------|
 | E8 | **Pre-flight probes a real tracker write.** Create a scratch bead, confirm it, delete it, and block the run when the write fails. Today `BB_DOLT_WRITE` probes a git ref push, which passes while every `bd create` fails. | 1 |
+| E9 | **Pre-flight's Dolt-remote detection is keyed on a command that lies.** The durability gate only probes at all `if bd dolt remote list \| grep -q .`. *Measured in this container:* `bd dolt remote list` prints `(none)` while `.beads/embeddeddolt/beads/.dolt/repo_state.json` carries `origin -> git+https://github.com/brettcallaghan/agent-plugins` and `bd dolt push` completes successfully. So pre-flight sets `BB_DOLT_WRITE=none` — "no Dolt remote configured, which is not a fault" — and skips the durability probe entirely, on a project that syncs. Detect the remote from a source that agrees with reality, or from whether the push works. | 1 |
+
+### What further probing established
+
+Three facts that change the remedy, all measured after the first write failure:
+
+- **Sync is healthy.** `bd dolt push` completed. The Dolt remote is wired in
+  `repo_state.json`, and after that push the local database and
+  `origin refs/dolt/data` are identical — so **nothing local is unpushed**, and
+  the local database can be discarded and re-cloned without losing anything.
+- **`bd` is spooling events to a second store.** `~/.beads/eventsData/` holds
+  one `.evtq` file per write attempt going back to session start. So v1.2.2 does
+  have an events journal, writes to the spool succeed, and only the write to the
+  `events` *table* fails. That is why `bd comment` works and `bd create` does
+  not.
+- **The recovery guide's "typically not affected" hint does not hold here.** It
+  says workspaces with a Dolt remote configured were protected because the
+  remote-migrate gate blocked silent migration. This workspace has one and was
+  migrated anyway.
+
+### Options, with the trade-offs
+
+| | Option | Blast radius | Cost | Confidence |
+|---|---|---|---|---|
+| 1 | **Re-clone the local database.** Move `.beads/embeddeddolt` aside and let the SessionStart hook bootstrap fresh from `origin refs/dolt/data`. The directory is gitignored and disposable by design, nothing is unpushed, and moving aside rather than deleting keeps the evidence. | **Container-local only.** Nothing replicates. | ~2 min | **Uncertain.** Works only if the v65 cursor is not itself versioned and pushed. It may well be — the local state was just pushed — in which case the clone comes back at v65 and we have lost nothing but the time. |
+| 2 | **Roll the schema cursor back here.** Install the `dolt` CLI (not present; `go install` works since `proxy.golang.org` is unproxied), then run the guide's step 4 against `.beads/embeddeddolt/beads`, then `bd dolt push` so every clone gets the fix once. | **Replicates to every clone on the next push.** The guide's own warning. | dolt build, then ~2 min | High — this is the guide's recommended fix and is a metadata change, not a data migration. |
+| 3 | **Fix it on a machine that already has `dolt`** and push; this container pulls. | Same as 2, but performed where the tooling and the judgment already live. | minutes | High |
+| 4 | **Work around it.** File the beads by a path that avoids the events write. No such path exists for `bd create` — every create fails identically — so this is not viable. | — | — | Ruled out |
+
+**Recommendation: try 1, then 2 or 3.** Option 1 is free, local, reversible and
+answers the question definitively in two minutes: either the fresh clone writes,
+or it does not and we know the cursor is on the remote. Option 2 or 3 then
+follows, and 3 is preferable if a machine with `dolt` is at hand, because the
+fix replicates either way and is better performed somewhere the blast radius is
+visible.
 
 ### One stray artifact
 
