@@ -43,7 +43,8 @@ distinction is the argument of section 2.
 ### Phase 0 — Pre-flight
 
 - 0.1 **[O]** Run `pre-flight-check.sh <run-id> --gate-baseline` with the
-  sandbox ON and `eval` its stdout
+  sandbox ON and `eval` its stdout. The flag is opt-in in the script and passed
+  unconditionally here, so it should not exist (§10.1)
   - 0.1.1 **[X]** Confirm cwd is inside a git work tree; resolve the repo root
   - 0.1.2 **[X]** `git worktree prune` — drop registrations whose directory a
     reclaimed container deleted
@@ -62,9 +63,10 @@ distinction is the argument of section 2.
   - 0.1.10 **[X]** Check `bd` on PATH and that `bd where` resolves a database;
     check `jq`
   - 0.1.11 **[X]** **Block** if the working tree is dirty at t=0
-  - 0.1.12 **[X]** Report `CLAUDE_CODE_SUBAGENT_MODEL` — the skill treats a
-    set value as disabling tier routing entirely (§10.2: unverified, and
-    possibly false)
+  - 0.1.12 **[X]** Report `CLAUDE_CODE_SUBAGENT_MODEL` — an ambient harness
+    variable this project never sets. The skill treats a set value as disabling
+    tier routing entirely; unverified, possibly false, and ~25 lines away from
+    deletion either way (§10.2)
   - 0.1.13 **[X]** Count `.claude/settings.local.json` allow entries
   - 0.1.14 **[X]** **Block** if `worktree.baseRef` is not `head`
   - 0.1.15 **[X]** Detect `pull_request`-triggered workflows → `BB_PR_CI`
@@ -82,8 +84,9 @@ distinction is the argument of section 2.
 - 0.5 **[O]** Confirm the harness worktree directory is gitignored — *after*
   the first worktree exists, not before
 - 0.6 **[O]** Determine whether an `Agent` tool exists; if not, read
-  `main-loop-fallback.md`. The only Phase 0 fact no script measures, the only
-  one absent from the manifest, and not assertable for testing (§10.5)
+  `main-loop-fallback.md`. The only Phase 0 fact no script measures and the only
+  one absent from the manifest — and the fallback it guards is a different
+  product, not a degraded run of this one (§10.5)
 
 ### Phase 1 — Resolve the queue
 
@@ -829,21 +832,36 @@ per-invocation, so if the parameter wins, routing *does* happen and Phase 4
 discards two correct tables. Settle it with one dispatch, then fix the branch.
 *Effort:* trivial to test.
 
-**R14. Make the environment overridable so the branches can be exercised.**
-Two of pre-flight's facts are discovered rather than declared, and neither
-degraded path can be tested on purpose: whether an `Agent` tool exists (§10.5)
-and whether the gate baseline was captured. Add `BB_ASSUME_NO_AGENT=1` — which
-pre-flight echoes as a `BB_*` fact like everything else, so the orchestrator
-reads it from the same block rather than probing — and make `--gate-baseline`
-the default with an explicit `--no-gate-baseline` opt-out (§10.1). The
-main-loop fallback is a whole reference file that has, so far as the run
-records show, never been deliberately exercised.
+**R14. Delete the `--gate-baseline` flag, and let the no-Agent condition be
+asserted.** The baseline becomes unconditional — `pre-flight-check.sh <run-id>`
+always captures it, `--self-test` stays, and there is no opt-out (§10.1); the
+blast-radius question is answered by R11's `checks` script, not by an option,
+which is why R11 is now this recommendation's precondition. Separately, add
+`BB_ASSUME_NO_AGENT=1`, echoed as a `BB_*` fact so it reaches the manifest —
+0.6 is currently the only Phase 0 fact no script measures *and* the only one
+absent from the manifest, so a recovering session cannot tell why a run stopped
+at pre-flight. *Effort:* low.
+
+**R15. Extract the per-bead ceremony into its own skill, and make no-Agent
+blocking.** The ceremony is already a self-contained, ordered, 10-step
+procedure with three scripts behind it, living as a prose template the
+orchestrator is forbidden to paraphrase. As a skill it becomes what a
+`bead-bonanza` subagent invokes by name (removing the paraphrase rule and one
+class of dispatch defect), what a solo agent with no `Agent` tool invokes
+directly per bead, and something independently testable — which nothing about
+the ceremony is today. `bead-bonanza` then blocks at 0.6 rather than degrading,
+and `main-loop-fallback.md` deletes: 54 lines describing a materially different
+product, reached by a condition no script measures, that no sprint report shows
+was ever exercised (§10.5). *Effort:* medium. *Composes with:* R1 — it is the
+same decomposition.
 
 ### Tier 3 — worth doing, nothing depends on it
 
 **R11. Replace gate-profile prose parsing with project checkpoint scripts.**
 Open bead `agent-plugins-pq06` already proposes this. Parsing executable
-commands out of markdown bullets is the most fragile step in the pre-flight.
+commands out of markdown bullets is the most fragile step in the pre-flight —
+and it is R14's precondition (§10.1), so it is really tier 2 work wearing a
+tier-3 label.
 
 **R12. Add a run-level Definition of Done.** The harness pattern's rule — mark
 complete only after end-to-end verification — holds at the bead level and
@@ -903,6 +921,10 @@ Stated explicitly so a later reader does not mistake omission for oversight.
 | `BB_PR_CI` is derived, not configured | `sed -n '408,425p' …/pre-flight-check.sh` | `yes` iff some `.github/workflows/*.yml\|*.yaml` contains the string `pull_request` |
 | `bd` supports custom statuses, and seven built-in ones | `bd statuses` | `open, in_progress, blocked, deferred, closed, pinned, hooked`; `bd config set status.custom "name:category,…"` |
 | `bd swarm validate` is already invoked by grooming, for its exit code only | `grep -n swarm plugin/skills/groom-beads/scripts/bd-health.sh` | `run_swarm_validate()` enumerates active epics and validates each; the ready-fronts output is discarded |
+| No `bd` command that computes over a graph accepts an enumerated id list | `bd list --help` · `bd swarm status --help` · `bd swarm validate --help` · `bd ready --help` | `bd list [flags]` has no positional ids; `swarm status [epic-or-swarm-id]`, `swarm validate [epic-id]`, `ready --parent <id>` all take one node. `show`/`update`/`close`/`lint` take `[id...]` |
+| Two of the eight progress phases describe an already-closed bead | `grep -n 'status closed\|git commit\|dolt push' …/bb-close-bead.sh` | close is step 1, commit step 4, `bd dolt push` step 5 — so `committed` and `pushed` are emitted after the tracker reads `closed` |
+| `BB_PR_CI` has exactly one consumer, and a second ask duplicates it uninformed | `grep -rn 'BB_PR_CI\|slim gates' plugin/skills/` | `SKILL.md:410` is the only consumer; `subagent-prompts.md:256` asks the same underlying question without referencing the fact |
+| `CLAUDE_CODE_SUBAGENT_MODEL` costs ~25 lines and is unset here | `awk '/CLAUDE_CODE_SUBAGENT_MODEL/' …/SKILL.md` · `echo "${CLAUDE_CODE_SUBAGENT_MODEL:-<unset>}"` | 4 mentions in SKILL.md driving 2 of Phase 4's 3 special-case branches, plus 4 script lines; `<unset>` in this container |
 | Two orchestrator conformance failures in one run | prior run `1786778523-19`, amendments 3 and 6 | stale rebase target requiring object-store recovery; stopped to narrate a wave instead of dispatching it |
 
 ### Unverified claims, and what would settle each
@@ -944,54 +966,60 @@ rather than from the draft, and each says where the answer landed above.
 
 ### 10.1 `--gate-baseline` — why is it a parameter?
 
-*Measured.* It shouldn't be, for this caller. `pre-flight-check.sh` defaults
+*Measured.* It shouldn't be one at all. `pre-flight-check.sh` defaults
 `DO_GATES=no`, but `SKILL.md`'s single canonical invocation passes
-`--gate-baseline` unconditionally. So it is already always-on in practice; the
+`--gate-baseline` unconditionally. It is already always-on in practice; the
 flag only creates a way to get it wrong.
 
-Two reasons it was probably made opt-in, and neither survives scrutiny as a
-*default*: the script "executes arbitrary commands" under the flag — it runs
-`bash -c` on every command parsed out of `AGENTS.md` — so opt-in makes that a
-deliberate act; and a full gate suite at pre-flight can cost ten minutes on a
-run that might be six doc beads.
+**Corrected from the first pass: there should be no opt-out either.** I
+proposed `--no-gate-baseline`, and that is wrong for the same reason the
+default is wrong. Both arguments for opt-in fail:
 
-Both are real but neither wants a default of off. The blast-radius argument
-wants the *user* to consent once, not the orchestrator to remember a flag; and
-the cost argument is exactly backwards, because the baseline is what stops a
-pre-existing failure being charged to the first bead — the runs where the suite
-is slow are the runs where that misattribution costs most. Without a baseline
-every gate is presumed to exit 0, which is a stated-wrong assumption on any
-repo with a known-red check. **This one has one.**
+- *"It executes arbitrary commands."* Real — the script runs `bash -c` on every
+  command parsed out of `AGENTS.md` — but that is an argument about **where the
+  commands come from**, not about whether to run them. The answer is
+  `agent-plugins-pq06`: a project-supplied `checks` script, so pre-flight runs
+  one known entry point instead of parsing executable strings out of prose. Once
+  the source is a script the project committed, running it needs no flag.
+- *"A full suite can cost ten minutes."* That was true of one project, and it is
+  the same observation that motivated the `checks` script. It is a reason to fix
+  the suite or to let the project define a fast baseline mode inside its own
+  `checks` script — a decision the project owns and can express there. It is not
+  a reason to give the orchestrator a switch, because the switch will be flipped
+  on exactly the runs where the baseline matters most.
 
-**Change:** make the baseline the default and add `--no-gate-baseline` for the
-explicit skip, keeping the arbitrary-execution warning on the *script*, where
-it already is. Folded into R14. It composes with the open RFC proposal P2 in
-`rfc-self-acceptance-signals-and-gate-baseline` ("make `--gate-baseline` fail
-loudly on a gate it cannot parse"), which fixes the other half.
+Without a baseline every gate is presumed to exit 0, which is a stated-wrong
+assumption on any repo with a known-red check. **This one has one.**
 
-### 10.2 `CLAUDE_CODE_SUBAGENT_MODEL` — why does it exist, and when do we want tiers ignored?
+**Change:** delete the flag. `pre-flight-check.sh <run-id>` always captures the
+baseline; `--self-test` stays. The blast-radius question is answered by
+`pq06`, not by an option. R14 revised, R11 promoted to tier 2 as its
+precondition.
 
-It is a Claude Code harness variable, not one this project or skill sets. Its
-purpose is a **session-wide floor or ceiling on delegated work** — force every
-subagent onto one model for a cost cap or a compliance requirement that all
-delegated work run on a named model. Nobody sets it *wanting* tier routing
-ignored; that is a side effect of a blunt instrument, which is why pre-flight
-reports it as a fact rather than treating it as a choice.
+### 10.2 `CLAUDE_CODE_SUBAGENT_MODEL` — do we need it?
 
-**The more interesting answer is that the skill's claim about it may be
-false.** *Unverified.* `SKILL.md` asserts that when the variable is set "every
-subagent runs at that forced model regardless of tier, so no routing occurs",
-and Phase 4 replaces both routing tables with `N/A` on that basis. Public
-accounts of the precedence contradict each other — one puts the env var above
-the per-invocation `model` parameter, another says it "only affects agents
-without an explicit model defined" — and Claude Code issue #10993 exists
-because the behaviour is undocumented. `bead-bonanza` always passes `model:`
-per-invocation. If the parameter wins, routing happens normally and Phase 4
-throws away two correct tables on a false premise.
+**We never set it, and nothing in this project wants it set — so yes, you read
+that right.** But it is not ours to remove: it is an ambient Claude Code
+variable that an environment, an org policy, or a user can set outside the run,
+as a session-wide floor or ceiling on delegated work (a cost cap, or a
+compliance requirement that all delegated work run on a named model). Deleting
+our handling does not stop it being set; it only stops us noticing.
 
-Settled by one dispatch: export the variable to a model distinct from the tier
-lineup, dispatch two subagents at two different resolved models, and ask each
-what model is serving it. New recommendation R13.
+So the real question is whether *noticing* is worth what it costs. Today that is
+four lines of `pre-flight-check.sh` plus a `BB_*` fact, and roughly twenty lines
+of `SKILL.md` — two of Phase 4's three special-case branches
+(`SKILL.md:683, 720–726`) exist for it. *Measured:* it is unset in this
+container.
+
+**R13 decides the answer, and it decides it completely.** If the per-invocation
+`model:` parameter wins, the variable cannot affect a `bead-bonanza` dispatch at
+all, and the detection *and* both Phase 4 branches delete outright — call it 25
+lines for one test. If the env var wins, the detection is load-bearing and the
+Phase 4 branch is correct, because the run's entire routing evidence would
+otherwise be a fabrication.
+
+Either way this is one experiment away from being settled, and it is currently
+the cheapest deletion in the skill.
 
 ### 10.3 The durability probe — is it leaving a branch on origin?
 
@@ -1017,96 +1045,179 @@ yet.
 leaked ref in the report so it can be cleaned up. Small enough to fold into
 R10's corrections.
 
-### 10.4 When is `BB_PR_CI` set?
+### 10.4 When is `BB_PR_CI` set, and is it only checking that CI exists?
 
-*Measured.* Derived, never configured. Pre-flight globs
-`.github/workflows/*.yml` and `.github/workflows/*.yaml` separately — one `ls`
-over both globs exits non-zero when either matches nothing, which previously
-reported "no CI" in a repo with only `.yml` workflows — and sets `BB_PR_CI=yes`
-on the first file containing the string `pull_request`.
+*Measured.* Yes — that is all it does, and it is used in exactly one place.
 
-Two consequences worth knowing. It is a substring match, so a workflow
-mentioning `pull_request` only in a comment or a `paths-ignore` block still
-reads as yes. And it answers "could a draft PR get CI", not "is CI healthy" or
-"is a PR already open" — the open RFC proposal P7 in
-`rfc-self-worktree-composition-and-shared-gates` covers the last of those.
+Pre-flight globs `.github/workflows/*.yml` and `.github/workflows/*.yaml`
+separately — one `ls` over both globs exits non-zero when either matches
+nothing, which previously reported "no CI" in a repo with only `.yml`
+workflows — and sets `BB_PR_CI=yes` on the first file containing the string
+`pull_request`. So it answers one narrow question: **would opening a draft PR
+cause anything to run?** Not whether CI is healthy, not whether a PR is already
+open (open RFC proposal P7 in `rfc-self-worktree-composition-and-shared-gates`
+covers the last), and not whether the workflow would match this branch — it is
+a substring match, so `pull_request` in a comment or a `paths-ignore` block
+counts.
 
-### 10.5 Should Agent-tool availability be configurable?
+Its one consumer is `SKILL.md:410` — "WHEN `BB_PR_CI=yes`, ask the user once
+whether to open a draft PR".
 
-Yes, and for exactly the reason you give. `main-loop-fallback.md` is a
-54-line branch describing a materially different run — no delegation, no
-batching, no worktrees, no tier routing — and there is no way to enter it on
-purpose. So far as the five sprint reports show it has never been deliberately
-exercised, which makes it the least-tested path in a skill whose whole value is
-being reliable on the bad days.
+**And that is worth a finding on its own.** The shared-surface batch template
+asks the user the *same underlying question* — "is a PR open so pushes trigger
+full CI (ask the user once at run start — 'slim gates')" —
+`subagent-prompts.md:256`, and it does **not** reference `BB_PR_CI`. So a run
+can ask twice about the same fact, once informed by a measurement and once not,
+and the second ask is what actually decides whether a batch skips its full gate
+suite. The measured fact should feed the decision that depends on it. Fold into
+R10's corrections.
 
-The check is also the one Phase 0 fact that no script can measure, which the
-skill states plainly ("whether you have one is a harness property, invisible
-from a shell"). An override does not change that; it adds a way to *assert* the
-answer, which is all a test needs.
+### 10.5 Can the skill function without an `Agent` tool? Should step 0.6 exist?
 
-**Change:** `BB_ASSUME_NO_AGENT=1`, echoed by pre-flight as a `BB_*` fact like
-every other, so the orchestrator reads it from the same evalable block rather
-than probing. That also fixes a smaller inconsistency: 0.6 is currently the
-only Phase 0 fact the orchestrator establishes for itself and the only one that
-does not appear in the manifest, so a recovering session cannot tell whether an
-interrupted run was in the fallback mode. New recommendation R14.
+**No, and not in its current form.** You are asking the better question, and it
+changes my recommendation.
 
-### 10.6 Enumeration versus a sprint epic
+Take the fallback at its word and subtract what it removes. `bead-bonanza`
+without delegation has: no subagents, so no context isolation — the thing the
+opening paragraph names as the whole point ("the orchestrator stays small ...
+each bead runs in a fresh subagent so context doesn't compound"). No worktrees,
+because they isolate agents from each other and there is one agent. No batching,
+because batching amortizes test runs across a subagent's beads. No tier routing,
+because you cannot dispatch at a resolved model when you are the one working. No
+concurrency. No `plan-sprint`, no grooming subagent.
 
-Your framing is the right one and the draft under-stated the cost. Enumeration
-buys two things — scope locked against beads parented into an epic mid-sprint,
-and a run that spans several epics — and R3 as first written silently traded
-the second away.
+What is left is: read `bd ready`, and for each bead run the ceremony — claim,
+implement, gates, `retro:` comments, atomic close, one commit — then a report.
+**That is a genuinely valuable thing, and it is not this skill.** Every
+distinguishing feature of `bead-bonanza` is in the subtracted list; what remains
+is a per-bead discipline that has nothing to do with orchestration.
 
-The scope-locking property survives a sprint epic intact: membership *at
-dispatch* is what the plan records, and a bead parented in later is an
-amendment, exactly as an admitted bead is today. The multi-epic property is the
-real loss, and there are two ways to keep it. Parent the sprint epic to the
-feature epics rather than owning the beads outright — `bd mol bond`, or a
-`parent-child` edge per member — so a bead belongs to its feature *and* to the
-sprint; or accept single-epic runs and make a cross-epic sprint an explicit
-epic-of-epics that grooming creates. The first is cheaper and keeps both
-properties. Neither is verified.
+So `main-loop-fallback.md` is a 54-line description of a different product,
+reached by a condition no script can measure, that no sprint report shows was
+ever exercised. Making it *testable* — my first answer — treats the symptom.
 
-What is not viable is keeping the filter, and that is worth separating from the
-epic question: the "enumerate, never filter" rule exists because a filter
-re-evaluated at recovery or replan admits beads nobody scoped, and that hazard
-is real whichever option wins. R3 amended to say all of this.
+**Change (new R15): extract the per-bead ceremony into its own skill.** It is
+already a self-contained, ordered, 10-step procedure with three scripts behind
+it, currently living as a prose template inside `subagent-prompts.md` that the
+orchestrator is forbidden to paraphrase. As a skill it becomes:
 
-### 10.7 Do the progress phases need anything `bd` statuses don't have?
+- what a `bead-bonanza` subagent invokes by name, instead of receiving a
+  paraphrase-prone template — which also removes the "do not paraphrase from
+  memory" rule and one class of dispatch defect;
+- what a solo agent with no `Agent` tool invokes directly, per bead, which is
+  the honest replacement for the fallback;
+- independently testable, which nothing about the ceremony is today.
+
+`bead-bonanza` then makes 0.6 a **blocking** pre-flight condition — "this skill
+orchestrates; without delegation, use the per-bead skill directly" — and
+`main-loop-fallback.md` deletes. That is a 54-line reference and a
+never-exercised branch traded for a reusable unit, and it is the same
+decomposition R1 wants.
+
+The testability point survives in reduced form: 0.6 is still the only Phase 0
+fact no script measures and the only one absent from the manifest, so a
+recovering session cannot tell why a run stopped at pre-flight. R14 keeps the
+`BB_ASSUME_NO_AGENT` override for that reason — asserting the blocking path, not
+a fallback path.
+
+### 10.6 How is enumeration compatible with the `bd` commands?
+
+**It isn't. That is the finding, and the first pass buried it.**
+
+*Measured.* `bd` splits cleanly into two families, and no command bridges them:
+
+| Takes an **enumerated id list** | Takes an **epic or a filter**, never a list |
+|---|---|
+| `bd show [id...]` | `bd list [flags]` — **no positional ids at all** |
+| `bd update [id...]` | `bd ready --parent <epic>` / `--label` / `--priority` |
+| `bd close [id...]` | `bd swarm validate [epic-id]` |
+| `bd lint [issue-id...]` | `bd swarm status [epic-or-swarm-id]` |
+| `bd dep add <a> <b>` | `bd epic status` (all epics) |
+| `bd batch` (per-line ids) | `bd graph [issue-id]` (one root) |
+
+The left column is **per-item operations**. The right column is **every command
+that computes over a graph** — waves, ready fronts, parallelism, integrity,
+completion. So the moment a run's scope is an id list rather than a graph node,
+every graph command is unreachable, and `plan-sprint` has to re-derive by hand
+what `bd swarm validate` computes for free. Enumeration did not just fail to use
+those commands; it *structurally cannot*.
+
+**The epic is how the two families meet**, and this is the actual argument for
+R3 — stronger than the durability argument I led with. An epic is a graph node
+whose membership is an enumeration: `bd ready --parent <epic>` gives you the
+scoped, dependency-ordered queue, and `bd swarm validate <epic>` gives you the
+waves, from the same fact. You get to keep enumeration's guarantee and the graph
+commands at once, because the enumeration *is* the node.
+
+**Your instinct is right and is the cheaper half.** "Enforce rigor around how
+epics are scoped, and readiness to implement" is exactly the fix, because it
+attacks the reason enumeration was introduced. Enumeration exists to defend
+against a mid-sprint parenting changing the queue underneath a run — but that is
+a **grooming discipline failure**, not a tracker limitation. An epic that is
+scoped and complete before the sprint starts does not gain children mid-run;
+one that does was not ready to implement. `groom-beads` already owns a
+Definition of Ready per bead; it does not have one per *epic*, and that is the
+gap. A run then needs no enumeration snapshot at all — the plan records
+membership at dispatch, and a bead parented in later is an amendment, exactly as
+an admitted bead is today.
+
+**Epic-of-epics covers the multi-epic case**, and it is supported: `bd` epics
+nest (`--parent` accepts any issue id), `bd mol bond` exists to connect work
+graphs, and `bd ready --parent` walks descendants rather than direct children.
+*Unverified* — whether `--parent` and `swarm validate` traverse two levels
+correctly. Settled by parenting one epic to another and running both against the
+outer one.
+
+### 10.7 What are the phases that don't map to a status?
 
 *Measured.* `bd` ships seven statuses — `open`, `in_progress`, `blocked`,
 `deferred`, `closed`, `pinned`, `hooked` — and supports custom ones via
 `bd config set status.custom "name:category,…"`.
 
-The progress vocabulary is `claimed`, `implementing`, `gates-running`,
-`gates-passed`, `retro-written`, `committed`, `pushed`, `blocked`. Only two map
-onto a status: `claimed` is `in_progress` and `blocked` is `blocked`. The other
-six are not statuses at all — they are **positions inside `in_progress`**, and
-that is the distinction that matters. Status answers "is this bead claimable";
-phase answers "how far through the ceremony did the agent get". Modelling phase
-as a custom status would overload the field `bd ready` computes from, and would
-make a mid-ceremony crash look like a novel lifecycle state to every other
-reader. It would also lose the history: a status is a current value, and the
-recovery path needs the *trail*.
+**I said "six inside `in_progress`" and that was wrong.** The eight phases split
+three ways, and the third group is the interesting one:
 
-So: not custom statuses. But "event beads" was the wrong recommendation too —
-too generic, and it discards the cheap lookup. The right primitive is
-**`bd set-state <id> phase=gates-passed --reason "…"`**, which does both in one
-atomic operation: it writes an event bead recording the change (the append-only
-history the ledger provides today) *and* maintains a `phase:<value>` label (the
-cheap current-position query the ledger cannot do at all without reading and
-parsing the file). It is documented for exactly this shape of use —
-`patrol:active`, `mode:degraded`, `health:healthy`.
+| Phase | Relationship to status |
+|---|---|
+| `claimed` | **is** `in_progress` |
+| `implementing` | inside `in_progress` |
+| `gates-running` | inside `in_progress` |
+| `gates-passed` | inside `in_progress` |
+| `retro-written` | inside `in_progress` |
+| `committed` | **after `closed`** |
+| `pushed` | **after `closed`** |
+| `blocked` | **is** `blocked` |
+
+Four positions inside `in_progress`, and **two after the bead is already
+closed** — because `bb-close-bead.sh` runs the close as step 1 and the commit as
+step 4 (`bd update --status closed` → verify → stage → commit → `bd dolt push`),
+so the closure is folded into the implementation commit. A bead is `closed` in
+the tracker before its commit exists.
+
+That second group is what settles the question. A status field is a *current
+value*, so it cannot express **"closed, but not yet pushed"** — and that is
+precisely the state a rejected push leaves behind, the one where every other
+signal reads "finished": no worktrees, clean tree, bead closed. It is the state
+Phase 3 step 7 and `recover-sprint` step 3b both exist to detect. Modelling
+phase as a custom status would also overload the field `bd ready` computes from,
+make a mid-ceremony crash look like a novel lifecycle state to every reader, and
+lose the trail the recovery path needs.
+
+So: not custom statuses. And "event beads" was too generic — it discards the
+cheap lookup. The right primitive is **`bd set-state <id> phase=gates-passed
+--reason "…"`**, which does both atomically: it writes an event bead recording
+the change (the append-only history the ledger provides today) *and* maintains a
+`phase:<value>` label (the current-position query the ledger cannot answer at
+all without reading and parsing the file). It is documented for exactly this
+shape — `patrol:active`, `mode:degraded`, `health:healthy`.
 
 That also answers the health question the draft left open: **`bd set-state <id>
-health=…` is the wellness signal**, on the same mechanism, with no new
-machinery. R5 amended to name `set-state` rather than raw event beads.
+health=…` is the wellness signal**, same mechanism, no new machinery. R5 names
+`set-state` rather than raw event beads.
 
-*Unverified:* the write cost, and whether `set-state`'s label churn is
-acceptable at eight transitions per bead. Settled by running the eight
-transitions against a scratch bead and timing `bd dolt push` before and after.
+*Unverified:* the write cost, and whether the label churn is acceptable at eight
+transitions per bead. Settled by running the eight transitions against a scratch
+bead and timing `bd dolt push` before and after.
 
 ### 10.8 Could C4 overlap move into grooming?
 
