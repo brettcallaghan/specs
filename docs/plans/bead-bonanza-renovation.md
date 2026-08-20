@@ -422,7 +422,7 @@ is the same shape as the existing ref probe. Filed as a wave-1 addition below.
 | id | Item | Wave |
 |----|------|------|
 | E8 | **Pre-flight probes a real tracker write.** Create a scratch bead, confirm it, delete it, and block the run when the write fails. Today `BB_DOLT_WRITE` probes a git ref push, which passes while every `bd create` fails. | 1 |
-| E9 | **Pre-flight's Dolt-remote detection is keyed on a command that lies.** The durability gate only probes at all `if bd dolt remote list \| grep -q .`. *Measured in this container:* `bd dolt remote list` prints `(none)` while `.beads/embeddeddolt/beads/.dolt/repo_state.json` carries `origin -> git+https://github.com/brettcallaghan/agent-plugins` and `bd dolt push` completes successfully. So pre-flight sets `BB_DOLT_WRITE=none` — "no Dolt remote configured, which is not a fault" — and skips the durability probe entirely, on a project that syncs. Detect the remote from a source that agrees with reality, or from whether the push works. | 1 |
+| E9 | **Pre-flight's Dolt-remote detection is keyed on a command that can report `(none)` on a syncing project.** The durability gate only probes at all `if bd dolt remote list \| grep -q .` matches. *Measured:* on the database this session inherited, `bd dolt remote list` printed `(none)` while `.dolt/repo_state.json` carried `origin -> git+https://github.com/brettcallaghan/agent-plugins` and `bd dolt push` completed. **Corrected after re-bootstrapping:** on the freshly cloned database the same command reports the remote correctly, and `bd dolt pull` also succeeds — so this is not a command that always lies, it is a database state in which the remote is present in `repo_state.json` but invisible to bd's remote lookup, and `bd bootstrap` repairs it. Either way pre-flight sets `BB_DOLT_WRITE=none` — "no Dolt remote configured, which is not a fault" — and skips the durability probe entirely on a project that syncs. Detect the remote from a source that cannot disagree, or from whether a push actually works. | 1 |
 
 ### What further probing established
 
@@ -599,6 +599,23 @@ into a bead's close commit. Filed below.
 | id | Item | Wave |
 |----|------|------|
 | E10 | **Strip `sync.remote` after any bootstrap, not just the hook's.** Make the strip a step of whatever performs a bootstrap rather than a step of session start, so a mid-session re-clone cannot leave the forbidden key in a tracked file for the close ceremony to commit. Reproduced this session. | 1 |
+
+### Correction: `sync.remote` in `config.yaml` is not what breaks a pull
+
+*Measured in this container, which has no `sync:` block in
+`.beads/config.yaml` at all:* `bd dolt pull` → "Pull complete.", `bd dolt push`
+→ "Push complete.", and `bd bootstrap` cloned 265 issues from the remote. So the
+config comment's rationale holds: the remote lives in the Dolt config
+(`repo_state.json`), not in the tracked YAML, and omitting the key costs
+nothing.
+
+A local checkout that cannot pull is therefore missing the remote from its
+**Dolt** config, not from `config.yaml`. The lever is
+`bd dolt remote add origin git+https://github.com/brettcallaghan/agent-plugins`
+— note **no `.git` suffix**; that is the exact string this container's working
+remote carries, and bd's own validator is strict about the form of this value.
+`bd bootstrap` on an absent database wires the same thing automatically, which
+is how this container got it.
 
 ### One stray artifact
 
