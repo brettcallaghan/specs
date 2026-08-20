@@ -349,385 +349,90 @@ find out before anything depends on it.
 
 ---
 
-## Filing status — BLOCKED on a tracker write failure
+## Filing status — FILED
 
-The 52-bead graph is built, validated and committed at
-`.beads/plans/bb-renovation.json` (generator:
-`.beads/plans/build-bb-renovation-graph.py`). It is **not filed**, because
-**this container cannot write the tracker.**
+**52 beads filed 2026-08-20** from `.beads/plans/bb-renovation.json`, after the
+tracker was repaired (see below). Root epic **`agent-plugins-1ilc`**.
 
-### What was measured
-
-`bd create --graph` failed and rolled back cleanly — zero beads landed:
-
-```
-graph create: batch create: failed to record event for agent-plugins-w68d:
-record event in events: Error 1146: table not found: events
-```
-
-The failure is not specific to `--graph`. Probing each write path:
-
-| Operation | Result |
-|---|---|
-| `bd create --graph <plan>` | **fails**, whole transaction rolled back |
-| `bd create --title …` | **fails**, same error |
-| `bd update <id> --add-label` | **fails**, same error |
-| `bd comment <id> …` | **succeeds** |
-| every read (`bd list`, `show`, `export`, `swarm validate`, `stats`) | succeeds |
-
-So it is precisely the writes that record an audit event. Root cause is in
-`bd`'s own recovery guide: the accidental v1.2.1 release migrated this database
-from schema v53 to v65, and *"one v1.2.x migration moved the `events` audit
-table off Dolt's versioned plane"* — it sits in `dolt_ignore`, so the v1.2.2
-binary cannot see it.
-
-**The recovery guide's stopgap claim is false in this container.** It states
-that under `BD_IGNORE_SCHEMA_SKEW=1` *"reads are identical and writes work,
-because the v1.2.x schema additions are invisible to the 1.1 line"*. Writes that
-record an event do not work. Worth reporting upstream.
-
-### Why this was not fixed here
-
-Both candidate fixes are Dolt-level writes to the shared tracker that
-**replicate to every clone on the next push**, on the project's real data:
-
-1. **Roll the schema cursor back** (the guide's recommended fix) —
-   `DELETE FROM schema_migrations WHERE version > 53`, then `DOLT_ADD` +
-   `DOLT_COMMIT`.
-2. **Re-track the events table** (the guide's optional step, and the narrower
-   one that targets exactly what is broken) —
-   `DELETE FROM dolt_ignore WHERE pattern = 'events'`, then `DOLT_ADD -f
-   events` + `DOLT_COMMIT`.
-
-Neither is reversible from inside the session, and the guide's own warning is
-that *"the migrated cursor replicates: either recover every clone, or recover
-one and push"*. **And the `dolt` CLI is not installed here**, so neither can be
-run in this container regardless.
-
-Both need a decision and a machine with `dolt`. Until then the graph waits.
-
-### The finding this produces for the review
-
-Pre-flight would have declared this environment green. Step 0.1.10 checks that
-`bd` is on `PATH` and that `bd where` resolves a database — both true. Step
-0.1.17's `BB_DOLT_WRITE` probe pushes a **git ref**, which measures credential
-and egress, not whether the tracker accepts a write. So a run would have passed
-pre-flight and died at the first `bd create`, after grooming, with the queue
-resolved and nothing to show.
-
-**Pre-flight must probe a tracker WRITE, not just a tracker READ and a git-ref
-push.** A create-then-delete against a scratch bead is the obvious probe, and it
-is the same shape as the existing ref probe. Filed as a wave-1 addition below.
-
-| id | Item | Wave |
-|----|------|------|
-| E8 | **Pre-flight probes a real tracker write.** Create a scratch bead, confirm it, delete it, and block the run when the write fails. Today `BB_DOLT_WRITE` probes a git ref push, which passes while every `bd create` fails. | 1 |
-| E9 | **Pre-flight's Dolt-remote detection is keyed on a command that can report `(none)` on a syncing project.** The durability gate only probes at all `if bd dolt remote list \| grep -q .` matches. *Measured:* on the database this session inherited, `bd dolt remote list` printed `(none)` while `.dolt/repo_state.json` carried `origin -> git+https://github.com/brettcallaghan/agent-plugins` and `bd dolt push` completed. **Corrected after re-bootstrapping:** on the freshly cloned database the same command reports the remote correctly, and `bd dolt pull` also succeeds — so this is not a command that always lies, it is a database state in which the remote is present in `repo_state.json` but invisible to bd's remote lookup, and `bd bootstrap` repairs it. Either way pre-flight sets `BB_DOLT_WRITE=none` — "no Dolt remote configured, which is not a fault" — and skips the durability probe entirely on a project that syncs. Detect the remote from a source that cannot disagree, or from whether a push actually works. | 1 |
-
-### What further probing established
-
-Three facts that change the remedy, all measured after the first write failure:
-
-- **Sync is healthy.** `bd dolt push` completed. The Dolt remote is wired in
-  `repo_state.json`, and after that push the local database and
-  `origin refs/dolt/data` are identical — so **nothing local is unpushed**, and
-  the local database can be discarded and re-cloned without losing anything.
-- **`bd` is spooling events to a second store.** `~/.beads/eventsData/` holds
-  one `.evtq` file per write attempt going back to session start. So v1.2.2 does
-  have an events journal, writes to the spool succeed, and only the write to the
-  `events` *table* fails. That is why `bd comment` works and `bd create` does
-  not.
-- **The recovery guide's "typically not affected" hint does not hold here.** It
-  says workspaces with a Dolt remote configured were protected because the
-  remote-migrate gate blocked silent migration. This workspace has one and was
-  migrated anyway.
-
-### Options, with the trade-offs
-
-| | Option | Blast radius | Cost | Confidence |
-|---|---|---|---|---|
-| 1 | **Re-clone the local database.** Move `.beads/embeddeddolt` aside and let the SessionStart hook bootstrap fresh from `origin refs/dolt/data`. The directory is gitignored and disposable by design, nothing is unpushed, and moving aside rather than deleting keeps the evidence. | **Container-local only.** Nothing replicates. | ~2 min | **Uncertain.** Works only if the v65 cursor is not itself versioned and pushed. It may well be — the local state was just pushed — in which case the clone comes back at v65 and we have lost nothing but the time. |
-| 2 | **Roll the schema cursor back here.** Install the `dolt` CLI (not present; `go install` works since `proxy.golang.org` is unproxied), then run the guide's step 4 against `.beads/embeddeddolt/beads`, then `bd dolt push` so every clone gets the fix once. | **Replicates to every clone on the next push.** The guide's own warning. | dolt build, then ~2 min | High — this is the guide's recommended fix and is a metadata change, not a data migration. |
-| 3 | **Fix it on a machine that already has `dolt`** and push; this container pulls. | Same as 2, but performed where the tooling and the judgment already live. | minutes | High |
-| 4 | **Work around it.** File the beads by a path that avoids the events write. No such path exists for `bd create` — every create fails identically — so this is not viable. | — | — | Ruled out |
-
-### Outcome — options 1 and 2 are both ruled out, measured
-
-**Option 1 was tried and failed.** `.beads/embeddeddolt` was moved aside (not
-deleted) and `bd bootstrap --yes` re-cloned from `origin refs/dolt/data`. The
-clone succeeded — 15,402 chunks, 265 issues, remote wired — and came down
-**already at v65**:
-
-```
-Warning: post-clone store init failed (wisp tables may be missing):
-  embeddeddolt: init schema: schema version mismatch:
-  database is at v65, binary knows up to v53 (12 migrations ahead)
-```
-
-`bd create` on the fresh clone fails identically. **So the migrated cursor is on
-the remote**, exactly as the guide warns it replicates — this is not a
-local-clone problem and no amount of re-cloning fixes it. Nothing was lost: the
-fresh clone is intact and the pre-recovery copy is retained at
-`.beads/embeddeddolt.pre-recovery.*` (gitignored).
-
-**Option 2 is available after all — an earlier claim here was too strong and is
-corrected.** The `dolt` CLI is not installed, and two acquisition routes fail:
-`proxy.golang.org` serves `github.com/dolthub/dolt/go` only up to **v0.40.4
-(2022-05-19)**, far too old to point at a current database, and
-`github.com/.../releases` returns 403 through the egress proxy. But **a git
-clone works** — `git ls-remote https://github.com/dolthub/dolt` succeeds and
-lists **v2.3.1** — so dolt can be built from source here, which is the same
-pattern this repository already uses for `strata` and the same fallback the `bd`
-installer takes when the release API is blocked. Budget a large Go build.
-
-**So both option 2 and option 3 remain open, and the choice between them is
-about where the blast radius is visible rather than about capability.** Either
-way the fix replicates: one machine repairs the cursor and pushes, and every
-other clone — including this container — repairs itself with `bd dolt pull`.
-
-The two commands, from the guide, run in `.beads/embeddeddolt/beads`:
-
-```sh
-# 1. the recommended fix — roll the schema cursor back to v53
-dolt sql -q "DELETE FROM schema_migrations WHERE version > 53; \
-  CALL DOLT_ADD('schema_migrations'); \
-  CALL DOLT_COMMIT('-m', 'recovery: roll schema cursor back to v53 (accidental v1.2.1)', \
-                   '--author', 'bd recovery <recovery@beads.invalid>')"
-
-# 2. optional, restores audit-event versioning
-dolt sql -q "DELETE FROM dolt_ignore WHERE pattern = 'events'; \
-  CALL DOLT_ADD('-f', 'events'); \
-  CALL DOLT_COMMIT('-m', 'recovery: re-track events table', \
-                   '--author', 'bd recovery <recovery@beads.invalid>')"
-
-bd dolt push
-```
-
-Back the workspace up first (`cp -a .beads .beads.backup-pre-recovery`), and
-make sure no machine still has a v1.2.1 binary — one touch re-migrates the
-database and the cursor replicates again.
-
-**Superseded recommendation, kept for the record: try 1, then 2 or 3.** Option 1 is free, local, reversible and
-answers the question definitively in two minutes: either the fresh clone writes,
-or it does not and we know the cursor is on the remote. Option 2 or 3 then
-follows, and 3 is preferable if a machine with `dolt` is at hand, because the
-fix replicates either way and is better performed somewhere the blast radius is
-visible.
-
-### What the fix is actually for — a conflation corrected
-
-The blocker is **not** about being able to use event beads. Two different things
-share the name, and the first draft of this section ran them together.
-
-| | What it is | Status in v1.2.2 |
+| Wave | Epic | Leaves |
 |---|---|---|
-| **The `events` table** | `bd`'s **internal audit trail**. `recordEvent(ctx, tx, issueID, eventType, actor, oldValue, newValue)` in `internal/storage/dolt/issues.go` writes a row *inside the same transaction* as every issue mutation. It is listed in `permanentIssueAuxTables` beside `issues`, `labels`, `dependencies` and `comments`. | **Core and current.** Not deprecated. |
-| **The "events journal"** | A separate 1.2.x feature. `~/.beads/eventsData/*.evtq` is its spool, and this container has been filling it since session start. | **Withdrawn.** The recovery guide lists it with work leases, sync federation, the HTTP API server and provenance events as *"1.2.x-only features … **not** included"* in v1.2.2, returning in a properly tested release. |
+| 0 Spikes | `agent-plugins-c3zl` | 7 |
+| 1 Eliminate | `agent-plugins-pr8l` | 5 |
+| 2 Renovate | `agent-plugins-1qc8` | 12 |
+| 3 Epic pivot | `agent-plugins-bir9` | 8 |
+| 4 Mechanize | `agent-plugins-ob33` | 4 |
+| 5 Retro rebuild | `agent-plugins-bmhe` | 5 |
+| 6 Split | `agent-plugins-8t8v` | 3 |
 
-So: **beads did not deprecate the thing that is broken.** The audit table is
-load-bearing 1.1-line infrastructure. What broke is that a 1.2.x migration
-relocated it somewhere the v1.2.2 binary cannot see, and v1.2.2 still writes to
-it on every mutation.
+Verified: **52 created, 0 dependency cycles, 0 `bd lint` warnings**, tracker
+pushed.
 
-**Which means the fix is for writing to the tracker at all** — `bd create`,
-`bd update`, labels, closes. Filing this plan's 52 beads with plain `bd create`
-is blocked just as `--graph` was. The D2 dispatch-record design is not what is
-at stake; it is one of many things downstream of a tracker that cannot be
-written.
+### The review pass found two defects, both fixed
 
-**A correction to D2 that this investigation surfaced.** `internal/types`
-declares `TypeEvent` as *"a system-internal type used by `set-state` for audit
-trail beads"*, and `TypeEvent.IsValid()` returns **false**. So
-`bd create --type=event` may be rejected outright, and the supported way to
-write an event bead is `bd set-state`, which creates one for you. That
-strengthens §10.7's conclusion — `set-state`, not raw event beads — and makes
-D2's wording wrong. Folded into spike S2 to settle.
+1. **All seven spikes linted dirty.** `bd lint` requires `## Goal` and
+   `## Findings` for `type=spike` — not `## Acceptance Criteria`. Every spike
+   was restructured to Goal / Context / Method / Findings, with the Findings
+   section carrying the ledger admission rule as its placeholder.
+2. **The root epic still said `## Acceptance Criteria`.** The pre-flight fix
+   reached the seven wave epics but missed the root. `bd lint` wants
+   `## Success Criteria` on `type=epic`.
 
-### Is there a better-advertised remedy? Not yet, but one path is unexplored
+Both are the same underlying gap: **`bd lint`'s per-type section requirements
+are not documented anywhere the authoring skills read**, so a graph is written
+against the wrong headings and only linting reveals it. Worth a bead against
+`groom-beads`.
 
-- **No newer release.** `proxy.golang.org` lists v1.2.2 as latest; there is no
-  upgrade-forward that speaks v65.
-- **`bd migrate schema` cannot help.** Its own help says migrations *"run
-  automatically on store open, so this subcommand is typically a no-op"* — and
-  the database claims to be *ahead* of the binary, so there is nothing pending
-  to apply.
-- **`bd doctor` is unavailable**: *"not yet supported in embedded mode."*
-- **Unexplored, and the most favorable lead: server mode.** `bd doctor`'s own
-  fallback advice ends with *"Switch to server mode: `bd init --server`"*, and
-  `bd sql` refuses only *"in embedded mode"*. Since `bd` embeds Dolt as a
-  library, `bd dolt start` may give a SQL surface **without the `dolt` CLI at
-  all** — enough to run `SHOW TABLES`, see whether `events` exists, and apply
-  the repair directly. That is a smaller and better-targeted step than building
-  dolt from source, and it should be tried first.
+### Spike S3 is already answered — by the act of filing
 
-**One honesty caveat about the guide's recommended fix.** Rolling the schema
-cursor back changes *metadata*; `table not found` is a SQL-level error. It is
-not certain the rollback alone restores the table — the guide's *optional* step
-(re-tracking `events` out of `dolt_ignore`) may be the operative one, or the
-table may genuinely be absent and need recreating. Establishing which is the
-first thing a SQL surface would answer.
+Recorded and closed as `agent-plugins-iwxu`. The graph is deliberately two levels
+deep, so filing it *was* the experiment. **Split verdict:**
 
-### The re-clone reproduced the documented `sync.remote` trap
+- `bd ready --parent <root>` returned 12 items **including grandchildren** —
+  **it traverses.** But it also returns the wave epics themselves, which are not
+  workable; `--exclude-type=epic` gives the real queue.
+- `bd swarm validate <root>` reported **"Total issues: 7"** and analysed only
+  the direct children — **it does not traverse.** One level down, on a wave
+  epic, it correctly resolved 12 leaves into 3 ready fronts.
 
-*Measured, as a side effect of trying option 1.* Running `bd bootstrap` by hand
-re-introduced the key the repository forbids: `.beads/config.yaml` came back
-carrying
+**Consequences:** P4 must run `swarm validate` **per wave epic**, never on the
+sprint root, where it returns a useless answer that looks valid. P8 is viable
+for the queue but not for wave derivation — a cross-epic sprint needs
+`swarm validate` per member epic, composed.
 
-```yaml
-sync:
-    remote: "git+https://github.com/brettcallaghan/agent-plugins"
-```
+## How the tracker was repaired
 
-two lines above its own comment reading *"DO NOT ADD `sync.remote` HERE, and do
-not restore it if you see it removed."* Committing it breaks bootstrap on every
-fresh clone — `bd` refuses the value it just wrote, then reports success anyway
-and leaves the tracker empty. `bd bootstrap` also rewrote
-`.beads/metadata.json` without its trailing newline.
+The blocker was never `sync.remote`, and never the schema cursor alone. A
+v1.2.x migration moved the `events` audit table into `dolt_ignore`; ignored
+tables are never staged or committed, so the table never travelled to any
+clone, while the v65 cursor — which lives in the tracked `schema_migrations`
+— did. Every `bd` write that records an audit event therefore failed with
+`table not found: events` in every clone, while reads and `bd comment` worked.
 
-Both were reverted, uncommitted. The tracker still reads correctly afterwards
-and the Dolt remote is still wired — because it lives in
-`.beads/embeddeddolt/beads/.dolt/repo_state.json`, which is untracked, and that
-is where it belongs.
+**bd's official mechanism cannot self-heal this.** `bd migrate schema` is
+cursor-driven (`INSERT IGNORE INTO <cursor> (version, content_hash)`), so
+migration `0005_create_events` is recorded as applied and skipped even though
+its table is gone. There is no drift detection. That is a bd defect
+independent of the v1.2.1 accident, and it is why the repair had to be manual.
 
-**The gap this exposes:** the SessionStart hook strips `sync.remote` after *its*
-bootstrap, but the strip runs only at session start. Any `bd bootstrap` invoked
-later — by a human, by a recovery procedure, or by an agent doing exactly what
-this session did — re-introduces the key with nothing to remove it, and
-`bead-bonanza`'s close ceremony stages everything in the tree, so it would ride
-into a bead's close commit. Filed below.
+The repair, in two parts:
 
-| id | Item | Wave |
-|----|------|------|
-| E10 | **Strip `sync.remote` after any bootstrap, not just the hook's.** Make the strip a step of whatever performs a bootstrap rather than a step of session start, so a mid-session re-clone cannot leave the forbidden key in a tracked file for the close ceremony to commit. Reproduced this session. | 1 |
+1. **Cursor rollback** (the guide's recommended fix) — restored the schema
+   version and replicated correctly. Verified: a fresh clone stopped warning
+   about skew.
+2. **Re-create and track the `events` table** — the part the guide only
+   covers for a machine that still *has* the table. No reachable copy did, so
+   `DOLT_ADD -f events` had nothing to stage. The table was created from
+   **bd's own DDL**, obtained by running `bd init` into an empty directory and
+   reading `SHOW CREATE TABLE events` from the result, then `DOLT_ADD -f` +
+   `DOLT_COMMIT` + push.
 
-### Correction: `sync.remote` in `config.yaml` is not what breaks a pull
-
-*Measured in this container, which has no `sync:` block in
-`.beads/config.yaml` at all:* `bd dolt pull` → "Pull complete.", `bd dolt push`
-→ "Push complete.", and `bd bootstrap` cloned 265 issues from the remote. So the
-config comment's rationale holds: the remote lives in the Dolt config
-(`repo_state.json`), not in the tracked YAML, and omitting the key costs
-nothing.
-
-A local checkout that cannot pull is therefore missing the remote from its
-**Dolt** config, not from `config.yaml`. The lever is
-`bd dolt remote add origin git+https://github.com/brettcallaghan/agent-plugins`
-— note **no `.git` suffix**; that is the exact string this container's working
-remote carries, and bd's own validator is strict about the form of this value.
-`bd bootstrap` on an absent database wires the same thing automatically, which
-is how this container got it.
-
-### The rebuild attempt, and what it proved
-
-**The mechanism is confirmed, and it is not the schema cursor.** Two measurements:
-
-| Test | Result |
-|---|---|
-| `bd init` a fresh v1.2.2 database in an **empty** directory, then `bd create` | **write succeeds** |
-| `bd create` against the cloned project database | fails — `table not found: events` |
-
-So a v1.2.2 database created by `bd init` **has** the `events` table. The cloned
-one does not, because a v1.2.x migration moved that table into `dolt_ignore` —
-and ignored tables are never staged or committed, so they never travel to a
-clone. The v65 *cursor* travels (`schema_migrations` is tracked); the *table*
-does not. That is the whole failure, and it explains why beads were created
-normally through 2026-08-18 on a machine that had the table.
-
-**The in-place rebuild failed, and failed instructively.** `bd init` +
-`bd import` run inside the repository did not create a fresh database: `bd
-init`'s "database already exists" probe **matched the tracked `.beads`
-DIRECTORY** (`config.yaml`, `metadata.json`, `hooks/`), so it no-op'd, and the
-import layered onto the same broken v65 database.
-
-That is precisely the bug `.beads/config.yaml` documents for `bd bootstrap` —
-same probe, same false positive, a second command. The comment is right about
-the mechanism and should say so in its **first** line rather than its last: *the
-"already exists" probe matches the `.beads` directory, so `init` and `bootstrap`
-both no-op in a repository that tracks it.*
-
-**`bd init` also did four things nobody asked for**, all captured in a commit it
-made itself, authored as Claude, and all reverted:
-
-1. **Wrote `sync.remote` into `.beads/config.yaml`** — directly beneath the
-   comment reading *"DO NOT ADD `sync.remote` HERE, and do not restore it if you
-   see it removed."* Live proof of the writer/validator disagreement that
-   comment describes.
-2. Rewrote all five `.beads/hooks/*` scripts.
-3. Stripped the trailing newline from `.beads/metadata.json`.
-4. **Appended a 24-line `BEADS CODEX SETUP` block to `AGENTS.md`** — editing the
-   project's agent instructions as a side effect of initialising a database.
-
-Then it **git-committed all of it**. Had that reached the branch it would have
-re-broken every future clone via item 1 and silently rewritten `AGENTS.md` via
-item 4. Caught only because a stop hook flagged an unpushed commit.
-
-**The corrected procedure**, not yet run: build the database where `bd` will
-actually create one — `bd init --prefix agent-plugins` in an empty temp
-directory, `bd import` the backup there, verify the count and the id set, prove
-a write succeeds — then move it into `.beads/embeddeddolt` and re-add the
-remote. Only the final `bd dolt push` is outward-facing, and per the guide that
-path loses audit events written under v1.2.1 and can resurrect issues deleted
-after the upgrade; diff the id sets to bound the second.
-
-**Verified safe throughout.** A `bd export --all` snapshot (265 issues, 265
-unique ids, 542 comments) is on disk, two copies of the v65 database are
-retained, and the working checkout was restored to a clean clone whose id set
-diffs identically against that snapshot.
-
-### RESOLVED IN PRINCIPLE — the cursor fix landed; the table fix is proven and pending
-
-**The schema-cursor rollback worked and replicated.** A fresh `bd bootstrap`
-clone from the remote now reports **no schema-skew warning** and 265 issues.
-`refs/dolt/data` moved `cdb3b85a` → `42583fdb`. That half is done.
-
-**Writes still fail, for the reason predicted.** On that same fresh clone,
-`bd create` and `bd update --add-label` both still fail with `table not found:
-events`. The cursor is versioned and travels; the `events` table is in
-`dolt_ignore`, is never committed, and therefore never reaches any clone.
-
-**Three repair paths were tested and do not work** (all on a throwaway clone):
-
-| Attempt | Result |
-|---|---|
-| `bd dolt pull` into the existing database | writes still fail |
-| Fresh `bd bootstrap` clone from the fixed remote | writes still fail |
-| `bd init --reinit-local --discard-remote --destroy-token=…` | **keeps the existing database** — never re-creates the schema, so the table stays missing |
-| `bd doctor` | not supported in embedded mode |
-
-**One path works, and it is lossless.** A database built from *nothing* — `bd
-init` in a directory with no existing database *and no origin to bootstrap
-from* — carries the full v53 schema including `events`. Importing the export
-into it restores everything:
-
-| Property | Original | Rebuilt |
-|---|---|---|
-| Issues | 265 | 265 |
-| Unique ids | 265, identical set | 265, identical set |
-| Comments | 542 | 542 |
-| Dependencies | 362 | 362 |
-| Statuses | 1 blocked / 201 closed / 11 deferred / 1 in_progress / 51 open | identical |
-| **`bd create`** | **fails** | **succeeds** |
-
-**The proven procedure**, needing no `dolt` CLI:
-
-```sh
-bd export --all -o recovery-backup.jsonl        # from any readable clone
-mkdir /tmp/rebuild && cd /tmp/rebuild && git init      # NO origin: bd must not
-BD_NON_INTERACTIVE=1 bd init --prefix agent-plugins    #   bootstrap the broken
-bd import recovery-backup.jsonl                        #   schema back in
-bd create --title probe --type task                    # confirm a write works
-# then move .beads/embeddeddolt into the real checkout, re-add the Dolt remote,
-# and push — which replaces the remote's Dolt history.
-```
-
-**The guide's caveat about resurrecting deleted issues does not apply here.**
-That warning concerns restoring an *old* backup; this export is taken from the
-current post-migration state, so nothing deleted comes back. The only loss is
-audit-event history, which is the thing already broken.
-
-**The remaining step is outward-facing and unrun:** the final push replaces the
-remote's Dolt history (a `--discard-remote` force-push). It needs a decision,
-not a discovery.
+**Getting the DDL from bd rather than by hand mattered.** A reconstruction
+composed here from the migration chain matched on every column, index and
+foreign key — and omitted
+`ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_bin`. That
+collation is *binary*; the server default is case-insensitive, and the column
+carrying it is the foreign key into `issues(id)`. Never hand-compose a schema
+when the tool will emit it.
 
 ### One stray artifact
 
