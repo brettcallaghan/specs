@@ -418,7 +418,7 @@ bead-bonanza dispatches **only groomed beads.** Every later phase already
 assumes grooming's outputs: Phase 1's `bd ready` ordering comes from the
 dependency graph grooming wires; this gate's own cheap check reads the
 `decision-required` label grooming sets (DoR check 9); Phase 2.5 reads the
-`tier:` assignment grooming makes. An ungroomed queue makes every one of them
+tier assignment grooming makes. An ungroomed queue makes every one of them
 unreliable — and handing a fresh, zero-context subagent an under-specified
 bead is the single most expensive failure mode this skill has: it detonates
 mid-wave, after later beads have built on it.
@@ -592,10 +592,9 @@ ordinary judgment; whether it is *safe* is the entry conditions above.
 ### Tier selection per bead
 
 Beads carry a **capability tier** from the grooming phase — the Phase 1.5
-gate guarantees one (grooming assigns a default, never null): a
-machine-readable label `tier:<name>` and/or a `Tier:` line in the bead's
-notes (visible in `bd show`). The tiers are ordered, least to most
-capable:
+gate guarantees one (grooming assigns a default, never null), stored as
+`metadata.tier` — the single home for it, and the one grooming writes. The
+tiers are ordered, least to most capable:
 
 ```
 light  →  standard  →  advanced  →  frontier
@@ -606,8 +605,13 @@ routes correctly. Resolve tier → model from the project's `## model
 lineup` block in `AGENTS.md`, echoed by Phase 0. Honor these:
 
 - **Collect during Phase 1.5** — you're already reading each bead's
-  readiness signals; record its tier then. `bd list --label tier:standard
-  --json` also works for bulk queries.
+  readiness signals; record its tier then. For a bulk query, read the
+  metadata and **pass `--status all`**: `bd list` defaults to open issues, so
+  a filter written without it silently under-counts a groomed backlog.
+
+  ```sh
+  bd list --status all --json | jq '[.[] | select(.metadata.tier == "standard")] | length'
+  ```
 - **Dispatch at the resolved model** — pass `model: "<resolved>"` on the
   `Agent` tool call for that bead's subagent. Absent a lineup, omit the
   param (the subagent inherits the session model) and say so once.
@@ -867,7 +871,7 @@ with any RFCs in a single commit.
   the circuit breaker above is what stops the run. If a subagent crashes
   mid-step, follow the recovery procedure (the worktree and the bead are the
   anchors).
-- **Route by tier, and report every escalation.** A bead's `tier:` label is
+- **Route by tier, and report every escalation.** A bead's `metadata.tier` is
   grooming's *prediction* of the capability the work needs; resolve it to a
   model via the project's `## model lineup` and dispatch there (Phase 2.5 → Tier
   selection). Assign nothing below the tier; escalate one tier on repeated

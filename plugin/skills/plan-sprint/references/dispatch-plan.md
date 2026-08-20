@@ -87,7 +87,7 @@ step 4's scope test, and only as an amendment.
 | 3 | demo-d3j | isolated | sequential | advanced | — | validator change; different surface |
 ```
 
-`Tier` is the bead's `tier:` label, resolved to a model at dispatch via the
+`Tier` is the bead's `metadata.tier`, resolved to a model at dispatch via the
 project's `## model lineup`. Leave it blank only when the project declares no
 lineup — the subagent then inherits the session model.
 

@@ -31,7 +31,7 @@ worktree, edits a bead's code, or spawns an agent.
 | Run id and `RUN_DIR` | `dispatch.md` lives at `<RUN_DIR>/dispatch.md` and its manifest header is already written |
 | The **enumerated bead id list** | Explicit ids, never the filter that produced them. A filter re-evaluated now returns a different set and admits beads nobody scoped |
 | Gate profile and gate baseline | A gate recorded `fail` in the baseline sets "no findings beyond the baseline" as the bar, not exit 0 |
-| Model lineup | Resolves a bead's `tier:` to a model; leave the `Tier` column's model blank where the project declares none |
+| Model lineup | Resolves a bead's `metadata.tier` to a model; leave the `Tier` column's model blank where the project declares none |
 | Standing authorization | What the user authorized without further asking (push mode, PR, scope) |
 | The grooming wave preview | The candidate partition, WHEN one was produced |
 
@@ -159,7 +159,7 @@ in a way that assumes otherwise.
    override. Not the default. If you find yourself defaulting here for >1 bead
    in a row, reconsider — they probably belong in a shared batch.
 
-Tier is not a bucketing decision of yours: carry each bead's `tier:` label into
+Tier is not a bucketing decision of yours: carry each bead's `metadata.tier` into
 the wave table's `Tier` column as grooming assigned it, and leave the
 resolution and any escalation to the orchestrator at dispatch.
 
