@@ -55,6 +55,8 @@
 # interchange. It is not a backup.
 export:
     auto: false
+sync:
+    remote: "git+ssh://github.com/brettcallaghan/agent-plugins.git"
 
 # DO NOT ADD `sync.remote` HERE, and do not restore it if you see it removed.
 #
