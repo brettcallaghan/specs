@@ -28,6 +28,15 @@ this repository's own tracker.
 
 ## 1. The workflow, step by step
 
+**This is a frozen baseline, measured 2026-08-19, and it stays frozen** — a
+research record that quietly rewrites itself stops being evidence. The *living*
+map is the delta log in
+[`docs/plans/bead-bonanza-renovation.md`](../../plans/bead-bonanza-renovation.md),
+which records every add / update / delete against these step numbers as the
+waves execute. Read the two side by side for before-and-after. When the plan's
+log is fully `done`, this section is reissued as a second dated snapshot rather
+than edited.
+
 Every step a run executes, nested. The tag names who performs it — **[O]**
 orchestrator, **[S]** subagent, **[X]** script, **[K]** a separate skill. That
 distinction is the argument of section 2.
@@ -720,7 +729,10 @@ and counting the residue.
 
 ## 8. Recommendations
 
-Ranked by expected reduction in failure rate per unit of work.
+Ranked by expected reduction in failure rate per unit of work. **Sequenced into
+waves, with the review decisions applied, in
+[`docs/plans/bead-bonanza-renovation.md`](../../plans/bead-bonanza-renovation.md)** —
+read that for execution order; this section is the rationale behind each item.
 
 ### Tier 1 — changes what the skill can survive
 
@@ -739,8 +751,12 @@ high.
 script, one argument, printing every checklist item with a verified state and
 the command that established it. Every item marked mechanical in §5.3 is
 already a one-line shell or `bd` query; the five acceptance signals are the
-core. Run it after every bead instead of performing the signals by hand, at
-every wave boundary, and as `recover-sprint`'s first step. *Evidence:* two
+core. **Who runs it: the orchestrator, and any recovering session — never a
+subagent.** A subagent has no business auditing the run, and inside its own
+worktree the acceptance signals read differently by construction, since its
+worktree exists because it is standing in it. So: after every bead's acceptance
+check, at every wave boundary, as `recover-sprint`'s first step, and by any
+session a durable trigger wakes. *Evidence:* two
 orchestrator conformance failures in one run. *Effort:* medium.
 
 **R3. Make the sprint an epic, and the epic the queue.** Create (or require) an
@@ -768,10 +784,14 @@ not viable is keeping the filter — the "enumerate, never filter" rule exists
 because a re-evaluated filter admits beads nobody scoped, and that hazard is
 real whichever option wins.
 
-**R4. Give the subagent a first-class record.** At dispatch, create a durable
-record — an event bead, a wisp, or a row in `dispatch.json` — carrying dispatch
-id, model, tier, worktree path, assigned beads, dispatch time and terminal
-state. Close it on return. This is the missing middle of the hierarchy: it
+**R4. Give the subagent a first-class record — two event beads per dispatch.**
+Of the three candidates the event bead is the only one that is both durable and
+independent of how many beads a subagent holds: a wisp is not synced, so it dies
+with the container, which is the failure being designed against; a row in
+`dispatch.json` makes a mutable blob with concurrent writers. Two events
+(`dispatched`, `returned`) carry dispatch id, model, tier, worktree path,
+assigned beads, dispatch time and terminal state — ~2 per subagent, not ~8 per
+bead. This is the missing middle of the hierarchy: it
 makes "which agent is running and what is it holding" a query rather than an
 inference, disambiguates a batch's shared worktree from a failed removal
 without the three-case prose rule, makes a lost notification a comparison
@@ -798,13 +818,21 @@ caveat into the bead as a `retro:`-adjacent note or a metadata key and delete
 per bead. *Effort:* medium. *Cost:* the live stream becomes a poll over
 `git log` rather than a `tail -F` push — unverified.
 
-**R6. Triage the retro into beads in the same turn.** §7.1's six-step shape.
-Keep the report complete; make the RFC an escalation rather than the default;
-ask once, at the point of maximum context.
+**R6. Triage the retro into beads in the same turn, and drop the RFC format
+for self-authored findings.** The objective is to identify high-quality issues,
+report each with a summary, and let a human decide bead-or-not per issue — not
+to author a proposal document. Keep the sprint report complete, since it is the
+substrate recurrence detection runs on; on top of it produce N candidate issues,
+each with a proposed title, priority, one-paragraph summary and the finding ids
+it rests on, and ask once which to file. The RFC pipeline survives for its
+original purpose — proposals arriving from *other* projects using the plugin,
+which is what `triage-rfc` exists for.
 
-**R7. Structure the retro finding prefix.** `retro:<kind>[:<target>]`, seven
-kinds, six already in the Findings Capture Protocol. Keep 1–3 sentences and
-keep analysis out. Validate the taxonomy against the 73 findings on disk first.
+**R7. Structure the retro finding prefix.** *Held.* `retro:<kind>[:<target>]`,
+seven kinds, six already in the Findings Capture Protocol, is the shape — but a
+taxonomy decided before the flow it feeds is a guess. Decide it inside the
+end-to-end retro design (plan wave 5, T1), then validate against the 73 findings
+already on disk.
 
 **R8. Fix the tier double-store, and adopt beads' metadata convention.** Pick
 metadata as the single home, delete the `tier:` label path from
@@ -813,8 +841,20 @@ it returns 0. Then rename toward `execution_suggested_model` /
 `execution_reasoning_effort` / `execution_parallel_group` so the beads are
 portable and the `effort: unrecorded` hole closes.
 
-**R9. Adopt `bd ready --claim` and `bd merge-slot`.** Atomic claiming removes
-the race the "never reset a claim you did not set" rule papers over. The merge
+*Is this a reason to prioritize a config file?* For the project-level half, yes.
+The tier keys themselves are per-bead metadata and a config file does not touch
+them. What a config file replaces is the `## model lineup` block, which the
+orchestrator still reads as prose — and paired with R11's `checks` script it
+retires the last executable or routing fact parsed out of markdown.
+
+**R9. Adopt `bd update <id> --claim` and `bd merge-slot`.** *Corrected — the
+first pass named `bd ready --claim`, which is the wrong command.* That one
+claims *the first ready issue matching the filters* — a pull model for a worker
+choosing its own work. An orchestrator dispatches a **named** bead, so it wants
+`bd update <id> --claim`: "atomically claim the issue (sets assignee to you,
+status to in_progress; idempotent if already claimed by you)". Same atomicity,
+right target. Atomic claiming removes the race the "never reset a claim you did
+not set" rule papers over. The merge
 slot makes serialized merging a lock the whole run can see rather than a
 discipline the orchestrator maintains — which is exactly the invariant that
 broke in the 2026-08-15 rebase incident.
@@ -823,8 +863,12 @@ broke in the 2026-08-15 rebase incident.
 snapshot's "nothing is lost" fallback does not survive a squash merge — state
 it or stop deleting. (b) `bd show --json` now reports `comment_count`
 correctly; the rule to use `bd export` is right but its stated reason is wrong.
-(c) Add a ledger entry for the v65/v53 schema skew and
-`BD_IGNORE_SCHEMA_SKEW=1`, which every `bd` call in this container needs.
+(c) Add an entry to the **environmental-failure ledger** for the v65/v53 schema
+skew and `BD_IGNORE_SCHEMA_SKEW=1`, which every `bd` call in this container
+needs. *That is a different ledger from the one R5 deletes* — the
+environmental-failure ledger in `AGENTS.md` and the dispatch manifest stays; the
+*progress* ledger (`<id>.progress.jsonl`) is what goes. The word collision is
+itself a defect, and it resolves once R5 lands.
 
 **R13. Settle what `CLAUDE_CODE_SUBAGENT_MODEL` actually overrides.** The
 skill states flatly that when the variable is set "every subagent runs at that
@@ -836,7 +880,10 @@ without an explicit model defined", and Claude Code issue #10993 exists because
 the behaviour is undocumented. `bead-bonanza` always passes `model:`
 per-invocation, so if the parameter wins, routing *does* happen and Phase 4
 discards two correct tables. Settle it with one dispatch, then fix the branch.
-*Effort:* trivial to test.
+**This is a spike, not a change** — its output is a fact plus a follow-up bead,
+and `bd` has a built-in `spike` type for exactly this. All the unverified claims
+in §9 get the same treatment; they are wave 0 of the plan. *Effort:* trivial to
+test.
 
 **R14. Delete the `--gate-baseline` flag, and let the no-Agent condition be
 asserted.** The baseline becomes unconditional — `pre-flight-check.sh <run-id>`
