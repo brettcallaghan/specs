@@ -470,16 +470,20 @@ local-clone problem and no amount of re-cloning fixes it. Nothing was lost: the
 fresh clone is intact and the pre-recovery copy is retained at
 `.beads/embeddeddolt.pre-recovery.*` (gitignored).
 
-**Option 2 is not available in this container.** The `dolt` CLI is not
-installed, and it cannot be: `proxy.golang.org` serves
-`github.com/dolthub/dolt/go` only up to **v0.40.4 (2022-05-19)**, far too old to
-point at a current database, and `github.com/.../releases` returns 403 through
-the egress proxy.
+**Option 2 is available after all — an earlier claim here was too strong and is
+corrected.** The `dolt` CLI is not installed, and two acquisition routes fail:
+`proxy.golang.org` serves `github.com/dolthub/dolt/go` only up to **v0.40.4
+(2022-05-19)**, far too old to point at a current database, and
+`github.com/.../releases` returns 403 through the egress proxy. But **a git
+clone works** — `git ls-remote https://github.com/dolthub/dolt` succeeds and
+lists **v2.3.1** — so dolt can be built from source here, which is the same
+pattern this repository already uses for `strata` and the same fallback the `bd`
+installer takes when the release API is blocked. Budget a large Go build.
 
-**That leaves option 3, and it is now the only path:** the fix has to be applied
-on a machine that already has `dolt`, then pushed once. Because the cursor
-replicates, one machine fixing and pushing repairs every clone — including this
-container, which then only has to `bd dolt pull`.
+**So both option 2 and option 3 remain open, and the choice between them is
+about where the blast radius is visible rather than about capability.** Either
+way the fix replicates: one machine repairs the cursor and pushes, and every
+other clone — including this container — repairs itself with `bd dolt pull`.
 
 The two commands, from the guide, run in `.beads/embeddeddolt/beads`:
 
