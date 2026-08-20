@@ -197,9 +197,9 @@ After each subagent returns:
 
 
    **Signals this check deliberately does NOT use.** There is no per-bead retro
-   FILE: findings are `retro:` comments on the bead, and
-   `<bead-id>.handoff.md` is a recovery anchor that carries no findings and is
-   not evidence of acceptance.
+   FILE and no per-bead handoff file: findings are `retro:` comments on the
+   bead, and a `caveat:` comment says only what the close must do differently.
+   Neither is evidence of acceptance.
 
    **A subagent that never returns is checked by these same five signals.** A
    lost completion notification is not evidence of an unfinished bead, and it
@@ -295,7 +295,7 @@ to read it:
 ```
 pre-flight-check.sh <run-id> [--gate-baseline] [--self-test]   # sandbox ON
 bb-verify-skip.sh [pathspec ...]        # no pathspec = whole working tree
-bb-close-bead.sh [--run-dir <path>] [--trailers-file <path>] <bead-id> <priority> <title> [path ...]
+bb-close-bead.sh [--trailers-file <path>] <bead-id> <priority> <title> [path ...]
 ```
 
 - **`scripts/pre-flight-check.sh`** — Phase 0, mechanized. Human report on
@@ -748,8 +748,7 @@ closed at least one bead**, not only on a run that struggled.
 **Read the run's records; do not re-derive the run.** The inputs are the
 harvested `retro:` comments, the tables you just printed (3a escalations, 3b
 over-routes, 4 follow-up and admitted/bounced beads), `dispatch.md`'s
-`## Amendments` log, the per-bead `<bead-id>.handoff.md` under `$RUN_DIR`,
-and `git log` on the sprint branch. Do NOT re-read diffs, re-run gates, or re-open the beads' work. A
+`## Amendments` log, and `git log` on the sprint branch. Do NOT re-read diffs, re-run gates, or re-open the beads' work. A
 retro that costs a second pass over the run is a retro that gets skipped.
 
 **Harvest first, then assert.** Findings are `retro:` comments on the beads —
@@ -866,7 +865,8 @@ with any RFCs in a single commit.
   the dispatch plan is session-scratch.
 - **Fail loudly, recover quietly.** If a subagent blocks, log it and move on;
   the circuit breaker above is what stops the run. If a subagent crashes
-  mid-step, follow the recovery procedure (the handoff file is the anchor).
+  mid-step, follow the recovery procedure (the worktree and the bead are the
+  anchors).
 - **Route by tier, and report every escalation.** A bead's `tier:` label is
   grooming's *prediction* of the capability the work needs; resolve it to a
   model via the project's `## model lineup` and dispatch there (Phase 2.5 → Tier

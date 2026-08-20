@@ -15,10 +15,9 @@ statement.
 
 ## One commit per bead, always
 
-Every closed bead = exactly one commit on the branch. The handoff file is
-written BEFORE the close ceremony (crash recovery anchor); the close happens
-via a plain `bd update --status closed` BEFORE staging, so the close is
-folded into the implementation commit. Closing never rewrites the
+Every closed bead = exactly one commit on the branch. The close happens via a
+plain `bd update --status closed` BEFORE staging, so the close is folded into
+the implementation commit. Closing never rewrites the
 description — grooming owns it.
 
 ### No exceptions: the worktree holds interrupted work

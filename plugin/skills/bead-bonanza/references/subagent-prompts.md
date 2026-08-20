@@ -89,7 +89,6 @@ Implicit decisions (subagent picks unless overridden): {IMPLICIT_NOTES}
 Gates: format=`{FORMAT}` lint=`{LINT}` build=`{BUILD}` test=`{TEST}` regen=`{REGEN or "none"}` custom=`{CUSTOM_GATES or "none"}`
 Push mode: {push_per_bead | defer_push}
 Worktree: {WORKTREE}        (work HERE, not in the main checkout; it is yours alone)
-Run dir: {RUN_DIR}          (handoff files live here)
 Scripts: {SCRIPTS}          (bb-verify-skip.sh, bb-close-bead.sh)
 Trailers file: {TRAILERS_FILE or "none"}   (Phase 0 resolved; pass to bb-close-bead.sh --trailers-file)
 
@@ -109,23 +108,14 @@ Write no progress file.
    - `{TEST}`
    - Any custom gates from the profile: `{CUSTOM_GATES}` (skip if none)
    On gate failure, fix the root cause and rerun. After two full failed cycles, follow the Blocked path — do not keep retrying.
-5. **Write the handoff file BEFORE closing the bead** (crash recovery anchor — non-negotiable). Write `{RUN_DIR}/{ID}.handoff.md` as a `# {ID} handoff` heading plus exactly one labeled line, and nothing else:
-   - `Caveat:` — anything the close must do differently: a regen step that must run before staging, a fixture this bead regenerated. Write `none` when there is none.
-
-   **No `Paths:` line.** You are in this bead's own worktree, so everything dirty here is yours by construction and the close stages all of it — a path list can only be too narrow.
-
-   Three lines total is typical. Do NOT restate the diff, the gates, or the bead, and do NOT put findings in it — those are step 6.
+5. **WHEN the close must do something differently, record it on the bead before closing** — `bd comment {ID} "caveat: <what and why>"`. A regen step that must run before staging, a fixture this bead regenerated. **Only when there is one**; a bead with nothing to say records nothing. It goes on the bead rather than in a file because the tracker is what a recovering orchestrator already reads, and a caveat that outlives the container is worth more than one that does not.
 6. **Record findings as `retro:` comments on {ID}** — one `bd comment` per finding, prefixed `retro:`, 1–3 sentences each, friction only, no root-causing. That comment channel is what downstream retros and RFCs actually read. Trigger list — record one WHEN: you needed information the bead and its references did not carry; you had to settle something the bead or spec should have pinned; the bead contradicted repo reality; you could not satisfy an acceptance criterion as declared; a sequencing surprise. **Work, not friction.** IF what you found is a unit of work someone must do — a gap in scope, a missing artifact, a prerequisite — it is a BEAD (step 3), not a retro comment, even when it also reads as friction. File it, then optionally record a `retro:` comment about *why the gap existed*. A retro comment is read by a later retrospective; a bead is read by this run's orchestrator, and routing work here means nothing acts on it before the run ends. **A clean bead records none — say so rather than inventing filler.** Record each of these as its own `retro:` comment too:
      - **What you tried that did not work** — the reading you took first and abandoned, and why. The diff shows only the reading that survived, so this is unrecoverable later.
      - **What you decided silently** — only choices a diff-reader would not recognise AS choices. Narrower than "every implicit decision": an internal helper's name or the order of two independent guard clauses qualifies; the approach the bead already specified does not.
      - **For a defect bead: the observed pre-fix failure**, quoted from actual output. If you could not reproduce it, say so and say what you substituted.
 7. Close and commit in one step — run the bundled script. WHEN `{TRAILERS_FILE}` is not "none", pass it first so the trailers land in the same commit and no amend is ever needed:
-   `{SCRIPTS}/bb-close-bead.sh --run-dir {RUN_DIR} --trailers-file {TRAILERS_FILE} {ID} {PRIORITY} "{TITLE}"`
-   Otherwise (`{TRAILERS_FILE}` is "none"): `{SCRIPTS}/bb-close-bead.sh --run-dir {RUN_DIR} {ID} {PRIORITY} "{TITLE}"`
-   `--run-dir` lets the ceremony guarantee the crash-recovery anchor: WHEN step
-   5's handoff file is missing it writes a minimal one BEFORE the close, so a
-   crash anywhere in the ceremony still leaves an anchor. It never overwrites
-   yours, is written outside the worktree, and is never staged.
+   `{SCRIPTS}/bb-close-bead.sh --trailers-file {TRAILERS_FILE} {ID} {PRIORITY} "{TITLE}"`
+   Otherwise (`{TRAILERS_FILE}` is "none"): `{SCRIPTS}/bb-close-bead.sh {ID} {PRIORITY} "{TITLE}"`
    **Pass no paths.** You are in this bead's own worktree, so everything modified here is this bead's work and the script stages all of it. A path list can only be too narrow.
    It performs the whole ceremony in the required order: atomic close (`bd update --status closed`, never `bd close` — that would be a second commit), verify the close against the DATABASE (`bd show`) before anything is staged, stage **code only** (`git add -A -- ':!.beads/*.jsonl'`), one commit messaged `{ID} P{PRIORITY} {TITLE}` (plus the trailers file's contents in the body, when given), then `bd dolt push` — the push, not a file, is what makes the closure durable. It writes and stages no `.beads/` export, and neither do you. It does not touch the description — grooming owns that. It refuses to run on `main` or with nothing staged. Do not perform these steps by hand, and do not `git commit --amend` afterward — if a required trailer is missing, that means `{TRAILERS_FILE}` was resolved wrong at Phase 0, not something to patch here.
 8. If push mode is `push_per_bead`: `git push origin <branch>` on the current branch (never main). If `defer_push`: skip the push; the orchestrator handles it.
@@ -160,7 +150,7 @@ If the bead is already addressed, malformed, or duplicates a closed bead:
 - Do not ask the user questions. Decisions are baked into this prompt.
 - Do not modify code outside this bead's scope.
 - Never reset or reclaim a bead's status that you did not set yourself. A bead already `in_progress` when you arrive belongs to another agent — treat it as untouchable, exactly like foreign working-tree changes; leave claim reconciliation to the orchestrator.
-- If you realize a required step was missed (e.g. a regen step the handoff caveat named) after committing, add a NEW follow-up commit — never amend a commit that may already be pushed. (Amending a local commit you are certain is unpushed, to fold in a missed step, is fine.)
+- If you realize a required step was missed (e.g. a regen step a caveat named) after committing, add a NEW follow-up commit — never amend a commit that may already be pushed. (Amending a local commit you are certain is unpushed, to fold in a missed step, is fine.)
 - Only push the current branch — never push to main.
 ```
 
@@ -197,7 +187,7 @@ Run dir: {RUN_DIR}
 Scripts: {SCRIPTS}
 Trailers file: {TRAILERS_FILE or "none"}   (Phase 0 resolved; pass to bb-close-bead.sh --trailers-file)
 
-For each bead, first run the per-bead workflow (claim → read → implement → write handoff file → `retro:` comments → atomic close → stage → single commit → optional push) exactly as in the sequential template — including its close step's `--trailers-file {TRAILERS_FILE}` and reading the committed sha with `git rev-parse --short HEAD` rather than the script's printout — INCLUDING per-bead progress JSONL writes AND the per-bead handoff file write to `{RUN_DIR}/<bead-id>.handoff.md` BEFORE close. Then run the template-specific steps below.
+For each bead, first run the per-bead workflow (claim → read → implement → `retro:` comments → atomic close → stage → single commit → optional push) exactly as in the sequential template — including its close step's `--trailers-file {TRAILERS_FILE}` and reading the committed sha with `git rev-parse --short HEAD` rather than the script's printout. Then run the template-specific steps below.
 
 When the batch is done, return ONE message containing N+1 lines: one per-bead summary, then a final `batch-end: full gates {passed|failed}`.
 ```
@@ -341,7 +331,7 @@ the repo are reported as uncommitted work by anything reading `git status`, and
 committing them lands in-flight bead state on the sprint branch.
 
 1. **Dispatch** the subagent with the per-bead template, telling it to work in
-   `$WT`. It implements, gates, writes its handoff, records findings, and
+   `$WT`. It implements, gates, records findings, and
    closes with `../scripts/bb-close-bead.sh` — passing **no paths**, since everything in
    that tree is this bead's work.
 2. **Accept**: verify the bead reads `closed` and its commit exists on the

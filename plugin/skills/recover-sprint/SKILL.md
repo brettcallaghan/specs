@@ -153,13 +153,13 @@ could not read the plan is a *reconstruction*, and says so — it is not a plan.
    - **Worktree present, bead not closed** — the bead is unfinished. Whether
      the work in it is complete is not knowable from any record, so **re-run
      the project's gate suite in the worktree** rather than inferring. Gates
-     clean means only the close is outstanding: read `<bead-id>.handoff.md`
-     for its caveat, honor it, then run bead-bonanza's close ceremony —
+     clean means only the close is outstanding: read the bead's comments for a
+     `caveat:` line, honor it, then run bead-bonanza's close ceremony —
      `scripts/bb-close-bead.sh <id> <priority> "<title>"`, resolved from that
      skill's own directory — from inside the bead's worktree, passing no
-     paths. The handoff file carries **only a caveat** — it is not a body for
-     the close, and the close script leaves the bead's description as grooming
-     wrote it. Gates failing means the work is partial: leave it in place and
+     paths. A caveat comment says only what the close must do differently — it
+     is not a body for the close, and the close script leaves the bead's
+     description as grooming wrote it. Gates failing means the work is partial: leave it in place and
      surface it.
    - **Worktree present, work partial or absent** — it may have died mid-work,
      or be finished and committed. Check `git log --grep=<id>` before you touch
