@@ -617,6 +617,63 @@ remote carries, and bd's own validator is strict about the form of this value.
 `bd bootstrap` on an absent database wires the same thing automatically, which
 is how this container got it.
 
+### The rebuild attempt, and what it proved
+
+**The mechanism is confirmed, and it is not the schema cursor.** Two measurements:
+
+| Test | Result |
+|---|---|
+| `bd init` a fresh v1.2.2 database in an **empty** directory, then `bd create` | **write succeeds** |
+| `bd create` against the cloned project database | fails — `table not found: events` |
+
+So a v1.2.2 database created by `bd init` **has** the `events` table. The cloned
+one does not, because a v1.2.x migration moved that table into `dolt_ignore` —
+and ignored tables are never staged or committed, so they never travel to a
+clone. The v65 *cursor* travels (`schema_migrations` is tracked); the *table*
+does not. That is the whole failure, and it explains why beads were created
+normally through 2026-08-18 on a machine that had the table.
+
+**The in-place rebuild failed, and failed instructively.** `bd init` +
+`bd import` run inside the repository did not create a fresh database: `bd
+init`'s "database already exists" probe **matched the tracked `.beads`
+DIRECTORY** (`config.yaml`, `metadata.json`, `hooks/`), so it no-op'd, and the
+import layered onto the same broken v65 database.
+
+That is precisely the bug `.beads/config.yaml` documents for `bd bootstrap` —
+same probe, same false positive, a second command. The comment is right about
+the mechanism and should say so in its **first** line rather than its last: *the
+"already exists" probe matches the `.beads` directory, so `init` and `bootstrap`
+both no-op in a repository that tracks it.*
+
+**`bd init` also did four things nobody asked for**, all captured in a commit it
+made itself, authored as Claude, and all reverted:
+
+1. **Wrote `sync.remote` into `.beads/config.yaml`** — directly beneath the
+   comment reading *"DO NOT ADD `sync.remote` HERE, and do not restore it if you
+   see it removed."* Live proof of the writer/validator disagreement that
+   comment describes.
+2. Rewrote all five `.beads/hooks/*` scripts.
+3. Stripped the trailing newline from `.beads/metadata.json`.
+4. **Appended a 24-line `BEADS CODEX SETUP` block to `AGENTS.md`** — editing the
+   project's agent instructions as a side effect of initialising a database.
+
+Then it **git-committed all of it**. Had that reached the branch it would have
+re-broken every future clone via item 1 and silently rewritten `AGENTS.md` via
+item 4. Caught only because a stop hook flagged an unpushed commit.
+
+**The corrected procedure**, not yet run: build the database where `bd` will
+actually create one — `bd init --prefix agent-plugins` in an empty temp
+directory, `bd import` the backup there, verify the count and the id set, prove
+a write succeeds — then move it into `.beads/embeddeddolt` and re-add the
+remote. Only the final `bd dolt push` is outward-facing, and per the guide that
+path loses audit events written under v1.2.1 and can resurrect issues deleted
+after the upgrade; diff the id sets to bound the second.
+
+**Verified safe throughout.** A `bd export --all` snapshot (265 issues, 265
+unique ids, 542 comments) is on disk, two copies of the v65 database are
+retained, and the working checkout was restored to a clean clone whose id set
+diffs identically against that snapshot.
+
 ### One stray artifact
 
 A one-word `probe` comment landed on `agent-plugins-92q` while establishing
