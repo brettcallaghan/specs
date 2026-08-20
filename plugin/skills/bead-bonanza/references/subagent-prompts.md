@@ -89,32 +89,32 @@ Implicit decisions (subagent picks unless overridden): {IMPLICIT_NOTES}
 Gates: format=`{FORMAT}` lint=`{LINT}` build=`{BUILD}` test=`{TEST}` regen=`{REGEN or "none"}` custom=`{CUSTOM_GATES or "none"}`
 Push mode: {push_per_bead | defer_push}
 Worktree: {WORKTREE}        (work HERE, not in the main checkout; it is yours alone)
-Run dir: {RUN_DIR}          (progress + handoff files live here)
-Scripts: {SCRIPTS}          (bb-progress.sh, bb-verify-skip.sh, bb-close-bead.sh)
+Run dir: {RUN_DIR}          (handoff files live here)
+Scripts: {SCRIPTS}          (bb-verify-skip.sh, bb-close-bead.sh)
 Trailers file: {TRAILERS_FILE or "none"}   (Phase 0 resolved; pass to bb-close-bead.sh --trailers-file)
 
 ## Workflow — follow in order, do not deviate
 
-Emit a progress event at each labeled step by running the bundled script:
-`{SCRIPTS}/bb-progress.sh "{RUN_DIR}" {ID} <phase> [key=value ...]`. It builds
-and appends the JSON itself — never hand-write an event.
+Progress is reported by the tracker, not by you: `bd` emits an event on every
+status change, so claiming and closing the bead is what the orchestrator sees.
+Write no progress file.
 
-1. `bb-progress.sh "$RUN_DIR" {ID} claimed`. Claim: `bd update {ID} --status in_progress`
+1. Claim: `bd update {ID} --status in_progress`
 2. Read full details: `bd show {ID}`
-3. `bb-progress.sh "$RUN_DIR" {ID} implementing`. Implement the change. **If this bead fixes a defect or regression, first write (or locate) a test that reproduces it and observe it FAIL for the stated reason BEFORE you fix it** — a test written after the fix encodes the fix's own assumptions and can stay green while the defect is live. Record the observed failure; it goes in a `retro:` comment (step 6). Stay strictly within this bead's scope. If you find work beyond it, file a new bead via `bd create` with a `discovered-from` link to {ID}, noting in one line whether it *blocks* this bead (a prerequisite, an acceptance-criteria decomposition, or an expected test-coverage gap) or is merely adjacent — the orchestrator decides whether it enters the run. Do NOT implement it or pull it into your own scope. This includes a gap you can see that is not yours to close — a document no bead in the queue claims, a step every adjacent bead assumed another would take. **"Not this bead's to close" is a reason to FILE it, not a reason to leave it unfiled.** If this bead genuinely cannot be finished without it, take the Blocked path naming the new bead as the blocker; otherwise continue with the original — do NOT expand scope inline. For any implicit decision you must make, record what you chose (and why) — it goes in a `retro:` comment (step 6).
-4. `bb-progress.sh "$RUN_DIR" {ID} gates-running`. **The push is the gate** — this is a single-bead push, so full gates run here before pushing. If the change affects generated output the tests compare against (codegen, snapshots, golden files, schemas) AND the gate profile defines a regen step, run `{REGEN}` BEFORE the test step.
+3. Implement the change. **If this bead fixes a defect or regression, first write (or locate) a test that reproduces it and observe it FAIL for the stated reason BEFORE you fix it** — a test written after the fix encodes the fix's own assumptions and can stay green while the defect is live. Record the observed failure; it goes in a `retro:` comment (step 6). Stay strictly within this bead's scope. If you find work beyond it, file a new bead via `bd create` with a `discovered-from` link to {ID}, noting in one line whether it *blocks* this bead (a prerequisite, an acceptance-criteria decomposition, or an expected test-coverage gap) or is merely adjacent — the orchestrator decides whether it enters the run. Do NOT implement it or pull it into your own scope. This includes a gap you can see that is not yours to close — a document no bead in the queue claims, a step every adjacent bead assumed another would take. **"Not this bead's to close" is a reason to FILE it, not a reason to leave it unfiled.** If this bead genuinely cannot be finished without it, take the Blocked path naming the new bead as the blocker; otherwise continue with the original — do NOT expand scope inline. For any implicit decision you must make, record what you chose (and why) — it goes in a `retro:` comment (step 6).
+4. **The push is the gate** — this is a single-bead push, so full gates run here before pushing. If the change affects generated output the tests compare against (codegen, snapshots, golden files, schemas) AND the gate profile defines a regen step, run `{REGEN}` BEFORE the test step.
    - `{FORMAT}`
    - `{LINT}`
    - `{BUILD}`
    - `{TEST}`
    - Any custom gates from the profile: `{CUSTOM_GATES}` (skip if none)
-   On gate failure, fix the root cause and rerun. After two full failed cycles, follow the Blocked path — do not keep retrying. Run `bb-progress.sh "$RUN_DIR" {ID} gates-passed` after success.
+   On gate failure, fix the root cause and rerun. After two full failed cycles, follow the Blocked path — do not keep retrying.
 5. **Write the handoff file BEFORE closing the bead** (crash recovery anchor — non-negotiable). Write `{RUN_DIR}/{ID}.handoff.md` as a `# {ID} handoff` heading plus exactly one labeled line, and nothing else:
    - `Caveat:` — anything the close must do differently: a regen step that must run before staging, a fixture this bead regenerated. Write `none` when there is none.
 
    **No `Paths:` line.** You are in this bead's own worktree, so everything dirty here is yours by construction and the close stages all of it — a path list can only be too narrow.
 
-   Three lines total is typical. Do NOT restate the phase (the progress JSONL has it), the diff, the gates, or the bead, and do NOT put findings in it — those are step 6. Run `bb-progress.sh "$RUN_DIR" {ID} retro-written` after the file is on disk (the phase vocabulary keeps that name).
+   Three lines total is typical. Do NOT restate the diff, the gates, or the bead, and do NOT put findings in it — those are step 6.
 6. **Record findings as `retro:` comments on {ID}** — one `bd comment` per finding, prefixed `retro:`, 1–3 sentences each, friction only, no root-causing. That comment channel is what downstream retros and RFCs actually read. Trigger list — record one WHEN: you needed information the bead and its references did not carry; you had to settle something the bead or spec should have pinned; the bead contradicted repo reality; you could not satisfy an acceptance criterion as declared; a sequencing surprise. **Work, not friction.** IF what you found is a unit of work someone must do — a gap in scope, a missing artifact, a prerequisite — it is a BEAD (step 3), not a retro comment, even when it also reads as friction. File it, then optionally record a `retro:` comment about *why the gap existed*. A retro comment is read by a later retrospective; a bead is read by this run's orchestrator, and routing work here means nothing acts on it before the run ends. **A clean bead records none — say so rather than inventing filler.** Record each of these as its own `retro:` comment too:
      - **What you tried that did not work** — the reading you took first and abandoned, and why. The diff shows only the reading that survived, so this is unrecoverable later.
      - **What you decided silently** — only choices a diff-reader would not recognise AS choices. Narrower than "every implicit decision": an internal helper's name or the order of two independent guard clauses qualifies; the approach the bead already specified does not.
@@ -128,9 +128,8 @@ and appends the JSON itself — never hand-write an event.
    yours, is written outside the worktree, and is never staged.
    **Pass no paths.** You are in this bead's own worktree, so everything modified here is this bead's work and the script stages all of it. A path list can only be too narrow.
    It performs the whole ceremony in the required order: atomic close (`bd update --status closed`, never `bd close` — that would be a second commit), verify the close against the DATABASE (`bd show`) before anything is staged, stage **code only** (`git add -A -- ':!.beads/*.jsonl'`), one commit messaged `{ID} P{PRIORITY} {TITLE}` (plus the trailers file's contents in the body, when given), then `bd dolt push` — the push, not a file, is what makes the closure durable. It writes and stages no `.beads/` export, and neither do you. It does not touch the description — grooming owns that. It refuses to run on `main` or with nothing staged. Do not perform these steps by hand, and do not `git commit --amend` afterward — if a required trailer is missing, that means `{TRAILERS_FILE}` was resolved wrong at Phase 0, not something to patch here.
-8. `{SCRIPTS}/bb-progress.sh "{RUN_DIR}" {ID} committed sha=$(git rev-parse --short HEAD)` — read the sha from the branch, not from the script's printout, so any rewrite between steps 7 and 8 cannot desync the ledger from what actually landed.
-9. If push mode is `push_per_bead`: `git push origin <branch>` on the current branch (never main), then `{SCRIPTS}/bb-progress.sh "{RUN_DIR}" {ID} pushed`. If `defer_push`: skip the push; the orchestrator handles it.
-10. Return one line as your final message:
+8. If push mode is `push_per_bead`: `git push origin <branch>` on the current branch (never main). If `defer_push`: skip the push; the orchestrator handles it.
+9. Return one line as your final message:
     - Success → `{ID}: closed <short-sha>`
     - Blocked → `{ID}: blocked - <short reason>`
     - Skipped → `{ID}: skipped - <short reason>`
@@ -138,7 +137,6 @@ and appends the JSON itself — never hand-write an event.
 ## Blocked path
 
 If gates fail twice, the change is intractable, or the bead cannot be finished without a prerequisite you filed:
-- `bb-progress.sh "$RUN_DIR" {ID} blocked reason="<short>"`.
 - `bd update {ID} --status blocked --append-notes "<short reason>"` — if a filed prerequisite is the blocker, name its id in the reason.
 - **Leave your uncommitted changes exactly where they are, in your worktree.** Do NOT stash and do NOT commit them. The worktree holds the partial work and its continued existence is what tells the orchestrator this bead is unfinished; stashing would move the work out of it and destroy that signal.
 - Return the blocked summary line. Do not push.

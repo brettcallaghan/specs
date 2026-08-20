@@ -47,7 +47,7 @@ cat >&2 <<'EOF'
   Choose one — do NOT proceed to push or to the next bead until reconciled:
 
   (a) The work belongs to this bead. It is not a skip. Return to the
-      gates-running step and finish the close ceremony as `completed`.
+      gate step and finish the close ceremony as `completed`.
 
   (b) The changes are accidental, pre-existing, or out-of-scope. Revert
       them, then re-run this check until it reports CLEAN:

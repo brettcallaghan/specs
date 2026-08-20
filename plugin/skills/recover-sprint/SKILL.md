@@ -76,7 +76,7 @@ could not read the plan is a *reconstruction*, and says so — it is not a plan.
      every bead's acceptance check, and `.bonanza/<run-id>/SNAPSHOT.md` is
      self-describing: the run id, the as-of time, the live directory's path,
      the run branch, the HEAD when it was taken, and every bead id that had a
-     progress ledger or a handoff file. Read that file first — it tells you
+     handoff file. Read that file first — it tells you
      which run you are looking at without your knowing the run id.
 
    **The live run directory is authoritative; a snapshot never is.** Any
@@ -151,9 +151,9 @@ could not read the plan is a *reconstruction*, and says so — it is not a plan.
 
    An orchestrator that dies between committing and pushing, or whose push is
    **rejected**, leaves a state in which every other signal reads "finished":
-   no worktrees (they are removed before the push), a clean tree, the beads
-   closed in the tracker, and the progress ledger's last phase `pushed`. Only
-   this comparison distinguishes a landed wave from an unlanded one.
+   no worktrees (they are removed before the push), a clean tree, and the beads
+   closed in the tracker. Only this comparison distinguishes a landed wave from
+   an unlanded one.
 
    WHEN commits are unpushed, push them before concluding anything about the
    run, and record why they were not pushed — a rejection has a cause that
@@ -162,39 +162,38 @@ could not read the plan is a *reconstruction*, and says so — it is not a plan.
    strands every commit behind it. `bead-bonanza` Phase 3 step 7 runs the
    same check from the other side; keep the two in the same form.
 
-4. **Classify each in-scope bead, then corroborate — the tail is a hint.**
-   Take `<bead-id>.progress.jsonl`'s last phase as a *starting hypothesis*.
-   The ledger is written by the agent doing the work and stops the instant
-   that agent stops, so resolve every status question in this order, stopping
-   at the first answer: `git worktree list` (present means unfinished — the
-   one signal that is state rather than testimony), then `bd show <id>`, then
-   `git log --oneline --grep=<id>`, then the ledger. **Name which one you
-   used.** Never act on the tail alone:
+4. **Classify each in-scope bead from state, in this order.** Resolve every
+   status question by reading state, stopping at the first answer, and **name
+   which source you used**: `git worktree list` (present means unfinished),
+   then `bd show <id>`, then `git log --oneline --grep=<id>`.
 
-   - **absent** — may never have started, or may have started and written
-     nothing. Confirm with `bd show <id>`.
-   - **`claimed` / `implementing`** — may have died mid-work, or may be
-     finished and committed with nothing appended after the crash. Check
-     `git log --grep=<id>` before you touch the tree.
-   - **`gates-passed` / `retro-written`** — the work is in the tree and only
-     the close is outstanding. Read `<bead-id>.handoff.md` for its caveat,
-     honor it, then run bead-bonanza's close ceremony —
+   - **Worktree present, bead not closed** — the bead is unfinished. Whether
+     the work in it is complete is not knowable from any record, so **re-run
+     the project's gate suite in the worktree** rather than inferring. Gates
+     clean means only the close is outstanding: read `<bead-id>.handoff.md`
+     for its caveat, honor it, then run bead-bonanza's close ceremony —
      `scripts/bb-close-bead.sh <id> <priority> "<title>"`, resolved from that
      skill's own directory — from inside the bead's worktree, passing no
      paths. The handoff file carries **only a caveat** — it is not a body for
      the close, and the close script leaves the bead's description as grooming
-     wrote it.
-   - **`committed`** — verify the recorded sha is an ancestor of `HEAD`
-     (`git merge-base --is-ancestor <sha> HEAD`) before believing it.
-   - **`pushed`** — the subagent pushed its OWN bead branch, which is all the
-     per-bead prompt asks of it. It says nothing about whether the sprint
-     branch landed; in a concurrent wave that push is the orchestrator's job
-     and happens after this event is written. Verify with step 3b, never by
-     reading this phase.
+     wrote it. Gates failing means the work is partial: leave it in place and
+     surface it.
+   - **Worktree present, work partial or absent** — it may have died mid-work,
+     or be finished and committed. Check `git log --grep=<id>` before you touch
+     the tree.
+   - **No worktree, bead closed** — verify a commit for it is an ancestor of
+     `HEAD` (`git merge-base --is-ancestor <sha> HEAD`) before believing the
+     close landed on the sprint branch.
+   - **No worktree, bead open** — it may never have started. Confirm with
+     `bd show <id>`.
+
+   Whether a bead's own branch was pushed says nothing about whether the sprint
+   branch landed; in a concurrent wave that push is the orchestrator's job.
+   Verify with step 3b.
 
 5. **Verify every claim against `bd` and `git` yourself.** A completion
    notification is not proof — notifications go missing entirely. Neither is a
-   summary, a backup copy of a progress file, or your own earlier report. Read
+   summary, a backup copy of the run directory, or your own earlier report. Read
    the live state, name the source you read, then act.
 
 6. **Report the reconstructed state** in the shape the Interface above

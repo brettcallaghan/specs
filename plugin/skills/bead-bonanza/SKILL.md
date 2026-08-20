@@ -196,36 +196,20 @@ After each subagent returns:
       orchestrator never created survives. Leave it standing and surface it.
 
 
-   **Signals this check deliberately does NOT use.** A
-   `"phase":"committed"` ledger event is written by the agent doing the work
-   and stops when that agent stops — see `references/progress-streaming.md`,
-   "the ledger is a hint, never the authority" — so its absence proves nothing and
-   its presence proves only that a line was appended, not that the sha in it
-   is reachable. And there is no per-bead retro FILE: findings are `retro:`
-   comments on the bead, and `<bead-id>.handoff.md` is a recovery anchor that
-   carries no findings and is not evidence of acceptance.
+   **Signals this check deliberately does NOT use.** There is no per-bead retro
+   FILE: findings are `retro:` comments on the bead, and
+   `<bead-id>.handoff.md` is a recovery anchor that carries no findings and is
+   not evidence of acceptance.
 
    **A subagent that never returns is checked by these same five signals.** A
    lost completion notification is not evidence of an unfinished bead, and it
    is common enough to plan for. The five signals read state, not testimony,
    so they hold with or without a return — run them unchanged. To decide
-   whether a bead is still *working* rather than finished, read its
-   `<bead-id>.progress.jsonl` last phase **together with** `bd show <id>`: a
-   terminal phase (`committed`/`pushed`/`blocked`) plus a closed tracker
-   record is conclusive. The ledger is still never an acceptance signal: it is
-   read here only to separate "still running" from "finished", and only
-   alongside tracker state. Not `bd list --status in_progress` — it is a query
-   over a moving set and has disagreed with both durable signals.
+   whether a bead is still *working* rather than finished, read `bd show <id>`
+   together with whether its worktree still exists: a closed tracker record and
+   a removed worktree is conclusive. Not `bd list --status in_progress` — it is
+   a query over a moving set and has disagreed with both durable signals.
    **Never re-dispatch on a missing return alone.**
-
-   **Note a missing terminal event, do not act on it.** WHERE a subagent
-   returned `completed` but its progress file carries no `committed` event,
-   the Monitor never fired for that bead — `references/progress-streaming.md`
-   filters to `committed|blocked` — and the user saw silence for its whole
-   run. This does not affect acceptance, since the check above reads state
-   rather than the ledger, but say so in the Phase 4 report: an unremarked
-   gap trains the reader to trust a stream that has silently stopped covering
-   part of the run.
 5. **Snapshot the run directory** — `scripts/bb-backup-run.sh "$RUN_DIR"`, run
    from your own checkout on the sprint branch and **never from a bead's
    worktree**. Run it after **every** bead's acceptance check, not once per
@@ -298,7 +282,6 @@ Load the one that matches where you are in the run:
 | A project with no `## bead-bonanza gates` or `## model lineup` block | `references/project-setup.md` |
 | Resuming a bead interrupted mid-implementation (its worktree still exists) | `references/operating-principles.md` |
 | Phase 0 pre-flight: probe the environment, resolve `RUN_DIR`/`SCRIPTS` | run `scripts/pre-flight-check.sh` |
-| Emitting a progress event | run `scripts/bb-progress.sh` |
 | Checking a `skipped` claim against the tree | run `scripts/bb-verify-skip.sh` |
 | Closing a bead: close + verify + stage + commit + push the tracker | run `scripts/bb-close-bead.sh` |
 | Snapshotting the run directory after each bead's acceptance check | run `scripts/bb-backup-run.sh` |
@@ -317,7 +300,6 @@ to read it:
 
 ```
 pre-flight-check.sh <run-id> [--gate-baseline] [--self-test]   # sandbox ON
-bb-progress.sh   <run-dir> <bead-id> <phase> [key=value ...]
 bb-verify-skip.sh [pathspec ...]        # no pathspec = whole working tree
 bb-close-bead.sh [--run-dir <path>] [--trailers-file <path>] <bead-id> <priority> <title> [path ...]
 bb-backup-run.sh <run-dir> [<dest>]     # <dest> defaults to <repo>/.bonanza/<run-id>
@@ -332,12 +314,6 @@ bb-backup-run.sh <run-dir> [<dest>]     # <dest> defaults to <repo>/.bonanza/<ru
   tree, so a pre-existing failure is recorded as the baseline instead of being
   charged to the first bead. `--self-test` exercises the portability wrappers
   and takes no run id.
-- **`scripts/bb-progress.sh`** — appends one event to
-  `<run-dir>/<bead-id>.progress.jsonl`. `<phase>` is a closed vocabulary:
-  `claimed`, `implementing`, `gates-running`, `gates-passed`,
-  `retro-written`, `committed`, `pushed`, `blocked`. Extra fields are
-  `key=value` pairs (`sha=a1b2c3d`, `reason="gates failed twice"`).
-  Exit 2 on a bad invocation, and it writes nothing in that case.
 - **`scripts/bb-verify-skip.sh`** — the two-sided skip check. With no argument it
   examines the whole working tree; pass pathspecs to scope it.
 - **`scripts/bb-close-bead.sh`** — the close ceremony, in its required order.
@@ -800,9 +776,8 @@ closed at least one bead**, not only on a run that struggled.
 **Read the run's records; do not re-derive the run.** The inputs are the
 harvested `retro:` comments, the tables you just printed (3a escalations, 3b
 over-routes, 4 follow-up and admitted/bounced beads), `dispatch.md`'s
-`## Amendments` log, the per-bead `<bead-id>.handoff.md` and
-`<bead-id>.progress.jsonl` under `$RUN_DIR`, and `git log` on the sprint
-branch. Do NOT re-read diffs, re-run gates, or re-open the beads' work. A
+`## Amendments` log, the per-bead `<bead-id>.handoff.md` under `$RUN_DIR`,
+and `git log` on the sprint branch. Do NOT re-read diffs, re-run gates, or re-open the beads' work. A
 retro that costs a second pass over the run is a retro that gets skipped.
 
 **Harvest first, then assert.** Findings are `retro:` comments on the beads —
@@ -985,8 +960,6 @@ These are the artifacts each script creates, writes, or repoints.
   `## bead-bonanza gates` block. It does not write user-global state — where
   Dolt telemetry suppression or the `eventsapi.dolthub.com` deny entry is
   absent, it reports that and prints the command to run yourself.
-- **`scripts/bb-progress.sh`** — creates `<run-dir>` if it does not exist,
-  appends one JSONL event to `<run-dir>/<bead-id>.progress.jsonl`.
 - **`scripts/bb-verify-skip.sh`** — no side effects; exits 0 (skip
   verified), 1 (not skipped), or 2 (invocation error).
 - **`scripts/bb-close-bead.sh`** — runs `bd update --status closed`, stages
