@@ -121,6 +121,22 @@ holds three scripts rather than five, and no deleted mechanism is referenced by
 anything that survives (`scripts/check-reference-links.py` proves the second
 half).
 
+### Wave 1 results — 4 of 5 done 2026-08-20; E6 blocked
+
+`SKILL.md` **58,392 → 53,599 bytes** (−8.2%). `scripts/` holds **three**
+scripts, down from five. `check-skills.sh` and
+`sync-shared-references.sh --check` both pass, with only the pre-existing
+body-size warning.
+
+| id | Bead | Outcome |
+|----|------|---------|
+| E1 | Progress ledger | **Done.** `bb-progress.sh`, the eight-phase vocabulary, the schema and writing sections, the "ledger is a hint" rule in every place, and `recover-sprint`'s per-phase distrust table all deleted. Monitor and durable trigger retained, re-sourced onto `bd`'s `on_update` hook. Recovery and `recover-sprint` now classify from worktree + tracker and **re-run gates** instead of trusting a recorded pass. |
+| E2 | `bb-backup-run.sh` | **Done.** Script, Phase 3 step 5, Phase 4 step 6b, the "live directory is authoritative" rule in all three documents, and `recover-sprint`'s snapshot route all deleted. The "read the merge target at merge time" rule survives with a new cause: the head still moves, now from the bead merges themselves. |
+| E3 | Per-bead handoff file | **Done.** Folded to a `caveat:` comment on the bead, written only when there is one. `bb-close-bead.sh` loses `--run-dir` and the minimal-handoff block with it (9,960 → 8,277 bytes) — the flag existed solely to serve that block. |
+| E5 | `tier:` label path | **Done.** Metadata is the single home, matching what grooming already wrote. The broken example is replaced by one measured here: `bd list --status all --json \| jq '[.[] \| select(.metadata.tier == "standard")] \| length'` → **110** (320 beads, 205 tiered). The old `--label` form returns **0**. |
+| E6 | `CLAUDE_CODE_SUBAGENT_MODEL` | **BLOCKED** on `pr8l.1` — see Wave 0, S1. Not executable from inside a session. |
+| E4, E7 | | Not in this wave's filed beads; carried forward. |
+
 ---
 
 ## Wave 2 — Renovate
