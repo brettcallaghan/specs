@@ -121,7 +121,7 @@ holds three scripts rather than five, and no deleted mechanism is referenced by
 anything that survives (`scripts/check-reference-links.py` proves the second
 half).
 
-### Wave 1 results — 4 of 5 done 2026-08-20; E6 blocked
+### Wave 1 results — CLOSED 2026-08-20 (E6 moved to Wave 7)
 
 `SKILL.md` **58,392 → 53,599 bytes** (−8.2%). `scripts/` holds **three**
 scripts, down from five. `check-skills.sh` and
@@ -134,7 +134,7 @@ body-size warning.
 | E2 | `bb-backup-run.sh` | **Done.** Script, Phase 3 step 5, Phase 4 step 6b, the "live directory is authoritative" rule in all three documents, and `recover-sprint`'s snapshot route all deleted. The "read the merge target at merge time" rule survives with a new cause: the head still moves, now from the bead merges themselves. |
 | E3 | Per-bead handoff file | **Done.** Folded to a `caveat:` comment on the bead, written only when there is one. `bb-close-bead.sh` loses `--run-dir` and the minimal-handoff block with it (9,960 → 8,277 bytes) — the flag existed solely to serve that block. |
 | E5 | `tier:` label path | **Done.** Metadata is the single home, matching what grooming already wrote. The broken example is replaced by one measured here: `bd list --status all --json \| jq '[.[] \| select(.metadata.tier == "standard")] \| length'` → **110** (320 beads, 205 tiered). The old `--label` form returns **0**. |
-| E6 | `CLAUDE_CODE_SUBAGENT_MODEL` | **BLOCKED** on `pr8l.1` — see Wave 0, S1. Not executable from inside a session. |
+| E6 | `CLAUDE_CODE_SUBAGENT_MODEL` | **Moved to Wave 7** with its gating spike. Not executable from inside a session — see Wave 0, S1. |
 | E4, E7 | | Not in this wave's filed beads; carried forward. |
 
 ---
@@ -479,3 +479,26 @@ A one-word `probe` comment landed on `agent-plugins-92q` while establishing
 which write paths work (`bd comment` is the one that succeeds). `bd comments`
 has no delete subcommand, so it remains. Harmless, and named here rather than
 left for someone to wonder about.
+
+---
+
+## Wave 7 — Deferred: blocked on environment configuration
+
+A holding wave, not a phase. It carries work that cannot run from inside a
+Claude Code session because it depends on state established before the session
+starts. Keeping it separate lets a substantive wave close on its own merits
+while the blocker stays visible instead of being buried as a permanently open
+child.
+
+**Entry condition:** the blocker is an environment or platform fact, not a
+sequencing dependency. A bead blocked on other beads belongs in its own wave.
+
+| id | Bead | Blocked on | Unblocked by |
+|----|------|-----------|--------------|
+| S1b | Spike: `CLAUDE_CODE_SUBAGENT_MODEL` precedence | The variable cannot be injected into a running session — exporting it from a tool call does not reach the process that dispatches subagents | Setting it on the cloud environment at claude.ai/code (or `export` before `claude` locally), then re-running the two-subagent probe |
+| E6 | Delete the `CLAUDE_CODE_SUBAGENT_MODEL` handling | S1b | S1b closing with a precedence verdict |
+
+E6 stays blocked rather than being executed on the plan's original premise:
+the measurable half of S1 cut *against* that premise. The per-invocation
+`model` parameter demonstrably routes, so deleting both routing tables on the
+assumption that routing never happens would discard two correct tables.
