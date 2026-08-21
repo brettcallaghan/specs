@@ -701,11 +701,10 @@ lineup` block in `AGENTS.md`, echoed by Phase 0. Honor these:
   **highest** tier among its members — never run a bead below its tier.
   Split the bucket WHEN more than one bead would be dragged above its
   tier, OR when any bead would be dragged more than one tier. Weigh that
-  against what batching saves: batching exists to avoid repeated full
-  `<test>` runs, so WHERE Phase 0's checks baseline (`scripts/pre-flight-check.sh`)
-  shows the suite completing in seconds, the saving is negligible and the
-  correct tier wins; WHERE it takes minutes, one bead one tier high is
-  the cheaper error.
+  against what batching saves: one dispatch instead of N, one worktree,
+  and — for a shared surface — one agent holding that surface's context
+  across every bead touching it. It does **not** save check runs; every
+  bead runs the project's checks before its own close either way.
 - **Escalate, never downgrade** — if a bead fails gates/review twice or
   its subagent visibly flails, re-dispatch that bead one tier up. Never
   re-dispatch below the assigned tier, and never "save cost" by
@@ -778,7 +777,7 @@ After the queue is drained (or the circuit breaker tripped), print:
    ```
    | Bead | Assigned | Ran at | Why raised |
    |------|----------|--------|------------|
-   | demo-9h0 | light | standard | batched with a standard bead; gate suite completes in seconds |
+   | demo-9h0 | light | standard | batched with a standard bead on the same surface |
    ```
 
    State `none` explicitly when there were no over-routes — the null is
@@ -895,13 +894,12 @@ with any RFCs in a single commit.
   reserved for genuine surface divergence or single-bead queues, not "I'm being
   cautious."
 - **The push is the gate.** Commits inside a branch are recoverable; only the
-  push to origin is committed-to-the-world. Per-bead validation is
-  regression-detection (catch issues before later beads build on them); the full
-  `<test>` run happens once before the push.
-- **Targeted tests per bead are non-negotiable.** "Reduced gates" between beads
-  in a batch never means "no tests." Each bead must run surface-relevant
-  targeted tests, WHERE the project's `checks` script offers a way to name them. If
-  the subagent can't identify any, that's a signal the change is broader than
+  push to origin is committed-to-the-world. That never licenses an unvalidated
+  commit: every bead runs the project's `checks` script before its own close,
+  batched or not, so the last bead's passing run is what clears a batch.
+- **Targeted tests per bead are non-negotiable**, on top of the checks script
+  rather than instead of it. Each bead runs the tests covering what it touched.
+  If the subagent can't identify any, that's a signal the change is broader than
   expected — pause and reconsider scope, don't skip.
 - **Red before green on defect beads.** A test written after its fix encodes the
   fix's own assumptions and can stay green while the bug is live. For a bead

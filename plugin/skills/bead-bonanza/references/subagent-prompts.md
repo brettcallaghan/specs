@@ -165,8 +165,8 @@ Push mode: {push_per_bead | defer_push}
 
 These are documentation, comments, single-line swaps, or other low-risk changes. Beyond the shared per-bead workflow above:
 
-1. Between beads, do NOT run `{CHECKS}` — it is all-or-nothing by contract, and not paying that cost between trivial beads is why they are batched. **Targeted tests are non-negotiable** — identify the test that covers the touched surface (the repo's conventions doc may map surfaces to tests) and run it directly. If the change is so trivial there's no plausible test (e.g. pure docs edit, a comment with zero output diff), say so explicitly in a `retro:` comment on the bead and continue. "I couldn't find a targeted test" without explanation is not acceptable.
-2. After the LAST bead in this batch, run `{CHECKS}` once, in full. **The push is the gate** — it must pass before the orchestrator pushes. Compare its output against the checks baseline above: a line in both was already failing, a line only in yours is this batch's. If a finding is yours, the most-recent bead is the suspect — investigate and fix it (a new commit), then continue.
+1. **Every bead runs `{CHECKS}` before its own close.** That is `run-bead` step 4, and being in a batch does not override it — an unvalidated commit is not cheaper, it is just unvalidated. **Targeted tests are non-negotiable on top of it** — identify the test that covers the touched surface and run it directly. If the change is so trivial there's no plausible test (e.g. pure docs edit, a comment with zero output diff), say so explicitly in a `retro:` comment on the bead and continue. "I couldn't find a targeted test" without explanation is not acceptable.
+2. Compare each run against the checks baseline above: a line in both was already failing, a line only in yours belongs to the bead you are on. Because every bead runs the checks, the bead whose run first shows a finding is the one that introduced it — fix it there, before starting the next bead, rather than carrying it forward. **The push is the gate**: the last bead's passing run is what clears this batch for the orchestrator's push.
 
 ## Constraints
 
@@ -187,18 +187,18 @@ Checks: {CHECKS}
 Targeted tests for this surface: {SURFACE_TARGETED_TESTS}
 Push mode: {push_per_bead | defer_push}
 
-These beads are NOT trivial — they touch real code. The reason they're batched is to avoid running the full `{CHECKS}` script between them when later beads will rebuild the same surface. **The push at the end is the gate; per-bead validation in this batch is a regression-detector to prevent rework, not the final gate.**
+These beads are NOT trivial — they touch real code. The reason they're batched is that later beads rebuild the same surface, so one agent holding that surface's context across all of them avoids the rework and the conflicting edits that separate dispatches produce. **Batching changes who does the work, not what gets validated: every bead still runs `{CHECKS}` before its own close.**
 
 Beyond the shared per-bead workflow above:
 
-1. Between beads, validate at a REDUCED level — but **targeted tests are non-negotiable**:
-   - Do NOT run `{CHECKS}` here. It is all-or-nothing by contract, and running it between beads is the cost batching exists to avoid.
+1. Before each bead's close, in this order — **none of it is optional**:
    - If generated output was touched, regenerate it with the project's own tooling — the repo's conventions doc names that command; this prompt does not carry it — then run the relevant fixture/snapshot test.
    - **Run the surface-relevant targeted tests** named above for the file(s) you touched. If none is listed for a surface you touched, find the test that covers it; if there's still nothing, that's a signal the change is broader than expected — pause and reconsider scope, don't take it as permission to skip.
+   - **Run `{CHECKS}`.** `run-bead` step 4 requires it per bead and this batch does not override it.
 
    **Why this matters:** without per-bead targeted tests, a regression introduced in bead #2 only surfaces at batch end, after beads #3 and #4 may have built on the broken assumption. You then bisect, rework #2, and possibly redo #3 and #4. Targeted tests prevent that cascade.
-2. **After the LAST bead in this batch** (push gate). Run `{CHECKS}` in full — it must pass before the orchestrator pushes. There is no skip path: the project supplied those checks so they run after the work, and whether CI also runs somewhere is the project's business, not a reason to skip them here.
-   Compare its output against the checks baseline above: a line in both was already failing, a line only in yours belongs to this batch. For a finding that is yours, identify which bead introduced it (bisect via the per-bead commits — `git log --oneline | head` then `git checkout <sha>` and rerun the failing test) and follow the Blocked path for THAT bead — do not silently fix it across multiple commits.
+2. Compare every run against the checks baseline above: a line in both was already failing, a line only in yours belongs to the bead you are on. Because every bead runs the checks, there is nothing to bisect — the bead whose run first shows a finding is where it entered. Fix it there before starting the next bead. WHERE investigating shows an earlier bead is actually at fault, follow the Blocked path for THAT bead rather than silently repairing it across several commits.
+   **The push is the gate**: the last bead's passing run is what clears this batch, and whether CI also runs somewhere is the project's business, not a reason to skip it here.
 
 ## Constraints
 

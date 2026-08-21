@@ -52,14 +52,22 @@ exists to prevent.
 
 ## Bias toward batching
 
-Each "plain sequential" bead burns a full `<test>` run (often 10+ min).
-Batching N beads in one subagent saves N−1 of those. Your job is to find the
-largest safe batch, not to default to one-bead-per-subagent for caution.
-Sequential is the *exception*, not the rule.
+Each "plain sequential" bead costs its own dispatch, worktree and merge, and
+on a shared surface it costs a further chance to conflict. Batching N beads in
+one subagent pays that once. Your job is to find the largest safe batch, not to
+default to one-bead-per-subagent for caution. Sequential is the *exception*,
+not the rule.
 
-**Worktrees do not make batching redundant.** Batching's saving is test-suite
-amortization, which is orthogonal to isolation, so every batching rule below
-holds even though each bead is already isolated in its own worktree.
+**Batching does not buy fewer check runs.** Every bead runs the project's
+checks script before its own close whether batched or not, so a batch is never
+a way to commit something unvalidated — it changes who does the work, not what
+is validated.
+
+**Worktrees do not make batching redundant.** Isolation is what a worktree
+gives; what a batch gives is one agent holding a surface's context across every
+bead that touches it. On a shared surface those are opposites — isolating beads
+that rebuild the same files is precisely what produces the rework and the merge
+conflicts a batch avoids.
 
 ## Classify each bead
 
@@ -117,8 +125,8 @@ auth-service, changed by demo-9h0`).
 
 Modes decide **how many beads share a subagent**, not how they are isolated —
 isolation is settled above and is the same everywhere. Pick the broadest one
-that's safe: you're trying to minimize total full-test-suite runs across the
-queue.
+that's safe: you're trying to minimize dispatches and cross-bead conflict, not
+check runs — those are per bead regardless.
 
 **A batch subagent holds exactly one worktree at a time** — create, implement,
 close, hand back, then the next. Holding two at once makes worktree presence
@@ -126,19 +134,19 @@ ambiguous and breaks the in-flight signal for every reader. Never pack a bucket
 in a way that assumes otherwise.
 
 1. **Doc/chore fast lane** — `trivial` beads. ONE subagent processes the cluster
-   sequentially. Targeted tests between beads, ONE full `<test>` run at the end.
-   One commit per bead. Cap ~6 beads per fast-lane subagent.
+   sequentially. Per bead: targeted tests plus the project's checks script,
+   before that bead's close. One commit per bead. Cap ~6 beads per fast-lane
+   subagent.
 
 2. **Shared-surface batch** — `shared-surface` beads that cluster on the same
-   fixture/code area. ONE subagent processes the cluster sequentially. Between
-   beads: `<format>`, `<lint>`, `<build>`, **plus surface-relevant targeted
-   tests (non-negotiable)**. ONE full `<test>` run at the END of the batch.
-   One commit per bead. Saves N–1 full test-suite runs.
+   fixture/code area. ONE subagent processes the cluster sequentially. Per bead,
+   before its close: any regeneration, **surface-relevant targeted tests
+   (non-negotiable)**, then the project's checks script. One commit per bead.
 
    **Threshold:** use shared-surface batch when **≥2** beads share a surface and
    decisions are independent (bead A's choice doesn't change bead B's
-   implementation). Even at 2 beads the savings are real — one fewer full test
-   run — and the bisect cost is one suspect commit.
+   implementation). Even at 2 the gain is real: the second bead sees the first's
+   work in the same tree instead of racing it in another worktree.
 
    **Don't over-split:** if 7 beads cluster on one surface and only 1–2 of them
    are "larger" (substantial new features), they can still go in one shared
