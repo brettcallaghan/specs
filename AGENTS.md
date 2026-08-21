@@ -71,24 +71,16 @@ file, then test it.** A pipeline is for moving data, not for carrying a verdict.
 This repository is a documentation-and-skills corpus **plus** the Go module
 under `cli/` that implements the Spec CLI.
 
-**The checks are declared in `sf.toml`, not in this file.** Nine `[[checks]]`
-entries, each an `id` and a `command`. The runner ships with bead-bonanza:
-
-```bash
-CHECKS=plugin/skills/bead-bonanza/scripts/bb-checks.py
-
-$CHECKS                 # every check
-$CHECKS <id>...         # only these, still in declaration order
-$CHECKS --ids           # what is declared
-```
-
-Exit 0 means everything passed, 1 that something failed, 3 that the
-declaration itself is broken. Every requested check runs even after one fails,
-and declaration order is execution order — the runner enforces both, so
-neither is something `sf.toml` has to remember.
+**The checks a bead runs are declared in `sf.toml`, not in this file.** Nine
+`[[checks]]` entries, each an `id` and a `command`. bead-bonanza runs them;
+`run-bead` says how, and nothing outside a skill invocation needs to.
 
 Nine ids: `format`, `vet`, `build`, `test-go`, `skills`, `shared-refs`,
 `strata-docs`, `schemas`, `skills-strict`.
+
+**By hand, run `scripts/ci.sh`** — the Go checks plus `spec index` and
+`spec check --strict`, which is what a developer wants and is not the same
+set. CI is the workflows, below.
 
 Two things the declaration encodes that prose kept getting wrong:
 
@@ -102,8 +94,9 @@ Two things the declaration encodes that prose kept getting wrong:
   always pass. That is why `format` points at `scripts/format-check` rather
   than carrying a `command` one-liner.
 
-Run the Go checks from `cli/` if you invoke them by hand — that is the module
-root, so `./...` resolves there. Their declared commands `cd` there first.
+Run the Go checks from `cli/` if you invoke them individually — that is the
+module root, so `./...` resolves there. `ci.sh` and the declared commands both
+`cd` there first.
 
 
 ### What CI runs
@@ -139,7 +132,7 @@ synthetically instead, on every platform, by `cli/cmd/portability_test.go`.
 
 ### Targeted tests by surface
 
-`bb-checks.py <id>...` runs a subset. Which checks cover which surface:
+Which declared checks cover which surface, for a bead narrowing its runs:
 
 | touched | ids to pass |
 |---|---|
@@ -149,9 +142,9 @@ synthetically instead, on every platform, by `cli/cmd/portability_test.go`.
 | `scripts/**` | `skills shared-refs` |
 | `.claude/skills/strata/references/**` | `strata-docs` |
 
-These are ids you can pass straight to the runner. The mapping itself is
-documented here rather than declared, because which checks a change needs is a
-judgement about this repository, not a property of the checks.
+The mapping is documented here rather than declared, because which checks a
+change needs is a judgement about this repository, not a property of the
+checks.
 
 **There is no ordering dependency among them.** `schemas` runs `--check`,
 which verifies without regenerating, so nothing must precede `build` — the
