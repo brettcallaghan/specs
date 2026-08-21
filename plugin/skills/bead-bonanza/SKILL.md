@@ -34,8 +34,8 @@ re-run the queue query.
 
 **This skill is language-agnostic.** It never hard-codes build, test, lint, or
 format commands. Everything it needs to validate the work done for a bead comes
-from the project's **`checks` script**, resolved and run by Phase 0's
-pre-flight script.
+from the **checks the project declares** in `sf.toml`, run by `scripts/bb-checks.py`
+in this skill's `scripts/`.
 Running it is the whole interface: exit 0 means every check passed, anything
 else means something failed, and the output says what. What those checks are,
 and in what order, is the project's business.
@@ -288,7 +288,7 @@ Load the one that matches where you are in the run:
 | A subagent running past 5 minutes; arming the Monitor and the durable trigger; reading progress events | `references/progress-streaming.md` |
 | A subagent that crashed or timed out mid-ceremony | `references/recovery.md` |
 | Resuming a run whose state you do not hold (the orchestrator died or compacted) | invoke the `recover-sprint` skill |
-| A project with no `checks` script or no `sf.toml` model lineup | `references/project-setup.md` |
+| A project with no declared `[[checks]]` or no `sf.toml` model lineup | `references/project-setup.md` |
 | Resuming a bead interrupted mid-implementation (its worktree still exists) | `references/operating-principles.md` |
 | Phase 0 pre-flight: probe the environment, resolve `RUN_DIR`/`SCRIPTS` | run `scripts/pre-flight-check.sh` |
 | Verifying a bead's acceptance signals, or a wave's landing | run `scripts/bb-status.sh` |
@@ -318,7 +318,7 @@ bb-close-bead.sh [--trailers-file <path>] <bead-id> <priority> <title> [path ...
   proceed / 1 blocking / 2 bad invocation. **Run it with the sandbox ON** — the
   one write the sandbox refuses is the global Dolt telemetry config, which the
   script detects, skips, and reports as the single command to re-run with the
-  sandbox off. It always runs the project's `checks` script on the untouched
+  sandbox off. It always runs the project's declared checks on the untouched
   tree, so a pre-existing failure is recorded as the baseline instead of being
   charged to the first bead — there is no opt-out, because the run where a
   baseline is most expensive to skip is exactly the slow one somebody would
@@ -391,7 +391,7 @@ What no script can settle:
   is opened, when it opens, and when its CI runs are the project's policy — and
   not every project uses a forge with pull requests at all. Do not ask, do not
   infer it from workflow files, and never treat a PR as cover for running fewer
-  checks. **The project's `checks` script runs after every bead, always.** That
+  checks. **The project's declared checks run after every bead, always.** That
   is what it is for.
 
   WHERE the project does run CI on a pull request and the run ends with one
@@ -604,7 +604,7 @@ Three things stay yours:
 
 1. **The run manifest.** Write
    `${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/dispatch.md`'s header — the
-   pre-flight stdout block, the resolved `checks` script, checks baseline, model lineup, the
+   pre-flight stdout block, the declared check ids, checks baseline, model lineup, the
    run's effort setting (`metadata.execution_reasoning_effort` per bead, on the
   convention's `low`/`medium`/`high`/`xhigh` scale), standing authorization and
   environmental ledger —
@@ -895,9 +895,9 @@ with any RFCs in a single commit.
   cautious."
 - **The push is the gate.** Commits inside a branch are recoverable; only the
   push to origin is committed-to-the-world. That never licenses an unvalidated
-  commit: every bead runs the project's `checks` script before its own close,
+  commit: every bead runs the project's declared checks before its own close,
   batched or not, so the last bead's passing run is what clears a batch.
-- **Targeted tests per bead are non-negotiable**, on top of the checks script
+- **Targeted tests per bead are non-negotiable**, on top of the declared checks
   rather than instead of it. Each bead runs the tests covering what it touched.
   If the subagent can't identify any, that's a signal the change is broader than
   expected — pause and reconsider scope, don't skip.
@@ -942,9 +942,9 @@ with any RFCs in a single commit.
   failure; never downgrade to save cost mid-run. Every escalation is a required
   row in the Phase 4 report — it is the only routing evidence a run produces.
   Beads marked "do not delegate" run in the orchestrator's own loop.
-- **Project rules win over skill defaults.** The `checks` script is the source of
-  truth for build/test/lint/format commands and any custom gates the project
-  adds. Progress visibility defaults to the run checklist (above, Phase 0); task
+- **Project rules win over skill defaults.** `sf.toml`'s `[[checks]]` is the
+  source of truth for build/test/lint/format commands and anything else the
+  project runs per bead. Progress visibility defaults to the run checklist (above, Phase 0); task
   tools are the exception for projects with no durable tracker of their own —
   read the project's `CLAUDE.md`/`AGENTS.md` once at session start. If the
   project has its own commit message conventions, follow them. The skill is
@@ -991,12 +991,12 @@ These are the artifacts each script creates, writes, or repoints.
 
 - **`scripts/pre-flight-check.sh`** — creates `$RUN_DIR` if it does not
   exist, repoints `$RUN_ROOT/current` symlink at the start of every run,
-  emits `BB_*` facts (`BB_CHECKS`, `BB_MODEL_*`, etc.) on stdout. It also: runs
+  emits `BB_*` facts (`BB_CHECKS_IDS`, `BB_MODEL_*`, etc.) on stdout. It also: runs
   `git worktree prune` at startup; **pushes to the remote** — probes tracker
   write access with `git push <remote> HEAD:refs/dolt/preflight-probe-$$`,
   then deletes that ref, both against the same remote the bead's own work
-  will later push to; and **executes the project's `checks` script**, which
-  runs whatever commands that project's gates invoke. It does not write user-global state — where
+  will later push to; and **executes the project's declared checks**, which
+  run whatever commands that project declared. It does not write user-global state — where
   Dolt telemetry suppression or the `eventsapi.dolthub.com` deny entry is
   absent, it reports that and prints the command to run yourself.
 - **`scripts/bb-verify-skip.sh`** — no side effects; exits 0 (skip

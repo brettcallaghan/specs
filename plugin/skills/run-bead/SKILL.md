@@ -28,10 +28,11 @@ identical.
 |---|---|---|
 | `{ID}`, `{PRIORITY}`, `{TITLE}` | given | `bd ready`, then `bd show <id>` |
 | `{WORKTREE}` | given — work THERE, it is yours alone | your checkout, on a branch that is not the default |
-| checks | run the project's `checks` script | same |
+| checks | run `{SCRIPTS}/bb-checks.py` | same |
+| `{CHECKS_IDS}` | given — the ids the project declared | `scripts/bb-checks.py --ids` |
 | `{SCRIPTS}` | given | `bead-bonanza/scripts/` |
 | `{TRAILERS_FILE}` | given, or `none` | `none` |
-| `{CHECKS_BASELINE}` | given — what the checks printed before the run | run `checks` on a clean tree, before you start |
+| `{CHECKS_BASELINE}` | given — what the checks printed before the run | run `scripts/bb-checks.py` on a clean tree, before you start |
 | push mode | `push_per_bead` or `defer_push` | push your branch when the work is done |
 
 **Never work in the main checkout when a worktree was given**, and never work
@@ -74,9 +75,14 @@ Write no progress file.
    For any implicit decision you have to make, record what you chose and why —
    that also goes in a `retro:` comment.
 
-4. **Checks — the push is the gate.** Run the project's `checks` script here,
-   before any push. It runs everything the project wants run, in its own order,
-   so there is nothing to select or sequence.
+4. **Checks — the push is the gate.** Run `{SCRIPTS}/bb-checks.py` here,
+   before any push. It runs everything the project declared, in declaration
+   order, and keeps going after a failure so you see all of them at once.
+
+   **While iterating, narrow it:** `bb-checks.py <id>...` runs only those, and
+   `{CHECKS_IDS}` says which exist. Pick by what you touched — the ids are
+   slugs, so `test-go` covers Go tests. **Before your close, run it with NO
+   arguments**: a narrowed run is a fast loop, never the gate.
 
    On failure, fix the root cause and rerun. **After two full failed cycles,
    take the Blocked path** — do not keep retrying.

@@ -26,47 +26,63 @@ write any of it silently.
    whole repository at release time, belongs in CI — a `checks` script a bead
    cannot afford to run is one agents will find reasons to skip.
 
-   Phase 0 resolves it in this order, first hit wins, and blocks the run when
-   none is found:
+   They are declared in `sf.toml`, a plugin-scoped config file at the
+   repository root — an array of tables, two keys each, and no others accepted:
 
-   | | |
-   |---|---|
-   | `$BB_CHECKS` | explicit override |
-   | `sf.toml` | `[checkpoints]` `checks = "<repo-root-relative path>"` |
-   | `scripts/checks` | the conventional location, when `sf.toml` declares none |
+   ```toml
+   [[checks]]
+   id = "test"
+   command = 'cargo test'
 
-   `sf.toml` is a plugin-scoped config file at the repository root. Reading one
-   named key out of it is not the thing this replaced: the retired mechanism
-   parsed *prose* for a command, where this reads a config file for a path.
+   [[checks]]
+   id = "lint"
+   command = 'cargo clippy -- -D warnings'
+   ```
 
-   It must be **executable**. A present-but-not-executable file is treated as a
-   hard error rather than as absent, because that is a mistake to report, not a
-   state to work around.
+   `id` is a slug (`[a-z0-9][a-z0-9-]*`), unique. `command` runs through
+   `sh -c` with the repository root as its working directory. Prefer TOML
+   *literal* strings (single quotes) — they do no escape processing, so a shell
+   one-liner survives verbatim. `$BB_SF_TOML` moves the file; nothing else
+   overrides it, and Phase 0 blocks the run when the declaration is missing or
+   invalid.
 
-   **The contract, in full: run it.** Exit 0 means every check passed;
-   anything else means something failed, and the output says what. There is no
-   required output format, no ids, and nothing to enumerate.
+   **The runner ships with this skill**: `scripts/bb-checks.py`. No project
+   writes one.
 
-   Phase 0 captures what it prints on the untouched tree as the **checks
-   baseline**, and a bead compares its own run against that text — a line in
-   both was already failing, a line only in the bead's is the bead's. That
-   comparison never needs a name for anything.
+   ```
+   bb-checks.py                    every declared check
+   bb-checks.py <id>...            only these, still in declaration order
+   bb-checks.py --ids              what is declared
+   bb-checks.py --report <path>    also write `<id><TAB><exit>` per check there
+   ```
 
-   **Run every check, even after one fails.** Chaining with `&&` stops at the
-   first failure and hides the rest, so a run sees one problem at a time and a
-   known-red check masks everything behind it.
+   Exit 0 all passed, 1 something failed, 3 the declaration itself is broken —
+   and a 3 runs nothing, because a bad declaration must not half-execute.
 
-   - **If the script exists**, Phase 0 runs it. Fast path — no prompt.
+   **Two rules the runner enforces, so no project has to remember them:**
+   execution is serial in declaration order, so a step that must precede
+   another is sequenced by where it sits in the file; and every requested check
+   runs even after one fails. Chaining with `&&` breaks the second, which is
+   how a known-red check masks everything behind it.
+
+   Phase 0 captures what the checks print on the untouched tree as the
+   **checks baseline**, and a bead compares its own run against that text — a
+   line in both was already failing, a line only in the bead's is the bead's.
+
+   - **If `[[checks]]` exists**, Phase 0 runs it. Fast path — no prompt.
    - **If it's missing**, discover candidate commands from `AGENTS.md` /
      `CLAUDE.md` (build/test/lint/format sections, CI config), propose a draft
-     script to the user, let them confirm or correct it, then write it and
+     declaration to the user, let them confirm or correct it, then write it and
      offer to commit it. **Propose the fast, broadly-applicable ones and say
      which CI-only candidates you left out** — the user decides, but they
      cannot correct an omission they were never shown. Future runs hit the
      fast path.
    - If the project genuinely has no build/test step (e.g. a pure-docs repo),
-     the script still exists and runs whatever it does have. Don't invent
-     checks.
+     declare whatever it does have. Don't invent checks.
+   - A check whose verdict is its OUTPUT rather than its exit status — `gofmt
+     -l` prints filenames and exits 0 — needs a command that converts one to
+     the other, or a small script the `command` points at. Pointing at a script
+     is the escape hatch for anything a one-liner would mangle.
 
    The **environmental-failure ledger** stays in `AGENTS.md` as prose: it is
    read by agents, not executed, and it is the one part of the old block that
@@ -90,7 +106,7 @@ write any of it silently.
    - **If it exists**, Phase 0 reads it. Fast path — no prompt.
    - **If it's missing**, propose one from the models available in this
      harness, let the user confirm, then write it (same mechanics as the
-     checks script above).
+     checks declaration above).
    - **If the user declines**, dispatch without the `model` param — every
      subagent inherits the session model. Pre-flight reports
      `BB_LINEUP=undeclared` and says so; state it once at run start so the
@@ -111,9 +127,10 @@ write any of it silently.
      `Bash(<skill-dir>/scripts/pre-flight-check.sh:*)`,
      `Bash(<skill-dir>/scripts/bb-status.sh:*)`,
      `Bash(<skill-dir>/scripts/bb-verify-skip.sh:*)`,
-     `Bash(<skill-dir>/scripts/bb-close-bead.sh:*)`
-   - The `checks` script's path (e.g. `Bash(scripts/checks:*)`), plus whatever
-     the checks it runs invoke underneath (e.g. `Bash(cargo:*)`,
-     `Bash(npm run test:*)`, `Bash(go build:*)`, `Bash(pytest:*)`)
+     `Bash(<skill-dir>/scripts/bb-close-bead.sh:*)`,
+     `Bash(<skill-dir>/scripts/bb-checks.py:*)`
+   - Whatever the declared `command`s invoke underneath (e.g. `Bash(cargo:*)`,
+     `Bash(npm run test:*)`, `Bash(go build:*)`, `Bash(pytest:*)`) — the runner
+     is one entry, but each check is its own subprocess
    - `Read(/tmp/claude/**)` — and `Read($TMPDIR/**)` too WHEN `TMPDIR` is set
      (macOS sets it to a per-user dir; most Linux hosts leave it unset)

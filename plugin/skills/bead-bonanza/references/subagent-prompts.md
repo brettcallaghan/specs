@@ -9,8 +9,9 @@ context to infer it from.
 Four placeholders are resolved once per run and substituted into every
 prompt: `{RUN_DIR}` is the run root Phase 0's pre-flight script resolved,
 `{SCRIPTS}` is the absolute path to this skill's `scripts/` directory,
-`{CHECKS}` is the checks script Phase 0 resolved (emitted as `BB_CHECKS`), and
-`{CHECKS_BASELINE_TEXT}` is the *contents* of `{RUN_DIR}/checks-baseline.md`.
+`{CHECKS_IDS}` is the ids the project declared (emitted as `BB_CHECKS_IDS`),
+and `{CHECKS_BASELINE_TEXT}` is the *contents* of
+`{RUN_DIR}/checks-baseline.md`.
 A subagent can infer none of them.
 
 `{WORKTREE}` is resolved **per bead** — the absolute path to the worktree the
@@ -69,7 +70,7 @@ Then produce the **wave preview** `groom-beads` produces, as its own block after
 FINALLY, as your last act, invoke the `plan-sprint` skill and follow it to write the run's wave table into `{RUN_DIR}/dispatch.md`. You have just read every bead, which is why planning is yours and not a second agent's. Pass it:
 - Run id `{RUN_ID}` and RUN_DIR `{RUN_DIR}` — `dispatch.md`'s manifest header is already written by the orchestrator; append under it and do NOT edit it
 - The bead ids to plan, ENUMERATED: {PLAN_IDS} — this is the run's committed queue; never re-run a filter to rebuild it, and never add a bead you groomed that the list omits
-- Checks: the project's `{CHECKS}` script, run in full; its baseline is at `{RUN_DIR}/checks-baseline.md`
+- Checks: the declared ids `{CHECKS_IDS}`, run in full per bead; the baseline is at `{RUN_DIR}/checks-baseline.md`
 - Model lineup: {MODEL_LINEUP or "none declared"}
 - Standing authorization: {STANDING_AUTH or "none"}
 - Your own wave preview, above
@@ -83,12 +84,14 @@ Return the wave table it produces as the last block of your report, plus one lin
 ## Per-bead subagent prompt template
 
 ```
-You are addressing a single bead in this repo. Read CLAUDE.md and AGENTS.md if you need repo conventions or the bead workflow. Validation comes from the project's `checks` script, which Phase 0 resolved.
+You are addressing a single bead in this repo. Read CLAUDE.md and AGENTS.md if you need repo conventions or the bead workflow. Validation comes from the checks the project declares in `sf.toml`.
 
 Bead: {ID} (P{PRIORITY}) — {TITLE}
 Decision (chosen by the user up front): {DECISION}
 Implicit decisions (subagent picks unless overridden): {IMPLICIT_NOTES}
-Checks: {CHECKS}            (run it; exit 0 is the bar, and there is nothing to select)
+Checks: {SCRIPTS}/bb-checks.py       (declared ids: {CHECKS_IDS})
+    (Pass the ids covering what you touched while iterating; run it with NO
+     arguments before your close. Exit 0 is the bar.)
 Push mode: {push_per_bead | defer_push}
 Worktree: {WORKTREE}        (work HERE, not in the main checkout; it is yours alone)
 Scripts: {SCRIPTS}          (bb-verify-skip.sh, bb-close-bead.sh)
@@ -116,7 +119,7 @@ prompt assembled without it is missing the worktree-creation mechanics, the
 loss downstream.
 
 ```
-Read CLAUDE.md and AGENTS.md if you need conventions; validation comes from the project's `checks` script.
+Read CLAUDE.md and AGENTS.md if you need conventions; validation comes from the checks the project declares in `sf.toml`.
 
 Worktrees: **where the orchestrator already provisioned one for you (the harness's
 `isolation: "worktree"`), you have exactly ONE worktree for EVERY bead in this batch —
@@ -160,12 +163,12 @@ Beads (process in order; one commit per bead):
 {ID_2} (P{PRIORITY_2}) — {TITLE_2} — Decision: {DECISION_2}
 ...
 
-Checks: {CHECKS}
+Checks: {SCRIPTS}/bb-checks.py       (declared ids: {CHECKS_IDS})
 Push mode: {push_per_bead | defer_push}
 
 These are documentation, comments, single-line swaps, or other low-risk changes. Beyond the shared per-bead workflow above:
 
-1. **Every bead runs `{CHECKS}` before its own close.** That is `run-bead` step 4, and being in a batch does not override it — an unvalidated commit is not cheaper, it is just unvalidated. **Targeted tests are non-negotiable on top of it** — identify the test that covers the touched surface and run it directly. If the change is so trivial there's no plausible test (e.g. pure docs edit, a comment with zero output diff), say so explicitly in a `retro:` comment on the bead and continue. "I couldn't find a targeted test" without explanation is not acceptable.
+1. **Every bead runs `{SCRIPTS}/bb-checks.py` with no arguments before its own close.** That is `run-bead` step 4, and being in a batch does not override it — an unvalidated commit is not cheaper, it is just unvalidated. **Targeted tests are non-negotiable on top of it** — identify the test that covers the touched surface and run it directly. If the change is so trivial there's no plausible test (e.g. pure docs edit, a comment with zero output diff), say so explicitly in a `retro:` comment on the bead and continue. "I couldn't find a targeted test" without explanation is not acceptable.
 2. Compare each run against the checks baseline above: a line in both was already failing, a line only in yours belongs to the bead you are on. Because every bead runs the checks, the bead whose run first shows a finding is the one that introduced it — fix it there, before starting the next bead, rather than carrying it forward. **The push is the gate**: the last bead's passing run is what clears this batch for the orchestrator's push.
 
 ## Constraints
@@ -183,18 +186,18 @@ Beads (process in order; each is its own commit):
 {ID_2} (P{PRIORITY_2}) — {TITLE_2} — Decision: {DECISION_2} — Implicit: {IMPLICIT_2}
 ...
 
-Checks: {CHECKS}
+Checks: {SCRIPTS}/bb-checks.py       (declared ids: {CHECKS_IDS})
 Targeted tests for this surface: {SURFACE_TARGETED_TESTS}
 Push mode: {push_per_bead | defer_push}
 
-These beads are NOT trivial — they touch real code. They are batched because they would collide if dispatched side by side — later beads rebuild the same surface — so one agent takes them in order and the rest of the wave runs concurrently around them. **Batching changes who does the work, not what gets validated: every bead still runs `{CHECKS}` before its own close.**
+These beads are NOT trivial — they touch real code. They are batched because they would collide if dispatched side by side — later beads rebuild the same surface — so one agent takes them in order and the rest of the wave runs concurrently around them. **Batching changes who does the work, not what gets validated: every bead still runs the full declared set before its own close.**
 
 Beyond the shared per-bead workflow above:
 
 1. Before each bead's close, in this order — **none of it is optional**:
    - If generated output was touched, regenerate it with the project's own tooling — the repo's conventions doc names that command; this prompt does not carry it — then run the relevant fixture/snapshot test.
    - **Run the surface-relevant targeted tests** named above for the file(s) you touched. If none is listed for a surface you touched, find the test that covers it; if there's still nothing, that's a signal the change is broader than expected — pause and reconsider scope, don't take it as permission to skip.
-   - **Run `{CHECKS}`.** `run-bead` step 4 requires it per bead and this batch does not override it.
+   - **Run `{SCRIPTS}/bb-checks.py` with no arguments.** `run-bead` step 4 requires the full declared set per bead, and this batch does not override it.
 
    **Why this matters:** without per-bead targeted tests, a regression introduced in bead #2 only surfaces at batch end, after beads #3 and #4 may have built on the broken assumption. You then bisect, rework #2, and possibly redo #3 and #4. Targeted tests prevent that cascade.
 2. Compare every run against the checks baseline above: a line in both was already failing, a line only in yours belongs to the bead you are on. Because every bead runs the checks, there is nothing to bisect — the bead whose run first shows a finding is where it entered. Fix it there before starting the next bead. WHERE investigating shows an earlier bead is actually at fault, follow the Blocked path for THAT bead rather than silently repairing it across several commits.
