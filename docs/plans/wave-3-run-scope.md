@@ -74,6 +74,31 @@ earlier revision of this plan said the run epic must be flat and that
 epic-of-epics was therefore dead. That was wrong: it followed from testing
 swarm and assuming swarm was how work gets dispatched.
 
+## Why membership cannot be a dependency edge
+
+A run epic that *depends on* the beads instead of owning them would be fully
+non-destructive. **bd refuses to build it.**
+
+```
+bd dep add <run-epic> --depends-on <task>
+  → Error: epics can only block other epics, not tasks
+bd dep add <task> --depends-on <run-epic>
+  → Error: tasks can only block other tasks, not epics
+```
+
+`blocks` edges are type-segregated in both directions. Epic↔epic is allowed and
+task↔task is allowed; epic↔task is not.
+
+The non-blocking types are not segregated — `bd dep add <run-epic> --type
+related <task>` succeeds — but such an edge creates nothing usable:
+`bd ready --parent <run-epic>` returns no work and `bd swarm validate` reports
+`Total issues: 0`. Same for `tracks`.
+
+**Only `parent-child` — the parent field — creates membership.** That is the
+single mechanism, which is why the hybrid ("adopt the free beads as children,
+link the owned ones as dependencies") cannot be built either: the second half
+has no implementation.
+
 ## Admission — turning the input into the run epic
 
 Resolve a label or priority filter to a bead set first; then every input is a
