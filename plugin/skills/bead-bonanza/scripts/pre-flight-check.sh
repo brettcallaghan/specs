@@ -202,20 +202,35 @@ say "repo: $REPO"
 git worktree prune 2>/dev/null || true
 say "worktree registrations pruned"
 
-# ================================================= 2. the project's gates
+# ================================================ 2. the project's checks
 
-# The project declares its gates in an executable `checks` script, never in
-# prose this script parses. The declaration lives in `sf.toml` at the
-# repository root — a config file with a named key rather than prose with a
-# shape. Resolution order, first hit wins:
-#
-#   $BB_CHECKS       explicit override
-#   sf.toml          [checkpoints] checks = "<repo-root-relative path>"
-#   scripts/checks   the conventional location, when sf.toml declares nothing
-head_ "Project gates"
-# One key out of a config file, not a command out of a sentence. sf_get
-# <section> <key> prints the quoted value, or nothing. Section-scoped, because
-# `standard` under [models] and `standard` anywhere else are different keys.
+# The project declares its checks in `sf.toml` at the repository root — an
+# array of `[[checks]]` tables carrying an `id` and a `command` each, never in
+# prose this script parses. `bb-checks.py` reads that array and runs it; the
+# only knob is `$BB_SF_TOML`, which moves the config file.
+head_ "Project checks"
+CHECKS_RUNNER="$SCRIPTS/bb-checks.py"
+CHECKS_IDS=""
+if [ ! -x "$CHECKS_RUNNER" ]; then
+  block "$CHECKS_RUNNER is missing or not executable — it ships with this skill, so a broken checkout is the likely cause"
+else
+  # The runner validates the whole declaration before it would run anything,
+  # so asking it for the ids is also the syntax check. Its message names the
+  # fault precisely; repeating that here in weaker words would only obscure it.
+  _ids_out="$("$CHECKS_RUNNER" --ids 2>&1)"; _ids_st=$?
+  if [ "$_ids_st" -ne 0 ]; then
+    block "the project declares no runnable checks — $_ids_out — read references/project-setup.md and declare them WITH the user; do not invent checks"
+  else
+    CHECKS_IDS="$(printf '%s\n' "$_ids_out" | tr '\n' ' ' | sed 's/  *$//')"
+    say "checks declared: $CHECKS_IDS"
+  fi
+fi
+
+# `[models]` and `[run]` are flat key reads, so they need no TOML parser:
+# sf_get <section> <key> prints the quoted value, or nothing. Section-scoped,
+# because `standard` under [models] and `standard` anywhere else are different
+# keys. `[[checks]]` is an array of tables and is NOT readable this way — that
+# is bb-checks.py's job, and why it exists.
 sf_get() {
   awk -v want="[$1]" -v key="$2" '
     /^[[:space:]]*\[/ { sec=$0; gsub(/[[:space:]]/,"",sec); next }
@@ -231,22 +246,8 @@ sf_get() {
         }
       }
     }
-  ' sf.toml 2>/dev/null
+  ' "${BB_SF_TOML:-sf.toml}" 2>/dev/null
 }
-_declared="$(sf_get checkpoints checks)"
-CHECKS=""
-for _c in "${BB_CHECKS:-}" "$_declared" scripts/checks; do
-  [ -n "$_c" ] || continue
-  if [ -x "$_c" ]; then CHECKS="$_c"; break; fi
-  if [ -f "$_c" ]; then
-    block "$_c exists but is not executable — chmod +x it; a non-executable checks script is the same as none"
-  fi
-done
-if [ -z "$CHECKS" ]; then
-  block "no checks script found (looked at \$BB_CHECKS, sf.toml's [checkpoints] checks key, scripts/checks) — read references/project-setup.md and write one WITH the user; do not invent checks"
-else
-  say "checks script: $CHECKS"
-fi
 
 # The tier lineup is a routing fact, so it is read as configuration rather than
 # as prose. Each tier resolves independently: a project may declare only the
@@ -382,6 +383,15 @@ if command -v jq >/dev/null 2>&1; then JQ=ok; say "jq:  $(command -v jq)"
 else JQ=missing; say "jq:  MISSING"
      block "jq is not on PATH — the close script, the retro dump and the bucketing need it"; fi
 
+# `tomllib` is stdlib from 3.11, so probing the import settles both the
+# interpreter and the version in one call.
+if python3 -c 'import tomllib' >/dev/null 2>&1; then
+  PY=ok; say "python3: $(command -v python3) (tomllib present)"
+else
+  PY=missing; say "python3: MISSING or older than 3.11"
+  block "python3 3.11+ is not on PATH — bb-checks.py reads the project's [[checks]] declaration with tomllib"
+fi
+
 if [ -z "$(git status --porcelain 2>/dev/null)" ]; then
   TREE_CLEAN=yes; say "working tree: clean"
 else
@@ -452,18 +462,29 @@ fi
 
 head_ "Checks baseline"
 CHECKS_BASELINE=skipped
-if [ -n "$CHECKS" ]; then
+if [ -n "$CHECKS_IDS" ]; then
   # The baseline is what the project's checks PRINT on the untouched tree, plus
   # the status they exit with. Nothing is parsed: a bead compares its own run's
   # output against this text, so a line present in both was already failing and
   # a line only in the bead's is the bead's.
   _raw="$RUN_DIR/checks-baseline.md"
-  _out="$("$CHECKS" 2>&1)"; _st=$?
+  _out="$("$CHECKS_RUNNER" 2>&1)"; _st=$?
   CHECKS_BASELINE=captured
+  # One row per declared check, read off the runner's own `=== <id>` and
+  # `=== <id> FAILED (exit N)` delimiters. It is a reading aid over the raw
+  # block below, never a substitute for it: attribution is still a bead
+  # comparing text against text.
+  _verdicts="$(printf '%s\n' "$_out" | awk '
+    /^=== [a-z0-9-]+ FAILED \(exit [0-9]+\)$/ { failed[$2]=1; next }
+    /^=== [a-z0-9-]+$/                          { order[++n]=$2 }
+    END { for (i = 1; i <= n; i++)
+            printf "| `%s` | %s |\n", order[i],
+                   (order[i] in failed ? "**FAILED**" : "passed") }')"
   {
     printf '# Checks baseline\n\n'
-    printf 'What `%s` printed on the untouched tree, before any bead ran, and\n' "$CHECKS"
-    printf 'the status it exited with.\n\n'
+    printf 'What the project'"'"'s declared checks printed on the untouched tree,\n'
+    printf 'before any bead ran, and the status they exited with.\n\n'
+    printf '| check | on the untouched tree |\n|---|---|\n%s\n\n' "$_verdicts"
     if [ "$_st" -eq 0 ]; then
       printf 'Exit status: **0 — everything passed.** Every bead is expected to leave it\n'
       printf 'that way; any failure you see is yours.\n\n'
@@ -483,7 +504,7 @@ if [ -n "$CHECKS" ]; then
   say "INLINE its contents into every subagent prompt — a baseline that stops at"
   say "the planner is one the agent running the checks never sees."
 else
-  say "not captured — no checks script resolved, so every check is expected to"
+  say "not captured — no checks were declared, so every check is expected to"
   say "pass and a pre-existing failure will be misread as a regression."
 fi
 
@@ -534,7 +555,7 @@ fi
 # The evalable block. Values that can contain spaces are single-quoted.
 emitq RUN_DIR "$RUN_DIR"
 emitq SCRIPTS "$SCRIPTS"
-emitq BB_CHECKS "$CHECKS"
+emitq BB_CHECKS_IDS "$CHECKS_IDS"
 emit  BB_LINEUP "$LINEUP"
 emitq BB_MODEL_LIGHT "$MODEL_LIGHT"
 emitq BB_MODEL_STANDARD "$MODEL_STANDARD"
