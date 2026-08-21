@@ -89,7 +89,7 @@ step 4's scope test, and only as an amendment.
 
 `Tier` is the bead's `metadata.execution_suggested_model` (else
 `metadata.tier`), resolved to a model at dispatch via the
-project's `## model lineup`. Leave it blank only when the project declares no
+project's `sf.toml` `[models]` lineup. Leave it blank only when the project declares no
 lineup — the subagent then inherits the session model.
 
 ### The Reason column names the collision class

@@ -6,8 +6,8 @@ description: How to fill a work order's fields well — the three text
 slug: work-order-field-guide
 type: guide
 status: active
-updated_at: 2026-07-30T00:00:00Z
-version: "1.2"
+updated_at: 2026-08-21T00:00:00Z
+version: "1.3"
 ---
 
 # Work Order Field Guide
@@ -16,7 +16,7 @@ version: "1.2"
 
 - The three text fields (Problem / Design / Acceptance) and what separates them
 - Dispatch metadata conventions — `tier`, `tier_reason`, `est_size`, `c4_*`
-- Why tiers, not model names — and the project `## model lineup` block
+- Why tiers, not model names — and the project's `sf.toml` `[models]` lineup
 - Tier-routing rubric — which signals push toward `light` / `standard` /
   `advanced` / `frontier`
 - Calibration — escalations as routing evidence, and why over-routing is
@@ -81,19 +81,20 @@ validator, and every skill that reads it.
 
 The tier is the durable claim ("this order needs advanced reasoning"); the
 model is a local binding. Each project declares that binding once, in
-`AGENTS.md` under a `## model lineup` heading, and the orchestrator
-resolves `tier` → model at dispatch:
+`sf.toml` at the repository root, and the orchestrator resolves `tier` → model
+at dispatch:
 
-```markdown
-## model lineup
-
-Least to most capable:
-
-- **light:** `<model>`
-- **standard:** `<model>`
-- **advanced:** `<model>`
-- **frontier:** `<model>`
+```toml
+[models]
+# Least to most capable.
+light = "<model>"
+standard = "<model>"
+advanced = "<model>"
+frontier = "<model>"
 ```
+
+It lives in a config file rather than in prose because it is a routing fact a
+script resolves, not guidance an agent reads.
 
 WHEN a project's lineup has fewer than four models, map several tiers onto
 one model rather than inventing tier names — the ordering is what the

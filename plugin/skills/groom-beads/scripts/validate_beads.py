@@ -41,7 +41,7 @@ GROOMING = {"ready", "blocked-needs-info", "blocked-ungroomable"}
 EDGE_TYPES = {"blocks", "blocked-by", "parent", "related", "discovered-from"}
 # Capability tiers, least to most capable. ORDER IS SIGNIFICANT: the orchestrator's
 # escalation ladder walks this list upward. Deliberately model-name-free — a project
-# binds tiers to named models in its own `## model lineup` block, so a lineup change
+# binds tiers to named models in its own `sf.toml` `[models]` lineup, so a lineup change
 # never edits this file. Canonical definition: spec skill, work-order-field-guide.md.
 TIERS = ["light", "standard", "advanced", "frontier"]
 # bd's documented advisory scale (docs/METADATA.md). A consumer on a different
