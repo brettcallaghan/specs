@@ -4,43 +4,31 @@
 #
 # THE CONTRACT (identical in every project that ships one):
 #
-#   checks list                  Gate ids, in the order they must run, one per
-#                                line. Nothing else on stdout.
-#   checks run [<gate>...]       Run every gate, or only the named ones.
-#   checks targeted <path>...    Print the gate ids that cover those paths.
-#                                Prints nothing and exits 0 when none apply.
+#   checks [<gate>...]     Run every gate in declared order, or only the named
+#                          ones.
 #
-#   `run` writes one machine-readable line per gate to STDOUT:
+#   It writes one machine-readable line per gate to STDOUT:
 #
 #       RESULT <gate> <pass|fail|skip> <exit-code>
 #
 #   and everything humans read to STDERR, so a caller can parse stdout without
-#   filtering. Exit 0 when every gate run passed or was skipped, 1 when any
-#   failed, 2 on an invocation error.
+#   filtering. Exit 0 when every gate passed or was skipped, 1 when any failed,
+#   2 on an invocation error.
 #
-#   A gate id is a stable, lowercase, hyphenated name. It is the project's to
-#   choose: bead-bonanza never assumes a fixed set, only that `list` names them
-#   and `run` executes them.
+#   A gate id is a stable, lowercase, hyphenated name, chosen by the project.
+#   Nothing needs to enumerate them separately: running the suite names every
+#   gate it ran.
 #
-# WHY A SCRIPT RATHER THAN A MARKDOWN BLOCK. bead-bonanza used to recover the
-# commands by regex-parsing AGENTS.md bullets for their first backticked span.
-# Measured against this repository's own AGENTS.md, that parser resolves
-# Format, Lint and Build — and silently drops "Test (full suite)", because its
-# body is a fenced block rather than one span. The gate it cannot see is the
-# known-red one, i.e. exactly the gate whose baseline matters most. A parser
-# whose failure mode is "the hardest gate silently vanishes" cannot be fixed by
-# a better regex; the project has to say what it means in something executable.
-
 set -u
 
 usage() {
-  echo "usage: checks list | checks run [<gate>...] | checks targeted <path>..." >&2
+  echo "usage: checks [<gate>...]" >&2
   exit 2
 }
 
-# Ordered. `run` with no arguments runs exactly this, in this order — so
-# anything that must precede another gate (a regen before a test) is ordered
-# here rather than in the caller.
+# Ordered. No arguments runs exactly this, in this order — so anything that
+# must precede another gate (a regen before a test) is sequenced here rather
+# than by the caller.
 GATES="format vet build test-go skills shared-refs strata-docs schemas skills-strict"
 
 repo_root() { git rev-parse --show-toplevel 2>/dev/null || pwd; }
@@ -73,13 +61,16 @@ gate_skills_strict() { "$ROOT/scripts/check-skills.sh" --strict >&2; }
 gate_fn() { printf 'gate_%s' "$(printf '%s' "$1" | tr '-' '_')"; }
 
 is_gate() {
-  for g in $GATES; do [ "$g" = "$1" ] && return 0; done
+  # `_k`, not `g`: this is called from inside `for g in $want`, and a shared
+  # name would clobber the caller's loop variable. It survived only because
+  # the loop returns on a match, leaving `g` equal to the value being tested —
+  # correct by accident for a known gate, wrong for an unknown one.
+  for _k in $GATES; do [ "$_k" = "$1" ] && return 0; done
   return 1
 }
 
-cmd_list() { for g in $GATES; do echo "$g"; done; }
 
-cmd_run() {
+run_gates() {
   want="$*"
   [ -n "$want" ] || want="$GATES"
   rc=0
@@ -102,33 +93,4 @@ cmd_run() {
   return $rc
 }
 
-# Which gates cover these paths. The mapping lives here, next to the gates
-# themselves, rather than in a prose table that can disagree with them.
-cmd_targeted() {
-  [ $# -ge 1 ] || usage
-  want=""
-  add() { case " $want " in *" $1 "*) ;; *) want="$want $1" ;; esac; }
-  for p in "$@"; do
-    case "$p" in
-      cli/*)                     add format; add vet; add build; add test-go ;;
-      schemas/*.strata)          add schemas; add build ;;
-      plugin/skills/*)           add skills; add shared-refs ;;
-      .claude/skills/strata/*)   add strata-docs ;;
-      scripts/*)                 add skills; add shared-refs ;;
-    esac
-  done
-  # Emit in canonical order rather than discovery order, so a caller can run
-  # the result straight through without re-sorting.
-  for g in $GATES; do
-    case " $want " in *" $g "*) echo "$g" ;; esac
-  done
-}
-
-[ $# -ge 1 ] || usage
-sub="$1"; shift
-case "$sub" in
-  list)     [ $# -eq 0 ] || usage; cmd_list ;;
-  run)      cmd_run "$@" ;;
-  targeted) cmd_targeted "$@" ;;
-  *)        usage ;;
-esac
+run_gates "$@"

@@ -249,17 +249,10 @@ for _c in "${BB_CHECKS:-}" "$_declared" scripts/checks; do
     block "$_c exists but is not executable — chmod +x it; a non-executable checks script is the same as none"
   fi
 done
-GATE_IDS=""
 if [ -z "$CHECKS" ]; then
   block "no checks script found (looked at \$BB_CHECKS, sf.toml's [checkpoints] checks key, scripts/checks) — read references/project-setup.md and write one WITH the user; do not invent gates"
 else
   say "checks script: $CHECKS"
-  GATE_IDS="$("$CHECKS" list 2>/dev/null | tr '\n' ' ')"
-  if [ -z "$GATE_IDS" ]; then
-    block "$CHECKS list printed nothing — a checks script must name its gates"
-  else
-    say "gates: $GATE_IDS"
-  fi
 fi
 
 # The tier lineup is a routing fact, so it is read as configuration rather than
@@ -498,7 +491,7 @@ if [ -n "$CHECKS" ]; then
   # project. The bar "no findings beyond baseline" is then a comparison of two
   # outputs, not a parse of either.
   _raw="$RUN_DIR/checks-baseline.md"
-  _results="$("$CHECKS" run 2>"$RUN_DIR/.gate-stderr")"
+  _results="$("$CHECKS" 2>"$RUN_DIR/.gate-stderr")"
   while IFS= read -r line; do
     case "$line" in RESULT\ *) ;; *) continue ;; esac
     # RESULT <gate> <verdict> <exit>
@@ -514,7 +507,7 @@ $key=$verdict"
 $_results
 EOF
   if [ -z "$GATE_KEYS" ]; then
-    say "$CHECKS run emitted no RESULT lines — treating the baseline as uncaptured"
+    say "$CHECKS emitted no RESULT lines — treating the baseline as uncaptured"
     CHECKS_BASELINE=skipped
   else
     # Write the baseline where every later reader can find it: the run dir.

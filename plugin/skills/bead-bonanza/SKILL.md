@@ -39,8 +39,8 @@ pre-flight script.
 Throughout this document, `<format>`, `<lint>`, `<build>`, `<test>` and
 `<regen>` are placeholders for gates that script declares. The set is the
 project's to choose — a schema check or a license-header linter is just another
-gate id — so run what `checks list` names rather than a fixed suite, in the
-order it names them.
+gate id — so run the project's `checks` script rather than a fixed suite, and
+let its own order decide what precedes what.
 
 ## Run checklist
 
@@ -915,7 +915,7 @@ with any RFCs in a single commit.
   `<test>` run happens once before the push.
 - **Targeted tests per bead are non-negotiable.** "Reduced gates" between beads
   in a batch never means "no tests." Each bead must run surface-relevant
-  targeted tests (`checks targeted <path>...` names them). If
+  targeted tests, WHERE the project's `checks` script offers a way to name them. If
   the subagent can't identify any, that's a signal the change is broader than
   expected — pause and reconsider scope, don't skip.
 - **Red before green on defect beads.** A test written after its fix encodes the

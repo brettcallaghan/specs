@@ -46,13 +46,12 @@ under `cli/` that implements the Spec CLI.
 entry point bead-bonanza resolves and runs; its header carries the contract.
 
 ```bash
-scripts/checks list                  # gate ids, in the order they must run
-scripts/checks run [<gate>...]       # run all, or only the named ones
-scripts/checks targeted <path>...    # the gate ids covering those paths
+scripts/checks                  # every gate, in the order they must run
+scripts/checks <gate>...        # only the named ones
 ```
 
-`run` prints one `RESULT <gate> <pass|fail|skip> <exit>` line per gate to
-stdout and everything human to stderr, and exits non-zero if any gate failed.
+It prints one `RESULT <gate> <pass|fail|skip> <exit>` line per gate to stdout
+and everything human to stderr, and exits non-zero if any gate failed.
 
 Nine gates: `format`, `vet`, `build`, `test-go`, `skills`, `shared-refs`,
 `strata-docs`, `schemas`, `skills-strict`.
@@ -105,20 +104,22 @@ synthetically instead, on every platform, by `cli/cmd/portability_test.go`.
 
 ### Targeted tests by surface
 
-**Ask the script**, rather than reading a table that can drift from it:
+`scripts/checks <gate>...` runs a subset. Which gates cover which surface:
 
-```bash
-scripts/checks targeted cli/cmd/main.go        # -> format vet build test-go
-scripts/checks targeted plugin/skills/x/SKILL.md   # -> skills shared-refs
-```
+| touched | gates |
+|---|---|
+| `cli/**` | `format vet build test-go` |
+| `schemas/*.strata` | `schemas build` — the generated Go must still compile |
+| `plugin/skills/**` | `skills shared-refs` |
+| `scripts/**` | `skills shared-refs` |
+| `.claude/skills/strata/references/**` | `strata-docs` |
 
-It prints the gate ids covering those paths, in run order, and nothing when
-none apply — so `checks run $(checks targeted <paths>)` is the whole of running
-a narrowed suite. The mapping lives beside the gate definitions in
-`scripts/checks`, which is the only place it cannot disagree with them.
+This is a reading aid, not an interface: it is documented here rather than
+computed by the script, because a project's checks script is only required to
+run gates, and every mapping one could compute is one more thing a project has
+to implement before it can be gated at all.
 
-Two mappings the script cannot express, because they are about how to *read* a
-result rather than which gate to run:
+Two entries are about how to *read* a result rather than which gate to run:
 
 - `.claude/skills/*/SKILL.md` — only the project-native skills `triage-rfc` and
   `strata` are checked; the committed symlinks to `plugin/skills/` are skipped

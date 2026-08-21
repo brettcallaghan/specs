@@ -1,8 +1,9 @@
 ---
 title: "ADR-022: Projects Declare Checkpoint Scripts"
 description: A project declares its gate commands as one executable checks
-  script referenced from a plugin-scoped sf.toml, reporting a verdict per gate
-  on stdout and passing its tools' own output through on stderr, because a
+  script referenced from a plugin-scoped sf.toml, taking no subcommand and
+  reporting a verdict per gate on stdout while passing its tools' own output
+  through on stderr, because a
   prose gate profile cannot express a multi-command gate and a bare suite-wide
   exit code cannot express a known-red baseline
 slug: adr-022
@@ -59,18 +60,24 @@ A project declares **one executable `checks` script** — an executable it owns
 referenced by repository-root-relative path. `bead-bonanza` runs it and reads
 its output; it parses no prose.
 
-The contract is three subcommands and one output rule:
+The contract is one command and one output rule:
 
 ```
-checks list                  Gate ids, in the order they must run, one per line.
-checks run [<gate>...]       Run every gate, or only the named ones.
-checks targeted <path>...    The gate ids covering those paths.
+checks [<gate>...]     Run every gate in declared order, or only the named ones.
 ```
 
-`run` writes one line per gate to **stdout** —
+It writes one line per gate to **stdout** —
 `RESULT <gate> <pass|fail|skip> <exit-code>` — and passes everything the
 underlying tools printed through to **stderr**, unaltered. Exit 0 when every
-gate run passed or was skipped, 1 when any failed, 2 on an invocation error.
+gate passed or was skipped, 1 when any failed, 2 on an invocation error.
+
+**One command, because every additional one is a thing a project must build
+before it can be gated at all.** An earlier draft required `list` (enumerate the
+gates) and `targeted` (name the gates covering a path). `list` returns what
+running the suite already prints. `targeted` asks the project to encode a
+path-to-gate mapping — useful, but not something to demand of a project whose
+whole gate story is "run these four commands". A project is free to add
+subcommands of its own; none is required.
 
 **A checkpoint reports its tools' own output, not a structured findings
 format.** This is the load-bearing choice and it runs opposite to this ADR's
@@ -82,9 +89,9 @@ move it out of `bead-bonanza` and onto every project that wants to be gated,
 once per tool. The verdict is the one thing the script must synthesize, because
 it is the one thing the tools do not already say.
 
-**Only the gate ids are a contract.** The set is the project's to choose;
-ordering lives in `list`, so a step that must precede another — a regen before
-a test — is sequenced by the project rather than by the caller. A check that is
+**Only the gate ids are a contract.** The set is the project's to choose, and
+ordering lives inside the script, so a step that must precede another — a regen
+before a test — is sequenced by the project rather than by the caller. A check that is
 known-red gets its own gate id, so the baseline can carry it without marking a
 healthy check red.
 

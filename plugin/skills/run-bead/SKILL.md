@@ -28,10 +28,10 @@ identical.
 |---|---|---|
 | `{ID}`, `{PRIORITY}`, `{TITLE}` | given | `bd ready`, then `bd show <id>` |
 | `{WORKTREE}` | given — work THERE, it is yours alone | your checkout, on a branch that is not the default |
-| gates | `{FORMAT}` `{LINT}` `{BUILD}` `{TEST}` `{REGEN}` `{CUSTOM_GATES}` | `checks list`, then `checks run` |
+| gates | `{FORMAT}` `{LINT}` `{BUILD}` `{TEST}` `{REGEN}` `{CUSTOM_GATES}` | run `checks` |
 | `{SCRIPTS}` | given | `bead-bonanza/scripts/` |
 | `{TRAILERS_FILE}` | given, or `none` | `none` |
-| `{CHECKS_BASELINE}` | given — the known-red gates block | `checks run` on a clean tree, before you start |
+| `{CHECKS_BASELINE}` | given — the known-red gates block | run `checks` on a clean tree, before you start |
 | push mode | `push_per_bead` or `defer_push` | push your branch when the work is done |
 
 **Never work in the main checkout when a worktree was given**, and never work
@@ -76,8 +76,8 @@ Write no progress file.
 
 4. **Gates — the push is the gate.** Run the project's full suite here, before
    any push. If the change affects generated output the tests compare against
-   (codegen, snapshots, golden files, schemas) AND `checks list` names a regen
-   gate, run that one BEFORE the test gate.
+   (codegen, snapshots, golden files, schemas) AND the project declares a regen
+   gate, it runs BEFORE the test gate — the script's own order handles that.
 
    ```
    {FORMAT}  {LINT}  {BUILD}  {TEST}  {CUSTOM_GATES}

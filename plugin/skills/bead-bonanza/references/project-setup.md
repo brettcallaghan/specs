@@ -34,44 +34,31 @@ write any of it silently.
    hard error rather than as absent, because that is a mistake to report, not a
    state to work around.
 
-   **The contract.** Three subcommands, and one output rule:
+   **The contract.** One command, one output rule:
 
    ```
-   checks list                  Gate ids, in the order they must run, one per
-                                line. Nothing else on stdout.
-   checks run [<gate>...]       Run every gate, or only the named ones.
-   checks targeted <path>...    Print the gate ids covering those paths.
-                                Prints nothing and exits 0 when none apply.
+   checks [<gate>...]     Run every gate in declared order, or only the named
+                          ones.
    ```
 
-   `run` writes one machine-readable line per gate to **stdout**:
+   | stream | carries |
+   |---|---|
+   | stdout | `RESULT <gate> <pass\|fail\|skip> <exit>`, one line per gate |
+   | stderr | whatever the underlying tools printed, unaltered |
 
-   ```
-   RESULT <gate> <pass|fail|skip> <exit-code>
-   ```
+   Exit 0 when every gate passed or was skipped, 1 when any failed, 2 on a bad
+   invocation. Keep the two streams separate: a gate whose own output contains
+   the word `FAIL` must not be readable as a verdict.
 
-   and everything a human reads to **stderr**. That split is the load-bearing
-   part: a gate whose own output contains the word `FAIL` must not be readable
-   as a verdict. Exit 0 when every gate run passed or was skipped, 1 when any
-   failed, 2 on an invocation error.
-
-   A gate id is a stable, lowercase, hyphenated name, and the set is the
-   project's to choose — bead-bonanza never assumes a fixed one, only that
-   `list` names them and `run` executes them. Ordering lives in `list`, so a
-   step that must precede another (a regen before a test) is sequenced by the
-   project rather than by the caller.
-
-   **Everything resolves through it.** The gate suite, the Phase 0 baseline,
-   and the targeted-tests-by-surface mapping are all answers this one script
-   gives. The mapping in particular belongs next to the gates it names, where
-   it cannot drift from them.
+   Gate ids are the project's to choose — lowercase, hyphenated, stable.
+   Ordering lives in the script, so a step that must precede another (a regen
+   before a test) is sequenced there rather than by the caller.
 
    **Give each known-red check its own gate id.** A check that fails for a
-   reason the run is not expected to fix — a warning-as-failure, a suite that
-   is red on the default branch — is recorded in the baseline as a failing gate
-   and the bar for every bead becomes "no findings beyond this baseline". Folded
-   in with a healthy check, it marks that one red too and the baseline stops
-   discriminating.
+   reason the run is not expected to fix is recorded in the baseline as a
+   failing gate, and the bar for every bead becomes "no findings beyond this
+   baseline". Folded in with a healthy check, it marks that one red too and the
+   baseline stops discriminating.
 
    - **If the script exists**, Phase 0 runs it. Fast path — no prompt.
    - **If it's missing**, discover candidate commands from `AGENTS.md` /
