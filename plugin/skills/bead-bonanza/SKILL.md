@@ -292,7 +292,7 @@ agent that must open a script to learn how to call it has already been sent
 to read it:
 
 ```
-pre-flight-check.sh <run-id> [--gate-baseline] [--self-test]   # sandbox ON
+pre-flight-check.sh <run-id> [--self-test]                      # sandbox ON
 bb-verify-skip.sh [pathspec ...]        # no pathspec = whole working tree
 bb-close-bead.sh [--trailers-file <path>] <bead-id> <priority> <title> [path ...]
 ```
@@ -302,10 +302,12 @@ bb-close-bead.sh [--trailers-file <path>] <bead-id> <priority> <title> [path ...
   proceed / 1 blocking / 2 bad invocation. **Run it with the sandbox ON** — the
   one write the sandbox refuses is the global Dolt telemetry config, which the
   script detects, skips, and reports as the single command to re-run with the
-  sandbox off. `--gate-baseline` also runs the project's `checks` script on the untouched
+  sandbox off. It always runs the project's `checks` script on the untouched
   tree, so a pre-existing failure is recorded as the baseline instead of being
-  charged to the first bead. `--self-test` exercises the portability wrappers
-  and takes no run id.
+  charged to the first bead — there is no opt-out, because the run where a
+  baseline is most expensive to skip is exactly the slow one somebody would
+  want to skip it on. `--self-test` exercises the portability wrappers and
+  takes no run id.
 - **`scripts/bb-verify-skip.sh`** — the two-sided skip check. With no argument it
   examines the whole working tree; pass pathspecs to scope it.
 - **`scripts/bb-close-bead.sh`** — the close ceremony, in its required order.
@@ -331,7 +333,7 @@ One script measures the environment; you act on what it returns. Run it from
 this skill's own directory, with a run id of `$(date +%s)-<queue size>`:
 
 ```bash
-eval "$(<this skill>/scripts/pre-flight-check.sh "<run-id>" --gate-baseline)"
+eval "$(<this skill>/scripts/pre-flight-check.sh "<run-id>")"
 ```
 
 Eval the stdout — it sets `RUN_DIR`, `SCRIPTS` and the `BB_*` facts this
@@ -930,8 +932,8 @@ These are the artifacts each script creates, writes, or repoints.
   `git worktree prune` at startup; **pushes to the remote** — probes tracker
   write access with `git push <remote> HEAD:refs/dolt/preflight-probe-$$`,
   then deletes that ref, both against the same remote the bead's own work
-  will later push to; and, under `--gate-baseline`, **executes the project's
-  `checks` script**, which runs whatever commands that project's gates invoke. It does not write user-global state — where
+  will later push to; and **executes the project's `checks` script**, which
+  runs whatever commands that project's gates invoke. It does not write user-global state — where
   Dolt telemetry suppression or the `eventsapi.dolthub.com` deny entry is
   absent, it reports that and prints the command to run yourself.
 - **`scripts/bb-verify-skip.sh`** — no side effects; exits 0 (skip

@@ -40,7 +40,7 @@ this file is where that output lands durably.
 | Branch | `<branch>` |
 | Base sha | `<sha at run start>` |
 | Gate profile | format=`…` lint=`…` build=`…` test=`…` regen=`…` custom=`…` |
-| Gate baseline | `<gate>=pass|fail` per gate, from pre-flight `--gate-baseline` |
+| Gate baseline | `<gate>=pass|fail` per gate, from pre-flight (always captured) |
 | Model lineup | light=`…` standard=`…` advanced=`…` frontier=`…` |
 | Standing authorization | what the user authorized without further asking (push mode, PR, scope) |
 | Wave preview | `accepted` \| `overridden — <why>` \| `none (no C4 docs)` \| `not returned` |

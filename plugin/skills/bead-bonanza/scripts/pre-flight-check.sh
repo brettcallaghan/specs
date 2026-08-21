@@ -8,10 +8,10 @@
 #   condition named in the report, 2 bad invocation.
 #
 # Usage
-#   pre-flight-check.sh <run-id> [--gate-baseline] [--self-test]
+#   pre-flight-check.sh <run-id> [--self-test]
 #
 #   pre-flight-check.sh 1786345424-bbh                  # probe and report
-#   pre-flight-check.sh 1786345424-bbh --gate-baseline  # also run the gate suite
+#   pre-flight-check.sh 1786345424-bbh   # probe, and capture the gate baseline
 #   pre-flight-check.sh --self-test                     # portability guards only
 #
 #   The script never writes user-global state (~/.claude/settings.json, the
@@ -185,13 +185,11 @@ deny_entry_present() {
 # ================================================================== arguments
 
 RUN_ID=""
-DO_GATES=no
-[ $# -ge 1 ] || die "usage: pre-flight-check.sh <run-id> [--gate-baseline] [--self-test]"
-[ $# -le 3 ] || die "usage: pre-flight-check.sh <run-id> [--gate-baseline] [--self-test]"
+[ $# -ge 1 ] || die "usage: pre-flight-check.sh <run-id> [--self-test]"
+[ $# -le 2 ] || die "usage: pre-flight-check.sh <run-id> [--self-test]"
 for arg in "$@"; do
   case "$arg" in
     --self-test)     self_test; exit $? ;;
-    --gate-baseline) DO_GATES=yes ;;
     -*)              die "unknown option '$arg'" ;;
     *)               [ -z "$RUN_ID" ] || die "only one run-id may be given"
                      RUN_ID="$arg" ;;
@@ -448,7 +446,7 @@ head_ "Gate baseline"
 GATE_BASELINE=skipped
 GATE_KEYS=""
 GATE_EMIT=""
-if [ "$DO_GATES" = yes ] && [ -n "$CHECKS" ]; then
+if [ -n "$CHECKS" ]; then
   GATE_BASELINE=captured
   # One invocation runs every gate the project declared, in the order it
   # declared them. Parse only stdout: the contract puts RESULT lines there and
@@ -478,8 +476,8 @@ EOF
   fi
 
 else
-  say "not captured — re-run with --gate-baseline. Until then every gate is"
-  say "expected to exit 0, and a pre-existing failure will be misread as a regression."
+  say "not captured — no checks script resolved, so every gate is expected to"
+  say "exit 0 and a pre-existing failure will be misread as a regression."
 fi
 
 # ==================================================== 9. tracker durability
