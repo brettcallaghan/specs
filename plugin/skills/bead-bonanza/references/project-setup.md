@@ -132,6 +132,7 @@ write any of it silently.
    - This skill's bundled scripts — one entry per script covers every
      skip check and close ceremony in the run:
      `Bash(<skill-dir>/scripts/pre-flight-check.sh:*)`,
+     `Bash(<skill-dir>/scripts/bb-status.sh:*)`,
      `Bash(<skill-dir>/scripts/bb-verify-skip.sh:*)`,
      `Bash(<skill-dir>/scripts/bb-close-bead.sh:*)`
    - The `checks` script's path (e.g. `Bash(scripts/checks:*)`), plus whatever

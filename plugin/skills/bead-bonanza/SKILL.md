@@ -139,48 +139,40 @@ After each subagent returns:
      - Revert the diff (`git checkout -- <paths>` / `git restore --staged
        <paths>`) and re-confirm `skipped` with a fresh run showing CLEAN.
    - Do NOT proceed to push or to the next bead until the skip is reconciled.
-4. **Acceptance check — every bead, every dispatch mode.** A bead the subagent
-   returned as `completed` is not closed until **every signal below** agrees.
-   Verify them in this order and stop at the first that fails:
+4. **Acceptance check — every bead, every dispatch mode.** Run it, do not
+   perform it:
 
-   1. **The bead reads closed in the tracker** — `bd show <id>` shows
-     `CLOSED`.
-   2. **A commit exists on the bead's branch** with the subject
-     `<bead-id> P<n> <title>` — `git log --oneline --grep=<bead-id> -1`.
-   3. **The branch merged into the sprint branch.** The merge is `--ff-only`,
-     so a refusal is not a conflict to resolve here but an invariant that
-     broke (see "Merge policy") — stop the wave. After the fact, confirm with
-     `git branch --contains <sha>` and look for the sprint branch.
-   4. **The worktree is GONE** — `git worktree prune && git worktree list` no
-     longer lists it. **This is the load-bearing signal.** Removal is the
-     orchestrator's own final act of accepting the bead, so a surviving
-     worktree is a bead not accepted, whatever the subagent reported: it is
-     state rather than testimony, and no subagent summary can forge it.
-   5. **Findings were recorded** — at least one `retro:` comment on the bead,
-     or the subagent's explicit "clean bead, no findings". A silent bead is
-     neither, and is not accepted. Check with the export pipeline:
+   ```sh
+   scripts/bb-status.sh bead <bead-id> --worktree <path> [--batch]
+   ```
 
-     ```
-     bd export | jq -r 'select(.id=="<bead-id>")
-       | [.comments[]?|select(.text|startswith("retro:"))] | length'
-     ```
+   It verifies the five signals in the required order and stops at the first
+   that fails: the bead reads closed in the tracker; a commit carrying the id
+   exists; that commit is an ancestor of HEAD; the worktree is gone; and at
+   least one `retro:` comment was recorded. Each line prints the state **and
+   the command that established it**, so any single check can be re-run without
+   reconstructing it.
 
-     Not `bd show <id> --json` — it reports `comment_count: 0` for a bead that
-     has comments, so it fails every bead in the run at once.
+   **Read the exit code — it is the decision:**
 
-   Applies **per bead, not per subagent**. A fast-lane subagent that
-   processed six beads is checked six times — that is exactly where a silent
-   omission hides.
+   | | |
+   |---|---|
+   | `0` | all clear — record the bead closed |
+   | `1` | **repairable in place.** Signals 1, 2, 5: close the bead, or add the missing `retro:` comment from the returned summary. State the repair in the report. |
+   | `2` | **stop the wave.** Signals 3, 4: the merge or the acceptance never happened. Not yours to repair inline — leave the worktree standing, since it is the in-flight signal, and surface it. |
+
+   Pass `--batch` for a bead processed inside a batch's shared worktree, which
+   makes signal 4 skip rather than fail; read signal 4 once, against the batch,
+   when it returns.
+
+   Applies **per bead, not per subagent**. A fast-lane subagent that processed
+   six beads is checked six times — that is exactly where a silent omission
+   hides.
 
    **A bead failing any signal is reported, not recorded closed.** Give it a
    Phase 4 row naming the failing signal (`acceptance-failed: worktree
    survives`) in place of a commit sha, and say so in the run totals rather
-   than counting it among the closed. Signals 1, 2 and 5 are repairable in
-   place — close the bead, or add the missing `retro:` comment from the
-   returned summary — and the repair is stated in the report. Failures of 3
-   or 4 are not the orchestrator's to repair inline: the merge or the
-   acceptance never happened, so leave the worktree standing (it is the
-   in-flight signal) and surface it.
+   than counting it among the closed.
 
    **A standing worktree is one of three things — read signal 4 against the
    dispatch mode before calling it a failure.**
@@ -280,6 +272,7 @@ Load the one that matches where you are in the run:
 | A project with no `checks` script or no `sf.toml` model lineup | `references/project-setup.md` |
 | Resuming a bead interrupted mid-implementation (its worktree still exists) | `references/operating-principles.md` |
 | Phase 0 pre-flight: probe the environment, resolve `RUN_DIR`/`SCRIPTS` | run `scripts/pre-flight-check.sh` |
+| Verifying a bead's acceptance signals, or a wave's landing | run `scripts/bb-status.sh` |
 | Checking a `skipped` claim against the tree | run `scripts/bb-verify-skip.sh` |
 | Closing a bead: close + verify + stage + commit + push the tracker | run `scripts/bb-close-bead.sh` |
 | The Definition of Ready the Phase 1.5 gate enforces | `references/shared/work-order-definition-of-ready.md` |
@@ -312,6 +305,14 @@ bb-close-bead.sh [--trailers-file <path>] <bead-id> <priority> <title> [path ...
   baseline is most expensive to skip is exactly the slow one somebody would
   want to skip it on. `--self-test` exercises the portability wrappers and
   takes no run id.
+- **`scripts/bb-status.sh`** — read-only; repairs nothing. `bead` verifies the
+  five acceptance signals in order; `wave` reports tree cleanliness, the
+  landing check (unpushed commits against the upstream), surviving worktrees
+  and the merge slot's holder; `harvest` asserts a run's `retro:` total is
+  non-zero, since a zero total is a broken pipeline rather than a flawless run.
+  Exit 0 clear, 1 repairable, 2 stop-the-wave, 3 invocation error. **Run-level:
+  a subagent never runs it** — inside its own worktree signal 4 reads
+  differently by construction.
 - **`scripts/bb-verify-skip.sh`** — the two-sided skip check. With no argument it
   examines the whole working tree; pass pathspecs to scope it.
 - **`scripts/bb-close-bead.sh`** — the close ceremony, in its required order.

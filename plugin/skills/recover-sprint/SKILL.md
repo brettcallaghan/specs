@@ -56,6 +56,15 @@ could not read the plan is a *reconstruction*, and says so — it is not a plan.
 
 ## Work these steps in order
 
+0. **Take the run's vital signs first.** Before deriving anything, run
+   bead-bonanza's `scripts/bb-status.sh wave` from the sprint branch, resolved
+   from that skill's own directory. One command answers whether the tree is
+   clean, whether the branch has landed, what is still in flight, and who holds
+   the merge slot — and prints the command behind each, so any line can be
+   re-derived. It repairs nothing and is safe to run before you know anything
+   about the run. Its exit code is the first thing worth reporting: `2` means a
+   wave is stopped, not merely paused.
+
 1. **Find the run — derive it from the branch.** A run happens on its own
    dedicated branch, uses one run directory, and that directory is removed
    before the branch merges. So the branch you are on identifies the run, and
