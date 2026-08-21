@@ -247,6 +247,26 @@ After each subagent returns:
 run and surface to the user. Something is systemically wrong (broken main,
 environment issue, an under-groomed bead).
 
+### When the run is done
+
+**`bb-status.sh run <epic>`** — the run-level Definition of Done, computed from
+state rather than from your recollection of what you dispatched. A run is done
+when every bead the manifest's `admitted` list names is closed, or accounted
+for as blocked-with-a-reason. Beads **excluded at admission** are reported
+alongside, because a run that finished its admitted set while three beads sat
+out is done over a *narrowed* scope, and must say so rather than reading as
+complete over the scope the user first described.
+
+It walks the epic's descendants rather than calling `bd epic status`, which
+counts direct children only — on a nested run epic that answers about sub-epics
+and read `0/2` with four leaves closed. `bd list --parent` is direct-children
+only too; only `bd ready --parent` is transitive, and it omits closed beads. The
+walk is the only correct count, so the script does it and says when the epic
+was nested.
+
+Exit 0 clear, 1 repairable (no admitted set recorded — the manifest was never
+written), 2 stop (admitted beads still open).
+
 ### The live view
 
 `bd swarm status <epic>` is the durable answer to "where is this run" —
@@ -303,7 +323,7 @@ Load the one that matches where you are in the run:
 | A project with no declared `[[checks]]` or no `sf.toml` model lineup | `references/project-setup.md` |
 | Resuming a bead interrupted mid-implementation (its worktree still exists) | `references/operating-principles.md` |
 | Phase 0 pre-flight: probe the environment, resolve `SCRIPTS`, record the manifest | run `scripts/pre-flight-check.sh` |
-| Verifying a bead's acceptance signals, or a wave's landing | run `scripts/bb-status.sh` |
+| Verifying a bead's acceptance signals, a wave's landing, or the run's Definition of Done | run `scripts/bb-status.sh` |
 | Checking a `skipped` claim against the tree | run `scripts/bb-verify-skip.sh` |
 | Closing a bead: close + verify + stage + commit + push the tracker | run `scripts/bb-close-bead.sh` |
 | The Definition of Ready the Phase 1.5 gate enforces | `references/shared/work-order-definition-of-ready.md` |

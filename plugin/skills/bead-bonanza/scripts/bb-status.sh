@@ -5,6 +5,7 @@
 # USAGE
 #   bb-status.sh bead <bead-id> [--worktree <path>] [--batch]
 #   bb-status.sh wave [--branch <name>] [--remote <name>]
+#   bb-status.sh run <epic-id>
 #   bb-status.sh harvest <bead-id> [<bead-id>...]
 #   bb-status.sh --self-test
 #
@@ -243,16 +244,153 @@ mode_self_test() {
   worst=$RC_OK; note $RC_STOP;   t "stop raises worst"        "2" "$worst"
   worst=$RC_STOP; note $RC_REPAIR; t "repair cannot lower stop" "2" "$worst"
   worst=$RC_REPAIR; note $RC_STOP; t "stop overrides repair"  "2" "$worst"
+
+  # Invocation surface. These fail before any tracker read, so the self-test
+  # stays hermetic — the modes' behaviour against real beads is not covered
+  # here and is exercised by using them.
+  _self="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+  "$_self" run >/dev/null 2>&1;        t "run with no epic exits 3"  "3" "$?"
+  "$_self" run a b >/dev/null 2>&1;    t "run with two args exits 3" "3" "$?"
+  "$_self" nosuchmode >/dev/null 2>&1; t "unknown mode exits 3"      "3" "$?"
+  "$_self" >/dev/null 2>&1;            t "no mode exits 3"           "3" "$?"
   echo
   [ "$fails" -eq 0 ] && { echo "RESULT: PASS"; return 0; }
   echo "RESULT: FAIL"; return 1
 }
 
-[ $# -ge 1 ] || die "usage: bb-status.sh bead|wave|harvest|--self-test"
+# ---------------------------------------------------------------- run mode
+#
+# The run-level Definition of Done. `bd epic status` counts DIRECT children,
+# so on a nested run epic it answers about sub-epics rather than beads — it
+# read 0/2 with four leaves closed. `bd list --parent` is direct-children-only
+# too, unlike `bd ready --parent` which is transitive. Neither gives a
+# transitive count, so this walks the tree.
+mode_run() {
+  [ $# -eq 1 ] || die "usage: bb-status.sh run <epic-id>"
+  _epic="$1"
+  command -v python3 >/dev/null 2>&1 || die "run mode needs python3"
+  _out="$(python3 - "$_epic" <<'PY'
+import json, subprocess, sys
+
+epic = sys.argv[1]
+
+def show(i):
+    r = subprocess.run(["bd", "show", i, "--json"], capture_output=True, text=True)
+    try:
+        d = json.loads(r.stdout)
+    except Exception:
+        return None
+    d = d[0] if isinstance(d, list) and d else d
+    return d if isinstance(d, dict) and not d.get("error") else None
+
+def children(i):
+    r = subprocess.run(["bd", "list", "--parent", i, "--status",
+                        "open,in_progress,blocked,deferred,closed", "--json"],
+                       capture_output=True, text=True)
+    try:
+        d = json.loads(r.stdout)
+    except Exception:
+        return []
+    return d if isinstance(d, list) else []
+
+root = show(epic)
+if root is None:
+    print("ERR|no such bead"); raise SystemExit
+if root.get("issue_type") != "epic":
+    print("ERR|%s is type '%s', not an epic" % (epic, root.get("issue_type"))); raise SystemExit
+
+md = root.get("metadata") or {}
+if isinstance(md, str):
+    try: md = json.loads(md)
+    except Exception: md = {}
+
+seen, leaves, nested = set(), [], False
+stack = [epic]
+while stack:
+    cur = stack.pop()
+    for c in children(cur):
+        cid = c.get("id")
+        if not cid or cid in seen:
+            continue
+        seen.add(cid)
+        if c.get("issue_type") == "epic":
+            nested = True
+            stack.append(cid)
+        else:
+            leaves.append(c)
+
+by = {}
+for c in leaves:
+    by.setdefault(c.get("status") or "?", []).append(c.get("id"))
+
+admitted = md.get("admitted") or []
+excluded = md.get("excluded") or []
+closed = set(by.get("closed", []))
+outstanding = [i for i in admitted if i not in closed] if admitted else []
+
+print("NESTED|%s" % ("yes" if nested else "no"))
+print("TOTAL|%d" % len(leaves))
+for st in sorted(by):
+    print("STATUS|%s|%d|%s" % (st, len(by[st]), " ".join(sorted(by[st]))))
+print("ADMITTED|%d" % len(admitted))
+print("EXCLUDED|%d|%s" % (len(excluded),
+      "; ".join("%s (%s)" % (e.get("id"), e.get("reason", "no reason recorded"))
+                for e in excluded if isinstance(e, dict))))
+print("OUTSTANDING|%d|%s" % (len(outstanding), " ".join(outstanding)))
+PY
+)" || die "run mode: could not walk $_epic"
+
+  case "$_out" in
+    ERR\|*) die "run mode: ${_out#ERR|}" ;;
+  esac
+
+  _nested="$(printf '%s\n' "$_out" | sed -n 's/^NESTED|//p')"
+  _total="$(printf '%s\n' "$_out" | sed -n 's/^TOTAL|//p')"
+  _adm="$(printf '%s\n' "$_out" | sed -n 's/^ADMITTED|//p')"
+
+  echo "run $_epic"
+  if [ "$_nested" = "yes" ]; then
+    line OK "epic is NESTED — count is walked, not \`bd epic status\`" \
+         "bb-status.sh run $_epic"
+  fi
+  line OK "$_total leaf bead(s) in scope" "bd ready --parent $_epic --exclude-type=epic"
+  # Ids only while the list is readable; past that the count plus the command
+  # that re-derives it is more useful than a wall of ids.
+  printf '%s\n' "$_out" | sed -n 's/^STATUS|//p' | while IFS='|' read -r _st _n _ids; do
+    if [ "$_n" -le 8 ] 2>/dev/null; then
+      line OK "  $_st ($_n): $_ids" "bb-status.sh run $_epic"
+    else
+      line OK "  $_st: $_n bead(s)" "bb-status.sh run $_epic"
+    fi
+  done
+
+  _exc_n="$(printf '%s\n' "$_out" | sed -n 's/^EXCLUDED|\([0-9]*\)|.*/\1/p')"
+  _exc="$(printf '%s\n' "$_out" | sed -n 's/^EXCLUDED|[0-9]*|//p')"
+  if [ "${_exc_n:-0}" -gt 0 ] 2>/dev/null; then
+    # Not a failure — a deliberately narrowed scope. But a run that reads as
+    # complete while beads sat out is exactly the misreading this prevents.
+    line OK "$_exc_n bead(s) EXCLUDED at admission: $_exc" "manifest .excluded"
+  fi
+
+  _out_n="$(printf '%s\n' "$_out" | sed -n 's/^OUTSTANDING|\([0-9]*\)|.*/\1/p')"
+  _out_ids="$(printf '%s\n' "$_out" | sed -n 's/^OUTSTANDING|[0-9]*|//p')"
+  if [ "${_adm:-0}" -eq 0 ] 2>/dev/null; then
+    line FAIL "manifest records no admitted set — DoD cannot be checked" \
+         "bd show $_epic --json | jq .metadata.admitted"; note $RC_REPAIR
+  elif [ "${_out_n:-0}" -gt 0 ] 2>/dev/null; then
+    line FAIL "$_out_n admitted bead(s) not closed: $_out_ids" "manifest .admitted"
+    note $RC_STOP
+  else
+    line OK "every admitted bead is closed" "manifest .admitted"
+  fi
+}
+
+[ $# -ge 1 ] || die "usage: bb-status.sh bead|wave|run|harvest|--self-test"
 sub="$1"; shift
 case "$sub" in
   bead)        mode_bead "$@" ;;
   wave)        mode_wave "$@" ;;
+  run)         mode_run "$@" ;;
   harvest)     mode_harvest "$@" ;;
   --self-test) mode_self_test; exit $? ;;
   *)           die "unknown mode: $sub" ;;
