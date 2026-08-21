@@ -94,6 +94,10 @@ Trailers file: {TRAILERS_FILE or "none"}   (Phase 0 resolved; pass to bb-close-b
 Slim gates: {SLIM_GATES}    (yes = a pre-push CI-mirror hook AND a PR whose pushes
                              actually run full CI; resolved by the orchestrator, never
                              asked again here)
+Known-red gates: {GATE_BASELINE}
+    (INLINE the contents of $RUN_DIR/gate-baseline.md here, verbatim. Include this
+     block even when nothing is known-red — write "none: every gate passed at
+     baseline" — so "nothing is red" and "no baseline was taken" cannot look alike.)
 
 **Then invoke the `run-bead` skill.** It carries the ceremony — claim, read,
 implement in scope, gate, caveat, findings, close-and-commit, push, return —
@@ -133,6 +137,10 @@ until the batch returns.
 Run dir: {RUN_DIR}
 Scripts: {SCRIPTS}
 Trailers file: {TRAILERS_FILE or "none"}   (Phase 0 resolved; pass to bb-close-bead.sh --trailers-file)
+Known-red gates: {GATE_BASELINE}
+    (INLINE the contents of $RUN_DIR/gate-baseline.md here, verbatim. Include this
+     block even when nothing is known-red — write "none: every gate passed at
+     baseline" — so "nothing is red" and "no baseline was taken" cannot look alike.)
 
 For each bead, first invoke the `run-bead` skill — it carries the ceremony, and the blocked and skipped paths — passing this bead's id, priority, title and `--trailers-file {TRAILERS_FILE}`. Read the committed sha with `git rev-parse --short HEAD` rather than from the script's printout. Then run the template-specific steps below.
 

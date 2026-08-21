@@ -31,6 +31,7 @@ identical.
 | gates | `{FORMAT}` `{LINT}` `{BUILD}` `{TEST}` `{REGEN}` `{CUSTOM_GATES}` | `checks list`, then `checks run` |
 | `{SCRIPTS}` | given | `bead-bonanza/scripts/` |
 | `{TRAILERS_FILE}` | given, or `none` | `none` |
+| `{GATE_BASELINE}` | given — the known-red gates block | `checks run` on a clean tree, before you start |
 | push mode | `push_per_bead` or `defer_push` | push your branch when the work is done |
 
 **Never work in the main checkout when a worktree was given**, and never work
@@ -86,8 +87,21 @@ Write no progress file.
    take the Blocked path** — do not keep retrying.
 
    **A gate that was already failing before you started is not yours to fix.**
-   Where the run recorded a baseline, the bar is "no findings beyond it", not
-   "exit 0".
+   Your prompt carries a `Known-red gates:` block — the gate verdicts taken on
+   the untouched tree before any bead ran, with the output each failing gate
+   produced. The bar is **"no findings beyond that", not "exit 0"**.
+
+   Compare, do not parse: run your gates, and read your output against the
+   baseline's. A line that appears in both was already there. A line that
+   appears only in yours is yours. Nothing structured is needed for that, which
+   is why the baseline is the tools' own raw output rather than a findings
+   format the project would have to synthesize from `go test`, `eslint` or
+   `pytest` — formats it does not control.
+
+   An **empty** block reads "none: every gate passed at baseline" and means
+   exactly that: every gate is expected to exit 0. A block that is *missing* is
+   different — it means no baseline was taken, so you cannot tell a
+   pre-existing failure from one you caused. Say so rather than guessing.
 
 5. **WHEN the close must do something differently, record it on the bead
    first** — `bd comment {ID} "caveat: <what and why>"`. A regen step that must

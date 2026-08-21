@@ -490,7 +490,15 @@ if [ -n "$CHECKS" ]; then
   # declared them. Parse only stdout: the contract puts RESULT lines there and
   # everything human on stderr, so a gate that prints "FAIL" in its own output
   # cannot be mistaken for a verdict.
-  _results="$("$CHECKS" run 2>/dev/null)"
+  # Capture BOTH streams. stdout carries the RESULT verdicts this script
+  # parses; stderr carries whatever the underlying tools printed, verbatim.
+  # The raw text IS the baseline — a project wraps `go test`, `eslint`,
+  # `pytest`, whose output formats it does not control, so requiring a
+  # structured findings format would only move the parsing burden onto the
+  # project. The bar "no findings beyond baseline" is then a comparison of two
+  # outputs, not a parse of either.
+  _raw="$RUN_DIR/gate-baseline.md"
+  _results="$("$CHECKS" run 2>"$RUN_DIR/.gate-stderr")"
   while IFS= read -r line; do
     case "$line" in RESULT\ *) ;; *) continue ;; esac
     # RESULT <gate> <verdict> <exit>
@@ -509,8 +517,32 @@ EOF
     say "$CHECKS run emitted no RESULT lines — treating the baseline as uncaptured"
     GATE_BASELINE=skipped
   else
+    # Write the baseline where every later reader can find it: the run dir.
+    # ALWAYS written, even when nothing failed — "nothing is known-red" and
+    # "no baseline was taken" must not look alike to a subagent.
+    {
+      printf '# Gate baseline\n\n'
+      printf 'Captured by pre-flight on the untouched tree, before any bead ran.\n'
+      printf 'A gate listed FAIL here was ALREADY failing. It is not yours to fix,\n'
+      printf 'and the bar for your bead is "no findings beyond this", not "exit 0".\n\n'
+      printf '## Verdicts\n\n```\n%s\n```\n' "$_results"
+      _failed="$(printf '%s\n' "$_results" | awk '$3=="fail"{print $2}')"
+      if [ -n "$_failed" ]; then
+        printf '\n## Known-red gates, with the output they produced\n'
+        for _g in $_failed; do
+          printf '\n### %s\n\n```\n' "$_g"
+          awk -v g="--- $_g" '$0==g{f=1;next} /^--- /{f=0} f' "$RUN_DIR/.gate-stderr"
+          printf '```\n'
+        done
+      else
+        printf '\nNo gate was failing at baseline. Every gate is expected to exit 0.\n'
+      fi
+    } > "$_raw" 2>/dev/null
+    rm -f "$RUN_DIR/.gate-stderr"
+    say "baseline written: $_raw"
     say "the bar for every bead is 'no findings beyond this baseline', not 'exit 0'."
-    say "a gate with no recorded baseline is expected to exit 0."
+    say "INLINE its contents into every subagent prompt — a baseline that stops at"
+    say "the planner is one the agent running the gate never sees."
   fi
 
 else
@@ -592,6 +624,7 @@ emit  BB_DENY_ENTRY "$DENY_ENTRY"
 emit  BB_SETTINGS_LOCAL_ALLOW "$SETTINGS_LOCAL_ALLOW"
 emitq BB_WORKTREE_BASEREF "$WORKTREE_BASEREF"
 emit  BB_GATE_BASELINE "$GATE_BASELINE"
+emitq BB_GATE_BASELINE_FILE "${_raw:-}"
 [ -n "$GATE_EMIT" ] && printf '%s\n' "$GATE_EMIT" | sed '/^$/d'
 
 exit "$REPORT_FAIL"
