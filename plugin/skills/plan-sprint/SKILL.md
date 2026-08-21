@@ -14,7 +14,7 @@ user-invocable: false
 
 # plan-sprint
 
-Turn an enumerated queue of **groomed** beads into a wave table, and write it
+Turn a run epic's queue of **groomed** beads into a wave table, and return it
 and returns it. This is read-heavy analytic work over every
 queued bead — that is why it runs in a subagent rather than in the
 orchestrator, which stays small.
@@ -103,9 +103,29 @@ re-derive it from prose. The `jq` and a worked example are in
    components, overlapping files — take the **union** as the collision set and
    note the discrepancy in the plan; do not silently prefer one signal.
 3. **The grooming wave preview — starting partition.** WHEN one was produced,
-   start from it instead of re-deriving the partition, and record in the
-   plan whether you accepted or overrode it and why. The plan stays the
-   source of truth on packing; the preview is an input, not an instruction.
+   start from it instead of re-deriving the partition, and record whether you
+   accepted or overrode it and why. You are the source of truth on packing;
+   the preview is an input, not an instruction.
+
+**Dependency ORDER is not yours to compute.** The graph already holds it, and
+the orchestrator reads it by re-querying `bd ready --parent <epic>
+--exclude-type=epic` at every wave boundary. What you decide is **packing** —
+which of the beads that are simultaneously ready can safely share a wave, and
+which must be batched behind one agent because they would collide.
+
+`bd swarm validate <epic>` gives a wave PREVIEW worth starting from, with two
+conditions on trusting it, both measured:
+
+- It scopes dependency analysis to the epic given. An edge to a bead outside
+  that epic is reported as a warning and then ignored — it placed a blocked
+  bead in Wave 1. **If it warns about an outside dependency, do not use its
+  partition.**
+- It is one level deep. On a nested run epic it lists sub-epics as work items
+  and never sees their leaves. **If the run epic is nested, do not use its
+  partition.**
+
+In either case derive packing from the re-queried front instead. Say in your
+return which you used.
 
 Where the repo documents no C4 architecture, grooming skips the tagging and
 `c4_*` is absent — file scanning is then the whole signal, and absent metadata

@@ -679,6 +679,15 @@ Three things stay yours:
    `bd swarm validate` for a preview — so a stored copy can only drift out of
    agreement with the beads it describes.
 
+   **`swarm validate` is a preview, never the dispatch order.** It scopes
+   dependency analysis to the epic it is given: it reports an edge to a bead
+   outside that epic as a *warning*, then computes waves and readiness as if
+   the edge were absent — measured placing a blocked bead in Wave 1. It is also
+   one level deep, so on a nested run epic it lists sub-epics as work items and
+   never sees their leaves. **Suppress the preview** when the run epic is
+   nested or when `swarm validate` warns about an outside dependency; the
+   re-queried front is correct in both cases.
+
 **The manifest is written on every run** — there is no queue-size or
 bucket-count exemption. Chat is the one store that does not survive.
 
@@ -698,6 +707,13 @@ Note what is and is not concurrent. **A wave is the unit of parallelism**, and
 waves remain sequential — a wave boundary is where dependency edges resolve and
 where the base ref advances. Concurrency is *within* a wave, across beads that
 the dispatch plan established are independent.
+
+**A wave is the current ready front, packed.** Re-query
+`bd ready --parent <epic> --exclude-type=epic` at every boundary; what comes
+back is what dependencies now allow, and the plan says only how to pack it.
+Never advance by walking a stored wave list — a bead that closed early, a bead
+blocked by something discovered mid-run, and a bead admitted since the plan was
+made all make a stored position wrong, and the graph is right about all three.
 
 Entry conditions, both required and both about **safety**: **no shared
 `c4_changes` component** between any two beads in the wave, and the base-ref
