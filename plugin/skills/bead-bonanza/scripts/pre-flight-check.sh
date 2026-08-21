@@ -447,6 +447,21 @@ fi
 
 # =============================================================== 7. PR CI
 
+# ============================================== 7b. the Agent tool assertion
+#
+# Whether the session has an Agent/Task tool is a harness property no script
+# can see, so this is an ASSERTION the agent makes, not a probe. It is carried
+# as a fact anyway: every other Phase 0 finding reaches the dispatch manifest,
+# and one that does not is one a resumed session cannot re-read.
+head_ "Delegation"
+if [ "${BB_ASSUME_NO_AGENT:-0}" = 1 ]; then
+  NO_AGENT=yes
+  block "BB_ASSUME_NO_AGENT=1 — no Agent tool, so nothing can be delegated: not grooming, not planning, not the beads. Do not start a run. Use the \`run-bead\` skill per bead instead."
+else
+  NO_AGENT=no
+  say "assuming an Agent tool is available (set BB_ASSUME_NO_AGENT=1 if not)."
+fi
+
 head_ "CI"
 # Glob each extension separately and test each file. A single `ls` over both
 # globs exits nonzero whenever one of them matches nothing, which silently
@@ -558,6 +573,7 @@ emitq BB_MODEL_ADVANCED "$MODEL_ADVANCED"
 emitq BB_MODEL_FRONTIER "$MODEL_FRONTIER"
 emitq BB_PUSH_MODE_DEFAULT "$PUSH_MODE_DEFAULT"
 emitq BB_SUBAGENT_MODEL_OVERRIDE "$SUBAGENT_MODEL_OVERRIDE"
+emit  BB_NO_AGENT "$NO_AGENT"
 emit  BB_PR_CI "$PR_CI"
 emit  BB_TREE_CLEAN "$TREE_CLEAN"
 emit  BB_PUSH_NEEDS_REFSPEC "$PUSH_NEEDS_REFSPEC"

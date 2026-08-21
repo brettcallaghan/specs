@@ -292,7 +292,6 @@ Load the one that matches where you are in the run:
 |------------|------|
 | Dispatching any subagent (Phase 1.5 grooming, Phase 3 execution) | `references/subagent-prompts.md` |
 | Partitioning the queue into waves and buckets, and writing the Phase 2.5 dispatch plan | the grooming subagent invokes the `plan-sprint` skill |
-| No `Agent` tool in this session — the degraded, nothing-delegated run | `references/main-loop-fallback.md` |
 | A subagent running past 5 minutes; arming the Monitor and the durable trigger; reading progress events | `references/progress-streaming.md` |
 | A subagent that crashed or timed out mid-ceremony | `references/recovery.md` |
 | Resuming a run whose state you do not hold (the orchestrator died or compacted) | invoke the `recover-sprint` skill |
@@ -424,10 +423,22 @@ What no script can settle:
   that worktree exists tests nothing — the harness may place it inside the
   repo, and untracked worktrees there read as uncommitted work to anything
   that inspects `git status`.
-- **Agent-tool availability.** Whether you have an Agent/Task tool at all is a
-  harness property, invisible from a shell. No script can check it — you must.
-  WHEN you have none, nothing can be delegated (not grooming, not planning, not
-  the beads): read `references/main-loop-fallback.md` before Phase 3.
+- **Agent-tool availability — BLOCKING.** Whether you have an Agent/Task tool
+  at all is a harness property, invisible from a shell. No script can check it,
+  so **you** assert it: with no Agent tool, set `BB_ASSUME_NO_AGENT=1` in the
+  pre-flight environment so the fact reaches the manifest like every other, and
+  **stop**. Do not start a run.
+
+  This is a blocking condition rather than a degraded mode because subtracting
+  delegation leaves nothing this skill does: no subagents means no context
+  isolation, which is its whole point, and with it go worktrees, batching, tier
+  routing, concurrency, `plan-sprint` and the grooming subagent. What survives
+  is the per-bead ceremony — genuinely valuable, and a different product.
+
+  **Say so and hand over**: the **`run-bead`** skill takes one bead from
+  claimed to committed with no orchestrator at all. Working a queue is then
+  `bd ready`, then `run-bead` per bead, which is an honest description of what
+  a no-Agent session can do.
 
 **`BB_DOLT_WRITE` is a blocking fact where it reads `no`.** It means the
 project syncs beads to a Dolt remote and this container cannot write it, so
@@ -642,8 +653,9 @@ bucket-count exemption. Chat is the one store that does not survive.
 Print the returned wave table to chat. Don't ask for approval — just print and
 proceed. The user can interrupt if they disagree.
 
-WHEN no `Agent` tool is available, nothing can be delegated, planning included:
-read `references/main-loop-fallback.md` before Phase 3.
+WHEN no `Agent` tool is available, nothing can be delegated, planning included
+— that is a blocking Phase 0 condition, not a mode. Stop and hand the queue to
+the `run-bead` skill, one bead at a time.
 
 ### Concurrent dispatch
 
@@ -769,16 +781,6 @@ After the queue is drained (or the circuit breaker tripped), print:
    bead ran at that model and no tier routing occurred.
    ```
 
-   **`none` and "no routing occurred" are different results, and this
-   table cannot tell them apart.** WHEN the run used the main-loop
-   fallback because delegation was unavailable, do NOT write `none`.
-   Write, in place of the table:
-
-   ```
-   Tier escalations: N/A — no routing occurred. No Agent tool was
-   available, so every bead ran in the orchestrator's own loop at the
-   session model, and no bead's tier was honored.
-   ```
 
    **Say this alongside the table**, because the reader will otherwise
    draw the wrong conclusion from a short one: escalations reveal
