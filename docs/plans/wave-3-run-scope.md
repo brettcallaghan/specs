@@ -1,178 +1,129 @@
-# Wave 3, reconsidered — a run has a selector, not an epic
+# Wave 3, reconsidered — one run epic, and how the user's input becomes it
 
 Supersedes wave 3 as filed. Transient; delete when the change lands.
 
 ---
 
-## What changed
+## The decision
 
-The filed plan said **a run is an epic**. That forces a project to organise
-its epics around runs, and it cannot express the skill's own advertised entry
-points — "all beads with label X", "all P1 beads" — because those cut across a
-hierarchy and a bead has exactly one parent.
+**A run is a single epic.** The epic id is the run id, `bd ready --parent` is
+the queue, the manifest lives on the epic, and the `swarm` commands apply.
 
-The reframe: **a run has a *selector*, and the selector's shape decides which
-`bd` capabilities are available.** Epics stop being a requirement and become
-the case where the most is possible.
+What the filed plan got wrong was not the epic — it was assuming the user would
+hand one over. The user hands over *whatever they have*: an epic, several
+epics, a pile of bead ids, a label, a priority. **Admission** is the step that
+turns any of those into the one epic, and it is where every consequence we
+measured has to be handled.
 
-## The selector
+## The constraint that shapes everything: swarm is one level deep
 
-Three shapes. All are **live** — re-evaluated on every restart, never
-snapshotted:
+**Measured.** A run epic with one sub-epic (two leaves, one closed) and one
+direct leaf:
 
-1. **One epic** — the scope is the whole epic, including beads added to it
-   after the run started.
-2. **Several epics** — the union.
-3. **A filter** — label, priority, an explicit id list.
+```
+bd swarm status   →  Ready: sub-epic-A, direct-leaf     Progress: 0/2
+bd swarm validate →  Total issues: 2      Wave 1: sub-epic-A, direct-leaf
+```
 
-Locking scope to an enumeration was the wrong fix. An epic selector already
-locks scope, to something durable and inspectable; a filter selector is
-*meant* to move, and a user adding work between restarts is a supported
-intent, not a hazard.
+Neither leaf under the sub-epic appears, and the closed one is not counted.
+`bd swarm validate` lists the **sub-epic itself as a dispatchable work item**.
 
-**The guard replaces the old rule.** "Enumerate, never filter" becomes:
-re-evaluate the selector, diff it against what the manifest recorded, and
-**report the delta before dispatching**. A run that silently grew is the
-failure; a run that grew and said so is the feature.
+`bd ready --parent` behaves the opposite way — it is transitive, returning
+descendants at any depth (which is why `--exclude-type=epic` is mandatory).
 
-## Do we move beads that already belong to another epic? No.
+So the queue reaches through nesting and `swarm` does not. **The run epic must
+be FLAT: its children are the beads to run.** A nested run epic silently
+degrades every swarm-derived signal — the wave partition, the live view and the
+progress count — and would dispatch a sub-epic as if it were a bead.
 
-**Measured, and it decides the design.** A probe feature epic with two children
-(one closed, one open) reported `◐ 1/2 complete (50%)`. Moving the open child
-into a run epic changed it to:
+This retires the epic-of-epics idea for multi-epic runs. It was measured to
+work for the *queue* and that is not enough.
+
+## Admission — turning the input into the run epic
+
+Resolve a label or priority filter to a bead set first; then every input is a
+set of beads and/or epics, and these rules apply.
+
+| input | what happens |
+|---|---|
+| **one flat epic** | use it. Nothing created, nothing moved. |
+| **one nested epic** | use it, and **say that swarm signals are one level deep** so the wave table comes from `plan-sprint` instead. Do not flatten it — flattening moves beads that have homes. |
+| **beads with no parent** | create the run epic and adopt them. Nothing is lost: they had no parent, and the membership is provenance afterwards. |
+| **beads that already belong to an epic** | **ask before moving.** On decline, **exclude that subset from the run** and say so in the manifest and the report. |
+| **several epics** | ask before moving. Adopting the epics gives a nested run epic (degraded swarm); adopting their leaf beads empties the source epics of open work. Both are moves, so both need the same confirmation, and declining excludes them. |
+
+**Decline is a first-class outcome, not a failure.** The run proceeds with the
+beads that could be admitted, and the excluded set is recorded on the epic and
+named in the report. That is what makes "always one epic" safe to insist on:
+the user never has to choose between running the skill and keeping their
+structure.
+
+## Why moving is confirmed rather than assumed
+
+**Measured.** A feature epic with two children, one closed and one open, reads
+`◐ 1/2 complete (50%)`. Move the open child into a run epic and it becomes:
 
 ```
 ✓ 1/1 complete (100%) — eligible for close
 ```
 
-Restoring the parent put it back to 1/2. So a run that adopts a bead with a
-home makes that home falsely report finished, and eligible for
-`bd epic close-eligible`. A transient run must not be able to corrupt the
-structure a project maintains.
+Restoring the parent puts it back. So an unconfirmed move makes a project's
+feature epic falsely report finished and eligible for `bd epic close-eligible`.
 
-**The rule: a bead that already belongs to an epic is never moved.** Not with
-confirmation, not with restore-on-completion — a crashed run would leave the
-lie in place, and recovery is the case this wave exists to make reliable.
+The confirmation must therefore name **which beads move and which epic each one
+leaves** — not "some beads will be reparented". And there is no
+restore-on-completion: a crashed run would leave the lie in place, and recovery
+is the case this wave exists to make reliable.
 
-## Two kinds of run
+## Scope is the epic, and it stays live
 
-That rule collapses the four input shapes into two.
+Membership of the run epic is the scope. A bead added to it mid-run is in
+scope — that is the point, and it is why the run does not carry an enumerated
+list.
 
-### Owned run — the run's scope IS an epic
-
-Three ways to get one, and none of them moves a bead that has a home:
-
-1. **One epic given** — use it. Nothing is created.
-2. **Several ROOT epics given** — create the epic-of-epics. This gives each
-   root a parent, which restructures the project's top level, so **confirm
-   first**. Nothing under-reports: a root epic's own status is computed from
-   its own children and is unaffected.
-3. **Loose beads given, none with a parent** — create a run epic and adopt
-   them. Benign: they had no parent to lose, and the membership is decent
-   provenance afterwards.
-
-Full swarm applies, the manifest lives on the epic, and the epic id is the run
-id.
-
-Measured: `bd ready --parent <run-epic> --exclude-type=epic` reaches through an
-adopted epic to its grandchildren, so the epic-of-epics queue works.
-
-**But `bd epic status` on an epic-of-epics counts child EPICS, not leaf beads**
-— the probe read `0/1`, not `0/2`. So run-level Definition of Done for case 2
-needs `swarm status` or a per-epic roll-up, not `epic status` alone. That is a
-correction to `kyyl` as filed.
-
-### Referencing run — the scope is a selector over beads the run does not own
-
-A label, a priority, or an explicit id list containing beads that already live
-in other epics. **Case 4 is not its own case**: an explicit list that crosses
-epics is inherently cross-cutting, which is the same shape as a filter, so it
-lands here.
-
-The record is **a plain bead, and calling it anything else was the mistake**.
-An epic that owns nothing is a type error — `bd epic status` on it reads 0/0,
-and it invites exactly the "why not adopt the beads" question that the
-measurement above forbids. So: `--type task`, label `bb-run`, opened
-`in_progress` and claimed so `bd ready` never returns it, carrying the selector
-and manifest as `--metadata` and amendments as `amend:` comments. Closed at run
-end.
-
-It is honestly just a durable store for run context, and that is enough to earn
-it: it is what retires `$RUN_DIR`, and it gives the run a greppable id that
-survives compaction. No swarm; `plan-sprint` partitions; DoD is a count against
-the re-evaluated selector.
-
-**Alternatives rejected.** `bd remember` — memories are excluded from
-`bd export` and are not synced, so they are not durable across machines.
-A molecule — `bd mol`'s own help says "protos are template epics", so a
-molecule is an epic underneath and inherits the same type error. A swarm
-molecule — this *is* bd's native record-that-points-at-work-it-does-not-own,
-but `bd swarm create` requires an epic, so it cannot serve the case that has
-none.
+The old "enumerate, never filter" rule is replaced by a **delta report**: on
+every start and restart, recompute the queue, diff it against what the manifest
+recorded, and state what changed before dispatching. Where the run was admitted
+from a filter, re-run the filter too and offer any new matches for admission
+under the same rules above. A run that silently grew is the failure; one that
+grew and said so is the feature.
 
 ## Capability matrix
 
-| | one epic | several epics | filter |
-|---|---|---|---|
-| queue | `bd ready --parent <e> --exclude-type=epic` | per epic, unioned | `bd ready --label …` |
-| dependency waves | `bd swarm validate` | per epic, merged | `plan-sprint`'s own partition |
-| live view | `bd swarm status` | per epic | `bd list --status in_progress` |
-| run-level DoD | `bd epic status` | per epic | closed count against the re-evaluated selector |
-| registration | `bd swarm create` | one per epic | — |
-| manifest home | the epic | the run bead | the run bead |
+Now single-column, which is the point of the decision:
 
-`--exclude-type=epic` is not optional: `--parent` is transitive and returns the
-intermediate epics themselves, so without it a run dispatches its own sub-epics
-as work.
+| | mechanism |
+|---|---|
+| run id | the epic id |
+| queue | `bd ready --parent <epic> --exclude-type=epic` |
+| dependency waves | `bd swarm validate` — flat epic only; `plan-sprint` partitions a nested one |
+| live view | `bd swarm status` — same caveat |
+| run-level DoD | `bd epic status` — counts direct children, so it is exact on a flat epic |
+| registration | `bd swarm create <epic>` |
+| manifest home | `--metadata` JSON on the epic |
+| amendments | `amend:`-prefixed comments on the epic |
+| excluded beads | recorded on the epic, named in the report |
 
-## Answering "can we adopt swarm whenever given epics?"
-
-**Yes, with two constraints.** Measured on this tracker (bd 1.2.2):
-
-- `bd swarm validate agent-plugins-bir9` returned the dependency-wave partition
-  directly — Wave 1 (2), Wave 2 (5), Wave 3 (1), max parallelism, and a warning
-  per cross-epic dependency edge.
-- `bd swarm status agent-plugins-bir9` returned the live view, including the
-  in-progress claim held at the time. Its help states the status is **computed
-  from beads, not stored** — so it tracks a scope that changes, which is what a
-  live selector needs.
-
-Constraints:
-
-- **`bd swarm create` takes exactly ONE epic.** N epics means N swarms; there
-  is no multi-epic form.
-- **Given a non-epic issue, `swarm create` auto-wraps it** — creates an epic
-  with that issue as its only child. That is a reparent. Never point it at a
-  bare bead.
+`bd swarm create` takes exactly one epic, and given a non-epic issue it
+auto-wraps by creating an epic with that issue as its only child — a reparent.
+Never point it at a bare bead.
 
 ## Re-scoping the eight filed beads
 
-| bead | filed as | becomes |
-|---|---|---|
-| `7vej` | a run is an epic; the epic id is the run id and the queue | a run's scope is its selector; every run has a run bead whose id is the run id |
-| `x5ix` | attach the manifest to the epic; retire `$RUN_DIR` | attach it to **the epic for an owned run, the run bead for a referencing run** — identical to as-filed for the single-epic case |
-| `205x` | take dependency waves from `swarm validate` | unchanged, **conditional**: epic selectors only; a filter selector keeps `plan-sprint`'s partition |
-| `ddvt` | register with `swarm create`, `swarm status` as the live view | unchanged, **conditional**: epic selectors only |
-| `kyyl` | run-level DoD via `bd epic status` | **corrected**: `epic status` counts child epics, not leaf beads, so an epic-of-epics run needs `swarm status` or a per-epic roll-up. A referencing run counts against the re-evaluated selector |
-| `ccm9` | multi-epic runs via epic-of-epics | **survives, narrowed.** Epic-of-epics is the right answer for several ROOT epics, and is measured to work — the queue reaches through it. What it must add is the confirmation step (it restructures the top level) and the cross-epic dependency merge that `swarm validate` reports as a warning and nothing acts on |
-| `67xf` | sequencing constraints as real `blocks` edges at grooming | unchanged — independent of the selector |
-| `we2q` | epic-level Definition of Ready in `groom-beads` | unchanged, **conditional**: applies when an epic is the selector |
+| bead | becomes |
+|---|---|
+| `7vej` | a run is one epic; **admission** turns the user's input into it, with the move-confirmation and exclusion rules above. The run root, the `current` symlink and the generated run id retire |
+| `x5ix` | manifest as `--metadata` on the epic, amendments as `amend:` comments, `$RUN_DIR` and `dispatch.md` retired, recovery reads the epic. As filed |
+| `205x` | waves from `bd swarm validate`, **with the flat-epic precondition stated and the `plan-sprint` fallback for a nested one** |
+| `67xf` | sequencing constraints as real `blocks` edges at grooming. Unchanged |
+| `ccm9` | **closes as won't-do.** Epic-of-epics degrades every swarm signal to one level. Several epics is handled by admission — confirm, adopt or exclude — not by a wrapper |
+| `ddvt` | `bd swarm create` for registration, `bd swarm status` as the live view. Same flat-epic caveat |
+| `kyyl` | run-level DoD via `bd epic status`. Exact on a flat epic, which admission now guarantees for every run the skill creates |
+| `we2q` | epic-level Definition of Ready in `groom-beads` — and it should now require **flatness**, since that is what the swarm signals depend on |
 
 ## The honest cost
 
-This gives up **uniformity**. Three of the eight beads become conditional on
-selector shape, so the skill carries two paths where the filed plan carried
-one. In exchange no project has to reorganise its epics to use the skill, and
-nothing reparents a bead the user did not ask to move.
-
-It gives up nothing that was measured to work.
-
-## Open for decision
-
-**`ccm9` — shrink or close?** Closing it says several-epic support is just
-"loop the per-epic commands", which is true and is already in the matrix above.
-Shrinking it keeps a bead for merging `swarm validate` output across epics when
-the epics have dependency edges between them — which `swarm validate` reports
-as a warning and nothing currently acts on. My read: **shrink it to the
-cross-epic dependency merge**, which is real work, and drop the epic-of-epics
-framing entirely.
+A user whose work spans several epics must accept a move, or accept that those
+beads sit out the run. There is no third option that keeps their structure
+intact *and* gives the run one epic — that is what the measurements above
+establish, not a design preference.
