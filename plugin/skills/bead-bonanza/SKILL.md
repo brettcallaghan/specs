@@ -273,7 +273,7 @@ Load the one that matches where you are in the run:
 | A subagent running past 5 minutes; arming the Monitor and the durable trigger; reading progress events | `references/progress-streaming.md` |
 | A subagent that crashed or timed out mid-ceremony | `references/recovery.md` |
 | Resuming a run whose state you do not hold (the orchestrator died or compacted) | invoke the `recover-sprint` skill |
-| A project with no `checks` script or no `## model lineup` block | `references/project-setup.md` |
+| A project with no `checks` script or no `sf.toml` model lineup | `references/project-setup.md` |
 | Resuming a bead interrupted mid-implementation (its worktree still exists) | `references/operating-principles.md` |
 | Phase 0 pre-flight: probe the environment, resolve `RUN_DIR`/`SCRIPTS` | run `scripts/pre-flight-check.sh` |
 | Checking a `skipped` claim against the tree | run `scripts/bb-verify-skip.sh` |
@@ -874,7 +874,7 @@ with any RFCs in a single commit.
   anchors).
 - **Route by tier, and report every escalation.** A bead's `metadata.tier` is
   grooming's *prediction* of the capability the work needs; resolve it to a
-  model via the project's `## model lineup` and dispatch there (Phase 2.5 → Tier
+  model via the project's `sf.toml` `[models]` lineup and dispatch there (Phase 2.5 → Tier
   selection). Assign nothing below the tier; escalate one tier on repeated
   failure; never downgrade to save cost mid-run. Every escalation is a required
   row in the Phase 4 report — it is the only routing evidence a run produces.

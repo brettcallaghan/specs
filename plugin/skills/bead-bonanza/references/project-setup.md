@@ -1,14 +1,14 @@
 # bead-bonanza Project Setup
 
 What a project must provide for bead-bonanza to run: an executable `checks`
-script, a model lineup in `AGENTS.md`, and a few command permissions. **Read
+script, a model lineup in `sf.toml`, and a few command permissions. **Read
 this only when one is missing** — once they exist, Phase 0 loads them and never
 comes back here.
 
 ## Contents
 
 - The `checks` script — how this project validates a bead
-- Model lineup — how capability tiers resolve to models (`## model lineup`)
+- Model lineup — how capability tiers resolve to models (`sf.toml` `[models]`)
 - Command permissions a run needs
 
 Propose a draft, let the user confirm or correct it, then write it — never
@@ -96,27 +96,32 @@ write any of it silently.
    was never a command.
 
 1a. **Resolve the model lineup.** Beads carry a capability `tier`, not a
-   model name. Read the project's `## model lineup` block in `AGENTS.md`
-   to resolve tier → model at dispatch:
+   model name, so a backlog groomed months ago still routes correctly. The
+   lineup lives in `sf.toml` beside the checkpoint declaration:
 
-   ```markdown
-   ## model lineup
-
-   Least to most capable:
-
-   - **light:** `<model>`
-   - **standard:** `<model>`
-   - **advanced:** `<model>`
-   - **frontier:** `<model>`
+   ```toml
+   [models]
+   light = "<model>"
+   standard = "<model>"
+   advanced = "<model>"
+   frontier = "<model>"
    ```
 
-   - **If the block exists**, load it. Fast path — no prompt.
+   Pre-flight emits each as a `BB_MODEL_*` fact. Tiers resolve independently,
+   so a project may declare only the ones it uses.
+
+   - **If it exists**, Phase 0 reads it. Fast path — no prompt.
    - **If it's missing**, propose one from the models available in this
-     harness, let the user confirm, then write it into `AGENTS.md` (same
-     mechanics as the checks script above).
+     harness, let the user confirm, then write it (same mechanics as the
+     checks script above).
    - **If the user declines**, dispatch without the `model` param — every
-     subagent inherits the session model. Say this once, at run start, so
-     the cost profile isn't a surprise.
+     subagent inherits the session model. Pre-flight reports
+     `BB_LINEUP=undeclared` and says so; state it once at run start so the
+     cost profile isn't a surprise. An undeclared tier is never guessed.
+
+   `[run]` in the same file carries project-level run defaults — `push_mode`,
+   and `run_root` when the default run root is wrong for this project. Omit a
+   key to leave that decision to the run.
 
 2. **Common command permissions.** Confirm these are in
    `.claude/settings.local.json` allow list. If any are missing, ask the user

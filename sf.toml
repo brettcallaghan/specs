@@ -14,3 +14,24 @@
 # The gate entry point. Its own header carries the contract:
 #   checks list | checks run [<gate>...] | checks targeted <path>...
 checks = "scripts/checks"
+
+[models]
+# Capability tiers, least to most capable. Beads carry a tier in
+# `metadata.tier`; the orchestrator resolves it here at dispatch. A tier left
+# undeclared is reported as such and never guessed.
+light = "haiku"
+standard = "sonnet"
+advanced = "opus"
+frontier = "fable"
+
+[run]
+# Project-level run defaults — things this repository owns, as opposed to
+# things a run decides. Omit a key to leave the decision to the run.
+#
+# push_mode: "defer_push" (the orchestrator pushes per bucket) or
+#            "push_per_bead" (each subagent pushes its own branch).
+push_mode = "defer_push"
+
+# run_root: where a run's directory is created. Defaults to
+#           ${TMPDIR:-/tmp}/claude/bead-bonanza when unset.
+# run_root = ""

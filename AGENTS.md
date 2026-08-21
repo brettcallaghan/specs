@@ -339,15 +339,12 @@ sessions, where `.claude/hooks/session-start.sh` provisions it because the
 
 ## model lineup
 
-Least to most capable. Beads carry a `tier`; the orchestrator resolves it
-here at dispatch.
+Declared in `sf.toml` under `[models]`, not here — it is a routing fact the
+orchestrator resolves at dispatch, so it lives somewhere a script can read
+without parsing prose. Beads carry a tier in `metadata.tier`; pre-flight emits
+each tier's model as a `BB_MODEL_*` fact.
 
-- **light:** `haiku`
-- **standard:** `sonnet`
-- **advanced:** `opus`
-- **frontier:** `fable`
 
-<!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:970c3bf2 -->
 ## Where documents live
 
 Three homes, distinguished by what the document is *for* rather than by

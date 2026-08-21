@@ -65,9 +65,9 @@ block() { BLOCKERS="$BLOCKERS
 
 # ================================================================== self-test
 #
-# Every probe above is exercised against a scratch fixture, so the AGENTS.md
-# targeted-test entry for plugin/skills/bead-bonanza/scripts/** has something to
-# run. It must exit 0 on Linux and on macOS, and it must never touch the real
+# Every probe above is exercised against a scratch fixture, so the
+# targeted-test entry for plugin/skills/bead-bonanza/scripts/** has something
+# to run. It must exit 0 on Linux and on macOS, and it must never touch the real
 # $HOME or the real repository.
 
 st_fail=0
@@ -132,11 +132,7 @@ self_test() {
     printf '  skip deny-entry tests (no jq)\n'
   fi
 
-  # 7. AGENTS.md block detection, both directions.
-  printf '%s\n' '# x' '## bead-bonanza gates' 'body' '## model lineup' 'body' > "$fixture/AGENTS.md"
-  st "lineup block detected" present "$(has_block "$fixture/AGENTS.md" '## model lineup')"
   printf '%s\n' '# x' > "$fixture/EMPTY.md"
-  st "absent block reported" absent "$(has_block "$fixture/EMPTY.md" '## model lineup')"
 
   # 8. The RESULT-line reader. Only stdout carries verdicts, and a gate whose
   #    own output contains the word FAIL must not be read as one.
@@ -162,10 +158,6 @@ self_test() {
   echo
   if [ "$st_fail" -eq 0 ]; then echo "RESULT: PASS"; return 0; fi
   echo "RESULT: FAIL"; return 1
-}
-
-has_block() {
-  if grep -q "^$2\$" "$1" 2>/dev/null; then printf 'present'; else printf 'absent'; fi
 }
 
 # Report whether the dolthub telemetry deny entry is present in a settings
@@ -228,9 +220,27 @@ say "worktree registrations pruned"
 #   sf.toml          [checkpoints] checks = "<repo-root-relative path>"
 #   scripts/checks   the conventional location, when sf.toml declares nothing
 head_ "Project gates"
-# One key out of a config file, not a command out of a sentence: the value is
-# whatever is quoted after `checks =`, and a missing key yields empty.
-_declared="$(sed -n 's/^[[:space:]]*checks[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' sf.toml 2>/dev/null | head -1)"
+# One key out of a config file, not a command out of a sentence. sf_get
+# <section> <key> prints the quoted value, or nothing. Section-scoped, because
+# `standard` under [models] and `standard` anywhere else are different keys.
+sf_get() {
+  awk -v want="[$1]" -v key="$2" '
+    /^[[:space:]]*\[/ { sec=$0; gsub(/[[:space:]]/,"",sec); next }
+    sec==want {
+      line=$0
+      sub(/^[[:space:]]*/,"",line)
+      if (index(line, key) == 1) {
+        rest=substr(line, length(key)+1)
+        sub(/^[[:space:]]*=[[:space:]]*/,"",rest)
+        if (match(rest, /^"[^"]*"/)) {
+          v=substr(rest, RSTART+1, RLENGTH-2)
+          print v; exit
+        }
+      }
+    }
+  ' sf.toml 2>/dev/null
+}
+_declared="$(sf_get checkpoints checks)"
 CHECKS=""
 for _c in "${BB_CHECKS:-}" "$_declared" scripts/checks; do
   [ -n "$_c" ] || continue
@@ -252,17 +262,29 @@ else
   fi
 fi
 
-LINEUP_BLOCK="$(has_block AGENTS.md '## model lineup')"
-say "## model lineup:      $LINEUP_BLOCK"
-if [ "$LINEUP_BLOCK" = absent ]; then
-  block "AGENTS.md has no '## model lineup' block — read references/project-setup.md and draft it WITH the user; do not invent one"
+# The tier lineup is a routing fact, so it is read as configuration rather than
+# as prose. Each tier resolves independently: a project may declare only the
+# tiers it uses, and an undeclared tier is reported empty rather than guessed.
+MODEL_LIGHT="$(sf_get models light)"
+MODEL_STANDARD="$(sf_get models standard)"
+MODEL_ADVANCED="$(sf_get models advanced)"
+MODEL_FRONTIER="$(sf_get models frontier)"
+if [ -n "$MODEL_LIGHT$MODEL_STANDARD$MODEL_ADVANCED$MODEL_FRONTIER" ]; then
+  LINEUP=declared
+  say "models: light=${MODEL_LIGHT:--} standard=${MODEL_STANDARD:--} advanced=${MODEL_ADVANCED:--} frontier=${MODEL_FRONTIER:--}"
+else
+  # Not a blocker, and deliberately not a guess. Dispatching without a `model`
+  # param makes every subagent inherit the session model, which is a stateable
+  # cost profile; inventing a lineup is not.
+  LINEUP=undeclared
+  say "no [models] lineup in sf.toml — dispatch will omit the model param and every"
+  say "subagent inherits the session model. Say so once at run start."
 fi
 
-# Echo the lineup so the orchestrator does not have to open AGENTS.md at all —
-# that read was Phase 0 step 1, and this replaces it.
-echo_block() { awk -v h="$1" '$0==h{f=1} /^## /{if(f && $0!=h)exit} f' AGENTS.md 2>/dev/null; }
-printf '\n' >&2
-echo_block '## model lineup' | sed 's/^/    /' >&2
+# Project-level run defaults. Anything a project genuinely owns rather than
+# decides per run.
+PUSH_MODE_DEFAULT="$(sf_get run push_mode)"
+[ -n "$PUSH_MODE_DEFAULT" ] || PUSH_MODE_DEFAULT=unset
 
 
 # =================================================== 3. beads telemetry + deny
@@ -302,7 +324,8 @@ esac
 # ======================================================== 4. run dir + scripts
 
 head_ "Run directory"
-RUN_ROOT="${TMPDIR:-/tmp}/claude/bead-bonanza"
+RUN_ROOT="$(sf_get run run_root)"
+[ -n "$RUN_ROOT" ] || RUN_ROOT="${TMPDIR:-/tmp}/claude/bead-bonanza"
 RUN_DIR="$RUN_ROOT/$RUN_ID"
 if mkdir -p "$RUN_DIR" 2>/dev/null && touch "$RUN_DIR/.ok" 2>/dev/null; then
   say "run dir: $RUN_DIR"
@@ -528,7 +551,12 @@ fi
 emitq RUN_DIR "$RUN_DIR"
 emitq SCRIPTS "$SCRIPTS"
 emitq BB_CHECKS "$CHECKS"
-emit  BB_LINEUP_BLOCK "$LINEUP_BLOCK"
+emit  BB_LINEUP "$LINEUP"
+emitq BB_MODEL_LIGHT "$MODEL_LIGHT"
+emitq BB_MODEL_STANDARD "$MODEL_STANDARD"
+emitq BB_MODEL_ADVANCED "$MODEL_ADVANCED"
+emitq BB_MODEL_FRONTIER "$MODEL_FRONTIER"
+emitq BB_PUSH_MODE_DEFAULT "$PUSH_MODE_DEFAULT"
 emitq BB_SUBAGENT_MODEL_OVERRIDE "$SUBAGENT_MODEL_OVERRIDE"
 emit  BB_PR_CI "$PR_CI"
 emit  BB_TREE_CLEAN "$TREE_CLEAN"
