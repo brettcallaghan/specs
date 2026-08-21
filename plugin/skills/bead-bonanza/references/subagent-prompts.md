@@ -381,6 +381,17 @@ committing them lands in-flight bead state on the sprint branch.
    ```sh
    git -C "$REPO" worktree remove "$WT" && git -C "$REPO" branch -d <suffix>
    ```
+   **Raw `git`, not `bd worktree remove`, and the reason is not inertia.**
+   `bd worktree remove` adds one safety check git lacks — it refuses a clean
+   worktree whose branch carries unpushed commits — but the check treats a
+   branch with **no upstream** as entirely unpushed. Every bead branch here is
+   exactly that: created from the sprint head, never pushed on its own, merged
+   locally. Measured against this repository: a bead-shaped worktree with *zero*
+   new commits is refused with "worktree has unpushed commits". So the safety
+   property is unreachable in this topology — the only way through is
+   `--force`, which skips *all* the checks, including the dirty-tree one that
+   plain `git worktree remove` still enforces. Adopting it would trade a real
+   guard for a suppressed one.
    **Do not delete the branch until the fast-forward has succeeded.** A rebase
    onto a stale target leaves the rebased commit unreferenced, and deleting the
    branch is what makes it unreachable — recoverable only from the object
