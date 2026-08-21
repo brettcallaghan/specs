@@ -37,6 +37,35 @@ cp -rf source dest          # NOT: cp -r source dest
 - `apt-get` - use `-y` flag
 - `brew` - use `HOMEBREW_NO_AUTO_UPDATE=1` env var
 
+## Pipes hide exit statuses
+
+**The symptom is a command that succeeded reporting failure, or one that failed
+reporting success.** Both come from putting a pipe between a command and the
+status you read, and both have bitten this repository more than once.
+
+**Never read `$?` through a pipe.** `cmd | tail` gives you `tail`'s status, so a
+failing command reads as a pass. Redirect to a file and read the status
+directly:
+
+```bash
+cmd >out 2>&1; echo $?          # right
+cmd 2>&1 | tail -5; echo $?     # WRONG — that is tail's status
+```
+
+**Under `set -o pipefail`, a reader that closes the pipe early inverts it.**
+`grep -q`, `head` and `tail -n` exit as soon as they have what they need; the
+writer then dies on SIGPIPE, and `pipefail` reports the whole pipeline as
+failed. Measured here: `bd show <id> | grep -qi closed` reported a CLOSED bead
+as not closed.
+
+```bash
+if bd show "$id" | grep -qi closed; then      # WRONG under pipefail
+out="$(bd show "$id" --json)"                 # right — capture, then test
+```
+
+The fix is the same in both directions: **put the value in a variable or a
+file, then test it.** A pipeline is for moving data, not for carrying a verdict.
+
 ## bead-bonanza gates
 
 This repository is a documentation-and-skills corpus **plus** the Go module
@@ -180,9 +209,8 @@ scope for this run's beads" tells a future reader nothing they can act on.
   Measure the baseline at pre-flight rather than quoting a number from here.
   The warning is a body size that moves with every editorial bead, so any
   figure recorded in this file is stale on arrival — and a stale baseline read
-  as current is how a real regression gets waved through. Capture `$?`
-  directly, never through a pipe; piping to `tail` reports the pager's status
-  and reads as a pass:
+  as current is how a real regression gets waved through. Read its status
+  directly (see "Pipes hide exit statuses" above):
 
   ```bash
   scripts/check-skills.sh --strict >out 2>&1; echo $?
