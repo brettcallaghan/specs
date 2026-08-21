@@ -494,7 +494,7 @@ and/or epics, and these rules apply:
 | **one epic** | use it. Create nothing, move nothing |
 | **beads with no parent** | create the run epic, adopt them. Nothing is lost — they had no parent |
 | **beads that already belong to an epic** | **ask first**, naming each bead and the epic it would leave. On decline, EXCLUDE those beads and run without them |
-| **several epics** | create the run epic over them, adopting the EPICS. Each keeps its children, so no bead moves. Confirm — it restructures their top level |
+| **several epics** | create the run epic over them, adopting the EPICS themselves. Each keeps its own children, so no bead moves and no source epic is emptied. Confirm — it gives those epics a parent they did not have, which restructures the project's top level |
 
 **Never move a bead to make the run tidier.** Moving a bead out of its epic
 makes that epic report complete when it is not: a feature epic with one closed
@@ -507,9 +507,24 @@ admitted; the excluded beads are recorded and named in the final report. A user
 must never have to choose between running this skill and keeping their
 structure.
 
-**Never flatten a nested epic.** The queue is correct through nesting; only the
-wave preview and the progress count degrade. Say that once and move on —
-flattening trades a real structure for a display detail.
+**Never flatten a nested epic**, and never adopt the leaf beads out of the
+epics you were given. The queue is correct through nesting; only the wave
+preview and the progress count degrade, and both are recomputable. Flattening
+trades a real structure for a display detail, and emptying a source epic of its
+open work is the false-complete failure above.
+
+**What a nested run epic costs, stated once at run start:** `bd swarm validate`
+and `bd swarm status` are one level deep, so they report sub-epics rather than
+leaf beads. The wave preview comes from `plan-sprint` instead, and the progress
+count from `bb-status.sh run <epic>`, which walks the tree. Dispatch is
+unaffected — the re-queried ready front is transitive and honours dependency
+edges that cross between the adopted epics.
+
+**Cross-epic dependency edges are the reason several epics are being run
+together, and `swarm validate` reports them as warnings and acts on none of
+them.** Surface every such warning at run start rather than dropping it: an
+edge from a bead in one adopted epic to a bead in another is exactly what makes
+the wave preview untrustworthy, and it is what the ready front gets right.
 
 Then print the scope: the epic id, the ready count, and any exclusions.
 
