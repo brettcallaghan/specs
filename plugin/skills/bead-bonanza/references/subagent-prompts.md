@@ -6,11 +6,12 @@ every `{PLACEHOLDER}` before sending — an unsubstituted placeholder is the
 single most common dispatch defect, because the subagent has no session
 context to infer it from.
 
-Four placeholders are resolved once per run and substituted into every
-prompt: `{RUN_DIR}` is the run root Phase 0's pre-flight script resolved,
-`{SCRIPTS}` is the absolute path to this skill's `scripts/` directory,
-`{CHECKS_IDS}` is the ids the project declared (emitted as `BB_CHECKS_IDS`),
-and `{CHECKS_BASELINE_TEXT}` is the *contents* of
+Five placeholders are resolved once per run and substituted into every
+prompt: `{EPIC}` is the run epic Phase 1's admission resolved (emitted as
+`BB_EPIC`) and is also the run id, `{RUN_DIR}` is the run root Phase 0's
+pre-flight script resolved, `{SCRIPTS}` is the absolute path to this skill's
+`scripts/` directory, `{CHECKS_IDS}` is the ids the project declared (emitted
+as `BB_CHECKS_IDS`), and `{CHECKS_BASELINE_TEXT}` is the *contents* of
 `{RUN_DIR}/checks-baseline.md`.
 A subagent can infer none of them.
 
@@ -68,8 +69,8 @@ Then produce the **wave preview** `groom-beads` produces, as its own block after
 - `c4-untagged: {ID} — <why>` for any bead you could not tag (component with no doc, scope unclear)
 
 FINALLY, as your last act, invoke the `plan-sprint` skill and follow it to write the run's wave table into `{RUN_DIR}/dispatch.md`. You have just read every bead, which is why planning is yours and not a second agent's. Pass it:
-- Run id `{RUN_ID}` and RUN_DIR `{RUN_DIR}` — `dispatch.md`'s manifest header is already written by the orchestrator; append under it and do NOT edit it
-- The bead ids to plan, ENUMERATED: {PLAN_IDS} — this is the run's committed queue; never re-run a filter to rebuild it, and never add a bead you groomed that the list omits
+- The run epic `{EPIC}` — its id IS the run id, and `bd ready --parent {EPIC} --exclude-type=epic` IS the queue. RUN_DIR `{RUN_DIR}`; `dispatch.md`'s manifest header is already written by the orchestrator, so append under it and do NOT edit it
+- The bead ids to plan: {PLAN_IDS}, which is `bd ready --parent {EPIC} --exclude-type=epic` as it stood when this prompt was written. Re-derive it from the epic rather than from any filter, and never add a bead the epic does not contain — admission decided that membership and may have excluded beads deliberately
 - Checks: the declared ids `{CHECKS_IDS}`, run in full per bead; the baseline is at `{RUN_DIR}/checks-baseline.md`
 - Model lineup: {MODEL_LINEUP or "none declared"}
 - Standing authorization: {STANDING_AUTH or "none"}

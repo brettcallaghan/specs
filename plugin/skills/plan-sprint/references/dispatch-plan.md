@@ -1,6 +1,6 @@
 # Dispatch Plan Format
 
-The format of `${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/dispatch.md`, the
+The format of `${TMPDIR:-/tmp}/claude/bead-bonanza/<epic-id>/dispatch.md`, the
 run's sprint plan. Read this when you write the plan, and again whenever the
 orchestrator amends it. It is written for whoever picks the sprint back up —
 which may be an agent with no memory of having written it.
@@ -14,7 +14,7 @@ file.
 
 - Run manifest — the facts recovery cannot re-derive; a gate whose baseline is
   `fail` sets "no new findings", not exit 0, as the bar for every bead
-- Wave table — names beads, never a filter; every row carries class, bucket,
+- Wave table — names beads; every row carries class, bucket,
   tier and push mode, and its Reason names which collision class applies
 - Reading C4 overlap — compute co-edit and sequencing edges from bead metadata,
   not from file paths
@@ -31,12 +31,12 @@ Most of it is the stdout block from bead-bonanza's `scripts/pre-flight-check.sh`
 this file is where that output lands durably.
 
 ```markdown
-# Dispatch plan — run <run-id>
+# Dispatch plan — run <epic-id>
 
 | Field | Value |
 |-------|-------|
-| Run id | `<run-id>` |
-| RUN_DIR | `/tmp/claude/bead-bonanza/<run-id>` |
+| Run epic | `<epic-id>` — the run id, and the queue via `bd ready --parent <epic-id> --exclude-type=epic` |
+| RUN_DIR | `/tmp/claude/bead-bonanza/<epic-id>` |
 | Branch | `<branch>` |
 | Base sha | `<sha at run start>` |
 | Checks | the project's checks script, at `<repo-root-relative path>`. Run it; exit 0 means every check passed. There is nothing to select or sequence. |
@@ -67,7 +67,8 @@ baseline is expected to exit 0.
 
 ## Wave table
 
-**The plan names beads, never a filter.** The filter produced the queue; the
+**The plan names beads, and records the epic they came from.** The queue is
+re-derivable from that one id; the
 plan IS the queue. A filter re-evaluated later — at recovery, or at the next
 wave — returns a different set than the one this run committed to, and admits
 beads nobody scoped. Beads discovered mid-run enter only through Phase 1.5

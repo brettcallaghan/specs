@@ -308,7 +308,7 @@ agent that must open a script to learn how to call it has already been sent
 to read it:
 
 ```
-pre-flight-check.sh <run-id> [--self-test]                      # sandbox ON
+pre-flight-check.sh [<epic-id>] [--self-test]                   # sandbox ON
 bb-verify-skip.sh [pathspec ...]        # no pathspec = whole working tree
 bb-close-bead.sh [--trailers-file <path>] <bead-id> <priority> <title> [path ...]
 ```
@@ -353,12 +353,20 @@ bb-close-bead.sh [--trailers-file <path>] <bead-id> <priority> <title> [path ...
 
 ## Phase 0 — Pre-flight
 
-One script measures the environment; you act on what it returns. Run it from
-this skill's own directory, with a run id of `$(date +%s)-<queue size>`:
+One script measures the environment; you act on what it returns. It runs
+**twice**, and the split is not ceremony: admission (Phase 1) resolves the run
+epic by writing to the tracker, and a tracker write must not happen before the
+script has shown that a closure can be pushed.
 
 ```bash
-eval "$(<this skill>/scripts/pre-flight-check.sh "<run-id>")"
+eval "$(<this skill>/scripts/pre-flight-check.sh)"              # environment
+#   ... Phase 1 admission resolves the run epic ...
+eval "$(<this skill>/scripts/pre-flight-check.sh "$BB_EPIC")"   # + baseline
 ```
+
+The second pass verifies the epic exists and IS an epic, counts what is ready
+in scope, creates the run directory and captures the checks baseline. **The run
+id is the epic id** — there is no generated id.
 
 Eval the stdout — it sets `RUN_DIR`, `SCRIPTS` and the `BB_*` facts this
 document refers to elsewhere. Read the stderr report once. Exit **0**
@@ -433,22 +441,53 @@ substitute for this fact.
 non-zero when it is not `head`. See "Every bead runs in its own worktree"
 above.
 
-## Phase 1 — Resolve the queue
+## Phase 1 — Admission: resolve the run epic
 
-Parse the user's filter from their request (label, priority, ID list).
+**A run is one epic.** Its id is the run id, its descendants are the queue, and
+it is what recovery reads. The user hands over whatever they have; admission
+turns that into the epic.
 
-1. Run `bd ready` with the filter — this gives dependency-aware ordering.
-   Examples:
-   - `bd ready --label <label>`
-   - `bd ready --priority 1`
-   - `bd ready -n 50` (raise the limit if needed)
-2. If `bd ready` doesn't accept the filter, fall back to `bd list --status open
-   --json` and filter the JSON yourself.
-3. Only include beads whose status is `open`. Skip `in_progress` (may be claimed
-   elsewhere), `closed`, `blocked`.
-4. Print the queue to the user: count + ordered list of `id | P# | title`.
-5. If the user gave no filter, ask once: "Which beads? (label / priority /
-   explicit ID list)" — this is the only Phase-1 question allowed.
+If they gave no scope at all, ask once: "Which beads? (epic / label / priority
+/ explicit ID list)" — the only Phase-1 question allowed.
+
+**Resolve a label or priority to a bead set first** (`bd ready --label <l>`,
+`bd ready --priority 1`, `-n 50` to raise the limit). Then every input is beads
+and/or epics, and these rules apply:
+
+| what they gave | what you do |
+|---|---|
+| **one epic** | use it. Create nothing, move nothing |
+| **beads with no parent** | create the run epic, adopt them. Nothing is lost — they had no parent |
+| **beads that already belong to an epic** | **ask first**, naming each bead and the epic it would leave. On decline, EXCLUDE those beads and run without them |
+| **several epics** | create the run epic over them, adopting the EPICS. Each keeps its children, so no bead moves. Confirm — it restructures their top level |
+
+**Never move a bead to make the run tidier.** Moving a bead out of its epic
+makes that epic report complete when it is not: a feature epic with one closed
+and one open child reads `1/1 complete (100%) — eligible for close` once the
+open one is taken. That is a project's structure damaged by a transient run,
+and there is no undo step that survives a crash.
+
+**Declining is a normal outcome, not a failure.** The run proceeds with what was
+admitted; the excluded beads are recorded and named in the final report. A user
+must never have to choose between running this skill and keeping their
+structure.
+
+**Never flatten a nested epic.** The queue is correct through nesting; only the
+wave preview and the progress count degrade. Say that once and move on —
+flattening trades a real structure for a display detail.
+
+Then print the scope: the epic id, the ready count, and any exclusions.
+
+### Scope stays live, and the delta is reported
+
+Membership of the epic IS the scope, so a bead added to it mid-run is in scope.
+That is deliberate — it is why the run carries no frozen id list.
+
+**On every start and restart:** recompute the queue, compare it against what
+the manifest recorded, and state what changed before dispatching. Where the run
+was admitted from a label or priority, re-run that filter too and offer new
+matches for admission under the rules above. A run that silently grew is the
+failure; one that grew and said so is the feature.
 
 The Run checklist copied into your response (above) is the progress-visibility
 mechanism, and it is sufficient. `bd` is the only tracker: a second progress
@@ -603,7 +642,7 @@ alone.
 Three things stay yours:
 
 1. **The run manifest.** Write
-   `${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/dispatch.md`'s header — the
+   `${TMPDIR:-/tmp}/claude/bead-bonanza/<epic-id>/dispatch.md`'s header — the
    pre-flight stdout block, the declared check ids, checks baseline, model lineup, the
    run's effort setting (`metadata.execution_reasoning_effort` per bead, on the
   convention's `low`/`medium`/`high`/`xhigh` scale), standing authorization and
@@ -615,10 +654,11 @@ Three things stay yours:
    Recovery reads `dispatch.md` instead of re-deriving the run, so the run's
    most load-bearing artifact is not authored one delegation hop away.
    `plan-sprint` appends the wave table under your header and leaves it alone.
-2. **The enumerated bead list.** Pass `plan-sprint` explicit bead ids, never
-   the filter that produced them. The filter produced the queue; the plan IS
-   the queue, and a filter re-evaluated later returns a different set than the
-   one this run committed to and admits beads nobody scoped.
+2. **The bead list.** Pass `plan-sprint` explicit bead ids, never
+   the filter that produced them, and the epic they belong to. The queue is
+   `bd ready --parent <epic> --exclude-type=epic` — `--exclude-type=epic` is
+   mandatory, because `--parent` is transitive and would otherwise hand back
+   the run's own sub-epics as if they were work.
 3. **Amendments.** WHEN the run diverges from the plan mid-flight — a wave
    resequenced, a bucket reclassified, a bead admitted or bounced, a tier
    escalated — append a dated entry under `## Amendments` in `dispatch.md`
@@ -803,7 +843,7 @@ After the queue is drained (or the circuit breaker tripped), print:
     the report**: `Durable trigger: cancelled (<id>)` or `Durable trigger:
     none armed` — both branches are stateable, and an omitted line is
     indistinguishable from a forgotten cancellation.
-7. Path to `${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/` so the user can
+7. Path to `${TMPDIR:-/tmp}/claude/bead-bonanza/<epic-id>/` so the user can
    review the dispatch plan.
 
 Do NOT create a PR or merge to main — that is a separate, explicit user action.

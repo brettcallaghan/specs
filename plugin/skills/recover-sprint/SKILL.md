@@ -85,7 +85,7 @@ could not read the plan is a *reconstruction*, and says so — it is not a plan.
    and the tracker. Those are the same sources every other step here reads,
    and unlike a copy they cannot be stale.
 
-   **Never guess the run from directory mtimes.** "Take the newest run-id
+   **Never guess the run from directory mtimes.** "Take the newest epic-id
    directory under the run root" is wrong whenever an older run's directory is
    touched after a newer one starts. WHEN the symlink does not resolve,
    reconstruct from `git log` and `bd list`, and **say so in the report**: a

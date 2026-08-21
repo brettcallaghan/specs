@@ -8,11 +8,15 @@
 #   condition named in the report, 2 bad invocation.
 #
 # Usage
-#   pre-flight-check.sh <run-id> [--self-test]
+#   pre-flight-check.sh [<epic-id>] [--self-test]
 #
-#   pre-flight-check.sh 1786345424-bbh                  # probe and report
-#   pre-flight-check.sh 1786345424-bbh   # probe, and capture the checks baseline
-#   pre-flight-check.sh --self-test                     # portability guards only
+#   pre-flight-check.sh                    # environment only — run this FIRST
+#   pre-flight-check.sh agent-plugins-bir9 # + run dir and checks baseline
+#   pre-flight-check.sh --self-test        # portability guards only
+#
+#   The run id IS the run epic's bead id. Two modes, because admission has to
+#   write to the tracker to resolve that epic and must not do so before the
+#   environment pass has shown a closure can be pushed.
 #
 #   The script never writes user-global state (~/.claude/settings.json, the
 #   global Dolt config). Where Dolt telemetry suppression or the
@@ -86,9 +90,15 @@ self_test() {
     echo "  FAIL cannot create fixture dir"; return 1; }
   trap 'rm -rf "$fixture"' EXIT
 
-  # 1. Bad invocation exits 2, and --self-test does not require a run id.
-  "$SELF" >/dev/null 2>&1; st "no args exits 2" 2 "$?"
+  # 1. Bad invocation exits 2. No args is NOT bad invocation — it is the
+  #    environment-only pass, which admission runs before it has an epic id,
+  #    so it may exit 0 or 1 but must never exit 2.
+  "$SELF" >/dev/null 2>&1
+  case "$?" in 2) st "no args is a valid mode" "not 2" "2" ;;
+               *) st "no args is a valid mode" ok ok ;; esac
+  "$SELF" --nope >/dev/null 2>&1; st "unknown option exits 2" 2 "$?"
   "$SELF" a b c d e >/dev/null 2>&1; st "too many args exits 2" 2 "$?"
+  "$SELF" one two >/dev/null 2>&1; st "two epic ids exit 2" 2 "$?"
 
   # 2. mtime wrapper agrees with the platform: an integer, close to now.
   : > "$fixture/probe"
@@ -169,20 +179,28 @@ deny_entry_present() {
 
 # ================================================================== arguments
 
-RUN_ID=""
-[ $# -ge 1 ] || die "usage: pre-flight-check.sh <run-id> [--self-test]"
-[ $# -le 2 ] || die "usage: pre-flight-check.sh <run-id> [--self-test]"
+# The run id IS the run epic's bead id. It is optional, and the two modes
+# exist because of an ordering constraint: admission has to CREATE or adopt
+# into that epic, which is a tracker write, and a tracker write must not
+# happen before section 9 has shown that closures can be pushed.
+#
+#   pre-flight-check.sh                 environment only — run this FIRST
+#   pre-flight-check.sh <epic-id>       everything, once admission has an epic
+#
+# Without an epic id there is no run directory and no checks baseline, and the
+# report says so rather than leaving their absence to be inferred.
+EPIC=""
+[ $# -le 2 ] || die "usage: pre-flight-check.sh [<epic-id>] [--self-test]"
 for arg in "$@"; do
   case "$arg" in
     --self-test)     self_test; exit $? ;;
     -*)              die "unknown option '$arg'" ;;
-    *)               [ -z "$RUN_ID" ] || die "only one run-id may be given"
-                     RUN_ID="$arg" ;;
+    *)               [ -z "$EPIC" ] || die "only one epic id may be given"
+                     EPIC="$arg" ;;
   esac
 done
-[ -n "$RUN_ID" ] || die "a run-id is required (or pass --self-test)"
-case "$RUN_ID" in
-  */*|*' '*) die "run-id must be a single path segment, got '$RUN_ID'" ;;
+case "$EPIC" in
+  */*|*' '*) die "an epic id is a single bead id, got '$EPIC'" ;;
 esac
 
 # ================================================================ 1. the repo
@@ -193,7 +211,7 @@ fi
 REPO="$(git rev-parse --show-toplevel)"
 cd "$REPO" || die "cannot cd to repo root $REPO"
 
-head_ "pre-flight-check — run $RUN_ID"
+head_ "pre-flight-check${EPIC:+ — run $EPIC}"
 say "repo: $REPO"
 
 # Prune stale worktree registrations before anything downstream trusts
@@ -248,6 +266,47 @@ sf_get() {
     }
   ' "${BB_SF_TOML:-sf.toml}" 2>/dev/null
 }
+
+# The run epic. Verified rather than assumed: everything downstream reads the
+# queue from it, and a typo'd or non-epic id would produce an empty run that
+# looks like a finished one.
+EPIC_KIND=""; EPIC_QUEUE=""
+if [ -n "$EPIC" ]; then
+  # `bd show` on an unknown id prints {"error": ...} and exits 1, so a
+  # non-empty stdout is not proof the bead exists. Read the type, and report
+  # "missing" separately from "wrong type" — they need different fixes.
+  _ej="$(bd show "$EPIC" --json 2>/dev/null)"
+  EPIC_KIND="$(printf '%s' "$_ej" | python3 -c 'import json,sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    print("!unreadable"); raise SystemExit
+d = d[0] if isinstance(d, list) and d else d
+if not isinstance(d, dict) or d.get("error") or not d.get("id"):
+    print("!missing")
+else:
+    print(d.get("issue_type", "") or "!untyped")' 2>/dev/null)"
+  [ -n "$EPIC_KIND" ] || EPIC_KIND="!unreadable"
+  if [ "$EPIC_KIND" = "!missing" ] || [ "$EPIC_KIND" = "!unreadable" ]; then
+    block "no bead $EPIC in the tracker — the run id IS the run epic's id, so admission must create or name one that exists"
+  else
+    if [ "$EPIC_KIND" != "epic" ]; then
+      block "$EPIC is type '$EPIC_KIND', not an epic — a run is scoped by an epic; admission creates one when the user gave beads"
+    else
+      # --exclude-type=epic is mandatory, not tidiness: --parent is TRANSITIVE
+      # and returns intermediate epics too, so without it a run would dispatch
+      # its own sub-epics as if they were work.
+      EPIC_QUEUE="$(bd ready --parent "$EPIC" --exclude-type=epic --json 2>/dev/null | python3 -c 'import json,sys
+try: d=json.load(sys.stdin)
+except Exception: d=[]
+print(len(d))' 2>/dev/null)"
+      [ -n "$EPIC_QUEUE" ] || EPIC_QUEUE=0
+      say "run epic: $EPIC — $EPIC_QUEUE bead(s) ready in scope"
+      [ "$EPIC_QUEUE" != "0" ] || say "NOTE: nothing ready. Either every bead is closed or blocked, or admission put nothing in."
+    fi
+  fi
+fi
+unset _ej
 
 # The tier lineup is a routing fact, so it is read as configuration rather than
 # as prose. Each tier resolves independently: a project may declare only the
@@ -313,15 +372,21 @@ esac
 head_ "Run directory"
 RUN_ROOT="$(sf_get run run_root)"
 [ -n "$RUN_ROOT" ] || RUN_ROOT="${TMPDIR:-/tmp}/claude/bead-bonanza"
-RUN_DIR="$RUN_ROOT/$RUN_ID"
-if mkdir -p "$RUN_DIR" 2>/dev/null && touch "$RUN_DIR/.ok" 2>/dev/null; then
-  say "run dir: $RUN_DIR"
-  # -n is load-bearing: without it the second run's link is created INSIDE the
-  # first run's directory instead of replacing the pointer.
-  ln -sfn "$RUN_DIR" "$RUN_ROOT/current" 2>/dev/null && say "current -> $RUN_ID"
+RUN_DIR=""
+if [ -z "$EPIC" ]; then
+  say "no epic id given — environment-only pass; no run dir, no checks baseline."
+  say "Re-run as \`pre-flight-check.sh <epic-id>\` once admission has resolved one."
 else
-  block "run dir is not writable: $RUN_DIR"
-  say "run dir: UNWRITABLE $RUN_DIR"
+  RUN_DIR="$RUN_ROOT/$EPIC"
+  if mkdir -p "$RUN_DIR" 2>/dev/null && touch "$RUN_DIR/.ok" 2>/dev/null; then
+    say "run dir: $RUN_DIR"
+    # -n is load-bearing: without it the second run's link is created INSIDE the
+    # first run's directory instead of replacing the pointer.
+    ln -sfn "$RUN_DIR" "$RUN_ROOT/current" 2>/dev/null && say "current -> $EPIC"
+  else
+    block "run dir is not writable: $RUN_DIR"
+    say "run dir: UNWRITABLE $RUN_DIR"
+  fi
 fi
 say "scripts:  $SCRIPTS"
 
@@ -462,7 +527,10 @@ fi
 
 head_ "Checks baseline"
 CHECKS_BASELINE=skipped
-if [ -n "$CHECKS_IDS" ]; then
+if [ -z "$RUN_DIR" ]; then
+  say "not captured — no epic id was given, so there is nowhere to write it."
+  say "The baseline is per-run, not per-repo: capture it on the epic-scoped pass."
+elif [ -n "$CHECKS_IDS" ]; then
   # The baseline is what the project's checks PRINT on the untouched tree, plus
   # the status they exit with. Nothing is parsed: a bead compares its own run's
   # output against this text, so a line present in both was already failing and
@@ -584,5 +652,7 @@ emit  BB_SETTINGS_LOCAL_ALLOW "$SETTINGS_LOCAL_ALLOW"
 emitq BB_WORKTREE_BASEREF "$WORKTREE_BASEREF"
 emit  BB_CHECKS_BASELINE "$CHECKS_BASELINE"
 emitq BB_CHECKS_BASELINE_FILE "${_raw:-}"
+emitq BB_EPIC "$EPIC"
+emitq BB_EPIC_QUEUE "$EPIC_QUEUE"
 
 exit "$REPORT_FAIL"

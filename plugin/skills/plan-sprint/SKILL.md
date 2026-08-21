@@ -6,8 +6,8 @@ description: Partition a queue of groomed beads into the waves and buckets a
   the final act of the Phase 1.5 grooming subagent, which has already read
   every bead — or when asked to classify queued beads as trivial / isolated /
   shared-surface, compute C4 co-edit and sequencing overlap, choose a dispatch
-  mode per bucket, or produce the wave table for dispatch.md. Takes an
-  enumerated bead id list, never a filter, and returns the wave table.
+  mode per bucket, or produce the wave table for dispatch.md. Takes the run
+  epic, resolves its queue from the graph, and returns the wave table.
 version: "0.1"
 user-invocable: false
 ---
@@ -181,7 +181,9 @@ column in particular has a required shape.
 
 Three rules that make the file worth writing:
 
-- **The plan names beads, never a filter.** The filter produced the queue; the
+- **The plan names beads, and says which epic they came from.** The queue is
+  `bd ready --parent <epic> --exclude-type=epic`, re-derivable from one durable
+  id rather than from a filter nobody recorded. The
   plan IS the queue.
 - **The manifest is not yours.** Leave the header exactly as you found it. If
   it is missing or malformed, say so in the return instead of writing one —
