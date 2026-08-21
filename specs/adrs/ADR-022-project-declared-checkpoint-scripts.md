@@ -1,10 +1,11 @@
 ---
 title: "ADR-022: Projects Declare Checkpoint Scripts"
 description: A project declares its gate commands as one executable checks
-  script referenced from a plugin-scoped sf.toml, whose contract is its exit
-  status and whose output is whatever its tools printed, because a
-  prose gate profile cannot express a multi-command gate and a bare suite-wide
-  exit code cannot express a known-red baseline
+  script referenced from a plugin-scoped sf.toml, holding the quality bar for a
+  single commit rather than the release bar, whose contract is its exit status
+  and whose output is whatever its tools printed, because a prose gate profile
+  cannot express a multi-command gate and a bare suite-wide exit code cannot
+  express a known-red baseline
 slug: adr-022
 type: adr
 status: active
@@ -62,6 +63,13 @@ its output; it parses no prose.
 **The contract is the exit status.** Run the script: 0 means every check
 passed, anything else means something failed, and whatever it printed says
 what. No subcommands, no output format, no identifiers.
+
+**What belongs in it is the quality bar for one commit, not the release bar.**
+Every bead runs it before its own close, so the project selects checks that
+give real confidence in a single change and are cheap enough to pay every time;
+a multi-minute harness, or a check that only means anything across the whole
+repository, belongs in CI. The selection is the project's, made once when it
+writes the script — `bead-bonanza` runs what it finds, in full, every time.
 
 Successive drafts of this ADR asked for more and each addition failed the same
 test — *what does a project have to build before it can be gated at all?*

@@ -52,22 +52,22 @@ exists to prevent.
 
 ## Bias toward batching
 
-Each "plain sequential" bead costs its own dispatch, worktree and merge, and
-on a shared surface it costs a further chance to conflict. Batching N beads in
-one subagent pays that once. Your job is to find the largest safe batch, not to
-default to one-bead-per-subagent for caution. Sequential is the *exception*,
-not the rule.
+**Batching is how a wave gets to run in parallel.** Beads that would collide
+if dispatched side by side go behind ONE agent that takes them in order, which
+frees the rest of the wave to dispatch concurrently around them. Left
+un-batched they force the whole wave sequential. Your job is to find the
+largest safe batch, not to default to one-bead-per-subagent for caution.
+Sequential is the *exception*, not the rule.
 
 **Batching does not buy fewer check runs.** Every bead runs the project's
-checks script before its own close whether batched or not, so a batch is never
-a way to commit something unvalidated — it changes who does the work, not what
-is validated.
+checks script before its own close whether batched or not — that script is the
+quality bar for one commit, sized to be affordable every time. A batch changes
+who does the work and what can run alongside it, never what gets validated.
 
-**Worktrees do not make batching redundant.** Isolation is what a worktree
-gives; what a batch gives is one agent holding a surface's context across every
-bead that touches it. On a shared surface those are opposites — isolating beads
-that rebuild the same files is precisely what produces the rework and the merge
-conflicts a batch avoids.
+**Worktrees do not make batching redundant.** A worktree isolates a bead; it
+does not make two beads that rewrite the same file safe to run at once. That is
+the collision batching removes, and it is why the batching rules below hold
+even though every bead already has a worktree of its own.
 
 ## Classify each bead
 
@@ -125,8 +125,8 @@ auth-service, changed by demo-9h0`).
 
 Modes decide **how many beads share a subagent**, not how they are isolated —
 isolation is settled above and is the same everywhere. Pick the broadest one
-that's safe: you're trying to minimize dispatches and cross-bead conflict, not
-check runs — those are per bead regardless.
+that's safe: you're maximizing what can run concurrently, not minimizing check
+runs — those are per bead regardless.
 
 **A batch subagent holds exactly one worktree at a time** — create, implement,
 close, hand back, then the next. Holding two at once makes worktree presence
@@ -145,8 +145,8 @@ in a way that assumes otherwise.
 
    **Threshold:** use shared-surface batch when **≥2** beads share a surface and
    decisions are independent (bead A's choice doesn't change bead B's
-   implementation). Even at 2 the gain is real: the second bead sees the first's
-   work in the same tree instead of racing it in another worktree.
+   implementation). Even at 2 the gain is real: the pair stops blocking the
+   wave, and the second bead sees the first's work instead of racing it.
 
    **Don't over-split:** if 7 beads cluster on one surface and only 1–2 of them
    are "larger" (substantial new features), they can still go in one shared

@@ -187,7 +187,7 @@ Checks: {CHECKS}
 Targeted tests for this surface: {SURFACE_TARGETED_TESTS}
 Push mode: {push_per_bead | defer_push}
 
-These beads are NOT trivial — they touch real code. The reason they're batched is that later beads rebuild the same surface, so one agent holding that surface's context across all of them avoids the rework and the conflicting edits that separate dispatches produce. **Batching changes who does the work, not what gets validated: every bead still runs `{CHECKS}` before its own close.**
+These beads are NOT trivial — they touch real code. They are batched because they would collide if dispatched side by side — later beads rebuild the same surface — so one agent takes them in order and the rest of the wave runs concurrently around them. **Batching changes who does the work, not what gets validated: every bead still runs `{CHECKS}` before its own close.**
 
 Beyond the shared per-bead workflow above:
 

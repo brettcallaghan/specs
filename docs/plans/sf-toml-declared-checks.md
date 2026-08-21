@@ -43,6 +43,12 @@ check reports its tools' own output and no findings format.
 
 ### Schema
 
+The array holds the **per-commit** quality bar, not the release bar: every bead
+runs these before its own close, so a project puts the checks that are cheap
+enough to pay every time here and leaves the multi-minute harnesses to CI. That
+premise is what makes per-bead execution affordable, and it is unchanged by the
+move from a script to a declaration.
+
 `sf.toml`, repository root, array of tables:
 
 | key | required | notes |

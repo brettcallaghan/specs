@@ -17,8 +17,17 @@ write any of it silently.
 ---
 
 1. **Resolve the checks script.** bead-bonanza learns how to validate a bead
-   by running the project's **`checks` script**. Phase 0 resolves it in this
-   order, first hit wins, and blocks the run when none is found:
+   by running the project's **`checks` script**.
+
+   **It is the quality bar for a single commit, not the release bar.** Every
+   bead runs it before its own close, so what belongs in it is the checks that
+   give real confidence in one bead's change and are cheap enough to pay every
+   time. A check that takes minutes, or that only means anything across the
+   whole repository at release time, belongs in CI — a `checks` script a bead
+   cannot afford to run is one agents will find reasons to skip.
+
+   Phase 0 resolves it in this order, first hit wins, and blocks the run when
+   none is found:
 
    | | |
    |---|---|
@@ -51,7 +60,10 @@ write any of it silently.
    - **If it's missing**, discover candidate commands from `AGENTS.md` /
      `CLAUDE.md` (build/test/lint/format sections, CI config), propose a draft
      script to the user, let them confirm or correct it, then write it and
-     offer to commit it. Future runs hit the fast path.
+     offer to commit it. **Propose the fast, broadly-applicable ones and say
+     which CI-only candidates you left out** — the user decides, but they
+     cannot correct an omission they were never shown. Future runs hit the
+     fast path.
    - If the project genuinely has no build/test step (e.g. a pure-docs repo),
      the script still exists and runs whatever it does have. Don't invent
      checks.
