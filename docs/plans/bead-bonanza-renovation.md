@@ -482,6 +482,39 @@ left for someone to wonder about.
 
 ---
 
+### Wave 2 results — CLOSED 2026-08-21
+
+All 12 filed beads plus 3 filed during the wave. `SKILL.md` 53,599 → 58,723
+bytes: this wave ADDS, because most beads replaced a thin prose claim with a
+measured constraint. Wave 6's split is what reverses that.
+
+| id | Outcome |
+|----|---------|
+| `mknz` | `scripts/checks` — `list`/`run`/`targeted`, `RESULT` on stdout, tools' output on stderr. Reproduced the defect first: the old parser resolved Format/Lint/Build and returned `<UNPARSED>` for the **known-red** gate. |
+| `iwb5` | `bd update --claim` — atomic, sets assignee too, idempotent. Reset rule re-scoped to ownership. |
+| `56ab` | `--gate-baseline` deleted; unconditional, no opt-out. |
+| `yexj` | Lineup + run defaults → `sf.toml`. Pre-flight now reads **no** markdown at all. |
+| `ykb5` | **Correction to S6.** `bd worktree remove` treats a branch with no upstream as unpushed, so it refuses every bead worktree — even one with zero commits. Raw git stays. |
+| `w7dw` | `bd merge-slot` for visibility, not exclusion. Acquire is not idempotent; release ignores the holder. |
+| `jz67` | Bounces raised via the `human` label. `bd human respond` is broken (`storage is nil`) AND would close the bead. |
+| `n5ka` | `execution_*` metadata; read-first-fall-back migration, 110 beads either way. |
+| `wk9g` | `bb-status.sh` — five signals, exit 0/1/2. Found a SIGPIPE bug in my own first draft. |
+| `afhl` | `gh:run` gate; `BB_PR_CI` stated precisely. **This repo's workflows exclude drafts**, so its draft-PR promise was false here. |
+| `fion` | `run-bead` skill extracted, 9.6 KB. Do-not-paraphrase rule removed. |
+| `ogid` | `main-loop-fallback.md` deleted; no-Agent blocking, `BB_NO_AGENT` emitted. |
+| `1qc8.1` | Baseline reaches the subagent — `$RUN_DIR/gate-baseline.md`, inlined always, 845 bytes here. |
+| `1qc8.2` | **ADR-022 amended, draft → active.** Findings-with-paths rejected on implementation. |
+| `1qc8.3` | Lineup pointer corrected at the corpus source; guide 1.2 → 1.3, re-synced. |
+
+**The decision that shaped the wave** (`1qc8.2`): a project's `checks` script
+wraps `go test`, `eslint`, `pytest` — formats it does not control. Requiring
+findings-with-paths would not remove the parsing this ADR exists to delete; it
+would move it onto every project, once per tool. So the script synthesizes only
+the verdict, and attribution becomes a **comparison** of raw outputs done by the
+bead, not a parse done by the planner.
+
+---
+
 ## Wave 7 — Deferred: blocked on environment configuration
 
 A holding wave, not a phase. It carries work that cannot run from inside a
