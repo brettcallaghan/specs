@@ -98,7 +98,12 @@ Progress is reported by the tracker, not by you: `bd` emits an event on every
 status change, so claiming and closing the bead is what the orchestrator sees.
 Write no progress file.
 
-1. Claim: `bd update {ID} --status in_progress`
+1. Claim: `bd update {ID} --claim` — atomic, and idempotent when the claim is
+   already yours. It sets status **and** assignee in one write, where
+   `--status in_progress` sets only the status and leaves the bead claimed by
+   nobody. The assignee comes from the actor (`$BEADS_ACTOR`, else git
+   `user.name`), so a subagent that exports its own `BEADS_ACTOR` is
+   identifiable in the tracker as the one holding the bead.
 2. Read full details: `bd show {ID}`
 3. Implement the change. **If this bead fixes a defect or regression, first write (or locate) a test that reproduces it and observe it FAIL for the stated reason BEFORE you fix it** — a test written after the fix encodes the fix's own assumptions and can stay green while the defect is live. Record the observed failure; it goes in a `retro:` comment (step 6). Stay strictly within this bead's scope. If you find work beyond it, file a new bead via `bd create` with a `discovered-from` link to {ID}, noting in one line whether it *blocks* this bead (a prerequisite, an acceptance-criteria decomposition, or an expected test-coverage gap) or is merely adjacent — the orchestrator decides whether it enters the run. Do NOT implement it or pull it into your own scope. This includes a gap you can see that is not yours to close — a document no bead in the queue claims, a step every adjacent bead assumed another would take. **"Not this bead's to close" is a reason to FILE it, not a reason to leave it unfiled.** If this bead genuinely cannot be finished without it, take the Blocked path naming the new bead as the blocker; otherwise continue with the original — do NOT expand scope inline. For any implicit decision you must make, record what you chose (and why) — it goes in a `retro:` comment (step 6).
 4. **The push is the gate** — this is a single-bead push, so full gates run here before pushing. If the change affects generated output the tests compare against (codegen, snapshots, golden files, schemas) AND the gate profile defines a regen step, run `{REGEN}` BEFORE the test step.
@@ -149,7 +154,7 @@ If the bead is already addressed, malformed, or duplicates a closed bead:
 
 - Do not ask the user questions. Decisions are baked into this prompt.
 - Do not modify code outside this bead's scope.
-- Never reset or reclaim a bead's status that you did not set yourself. A bead already `in_progress` when you arrive belongs to another agent — treat it as untouchable, exactly like foreign working-tree changes; leave claim reconciliation to the orchestrator.
+- A bead already claimed by another assignee when you arrive belongs to a live sibling — treat it as untouchable, exactly like foreign working-tree changes, and leave claim reconciliation to the orchestrator. Re-claiming your OWN bead is safe and needs no rule: `--claim` is idempotent when the claim is already yours.
 - If you realize a required step was missed (e.g. a regen step a caveat named) after committing, add a NEW follow-up commit — never amend a commit that may already be pushed. (Amending a local commit you are certain is unpushed, to fold in a missed step, is fine.)
 - Only push the current branch — never push to main.
 ```

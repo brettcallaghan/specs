@@ -99,7 +99,9 @@ why `bd` works inside one.
 ### The claim-reset rule
 
 The same "don't touch what another agent owns" principle applies to
-tracker *claims*: a subagent may only reset a claim it made itself — a
-bead found `in_progress` that this agent didn't claim belongs to a live
-sibling. The orchestrator, never a subagent, owns reconciling claims
-across waves.
+tracker *claims*. Claiming is atomic — `bd update <id> --claim` sets status
+and assignee in one write and is idempotent when the claim is already yours —
+so the rule no longer has to cover the race between reading a status and
+setting it. What it still covers is ownership: a bead claimed by a **different
+assignee** belongs to a live sibling, and a subagent may not take it. The
+orchestrator, never a subagent, owns reconciling claims across waves.
