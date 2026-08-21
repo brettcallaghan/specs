@@ -99,6 +99,36 @@ single mechanism, which is why the hybrid ("adopt the free beads as children,
 link the owned ones as dependencies") cannot be built either: the second half
 has no implementation.
 
+## The run id is the epic id, not the swarm id
+
+`bd swarm create <epic>` mints a swarm molecule with its own id, which invites
+using that as the run id. **It does not work**, and the reason is that a swarm
+molecule is the one kind of molecule that does not own anything.
+
+Measured on bd 1.2.2, and confirmed by the swarm reference ("The swarm molecule
+doesn't own the work items. Instead, it *links to the epic it orchestrates*"):
+
+| | swarm molecule id | epic id |
+|---|---|---|
+| `issue_type` | `molecule` | `epic` |
+| parent/child relations | none | owns the queue |
+| `bd ready --parent <id>` | **returns nothing** | the queue |
+| `bd epic status <id>` | n/a — not an epic | the progress count |
+| `bd swarm status <id>` | works (follows the link) | works |
+
+`bd ready --parent <swarm-id>` returning nothing is on its own disqualifying,
+and `swarm status` accepting **both** ids means keying on the epic gives up
+nothing. The epic id is strictly more capable.
+
+The general molecules documentation does say "a molecule is just an epic — a
+parent bead with children", and for a molecule poured from a proto that is
+exactly right: `bd mol pour` creates the parent and its steps. A **swarm**
+molecule is the exception — a coordination wrapper over an epic that already
+exists.
+
+**What the swarm molecule is good for** is discovery and registration, which is
+`ddvt`'s subject, not identity.
+
 ## Admission — turning the input into the run epic
 
 Resolve a label or priority filter to a bead set first; then every input is a
