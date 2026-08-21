@@ -71,35 +71,39 @@ file, then test it.** A pipeline is for moving data, not for carrying a verdict.
 This repository is a documentation-and-skills corpus **plus** the Go module
 under `cli/` that implements the Spec CLI.
 
-**The gates live in `scripts/checks`, not in this file.** It is the executable
-entry point bead-bonanza resolves and runs; its header carries the contract.
+**The checks are declared in `sf.toml`, not in this file.** Nine `[[checks]]`
+entries, each an `id` and a `command`. The runner ships with bead-bonanza:
 
 ```bash
-scripts/checks                  # every check, in the order they must run
-scripts/checks <name>...        # only the named ones — a local convenience,
-                                # NOT part of the contract bead-bonanza reads
+CHECKS=plugin/skills/bead-bonanza/scripts/bb-checks.py
+
+$CHECKS                 # every check
+$CHECKS <id>...         # only these, still in declaration order
+$CHECKS --ids           # what is declared
 ```
 
-The contract is just the exit status: 0 means everything passed. It runs every
-check even after one fails, so the output shows all of them rather than
-stopping at the first.
+Exit 0 means everything passed, 1 that something failed, 3 that the
+declaration itself is broken. Every requested check runs even after one fails,
+and declaration order is execution order — the runner enforces both, so
+neither is something `sf.toml` has to remember.
 
-Nine gates: `format`, `vet`, `build`, `test-go`, `skills`, `shared-refs`,
+Nine ids: `format`, `vet`, `build`, `test-go`, `skills`, `shared-refs`,
 `strata-docs`, `schemas`, `skills-strict`.
 
-Two things the script encodes that prose kept getting wrong:
+Two things the declaration encodes that prose kept getting wrong:
 
-- **`skills-strict` is its own gate**, because it is known-red (below) and
-  folding it into `skills` would mark a healthy check red too. The three
-  doc-corpus checks are likewise separate gates rather than one chained
+- **`skills-strict` is its own check**, because it is known-red (below) and
+  folding it into `skills` would mark a healthy one red too. The three
+  doc-corpus checks are likewise separate entries rather than one chained
   command — chaining them with `&&` would let the known-red one short-circuit
   the other two before they ran.
 - **`format` is a file list, not an exit status.** `gofmt -l` exits 0 whether
-  or not it found unformatted files, so a gate reading only the status would
-  always pass.
+  or not it found unformatted files, so a check reading only the status would
+  always pass. That is why `format` points at `scripts/format-check` rather
+  than carrying a `command` one-liner.
 
-Run the Go gates from `cli/` if you invoke them by hand — that is the module
-root, so `./...` resolves there. `scripts/checks` already does.
+Run the Go checks from `cli/` if you invoke them by hand — that is the module
+root, so `./...` resolves there. Their declared commands `cd` there first.
 
 
 ### What CI runs
@@ -135,20 +139,23 @@ synthetically instead, on every platform, by `cli/cmd/portability_test.go`.
 
 ### Targeted tests by surface
 
-`scripts/checks <gate>...` runs a subset. Which gates cover which surface:
+`bb-checks.py <id>...` runs a subset. Which checks cover which surface:
 
-| touched | gates |
+| touched | ids to pass |
 |---|---|
 | `cli/**` | `format vet build test-go` |
-| `schemas/*.strata` | `schemas build` — the generated Go must still compile |
+| `schemas/*.strata` | `schemas build` |
 | `plugin/skills/**` | `skills shared-refs` |
 | `scripts/**` | `skills shared-refs` |
 | `.claude/skills/strata/references/**` | `strata-docs` |
 
-This is a reading aid, not an interface: it is documented here rather than
-computed by the script, because a project's checks script is only required to
-run gates, and every mapping one could compute is one more thing a project has
-to implement before it can be gated at all.
+These are ids you can pass straight to the runner. The mapping itself is
+documented here rather than declared, because which checks a change needs is a
+judgement about this repository, not a property of the checks.
+
+**There is no ordering dependency among them.** `schemas` runs `--check`,
+which verifies without regenerating, so nothing must precede `build` — the
+declaration's order is the order they are reported in, not a constraint.
 
 Two entries are about how to *read* a result rather than which gate to run:
 

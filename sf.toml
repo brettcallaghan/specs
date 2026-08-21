@@ -10,10 +10,57 @@
 # manifest, and this repository has two), and `.env` (conventionally
 # gitignored, so the declaration would not travel with the repository).
 
-[checkpoints]
-# The gate entry point. The contract in full: run it, and exit 0 means every
-# check passed. Its own header carries the rest.
-checks = "scripts/checks"
+# The checks run before every bead's close — the quality bar for one commit,
+# not the release bar. Anything that takes minutes, or only means something
+# across the whole repository at release time, belongs in CI instead.
+#
+# Two keys each, nothing else accepted. `command` runs through `sh -c` with
+# the repository root as its working directory. Order is execution order and
+# every check runs even after one fails; `bb-checks.py` enforces both, so
+# neither is something this file has to remember.
+#
+# Literal strings (single quotes) do no escape processing, so a shell
+# one-liner survives verbatim.
+
+[[checks]]
+id = "format"
+command = 'scripts/format-check'
+
+[[checks]]
+id = "vet"
+command = 'cd cli && go vet ./...'
+
+[[checks]]
+id = "build"
+command = 'cd cli && go build ./...'
+
+[[checks]]
+id = "test-go"
+command = 'cd cli && go test ./...'
+
+[[checks]]
+id = "skills"
+command = 'scripts/check-skills.sh'
+
+[[checks]]
+id = "shared-refs"
+command = 'scripts/sync-shared-references.sh --check'
+
+[[checks]]
+id = "strata-docs"
+command = 'scripts/sync-strata-docs.sh --check'
+
+[[checks]]
+id = "schemas"
+command = 'scripts/generate-schemas.sh --check'
+
+# KNOWN RED. It exits 1 on a WARNING — a body-size figure that moves with every
+# editorial change — so the bar is "no findings beyond the recorded baseline",
+# not "exit 0". Declared separately from `skills` so the baseline can carry one
+# failing check without marking a healthy one red.
+[[checks]]
+id = "skills-strict"
+command = 'scripts/check-skills.sh --strict'
 
 [models]
 # Capability tiers, least to most capable. Beads carry a tier in

@@ -468,18 +468,20 @@ if [ -n "$CHECKS_IDS" ]; then
   # output against this text, so a line present in both was already failing and
   # a line only in the bead's is the bead's.
   _raw="$RUN_DIR/checks-baseline.md"
-  _out="$("$CHECKS_RUNNER" 2>&1)"; _st=$?
+  _tsv="$RUN_DIR/checks-baseline.tsv"
+  _out="$("$CHECKS_RUNNER" --report "$_tsv" 2>&1)"; _st=$?
   CHECKS_BASELINE=captured
-  # One row per declared check, read off the runner's own `=== <id>` and
-  # `=== <id> FAILED (exit N)` delimiters. It is a reading aid over the raw
-  # block below, never a substitute for it: attribution is still a bead
-  # comparing text against text.
-  _verdicts="$(printf '%s\n' "$_out" | awk '
-    /^=== [a-z0-9-]+ FAILED \(exit [0-9]+\)$/ { failed[$2]=1; next }
-    /^=== [a-z0-9-]+$/                          { order[++n]=$2 }
-    END { for (i = 1; i <= n; i++)
-            printf "| `%s` | %s |\n", order[i],
-                   (order[i] in failed ? "**FAILED**" : "passed") }')"
+  # One row per check, read from the runner's --report file rather than from
+  # its output. The `=== <id>` delimiters share a stream with bytes the runner
+  # does not control, so a tool that prints one forges a verdict — measured: a
+  # check echoing `=== other FAILED (exit 9)` made an in-band reader report a
+  # passing check as failed.
+  #
+  # A reading aid over the raw block below, never a substitute for it:
+  # attribution is still a bead comparing text against text.
+  _verdicts="$(awk -F'\t' '
+    { printf "| `%s` | %s |\n", $1, ($2 == 0 ? "passed" : "**FAILED** (exit " $2 ")") }
+  ' "$_tsv" 2>/dev/null)"
   {
     printf '# Checks baseline\n\n'
     printf 'What the project'"'"'s declared checks printed on the untouched tree,\n'

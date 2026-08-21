@@ -83,10 +83,11 @@ processing, so a shell one-liner survives verbatim.
 `bb-checks.sh` — shipped by the plugin, not by the project.
 
 ```
-bb-checks.sh                # run every declared check
-bb-checks.sh <id> [<id>…]   # run only these, in declaration order
-bb-checks.sh --ids          # print declared ids, one per line
-bb-checks.sh --self-test
+bb-checks.py                    # run every declared check
+bb-checks.py <id> [<id>…]       # run only these, in declaration order
+bb-checks.py --ids              # print declared ids, one per line
+bb-checks.py --report <path>    # also write `<id><TAB><exit>` per check there
+bb-checks.py --self-test
 ```
 
 `--ids` is not the `list` subcommand [[adr-022]] rejected. That one asked the
@@ -114,12 +115,14 @@ Between delimiters, the tools' own bytes, untouched:
 ```
 
 Delimiters go to stderr; the command's own streams pass through unmodified.
-The `FAILED` line is the runner synthesising the one thing it knows and the
-tools do not say — which is exactly what [[adr-022]] already licenses ("the
-verdict is the one thing the script must synthesize"). It is a reading aid and
-a way to partition the baseline; the aggregate verdict remains the runner's
-exit status, and bead-level attribution remains raw-text comparison within a
-check's block.
+
+**They are a reading aid, not a machine interface.** They share a stream with
+bytes the runner does not control, so a tool can print a line identical to one
+— measured: a check echoing `=== other-check FAILED (exit 9)` made an in-band
+reader report a passing check as failed. A caller needing verdicts passes
+`--report <path>` and reads them out of band. The aggregate verdict remains the
+runner's exit status, and bead-level attribution remains raw-text comparison
+within a check's block.
 
 ### Resolution
 
@@ -266,7 +269,9 @@ Settled here so they are not re-litigated mid-implementation:
 5. `--ids` exists; no `list`, `run`, or `targeted` subcommand.
 6. Exit 0 / 1 / 3, matching `bb-status.sh`; a 3 runs nothing.
 7. `=== <id>` delimiters and a `FAILED (exit N)` line, stderr, tool bytes
-   untouched between them.
+   untouched between them — for a human reading the log. Machine-readable
+   verdicts come from `--report <path>`, out of band, because an in-band
+   delimiter is forgeable by any tool the runner invokes.
 8. One declaration mechanism. `[checkpoints]`, `$BB_CHECKS` and the
    `scripts/checks` fallback are removed.
 9. python3 `tomllib` for parsing; python3 becomes a hard dependency.

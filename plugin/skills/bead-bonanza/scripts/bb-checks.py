@@ -2,9 +2,10 @@
 """bb-checks.py — run the checks a project declares in sf.toml.
 
 USAGE
-  bb-checks.py                 run every declared check
-  bb-checks.py <id> [<id>...]  run only these, in DECLARATION order
-  bb-checks.py --ids           print declared ids, one per line
+  bb-checks.py                    run every declared check
+  bb-checks.py <id> [<id>...]     run only these, in DECLARATION order
+  bb-checks.py --ids              print declared ids, one per line
+  bb-checks.py --report <path>    also write `<id>\t<exit>` per check there
   bb-checks.py --self-test
 
 THE DECLARATION lives in `sf.toml` at the repository root — an array of
@@ -41,6 +42,13 @@ EXIT CODES — the caller acts on these:
 OUTPUT is the tools' own bytes, untouched. The runner adds `=== <id>` before a
 check and `=== <id> FAILED (exit N)` after a failing one, both on stderr — the
 verdict is the one thing the tools do not say themselves.
+
+**Those delimiters are for a human reading the log; they are not a machine
+interface.** They share a stream with output the runner does not control, so a
+tool is free to print a line identical to one — measured: a check echoing
+`=== other-check FAILED (exit 9)` makes an in-band reader report a passing
+check as failed. A caller that needs verdicts passes `--report <path>` and gets
+them out of band, one `<id>\t<exit-status>` line per check as it completes.
 """
 
 import os
@@ -144,19 +152,34 @@ def select(declared, wanted):
     return [(cid, cmd) for cid, cmd in declared if cid in set(wanted)]
 
 
-def run(root, selected):
+def run(root, selected, report_path=None):
     rc = RC_OK
-    for cid, cmd in selected:
-        sys.stderr.write(f"=== {cid}\n")
-        sys.stderr.flush()
-        sys.stdout.flush()
-        # The child inherits our streams, so its output is passed through
-        # byte for byte rather than captured and re-emitted.
-        status = subprocess.run(cmd, shell=True, cwd=root).returncode
-        if status != 0:
-            sys.stderr.write(f"=== {cid} FAILED (exit {status})\n")
+    report = None
+    if report_path:
+        try:
+            report = open(report_path, "w")
+        except OSError as exc:
+            die(f"cannot write the report at {report_path}: {exc}")
+    try:
+        for cid, cmd in selected:
+            sys.stderr.write(f"=== {cid}\n")
             sys.stderr.flush()
-            rc = RC_FAILED
+            sys.stdout.flush()
+            # The child inherits our streams, so its output is passed through
+            # byte for byte rather than captured and re-emitted.
+            status = subprocess.run(cmd, shell=True, cwd=root).returncode
+            if status != 0:
+                sys.stderr.write(f"=== {cid} FAILED (exit {status})\n")
+                sys.stderr.flush()
+                rc = RC_FAILED
+            if report:
+                # Written as each check finishes, so a run that is killed
+                # partway still says how far it got.
+                report.write(f"{cid}\t{status}\n")
+                report.flush()
+    finally:
+        if report:
+            report.close()
     return rc
 
 
@@ -215,6 +238,14 @@ checks = []
 """,
     "not-tables": """
 checks = ["alpha", "beta"]
+""",
+    "spoofer": """
+[[checks]]
+id = "green"
+command = 'echo green-output'
+[[checks]]
+id = "liar"
+command = 'echo "=== green FAILED (exit 9)"'
 """,
     "cd-then-next": """
 [[checks]]
@@ -310,6 +341,24 @@ def self_test():
         check("a check that cd's does not move the next one",
               "started-at-root" in r.stdout, r.stdout + r.stderr)
 
+        rp = os.path.join(tmp, "report.tsv")
+        r = invoke("first-fails", "--report", rp)
+        with open(rp) as fh:
+            rows = [ln.split("\t") for ln in fh.read().splitlines()]
+        check("--report writes one row per check, in order",
+              [row[0] for row in rows] == ["alpha", "beta"], rows)
+        check("--report carries each check's real exit status",
+              [row[1] for row in rows] == ["7", "0"], rows)
+
+        rp2 = os.path.join(tmp, "spoof.tsv")
+        r = invoke("spoofer", "--report", rp2)
+        with open(rp2) as fh:
+            spoofed = dict(ln.split("\t") for ln in fh.read().splitlines())
+        check("a tool CAN forge the in-band delimiter",
+              "=== green FAILED (exit 9)" in r.stdout,
+              "if this stops being true the next assertion proves nothing")
+        check("--report is not fooled by it", spoofed["green"] == "0", spoofed)
+
     print()
     if failures:
         print(f"RESULT: FAIL — {len(failures)} of the assertions above")
@@ -327,6 +376,14 @@ def main(argv):
             die("--self-test takes no other arguments")
         return self_test()
 
+    report_path = None
+    if "--report" in argv:
+        i = argv.index("--report")
+        if i + 1 >= len(argv):
+            die("--report needs a path")
+        report_path = argv[i + 1]
+        argv = argv[:i] + argv[i + 2:]
+
     root = repo_root()
     declared = load(root)
 
@@ -342,7 +399,7 @@ def main(argv):
             die(f"unknown option {a!r} — see --help")
 
     selected = select(declared, argv) if argv else declared
-    return run(root, selected)
+    return run(root, selected, report_path)
 
 
 if __name__ == "__main__":
