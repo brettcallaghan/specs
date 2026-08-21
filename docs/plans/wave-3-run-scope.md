@@ -15,29 +15,64 @@ epics, a pile of bead ids, a label, a priority. **Admission** is the step that
 turns any of those into the one epic, and it is where every consequence we
 measured has to be handled.
 
-## The constraint that shapes everything: swarm is one level deep
+## Swarm is one level deep — but it is not the dispatch mechanism
 
-**Measured.** A run epic with one sub-epic (two leaves, one closed) and one
-direct leaf:
+**Measured.** A run epic holding a sub-epic (two leaves) plus a direct leaf:
 
 ```
 bd swarm status   →  Ready: sub-epic-A, direct-leaf     Progress: 0/2
-bd swarm validate →  Total issues: 2      Wave 1: sub-epic-A, direct-leaf
+bd swarm validate →  Total issues: 2   Wave 1: sub-epic-A, direct-leaf
 ```
 
-Neither leaf under the sub-epic appears, and the closed one is not counted.
-`bd swarm validate` lists the **sub-epic itself as a dispatchable work item**.
+Neither leaf appears and the sub-epic is listed as a dispatchable work item.
 
-`bd ready --parent` behaves the opposite way — it is transitive, returning
-descendants at any depth (which is why `--exclude-type=epic` is mandatory).
+**Running swarm on the leaf epics instead does not fix it — it produces wrong
+answers.** With `a2` (in E1) blocking `b1` (in E2):
 
-So the queue reaches through nesting and `swarm` does not. **The run epic must
-be FLAT: its children are the beads to run.** A nested run epic silently
-degrades every swarm-derived signal — the wave partition, the live view and the
-progress count — and would dispatch a sub-epic as if it were a bead.
+```
+bd swarm validate E2 →  Wave 1: b1, b2        ⚠ b1 depends on a2 (outside epic)
+bd swarm status   E2 →  Ready: b1, b2         Blocked: (none)
+```
 
-This retires the epic-of-epics idea for multi-epic runs. It was measured to
-work for the *queue* and that is not enough.
+`b1` is not ready. Its blocker has not started. Swarm scopes dependency
+analysis to the epic it was given, notes the outside edge as a *warning*, and
+then computes waves and readiness as if the edge were not there. The warning
+makes it detectable; the outputs are still unsafe to dispatch from.
+
+**The re-queried ready front is correct where swarm is not.** Same graph,
+`bd ready --parent <run-epic> --exclude-type=epic` after each close:
+
+| after | front |
+|---|---|
+| — | `a1`, `b2` |
+| `a1` closed | `a2`, `b2` |
+| `+ b2` | `a2` |
+| `+ a2` | **`b1`** — the cross-epic edge released correctly |
+| `+ b1` | (empty) |
+
+It walks the whole DAG, through nesting and across epic boundaries, with no
+precomputed table. **This is the dispatch mechanism.** `swarm validate`'s waves
+are a lookahead for planning and reporting, not something to dispatch from.
+
+### What nesting therefore costs
+
+Not correctness. Two display signals:
+
+- **The wave lookahead.** Valid on a flat epic; on a nested one, `plan-sprint`
+  partitions, or the run simply shows the current front and no preview.
+- **The progress count.** `bd epic status` counts direct children — the probe
+  read `0/2` with all four leaves closed.
+
+A transitive count has to be walked, because **`--parent` does not mean the
+same thing on both commands** — measured against `agent-plugins-1ilc`:
+`bd ready --parent` returns descendants at any depth, while
+`bd list --parent` returns **direct children only** (10 leaf beads for an epic
+with 32 descendants). Its own help says so; the two flags simply differ.
+
+**So flatness is a quality-of-reporting preference, not a precondition.** An
+earlier revision of this plan said the run epic must be flat and that
+epic-of-epics was therefore dead. That was wrong: it followed from testing
+swarm and assuming swarm was how work gets dispatched.
 
 ## Admission — turning the input into the run epic
 
@@ -47,10 +82,10 @@ set of beads and/or epics, and these rules apply.
 | input | what happens |
 |---|---|
 | **one flat epic** | use it. Nothing created, nothing moved. |
-| **one nested epic** | use it, and **say that swarm signals are one level deep** so the wave table comes from `plan-sprint` instead. Do not flatten it — flattening moves beads that have homes. |
+| **one nested epic** | use it as-is. The queue is correct through nesting; say once that the wave preview and progress count are degraded. **Never flatten** — that moves beads with homes for a display signal. |
 | **beads with no parent** | create the run epic and adopt them. Nothing is lost: they had no parent, and the membership is provenance afterwards. |
 | **beads that already belong to an epic** | **ask before moving.** On decline, **exclude that subset from the run** and say so in the manifest and the report. |
-| **several epics** | ask before moving. Adopting the epics gives a nested run epic (degraded swarm); adopting their leaf beads empties the source epics of open work. Both are moves, so both need the same confirmation, and declining excludes them. |
+| **several epics** | create the epic-of-epics and adopt the epics themselves. Each keeps its own children, so no bead moves and no source epic is emptied — only the epics gain a parent, which restructures the top level, so confirm that. Declining leaves them out of the run. |
 
 **Decline is a first-class outcome, not a failure.** The run proceeds with the
 beads that could be admitted, and the excluded set is recorded on the epic and
@@ -114,16 +149,20 @@ Never point it at a bare bead.
 |---|---|
 | `7vej` | a run is one epic; **admission** turns the user's input into it, with the move-confirmation and exclusion rules above. The run root, the `current` symlink and the generated run id retire |
 | `x5ix` | manifest as `--metadata` on the epic, amendments as `amend:` comments, `$RUN_DIR` and `dispatch.md` retired, recovery reads the epic. As filed |
-| `205x` | waves from `bd swarm validate`, **with the flat-epic precondition stated and the `plan-sprint` fallback for a nested one** |
+| `205x` | **narrowed to a lookahead.** Dispatch reads the re-queried ready front, which is correct at any depth; `swarm validate` supplies a wave preview only on a flat epic, and must never be dispatched from where cross-epic edges exist |
 | `67xf` | sequencing constraints as real `blocks` edges at grooming. Unchanged |
-| `ccm9` | **closes as won't-do.** Epic-of-epics degrades every swarm signal to one level. Several epics is handled by admission — confirm, adopt or exclude — not by a wrapper |
+| `ccm9` | **survives.** Epic-of-epics is how several epics become one run, and the queue is correct through it. What it owns: the top-level-restructure confirmation, and the degraded-lookahead notice |
 | `ddvt` | `bd swarm create` for registration, `bd swarm status` as the live view. Same flat-epic caveat |
-| `kyyl` | run-level DoD via `bd epic status`. Exact on a flat epic, which admission now guarantees for every run the skill creates |
-| `we2q` | epic-level Definition of Ready in `groom-beads` — and it should now require **flatness**, since that is what the swarm signals depend on |
+| `kyyl` | run-level DoD. `bd epic status` is exact on a flat epic only; a nested run epic needs a walked count, since `bd list --parent` is direct-children-only |
+| `we2q` | epic-level Definition of Ready in `groom-beads`. It should **prefer** flatness and state what a nested epic costs, not require it |
 
 ## The honest cost
 
-A user whose work spans several epics must accept a move, or accept that those
-beads sit out the run. There is no third option that keeps their structure
-intact *and* gives the run one epic — that is what the measurements above
-establish, not a design preference.
+A user handing over loose or explicitly-listed beads that already belong to an
+epic must accept a move or accept that those beads sit out the run. That case
+is genuinely unavoidable: the bead can only have one parent.
+
+Whole epics are not affected — they are adopted intact, so the several-epics
+case costs a confirmation about top-level structure and nothing else. What a
+nested run epic gives up is the wave preview and the progress count, both of
+which are recomputable.
