@@ -455,22 +455,6 @@ else
   say "assuming an Agent tool is available (set BB_ASSUME_NO_AGENT=1 if not)."
 fi
 
-head_ "CI"
-# Glob each extension separately and test each file. A single `ls` over both
-# globs exits nonzero whenever one of them matches nothing, which silently
-# reported "no CI" in a repo that has only .yml workflows.
-PR_CI=no
-for wf in .github/workflows/*.yml .github/workflows/*.yaml; do
-  [ -f "$wf" ] || continue
-  if grep -q 'pull_request' "$wf" 2>/dev/null; then PR_CI=yes; break; fi
-done
-if [ "$PR_CI" = yes ]; then
-  say "pull_request-triggered workflows found — a draft PR opened now gets every"
-  say "wave the full CI matrix. Ask the user once."
-else
-  say "no pull_request trigger found — do not ask about a draft PR."
-fi
-
 # ======================================================== 8. checks baseline
 
 head_ "Checks baseline"
@@ -599,7 +583,6 @@ emitq BB_MODEL_FRONTIER "$MODEL_FRONTIER"
 emitq BB_PUSH_MODE_DEFAULT "$PUSH_MODE_DEFAULT"
 emitq BB_SUBAGENT_MODEL_OVERRIDE "$SUBAGENT_MODEL_OVERRIDE"
 emit  BB_NO_AGENT "$NO_AGENT"
-emit  BB_PR_CI "$PR_CI"
 emit  BB_TREE_CLEAN "$TREE_CLEAN"
 emit  BB_PUSH_NEEDS_REFSPEC "$PUSH_NEEDS_REFSPEC"
 emit  BB_GIT_CONFIG_WRITABLE "$GIT_CONFIG_WRITABLE"
