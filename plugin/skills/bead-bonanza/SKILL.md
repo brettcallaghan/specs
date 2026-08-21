@@ -191,11 +191,6 @@ After each subagent returns:
       orchestrator never created survives. Leave it standing and surface it.
 
 
-   **Signals this check deliberately does NOT use.** There is no per-bead retro
-   FILE and no per-bead handoff file: findings are `retro:` comments on the
-   bead, and a `caveat:` comment says only what the close must do differently.
-   Neither is evidence of acceptance.
-
    **A subagent that never returns is checked by these same five signals.** A
    lost completion notification is not evidence of an unfinished bead, and it
    is common enough to plan for. The five signals read state, not testimony,
