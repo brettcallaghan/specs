@@ -83,7 +83,7 @@ could not read the plan is a *reconstruction*, and says so — it is not a plan.
    reconstruction is not a plan.
 
 2. **Read `dispatch.md` in full.** It carries the mandate, the enumerated bead
-   list, the standing authorization, the wave table, the gate profile and the
+   list, the standing authorization, the wave table, the resolved `checks` script and the
    environmental ledger. **This is the plan — do not re-derive it, and do not
    re-run the filter that produced it.** The filter produced the queue; the
    plan IS the queue, and a filter re-evaluated now returns a different set

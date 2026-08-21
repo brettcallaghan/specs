@@ -1,0 +1,16 @@
+# Plugin-scoped configuration for the sf agent-plugins toolkit.
+#
+# Per ADR-022 ("Projects Declare Checkpoint Scripts"): a project declares the
+# executables its skills run, by repository-root-relative path, in this file.
+# Skills run them and read their output; they parse no prose.
+#
+# The alternatives ADR-022 rejected, so they are not re-proposed here: a
+# `.specs/hooks/` convention (one character from the `specs/` corpus root and
+# meaning something entirely different), `specs.toml` (a per-corpus-root
+# manifest, and this repository has two), and `.env` (conventionally
+# gitignored, so the declaration would not travel with the repository).
+
+[checkpoints]
+# The gate entry point. Its own header carries the contract:
+#   checks list | checks run [<gate>...] | checks targeted <path>...
+checks = "scripts/checks"

@@ -134,17 +134,16 @@ self_test() {
 
   # 7. AGENTS.md block detection, both directions.
   printf '%s\n' '# x' '## bead-bonanza gates' 'body' '## model lineup' 'body' > "$fixture/AGENTS.md"
-  st "gates block detected"  present "$(has_block "$fixture/AGENTS.md" '## bead-bonanza gates')"
   st "lineup block detected" present "$(has_block "$fixture/AGENTS.md" '## model lineup')"
   printf '%s\n' '# x' > "$fixture/EMPTY.md"
-  st "absent block reported" absent "$(has_block "$fixture/EMPTY.md" '## bead-bonanza gates')"
+  st "absent block reported" absent "$(has_block "$fixture/EMPTY.md" '## model lineup')"
 
-  # 8. The gate-line parser takes the FIRST backticked span after the label,
-  #    which is the command; the prose that follows often has backticks too.
-  gl='- **Format:** `cd cli && gofmt -l .` — must print nothing (`gofmt -w .` to fix)'
-  st "gate command parsed" "cd cli && gofmt -l ." "$(printf '%s\n' "$gl" | gate_cmd)"
-  st "gate label parsed" "FORMAT" "$(upper_key 'Format')"
-  st "gate label with parens" "TEST_FULL_SUITE" "$(upper_key 'Test (full suite)')"
+  # 8. The RESULT-line reader. Only stdout carries verdicts, and a gate whose
+  #    own output contains the word FAIL must not be read as one.
+  rl='RESULT skills-strict fail 1'
+  st "gate id read"      "skills-strict" "$(printf '%s' "$rl" | awk '{print $2}')"
+  st "gate verdict read" "fail"          "$(printf '%s' "$rl" | awk '{print $3}')"
+  st "gate key derived"  "BB_GATE_SKILLS_STRICT" "BB_GATE_$(upper_key 'skills-strict')"
 
   # 9. Portability lint over this script's own source. Every GNU-only or
   #    bash-4-only construct must carry the `portability-lint-ok` marker,
@@ -164,9 +163,6 @@ self_test() {
   if [ "$st_fail" -eq 0 ]; then echo "RESULT: PASS"; return 0; fi
   echo "RESULT: FAIL"; return 1
 }
-
-# Extract the command from an AGENTS.md gate bullet: the first backticked span.
-gate_cmd() { sed -n 's/^[^`]*`\([^`]*\)`.*$/\1/p'; }
 
 has_block() {
   if grep -q "^$2\$" "$1" 2>/dev/null; then printf 'present'; else printf 'absent'; fi
@@ -223,30 +219,53 @@ say "repo: $REPO"
 git worktree prune 2>/dev/null || true
 say "worktree registrations pruned"
 
-# ====================================================== 2. the AGENTS.m blocks
+# ================================================= 2. the project's gates
 
-head_ "AGENTS.md blocks"
-GATES_BLOCK="$(has_block AGENTS.md '## bead-bonanza gates')"
-LINEUP_BLOCK="$(has_block AGENTS.md '## model lineup')"
-say "## bead-bonanza gates: $GATES_BLOCK"
-say "## model lineup:      $LINEUP_BLOCK"
-if [ "$GATES_BLOCK" = absent ] || [ "$LINEUP_BLOCK" = absent ]; then
-  block "a required AGENTS.md block is missing — read references/project-setup.md and draft it WITH the user; do not invent one"
+# The project declares its gates in an executable `checks` script, never in
+# prose this script parses. The declaration lives in `sf.toml` at the
+# repository root (ADR-022), which is a config file with a named key rather
+# than prose with a shape. Resolution order, first hit wins:
+#
+#   $BB_CHECKS       explicit override
+#   sf.toml          [checkpoints] checks = "<repo-root-relative path>"
+#   scripts/checks   the conventional location, when sf.toml declares nothing
+head_ "Project gates"
+# One key out of a config file, not a command out of a sentence: the value is
+# whatever is quoted after `checks =`, and a missing key yields empty.
+_declared="$(sed -n 's/^[[:space:]]*checks[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' sf.toml 2>/dev/null | head -1)"
+CHECKS=""
+for _c in "${BB_CHECKS:-}" "$_declared" scripts/checks; do
+  [ -n "$_c" ] || continue
+  if [ -x "$_c" ]; then CHECKS="$_c"; break; fi
+  if [ -f "$_c" ]; then
+    block "$_c exists but is not executable — chmod +x it; a non-executable checks script is the same as none"
+  fi
+done
+GATE_IDS=""
+if [ -z "$CHECKS" ]; then
+  block "no checks script found (looked at \$BB_CHECKS, sf.toml's [checkpoints] checks key, scripts/checks) — read references/project-setup.md and write one WITH the user; do not invent gates"
+else
+  say "checks script: $CHECKS"
+  GATE_IDS="$("$CHECKS" list 2>/dev/null | tr '\n' ' ')"
+  if [ -z "$GATE_IDS" ]; then
+    block "$CHECKS list printed nothing — a checks script must name its gates"
+  else
+    say "gates: $GATE_IDS"
+  fi
 fi
 
-# Echo both blocks so the orchestrator does not have to open AGENTS.md at all —
+LINEUP_BLOCK="$(has_block AGENTS.md '## model lineup')"
+say "## model lineup:      $LINEUP_BLOCK"
+if [ "$LINEUP_BLOCK" = absent ]; then
+  block "AGENTS.md has no '## model lineup' block — read references/project-setup.md and draft it WITH the user; do not invent one"
+fi
+
+# Echo the lineup so the orchestrator does not have to open AGENTS.md at all —
 # that read was Phase 0 step 1, and this replaces it.
 echo_block() { awk -v h="$1" '$0==h{f=1} /^## /{if(f && $0!=h)exit} f' AGENTS.md 2>/dev/null; }
-for b in '## bead-bonanza gates' '## model lineup'; do
-  printf '\n' >&2
-  echo_block "$b" | sed 's/^/    /' >&2
-done
+printf '\n' >&2
+echo_block '## model lineup' | sed 's/^/    /' >&2
 
-# The parseable profile is the run of `- **Label:** `cmd`` bullets BEFORE the
-# first `###` subsection. Everything after it is commentary (known-red
-# exceptions, CI description, install notes) whose bullets are prose, not
-# commands, and running them would be nonsense.
-GATE_LINES="$(awk '/^## bead-bonanza gates$/{f=1;next} /^### /{f=0} /^## /{if(f)exit} f && /^- \*\*/' AGENTS.md 2>/dev/null)"
 
 # =================================================== 3. beads telemetry + deny
 
@@ -429,32 +448,35 @@ head_ "Gate baseline"
 GATE_BASELINE=skipped
 GATE_KEYS=""
 GATE_EMIT=""
-if [ "$DO_GATES" = yes ] && [ -n "$GATE_LINES" ]; then
+if [ "$DO_GATES" = yes ] && [ -n "$CHECKS" ]; then
   GATE_BASELINE=captured
-  # bash 3.2: no associative arrays. Loop the bullet lines, take the label
-  # before the colon and the first backticked span after it.
+  # One invocation runs every gate the project declared, in the order it
+  # declared them. Parse only stdout: the contract puts RESULT lines there and
+  # everything human on stderr, so a gate that prints "FAIL" in its own output
+  # cannot be mistaken for a verdict.
+  _results="$("$CHECKS" run 2>/dev/null)"
   while IFS= read -r line; do
-    [ -n "$line" ] || continue
-    label="$(printf '%s' "$line" | sed -n 's/^- \*\*\([^:*]*\).*$/\1/p')"
-    cmd="$(printf '%s\n' "$line" | gate_cmd)"
-    [ -n "$label" ] || continue
-    key="BB_GATE_$(upper_key "$label")"
-    if [ -z "$cmd" ]; then
-      say "$label: unparsed (no command in backticks)"
-      GATE_EMIT="$GATE_EMIT
-$key=unparsed"
-      continue
-    fi
-    if bash -c "$cmd" >/dev/null 2>&1; then verdict=pass; else verdict=fail; fi
-    say "$label: $verdict   ($cmd)"
+    case "$line" in RESULT\ *) ;; *) continue ;; esac
+    # RESULT <gate> <verdict> <exit>
+    gate="$(printf '%s' "$line" | awk '{print $2}')"
+    verdict="$(printf '%s' "$line" | awk '{print $3}')"
+    [ -n "$gate" ] || continue
+    key="BB_GATE_$(upper_key "$gate")"
+    say "$gate: $verdict"
     GATE_EMIT="$GATE_EMIT
 $key=$verdict"
     GATE_KEYS="$GATE_KEYS $key"
   done <<EOF
-$GATE_LINES
+$_results
 EOF
-  say "the bar for every bead is 'no findings beyond this baseline', not 'exit 0'."
-  say "a gate with no recorded baseline is expected to exit 0."
+  if [ -z "$GATE_KEYS" ]; then
+    say "$CHECKS run emitted no RESULT lines — treating the baseline as uncaptured"
+    GATE_BASELINE=skipped
+  else
+    say "the bar for every bead is 'no findings beyond this baseline', not 'exit 0'."
+    say "a gate with no recorded baseline is expected to exit 0."
+  fi
+
 else
   say "not captured — re-run with --gate-baseline. Until then every gate is"
   say "expected to exit 0, and a pre-existing failure will be misread as a regression."
@@ -507,7 +529,7 @@ fi
 # The evalable block. Values that can contain spaces are single-quoted.
 emitq RUN_DIR "$RUN_DIR"
 emitq SCRIPTS "$SCRIPTS"
-emit  BB_GATES_BLOCK "$GATES_BLOCK"
+emitq BB_CHECKS "$CHECKS"
 emit  BB_LINEUP_BLOCK "$LINEUP_BLOCK"
 emitq BB_SUBAGENT_MODEL_OVERRIDE "$SUBAGENT_MODEL_OVERRIDE"
 emit  BB_PR_CI "$PR_CI"

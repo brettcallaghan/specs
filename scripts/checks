@@ -1,0 +1,134 @@
+#!/usr/bin/env sh
+#
+# checks — this project's gate entry point for bead-bonanza.
+#
+# THE CONTRACT (identical in every project that ships one):
+#
+#   checks list                  Gate ids, in the order they must run, one per
+#                                line. Nothing else on stdout.
+#   checks run [<gate>...]       Run every gate, or only the named ones.
+#   checks targeted <path>...    Print the gate ids that cover those paths.
+#                                Prints nothing and exits 0 when none apply.
+#
+#   `run` writes one machine-readable line per gate to STDOUT:
+#
+#       RESULT <gate> <pass|fail|skip> <exit-code>
+#
+#   and everything humans read to STDERR, so a caller can parse stdout without
+#   filtering. Exit 0 when every gate run passed or was skipped, 1 when any
+#   failed, 2 on an invocation error.
+#
+#   A gate id is a stable, lowercase, hyphenated name. It is the project's to
+#   choose: bead-bonanza never assumes a fixed set, only that `list` names them
+#   and `run` executes them.
+#
+# WHY A SCRIPT RATHER THAN A MARKDOWN BLOCK. bead-bonanza used to recover the
+# commands by regex-parsing AGENTS.md bullets for their first backticked span.
+# Measured against this repository's own AGENTS.md, that parser resolves
+# Format, Lint and Build — and silently drops "Test (full suite)", because its
+# body is a fenced block rather than one span. The gate it cannot see is the
+# known-red one, i.e. exactly the gate whose baseline matters most. A parser
+# whose failure mode is "the hardest gate silently vanishes" cannot be fixed by
+# a better regex; the project has to say what it means in something executable.
+
+set -u
+
+usage() {
+  echo "usage: checks list | checks run [<gate>...] | checks targeted <path>..." >&2
+  exit 2
+}
+
+# Ordered. `run` with no arguments runs exactly this, in this order — so
+# anything that must precede another gate (a regen before a test) is ordered
+# here rather than in the caller.
+GATES="format vet build test-go skills shared-refs strata-docs schemas skills-strict"
+
+repo_root() { git rev-parse --show-toplevel 2>/dev/null || pwd; }
+ROOT="$(repo_root)"
+
+# Run one gate. Every gate is a function `gate_<id>` returning an exit status,
+# with its own output already on stderr.
+gate_format() { cd "$ROOT/cli" || return 2
+  out="$(gofmt -l . 2>&1)"
+  # gofmt exits 0 whether or not it found unformatted files; the FILE LIST is
+  # the verdict. A gate that checked only the status would always pass.
+  [ -z "$out" ] || { printf 'unformatted:\n%s\n' "$out" >&2; return 1; }
+}
+gate_vet()       { cd "$ROOT/cli" && go vet ./... >&2; }
+gate_build()     { cd "$ROOT/cli" && go build ./... >&2; }
+gate_test_go()   { cd "$ROOT/cli" && go test ./... >&2; }
+gate_skills()    { "$ROOT/scripts/check-skills.sh" >&2; }
+gate_shared_refs()  { "$ROOT/scripts/sync-shared-references.sh" --check >&2; }
+gate_strata_docs()  { "$ROOT/scripts/sync-strata-docs.sh" --check >&2; }
+gate_schemas()      { "$ROOT/scripts/generate-schemas.sh" --check >&2; }
+
+# KNOWN RED, and deliberately its own gate rather than folded into `skills`.
+# It exits 1 on a WARNING (a body-size figure that moves with every editorial
+# change), so the bar is "no findings beyond the recorded baseline", not
+# "exit 0". Keeping it separate lets the baseline carry one known-failing gate
+# without marking the whole suite red.
+gate_skills_strict() { "$ROOT/scripts/check-skills.sh" --strict >&2; }
+
+# Map a gate id to its function name: hyphens are not legal in one.
+gate_fn() { printf 'gate_%s' "$(printf '%s' "$1" | tr '-' '_')"; }
+
+is_gate() {
+  for g in $GATES; do [ "$g" = "$1" ] && return 0; done
+  return 1
+}
+
+cmd_list() { for g in $GATES; do echo "$g"; done; }
+
+cmd_run() {
+  want="$*"
+  [ -n "$want" ] || want="$GATES"
+  rc=0
+  for g in $want; do
+    if ! is_gate "$g"; then
+      echo "checks: unknown gate: $g" >&2
+      exit 2
+    fi
+    fn="$(gate_fn "$g")"
+    echo "--- $g" >&2
+    # Subshell: a gate that cd's must not move the next one.
+    ( "$fn" ); status=$?
+    if [ "$status" -eq 0 ]; then
+      echo "RESULT $g pass 0"
+    else
+      echo "RESULT $g fail $status"
+      rc=1
+    fi
+  done
+  return $rc
+}
+
+# Which gates cover these paths. The mapping lives here, next to the gates
+# themselves, rather than in a prose table that can disagree with them.
+cmd_targeted() {
+  [ $# -ge 1 ] || usage
+  want=""
+  add() { case " $want " in *" $1 "*) ;; *) want="$want $1" ;; esac; }
+  for p in "$@"; do
+    case "$p" in
+      cli/*)                     add format; add vet; add build; add test-go ;;
+      schemas/*.strata)          add schemas; add build ;;
+      plugin/skills/*)           add skills; add shared-refs ;;
+      .claude/skills/strata/*)   add strata-docs ;;
+      scripts/*)                 add skills; add shared-refs ;;
+    esac
+  done
+  # Emit in canonical order rather than discovery order, so a caller can run
+  # the result straight through without re-sorting.
+  for g in $GATES; do
+    case " $want " in *" $g "*) echo "$g" ;; esac
+  done
+}
+
+[ $# -ge 1 ] || usage
+sub="$1"; shift
+case "$sub" in
+  list)     [ $# -eq 0 ] || usage; cmd_list ;;
+  run)      cmd_run "$@" ;;
+  targeted) cmd_targeted "$@" ;;
+  *)        usage ;;
+esac

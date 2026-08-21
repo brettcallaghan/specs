@@ -81,7 +81,7 @@ Return the wave table it produces as the last block of your report, plus one lin
 ## Per-bead subagent prompt template
 
 ```
-You are addressing a single bead in this repo. Read CLAUDE.md and AGENTS.md if you need repo conventions or the bead workflow. The gate commands are in AGENTS.md under "## bead-bonanza gates".
+You are addressing a single bead in this repo. Read CLAUDE.md and AGENTS.md if you need repo conventions or the bead workflow. The gate commands come from the project's `checks` script.
 
 Bead: {ID} (P{PRIORITY}) — {TITLE}
 Decision (chosen by the user up front): {DECISION}
@@ -106,7 +106,7 @@ Write no progress file.
    identifiable in the tracker as the one holding the bead.
 2. Read full details: `bd show {ID}`
 3. Implement the change. **If this bead fixes a defect or regression, first write (or locate) a test that reproduces it and observe it FAIL for the stated reason BEFORE you fix it** — a test written after the fix encodes the fix's own assumptions and can stay green while the defect is live. Record the observed failure; it goes in a `retro:` comment (step 6). Stay strictly within this bead's scope. If you find work beyond it, file a new bead via `bd create` with a `discovered-from` link to {ID}, noting in one line whether it *blocks* this bead (a prerequisite, an acceptance-criteria decomposition, or an expected test-coverage gap) or is merely adjacent — the orchestrator decides whether it enters the run. Do NOT implement it or pull it into your own scope. This includes a gap you can see that is not yours to close — a document no bead in the queue claims, a step every adjacent bead assumed another would take. **"Not this bead's to close" is a reason to FILE it, not a reason to leave it unfiled.** If this bead genuinely cannot be finished without it, take the Blocked path naming the new bead as the blocker; otherwise continue with the original — do NOT expand scope inline. For any implicit decision you must make, record what you chose (and why) — it goes in a `retro:` comment (step 6).
-4. **The push is the gate** — this is a single-bead push, so full gates run here before pushing. If the change affects generated output the tests compare against (codegen, snapshots, golden files, schemas) AND the gate profile defines a regen step, run `{REGEN}` BEFORE the test step.
+4. **The push is the gate** — this is a single-bead push, so full gates run here before pushing. If the change affects generated output the tests compare against (codegen, snapshots, golden files, schemas) AND `checks list` names a regen gate, run it BEFORE the test gate.
    - `{FORMAT}`
    - `{LINT}`
    - `{BUILD}`

@@ -1,66 +1,100 @@
 # bead-bonanza Project Setup
 
-The two blocks bead-bonanza reads from the project's `AGENTS.md`, and the
-permissions a run needs. **Read this only when a block is missing** — once
-both exist, Phase 0 loads them and never comes back here.
+What a project must provide for bead-bonanza to run: an executable `checks`
+script, a model lineup in `AGENTS.md`, and a few command permissions. **Read
+this only when one is missing** — once they exist, Phase 0 loads them and never
+comes back here.
 
 ## Contents
 
-- Gate profile — how this project validates a bead (`## bead-bonanza gates`)
+- The `checks` script — how this project validates a bead
 - Model lineup — how capability tiers resolve to models (`## model lineup`)
 - Command permissions a run needs
 
-Both blocks are written into `AGENTS.md` so the next run hits the fast path.
 Propose a draft, let the user confirm or correct it, then write it — never
-write either block silently.
+write any of it silently.
 
 ---
 
+1. **Resolve the gate entry point.** bead-bonanza learns how to validate a bead
+   by running the project's **`checks` script**. Phase 0 resolves it in this
+   order, first hit wins, and blocks the run when none is found:
 
-1. **Resolve the gate profile.** bead-bonanza learns how to validate a bead from
-   a **gate profile** the project keeps in `AGENTS.md` under a `## bead-bonanza
-   gates` heading. Read it first — every `<format>`, `<lint>`, `<build>`,
-   `<test>`, and `<regen>` reference below resolves to a command from that
-   block.
-   - **If the block exists**, load it. Fast path — no prompt.
-   - **If it's missing**, discover candidate commands from the rest of
-     `AGENTS.md`/`CLAUDE.md` (build/test/lint/format sections, CI config),
-     propose a draft profile to the user, let them confirm or correct it, then
-     **write it into `AGENTS.md`** under `## bead-bonanza gates` (create
-     `AGENTS.md` if neither doc exists) and offer to commit it. Future runs then
-     hit the fast path.
-   - The block is human-readable markdown: the core gate commands, an optional
-     pre-test `<regen>` step (codegen/snapshot regeneration — many projects have
-     none), a targeted-tests-by-surface list, and the environmental-failure
-     ledger. Template:
-     ```markdown
-     ## bead-bonanza gates
+   | | |
+   |---|---|
+   | `$BB_CHECKS` | explicit override |
+   | `sf.toml` | `[checkpoints]` `checks = "<repo-root-relative path>"` |
+   | `scripts/checks` | the conventional location, when `sf.toml` declares none |
 
-     - **Format:** `<cmd>`
-     - **Lint:** `<cmd>`
-     - **Build:** `<cmd>`
-     - **Test (full suite):** `<cmd>`
-     - **Regenerate before tests** (codegen/snapshots; omit if the project has none): `<cmd>`
+   `sf.toml` is a plugin-scoped config file at the repository root. Reading one
+   named key out of it is not the thing this replaced: the retired mechanism
+   parsed *prose* for a command, where this reads a config file for a path.
 
-     ### Custom gates (optional)
-     Any extra checks to run as part of the gate suite — a plain command, or an inline script the user describes:
-     ```bash
-     # e.g. a project-specific check the standard gates don't cover
-     ./scripts/check-migrations.sh
-     ```
+   It must be **executable**. A present-but-not-executable file is treated as a
+   hard error rather than as absent, because that is a mistake to report, not a
+   state to work around.
 
-     ### Targeted tests by surface
-     When only part of the tree changed, run the narrowest suite that covers it:
-     - `<path or surface>` → `<targeted test cmd>`
+   **The contract.** Three subcommands, and one output rule:
 
-     ### Environmental-failure ledger
-     Suites that fail — or falsely PASS — only in the local sandbox, diagnosed once and passed into every subagent prompt as fact — never re-diagnosed per wave. Admit an entry on evidence, not reasoning: name the command run and the result observed — this applies to a claim that a check is unnecessary or already-sufficient just as much as to a claim of failure. A claim not cheaply testable is recorded as `unverified` with what would settle it, rather than stated as settled.
-     - `<suite>`: fails in sandbox — `<symptom>`, proved by `<command>` → `<workaround / covered-by-CI note>`
-     - `<suite>`: falsely GREEN — e.g. runs a stale prebuilt binary a plain test command doesn't rebuild → force a clean `<build>` before trusting the result
-     ```
+   ```
+   checks list                  Gate ids, in the order they must run, one per
+                                line. Nothing else on stdout.
+   checks run [<gate>...]       Run every gate, or only the named ones.
+   checks targeted <path>...    Print the gate ids covering those paths.
+                                Prints nothing and exits 0 when none apply.
+   ```
+
+   `run` writes one machine-readable line per gate to **stdout**:
+
+   ```
+   RESULT <gate> <pass|fail|skip> <exit-code>
+   ```
+
+   and everything a human reads to **stderr**. That split is the load-bearing
+   part: a gate whose own output contains the word `FAIL` must not be readable
+   as a verdict. Exit 0 when every gate run passed or was skipped, 1 when any
+   failed, 2 on an invocation error.
+
+   A gate id is a stable, lowercase, hyphenated name, and the set is the
+   project's to choose — bead-bonanza never assumes a fixed one, only that
+   `list` names them and `run` executes them. Ordering lives in `list`, so a
+   step that must precede another (a regen before a test) is sequenced by the
+   project rather than by the caller.
+
+   **Everything resolves through it.** The gate suite, the Phase 0 baseline,
+   and the targeted-tests-by-surface mapping are all answers this one script
+   gives. The mapping in particular belongs next to the gates it names, where
+   it cannot drift from them.
+
+   **Give each known-red check its own gate id.** A check that fails for a
+   reason the run is not expected to fix — a warning-as-failure, a suite that
+   is red on the default branch — is recorded in the baseline as a failing gate
+   and the bar for every bead becomes "no findings beyond this baseline". Folded
+   in with a healthy check, it marks that one red too and the baseline stops
+   discriminating.
+
+   - **If the script exists**, Phase 0 runs it. Fast path — no prompt.
+   - **If it's missing**, discover candidate commands from `AGENTS.md` /
+     `CLAUDE.md` (build/test/lint/format sections, CI config), propose a draft
+     script to the user, let them confirm or correct it, then write it and
+     offer to commit it. Future runs hit the fast path.
    - If the project genuinely has no build/test step (e.g. a pure-docs repo),
-     record that: `<test>` is a no-op and the doc/chore fast lane is the only
-     dispatch mode. Don't invent gates.
+     the script still exists and `list` names whatever it does have. Don't
+     invent gates.
+
+   **Why a script rather than a markdown block.** This used to be a
+   `## bead-bonanza gates` block that Phase 0 regex-parsed for the first
+   backticked span in each bullet. Measured against this repository's own
+   `AGENTS.md`, that parser resolved Format, Lint and Build — and silently
+   dropped `Test (full suite)`, whose body is a fenced block rather than one
+   span because its three checks must run independently. The gate it could not
+   see was the known-red one, so the baseline that mattered most was the one
+   never recorded. That failure mode does not have a better regex.
+
+   The **environmental-failure ledger** stays in `AGENTS.md` as prose: it is
+   read by agents, not executed, and it is the one part of the old block that
+   was never a command.
+
 1a. **Resolve the model lineup.** Beads carry a capability `tier`, not a
    model name. Read the project's `## model lineup` block in `AGENTS.md`
    to resolve tier → model at dispatch:
@@ -79,7 +113,7 @@ write either block silently.
    - **If the block exists**, load it. Fast path — no prompt.
    - **If it's missing**, propose one from the models available in this
      harness, let the user confirm, then write it into `AGENTS.md` (same
-     mechanics as the gate profile above).
+     mechanics as the checks script above).
    - **If the user declines**, dispatch without the `model` param — every
      subagent inherits the session model. Say this once, at run start, so
      the cost profile isn't a surprise.
@@ -95,9 +129,8 @@ write either block silently.
      `Bash(<skill-dir>/scripts/pre-flight-check.sh:*)`,
      `Bash(<skill-dir>/scripts/bb-verify-skip.sh:*)`,
      `Bash(<skill-dir>/scripts/bb-close-bead.sh:*)`
-   - The gate-profile commands — whatever
-     `<format>`/`<lint>`/`<build>`/`<test>`/`<regen>` resolve to for this
-     project (e.g. `Bash(cargo:*)`, `Bash(npm run test:*)`, `Bash(go build:*)`,
-     `Bash(pytest:*)`, or the regen script's path)
+   - The `checks` script's path (e.g. `Bash(scripts/checks:*)`), plus whatever
+     the gates it runs invoke underneath (e.g. `Bash(cargo:*)`,
+     `Bash(npm run test:*)`, `Bash(go build:*)`, `Bash(pytest:*)`)
    - `Read(/tmp/claude/**)` — and `Read($TMPDIR/**)` too WHEN `TMPDIR` is set
      (macOS sets it to a per-user dir; most Linux hosts leave it unset)

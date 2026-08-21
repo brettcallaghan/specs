@@ -40,42 +40,37 @@ cp -rf source dest          # NOT: cp -r source dest
 ## bead-bonanza gates
 
 This repository is a documentation-and-skills corpus **plus** the Go module
-under `cli/` that implements the Spec CLI. The gates are the repo's own
-consistency checks and, for anything under `cli/`, the Go toolchain.
+under `cli/` that implements the Spec CLI.
 
-Run the Go gates from `cli/` — that is the module root, so `./...` and the
-`go test ./core/...` form the work orders cite both resolve there.
-
-- **Format:** `cd cli && gofmt -l .` — must print nothing (`gofmt -w .` to fix)
-- **Lint:** `scripts/check-skills.sh` and, when `cli/` changed, `cd cli && go vet ./...`
-- **Build:** `cd cli && go build ./...` *(no build step for the docs corpus)*
-- **Test (full suite):** run the three checks independently — never chain them
-  with `&&`, since `check-skills.sh --strict` is known red (see the ledger
-  below) and would short-circuit the other two before they ever run:
-
-  ```bash
-  scripts/check-skills.sh --strict;            s1=$?
-  scripts/sync-shared-references.sh --check;    s2=$?
-  scripts/sync-strata-docs.sh --check;          s3=$?
-  echo "check-skills --strict:        exit=$s1"
-  echo "sync-shared-references --check: exit=$s2"
-  echo "sync-strata-docs --check:      exit=$s3"
-  [ "$s1" -eq 0 ] && [ "$s2" -eq 0 ] && [ "$s3" -eq 0 ]
-  ```
-
-  Report each check's exit status; the gate as a whole fails if any of the
-  three failed. And, when `cli/` changed, `cd cli && go test ./...`.
-
-### Custom gates
+**The gates live in `scripts/checks`, not in this file.** It is the executable
+entry point bead-bonanza resolves and runs; its header carries the contract.
 
 ```bash
-scripts/generate-schemas.sh --check   # committed artifacts under cli/core/{schema,specmodel}
-                                      # match the schemas/*.strata sources
+scripts/checks list                  # gate ids, in the order they must run
+scripts/checks run [<gate>...]       # run all, or only the named ones
+scripts/checks targeted <path>...    # the gate ids covering those paths
 ```
 
-Run it after any change to `schemas/*.strata`. The artifacts it checks are
-**generated — never hand-edit them**; regenerate with the same script without
-`--check` and commit the result in the same change.
+`run` prints one `RESULT <gate> <pass|fail|skip> <exit>` line per gate to
+stdout and everything human to stderr, and exits non-zero if any gate failed.
+
+Nine gates: `format`, `vet`, `build`, `test-go`, `skills`, `shared-refs`,
+`strata-docs`, `schemas`, `skills-strict`.
+
+Two things the script encodes that prose kept getting wrong:
+
+- **`skills-strict` is its own gate**, because it is known-red (below) and
+  folding it into `skills` would mark a healthy check red too. The three
+  doc-corpus checks are likewise separate gates rather than one chained
+  command — chaining them with `&&` would let the known-red one short-circuit
+  the other two before they ran.
+- **`format` is a file list, not an exit status.** `gofmt -l` exits 0 whether
+  or not it found unformatted files, so a gate reading only the status would
+  always pass.
+
+Run the Go gates from `cli/` if you invoke them by hand — that is the module
+root, so `./...` resolves there. `scripts/checks` already does.
+
 
 ### What CI runs
 
@@ -110,21 +105,33 @@ synthetically instead, on every platform, by `cli/cmd/portability_test.go`.
 
 ### Targeted tests by surface
 
-- `cli/**` → `cd cli && gofmt -l . && go vet ./... && go test ./...`
-- `schemas/*.strata` → `scripts/generate-schemas.sh --check`, then
-  `cd cli && go build ./...` (the generated Go must still compile)
+**Ask the script**, rather than reading a table that can drift from it:
 
-- `plugin/skills/*/SKILL.md` → `scripts/check-skills.sh`
-- `plugin/skills/*/references/**` → `scripts/sync-shared-references.sh --check && scripts/check-skills.sh`
-- `.claude/skills/*/SKILL.md` → `scripts/check-skills.sh` (only the
-  project-native skills `triage-rfc` and `strata`; the committed symlinks
-  to `plugin/skills/` are skipped and checked at their source)
-- `.claude/skills/strata/references/**` → `scripts/sync-strata-docs.sh --check`.
-  These are generated verbatim from `strata-lang/strata`; never hand-edit
-  them. `--check` reports SKIP (exit 0) when no strata checkout is present.
+```bash
+scripts/checks targeted cli/cmd/main.go        # -> format vet build test-go
+scripts/checks targeted plugin/skills/x/SKILL.md   # -> skills shared-refs
+```
+
+It prints the gate ids covering those paths, in run order, and nothing when
+none apply — so `checks run $(checks targeted <paths>)` is the whole of running
+a narrowed suite. The mapping lives beside the gate definitions in
+`scripts/checks`, which is the only place it cannot disagree with them.
+
+Two mappings the script cannot express, because they are about how to *read* a
+result rather than which gate to run:
+
+- `.claude/skills/*/SKILL.md` — only the project-native skills `triage-rfc` and
+  `strata` are checked; the committed symlinks to `plugin/skills/` are skipped
+  and checked at their source.
+- `.claude/skills/strata/references/**` — generated verbatim from
+  `strata-lang/strata`; never hand-edit them. The `strata-docs` gate reports
+  SKIP (exit 0) when no strata checkout is present.
+
+Two surfaces have their own guards rather than a gate:
+
 - `plugin/skills/groom-beads/scripts/**` → `python3 plugin/skills/groom-beads/scripts/validate_beads.py <fixture>.jsonl`
 - `plugin/skills/bead-bonanza/scripts/**` → run the script's own guards (see its header)
-- `scripts/**` → `bash -n <file>` then run it in its `--check` mode
+
 
 ### Environmental-failure ledger
 

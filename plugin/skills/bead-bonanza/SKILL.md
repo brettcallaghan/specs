@@ -34,14 +34,13 @@ re-run the queue query.
 
 **This skill is language-agnostic.** It never hard-codes build, test, lint, or
 format commands. Everything it needs to validate the work done for a bead comes
-from the project's **gate profile**, echoed by Phase 0's pre-flight script.
-Throughout this document, `<format>`, `<lint>`, `<build>`, `<test>`, and
-`<regen>` are placeholders that
-resolve to that project's actual commands. The profile can also define **custom
-gates** — any extra command or inline script the project wants run as part of
-the gate suite (e.g. a schema check, a license-header linter, a `bash` block).
-Substitute the profile's values wherever you see a placeholder, and run any
-custom gates alongside them.
+from the project's **`checks` script**, resolved and run by Phase 0's
+pre-flight script.
+Throughout this document, `<format>`, `<lint>`, `<build>`, `<test>` and
+`<regen>` are placeholders for gates that script declares. The set is the
+project's to choose — a schema check or a license-header linter is just another
+gate id — so run what `checks list` names rather than a fixed suite, in the
+order it names them.
 
 ## Run checklist
 
@@ -274,7 +273,7 @@ Load the one that matches where you are in the run:
 | A subagent running past 5 minutes; arming the Monitor and the durable trigger; reading progress events | `references/progress-streaming.md` |
 | A subagent that crashed or timed out mid-ceremony | `references/recovery.md` |
 | Resuming a run whose state you do not hold (the orchestrator died or compacted) | invoke the `recover-sprint` skill |
-| A project with no `## bead-bonanza gates` or `## model lineup` block | `references/project-setup.md` |
+| A project with no `checks` script or no `## model lineup` block | `references/project-setup.md` |
 | Resuming a bead interrupted mid-implementation (its worktree still exists) | `references/operating-principles.md` |
 | Phase 0 pre-flight: probe the environment, resolve `RUN_DIR`/`SCRIPTS` | run `scripts/pre-flight-check.sh` |
 | Checking a `skipped` claim against the tree | run `scripts/bb-verify-skip.sh` |
@@ -303,7 +302,7 @@ bb-close-bead.sh [--trailers-file <path>] <bead-id> <priority> <title> [path ...
   proceed / 1 blocking / 2 bad invocation. **Run it with the sandbox ON** — the
   one write the sandbox refuses is the global Dolt telemetry config, which the
   script detects, skips, and reports as the single command to re-run with the
-  sandbox off. `--gate-baseline` also runs the gate profile on the untouched
+  sandbox off. `--gate-baseline` also runs the project's `checks` script on the untouched
   tree, so a pre-existing failure is recorded as the baseline instead of being
   charged to the first bead. `--self-test` exercises the portability wrappers
   and takes no run id.
@@ -539,7 +538,7 @@ Three things stay yours:
 
 1. **The run manifest.** Write
    `${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/dispatch.md`'s header — the
-   pre-flight stdout block, gate profile, gate baseline, model lineup, the
+   pre-flight stdout block, the resolved `checks` script, gate baseline, model lineup, the
    run's effort setting, standing authorization and environmental ledger —
    **before** you dispatch grooming. WHERE the harness exposes no effort
    setting, write `unrecorded` — never omit the field and never guess a
@@ -835,7 +834,7 @@ with any RFCs in a single commit.
   `<test>` run happens once before the push.
 - **Targeted tests per bead are non-negotiable.** "Reduced gates" between beads
   in a batch never means "no tests." Each bead must run surface-relevant
-  targeted tests (from the gate profile's targeted-tests-by-surface list). If
+  targeted tests (`checks targeted <path>...` names them). If
   the subagent can't identify any, that's a signal the change is broader than
   expected — pause and reconsider scope, don't skip.
 - **Red before green on defect beads.** A test written after its fix encodes the
@@ -878,7 +877,7 @@ with any RFCs in a single commit.
   failure; never downgrade to save cost mid-run. Every escalation is a required
   row in the Phase 4 report — it is the only routing evidence a run produces.
   Beads marked "do not delegate" run in the orchestrator's own loop.
-- **Project rules win over skill defaults.** The gate profile is the source of
+- **Project rules win over skill defaults.** The `checks` script is the source of
   truth for build/test/lint/format commands and any custom gates the project
   adds. Progress visibility defaults to the run checklist (above, Phase 0); task
   tools are the exception for projects with no durable tracker of their own —
@@ -931,9 +930,8 @@ These are the artifacts each script creates, writes, or repoints.
   `git worktree prune` at startup; **pushes to the remote** — probes tracker
   write access with `git push <remote> HEAD:refs/dolt/preflight-probe-$$`,
   then deletes that ref, both against the same remote the bead's own work
-  will later push to; and, under `--gate-baseline`, **executes arbitrary
-  commands** by running `bash -c` on every command parsed out of AGENTS.md's
-  `## bead-bonanza gates` block. It does not write user-global state — where
+  will later push to; and, under `--gate-baseline`, **executes the project's
+  `checks` script**, which runs whatever commands that project's gates invoke. It does not write user-global state — where
   Dolt telemetry suppression or the `eventsapi.dolthub.com` deny entry is
   absent, it reports that and prints the command to run yourself.
 - **`scripts/bb-verify-skip.sh`** — no side effects; exits 0 (skip
