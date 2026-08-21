@@ -39,7 +39,7 @@ this file is where that output lands durably.
 | RUN_DIR | `/tmp/claude/bead-bonanza/<run-id>` |
 | Branch | `<branch>` |
 | Base sha | `<sha at run start>` |
-| Gate profile | format=`…` lint=`…` build=`…` test=`…` regen=`…` custom=`…` |
+| Checks | the project's checks script, at `<repo-root-relative path>`. Run it; exit 0 means every check passed. There is nothing to select or sequence. |
 | Checks baseline | What the project's checks printed on the untouched tree, and the status they exited with, at `$RUN_DIR/checks-baseline.md`. Carry that path, and inline the file's contents into every subagent prompt — a baseline that stops here is one the agent running the checks never sees. |
 | Model lineup | light=`…` standard=`…` advanced=`…` frontier=`…` |
 | Standing authorization | what the user authorized without further asking (push mode, PR, scope) |

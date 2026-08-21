@@ -6,10 +6,12 @@ every `{PLACEHOLDER}` before sending — an unsubstituted placeholder is the
 single most common dispatch defect, because the subagent has no session
 context to infer it from.
 
-Two placeholders are resolved once per run and substituted into every
-prompt: `{RUN_DIR}` is the run root Phase 0's pre-flight script resolved, and `{SCRIPTS}` is
-the absolute path to this skill's `scripts/` directory. A subagent cannot
-infer either.
+Four placeholders are resolved once per run and substituted into every
+prompt: `{RUN_DIR}` is the run root Phase 0's pre-flight script resolved,
+`{SCRIPTS}` is the absolute path to this skill's `scripts/` directory,
+`{CHECKS}` is the checks script Phase 0 resolved (emitted as `BB_CHECKS`), and
+`{CHECKS_BASELINE_TEXT}` is the *contents* of `{RUN_DIR}/checks-baseline.md`.
+A subagent can infer none of them.
 
 `{WORKTREE}` is resolved **per bead** — the absolute path to the worktree the
 orchestrator created for it. A subagent works there and nowhere else; it
@@ -67,7 +69,7 @@ Then produce the **wave preview** `groom-beads` produces, as its own block after
 FINALLY, as your last act, invoke the `plan-sprint` skill and follow it to write the run's wave table into `{RUN_DIR}/dispatch.md`. You have just read every bead, which is why planning is yours and not a second agent's. Pass it:
 - Run id `{RUN_ID}` and RUN_DIR `{RUN_DIR}` — `dispatch.md`'s manifest header is already written by the orchestrator; append under it and do NOT edit it
 - The bead ids to plan, ENUMERATED: {PLAN_IDS} — this is the run's committed queue; never re-run a filter to rebuild it, and never add a bead you groomed that the list omits
-- Gates: format=`{FORMAT}` lint=`{LINT}` build=`{BUILD}` test=`{TEST}` regen=`{REGEN or "none"}` custom=`{CUSTOM_GATES or "none"}`; checks baseline `{CHECKS_BASELINE}`
+- Checks: the project's `{CHECKS}` script, run in full; its baseline is at `{RUN_DIR}/checks-baseline.md`
 - Model lineup: {MODEL_LINEUP or "none declared"}
 - Standing authorization: {STANDING_AUTH or "none"}
 - Your own wave preview, above
@@ -81,20 +83,22 @@ Return the wave table it produces as the last block of your report, plus one lin
 ## Per-bead subagent prompt template
 
 ```
-You are addressing a single bead in this repo. Read CLAUDE.md and AGENTS.md if you need repo conventions or the bead workflow. The gate commands come from the project's `checks` script.
+You are addressing a single bead in this repo. Read CLAUDE.md and AGENTS.md if you need repo conventions or the bead workflow. Validation comes from the project's `checks` script, which Phase 0 resolved.
 
 Bead: {ID} (P{PRIORITY}) — {TITLE}
 Decision (chosen by the user up front): {DECISION}
 Implicit decisions (subagent picks unless overridden): {IMPLICIT_NOTES}
-Gates: format=`{FORMAT}` lint=`{LINT}` build=`{BUILD}` test=`{TEST}` regen=`{REGEN or "none"}` custom=`{CUSTOM_GATES or "none"}`
+Checks: {CHECKS}            (run it; exit 0 is the bar, and there is nothing to select)
 Push mode: {push_per_bead | defer_push}
 Worktree: {WORKTREE}        (work HERE, not in the main checkout; it is yours alone)
 Scripts: {SCRIPTS}          (bb-verify-skip.sh, bb-close-bead.sh)
 Trailers file: {TRAILERS_FILE or "none"}   (Phase 0 resolved; pass to bb-close-bead.sh --trailers-file)
-Checks baseline: {CHECKS_BASELINE}
-    (INLINE the contents of $RUN_DIR/checks-baseline.md here, verbatim. Include this
-     block even when the checks passed — the file says so — because a MISSING
-     block means no baseline was taken, which is a different thing.)
+Checks baseline:
+{CHECKS_BASELINE_TEXT}
+    (The CONTENTS of {RUN_DIR}/checks-baseline.md, inlined verbatim — NOT the
+     one-word status pre-flight emits as BB_CHECKS_BASELINE. Include the block
+     even when the checks passed, because the file says so and a MISSING block
+     means no baseline was taken, which is a different thing.)
 
 **Then invoke the `run-bead` skill.** It carries the ceremony — claim, read,
 implement in scope, gate, caveat, findings, close-and-commit, push, return —
@@ -112,7 +116,7 @@ prompt assembled without it is missing the worktree-creation mechanics, the
 loss downstream.
 
 ```
-Read CLAUDE.md and AGENTS.md if you need conventions; gate commands come from the project's `checks` script.
+Read CLAUDE.md and AGENTS.md if you need conventions; validation comes from the project's `checks` script.
 
 Worktrees: **where the orchestrator already provisioned one for you (the harness's
 `isolation: "worktree"`), you have exactly ONE worktree for EVERY bead in this batch —
@@ -134,10 +138,12 @@ until the batch returns.
 Run dir: {RUN_DIR}
 Scripts: {SCRIPTS}
 Trailers file: {TRAILERS_FILE or "none"}   (Phase 0 resolved; pass to bb-close-bead.sh --trailers-file)
-Checks baseline: {CHECKS_BASELINE}
-    (INLINE the contents of $RUN_DIR/checks-baseline.md here, verbatim. Include this
-     block even when the checks passed — the file says so — because a MISSING
-     block means no baseline was taken, which is a different thing.)
+Checks baseline:
+{CHECKS_BASELINE_TEXT}
+    (The CONTENTS of {RUN_DIR}/checks-baseline.md, inlined verbatim — NOT the
+     one-word status pre-flight emits as BB_CHECKS_BASELINE. Include the block
+     even when the checks passed, because the file says so and a MISSING block
+     means no baseline was taken, which is a different thing.)
 
 For each bead, first invoke the `run-bead` skill — it carries the ceremony, and the blocked and skipped paths — passing this bead's id, priority, title and `--trailers-file {TRAILERS_FILE}`. Read the committed sha with `git rev-parse --short HEAD` rather than from the script's printout. Then run the template-specific steps below.
 
@@ -154,13 +160,13 @@ Beads (process in order; one commit per bead):
 {ID_2} (P{PRIORITY_2}) — {TITLE_2} — Decision: {DECISION_2}
 ...
 
-Gates: format=`{FORMAT}` lint=`{LINT}` build=`{BUILD}` test=`{TEST}` custom=`{CUSTOM_GATES or "none"}`
+Checks: {CHECKS}
 Push mode: {push_per_bead | defer_push}
 
 These are documentation, comments, single-line swaps, or other low-risk changes. Beyond the shared per-bead workflow above:
 
-1. Between beads: skip the full `{TEST}` run. Run `{FORMAT}` + `{BUILD}` per bead. **Targeted tests are non-negotiable** — identify which test file covers the touched surface (see the profile's targeted-tests-by-surface list) and run it. If the change is so trivial there's no plausible test (e.g. pure docs edit, a comment with zero output diff), say so explicitly in a `retro:` comment on the bead and continue. "I couldn't find a targeted test" without explanation is not acceptable.
-2. After the LAST bead in this batch, run the full gate suite once (`{FORMAT}`, `{LINT}`, `{BUILD}`, `{TEST}`, plus any custom gates). **The push is the gate** — full gates must pass before the orchestrator pushes. If full gates fail, the most-recent bead is the suspect — investigate and fix it (a new commit), then continue.
+1. Between beads, do NOT run `{CHECKS}` — it is all-or-nothing by contract, and not paying that cost between trivial beads is why they are batched. **Targeted tests are non-negotiable** — identify the test that covers the touched surface (the repo's conventions doc may map surfaces to tests) and run it directly. If the change is so trivial there's no plausible test (e.g. pure docs edit, a comment with zero output diff), say so explicitly in a `retro:` comment on the bead and continue. "I couldn't find a targeted test" without explanation is not acceptable.
+2. After the LAST bead in this batch, run `{CHECKS}` once, in full. **The push is the gate** — it must pass before the orchestrator pushes. Compare its output against the checks baseline above: a line in both was already failing, a line only in yours is this batch's. If a finding is yours, the most-recent bead is the suspect — investigate and fix it (a new commit), then continue.
 
 ## Constraints
 
@@ -177,29 +183,22 @@ Beads (process in order; each is its own commit):
 {ID_2} (P{PRIORITY_2}) — {TITLE_2} — Decision: {DECISION_2} — Implicit: {IMPLICIT_2}
 ...
 
-Gates: format=`{FORMAT}` lint=`{LINT}` build=`{BUILD}` test=`{TEST}` regen=`{REGEN or "none"}` custom=`{CUSTOM_GATES or "none"}`
+Checks: {CHECKS}
 Targeted tests for this surface: {SURFACE_TARGETED_TESTS}
 Push mode: {push_per_bead | defer_push}
 
-These beads are NOT trivial — they touch real code. The reason they're batched is to avoid running the full `{TEST}` suite between them when later beads will rebuild the same surface. **The push at the end is the gate; per-bead validation in this batch is a regression-detector to prevent rework, not the final gate.**
+These beads are NOT trivial — they touch real code. The reason they're batched is to avoid running the full `{CHECKS}` script between them when later beads will rebuild the same surface. **The push at the end is the gate; per-bead validation in this batch is a regression-detector to prevent rework, not the final gate.**
 
 Beyond the shared per-bead workflow above:
 
-1. Between beads, run gates AT THIS REDUCED LEVEL — but **targeted tests are non-negotiable**:
-   - `{FORMAT}`
-   - `{LINT}`
-   - `{BUILD}`
-   - If generated output was touched AND a regen step exists: run `{REGEN}` then the relevant fixture/snapshot test.
-   - **Run the surface-relevant targeted tests** named above for the file(s) you touched. If none is listed for a surface you touched, consult the profile's targeted-tests-by-surface list; if there's still nothing, that's a signal the change is broader than expected — pause and reconsider scope, don't take it as permission to skip.
+1. Between beads, validate at a REDUCED level — but **targeted tests are non-negotiable**:
+   - Do NOT run `{CHECKS}` here. It is all-or-nothing by contract, and running it between beads is the cost batching exists to avoid.
+   - If generated output was touched, regenerate it with the project's own tooling — the repo's conventions doc names that command; this prompt does not carry it — then run the relevant fixture/snapshot test.
+   - **Run the surface-relevant targeted tests** named above for the file(s) you touched. If none is listed for a surface you touched, find the test that covers it; if there's still nothing, that's a signal the change is broader than expected — pause and reconsider scope, don't take it as permission to skip.
 
    **Why this matters:** without per-bead targeted tests, a regression introduced in bead #2 only surfaces at batch end, after beads #3 and #4 may have built on the broken assumption. You then bisect, rework #2, and possibly redo #3 and #4. Targeted tests prevent that cascade.
-2. **After the LAST bead in this batch** (push gate). Run the project's full `checks` script — it must pass before the orchestrator pushes. There is no skip path: the project supplied those checks so they run after the work, and whether CI also runs somewhere is the project's business, not a reason to skip them here:
-   - `{FORMAT}`
-   - `{LINT}`
-   - `{BUILD}`
-   - `{TEST}`
-   - Any custom gates from the profile
-   If it fails, identify which bead introduced the regression (bisect via the per-bead commits — `git log --oneline | head` then `git checkout <sha>` and rerun the failing test) and follow the Blocked path for THAT bead — do not silently fix it across multiple commits.
+2. **After the LAST bead in this batch** (push gate). Run `{CHECKS}` in full — it must pass before the orchestrator pushes. There is no skip path: the project supplied those checks so they run after the work, and whether CI also runs somewhere is the project's business, not a reason to skip them here.
+   Compare its output against the checks baseline above: a line in both was already failing, a line only in yours belongs to this batch. For a finding that is yours, identify which bead introduced it (bisect via the per-bead commits — `git log --oneline | head` then `git checkout <sha>` and rerun the failing test) and follow the Blocked path for THAT bead — do not silently fix it across multiple commits.
 
 ## Constraints
 
@@ -401,8 +400,8 @@ sequential; concurrency is across beads *inside* a wave.
 
 The lifecycle above is unchanged per bead. Two additions when running
 concurrently: merge each branch as it returns rather than after all return, and
-where a merge hits a fixture/snapshot conflict and the profile defines a regen
-step, take both sides, run `<regen>` on the merged tree, stage and amend. A
+where a merge hits a fixture/snapshot conflict and the project has a regen
+step, take both sides, regenerate on the merged tree, stage and amend. A
 non-fixture conflict on shared code remains a triage failure — the beads were
 not actually isolated; mark the unmerged bead `blocked` and let the user
 resolve.

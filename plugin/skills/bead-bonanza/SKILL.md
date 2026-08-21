@@ -993,7 +993,7 @@ These are the artifacts each script creates, writes, or repoints.
 
 - **`scripts/pre-flight-check.sh`** — creates `$RUN_DIR` if it does not
   exist, repoints `$RUN_ROOT/current` symlink at the start of every run,
-  emits `BB_*` facts (`BB_LINT`, `BB_MTIME`, etc.) on stdout. It also: runs
+  emits `BB_*` facts (`BB_CHECKS`, `BB_MODEL_*`, etc.) on stdout. It also: runs
   `git worktree prune` at startup; **pushes to the remote** — probes tracker
   write access with `git push <remote> HEAD:refs/dolt/preflight-probe-$$`,
   then deletes that ref, both against the same remote the bead's own work
