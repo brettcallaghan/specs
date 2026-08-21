@@ -91,6 +91,9 @@ Push mode: {push_per_bead | defer_push}
 Worktree: {WORKTREE}        (work HERE, not in the main checkout; it is yours alone)
 Scripts: {SCRIPTS}          (bb-verify-skip.sh, bb-close-bead.sh)
 Trailers file: {TRAILERS_FILE or "none"}   (Phase 0 resolved; pass to bb-close-bead.sh --trailers-file)
+Slim gates: {SLIM_GATES}    (yes = a pre-push CI-mirror hook AND a PR whose pushes
+                             actually run full CI; resolved by the orchestrator, never
+                             asked again here)
 
 ## Workflow — follow in order, do not deviate
 
@@ -246,7 +249,7 @@ Beyond the shared per-bead workflow above:
    - **Run the surface-relevant targeted tests** named above for the file(s) you touched. If none is listed for a surface you touched, consult the profile's targeted-tests-by-surface list; if there's still nothing, that's a signal the change is broader than expected — pause and reconsider scope, don't take it as permission to skip.
 
    **Why this matters:** without per-bead targeted tests, a regression introduced in bead #2 only surfaces at batch end, after beads #3 and #4 may have built on the broken assumption. You then bisect, rework #2, and possibly redo #3 and #4. Targeted tests prevent that cascade.
-2. **After the LAST bead in this batch** (push gate). If the repo has a pre-push hook running a CI-mirror gauntlet AND a PR is open so pushes trigger full CI (ask the user once at run start — "slim gates"), SKIP this step entirely: the hook and CI *are* the full gate, and running the suite in-batch just duplicates them minutes apart. Otherwise run the full gate suite — must pass before orchestrator pushes:
+2. **After the LAST bead in this batch** (push gate). WHEN `{SLIM_GATES}` is `yes` — the orchestrator resolved this once at run start from `BB_PR_CI` plus the user's draft-PR answer, and **you do not re-ask it** — SKIP this step entirely: the hook and CI *are* the full gate, and running the suite in-batch just duplicates them minutes apart. Otherwise run the full gate suite — must pass before orchestrator pushes:
    - `{FORMAT}`
    - `{LINT}`
    - `{BUILD}`

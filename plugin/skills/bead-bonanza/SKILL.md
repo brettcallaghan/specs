@@ -224,6 +224,30 @@ After each subagent returns:
    `.github/workflows/**` rejects the WHOLE push, so one workflow file
    strands every commit behind it. `recover-sprint` step 3b runs the same
    check from the other side; keep the two in the same form.
+   (`scripts/bb-status.sh wave` runs this comparison too.)
+
+   **WHERE a PR is open, OBSERVE its CI rather than assuming it.** "CI is the
+   backstop" is otherwise an assertion the run never checks, and a wave that
+   slimmed its local gates on that basis has nothing behind it. Open a gate on
+   the push and let `bd` watch it:
+
+   ```sh
+   bd gate create -t gh:run --blocks <bead-or-epic-id> --await-id <run-id> \
+     --reason "CI for the wave push"
+   bd gate check          # resolves it when the run finishes; re-run to poll
+   ```
+
+   `bd gate discover` finds the run id by branch or commit sha when you do not
+   have it. The gated issue leaves `bd ready` until the gate resolves, so the
+   wait is expressed as tracker state rather than as a polling loop the
+   orchestrator has to remember.
+
+   **Precondition, measured: `bd gate check` shells out to the `gh` CLI.** With
+   `gh` absent it reports `error checking - gh CLI not installed` and resolves
+   nothing — the gate stays open and blocks its issue indefinitely. `gh` is not
+   installed in every environment this skill runs in, and fails TLS inside the
+   sandbox where it is. So create gh:run gates only after confirming `gh` runs;
+   otherwise keep full local gates and say once that CI is unobserved.
 8. Move to the next bucket/bead.
 
 **Circuit breaker:** if 3 consecutive beads return `blocked` or fail, stop the
@@ -369,11 +393,29 @@ and omit the flag; the close ceremony then appends no trailers.
 What no script can settle:
 
 - **Draft PR.** WHEN `BB_PR_CI=yes`, ask the user once whether to open a draft
-  PR from the working branch — every wave push then gets the full CI matrix in
-  the cloud, including toolchain-heavy suites the local sandbox can't run,
-  which is what makes the slim local gate policy (below) safe. (`gh` fails TLS
-  verification inside the sandbox; run it with sandbox disabled.) WHEN
-  `BB_PR_CI=no`, don't ask.
+  PR from the working branch, so wave pushes get the cloud CI matrix including
+  toolchain-heavy suites the local sandbox can't run. WHEN `BB_PR_CI=no`, don't
+  ask. (`gh` fails TLS verification inside the sandbox; run it with sandbox
+  disabled — and it is not installed at all in some environments.)
+
+  **Ask ONCE, then pass the answer down.** The batch template does not re-ask:
+  it receives the resolved `{SLIM_GATES}` value. The same underlying question
+  asked twice gets answered twice, and the uninformed ask is the one that
+  decides whether a batch skips its full suite.
+
+  **What `BB_PR_CI` actually means, exactly.** It answers *"does any workflow
+  file mention `pull_request`?"* — nothing more. It is a substring match over
+  `.github/workflows/*.y{a,}ml`, so a `pull_request` in a comment, or in an
+  `if:` expression, counts the same as a trigger. It does not say CI is
+  healthy, that a PR is already open, or that a DRAFT PR would run anything.
+
+  **Confirm the draft actually triggers before relying on it.** A workflow
+  guarded by `if: github.event.pull_request.draft == false` runs nothing while
+  the PR is a draft — measured in this repository, where both `checks.yml` and
+  `cli.yml` carry exactly that guard on their jobs. `BB_PR_CI=yes` there, and a
+  draft PR would still run none of it. Read the trigger block and the job
+  `if:`s before treating a draft PR as cover for slim local gates; where drafts
+  are excluded, either mark the PR ready for review or keep full local gates.
 - **Harness worktree directory.** Confirm it is gitignored: create the first
   worktree, then check `git status --porcelain` is clean. Checking only before
   that worktree exists tests nothing — the harness may place it inside the
