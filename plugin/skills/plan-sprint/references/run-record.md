@@ -1,49 +1,64 @@
-# Dispatch Plan Format
+# Run Record Format
 
-The format of `${TMPDIR:-/tmp}/claude/bead-bonanza/<epic-id>/dispatch.md`, the
-run's sprint plan. Read this when you write the plan, and again whenever the
-orchestrator amends it. It is written for whoever picks the sprint back up —
-which may be an agent with no memory of having written it.
+**The run's record is its epic**, not a file: the manifest is `--metadata` JSON
+on it, the amendments are `amend:`-prefixed comments on it, and the wave table
+is returned rather than stored. There is no `dispatch.md` and no run directory —
+the tracker outlives a reclaimed container, and a `/tmp` path does not.
 
-**The run manifest is the orchestrator's, not yours.** It is already on disk
-when this skill is invoked; write the wave table below it and leave the header
-alone. The manifest's format is documented here so both authors write the same
-file.
+Read this when you produce a wave table, and again whenever the orchestrator
+amends the run. It is written for whoever picks the sprint back up — which may
+be an agent with no memory of having written it.
+
+**The manifest is the orchestrator's, not yours.** It is already on the epic
+when this skill is invoked. Read it; never rewrite it.
 
 ## Contents
 
-- Run manifest — the facts recovery cannot re-derive; a gate whose baseline is
-  `fail` sets "no new findings", not exit 0, as the bar for every bead
-- Wave table — names beads; every row carries class, bucket,
-  tier and push mode, and its Reason names which collision class applies
+- Run manifest — `--metadata` on the run epic; the facts recovery cannot
+  re-derive. A check whose baseline is `fail` sets "no new findings", not
+  exit 0, as the bar for every bead
+- Wave table — returned to the orchestrator, never stored; names beads, and
+  every row carries class, bucket, tier and push mode, with its Reason naming
+  which collision class applies
 - Reading C4 overlap — compute co-edit and sequencing edges from bead metadata,
   not from file paths
-- Amendments — append-only; when the run diverges from the plan, log the change
-  AND update the wave table in place
+- Amendments — `amend:` comments on the epic, append-only by construction
 
 Every run gets one, whatever its size. A two-bead run interrupted at bead one
-needs the plan exactly as much as a twenty-bead run does.
+needs its record exactly as much as a twenty-bead run does.
 
 ## Run manifest
 
-The header, before the wave table, **written by the orchestrator itself**.
-Most of it is the stdout block from bead-bonanza's `scripts/pre-flight-check.sh`;
-this file is where that output lands durably.
+`--metadata` JSON on the run epic, **written by the orchestrator itself** from
+`scripts/pre-flight-check.sh`'s output plus what admission decided. Retrieve it
+whole with `bd show <epic-id> --json | jq .metadata`.
 
-```markdown
-# Dispatch plan — run <epic-id>
+```json
+{
+  "branch": "<branch>",
+  "base_sha": "<sha at run start>",
+  "checks_ids": "format vet build test-go …",
+  "checks_baseline": "<verbatim text — inline this into EVERY subagent prompt>",
+  "checks_baseline_status": 1,
+  "models": {"light": "…", "standard": "…", "advanced": "…", "frontier": "…"},
+  "effort": "low|medium|high|xhigh|unrecorded",
+  "standing_auth": "what the user authorized without further asking",
+  "trailers": "<commit trailers, or absent when the run resolved none>",
+  "admitted": ["<bead-id>", "…"],
+  "excluded": [{"id": "<bead-id>", "reason": "declined move out of <epic-id>"}],
+  "moved": [{"id": "<bead-id>", "from": "<previous parent>"}],
+  "wave_preview": "accepted | overridden — <why> | none (no C4 docs) | not returned",
+  "ledger": ["<claim> — proved by <command>, observed <result>"]
+}
+```
 
-| Field | Value |
-|-------|-------|
-| Run epic | `<epic-id>` — the run id, and the queue via `bd ready --parent <epic-id> --exclude-type=epic` |
-| RUN_DIR | `/tmp/claude/bead-bonanza/<epic-id>` |
-| Branch | `<branch>` |
-| Base sha | `<sha at run start>` |
-| Checks | the project's checks script, at `<repo-root-relative path>`. Run it; exit 0 means every check passed. There is nothing to select or sequence. |
-| Checks baseline | What the project's checks printed on the untouched tree, and the status they exited with, at `$RUN_DIR/checks-baseline.md`. Carry that path, and inline the file's contents into every subagent prompt — a baseline that stops here is one the agent running the checks never sees. |
-| Model lineup | light=`…` standard=`…` advanced=`…` frontier=`…` |
-| Standing authorization | what the user authorized without further asking (push mode, PR, scope) |
-| Wave preview | `accepted` \| `overridden — <why>` \| `none (no C4 docs)` \| `not returned` |
+**Merge, never replace.** The epic already carries grooming's keys and
+pre-flight writes the baseline into the same object: read it, update your keys,
+write it back.
+
+`admitted` / `excluded` / `moved` are the admission record. A run that finished
+its admitted set while beads sat out is done, and must say so rather than
+reading as complete over a scope nobody remembers narrowing.
 
 ## Environmental ledger
 
@@ -54,8 +69,9 @@ command that proved it and the result observed; run it first, record it
 after. Note the conditions the command ran under when they could change the
 result (attached repos, credentials, cache warmth, toolchain version). A
 claim that cannot be tested cheaply is recorded as `unverified` with what
-would settle it, not omitted. Keep the numbering — dispatch prompts cite
-entries by number ("ledger entry 1", "ledger entry 2").
+would settle it, not omitted. Keep the ORDER — dispatch prompts cite entries
+by position ("ledger entry 1", "ledger entry 2"), so append rather than
+reorder.
 
 1. `<claim>` — proved by `<command>`, observed `<result>`
 1. `<claim>` — unverified; would be settled by `<command>`
@@ -68,11 +84,10 @@ baseline is expected to exit 0.
 ## Wave table
 
 **The plan names beads, and records the epic they came from.** The queue is
-re-derivable from that one id; the
-plan IS the queue. A filter re-evaluated later — at recovery, or at the next
-wave — returns a different set than the one this run committed to, and admits
-beads nobody scoped. Beads discovered mid-run enter only through Phase 1.5
-step 4's scope test, and only as an amendment.
+re-derivable from that one id — `bd ready --parent <epic-id> --exclude-type=epic`
+— which is why the table is returned rather than stored: a stored copy can only
+drift out of agreement with the graph it describes. Beads discovered mid-run
+enter through Phase 1.5 step 4's scope test, and are recorded as an amendment.
 
 ```markdown
 | Wave | Bead | Class | Bucket | Tier | Push | Reason |
@@ -152,23 +167,22 @@ seen no relationship at all between C and them.
 
 ## Amendments
 
-`dispatch.md` is **append-only and amendable**. WHEN the plan changes mid-run —
-a wave resequenced, a bucket reclassified, a bead admitted or bounced, a tier
-escalated — append a dated entry under `## Amendments` stating what changed and
-why, AND update the wave table in place. The plan on disk SHALL describe the run
-as it is actually being executed; a plan that silently stops describing the run
-is worse than no plan, because recovery trusts it.
+Amendments are **`amend:`-prefixed comments on the run epic**. WHEN the run
+diverges mid-flight — a wave resequenced, a bucket reclassified, a bead
+admitted or bounced, a tier escalated — `bd comment <epic-id> "amend: …"`.
 
-Mirror one line of each amendment to the tracker note that carries the
-`RUN_DIR` pointer, so a reader who has only the tracker knows the plan moved.
+Append-only and timestamped by construction, so there is no read-modify-write
+to lose and no ordering to maintain. There is no second copy to keep in step:
+the wave table is re-derived, not stored, and the tracker is the only record.
 
-```markdown
-## Amendments
-
-- **2026-08-10 21:41** — wave 5 (`demo-9kb.6`, `demo-9kb.7`, `demo-9kb.9`)
-  re-planned from one shared batch to strictly sequential: .7's change to the
-  shared fixture invalidates .9's expected bytes, so they cannot share a gate
-  run. Wave table updated in place.
-- **2026-08-10 22:05** — `demo-9kb.8` escalated standard → advanced after two
-  failed gate cycles. Tier column updated in place.
 ```
+bd comment <epic-id> "amend: wave 5 (demo-9kb.6, .7, .9) re-planned from one
+shared batch to strictly sequential — .7's change to the shared fixture
+invalidates .9's expected bytes, so they cannot share a checks run."
+
+bd comment <epic-id> "amend: demo-9kb.8 escalated standard -> advanced after
+two failed checks cycles."
+```
+
+Read them back with `bd show <epic-id>`, or
+`bd export | jq -r 'select(.id=="<epic-id>") | .comments[].text' | grep '^amend:'`.

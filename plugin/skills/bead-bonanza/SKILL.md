@@ -28,7 +28,7 @@ re-injects only this file's first ~5,000 tokens, so the dispatch templates and
 the published script interfaces are NOT in your context even though you have
 "read the skill".
 `recover-sprint` re-derives run state from the durable sources (the branch,
-`dispatch.md`, `git worktree list`, the tracker) rather than from a summary of
+the run epic's manifest, `git worktree list`, the tracker) rather than from a summary of
 it, and a skill name survives truncation where a relative path does not. Then
 re-run the queue query.
 
@@ -49,7 +49,7 @@ nothing to fall out of sync with `bd`.)
 
 ```
 bead-bonanza run:
-- [ ] 0. Pre-flight: pre-flight-check.sh run, RUN_DIR + SCRIPTS eval'd
+- [ ] 0. Pre-flight: pre-flight-check.sh run (twice — environment, then epic), SCRIPTS eval'd
 - [ ] 1. Queue resolved and printed (count + ordered list)
 - [ ] 1.5 Readiness gate: every bead groomed (decisions closed), or bounced
         with its gap
@@ -290,7 +290,7 @@ Load the one that matches where you are in the run:
 | Resuming a run whose state you do not hold (the orchestrator died or compacted) | invoke the `recover-sprint` skill |
 | A project with no declared `[[checks]]` or no `sf.toml` model lineup | `references/project-setup.md` |
 | Resuming a bead interrupted mid-implementation (its worktree still exists) | `references/operating-principles.md` |
-| Phase 0 pre-flight: probe the environment, resolve `RUN_DIR`/`SCRIPTS` | run `scripts/pre-flight-check.sh` |
+| Phase 0 pre-flight: probe the environment, resolve `SCRIPTS`, record the manifest | run `scripts/pre-flight-check.sh` |
 | Verifying a bead's acceptance signals, or a wave's landing | run `scripts/bb-status.sh` |
 | Checking a `skipped` claim against the tree | run `scripts/bb-verify-skip.sh` |
 | Closing a bead: close + verify + stage + commit + push the tracker | run `scripts/bb-close-bead.sh` |
@@ -310,11 +310,11 @@ to read it:
 ```
 pre-flight-check.sh [<epic-id>] [--self-test]                   # sandbox ON
 bb-verify-skip.sh [pathspec ...]        # no pathspec = whole working tree
-bb-close-bead.sh [--trailers-file <path>] <bead-id> <priority> <title> [path ...]
+bb-close-bead.sh [--trailers-file <path>|--trailers-from <epic>] <bead-id> <priority> <title> [path ...]
 ```
 
 - **`scripts/pre-flight-check.sh`** — Phase 0, mechanized. Human report on
-  stderr, an evalable `RUN_DIR=`/`SCRIPTS=`/`BB_*=` block on stdout. Exit 0
+  stderr, an evalable `SCRIPTS=`/`BB_*=` block on stdout. Exit 0
   proceed / 1 blocking / 2 bad invocation. **Run it with the sandbox ON** — the
   one write the sandbox refuses is the global Dolt telemetry config, which the
   script detects, skips, and reports as the single command to re-run with the
@@ -335,7 +335,9 @@ bb-close-bead.sh [--trailers-file <path>] <bead-id> <priority> <title> [path ...
 - **`scripts/bb-verify-skip.sh`** — the two-sided skip check. With no argument it
   examines the whole working tree; pass pathspecs to scope it.
 - **`scripts/bb-close-bead.sh`** — the close ceremony, in its required order.
-  `--trailers-file <path>` is optional and must precede `<bead-id>`; its
+  `--trailers-file <path>` / `--trailers-from <epic>` are optional, mutually
+  exclusive, and must precede `<bead-id>`. `--trailers-from` reads the
+  manifest's `trailers` key off the run epic; the file form's
   contents are appended to the commit body after a blank line, so a project's
   required trailers (`Co-Authored-By`, a session URL) land in the one commit
   this script makes and no caller needs `git commit --amend` to add them.
@@ -368,7 +370,7 @@ The second pass verifies the epic exists and IS an epic, counts what is ready
 in scope, creates the run directory and captures the checks baseline. **The run
 id is the epic id** — there is no generated id.
 
-Eval the stdout — it sets `RUN_DIR`, `SCRIPTS` and the `BB_*` facts this
+Eval the stdout — it sets `SCRIPTS` and the `BB_*` facts this
 document refers to elsewhere. Read the stderr report once. Exit **0**
 proceed; **1** blocking, named in the report and fixed before Phase 1 — a
 missing `AGENTS.md` block means read `references/project-setup.md` and draft
@@ -385,11 +387,12 @@ check at Phase 3 step 7, which every run performs.
 
 **Commit trailers.** WHEN `CLAUDE.md`/`AGENTS.md` states a commit-trailer
 convention (`Co-Authored-By`, a session URL, etc.), resolve it once here and
-write it to `$RUN_DIR/trailers.txt` — a session URL varies per session, so
-this file is per-run and never committed. Substitute that path as
-`{TRAILERS_FILE}` into every dispatch prompt; the close ceremony
-(`bb-close-bead.sh --trailers-file {TRAILERS_FILE} ...`) appends its contents
-to the commit body, so no subagent needs `git commit --amend` to add them.
+put it in the manifest's `trailers` key on the run epic — a session URL varies
+per session, so it is per-run and never committed. Every dispatch prompt then
+passes `--trailers-from {EPIC}`, and the close ceremony fetches the text from
+the tracker and appends it to the commit body, so no subagent needs
+`git commit --amend` to add them. Omit the flag entirely when the run resolved
+no trailers.
 WHEN the project states no trailer convention, leave `{TRAILERS_FILE}` unset
 and omit the flag; the close ceremony then appends no trailers.
 
@@ -641,33 +644,42 @@ alone.
 
 Three things stay yours:
 
-1. **The run manifest.** Write
-   `${TMPDIR:-/tmp}/claude/bead-bonanza/<epic-id>/dispatch.md`'s header — the
-   pre-flight stdout block, the declared check ids, checks baseline, model lineup, the
-   run's effort setting (`metadata.execution_reasoning_effort` per bead, on the
-  convention's `low`/`medium`/`high`/`xhigh` scale), standing authorization and
-  environmental ledger —
-   **before** you dispatch grooming. WHERE the harness exposes no effort
-   setting, write `unrecorded` — never omit the field and never guess a
-   value; an omitted field is indistinguishable from a forgotten one, and a
-   guessed value is worse than either.
-   Recovery reads `dispatch.md` instead of re-deriving the run, so the run's
-   most load-bearing artifact is not authored one delegation hop away.
-   `plan-sprint` appends the wave table under your header and leaves it alone.
+1. **The run manifest — `--metadata` JSON on the run epic.** The declared
+   check ids, the checks baseline, the model lineup, the run's effort setting
+   (`metadata.execution_reasoning_effort` per bead, on the convention's
+   `low`/`medium`/`high`/`xhigh` scale), standing authorization, the
+   environmental ledger, the base sha, any commit trailers, and the
+   **admission record** — which beads were admitted, which were excluded and
+   why, and which were moved and from where. Written **before** you dispatch
+   grooming. WHERE the harness exposes no effort setting, write `unrecorded` —
+   never omit the field and never guess a value; an omitted field is
+   indistinguishable from a forgotten one, and a guessed value is worse.
+
+   **Merge, never replace.** Pre-flight writes the baseline into the same
+   object, and the epic already carries grooming's own keys. Read it, update
+   your keys, write it back:
+   `bd show <epic> --json | jq .metadata` → edit → `bd update <epic> --metadata @file.json`.
+
+   Recovery reads the epic rather than re-deriving the run, and the epic
+   outlives a reclaimed container where a `/tmp` path does not.
 2. **The bead list.** Pass `plan-sprint` explicit bead ids, never
    the filter that produced them, and the epic they belong to. The queue is
    `bd ready --parent <epic> --exclude-type=epic` — `--exclude-type=epic` is
    mandatory, because `--parent` is transitive and would otherwise hand back
    the run's own sub-epics as if they were work.
-3. **Amendments.** WHEN the run diverges from the plan mid-flight — a wave
-   resequenced, a bucket reclassified, a bead admitted or bounced, a tier
-   escalated — append a dated entry under `## Amendments` in `dispatch.md`
-   **and** update the wave table in place, yourself; never re-invoke
-   `plan-sprint` to re-partition a run in flight. The plan on disk SHALL
-   describe the run as it is actually being executed; a plan that silently
-   stops describing the run is worse than no plan, because recovery trusts it.
+3. **Amendments — `amend:`-prefixed comments on the run epic.** WHEN the run
+   diverges mid-flight — a wave resequenced, a bucket reclassified, a bead
+   admitted or bounced, a tier escalated — `bd comment <epic> "amend: <what
+   and why>"`. Append-only and timestamped by construction, so there is no
+   read-modify-write to lose and no ordering to maintain. Never re-invoke
+   `plan-sprint` to re-partition a run in flight.
 
-**`dispatch.md` is written on every run** — there is no queue-size or
+   **The wave table is not stored anywhere.** It is derivable from the graph —
+   `bd ready --parent <epic> --exclude-type=epic` re-queried, plus
+   `bd swarm validate` for a preview — so a stored copy can only drift out of
+   agreement with the beads it describes.
+
+**The manifest is written on every run** — there is no queue-size or
 bucket-count exemption. Chat is the one store that does not survive.
 
 Print the returned wave table to chat. Don't ask for approval — just print and
@@ -843,7 +855,7 @@ After the queue is drained (or the circuit breaker tripped), print:
     the report**: `Durable trigger: cancelled (<id>)` or `Durable trigger:
     none armed` — both branches are stateable, and an omitted line is
     indistinguishable from a forgotten cancellation.
-7. Path to `${TMPDIR:-/tmp}/claude/bead-bonanza/<epic-id>/` so the user can
+7. The run epic id, so the user can
    review the dispatch plan.
 
 Do NOT create a PR or merge to main — that is a separate, explicit user action.
@@ -855,8 +867,8 @@ closed at least one bead**, not only on a run that struggled.
 
 **Read the run's records; do not re-derive the run.** The inputs are the
 harvested `retro:` comments, the tables you just printed (3a escalations, 3b
-over-routes, 4 follow-up and admitted/bounced beads), `dispatch.md`'s
-`## Amendments` log, and `git log` on the sprint branch. Do NOT re-read diffs, re-run gates, or re-open the beads' work. A
+over-routes, 4 follow-up and admitted/bounced beads), the run epic's `amend:`
+comments, and `git log` on the sprint branch. Do NOT re-read diffs, re-run gates, or re-open the beads' work. A
 retro that costs a second pass over the run is a retro that gets skipped.
 
 **Harvest first, then assert.** Findings are `retro:` comments on the beads —
@@ -915,8 +927,8 @@ Each route is one offer the user accepts or declines, naming the findings it
 would carry. RFCs land in `rfcs/inbox/<skill>/` and **cite the sprint report
 instead of re-inlining its evidence**, so report and RFC cannot disagree: the
 report is the testimony, the RFC is the proposal built on it. Every routed RFC
-SHALL carry the run's model lineup and effort setting from `dispatch.md`'s
-manifest header into its Provenance — the manifest records them precisely so
+SHALL carry the run's model lineup and effort setting from the run epic's
+manifest into its Provenance — the manifest records them precisely so
 this step can, and an RFC without them ships with an unfillable provenance
 field.
 
@@ -1029,9 +1041,10 @@ with any RFCs in a single commit.
 
 These are the artifacts each script creates, writes, or repoints.
 
-- **`scripts/pre-flight-check.sh`** — creates `$RUN_DIR` if it does not
-  exist, repoints `$RUN_ROOT/current` symlink at the start of every run,
-  emits `BB_*` facts (`BB_CHECKS_IDS`, `BB_MODEL_*`, etc.) on stdout. It also: runs
+- **`scripts/pre-flight-check.sh`** — **writes the checks baseline into the
+  run epic's manifest**, merging rather than replacing so grooming's and
+  admission's keys survive; emits `BB_*` facts (`BB_CHECKS_IDS`,
+  `BB_MODEL_*`, etc.) on stdout. It creates no run directory. It also: runs
   `git worktree prune` at startup; **pushes to the remote** — probes tracker
   write access with `git push <remote> HEAD:refs/dolt/preflight-probe-$$`,
   then deletes that ref, both against the same remote the bead's own work

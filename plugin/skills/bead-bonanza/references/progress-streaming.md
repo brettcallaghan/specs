@@ -107,7 +107,7 @@ addition to** the Monitor:
   the only wake path for this run is in-session.
 - **The trigger's message must be self-contained, and it must name a skill
   rather than a file path.** It wakes a turn that may hold no run context and
-  no bundle: carry the `RUN_DIR` path, the epic id, and an instruction to
+  no bundle: carry the run epic id — the manifest is on it — and an instruction to
   **invoke the `recover-sprint` skill**. A fresh session cannot resolve a
   relative path into a bundle it never loaded, but it can resolve a skill
   name — and "check on the run" is not an instruction at all.

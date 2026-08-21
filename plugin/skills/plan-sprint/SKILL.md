@@ -1,12 +1,12 @@
 ---
 name: plan-sprint
 description: Partition a queue of groomed beads into the waves and buckets a
-  bead-bonanza run executes, and write the run's dispatch plan to disk. Use
+  bead-bonanza run executes. Use
   when a bead-bonanza orchestrator delegates Phase 2.5 planning — typically as
   the final act of the Phase 1.5 grooming subagent, which has already read
   every bead — or when asked to classify queued beads as trivial / isolated /
   shared-surface, compute C4 co-edit and sequencing overlap, choose a dispatch
-  mode per bucket, or produce the wave table for dispatch.md. Takes the run
+  mode per bucket, or produce a bead-bonanza run's wave table. Takes the run
   epic, resolves its queue from the graph, and returns the wave table.
 version: "0.1"
 user-invocable: false
@@ -15,7 +15,7 @@ user-invocable: false
 # plan-sprint
 
 Turn an enumerated queue of **groomed** beads into a wave table, and write it
-into the run's `dispatch.md`. This is read-heavy analytic work over every
+and returns it. This is read-heavy analytic work over every
 queued bead — that is why it runs in a subagent rather than in the
 orchestrator, which stays small.
 
@@ -28,8 +28,8 @@ worktree, edits a bead's code, or spawns an agent.
 
 | Input | Notes |
 |-------|-------|
-| Run id and `RUN_DIR` | `dispatch.md` lives at `<RUN_DIR>/dispatch.md` and its manifest header is already written |
-| The **enumerated bead id list** | Explicit ids, never the filter that produced them. A filter re-evaluated now returns a different set and admits beads nobody scoped |
+| The run epic | Its id is the run id, and its `--metadata` is the manifest the orchestrator already wrote |
+| The **bead id list** | Explicit ids, and the epic they came from. Re-derive with `bd ready --parent <epic> --exclude-type=epic` rather than from any filter — admission decided that membership and may have excluded beads deliberately |
 | Checks script and checks baseline | A gate recorded `fail` in the baseline sets "no findings beyond the baseline" as the bar, not exit 0 |
 | Model lineup | Resolves a bead's tier (`metadata.execution_suggested_model`, else `metadata.tier`) to a model; leave the `Tier` column's model blank where the project declares none |
 | Standing authorization | What the user authorized without further asking (push mode, PR, scope) |
@@ -39,14 +39,9 @@ WHEN an input is missing, say so in the return rather than substituting a
 guess — a plan built on an inferred queue is the failure the enumeration rule
 exists to prevent.
 
-**Out** — two things, and nothing else:
+**Out** — one thing, and nothing else:
 
-1. **On disk:** the wave table (and any needed environmental-ledger entries)
-   appended to `<RUN_DIR>/dispatch.md`, in the format
-   `references/dispatch-plan.md` specifies. **Do not touch the manifest
-   header** — the orchestrator wrote it, and it carries what recovery cannot
-   re-derive.
-2. **To the caller:** the wave table itself, plus **one line per override** of
+**To the caller:** the wave table, plus **one line per override** of
    the grooming wave preview saying what you changed and why. Keep it to that;
    the orchestrator prints the table and dispatches from it.
 
@@ -85,7 +80,7 @@ even though every bead already has a worktree of its own.
 computed the blast radius onto each bead — `c4_changes` (components it edits)
 and `c4_impacts` (downstream components affected but not edited). Read it; don't
 re-derive it from prose. The `jq` and a worked example are in
-`references/dispatch-plan.md`.
+`references/run-record.md`.
 
 1. **C4 metadata — primary.** Read `.metadata.c4_changes` and
    `.metadata.c4_impacts` from `bd list --json` for every queued bead.
@@ -172,29 +167,29 @@ Tier is not a bucketing decision of yours: carry each bead's tier
 the wave table's `Tier` column as grooming assigned it, and leave the
 resolution and any escalation to the orchestrator at dispatch.
 
-## Write the plan
+## Return the plan
 
-Write the wave table into `<RUN_DIR>/dispatch.md`, under the manifest header
-the orchestrator already wrote. The format — manifest, wave table, amendments —
-is in `references/dispatch-plan.md`. Read it before writing; the `Reason`
-column in particular has a required shape.
+**The wave table is not written to disk.** It is derivable from the graph, so a
+stored copy only drifts out of agreement with the beads it describes. Return
+it; the orchestrator prints it and dispatches from the re-queried ready front.
+The table's format — including the `Reason` column's required shape — is in
+`references/run-record.md`.
 
-Three rules that make the file worth writing:
+Three rules that make the table worth returning:
 
 - **The plan names beads, and says which epic they came from.** The queue is
   `bd ready --parent <epic> --exclude-type=epic`, re-derivable from one durable
-  id rather than from a filter nobody recorded. The
-  plan IS the queue.
-- **The manifest is not yours.** Leave the header exactly as you found it. If
-  it is missing or malformed, say so in the return instead of writing one —
-  the facts in it are the orchestrator's measurements, not yours to reproduce.
-- **Add an environmental-ledger entry only on evidence.** Every entry names the
-  command that proved it and the result observed; an untested claim is recorded
-  as `unverified` with what would settle it, not omitted.
+  id rather than from a filter nobody recorded.
+- **The manifest is not yours.** It is `--metadata` on the run epic, holding
+  the orchestrator's measurements. Read it; never rewrite it. If it is missing
+  or malformed, say so in the return instead of supplying one.
+- **Add an environmental-ledger entry only on evidence.** An entry goes to the
+  orchestrator, which records it in the manifest. Every one names the command
+  that proved it and the result observed; an untested claim is recorded as
+  `unverified` with what would settle it, not omitted.
 
-Then return the wave table to the caller, with one line per override of the
-grooming wave preview. Do not ask for approval — the orchestrator prints the
-table and proceeds, and the user can interrupt.
+Do not ask for approval — the orchestrator prints the table and proceeds, and
+the user can interrupt.
 
 Amendments after this point are the **orchestrator's** — a wave resequenced, a
 bead admitted or bounced, a tier escalated. Do not re-partition a run in

@@ -6,14 +6,16 @@ every `{PLACEHOLDER}` before sending — an unsubstituted placeholder is the
 single most common dispatch defect, because the subagent has no session
 context to infer it from.
 
-Five placeholders are resolved once per run and substituted into every
+Four placeholders are resolved once per run and substituted into every
 prompt: `{EPIC}` is the run epic Phase 1's admission resolved (emitted as
-`BB_EPIC`) and is also the run id, `{RUN_DIR}` is the run root Phase 0's
-pre-flight script resolved, `{SCRIPTS}` is the absolute path to this skill's
-`scripts/` directory, `{CHECKS_IDS}` is the ids the project declared (emitted
-as `BB_CHECKS_IDS`), and `{CHECKS_BASELINE_TEXT}` is the *contents* of
-`{RUN_DIR}/checks-baseline.md`.
+`BB_EPIC`) and is also the run id, `{SCRIPTS}` is the absolute path to this
+skill's `scripts/` directory, `{CHECKS_IDS}` is the ids the project declared
+(emitted as `BB_CHECKS_IDS`), and `{CHECKS_BASELINE_TEXT}` is the manifest's
+baseline — `bd show {EPIC} --json | jq -r .metadata.checks_baseline`.
 A subagent can infer none of them.
+
+**There is no run directory.** The run's record is the epic: the manifest in
+its metadata, the amendments in its comments.
 
 `{WORKTREE}` is resolved **per bead** — the absolute path to the worktree the
 orchestrator created for it. A subagent works there and nowhere else; it
@@ -68,10 +70,10 @@ Then produce the **wave preview** `groom-beads` produces, as its own block after
 - `wave-preview: none (no C4 docs)` instead of the above WHEN the repo documents no architecture and you skipped C4 tagging — the reader must know the signal is absent, not empty
 - `c4-untagged: {ID} — <why>` for any bead you could not tag (component with no doc, scope unclear)
 
-FINALLY, as your last act, invoke the `plan-sprint` skill and follow it to write the run's wave table into `{RUN_DIR}/dispatch.md`. You have just read every bead, which is why planning is yours and not a second agent's. Pass it:
-- The run epic `{EPIC}` — its id IS the run id, and `bd ready --parent {EPIC} --exclude-type=epic` IS the queue. RUN_DIR `{RUN_DIR}`; `dispatch.md`'s manifest header is already written by the orchestrator, so append under it and do NOT edit it
+FINALLY, as your last act, invoke the `plan-sprint` skill and follow it to produce the run's wave table. RETURN that table in your report — it is not written to a file, because it is derivable from the graph and a stored copy only drifts. You have just read every bead, which is why planning is yours and not a second agent's. Pass it:
+- The run epic `{EPIC}` — its id IS the run id, `bd ready --parent {EPIC} --exclude-type=epic` IS the queue, and its metadata IS the manifest. Read the manifest; do NOT rewrite it
 - The bead ids to plan: {PLAN_IDS}, which is `bd ready --parent {EPIC} --exclude-type=epic` as it stood when this prompt was written. Re-derive it from the epic rather than from any filter, and never add a bead the epic does not contain — admission decided that membership and may have excluded beads deliberately
-- Checks: the declared ids `{CHECKS_IDS}`, run in full per bead; the baseline is at `{RUN_DIR}/checks-baseline.md`
+- Checks: the declared ids `{CHECKS_IDS}`, run in full per bead; the baseline is `.metadata.checks_baseline` on `{EPIC}`
 - Model lineup: {MODEL_LINEUP or "none declared"}
 - Standing authorization: {STANDING_AUTH or "none"}
 - Your own wave preview, above
@@ -96,12 +98,12 @@ Checks: {SCRIPTS}/bb-checks.py       (declared ids: {CHECKS_IDS})
 Push mode: {push_per_bead | defer_push}
 Worktree: {WORKTREE}        (work HERE, not in the main checkout; it is yours alone)
 Scripts: {SCRIPTS}          (bb-verify-skip.sh, bb-close-bead.sh)
-Trailers file: {TRAILERS_FILE or "none"}   (Phase 0 resolved; pass to bb-close-bead.sh --trailers-file)
+Trailers: {"on the run epic" if any}   (pass `--trailers-from {EPIC}` to bb-close-bead.sh; omit it when the run resolved none)
 Checks baseline:
 {CHECKS_BASELINE_TEXT}
-    (The CONTENTS of {RUN_DIR}/checks-baseline.md, inlined verbatim — NOT the
+    (The run epic's `.metadata.checks_baseline`, inlined verbatim — NOT the
      one-word status pre-flight emits as BB_CHECKS_BASELINE. Include the block
-     even when the checks passed, because the file says so and a MISSING block
+     even when the checks passed, because the text says so and a MISSING block
      means no baseline was taken, which is a different thing.)
 
 **Then invoke the `run-bead` skill.** It carries the ceremony — claim, read,
@@ -139,17 +141,17 @@ WHERE you were given one for the whole batch, that signal is coarser by
 construction — it means "this BATCH is unfinished" — so report each bead's close
 as it lands, because your report is the only per-bead signal the orchestrator has
 until the batch returns.
-Run dir: {RUN_DIR}
+Run epic: {EPIC}            (the run id; its metadata is the manifest)
 Scripts: {SCRIPTS}
-Trailers file: {TRAILERS_FILE or "none"}   (Phase 0 resolved; pass to bb-close-bead.sh --trailers-file)
+Trailers: {"on the run epic" if any}   (pass `--trailers-from {EPIC}` to bb-close-bead.sh; omit it when the run resolved none)
 Checks baseline:
 {CHECKS_BASELINE_TEXT}
-    (The CONTENTS of {RUN_DIR}/checks-baseline.md, inlined verbatim — NOT the
+    (The run epic's `.metadata.checks_baseline`, inlined verbatim — NOT the
      one-word status pre-flight emits as BB_CHECKS_BASELINE. Include the block
-     even when the checks passed, because the file says so and a MISSING block
+     even when the checks passed, because the text says so and a MISSING block
      means no baseline was taken, which is a different thing.)
 
-For each bead, first invoke the `run-bead` skill — it carries the ceremony, and the blocked and skipped paths — passing this bead's id, priority, title and `--trailers-file {TRAILERS_FILE}`. Read the committed sha with `git rev-parse --short HEAD` rather than from the script's printout. Then run the template-specific steps below.
+For each bead, first invoke the `run-bead` skill — it carries the ceremony, and the blocked and skipped paths — passing this bead's id, priority, title and `--trailers-from {EPIC}` (omit that flag when the run resolved no trailers). Read the committed sha with `git rev-parse --short HEAD` rather than from the script's printout. Then run the template-specific steps below.
 
 When the batch is done, return ONE message containing N+1 lines: one per-bead summary, then a final `batch-end: full gates {passed|failed}`.
 ```

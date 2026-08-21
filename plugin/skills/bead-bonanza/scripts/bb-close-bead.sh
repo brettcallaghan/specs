@@ -22,7 +22,8 @@
 #   replayed by hand during crash recovery. One script means one behavior.
 #
 # Usage
-#   bb-close-bead.sh [--trailers-file <path>] <bead-id> <priority> <title> [path ...]
+#   bb-close-bead.sh [--trailers-file <path>] [--trailers-from <epic>] \
+#                    <bead-id> <priority> <title> [path ...]
 #
 #   --trailers-file <path>  optional; must precede <bead-id>. Its contents
 #       are appended to the commit message body after a blank line (e.g.
@@ -66,6 +67,7 @@ die()  { echo "bb-close-bead: $*" >&2; exit 2; }
 fail() { echo "bb-close-bead: $*" >&2; exit 1; }
 
 trailers_file=""
+trailers_epic=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --trailers-file)
@@ -75,6 +77,13 @@ while [ $# -gt 0 ]; do
       ;;
     --trailers-file=*)
       trailers_file="${1#--trailers-file=}"
+      shift ;;
+    --trailers-from)
+      [ $# -ge 2 ] || die "--trailers-from requires an epic id"
+      trailers_epic="$2"
+      shift 2 ;;
+    --trailers-from=*)
+      trailers_epic="${1#--trailers-from=}"
       shift
       ;;
     --)
@@ -90,7 +99,36 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-[ $# -ge 3 ] || die "usage: bb-close-bead.sh [--trailers-file <path>] <bead-id> <priority> <title> [path ...]"
+[ $# -ge 3 ] || die "usage: bb-close-bead.sh [--trailers-file <path>] [--trailers-from <epic>] <bead-id> <priority> <title> [path ...]"
+[ -z "$trailers_file" ] || [ -z "$trailers_epic" ] || die "pass --trailers-file or --trailers-from, not both"
+
+# The run's trailers live in the run epic's manifest, so a bead can fetch them
+# from the tracker rather than from a directory that may not outlive the run.
+if [ -n "$trailers_epic" ]; then
+  trailers_file="$(mktemp "${TMPDIR:-/tmp}/bb-trailers.XXXXXX")" || die "cannot create a temp file for trailers"
+  # shellcheck disable=SC2064
+  trap "rm -f '$trailers_file'" EXIT
+  bd show "$trailers_epic" --json 2>/dev/null | python3 -c 'import json,sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    raise SystemExit(1)
+d = d[0] if isinstance(d, list) and d else d
+if not isinstance(d, dict) or d.get("error"):
+    raise SystemExit(1)
+md = d.get("metadata") or {}
+if isinstance(md, str):
+    try: md = json.loads(md)
+    except Exception: md = {}
+t = (md.get("trailers") or "").strip()
+if not t:
+    raise SystemExit(2)
+sys.stdout.write(t + "\n")' > "$trailers_file" || {
+    _st=$?
+    [ "$_st" = 2 ] && die "$trailers_epic carries no \`trailers\` in its manifest — omit --trailers-from when the run resolved none"
+    die "cannot read the manifest on $trailers_epic"
+  }
+fi
 id="$1"; priority="$2"; title="$3"; shift 3
 
 if [ -n "$trailers_file" ]; then

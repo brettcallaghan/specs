@@ -3,12 +3,11 @@ name: recover-sprint
 description: Reconstruct the state of an in-flight bead-bonanza sprint from
   durable sources when no session holds it — after the orchestrator was
   interrupted, crashed, compacted past usefulness, or was replaced by a fresh
-  session. Use when a durable check-in trigger fires carrying a RUN_DIR path
-  and an epic id, when asked to resume, pick back up, or recover a
-  bead-bonanza run or sprint, or whenever a session must re-derive which beads
-  closed and which are still in flight from git, the tracker and the run's
-  dispatch.md rather than from a summary. Requires no prior context and takes
-  no required input.
+  session. Use when a durable check-in trigger fires carrying a run epic id,
+  when asked to resume, pick back up, or recover a bead-bonanza run or sprint,
+  or whenever a session must re-derive which beads closed and which are still
+  in flight from git and the tracker rather than from a summary. Requires no
+  prior context and takes no required input.
 version: "0.2"
 user-invocable: false
 ---
@@ -19,7 +18,7 @@ Pick a bead-bonanza sprint back up when nobody is holding it any more.
 
 **This skill assumes you know nothing about the run.** It derives the run, its
 plan, its completed set and its in-flight set from durable sources — the git
-branch, the run's `dispatch.md`, `git worktree list`, and the bead tracker —
+branch, the run epic's manifest, `git worktree list`, and the bead tracker —
 and never from a summary, a notification, or an earlier report.
 
 **Nothing reports this to you.** A user interrupt that kills the orchestrator
@@ -32,9 +31,8 @@ proof.
 
 **In: nothing is required.** That is the point of this skill — it is invoked by
 name from a session that may hold no context at all, so everything it needs is
-derivable. WHEN the caller does supply a `RUN_DIR` path, a run id, or a branch
-name, take them as a starting point and still confirm each against the sources
-below.
+derivable. WHEN the caller does supply a run epic id or a branch name, take
+them as a starting point and still confirm each against the sources below.
 
 **Out: the reconstructed run state, with a source named for every fact** —
 
@@ -43,16 +41,15 @@ below.
   `git log`;
 - the **in-flight set** — beads whose worktree still exists, from
   `git worktree list`;
-- a per-bead classification for every bead the plan enumerates, with the
-  signal that settled it;
+- a per-bead classification for every bead in the run epic, with the signal
+  that settled it;
+- the **excluded set** — beads the manifest's admission record says sat this
+  run out, so a narrowed scope is not silently read as a finished one;
 - anything you could not establish, named as unestablished rather than
   omitted.
 
 A fact with no source named is not part of the output. A reconstruction that
-could not read the plan is a *reconstruction*, and says so — it is not a plan.
-
-`${TMPDIR:-/tmp}` below is the run root the run's pre-flight script resolved;
-`$RUN_DIR` is that root plus the run id.
+could not read the manifest is a *reconstruction*, and says so.
 
 ## Work these steps in order
 
@@ -74,32 +71,32 @@ could not read the plan is a *reconstruction*, and says so — it is not a plan.
    `<bead-id> P<n> <title>`, so that is the run's completed set, read from the
    record rather than from a report.
 
-   For the plan and the run's artifacts:
+   To find the run epic when the caller gave none:
 
-   - `ls -l "${TMPDIR:-/tmp}/claude/bead-bonanza/current"` — a symlink the
-     pre-flight script repoints at the start of every run. Convenient while
-     the container lives; gone after a reclaim.
-   **The run directory does not survive a container reclaim, and nothing
-   copies it.** WHEN it is gone, reconstruct from durable state rather than
-   looking for a backup: the sprint branch's `git log`, `git worktree list`,
-   and the tracker. Those are the same sources every other step here reads,
-   and unlike a copy they cannot be stale.
+   - `bd swarm list` names the epic behind each registered swarm — but check
+     each molecule's own status, because it lists closed ones under "Active".
+   - Otherwise the sprint branch's `git log`: every bead's close commit names
+     its id, and `bd show <id>` gives the parent.
 
-   **Never guess the run from directory mtimes.** "Take the newest epic-id
-   directory under the run root" is wrong whenever an older run's directory is
-   touched after a newer one starts. WHEN the symlink does not resolve,
-   reconstruct from `git log` and `bd list`, and **say so in the report**: a
-   reconstruction is not a plan.
+   **There is no run directory to find, and that is the point.** The run's
+   record is its epic, which survives a container reclaim.
 
-2. **Read `dispatch.md` in full.** It carries the mandate, the enumerated bead
-   list, the standing authorization, the wave table, the resolved `checks` script and the
-   environmental ledger. **This is the plan — do not re-derive it, and do not
-   re-run the filter that produced it.** The filter produced the queue; the
-   plan IS the queue, and a filter re-evaluated now returns a different set
-   than the one this run committed to and admits beads nobody scoped. Read
-   `## Amendments` too, and reconcile it against the wave table: the plan may
-   have moved since it was first written, and the amendments log is where it
-   moved.
+2. **Read the run epic in full** — `bd show <epic> --json`. Its `--metadata` is
+   the manifest: the standing authorization, the declared check ids, the checks
+   baseline, the model lineup, the environmental ledger, and the **admission
+   record** (`admitted`, `excluded`, `moved`). Its `amend:`-prefixed comments
+   are how the run diverged since it started.
+
+   **The queue is not stored — re-derive it**: `bd ready --parent <epic>
+   --exclude-type=epic`. That is deliberate. Membership of the epic IS the
+   scope, so a bead added since the run started is in scope now, and the
+   wave table was never written down because it drifts the moment the graph
+   moves.
+
+   **Compare the live queue against the manifest's `admitted` list and report
+   the delta before dispatching anything.** A bead present now and absent then
+   was added mid-run; one absent now and present then closed, or was moved out.
+   Both are facts the resuming session must state rather than absorb.
 
 3. **Establish what is in flight — `git worktree list` answers "is an agent
    still working", and nothing else.**

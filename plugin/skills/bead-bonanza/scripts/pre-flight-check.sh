@@ -4,8 +4,11 @@
 # Contract
 #   Measures what Phase 0 needs and reports it as a cited fact, not
 #   remembered prose. stderr: human-readable report. stdout: shell-evalable
-#   RUN_DIR=, SCRIPTS=, BB_* facts — eval it. Exit 0 proceed, 1 a blocking
+#   SCRIPTS= and BB_* facts — eval it. Exit 0 proceed, 1 a blocking
 #   condition named in the report, 2 bad invocation.
+#
+#   There is NO run directory. The run's record — manifest, baseline,
+#   amendments — lives on the run epic, which outlives a reclaimed container.
 #
 # Usage
 #   pre-flight-check.sh [<epic-id>] [--self-test]
@@ -369,24 +372,15 @@ esac
 
 # ======================================================== 4. run dir + scripts
 
-head_ "Run directory"
-RUN_ROOT="$(sf_get run run_root)"
-[ -n "$RUN_ROOT" ] || RUN_ROOT="${TMPDIR:-/tmp}/claude/bead-bonanza"
-RUN_DIR=""
+head_ "Run record"
 if [ -z "$EPIC" ]; then
-  say "no epic id given — environment-only pass; no run dir, no checks baseline."
+  say "no epic id given — environment-only pass; no manifest, no checks baseline."
   say "Re-run as \`pre-flight-check.sh <epic-id>\` once admission has resolved one."
 else
-  RUN_DIR="$RUN_ROOT/$EPIC"
-  if mkdir -p "$RUN_DIR" 2>/dev/null && touch "$RUN_DIR/.ok" 2>/dev/null; then
-    say "run dir: $RUN_DIR"
-    # -n is load-bearing: without it the second run's link is created INSIDE the
-    # first run's directory instead of replacing the pointer.
-    ln -sfn "$RUN_DIR" "$RUN_ROOT/current" 2>/dev/null && say "current -> $EPIC"
-  else
-    block "run dir is not writable: $RUN_DIR"
-    say "run dir: UNWRITABLE $RUN_DIR"
-  fi
+  # There is no run directory. The manifest lives in the run epic's metadata
+  # and the amendments in its comments, so the run's record is as durable as
+  # the tracker and survives a reclaimed container, which a /tmp path does not.
+  say "run record: metadata on $EPIC (no run directory — the tracker IS the record)"
 fi
 say "scripts:  $SCRIPTS"
 
@@ -527,16 +521,19 @@ fi
 
 head_ "Checks baseline"
 CHECKS_BASELINE=skipped
-if [ -z "$RUN_DIR" ]; then
-  say "not captured — no epic id was given, so there is nowhere to write it."
+if [ -z "$EPIC" ]; then
+  say "not captured — no epic id was given, so there is nowhere to record it."
   say "The baseline is per-run, not per-repo: capture it on the epic-scoped pass."
 elif [ -n "$CHECKS_IDS" ]; then
   # The baseline is what the project's checks PRINT on the untouched tree, plus
   # the status they exit with. Nothing is parsed: a bead compares its own run's
   # output against this text, so a line present in both was already failing and
   # a line only in the bead's is the bead's.
-  _raw="$RUN_DIR/checks-baseline.md"
-  _tsv="$RUN_DIR/checks-baseline.tsv"
+  # Two scratch files, deleted before this script returns. They are the
+  # runner's report and the assembled text on its way into the manifest, not
+  # the run's record — the record is the epic.
+  _tsv="$(mktemp "${TMPDIR:-/tmp}/bb-baseline.XXXXXX")" || die "cannot create a temp file"
+  _raw="$(mktemp "${TMPDIR:-/tmp}/bb-baseline-md.XXXXXX")" || die "cannot create a temp file"
   _out="$("$CHECKS_RUNNER" --report "$_tsv" 2>&1)"; _st=$?
   CHECKS_BASELINE=captured
   # One row per check, read from the runner's --report file rather than from
@@ -570,9 +567,38 @@ elif [ -n "$CHECKS_IDS" ]; then
   else
     say "baseline: ALREADY FAILING (exit $_st) — a bead is not expected to fix it"
   fi
-  say "written: $_raw"
-  say "INLINE its contents into every subagent prompt — a baseline that stops at"
-  say "the planner is one the agent running the checks never sees."
+
+  # Onto the epic. Merged into whatever the manifest already holds rather than
+  # replacing it, so a second pre-flight pass does not discard the admission
+  # record admission wrote before this script ever ran.
+  if python3 - "$EPIC" "$_raw" "$CHECKS_IDS" "$_st" <<'PY'
+import json, subprocess, sys
+eid, raw, ids, st = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+cur = {}
+r = subprocess.run(["bd", "show", eid, "--json"], capture_output=True, text=True)
+try:
+    d = json.loads(r.stdout)
+    d = d[0] if isinstance(d, list) and d else d
+    md = d.get("metadata") or {}
+    cur = json.loads(md) if isinstance(md, str) else (md or {})
+except Exception:
+    cur = {}
+cur["checks_ids"] = ids
+cur["checks_baseline_status"] = int(st)
+with open(raw) as fh:
+    cur["checks_baseline"] = fh.read()
+w = subprocess.run(["bd", "update", eid, "--metadata", json.dumps(cur)],
+                   capture_output=True, text=True)
+sys.exit(0 if w.returncode == 0 else 1)
+PY
+  then
+    say "written: manifest on $EPIC (\`bd show $EPIC --json | jq -r .metadata.checks_baseline\`)"
+    say "INLINE it into every subagent prompt — a baseline that stops at the"
+    say "planner is one the agent running the checks never sees."
+  else
+    block "could not write the checks baseline into $EPIC's manifest"
+  fi
+  rm -f "$_tsv" "$_raw"
 else
   say "not captured — no checks were declared, so every check is expected to"
   say "pass and a pre-existing failure will be misread as a regression."
@@ -623,7 +649,6 @@ else
 fi
 
 # The evalable block. Values that can contain spaces are single-quoted.
-emitq RUN_DIR "$RUN_DIR"
 emitq SCRIPTS "$SCRIPTS"
 emitq BB_CHECKS_IDS "$CHECKS_IDS"
 emit  BB_LINEUP "$LINEUP"
@@ -651,7 +676,6 @@ emit  BB_DENY_ENTRY "$DENY_ENTRY"
 emit  BB_SETTINGS_LOCAL_ALLOW "$SETTINGS_LOCAL_ALLOW"
 emitq BB_WORKTREE_BASEREF "$WORKTREE_BASEREF"
 emit  BB_CHECKS_BASELINE "$CHECKS_BASELINE"
-emitq BB_CHECKS_BASELINE_FILE "${_raw:-}"
 emitq BB_EPIC "$EPIC"
 emitq BB_EPIC_QUEUE "$EPIC_QUEUE"
 
