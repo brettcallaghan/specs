@@ -11,7 +11,11 @@ Two neighbouring situations are elsewhere, so this file can be read on its own:
 WHEN a subagent dies mid-ceremony, read `recovery.md`; WHEN you are resuming a
 run whose state you do not hold, invoke the **`recover-sprint`** skill.
 
-`${TMPDIR:-/tmp}` below is the run root Phase 0's pre-flight script resolved.
+**Two views, and they are not interchangeable.** `bd swarm status <epic>` is
+the durable one — computed from the beads themselves, correct after any crash,
+and the right answer to "where is this run". The event log below is a live
+*stream* for a `Monitor` to tail; it is ephemeral by design and its absence
+costs mid-flight visibility, not the run's record.
 
 ## Contents
 
@@ -44,10 +48,19 @@ HOOK
 chmod +x .beads/hooks/on_update
 ```
 
-`BB_EVENT_LOG` is exported by the pre-flight script and points inside the run
-root. The hook must be **executable** — `bd` skips a non-executable hook
-silently, with no error, so a missing `chmod` presents as a run that simply
-never reports.
+`BB_EVENT_LOG` is emitted by the pre-flight script (as `BB_EVENT_LOG=`, in the
+block you eval) and points at a per-run file under `${TMPDIR:-/tmp}`. **Export
+it before installing the hook** — the hook appends to it, and with the variable
+unset every append fails. `bd` runs hooks fire-and-forget and ignores their
+exit status, so that failure is silent: the run reports nothing and nothing
+says why.
+
+The hook must also be **executable** — `bd` skips a non-executable hook
+silently too, with the same presentation.
+
+WHEN pre-flight reports the event log as unwritable it emits `BB_EVENT_LOG=''`;
+skip the hook entirely and use `bd swarm status <epic>` for visibility rather
+than installing a hook that cannot write.
 
 Three properties of the mechanism that decide how it is used:
 

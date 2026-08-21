@@ -247,6 +247,18 @@ After each subagent returns:
 run and surface to the user. Something is systemically wrong (broken main,
 environment issue, an under-groomed bead).
 
+### The live view
+
+`bd swarm status <epic>` is the durable answer to "where is this run" —
+computed from the beads, so it is correct after any crash and needs nothing
+re-registered when scope changes. On a **nested** run epic it is one level
+deep, reporting sub-epics rather than leaf beads: fall back to the re-queried
+ready front plus a walked progress count, and say in the report which you used.
+
+The event stream in `references/progress-streaming.md` is the other view — live,
+ephemeral, and for a `Monitor` to tail. Losing it costs mid-flight visibility,
+not the run's record.
+
 ### Recovery and progress streaming
 
 Three situations, three loads — take the one you are in, not the whole corpus.
@@ -662,6 +674,28 @@ Three things stay yours:
 
    Recovery reads the epic rather than re-deriving the run, and the epic
    outlives a reclaimed container where a `/tmp` path does not.
+
+   **Register the run: `bd swarm create <epic>`.** Once, after the manifest is
+   written. It makes the run discoverable by `bd swarm list` to a session that
+   has nothing else, and `bd swarm status` becomes the live view.
+
+   - It is **not** silently idempotent — a second call prints
+     `Swarm already exists: <id>`. On a restart that is the recovery path:
+     read the existing id from that message. **Never pass `--force`**, which
+     mints a duplicate swarm for one run.
+   - **Never point it at a bare bead.** Given a non-epic it auto-wraps by
+     creating an epic with that issue as its only child — a reparent, and
+     exactly the structural damage admission exists to avoid.
+   - The swarm molecule is **not ephemeral**. Close it when the run ends, or
+     swarms accumulate.
+   - **`bd swarm list` reports closed molecules under "Active Swarms"**, so it
+     answers "which runs exist", not "which are in flight". Read each
+     molecule's own status before believing a run is live.
+
+   The swarm id is **not** the run id. A swarm molecule is `issue_type:
+   molecule` with no children — `bd ready --parent <swarm-id>` returns nothing.
+   It links to the epic; the epic owns the queue, and `bd swarm status` accepts
+   either id, so the epic loses nothing by being the identity.
 2. **The bead list.** Pass `plan-sprint` explicit bead ids, never
    the filter that produced them, and the epic they belong to. The queue is
    `bd ready --parent <epic> --exclude-type=epic` — `--exclude-type=epic` is

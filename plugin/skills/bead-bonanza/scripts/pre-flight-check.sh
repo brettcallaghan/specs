@@ -273,7 +273,7 @@ sf_get() {
 # The run epic. Verified rather than assumed: everything downstream reads the
 # queue from it, and a typo'd or non-epic id would produce an empty run that
 # looks like a finished one.
-EPIC_KIND=""; EPIC_QUEUE=""
+EPIC_KIND=""; EPIC_QUEUE=""; EVENT_LOG=""
 if [ -n "$EPIC" ]; then
   # `bd show` on an unknown id prints {"error": ...} and exits 1, so a
   # non-empty stdout is not proof the bead exists. Read the type, and report
@@ -381,6 +381,20 @@ else
   # and the amendments in its comments, so the run's record is as durable as
   # the tracker and survives a reclaimed container, which a /tmp path does not.
   say "run record: metadata on $EPIC (no run directory — the tracker IS the record)"
+
+  # The event log is the opposite kind of thing: a live STREAM for the
+  # Monitor to tail, not a record. It is ephemeral by design — `bd swarm
+  # status` is the durable view, computed from the beads themselves.
+  EVENT_LOG="${TMPDIR:-/tmp}/bb-events-$EPIC.log"
+  if : >> "$EVENT_LOG" 2>/dev/null; then
+    say "event log: $EVENT_LOG"
+    say "export BB_EVENT_LOG before installing .beads/hooks/on_update — the hook"
+    say "appends to it, and an unset variable makes every write fail silently."
+  else
+    EVENT_LOG=""
+    say "event log: UNWRITABLE — progress streaming will be unavailable; use"
+    say "\`bd swarm status $EPIC\` instead."
+  fi
 fi
 say "scripts:  $SCRIPTS"
 
@@ -677,6 +691,7 @@ emit  BB_SETTINGS_LOCAL_ALLOW "$SETTINGS_LOCAL_ALLOW"
 emitq BB_WORKTREE_BASEREF "$WORKTREE_BASEREF"
 emit  BB_CHECKS_BASELINE "$CHECKS_BASELINE"
 emitq BB_EPIC "$EPIC"
+emitq BB_EVENT_LOG "$EVENT_LOG"
 emitq BB_EPIC_QUEUE "$EPIC_QUEUE"
 
 exit "$REPORT_FAIL"
