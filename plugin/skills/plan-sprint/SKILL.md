@@ -93,8 +93,11 @@ re-derive it from prose. The `jq` and a worked example are in
      isolation is never grounds to relax this rule.
    - Bead B whose `c4_impacts` intersects bead A's `c4_changes` consumes a
      contract A is changing. That is a **sequencing** constraint, not a batching
-     one, and it holds with zero file overlap: order B after A within the
-     bucket, or wire a real `blocks` edge when the ordering must survive the run.
+     one, and it holds with zero file overlap. **It belongs in the graph:** a
+     `blocks` edge is honoured by every re-query of the ready front, where an
+     ordering noted only in this table is honoured once, by whoever reads the
+     table. WHEN you find one grooming missed, say so in your return so the
+     orchestrator can wire it — do not silently encode it as bucket order.
    - Disjoint changes with no impact intersection is isolated *architecturally*
      only — layer 2 still runs.
 2. **File paths — fallback and corroborator.** Scan each bead's description for

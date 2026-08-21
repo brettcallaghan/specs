@@ -211,6 +211,19 @@ work order's `depends_on` / `blocks` / `parent_slug` / `related` /
 Add only edges you can justify. A missing real edge is a wave-time race; a
 fabricated edge needlessly serializes work the orchestrator could parallelize.
 
+**A sequencing constraint you discover here is an edge, not a note.** WHEN one
+bead consumes a contract another is changing — `c4_impacts` intersecting
+another bead's `c4_changes`, or a stated prerequisite — wire
+`bd dep add <consumer> <producer>`. An orchestrator dispatches from the
+re-queried ready front, so an edge is honoured automatically, at any depth and
+across epic boundaries; a line of prose in a wave preview is honoured only if
+someone reads it, and nothing re-reads it after the first wave.
+
+**`blocks` edges are type-segregated** — task↔task and epic↔epic are accepted,
+task↔epic is refused in both directions (`tasks can only block other tasks, not
+epics`). A constraint between a bead and an epic cannot be expressed this way;
+record it on the epic and say so rather than leaving a failed command behind.
+
 ### 4. Assign a capability tier
 
 Record the tier in **metadata** so it rides with the bead and the orchestrator

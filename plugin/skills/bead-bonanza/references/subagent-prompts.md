@@ -66,7 +66,7 @@ Return a report, one line per bead:
 
 Then produce the **wave preview** `groom-beads` produces, as its own block after the per-bead lines — `plan-sprint` consumes it below as a starting partition, so losing this block costs the whole preview:
 - `wave N: {ID}, {ID}, … — <why they are safe together>`, one line per candidate wave, grouped under both constraints (dependencies, and no two beads sharing a `c4_changes` component in a wave)
-- `sequencing: {ID} after {ID} — consumes <component>` for each pair whose `c4_impacts` intersects another bead's `c4_changes`
+- `sequencing: {ID} after {ID} — consumes <component>` for each pair whose `c4_impacts` intersects another bead's `c4_changes`. **Wire each one as a real `bd dep add` edge as you go** — the orchestrator dispatches from the re-queried ready front, so an edge is enforced and a preview line is not. Report any you could NOT wire (a task-to-epic constraint is refused by bd) so it is not mistaken for one that was
 - `wave-preview: none (no C4 docs)` instead of the above WHEN the repo documents no architecture and you skipped C4 tagging — the reader must know the signal is absent, not empty
 - `c4-untagged: {ID} — <why>` for any bead you could not tag (component with no doc, scope unclear)
 
