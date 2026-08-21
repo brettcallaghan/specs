@@ -34,31 +34,18 @@ write any of it silently.
    hard error rather than as absent, because that is a mistake to report, not a
    state to work around.
 
-   **The contract.** One command, one output rule:
+   **The contract, in full: run it.** Exit 0 means every check passed;
+   anything else means something failed, and the output says what. There is no
+   required output format, no ids, and nothing to enumerate.
 
-   ```
-   checks [<gate>...]     Run every gate in declared order, or only the named
-                          ones.
-   ```
+   Phase 0 captures what it prints on the untouched tree as the **checks
+   baseline**, and a bead compares its own run against that text — a line in
+   both was already failing, a line only in the bead's is the bead's. That
+   comparison never needs a name for anything.
 
-   | stream | carries |
-   |---|---|
-   | stdout | `RESULT <gate> <pass\|fail\|skip> <exit>`, one line per gate |
-   | stderr | whatever the underlying tools printed, unaltered |
-
-   Exit 0 when every gate passed or was skipped, 1 when any failed, 2 on a bad
-   invocation. Keep the two streams separate: a gate whose own output contains
-   the word `FAIL` must not be readable as a verdict.
-
-   Gate ids are the project's to choose — lowercase, hyphenated, stable.
-   Ordering lives in the script, so a step that must precede another (a regen
-   before a test) is sequenced there rather than by the caller.
-
-   **Give each known-red check its own gate id.** A check that fails for a
-   reason the run is not expected to fix is recorded in the baseline as a
-   failing gate, and the bar for every bead becomes "no findings beyond this
-   baseline". Folded in with a healthy check, it marks that one red too and the
-   baseline stops discriminating.
+   **Run every check, even after one fails.** Chaining with `&&` stops at the
+   first failure and hides the rest, so a run sees one problem at a time and a
+   known-red check masks everything behind it.
 
    - **If the script exists**, Phase 0 runs it. Fast path — no prompt.
    - **If it's missing**, discover candidate commands from `AGENTS.md` /

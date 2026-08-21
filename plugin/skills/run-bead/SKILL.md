@@ -28,10 +28,10 @@ identical.
 |---|---|---|
 | `{ID}`, `{PRIORITY}`, `{TITLE}` | given | `bd ready`, then `bd show <id>` |
 | `{WORKTREE}` | given — work THERE, it is yours alone | your checkout, on a branch that is not the default |
-| gates | `{FORMAT}` `{LINT}` `{BUILD}` `{TEST}` `{REGEN}` `{CUSTOM_GATES}` | run `checks` |
+| checks | run the project's `checks` script | same |
 | `{SCRIPTS}` | given | `bead-bonanza/scripts/` |
 | `{TRAILERS_FILE}` | given, or `none` | `none` |
-| `{CHECKS_BASELINE}` | given — the known-red gates block | run `checks` on a clean tree, before you start |
+| `{CHECKS_BASELINE}` | given — what the checks printed before the run | run `checks` on a clean tree, before you start |
 | push mode | `push_per_bead` or `defer_push` | push your branch when the work is done |
 
 **Never work in the main checkout when a worktree was given**, and never work
@@ -74,34 +74,25 @@ Write no progress file.
    For any implicit decision you have to make, record what you chose and why —
    that also goes in a `retro:` comment.
 
-4. **Gates — the push is the gate.** Run the project's full suite here, before
-   any push. If the change affects generated output the tests compare against
-   (codegen, snapshots, golden files, schemas) AND the project declares a regen
-   gate, it runs BEFORE the test gate — the script's own order handles that.
-
-   ```
-   {FORMAT}  {LINT}  {BUILD}  {TEST}  {CUSTOM_GATES}
-   ```
+4. **Checks — the push is the gate.** Run the project's `checks` script here,
+   before any push. It runs everything the project wants run, in its own order,
+   so there is nothing to select or sequence.
 
    On failure, fix the root cause and rerun. **After two full failed cycles,
    take the Blocked path** — do not keep retrying.
 
-   **A gate that was already failing before you started is not yours to fix.**
-   Your prompt carries a `Known-red gates:` block — the gate verdicts taken on
-   the untouched tree before any bead ran, with the output each failing gate
-   produced. The bar is **"no findings beyond that", not "exit 0"**.
+   **A check that was already failing before you started is not yours to fix.**
+   Your prompt carries a `Checks baseline:` block — what the checks printed on
+   the untouched tree, and the status they exited with. The bar is **"no
+   findings beyond that", not "exit 0"**.
 
-   Compare, do not parse: run your gates, and read your output against the
-   baseline's. A line that appears in both was already there. A line that
-   appears only in yours is yours. Nothing structured is needed for that, which
-   is why the baseline is the tools' own raw output rather than a findings
-   format the project would have to synthesize from `go test`, `eslint` or
-   `pytest` — formats it does not control.
+   Compare, do not parse: run the checks, and read your output against the
+   baseline's. A line in both was already there; a line only in yours is yours.
 
-   An **empty** block reads "none: every gate passed at baseline" and means
-   exactly that: every gate is expected to exit 0. A block that is *missing* is
-   different — it means no baseline was taken, so you cannot tell a
-   pre-existing failure from one you caused. Say so rather than guessing.
+   A baseline that exited 0 means every check is expected to pass, so any
+   failure is yours. A **missing** block is different — no baseline was taken,
+   so you cannot tell a pre-existing failure from one you caused. Say so rather
+   than guessing.
 
 5. **WHEN the close must do something differently, record it on the bead
    first** — `bd comment {ID} "caveat: <what and why>"`. A regen step that must

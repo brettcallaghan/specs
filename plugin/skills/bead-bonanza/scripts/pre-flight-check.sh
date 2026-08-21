@@ -46,7 +46,6 @@ else
   BB_STAT_FLAVOUR=gnu
 fi
 
-upper_key() { printf '%s' "$1" | tr '[:lower:]' '[:upper:]' | tr -cs '[:alnum:]' '_' | sed 's/_$//'; }
 
 SELF="$(abs_dir "$0")/$(basename "$0")"
 SCRIPTS="$(abs_dir "$0")"
@@ -134,12 +133,6 @@ self_test() {
 
   printf '%s\n' '# x' > "$fixture/EMPTY.md"
 
-  # 8. The RESULT-line reader. Only stdout carries verdicts, and a gate whose
-  #    own output contains the word FAIL must not be read as one.
-  rl='RESULT skills-strict fail 1'
-  st "gate id read"      "skills-strict" "$(printf '%s' "$rl" | awk '{print $2}')"
-  st "gate verdict read" "fail"          "$(printf '%s' "$rl" | awk '{print $3}')"
-  st "gate key derived"  "BB_GATE_SKILLS_STRICT" "BB_GATE_$(upper_key 'skills-strict')"
 
   # 9. Portability lint over this script's own source. Every GNU-only or
   #    bash-4-only construct must carry the `portability-lint-ok` marker,
@@ -459,72 +452,39 @@ fi
 
 head_ "Checks baseline"
 CHECKS_BASELINE=skipped
-GATE_KEYS=""
-GATE_EMIT=""
 if [ -n "$CHECKS" ]; then
-  CHECKS_BASELINE=captured
-  # One invocation runs every gate the project declared, in the order it
-  # declared them. Parse only stdout: the contract puts RESULT lines there and
-  # everything human on stderr, so a gate that prints "FAIL" in its own output
-  # cannot be mistaken for a verdict.
-  # Capture BOTH streams. stdout carries the RESULT verdicts this script
-  # parses; stderr carries whatever the underlying tools printed, verbatim.
-  # The raw text IS the baseline — a project wraps `go test`, `eslint`,
-  # `pytest`, whose output formats it does not control, so requiring a
-  # structured findings format would only move the parsing burden onto the
-  # project. The bar "no findings beyond baseline" is then a comparison of two
-  # outputs, not a parse of either.
+  # The baseline is what the project's checks PRINT on the untouched tree, plus
+  # the status they exit with. Nothing is parsed: a bead compares its own run's
+  # output against this text, so a line present in both was already failing and
+  # a line only in the bead's is the bead's.
   _raw="$RUN_DIR/checks-baseline.md"
-  _results="$("$CHECKS" 2>"$RUN_DIR/.gate-stderr")"
-  while IFS= read -r line; do
-    case "$line" in RESULT\ *) ;; *) continue ;; esac
-    # RESULT <gate> <verdict> <exit>
-    gate="$(printf '%s' "$line" | awk '{print $2}')"
-    verdict="$(printf '%s' "$line" | awk '{print $3}')"
-    [ -n "$gate" ] || continue
-    key="BB_GATE_$(upper_key "$gate")"
-    say "$gate: $verdict"
-    GATE_EMIT="$GATE_EMIT
-$key=$verdict"
-    GATE_KEYS="$GATE_KEYS $key"
-  done <<EOF
-$_results
-EOF
-  if [ -z "$GATE_KEYS" ]; then
-    say "$CHECKS emitted no RESULT lines — treating the baseline as uncaptured"
-    CHECKS_BASELINE=skipped
+  _out="$("$CHECKS" 2>&1)"; _st=$?
+  CHECKS_BASELINE=captured
+  {
+    printf '# Checks baseline\n\n'
+    printf 'What `%s` printed on the untouched tree, before any bead ran, and\n' "$CHECKS"
+    printf 'the status it exited with.\n\n'
+    if [ "$_st" -eq 0 ]; then
+      printf 'Exit status: **0 — everything passed.** Every bead is expected to leave it\n'
+      printf 'that way; any failure you see is yours.\n\n'
+    else
+      printf 'Exit status: **%s — something was ALREADY failing.** It is not yours to\n' "$_st"
+      printf 'fix. The bar for your bead is "no findings beyond what is below", not\n'
+      printf '"exit 0": run the checks, and compare your output against this text.\n\n'
+    fi
+    printf '```\n%s\n```\n' "$_out"
+  } > "$_raw" 2>/dev/null
+  if [ "$_st" -eq 0 ]; then
+    say "baseline: everything passed (exit 0)"
   else
-    # Write the baseline where every later reader can find it: the run dir.
-    # ALWAYS written, even when nothing failed — "nothing is known-red" and
-    # "no baseline was taken" must not look alike to a subagent.
-    {
-      printf '# Checks baseline\n\n'
-      printf 'Captured by pre-flight on the untouched tree, before any bead ran.\n'
-      printf 'A gate listed FAIL here was ALREADY failing. It is not yours to fix,\n'
-      printf 'and the bar for your bead is "no findings beyond this", not "exit 0".\n\n'
-      printf '## Verdicts\n\n```\n%s\n```\n' "$_results"
-      _failed="$(printf '%s\n' "$_results" | awk '$3=="fail"{print $2}')"
-      if [ -n "$_failed" ]; then
-        printf '\n## Known-red gates, with the output they produced\n'
-        for _g in $_failed; do
-          printf '\n### %s\n\n```\n' "$_g"
-          awk -v g="--- $_g" '$0==g{f=1;next} /^--- /{f=0} f' "$RUN_DIR/.gate-stderr"
-          printf '```\n'
-        done
-      else
-        printf '\nNo gate was failing at baseline. Every gate is expected to exit 0.\n'
-      fi
-    } > "$_raw" 2>/dev/null
-    rm -f "$RUN_DIR/.gate-stderr"
-    say "baseline written: $_raw"
-    say "the bar for every bead is 'no findings beyond this baseline', not 'exit 0'."
-    say "INLINE its contents into every subagent prompt — a baseline that stops at"
-    say "the planner is one the agent running the gate never sees."
+    say "baseline: ALREADY FAILING (exit $_st) — a bead is not expected to fix it"
   fi
-
+  say "written: $_raw"
+  say "INLINE its contents into every subagent prompt — a baseline that stops at"
+  say "the planner is one the agent running the checks never sees."
 else
-  say "not captured — no checks script resolved, so every gate is expected to"
-  say "exit 0 and a pre-existing failure will be misread as a regression."
+  say "not captured — no checks script resolved, so every check is expected to"
+  say "pass and a pre-existing failure will be misread as a regression."
 fi
 
 # ==================================================== 9. tracker durability
@@ -601,6 +561,5 @@ emit  BB_SETTINGS_LOCAL_ALLOW "$SETTINGS_LOCAL_ALLOW"
 emitq BB_WORKTREE_BASEREF "$WORKTREE_BASEREF"
 emit  BB_CHECKS_BASELINE "$CHECKS_BASELINE"
 emitq BB_CHECKS_BASELINE_FILE "${_raw:-}"
-[ -n "$GATE_EMIT" ] && printf '%s\n' "$GATE_EMIT" | sed '/^$/d'
 
 exit "$REPORT_FAIL"

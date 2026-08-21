@@ -1,9 +1,8 @@
 ---
 title: "ADR-022: Projects Declare Checkpoint Scripts"
 description: A project declares its gate commands as one executable checks
-  script referenced from a plugin-scoped sf.toml, taking no subcommand and
-  reporting a verdict per gate on stdout while passing its tools' own output
-  through on stderr, because a
+  script referenced from a plugin-scoped sf.toml, whose contract is its exit
+  status and whose output is whatever its tools printed, because a
   prose gate profile cannot express a multi-command gate and a bare suite-wide
   exit code cannot express a known-red baseline
 slug: adr-022
@@ -60,24 +59,26 @@ A project declares **one executable `checks` script** — an executable it owns
 referenced by repository-root-relative path. `bead-bonanza` runs it and reads
 its output; it parses no prose.
 
-The contract is one command and one output rule:
+**The contract is the exit status.** Run the script: 0 means every check
+passed, anything else means something failed, and whatever it printed says
+what. No subcommands, no output format, no identifiers.
 
-```
-checks [<gate>...]     Run every gate in declared order, or only the named ones.
-```
+Successive drafts of this ADR asked for more and each addition failed the same
+test — *what does a project have to build before it can be gated at all?*
+Findings carrying file paths meant parsing tools it does not control. A
+`targeted` subcommand meant encoding a path-to-gate mapping. A `list`
+subcommand meant enumerating what running the suite already prints. A
+`RESULT <gate> <verdict>` line per check meant inventing an identifier for
+every check and echoing a line about it.
 
-It writes one line per gate to **stdout** —
-`RESULT <gate> <pass|fail|skip> <exit-code>` — and passes everything the
-underlying tools printed through to **stderr**, unaltered. Exit 0 when every
-gate passed or was skipped, 1 when any failed, 2 on an invocation error.
+None of it was load-bearing, because the baseline is a **comparison of raw
+text**, and a comparison needs no names. The floor is now a shell script that
+runs the commands a project already runs.
 
-**One command, because every additional one is a thing a project must build
-before it can be gated at all.** An earlier draft required `list` (enumerate the
-gates) and `targeted` (name the gates covering a path). `list` returns what
-running the suite already prints. `targeted` asks the project to encode a
-path-to-gate mapping — useful, but not something to demand of a project whose
-whole gate story is "run these four commands". A project is free to add
-subcommands of its own; none is required.
+The one thing the contract asks beyond the exit status is a convention rather
+than a format: **run every check even after one fails.** Chaining with `&&`
+stops at the first failure and hides the rest, which is precisely how a
+known-red check masks everything behind it.
 
 **A checkpoint reports its tools' own output, not a structured findings
 format.** This is the load-bearing choice and it runs opposite to this ADR's
@@ -89,9 +90,8 @@ move it out of `bead-bonanza` and onto every project that wants to be gated,
 once per tool. The verdict is the one thing the script must synthesize, because
 it is the one thing the tools do not already say.
 
-**Only the gate ids are a contract.** The set is the project's to choose, and
-ordering lives inside the script, so a step that must precede another — a regen
-before a test — is sequenced by the project rather than by the caller. A check that is
+Ordering lives inside the script, so a step that must precede another — a
+regen before a test — is sequenced by the project rather than by the caller. A check that is
 known-red gets its own gate id, so the baseline can carry it without marking a
 healthy check red.
 

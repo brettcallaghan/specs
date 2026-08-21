@@ -75,12 +75,14 @@ under `cli/` that implements the Spec CLI.
 entry point bead-bonanza resolves and runs; its header carries the contract.
 
 ```bash
-scripts/checks                  # every gate, in the order they must run
-scripts/checks <gate>...        # only the named ones
+scripts/checks                  # every check, in the order they must run
+scripts/checks <name>...        # only the named ones — a local convenience,
+                                # NOT part of the contract bead-bonanza reads
 ```
 
-It prints one `RESULT <gate> <pass|fail|skip> <exit>` line per gate to stdout
-and everything human to stderr, and exits non-zero if any gate failed.
+The contract is just the exit status: 0 means everything passed. It runs every
+check even after one fails, so the output shows all of them rather than
+stopping at the first.
 
 Nine gates: `format`, `vet`, `build`, `test-go`, `skills`, `shared-refs`,
 `strata-docs`, `schemas`, `skills-strict`.

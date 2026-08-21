@@ -91,10 +91,10 @@ Push mode: {push_per_bead | defer_push}
 Worktree: {WORKTREE}        (work HERE, not in the main checkout; it is yours alone)
 Scripts: {SCRIPTS}          (bb-verify-skip.sh, bb-close-bead.sh)
 Trailers file: {TRAILERS_FILE or "none"}   (Phase 0 resolved; pass to bb-close-bead.sh --trailers-file)
-Known-red gates: {CHECKS_BASELINE}
+Checks baseline: {CHECKS_BASELINE}
     (INLINE the contents of $RUN_DIR/checks-baseline.md here, verbatim. Include this
-     block even when nothing is known-red — write "none: every gate passed at
-     baseline" — so "nothing is red" and "no baseline was taken" cannot look alike.)
+     block even when the checks passed — the file says so — because a MISSING
+     block means no baseline was taken, which is a different thing.)
 
 **Then invoke the `run-bead` skill.** It carries the ceremony — claim, read,
 implement in scope, gate, caveat, findings, close-and-commit, push, return —
@@ -134,10 +134,10 @@ until the batch returns.
 Run dir: {RUN_DIR}
 Scripts: {SCRIPTS}
 Trailers file: {TRAILERS_FILE or "none"}   (Phase 0 resolved; pass to bb-close-bead.sh --trailers-file)
-Known-red gates: {CHECKS_BASELINE}
+Checks baseline: {CHECKS_BASELINE}
     (INLINE the contents of $RUN_DIR/checks-baseline.md here, verbatim. Include this
-     block even when nothing is known-red — write "none: every gate passed at
-     baseline" — so "nothing is red" and "no baseline was taken" cannot look alike.)
+     block even when the checks passed — the file says so — because a MISSING
+     block means no baseline was taken, which is a different thing.)
 
 For each bead, first invoke the `run-bead` skill — it carries the ceremony, and the blocked and skipped paths — passing this bead's id, priority, title and `--trailers-file {TRAILERS_FILE}`. Read the committed sha with `git rev-parse --short HEAD` rather than from the script's printout. Then run the template-specific steps below.
 

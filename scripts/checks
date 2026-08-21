@@ -2,22 +2,21 @@
 #
 # checks — this project's gate entry point for bead-bonanza.
 #
-# THE CONTRACT (identical in every project that ships one):
+# THE CONTRACT, in full: run this script. Exit 0 means every check passed.
+# Anything else means something failed, and the output says what.
 #
-#   checks [<gate>...]     Run every gate in declared order, or only the named
-#                          ones.
+# There is no required output format. bead-bonanza captures whatever the checks
+# print and compares a bead's run against the baseline taken before the run
+# started — a line in both was already failing, a line only in the bead's is
+# the bead's. That comparison never needs a name for anything.
 #
-#   It writes one machine-readable line per gate to STDOUT:
+# The one thing worth getting right: RUN EVERY CHECK, even after one fails.
+# Chaining with `&&` stops at the first failure and hides the rest, so a run
+# sees one problem at a time.
 #
-#       RESULT <gate> <pass|fail|skip> <exit-code>
-#
-#   and everything humans read to STDERR, so a caller can parse stdout without
-#   filtering. Exit 0 when every gate passed or was skipped, 1 when any failed,
-#   2 on an invocation error.
-#
-#   A gate id is a stable, lowercase, hyphenated name, chosen by the project.
-#   Nothing needs to enumerate them separately: running the suite names every
-#   gate it ran.
+# Naming individual checks and accepting them as arguments, below, is this
+# repository's own convenience. It is not part of the contract and no project
+# needs to copy it.
 #
 set -u
 
@@ -81,14 +80,8 @@ run_gates() {
     fi
     fn="$(gate_fn "$g")"
     echo "--- $g" >&2
-    # Subshell: a gate that cd's must not move the next one.
-    ( "$fn" ); status=$?
-    if [ "$status" -eq 0 ]; then
-      echo "RESULT $g pass 0"
-    else
-      echo "RESULT $g fail $status"
-      rc=1
-    fi
+    # Subshell: a check that cd's must not move the next one.
+    ( "$fn" ) || { echo "--- $g FAILED" >&2; rc=1; }
   done
   return $rc
 }

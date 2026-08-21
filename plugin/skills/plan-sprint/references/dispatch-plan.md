@@ -40,7 +40,7 @@ this file is where that output lands durably.
 | Branch | `<branch>` |
 | Base sha | `<sha at run start>` |
 | Gate profile | format=`…` lint=`…` build=`…` test=`…` regen=`…` custom=`…` |
-| Checks baseline | `<gate>=pass|fail` per gate, from pre-flight (always captured). The full text, including each known-red gate's own output, is at `$RUN_DIR/checks-baseline.md` — carry that path, and inline the file's contents into every subagent prompt. A baseline that stops here is one the agent running the gate never sees. |
+| Checks baseline | What the project's checks printed on the untouched tree, and the status they exited with, at `$RUN_DIR/checks-baseline.md`. Carry that path, and inline the file's contents into every subagent prompt — a baseline that stops here is one the agent running the checks never sees. |
 | Model lineup | light=`…` standard=`…` advanced=`…` frontier=`…` |
 | Standing authorization | what the user authorized without further asking (push mode, PR, scope) |
 | Wave preview | `accepted` \| `overridden — <why>` \| `none (no C4 docs)` \| `not returned` |

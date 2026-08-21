@@ -36,11 +36,9 @@ re-run the queue query.
 format commands. Everything it needs to validate the work done for a bead comes
 from the project's **`checks` script**, resolved and run by Phase 0's
 pre-flight script.
-Throughout this document, `<format>`, `<lint>`, `<build>`, `<test>` and
-`<regen>` are placeholders for gates that script declares. The set is the
-project's to choose — a schema check or a license-header linter is just another
-gate id — so run the project's `checks` script rather than a fixed suite, and
-let its own order decide what precedes what.
+Running it is the whole interface: exit 0 means every check passed, anything
+else means something failed, and the output says what. What those checks are,
+and in what order, is the project's business.
 
 ## Run checklist
 
