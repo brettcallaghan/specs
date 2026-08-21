@@ -11,7 +11,7 @@
 #   pre-flight-check.sh <run-id> [--self-test]
 #
 #   pre-flight-check.sh 1786345424-bbh                  # probe and report
-#   pre-flight-check.sh 1786345424-bbh   # probe, and capture the gate baseline
+#   pre-flight-check.sh 1786345424-bbh   # probe, and capture the checks baseline
 #   pre-flight-check.sh --self-test                     # portability guards only
 #
 #   The script never writes user-global state (~/.claude/settings.json, the
@@ -213,8 +213,8 @@ say "worktree registrations pruned"
 
 # The project declares its gates in an executable `checks` script, never in
 # prose this script parses. The declaration lives in `sf.toml` at the
-# repository root (ADR-022), which is a config file with a named key rather
-# than prose with a shape. Resolution order, first hit wins:
+# repository root — a config file with a named key rather than prose with a
+# shape. Resolution order, first hit wins:
 #
 #   $BB_CHECKS       explicit override
 #   sf.toml          [checkpoints] checks = "<repo-root-relative path>"
@@ -478,14 +478,14 @@ else
   say "no pull_request trigger found — do not ask about a draft PR."
 fi
 
-# ======================================================== 8. gate baseline
+# ======================================================== 8. checks baseline
 
-head_ "Gate baseline"
-GATE_BASELINE=skipped
+head_ "Checks baseline"
+CHECKS_BASELINE=skipped
 GATE_KEYS=""
 GATE_EMIT=""
 if [ -n "$CHECKS" ]; then
-  GATE_BASELINE=captured
+  CHECKS_BASELINE=captured
   # One invocation runs every gate the project declared, in the order it
   # declared them. Parse only stdout: the contract puts RESULT lines there and
   # everything human on stderr, so a gate that prints "FAIL" in its own output
@@ -497,7 +497,7 @@ if [ -n "$CHECKS" ]; then
   # structured findings format would only move the parsing burden onto the
   # project. The bar "no findings beyond baseline" is then a comparison of two
   # outputs, not a parse of either.
-  _raw="$RUN_DIR/gate-baseline.md"
+  _raw="$RUN_DIR/checks-baseline.md"
   _results="$("$CHECKS" run 2>"$RUN_DIR/.gate-stderr")"
   while IFS= read -r line; do
     case "$line" in RESULT\ *) ;; *) continue ;; esac
@@ -515,13 +515,13 @@ $_results
 EOF
   if [ -z "$GATE_KEYS" ]; then
     say "$CHECKS run emitted no RESULT lines — treating the baseline as uncaptured"
-    GATE_BASELINE=skipped
+    CHECKS_BASELINE=skipped
   else
     # Write the baseline where every later reader can find it: the run dir.
     # ALWAYS written, even when nothing failed — "nothing is known-red" and
     # "no baseline was taken" must not look alike to a subagent.
     {
-      printf '# Gate baseline\n\n'
+      printf '# Checks baseline\n\n'
       printf 'Captured by pre-flight on the untouched tree, before any bead ran.\n'
       printf 'A gate listed FAIL here was ALREADY failing. It is not yours to fix,\n'
       printf 'and the bar for your bead is "no findings beyond this", not "exit 0".\n\n'
@@ -623,8 +623,8 @@ emit  BB_DOLT_WRITE "$DOLT_WRITE"
 emit  BB_DENY_ENTRY "$DENY_ENTRY"
 emit  BB_SETTINGS_LOCAL_ALLOW "$SETTINGS_LOCAL_ALLOW"
 emitq BB_WORKTREE_BASEREF "$WORKTREE_BASEREF"
-emit  BB_GATE_BASELINE "$GATE_BASELINE"
-emitq BB_GATE_BASELINE_FILE "${_raw:-}"
+emit  BB_CHECKS_BASELINE "$CHECKS_BASELINE"
+emitq BB_CHECKS_BASELINE_FILE "${_raw:-}"
 [ -n "$GATE_EMIT" ] && printf '%s\n' "$GATE_EMIT" | sed '/^$/d'
 
 exit "$REPORT_FAIL"

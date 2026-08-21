@@ -82,15 +82,6 @@ write any of it silently.
      the script still exists and `list` names whatever it does have. Don't
      invent gates.
 
-   **Why a script rather than a markdown block.** This used to be a
-   `## bead-bonanza gates` block that Phase 0 regex-parsed for the first
-   backticked span in each bullet. Measured against this repository's own
-   `AGENTS.md`, that parser resolved Format, Lint and Build — and silently
-   dropped `Test (full suite)`, whose body is a fenced block rather than one
-   span because its three checks must run independently. The gate it could not
-   see was the known-red one, so the baseline that mattered most was the one
-   never recorded. That failure mode does not have a better regex.
-
    The **environmental-failure ledger** stays in `AGENTS.md` as prose: it is
    read by agents, not executed, and it is the one part of the old block that
    was never a command.

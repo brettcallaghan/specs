@@ -619,7 +619,7 @@ Three things stay yours:
 
 1. **The run manifest.** Write
    `${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/dispatch.md`'s header — the
-   pre-flight stdout block, the resolved `checks` script, gate baseline, model lineup, the
+   pre-flight stdout block, the resolved `checks` script, checks baseline, model lineup, the
    run's effort setting (`metadata.execution_reasoning_effort` per bead, on the
   convention's `low`/`medium`/`high`/`xhigh` scale), standing authorization and
   environmental ledger —
@@ -717,7 +717,7 @@ lineup` block in `AGENTS.md`, echoed by Phase 0. Honor these:
   Split the bucket WHEN more than one bead would be dragged above its
   tier, OR when any bead would be dragged more than one tier. Weigh that
   against what batching saves: batching exists to avoid repeated full
-  `<test>` runs, so WHERE Phase 0's gate baseline (`scripts/pre-flight-check.sh`)
+  `<test>` runs, so WHERE Phase 0's checks baseline (`scripts/pre-flight-check.sh`)
   shows the suite completing in seconds, the saving is negligible and the
   correct tier wins; WHERE it takes minutes, one bead one tier high is
   the cheaper error.
@@ -982,7 +982,7 @@ with any RFCs in a single commit.
   (Phase 1.5 step 4), never merely because they match the filter.
 - **Keep an environmental-failure ledger; never re-diagnose per wave.** Suites
   that fail — or silently PASS for environmental reasons — in the local sandbox
-  get diagnosed ONCE, recorded in the gate baseline pre-flight captured,
+  get diagnosed ONCE, recorded in the checks baseline pre-flight captured,
   then the verdict is passed into every subsequent subagent prompt as fact. The
   silent-pass case is the dangerous one: a gate can go green without exercising
   your change (a harness running a stale prebuilt binary a plain test command

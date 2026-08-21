@@ -67,7 +67,7 @@ Then produce the **wave preview** `groom-beads` produces, as its own block after
 FINALLY, as your last act, invoke the `plan-sprint` skill and follow it to write the run's wave table into `{RUN_DIR}/dispatch.md`. You have just read every bead, which is why planning is yours and not a second agent's. Pass it:
 - Run id `{RUN_ID}` and RUN_DIR `{RUN_DIR}` — `dispatch.md`'s manifest header is already written by the orchestrator; append under it and do NOT edit it
 - The bead ids to plan, ENUMERATED: {PLAN_IDS} — this is the run's committed queue; never re-run a filter to rebuild it, and never add a bead you groomed that the list omits
-- Gates: format=`{FORMAT}` lint=`{LINT}` build=`{BUILD}` test=`{TEST}` regen=`{REGEN or "none"}` custom=`{CUSTOM_GATES or "none"}`; gate baseline `{GATE_BASELINE}`
+- Gates: format=`{FORMAT}` lint=`{LINT}` build=`{BUILD}` test=`{TEST}` regen=`{REGEN or "none"}` custom=`{CUSTOM_GATES or "none"}`; checks baseline `{CHECKS_BASELINE}`
 - Model lineup: {MODEL_LINEUP or "none declared"}
 - Standing authorization: {STANDING_AUTH or "none"}
 - Your own wave preview, above
@@ -94,8 +94,8 @@ Trailers file: {TRAILERS_FILE or "none"}   (Phase 0 resolved; pass to bb-close-b
 Slim gates: {SLIM_GATES}    (yes = a pre-push CI-mirror hook AND a PR whose pushes
                              actually run full CI; resolved by the orchestrator, never
                              asked again here)
-Known-red gates: {GATE_BASELINE}
-    (INLINE the contents of $RUN_DIR/gate-baseline.md here, verbatim. Include this
+Known-red gates: {CHECKS_BASELINE}
+    (INLINE the contents of $RUN_DIR/checks-baseline.md here, verbatim. Include this
      block even when nothing is known-red — write "none: every gate passed at
      baseline" — so "nothing is red" and "no baseline was taken" cannot look alike.)
 
@@ -137,8 +137,8 @@ until the batch returns.
 Run dir: {RUN_DIR}
 Scripts: {SCRIPTS}
 Trailers file: {TRAILERS_FILE or "none"}   (Phase 0 resolved; pass to bb-close-bead.sh --trailers-file)
-Known-red gates: {GATE_BASELINE}
-    (INLINE the contents of $RUN_DIR/gate-baseline.md here, verbatim. Include this
+Known-red gates: {CHECKS_BASELINE}
+    (INLINE the contents of $RUN_DIR/checks-baseline.md here, verbatim. Include this
      block even when nothing is known-red — write "none: every gate passed at
      baseline" — so "nothing is red" and "no baseline was taken" cannot look alike.)
 

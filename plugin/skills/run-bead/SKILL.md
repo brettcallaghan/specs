@@ -31,7 +31,7 @@ identical.
 | gates | `{FORMAT}` `{LINT}` `{BUILD}` `{TEST}` `{REGEN}` `{CUSTOM_GATES}` | `checks list`, then `checks run` |
 | `{SCRIPTS}` | given | `bead-bonanza/scripts/` |
 | `{TRAILERS_FILE}` | given, or `none` | `none` |
-| `{GATE_BASELINE}` | given — the known-red gates block | `checks run` on a clean tree, before you start |
+| `{CHECKS_BASELINE}` | given — the known-red gates block | `checks run` on a clean tree, before you start |
 | push mode | `push_per_bead` or `defer_push` | push your branch when the work is done |
 
 **Never work in the main checkout when a worktree was given**, and never work
