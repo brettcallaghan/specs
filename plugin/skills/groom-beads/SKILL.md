@@ -205,7 +205,35 @@ can read it at dispatch:
 ```
 bd update <id> --set-metadata tier=standard \
   --set-metadata tier_reason="localized CRUD + tests, low ambiguity" \
-  --set-metadata est_size=S
+  --set-metadata est_size=S \
+  --set-metadata execution_suggested_model=standard \
+  --set-metadata execution_reasoning_effort=medium \
+  --set-metadata execution_agent_type=worker
+```
+
+The `execution_*` keys are `bd`'s own documented convention (`docs/METADATA.md`),
+and writing them is what makes a groomed bead portable to an orchestrator that
+never read this skill. Three things that convention settles:
+
+- **`execution_suggested_model` takes the TIER, not a model name.** The
+  convention calls it "a capability-tier suggestion", and says a consumer on a
+  different provider substitutes a model of the same tier rather than dropping
+  the hint. So it carries the same value as `tier`.
+- **`execution_reasoning_effort`** is a canonical advisory scale — `low`,
+  `medium`, `high`, `xhigh`. Record it rather than leaving it unset: a consumer
+  on a different scale maps to its nearest native level, but it cannot map an
+  absent value.
+- **`execution_agent_type`** is the worker class (`explorer`, `worker`,
+  `mixed`).
+
+`tier` and `tier_reason` stay. `tier_reason` has no counterpart in the
+convention, and `tier` is what 205 of this tracker's beads already carry — the
+orchestrator reads `execution_suggested_model` first and falls back to `tier`,
+so old beads keep routing correctly and no bulk rewrite is required. Backfill
+is optional and per-bead:
+
+```
+bd update <id> --set-metadata execution_suggested_model="$(bd show <id> --json | jq -r '.[0].metadata.tier')"
 ```
 
 Two flags write metadata and they are not interchangeable — probe both

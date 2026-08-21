@@ -44,6 +44,9 @@ EDGE_TYPES = {"blocks", "blocked-by", "parent", "related", "discovered-from"}
 # binds tiers to named models in its own `## model lineup` block, so a lineup change
 # never edits this file. Canonical definition: spec skill, work-order-field-guide.md.
 TIERS = ["light", "standard", "advanced", "frontier"]
+# bd's documented advisory scale (docs/METADATA.md). A consumer on a different
+# scale maps to its nearest native level, so the stored value must be canonical.
+EFFORTS = ["low", "medium", "high", "xhigh"]
 SIZES = {"XS", "S", "M", "L", "XL", None}
 BLOCKED = {"blocked-needs-info", "blocked-ungroomable"}
 
@@ -159,6 +162,24 @@ def _builtin_structural(bead, rep, bid):
         else:
             if "tier" in md and md["tier"] not in TIERS:
                 rep.err(bid, f"metadata.tier '{md['tier']}' not in {TIERS} (least to most capable)")
+            # bd's documented execution hints. `execution_suggested_model` holds a
+            # TIER, not a model name — the convention defines it as a capability-tier
+            # suggestion a consumer substitutes a same-tier model for.
+            esm = md.get("execution_suggested_model")
+            if esm is not None and esm not in TIERS:
+                rep.err(bid, f"metadata.execution_suggested_model '{esm}' not in {TIERS} "
+                             f"(it carries a TIER, not a model name)")
+            eff = md.get("execution_reasoning_effort")
+            if eff is not None and eff not in EFFORTS:
+                rep.err(bid, f"metadata.execution_reasoning_effort '{eff}' not in {EFFORTS}")
+            # Dispatch reads execution_suggested_model first and falls back to tier,
+            # so two different values make routing depend on read order.
+            # Only when the value is otherwise valid — the check above already tells
+            # the author what is wrong, and two errors for one gap is noise.
+            if esm in TIERS and md.get("tier") is not None and esm != md["tier"]:
+                rep.err(bid, f"metadata.execution_suggested_model '{esm}' disagrees with "
+                             f"metadata.tier '{md['tier']}' — dispatch reads the first and "
+                             f"falls back to the second, so they must match")
             if md.get("est_size") not in SIZES:
                 rep.err(bid, f"metadata.est_size '{md.get('est_size')}' not in {sorted(x for x in SIZES if x)}")
 
@@ -184,7 +205,7 @@ def semantic_checks(beads, rep, vocab, have_c4_docs):
                     # to diagnose — but still an error, because dispatch reads `tier`.
                     rep.err(bid, f"ready bead has metadata.model '{md['model']}' but no metadata.tier "
                                  f"— migrate: set tier to one of {TIERS} per the project's "
-                                 f"`## model lineup`, move the rationale to tier_reason, and drop "
+                                 f"`sf.toml` [models] lineup, move the rationale to tier_reason, and drop "
                                  f"`model` unless a named model is genuinely required")
                 else:
                     rep.err(bid, f"ready bead has no metadata.tier (must be non-null; one of {TIERS}, "

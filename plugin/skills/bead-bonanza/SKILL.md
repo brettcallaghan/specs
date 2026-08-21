@@ -568,7 +568,9 @@ Three things stay yours:
 1. **The run manifest.** Write
    `${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/dispatch.md`'s header — the
    pre-flight stdout block, the resolved `checks` script, gate baseline, model lineup, the
-   run's effort setting, standing authorization and environmental ledger —
+   run's effort setting (`metadata.execution_reasoning_effort` per bead, on the
+  convention's `low`/`medium`/`high`/`xhigh` scale), standing authorization and
+  environmental ledger —
    **before** you dispatch grooming. WHERE the harness exposes no effort
    setting, write `unrecorded` — never omit the field and never guess a
    value; an omitted field is indistinguishable from a forgotten one, and a
@@ -621,8 +623,15 @@ ordinary judgment; whether it is *safe* is the entry conditions above.
 
 Beads carry a **capability tier** from the grooming phase — the Phase 1.5
 gate guarantees one (grooming assigns a default, never null), stored as
-`metadata.tier` — the single home for it, and the one grooming writes. The
-tiers are ordered, least to most capable:
+`metadata.execution_suggested_model`, falling back to `metadata.tier`. Both
+are written by grooming; the first is `bd`'s own documented convention
+(`docs/METADATA.md`), which is what makes a groomed bead routable by an
+orchestrator that never read this skill, and the second is what 205 of this
+tracker's existing beads carry. **Read the documented key first and fall back**
+— that is the whole migration, and no bulk rewrite is required. Despite its
+name, `execution_suggested_model` holds a TIER: the convention defines it as
+"a capability-tier suggestion", to be substituted for a same-tier model on a
+different provider. The tiers are ordered, least to most capable:
 
 ```
 light  →  standard  →  advanced  →  frontier
@@ -899,7 +908,8 @@ with any RFCs in a single commit.
   the circuit breaker above is what stops the run. If a subagent crashes
   mid-step, follow the recovery procedure (the worktree and the bead are the
   anchors).
-- **Route by tier, and report every escalation.** A bead's `metadata.tier` is
+- **Route by tier, and report every escalation.** A bead's tier —
+  `metadata.execution_suggested_model`, else `metadata.tier` — is
   grooming's *prediction* of the capability the work needs; resolve it to a
   model via the project's `sf.toml` `[models]` lineup and dispatch there (Phase 2.5 → Tier
   selection). Assign nothing below the tier; escalate one tier on repeated
