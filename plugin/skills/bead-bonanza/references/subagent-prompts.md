@@ -342,10 +342,38 @@ committing them lands in-flight bead state on the sprint branch.
 2. **Accept**: verify the bead reads `closed` and its commit exists on the
    bead's branch. This is the acceptance check; the worktree still existing at
    this point is what tells you the bead is not yet done.
-3. **Merge** into the sprint branch, one bead at a time:
+3. **Merge** into the sprint branch, one bead at a time. Take the merge slot
+   first and release it after:
+
    ```sh
+   bd merge-slot acquire            # --wait to queue behind a holder
    git -C "$REPO" merge --ff-only <suffix>
+   bd merge-slot release
    ```
+
+   `bd merge-slot create` once per run makes the slot bead (`<prefix>-merge-slot`)
+   if the project has none. It works outside a Gas Town rig.
+
+   **What the slot is for here, and what it is not.** Only the orchestrator
+   merges, so within one run the serialization already holds by construction —
+   the slot is not what makes merges one-at-a-time. It earns its place by making
+   that state *visible*: `bd merge-slot check` names the holder, so a wave that
+   looks stalled has an answer, and a second session that resumed the same run
+   finds the slot held rather than merging concurrently with the first.
+
+   Three measured behaviours to hold it correctly:
+
+   - **Acquire is not idempotent.** Re-acquiring a slot you already hold fails
+     with `slot held by: <you>`. So a failed release leaves your own next
+     acquire failing, indistinguishable from a sibling holding it — release on
+     every path out of a merge, including the failure paths.
+   - **Release does not check the holder.** Any agent can release anyone's
+     slot, and releasing an unheld slot succeeds silently. That is the failure
+     path for a slot held by a dead agent — just release it — and equally the
+     reason the slot is advisory: it records intent, it does not enforce it.
+   - **The holder is the actor** (`$BEADS_ACTOR`, else git `user.name`), so set
+     `BEADS_ACTOR` if you want the holder to name something more specific than
+     the harness default.
    **`--ff-only` is deliberate — in a SEQUENTIAL wave.** Each bead branches
    from an already-updated head, so every merge is a fast-forward and a refusal
    means an invariant broke: a worktree branched from the wrong base. **Stop
@@ -371,6 +399,11 @@ committing them lands in-flight bead state on the sprint branch.
    merged into the sprint branch as it is accepted, so accepting the wave's
    first bead moves the head before its second is merged. A sha noted at wave
    start is already stale, and `--ff-only` is right to refuse it.
+
+   **The merge slot does not cover this rule, so the rule stays.** The slot
+   serializes *who merges*; staleness is a single merger reading a sha too
+   early and still holding the slot when it uses it. Holding a lock across a
+   stale read produces exactly the same wrong rebase, on time.
 
    Rebase keeps one-commit-per-bead and a linear history, so it is the
    concurrent analogue of the sequential guarantee. **The collision signal moves

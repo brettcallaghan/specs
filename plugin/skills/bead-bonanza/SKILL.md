@@ -89,10 +89,14 @@ before **each** wave, not once per run.
 sprint branch as it is accepted, one at a time; subagents never merge. A
 chained batch is merged by fast-forwarding the LAST bead's branch, which
 carries its predecessors — not by merging each bead's branch in turn. Either
-way the result is linear history and one commit per bead. What a `--ff-only`
-refusal means differs between a sequential and a concurrent wave, and reading
-it wrong stops a healthy wave — take that rule from the lifecycle named below
-before you merge anything.
+way the result is linear history and one commit per bead. Take
+`bd merge-slot acquire` before each merge and release it after — not to make
+merges one-at-a-time, which the single-merger rule already does, but so a
+stalled wave has a queryable answer and a resumed session cannot merge
+alongside the original. What a `--ff-only` refusal means differs between a
+sequential and a concurrent wave, and reading it wrong stops a healthy wave —
+take that rule, and how to hold the slot, from the lifecycle named below before
+you merge anything.
 
 Where the worktree lives, how `bd` behaves inside one, the base-ref remedy, and
 the create/merge/remove lifecycle are all in `references/subagent-prompts.md`,
