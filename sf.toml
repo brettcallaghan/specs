@@ -11,8 +11,8 @@
 # gitignored, so the declaration would not travel with the repository).
 
 [checkpoints]
-# The gate entry point. Its own header carries the contract:
-#   checks list | checks run [<gate>...] | checks targeted <path>...
+# The gate entry point. The contract in full: run it, and exit 0 means every
+# check passed. Its own header carries the rest.
 checks = "scripts/checks"
 
 [models]
