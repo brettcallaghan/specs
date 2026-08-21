@@ -16,7 +16,7 @@ write any of it silently.
 
 ---
 
-1. **Resolve the gate entry point.** bead-bonanza learns how to validate a bead
+1. **Resolve the checks script.** bead-bonanza learns how to validate a bead
    by running the project's **`checks` script**. Phase 0 resolves it in this
    order, first hit wins, and blocks the run when none is found:
 
@@ -53,8 +53,8 @@ write any of it silently.
      script to the user, let them confirm or correct it, then write it and
      offer to commit it. Future runs hit the fast path.
    - If the project genuinely has no build/test step (e.g. a pure-docs repo),
-     the script still exists and `list` names whatever it does have. Don't
-     invent gates.
+     the script still exists and runs whatever it does have. Don't invent
+     checks.
 
    The **environmental-failure ledger** stays in `AGENTS.md` as prose: it is
    read by agents, not executed, and it is the one part of the old block that
@@ -101,7 +101,7 @@ write any of it silently.
      `Bash(<skill-dir>/scripts/bb-verify-skip.sh:*)`,
      `Bash(<skill-dir>/scripts/bb-close-bead.sh:*)`
    - The `checks` script's path (e.g. `Bash(scripts/checks:*)`), plus whatever
-     the gates it runs invoke underneath (e.g. `Bash(cargo:*)`,
+     the checks it runs invoke underneath (e.g. `Bash(cargo:*)`,
      `Bash(npm run test:*)`, `Bash(go build:*)`, `Bash(pytest:*)`)
    - `Read(/tmp/claude/**)` — and `Read($TMPDIR/**)` too WHEN `TMPDIR` is set
      (macOS sets it to a per-user dir; most Linux hosts leave it unset)

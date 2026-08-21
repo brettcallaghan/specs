@@ -364,7 +364,7 @@ Eval the stdout — it sets `RUN_DIR`, `SCRIPTS` and the `BB_*` facts this
 document refers to elsewhere. Read the stderr report once. Exit **0**
 proceed; **1** blocking, named in the report and fixed before Phase 1 — a
 missing `AGENTS.md` block means read `references/project-setup.md` and draft
-it WITH the user, never invent gates or a lineup from memory; **2** you
+it WITH the user, never invent checks or a lineup from memory; **2** you
 called it wrong.
 
 Those facts are ledger lines with a command behind them. **Do not re-assert

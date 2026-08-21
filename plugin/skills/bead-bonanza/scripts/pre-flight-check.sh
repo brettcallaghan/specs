@@ -243,7 +243,7 @@ for _c in "${BB_CHECKS:-}" "$_declared" scripts/checks; do
   fi
 done
 if [ -z "$CHECKS" ]; then
-  block "no checks script found (looked at \$BB_CHECKS, sf.toml's [checkpoints] checks key, scripts/checks) — read references/project-setup.md and write one WITH the user; do not invent gates"
+  block "no checks script found (looked at \$BB_CHECKS, sf.toml's [checkpoints] checks key, scripts/checks) — read references/project-setup.md and write one WITH the user; do not invent checks"
 else
   say "checks script: $CHECKS"
 fi
