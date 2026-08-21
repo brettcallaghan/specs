@@ -423,7 +423,30 @@ bead-bonanza dispatches **only groomed beads.** Every later phase already
 assumes grooming's outputs: Phase 1's `bd ready` ordering comes from the
 dependency graph grooming wires; this gate's own cheap check reads the
 `decision-required` label grooming sets (DoR check 9); Phase 2.5 reads the
-tier assignment grooming makes. An ungroomed queue makes every one of them
+tier assignment grooming makes.
+
+**Raise every bounced bead into `bd`'s human queue.** A bead this gate bounces
+carries `decision-required`; also add the **`human`** label, which is what
+`bd human list` and `bd human stats` read. The bounce then has a queryable
+state rather than living only in a report line the user has to notice — and it
+survives the session that produced it, which a report line does not. Surface
+`bd human list` at the point the report prints the bounce list, so the two
+cannot disagree.
+
+**Resolve by removing the label, never with `bd human respond`.** The answer
+goes on the bead as a `bd comment`, then `bd update <id> --remove-label human`
+(and `decision-required` once the gap is actually closed), and the bead
+re-enters the readiness gate on the next pass — no full re-run. Two independent
+reasons not to use `respond`: it is documented to add a comment **and close**
+the bead, and a bounced bead is not finished; and on bd 1.2.2 it fails outright
+— `bd human respond <id> -r "..."` errors with `cannot resolve issue ID
+"<id>": storage is nil`, reproduced in two separate embedded workspaces, while
+`list` and `stats` work in both.
+
+`bd gate --await human:<prompt>` is the other candidate and is **not** used
+here: gates are created by a formula step's `gate` field, and this skill runs
+no formula. A human item stopping the chain is the behaviour that matters, and
+the label already delivers it. An ungroomed queue makes every one of them
 unreliable — and handing a fresh, zero-context subagent an under-specified
 bead is the single most expensive failure mode this skill has: it detonates
 mid-wave, after later beads have built on it.
@@ -514,7 +537,7 @@ decides:
   intended autonomy. Grooming closes decisions along with the rest of the
   Definition of Ready. (A groomed prerequisite that still lands a
   `decision-required` label stops for the user, per the standing-authorization
-  terms.) Grooming and wiring the edge are tracker writes, which need not wait
+  terms — and is raised into the human queue with it.) Grooming and wiring the edge are tracker writes, which need not wait
   for a wave boundary (`references/operating-principles.md`).
 - **Out-of-scope** → leave it filed and linked, do NOT dispatch it, and surface
   it in the final report for the user to triage. The standing authorization
