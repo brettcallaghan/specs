@@ -24,9 +24,9 @@ in scope before delegating.
 
 **After any compaction, before dispatching anything:** re-read this file from
 Phase 0 onward, then invoke the **`recover-sprint`** skill. A compacted session
-re-injects only this file's first ~5,000 tokens, so the per-bead ceremony, the
-published script interfaces and the rule against paraphrasing a dispatch
-template are NOT in your context even though you have "read the skill".
+re-injects only this file's first ~5,000 tokens, so the dispatch templates and
+the published script interfaces are NOT in your context even though you have
+"read the skill".
 `recover-sprint` re-derives run state from the durable sources (the branch,
 `dispatch.md`, `git worktree list`, the tracker) rather than from a summary of
 it, and a skill name survives truncation where a relative path does not. Then
@@ -277,9 +277,12 @@ specifies, cancelling it in Phase 4.
 The dispatch prompts — per-bead (sequential/worktree), doc/chore
 fast lane, shared-surface batch, plus the orchestrator's worktree
 merge notes — are in `references/subagent-prompts.md`. **Read that file at
-dispatch** and fill in every `{PLACEHOLDER}` before sending. Do not
-paraphrase a template from memory: the per-bead ceremony is ordered, and
-the ordering is what makes the crash-recovery path mechanical.
+dispatch** and fill in every `{PLACEHOLDER}` before sending. The templates
+now carry inputs and batch-specific steps only: the ceremony itself is the
+**`run-bead`** skill, which the subagent invokes by name. A skill name
+survives a paraphrase where a ten-step ordered procedure does not, which is
+why the old rule against paraphrasing a template is gone rather than
+restated.
 
 ## Reference files
 

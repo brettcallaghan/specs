@@ -35,7 +35,7 @@ preamble** below instead of repeating it. **The orchestrator concatenates
 that preamble plus the template into the single text it actually sends** —
 the subagent reads only the assembled prompt, never this file, so a batch
 prompt sent without the preamble is incomplete: the subagent silently loses
-the worktree-creation mechanics, the per-bead workflow step, and the return
+the worktree-creation mechanics, the `run-bead` invocation, and the return
 contract along with it.
 
 ---
@@ -95,71 +95,10 @@ Slim gates: {SLIM_GATES}    (yes = a pre-push CI-mirror hook AND a PR whose push
                              actually run full CI; resolved by the orchestrator, never
                              asked again here)
 
-## Workflow — follow in order, do not deviate
-
-Progress is reported by the tracker, not by you: `bd` emits an event on every
-status change, so claiming and closing the bead is what the orchestrator sees.
-Write no progress file.
-
-1. Claim: `bd update {ID} --claim` — atomic, and idempotent when the claim is
-   already yours. It sets status **and** assignee in one write, where
-   `--status in_progress` sets only the status and leaves the bead claimed by
-   nobody. The assignee comes from the actor (`$BEADS_ACTOR`, else git
-   `user.name`), so a subagent that exports its own `BEADS_ACTOR` is
-   identifiable in the tracker as the one holding the bead.
-2. Read full details: `bd show {ID}`
-3. Implement the change. **If this bead fixes a defect or regression, first write (or locate) a test that reproduces it and observe it FAIL for the stated reason BEFORE you fix it** — a test written after the fix encodes the fix's own assumptions and can stay green while the defect is live. Record the observed failure; it goes in a `retro:` comment (step 6). Stay strictly within this bead's scope. If you find work beyond it, file a new bead via `bd create` with a `discovered-from` link to {ID}, noting in one line whether it *blocks* this bead (a prerequisite, an acceptance-criteria decomposition, or an expected test-coverage gap) or is merely adjacent — the orchestrator decides whether it enters the run. Do NOT implement it or pull it into your own scope. This includes a gap you can see that is not yours to close — a document no bead in the queue claims, a step every adjacent bead assumed another would take. **"Not this bead's to close" is a reason to FILE it, not a reason to leave it unfiled.** If this bead genuinely cannot be finished without it, take the Blocked path naming the new bead as the blocker; otherwise continue with the original — do NOT expand scope inline. For any implicit decision you must make, record what you chose (and why) — it goes in a `retro:` comment (step 6).
-4. **The push is the gate** — this is a single-bead push, so full gates run here before pushing. If the change affects generated output the tests compare against (codegen, snapshots, golden files, schemas) AND `checks list` names a regen gate, run it BEFORE the test gate.
-   - `{FORMAT}`
-   - `{LINT}`
-   - `{BUILD}`
-   - `{TEST}`
-   - Any custom gates from the profile: `{CUSTOM_GATES}` (skip if none)
-   On gate failure, fix the root cause and rerun. After two full failed cycles, follow the Blocked path — do not keep retrying.
-5. **WHEN the close must do something differently, record it on the bead before closing** — `bd comment {ID} "caveat: <what and why>"`. A regen step that must run before staging, a fixture this bead regenerated. **Only when there is one**; a bead with nothing to say records nothing. It goes on the bead rather than in a file because the tracker is what a recovering orchestrator already reads, and a caveat that outlives the container is worth more than one that does not.
-6. **Record findings as `retro:` comments on {ID}** — one `bd comment` per finding, prefixed `retro:`, 1–3 sentences each, friction only, no root-causing. That comment channel is what downstream retros and RFCs actually read. Trigger list — record one WHEN: you needed information the bead and its references did not carry; you had to settle something the bead or spec should have pinned; the bead contradicted repo reality; you could not satisfy an acceptance criterion as declared; a sequencing surprise. **Work, not friction.** IF what you found is a unit of work someone must do — a gap in scope, a missing artifact, a prerequisite — it is a BEAD (step 3), not a retro comment, even when it also reads as friction. File it, then optionally record a `retro:` comment about *why the gap existed*. A retro comment is read by a later retrospective; a bead is read by this run's orchestrator, and routing work here means nothing acts on it before the run ends. **A clean bead records none — say so rather than inventing filler.** Record each of these as its own `retro:` comment too:
-     - **What you tried that did not work** — the reading you took first and abandoned, and why. The diff shows only the reading that survived, so this is unrecoverable later.
-     - **What you decided silently** — only choices a diff-reader would not recognise AS choices. Narrower than "every implicit decision": an internal helper's name or the order of two independent guard clauses qualifies; the approach the bead already specified does not.
-     - **For a defect bead: the observed pre-fix failure**, quoted from actual output. If you could not reproduce it, say so and say what you substituted.
-7. Close and commit in one step — run the bundled script. WHEN `{TRAILERS_FILE}` is not "none", pass it first so the trailers land in the same commit and no amend is ever needed:
-   `{SCRIPTS}/bb-close-bead.sh --trailers-file {TRAILERS_FILE} {ID} {PRIORITY} "{TITLE}"`
-   Otherwise (`{TRAILERS_FILE}` is "none"): `{SCRIPTS}/bb-close-bead.sh {ID} {PRIORITY} "{TITLE}"`
-   **Pass no paths.** You are in this bead's own worktree, so everything modified here is this bead's work and the script stages all of it. A path list can only be too narrow.
-   It performs the whole ceremony in the required order: atomic close (`bd update --status closed`, never `bd close` — that would be a second commit), verify the close against the DATABASE (`bd show`) before anything is staged, stage **code only** (`git add -A -- ':!.beads/*.jsonl'`), one commit messaged `{ID} P{PRIORITY} {TITLE}` (plus the trailers file's contents in the body, when given), then `bd dolt push` — the push, not a file, is what makes the closure durable. It writes and stages no `.beads/` export, and neither do you. It does not touch the description — grooming owns that. It refuses to run on `main` or with nothing staged. Do not perform these steps by hand, and do not `git commit --amend` afterward — if a required trailer is missing, that means `{TRAILERS_FILE}` was resolved wrong at Phase 0, not something to patch here.
-8. If push mode is `push_per_bead`: `git push origin <branch>` on the current branch (never main). If `defer_push`: skip the push; the orchestrator handles it.
-9. Return one line as your final message:
-    - Success → `{ID}: closed <short-sha>`
-    - Blocked → `{ID}: blocked - <short reason>`
-    - Skipped → `{ID}: skipped - <short reason>`
-
-## Blocked path
-
-If gates fail twice, the change is intractable, or the bead cannot be finished without a prerequisite you filed:
-- `bd update {ID} --status blocked --append-notes "<short reason>"` — if a filed prerequisite is the blocker, name its id in the reason.
-- **Leave your uncommitted changes exactly where they are, in your worktree.** Do NOT stash and do NOT commit them. The worktree holds the partial work and its continued existence is what tells the orchestrator this bead is unfinished; stashing would move the work out of it and destroy that signal.
-- Return the blocked summary line. Do not push.
-
-## Skipped path
-
-If the bead is already addressed, malformed, or duplicates a closed bead:
-
-1. **Confirm your working tree is clean — this is a hard precondition, not a courtesy.** Run `{SCRIPTS}/bb-verify-skip.sh` before anything else. It must exit 0.
-
-   If it exits 1 it prints what is dirty and the two ways out: finish the close ceremony as `completed` (the work belongs to this bead), or revert/stash the changes and re-run until CLEAN. Do not proceed while it exits 1.
-
-   The orchestrator runs the same script on return (Phase 3 post-return step 3), so a contradictory claim will be caught and re-dispatched either way — but its check is the safety net, and yours is the primary line of defense.
-
-2. `bd update {ID} --status closed --append-notes "duplicate of <id>"` (or similar one-line rationale).
-
-3. Return the skipped summary line **with a citation**: `{ID}: skipped - already addressed by <bead-id> @ <short-sha>` or `{ID}: skipped - duplicates <bead-id> (closed YYYY-MM-DD)`. "Already done" without a citation is not acceptable; the orchestrator can't verify it. To find the citation, use `git log --oneline --all | grep <keyword>` or `bd show <suspected-duplicate-id>`.
-
-## Constraints
-
-- Do not ask the user questions. Decisions are baked into this prompt.
-- Do not modify code outside this bead's scope.
-- A bead already claimed by another assignee when you arrive belongs to a live sibling — treat it as untouchable, exactly like foreign working-tree changes, and leave claim reconciliation to the orchestrator. Re-claiming your OWN bead is safe and needs no rule: `--claim` is idempotent when the claim is already yours.
-- If you realize a required step was missed (e.g. a regen step a caveat named) after committing, add a NEW follow-up commit — never amend a commit that may already be pushed. (Amending a local commit you are certain is unpushed, to fold in a missed step, is fine.)
-- Only push the current branch — never push to main.
+**Then invoke the `run-bead` skill.** It carries the ceremony — claim, read,
+implement in scope, gate, caveat, findings, close-and-commit, push, return —
+together with the blocked and skipped paths and its own acceptance criteria.
+The template above supplies its inputs; it supplies the procedure.
 ```
 
 ## Shared batch preamble
@@ -168,11 +107,11 @@ Both batch templates below (doc/chore fast-lane, shared-surface) open with
 this block rather than repeating it. **The orchestrator concatenates this
 preamble plus the chosen template into the one text it sends** — a batch
 prompt assembled without it is missing the worktree-creation mechanics, the
-per-bead workflow step, and the return contract, with nothing to catch the
+`run-bead` invocation, and the return contract, with nothing to catch the
 loss downstream.
 
 ```
-Read CLAUDE.md and AGENTS.md if you need conventions; gate commands are in AGENTS.md under "## bead-bonanza gates".
+Read CLAUDE.md and AGENTS.md if you need conventions; gate commands come from the project's `checks` script.
 
 Worktrees: **where the orchestrator already provisioned one for you (the harness's
 `isolation: "worktree"`), you have exactly ONE worktree for EVERY bead in this batch —
@@ -195,7 +134,7 @@ Run dir: {RUN_DIR}
 Scripts: {SCRIPTS}
 Trailers file: {TRAILERS_FILE or "none"}   (Phase 0 resolved; pass to bb-close-bead.sh --trailers-file)
 
-For each bead, first run the per-bead workflow (claim → read → implement → `retro:` comments → atomic close → stage → single commit → optional push) exactly as in the sequential template — including its close step's `--trailers-file {TRAILERS_FILE}` and reading the committed sha with `git rev-parse --short HEAD` rather than the script's printout. Then run the template-specific steps below.
+For each bead, first invoke the `run-bead` skill — it carries the ceremony, and the blocked and skipped paths — passing this bead's id, priority, title and `--trailers-file {TRAILERS_FILE}`. Read the committed sha with `git rev-parse --short HEAD` rather than from the script's printout. Then run the template-specific steps below.
 
 When the batch is done, return ONE message containing N+1 lines: one per-bead summary, then a final `batch-end: full gates {passed|failed}`.
 ```
@@ -261,7 +200,7 @@ Beyond the shared per-bead workflow above:
 
 - Each bead is its own commit. Never combine bead changes into one commit.
 - If a bead's implementation conflicts with an earlier bead in this batch (e.g. one removed a function the next was about to modify), follow the Blocked path for the conflicting bead and continue with the rest.
-- Same per-bead constraints as the sequential template.
+- Same per-bead constraints as `run-bead`'s Constraints section.
 ```
 
 ## Worktree mechanics (orchestrator)
