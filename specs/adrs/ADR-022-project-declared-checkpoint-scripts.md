@@ -1,20 +1,19 @@
 ---
 title: "ADR-022: Projects Declare Checkpoint Scripts"
-description: A project declares its gate commands as executable checkpoint
-  scripts referenced from a plugin-scoped sf.toml, and those scripts report
-  findings with
-  paths rather than a bare exit code, because a prose gate profile cannot
-  express a multi-command gate and a bare exit code cannot express a
-  known-red baseline
+description: A project declares its gate commands as one executable checks
+  script referenced from a plugin-scoped sf.toml, reporting a verdict per gate
+  on stdout and passing its tools' own output through on stderr, because a
+  prose gate profile cannot express a multi-command gate and a bare suite-wide
+  exit code cannot express a known-red baseline
 slug: adr-022
 type: adr
-status: draft
+status: active
 updated_at: 2026-08-17T00:00:00Z
 ---
 
 # ADR-022: Projects Declare Checkpoint Scripts
 
-**Status:** draft
+**Status:** active
 **Date:** 2026-08-17
 
 ## Context
@@ -55,31 +54,56 @@ one workflow.
 
 ## Decision
 
-A project declares **checkpoint scripts** — executables it owns — through
-`sf.toml`, a plugin-scoped config file at the repository root, referenced by
-repository-root-relative path. `bead-bonanza` runs them and reads their
-output; it parses no prose.
+A project declares **one executable `checks` script** — an executable it owns
+— through `sf.toml`, a plugin-scoped config file at the repository root,
+referenced by repository-root-relative path. `bead-bonanza` runs it and reads
+its output; it parses no prose.
 
-Two checkpoints, the ones `AGENTS.md` gives instructions for today:
+The contract is three subcommands and one output rule:
 
-- **`preflight`** — run as the last step of Phase 0.
-- **`check`** — run after every bead's implementation, in that bead's
-  worktree.
+```
+checks list                  Gate ids, in the order they must run, one per line.
+checks run [<gate>...]       Run every gate, or only the named ones.
+checks targeted <path>...    The gate ids covering those paths.
+```
 
-A checkpoint script reports **findings with paths**, not a bare verdict. Its
-exit status is the verdict; each finding it emits carries a file path, so a
-finding can be attributed to the bead that owns that file.
+`run` writes one line per gate to **stdout** —
+`RESULT <gate> <pass|fail|skip> <exit-code>` — and passes everything the
+underlying tools printed through to **stderr**, unaltered. Exit 0 when every
+gate run passed or was skipped, 1 when any failed, 2 on an invocation error.
+
+**A checkpoint reports its tools' own output, not a structured findings
+format.** This is the load-bearing choice and it runs opposite to this ADR's
+first draft, which required findings carrying file paths so a finding could be
+attributed to the bead owning that file. A project's checks script wraps
+`go test`, `eslint`, `gofmt`, `pytest` — formats the project does not control.
+Requiring paths would not remove the parsing that motivated this ADR; it would
+move it out of `bead-bonanza` and onto every project that wants to be gated,
+once per tool. The verdict is the one thing the script must synthesize, because
+it is the one thing the tools do not already say.
+
+**Only the gate ids are a contract.** The set is the project's to choose;
+ordering lives in `list`, so a step that must precede another — a regen before
+a test — is sequenced by the project rather than by the caller. A check that is
+known-red gets its own gate id, so the baseline can carry it without marking a
+healthy check red.
 
 The run's known-red state is written once by pre-flight to
-`$RUN_DIR/gate-baseline.md` — the gate baseline and the environmental-failure
-ledger in one file, which is what `SKILL.md` already says the ledger is — and
-a rendered summary is **inlined into every subagent prompt**, always, including
-when it is empty.
+`$RUN_DIR/gate-baseline.md` — the verdict table plus, verbatim, the output each
+failing gate produced — and is **inlined into every subagent prompt**, always,
+including when it is empty, since "nothing is known-red" and "no baseline was
+taken" must not look alike.
 
-Per-bead attribution of baseline findings belongs to `plan-sprint`, not to the
-script and not to the orchestrator: at Phase 2.5 the planner already holds the
-enumerated queue and each bead's component and file surface, and already
-computes file-level overlap for wave packing.
+**Attribution is by comparison, done by the bead.** The bar "no findings beyond
+baseline" is a bead reading its own gate output against the baseline's: a line
+in both was already there, a line only in its own is its own. That needs no
+structure in either text, and it needs no precomputation — which retires this
+ADR's assignment of per-bead attribution to `plan-sprint`.
+
+There is **one** project-supplied checkpoint, not two. `bead-bonanza`'s own
+`pre-flight-check.sh` is the preflight step, and it is the skill's, not the
+project's; what the project supplies is the thing run per bead and at the
+baseline, which is `checks`.
 
 **What this does not change.** A checkpoint finding is one of four kinds of
 finding a run produces, and they are not interchangeable — conflating the
@@ -88,13 +112,15 @@ first two is what left the baseline undelivered:
 | Finding | Channel | Read by | When |
 |---|---|---|---|
 | Pre-existing, owned by no queued bead | `$RUN_DIR/gate-baseline.md`, inlined in every prompt | every subagent | at dispatch |
-| Pre-existing, owned by a queued bead | that bead's slice of the prompt, computed by `plan-sprint` | that bead only | at dispatch |
+| Pre-existing, owned by a queued bead | the same baseline block; the bead recognises its own by comparing its gate output against it | that bead | when it runs its gates |
 | Discovered mid-run, someone must act | a bead (`bd create --discovered-from`) | this run's orchestrator | immediately |
 | Friction or observation | a `retro:` comment on the bead | a later retrospective | Phase 4 |
 
-Only the first two are this ADR's subject. The third is the tracker, which is
-live and queryable mid-run; the fourth is harvested after the run ends, which
-is why it is the wrong channel for anything anyone must act on.
+Only the first two are this ADR's subject, and they share one channel: the
+distinction between them is drawn by the bead at gate time, not by the run
+ahead of time. The third is the tracker, which is live and queryable mid-run;
+the fourth is harvested after the run ends, which is why it is the wrong
+channel for anything anyone must act on.
 
 ## Alternatives Considered
 
@@ -102,7 +128,8 @@ is why it is the wrong channel for anything anyone must act on.
 |--------|------|------|--------------|
 | Keep parsing `AGENTS.md`, teach the parser fenced blocks | Smallest change; no project migration | Fixes one shape of a general defect; still cannot express per-surface tests, conditional gates, or a findings count; the parser silently takes a wrong span when prose precedes the command | Treats the instance, not the class. The parser would still return a string where the baseline needs a count |
 | Discovery by `.specs/hooks/<name>` convention | Zero configuration; nothing to declare | Introduces a dotted directory one character from the existing `specs/` corpus root and meaning something entirely different; a magic directory is undiscoverable until it is documented, which is the problem being solved | The `specs/` / `.specs/` confusability is a standing trap for every reader of this repository |
-| A strict machine-readable contract (JSON schema for findings) | Unambiguous; validatable | A schema the project must satisfy makes writing a checkpoint script a specification exercise; projects with a one-line lint gate would pay the full cost | Disproportionate. The contract is guidance plus a thin emission convention, below |
+| A strict machine-readable contract (JSON schema for findings) | Unambiguous; validatable | A schema the project must satisfy makes writing a checkpoint script a specification exercise; projects with a one-line lint gate would pay the full cost | Disproportionate — and, on implementation, worse than that: see the row below |
+| Findings carrying file paths, without a full schema (this ADR's first draft) | Lets a pre-existing finding be attributed to the bead owning that file, precomputed by the planner | A project's script wraps tools whose output it does not control — `go test`, `eslint`, `gofmt`, `pytest` each print differently — so emitting paths means the PROJECT parses its own tools, once per tool. That is the parsing this ADR exists to remove, relocated rather than removed | Rejected on implementation. Attribution by comparison (a bead reads its gate output against the baseline's) delivers the same outcome with no format at all |
 | Declare scripts in `specs.toml` | No new file; `specs.toml` already exists and the CLI already reads it | `specs.toml` is a **per-corpus-root manifest**, not a per-repo one — this repository has two real instances (`./specs.toml` declaring `specs/`, `./rfcs/specs.toml` declaring `rfcs/`) plus ~50 CLI fixtures. "Which `specs.toml` holds the checkpoint scripts?" has no answer, and every fixture would have to tolerate a field unrelated to a corpus | Structurally wrong file. `bead-bonanza` requires groomed beads, not a spec corpus; coupling its config to a corpus manifest couples two things this framework deliberately keeps separate |
 | Environment variables in a `.env` file | No new format; the run already reads some env (`CLAUDE_CODE_SUBAGENT_MODEL`) | `.env` is conventionally per-environment and commonly gitignored, so the declaration would not travel with the repository — and a checkpoint script path is project structure shared by the team, not an environment knob or a secret. Flat keys express no structure, so multiple checkpoints become `SF_HOOK_PREFLIGHT`-style stringly-typed conventions | The declaration must be committed and shared; `.env` is the wrong lifetime and the wrong shape |
 | Declare scripts in a plugin-scoped `sf.toml`, findings-with-paths, guideline contract | Explicit and greppable; per-repo, matching the plugin's own scope; the project points at scripts it already has rather than moving them; reuses the `BB_*` key=value emission convention `pre-flight-check.sh` already uses | One more config file at the repository root | N/A — selected |
@@ -112,6 +139,9 @@ is why it is the wrong channel for anything anyone must act on.
 **Positive:**
 - A multi-command gate is expressible, because it is a script rather than a
   span of prose inside a bullet.
+- The floor for adopting `bead-bonanza` is a shell script that runs the
+  commands a project already runs, and prints one line per gate. It never has
+  to understand what its tools printed.
 - The known-red baseline reaches the agent that runs the gate. A bead is told
   the pre-existing findings count, which subset is its to clear, and that the
   remainder is correct to leave.
@@ -119,12 +149,13 @@ is why it is the wrong channel for anything anyone must act on.
   already states.
 - `AGENTS.md` sheds the gate profile, the targeted-tests list and the
   environmental ledger.
-- Attribution costs no new data: `plan-sprint` already computes bead-to-file
-  overlap for wave packing.
+- Attribution costs no new data and no new step: a bead compares its own gate
+  output against the baseline text.
 
 **Negative:**
-- A project must write and maintain executables to use `bead-bonanza`, where
-  today it writes a Markdown bullet. The floor for a trivial project rises.
+- A project must write and maintain an executable to use `bead-bonanza`, where
+  before it wrote a Markdown bullet. The floor for a trivial project rises,
+  though only to a script that runs commands it already runs.
 - One more config file at the repository root, alongside `specs.toml`,
   `.beads/config.yaml` and `.claude/settings.json`.
 - A checkpoint script is opaque to a reader who will not open it, where the
@@ -133,13 +164,15 @@ is why it is the wrong channel for anything anyone must act on.
 - Every subagent prompt carries a `Known-red gates:` block even when empty,
   costing a line of context per dispatch to remove the ambiguity between
   "nothing known-red" and "not measured".
-- Projects using the `AGENTS.md` block need migrating; both paths must be
-  supported until they are.
+- Attribution is best-effort rather than exact. Comparing raw output finds a
+  line that moved or was reworded as "new", so a bead can be pointed at a
+  pre-existing finding it did not cause. The failure mode is a bead
+  investigating something harmless, not a real regression slipping through.
 
 ## References
 
 - [[adr-019]] — skill-composed subagent orchestration; the planner this
-  decision assigns attribution to
+  decision originally assigned attribution to, and no longer does
 - [[adr-017]] — the Spec CLI as a plugin prerequisite; the precedent for a
   skill depending on an executable rather than branching on its absence
 - `rfcs/inbox/bead-bonanza/rfc-self-acceptance-signals-and-gate-baseline.md`
