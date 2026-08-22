@@ -149,7 +149,7 @@ candidates are decidable later from it.
 | audience | destination |
 |---|---|
 | **project** | a bead in this project's tracker |
-| **skill** | an issue file in `.sf/outbox/<skill>/`, for delivery to the repository that vends it |
+| **skill** | an issue file at `.sf/outbox/<skill>/<YYYY-MM-DD>-<slug>.md`, for delivery to the repository that vends it |
 
 ```bash
 # project audience
@@ -161,6 +161,11 @@ bd create --title "<title>" --priority <n> \
 **Never both, and never the other's.** A project files nothing in the vending
 repository's tracker, and never accumulates issues about skills it cannot
 change.
+
+**Append to the outbox; never prune it.** It belongs to the project, and what
+happens to it — forwarded, swept, ignored — is its owner's call. **Where this
+repository vends the skills it runs it is its own downstream**, so
+`triage-issue` sweeps the outbox into this tracker in the same run.
 
 ### Mark what a filed issue rests on
 

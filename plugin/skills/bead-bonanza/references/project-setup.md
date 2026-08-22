@@ -10,6 +10,8 @@ comes back here.
 - The `checks` script — how this project validates a bead
 - Model lineup — how capability tiers resolve to models (`sf.toml` `[models]`)
 - Code reviewer — which reviewer the run dispatches (`sf.toml` `[review]`)
+- Issue outbox — where findings about someone else's skills go
+  (`.sf/outbox/`)
 - Command permissions a run needs
 
 Propose a draft, let the user confirm or correct it, then write it — never
@@ -139,6 +141,31 @@ write any of it silently.
 
    A silently skipped review reads exactly like a clean one, which is why the
    skip is reported rather than defaulted away.
+
+1c. **Create the issue outbox.** A run reports findings about the skills
+   it used as well as about the project itself. The second kind cannot be
+   filed here — this project does not own those skills — so they are
+   written to a directory its owner forwards:
+
+   ```
+   <project>/.sf/outbox/<skill>/<YYYY-MM-DD>-<slug>.md
+   ```
+
+   One file per issue, in the issue template's format. **Nothing about a
+   skill this project does not own is ever filed in this project's own
+   tracker**, under any label: a backlog of proposals its owners cannot
+   act on teaches them to ignore the channel, and that is the failure the
+   whole split exists to prevent.
+
+   - **Track the directory, do not gitignore it.** The issues are the
+     deliverable of a run and should survive a reclaimed container. An
+     ignored outbox loses them silently.
+   - **The outbox is the project's.** Emptying it, forwarding it, or
+     ignoring it entirely are all its owners' call. A run appends; it
+     never prunes.
+   - **Where this repository vends the skills it runs**, the outbox is
+     swept into its own tracker in the same run — it is its own
+     downstream.
 
 2. **Common command permissions.** Confirm these are in
    `.claude/settings.local.json` allow list. If any are missing, ask the user

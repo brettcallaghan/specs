@@ -219,21 +219,28 @@ Retro progress:
    Complete every section, then run the template's readiness gate. Fix what it reports and re-run; do not proceed while it fails. After two full failed cycles, stop and surface the blocker rather than continuing to retry.
    Set status `ready-for-review` only once the gate passes.
 6. **Route the output** into a directory named for the skill critiqued.
-   `<skill-name>` is the RFC's `skill` frontmatter value, so one
-   directory accumulates every RFC and note about one skill — and
-   recurrence, the strongest signal this pipeline has, becomes visible
-   by listing it.
-   - Retroing a skill **from a downstream project** →
-     `rfcs/outbox/<skill-name>/rfc-<origin-project>-<slug>.md` (no
-     number); the human copies it into the framework repo's
-     `rfcs/inbox/<skill-name>/` for triage.
-   - Retroing a skill **inside this framework repo** (dogfooding, or
-     this repo's own skills) → straight to `rfcs/inbox/<skill-name>/`
-     for triage. This closes the self-improvement loop: retro-skill →
-     inbox → `triage-issue`.
-   - **Null result** → a `retro-note-<origin>-<YYYY-MM-DD>.md` in the
-     same `<skill-name>` directory, so the retro log stays complete; a
-     skill that retroed clean is information.
+   `<target>` is the issue's `target` frontmatter value, so one
+   directory accumulates every issue about one skill — and recurrence,
+   the strongest signal this pipeline has, becomes visible by listing
+   it.
+   - Retroing a skill **from a project that does not vend it** →
+     `.sf/outbox/<target>/<YYYY-MM-DD>-<slug>.md`, one file per issue.
+     The project's owner forwards them to the vending repository.
+     **They are NEVER filed in this project's own tracker**: a backlog
+     of proposals its owners cannot act on teaches them to ignore the
+     channel.
+   - Retroing a skill **inside the repository that vends it**
+     (dogfooding, or this repo's own skills) → the outbox is swept into
+     that repository's own tracker in the same run, since it is its own
+     downstream. This closes the self-improvement loop: retro-skill →
+     outbox → `triage-issue` → groomed beads → a sprint.
+   - **Null result** → say so in the report and log it; a skill that
+     retroed clean is information. Write no issue file — an empty
+     issue is not a null result, it is a file someone has to open to
+     discover it says nothing.
+
+   **The outbox belongs to the project, not to us.** Emptying it,
+   forwarding it, or ignoring it entirely are all its owners' call.
 7. **Hand off.** Report what was produced and where it routes.
 
    Every factual claim in that report SHALL cite what it derives from —
