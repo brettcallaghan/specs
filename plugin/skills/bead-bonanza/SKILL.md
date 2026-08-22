@@ -267,6 +267,52 @@ was nested.
 Exit 0 clear, 1 repairable (no admitted set recorded — the manifest was never
 written), 2 stop (admitted beads still open).
 
+### The dispatch record — what a subagent is and what it holds
+
+A bead has a branch, a worktree, a commit and a comment thread. A **subagent**
+had none of that: no id, no record, no way to ask which agent is running and
+what it is holding. That gap is why a batch holding one worktree for six beads
+needed three paragraphs to disambiguate.
+
+**The record is metadata on the beads, not new beads.** On dispatch:
+
+```sh
+bd update <bead> --set-metadata dispatch_id=<id> \
+  --set-metadata dispatch_state=running \
+  --set-metadata dispatch_model=<model> --set-metadata dispatch_tier=<tier> \
+  --set-metadata worktree=<abs path> \
+  --set-metadata dispatched_at="$(date -u +%FT%TZ)"
+```
+
+On return, the same keys plus `dispatch_state=returned` and
+`terminal_state=completed|blocked|skipped`. `--set-metadata` merges, so each
+write adds without disturbing grooming's `tier` and `c4_*` keys.
+
+**One `dispatch_id` per subagent, not per bead.** A batch's beads all carry the
+same one, which is what makes "what is it holding" answerable:
+
+```sh
+bd list --parent <epic> --metadata-field dispatch_state=running   # who is live
+bd list --parent <epic> --metadata-field dispatch_id=<id>         # what it holds
+```
+
+**This replaces the worktree-disambiguation prose.** A standing worktree no
+longer has to be interpreted:
+
+| worktree | `dispatch_state` | reading |
+|---|---|---|
+| present | `running` | live agent, working — leave it alone |
+| present | `returned` | finished; the tree is orphaned, remove it |
+| absent | `running` | the agent died. Recover the bead |
+| absent | `returned` | done and cleaned up |
+
+**Why not event beads.** D2 proposed two per dispatch. Measured: 100 event
+beads took `bd dolt push` from 0.63s to 5.36s, and *deleting them* left it at
+1.56s — Dolt is versioned, so the weight is permanent and is charged to every
+future clone. A 12-bead wave would be 24 such beads. Metadata was measured
+cheap on the same run: nested values round-trip, successive writes merge, and a
+100,000-character value was accepted.
+
 ### The run's health — the one thing nothing else can express
 
 A stuck agent and a slow one look identical in git and in bead status. Neither

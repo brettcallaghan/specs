@@ -6,7 +6,7 @@ every `{PLACEHOLDER}` before sending — an unsubstituted placeholder is the
 single most common dispatch defect, because the subagent has no session
 context to infer it from.
 
-Four placeholders are resolved once per run and substituted into every
+Four run-level placeholders are resolved once per run and substituted into every
 prompt: `{EPIC}` is the run epic Phase 1's admission resolved (emitted as
 `BB_EPIC`) and is also the run id, `{SCRIPTS}` is the absolute path to this
 skill's `scripts/` directory, `{CHECKS_IDS}` is the ids the project declared
@@ -16,6 +16,9 @@ A subagent can infer none of them.
 
 **There is no run directory.** The run's record is the epic: the manifest in
 its metadata, the amendments in its comments.
+
+`{DISPATCH_ID}` is resolved **per subagent** — one id for a batch, shared by
+every bead it holds, which is what makes "what is that agent holding" a query.
 
 `{WORKTREE}` is resolved **per bead** — the absolute path to the worktree the
 orchestrator created for it. A subagent works there and nowhere else; it
@@ -105,6 +108,26 @@ Checks baseline:
      one-word status pre-flight emits as BB_CHECKS_BASELINE. Include the block
      even when the checks passed, because the text says so and a MISSING block
      means no baseline was taken, which is a different thing.)
+
+Before your first action, record that you hold this bead:
+
+```sh
+bd update {ID} --set-metadata dispatch_id={DISPATCH_ID} \
+  --set-metadata dispatch_state=running \
+  --set-metadata worktree={WORKTREE} \
+  --set-metadata dispatched_at="$(date -u +%FT%TZ)"
+```
+
+and as your last action, whatever the outcome:
+
+```sh
+bd update {ID} --set-metadata dispatch_state=returned \
+  --set-metadata terminal_state=completed|blocked|skipped
+```
+
+That pair is what lets an orchestrator tell a live agent from a dead one
+without guessing at your worktree. Write the second even when you are blocked —
+especially then.
 
 **Then invoke the `run-bead` skill.** It carries the ceremony — claim, read,
 implement in scope, gate, caveat, findings, close-and-commit, push, return —
