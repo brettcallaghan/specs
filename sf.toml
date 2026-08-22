@@ -54,10 +54,11 @@ command = 'scripts/sync-strata-docs.sh --check'
 id = "schemas"
 command = 'scripts/generate-schemas.sh --check'
 
-# KNOWN RED. It exits 1 on a WARNING — a body-size figure that moves with every
-# editorial change — so the bar is "no findings beyond the recorded baseline",
-# not "exit 0". Declared separately from `skills` so the baseline can carry one
-# failing check without marking a healthy one red.
+# KNOWN RED, for one file. It exits 1 on a WARNING — a body-size figure that
+# moves with every editorial change — so the bar is "no findings beyond the
+# recorded baseline", not "exit 0". Declared separately from `skills` so the
+# baseline can carry one failing check without marking a healthy one red.
+# Retires when `groom-beads` fits the cap; it is the only warning left.
 [[checks]]
 id = "skills-strict"
 command = 'scripts/check-skills.sh --strict'

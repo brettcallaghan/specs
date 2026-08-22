@@ -12,6 +12,8 @@ statement.
   itself lives in the vendored findings-capture protocol, not here
 - Guard against foreign dirt — how the orchestrator and a subagent each stage a
   commit, when a tracker write may happen, and whose claims an agent may reset
+- Principles the coordinator applies but does not carry — the ones SKILL.md
+  summarises only where they change a turn's routing
 
 ## One commit per bead, always
 
@@ -105,3 +107,34 @@ so the rule no longer has to cover the race between reading a status and
 setting it. What it still covers is ownership: a bead claimed by a **different
 assignee** belongs to a live sibling, and a subagent may not take it. The
 orchestrator, never a subagent, owns reconciling claims across waves.
+
+## Principles the coordinator applies but does not carry
+
+Summarised in SKILL.md only where they change a turn's routing; stated here in
+full.
+
+- **Surface implicit decisions, don't bury them.** A bead with an open decision
+  is bounced at the readiness gate. A choice a subagent still makes silently —
+  one the bead's Design didn't pin — belongs in its `retro:` comment, not the
+  diff.
+- **Capture decisions in the bead, not in chat.** The bead description is the
+  durable record; a session is not.
+- **Fail loudly, recover quietly.** A blocked subagent is logged and the run
+  moves on; the circuit breaker is what stops it. A crashed one follows
+  `recovery.md` — the worktree and the bead are the anchors.
+- **Route by tier, and report every escalation.** A bead's tier is grooming's
+  *prediction* of the capability the work needs. Assign nothing below it;
+  escalate one tier on repeated failure; never downgrade to save cost mid-run.
+  Every escalation is a required row in the report — it is the only routing
+  evidence a run produces. Full rules: `dispatch-policy.md`.
+- **Project rules win over skill defaults.** `sf.toml` is the source of truth
+  for what runs per bead. Follow the project's commit conventions. The skill is
+  opinionated, not authoritative.
+- **Never re-diagnose an environmental failure per wave.** Pre-flight captured
+  the baseline once and every subagent prompt carries it as fact. The dangerous
+  case is a check that silently PASSES without exercising the change — a stale
+  prebuilt binary, a skipped suite, a cached result — so where a check *can*
+  pass without touching the change, force a clean rebuild before trusting it.
+- **Tracker writes are never deferred.** Groom a discovered bead, bake a
+  decision, or wire a dependency edge at any time, mid-wave included. Only the
+  working tree needs care; see "Guard against foreign dirt" above.
