@@ -18,7 +18,7 @@ when this skill is invoked. Read it; never rewrite it.
   re-derive. A check whose baseline is `fail` sets "no new findings", not
   exit 0, as the bar for every bead
 - Wave table — returned to the orchestrator, never stored; names beads, and
-  every row carries class, bucket, tier and push mode, with its Reason naming
+  every row carries class, batch, tier and push mode, with its Reason naming
   which collision class applies
 - Reading C4 overlap — compute co-edit and sequencing edges from bead metadata,
   not from file paths
@@ -99,7 +99,7 @@ drift out of agreement with the graph it describes. Beads discovered mid-run
 enter through Phase 1.5 step 4's scope test, and are recorded as an amendment.
 
 ```markdown
-| Wave | Bead | Class | Bucket | Tier | Push | Reason |
+| Wave | Bead | Class | Batch | Tier | Push | Reason |
 |------|------|-------|--------|------|------|--------|
 | 1 | demo-89s | trivial | fast-lane #1 | light | defer | docs only |
 | 1 | demo-aqw | trivial | fast-lane #1 | light | defer | comment only |
@@ -124,12 +124,11 @@ alike. Spell out which one a row is:
 
 - **Co-edit collision** — names the shared surface: `same c4_changes:
   auth-service`, `same fixture cluster`, `both edit testdata/golden.json`. These
-  beads may share a bucket and a batch; they may never share a
-  concurrent wave.
+  beads may share a batch; they may never share a concurrent wave.
 - **Sequencing constraint** — names what is consumed and whose change it
   consumes: `consumes auth-service, changed by demo-1kq`. This is an *ordering*
   edge, not a batching one; it can hold with zero file overlap. The consumer
-  goes in a later wave, or after the producer inside one bucket. WHEN the
+  goes in a later wave, or after the producer inside one batch. WHEN the
   ordering must survive recovery or a re-plan, wire a real `blocks` edge and say
   so in the row.
 - **Signal disagreement** — say both signals and that you took the union:
@@ -177,7 +176,7 @@ seen no relationship at all between C and them.
 ## Amendments
 
 Amendments are **`amend:`-prefixed comments on the run epic**. WHEN the run
-diverges mid-flight — a wave resequenced, a bucket reclassified, a bead
+diverges mid-flight — a wave resequenced, a batch reclassified, a bead
 admitted or bounced, a tier escalated — `bd comment <epic-id> "amend: …"`.
 
 Append-only and timestamped by construction, so there is no read-modify-write

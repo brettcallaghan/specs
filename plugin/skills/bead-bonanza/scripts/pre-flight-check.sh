@@ -454,7 +454,7 @@ fi
 
 if command -v jq >/dev/null 2>&1; then JQ=ok; say "jq:  $(command -v jq)"
 else JQ=missing; say "jq:  MISSING"
-     block "jq is not on PATH — the close script, the retro dump and the bucketing need it"; fi
+     block "jq is not on PATH — the close script, the retro dump and the batching need it"; fi
 
 # `tomllib` is stdlib from 3.11, so probing the import settles both the
 # interpreter and the version in one call.

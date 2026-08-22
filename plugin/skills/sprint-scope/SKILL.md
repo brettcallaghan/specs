@@ -83,7 +83,7 @@ open work is the false-complete failure above.
 
 **What a nested run epic costs, stated once at run start:** `bd swarm validate`
 and `bd swarm status` are one level deep, so they report sub-epics rather than
-leaf beads. The wave preview comes from `plan-sprint` instead, and the progress
+leaf beads. The wave preview comes from `sprint-plan` instead, and the progress
 count from `bb-status.sh run <epic>`, which walks the tree. Dispatch is
 unaffected — the re-queried ready front is transitive and honours dependency
 edges that cross between the adopted epics.

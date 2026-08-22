@@ -381,7 +381,7 @@ committing them lands in-flight bead state on the sprint branch.
    the tree it is standing in. Because removal happens *after* the merge, a
    surviving worktree means "not yet accepted", which is the stronger reading
    of the in-flight signal than "not yet committed".
-5. **Push** per the bucket's push mode.
+5. **Push** per the batch's push mode.
 
 WHEN a bead is blocked rather than finished, **leave its worktree in place**
 and say so in the report. It holds the partial work, and its existence is the

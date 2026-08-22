@@ -74,7 +74,7 @@ What no script can settle:
   This is a blocking condition rather than a degraded mode because subtracting
   delegation leaves nothing bead-bonanza does: no subagents means no context
   isolation, which is its whole point, and with it go worktrees, batching, tier
-  routing, concurrency, `plan-sprint` and the grooming subagent. What survives
+  routing, concurrency, `sprint-plan` and the grooming subagent. What survives
   is the per-bead ceremony — genuinely valuable, and a different product.
 
   **Say so and hand over**: the **`run-bead`** skill takes one bead from

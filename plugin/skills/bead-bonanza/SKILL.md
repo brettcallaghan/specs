@@ -22,8 +22,8 @@ doesn't compound.
 Read `CLAUDE.md` and `AGENTS.md` once at the start so you have repo conventions
 in scope before delegating.
 
-**After any compaction, before dispatching anything:** re-read this file from
-Phase 0 onward, then invoke the **`recover-sprint`** skill. A compacted session
+**After any compaction, before dispatching anything:** re-read this file in
+full, then invoke the **`recover-sprint`** skill. A compacted session
 re-injects only this file's first ~5,000 tokens, so the dispatch templates and
 the published script interfaces are NOT in your context even though you have
 "read the skill".
@@ -53,9 +53,9 @@ bead-bonanza run:
 - [ ] 1. `sprint-scope` invoked: run epic resolved, admission record
         (admitted / excluded / moved), authorization gate taken
 - [ ] 1b. pre-flight re-run with the epic: checks baseline on the manifest
-- [ ] 2. Dispatch plan: bucket + tier + push mode per bead
+- [ ] 2. Dispatch plan: batch + tier + push mode per bead
 - [ ] 2b. Sprint branch created (or reused), `branch` + `base_sha` in manifest
-- [ ] 3. Execute buckets, verifying each return (skip claims, clean tree)
+- [ ] 3. Execute batches, verifying each return (skip claims, clean tree)
 - [ ] 4. Final report: INCIDENTS FIRST, table, totals, implicit decisions, TIER ESCALATIONS,
         follow-up beads, stashes, pushes, run epic id
 ```
@@ -151,14 +151,14 @@ the run gets created.
 
 ## Phase 3 — Execute
 
-Execute buckets in this order (lowest blast radius first):
+Execute batches in this order (lowest blast radius first):
 
 1. **Doc/chore fast lane** — single subagent, one worktree at a time.
 2. **Shared-surface batches** — one subagent per batch, sequentially across
    batches, one worktree at a time within each.
 3. **Plain sequential** — one subagent per bead, in `bd ready` order.
 
-Within a bucket, dispatch `isolated` beads concurrently where Phase 2.5's entry
+Within a batch, dispatch `isolated` beads concurrently where the planning step's entry
 conditions hold; otherwise one at a time. Either way, merge and remove each
 bead's worktree as it is accepted — concurrently dispatched beads are merged
 one at a time, in the order they return.
@@ -248,7 +248,7 @@ After each subagent returns:
    **Never re-dispatch on a missing return alone.**
 5. **Verify the working tree is clean** with `git status --porcelain`. If dirty,
    fall through to the recovery procedure below.
-6. If the bucket used `defer-push`, run `git push` for the bucket now.
+6. If the batch used `defer-push`, run `git push` for the batch now.
 
    **A wave is not complete until its push is verified landed.** After
    pushing, fetch and confirm nothing is left behind:
@@ -289,7 +289,7 @@ After each subagent returns:
    installed in every environment this skill runs in, and fails TLS inside the
    sandbox where it is. So create gh:run gates only after confirming `gh` runs;
    otherwise keep full local gates and say once that CI is unobserved.
-8. Move to the next bucket/bead.
+8. Move to the next batch/bead.
 
 **Circuit breaker:** if 3 consecutive beads return `blocked` or fail, stop the
 run and surface to the user. Something is systemically wrong (broken main,
@@ -443,8 +443,8 @@ Load the one that matches where you are in the run:
 | Working on | Load |
 |------------|------|
 | Dispatching an execution subagent | `references/subagent-prompts.md` |
-| Dispatching a grooming subagent | the grooming prompt template that ships with `plan-sprint` |
-| Partitioning the queue into waves and buckets, and writing the Phase 2.5 dispatch plan | the grooming subagent invokes the `plan-sprint` skill |
+| Grooming the queue and partitioning it into waves and batches | invoke the **`sprint-plan`** skill |
+| The grooming subagent's prompt | the template that ships with `sprint-plan` |
 | A subagent running past 5 minutes; arming the Monitor and the durable trigger; reading progress events | `references/progress-streaming.md` |
 | A subagent that crashed or timed out mid-ceremony | `references/recovery.md` |
 | Resuming a run whose state you do not hold (the orchestrator died or compacted) | invoke the `recover-sprint` skill |
@@ -542,22 +542,28 @@ in the same interaction, and dispatches nothing. What you need from it:
 - The authorization set as decided, including the rows that took their default.
 
 **The readiness gate is not here and not in `sprint-scope`** — it belongs to
-the grooming step (Phase 2.5), because readiness is a property of a groomed
-bead and asking before grooming answers a question about beads that are about
-to change.
+grooming, because readiness is a property of a groomed bead and asking before
+grooming answers a question about beads that are about to change.
 
 
-## Phase 2.5 — Triage & dispatch plan
+## Groom & plan — invoke `sprint-plan`
 
-**Planning is delegated; the manifest is not.** Classifying every queued bead,
-computing C4 overlap and packing buckets is read-heavy analytic work across the
-whole queue — it belongs in a subagent ("Don't read source files in the
-orchestrator"), and Phase 1.5's grooming subagent has already read every bead.
-So that subagent invokes the **`plan-sprint`** skill as its final act, rather
-than a second agent re-partitioning the same queue, and returns you the wave
-table plus one line per override of its own wave preview. **One subagent, never
-two** — WHERE the queue needed no grooming at all, dispatch one for planning
-alone.
+**One dispatch, two returns.** `sprint-plan` grooms every bead that is not
+Ready (invoking `groom-beads`), bounces what grooming cannot clear, and — while
+it still holds every bead in context — partitions what came out. It returns:
+
+1. **The readiness verdict** per bead — ready, or NOT-READY with the gap. You
+   dispatch only ready beads; bounced beads are raised into `bd human` by the
+   skill and named in your report.
+2. **The wave table**, plus one line per override of its own wave preview.
+
+**Grooming and planning are one step because they are one read.** Partitioning
+needs exactly the knowledge grooming just acquired, so a second agent would
+re-read the whole queue to learn what the first already knew. **One subagent,
+never two** — WHERE the queue needed no grooming at all, it plans alone.
+
+**Do not store the wave table.** It is derived from the ready front, and a
+stored copy only drifts out of agreement with the graph it describes.
 
 Three things stay yours:
 
@@ -601,17 +607,17 @@ Three things stay yours:
    molecule` with no children — `bd ready --parent <swarm-id>` returns nothing.
    It links to the epic; the epic owns the queue, and `bd swarm status` accepts
    either id, so the epic loses nothing by being the identity.
-2. **The bead list.** Pass `plan-sprint` explicit bead ids, never
+2. **The bead list.** Pass `sprint-plan` explicit bead ids, never
    the filter that produced them, and the epic they belong to. The queue is
    `bd ready --parent <epic> --exclude-type=epic` — `--exclude-type=epic` is
    mandatory, because `--parent` is transitive and would otherwise hand back
    the run's own sub-epics as if they were work.
 3. **Amendments — `amend:`-prefixed comments on the run epic.** WHEN the run
-   diverges mid-flight — a wave resequenced, a bucket reclassified, a bead
+   diverges mid-flight — a wave resequenced, a batch reclassified, a bead
    admitted or bounced, a tier escalated — `bd comment <epic> "amend: <what
    and why>"`. Append-only and timestamped by construction, so there is no
    read-modify-write to lose and no ordering to maintain. Never re-invoke
-   `plan-sprint` to re-partition a run in flight.
+   `sprint-plan` to re-partition a run in flight.
 
    **The wave table is not stored anywhere.** It is derivable from the graph —
    `bd ready --parent <epic> --exclude-type=epic` re-queried, plus
@@ -628,7 +634,7 @@ Three things stay yours:
    re-queried front is correct in both cases.
 
 **The manifest is written on every run** — there is no queue-size or
-bucket-count exemption. Chat is the one store that does not survive.
+batch-count exemption. Chat is the one store that does not survive.
 
 Print the returned wave table to chat. Don't ask for approval — just print and
 proceed. The user can interrupt if they disagree.
@@ -666,7 +672,7 @@ ordinary judgment; whether it is *safe* is the entry conditions above.
 
 ### Tier selection per bead
 
-Beads carry a **capability tier** from the grooming phase — the Phase 1.5
+Beads carry a **capability tier** from grooming — the readiness gate's
 gate guarantees one (grooming assigns a default, never null), stored as
 `metadata.execution_suggested_model`, falling back to `metadata.tier`. Both
 are written by grooming; the first is `bd`'s own documented convention
@@ -686,7 +692,7 @@ Beads name a **tier**, not a model, so a backlog groomed months ago still
 routes correctly. Resolve tier → model from the project's `## model
 lineup` block in `sf.toml`, echoed by pre-flight. Honor these:
 
-- **Collect during Phase 1.5** — you're already reading each bead's
+- **Collect during grooming** — you're already reading each bead's
   readiness signals; record its tier then. For a bulk query, read the
   metadata and **pass `--status all`**: `bd list` defaults to open issues, so
   a filter written without it silently under-counts a groomed backlog.
@@ -703,10 +709,10 @@ lineup` block in `sf.toml`, echoed by pre-flight. Honor these:
   note saying "do not delegate" is implemented by the orchestrator
   directly, not dispatched. It still follows the full per-bead ceremony
   (claim, gates, retro, atomic close, single commit).
-- **Batching across tiers** — prefer bucketing beads that share a tier.
-  When a bucket mixes tiers, run the whole batch subagent at the
+- **Batching across tiers** — prefer batching beads that share a tier.
+  When a batch mixes tiers, run the whole batch subagent at the
   **highest** tier among its members — never run a bead below its tier.
-  Split the bucket WHEN more than one bead would be dragged above its
+  Split the batch WHEN more than one bead would be dragged above its
   tier, OR when any bead would be dragged more than one tier. Weigh that
   against what batching saves: one dispatch instead of N, one worktree,
   and — for a shared surface — one agent holding that surface's context
@@ -730,7 +736,7 @@ lineup` block in `sf.toml`, echoed by pre-flight. Honor these:
 - **`push-per-bead`** — subagent pushes after each commit. Best for sequential
   mode (recovery is easier on a per-bead failure).
 - **`defer-push`** — subagent commits per bead, orchestrator pushes once at
-  bucket end. Default for fast-lane and shared-surface batch (one process;
+  batch end. Default for fast-lane and shared-surface batch (one process;
   failures are observable).
 
 For a single-bead "wave," `push-per-bead` and `defer-push` are equivalent —
@@ -757,7 +763,7 @@ After the queue is drained (or the circuit breaker tripped), print:
    earns an autonomous run its autonomy. **The count is a quality metric for
    the specs, not for the run**: each incident marks a place the corpus failed
    to answer a question, so each is the retro's material, not a complaint.
-1. A markdown table: `| ID | Status | Bucket | Commit | Notes |`
+1. A markdown table: `| ID | Status | Batch | Commit | Notes |`
 2. Totals: `N closed, N blocked, N skipped`.
 3. **Implicit decisions made** — the rest of the beads' `retro:` comments:
    which beads had implicit decisions, what the subagent chose. Surface to the
@@ -796,7 +802,7 @@ After the queue is drained (or the circuit breaker tripped), print:
    ≥10 beads produces zero escalations, say so and suggest the next run
    try one tier lower on the beads whose `tier_reason` was thinnest.
 3b. **Deliberate over-routes** — every bead you knowingly ran a tier above
-    its assigned one (e.g. batched into a higher-tier bucket per the
+    its assigned one (e.g. batched into a higher-tier batch per the
     tier-batching rule), one row each:
 
    ```
@@ -871,7 +877,7 @@ answered one.
    self-contradictory? *From:* `retro:` comments naming a document.
 3. **Plan** — what did `## Amendments` record (resequencings,
    reclassifications, admissions, bounces), and what would have produced a
-   better initial bucketing? *From:* the amendments log read against the wave
+   better initial batching? *From:* the amendments log read against the wave
    table it amended.
 4. **Skill** — where did `bead-bonanza` itself mislead, and what did a
    subagent improvise around? *From:* `retro:` comments citing this skill,
@@ -897,8 +903,8 @@ yet.
 
 **The bar for anything past the report: it changes how the next run is
 dispatched.** "Wave 2 needed three cycles" is a summary. "The `schema`-labelled
-beads were bucketed shared-surface but each regenerated the same fixture, so
-the batch serialized anyway — bucket that label sequential" is a finding. Only
+beads were batched shared-surface but each regenerated the same fixture, so
+the batch serialized anyway — batch that label sequential" is a finding. Only
 findings that clear that bar become RFCs.
 
 **Route them, as offers.** Grooming and tier-calibration findings →
@@ -919,7 +925,7 @@ with any RFCs in a single commit.
 ## Operating principles
 
 - **Groom before you dispatch.** bead-bonanza executes *groomed* beads; it never
-  fixes an under-specified bead inline. Phase 1.5 is that gate, and it holds for
+  fixes an under-specified bead inline. The readiness gate is that gate, and it holds for
   beads pulled into scope mid-run too.
 - **Bias toward batching, not sequential.** Find the largest safe batch —
   surface-overlap is the dominant signal, not bead complexity. Sequential is
@@ -945,7 +951,7 @@ with any RFCs in a single commit.
 - **The dispatch plan has no lean path.** It is written every run, whatever
   its size.
 - **Surface implicit decisions, don't bury them.** A bead with an open
-  decision is bounced at Phase 1.5. A choice a subagent still makes silently
+  decision is bounced at the readiness gate. A choice a subagent still makes silently
   — one the bead's Design didn't pin — belongs in its `retro:` comment, not
   the diff.
 - **Nothing escalates to a human mid-run.** Not an ambiguous acceptance
@@ -965,7 +971,7 @@ with any RFCs in a single commit.
   subagents over `/compact`. Batch subagents (fast lane, shared-surface)
   compromise — they hold context for N beads but free it on return.
 - **Don't read source files in the orchestrator.** Code reads happen inside
-  subagents — grooming (Phase 1.5) reads source to close decisions and wire
+  subagents — grooming reads source to close decisions and wire
   dependencies before dispatch.
 - **Capture decisions in the bead, not just in chat.** The bead description
   (selected options and alternatives, set by grooming) is the durable record;
@@ -977,7 +983,7 @@ with any RFCs in a single commit.
 - **Route by tier, and report every escalation.** A bead's tier —
   `metadata.execution_suggested_model`, else `metadata.tier` — is
   grooming's *prediction* of the capability the work needs; resolve it to a
-  model via the project's `sf.toml` `[models]` lineup and dispatch there (Phase 2.5 → Tier
+  model via the project's `sf.toml` `[models]` lineup and dispatch there (`sprint-plan` → Tier
   selection). Assign nothing below the tier; escalate one tier on repeated
   failure; never downgrade to save cost mid-run. Every escalation is a required
   row in the Phase 4 report — it is the only routing evidence a run produces.
@@ -1002,7 +1008,7 @@ with any RFCs in a single commit.
   queue and none of those causes is a defect, not a pause: nobody is waiting
   to restart it. Newly-filed beads that enter the queue mid-run (subagents
   filing adjacent issues) are admitted only by the mid-run scope test
-  (Phase 1.5 step 4), never merely because they match the filter.
+  (`sprint-plan`'s emergent-work test), never merely because they match the filter.
 - **Keep an environmental-failure ledger; never re-diagnose per wave.** Suites
   that fail — or silently PASS for environmental reasons — in the local sandbox
   get diagnosed ONCE, recorded in the checks baseline pre-flight captured,

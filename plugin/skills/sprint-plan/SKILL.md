@@ -1,26 +1,31 @@
 ---
-name: plan-sprint
-description: Partition a queue of groomed beads into the waves and buckets a
-  bead-bonanza run executes. Use
-  when a bead-bonanza orchestrator delegates Phase 2.5 planning — typically as
-  the final act of the Phase 1.5 grooming subagent, which has already read
-  every bead — or when asked to classify queued beads as trivial / isolated /
-  shared-surface, compute C4 co-edit and sequencing overlap, choose a dispatch
-  mode per bucket, or produce a bead-bonanza run's wave table. Takes the run
-  epic, resolves its queue from the graph, and returns the wave table.
-version: "0.1"
+name: sprint-plan
+description: Groom a sprint's queue and partition it in one pass — bring every
+  bead to Ready (invoking groom-beads for what fails, bouncing what grooming
+  cannot clear) and return both the readiness verdict and the wave table of
+  batches the run dispatches. Use when a sprint orchestrator is preparing a run
+  epic's queue for dispatch, or when asked to gate beads for readiness,
+  classify them as trivial / isolated / shared-surface, compute C4 co-edit and
+  sequencing overlap, choose a dispatch mode per batch, or produce a sprint's
+  wave table. Takes the run epic, resolves its queue from the graph, and
+  dispatches nothing.
+version: "0.2"
 user-invocable: false
 ---
 
-# plan-sprint
+# sprint-plan
 
-Turn a run epic's queue of **groomed** beads into a wave table, and return it
-and returns it. This is read-heavy analytic work over every
-queued bead — that is why it runs in a subagent rather than in the
+Take a run epic's queue from wherever it is to **groomed and partitioned**, in
+one dispatch. Two returns: the readiness verdict per bead, and the wave table.
+
+**They are one step because they are one read.** Partitioning needs exactly the
+knowledge grooming just acquired — every bead's scope, surfaces and
+dependencies — so splitting them means reading the whole queue twice. This is
+read-heavy analytic work, which is why it runs in a subagent rather than in the
 orchestrator, which stays small.
 
-You are planning, not dispatching and not implementing. Nothing here creates a
-worktree, edits a bead's code, or spawns an agent.
+You are grooming and planning, not dispatching and not implementing. Nothing
+here creates a worktree, edits a bead's code, or merges anything.
 
 ## Interface
 
@@ -39,11 +44,17 @@ WHEN an input is missing, say so in the return rather than substituting a
 guess — a plan built on an inferred queue is the failure the enumeration rule
 exists to prevent.
 
-**Out** — one thing, and nothing else:
+**Out** — two things, and nothing else:
 
-**To the caller:** the wave table, plus **one line per override** of
-   the grooming wave preview saying what you changed and why. Keep it to that;
-   the orchestrator prints the table and dispatches from it.
+1. **The readiness verdict** — per bead: ready, or NOT-READY with the gap a
+   human must close. Bounced beads carry the `decision-required` and `human`
+   labels, so the verdict is queryable and not merely reported.
+2. **The wave table** — plus **one line per override** of the grooming wave
+   preview saying what you changed and why.
+
+The orchestrator dispatches ready beads from the table and does **not** store
+it. The table is derived from the ready front; a stored copy only drifts, and
+recovery re-derives it rather than reading one.
 
 ## The readiness gate — run it before you classify anything
 
@@ -106,7 +117,7 @@ read source files in the orchestrator"). Dispatch a **grooming subagent** over
 the ungroomed subset (template below); it runs `groom-beads` to the Definition
 of Ready and returns a per-bead readiness report plus a **wave preview** — its
 candidate partition under dependencies and C4 collisions. **Its final act is to
-invoke `plan-sprint`**, which turns that preview into the run's wave table:
+invoke `sprint-plan`**, which turns that preview into the run's wave table:
 it has already read every bead, so a second agent would only re-derive the same
 partition and leave two to reconcile.
 
@@ -230,7 +241,7 @@ re-derive it from prose. The `jq` and a worked example are in
      `blocks` edge is honoured by every re-query of the ready front, where an
      ordering noted only in this table is honoured once, by whoever reads the
      table. WHEN you find one grooming missed, say so in your return so the
-     orchestrator can wire it — do not silently encode it as bucket order.
+     orchestrator can wire it — do not silently encode it as batch order.
    - Disjoint changes with no impact intersection is isolated *architecturally*
      only — layer 2 still runs.
 2. **File paths — fallback and corroborator.** Scan each bead's description for
@@ -272,7 +283,7 @@ merge collision names what is shared (`same c4_changes: auth-service`); a
 sequencing constraint names what is consumed and from whom (`consumes
 auth-service, changed by demo-9h0`).
 
-## Choose a dispatch mode per bucket
+## Choose a dispatch mode per batch
 
 Modes decide **how many beads share a subagent**, not how they are isolated —
 isolation is settled above and is the same everywhere. Pick the broadest one
@@ -281,7 +292,7 @@ runs — those are per bead regardless.
 
 **A batch subagent holds exactly one worktree at a time** — create, implement,
 close, hand back, then the next. Holding two at once makes worktree presence
-ambiguous and breaks the in-flight signal for every reader. Never pack a bucket
+ambiguous and breaks the in-flight signal for every reader. Never pack a batch
 in a way that assumes otherwise.
 
 1. **Doc/chore fast lane** — `trivial` beads. ONE subagent processes the cluster
@@ -318,7 +329,7 @@ in a way that assumes otherwise.
    override. Not the default. If you find yourself defaulting here for >1 bead
    in a row, reconsider — they probably belong in a shared batch.
 
-Tier is not a bucketing decision of yours: carry each bead's tier
+Tier is not a batching decision of yours: carry each bead's tier
 (`metadata.execution_suggested_model`, else `metadata.tier`) into
 the wave table's `Tier` column as grooming assigned it, and leave the
 resolution and any escalation to the orchestrator at dispatch.
