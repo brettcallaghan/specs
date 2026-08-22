@@ -1,13 +1,13 @@
 ---
 title: Findings Capture Protocol
 description: How agents record retro evidence in-flight during
-  multi-agent phases — the finding format, when to record, where, and
-  how the aggregated retro harvests them
+  multi-agent phases — the finding format, its kinds and targets, when
+  to record, where, and what the capturing agent must not do
 slug: findings-capture-protocol
 type: standards
 status: active
-updated_at: 2026-08-12T00:00:00Z
-version: "0.4"
+updated_at: 2026-08-22T00:00:00Z
+version: "0.5"
 ---
 
 # Findings Capture Protocol
@@ -27,39 +27,149 @@ own.
 
 ## The finding
 
-One finding per friction point, recorded with zero analysis:
+```
+retro:<kind>[:<target>] <one line: what happened>
 
-> What happened + the item or spec text that caused it (quoted or
-> precisely located) — or the explicit note that no guidance existed
-> where it was needed.
+evidence:
+  <the quote, the path:line, the command and its output, or expected
+   vs observed>
+context:
+  <what was being attempted>                           (optional)
+corrects:
+  <finding-id>                                         (optional)
+```
 
-Friction only. No root-causing, no proposals, no RFCs: the capturing
-agent is a sensor, and analysis is the aggregated retro's job. A
-finding SHOULD be 1-3 sentences.
+`kind` is required and `target` is required WHERE one exists. Together
+they are what routes the finding, and they cost one word each at the
+moment the agent already knows the answer.
 
-## When to record
+### Record the evidence in full. Record none of the analysis.
 
-The implementing agent SHALL record a finding WHENEVER it:
+Two rules, deliberately separate, because they have opposite reasons.
 
-- **needed information not in the work order or its listed
-  references** — had to open the blueprint, FRD, or code to fill a
-  gap the item should have carried. Record even small occurrences:
-  each is direct evidence about whether items are self-sufficient
-  enough to delegate.
-- **made a design decision** the item or blueprint should have
-  pinned (a path, a default, a scope cut, an edge-case rule).
-- **found the item contradicting repo reality** — stale anchors,
-  moved code, a referenced element that no longer matches.
-- **could not satisfy an AC or citation obligation as declared** —
-  unclear verified-by level, a test that cannot meaningfully exist,
-  verification blocked on work outside the item.
-- **hit a sequencing surprise** — inherited a broken build from a
-  predecessor, or blocked on work the dependency graph did not
-  encode.
-- **found the item mis-scoped** — too large to review as one unit,
-  trivially small, or overlapping another item's work.
+**No length limit.** Evidence does not survive this session — the
+context compacts, the worktree is removed, the tree moves on. Whoever
+aggregates a finding reads it cold, weeks later, with none of what the
+capturing agent could see. **A finding SHALL carry at least one of**,
+preferring the most specific available:
 
-A clean run is fine — record nothing. Do not manufacture findings.
+- the **exact quote** of the instruction, AC or spec text that misled,
+  with where it is;
+- a **`path:line`** anchor;
+- the **command run and the output observed**;
+- **expected versus observed**, as two concrete values.
+
+A quote, a path and a command beat three sentences of prose, and are
+usually shorter. A sensor that under-reports its reading is not being
+disciplined; it is being lossy.
+
+**No analysis.** Root cause, proposal, priority, and any sentence
+beginning "we should" are all forbidden. They are derivable from the
+evidence at any time, by an agent with the whole run in view and no
+task of its own to finish. **The capturing agent is a sensor**, and one
+that stops to analyse both derails its own work and reasons worse than
+the aggregator will.
+
+## The kinds
+
+Nine. The first six are what an implementing agent notices about the
+work it was given; the seventh is about the tooling that gave it; the
+last two are not defects at all.
+
+| kind | fires when |
+|---|---|
+| `gap` | information was needed that the work order and its listed references did not carry — had to open the blueprint, FRD or code to fill it. **Record even small occurrences**: each is direct evidence about whether items are self-sufficient enough to delegate |
+| `decision` | a design decision had to be made that the item or blueprint should have pinned — a path, a default, a scope cut, an edge-case rule |
+| `stale` | the item contradicted repo reality — a stale anchor, moved code, a referenced element that no longer matches |
+| `unverifiable` | an AC or citation obligation could not be satisfied as declared — an unclear verified-by level, a test that cannot meaningfully exist, verification blocked on work outside the item |
+| `sequencing` | a broken build inherited from a predecessor, or a blocker the dependency graph did not encode |
+| `scope` | the item was mis-scoped — too large to review as one unit, trivially small, or overlapping another item's work |
+| `tooling` | a skill, script, template or protocol misled, failed, or had no rule where one was needed |
+| `proof` | **how a claim was established** — an observed pre-fix failure, a negative control, a prior risk checked and cleared |
+| `environment` | a durable fact about a **dependency, tool or platform** the next agent will hit, which no work order could have carried |
+
+**A clean run is fine — record nothing. Do not manufacture findings.**
+
+### `proof` and `environment` are captured, never filed
+
+Seven of the nine describe something that could be fixed. These two do
+not, and treating them as defects gets both wrong:
+
+- **`proof` is this standard being obeyed.** Evidence rules require a
+  claim to name the command run and the result observed. An agent that
+  runs a negative control before trusting a probe is doing exactly
+  that, and routing the record as friction would suppress the rigour.
+  It belongs in the report, attached to what it supports.
+- **`environment` is nobody's defect.** A parser that exports no error
+  type is not the work order's fault, not a spec's, and not a skill's.
+  It belongs in the project's environmental-failure ledger, where the
+  next agent will look for it.
+
+Neither becomes an issue. Both are still worth the line it costs to
+write them.
+
+### `target` — what the finding is about
+
+The skill or script (`retro:tooling:sprint-wave`), or the document or
+item (`retro:gap:FRD-014`). Omit it only where there genuinely is not
+one; an omitted target costs a cluster, not a finding.
+
+### Which audience — apply the merge test
+
+Findings serve two audiences and the difference is not visible in the
+words. "The blueprint template has no rule for X" and "our blueprint
+has no rule for X" are the same sentence about different artifacts.
+
+> **Where would the fix land?**
+>
+> - **In this project's own repository** → the project's audience. It
+>   becomes an issue in this project's tracker.
+> - **In the repository that vends the skill** → the skill's audience.
+>   It leaves through that project's outbox and is never filed here.
+
+`tooling` is the skill audience; the six work-order kinds are the
+project's. **A project SHALL NOT accumulate issues about skills it
+cannot change.**
+
+### Incidents are a severity, not a kind
+
+An **incident** is a decision that changed what *correct* means: an
+amended acceptance criterion, a standard and an AC in tension, a
+contract or interface change, a spec silent where the item required it
+to speak. Each already maps onto a kind above — respectively
+`decision`, `decision` against two targets, `scope`, `gap`.
+
+What makes it an incident is that the run **acted** on it rather than
+merely noticing. Mark it, so the kind still routes it and the marker
+still escalates it:
+
+```
+retro:gap:ADR-014 incident — <what was decided, and what was rejected>
+```
+
+### Findings are append-only, so a correction supersedes
+
+A finding SHALL NOT be edited or deleted after recording — they remain
+on closed items permanently as raw provenance. An agent that finds its
+own earlier finding wrong records a **new** one naming it:
+
+```
+corrects: <finding-id>
+```
+
+Without the field the relationship is invisible: an aggregator reading
+both cold has only prose like "the line above" to go on.
+
+## Finding ids are derived, never authored
+
+`<item-id>#<ordinal>` — the ordinal being the finding's position among
+that item's `retro:` records, ordered by creation. So `92u#2` is the
+second finding on item `…-92u`.
+
+The capturing agent assigns nothing, and cannot: the record's identity
+does not exist until the write lands. The ordering is stable **because
+findings are append-only**, which is what makes an ordinal safe to
+cite.
 
 ## Where to record
 
@@ -69,20 +179,12 @@ A clean run is fine — record nothing. Do not manufacture findings.
   `## Retro findings` section at the end of the item's own file
   (per-item, so parallel agents never contend on a shared file).
 
-Findings remain on closed items permanently as raw provenance; they
-SHALL NOT be deleted after aggregation.
+## Harvesting
 
-## Aggregation (for the retro-running agent)
-
-The plan's final Definition-of-Done item runs ONE retro for the whole
-implementation phase (the `retro-spec` skill; never a retro per work
-item). It harvests the findings across the feature's closure set with
-one `bd export | jq` pipeline, never `bd list` plus `bd show --json`:
-`bd list` defaults to open issues, and a drained closure set is almost
-entirely closed; `bd show --json` omits comments entirely even though
-the text output prints them. `bd export` carries comments as a
-`comments` array on the issue record and covers every status in one
-pass:
+**One query over the phase's closure set**, and `bd export` rather than
+`bd list` plus `bd show --json`: `bd list` defaults to open issues and
+a drained closure set is almost entirely closed, while `bd show --json`
+omits comments entirely even though its text output prints them.
 
 ```
 bd export | jq -r 'select((.labels//[]) | index("<feature-slug>"))
@@ -90,8 +192,11 @@ bd export | jq -r 'select((.labels//[]) | index("<feature-slug>"))
 ```
 
 (Task-file backend: each task file's Retro findings section instead.)
-Assert the count is non-zero before aggregating — a harvest that
-returns zero findings across a completed feature is a broken query,
-not a clean run, and an aggregated retro built on it is worse than
-none. Then add the DoD item's own verification friction, and treat
-that pool as the phase's evidence.
+
+**A zero count across a drained set is a broken query, not a clean
+run.** Stop, check the scope and the prefix spelling, and confirm the
+items really are closed, before aggregating anything.
+
+**What happens next is not this protocol's.** Routing, clustering,
+deciding and filing belong to whichever retro consumes these findings;
+this document ends where the harvest does.
