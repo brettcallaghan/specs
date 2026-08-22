@@ -56,6 +56,8 @@ bead-bonanza run:
 - [ ] 2. Dispatch plan: batch + tier + push mode per bead
 - [ ] 2b. Sprint branch created (or reused), `branch` + `base_sha` in manifest
 - [ ] 3. Execute waves via `sprint-wave`, merging each accepted branch
+- [ ] 3b. Review via `sprint-review`; loop back to groom & plan when findings
+        were admitted and the pass budget is not spent
 - [ ] 4. Final report: INCIDENTS FIRST, table, totals, implicit decisions, TIER ESCALATIONS,
         follow-up beads, stashes, pushes, run epic id
 ```
@@ -274,6 +276,9 @@ Load the one that matches where you are in the run:
 
 | Working on | Load |
 |------------|------|
+| Executing one wave: dispatching its batches and verifying the returns | invoke the **`sprint-wave`** skill |
+| Working one batch of beads as the dispatched subagent | the **`sprint-batch`** skill |
+| Reviewing the run's own diff and turning findings into beads | invoke the **`sprint-review`** skill |
 | Dispatching an execution subagent | `references/subagent-prompts.md` |
 | Grooming the queue and partitioning it into waves and batches | invoke the **`sprint-plan`** skill |
 | The grooming subagent's prompt | the template that ships with `sprint-plan` |
@@ -573,6 +578,46 @@ lineup` block in `sf.toml`, echoed by pre-flight. Honor these:
 
 For a single-bead "wave," `push-per-bead` and `defer-push` are equivalent —
 don't bother labeling. Just push when the subagent returns.
+
+## Review the run's own diff — invoke `sprint-review`
+
+When the ready front is dry, **before the report**: invoke `sprint-review`. It
+runs the reviewer the project declared in `sf.toml`'s `[review]`, scopes it to
+`base_sha`..sprint head, files every finding as a bead, and classifies each as
+in or out of the run's authorized scope.
+
+**The loop is yours, and only the loop.** `sprint-review` owns finding things;
+you own the counter, the budget and the decision to go round again:
+
+```
+review → findings admitted?  ──no──▶ done
+              │yes
+              ▼
+    passes < budget?  ──no──▶ done, and say what is left
+              │yes
+              ▼
+    re-enter at groom & plan  ──▶ execute the waves  ──▶ review
+```
+
+**Re-enter at groom & plan, never at dispatch.** Review *files*; it does not
+groom. An admitted finding earns its readiness like any other bead, or bounces
+like any other bead.
+
+**The budget is 2 loops — three passes in total** unless the gate said
+otherwise. **Findings from the human's pull-request review do not consume it**:
+that counter bounds the machine reviewing itself, and a human asking for a
+change is not a loop the run gets to decline.
+
+**The counter is durable.** Keep it in the manifest as `review_passes`, not in
+your head — a resumed run that restarted it would loop forever.
+
+**Exhausting the budget is not a failure.** Remaining findings stay filed as
+beads, are named in the report, and the run proceeds. A third pass that still
+finds things is information for the human, not a reason to keep going.
+
+**No reviewer declared** means `sprint-review` returns a skip, and the report
+says so. Do not substitute your own review.
+
 
 ## Phase 4 — Final report
 

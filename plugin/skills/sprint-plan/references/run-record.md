@@ -57,6 +57,8 @@ opens against it.
   "excluded": [{"id": "<bead-id>", "reason": "declined move out of <epic-id>"}],
   "moved": [{"id": "<bead-id>", "from": "<previous parent>"}],
   "wave_preview": "accepted | overridden — <why> | none (no C4 docs) | not returned",
+  "review_passes": 0,
+  "review_budget": 2,
   "ledger": ["<claim> — proved by <command>, observed <result>"]
 }
 ```
@@ -64,6 +66,11 @@ opens against it.
 **Merge, never replace.** The epic already carries grooming's keys and
 pre-flight writes the baseline into the same object: read it, update your keys,
 write it back.
+
+**`review_passes` is durable for one reason:** a resumed run that restarted the
+counter would loop forever. `review_budget` records what the authorization gate
+decided, so a run resumed by a session that never met the human still honours
+it.
 
 `admitted` / `excluded` / `moved` are the admission record. A run that finished
 its admitted set while beads sat out is done, and must say so rather than
