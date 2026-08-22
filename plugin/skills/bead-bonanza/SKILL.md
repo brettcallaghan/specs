@@ -56,8 +56,20 @@ bead-bonanza run:
 - [ ] 2. Dispatch plan: bucket + tier + push mode per bead
 - [ ] 3. Execute buckets, verifying each return (skip claims, clean tree)
 - [ ] 4. Final report: table, totals, implicit decisions, TIER ESCALATIONS,
-        follow-up beads, stashes, pushes, run-dir path
+        follow-up beads, stashes, pushes, run epic id
 ```
+
+**Most of that is checkable rather than assertable.** `bb-status.sh run <epic>`
+verifies the mechanical half — scope and per-status counts, health set, lint
+clean *within this run's queue*, no open human item, every ready bead carrying
+a tier, dispatches still running, and every admitted bead closed — and then
+**names the items it cannot verify** rather than leaving a clean report to
+imply the whole checklist passed. Run it at every wave boundary and at the end.
+
+Two things it works around, both measured: `bd lint` exits 0 even when it
+reports warnings, so its findings are the verdict and its status is not; and it
+has no scope flag, so its output is intersected with this run's queue rather
+than blaming a run for the tracker's other beads.
 
 **How this document is ordered.** The executable core comes first — worktrees
 and merges, Phase 3's per-bead ceremony, the reference and script interfaces —

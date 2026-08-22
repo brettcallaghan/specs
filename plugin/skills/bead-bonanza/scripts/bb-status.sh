@@ -495,6 +495,68 @@ print(next((l.split(":",1)[1] for l in labs if l.startswith("health:")), ""))' 2
          "bd set-state $_epic health=healthy --reason '<why>'"; note $RC_REPAIR
   fi
 
+  # --- readiness gate, as checks rather than as an assertion -------------
+  # Two things about `bd lint`: it exits 0 even when it reports warnings, so
+  # the FINDINGS are the verdict and the status is not; and it has no scope
+  # flag, so it reports the whole tracker. Blaming a run for the repository's
+  # other 30 beads is a false signal, so intersect with this run's queue.
+  _lint="$(bd lint 2>&1 | python3 -c 'import re,subprocess,sys,json
+flagged=set()
+cur=None
+for ln in sys.stdin:
+    m=re.match(r"^(\S+) \[", ln)
+    if m: cur=m.group(1)
+    elif "⚠" in ln and cur: flagged.add(cur)
+epic=sys.argv[1]
+r=subprocess.run(["bd","ready","--parent",epic,"--exclude-type=epic","--json"],
+                 capture_output=True,text=True)
+try: q={x.get("id") for x in json.loads(r.stdout)}
+except Exception: q=set()
+print(" ".join(sorted(flagged & q)))' "$_epic" 2>/dev/null)"
+  if [ -n "$_lint" ]; then
+    line FAIL "bd lint flags beads in this run: $_lint" "bd lint"; note $RC_REPAIR
+  else
+    line OK "bd lint: nothing flagged in this run's queue" "bd lint"
+  fi
+
+  _human="$(bd human list 2>&1 | grep -c '^ *[a-z].*-' || true)"
+  case "$(bd human list 2>&1)" in
+    *"No human-needed"*) line OK "human queue: empty" "bd human list" ;;
+    *) line FAIL "human queue: $_human item(s) awaiting a decision" "bd human list"
+       note $RC_REPAIR ;;
+  esac
+
+  _notier="$(bd ready --parent "$_epic" --exclude-type=epic --json 2>/dev/null | python3 -c 'import json,sys
+try: d=json.load(sys.stdin)
+except Exception: d=[]
+out=[]
+for x in (d if isinstance(d,list) else []):
+    md=x.get("metadata") or {}
+    if isinstance(md,str):
+        try: md=json.loads(md)
+        except Exception: md={}
+    if not md.get("tier"): out.append(x.get("id"))
+print(" ".join(out))' 2>/dev/null)"
+  if [ -n "$_notier" ]; then
+    line FAIL "no tier on: $_notier — dispatch cannot resolve a model" \
+         "bd ready --parent $_epic --exclude-type=epic --json"; note $RC_REPAIR
+  else
+    line OK "every ready bead carries a tier" "bd ready --parent $_epic --exclude-type=epic"
+  fi
+
+  # --- dispatched versus returned ----------------------------------------
+  _running="$(bd list --parent "$_epic" --metadata-field dispatch_state=running --json 2>/dev/null | python3 -c 'import json,sys
+try: d=json.load(sys.stdin)
+except Exception: d=[]
+print(" ".join(x.get("id","") for x in d) if isinstance(d,list) else "")' 2>/dev/null)"
+  if [ -n "$_running" ]; then
+    line OK "dispatches still running: $_running" \
+         "bd list --parent $_epic --metadata-field dispatch_state=running"
+  else
+    line OK "dispatches still running: none" \
+         "bd list --parent $_epic --metadata-field dispatch_state=running"
+  fi
+
   _out_n="$(printf '%s\n' "$_out" | sed -n 's/^OUTSTANDING|\([0-9]*\)|.*/\1/p')"
   _out_ids="$(printf '%s\n' "$_out" | sed -n 's/^OUTSTANDING|[0-9]*|//p')"
   if [ "${_adm:-0}" -eq 0 ] 2>/dev/null; then
@@ -506,6 +568,15 @@ print(next((l.split(":",1)[1] for l in labs if l.startswith("health:")), ""))' 2
   else
     line OK "every admitted bead is closed" "manifest .admitted"
   fi
+
+  # --- what this script CANNOT verify ------------------------------------
+  # Naming them is the point. An agent that reads a clean run report and
+  # infers the whole checklist passed is the failure this list prevents.
+  echo "  --  not verifiable here (agentic; check them yourself):"
+  echo "      - decisions surfaced to the user before dispatch, not during"
+  echo "      - implicit decisions recorded on the beads that made them"
+  echo "      - tier escalations reported with their reason"
+  echo "      - the final report's prose: totals, follow-ups, stashes, pushes"
 }
 
 [ $# -ge 1 ] || die "usage: bb-status.sh bead|wave|run|slot|harvest|--self-test"
