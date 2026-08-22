@@ -70,6 +70,12 @@ command = 'scripts/check-reference-links.py'
 id = "template-drift"
 command = 'scripts/check-template-drift.py'
 
+# The bundled scripts' own invocation-surface tests. Each needs no database, no
+# repository and no network, which is what makes them runnable as a check.
+[[checks]]
+id = "script-self-tests"
+command = 'set -e; d=plugin/skills/bead-bonanza/scripts; "$d"/pre-flight-check.sh --self-test; "$d"/bb-status.sh --self-test; "$d"/bb-close-bead.sh --self-test; "$d"/sprint-cleanup.sh --self-test; "$d"/bb-checks.py --self-test'
+
 # KNOWN RED, for one file. It exits 1 on a WARNING — a body-size figure that
 # moves with every editorial change — so the bar is "no findings beyond the
 # recorded baseline", not "exit 0". Declared separately from `skills` so the

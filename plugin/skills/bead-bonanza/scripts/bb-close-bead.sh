@@ -24,6 +24,7 @@
 # Usage
 #   bb-close-bead.sh [--trailers-file <path>] [--trailers-from <epic>] \
 #                    <bead-id> <priority> <title> [path ...]
+#   bb-close-bead.sh --self-test
 #
 #   --trailers-file <path>  optional; must precede <bead-id>. Its contents
 #       are appended to the commit message body after a blank line (e.g.
@@ -65,6 +66,48 @@ set -uo pipefail
 
 die()  { echo "bb-close-bead: $*" >&2; exit 2; }
 fail() { echo "bb-close-bead: $*" >&2; exit 1; }
+
+# ---------------------------------------------------------------- self-test
+# The invocation surface ONLY. Every case below fails before the script
+# touches the tracker, git, or the filesystem, so the self-test needs no
+# database, no repository and no network — which is what makes it runnable
+# anywhere, including as a declared check.
+#
+# What it deliberately does not cover: the close ceremony itself. Steps 1-5
+# mutate a tracker and a git history, and a self-test that did so would either
+# need a scratch repo per run or leave litter in a real one. Those steps are
+# exercised by every bead that closes.
+self_test() {
+  fails=0
+  t() { # t <name> <expected-rc> <args...>
+    n="$1"; e="$2"; shift 2
+    "$0" "$@" >/dev/null 2>&1; r=$?
+    if [ "$r" = "$e" ]; then printf '  ok   %s\n' "$n"
+    else printf '  FAIL %s (expected %s, got %s)\n' "$n" "$e" "$r"; fails=$((fails+1)); fi
+  }
+  # 2 = invocation error. Each of these is a distinct branch in the parser or
+  # the validation block below it.
+  t "no arguments"                       2
+  t "too few positionals"                2 some-id 2
+  t "unknown option"                     2 --bogus some-id 2 title
+  t "--trailers-file with no value"      2 --trailers-file
+  t "--trailers-from with no value"      2 --trailers-from
+  t "both trailer sources at once"       2 --trailers-file /dev/null \
+                                           --trailers-from some-epic some-id 2 title
+  t "empty bead id"                      2 "" 2 title
+  t "empty title"                        2 some-id 2 ""
+  t "priority is not a digit"            2 some-id x title
+  t "priority out of range"              2 some-id 5 title
+  t "priority is multi-digit"            2 some-id 12 title
+  t "--trailers-file names nothing"      2 --trailers-file /nonexistent/trailers some-id 2 title
+  [ "$fails" = 0 ] || return 1
+  return 0
+}
+
+if [ "${1-}" = "--self-test" ]; then
+  [ $# -eq 1 ] || die "--self-test takes no other arguments"
+  echo "bb-close-bead --self-test"; self_test; exit $?
+fi
 
 trailers_file=""
 trailers_epic=""

@@ -71,13 +71,13 @@ file, then test it.** A pipeline is for moving data, not for carrying a verdict.
 This repository is a documentation-and-skills corpus **plus** the Go module
 under `cli/` that implements the Spec CLI.
 
-**The checks a bead runs are declared in `sf.toml`, not in this file.** Twelve
-`[[checks]]` entries, each an `id` and a `command`. The sprint runs them;
-`run-bead` says how, and nothing outside a skill invocation needs to.
+**The checks a bead runs are declared in `sf.toml`, not in this file.**
+Thirteen `[[checks]]` entries, each an `id` and a `command`. The sprint runs
+them; `run-bead` says how, and nothing outside a skill invocation needs to.
 
-Twelve ids: `format`, `vet`, `build`, `test-go`, `skills`, `shared-refs`,
+Thirteen ids: `format`, `vet`, `build`, `test-go`, `skills`, `shared-refs`,
 `strata-docs`, `schemas`, `corpus`, `ref-links`, `template-drift`,
-`skills-strict`.
+`script-self-tests`, `skills-strict`.
 
 **By hand, run `scripts/ci.sh`** — which now runs exactly that declaration
 through the same runner, so "what I ran locally" and "what the bead ran"
@@ -154,6 +154,7 @@ Which declared checks cover which surface, for a bead narrowing its runs:
 | `specs/**` | `corpus ref-links` |
 | `plugin/skills/**` | `skills shared-refs ref-links template-drift` |
 | `scripts/**` | `skills shared-refs` |
+| `plugin/skills/*/scripts/**` | `script-self-tests` |
 | `.claude/skills/strata/references/**` | `strata-docs` |
 
 The mapping is documented here rather than declared, because which checks a
@@ -173,10 +174,14 @@ Two entries are about how to *read* a result rather than which gate to run:
   `strata-lang/strata`; never hand-edit them. The `strata-docs` gate reports
   SKIP (exit 0) when no strata checkout is present.
 
-Two surfaces have their own guards rather than a gate:
+One surface has its own guard rather than a gate:
 
 - `plugin/skills/groom-beads/scripts/**` → `python3 plugin/skills/groom-beads/scripts/validate_beads.py <fixture>.jsonl`
-- `plugin/skills/bead-bonanza/scripts/**` → run the script's own guards (see its header)
+
+The bead-bonanza scripts are no longer in that list: **all five now carry a
+`--self-test` and the `script-self-tests` check runs every one**, so a change
+to any of them is covered by the declaration rather than by remembering to run
+a guard named in a header.
 
 
 ### Environmental-failure ledger
