@@ -1,7 +1,7 @@
 # The sprint skill, reframed as a team
 
-Evolves the role framing: coordinator → developer → bead, with a rule for what
-belongs in each bucket and one contract every subprocess honours.
+Evolves the role framing: coordinator → developer → bead, with a rule for
+where each step belongs and one contract every subprocess honours.
 
 Working document. Status markers: ✅ exists · 🔨 exists but not extracted ·
 ⬜ does not exist yet.
@@ -163,7 +163,7 @@ resumed run that restarts the counter would loop forever.
 
 ---
 
-## The bucketing test
+## The placement test
 
 Two questions decide where a step goes, in this order.
 
@@ -217,54 +217,98 @@ re-derive from a handle, it re-derives.
 | # | step | skill / script | executed by | status |
 |---|---|---|---|---|
 | 1 | Pre-flight | `pre-flight-check.sh` | script | ✅ |
-| 2 | Resolve scope | **`start-sprint`** | script + coordinator + **human** | ✅ |
-| 3 | Groom | **`groom-beads`** | subagent | ✅ |
-| 4 | Plan sprint | **`plan-sprint`** | subagent | ✅ |
-| 5a | Dispatch a wave | **`run-wave`** | coordinator + subagents | ⬜ |
-| 5b | Merge a branch | **`merge-branch`** | subagent, serialized | ⬜ |
+| 2 | Resolve scope | **`sprint-scope`** | script + coordinator + **human** | 🔨 |
+| 3+4 | Groom & plan | **`sprint-plan`** → `groom-beads` | subagent | 🔨 |
+| 5a | Dispatch a wave | **`sprint-wave`** | coordinator + subagents | ⬜ |
+| 5b | Merge | *(coordinator — see below)* | coordinator | 🔨 |
 | 5c | Supervise | `bb-status.sh` | script + trigger | ✅ |
-| 6 | Review code | **`review-sprint`** | subagents review, coordinator loops | ⬜ |
+| 6 | Review code | **`sprint-review`** | declared reviewer + coordinator | ⬜ |
 | 7 | PR review | — | **human** | ⬜ |
-| 8–10 | Retro, report, post-flight | **`close-sprint`** | subagents + coordinator | ⬜ |
-| — | Recovery | **`recover-sprint`** | script + coordinator | ✅ |
-| — | One bucket of beads | **`run-bucket`** | the developer | ⬜ |
+| 8 | Retro | **`sprint-retro`** | subagents + coordinator | ⬜ |
+| 9 | Report | **`sprint-report`** | coordinator | ⬜ |
+| 10 | Post-flight | `sprint-cleanup.sh` | script | ⬜ |
+| — | Recovery | **`sprint-recovery`** | script + coordinator | 🔨 |
+| — | One batch of beads | **`sprint-batch`** | the developer | ⬜ |
 | — | One bead | **`run-bead`** | the developer | ✅ |
 
-### The naming, for review
+### The `sprint-` prefix, and who does not get it
 
-Every skill is **verb-noun**, matching the four that already exist, and the
-three execution tiers share one stem so the hierarchy is readable from the
-names alone:
+The prefix groups the subsystem at the cost of verb-object. That trade is
+cheap: **a skill is selected by its description, not its name**, so the prefix
+costs nothing at dispatch and buys a great deal in a skill listing.
 
+**The rule for who gets it: a skill is prefixed when it only makes sense inside
+a sprint.**
+
+- `run-bead` stays unprefixed — it explicitly works "whether dispatched as a
+  subagent or working solo with no orchestrator at all".
+- `groom-beads` stays unprefixed — grooming a backlog is useful with no sprint
+  in sight.
+- Everything else is sprint-only, so everything else is prefixed.
+
+A shared `run-` stem across the three execution tiers is given up for this.
+The hierarchy now reads `sprint-wave → sprint-batch → run-bead`, which loses a
+little symmetry and gains a namespace. Worth it.
+
+**"Batch", never "bucket".** `sprint-plan` (today `plan-sprint`) says bucket;
+it stops.
+
+### Renames this implies
+
+| today | becomes | why |
+|---|---|---|
+| `start-sprint` | **`sprint-scope`** | and it sheds two things — see below |
+| `plan-sprint` | **`sprint-plan`** | and it absorbs the readiness gate |
+| `recover-sprint` | **`sprint-recovery`** | |
+
+**`start-sprint` splits three ways.** It currently carries pre-flight, scope
+resolution *and* the readiness gate. Under this naming: pre-flight is a script
+the coordinator runs directly (it needs no skill — run it, read it), scope
+resolution is `sprint-scope`, and the readiness gate goes to `sprint-plan`.
+That is a real restructuring of what was just extracted, and it is an
+improvement: `start-sprint` was doing three jobs because the phase numbering
+grouped them, not because they belong together.
+
+### Why 3 and 4 collapse into `sprint-plan`
+
+They already are one dispatch. Today `plan-sprint` is invoked "as the final act
+of the Phase 1.5 grooming subagent, which has already read every bead" —
+because partitioning needs exactly the knowledge grooming just acquired.
+Collapsing the step recognises what the design already does.
+
+`groom-beads` stays a separate, reusable skill that `sprint-plan` invokes for
+anything not Ready. Collapse at the *step* level; no loss of reuse.
+
+### `sprint-review` is an adapter, not a review engine
+
+**We should not write a code reviewer.** Harnesses ship one, the ecosystem is
+full of them, and reviewing a diff is the most generic thing in this whole
+design.
+
+What is *not* generic — and is entirely ours — is what happens to the findings:
+
+- scoping the review to **this run's** diff (manifest `base_sha` → sprint head)
+- filing each finding as a **bead**, `--discovered-from` its origin, parented
+  into the run epic
+- classifying in-scope vs out-of-scope **against the authorization gate**
+- feeding the loop: the pass counter, and the decision to re-enter at 3
+
+So `sprint-review` invokes a **declared** reviewer and routes what comes back.
+Same shape as `[[checks]]`: the project says what to run, we run it and act.
+
+```toml
+[review]
+# a skill name, or a command. The project's choice, like its checks.
+skill = "code-review"
 ```
-run-wave    →  N buckets dispatched concurrently
-  run-bucket  →  N beads, one worker, one worktree
-    run-bead    →  1 bead, claimed to committed
-```
 
-And the run's lifecycle brackets cleanly:
-
-```
-start-sprint  …  plan-sprint  …  review-sprint  …  close-sprint
-                        recover-sprint  (re-entry, any time)
-```
-
-Two names worth arguing about:
-
-- **`merge-branch`** — the *queue* is the concept; the *skill* runs once per
-  branch, so it is named for its unit like every other. `merge-queue` reads
-  better in prose but is a noun-noun and describes a structure rather than an
-  action. Alternative: `integrate-branch`.
-- **`run-bucket`** — "bucket" is `plan-sprint`'s own word for what it produces,
-  which is why it beats "batch" here even though the existing prompt templates
-  say batch. If we keep "batch", `plan-sprint` should stop saying bucket.
+Undeclared, the run skips step 6 and **says so in the report** — a silently
+skipped review reads exactly like a clean one.
 
 `5c` has no skill on purpose: supervision is a script the coordinator runs and
 reads. Giving it a skill would add a context hop to something already legible.
-
-### 1 · Pre-flight
-
-- **Input** — nothing.
+Likewise `1` and `10` — a pre-flight and a post-flight script bracket the run,
+and neither needs a context window to be understood.
 - **Returns** — `BB_*` facts on stdout, eval'd. Human-readable report on stderr.
 - **Coordinator does** — eval, then proceed or stop. **It acts on the verdict,
   not on the evidence**: the script names each blocker and its remedy, so there
@@ -326,7 +370,7 @@ the conservative branch excludes those beads and the run proceeds narrower.
 
 ### 5a · Dispatch a wave
 
-- **Input** — the wave's buckets; the manifest handle; `{SCRIPTS}`.
+- **Input** — the wave's batches; the manifest handle; `{SCRIPTS}`.
 - **Returns** — one line per bead: completed / blocked / skipped, with a sha.
 - **Coordinator does** — verifies every return against state (never testimony),
   then hands each branch to the merge queue.
@@ -335,18 +379,44 @@ the conservative branch excludes those beads and the run proceeds narrower.
 - **On failure** — 3 consecutive blocked/failed beads trips the circuit breaker
   and stops the wave.
 
-### 5b · Merge queue ⬜
+### 5b · Merge — the coordinator does it
 
-- **Input** — a branch, and the run epic.
-- **Returns** — merged, or a conflict report naming what collided.
-- **Coordinator does** — continues, or stops the wave on a real conflict.
-- **Durable side effect** — the sprint branch advances; the merge slot records
-  the holder.
-- **On failure** — a conflict is a triage failure: the beads were not isolated.
+**Decision: no merge skill. The coordinator merges, and a conflict stops the
+wave.** Reasoning, because the instinct to delegate this is a good one:
 
-**One merge worker at a time, strictly.** Concurrency here is the failure the
-merge slot exists to prevent. The win is that conflict resolution stops
-consuming the coordinator's context.
+**The happy path costs nothing.** In a sequential wave every merge is a
+fast-forward by construction — each bead branches from an already-updated head.
+In a concurrent wave the first fast-forwards and the rest rebase-then-fast-
+forward. None of that reads a source file, so none of it spends the context a
+subagent would exist to protect.
+
+**A real conflict is not currently work — it is a verdict.** The design says a
+non-fixture conflict on shared code means the beads were not actually isolated:
+that is a triage failure, the bead is marked blocked, and the user resolves it.
+Delegating a step whose outcome is "stop and surface" buys a dispatch and
+returns the same sentence.
+
+**And a merge worker would add the concurrency question the slot exists to
+remove.** Today serialization holds because only the coordinator merges.
+Introducing workers means the slot has to *enforce* rather than *record*, which
+is strictly more machinery for the same result.
+
+- **Input** — a returned branch.
+- **Returns** — merged, or a conflict naming what collided.
+- **Coordinator does** — `bd merge-slot acquire`, `git merge --ff-only`,
+  release on **every** path out including the failure paths (acquire is not
+  idempotent — a failed release leaves your own next acquire failing,
+  indistinguishable from a sibling holding it).
+- **Durable side effect** — the sprint branch advances; the slot records the
+  holder.
+- **On failure** — a fixture conflict with a declared regen step: take both
+  sides, regenerate, amend. Anything else stops the wave.
+- **bd** — `bd merge-slot create/check/acquire/release`.
+
+**When this decision should be revisited:** the moment we want conflicts
+*resolved* rather than escalated. Resolution means reading both sides of real
+code — exactly the context cost the coordinator must not pay — and at that
+point `sprint-merge` becomes worth its dispatch. Not before.
 
 ### 5c · Supervise
 
@@ -391,7 +461,7 @@ to re-enter are routing, and routing is the only thing the coordinator does.
 - **Coordinator does** — re-enters at step 3 for anything actionable.
 - **On failure** — n/a; this gate is the human's.
 
-### 8 · Retro
+### 8 · Retro — `sprint-retro`
 
 - **Input** — the run epic.
 - **Returns** — harvested `retro:` comments, coalesced; the team's retros; the
@@ -401,14 +471,14 @@ to re-enter are routing, and routing is the only thing the coordinator does.
 - **Durable side effect** — new beads; RFCs where the finding is a spec's.
 - **On failure** — an empty harvest is a finding about the run, not a pass.
 
-### 9 · Report
+### 9 · Report — `sprint-report`
 
 - **Input** — everything above, by handle.
 - **Returns** — the human-facing sprint report.
 - **Coordinator does** — this is its own output, and the one thing it does not
   delegate.
 
-### 10 · Post-flight ⬜
+### 10 · Post-flight — `sprint-cleanup.sh`
 
 - **Input** — the run epic.
 - **Returns** — what it removed, and what it deliberately left.
@@ -437,7 +507,7 @@ split worked.
 
 ## Recovery — re-run with the same epic id
 
-**`recover-sprint`** ✅ owns this. It stays a skill, and what follows is its
+**`sprint-recovery`** 🔨 owns this. It stays a skill, and what follows is its
 specification: it reconciles the run's residue and hands back to step 1. It is
 a **precondition to re-entry**, not a second way to run a sprint.
 
@@ -473,7 +543,7 @@ are residue from the interrupted run, and all of them are what
    idempotent for the same actor and blocking for a different one.
 
 So recovery is: **reconcile the residue, then re-enter at step 1.** The
-reconciliation is three script calls, which is why `recover-sprint` collapses
+reconciliation is three script calls, which is why `sprint-recovery` collapses
 to running them and acting — it is a precondition to re-entry rather than a
 second way to run the sprint.
 
@@ -510,8 +580,8 @@ baseline, so the record is metadata.
 
 ## Developer / worker tier
 
-One subagent, one bucket of beads, one worktree. **`run-batch`** ⬜ — the skill
-that does not exist yet; today this is prompt templates.
+One subagent, one **batch** of beads, one worktree. **`sprint-batch`** ⬜ — the
+skill that does not exist yet; today this is prompt templates.
 
 The developer is the tier with no artifacts of its own until the dispatch
 record gave it one. Its ceremony mirrors the coordinator's — open, work, close
@@ -523,7 +593,7 @@ past its boundary is the failure mode:
 
 ### D1 · Open — accept the assignment
 
-- **Input** — the bucket's bead ids in order; `{DISPATCH_ID}`; `{WORKTREE}`;
+- **Input** — the batch's bead ids in order; `{DISPATCH_ID}`; `{WORKTREE}`;
   the run epic; `{SCRIPTS}`; push mode.
 - **Returns** — nothing yet. This step is a gate, not a report.
 - **Does** — writes the dispatch record; verifies the worktree is its own and
@@ -531,7 +601,7 @@ past its boundary is the failure mode:
   branch); reads the manifest and the checks baseline off the epic.
 - **Durable side effect** — `dispatch_id`, `dispatch_state=running`,
   `dispatch_model`, `dispatch_tier`, `worktree`, `dispatched_at` on every bead
-  in the bucket.
+  in the batch.
 - **On failure** — a wrong base ref is a **stop**: every commit the sprint
   branch carries would be silently dropped from this worktree. Report and do
   not start.
@@ -550,15 +620,15 @@ dispatched.
   ceremony; it sequences it.
 - **Durable side effect** — one commit per bead carrying both the code and the
   closure; `retro:` comments; any beads filed for out-of-scope work found.
-- **On failure** — a blocked bead does **not** stop the bucket. Leave its
+- **On failure** — a blocked bead does **not** stop the batch. Leave its
   partial work exactly where it is — no stash, no WIP commit — and continue to
   the next bead. The standing worktree plus the record is the signal.
 - **bd** — `bd update --claim` · `bd comment` (`retro:`, `caveat:`) ·
   `bd create --discovered-from` · `bd update --status closed` inside the close
   script.
 
-**Order is the bucket's order.** The coordinator packed it; a worker
-re-sequencing its own bucket defeats the packing.
+**Order is the batch's order.** The coordinator packed it; a worker
+re-sequencing its own batch defeats the packing.
 
 ### D3 · Close — hand off
 
