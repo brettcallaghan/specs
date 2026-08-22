@@ -54,7 +54,7 @@ bead-bonanza run:
 - [ ] 2. Dispatch plan: bucket + tier + push mode per bead
 - [ ] 2b. Sprint branch created (or reused), `branch` + `base_sha` in manifest
 - [ ] 3. Execute buckets, verifying each return (skip claims, clean tree)
-- [ ] 4. Final report: table, totals, implicit decisions, TIER ESCALATIONS,
+- [ ] 4. Final report: INCIDENTS FIRST, table, totals, implicit decisions, TIER ESCALATIONS,
         follow-up beads, stashes, pushes, run epic id
 ```
 
@@ -726,11 +726,29 @@ don't bother labeling. Just push when the subagent returns.
 
 After the queue is drained (or the circuit breaker tripped), print:
 
+0. **Incidents — first, before the table.** Every decision this run made that
+   changed what "correct" means: an acceptance criterion amended, a
+   standard/requirement/AC tension resolved, a contract or interface changed, a
+   spec silent where a bead needed it to speak. Harvest them with
+
+   ```bash
+   bd export | jq -r '.comments[]?.text' | grep -E '^(retro: incident|amend: incident)'
+   ```
+
+   one row each — bead, what was decided, what was rejected. **State `none`
+   explicitly** when there were none; the null is information, and a missing
+   section reads like a clean run rather than an unreported one.
+
+   This section is first because it is the one a human skims, and it is what
+   earns an autonomous run its autonomy. **The count is a quality metric for
+   the specs, not for the run**: each incident marks a place the corpus failed
+   to answer a question, so each is the retro's material, not a complaint.
 1. A markdown table: `| ID | Status | Bucket | Commit | Notes |`
 2. Totals: `N closed, N blocked, N skipped`.
-3. **Implicit decisions made** — extract from the beads' `retro:` comments: which beads had
-   implicit decisions, what the subagent chose. Surface to the user so they can
-   audit non-obvious choices.
+3. **Implicit decisions made** — the rest of the beads' `retro:` comments:
+   which beads had implicit decisions, what the subagent chose. Surface to the
+   user so they can audit non-obvious choices. Incidents are already in 0;
+   do not repeat them here.
 3a. **Tier escalations** — every bead whose tier you had to raise to get it
     done, one row each:
 
@@ -807,9 +825,16 @@ A run is a sprint; this is its retrospective. It runs on **every run that
 closed at least one bead**, not only on a run that struggled.
 
 **Read the run's records; do not re-derive the run.** The inputs are the
-harvested `retro:` comments, the tables you just printed (3a escalations, 3b
-over-routes, 4 follow-up and admitted/bounced beads), the run epic's `amend:`
-comments, and `git log` on the sprint branch. Do NOT re-read diffs, re-run gates, or re-open the beads' work. A
+harvested `retro:` comments, the tables you just printed (0 incidents, 3a
+escalations, 3b over-routes, 4 follow-up and admitted/bounced beads), the run
+epic's `amend:` comments, and `git log` on the sprint branch.
+
+**Incidents are this retro's best material.** Each one marks a place the
+corpus failed to answer a question a bead needed answered, so each is a
+candidate finding against a *document* — an RFC for a spec, a gap in a
+standard — rather than a complaint about the run. Route them accordingly:
+they belong to `retro-spec`'s audience, not `retro-skill`'s, unless the thing
+that failed to speak was a skill. Do NOT re-read diffs, re-run gates, or re-open the beads' work. A
 retro that costs a second pass over the run is a retro that gets skipped.
 
 **Harvest first, then assert.** Findings are `retro:` comments on the beads —
@@ -909,6 +934,14 @@ with any RFCs in a single commit.
   decision is bounced at Phase 1.5. A choice a subagent still makes silently
   — one the bead's Design didn't pin — belongs in its `retro:` comment, not
   the diff.
+- **Nothing escalates to a human mid-run.** Not an ambiguous acceptance
+  criterion, not a contract change, not a silent spec. You decide, you record
+  it as an **incident** — `retro: incident —` on the bead, `amend: incident on
+  <id> —` on the run epic — and the report names it first. A recorded decision
+  gets reviewed at the pull request and revised in a later run; that is cheaper
+  than a night blocked on a question nobody is awake to answer. This binds you
+  as much as your subagents: an incident you decide yourself is recorded the
+  same two ways.
 - **Visible progress beats opacity, and the fast path alone doesn't survive an
   interrupt.** Subagents write JSONL progress events; the orchestrator arms
   both wake mechanisms over them ("Recovery and progress streaming" above).

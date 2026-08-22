@@ -31,6 +31,7 @@ identical.
 | checks | run `{SCRIPTS}/bb-checks.py` | same |
 | `{CHECKS_IDS}` | given — the ids the project declared | `scripts/bb-checks.py --ids` |
 | `{SCRIPTS}` | given | `bead-bonanza/scripts/` |
+| `{EPIC}` | given — the run epic, for incidents | `none` |
 | `{TRAILERS_FILE}` | given, or `none` | `none` |
 | `{CHECKS_BASELINE}` | given — what the checks printed before the run | run `scripts/bb-checks.py` on a clean tree, before you start |
 | push mode | `push_per_bead` or `defer_push` | push your branch when the work is done |
@@ -73,7 +74,8 @@ Write no progress file.
    on with the original and do not widen scope inline.
 
    For any implicit decision you have to make, record what you chose and why —
-   that also goes in a `retro:` comment.
+   that also goes in a `retro:` comment. **When the decision is one of the four
+   below, it is an incident** and gets recorded differently — see "Incidents".
 
 4. **Checks — the push is the gate.** Run `{SCRIPTS}/bb-checks.py` here,
    before any push. It runs everything the project declared, in declaration
@@ -180,9 +182,51 @@ The bead is already addressed, malformed, or duplicates a closed bead:
    done" without one is not acceptable — nobody can verify it. Find it with
    `git log --oneline --all | grep <keyword>` or `bd show <suspected-id>`.
 
+## Incidents — decisions that change what "correct" means
+
+Most decisions are about *how* to do the work, and a `retro:` comment is the
+whole of their record. Four kinds change *what correct is*, and guessing at
+those produces confidently wrong work that passes every check:
+
+| | |
+|---|---|
+| an **acceptance criterion needs amending** | the bead's definition of done is wrong, so any implementation is a guess at intent |
+| a standard, requirement and AC are in **tension** | there is no conservative branch — each choice violates something |
+| a **contract or interface** change | the blast radius is outside this bead's scope by construction |
+| a spec is **silent** where the bead requires it to speak | your choice writes an undocumented decision into the code |
+
+**Decide anyway. Do not stop and do not ask** — see Constraints. A recorded
+decision gets reviewed at the pull request and revised in a later bead, and
+that is cheaper than a run blocked on a question nobody is awake to answer.
+
+**Record it two ways, both required:**
+
+```bash
+bd comment {ID} "retro: incident — <what you decided, and why>.
+Alternative considered: <what you rejected, and what it would have cost>."
+
+# and, WHEN {EPIC} is not `none`, so the run's record carries it
+# independently of this bead
+bd comment {EPIC} "amend: incident on {ID} — <one line>"
+```
+
+The `retro: incident —` prefix is deliberate: the ordinary `retro:` sweep still
+finds it, and it is greppable as its own class. The run's report names every
+one of them **before anything else** — that section is what earns an autonomous
+run its autonomy.
+
+**Working solo (`{EPIC}` is `none`)?** The bead comment alone. Say in your
+return line that an incident was recorded, so whoever reads it knows to look.
+
+An incident is not a failure and does not block the bead. **The incident count
+is a quality metric for the specs, not for you** — each one marks a place the
+corpus failed to answer a question, which is a finding against a document
+rather than against the work.
+
 ## Constraints
 
-- Do not ask the user questions. Decisions are settled before you start.
+- Do not ask the user questions. Decisions are settled before you start —
+  including the four in "Incidents", which are recorded, never escalated.
 - Do not modify code outside this bead's scope.
 - A bead claimed by a **different** assignee belongs to a live sibling — leave
   it alone, exactly like foreign working-tree changes. Re-claiming your own is
@@ -206,3 +250,5 @@ orchestrator verifies with `bb-status.sh bead <id>`:
 - [ ] Gates passed, or the bead is `blocked` with a reason.
 - [ ] Anything found beyond scope was filed as a bead, not implemented and not
       dropped.
+- [ ] Any decision that changed what "correct" means was recorded as an
+      incident on the bead, and on the run epic when there is one.

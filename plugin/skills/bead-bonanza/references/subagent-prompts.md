@@ -17,6 +17,11 @@ A subagent can infer none of them.
 **There is no run directory.** The run's record is the epic: the manifest in
 its metadata, the amendments in its comments.
 
+**`{EPIC}` is also where incidents land.** A subagent that has to decide
+something changing what "correct" means writes `retro: incident — …` on the
+bead and `amend: incident on <id> — …` on the epic. `run-bead` carries the
+rule; the prompt only has to supply the id, which no subagent can infer.
+
 `{DISPATCH_ID}` is resolved **per subagent** — one id for a batch, shared by
 every bead it holds, which is what makes "what is that agent holding" a query.
 
@@ -53,6 +58,7 @@ contract along with it.
 You are addressing a single bead in this repo. Read CLAUDE.md and AGENTS.md if you need repo conventions or the bead workflow. Validation comes from the checks the project declares in `sf.toml`.
 
 Bead: {ID} (P{PRIORITY}) — {TITLE}
+Run epic: {EPIC}            (record incidents here as well as on the bead)
 Decision (chosen by the user up front): {DECISION}
 Implicit decisions (subagent picks unless overridden): {IMPLICIT_NOTES}
 Checks: {SCRIPTS}/bb-checks.py       (declared ids: {CHECKS_IDS})
@@ -124,7 +130,7 @@ WHERE you were given one for the whole batch, that signal is coarser by
 construction — it means "this BATCH is unfinished" — so report each bead's close
 as it lands, because your report is the only per-bead signal the orchestrator has
 until the batch returns.
-Run epic: {EPIC}            (the run id; its metadata is the manifest)
+Run epic: {EPIC}            (the run id; its metadata is the manifest — and where incidents land)
 Scripts: {SCRIPTS}
 Trailers: {"on the run epic" if any}   (pass `--trailers-from {EPIC}` to bb-close-bead.sh; omit it when the run resolved none)
 Checks baseline:
