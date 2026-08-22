@@ -33,10 +33,19 @@ needs its record exactly as much as a twenty-bead run does.
 `scripts/pre-flight-check.sh`'s output plus what admission decided. Retrieve it
 whole with `bd show <epic-id> --json | jq .metadata`.
 
+**`branch` and `base_sha` are the orchestrator's, written once.** It creates
+the sprint branch immediately before dispatching wave 1 — after grooming, so
+`base_sha` includes the grooming commits — and writes both keys then. A run
+whose manifest already carries them **reuses** the branch and creates nothing;
+that is what makes a resumed run land where the original did. Three things read
+them and none may write them: the review scopes its diff `base_sha`..sprint
+head, every worktree branches from that branch's HEAD, and the pull request
+opens against it.
+
 ```json
 {
   "branch": "<branch>",
-  "base_sha": "<sha at run start>",
+  "base_sha": "<sha at branch creation, after grooming>",
   "checks_ids": "format vet build test-go …",
   "checks_baseline": "<verbatim text — inline this into EVERY subagent prompt>",
   "checks_baseline_status": 1,

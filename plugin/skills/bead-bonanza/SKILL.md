@@ -52,6 +52,7 @@ bead-bonanza run:
 - [ ] 0–1.5 `start-sprint` invoked: run epic resolved, BB_* facts eval'd,
         admission record (admitted / excluded / moved), readiness verdict
 - [ ] 2. Dispatch plan: bucket + tier + push mode per bead
+- [ ] 2b. Sprint branch created (or reused), `branch` + `base_sha` in manifest
 - [ ] 3. Execute buckets, verifying each return (skip claims, clean tree)
 - [ ] 4. Final report: table, totals, implicit decisions, TIER ESCALATIONS,
         follow-up beads, stashes, pushes, run epic id
@@ -73,6 +74,41 @@ than blaming a run for the tracker's other beads.
 and merges, Phase 3's per-bead ceremony, the reference and script interfaces —
 because only this file's opening survives a compaction, so the phases appear
 out of numeric order.
+
+## The sprint branch — you create it, once, before the first worktree
+
+**Immediately before dispatching wave 1**, and not before. A run that bounced
+every bead at the readiness gate has nothing to branch for, and a branch cut
+before grooming records a `base_sha` from before the grooming commits land.
+
+```bash
+man="$(bd show "$BB_EPIC" --json | jq -r '.[0].metadata')"
+br="$(printf '%s' "$man" | jq -r '.branch // empty')"
+if [ -n "$br" ]; then
+  git checkout "$br"                      # RESUME — reuse, create nothing
+else
+  br="sprint/<epic-suffix>"
+  git rev-parse --verify "$br" >/dev/null 2>&1 && { echo "branch $br taken"; exit 1; }
+  git checkout -b "$br"
+  # merge into the manifest; never replace it
+  bd update "$BB_EPIC" --set-metadata branch="$br" \
+                       --set-metadata base_sha="$(git rev-parse HEAD)"
+fi
+```
+
+**Reuse is not an optimization** — it is the whole of what makes a resumed run
+land on the same branch. Read the manifest before you create anything.
+
+**A name already taken by an unrelated branch stops the run**, here, before any
+worktree exists. That is the cheapest place a run can stop.
+
+**`base_sha` is recorded at creation because that is the only moment it is
+unambiguous.** Deriving it later from the branch's merge-base assumes the base
+branch has not moved, and on a long run it will have.
+
+Three things consume it and none of them may create it: the review scopes its
+diff `base_sha`..sprint head, every worktree branches from sprint HEAD (below),
+and the pull request opens against it.
 
 ## Every bead runs in its own worktree
 
