@@ -49,7 +49,14 @@ shortest thing a coordinator reads.
    — see below.
 3. **Review findings go through `groom-beads` like any other bead.** Review
    files; it does not groom. The loop re-enters at step 3+4 unconditionally.
-4. **Two loops maximum — the process runs at most three times.** The budget
+4. **Nothing escalates to a human mid-run.** The four decisions that change
+   what "correct" means are *decided*, recorded as incidents, and surfaced at
+   the top of the report — see below. The run reviews and revises in the next
+   run; it does not wait for an answer nobody is awake to give.
+5. **The coordinator creates the sprint branch**, immediately before the first
+   wave and therefore before the first worktree, and records `branch` and
+   `base_sha` in the manifest.
+6. **Two loops maximum — the process runs at most three times.** The budget
    bounds the *machine* reviewing itself (step 6). **Findings from the human's
    PR review do not consume it** — a human asking for a change is not a loop
    the run gets to decline.
@@ -75,42 +82,56 @@ A run that stops mid-flight to ask something is not autonomous, however
 reasonable the question. So:
 
 > **After the authorization gate, an unauthorized decision is never a stop.**
-> The coordinator takes the **conservative branch**, records the choice on the
-> run epic as an `amend:` comment, and names it in the final report.
+> The coordinator or the worker **decides**, records the choice, and names it
+> in the final report.
+
+**There is no exception.** Nothing in a run escalates to a human between the
+gate and the PR — not an ambiguous acceptance criterion, not a contract
+change, not a silent spec. The design is iterative: a decision recorded is a
+decision that can be reviewed at the PR and revised in the next run, and that
+is cheaper than a night spent blocked on a question nobody was awake to
+answer.
 
 That rule is what makes the gate worth designing carefully: every question the
 run could need must be *askable up front*, because it will not get a second
 chance.
 
-### The exception: decisions that change what "correct" means
+### The four decisions that get recorded, not asked
 
-The rule above governs decisions about **how to run**. It does not govern
-decisions about **what correct is** — and guessing at those produces
-confidently wrong work that passes every check.
+Most decisions are "how to run", and the conservative default settles them
+silently. Four kinds change **what correct is** — and guessing at those
+produces confidently wrong work that passes every check. They are still not
+escalations. They are **incidents**: decided, then flagged loudly enough that
+the human's PR review lands on them first.
 
-**These may interrupt the run, and nothing else may:**
-
-| escalation | why it cannot be defaulted |
+| incident | what is at stake |
 |---|---|
-| an acceptance criterion needs amending | the bead's definition of done is wrong; any branch is a guess at intent |
+| an acceptance criterion needs amending | the bead's definition of done is wrong; the decision is a guess at intent |
 | a standard, requirement and AC are in **tension** | there is no conservative branch — each choice violates something |
 | a **contract or interface** change | the blast radius is outside the run's scope by construction |
-| a spec is **silent** where the bead requires it to speak | inventing the answer writes an undocumented decision into the code |
+| a spec is **silent** where the bead requires it to speak | the decision writes an undocumented choice into the code |
 
-**Every escalation is an incident.** Record it on the run epic and surface it
-in the retro — not as a failure of the run, but as a finding about the specs:
-the goal is a corpus good enough that the run never has to ask. **The
-escalation count is a quality metric for the specs, not for the agent.**
+**Recording one has three parts, and all three are required:**
 
-Anything not on that list takes the conservative branch and gets reported.
+1. the decision and its reasoning, as a `retro:` comment on the bead — this is
+   what the retro harvests;
+2. an `amend:` comment on the run epic, so the run's record carries it
+   independently of the bead;
+3. a line in the **report's incident section**, which is the first thing the
+   human reads.
+
+**The incident count is a quality metric for the specs, not for the agent.**
+The goal is a corpus good enough that a run never has to decide one of these.
+A run with zero incidents means the specs answered every question; a run with
+twelve means the corpus has twelve holes, and the retro's job is to file them.
 
 ### The conversation is asymmetric
 
 - **Human → coordinator: always open.** The human may ask anything at any
   time — status, reasoning, a bead's state, why a decision went the way it
   did. Answering costs the run nothing and interrupts nothing.
-- **Coordinator → human: bounded.** The gate, the four escalations above, and
-  the PR. That asymmetry is the whole autonomy budget.
+- **Coordinator → human: exactly three moments.** The gate, the PR, the
+  report. That asymmetry is the whole autonomy budget.
 
 ### The authorization set
 
@@ -140,6 +161,7 @@ which is the only default that is safe to apply without asking.
       └─ AUTHORIZATION GATE ................. HUMAN, once
 ┌─ 3+4 groom & plan ......................... sprint-plan → groom-beads
 │  5   sprint ............................... coordinator + subagents
+│      ├ create the sprint branch, once ..... coordinator
 │      ├ 5a dispatch a wave ─┐ repeat until   sprint-wave → sprint-batch
 │      ├ 5b merge            │ the ready      coordinator
 │      └ 5c supervise       ─┘ front is dry   bb-status.sh
@@ -395,6 +417,27 @@ property of a groomed bead, and grooming is what this step does. Asking about
 readiness before grooming answers a question about beads that are about to
 change.
 
+### 5 · The sprint branch — created once, before the first worktree
+
+**The coordinator creates it, immediately before dispatching wave 1.** Not at
+scope resolution: a run that bounces every bead at 3+4 has nothing to branch
+for, and a branch created before grooming records a `base_sha` from before the
+grooming commits land.
+
+- **Input** — the run epic; the current HEAD.
+- **Coordinator does** — creates the branch, writes `branch` and `base_sha`
+  into the manifest, then dispatches. If the manifest already carries them, it
+  **reuses** what is there and creates nothing — this is what makes a resumed
+  run land on the same branch.
+- **Durable side effect** — the branch, and two manifest keys.
+- **On failure** — a branch name already taken by an *unrelated* branch stops
+  the run before any worktree exists, which is the cheapest possible place to
+  stop.
+
+Three later steps consume it and none of them can create it: step 6 reviews
+`base_sha → sprint head`, D1 verifies its worktree branched from sprint HEAD
+rather than the default branch, and step 7 opens the PR against it.
+
 ### 5a · Dispatch a wave — `sprint-wave`
 
 - **Input** — the wave's batches; the manifest handle; `{SCRIPTS}`.
@@ -504,6 +547,10 @@ to re-enter are routing, and routing is the only thing the coordinator does.
 - **Durable side effect** — new beads; RFCs where the finding is a spec's.
 - **On failure** — an empty harvest is a finding about the run, not a pass.
 
+**Incidents are the retro's best material.** Each one marks a place the corpus
+failed to answer a question, so each is a candidate RFC against a spec rather
+than a complaint about the run.
+
 ### 9 · Report — `sprint-report`
 
 - **Input** — the run epic, by handle. Everything the report needs is on it or
@@ -511,6 +558,10 @@ to re-enter are routing, and routing is the only thing the coordinator does.
 - **Returns** — the human-facing sprint report.
 - **Coordinator does** — this is the run's own output. It reads it before
   handing it over, and adds nothing it did not already know.
+- **Must contain, before anything else** — the **incidents**: every decision
+  that changed what "correct" means, with its reasoning. A human skimming one
+  section reads that one, and it is the section that earns the run its
+  autonomy.
 - **Durable side effect** — the report is written to a file and its path
   recorded in the manifest, so a report survives the session that produced it.
 - **On failure** — a report is always produced, including for a run that
@@ -597,10 +648,12 @@ Making it explicit also shows where we would otherwise be hand-rolling.
 | 1 pre-flight | `bd stats` / `bd ready` reachability · `bd dolt push` probe against `refs/dolt/*` |
 | 2 resolve scope | `bd create --type=epic` · `bd update --parent` (admission) · `bd ready --parent --exclude-type=epic` (the queue) · `bd update --metadata` (the manifest) |
 | 3+4 groom & plan | `bd update --description/--design/--acceptance` · `bd dep add` (sequencing as real edges) · `bd lint` · `bd human` + `decision-required` label (bounces) · `bd ready --parent` (order) · `bd swarm validate` (wave **preview** only) · `metadata.tier` / `c4_changes` / `c4_impacts` (packing) |
+| 5 branch | the manifest's `branch` / `base_sha` keys — created once, reused on resume |
 | 5a dispatch | `bd update --claim` (atomic, sets status **and** assignee) · `--set-metadata` (the dispatch record) · re-queried `bd ready --parent` |
 | 5b merge | `bd merge-slot create/check/acquire/release` |
 | 5c supervise | `bd set-state health=<v>` (event bead + replacing label, atomically) · `bd swarm status` (computed, not stored) · `.beads/hooks/on_update` (the event stream) |
 | 6 review | `bd create --discovered-from` (findings stay attached to their origin) · labels for in/out of scope |
+| **incidents** | `retro:` comment on the bead · `amend:` comment on the run epic · the report's incident section |
 | 7 PR review | none — this is the forge's |
 | 8 retro | `bd export \| jq` over `retro:` comments · `bd create` for adopted actions |
 | 9 report | `bd epic status` (flat) or a walked count (nested) · the manifest's admission record |
@@ -703,55 +756,3 @@ worktree for six beads broke the acceptance signal outright.
 
 `run-bead` ✅ — claim, read in full, implement in scope, checks, caveat,
 `retro:` comments, close-and-commit as one, return one line.
-
----
-
-## Open — three things this document does not settle
-
-Each one needs a decision, not an invention. They are the only gaps found in
-review; everything else above is either decided or deliberately deferred to a
-project's own configuration.
-
-### 1. Nothing creates the sprint branch
-
-Steps 1–10 never name the act. Step 6 scopes its review to `base_sha → sprint
-head`, D1 verifies a worktree "branched from sprint HEAD", step 7 opens a PR
-"against the sprint branch" — three consumers, no producer.
-
-**Recommended:** `sprint-scope` creates it and writes `branch` and `base_sha`
-into the manifest alongside the admission record. It is already the step that
-mints durable identity for the run, the branch *is* run identity, and recording
-`base_sha` at creation is the only moment it is unambiguous. The alternative —
-the coordinator creating it inline before 5a — leaves recovery with no record
-of what the run branched from.
-
-**Consequence if it goes elsewhere:** the manifest keys move, and step 6's
-input changes. Nothing else in this document does.
-
-### 2. What an escalation does when no human is there
-
-The four escalations in "decisions that change what 'correct' means" assume
-someone answers. The premise of the whole design is an overnight run where
-nobody does.
-
-**The options, and what each costs:**
-
-| | behaviour | cost |
-|---|---|---|
-| **block** | the bead waits on `bd human`; the run continues around it | the run is narrower than it looks, and the report has to say so loudly |
-| **stop** | the whole run halts at the first escalation | one ambiguous acceptance criterion wastes a night |
-| **guess and flag** | take a branch, label it, surface it in review | writes an undecided decision into the code — the exact thing the escalation exists to prevent |
-
-**Recommended: block.** It is the only one consistent with "a bounced bead
-never blocks the run; it narrows it", which step 3+4 already states for the
-grooming case. An escalation is a bounce that happens later.
-
-### 3. `target-skill-structure.md` overlaps this document
-
-`docs/plans/target-skill-structure.md` covers the same ground from the byte-
-budget angle. Its arithmetic — which extraction buys how many bytes against the
-~20,000-byte cap — is not reproduced here and is worth keeping.
-
-**Recommended:** fold the arithmetic into this document as a sizing section and
-delete the other file, so there is one target-state document rather than two
-that will drift.
