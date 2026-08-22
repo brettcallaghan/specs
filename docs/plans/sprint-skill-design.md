@@ -79,6 +79,36 @@ That rule is what makes the gate worth designing carefully: every question the
 run could need must be *askable up front*, because it will not get a second
 chance.
 
+### The exception: decisions that change what "correct" means
+
+The rule above governs decisions about **how to run**. It does not govern
+decisions about **what correct is** — and guessing at those produces
+confidently wrong work that passes every check.
+
+**These may interrupt the run, and nothing else may:**
+
+| escalation | why it cannot be defaulted |
+|---|---|
+| an acceptance criterion needs amending | the bead's definition of done is wrong; any branch is a guess at intent |
+| a standard, requirement and AC are in **tension** | there is no conservative branch — each choice violates something |
+| a **contract or interface** change | the blast radius is outside the run's scope by construction |
+| a spec is **silent** where the bead requires it to speak | inventing the answer writes an undocumented decision into the code |
+
+**Every escalation is an incident.** Record it on the run epic and surface it
+in the retro — not as a failure of the run, but as a finding about the specs:
+the goal is a corpus good enough that the run never has to ask. **The
+escalation count is a quality metric for the specs, not for the agent.**
+
+Anything not on that list takes the conservative branch and gets reported.
+
+### The conversation is asymmetric
+
+- **Human → coordinator: always open.** The human may ask anything at any
+  time — status, reasoning, a bead's state, why a decision went the way it
+  did. Answering costs the run nothing and interrupts nothing.
+- **Coordinator → human: bounded.** The gate, the four escalations above, and
+  the PR. That asymmetry is the whole autonomy budget.
+
 ### The authorization set
 
 Asked once, as one interaction, with a stated default for each so a human can
@@ -184,32 +214,68 @@ re-derive from a handle, it re-derives.
 
 ## Coordinator — the steps
 
-| # | step | executed by | status |
-|---|---|---|---|
-| 1 | Pre-flight | script | ✅ |
-| 2 | Resolve scope | script + coordinator + **human** | ✅ |
-| 3 | Groom | subagent | ✅ |
-| 4 | Plan sprint | subagent | ✅ |
-| 5a | Dispatch a wave | coordinator + subagents | 🔨 |
-| 5b | Merge queue | subagent, serialized | ⬜ |
-| 5c | Supervise | script + trigger | 🔨 |
-| 6 | Review code | subagents review, coordinator loops | ⬜ |
-| 7 | PR review | **human** | ⬜ |
-| 8 | Retro | subagents + coordinator | 🔨 |
-| 9 | Report | coordinator | 🔨 |
-| 10 | Post-flight | script | ⬜ |
+| # | step | skill / script | executed by | status |
+|---|---|---|---|---|
+| 1 | Pre-flight | `pre-flight-check.sh` | script | ✅ |
+| 2 | Resolve scope | **`start-sprint`** | script + coordinator + **human** | ✅ |
+| 3 | Groom | **`groom-beads`** | subagent | ✅ |
+| 4 | Plan sprint | **`plan-sprint`** | subagent | ✅ |
+| 5a | Dispatch a wave | **`run-wave`** | coordinator + subagents | ⬜ |
+| 5b | Merge a branch | **`merge-branch`** | subagent, serialized | ⬜ |
+| 5c | Supervise | `bb-status.sh` | script + trigger | ✅ |
+| 6 | Review code | **`review-sprint`** | subagents review, coordinator loops | ⬜ |
+| 7 | PR review | — | **human** | ⬜ |
+| 8–10 | Retro, report, post-flight | **`close-sprint`** | subagents + coordinator | ⬜ |
+| — | Recovery | **`recover-sprint`** | script + coordinator | ✅ |
+| — | One bucket of beads | **`run-bucket`** | the developer | ⬜ |
+| — | One bead | **`run-bead`** | the developer | ✅ |
+
+### The naming, for review
+
+Every skill is **verb-noun**, matching the four that already exist, and the
+three execution tiers share one stem so the hierarchy is readable from the
+names alone:
+
+```
+run-wave    →  N buckets dispatched concurrently
+  run-bucket  →  N beads, one worker, one worktree
+    run-bead    →  1 bead, claimed to committed
+```
+
+And the run's lifecycle brackets cleanly:
+
+```
+start-sprint  …  plan-sprint  …  review-sprint  …  close-sprint
+                        recover-sprint  (re-entry, any time)
+```
+
+Two names worth arguing about:
+
+- **`merge-branch`** — the *queue* is the concept; the *skill* runs once per
+  branch, so it is named for its unit like every other. `merge-queue` reads
+  better in prose but is a noun-noun and describes a structure rather than an
+  action. Alternative: `integrate-branch`.
+- **`run-bucket`** — "bucket" is `plan-sprint`'s own word for what it produces,
+  which is why it beats "batch" here even though the existing prompt templates
+  say batch. If we keep "batch", `plan-sprint` should stop saying bucket.
+
+`5c` has no skill on purpose: supervision is a script the coordinator runs and
+reads. Giving it a skill would add a context hop to something already legible.
 
 ### 1 · Pre-flight
 
 - **Input** — nothing.
 - **Returns** — `BB_*` facts on stdout, eval'd. Human-readable report on stderr.
-- **Coordinator does** — eval, then proceed or stop. It does not interpret;
-  the script names each blocker.
+- **Coordinator does** — eval, then proceed or stop. **It acts on the verdict,
+  not on the evidence**: the script names each blocker and its remedy, so there
+  is nothing to re-derive and nothing to weigh.
 - **Durable side effect** — none on this pass.
 - **On failure** — exit 1 names a blocking condition. **The run does not
   start.** Do not work around it.
 
-*The model for every other step: run it, read it, done.*
+*The model for every other step: run it, read it, done.* A subprocess whose
+output the coordinator has to reason about has pushed work back up the tier it
+was supposed to absorb.
 
 ### 2 · Resolve scope
 
