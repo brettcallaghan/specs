@@ -402,7 +402,7 @@ Load the one that matches where you are in the run:
 | A project with no declared `[[checks]]` or no `sf.toml` model lineup | `references/project-setup.md` |
 | Resuming a bead interrupted mid-implementation (its worktree still exists) | `references/operating-principles.md` |
 | Phase 0 pre-flight: probe the environment, resolve `SCRIPTS`, record the manifest | run `scripts/pre-flight-check.sh` |
-| Verifying a bead's acceptance signals, a wave's landing, or the run's Definition of Done | run `scripts/bb-status.sh` |
+| Verifying a bead's acceptance signals, a wave's landing, the run's Definition of Done, or whether a held merge slot is safe to release | run `scripts/bb-status.sh` |
 | Checking a `skipped` claim against the tree | run `scripts/bb-verify-skip.sh` |
 | Closing a bead: close + verify + stage + commit + push the tracker | run `scripts/bb-close-bead.sh` |
 | The Definition of Ready the Phase 1.5 gate enforces | `references/shared/work-order-definition-of-ready.md` |

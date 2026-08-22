@@ -343,9 +343,15 @@ committing them lands in-flight bead state on the sprint branch.
      acquire failing, indistinguishable from a sibling holding it — release on
      every path out of a merge, including the failure paths.
    - **Release does not check the holder.** Any agent can release anyone's
-     slot, and releasing an unheld slot succeeds silently. That is the failure
-     path for a slot held by a dead agent — just release it — and equally the
-     reason the slot is advisory: it records intent, it does not enforce it.
+     slot, and releasing an unheld slot succeeds silently — so the remedy for a
+     slot held by a dead agent and the way to corrupt a live merge are the same
+     command. **Do not decide that by eye: run
+     `{SCRIPTS}/bb-status.sh slot {EPIC}`.** It prints the holder beside the
+     evidence for and against them still being alive — standing worktrees, the
+     age of the last commit, and which dispatches report `running` — and
+     recommends a release only when every signal agrees. It never releases
+     anything itself, so a wrong reading costs a second look rather than
+     someone else's merge.
    - **The holder is the actor** (`$BEADS_ACTOR`, else git `user.name`), so set
      `BEADS_ACTOR` if you want the holder to name something more specific than
      the harness default.

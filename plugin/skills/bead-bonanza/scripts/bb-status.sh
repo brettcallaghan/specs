@@ -6,6 +6,7 @@
 #   bb-status.sh bead <bead-id> [--worktree <path>] [--batch]
 #   bb-status.sh wave [--branch <name>] [--remote <name>]
 #   bb-status.sh run <epic-id>
+#   bb-status.sh slot [<epic-id>]
 #   bb-status.sh harvest <bead-id> [<bead-id>...]
 #   bb-status.sh --self-test
 #
@@ -258,6 +259,98 @@ mode_self_test() {
   echo "RESULT: FAIL"; return 1
 }
 
+# --------------------------------------------------------------- slot mode
+#
+# `bd merge-slot release` does not check the holder: any agent can release
+# anyone's slot, and releasing an unheld slot succeeds silently. So the
+# recovery path for a slot held by a dead agent and the way to corrupt a live
+# merge are the same command — and nothing distinguishes dead from live.
+#
+# This reports the holder ALONGSIDE the evidence for and against that holder
+# still being alive, and recommends a release only when every signal agrees.
+# It never releases anything: the script is read-only, so a wrong reading here
+# costs a second look rather than someone else's merge.
+mode_slot() {
+  [ $# -le 1 ] || die "usage: bb-status.sh slot [<epic-id>]"
+  _epic="${1:-}"
+  _slot="$(bd merge-slot check 2>&1)"
+  echo "merge slot"
+
+  case "$_slot" in
+    *"not found"*)
+      line OK "no slot bead — nothing holds a merge" "bd merge-slot check"
+      return ;;
+    *"available"*|*"Available"*)
+      line OK "slot is FREE" "bd merge-slot check"
+      return ;;
+  esac
+
+  _holder="$(printf '%s\n' "$_slot" | sed -n 's/.*Holder: *//p' | head -1)"
+  _id="$(printf '%s\n' "$_slot" | sed -n 's/.*held: *\([^ ]*\).*/\1/p' | head -1)"
+  [ -n "$_id" ] || _id="$(bd_prefix_slot)"
+  line OK "slot HELD by: ${_holder:-unknown}" "bd merge-slot check"
+
+  # Evidence 1 — how long. A slot acquired minutes ago is a merge in progress;
+  # one acquired hours ago is a question.
+  _held_since="$(bd show "$_id" --json 2>/dev/null | python3 -c 'import json,sys
+try: d=json.load(sys.stdin)
+except Exception: raise SystemExit
+d = d[0] if isinstance(d, list) and d else d
+print((d or {}).get("updated_at") or "")' 2>/dev/null)"
+  [ -n "$_held_since" ] && line OK "  held since: $_held_since" "bd show $_id --json | jq -r .updated_at"
+
+  # Evidence 2 — is any agent standing at all?
+  _wt="$(git worktree list 2>/dev/null | grep -c "bb-worktrees\|\.claude/worktrees" || true)"
+  line OK "  standing worktrees: ${_wt:-0}" "git worktree list"
+
+  # Evidence 3 — is work still landing?
+  _last="$(git log -1 --format=%cr 2>/dev/null)"
+  line OK "  last commit: ${_last:-unknown}" "git log -1 --format=%cr"
+
+  # Evidence 4 — the strongest, when a run epic is known: an agent that says
+  # it is running. This is the dispatch record, not an inference.
+  _live=""
+  if [ -n "$_epic" ]; then
+    _live="$(bd list --parent "$_epic" --metadata-field dispatch_state=running --json 2>/dev/null | python3 -c 'import json,sys
+try: d=json.load(sys.stdin)
+except Exception: d=[]
+print(" ".join(x.get("id","") for x in d) if isinstance(d,list) else "")' 2>/dev/null)"
+    if [ -n "$_live" ]; then
+      line OK "  dispatches reporting running: $_live" \
+           "bd list --parent $_epic --metadata-field dispatch_state=running"
+    else
+      line OK "  dispatches reporting running: none" \
+           "bd list --parent $_epic --metadata-field dispatch_state=running"
+    fi
+  else
+    line OK "  dispatch records: not checked (pass the run epic to include them)" \
+         "bb-status.sh slot <epic-id>"
+  fi
+
+  # The verdict. Release is recommended only when NOTHING argues for the
+  # holder. Any single signal in the holder's favour is enough to withhold it.
+  if [ "${_wt:-0}" -gt 0 ] 2>/dev/null; then
+    line FAIL "do NOT release — $_wt worktree(s) standing; an agent is holding work" \
+         "git worktree list"; note $RC_STOP
+  elif [ -n "$_live" ]; then
+    line FAIL "do NOT release — a dispatch reports running: $_live" \
+         "bd list --parent $_epic --metadata-field dispatch_state=running"; note $RC_STOP
+  else
+    line OK "no worktree and no running dispatch backs ${_holder:-the holder}" ""
+    line OK "RELEASE IS DEFENSIBLE: bd merge-slot release" "bd merge-slot release"
+    line OK "  (this script never releases it — read the evidence above first)" ""
+  fi
+}
+
+bd_prefix_slot() {
+  _p="$(bd show --json 2>/dev/null | head -0; bd list -n 1 --json 2>/dev/null | python3 -c 'import json,sys
+try: d=json.load(sys.stdin)
+except Exception: raise SystemExit
+i=(d[0] if isinstance(d,list) and d else {}).get("id","")
+print(i.rsplit("-",1)[0] if "-" in i else "")' 2>/dev/null)"
+  [ -n "$_p" ] && printf '%s-merge-slot' "$_p"
+}
+
 # ---------------------------------------------------------------- run mode
 #
 # The run-level Definition of Done. `bd epic status` counts DIRECT children,
@@ -415,12 +508,13 @@ print(next((l.split(":",1)[1] for l in labs if l.startswith("health:")), ""))' 2
   fi
 }
 
-[ $# -ge 1 ] || die "usage: bb-status.sh bead|wave|run|harvest|--self-test"
+[ $# -ge 1 ] || die "usage: bb-status.sh bead|wave|run|slot|harvest|--self-test"
 sub="$1"; shift
 case "$sub" in
   bead)        mode_bead "$@" ;;
   wave)        mode_wave "$@" ;;
   run)         mode_run "$@" ;;
+  slot)        mode_slot "$@" ;;
   harvest)     mode_harvest "$@" ;;
   --self-test) mode_self_test; exit $? ;;
   *)           die "unknown mode: $sub" ;;
