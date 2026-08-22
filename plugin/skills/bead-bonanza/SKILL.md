@@ -58,7 +58,7 @@ bead-bonanza run:
 - [ ] 3. Execute waves via `sprint-wave`, merging each accepted branch
 - [ ] 3b. Review via `sprint-review`; loop back to groom & plan when findings
         were admitted and the pass budget is not spent
-- [ ] 4. Final report via `sprint-report` (incidents first), then the retro
+- [ ] 4. Final report via `sprint-report` (incidents first), then `sprint-retro`
 - [ ] 5. Post-flight: `scripts/sprint-cleanup.sh`, then cancel the durable trigger
 ```
 
@@ -280,6 +280,7 @@ Load the one that matches where you are in the run:
 | Working one batch of beads as the dispatched subagent | the **`sprint-batch`** skill |
 | Reviewing the run's own diff and turning findings into beads | invoke the **`sprint-review`** skill |
 | Writing the run's final report | invoke the **`sprint-report`** skill |
+| Turning the run's findings into filed work | invoke the **`sprint-retro`** skill |
 | Tearing the run down when it is over | run `scripts/sprint-cleanup.sh` |
 | Dispatching an execution subagent | `references/subagent-prompts.md` |
 | Grooming the queue and partitioning it into waves and batches | invoke the **`sprint-plan`** skill |
@@ -641,88 +642,28 @@ that ends without one has failed, whatever else it achieved.
 Then, and only then, the retro — it reads the report's tables.
 
 
-### The sprint retro
+### Then the retro — invoke `sprint-retro`
 
-A run is a sprint; this is its retrospective. It runs on **every run that
-closed at least one bead**, not only on a run that struggled.
+**After the report, whose tables it reads**, and **on every run** — including
+one that closed nothing. A sprint that bounced its whole queue produced no
+code and a great deal of evidence about grooming and spec quality; a retro
+that only fires on success cannot see the failures.
 
-**Read the run's records; do not re-derive the run.** The inputs are the
-harvested `retro:` comments, the tables you just printed (0 incidents, 3a
-escalations, 3b over-routes, 4 follow-up and admitted/bounced beads), the run
-epic's `amend:` comments, and `git log` on the sprint branch.
+It harvests every finding the run recorded, routes each by the kind the
+capturing agent stamped, reasons over them into candidate issues, puts those
+to the user once, and files what they accept — beads for this project,
+`.sf/outbox/` files for the skills it runs on.
 
-**Incidents are this retro's best material.** Each one marks a place the
-corpus failed to answer a question a bead needed answered, so each is a
-candidate finding against a *document* — an RFC for a spec, a gap in a
-standard — rather than a complaint about the run. Route them accordingly:
-they belong to `retro-spec`'s audience, not `retro-skill`'s, unless the thing
-that failed to speak was a skill. Do NOT re-read diffs, re-run gates, or re-open the beads' work. A
-retro that costs a second pass over the run is a retro that gets skipped.
+**Two of the nine kinds never become issues.** `proof` (how a claim was
+established) stays in the report attached to what it supports; `environment`
+(a dependency's behaviour no bead could have carried) goes to the
+environmental-failure ledger. Measured at 7 of 73 findings on a real run, so
+expect them.
 
-**Harvest first, then assert.** Findings are `retro:` comments on the beads —
-there is no per-bead retro file. Harvest with the `bd export | jq` pipeline in
-`references/operating-principles.md` ("Findings harvest"), once filtered to
-closed and once unfiltered. A zero count across a drained run is a broken
-query, not a clean run: **stop, re-run it**, check the label spelling and
-confirm the beads really are closed, before aggregating anything.
+**Incidents are its best material** — each marks a place the corpus failed to
+answer a question a bead needed answered, which is a finding against a
+*document* rather than a complaint about the run.
 
-**Answer every question below. A question with no evidence gets `null result`
-in writing** — omit it and an unasked question is indistinguishable from an
-answered one.
-
-1. **Grooming** — which beads were under-groomed, and how did it surface
-   (bounced at the readiness gate, an AC unsatisfiable as written, a
-   description that failed the fresh-agent test in practice, a wrong or
-   missing dependency edge)? Which tier predictions were wrong, in which
-   direction? *From:* the bounce list, 3a, 3b, `retro:` comments.
-2. **Specs** — which spec documents did an implementer find wrong, thin or
-   self-contradictory? *From:* `retro:` comments naming a document.
-3. **Plan** — what did `## Amendments` record (resequencings,
-   reclassifications, admissions, bounces), and what would have produced a
-   better initial batching? *From:* the amendments log read against the wave
-   table it amended.
-4. **Skill** — where did `bead-bonanza` itself mislead, and what did a
-   subagent improvise around? *From:* `retro:` comments citing this skill,
-   its references or its scripts.
-
-**Write one sprint report per run** at
-`rfcs/sprints/<YYYY-MM-DD>-<epic-slug>.md`, dated and slugged rather than
-named for the run id. It carries the answers and **every harvested finding
-verbatim, including the tail that
-warrants no RFC**, and it says so: `triage-rfc` defers on recurrence, so a
-finding recorded once and filtered out the next time can never be observed
-appearing twice. Filtering the report down to RFC-worthy findings breaks that
-accumulation silently.
-
-**Number findings per bead, not globally: `<bead-id>#<ordinal>`** (e.g.
-`8ef.1#3`), the ordinal given by position within that finding's own
-`### agent-plugins-<id>` heading. Cite findings by this form everywhere the
-report's analysis references one. A per-bead id is stable the moment a
-finding is harvested; a global sequence number does not exist until the
-whole report is assembled, so analysis written before assembly — which is
-how this report gets written — would be citing a number that isn't there
-yet.
-
-**The bar for anything past the report: it changes how the next run is
-dispatched.** "Wave 2 needed three cycles" is a summary. "The `schema`-labelled
-beads were batched shared-surface but each regenerated the same fixture, so
-the batch serialized anyway — batch that label sequential" is a finding. Only
-findings that clear that bar become RFCs.
-
-**Route them, as offers.** Grooming and tier-calibration findings →
-`groom-beads`; spec findings → `retro-spec`; skill findings → `retro-skill`.
-Each route is one offer the user accepts or declines, naming the findings it
-would carry. RFCs land in `rfcs/inbox/<skill>/` and **cite the sprint report
-instead of re-inlining its evidence**, so report and RFC cannot disagree: the
-report is the testimony, the RFC is the proposal built on it. Every routed RFC
-SHALL carry the run's model lineup and effort setting from the run epic's
-manifest into its Provenance — the manifest records them precisely so
-this step can, and an RFC without them ships with an unfillable provenance
-field.
-
-The report itself is not an offer. Write it, append one row for the sprint to
-`rfcs/retro-log.md` so one index covers all retro activity, and commit both
-with any RFCs in a single commit.
 
 ## Post-flight — `scripts/sprint-cleanup.sh`
 
@@ -900,9 +841,8 @@ in each file's header and re-run that script.
 
 ## Retro this skill
 
-Question 4 of Phase 4's sprint retro ("The sprint retro") owns this. It asks
-where `bead-bonanza` misled and what a subagent improvised around, answers it
-from the run's harvested `retro:` comments, and offers `retro-skill` when
-those comments carry a finding. Do not gate a retro of this skill on whether
-the run felt like it struggled — the comments are the evidence, and a run that
-felt clean can still have produced several.
+**`sprint-retro` owns this, and it is mechanical rather than a judgement
+call.** A finding about this skill is captured as `retro:tooling:<name>`, and
+routing picks it up by that kind without anyone deciding the run "felt like it
+struggled". The comments are the evidence, and a run that felt clean can still
+have produced several.
