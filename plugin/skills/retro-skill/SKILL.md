@@ -86,7 +86,7 @@ finding:
 1. **Misleading text** — an instruction that led the agent to the wrong
    action. Quote it **verbatim with `file:line`**, and state what the
    agent did because of it.
-   > e.g. `triage-rfc/SKILL.md:0` "normalize the item into a conforming
+   > e.g. `triage-issue/SKILL.md:0` "normalize the item into a conforming
    > RFC" — assumed one file = one RFC; the real input was three
    > concatenated RFCs, so the agent had to invent a split step.
 2. **Script / tool defect** — a command, script, or check the skill
@@ -230,7 +230,7 @@ Retro progress:
    - Retroing a skill **inside this framework repo** (dogfooding, or
      this repo's own skills) → straight to `rfcs/inbox/<skill-name>/`
      for triage. This closes the self-improvement loop: retro-skill →
-     inbox → `triage-rfc`.
+     inbox → `triage-issue`.
    - **Null result** → a `retro-note-<origin>-<YYYY-MM-DD>.md` in the
      same `<skill-name>` directory, so the retro log stays complete; a
      skill that retroed clean is information.
@@ -248,7 +248,7 @@ Retro progress:
    A sentence either names its source or it does not.
 
    Do NOT edit the skill yourself — retro-skill's authority ends at the
-   RFC; `triage-rfc` resolves it after human approval.
+   RFC; `triage-issue` resolves it after human approval.
 
 ## The bar, restated
 
@@ -271,7 +271,7 @@ about a skill belongs in Considered and Not Proposed at most.
 | Padding with polish while blockers exist | Dilutes the RFC; rank by severity and lead with blockers |
 | One RFC per finding, or one RFC spanning several skills | Bundle all findings for ONE skill into one RFC (its proposals are the units of decision); findings about a different skill get their own RFC. The exception is a finding that is a property of several skills at once — route it per step 5: a standards requirement plus ONE RFC against the skill that most exhibits it |
 | N near-identical RFCs for one cross-cutting finding | The workaround the rule above invites, and the worse failure: triage then decides the same proposal N times. Use step 5's cross-skill route instead |
-| Editing the skill during the retro | The retro's authority ends at the RFC; resolution belongs to `triage-rfc` |
+| Editing the skill during the retro | The retro's authority ends at the RFC; resolution belongs to `triage-issue` |
 
 ## Reference files
 

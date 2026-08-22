@@ -152,7 +152,7 @@ declaration's order is the order they are reported in, not a constraint.
 
 Two entries are about how to *read* a result rather than which gate to run:
 
-- `.claude/skills/*/SKILL.md` — only the project-native skills `triage-rfc` and
+- `.claude/skills/*/SKILL.md` — only the project-native skills `triage-issue` and
   `strata` are checked; the committed symlinks to `plugin/skills/` are skipped
   and checked at their source.
 - `.claude/skills/strata/references/**` — generated verbatim from

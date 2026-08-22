@@ -788,7 +788,7 @@ retired is a rule some agent still follows.
 | `retro-spec` | **SPLIT.** Findings about the spec *templates and standards this repository vends* are branch B; findings about a *project's own* FRDs, blueprints and ADRs are branch A. The merge test decides. Both now produce issues, not RFCs |
 | **The RFC format** — `rfc-template.md`, `skill-rfc-template.md`, the 8-section document | **RETIRED**, for both branches. An RFC is a document containing several issues, which is why its own log counts per proposal and not per RFC. Summary, Evidence, the per-proposal Change block and Provenance carry forward into the issue template; the four workflow sections are dropped as a second copy of the tracker |
 | The `origin: self` RFC path | **RETIRED** with the format. Branch A becomes beads in the project; branch B becomes issues delivered here |
-| `triage-rfc` | **REBRANDED to `triage-issue`, and refined.** It stops parsing multi-proposal documents and takes issues from any channel — outbox, GitHub, this repository's own retro. Its critical role becomes translating a reported issue into a groomed work order (via `groom-beads`) and bundling the accepted set into an epic the sprint can swarm. Dedupe, defer-with-a-reason and recurrence are retained |
+| `triage-rfc` → `triage-issue` | **DONE.** It stops parsing multi-proposal documents and takes issues from any channel — outbox, GitHub, this repository's own retro. Its critical role becomes translating a reported issue into a groomed work order (via `groom-beads`) and bundling the accepted set into an epic the sprint can swarm. Dedupe, defer-with-a-reason and recurrence are retained |
 
 ---
 

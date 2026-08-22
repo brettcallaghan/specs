@@ -47,7 +47,7 @@ def err(w, m):  errors.append(f"{w}: {m}")
 def warn(w, m): warnings.append(f"{w}: {m}")
 
 def is_generated(p):
-    # .claude/skills/ holds hand-authored project skills (triage-rfc, strata)
+    # .claude/skills/ holds hand-authored project skills (triage-issue, strata)
     # and committed symlinks to the plugin/skills/ sources. A symlinked skill
     # is already checked via the plugin/skills glob, so skip it here — checking
     # it twice would double-report and could look like a duplicate skill.
