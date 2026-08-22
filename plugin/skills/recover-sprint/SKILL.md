@@ -53,14 +53,14 @@ could not read the manifest is a *reconstruction*, and says so.
 
 ## Work these steps in order
 
-0. **Take the run's vital signs first.** Before deriving anything, run
-   bead-bonanza's `scripts/bb-status.sh wave` from the sprint branch, resolved
-   from that skill's own directory. One command answers whether the tree is
-   clean, whether the branch has landed, what is still in flight, and who holds
-   the merge slot — and prints the command behind each, so any line can be
-   re-derived. It repairs nothing and is safe to run before you know anything
-   about the run. Its exit code is the first thing worth reporting: `2` means a
-   wave is stopped, not merely paused.
+0. **Take the run's vital signs first — `bb-status.sh wave`.** From the sprint
+   branch, resolved from bead-bonanza's own `scripts/`. It needs no epic and no
+   context, so it runs before you know anything: it answers whether the tree is
+   clean and whether the branch has **landed**, and prints the command behind
+   each line so any of them can be re-derived. It repairs nothing.
+
+   Its exit code is the first thing worth reporting: `2` means a wave is
+   stopped, not merely paused.
 
 1. **Find the run — derive it from the branch.** A run happens on its own
    dedicated branch, uses one run directory, and that directory is removed
@@ -98,92 +98,59 @@ could not read the manifest is a *reconstruction*, and says so.
    was added mid-run; one absent now and present then closed, or was moved out.
    Both are facts the resuming session must state rather than absorb.
 
-3. **Establish what is in flight — `git worktree list` answers "is an agent
-   still working", and nothing else.**
-   Every dispatched bead runs in its own worktree named for its hash suffix,
-   and the orchestrator removes that worktree only when the bead's branch has
-   merged. **A worktree that exists is a bead that is not finished.** The state
-   is explicit, so nothing has to be inferred:
+3. **Derive the rest by running the scripts, not by hand.** Now that you have
+   the epic:
 
    ```sh
-   cd "$(git rev-parse --show-toplevel)"
-   git worktree prune          # drop registrations whose directory is gone
-   git worktree list           # every remaining entry is an unfinished bead
+   git worktree prune                      # stale registrations read as in-flight forever
+   "$SCRIPTS/bb-status.sh" run  <epic>     # scope, counts, health, readiness, DoD
+   "$SCRIPTS/bb-status.sh" slot <epic>     # is a held merge slot safe to release
    ```
 
-   `git worktree prune` first is not optional. A container reclaimed
-   mid-run leaves worktree directories deleted but still registered, and a
-   stale entry reads as in-flight forever.
+   `git worktree prune` first is not optional: a reclaimed container leaves
+   directories deleted but still registered, and a stale entry reads as
+   in-flight forever.
+
+   **Step 0's `wave` is the one that catches the invisible failure.** An
+   orchestrator that dies between committing and pushing leaves every other
+   signal reading "finished" — no worktrees, clean tree, beads closed in the
+   tracker. Only the comparison against the remote separates a landed wave from
+   an unlanded one. WHEN commits are unpushed, push them before concluding
+   anything, and record why they were not: a rejection has a cause that will
+   recur. A credential refused for `.github/workflows/**` rejects the WHOLE
+   push, stranding every commit behind one file.
+
+4. **Classify what the scripts flagged — this is the judgment, and it is what
+   remains yours.** For each bead not closed, read its dispatch record against
+   its worktree:
+
+   | worktree | `dispatch_state` | what it means | what to do |
+   |---|---|---|---|
+   | present | `running` | the agent died holding it | re-run the project's checks IN that worktree |
+   | present | `returned` | finished; tree is orphaned | verify the commit, then remove the tree |
+   | absent | `running` | died before or without a worktree | confirm with `bd show`, re-dispatch |
+   | absent | `returned`/unset | never started, or done and cleaned up | `bd show <id>` settles it |
+
+   That table replaces inference. **Where a bead has no dispatch record at all**
+   — a run that predates them, or one that died before writing one — fall back
+   to: worktree present means unfinished, then `bd show <id>`, then
+   `git log --oneline --grep=<id>`, naming which source answered.
+
+   **Checks clean in a standing worktree means only the close is outstanding.**
+   Read the bead's comments for a `caveat:` line, honour it, then run
+   `$SCRIPTS/bb-close-bead.sh <id> <priority> "<title>"` from inside that
+   worktree, passing no paths. A caveat says what the close must do
+   differently; it is not a body for the close. Checks failing means the work
+   is partial: leave it and surface it.
 
    **Do not infer liveness from file mtimes.** A dirty file's mtime bounds the
-   last *write*, not the agent's liveness, so a recency table cannot tell you
-   whether an agent is alive — and a second liveness signal that can disagree
-   with the worktree list is worse than the one signal that cannot.
+   last write, not the agent's liveness. And `bd list --status in_progress` is
+   not a liveness signal either — a bead can be worked without being claimed.
 
-   `bd list --status in_progress` is **not** a liveness signal either — a bead
-   can be worked without ever being claimed, so the query returns empty while
-   an agent is actively editing. Use it only to corroborate what the worktree
-   list already told you.
-
-   **To tell an unfinished bead's state, ask its worktree**, not the shared
-   checkout: `git -C <worktree> status --porcelain` shows exactly that bead's
-   work and nothing else, and `git -C <worktree> log --oneline <base>..` shows
-   whether it has committed. No path enumeration and no ownership question —
-   everything in that tree belongs to that bead.
-
-3b. **Establish what has LANDED — compare the branch against its remote.**
-
-   ```sh
-   git fetch "$REMOTE" "$BRANCH"
-   git log --oneline "$REMOTE/$BRANCH..HEAD"    # must be empty
-   ```
-
-   An orchestrator that dies between committing and pushing, or whose push is
-   **rejected**, leaves a state in which every other signal reads "finished":
-   no worktrees (they are removed before the push), a clean tree, and the beads
-   closed in the tracker. Only this comparison distinguishes a landed wave from
-   an unlanded one.
-
-   WHEN commits are unpushed, push them before concluding anything about the
-   run, and record why they were not pushed — a rejection has a cause that
-   will recur on the next wave. A credential refused for
-   `.github/workflows/**` rejects the WHOLE push, so a single workflow file
-   strands every commit behind it. `bead-bonanza` Phase 3 step 7 runs the
-   same check from the other side; keep the two in the same form.
-
-4. **Classify each in-scope bead from state, in this order.** Resolve every
-   status question by reading state, stopping at the first answer, and **name
-   which source you used**: `git worktree list` (present means unfinished),
-   then `bd show <id>`, then `git log --oneline --grep=<id>`.
-
-   - **Worktree present, bead not closed** — the bead is unfinished. Whether
-     the work in it is complete is not knowable from any record, so **re-run
-     the project's gate suite in the worktree** rather than inferring. Gates
-     clean means only the close is outstanding: read the bead's comments for a
-     `caveat:` line, honor it, then run bead-bonanza's close ceremony —
-     `scripts/bb-close-bead.sh <id> <priority> "<title>"`, resolved from that
-     skill's own directory — from inside the bead's worktree, passing no
-     paths. A caveat comment says only what the close must do differently — it
-     is not a body for the close, and the close script leaves the bead's
-     description as grooming wrote it. Gates failing means the work is partial: leave it in place and
-     surface it.
-   - **Worktree present, work partial or absent** — it may have died mid-work,
-     or be finished and committed. Check `git log --grep=<id>` before you touch
-     the tree.
-   - **No worktree, bead closed** — verify a commit for it is an ancestor of
-     `HEAD` (`git merge-base --is-ancestor <sha> HEAD`) before believing the
-     close landed on the sprint branch.
-   - **No worktree, bead open** — it may never have started. Confirm with
-     `bd show <id>`.
-
-   Whether a bead's own branch was pushed says nothing about whether the sprint
-   branch landed; in a concurrent wave that push is the orchestrator's job.
-   Verify with step 3b.
-
-5. **Verify every claim against `bd` and `git` yourself.** A completion
-   notification is not proof — notifications go missing entirely. Neither is a
-   summary, a backup copy of the run directory, or your own earlier report. Read
-   the live state, name the source you read, then act.
+5. **Verify anything surprising yourself.** A completion notification is not
+   proof; notifications go missing. Neither is a summary or your own earlier
+   report. The scripts name the command behind every line they print — re-run
+   the one you doubt rather than trusting or discarding the whole report.
 
 6. **Report the reconstructed state** in the shape the Interface above
    specifies, then resume the run under bead-bonanza from the point the plan
