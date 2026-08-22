@@ -71,16 +71,20 @@ file, then test it.** A pipeline is for moving data, not for carrying a verdict.
 This repository is a documentation-and-skills corpus **plus** the Go module
 under `cli/` that implements the Spec CLI.
 
-**The checks a bead runs are declared in `sf.toml`, not in this file.** Nine
-`[[checks]]` entries, each an `id` and a `command`. bead-bonanza runs them;
+**The checks a bead runs are declared in `sf.toml`, not in this file.** Twelve
+`[[checks]]` entries, each an `id` and a `command`. The sprint runs them;
 `run-bead` says how, and nothing outside a skill invocation needs to.
 
-Nine ids: `format`, `vet`, `build`, `test-go`, `skills`, `shared-refs`,
-`strata-docs`, `schemas`, `skills-strict`.
+Twelve ids: `format`, `vet`, `build`, `test-go`, `skills`, `shared-refs`,
+`strata-docs`, `schemas`, `corpus`, `ref-links`, `template-drift`,
+`skills-strict`.
 
-**By hand, run `scripts/ci.sh`** — the Go checks plus `spec index` and
-`spec check --strict`, which is what a developer wants and is not the same
-set. CI is the workflows, below.
+**By hand, run `scripts/ci.sh`** — which now runs exactly that declaration
+through the same runner, so "what I ran locally" and "what the bead ran"
+cannot drift. It deliberately omits the **release bar**: the cross-compile
+matrix, the three-platform test matrix, and the busybox smoke test only mean
+something across the whole repository at release time, and those are the
+workflows'.
 
 Two things the declaration encodes that prose kept getting wrong:
 
@@ -95,8 +99,8 @@ Two things the declaration encodes that prose kept getting wrong:
   than carrying a `command` one-liner.
 
 Run the Go checks from `cli/` if you invoke them individually — that is the
-module root, so `./...` resolves there. `ci.sh` and the declared commands both
-`cd` there first.
+module root, so `./...` resolves there. The declared commands `cd` there
+themselves.
 
 
 ### What CI runs
@@ -124,6 +128,15 @@ Neither `check-skills.sh --strict` nor `generate-schemas.sh --check` runs
 in CI — the first is known red (below) and the second needs the Strata
 compiler. Both remain local gates.
 
+**CI and the declaration overlap deliberately and are not the same set.** CI
+adds the release bar the declaration leaves out (three platforms, six
+cross-compile targets, the busybox smoke test); the declaration adds two gates
+CI cannot run. That is the whole of the difference — anything else appearing in
+one and not the other is drift, and was drift until 2026-08-22, when `corpus`,
+`ref-links` and `template-drift` were declared. Before that a bead could break
+a `[[slug]]` reference or the corpus itself and no per-bead check would catch
+it.
+
 `.gitattributes` pins the working tree to LF on every platform. It has to:
 the expected artifacts under `cli/testdata/cases/**/expected/` are compared
 byte for byte, and Git's `core.autocrlf` default on Windows would rewrite
@@ -136,9 +149,10 @@ Which declared checks cover which surface, for a bead narrowing its runs:
 
 | touched | ids to pass |
 |---|---|
-| `cli/**` | `format vet build test-go` |
-| `schemas/*.strata` | `schemas build` |
-| `plugin/skills/**` | `skills shared-refs` |
+| `cli/**` | `format vet build test-go corpus` |
+| `schemas/*.strata` | `schemas build corpus` |
+| `specs/**` | `corpus ref-links` |
+| `plugin/skills/**` | `skills shared-refs ref-links template-drift` |
 | `scripts/**` | `skills shared-refs` |
 | `.claude/skills/strata/references/**` | `strata-docs` |
 

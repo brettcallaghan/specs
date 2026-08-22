@@ -54,6 +54,22 @@ command = 'scripts/sync-strata-docs.sh --check'
 id = "schemas"
 command = 'scripts/generate-schemas.sh --check'
 
+# The corpus checks. Fast enough to pay per bead — measured 481ms for the
+# build-and-check pair, 34ms and 27ms for the two link/drift scripts — and each
+# catches a defect a bead can introduce in one commit, which is the test for
+# belonging here rather than in CI.
+[[checks]]
+id = "corpus"
+command = 'cd cli && go build -o ../build/spec ./spec && cd .. && build/spec check --strict'
+
+[[checks]]
+id = "ref-links"
+command = 'scripts/check-reference-links.py'
+
+[[checks]]
+id = "template-drift"
+command = 'scripts/check-template-drift.py'
+
 # KNOWN RED, for one file. It exits 1 on a WARNING — a body-size figure that
 # moves with every editorial change — so the bar is "no findings beyond the
 # recorded baseline", not "exit 0". Declared separately from `skills` so the
