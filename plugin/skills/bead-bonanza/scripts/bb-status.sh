@@ -274,6 +274,9 @@ import json, subprocess, sys
 
 epic = sys.argv[1]
 
+# Child types that are run bookkeeping rather than work.
+SYNTHETIC = {"event", "molecule"}
+
 def show(i):
     r = subprocess.run(["bd", "show", i, "--json"], capture_output=True, text=True)
     try:
@@ -313,9 +316,16 @@ while stack:
         if not cid or cid in seen:
             continue
         seen.add(cid)
-        if c.get("issue_type") == "epic":
+        kind = c.get("issue_type")
+        if kind == "epic":
             nested = True
             stack.append(cid)
+        elif kind in SYNTHETIC:
+            # `bd set-state` writes an `event` child on every health change and
+            # a run writes several, so counting them as leaves would report a
+            # run with no work as having beads in scope. Measured: an epic with
+            # two health events and zero beads read "2 leaf bead(s)".
+            continue
         else:
             leaves.append(c)
 
@@ -370,6 +380,26 @@ PY
     # Not a failure — a deliberately narrowed scope. But a run that reads as
     # complete while beads sat out is exactly the misreading this prevents.
     line OK "$_exc_n bead(s) EXCLUDED at admission: $_exc" "manifest .excluded"
+  fi
+
+  # Health is the one thing neither git nor bead status can express: an agent
+  # that is stuck looks exactly like one that is slow. The label is the
+  # orchestrator's claim; the worktree count and the last commit time are the
+  # evidence for or against it, so a reader can disagree with a stale claim.
+  _health="$(bd show "$_epic" --json 2>/dev/null | python3 -c 'import json,sys
+try: d=json.load(sys.stdin)
+except Exception: raise SystemExit
+d = d[0] if isinstance(d, list) and d else d
+labs = (d or {}).get("labels") or []
+print(next((l.split(":",1)[1] for l in labs if l.startswith("health:")), ""))' 2>/dev/null)"
+  _wt="$(git worktree list 2>/dev/null | grep -c "bb-worktrees\|\.claude/worktrees" || true)"
+  _last="$(git log -1 --format=%cr 2>/dev/null)"
+  if [ -n "$_health" ]; then
+    line OK "health: $_health (worktrees: ${_wt:-0}, last commit: ${_last:-unknown})" \
+         "bd show $_epic --json | jq -r '.labels[]|select(startswith(\"health:\"))'"
+  else
+    line FAIL "health: UNSET — a watchdog cannot tell stalled from slow" \
+         "bd set-state $_epic health=healthy --reason '<why>'"; note $RC_REPAIR
   fi
 
   _out_n="$(printf '%s\n' "$_out" | sed -n 's/^OUTSTANDING|\([0-9]*\)|.*/\1/p')"

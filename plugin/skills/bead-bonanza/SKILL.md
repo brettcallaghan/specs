@@ -267,6 +267,39 @@ was nested.
 Exit 0 clear, 1 repairable (no admitted set recorded — the manifest was never
 written), 2 stop (admitted beads still open).
 
+### The run's health — the one thing nothing else can express
+
+A stuck agent and a slow one look identical in git and in bead status. Neither
+is derivable, and both are what a watchdog needs to tell apart, so the
+orchestrator **asserts** health and the script reports the evidence for and
+against the assertion.
+
+```sh
+bd set-state <epic> health=<value> --reason "<why>"
+```
+
+Closed value set — set it at run start and at every wave boundary:
+
+| value | meaning |
+|---|---|
+| `healthy` | beads are closing and nothing is failing repeatedly |
+| `slow` | nothing closed recently, but agents are alive — worktrees standing, commits landing |
+| `stalled` | nothing closed recently **and** no evidence of a live agent |
+| `degraded` | progressing, but with repeated failures or escalations |
+| `blocked` | cannot proceed without a human; pair with `bd human` |
+
+`slow` and `stalled` are the distinction the dimension exists for. The evidence
+that separates them — standing worktrees and the age of the last commit — is
+what `bb-status.sh run <epic>` prints beside the label, so a reader can
+disagree with a stale claim rather than inherit it.
+
+**Cheap, and measured so.** Eight transitions on one bead took 5.1s (0.64s
+each), and the label **replaces** rather than accumulates: after eight changes
+the bead carried exactly one. One current value, queryable, no history litter.
+
+`bb-status.sh run` reports an unset health as repairable, because a watchdog
+reading no label cannot tell a healthy run from an abandoned one.
+
 ### The live view
 
 `bd swarm status <epic>` is the durable answer to "where is this run" —
