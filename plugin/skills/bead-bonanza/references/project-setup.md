@@ -152,7 +152,8 @@ write any of it silently.
      `Bash(<skill-dir>/scripts/bb-status.sh:*)`,
      `Bash(<skill-dir>/scripts/bb-verify-skip.sh:*)`,
      `Bash(<skill-dir>/scripts/bb-close-bead.sh:*)`,
-     `Bash(<skill-dir>/scripts/bb-checks.py:*)`
+     `Bash(<skill-dir>/scripts/bb-checks.py:*)`,
+     `Bash(<skill-dir>/scripts/sprint-cleanup.sh:*)`
    - Whatever the declared `command`s invoke underneath (e.g. `Bash(cargo:*)`,
      `Bash(npm run test:*)`, `Bash(go build:*)`, `Bash(pytest:*)`) — the runner
      is one entry, but each check is its own subprocess

@@ -59,6 +59,7 @@ bead-bonanza run:
 - [ ] 3b. Review via `sprint-review`; loop back to groom & plan when findings
         were admitted and the pass budget is not spent
 - [ ] 4. Final report via `sprint-report` (incidents first), then the retro
+- [ ] 5. Post-flight: `scripts/sprint-cleanup.sh`, then cancel the durable trigger
 ```
 
 **Most of that is checkable rather than assertable.** `bb-status.sh run <epic>`
@@ -279,6 +280,7 @@ Load the one that matches where you are in the run:
 | Working one batch of beads as the dispatched subagent | the **`sprint-batch`** skill |
 | Reviewing the run's own diff and turning findings into beads | invoke the **`sprint-review`** skill |
 | Writing the run's final report | invoke the **`sprint-report`** skill |
+| Tearing the run down when it is over | run `scripts/sprint-cleanup.sh` |
 | Dispatching an execution subagent | `references/subagent-prompts.md` |
 | Grooming the queue and partitioning it into waves and batches | invoke the **`sprint-plan`** skill |
 | The grooming subagent's prompt | the template that ships with `sprint-plan` |
@@ -722,6 +724,30 @@ The report itself is not an offer. Write it, append one row for the sprint to
 `rfcs/retro-log.md` so one index covers all retro activity, and commit both
 with any RFCs in a single commit.
 
+## Post-flight — `scripts/sprint-cleanup.sh`
+
+The last act, after the report and the retro:
+
+```sh
+scripts/sprint-cleanup.sh <epic>            # add --dry-run to see it first
+```
+
+It prunes worktrees, releases the merge slot, closes the swarm molecule, sets
+health to its terminal value and pushes the tracker — and prints the command
+behind every removal, so a reader can tell a teardown from a claim of one.
+
+**Exit 1 means something was left standing on purpose.** A worktree whose bead
+still reads `dispatch_state=running` is a live worker or a dead one, and no
+script can tell those apart; it is left alone and named. Resolve each before
+treating the sprint as torn down. **Do not force it.**
+
+**Then cancel the durable out-of-session trigger** armed at first dispatch
+(`references/progress-streaming.md`). That is a harness action, so no script
+can do it. A trigger left armed wakes an agent into a finished sprint, which
+trains the reader to ignore it. `sprint-report` states its disposition either
+way.
+
+
 ## Operating principles
 
 - **Groom before you dispatch.** bead-bonanza executes *groomed* beads; it never
@@ -854,6 +880,13 @@ These are the artifacts each script creates, writes, or repoints.
   is configured. It does **not** write or stage `.beads/issues.jsonl`: the
   tracker's transport is `origin refs/dolt/data`, the JSONL exports are
   untracked, and a close commit carries code only.
+
+- **`scripts/sprint-cleanup.sh`** — removes worktrees whose bead reads
+  `dispatch_state=returned`, runs `git worktree prune`, releases the merge
+  slot, closes the run's swarm molecule, sets the epic's terminal health, and
+  runs `bd dolt push`. **It leaves anything ambiguous standing** — a worktree
+  whose bead still reads `running`, or one with no dispatch record — and exits
+  1 naming each. `--dry-run` performs none of it and prints what it would do.
 
 Each script's own header carries the same usage line. WHEN a usage line
 here disagrees with the script, the script is authoritative — and that
