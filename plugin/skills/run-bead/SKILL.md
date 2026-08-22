@@ -109,14 +109,43 @@ Write no progress file.
    a recovering agent already reads, and it outlives the container.
 
 6. **Record findings as `retro:` comments on {ID}** — one `bd comment` per
-   finding, prefixed `retro:`, 1–3 sentences, friction only, no root-causing.
-   That channel is what later retrospectives read. Record one WHEN: you needed
-   information the bead and its references did not carry; you had to settle
-   something the bead or spec should have pinned; the bead contradicted repo
-   reality; you could not satisfy an acceptance criterion as declared; a
-   sequencing surprise. Include what you **tried that did not work** — the diff
-   shows only the reading that survived — and what you **decided silently**,
-   meaning choices a diff-reader would not recognise AS choices.
+   finding. That channel is what later retrospectives read.
+
+   ```
+   retro:<kind>[:<target>] <one line: what happened>
+   evidence: <quote | path:line | command + output | expected vs observed>
+   ```
+
+   **`kind` is one of nine, and it is what routes the finding** — so it costs
+   a word now and saves a full re-read later:
+
+   | | |
+   |---|---|
+   | `gap` | you needed information the bead and its references did not carry |
+   | `decision` | you settled something the bead or spec should have pinned |
+   | `stale` | the bead contradicted repo reality |
+   | `unverifiable` | you could not satisfy an acceptance criterion as declared |
+   | `sequencing` | a broken predecessor, or a blocker the graph did not encode |
+   | `scope` | the bead was too large, trivial, or overlapped another |
+   | `tooling` | a skill, script or template misled, failed, or had no rule |
+   | `proof` | how you established a claim — a pre-fix failure observed, a negative control |
+   | `environment` | a durable fact about a dependency or platform the next agent will hit |
+
+   **Evidence in full; analysis not at all.** No length limit — the quote, the
+   `path:line`, the command and its output do not survive this session, and
+   whoever reads your finding reads it cold. Root cause, proposal and priority
+   are derivable later by an agent with the whole run in view, so leave them
+   out. Include what you **tried that did not work** (the diff shows only the
+   reading that survived) and what you **decided silently** — choices a
+   diff-reader would not recognise AS choices.
+
+   **`target` decides who gets it, and the test is: where would the fix
+   land?** In this project's own repository → it is the project's. In the
+   repository that vends the skill → it is the skill's. The words will not
+   tell you apart — "the template has no rule for X" and "our document has no
+   rule for X" read identically — so ask the question rather than guessing.
+
+   Full format: `references/shared/findings-capture-protocol.md`.
 
    **Work, not friction.** If what you found is a unit of work someone must do,
    it is a BEAD (step 3), not a retro comment, even when it also reads as

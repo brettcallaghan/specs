@@ -660,6 +660,15 @@ established) stays in the report attached to what it supports; `environment`
 environmental-failure ledger. Measured at 7 of 73 findings on a real run, so
 expect them.
 
+**Findings serve two audiences and the run must not confuse them.** A finding
+about **this project** — its specs, its standards, its checks — becomes a bead
+in this project's tracker. A finding about **a skill this run used** belongs to
+whoever vends that skill, leaves through `.sf/outbox/<skill>/`, and is **never
+filed in this project's backlog**: a project that accumulates proposals it
+cannot act on learns to ignore the channel. `sprint-retro` routes by the kind
+the capturing agent stamped, so this is not a judgement you make per finding —
+but where one is genuinely unclear, ask where the fix would land.
+
 **Incidents are its best material** — each marks a place the corpus failed to
 answer a question a bead needed answered, which is a finding against a
 *document* rather than a complaint about the run.

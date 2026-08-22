@@ -32,6 +32,31 @@ that is a retro-skill finding.
 *documents*; `retro-skill` critiques the *skills, templates, and
 scripts*. A completed phase can warrant both.
 
+## Whose problem is it — apply the merge test
+
+**Findings here serve the repository that VENDS the skill**, not the project
+the skill ran in. Those are the same people only when a repository retros its
+own skills, and assuming they always are is what puts proposals a project
+cannot act on into that project's backlog.
+
+The words do not separate the cases — "the blueprint template has no rule for
+X" and "our blueprint has no rule for X" are the same sentence about different
+artifacts. One question does:
+
+> **Where would the fix land?**
+>
+> - In **this project's own repository** → it is not a `retro-skill` finding.
+>   It belongs to the project's own retro, as an issue in its tracker.
+> - In the **repository that vends the skill** → it is yours.
+
+A finding captured in-flight already carries the answer: `retro:tooling:<name>`
+is this skill's audience; the six work-order kinds are the project's.
+
+**A project SHALL NOT accumulate issues about skills it cannot change.** Where
+this skill runs in a project that did not author the skill, its output leaves
+through that project's `.sf/outbox/<skill>/` and is never filed in its
+backlog.
+
 ## When to run
 
 - After a skill runs **to completion** — while the session is fresh and
