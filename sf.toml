@@ -76,11 +76,10 @@ command = 'scripts/check-template-drift.py'
 id = "script-self-tests"
 command = 'set -e; d=plugin/skills/bead-bonanza/scripts; "$d"/pre-flight-check.sh --self-test; "$d"/bb-status.sh --self-test; "$d"/bb-close-bead.sh --self-test; "$d"/sprint-cleanup.sh --self-test; "$d"/bb-checks.py --self-test'
 
-# KNOWN RED, for one file. It exits 1 on a WARNING — a body-size figure that
-# moves with every editorial change — so the bar is "no findings beyond the
-# recorded baseline", not "exit 0". Declared separately from `skills` so the
-# baseline can carry one failing check without marking a healthy one red.
-# Retires when `groom-beads` fits the cap; it is the only warning left.
+# Green since 2026-08-22. It exits 1 on a WARNING as well as an error, which is
+# the point: a skill body over the cap is a real defect and this is what says
+# so. Kept separate from `skills` so a future warning fails one check rather
+# than marking a healthy one red.
 [[checks]]
 id = "skills-strict"
 command = 'scripts/check-skills.sh --strict'

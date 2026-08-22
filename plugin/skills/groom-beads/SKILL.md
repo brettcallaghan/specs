@@ -86,22 +86,18 @@ field names, edge names, enums, required fields — is `references/bead.schema.j
 At the start of a grooming pass, spend a moment to ground yourself:
 
 - Confirm `bd` exists and find the beads dir (`bd --version`, look for `.beads/`).
-- Probe the flags you're about to use: `bd create --help`, `bd update --help`,
-  `bd dep --help` (or `bd link`/`--deps`), `bd lint --help`. Field and flag names
-  like `--design`, `--acceptance`, `--set-metadata`, `--append-notes`,
-  `--deps discovered-from:<id>` are what current Beads uses, but adapt to what
-  `--help` actually shows. If a capability is missing, degrade gracefully (e.g.
-  fold acceptance criteria into the description under an `## Acceptance` heading)
-  and note it in your report rather than failing.
-- **When `bd` is unavailable and you fall back to emitting bead files,** emit
-  JSONL that conforms to `references/bead.schema.json` — that schema is the
-  authoritative source for field and edge names, so don't improvise alternatives
-  (it's `dependencies` not `deps`, `id` not `slug`, and parentage is a dependency
-  of type `parent`, never a top-level `parent` field). Validate what you emit with
-  `scripts/validate_beads.py` and fix until it passes (phase 6).
-- Load durable project knowledge so grooming matches house style: `bd prime` if
-  available, and skim existing `bd remember` insights. Past retros are the memory
-  of what previous grooming got wrong — honor them.
+- Probe the flags you are about to use — `bd create/update/dep/lint --help`.
+  Names like `--design`, `--acceptance`, `--set-metadata`, `--append-notes` are
+  what current Beads uses; **adapt to what `--help` shows**. Where a capability
+  is missing, degrade gracefully (fold acceptance into the description under an
+  `## Acceptance` heading) and say so in the report rather than failing.
+- **Where `bd` is unavailable and you emit bead files instead**, conform to
+  `references/bead.schema.json` — it is authoritative for field and edge names,
+  so do not improvise: `dependencies` not `deps`, `id` not `slug`, and
+  parentage is a dependency of type `parent`, never a top-level field.
+- Load durable project knowledge so grooming matches house style: `bd prime`,
+  and skim existing `bd remember` insights. Past retros are the memory of what
+  previous grooming got wrong — honour them.
 
 Never invent bead IDs, component names, or dependencies. If you're unsure a
 dependency is real, say so in the report instead of wiring a guess.
@@ -170,29 +166,20 @@ epic costs: the wave preview and the progress count, both recomputable.
 Dispatch is unaffected. Report which shape the epic is in; requiring flatness
 would push the author to move beads out of the epics that own them.
 
-WHEN a bead cannot be brought to Ready, do not dispatch it. Parking it takes
-**two** writes, and the second is the one that actually works:
+**WHEN a bead cannot be brought to Ready, park it — which takes TWO writes,
+and only the second one works.** `bd ready` reads `status`, not
+`grooming_status`, so a bead flagged only with the metadata stays dispatchable
+and reaches a fresh subagent looking handled:
 
-1. Record WHY, for the human and the next grooming pass — set
-   `grooming_status` to `blocked-needs-info` (a specific fact is missing, or
-   the Design leaves a choice open — that is the human's call, never yours to
-   guess) or `blocked-ungroomable` (it needs redesign).
-2. Record THAT, for the orchestrator — change the bead's `status` so it
-   leaves the ready queue:
+```
+bd update <id> --set-metadata grooming_status=blocked-needs-info
+bd defer <id>          # status -> deferred; drops out of `bd ready`
+```
 
-   ```
-   bd update <id> --set-metadata grooming_status=blocked-needs-info
-   bd defer <id>          # status -> deferred; drops out of `bd ready`
-   ```
-
-`bd ready` reads `status`, **not** `grooming_status`. A bead flagged only
-with `grooming_status` stays dispatchable and will be handed to a fresh
-subagent exactly as if it were ready — which is the failure the flag exists
-to prevent, made worse by looking handled. Verify the park took effect: the
-bead SHALL NOT appear in `bd ready` afterwards.
-
-Then flag it in the report rather than shipping a half-groomed bead
-downstream silently.
+Verify it took: the bead SHALL NOT appear in `bd ready` afterwards. Then flag
+it in the report rather than shipping a half-groomed bead downstream silently.
+Which `grooming_status` to use, and what each commits the next pass to:
+`references/parking-a-bead.md`.
 
 ### 3. Wire the dependency graph
 
@@ -226,8 +213,10 @@ record it on the epic and say so rather than leaving a failed command behind.
 
 ### 4. Assign a capability tier
 
-Record the tier in **metadata** so it rides with the bead and the orchestrator
-can read it at dispatch:
+Beads carry a **tier** (`light | standard | advanced | frontier`, least to most
+capable), never a model name — the orchestrator resolves tier → model at
+dispatch from the project's `sf.toml` `[models]` lineup, so a bead groomed
+today still routes correctly after the lineup changes.
 
 ```
 bd update <id> --set-metadata tier=standard \
@@ -238,57 +227,18 @@ bd update <id> --set-metadata tier=standard \
   --set-metadata execution_agent_type=worker
 ```
 
-The `execution_*` keys are `bd`'s own documented convention (`docs/METADATA.md`),
-and writing them is what makes a groomed bead portable to an orchestrator that
-never read this skill. Three things that convention settles:
-
-- **`execution_suggested_model` takes the TIER, not a model name.** The
-  convention calls it "a capability-tier suggestion", and says a consumer on a
-  different provider substitutes a model of the same tier rather than dropping
-  the hint. So it carries the same value as `tier`.
-- **`execution_reasoning_effort`** is a canonical advisory scale — `low`,
-  `medium`, `high`, `xhigh`. Record it rather than leaving it unset: a consumer
-  on a different scale maps to its nearest native level, but it cannot map an
-  absent value.
-- **`execution_agent_type`** is the worker class (`explorer`, `worker`,
-  `mixed`).
-
-`tier` and `tier_reason` stay. `tier_reason` has no counterpart in the
-convention, and `tier` is what 205 of this tracker's beads already carry — the
-orchestrator reads `execution_suggested_model` first and falls back to `tier`,
-so old beads keep routing correctly and no bulk rewrite is required. Backfill
-is optional and per-bead:
-
-```
-bd update <id> --set-metadata execution_suggested_model="$(bd show <id> --json | jq -r '.[0].metadata.tier')"
-```
-
-Two flags write metadata and they are not interchangeable — probe both
-before a bulk pass:
-
-- `--set-metadata key=value` is **repeatable and additive**: it leaves
-  other keys intact, so it is what you want for touching one field on an
-  already-groomed bead. It stores every value as a **string**.
-- `--metadata '<json>'` takes real JSON types but **replaces the entire
-  metadata object**. Use it to write a bead's metadata in one shot (at
-  creation); do NOT reach for it to add a key, or you will silently drop
-  every key you did not restate.
-
-Beads carry a **tier** (`light | standard | advanced | frontier`, least to
-most capable), not a model name. The orchestrator resolves tier → model at
-dispatch from the project's `sf.toml` `[models]` lineup, so a bead groomed today
-still routes correctly after the lineup changes. The routing rubric is owned
-by `references/shared/work-order-field-guide.md`. Apply it, and:
+**The rubric is `references/shared/work-order-field-guide.md`'s.** Two rules
+bind whatever it says:
 
 - **Assign the LOWEST tier that can do the work.** Over-routing is invisible
   and paid for on every run; under-routing announces itself as an escalation
   the orchestrator reports back. Bias toward the cheaper call.
-- **Always record `tier_reason`** — a bare tier can't be audited, and the
-  retro uses the reason to tell whether routing was calibrated.
-- **Assign a default, never null** — a mis-groomed bead must not stall a wave.
-  WHEN genuinely unsure, `standard` and say so.
-- Set a named `model` **only** as an override, when a specific model is
-  genuinely required. Normal beads carry `tier` and no `model`.
+- **Always record `tier_reason`.** A bare tier cannot be audited, and the
+  retro loop below needs it to recalibrate.
+
+**The keys, why the `execution_*` ones are `bd`'s own convention rather than
+ours, and the trap that `--metadata` REPLACES where `--set-metadata` adds:**
+`references/capability-tier.md`.
 
 ### 5. Tag C4 blast radius
 
@@ -344,20 +294,14 @@ on whether `bd` is live:
   python3 scripts/validate_beads.py <emitted.jsonl> --c4-docs <path/to/c4/docs...>
   ```
 
-  Requires `python3`. It uses the `jsonschema` package for full structural
-  validation when installed and falls back to equivalent built-in checks
-  otherwise, so it never fails for a missing dependency.
+  It checks each bead against `references/bead.schema.json` **and** the things a
+  per-record schema cannot: IDs resolve, no cycles, C4 names are in the
+  vocabulary parsed from your docs, tier non-null on ready beads, ready
+  features and bugs carry acceptance criteria. **Iterate emit → validate → fix
+  until it reports 0 errors**; warnings are advisory. What each finding means:
+  the script's own `--help`.
 
-  It checks each bead against `references/bead.schema.json` (canonical field/edge
-  names, enums, required fields) **and** the things a per-record schema can't:
-  dependency/parent IDs resolve, no cycles in the blocks graph, C4 names are in
-  the vocabulary parsed from your docs, tier is non-null on ready beads, ready
-  features/bugs carry acceptance criteria, plus a session-phrase lint and a
-  wave-collision advisory. **Iterate emit → validate → fix until it reports 0
-  errors** (warnings are advisory — a greenfield C4 component or a deliberately
-  `blocked-ungroomable` bead will warn, and that's fine).
-
-Either way: cycles and orphans and dangling references are hard problems — fix
+Either way: cycles, orphans and dangling references are hard problems — fix
 them, don't report around them.
 
 ### 7. Report — and optionally preview waves

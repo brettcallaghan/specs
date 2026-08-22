@@ -223,24 +223,6 @@ scope for this run's beads" tells a future reader nothing they can act on.
   it: `scripts/bb-close-bead.sh` now re-exports a bounded number of times and
   refuses to commit a closure the ledger does not carry, and any hand-rolled
   close must verify the ledger the same way rather than trusting one export.
-- **KNOWN RED — `scripts/check-skills.sh --strict`, now for one file only.**
-  It exits 1 on a *warning*, not an error. The remaining warning is
-  `groom-beads/SKILL.md`'s body size; `bead-bonanza`'s was retired when that
-  skill was split into subprocesses and its body dropped under the cap.
-
-  The bar is **no findings beyond the recorded baseline**, not exit 0. Measure
-  the baseline at pre-flight rather than quoting a number from here: a body
-  size moves with every editorial bead, so a figure recorded in this file is
-  stale on arrival, and a stale baseline read as current is how a real
-  regression gets waved through. Read its status directly (see "Pipes hide
-  exit statuses" above):
-
-  ```bash
-  scripts/check-skills.sh --strict >out 2>&1; echo $?
-  ```
-
-  **This entry retires entirely when `groom-beads` fits.** It is not a
-  permanent exception.
 - **`scripts/generate-schemas.sh --check` fails when the installed `strata`
   predates `strata-lang/strata@8997153`.** That commit fixes
   `allowAdditionalProperties: false` silently dropping struct inheritance.
