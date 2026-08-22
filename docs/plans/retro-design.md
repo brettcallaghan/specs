@@ -3,7 +3,8 @@
 **Status: DRAFT for review.** Everything else in wave 5 is decided inside
 this document — the finding taxonomy, the candidate-issue flow, the audience
 split in three skills, the finding and issue templates that replace the RFC
-format, and what happens to the 27 queued RFCs.
+format, the `.sf/outbox/` delivery path, `triage-rfc`'s future as
+`triage-issue`, and what happens to the 27 queued RFCs.
 
 ---
 
@@ -108,8 +109,8 @@ and back in through triage — when a bead was available the entire time.
 **Measurement 4 is about reporters, not about value.** Ninety-three proposals
 processed, none from an outside project. That does not mean the format failed;
 it means **the cross-project accumulation the format was built for has not
-started yet**, and until it does, `triage-rfc`'s recurrence machinery is
-serving a single reporter. It stays, scoped honestly.
+started yet**, and until it does, the recurrence machinery is serving a single
+reporter. It stays, scoped honestly.
 
 **Measurement 5 is why routing is expensive.** A finding's kind — and
 therefore its branch — is knowable at the moment of capture, by the agent that
@@ -220,10 +221,26 @@ there genuinely is none; that costs a cluster, not a finding.
 **When in doubt about the branch, apply the merge test** — where would the fix
 land? An implementing agent can answer that in one beat.
 
-**`incident` is not a kind.** An incident — a decision that changed what
-"correct" means — is already recorded as `retro: incident —` by `run-bead` and
-leads the sprint report. It reaches this flow at harvest and classifies as
-`decision`; its *reporting* obligation belongs to the sprint, not the retro.
+**`incident` is not a kind — it is a severity that crosses the kinds.** An
+incident is a decision that changed what "correct" means. `run-bead` records it
+as `retro: incident —` and it leads the sprint report, because a human needs to
+see it before anything else.
+
+**Incidents come in several types, and they map onto the kinds already here:**
+an amended acceptance criterion is a `decision`; a standard/requirement/AC
+tension is a `decision` against two targets; a contract or interface change is
+a `scope`; a spec silent where a bead needed it to speak is a `gap`. So an
+incident routes like any other finding and needs no eighth kind — what makes it
+an incident is that the run **acted on it** rather than merely noticing it.
+
+Record both: the kind routes it, the incident marker escalates it.
+
+```
+retro:gap:ADR-014 incident — <what was decided, and what was rejected>
+```
+
+Its *reporting* obligation belongs to the sprint, not the retro. Its *routing*
+belongs here.
 
 #### Validation gate — unrun
 
@@ -357,7 +374,7 @@ candidates are decidable later from it. **The run does not block.**
 | branch | destination |
 |---|---|
 | **A** | a bead in the project's own tracker — filed directly |
-| **B** | an issue **delivered to this repository**; mechanism TBD, see below |
+| **B** | an issue file in **`.sf/outbox/<skill>/`** in the project, for delivery here |
 
 ```bash
 # Branch A — the issue template rendered straight into the tracker
@@ -398,6 +415,28 @@ old pipeline had between them was ceremony.
 
 **Both branches use both templates, unchanged.** That is the harmonization:
 one shape for evidence and one shape for action, wherever the work lands.
+
+### Both become formal template documents
+
+**Yes — authored the way this framework authors every other template:**
+frontmatter carrying the machine-readable fields, a fixed section list, and an
+HTML instruction block per section that the author deletes once the section is
+written. `[[template-authoring-standards]]` governs both, and
+`scripts/check-template-drift.py` governs them like any other.
+
+| template | lives in | governed by |
+|---|---|---|
+| **finding** | `specs/standards/` — it is a *format*, and one skill does not own it | the capture protocol standard, amended |
+| **issue** | `plugin/skills/spec/references/issue-template.md`, vendored to the skills that produce one | the `spec` skill, like every other template |
+
+**The finding template governs a grammar, not a document** — its instances are
+`bd` comments, not files. That is not a special case: **the work-order template
+already works this way**, and says so ("it materializes into a tracker issue
+and stops existing as a document"). The template is the canonical FORMAT the
+producing skill targets and validates against; the record lives in the tracker.
+
+The full field lists follow, so the bead that writes these files has nothing
+left to decide.
 
 ---
 
@@ -468,34 +507,70 @@ Produced at stage 4, decided at stage 5, filed at stage 6. **One issue is one
 actionable change.**
 
 ```markdown
-# <title — the change, not the symptom>
+---
+title: "<the change, not the symptom>"
+description: <one sentence — what changes and why>
+slug: issue-<identifier>
+                                     # No `type` property: like a work order,
+                                     # an issue materializes into a tracker
+                                     # record and stops being a document.
+audience: skill                      # project | skill — from ROUTE, not judged
+target: <skill or document name>     # what the fix lands in
+priority: 2                          # 0 (critical) .. 4 (backlog), PROPOSED
+updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 
-audience:   project <name> | skill <name>
-priority:   P0–P4  (proposed)
-recurrence: <n> prior sprints carry an unfiled finding of this kind and target
+# Evidence — what this issue rests on
+findings: []                         # finding ids, e.g. ["92u#2", "1ilc.15.7#1"]
+recurrence: 0                        # prior sprints in the window carrying an
+                                     # UNFILED finding of this kind and target
+report: <path>                       # the sprint report that carries them
+
+# Provenance — who and what produced this
+run: <run epic id>
+branch: <branch the run worked on>
+skill_version: <what was being exercised>
+model: <model that produced the findings>   # load-bearing; never omit
+---
+
+<!--
+Template: Issue
+Version: 1.0
+Source: This specification framework. Conventions follow
+  [[template-authoring-standards]].
+
+Sections (complete each, then delete its instruction block)
+  - What is wrong, and what it costs
+  - Evidence
+  - Proposed change
+
+Purpose
+  ONE issue is ONE actionable change. It is the unit of decision, which is
+  why it is not bundled into a multi-proposal document.
+
+Both audiences use this template unchanged. `audience: project` renders
+straight into the project's tracker; `audience: skill` is written to
+`.sf/outbox/<target>/` for delivery. Same fields, two encodings.
+-->
 
 ## What is wrong, and what it costs
-<one paragraph. The cost is what makes this decidable — an issue with no
-stated cost is a preference.>
+
+<!-- One paragraph. State the cost explicitly: an issue that says what is
+wrong but not what it costs cannot be prioritised against anything, which is
+how a queue reaches 27. -->
 
 ## Evidence
+
+<!-- One bullet per finding, quoting its headline. EVERY claim in this issue
+traces to a finding id. A claim with no finding behind it does not belong in
+the issue — it belongs in a new finding. -->
+
 - `<finding-id>` — <the finding's headline, quoted>
-- `<finding-id>` — …
-<Every claim traces to a finding id. A claim with no finding behind it does
-not belong in the issue; it belongs in a new finding.>
 
 ## Proposed change
-<The concrete edit. For a document, the text to change and what it becomes.
-For code or a script, the behaviour to change. Specific enough that someone
-else could make it.>
 
-## Provenance
-| | |
-|---|---|
-| run | <run epic id, branch, dates> |
-| skill / version | <what was being exercised> |
-| model | <the model that produced the findings> |
-| report | <path to the sprint report> |
+<!-- The concrete edit. For a document: the text to change and what it
+becomes. For code or a script: the behaviour to change. Specific enough that
+someone who did not run the sprint could make it. -->
 ```
 
 **Why each field is there:**
@@ -544,41 +619,83 @@ holds workflow state — Resolution is the issue's close reason, Adoption is
 the issue itself. Writing them into a document is keeping a second copy of
 the tracker in prose.
 
-**`triage-rfc` therefore changes shape**, and this design does not settle into
-what. It stops parsing multi-proposal documents; what remains is dedupe
-against prior issues and deferral with a recurrence signal, which is real work
-and may well belong in the retro's stage 4 rather than in a separate skill.
-**Open question below.**
+---
+
+### `triage-rfc` becomes `triage-issue`
+
+**It survives as its own skill, rebranded and refined.** It stops parsing
+multi-proposal documents — there are none — and takes issues instead.
+
+**Its most critical role sits downstream of triage itself: translating a
+reported issue into a groomed, high-quality work order.** An issue is written
+by whoever hit the problem, in whatever detail they had. A bead has to be
+dispatchable to a fresh agent with zero context. Closing that gap is real
+work, and it is the same bar `groom-beads` already enforces — so
+`triage-issue` invokes it rather than restating it.
+
+Then **bundle the accepted set into an epic**, which is exactly what
+`sprint-scope` takes and the sprint orchestrator swarms. That closes the loop
+the whole design exists to close: friction in one run becomes groomed work in
+the next.
+
+**It accepts issues from any channel**, which is what keeps the delivery
+mechanism from being load-bearing:
+
+- `.sf/outbox/<skill>/` files swept from a downstream project;
+- GitHub issues, where someone reports one directly;
+- issues this repository's own retro produced;
+- whatever channel is added later.
+
+Its existing machinery is retained because it earns its keep on any channel:
+dedupe against prior work, defer with a reason, accumulate recurrence across
+reporters. **What it does not do is decide** — a human still says yes or no,
+and `triage-issue` makes each answer cheap by arriving with the work order
+already drafted.
 
 ---
 
-### Delivering a branch-B issue — MECHANISM TBD
+### Delivering a branch-B issue — `.sf/outbox/<skill>/`
 
 A downstream project's run produces issues about **this** repository's skills.
 It cannot file them here — it has no access and should not need any — so
-something has to carry them.
+something carries them.
 
-**The requirement, which is settled:** the issue's full content and provenance
-arrive here, the downstream project's own backlog is never polluted with them,
-and no human has to retype anything.
+**Decided: the project writes them to `.sf/outbox/<skill>/` and its owner
+forwards them.** Same mechanism the RFC inbox used, which is the point: it is
+known to work, needs no infrastructure, no token and no network, and gives a
+downstream project's owner a chance to read what is being sent on their behalf
+before it goes.
 
-**The mechanism is not settled.** Candidates, none chosen:
+```
+<project>/.sf/outbox/
+  sprint-wave/
+    2026-08-22-worktree-base-ref-check-is-unreachable.md
+  groom-beads/
+    2026-08-22-tier-reason-has-no-stated-bar.md
+```
 
-| candidate | shape | cost |
-|---|---|---|
-| **A directory the project forwards** | issues written to `.sf/outbox/`; the project's owner sends or PRs them | zero infrastructure; depends on a human remembering |
-| **A GitHub issue opened against `agent-plugins`** | the run opens it directly | no human step; needs a token, network, and a policy for what a downstream run may do on our behalf |
-| **A bundle the plugin exports** | one file per run, attached to a release or pasted | auditable, one artifact per run; still needs a human hop |
-| **A bead in the project, labelled for export** | filed locally with `audience: skill`, swept later | uses the tracker already there; **pollutes the backlog**, which the requirement forbids |
+- **One file per issue**, in the issue template's format.
+- **Named `<date>-<slug>.md`**, so a directory listing is chronological and a
+  filename says what the issue is.
+- **Under `<skill>/`**, so the target is legible without opening anything —
+  the same shape as `rfcs/inbox/<skill>/`.
+- **`.sf/outbox/` is the project's, not ours.** Emptying it, forwarding it, or
+  ignoring it entirely are all the project's call.
 
-The last one is listed to be ruled out: it is the failure mode the audience
-split exists to prevent, and it looks attractive precisely because it is the
-least work.
+**What was rejected, and why it matters:** a bead in the project's own tracker
+labelled for export. It uses infrastructure already there and is the least
+work, which is exactly why it is tempting — and it is the backlog pollution
+the audience split exists to prevent. A project must never carry issues it
+cannot act on.
 
-**Until this is decided, branch B works exactly as it does today** — this
-repository is its own downstream, so its issues are simply filed here. The
-mechanism becomes load-bearing on the day a second project runs a sprint, and
-not before.
+**Not chosen yet, and deliberately deferred:** opening a GitHub issue directly
+against `agent-plugins`. It removes the human hop, and it needs a token, a
+network path, and a policy about what a downstream run may do on our behalf.
+Worth doing later; not worth blocking on now. **`triage-issue` accepts issues
+from any channel** (below), so adding one later changes no downstream skill.
+
+**This repository is its own downstream today**, so its outbox is swept into
+its own tracker in the same run.
 
 ---
 
@@ -617,7 +734,7 @@ retired is a rule some agent still follows.
 | `retro-spec` | **SPLIT.** Findings about the spec *templates and standards this repository vends* are branch B; findings about a *project's own* FRDs, blueprints and ADRs are branch A. The merge test decides. Both now produce issues, not RFCs |
 | **The RFC format** — `rfc-template.md`, `skill-rfc-template.md`, the 8-section document | **RETIRED**, for both branches. An RFC is a document containing several issues, which is why its own log counts per proposal and not per RFC. Summary, Evidence, the per-proposal Change block and Provenance carry forward into the issue template; the four workflow sections are dropped as a second copy of the tracker |
 | The `origin: self` RFC path | **RETIRED** with the format. Branch A becomes beads in the project; branch B becomes issues delivered here |
-| `triage-rfc` | **SHAPE UNDECIDED.** It no longer parses multi-proposal documents. Its dedupe-against-prior-work and defer-with-a-reason machinery is real and may belong in stage 4 rather than in a separate skill. Open question below — and it does not block this design |
+| `triage-rfc` | **REBRANDED to `triage-issue`, and refined.** It stops parsing multi-proposal documents and takes issues from any channel — outbox, GitHub, this repository's own retro. Its critical role becomes translating a reported issue into a groomed work order (via `groom-beads`) and bundling the accepted set into an epic the sprint can swarm. Dedupe, defer-with-a-reason and recurrence are retained |
 
 ---
 
@@ -676,14 +793,11 @@ longer exist.
    downstream today, so its issues are filed here directly. It becomes
    load-bearing on the day a second project runs a sprint.
 
-6. **`triage-rfc`'s future shape is undecided.** With multi-proposal documents
-   gone it has no documents to parse, but its dedupe-against-prior-work and
-   defer-with-a-reason machinery is real work that something must do. Two
-   readings, both defensible: it survives as an issue-triage skill over the
-   delivered queue, or it dissolves into stage 4, which already dedupes and
-   already computes recurrence. **Decide it after the first run under this
-   design**, when there is a real delivered queue to look at rather than a
-   hypothetical one.
+6. **`triage-issue` and stage 4 both dedupe.** Stage 4 dedupes a run's own
+   candidates against what is already filed; `triage-issue` dedupes an arriving
+   issue against prior work. Different scopes, probably the same query.
+   Whether one is expressed in terms of the other or they share a script is
+   not decided, and blocks neither.
 
 7. **Nothing here says how an issue is revised.** An RFC could be edited in
    place before triage. A filed bead is edited in the tracker, which is fine
