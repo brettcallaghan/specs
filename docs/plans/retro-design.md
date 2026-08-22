@@ -77,7 +77,7 @@ backlog, proposals about skills it cannot change.
 
 ## What the evidence says
 
-Six measurements, each naming the command or source behind it. Read them
+Seven measurements, each naming the command or source behind it. Read them
 through the two-branch lens: several say something different about branch A
 than about branch B.
 
@@ -87,8 +87,9 @@ than about branch B.
 | **2** | **13 RFCs processed; 63 proposals adopted**, 4 deferred, 1 rejected. Processed RFCs were deleted, not archived | `rfcs/retro-log.md` outcome column, summed |
 | **3** | **27 RFCs still queued**, 25 ready-for-review, 2 draft | `find rfcs/inbox -name '*.md' \| wc -l` |
 | **4** | **All 27 carry `origin: self`**; 93 proposals processed with **no reporter outside this repository** | `grep -h '^origin:' rfcs/inbox/*/*.md \| sort \| uniq -c` → `27 origin: self`; `rfcs/retro-log.md` closing note |
-| **5** | The protocol's **six categories are never recorded** — every retro re-derives each finding's kind by reading it | the `retro:` prefix carries no kind; `specs/standards/findings-capture-protocol.md` lists six triggers and no way to record which fired |
+| **5** | The protocol's **six categories are never recorded** — every retro re-derives each finding's kind by reading it. **Confirmed by the validation gate**: all 73 had to be read in full to classify | the `retro:` prefix carries no kind; `specs/standards/findings-capture-protocol.md` lists six triggers and no way to record which fired; `docs/research/retro-taxonomy-validation/README.md` |
 | **6** | A finding that became a bead took **five hops**: finding → report → RFC → triage → bead | `rfcs/retro-log.md` disposition column |
+| **7** | Of 73 real findings, **60 are branch A, 5 branch B, and 7 belong to neither** — they are evidence or facts about a dependency | `docs/research/retro-taxonomy-validation/README.md` |
 
 ### What follows from them
 
@@ -198,10 +199,12 @@ sentence beginning "we should". Those are stage 4's, and an implementing agent
 writing them mid-task both derails its own work and produces worse analysis
 than the aggregator would.
 
-#### The taxonomy — seven kinds
+#### The taxonomy — nine kinds
 
 Six are the capture protocol's existing trigger list, which already enumerates
-what an implementing agent notices. The seventh is the class it does not name.
+what an implementing agent notices. The seventh is the class it does not name;
+the last two were added by the validation gate below, which the first seven
+failed.
 
 | kind | fires when | branch |
 |---|---|---|
@@ -211,7 +214,22 @@ what an implementing agent notices. The seventh is the class it does not name.
 | `unverifiable` | an AC or citation obligation could not be satisfied as declared | **A** |
 | `sequencing` | a broken predecessor, or a blocker the dependency graph did not encode | **A** |
 | `scope` | the item was mis-scoped — too large to review as one unit, trivial, or overlapping another | **A** |
-| `tooling` | **the seventh** — a skill, script, template or protocol misled, failed, or had no rule where one was needed | **B** |
+| `tooling` | a skill, script, template or protocol misled, failed, or had no rule where one was needed | **B** |
+| `proof` | recording **how a claim was established** — an observed pre-fix failure, a negative control, a prior risk checked and cleared | **neither** |
+| `environment` | a durable fact about a **dependency, tool or platform** the next agent will hit, which no work order could have carried | **the ledger** |
+
+**Two of these nine do not produce issues, and that is the point.** The first
+seven all assume a finding is a candidate defect. Validation found that 7 of 73
+real findings are not: they are evidence, and durable facts about someone
+else's library. Both are worth capturing and neither is worth filing.
+
+- **`proof` stays in the report**, attached to the finding or bead it supports.
+  It is the repository's own evidence standard being obeyed — `AGENTS.md`
+  requires a claim to cite the command run and the output observed — so routing
+  it as friction would suppress exactly the rigour that standard asks for.
+- **`environment` goes to the environmental-failure ledger**, which already
+  exists in `AGENTS.md` for exactly this. Filing it as an issue would blame a
+  work order for not carrying a fact about a third-party parser.
 
 **`target` is what makes stage 3 a lookup.** For `tooling` it is the skill or
 script (`retro:tooling:sprint-wave`). For the six branch-A kinds it is the
@@ -220,6 +238,12 @@ there genuinely is none; that costs a cluster, not a finding.
 
 **When in doubt about the branch, apply the merge test** — where would the fix
 land? An implementing agent can answer that in one beat.
+
+**A finding may correct an earlier one.** Findings are append-only, so the only
+way to withdraw a claim is to supersede it. An optional `corrects:
+<finding-id>` field expresses that relationship, which prose cannot: validation
+found an agent writing "correction to the line above", which an aggregator
+reading the two cold has to infer from a phrase.
 
 **`incident` is not a kind — it is a severity that crosses the kinds.** An
 incident is a decision that changed what "correct" means. `run-bead` records it
@@ -242,22 +266,39 @@ retro:gap:ADR-014 incident — <what was decided, and what was rejected>
 Its *reporting* obligation belongs to the sprint, not the retro. Its *routing*
 belongs here.
 
-#### Validation gate — unrun
+#### Validation gate — RUN, and the taxonomy was extended by what it found
 
-**This taxonomy is a proposal until it is tested against real findings.**
-Classify all 73 findings in the 2026-08-15 report, count the residue that fits
-no kind, and record the number here.
+All 73 findings in the 2026-08-15 report classified. Full working:
+`docs/research/retro-taxonomy-validation/README.md`.
 
-- Residue **≤ 5%** → adopt as written.
-- Residue **> 5%** → the residue names the missing kind. **Add it; never widen
-  an existing one.** A kind that absorbs anything routes nothing.
+| | count | share |
+|---|---|---|
+| branch **A** — the project's own quality | 60 | 82.2% |
+| branch **B** — the skills this repository vends | 5 | 6.8% |
+| **residue against the seven proposed kinds** | **8** | **11.0%** |
 
-Also record the branch split of those 73 — it is the first real measurement of
-how much of a run's friction is branch A versus branch B, and that ratio is
-what tells us when branch B has shrunk.
+**The seven kinds failed the 5% bar**, and the residue named what was missing
+rather than sprawling: 4 findings recording *how a claim was established*, 3
+recording a *dependency's behaviour*, 1 *correcting an earlier finding*. Hence
+`proof`, `environment` and the `corrects` field above. **Recomputed residue
+with those added: 1 of 73 (1.4%)** — and that one is what `corrects` absorbs.
 
-**Do not skip this gate.** A taxonomy validated against its author's intuition
-is measurement 5 again with more words.
+**Six findings were ambiguous between two kinds, and all six pairs route to
+the same branch.** That is the right failure mode: the taxonomy only has to be
+right about the branch, and it was right about the branch in all 65 classified
+cases. Ambiguity costs a cluster, not a route.
+
+**The classification cost is the measurement the whole `<kind>` proposal rests
+on, and it held**: every one of the 73 had to be read in full, because nothing
+in the current `retro:` prefix narrows the work. That recurs every retro.
+
+**Two branch-B findings turned out to be the same problem** — `wvd.6#1` and
+`wvd.11#1`, both reporting that Read and Grep silently tolerate a
+shared-checkout path where Edit and Write refuse it — found independently by
+two beads, listed separately in the report, with nothing connecting them. Under
+this scheme both carry `retro:tooling:subagent-prompts` and cluster
+automatically. **That is the recurrence signal working, on real data, before
+the mechanism exists.**
 
 ---
 
@@ -289,10 +330,17 @@ retro still runs, on whatever the grooming and readiness stages produced.
 **Who:** nobody. It is a lookup on the kind.
 
 ```
-kind == tooling         → branch B
-kind is one of the six  → branch A
-kind missing or unknown → UNROUTED — reported as a count and a list, never dropped
+kind == tooling          → branch B
+kind == proof            → the report, attached to what it supports. No issue.
+kind == environment      → the environmental-failure ledger. No issue.
+kind is one of the six   → branch A
+kind missing or unknown  → UNROUTED — reported as a count and a list, never dropped
 ```
+
+**`proof` and `environment` terminate here.** They are captured, reported and
+never reach stage 4 — there is nothing for a human to decide about a negative
+control or a third-party parser's grammar. Measured at 7 of 73, so this is not
+a rare path.
 
 **Nothing about the finding's content is read here.** That is the whole point
 of stage 1 carrying the kind: a routing step that requires reading is a
@@ -775,9 +823,11 @@ longer exist.
 
 ## Open — what this draft does not settle
 
-1. **The taxonomy's residue is unmeasured.** The 73-finding validation has not
-   been run. Until it is, seven kinds is a proposal — and so is the branch
-   ratio it would also produce.
+1. **One ratio is not a trend.** The gate measured branch A at 82% and branch B
+   at 7% — on a run that implemented a *feature*. A run whose subject is the
+   skills themselves would split very differently, and nothing here establishes
+   what a normal ratio looks like or when branch B has shrunk enough to
+   deprioritise.
 
 2. **The recurrence window is a guess.** Five sprints is proposed, not
    measured. The right number is whatever spans "long enough that a real
