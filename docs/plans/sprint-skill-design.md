@@ -3,7 +3,8 @@
 Evolves the role framing: coordinator → developer → bead, with a rule for
 where each step belongs and one contract every subprocess honours.
 
-Working document. Status markers: ✅ exists · 🔨 exists but not extracted ·
+Working document. Status markers: ✅ exists as-is · ♻️ exists, needs rework
+(rename, resplit, or both) · 🔨 exists inside `bead-bonanza`, not extracted ·
 ⬜ does not exist yet.
 
 ---
@@ -33,8 +34,9 @@ harness of our own.
 
 **The coordinator's own skill must be the SMALLEST document in the system.**
 It never pulls in another skill's context — it invokes, reads the result, and
-routes. Today `bead-bonanza/SKILL.md` is the largest file here; in the target
-state it should be the shortest thing a coordinator reads.
+routes. Today the coordinator (`bead-bonanza/SKILL.md` — renaming it is open,
+below) is the largest file in the system; in the target state it should be the
+shortest thing a coordinator reads.
 
 ---
 
@@ -46,10 +48,11 @@ state it should be the shortest thing a coordinator reads.
 2. **Human interaction is front-loaded, and there are exactly four touchpoints**
    — see below.
 3. **Review findings go through `groom-beads` like any other bead.** Review
-   files; it does not groom. The loop re-enters at step 3 unconditionally.
-4. **Two loops maximum — the process runs at most three times.**
-
----
+   files; it does not groom. The loop re-enters at step 3+4 unconditionally.
+4. **Two loops maximum — the process runs at most three times.** The budget
+   bounds the *machine* reviewing itself (step 6). **Findings from the human's
+   PR review do not consume it** — a human asking for a change is not a loop
+   the run gets to decline.
 
 ---
 
@@ -132,21 +135,20 @@ which is the only default that is safe to apply without asking.
 ## The shape of a run
 
 ```
-1  pre-flight ................................. script
-2  resolve scope ............................. script + coordinator
-   └─ AUTHORIZATION GATE ..................... HUMAN, once
-┌─ 3  groom .................................. subagent
-│  4  plan ................................... subagent
-│  5  sprint ................................. coordinator + subagents
-│     ├ 5a dispatch a wave  ─┐ repeat until
-│     ├ 5b merge queue       │ the ready front
-│     └ 5c supervise        ─┘ is dry
-│  6  review ................................. subagents; coordinator loops
-└──── findings admitted AND passes < 3 ? ──── yes ──┘
-7  PR review ................................. HUMAN
-8  retro ..................................... subagents + coordinator
-9  report .................................... coordinator → HUMAN
-10 post-flight ............................... script
+1     pre-flight ............................ pre-flight-check.sh
+2     resolve scope ......................... sprint-scope
+      └─ AUTHORIZATION GATE ................. HUMAN, once
+┌─ 3+4 groom & plan ......................... sprint-plan → groom-beads
+│  5   sprint ............................... coordinator + subagents
+│      ├ 5a dispatch a wave ─┐ repeat until   sprint-wave → sprint-batch
+│      ├ 5b merge            │ the ready      coordinator
+│      └ 5c supervise       ─┘ front is dry   bb-status.sh
+│  6   review ............................... sprint-review → declared reviewer
+└───── findings admitted AND passes < 3 ? ─── yes ──┘
+7     PR review ............................. HUMAN
+8     retro ................................. sprint-retro
+9     report ................................ sprint-report
+10    post-flight ........................... sprint-cleanup.sh
 ```
 
 **Two nested loops, and both are bounded.** The wave loop ends when the ready
@@ -217,17 +219,17 @@ re-derive from a handle, it re-derives.
 | # | step | skill / script | executed by | status |
 |---|---|---|---|---|
 | 1 | Pre-flight | `pre-flight-check.sh` | script | ✅ |
-| 2 | Resolve scope | **`sprint-scope`** | script + coordinator + **human** | 🔨 |
-| 3+4 | Groom & plan | **`sprint-plan`** → `groom-beads` | subagent | 🔨 |
+| 2 | Resolve scope | **`sprint-scope`** | script + coordinator + **human** | ♻️ |
+| 3+4 | Groom & plan | **`sprint-plan`** → `groom-beads` | subagent | ♻️ |
 | 5a | Dispatch a wave | **`sprint-wave`** | coordinator + subagents | ⬜ |
 | 5b | Merge | *(coordinator — see below)* | coordinator | 🔨 |
 | 5c | Supervise | `bb-status.sh` | script + trigger | ✅ |
 | 6 | Review code | **`sprint-review`** | declared reviewer + coordinator | ⬜ |
 | 7 | PR review | — | **human** | ⬜ |
-| 8 | Retro | **`sprint-retro`** | subagents + coordinator | ⬜ |
+| 8 | Retro | **`sprint-retro`** | `retro-skill` / `retro-spec` + coordinator | ⬜ |
 | 9 | Report | **`sprint-report`** | coordinator | ⬜ |
 | 10 | Post-flight | `sprint-cleanup.sh` | script | ⬜ |
-| — | Recovery | **`sprint-recovery`** | script + coordinator | 🔨 |
+| — | Recovery | **`sprint-recovery`** | script + coordinator | ♻️ |
 | — | One batch of beads | **`sprint-batch`** | the developer | ⬜ |
 | — | One bead | **`run-bead`** | the developer | ✅ |
 
@@ -260,6 +262,20 @@ it stops.
 | `start-sprint` | **`sprint-scope`** | and it sheds two things — see below |
 | `plan-sprint` | **`sprint-plan`** | and it absorbs the readiness gate |
 | `recover-sprint` | **`sprint-recovery`** | |
+| `bead-bonanza` | **`run-sprint`** — *open* | see below |
+
+**The coordinator's own name is still open.** `bead-bonanza` says nothing about
+what it does and does not survive being exported to another project. The
+recommendation is **`run-sprint`**: it is the verb applied to the whole
+namespace, it matches `run-bead` at the other end of the tier stack, and it is
+the one skill the prefix rule should *not* claim — the coordinator is the entry
+point to the namespace, not a member of it, and `sprint-sprint` is absurd. The
+alternatives considered were `epic-sprint`, `sprint-epic` and `run-epic-sprint`;
+all three name the input rather than the act, and the run's scope is not always
+one epic the user handed over — `sprint-scope` may mint it.
+
+**Nothing in this document depends on which name wins.** The rename is one
+directory move plus the frontmatter `name:`, and it can land last.
 
 **`start-sprint` splits three ways.** It currently carries pre-flight, scope
 resolution *and* the readiness gate. Under this naming: pre-flight is a script
@@ -291,7 +307,7 @@ What is *not* generic — and is entirely ours — is what happens to the findin
 - filing each finding as a **bead**, `--discovered-from` its origin, parented
   into the run epic
 - classifying in-scope vs out-of-scope **against the authorization gate**
-- feeding the loop: the pass counter, and the decision to re-enter at 3
+- feeding the loop: the pass counter, and the decision to re-enter at 3+4
 
 So `sprint-review` invokes a **declared** reviewer and routes what comes back.
 Same shape as `[[checks]]`: the project says what to run, we run it and act.
@@ -309,6 +325,12 @@ skipped review reads exactly like a clean one.
 reads. Giving it a skill would add a context hop to something already legible.
 Likewise `1` and `10` — a pre-flight and a post-flight script bracket the run,
 and neither needs a context window to be understood.
+
+---
+
+### 1 · Pre-flight — `pre-flight-check.sh`
+
+- **Input** — nothing.
 - **Returns** — `BB_*` facts on stdout, eval'd. Human-readable report on stderr.
 - **Coordinator does** — eval, then proceed or stop. **It acts on the verdict,
   not on the evidence**: the script names each blocker and its remedy, so there
@@ -321,7 +343,7 @@ and neither needs a context window to be understood.
 output the coordinator has to reason about has pushed work back up the tier it
 was supposed to absorb.
 
-### 2 · Resolve scope
+### 2 · Resolve scope — `sprint-scope`
 
 Turns whatever the user gave — an epic, several epics, bead ids, a label, a
 priority — into **exactly one run epic**.
@@ -344,36 +366,41 @@ A move is confirmed by naming each bead and the epic it leaves, because moving
 a bead out of an epic makes that epic falsely report complete. Unauthorized,
 the conservative branch excludes those beads and the run proceeds narrower.
 
-### 3 · Groom
+### 3+4 · Groom & plan — `sprint-plan`
 
-- **Input** — the run epic.
-- **Returns** — per bead: ready, or NOT-READY with the gap a human must close.
-- **Coordinator does** — dispatches only ready beads. Bounced beads are raised
-  into `bd human` and named in the report.
+One dispatch, two returns. The subagent grooms every not-Ready bead through
+`groom-beads`, and — having just read all of them — partitions what came out.
+
+- **Input** — the run epic; standing authorization.
+- **Returns** — two things and nothing else:
+  1. the **readiness verdict** per bead — ready, or NOT-READY with the gap a
+     human must close;
+  2. the **wave table** — which simultaneously-ready beads can share a wave,
+     which must be batched behind one worker.
+- **Coordinator does** — dispatches ready beads from the wave table. Bounced
+  beads are raised into `bd human` and named in the report. It does **not**
+  store the table.
 - **Durable side effect** — beads edited in place; `decision-required` +
-  `human` labels on bounces.
-- **On failure** — a bounced bead never blocks the run; it narrows it.
-
-### 4 · Plan sprint
-
-- **Input** — the run epic; the current ready front.
-- **Returns** — the wave table: which simultaneously-ready beads can share a
-  wave, which must be batched behind one worker.
-- **Coordinator does** — dispatches from it. Does **not** store it.
-- **Durable side effect** — none by design. The table is derived; a stored copy
-  only drifts.
-- **On failure** — no partition means dispatch one worker per bead.
+  `human` labels on bounces. The table itself is deliberately *not* durable:
+  it is derived from the ready front, and a stored copy only drifts.
+- **On failure** — a bounced bead never blocks the run; it narrows it. No
+  partition means dispatch one worker per bead.
 
 **Order is not planned — it is queried.** `bd ready --parent <epic>
 --exclude-type=epic` at every wave boundary is the order. Planning decides
 *packing* only.
 
-### 5a · Dispatch a wave
+**Why the readiness gate lives here and not in `sprint-scope`.** Readiness is a
+property of a groomed bead, and grooming is what this step does. Asking about
+readiness before grooming answers a question about beads that are about to
+change.
+
+### 5a · Dispatch a wave — `sprint-wave`
 
 - **Input** — the wave's batches; the manifest handle; `{SCRIPTS}`.
 - **Returns** — one line per bead: completed / blocked / skipped, with a sha.
 - **Coordinator does** — verifies every return against state (never testimony),
-  then hands each branch to the merge queue.
+  then merges each branch itself (5b).
 - **Durable side effect** — worktrees, branches, commits, closed beads,
   dispatch records in bead metadata.
 - **On failure** — 3 consecutive blocked/failed beads trips the circuit breaker
@@ -418,7 +445,7 @@ is strictly more machinery for the same result.
 code — exactly the context cost the coordinator must not pay — and at that
 point `sprint-merge` becomes worth its dispatch. Not before.
 
-### 5c · Supervise
+### 5c · Supervise — `bb-status.sh`
 
 - **Input** — the run epic.
 - **Returns** — health, live dispatches, standing worktrees, DoD.
@@ -427,16 +454,16 @@ point `sprint-merge` becomes worth its dispatch. Not before.
 - **On failure** — an unset health is itself the finding: a watchdog cannot
   tell stalled from slow.
 
-### 6 · Review code ⬜
+### 6 · Review code — `sprint-review`
 
 **The largest genuinely new step.** Reviews everything the sprint produced,
-files what it finds, and **loops back to step 3** when new work is admitted.
+files what it finds, and **loops back to step 3+4** when new work is admitted.
 
 - **Input** — the sprint branch; the run epic; the base sha.
 - **Returns** — findings, each already filed as a bead, classified in-scope vs
   out-of-scope.
 - **Coordinator does** — admits in-scope findings **only where the gate
-  allowed scope growth**, and re-enters at **step 3** so new beads are groomed
+  allowed scope growth**, and re-enters at **step 3+4** so new beads are groomed
   like any other. Surfaces out-of-scope ones. **At most 2 loops — three passes
   total.**
 - **Durable side effect** — new beads linked to the run epic; the **pass
@@ -446,7 +473,7 @@ files what it finds, and **loops back to step 3** when new work is admitted.
   failure: remaining findings stay filed, are named in the report, and the PR
   proceeds.
 
-Review **files**; it does not groom. That is why the loop re-enters at 3 rather
+Review **files**; it does not groom. That is why the loop re-enters at 3+4 rather
 than 4 — a finding's bead meets the Definition of Ready the same way every
 other bead does, through `groom-beads`, or it bounces the same way too.
 
@@ -454,12 +481,18 @@ This is the coordinator's own loop, and the reason the loop stays here while
 the review method goes to a subagent: the counter, the budget and the decision
 to re-enter are routing, and routing is the only thing the coordinator does.
 
-### 7 · PR review — human ⬜
+### 7 · PR review — human
 
 - **Input** — a PR against the sprint branch.
 - **Returns** — approval, or comments.
-- **Coordinator does** — re-enters at step 3 for anything actionable.
-- **On failure** — n/a; this gate is the human's.
+- **Coordinator does** — files each actionable comment as a bead and re-enters
+  at 3+4. **These findings do not consume the review-loop budget** — that
+  counter bounds the machine reviewing itself; a human asking for a change is
+  not a loop the run gets to decline.
+- **Durable side effect** — beads for the comments, `--discovered-from` the PR;
+  the PR thread itself is the forge's record.
+- **On failure** — n/a; this gate is the human's. A PR left unreviewed is not a
+  failed run: the run's own output is complete at 9.
 
 ### 8 · Retro — `sprint-retro`
 
@@ -473,10 +506,16 @@ to re-enter are routing, and routing is the only thing the coordinator does.
 
 ### 9 · Report — `sprint-report`
 
-- **Input** — everything above, by handle.
+- **Input** — the run epic, by handle. Everything the report needs is on it or
+  reachable from it; the coordinator passes no accumulated narrative.
 - **Returns** — the human-facing sprint report.
-- **Coordinator does** — this is its own output, and the one thing it does not
-  delegate.
+- **Coordinator does** — this is the run's own output. It reads it before
+  handing it over, and adds nothing it did not already know.
+- **Durable side effect** — the report is written to a file and its path
+  recorded in the manifest, so a report survives the session that produced it.
+- **On failure** — a report is always produced, including for a run that
+  stopped early. **A run that ends without one has failed**, whatever else it
+  achieved.
 
 ### 10 · Post-flight — `sprint-cleanup.sh`
 
@@ -507,7 +546,7 @@ split worked.
 
 ## Recovery — re-run with the same epic id
 
-**`sprint-recovery`** 🔨 owns this. It stays a skill, and what follows is its
+**`sprint-recovery`** ♻️ owns this. It stays a skill, and what follows is its
 specification: it reconciles the run's residue and hands back to step 1. It is
 a **precondition to re-entry**, not a second way to run a sprint.
 
@@ -518,8 +557,7 @@ already done:
 |---|---|
 | 1 pre-flight | re-probes; it asserts nothing about history |
 | 2 resolve scope | the epic exists, so admission has nothing to resolve |
-| 3 groom | only ungroomed beads are groomed |
-| 4 plan | re-derived from the **current** ready front — this is why the wave table is never stored |
+| 3+4 groom & plan | only ungroomed beads are groomed; the wave table is re-derived from the **current** ready front — this is why it is never stored |
 | 5 sprint | closed beads are not in the front, so they are not dispatched |
 | 8–10 | operate on final state, which is what they wanted anyway |
 
@@ -558,10 +596,9 @@ Making it explicit also shows where we would otherwise be hand-rolling.
 |---|---|
 | 1 pre-flight | `bd stats` / `bd ready` reachability · `bd dolt push` probe against `refs/dolt/*` |
 | 2 resolve scope | `bd create --type=epic` · `bd update --parent` (admission) · `bd ready --parent --exclude-type=epic` (the queue) · `bd update --metadata` (the manifest) |
-| 3 groom | `bd update --description/--design/--acceptance` · `bd dep add` (sequencing as real edges) · `bd lint` · `bd human` + `decision-required` label (bounces) |
-| 4 plan | `bd ready --parent` (order) · `bd swarm validate` (wave **preview** only) · `metadata.tier` / `c4_changes` / `c4_impacts` (packing) |
+| 3+4 groom & plan | `bd update --description/--design/--acceptance` · `bd dep add` (sequencing as real edges) · `bd lint` · `bd human` + `decision-required` label (bounces) · `bd ready --parent` (order) · `bd swarm validate` (wave **preview** only) · `metadata.tier` / `c4_changes` / `c4_impacts` (packing) |
 | 5a dispatch | `bd update --claim` (atomic, sets status **and** assignee) · `--set-metadata` (the dispatch record) · re-queried `bd ready --parent` |
-| 5b merge queue | `bd merge-slot create/check/acquire/release` |
+| 5b merge | `bd merge-slot create/check/acquire/release` |
 | 5c supervise | `bd set-state health=<v>` (event bead + replacing label, atomically) · `bd swarm status` (computed, not stored) · `.beads/hooks/on_update` (the event stream) |
 | 6 review | `bd create --discovered-from` (findings stay attached to their origin) · labels for in/out of scope |
 | 7 PR review | none — this is the forge's |
@@ -636,8 +673,8 @@ re-sequencing its own batch defeats the packing.
 - **Returns** — one line per bead, then one batch line:
   `batch-end: <n> completed, <n> blocked, <n> skipped @ <branch>`.
 - **Does** — writes the terminal state on every assigned bead; confirms every
-  bead is accounted for; **hands the branch to the merge queue** — it does not
-  merge, and it does not remove its own worktree.
+  bead is accounted for; **hands the branch back for the coordinator to merge**
+  — it does not merge, and it does not remove its own worktree.
 - **Durable side effect** — `dispatch_state=returned` and
   `terminal_state=completed|blocked|skipped` per bead.
 - **On failure** — a bead with no terminal state is the one thing that must not
@@ -668,3 +705,53 @@ worktree for six beads broke the acceptance signal outright.
 `retro:` comments, close-and-commit as one, return one line.
 
 ---
+
+## Open — three things this document does not settle
+
+Each one needs a decision, not an invention. They are the only gaps found in
+review; everything else above is either decided or deliberately deferred to a
+project's own configuration.
+
+### 1. Nothing creates the sprint branch
+
+Steps 1–10 never name the act. Step 6 scopes its review to `base_sha → sprint
+head`, D1 verifies a worktree "branched from sprint HEAD", step 7 opens a PR
+"against the sprint branch" — three consumers, no producer.
+
+**Recommended:** `sprint-scope` creates it and writes `branch` and `base_sha`
+into the manifest alongside the admission record. It is already the step that
+mints durable identity for the run, the branch *is* run identity, and recording
+`base_sha` at creation is the only moment it is unambiguous. The alternative —
+the coordinator creating it inline before 5a — leaves recovery with no record
+of what the run branched from.
+
+**Consequence if it goes elsewhere:** the manifest keys move, and step 6's
+input changes. Nothing else in this document does.
+
+### 2. What an escalation does when no human is there
+
+The four escalations in "decisions that change what 'correct' means" assume
+someone answers. The premise of the whole design is an overnight run where
+nobody does.
+
+**The options, and what each costs:**
+
+| | behaviour | cost |
+|---|---|---|
+| **block** | the bead waits on `bd human`; the run continues around it | the run is narrower than it looks, and the report has to say so loudly |
+| **stop** | the whole run halts at the first escalation | one ambiguous acceptance criterion wastes a night |
+| **guess and flag** | take a branch, label it, surface it in review | writes an undecided decision into the code — the exact thing the escalation exists to prevent |
+
+**Recommended: block.** It is the only one consistent with "a bounced bead
+never blocks the run; it narrows it", which step 3+4 already states for the
+grooming case. An escalation is a bounce that happens later.
+
+### 3. `target-skill-structure.md` overlaps this document
+
+`docs/plans/target-skill-structure.md` covers the same ground from the byte-
+budget angle. Its arithmetic — which extraction buys how many bytes against the
+~20,000-byte cap — is not reproduced here and is worth keeping.
+
+**Recommended:** fold the arithmetic into this document as a sizing section and
+delete the other file, so there is one target-state document rather than two
+that will drift.
