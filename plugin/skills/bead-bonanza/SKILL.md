@@ -58,8 +58,7 @@ bead-bonanza run:
 - [ ] 3. Execute waves via `sprint-wave`, merging each accepted branch
 - [ ] 3b. Review via `sprint-review`; loop back to groom & plan when findings
         were admitted and the pass budget is not spent
-- [ ] 4. Final report: INCIDENTS FIRST, table, totals, implicit decisions, TIER ESCALATIONS,
-        follow-up beads, stashes, pushes, run epic id
+- [ ] 4. Final report via `sprint-report` (incidents first), then the retro
 ```
 
 **Most of that is checkable rather than assertable.** `bb-status.sh run <epic>`
@@ -279,6 +278,7 @@ Load the one that matches where you are in the run:
 | Executing one wave: dispatching its batches and verifying the returns | invoke the **`sprint-wave`** skill |
 | Working one batch of beads as the dispatched subagent | the **`sprint-batch`** skill |
 | Reviewing the run's own diff and turning findings into beads | invoke the **`sprint-review`** skill |
+| Writing the run's final report | invoke the **`sprint-report`** skill |
 | Dispatching an execution subagent | `references/subagent-prompts.md` |
 | Grooming the queue and partitioning it into waves and batches | invoke the **`sprint-plan`** skill |
 | The grooming subagent's prompt | the template that ships with `sprint-plan` |
@@ -619,102 +619,25 @@ finds things is information for the human, not a reason to keep going.
 says so. Do not substitute your own review.
 
 
-## Phase 4 — Final report
+## Report — invoke `sprint-report`
 
-After the queue is drained (or the circuit breaker tripped), print:
+After the queue drains (or the circuit breaker trips), invoke `sprint-report`.
+**Pass it the run epic id and nothing else** — everything the report needs is
+on that epic or reachable from it, which is what lets a resumed session write
+one for a run it did not hold.
 
-0. **Incidents — first, before the table.** Every decision this run made that
-   changed what "correct" means: an acceptance criterion amended, a
-   standard/requirement/AC tension resolved, a contract or interface changed, a
-   spec silent where a bead needed it to speak. Harvest them with
+It leads with the **incidents**, then the results table, routing evidence,
+follow-up beads, exclusions, and what the run could not verify. It writes the
+report to a file and records the path in the manifest.
 
-   ```bash
-   bd export | jq -r '.comments[]?.text' | grep -E '^(retro: incident|amend: incident)'
-   ```
+**Read it before you hand it over**, and add nothing you did not already know.
+This is the run's own output; you own that it is true, not that it is written.
 
-   one row each — bead, what was decided, what was rejected. **State `none`
-   explicitly** when there were none; the null is information, and a missing
-   section reads like a clean run rather than an unreported one.
+**A report is always produced**, including for a run that stopped early. A run
+that ends without one has failed, whatever else it achieved.
 
-   This section is first because it is the one a human skims, and it is what
-   earns an autonomous run its autonomy. **The count is a quality metric for
-   the specs, not for the run**: each incident marks a place the corpus failed
-   to answer a question, so each is the retro's material, not a complaint.
-1. A markdown table: `| ID | Status | Batch | Commit | Notes |`
-2. Totals: `N closed, N blocked, N skipped`.
-3. **Implicit decisions made** — the rest of the beads' `retro:` comments:
-   which beads had implicit decisions, what the subagent chose. Surface to the
-   user so they can audit non-obvious choices. Incidents are already in 0;
-   do not repeat them here.
-3a. **Tier escalations** — every bead whose tier you had to raise to get it
-    done, one row each:
+Then, and only then, the retro — it reads the report's tables.
 
-   ```
-   | Bead | Assigned | Completed at | What failed at the assigned tier |
-   |------|----------|--------------|----------------------------------|
-   | demo-9h0 | light | standard | fixture regen wrong twice; gates failed both cycles |
-   ```
-
-   State `none` explicitly when there were no escalations — the null is
-   the result, not the absence of one.
-
-   **`CLAUDE_CODE_SUBAGENT_MODEL` override and no routing are different
-   results.** WHEN `CLAUDE_CODE_SUBAGENT_MODEL` env var is set, every
-   subagent runs at that forced model regardless of tier, so no routing
-   occurs and tier escalations mean nothing — omit the table and write:
-
-   ```
-   Tier escalations: N/A — CLAUDE_CODE_SUBAGENT_MODEL is set, so every
-   bead ran at that model and no tier routing occurred.
-   ```
-
-
-   **Say this alongside the table**, because the reader will otherwise
-   draw the wrong conclusion from a short one: escalations reveal
-   *under*-routing only. A bead groomed `frontier` that a `light` model
-   would have finished never appears here — it succeeds, and the
-   overspend is silent. So zero escalations across a large queue is not
-   evidence of good calibration; it is equally consistent with routing
-   everything too high (see the over-routing table below). WHEN a run of
-   ≥10 beads produces zero escalations, say so and suggest the next run
-   try one tier lower on the beads whose `tier_reason` was thinnest.
-3b. **Deliberate over-routes** — every bead you knowingly ran a tier above
-    its assigned one (e.g. batched into a higher-tier batch per the
-    tier-batching rule), one row each:
-
-   ```
-   | Bead | Assigned | Ran at | Why raised |
-   |------|----------|--------|------------|
-   | demo-9h0 | light | standard | batched with a standard bead on the same surface |
-   ```
-
-   State `none` explicitly when there were no over-routes — the null is
-   the result, not the absence of one. This table and the escalation table
-   above are together the run's complete routing evidence, and
-   `groom-beads`' retro loop needs both to recalibrate the rubric.
-4. **Follow-up beads** — beads created mid-run via `bd create`, split into those
-   admitted into the run (in-scope prerequisites / AC-decompositions / coverage
-   gaps, with their outcome) and those left for the user (out-of-scope finds,
-   filed with a `discovered-from` link, awaiting triage).
-5. **Stashes** — if any were created during recovery, list with `git stash
-   list`.
-5a. **Sprint retro** — synthesize the run's own evidence into how the next
-    sprint runs better. Specified in "The sprint retro" below. It runs on
-    every run that closed at least one bead, and it runs *here*: after the
-    report, whose tables it reads.
-6. **Pushes** — confirm all closed beads' commits are on the remote.
-6a. **Cancel the durable out-of-session trigger** armed at first dispatch
-    (`references/progress-streaming.md`, "Back the Monitor with a durable
-    trigger") —
-    a trigger left armed after the run drains wakes an agent into a finished
-    sprint, which trains the reader to ignore it. **State its disposition in
-    the report**: `Durable trigger: cancelled (<id>)` or `Durable trigger:
-    none armed` — both branches are stateable, and an omitted line is
-    indistinguishable from a forgotten cancellation.
-7. The run epic id, so the user can
-   review the dispatch plan.
-
-Do NOT create a PR or merge to main — that is a separate, explicit user action.
 
 ### The sprint retro
 
