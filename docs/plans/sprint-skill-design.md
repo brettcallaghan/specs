@@ -274,23 +274,159 @@ split worked.
 
 ---
 
-## Developer / worker tier
+## Recovery — re-run with the same epic id
 
-Owns a bucket of beads and one worktree. **Never merges.**
+**Recovery is re-entry, not a parallel procedure.** Invoke the skill again with
+the same epic id. Every step is keyed on the epic and naturally skips what is
+already done:
 
-| | |
+| step | why re-entry is a no-op or a narrower repeat |
 |---|---|
-| **Open** | write the dispatch record (`dispatch_id`, model, tier, worktree, time); take the worktree; read the manifest and checks baseline |
-| **Work** | `run-bead` per bead, in order, one commit each |
-| **Close** | write the terminal state; hand the branch to the merge queue; return one line per bead |
+| 1 pre-flight | re-probes; it asserts nothing about history |
+| 2 resolve scope | the epic exists, so admission has nothing to resolve |
+| 3 groom | only ungroomed beads are groomed |
+| 4 plan | re-derived from the **current** ready front — this is why the wave table is never stored |
+| 5 sprint | closed beads are not in the front, so they are not dispatched |
+| 8–10 | operate on final state, which is what they wanted anyway |
 
-The record is what makes a standing worktree readable without inference:
-present + `running` is a live agent, present + `returned` is an orphaned tree,
-absent + `running` is a dead agent.
+**Where the simple story breaks — and it is exactly five things.** All of them
+are residue from the interrupted run, and all of them are what
+`bb-status.sh` already reports:
 
-**Status:** the ceremony exists as prompt templates; it is not yet a skill. ⬜
+1. **A standing worktree with uncommitted work.** The bead reads open, so
+   re-entry would re-dispatch it and race the partial work. Reconcile first:
+   present + `running` is a live agent, present + `returned` is an orphaned
+   tree, absent + `running` is a dead agent.
+2. **A held merge slot.** A slot held by a dead agent blocks the new run.
+   `bb-status.sh slot <epic>` says whether release is defensible.
+3. **Unpushed commits.** Every other signal reads "finished" — no worktrees,
+   clean tree, beads closed. Only `bb-status.sh wave` separates a landed wave
+   from an unlanded one.
+4. **The review pass counter.** The only genuinely non-idempotent step. It
+   lives in the manifest for exactly this reason; a re-entry that reset it
+   would loop forever.
+5. **A bead claimed by an assignee that no longer exists.** `--claim` is
+   idempotent for the same actor and blocking for a different one.
+
+So recovery is: **reconcile the residue, then re-enter at step 1.** The
+reconciliation is three script calls, which is why `recover-sprint` collapses
+to running them and acting — it is a precondition to re-entry rather than a
+second way to run the sprint.
 
 ---
+
+## What each step leverages from beads
+
+The skill is a skill rather than a harness because bd already provides this.
+Making it explicit also shows where we would otherwise be hand-rolling.
+
+| step | bd features |
+|---|---|
+| 1 pre-flight | `bd stats` / `bd ready` reachability · `bd dolt push` probe against `refs/dolt/*` |
+| 2 resolve scope | `bd create --type=epic` · `bd update --parent` (admission) · `bd ready --parent --exclude-type=epic` (the queue) · `bd update --metadata` (the manifest) |
+| 3 groom | `bd update --description/--design/--acceptance` · `bd dep add` (sequencing as real edges) · `bd lint` · `bd human` + `decision-required` label (bounces) |
+| 4 plan | `bd ready --parent` (order) · `bd swarm validate` (wave **preview** only) · `metadata.tier` / `c4_changes` / `c4_impacts` (packing) |
+| 5a dispatch | `bd update --claim` (atomic, sets status **and** assignee) · `--set-metadata` (the dispatch record) · re-queried `bd ready --parent` |
+| 5b merge queue | `bd merge-slot create/check/acquire/release` |
+| 5c supervise | `bd set-state health=<v>` (event bead + replacing label, atomically) · `bd swarm status` (computed, not stored) · `.beads/hooks/on_update` (the event stream) |
+| 6 review | `bd create --discovered-from` (findings stay attached to their origin) · labels for in/out of scope |
+| 7 PR review | none — this is the forge's |
+| 8 retro | `bd export \| jq` over `retro:` comments · `bd create` for adopted actions |
+| 9 report | `bd epic status` (flat) or a walked count (nested) · the manifest's admission record |
+| 10 post-flight | `bd merge-slot release` · close the swarm molecule · `bd set-state health=<terminal>` · `bd dolt push` |
+| **throughout** | `bd dolt push`/`pull` — the tracker is the durable store, so nothing the run learns lives only in a session |
+
+**Two things we deliberately do not use.** `bd remember` memories are excluded
+from `bd export` and are not synced, so durable context goes in an issue
+instead. And **event beads are not used as a dispatch record** — measured, 100
+of them made `bd dolt push` 8.5× slower and deleting them did not restore the
+baseline, so the record is metadata.
+
+---
+
+## Developer / worker tier
+
+One subagent, one bucket of beads, one worktree. **`run-batch`** ⬜ — the skill
+that does not exist yet; today this is prompt templates.
+
+The developer is the tier with no artifacts of its own until the dispatch
+record gave it one. Its ceremony mirrors the coordinator's — open, work, close
+— and its three hard rules are all *negative*, because a worker that reaches
+past its boundary is the failure mode:
+
+> **Never merge. Never work outside your worktree. Never touch a bead you were
+> not assigned.**
+
+### D1 · Open — accept the assignment
+
+- **Input** — the bucket's bead ids in order; `{DISPATCH_ID}`; `{WORKTREE}`;
+  the run epic; `{SCRIPTS}`; push mode.
+- **Returns** — nothing yet. This step is a gate, not a report.
+- **Does** — writes the dispatch record; verifies the worktree is its own and
+  clean; verifies the **base ref** (branched from sprint HEAD, not the default
+  branch); reads the manifest and the checks baseline off the epic.
+- **Durable side effect** — `dispatch_id`, `dispatch_state=running`,
+  `dispatch_model`, `dispatch_tier`, `worktree`, `dispatched_at` on every bead
+  in the bucket.
+- **On failure** — a wrong base ref is a **stop**: every commit the sprint
+  branch carries would be silently dropped from this worktree. Report and do
+  not start.
+- **bd** — `bd update --set-metadata` · `bd show <epic> --json` for the manifest.
+
+**Why the record comes first.** It is written *before* any work, so a worker
+that dies in its first minute is still distinguishable from one that was never
+dispatched.
+
+### D2 · Work — `run-bead`, per bead, in order
+
+- **Input** — one bead id, priority, title; the checks baseline; the trailers
+  source.
+- **Returns** — per bead: `completed` / `blocked` / `skipped`, with a sha.
+- **Does** — invokes **`run-bead`**. The worker adds nothing to the per-bead
+  ceremony; it sequences it.
+- **Durable side effect** — one commit per bead carrying both the code and the
+  closure; `retro:` comments; any beads filed for out-of-scope work found.
+- **On failure** — a blocked bead does **not** stop the bucket. Leave its
+  partial work exactly where it is — no stash, no WIP commit — and continue to
+  the next bead. The standing worktree plus the record is the signal.
+- **bd** — `bd update --claim` · `bd comment` (`retro:`, `caveat:`) ·
+  `bd create --discovered-from` · `bd update --status closed` inside the close
+  script.
+
+**Order is the bucket's order.** The coordinator packed it; a worker
+re-sequencing its own bucket defeats the packing.
+
+### D3 · Close — hand off
+
+- **Input** — what D2 returned.
+- **Returns** — one line per bead, then one batch line:
+  `batch-end: <n> completed, <n> blocked, <n> skipped @ <branch>`.
+- **Does** — writes the terminal state on every assigned bead; confirms every
+  bead is accounted for; **hands the branch to the merge queue** — it does not
+  merge, and it does not remove its own worktree.
+- **Durable side effect** — `dispatch_state=returned` and
+  `terminal_state=completed|blocked|skipped` per bead.
+- **On failure** — a bead with no terminal state is the one thing that must not
+  happen: it is indistinguishable from a dead worker. Write it even when
+  blocked — **especially** then.
+- **bd** — `bd update --set-metadata`.
+
+**The worker does not remove its worktree.** Removal is the coordinator's final
+act of *accepting* the bead, after the merge. A worker that cleaned up after
+itself would erase the in-flight signal before anyone read it.
+
+### What makes the tier legible
+
+| worktree | `dispatch_state` | reading |
+|---|---|---|
+| present | `running` | live worker |
+| present | `returned` | finished; orphaned tree, coordinator removes it |
+| absent | `running` | the worker died |
+| absent | `returned` | done and cleaned up |
+
+That table is why the tier needed a record at all: before it, a standing
+worktree took three paragraphs of prose to interpret, and a batch holding one
+worktree for six beads broke the acceptance signal outright.
 
 ## Bead tier
 
