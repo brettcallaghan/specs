@@ -73,8 +73,11 @@ groom-feature-blueprint	spec/references/feature-blueprint-template.md
 groom-feature-blueprint	spec/references/work-order-template.md
 groom-feature-blueprint	specs/standards/findings-capture-protocol.md
 retro-skill	specs/standards/findings-capture-protocol.md
+retro-skill	spec/references/issue-template.md
 retro-spec	specs/standards/template-authoring-standards.md
 retro-spec	specs/standards/findings-capture-protocol.md
+retro-spec	spec/references/issue-template.md
+bead-bonanza	spec/references/issue-template.md
 spec	specs/standards/ac-traceability-standards.md
 spec	specs/standards/blueprint-readiness-checklist.md
 spec	specs/standards/c4-guide.md

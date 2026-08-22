@@ -66,6 +66,9 @@ VOCABULARY = "DocumentType"
 NON_CORPUS = {
     "plugin/skills/spec/references/work-order-template.md":
         "materializes into a tracker issue, not a corpus document",
+    "plugin/skills/spec/references/issue-template.md":
+        "materializes into a tracker record or an outbox file, not a "
+        "corpus document",
 }
 
 # A floor on how many templates must be found. The failure this guards
