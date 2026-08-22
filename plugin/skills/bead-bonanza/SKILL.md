@@ -23,11 +23,11 @@ Read `CLAUDE.md` and `AGENTS.md` once at the start so you have repo conventions
 in scope before delegating.
 
 **After any compaction, before dispatching anything:** re-read this file in
-full, then invoke the **`recover-sprint`** skill. A compacted session
+full, then invoke the **`sprint-recovery`** skill. A compacted session
 re-injects only this file's first ~5,000 tokens, so the dispatch templates and
 the published script interfaces are NOT in your context even though you have
 "read the skill".
-`recover-sprint` re-derives run state from the durable sources (the branch,
+`sprint-recovery` re-derives run state from the durable sources (the branch,
 the run epic's manifest, `git worktree list`, the tracker) rather than from a summary of
 it, and a skill name survives truncation where a relative path does not. Then
 re-run the queue query.
@@ -263,7 +263,7 @@ After each subagent returns:
    "finished". This is the only one that distinguishes a landed wave from a
    rejected one, and it costs one fetch. A credential refused for
    `.github/workflows/**` rejects the WHOLE push, so one workflow file
-   strands every commit behind it. `recover-sprint` step 3b runs the same
+   strands every commit behind it. `sprint-recovery` step 3b runs the same
    check from the other side; keep the two in the same form.
    (`scripts/bb-status.sh wave` runs this comparison too.)
 
@@ -413,7 +413,7 @@ A subagent past 5 minutes or any question about the progress events:
 `references/progress-streaming.md`. A subagent that crashed or timed out
 mid-ceremony: `references/recovery.md`. Resuming a run whose state you do not
 hold, because the *orchestrator* died or compacted: invoke the
-**`recover-sprint`** skill — a skill rather than a file, because the session
+**`sprint-recovery`** skill — a skill rather than a file, because the session
 that needs it may be fresh, with no bundle loaded and no path to resolve.
 
 Without being sent anywhere, the orchestrator arms a `Monitor` on the progress
@@ -447,7 +447,7 @@ Load the one that matches where you are in the run:
 | The grooming subagent's prompt | the template that ships with `sprint-plan` |
 | A subagent running past 5 minutes; arming the Monitor and the durable trigger; reading progress events | `references/progress-streaming.md` |
 | A subagent that crashed or timed out mid-ceremony | `references/recovery.md` |
-| Resuming a run whose state you do not hold (the orchestrator died or compacted) | invoke the `recover-sprint` skill |
+| Resuming a run whose state you do not hold (the orchestrator died or compacted) | invoke the `sprint-recovery` skill |
 | A project with no declared `[[checks]]`, `[models]` lineup or `[review]` reviewer | `references/project-setup.md` |
 | Resuming a bead interrupted mid-implementation (its worktree still exists) | `references/operating-principles.md` |
 | Pre-flight blocked and you need the remedy | `references/pre-flight.md` |

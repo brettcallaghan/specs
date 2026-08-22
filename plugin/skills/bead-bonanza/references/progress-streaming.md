@@ -9,7 +9,7 @@ the durable trigger set.
 
 Two neighbouring situations are elsewhere, so this file can be read on its own:
 WHEN a subagent dies mid-ceremony, read `recovery.md`; WHEN you are resuming a
-run whose state you do not hold, invoke the **`recover-sprint`** skill.
+run whose state you do not hold, invoke the **`sprint-recovery`** skill.
 
 **Two views, and they are not interchangeable.** `bd swarm status <epic>` is
 the durable one — computed from the beads themselves, correct after any crash,
@@ -121,7 +121,7 @@ addition to** the Monitor:
 - **The trigger's message must be self-contained, and it must name a skill
   rather than a file path.** It wakes a turn that may hold no run context and
   no bundle: carry the run epic id — the manifest is on it — and an instruction to
-  **invoke the `recover-sprint` skill**. A fresh session cannot resolve a
+  **invoke the `sprint-recovery` skill**. A fresh session cannot resolve a
   relative path into a bundle it never loaded, but it can resolve a skill
   name — and "check on the run" is not an instruction at all.
 - **Do not key its liveness check on `bd list --status in_progress`.** A

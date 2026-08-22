@@ -1,20 +1,20 @@
 ---
-name: recover-sprint
-description: Reconstruct the state of an in-flight bead-bonanza sprint from
-  durable sources when no session holds it — after the orchestrator was
-  interrupted, crashed, compacted past usefulness, or was replaced by a fresh
-  session. Use when a durable check-in trigger fires carrying a run epic id,
-  when asked to resume, pick back up, or recover a bead-bonanza run or sprint,
-  or whenever a session must re-derive which beads closed and which are still
-  in flight from git and the tracker rather than from a summary. Requires no
-  prior context and takes no required input.
-version: "0.2"
+name: sprint-recovery
+description: Reconstruct the state of an in-flight sprint from durable sources
+  when no session holds it — after the orchestrator was interrupted, crashed,
+  compacted past usefulness, or was replaced by a fresh session. Use when a
+  durable check-in trigger fires carrying a run epic id, when asked to resume,
+  pick back up, or recover a sprint or bead run, or whenever a session must
+  re-derive which beads closed and which are still in flight from git and the
+  tracker rather than from a summary. Requires no prior context and takes no
+  required input.
+version: "0.3"
 user-invocable: false
 ---
 
-# recover-sprint
+# sprint-recovery
 
-Pick a bead-bonanza sprint back up when nobody is holding it any more.
+Pick a sprint back up when nobody is holding it any more.
 
 **This skill assumes you know nothing about the run.** It derives the run, its
 plan, its completed set and its in-flight set from durable sources — the git
@@ -54,7 +54,7 @@ could not read the manifest is a *reconstruction*, and says so.
 ## Work these steps in order
 
 0. **Take the run's vital signs first — `bb-status.sh wave`.** From the sprint
-   branch, resolved from bead-bonanza's own `scripts/`. It needs no epic and no
+   branch, resolved from the sprint orchestrator's own `scripts/`. It needs no epic and no
    context, so it runs before you know anything: it answers whether the tree is
    clean and whether the branch has **landed**, and prints the command behind
    each line so any of them can be re-derived. It repairs nothing.
@@ -63,9 +63,9 @@ could not read the manifest is a *reconstruction*, and says so.
    stopped, not merely paused.
 
 1. **Find the run — derive it from the branch.** A run happens on its own
-   dedicated branch, uses one run directory, and that directory is removed
-   before the branch merges. So the branch you are on identifies the run, and
-   `git log` on it lists the beads that have landed.
+   dedicated **sprint branch**, created once before its first worktree. So the
+   branch you are on identifies the run, and `git log` on it lists the beads
+   that have landed.
    Start there: `git rev-parse --abbrev-ref HEAD`, then
    `git log --oneline <default-branch>..HEAD` — every close commit is
    `<bead-id> P<n> <title>`, so that is the run's completed set, read from the
@@ -81,6 +81,11 @@ could not read the manifest is a *reconstruction*, and says so.
    **There is no run directory to find, and that is the point.** The run's
    record is its epic, which survives a container reclaim.
 
+   **Never create a sprint branch here.** The manifest's `branch` and
+   `base_sha` are what the original run wrote; a resumed run checks that branch
+   out and adds to it. Creating one would fork the run's history from the work
+   it is meant to continue.
+
 2. **Read the run epic in full** — `bd show <epic> --json`. Its `--metadata` is
    the manifest: the standing authorization, the declared check ids, the checks
    baseline, the model lineup, the environmental ledger, and the **admission
@@ -92,6 +97,14 @@ could not read the manifest is a *reconstruction*, and says so.
    scope, so a bead added since the run started is in scope now, and the
    wave table was never written down because it drifts the moment the graph
    moves.
+
+   **Re-entering costs almost nothing, and that is by design.** Grooming and
+   planning are one step (`sprint-plan`) that grooms only what is not already
+   Ready and re-derives the wave table from the **current** ready front. Closed
+   beads are not in that front, so they are not re-dispatched. Scope resolution
+   has nothing to resolve, because the epic already exists. Re-running the
+   whole process against the same epic id is therefore a *narrower repeat*, not
+   a duplicate run.
 
    **Compare the live queue against the manifest's `admitted` list and report
    the delta before dispatching anything.** A bead present now and absent then
@@ -153,7 +166,7 @@ could not read the manifest is a *reconstruction*, and says so.
    the one you doubt rather than trusting or discarding the whole report.
 
 6. **Report the reconstructed state** in the shape the Interface above
-   specifies, then resume the run under bead-bonanza from the point the plan
-   and the worktree list put you at. WHEN a bead's worktree holds partial,
+   specifies, then resume the run under the sprint orchestrator from the point
+   the plan and the worktree list put you at. WHEN a bead's worktree holds partial,
    uncommitted work, leave it exactly where it is — do not stash it and do not
    commit it — and either finish it in place or surface it.
