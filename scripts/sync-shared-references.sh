@@ -63,6 +63,7 @@ esac
 MAP=$(cat <<'EOF'
 bead-bonanza	specs/standards/work-order-definition-of-ready.md
 bead-bonanza	specs/standards/findings-capture-protocol.md
+start-sprint	specs/standards/work-order-definition-of-ready.md
 groom-beads	specs/standards/work-order-definition-of-ready.md
 groom-beads	specs/guides/work-order-field-guide.md
 groom-beads	spec/references/work-order-template.md
