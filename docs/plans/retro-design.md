@@ -646,11 +646,17 @@ mechanism from being load-bearing:
 - issues this repository's own retro produced;
 - whatever channel is added later.
 
-Its existing machinery is retained because it earns its keep on any channel:
-dedupe against prior work, defer with a reason, accumulate recurrence across
-reporters. **What it does not do is decide** — a human still says yes or no,
-and `triage-issue` makes each answer cheap by arriving with the work order
-already drafted.
+**Triage is stage 5 for issues that arrive from outside.** That is the
+symmetry worth seeing: a retro decides which of *this run's* candidates make
+the cut; triage decides which of the *incoming* ones do. Same judgement, same
+human, same "declining is normal and is recorded" — the only difference is
+where the issue came from.
+
+So its existing machinery is retained because it earns its keep on any
+channel: dedupe against prior work, defer with a reason, accumulate recurrence
+across reporters. **What it does not do is decide alone** — a human still says
+yes or no, and `triage-issue` makes each answer cheap by arriving with the
+work order already drafted.
 
 ---
 
