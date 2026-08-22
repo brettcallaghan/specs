@@ -38,6 +38,101 @@ state it should be the shortest thing a coordinator reads.
 
 ---
 
+## Decided
+
+1. **The review loop lives in the coordinator.** It owns the loop and the
+   counter; a subagent owns finding things. The coordinator never holds the
+   review *method*.
+2. **Human interaction is front-loaded, and there are exactly four touchpoints**
+   — see below.
+3. **Review findings go through `groom-beads` like any other bead.** Review
+   files; it does not groom. The loop re-enters at step 3 unconditionally.
+4. **Two loops maximum — the process runs at most three times.**
+
+---
+
+---
+
+## The human, and the rule that protects autonomy
+
+Four touchpoints, and no others:
+
+| when | what |
+|---|---|
+| **start** | the human invokes the skill with a scope |
+| **immediately after** | the **authorization gate** — one interaction, all decisions at once |
+| **after the loop** | PR review |
+| **end** | reads the final report |
+
+Everything between the gate and the PR is autonomous.
+
+### The rule: no new questions after the gate
+
+A run that stops mid-flight to ask something is not autonomous, however
+reasonable the question. So:
+
+> **After the authorization gate, an unauthorized decision is never a stop.**
+> The coordinator takes the **conservative branch**, records the choice on the
+> run epic as an `amend:` comment, and names it in the final report.
+
+That rule is what makes the gate worth designing carefully: every question the
+run could need must be *askable up front*, because it will not get a second
+chance.
+
+### The authorization set
+
+Asked once, as one interaction, with a stated default for each so a human can
+accept the lot in a sentence.
+
+| decision | conservative default (taken if unauthorized) |
+|---|---|
+| **Push mode** | defer — the coordinator pushes per wave |
+| **Pull request** | open as draft at start, mark ready at the end |
+| **Moving beads** that already belong to another epic | **do not move** — exclude them from the run and report |
+| **Scope growth** from review findings | file the beads, do **not** admit them into this run |
+| **Tier escalation** on repeated failure | escalate one tier, once, and report it |
+| **Review loop budget** | 2 loops (three passes total) |
+| **Merge to the default branch** | never — that is the PR review's, not the run's |
+
+The conservative default of every row is "do the smaller thing and say so",
+which is the only default that is safe to apply without asking.
+
+---
+
+## The shape of a run
+
+```
+1  pre-flight ................................. script
+2  resolve scope ............................. script + coordinator
+   └─ AUTHORIZATION GATE ..................... HUMAN, once
+┌─ 3  groom .................................. subagent
+│  4  plan ................................... subagent
+│  5  sprint ................................. coordinator + subagents
+│     ├ 5a dispatch a wave  ─┐ repeat until
+│     ├ 5b merge queue       │ the ready front
+│     └ 5c supervise        ─┘ is dry
+│  6  review ................................. subagents; coordinator loops
+└──── findings admitted AND passes < 3 ? ──── yes ──┘
+7  PR review ................................. HUMAN
+8  retro ..................................... subagents + coordinator
+9  report .................................... coordinator → HUMAN
+10 post-flight ............................... script
+```
+
+**Two nested loops, and both are bounded.** The wave loop ends when the ready
+front is dry; the review loop ends at 3 passes or no admitted findings,
+whichever comes first.
+
+**At loop exhaustion the run does not fail.** Remaining findings stay filed as
+beads, are named in the report, and the PR proceeds. A third pass that still
+finds things is information for the human, not a reason to keep going.
+
+**The pass counter is durable.** It lives in the manifest on the run epic, not
+in the coordinator's head — recovery has to know which pass it is on, and a
+resumed run that restarts the counter would loop forever.
+
+---
+
 ## The bucketing test
 
 Two questions decide where a step goes, in this order.
@@ -276,8 +371,11 @@ split worked.
 
 ## Recovery — re-run with the same epic id
 
-**Recovery is re-entry, not a parallel procedure.** Invoke the skill again with
-the same epic id. Every step is keyed on the epic and naturally skips what is
+**`recover-sprint`** ✅ owns this. It stays a skill, and what follows is its
+specification: it reconciles the run's residue and hands back to step 1. It is
+a **precondition to re-entry**, not a second way to run a sprint.
+
+**Recovery is re-entry.** Invoke the skill again with the same epic id. Every step is keyed on the epic and naturally skips what is
 already done:
 
 | step | why re-entry is a no-op or a narrower repeat |
@@ -434,95 +532,3 @@ worktree for six beads broke the acceptance signal outright.
 `retro:` comments, close-and-commit as one, return one line.
 
 ---
-
-## Decided
-
-1. **The review loop lives in the coordinator.** It owns the loop and the
-   counter; a subagent owns finding things. The coordinator never holds the
-   review *method*.
-2. **Human interaction is front-loaded, and there are exactly four touchpoints**
-   — see below.
-3. **Review findings go through `groom-beads` like any other bead.** Review
-   files; it does not groom. The loop re-enters at step 3 unconditionally.
-4. **Two loops maximum — the process runs at most three times.**
-
----
-
-## The human, and the rule that protects autonomy
-
-Four touchpoints, and no others:
-
-| when | what |
-|---|---|
-| **start** | the human invokes the skill with a scope |
-| **immediately after** | the **authorization gate** — one interaction, all decisions at once |
-| **after the loop** | PR review |
-| **end** | reads the final report |
-
-Everything between the gate and the PR is autonomous.
-
-### The rule: no new questions after the gate
-
-A run that stops mid-flight to ask something is not autonomous, however
-reasonable the question. So:
-
-> **After the authorization gate, an unauthorized decision is never a stop.**
-> The coordinator takes the **conservative branch**, records the choice on the
-> run epic as an `amend:` comment, and names it in the final report.
-
-That rule is what makes the gate worth designing carefully: every question the
-run could need must be *askable up front*, because it will not get a second
-chance.
-
-### The authorization set
-
-Asked once, as one interaction, with a stated default for each so a human can
-accept the lot in a sentence.
-
-| decision | conservative default (taken if unauthorized) |
-|---|---|
-| **Push mode** | defer — the coordinator pushes per wave |
-| **Pull request** | open as draft at start, mark ready at the end |
-| **Moving beads** that already belong to another epic | **do not move** — exclude them from the run and report |
-| **Scope growth** from review findings | file the beads, do **not** admit them into this run |
-| **Tier escalation** on repeated failure | escalate one tier, once, and report it |
-| **Review loop budget** | 2 loops (three passes total) |
-| **Merge to the default branch** | never — that is the PR review's, not the run's |
-
-The conservative default of every row is "do the smaller thing and say so",
-which is the only default that is safe to apply without asking.
-
----
-
-## The shape of a run
-
-```
-1  pre-flight ................................. script
-2  resolve scope ............................. script + coordinator
-   └─ AUTHORIZATION GATE ..................... HUMAN, once
-┌─ 3  groom .................................. subagent
-│  4  plan ................................... subagent
-│  5  sprint ................................. coordinator + subagents
-│     ├ 5a dispatch a wave  ─┐ repeat until
-│     ├ 5b merge queue       │ the ready front
-│     └ 5c supervise        ─┘ is dry
-│  6  review ................................. subagents; coordinator loops
-└──── findings admitted AND passes < 3 ? ──── yes ──┘
-7  PR review ................................. HUMAN
-8  retro ..................................... subagents + coordinator
-9  report .................................... coordinator → HUMAN
-10 post-flight ............................... script
-```
-
-**Two nested loops, and both are bounded.** The wave loop ends when the ready
-front is dry; the review loop ends at 3 passes or no admitted findings,
-whichever comes first.
-
-**At loop exhaustion the run does not fail.** Remaining findings stay filed as
-beads, are named in the report, and the PR proceeds. A third pass that still
-finds things is information for the human, not a reason to keep going.
-
-**The pass counter is durable.** It lives in the manifest on the run epic, not
-in the coordinator's head — recovery has to know which pass it is on, and a
-resumed run that restarts the counter would loop forever.
-
