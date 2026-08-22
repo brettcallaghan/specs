@@ -82,3 +82,20 @@ push_mode = "defer_push"
 # run_root: where a run's directory is created. Defaults to
 #           ${TMPDIR:-/tmp}/claude/bead-bonanza when unset.
 # run_root = ""
+
+[review]
+# The code reviewer a sprint runs at its review step. We do not ship one —
+# harnesses provide one, the ecosystem is full of them, and reviewing a diff is
+# the most generic thing in a sprint. What is not generic is what happens to
+# the findings, and that is the sprint's job, not the reviewer's.
+#
+# Same shape as `[[checks]]`: the project says what to run, the run runs it and
+# acts on what comes back. Exactly one of two keys:
+#
+#   skill   = "<name>"    dispatch a skill by name; it returns a report
+#   command = '<sh -c>'   run a command from the repository root; stdout is the
+#                         report
+#
+# UNDECLARED IS NOT AN ERROR — the run skips the review step and SAYS SO in its
+# report. A silently skipped review reads exactly like a clean one.
+skill = "code-review"

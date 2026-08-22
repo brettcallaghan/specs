@@ -368,6 +368,13 @@ sessions, where `.claude/hooks/session-start.sh` provisions it because the
   CPU allocation can move it; treat ~1m50s–2m35s as the observed range rather
   than a fixed number.
 
+## code reviewer
+
+Declared in `sf.toml` under `[review]`, not here. This repository declares the
+harness's own `code-review` skill. Undeclared, a run skips its review step and
+says so in the report — it is not an error, and a silently skipped review reads
+exactly like a clean one.
+
 ## model lineup
 
 Declared in `sf.toml` under `[models]`, not here — it is a routing fact the

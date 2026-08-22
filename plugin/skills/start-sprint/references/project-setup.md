@@ -1,7 +1,7 @@
 # bead-bonanza Project Setup
 
-What a project must provide for bead-bonanza to run: an executable `checks`
-script, a model lineup in `sf.toml`, and a few command permissions. **Read
+What a project must provide for bead-bonanza to run: declared checks, a model
+lineup and a code reviewer in `sf.toml`, and a few command permissions. **Read
 this only when one is missing** — once they exist, Phase 0 loads them and never
 comes back here.
 
@@ -9,6 +9,7 @@ comes back here.
 
 - The `checks` script — how this project validates a bead
 - Model lineup — how capability tiers resolve to models (`sf.toml` `[models]`)
+- Code reviewer — which reviewer the run dispatches (`sf.toml` `[review]`)
 - Command permissions a run needs
 
 Propose a draft, let the user confirm or correct it, then write it — never
@@ -115,6 +116,29 @@ write any of it silently.
    `[run]` in the same file carries project-level run defaults — `push_mode`,
    and `run_root` when the default run root is wrong for this project. Omit a
    key to leave that decision to the run.
+
+1b. **Resolve the code reviewer.** A sprint reviews its own diff before the
+   human does, and it runs whatever the project declares:
+
+   ```toml
+   [review]
+   skill = "code-review"     # dispatch a skill by name
+   # command = 'my-linter --diff'   # or run a command; stdout is the report
+   ```
+
+   Exactly one of `skill` or `command`. **We ship no reviewer** — harnesses
+   provide one and the ecosystem is full of them. What the sprint owns is what
+   happens to the findings: scoping them to this run's diff, filing each as a
+   bead, classifying in-scope against the authorization gate, and feeding the
+   review loop.
+
+   - **If it exists**, the review step runs it.
+   - **If it's missing**, the run **skips the review step and says so in its
+     report**. This is not an error and does not block the run. Do not prompt
+     for it mid-run; propose it at setup like the others, or leave it out.
+
+   A silently skipped review reads exactly like a clean one, which is why the
+   skip is reported rather than defaulted away.
 
 2. **Common command permissions.** Confirm these are in
    `.claude/settings.local.json` allow list. If any are missing, ask the user
