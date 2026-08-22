@@ -6,12 +6,13 @@ every `{PLACEHOLDER}` before sending — an unsubstituted placeholder is the
 single most common dispatch defect, because the subagent has no session
 context to infer it from.
 
-Four run-level placeholders are resolved once per run and substituted into every
-prompt: `{EPIC}` is the run epic Phase 1's admission resolved (emitted as
-`BB_EPIC`) and is also the run id, `{SCRIPTS}` is the absolute path to this
-skill's `scripts/` directory, `{CHECKS_IDS}` is the ids the project declared
-(emitted as `BB_CHECKS_IDS`), and `{CHECKS_BASELINE_TEXT}` is the manifest's
-baseline — `bd show {EPIC} --json | jq -r .metadata.checks_baseline`.
+Five run-level placeholders are resolved once per run and substituted into every
+prompt: `{EPIC}` is the run epic `sprint-scope` resolved (emitted as `BB_EPIC`)
+and is also the run id, `{BRANCH}` is the sprint branch from the manifest,
+`{SCRIPTS}` is the absolute path to this skill's `scripts/` directory,
+`{CHECKS_IDS}` is the ids the project declared (emitted as `BB_CHECKS_IDS`),
+and `{CHECKS_BASELINE_TEXT}` is the manifest's baseline —
+`bd show {EPIC} --json | jq -r .metadata.checks_baseline`.
 A subagent can infer none of them.
 
 **There is no run directory.** The run's record is the epic: the manifest in
@@ -106,30 +107,30 @@ The template above supplies its inputs; it supplies the procedure.
 Both batch templates below (doc/chore fast-lane, shared-surface) open with
 this block rather than repeating it. **The orchestrator concatenates this
 preamble plus the chosen template into the one text it sends** — a batch
-prompt assembled without it is missing the worktree-creation mechanics, the
-`run-bead` invocation, and the return contract, with nothing to catch the
-loss downstream.
+prompt assembled without it is missing the `sprint-batch` invocation and the
+return contract, with nothing to catch the loss downstream.
+
+**The ceremony is not in these prompts.** `sprint-batch` carries accepting the
+assignment (clean tree, base ref, manifest, dispatch record), running
+`run-bead` per bead in order, and the return line. The templates supply only
+what a subagent cannot infer — which beads, which surface, which push mode —
+plus the handful of rules specific to that batch's kind.
 
 ```
 Read CLAUDE.md and AGENTS.md if you need conventions; validation comes from the checks the project declares in `sf.toml`.
 
+FIRST, invoke the `sprint-batch` skill. It is the whole of how a batch is run: accepting the assignment, run-bead per bead in order, the dispatch record, and the return line. Everything below is the assignment it takes.
+
+Dispatch id: {DISPATCH_ID}   (yours; shared by every bead in this batch)
+Sprint branch: {BRANCH}      (your worktree MUST descend from this, never from the default branch)
 Worktrees: **where the orchestrator already provisioned one for you (the harness's
 `isolation: "worktree"`), you have exactly ONE worktree for EVERY bead in this batch —
 process them in order, one commit each, and do NOT create more.** Where it did not,
-create one per bead yourself, held ONE AT A TIME. Before each bead:
-  First bead: git -C <repo> worktree add -b <id-1> <repo>/../.bb-worktrees/<id-1> HEAD
-  Each later bead: git -C <repo> worktree add -b <id-N> <repo>/../.bb-worktrees/<id-N> <id-N-1>
-  -- branch from the PREVIOUS bead's branch, not from HEAD. Inside a batch HEAD
-  does not move: the orchestrator merges only after the batch returns, so
-  branching every bead from HEAD gives beads that cannot see each other's work
-  and conflict on any shared file.
-Work that bead entirely inside its worktree. After its close commit lands, tell
-the orchestrator and move on. WHERE you create your own, never hold two open at
-once: a worktree that exists means "this bead is unfinished" to every other reader.
-WHERE you were given one for the whole batch, that signal is coarser by
-construction — it means "this BATCH is unfinished" — so report each bead's close
-as it lands, because your report is the only per-bead signal the orchestrator has
-until the batch returns.
+create one per bead yourself, held ONE AT A TIME, each branched from the PREVIOUS
+bead's branch (`sprint-batch` says why).
+WHERE you were given one for the whole batch, a standing worktree means "this BATCH
+is unfinished" rather than "this bead is" — so report each bead's close as it lands,
+because your report is the only per-bead signal the orchestrator has until you return.
 Run epic: {EPIC}            (the run id; its metadata is the manifest — and where incidents land)
 Scripts: {SCRIPTS}
 Trailers: {"on the run epic" if any}   (pass `--trailers-from {EPIC}` to bb-close-bead.sh; omit it when the run resolved none)
@@ -140,9 +141,9 @@ Checks baseline:
      even when the checks passed, because the text says so and a MISSING block
      means no baseline was taken, which is a different thing.)
 
-For each bead, first invoke the `run-bead` skill — it carries the ceremony, and the blocked and skipped paths — passing this bead's id, priority, title and `--trailers-from {EPIC}` (omit that flag when the run resolved no trailers). Read the committed sha with `git rev-parse --short HEAD` rather than from the script's printout. Then run the template-specific steps below.
+Pass each bead's `--trailers-from {EPIC}` through to the close script (omit that flag when the run resolved no trailers). Read each committed sha with `git rev-parse --short HEAD` rather than from the script's printout. Run the template-specific steps below alongside `sprint-batch`'s per-bead loop.
 
-When the batch is done, return ONE message containing N+1 lines: one per-bead summary, then a final `batch-end: full gates {passed|failed}`.
+Return in the shape `sprint-batch` specifies: one line per bead, then `batch-end: <n> completed, <n> blocked, <n> skipped @ <branch>`.
 ```
 
 ## Doc/chore fast-lane subagent prompt template
@@ -158,14 +159,14 @@ Beads (process in order; one commit per bead):
 Checks: {SCRIPTS}/bb-checks.py       (declared ids: {CHECKS_IDS})
 Push mode: {push_per_bead | defer_push}
 
-These are documentation, comments, single-line swaps, or other low-risk changes. Beyond the shared per-bead workflow above:
+These are documentation, comments, single-line swaps, or other low-risk changes. Beyond `sprint-batch`'s per-bead loop:
 
 1. **Every bead runs `{SCRIPTS}/bb-checks.py` with no arguments before its own close.** That is `run-bead` step 4, and being in a batch does not override it — an unvalidated commit is not cheaper, it is just unvalidated. **Targeted tests are non-negotiable on top of it** — identify the test that covers the touched surface and run it directly. If the change is so trivial there's no plausible test (e.g. pure docs edit, a comment with zero output diff), say so explicitly in a `retro:` comment on the bead and continue. "I couldn't find a targeted test" without explanation is not acceptable.
 2. Compare each run against the checks baseline above: a line in both was already failing, a line only in yours belongs to the bead you are on. Because every bead runs the checks, the bead whose run first shows a finding is the one that introduced it — fix it there, before starting the next bead, rather than carrying it forward. **The push is the gate**: the last bead's passing run is what clears this batch for the orchestrator's push.
 
 ## Constraints
 
-Same as the per-bead constraints. Each bead is its own commit. In `defer_push` mode, do not push at all — the orchestrator pushes after the batch.
+Same as `run-bead`'s constraints. In `defer_push` mode, do not push at all — the orchestrator pushes after the batch.
 ```
 
 ## Shared-surface batch subagent prompt template
@@ -184,7 +185,7 @@ Push mode: {push_per_bead | defer_push}
 
 These beads are NOT trivial — they touch real code. They are batched because they would collide if dispatched side by side — later beads rebuild the same surface — so one agent takes them in order and the rest of the wave runs concurrently around them. **Batching changes who does the work, not what gets validated: every bead still runs the full declared set before its own close.**
 
-Beyond the shared per-bead workflow above:
+Beyond `sprint-batch`'s per-bead loop:
 
 1. Before each bead's close, in this order — **none of it is optional**:
    - If generated output was touched, regenerate it with the project's own tooling — the repo's conventions doc names that command; this prompt does not carry it — then run the relevant fixture/snapshot test.
@@ -197,9 +198,7 @@ Beyond the shared per-bead workflow above:
 
 ## Constraints
 
-- Each bead is its own commit. Never combine bead changes into one commit.
-- If a bead's implementation conflicts with an earlier bead in this batch (e.g. one removed a function the next was about to modify), follow the Blocked path for the conflicting bead and continue with the rest.
-- Same per-bead constraints as `run-bead`'s Constraints section.
+- Same per-bead constraints as `run-bead`'s Constraints section. `sprint-batch` covers one-commit-per-bead and the in-batch conflict path.
 ```
 
 ## Worktree mechanics (orchestrator)
