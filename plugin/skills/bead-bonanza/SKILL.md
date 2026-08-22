@@ -49,8 +49,10 @@ nothing to fall out of sync with `bd`.)
 
 ```
 bead-bonanza run:
-- [ ] 0–1.5 `start-sprint` invoked: run epic resolved, BB_* facts eval'd,
-        admission record (admitted / excluded / moved), readiness verdict
+- [ ] 0. pre-flight run, BB_* facts eval'd
+- [ ] 1. `sprint-scope` invoked: run epic resolved, admission record
+        (admitted / excluded / moved), authorization gate taken
+- [ ] 1b. pre-flight re-run with the epic: checks baseline on the manifest
 - [ ] 2. Dispatch plan: bucket + tier + push mode per bead
 - [ ] 2b. Sprint branch created (or reused), `branch` + `base_sha` in manifest
 - [ ] 3. Execute buckets, verifying each return (skip claims, clean tree)
@@ -440,18 +442,20 @@ Load the one that matches where you are in the run:
 
 | Working on | Load |
 |------------|------|
-| Dispatching any subagent (Phase 1.5 grooming, Phase 3 execution) | `references/subagent-prompts.md` |
+| Dispatching an execution subagent | `references/subagent-prompts.md` |
+| Dispatching a grooming subagent | the grooming prompt template that ships with `plan-sprint` |
 | Partitioning the queue into waves and buckets, and writing the Phase 2.5 dispatch plan | the grooming subagent invokes the `plan-sprint` skill |
 | A subagent running past 5 minutes; arming the Monitor and the durable trigger; reading progress events | `references/progress-streaming.md` |
 | A subagent that crashed or timed out mid-ceremony | `references/recovery.md` |
 | Resuming a run whose state you do not hold (the orchestrator died or compacted) | invoke the `recover-sprint` skill |
-| A project with no declared `[[checks]]` or no `sf.toml` model lineup | the **`start-sprint`** skill — it owns project setup |
+| A project with no declared `[[checks]]`, `[models]` lineup or `[review]` reviewer | `references/project-setup.md` |
 | Resuming a bead interrupted mid-implementation (its worktree still exists) | `references/operating-principles.md` |
-| Opening a run: pre-flight, admission, the readiness gate | invoke the **`start-sprint`** skill |
+| Pre-flight blocked and you need the remedy | `references/pre-flight.md` |
+| Resolving the run's scope and taking the authorization gate | invoke the **`sprint-scope`** skill |
 | Verifying a bead's acceptance signals, a wave's landing, the run's Definition of Done, or whether a held merge slot is safe to release | run `scripts/bb-status.sh` |
 | Checking a `skipped` claim against the tree | run `scripts/bb-verify-skip.sh` |
 | Closing a bead: close + verify + stage + commit + push the tracker | run `scripts/bb-close-bead.sh` |
-| The Definition of Ready the Phase 1.5 gate enforces | `references/shared/work-order-definition-of-ready.md` |
+| The Definition of Ready the readiness gate enforces | `references/shared/work-order-definition-of-ready.md` |
 
 The reference files are one hop from here — read them in full rather
 than previewing.
@@ -470,7 +474,7 @@ bb-verify-skip.sh [pathspec ...]        # no pathspec = whole working tree
 bb-close-bead.sh [--trailers-file <path>|--trailers-from <epic>] <bead-id> <priority> <title> [path ...]
 ```
 
-- **`scripts/pre-flight-check.sh`** — Phase 0, mechanized. Human report on
+- **`scripts/pre-flight-check.sh`** — the environment probe. Human report on
   stderr, an evalable `SCRIPTS=`/`BB_*=` block on stdout. Exit 0
   proceed / 1 blocking / 2 bad invocation. **Run it with the sandbox ON** — the
   one write the sandbox refuses is the global Dolt telemetry config, which the
@@ -510,27 +514,37 @@ bb-close-bead.sh [--trailers-file <path>|--trailers-from <epic>] <bead-id> <prio
   error — the bead IS closed and committed, and the repair is another push,
   never a second `bd update`.
 
-## Phases 0–1.5 — invoke `start-sprint`
+## Opening a run — pre-flight, then `sprint-scope`
 
-Pre-flight, admission and the readiness gate are the **`start-sprint`** skill.
-Invoke it by name; it returns the run epic, the pre-flight facts, the admission
-record and the readiness verdict, and dispatches nothing.
+Three things happen before the first bead, in this order:
 
-They live there rather than here because they run **once** each, at the start,
-and are precisely the part a compacted orchestrator cannot see — this file's
-opening is what survives, and three phases of setup at the end of it do not.
+```bash
+eval "$(scripts/pre-flight-check.sh)"              # 1. environment
+#   2. invoke `sprint-scope` — it returns BB_EPIC
+eval "$(scripts/pre-flight-check.sh "$BB_EPIC")"   # 3. + checks baseline
+```
 
-What you need from it before Phase 2.5:
+**1 and 3 are a script you run yourself**, not a skill: run it, eval the
+stdout, read the stderr report once. **Act on the verdict, not on the
+evidence** — it names each blocker AND its remedy, so there is nothing to
+re-derive and nothing to weigh. `references/pre-flight.md` only when it blocks.
 
-- `BB_EPIC` — the run epic; its id is the run id and its descendants are the
-  queue (`bd ready --parent <epic> --exclude-type=epic`).
-- The `BB_*` facts, eval'd.
+**A blocking condition means the run does not start.** Do not work around it.
+
+**2 is the `sprint-scope` skill.** Invoke it by name. It turns whatever the
+user gave into exactly one run epic, takes the run's single authorization gate
+in the same interaction, and dispatches nothing. What you need from it:
+
+- `BB_EPIC` — its id is the run id and its descendants are the queue
+  (`bd ready --parent <epic> --exclude-type=epic`).
 - The admission record — admitted, **excluded** and why, moved and from where.
   A run that narrowed its own scope says so in the final report.
-- The readiness verdict — groomed, or bounced with the gap.
+- The authorization set as decided, including the rows that took their default.
 
-**A blocking condition means the run does not start.** `start-sprint` names it;
-do not work around it.
+**The readiness gate is not here and not in `sprint-scope`** — it belongs to
+the grooming step (Phase 2.5), because readiness is a property of a groomed
+bead and asking before grooming answers a question about beads that are about
+to change.
 
 
 ## Phase 2.5 — Triage & dispatch plan
@@ -620,7 +634,7 @@ Print the returned wave table to chat. Don't ask for approval — just print and
 proceed. The user can interrupt if they disagree.
 
 WHEN no `Agent` tool is available, nothing can be delegated, planning included
-— that is a blocking Phase 0 condition, not a mode. Stop and hand the queue to
+— that is a blocking pre-flight condition, not a mode. Stop and hand the queue to
 the `run-bead` skill, one bead at a time.
 
 ### Concurrent dispatch
@@ -670,7 +684,7 @@ light  →  standard  →  advanced  →  frontier
 
 Beads name a **tier**, not a model, so a backlog groomed months ago still
 routes correctly. Resolve tier → model from the project's `## model
-lineup` block in `AGENTS.md`, echoed by Phase 0. Honor these:
+lineup` block in `sf.toml`, echoed by pre-flight. Honor these:
 
 - **Collect during Phase 1.5** — you're already reading each bead's
   readiness signals; record its tier then. For a bulk query, read the
@@ -970,7 +984,7 @@ with any RFCs in a single commit.
   Beads marked "do not delegate" run in the orchestrator's own loop.
 - **Project rules win over skill defaults.** `sf.toml`'s `[[checks]]` is the
   source of truth for build/test/lint/format commands and anything else the
-  project runs per bead. Progress visibility defaults to the run checklist (above, Phase 0); task
+  project runs per bead. Progress visibility defaults to the run checklist (above); task
   tools are the exception for projects with no durable tracker of their own —
   read the project's `CLAUDE.md`/`AGENTS.md` once at session start. If the
   project has its own commit message conventions, follow them. The skill is

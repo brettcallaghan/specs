@@ -45,6 +45,139 @@ exists to prevent.
    the grooming wave preview saying what you changed and why. Keep it to that;
    the orchestrator prints the table and dispatches from it.
 
+## The readiness gate — run it before you classify anything
+
+A sprint dispatches **only groomed beads.** Every later phase already
+assumes grooming's outputs: the ready front's ordering comes from the
+dependency graph grooming wires; this gate's own cheap check reads the
+`decision-required` label grooming sets (DoR check 9); the classification below reads the
+tier assignment grooming makes.
+
+**Raise every bounced bead into `bd`'s human queue.** A bead this gate bounces
+carries `decision-required`; also add the **`human`** label, which is what
+`bd human list` and `bd human stats` read. The bounce then has a queryable
+state rather than living only in a report line the user has to notice — and it
+survives the session that produced it, which a report line does not. Surface
+`bd human list` at the point the report prints the bounce list, so the two
+cannot disagree.
+
+**Resolve by removing the label, never with `bd human respond`.** The answer
+goes on the bead as a `bd comment`, then `bd update <id> --remove-label human`
+(and `decision-required` once the gap is actually closed), and the bead
+re-enters the readiness gate on the next pass — no full re-run. Two independent
+reasons not to use `respond`: it is documented to add a comment **and close**
+the bead, and a bounced bead is not finished; and on bd 1.2.2 it fails outright
+— `bd human respond <id> -r "..."` errors with `cannot resolve issue ID
+"<id>": storage is nil`, reproduced in two separate embedded workspaces, while
+`list` and `stats` work in both.
+
+`bd gate --await human:<prompt>` is the other candidate and is **not** used
+here: gates are created by a formula step's `gate` field, and a sprint runs
+no formula. A human item stopping the chain is the behaviour that matters, and
+the label already delivers it. An ungroomed queue makes every one of them
+unreliable — and handing a fresh, zero-context subagent an under-specified
+bead is the single most expensive failure mode a run has: it detonates
+mid-wave, after later beads have built on it.
+
+So before dispatch, gate the queue against the **Definition of
+Ready** — the checklist owned by the `spec` skill
+(`references/shared/work-order-definition-of-ready.md`) and enforced by
+`groom-beads`, which materializes work orders as beads. Those skills are the
+authority; do not restate the checklist here.
+
+### 1. Cheap check (read-only)
+
+Most runs pass in seconds because the user groomed first. Per bead, confirm the
+Definition of Ready's checks hold — read them from
+`references/shared/work-order-definition-of-ready.md`, not from memory — plus
+one signal it does not carry: `bd lint` is clean for the bead, WHERE the
+installed `bd` has it. Parallelize; this is read-only. A bead failing check 9
+(an open decision) is bounced, not questioned mid-run.
+
+A queue that is entirely ready makes this phase a one-line no-op for *grooming*:
+say so and hand back — the orchestrator still dispatches one subagent for
+planning alone.
+
+### 2. Groom what fails — invoke `groom-beads`
+
+If any bead fails the check, do NOT dispatch it and do NOT fix it inline —
+grooming reads source and wires graphs, which belongs in a subagent (see "don't
+read source files in the orchestrator"). Dispatch a **grooming subagent** over
+the ungroomed subset (template below); it runs `groom-beads` to the Definition
+of Ready and returns a per-bead readiness report plus a **wave preview** — its
+candidate partition under dependencies and C4 collisions. **Its final act is to
+invoke `plan-sprint`**, which turns that preview into the run's wave table:
+it has already read every bead, so a second agent would only re-derive the same
+partition and leave two to reconcile.
+
+When it returns, **re-run `bd ready`** with the run's filter: grooming may have
+wired new dependencies or split a boulder into an epic + children, changing both
+the ordering and the membership of the queue.
+
+### 3. Bounce what grooming can't clear
+
+Grooming, like this phase, bounces gaps rather than guessing. A bead it cannot
+bring to Ready — needs a human decision it can't make, can't be sized without a
+split, rests on an unexamined premise — does **not** enter the run. Exclude
+these from the queue and surface them to the user at the end of this phase (one
+line each + the gap). The run proceeds with the Ready beads; ungroomable beads
+are the user's to resolve, not a subagent's.
+
+Bounced beads are the run's **single decision point**: surfaced with their
+open question, resolved or groomed before dispatch, then the run proceeds
+with the Ready remainder — an *admission* decision made once, up front, not
+mid-flight.
+
+### 4. Admitting emergent work mid-run
+
+During execution (Phase 3) subagents discover work. Some of it belongs in this
+run; some is scope creep wearing a matching label. Telling them apart is the
+point — pulling in the wrong thing is as real a failure as leaving a blocker
+unaddressed. This is where the autonomy the run was launched for lives, and
+where it stops.
+
+**The test is necessity, not resemblance:** emergent work is in-scope only when
+a bead *already in the run* cannot be correctly and completely finished without
+it. These shapes qualify:
+
+- **an unblocking prerequisite** — the assigned bead genuinely cannot be
+  completed until this is done;
+- **an acceptance-criteria decomposition** — a piece the assigned bead's own AC
+  cannot be satisfied without (a sign the bead was under-groomed, larger than it
+  looked);
+- **an expected test-coverage gap** — coverage the assigned scope already
+  implied should exist and doesn't.
+
+Everything else — adjacent cleanups, refactors "while I'm here", a new
+capability no assigned bead's AC demands — is **out of scope even if it matches
+the run's filter.** Matching the label is necessary but not sufficient;
+"required to finish a bead already in the run" is the bar.
+
+**Mechanics.** The discovering subagent only *files* the bead (`bd create`) with
+a `discovered-from` edge to its origin and a one-line note of which shape it is
+(or "out-of-scope"); it never implements it. If its own bead is truly blocked by
+it, it takes the Blocked path naming the new id. The **orchestrator** then
+decides:
+
+- **In-scope** → run it through this gate (groom → re-`bd ready`), wire the
+  `blocks` edge so it orders ahead of the bead it unblocks, and dispatch it
+  under the standing auto-chain authorization. No new prompt — this is the
+  intended autonomy. Grooming closes decisions along with the rest of the
+  Definition of Ready. (A groomed prerequisite that still lands a
+  `decision-required` label stops for the user, per the standing-authorization
+  terms — and is raised into the human queue with it.) Grooming and wiring the edge are tracker writes, which need not wait
+  for a wave boundary.
+- **Out-of-scope** → leave it filed and linked, do NOT dispatch it, and surface
+  it in the final report for the user to triage. The standing authorization
+  finishes the launched scope; it never enlarges it.
+
+**Ballooning is a stop signal.** If "prerequisites" multiply — a discovered
+blocker that is really a new epic, or more than a handful of new in-scope beads
+off a single bead — stop and surface it. That means the original scope was
+mis-groomed, which is a human's call, not an autonomous expansion.
+
+The grooming subagent prompt template is in `references/grooming-prompt.md`.
+
 ## Bias toward batching
 
 **Batching is how a wave gets to run in parallel.** Beads that would collide

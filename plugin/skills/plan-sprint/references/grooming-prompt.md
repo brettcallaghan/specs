@@ -1,4 +1,4 @@
-# start-sprint Grooming Prompt Template
+# Grooming Prompt Template
 
 The prompt Phase 1.5 fills in and dispatches when beads need grooming. Substitute
 every `{PLACEHOLDER}` before sending — an unsubstituted placeholder is the single
