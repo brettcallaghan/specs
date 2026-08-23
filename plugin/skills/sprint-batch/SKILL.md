@@ -26,6 +26,7 @@ than it was given beads is the failure this tier exists to prevent.
 | `{WORKTREE}` | the worktree you were given, or the instruction to create one per bead |
 | `{EPIC}` | the run epic — the manifest, and where incidents land |
 | `{DISPATCH_ID}` | yours, shared by every bead in this batch |
+| `{BRANCH}` | the sprint branch — every worktree descends from it |
 | `{SCRIPTS}` | the orchestrator's `scripts/` directory |
 | `{CHECKS_IDS}`, `{CHECKS_BASELINE_TEXT}` | what the project declared, and what it printed before the run |
 | push mode | `push_per_bead` or `defer_push` |
@@ -40,7 +41,7 @@ Four checks, before you touch a bead. Each is cheap and each has caught a run.
 2. **The base ref is the sprint branch, not the default branch.** Verify it:
 
    ```sh
-   git -C "{WORKTREE}" merge-base --is-ancestor "$(git rev-parse <sprint-branch>)" HEAD
+   git -C "{WORKTREE}" merge-base --is-ancestor "$(git rev-parse {BRANCH})" HEAD
    ```
 
    **This is the one that silently destroys work.** A worktree branched from

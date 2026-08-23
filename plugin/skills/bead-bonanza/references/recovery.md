@@ -23,12 +23,16 @@ path into one.
 
 ## Subagent crash / mid-step timeout recovery
 
-If a subagent times out, returns an "API Error" instead of a summary, or otherwise dies before its summary line — read the state it left behind, never a report of it. Two places hold that state: the bead's worktree (`git -C <worktree> status --porcelain`) and the tracker (`bd show <id>`). Then:
+If a subagent times out, returns an "API Error" instead of a summary, or otherwise dies before its summary line — read the state it left behind, never a report of it. Two places hold that state: the bead's worktree (`git -C <worktree> status --porcelain`) and the tracker (`bd show <id>`).
 
-1. **Is there work in the bead's worktree?** Everything dirty there belongs to this bead, because nothing else was ever implemented in it.
-2. **If the worktree holds work and the bead is not closed** — the change is in the tree and the close ceremony is incomplete. **Re-run the gate suite before closing.** This is the **happy crash path**:
-   - Run the project's gates in the worktree. Do not skip them on the strength of anything the dead subagent recorded: a run that recorded a clean gate and exited 1 with 222 findings is the measured failure this ordering exists to prevent. The cost of re-running is one gate suite per crash — across 31 beads measured, one crash — against accepting a close whose only evidence is the testimony of an agent that then died.
-   - If the gates fail, this is not the happy path: treat it as step 3.
+**Worktrees are per bead, not per agent, so first find which bead.** A batch subagent works its beads in order and may have left a worktree for each one it started. `git worktree list`, intersected with the batch's bead ids, is the set; the one whose bead is not closed is where it died. Beads before it in the batch order are already closed and merged and need nothing. Recover that one bead, then re-dispatch the remainder of the batch as a fresh batch.
+
+Then, for that bead:
+
+1. **Is there work in its worktree?** Everything dirty there belongs to this bead, because nothing else was ever implemented in it.
+2. **If the worktree holds work and the bead is not closed** — the change is in the tree and the close ceremony is incomplete. **Re-run the project's checks before closing.** This is the **happy crash path**:
+   - Run the project's checks script in the worktree. Do not skip them on the strength of anything the dead subagent recorded: a run that recorded a clean check and exited 1 with 222 findings is the measured failure this ordering exists to prevent. The cost of re-running is one check suite per crash — across 31 beads measured, one crash — against accepting a close whose only evidence is the testimony of an agent that then died.
+   - If the checks fail, this is not the happy path: treat it as step 3.
    - Read the bead's comments for a `caveat:` line — anything the close must do differently, such as a regen step to run before staging. Honor it before you stage. Most beads carry none.
    - The bead's worktree names the paths: everything dirty in `git -C <worktree> status --porcelain` belongs to this bead, because nothing else was ever implemented there. The close stages all of it.
    - Run `../scripts/bb-close-bead.sh --trailers-from <epic> <id> <priority> "<title>"` from inside the bead's worktree, passing no paths — the same script the subagent would have run, reading the same per-run trailers Phase 0 recorded in the run epic's manifest (omit `--trailers-from` WHEN the run resolved none). It appends the trailers to the commit body itself: do **not** `git commit --amend` afterward to add them, which is the exact drift the flag exists to avoid. What the ceremony does, in what order, is SKILL.md's published interface for the script.
@@ -36,7 +40,7 @@ If a subagent times out, returns an "API Error" instead of a summary, or otherwi
    - The canonical message format is `<id> P<priority> <title>` — the script builds it; a by-hand replay must match it exactly.
    - Push the branch (if appropriate for the batch) — a `git push` of the bead's branch, separate from the `bd dolt push` that lands the tracker.
    - Verify the bead is now `closed` via `bd show <id>`.
-3. **If the gates fail, or the work is visibly unfinished** — the work is partial and uncommitted, and it is sitting safely in the bead's own worktree. **Do not stash and do not commit it.** Either re-enter the worktree and finish the work, or leave the worktree exactly as it is, mark the bead `blocked` with a recovery note naming the worktree path, and surface it to the user (`operating-principles.md`, "No exceptions: the worktree holds interrupted work").
+3. **If the checks fail, or the work is visibly unfinished** — the work is partial and uncommitted, and it is sitting safely in the bead's own worktree. **Do not stash and do not commit it.** Either re-enter the worktree and finish the work, or leave the worktree exactly as it is, mark the bead `blocked` with a recovery note naming the worktree path, and surface it to the user (`operating-principles.md`, "No exceptions: the worktree holds interrupted work").
 4. **If the worktree is clean or was never created** — the subagent never started. Check `bd show <id>` to confirm status; if it's still `open`, retry the subagent. If it's `in_progress`, claim it back with `bd update <id> --status open` first. Remove any worktree it created before re-dispatching, so the in-flight signal does not lie.
 
 The bead is the anchor. Whatever the subagent managed to record — `retro:`

@@ -597,7 +597,9 @@ try:
     cur = json.loads(md) if isinstance(md, str) else (md or {})
 except Exception:
     cur = {}
-cur["checks_ids"] = ids
+# An array, not the space-joined string: a consumer that has to re-split a
+# string is one that will split it wrong the first time an id contains a space.
+cur["checks_ids"] = ids.split()
 cur["checks_baseline_status"] = int(st)
 with open(raw) as fh:
     cur["checks_baseline"] = fh.read()
@@ -649,7 +651,7 @@ else
   say "refs/dolt/data write: n/a — no Dolt remote configured"
 fi
 if [ "$DOLT_WRITE" = no ]; then
-  block "refs/dolt/data is not writable (probed: $DOLT_WRITE_PROBE — push failed). Every bead closure this run makes dies with the container when it is reclaimed; the tracker has no JSONL fallback. Fix write access (AGENT_PLUGINS_ACCESS_TOKEN and unproxied github.com egress — see docs/session-bootstrap.md), then re-run pre-flight-check.sh before Phase 1."
+  block "refs/dolt/data is not writable (probed: $DOLT_WRITE_PROBE — push failed). Every bead closure this run makes dies with the container when it is reclaimed; the tracker has no JSONL fallback. Fix write access — the credential and egress path are the project's to supply — then re-run pre-flight-check.sh before Phase 1."
 fi
 
 # ================================================================= 10. verdict

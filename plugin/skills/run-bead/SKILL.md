@@ -33,7 +33,7 @@ identical.
 | `{SCRIPTS}` | given | `bead-bonanza/scripts/` |
 | `{EPIC}` | given — the run epic, for incidents | `none` |
 | `{TRAILERS_FILE}` | given, or `none` | `none` |
-| `{CHECKS_BASELINE}` | given — what the checks printed before the run | run `scripts/bb-checks.py` on a clean tree, before you start |
+| `{CHECKS_BASELINE_TEXT}` | given — what the checks printed before the run | run `scripts/bb-checks.py` on a clean tree, before you start |
 | push mode | `push_per_bead` or `defer_push` | push your branch when the work is done |
 
 **Never work in the main checkout when a worktree was given**, and never work

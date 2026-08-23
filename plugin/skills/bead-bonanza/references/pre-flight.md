@@ -47,7 +47,10 @@ no trailers.
 WHEN the project states no trailer convention, leave `{TRAILERS_FILE}` unset
 and omit the flag; the close ceremony then appends no trailers.
 
-What no script can settle:
+## What no script can settle
+
+This is why the file exists. Everything below is invisible from a shell, so
+the script cannot measure it and cannot warn you about it.
 
 - **Pull requests are the project's business, not bead-bonanza's.** Whether a PR
   is opened, when it opens, and when its CI runs are the project's policy — and
@@ -82,15 +85,7 @@ What no script can settle:
   `bd ready`, then `run-bead` per bead, which is an honest description of what
   a no-Agent session can do.
 
-**`BB_DOLT_WRITE` is a blocking fact where it reads `no`.** It means the
-project syncs beads to a Dolt remote and this container cannot write it, so
-every closure the run makes dies with the container — the exact loss the close
-ceremony exists to prevent. Stop and fix the environment; do not run and hope.
-`none` means no Dolt remote is configured, which is not a fault (the project
-may track beads another way) and `yes` is the normal case. Pre-flight measures
-it even where a project's own session hook also does; a green hook is not a
-substitute for this fact.
-
-`BB_WORKTREE_BASEREF` is the same kind of blocking fact — pre-flight exits
-non-zero when it is not `head`. See "Every bead runs in its own worktree" in
-the skill.
+**Every other blocker is the script's to explain.** `BB_DOLT_WRITE=no` and
+`BB_WORKTREE_BASEREF` not `head` each exit non-zero with the cause and the
+remedy in the message. Restating them here would give a reader two texts to
+reconcile and one of them a chance to go stale — read the report.

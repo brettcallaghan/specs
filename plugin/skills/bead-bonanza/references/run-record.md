@@ -14,6 +14,13 @@ after `sprint-scope` returns the epic and before you dispatch grooming.
    never omit the field and never guess a value; an omitted field is
    indistinguishable from a forgotten one, and a guessed value is worse.
 
+   **The key names are the contract**, because the wave tier reads them back
+   rather than being handed them — `sprint-wave` takes `branch`, `checks_ids`
+   and `checks_baseline` off the manifest to build each batch prompt. A renamed
+   key is a silent break: the reader gets `null` and dispatches without it. The
+   full key set is the JSON block the **`sprint-plan`** skill writes, in its own
+   run-record reference.
+
    **Merge, never replace.** Pre-flight writes the baseline into the same
    object, and the epic already carries grooming's own keys. Read it, update
    your keys, write it back:

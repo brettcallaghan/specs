@@ -26,6 +26,18 @@ The agents you dispatch run `sprint-batch`.
 | `{EPIC}` | the run epic — the manifest, and where incidents land |
 | `{SCRIPTS}` | the absolute path to the orchestrator's `scripts/` directory |
 
+**Everything else a batch needs, you read off the manifest** — you are given
+three things and derive the rest, so the orchestrator has nothing to forget:
+
+```sh
+m="$(bd show {EPIC} --json | jq '.[0].metadata')"   # note .[0] — the JSON is an array
+```
+
+`branch`, `checks_ids`, `checks_baseline`. **Mint `{DISPATCH_ID}` yourself**,
+one per batch subagent and shared by every bead in that batch; nothing upstream
+supplies it. Pass all four into each `sprint-batch` prompt — a batch that has
+to infer any of them cannot run its own base-ref check.
+
 The sprint branch already exists and the manifest already carries it. **You do
 not create one**, and you never dispatch from the default branch.
 

@@ -46,7 +46,7 @@ opens against it.
 {
   "branch": "<branch>",
   "base_sha": "<sha at branch creation, after grooming>",
-  "checks_ids": "format vet build test-go …",
+  "checks_ids": ["format", "vet", "build", "test-go", "…"],
   "checks_baseline": "<verbatim text — inline this into EVERY subagent prompt>",
   "checks_baseline_status": 1,
   "models": {"light": "…", "standard": "…", "advanced": "…", "frontier": "…"},

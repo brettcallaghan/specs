@@ -203,10 +203,13 @@ checks script before its own close whether batched or not — that script is the
 quality bar for one commit, sized to be affordable every time. A batch changes
 who does the work and what can run alongside it, never what gets validated.
 
-**Worktrees do not make batching redundant.** A worktree isolates a bead; it
-does not make two beads that rewrite the same file safe to run at once. That is
-the collision batching removes, and it is why the batching rules below hold
-even though every bead already has a worktree of its own.
+**Worktrees do not make batching redundant, because the collision is at the
+merge.** A worktree isolates two agents from each other perfectly — they never
+see each other's edits. Then both branches come back to the orchestrator, the
+second one lands on a file the first already rewrote, and under `--ff-only` it
+refuses and stops the wave. Batching is what removes that: the two beads go
+behind one agent, in order, each branching from the last, so what returns is
+already reconciled. Isolation is never grounds to relax the rules below.
 
 ## Classify each bead
 
