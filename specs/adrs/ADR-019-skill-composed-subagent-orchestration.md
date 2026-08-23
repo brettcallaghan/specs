@@ -80,12 +80,15 @@ workflows as the orchestration substrate.
 
 **Positive:**
 
-- Orchestration state lives on disk in a run directory, so an
-  orchestrator that loses its context recovers by reading files rather
-  than by replaying agents that already committed.
-- `bd` stays the single tracker. There is no second task list to
-  reconcile, and work-order state survives container reclaim through the
-  committed export.
+- Orchestration state lives on the run epic — its `--metadata` manifest and
+  its `amend:` comments — so an orchestrator that loses its context recovers
+  by reading the tracker rather than by replaying agents that already
+  committed. (Amended: this was originally a run directory on disk, which did
+  not survive a reclaimed container.)
+- `bd` stays the single tracker. There is no second task list to reconcile,
+  and work-order state survives container reclaim through the Dolt remote.
+  (Amended: originally through a committed JSONL export, which is now
+  untracked and is not the transport.)
 - The per-order ceremony — red-before-green on defect orders, retro
   before close, atomic close folded into the implementation commit — is
   expressible because we own the dispatch step. No native mechanism has

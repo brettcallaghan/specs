@@ -115,11 +115,11 @@ one — strictly more expressive than requiring one of everybody.
 baseline" is a bead reading its own output against the baseline's: a line in
 both was already there, a line only in its own is its own. That needs no
 structure in either text and no precomputation, which retires this ADR's
-original assignment of per-bead attribution to `plan-sprint`.
+original assignment of per-bead attribution to the planning step.
 
-The run's known-red state is written once by pre-flight to
-`$RUN_DIR/checks-baseline.md` — a per-check verdict table over the raw output,
-verbatim — and is **inlined into every subagent prompt**, always, including
+The run's known-red state is written once by pre-flight into the run epic's
+manifest — a per-check verdict table over the raw output, verbatim — and is
+**inlined into every subagent prompt**, always, including
 when it is empty, since "nothing is known-red" and "no baseline was taken" must
 not look alike.
 
@@ -129,7 +129,7 @@ what left the baseline undelivered:
 
 | Finding | Channel | Read by | When |
 |---|---|---|---|
-| Pre-existing, owned by no queued bead | `$RUN_DIR/checks-baseline.md`, inlined in every prompt | every subagent | at dispatch |
+| Pre-existing, owned by no queued bead | the run epic's manifest, inlined in every prompt | every subagent | at dispatch |
 | Pre-existing, owned by a queued bead | the same baseline block; the bead recognises its own by comparing its output against it | that bead | when it runs its checks |
 | Discovered mid-run, someone must act | a bead (`bd create --discovered-from`) | this run's orchestrator | immediately |
 | Friction or observation | a `retro:` comment on the bead | a later retrospective | Phase 4 |

@@ -6,8 +6,8 @@ description: Requirements for authoring agent skills in this repository —
 slug: skill-authoring-standards
 type: standards
 status: draft
-updated_at: 2026-08-05T00:00:00Z
-version: "0.2"
+updated_at: 2026-08-23T00:00:00Z
+version: "0.3"
 ---
 
 # Skill Authoring Standards
@@ -75,13 +75,26 @@ and humans see, and silently breaks any cross-skill reference to it.
 
 ---
 
-A skill's `name` SHALL use the verb-object form.
+A skill's `name` SHALL use the verb-object form, EXCEPT where it belongs to
+a named subsystem, in which case it SHALL carry that subsystem's prefix.
 
-**Rationale:** This collection settled on verb-object (`groom-beads`,
-`triage-rfc`, `retro-spec` as "retro the spec", `spec` as "spec out the
-thing"). A consistent pattern makes a skill's activity legible from its
-name alone and keeps the library coherent as it grows. Recorded so future
-skills do not each pick a different convention.
+**Rationale:** Verb-object (`groom-beads`, `triage-issue`, `retro-spec` as
+"retro the spec", `spec` as "spec out the thing") makes a skill's activity
+legible from its name alone. A consistent pattern keeps the library coherent
+as it grows, and is recorded so future skills do not each pick a different
+convention.
+
+**The subsystem exception, and its own rule.** A skill is prefixed WHEN it
+only makes sense inside that subsystem — `sprint-scope`, `sprint-plan`,
+`sprint-wave`, `sprint-batch`, `sprint-review`, `sprint-report`,
+`sprint-retro`, `sprint-recovery`. A skill that is useful outside it keeps
+verb-object even when a sprint invokes it: `run-bead` works with no
+orchestrator at all, and `groom-beads` is useful with no sprint in sight.
+
+The trade is deliberate. **A skill is selected by its description, not its
+name**, so the prefix costs nothing at dispatch and buys grouping in a listing
+that now holds fifteen skills. Where a subsystem has one entry point, that
+entry point does NOT take the prefix — it is the way in, not a member.
 
 ---
 
