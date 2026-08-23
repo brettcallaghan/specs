@@ -20,8 +20,9 @@ happens next. You never hold a subprocess's method.
 
 **What you retain — the whole context budget:** the run epic id, the review
 pass counter, the authorization set, where the wave loop is, and what the last
-subprocess returned. Not the wave table, not a subprocess's reasoning, not the
-evidence behind a verdict you were handed.
+subprocess returned, and `sprint-plan`'s wave table as a passthrough you never
+reason about. Not a subprocess's reasoning, not the evidence behind a verdict
+you were handed.
 
 **Act on the verdict, not on the evidence.** A subprocess whose output you have
 to reason about has pushed work back up the tier it was meant to absorb.
@@ -47,16 +48,19 @@ anything else means something failed, and the output says what.
 │      └ 5c supervise       ─┘ front is dry   bb-status.sh
 │  6   review ................................ sprint-review → declared reviewer
 └───── findings admitted AND passes < 3 ? ─── yes ──┘
-7     PR review ............................. HUMAN
-8     report ................................ sprint-report
-9     retro ................................. sprint-retro
-10    post-flight ........................... sprint-cleanup.sh
+7     report ................................ sprint-report
+8     retro ................................. sprint-retro
+9     post-flight ........................... sprint-cleanup.sh
 ```
 
 **Two nested loops, both bounded**: the wave loop ends when the ready front is
 dry, the review loop at 3 passes or no admitted findings. Neither exhausting is
-a failure — what is left is filed and named. **8 and 9 run report-then-retro**;
+a failure — what is left is filed and named. **7 and 8 run report-then-retro**;
 the retro reads the report's tables.
+
+**A human's pull-request review is not a step here.** Whether one happens, and
+when, is the project's business — the run ends at post-flight either way, and
+findings that come back from a review do not consume the review budget.
 
 ## Run checklist
 
@@ -135,8 +139,9 @@ what grooming just acquired, so a second agent would re-read the queue to learn
 what the first already knew. **One subagent, never two**; where nothing needed
 grooming, it plans alone.
 
-**Do not store the wave table.** It is derived from the ready front, and a
-stored copy only drifts.
+**Do not store the wave table** — no file, no manifest key. Carry what
+`sprint-plan` returned and hand it to `sprint-wave` each wave, which intersects
+it with the re-queried front. A written copy outlives the graph it describes.
 
 **Three things stay yours** — the run manifest, the swarm registration, and
 the run's amendments. All three: `references/run-record.md`.
@@ -231,26 +236,10 @@ escalation, push mode: `references/dispatch-policy.md`.
 ### The run's health — the one thing nothing else can express
 
 A stuck agent and a slow one look identical in git and bead status, so health
-is **asserted**, not derived: you set it and `bb-status.sh run` prints the
-evidence for and against beside it.
-
-```sh
-bd set-state <epic> health=<value> --reason "<why>"
-```
-
-Closed set — at run start and every wave boundary:
-
-| value | meaning |
-|---|---|
-| `healthy` | beads closing, nothing failing repeatedly |
-| `slow` | nothing closed recently, but agents are alive |
-| `stalled` | nothing closed recently **and** no live agent |
-| `degraded` | progressing, but with repeated failures |
-| `blocked` | cannot proceed without a human; pair with `bd human` |
-
-`slow` vs `stalled` is the distinction the dimension exists for. The label
-**replaces** rather than accumulates. **An unset health reads as repairable**:
+is **asserted**, not derived — `bd set-state <epic> health=<value> --reason`,
+at run start and every wave boundary. **An unset health reads as repairable**:
 a watchdog seeing no label cannot tell a healthy run from an abandoned one.
+The closed set of five values and what each means: `references/run-record.md`.
 ### Watching it, and picking it back up
 
 **`bd swarm status <epic>`** answers "where is this run", computed from the
@@ -318,10 +307,8 @@ epic, which is what lets a resumed session report on a run it did not hold.
 
 It leads with the **incidents**, then the results table, routing evidence,
 follow-up beads, exclusions, and what the run could not verify, and records its
-path in the manifest.
-
-**Read it before you hand it over**; you own that it is true, not that it is
-written.
+path in the manifest. **Read it before you hand it over**: you own that it is
+true, not that it is written.
 
 **A report is always produced**, including for a run that stopped early. A run
 that ends without one has failed, whatever else it achieved.
@@ -333,18 +320,18 @@ one that closed nothing. A sprint that bounced its whole queue produced no code
 and a great deal of evidence about grooming; a retro that fires only on success
 cannot see the failures.
 
-It harvests every finding, routes each by its stamped kind, reasons them into
-candidate issues, puts those to the user once, and files what they accept —
-beads here, `.sf/outbox/` files for the skills it ran on.
+It harvests every finding, routes each by kind, reasons them into candidate
+issues, puts those to the user once, and files what they accept — beads here,
+`.sf/outbox/` files for the skills it ran on.
 
 **Two of the nine kinds never become issues.** `proof` (how a claim was
 established) stays in the report; `environment` (a dependency's behaviour no
 bead could have carried) goes to the environmental-failure ledger. Measured at
-7 of 73 findings on a real run, so expect them.
+7 of 73 on a real run, so expect them.
 
 **Incidents are its best material** — each marks a place the corpus failed to
-answer a question a bead needed answered, which is a finding against a
-*document* rather than a complaint about the run.
+answer a question a bead needed, which is a finding against a *document*
+rather than a complaint about the run.
 ## Post-flight — the cleanup script
 
 The last act, after the report and the retro:
@@ -354,7 +341,7 @@ The last act, after the report and the retro:
 ```
 
 It prunes worktrees, releases the merge slot, closes the swarm molecule, sets
-terminal health and pushes the tracker, printing the command behind every
+terminal health and pushes the tracker, printing the command behind each
 removal.
 
 **Exit 1 means something was left standing on purpose** — a worktree whose bead

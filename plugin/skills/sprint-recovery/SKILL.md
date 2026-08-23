@@ -88,9 +88,15 @@ could not read the manifest is a *reconstruction*, and says so.
 
 2. **Read the run epic in full** — `bd show <epic> --json`. Its `--metadata` is
    the manifest: the standing authorization, the declared check ids, the checks
-   baseline, the model lineup, the environmental ledger, and the **admission
-   record** (`admitted`, `excluded`, `moved`). Its `amend:`-prefixed comments
-   are how the run diverged since it started.
+   baseline, the model lineup, the environmental ledger, the **admission
+   record** (`admitted`, `excluded`, `moved`), and the review counter
+   (`review_passes`, `review_budget`). Its `amend:`-prefixed comments are how
+   the run diverged since it started.
+
+   **Carry `review_passes` forward — do not restart it.** It is durable for
+   exactly this moment: a resumed run that reset the counter re-enters the
+   review loop from zero and never exhausts its budget. Hand it back to the
+   orchestrator with the rest, and say what it read.
 
    **The queue is not stored — re-derive it**: `bd ready --parent <epic>
    --exclude-type=epic`. That is deliberate. Membership of the epic IS the

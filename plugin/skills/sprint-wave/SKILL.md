@@ -23,6 +23,7 @@ The agents you dispatch run `sprint-batch`.
 | | |
 |---|---|
 | the wave's batches | from the wave table, with each bead's class, tier and push mode |
+| | **Intersect it with `bd ready --parent {EPIC} --exclude-type=epic`.** The table was planned before wave 1; the re-queried front is what corrects it. Dispatch a row only if its bead is still in the front, and report any row you dropped and any bead in the front the table does not name. |
 | `{EPIC}` | the run epic — the manifest, and where incidents land |
 | `{SCRIPTS}` | the absolute path to the orchestrator's `scripts/` directory |
 

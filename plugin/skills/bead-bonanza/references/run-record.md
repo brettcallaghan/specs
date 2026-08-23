@@ -1,5 +1,11 @@
 # The run record — manifest, swarm, amendments
 
+## Contents
+
+- The three things the orchestrator owns: the manifest, the swarm
+  registration, the run's amendments
+- Run health — the asserted dimension and its five values
+
 **Three things the orchestrator owns and never delegates.** Read this once,
 after `sprint-scope` returns the epic and before you dispatch grooming.
 
@@ -85,3 +91,24 @@ proceed. The user can interrupt if they disagree.
 WHEN no `Agent` tool is available, nothing can be delegated, planning included
 — that is a blocking pre-flight condition, not a mode. Stop and hand the queue to
 the `run-bead` skill, one bead at a time.
+
+## Run health
+
+Asserted by the orchestrator, never derived — a stuck agent and a slow one look
+identical in git and in bead status. Set it at run start and at every wave
+boundary; `bb-status.sh run` prints the evidence for and against beside it.
+
+```sh
+bd set-state <epic> health=<value> --reason "<why>"
+```
+
+| value | meaning |
+|---|---|
+| `healthy` | beads closing, nothing failing repeatedly |
+| `slow` | nothing closed recently, but agents are alive |
+| `stalled` | nothing closed recently **and** no live agent |
+| `degraded` | progressing, but with repeated failures |
+| `blocked` | cannot proceed without a human; pair with `bd human` |
+
+`slow` vs `stalled` is the distinction the dimension exists for. The label
+**replaces** rather than accumulates.
