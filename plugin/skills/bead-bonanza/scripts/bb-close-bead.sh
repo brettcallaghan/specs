@@ -221,9 +221,10 @@ if [ "$observed" != "closed" ]; then
   Nothing staged, nothing committed. Fix the tracker write, then re-run this script."
 fi
 
-# 3. Stage code only. Inside the bead's own worktree everything present belongs
-#    to this bead, so no paths need naming; the Usage note above gives the two
-#    cases that still pass them.
+# 3. Stage code only. Everything uncommitted in the worktree belongs to this
+#    bead — inside a batch's shared tree too, since the previous bead committed
+#    before this one started — so no paths need naming; the Usage note above
+#    gives the two cases that still pass them.
 #
 #    The exclusion names the JSONL exports alone, not all of .beads/. Excluding
 #    the whole directory silently drops tracked tracker config — config.yaml,

@@ -494,7 +494,7 @@ else
   say "$SETTINGS_LOCAL: absent — expect a permission prompt per distinct command"
 fi
 
-# worktree.baseRef — hard gate, blocking. Every bead runs in its own worktree
+# worktree.baseRef — hard gate, blocking. Every dispatch runs in its own worktree
 # (universal, not opt-in — see SKILL.md, "Every bead runs in its own
 # worktree"), so an unset baseRef silently branches EVERY worktree from the
 # DEFAULT branch instead of session HEAD. Measured, because this lives in

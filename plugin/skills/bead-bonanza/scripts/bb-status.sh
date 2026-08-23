@@ -3,7 +3,7 @@
 # bb-status.sh — verify a run's acceptance signals from state, not testimony.
 #
 # USAGE
-#   bb-status.sh bead <bead-id> [--worktree <path>] [--batch] [--pre-merge]
+#   bb-status.sh bead <bead-id> [--worktree <path>] [--pre-merge]
 #   bb-status.sh wave [--branch <name>] [--remote <name>]
 #   bb-status.sh run <epic-id>
 #   bb-status.sh slot [<epic-id>]
@@ -63,13 +63,12 @@ note() { # note <rc>
 
 # ------------------------------------------------------------------ bead mode
 mode_bead() {
-  id=""; wt=""; batch=no; premerge=no
-  [ $# -ge 1 ] || die "usage: bb-status.sh bead <bead-id> [--worktree <path>] [--batch] [--pre-merge]"
+  id=""; wt=""; premerge=no
+  [ $# -ge 1 ] || die "usage: bb-status.sh bead <bead-id> [--worktree <path>] [--pre-merge]"
   id="$1"; shift
   while [ $# -gt 0 ]; do
     case "$1" in
       --worktree)  [ $# -ge 2 ] || die "--worktree needs a path"; wt="$2"; shift 2 ;;
-      --batch)     batch=yes; shift ;;
       --pre-merge) premerge=yes; shift ;;
       *)           die "unknown argument: $1" ;;
     esac
@@ -126,11 +125,6 @@ mode_bead() {
     if git worktree list 2>/dev/null | grep -qF -- "$wt"; then
       if [ "$premerge" = yes ]; then
         line SKIP "4 worktree: deferred" "(--pre-merge; removal follows the merge)"
-      elif [ "$batch" = yes ]; then
-        # A batch holds one worktree for every bead it carries, so beads
-        # already closed inside it have a surviving worktree by construction.
-        # Charging each of them fails the whole batch but its last bead.
-        line SKIP "4 worktree: held by batch" "$c"
       else
         line STOP "4 worktree SURVIVES: $wt" "$c"; note $RC_STOP
       fi

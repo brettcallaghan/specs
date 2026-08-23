@@ -98,7 +98,7 @@ After each subagent returns:
    perform it:
 
    ```sh
-   {SCRIPTS}/bb-status.sh bead <bead-id> --worktree <path> --pre-merge [--batch]
+   {SCRIPTS}/bb-status.sh bead <bead-id> --worktree <path> --pre-merge
    ```
 
    It verifies the five signals in the required order and stops at the first
@@ -123,10 +123,6 @@ After each subagent returns:
    standing. The flag defers both. **The orchestrator re-runs the check
    without it after merging**, and that is what actually verifies them.
 
-   Pass `--batch` for a bead processed inside a batch's shared worktree, which
-   makes signal 4 skip rather than fail; read signal 4 once, against the batch,
-   when it returns.
-
    Applies **per bead, not per subagent**. A fast-lane subagent that processed
    six beads is checked six times — that is exactly where a silent omission
    hides.
@@ -142,12 +138,11 @@ After each subagent returns:
       removal (`git worktree remove <path>`), then re-run
       `git worktree prune && git worktree list`. This is the normal state, not
       a failure.
-   2. *A batch is still running.* A batch dispatched into one
-      harness-provisioned worktree holds it for EVERY bead it carries, so beads
-      already closed inside it have a surviving worktree by construction. Accept them on
-      signals 1–3 and 5, and read signal 4 once, against the batch, when it
-      returns. Charging each bead for a worktree its siblings are still using
-      fails the whole batch but the last bead.
+   2. *A batch is still running.* A batch holds ONE worktree for every bead it
+      carries, so a bead already closed inside it has a surviving worktree by
+      construction. You only see this while the batch is in flight — once it
+      returns, the orchestrator merges and removes that one tree, and signal 4
+      is then true for every bead in it at the same moment.
    3. *A real signal-4 failure.* Removal itself failed, or a worktree you
       never created survives. Leave it standing and surface it.
 

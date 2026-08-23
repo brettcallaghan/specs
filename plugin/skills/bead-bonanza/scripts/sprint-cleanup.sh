@@ -70,11 +70,10 @@ prune_worktrees() { # prune_worktrees <epic>
     [ -n "$wt" ] || continue
     [ "$wt" = "$main" ] && continue
     seen=$((seen+1))
-    state="$(printf '%s' "$beads" | jq -r --arg w "$wt" \
-      '[.[] | select(.metadata.worktree == $w)] | .[0].metadata.dispatch_state // "unknown"' 2>/dev/null)"
+    state="$(printf '%s' "$beads" | worktree_state "$wt")"
     case "$state" in
       returned) run "remove worktree" git worktree remove --force "$wt" ;;
-      running)  line "LEFT" "worktree, dispatch_state=running" "$wt"; note_left ;;
+      held)     line "LEFT" "worktree, a bead has not returned" "$wt"; note_left ;;
       *)        line "LEFT" "worktree, no dispatch record" "$wt"; note_left ;;
     esac
   done <<WTLIST
@@ -98,6 +97,17 @@ parse_worktrees() { sed -n 's/^worktree //p'; }
 # from `bd list --type molecule` entirely; the swarm listing carries the epic
 # link and the real status as fields. Its TEXT output files closed molecules
 # under "Active Swarms" — the JSON's `status` does not lie.
+# EVERY bead pointing at a worktree must have returned before it can go. A
+# batch holds ONE worktree for all of its beads, so reading the first match
+# would remove a tree a later bead in that batch is still working in.
+worktree_state() { # worktree_state <path>  < beads-json  ->  returned|held|none
+  jq -r --arg w "$1" \
+    '[.[] | select(.metadata.worktree == $w) | .metadata.dispatch_state // "unknown"]
+     | if length == 0 then "none"
+       elif all(. == "returned") then "returned"
+       else "held" end' 2>/dev/null
+}
+
 select_molecule() { # select_molecule <epic>  < swarm-list-json
   jq -r --arg e "$1" \
     '[.swarms[]? | select(.epic_id == $e and .status != "closed")] | .[0].id // empty' \
@@ -151,6 +161,15 @@ self_test() {
   # was measured wrong: `awk '{print $2}'` truncated a path at its first
   # space, and a molecule lookup keyed on `.metadata.epic` matched nothing
   # because molecules carry no metadata at all.
+  # The worktree-state rule, driven through the real function.
+  _both='[{"metadata":{"worktree":"/w","dispatch_state":"returned"}},{"metadata":{"worktree":"/w","dispatch_state":"returned"}}]'
+  _one='[{"metadata":{"worktree":"/w","dispatch_state":"returned"}},{"metadata":{"worktree":"/w","dispatch_state":"running"}}]'
+  for _c in "all returned:returned:$_both" "one still running:held:$_one" "no bead points here:none:[]"; do
+    _n="${_c%%:*}"; _r="${_c#*:}"; _e="${_r%%:*}"; _j="${_r#*:}"
+    _g="$(printf '%s' "$_j" | worktree_state /w)"
+    if [ "$_g" = "$_e" ]; then printf '  ok   worktree state, %s\n' "$_n"
+    else printf '  FAIL worktree state, %s (expected %s, got %s)\n' "$_n" "$_e" "$_g"; fails=$((fails+1)); fi
+  done
   _sw() { printf '%s' '{"swarms":[{"id":"m-closed","epic_id":"E","status":"closed"},{"id":"m-open","epic_id":"E","status":"active"},{"id":"m-other","epic_id":"F","status":"active"}]}'; }
   r="$(_sw | select_molecule E)"
   if [ "$r" = "m-open" ]; then printf '  ok   %s\n' "molecule lookup skips closed and other epics"

@@ -6,9 +6,9 @@ description: Process many beads autonomously by orchestrating subagents. Use
   the queue, gates every bead for readiness (grooming under-specified beads via a
   subagent, or bouncing what can't be made ready), surfaces both explicit and
   implicit decisions up front, dispatches via the cheapest viable execution mode
-  (doc fast lane / shared-surface batch / sequential), runs every bead in its
-  own git worktree, streams per-bead progress, and lands each bead in a single
-  commit.
+  (doc fast lane / shared-surface batch / sequential), runs every dispatch in
+  its own git worktree, streams per-bead progress, and lands each bead in a
+  single commit.
 version: "2.0"
 ---
 
@@ -24,8 +24,8 @@ subprocess returned, and `sprint-plan`'s wave table as a passthrough you never
 reason about. Not a subprocess's reasoning, not the evidence behind a verdict
 you were handed.
 
-**Act on the verdict, not on the evidence.** A subprocess whose output you have
-to reason about has pushed work back up the tier it was meant to absorb.
+**Act on the verdict, not the evidence.** A subprocess whose output you have to
+reason about has pushed work back up the tier it was meant to absorb.
 
 Read `CLAUDE.md` and `AGENTS.md` once at the start, before delegating.
 
@@ -164,41 +164,42 @@ else
 fi
 ```
 
-**Read the manifest before you create anything.** Reuse is not an optimization
-— it is what makes a resumed run land on the same branch. **A name already
-taken by an unrelated branch stops the run here**, before any worktree exists.
+**Read the manifest before you create anything.** Reuse is what makes a resumed
+run land on the same branch. **A name already taken by an unrelated branch stops
+the run here**, before any worktree exists.
 
 **`base_sha` is recorded at creation because that is the only moment it is
 unambiguous.** Deriving it later from a merge-base assumes the base branch has
-not moved, and on a long run it will have.
+not moved, and on a long run it will have. Three things consume it and none may
+create it: the review scopes its diff `base_sha`..sprint head, every worktree
+branches from sprint HEAD, and the pull request opens against it.
+## Every dispatch runs in its own worktree
 
-Three things consume it and none may create it: the review scopes its diff
-`base_sha`..sprint head, every worktree branches from sprint HEAD, and the pull
-request opens against it.
-## Every bead runs in its own worktree
+**This is universal, not opt-in**, and it is **per dispatch, not per bead**: a
+batch is one agent working serially, so a second tree isolates it from nobody.
+Each dispatch gets one worktree named for its dispatch id, cut from the sprint
+branch; the agent cuts a branch per bead inside it, named for the bead's hash
+suffix (`jh6`, `92q.14`, not the full id). The branches keep the beads apart.
+Nothing is implemented in the shared checkout except by you.
 
-**This is universal, not opt-in.** Each dispatched bead gets a git worktree
-named for its hash suffix (`jh6`, `92q.14` — not the full id), cut from the
-sprint branch and carrying a branch of the same name. Nothing is implemented in
-the shared checkout except by you.
+**Presence is the in-flight signal.** A standing worktree means its dispatch is
+not yet accepted — you remove it as the final act of accepting, after the last
+of its branches merges. `git worktree list` answers what is in flight; each
+bead's dispatch record answers which bead.
 
-**Presence is the in-flight signal.** A standing worktree means its bead is not
-yet accepted — you remove it as the final act of accepting, after the branch
-merges. `git worktree list` is the complete answer to what is in flight.
-
-**Hard gate — verify `BB_WORKTREE_BASEREF` is `head` before the first worktree
-of EACH wave, and do not dispatch otherwise.** It is global user state no
-repository owns, so it can change between waves. A worktree cut from the
-default branch cannot see what the sprint branch already carries.
+**Hard gate — verify `BB_WORKTREE_BASEREF` is `head` before each wave's first
+worktree, and do not dispatch otherwise.** It is global user state no repository
+owns, so it can change between waves, and a worktree cut from the default branch
+cannot see what the sprint branch already carries.
 
 **You merge, one at a time; subagents never do.** A chained batch merges by
-fast-forwarding the LAST bead's branch, which carries its predecessors. Take
-`bd merge-slot acquire` before each and release after, so a stalled wave has a
-queryable answer and a resumed session cannot merge alongside the original.
+fast-forwarding the LAST bead's branch, which carries its predecessors — one
+merge and one removal per batch, then the acceptance check per bead. Hold
+`bd merge-slot` across each.
 
 **A `--ff-only` refusal means different things in a sequential and a concurrent
-wave, and reading it wrong stops a healthy one.** That rule, the base-ref
-remedy, and the create/merge/remove lifecycle:
+wave, and reading it wrong stops a healthy one.** That rule, what the slot is
+and is not for, the base-ref remedy, and the create/merge/remove lifecycle:
 `references/subagent-prompts.md`, "Worktree mechanics".
 ## Execute the waves — invoke `sprint-wave`
 
@@ -208,9 +209,9 @@ than against the subagent's account, and returns one line per bead —
 `completed` / `blocked` / `skipped`, each with a sha — plus the push verdict.
 
 **Then you merge**, one branch at a time, removing each worktree as you accept
-its bead. `sprint-wave` merges nothing.
+its dispatch. `sprint-wave` merges nothing.
 
-**And then re-run the acceptance check, without `--pre-merge`:**
+**Then re-run the acceptance check, without `--pre-merge`:**
 
 ```sh
 "$SCRIPTS"/bb-status.sh bead <bead-id> --worktree <path>
@@ -223,9 +224,9 @@ checks that the merge and the removal happened. Exit 2 stops the wave.
 
 
 **Re-query the ready front at every wave boundary** — `bd ready --parent <epic>
---exclude-type=epic`. **That query is the order, not the stored table**: closed
-beads leave it, beads the last wave unblocked enter it, and a bead added
-mid-run is in scope by construction.
+--exclude-type=epic`. **That query is the order**: closed beads leave it, beads
+the last wave unblocked enter it, and a bead added mid-run is in scope by
+construction.
 
 **A tripped circuit breaker stops the run, not just the wave.** Three
 consecutive blocked or failed beads is systemic; the next wave meets it too.
@@ -285,8 +286,7 @@ you own the counter, the budget, and the decision to go round again — findings
 admitted **and** passes under budget means re-enter, anything else means done.
 
 **Re-enter at groom & plan, never at dispatch.** Review *files*; it does not
-groom. An admitted finding earns its readiness like any other bead, or bounces
-like one.
+groom. An admitted finding earns its readiness like any other bead, or bounces.
 
 **The budget is 2 loops — three passes** unless the gate said otherwise, and
 **findings from the human's pull-request review do not consume it**: that
@@ -297,7 +297,7 @@ counter bounds the machine reviewing itself. **Keep it in the manifest as
 the report. A third pass that still finds things is information for the human,
 not a reason to keep going.
 
-**No reviewer declared** returns a skip, and the report says so. Do not
+**No reviewer declared** returns a skip and the report says so. Do not
 substitute your own review.
 ## Report — invoke `sprint-report`
 
@@ -311,7 +311,7 @@ path in the manifest. **Read it before you hand it over**: you own that it is
 true, not that it is written.
 
 **A report is always produced**, including for a run that stopped early. A run
-that ends without one has failed, whatever else it achieved.
+ending without one has failed, whatever else it achieved.
 
 ### Then the retro — invoke `sprint-retro`
 
@@ -346,8 +346,8 @@ removal.
 
 **Exit 1 means something was left standing on purpose** — a worktree whose bead
 still reads `dispatch_state=running` is a live worker or a dead one, and no
-script can tell them apart. Resolve each before treating the sprint as torn
-down. **Do not force it.**
+script can tell them apart. Resolve each before treating the sprint as torn down.
+**Do not force it.**
 
 **Then cancel the durable trigger** armed at first dispatch — a harness action
 no script can do. One left armed wakes an agent into a finished sprint, which

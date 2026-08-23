@@ -27,7 +27,7 @@ rule; the prompt only has to supply the id, which no subagent can infer.
 `{DISPATCH_ID}` is resolved **per subagent** — one id for a batch, shared by
 every bead it holds, which is what makes "what is that agent holding" a query.
 
-`{WORKTREE}` is resolved **per bead** — the absolute path to the worktree the
+`{WORKTREE}` is resolved **per dispatch** — the absolute path to the worktree the
 orchestrator created for it. A subagent works there and nowhere else; it
 cannot infer the path, and a prompt that omits it sends the agent into the
 shared checkout, which defeats every guarantee this design rests on.
@@ -124,14 +124,12 @@ FIRST, invoke the `sprint-batch` skill. It is the whole of how a batch is run: a
 
 Dispatch id: {DISPATCH_ID}   (yours; shared by every bead in this batch)
 Sprint branch: {BRANCH}      (your worktree MUST descend from this, never from the default branch)
-Worktrees: **where the orchestrator already provisioned one for you (the harness's
-`isolation: "worktree"`), you have exactly ONE worktree for EVERY bead in this batch —
-process them in order, one commit each, and do NOT create more.** Where it did not,
-create one per bead yourself, held ONE AT A TIME, each branched from the PREVIOUS
-bead's branch (`sprint-batch` says why).
-WHERE you were given one for the whole batch, a standing worktree means "this BATCH
-is unfinished" rather than "this bead is" — so report each bead's close as it lands,
-because your report is the only per-bead signal the orchestrator has until you return.
+Worktree: {WORKTREE}        (ONE for this whole batch — process the beads in order,
+`git checkout -b <suffix>` per bead so each branches off the last, one commit each,
+and do NOT create a second worktree.)
+A standing worktree means "this BATCH is unfinished", not "this bead is" — so report
+each bead's close as it lands, because your report is the only per-bead signal the
+orchestrator has until you return.
 Run epic: {EPIC}            (the run id; its metadata is the manifest — and where incidents land)
 Scripts: {SCRIPTS}
 Trailers: {"on the run epic" if any}   (pass `--trailers-from {EPIC}` to bb-close-bead.sh; omit it when the run resolved none)
@@ -254,12 +252,18 @@ worktree agents share one tracker, which is what makes this constraint real:
 ### The worktree lifecycle — create, dispatch, merge, remove
 
 The orchestrator owns creation and removal; the subagent owns only what
-happens inside. Per bead, in order:
+happens inside.
+
+**One worktree per DISPATCH, not per bead.** A batch is one agent working its
+beads serially, so a second worktree isolates it from nobody — the branches are
+what keep the beads separate, and the agent makes those inside the one tree
+with `git checkout -b`. A single bead dispatched alone is the same rule with
+one bead in it.
 
 ```sh
 REPO="$(git rev-parse --show-toplevel)"
-WT="$REPO/../.bb-worktrees/<suffix>"        # sibling of the repo, never inside it
-git -C "$REPO" worktree add -b <suffix> "$WT" HEAD
+WT="$REPO/../.bb-worktrees/<dispatch-id>"   # sibling of the repo, never inside it
+git -C "$REPO" worktree add -b <first-suffix> "$WT" HEAD
 ```
 
 A worktree inside the repository would read as dirt in every `git status` the
@@ -276,15 +280,16 @@ directory is gitignored before the first dispatch.** Untracked worktrees inside
 the repo are reported as uncommitted work by anything reading `git status`, and
 committing them lands in-flight bead state on the sprint branch.
 
-1. **Dispatch** the subagent with the per-bead template, telling it to work in
-   `$WT`. It implements, gates, records findings, and
-   closes with `../scripts/bb-close-bead.sh` — passing **no paths**, since everything in
-   that tree is this bead's work.
-2. **Accept**: verify the bead reads `closed` and its commit exists on the
-   bead's branch. This is the acceptance check; the worktree still existing at
-   this point is what tells you the bead is not yet done.
-3. **Merge** into the sprint branch, one bead at a time. Take the merge slot
-   first and release it after:
+1. **Dispatch** one subagent into `$WT`. It implements, gates, records findings,
+   and closes each bead with `../scripts/bb-close-bead.sh` — passing **no
+   paths**, since everything dirty in that tree is the current bead's work, the
+   previous bead having committed before this one started. A batch subagent
+   cuts its own branch per bead there with `git checkout -b <suffix>`.
+2. **Accept, per bead**: verify each bead reads `closed` and its commit exists
+   on that bead's branch.
+3. **Merge, per dispatch.** A chained batch fast-forwards the LAST bead's
+   branch, which already carries its predecessors — one merge, not one per
+   bead. Take the merge slot first and release it after:
 
    ```sh
    bd merge-slot acquire            # --wait to queue behind a holder
@@ -357,9 +362,11 @@ committing them lands in-flight bead state on the sprint branch.
    to the rebase:** a rebase CONFLICT means two beads genuinely changed the same
    lines, which is the failure `--ff-only` was standing in for. Stop the wave on
    a rebase conflict, exactly as you would on a sequential `--ff-only` refusal.
-4. **Remove the worktree — the final act of accepting the bead:**
+4. **Remove the worktree — the final act of accepting the dispatch**, once
+   every bead in it has merged:
    ```sh
-   git -C "$REPO" worktree remove "$WT" && git -C "$REPO" branch -d <suffix>
+   git -C "$REPO" worktree remove "$WT"
+   git -C "$REPO" branch -d <suffix>          # each of the batch's branches
    ```
    **Raw `git`, not `bd worktree remove`, and the reason is not inertia.**
    `bd worktree remove` adds one safety check git lacks — it refuses a clean
@@ -380,13 +387,24 @@ committing them lands in-flight bead state on the sprint branch.
    Removal is the orchestrator's, not the subagent's: an agent cannot remove
    the tree it is standing in. Because removal happens *after* the merge, a
    surviving worktree means "not yet accepted", which is the stronger reading
-   of the in-flight signal than "not yet committed".
+   of the in-flight signal than "not yet committed". At batch granularity it
+   reads "this DISPATCH is unfinished"; which of its beads is unfinished comes
+   from the dispatch record, not from counting trees.
 5. **Push** per the batch's push mode.
 
 WHEN a bead is blocked rather than finished, **leave its worktree in place**
 and say so in the report. It holds the partial work, and its existence is the
 durable record that the bead is unfinished — there is nothing to stash and no
 WIP commit to make (`operating-principles.md`).
+
+**In a batch that means the dispatch ends there IF the block left work in the
+tree.** One worktree cannot both preserve a blocked bead's uncommitted changes
+and give the next bead a clean tree to start from, and preserving them wins —
+the alternative is the next bead committing someone else's half-finished work.
+A bead blocked with a **clean** tree (nothing started, or a prerequisite found
+before any edit) costs nothing and the batch continues. The skip-verification
+script, run in the worktree, is the test, and its verdict is what the return
+line reports.
 
 **Prune before trusting the list.** A reclaimed container deletes worktree
 directories without deregistering them, and a stale entry reads as in-flight

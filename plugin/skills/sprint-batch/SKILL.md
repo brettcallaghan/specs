@@ -23,10 +23,10 @@ than it was given beads is the failure this tier exists to prevent.
 | | |
 |---|---|
 | the bead list | ids, priorities, titles, and each bead's decision — **in order** |
-| `{WORKTREE}` | the worktree you were given, or the instruction to create one per bead |
+| `{WORKTREE}` | the ONE worktree for this batch — you create no others |
 | `{EPIC}` | the run epic — the manifest, and where incidents land |
 | `{DISPATCH_ID}` | yours, shared by every bead in this batch |
-| `{BRANCH}` | the sprint branch — every worktree descends from it |
+| `{BRANCH}` | the sprint branch — your worktree descends from it |
 | `{SCRIPTS}` | the orchestrator's `scripts/` directory |
 | `{CHECKS_IDS}`, `{CHECKS_BASELINE_TEXT}` | what the project declared, and what it printed before the run |
 | push mode | `push_per_bead` or `defer_push` |
@@ -77,11 +77,20 @@ Two things batching does **not** change:
   cheaper, it is just unvalidated.
 - **Every bead is its own commit.** Never combine two beads into one.
 
-**Order is load-bearing where you create your own worktrees.** Branch each bead
-from the **previous bead's branch**, not from HEAD: inside a batch HEAD does
-not move, because the orchestrator merges only after you return, so branching
-from HEAD gives beads that cannot see each other's work and collide on any
-shared file.
+**One worktree, one branch per bead, cut in order.** In `{WORKTREE}`, before
+each bead:
+
+```sh
+git checkout -b <bead-suffix>
+```
+
+That branches from where the previous bead committed, which is what makes each
+bead build on the last. **Do not create a second worktree** — the batch is one
+agent working serially, so a second tree isolates it from nobody, and it is the
+*branches* that keep the beads separate. **Do not branch from the sprint branch
+for each bead**: the orchestrator merges only after you return, so the sprint
+head does not move while you work, and beads cut from it cannot see each
+other's work and collide on any shared file.
 
 **Fix a finding in the bead that introduced it.** Because every bead runs the
 checks, the bead whose run first shows a line absent from the baseline is where
@@ -91,8 +100,19 @@ Blocked path for that bead rather than silently repairing it across several
 commits.
 
 **A bead that conflicts with an earlier bead in this batch** — one removed what
-the next was about to change — takes the Blocked path, and you continue with
-the rest.
+the next was about to change — takes the Blocked path.
+
+**Whether you continue after a block depends on the tree, not the reason.**
+`run-bead`'s Blocked path leaves the partial work uncommitted, and you have one
+worktree, so that work is sitting where the next bead would start. Run
+`{SCRIPTS}/bb-verify-skip.sh` in `{WORKTREE}`:
+
+- **CLEAN (exit 0)** — nothing was started. Continue with the next bead.
+- **DIRTY (exit 1)** — the batch ends here. Return the blocked bead with its
+  reason and every remaining bead as `blocked — not reached (batch ended at
+  <id>)`. Leave the tree exactly as it is: it is the durable record of the
+  partial work, and committing or stashing it to free the tree destroys the
+  thing the block exists to preserve.
 
 ## D3 · Close — hand off
 
@@ -103,9 +123,10 @@ bd update <id> --set-metadata dispatch_state=returned \
   --set-metadata terminal_state=completed|blocked|skipped
 ```
 
-**Write it even when the bead is blocked — especially then.** Together with
-whether the worktree still exists, that pair is what tells the orchestrator a
-live agent from a dead one without guessing.
+**Write it even when the bead is blocked — especially then.** The worktree is
+shared across the batch, so it says only that this DISPATCH is unfinished; the
+dispatch record is what says which bead. That pair is what tells the
+orchestrator a live agent from a dead one without guessing.
 
 Then return **one message**: one line per bead, then
 
@@ -122,14 +143,19 @@ push either.
 
 ## What the four states mean
 
-The orchestrator reads your dispatch record against the worktree:
+The orchestrator reads your dispatch record, per bead, against the batch's one
+worktree:
 
 | worktree | `dispatch_state` | reading |
 |---|---|---|
-| present | `running` | live worker |
-| present | `returned` | finished; orphaned tree, the orchestrator removes it |
-| absent | `running` | the worker died |
-| absent | `returned` | done and cleaned up |
+| present | any bead `running` | live worker |
+| present | every bead `returned` | finished; orphaned tree, the orchestrator removes it |
+| absent | any bead `running` | the worker died |
+| absent | every bead `returned` | done and cleaned up |
+
+**Every bead pointing at the tree must have returned before it can go** — one
+bead still `running` holds it for the whole batch, and the orchestrator's
+cleanup script enforces that.
 
 Writing both ends of that record is the whole of your obligation to it. A
 standing worktree with no record is three paragraphs of prose to interpret; one

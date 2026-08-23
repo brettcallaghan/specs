@@ -159,9 +159,11 @@ Write no progress file.
    {SCRIPTS}/bb-close-bead.sh --trailers-file {TRAILERS_FILE} {ID} {PRIORITY} "{TITLE}"
    ```
 
-   Omit `--trailers-file` when it resolved to `none`. **Pass no paths** — in
-   this bead's own worktree everything modified is this bead's work, and a path
-   list can only be too narrow.
+   Omit `--trailers-file` when it resolved to `none`. **Pass no paths** —
+   everything modified in the worktree is this bead's work, and a path list can
+   only be too narrow. That holds inside a batch's shared tree too: the previous
+   bead committed before this one started, so nothing uncommitted is anyone
+   else's.
 
    It performs the ceremony in the required order: atomic close
    (`bd update --status closed`, never `bd close`, which would be a second
