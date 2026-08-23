@@ -31,7 +31,7 @@ needs its record exactly as much as a twenty-bead run does.
 
 `--metadata` JSON on the run epic, **written by the orchestrator itself** from
 `scripts/pre-flight-check.sh`'s output plus what admission decided. Retrieve it
-whole with `bd show <epic-id> --json | jq .metadata`.
+whole with `bd show <epic-id> --json | jq '.[0].metadata'`.
 
 **`branch` and `base_sha` are the orchestrator's, written once.** It creates
 the sprint branch immediately before dispatching wave 1 — after grooming, so

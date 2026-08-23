@@ -48,7 +48,7 @@ Four checks, before you touch a bead. Each is cheap and each has caught a run.
    every bead in this batch would be written against a tree missing its
    predecessors' commits — and the merge afterwards looks like a conflict
    rather than like a mistake. Report and **do not start**.
-3. **Read the manifest** — `bd show {EPIC} --json | jq -r .metadata`. The
+3. **Read the manifest** — `bd show {EPIC} --json | jq -r '.[0].metadata'`. The
    checks baseline is in it, and it is what "no findings beyond the baseline"
    means for every bead you are about to run.
 4. **Record that you hold them.** For each bead in the batch:

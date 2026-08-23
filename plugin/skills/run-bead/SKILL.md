@@ -217,12 +217,12 @@ Most decisions are about *how* to do the work, and a `retro:` comment is the
 whole of their record. Four kinds change *what correct is*, and guessing at
 those produces confidently wrong work that passes every check:
 
-| | |
-|---|---|
-| an **acceptance criterion needs amending** | the bead's definition of done is wrong, so any implementation is a guess at intent |
-| a standard, requirement and AC are in **tension** | there is no conservative branch — each choice violates something |
-| a **contract or interface** change | the blast radius is outside this bead's scope by construction |
-| a spec is **silent** where the bead requires it to speak | your choice writes an undocumented decision into the code |
+| | | kind |
+|---|---|---|
+| an **acceptance criterion needs amending** | the bead's definition of done is wrong, so any implementation is a guess at intent | `decision` |
+| a standard, requirement and AC are in **tension** | there is no conservative branch — each choice violates something | `decision`, one per target |
+| a **contract or interface** change | the blast radius is outside this bead's scope by construction | `scope` |
+| a spec is **silent** where the bead requires it to speak | your choice writes an undocumented decision into the code | `gap` |
 
 **Decide anyway. Do not stop and do not ask** — see Constraints. A recorded
 decision gets reviewed at the pull request and revised in a later bead, and
@@ -231,7 +231,8 @@ that is cheaper than a run blocked on a question nobody is awake to answer.
 **Record it two ways, both required:**
 
 ```bash
-bd comment {ID} "retro: incident — <what you decided, and why>.
+# <kind> from the table above; <target> is the document or bead it is about.
+bd comment {ID} "retro:<kind>:<target> incident — <what you decided, and why>.
 Alternative considered: <what you rejected, and what it would have cost>."
 
 # and, WHEN {EPIC} is not `none`, so the run's record carries it
@@ -239,10 +240,12 @@ Alternative considered: <what you rejected, and what it would have cost>."
 bd comment {EPIC} "amend: incident on {ID} — <one line>"
 ```
 
-The `retro: incident —` prefix is deliberate: the ordinary `retro:` sweep still
-finds it, and it is greppable as its own class. The run's report names every
-one of them **before anything else** — that section is what earns an autonomous
-run its autonomy.
+**An incident is a severity, not a kind** — it carries the ordinary
+`retro:<kind>:<target>` prefix so routing still picks it up, and the word
+` incident ` after the prefix is what makes the class greppable. A comment
+spelled `retro: incident` with no kind routes nowhere and is invisible to the
+report's sweep. The run's report names every one of them **before anything
+else** — that section is what earns an autonomous run its autonomy.
 
 **Working solo (`{EPIC}` is `none`)?** The bead comment alone. Say in your
 return line that an incident was recorded, so whoever reads it knows to look.

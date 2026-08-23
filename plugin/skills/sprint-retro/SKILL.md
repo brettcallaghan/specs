@@ -67,6 +67,12 @@ closed, and re-run before aggregating anything. A zero count across a run that
 closed nothing may be genuine — proceed on what grooming and readiness
 produced.
 
+**Incidents arrive through this same query.** An incident is a severity, not a
+kind — an ordinary `retro:<kind>:<target>` finding whose text carries the word
+` incident ` after the prefix. It routes by its kind like any other; carry the
+marker through to the candidate issue, because each one marks a place the
+corpus failed to answer a question a bead needed answered.
+
 **Findings are numbered `<bead-id>#<ordinal>`**, by position within that
 bead's own findings. Cite that form everywhere. The id is derived, never
 authored — `references/shared/findings-capture-protocol.md` says why.

@@ -606,7 +606,7 @@ w = subprocess.run(["bd", "update", eid, "--metadata", json.dumps(cur)],
 sys.exit(0 if w.returncode == 0 else 1)
 PY
   then
-    say "written: manifest on $EPIC (\`bd show $EPIC --json | jq -r .metadata.checks_baseline\`)"
+    say "written: manifest on $EPIC (\`bd show $EPIC --json | jq -r '.[0].metadata.checks_baseline'\`)"
     say "INLINE it into every subagent prompt — a baseline that stops at the"
     say "planner is one the agent running the checks never sees."
   else

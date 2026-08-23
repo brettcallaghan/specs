@@ -85,7 +85,7 @@ After each subagent returns:
    perform it:
 
    ```sh
-   {SCRIPTS}/bb-status.sh bead <bead-id> --worktree <path> [--batch]
+   {SCRIPTS}/bb-status.sh bead <bead-id> --worktree <path> --pre-merge [--batch]
    ```
 
    It verifies the five signals in the required order and stops at the first
@@ -101,7 +101,14 @@ After each subagent returns:
    |---|---|
    | `0` | all clear — record the bead closed |
    | `1` | **repairable in place.** Signals 1, 2, 5: close the bead, or add the missing `retro:` comment from the returned summary. State the repair in the report. |
-   | `2` | **stop the wave.** Signals 3, 4: the merge or the acceptance never happened. Not yours to repair inline — leave the worktree standing, since it is the in-flight signal, and surface it. |
+   | `2` | **stop the wave.** Not yours to repair inline — leave the worktree standing, since it is the in-flight signal, and surface it. |
+
+   **`--pre-merge` is not optional here.** You run before the orchestrator
+   merges and removes the worktree, so signals 3 (merged into HEAD) and 4
+   (worktree gone) would fail on **every bead, by construction** — the branch
+   cannot be an ancestor of HEAD yet, and the worktree is supposed to still be
+   standing. The flag defers both. **The orchestrator re-runs the check
+   without it after merging**, and that is what actually verifies them.
 
    Pass `--batch` for a bead processed inside a batch's shared worktree, which
    makes signal 4 skip rather than fail; read signal 4 once, against the batch,

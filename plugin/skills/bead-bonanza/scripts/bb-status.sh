@@ -3,7 +3,7 @@
 # bb-status.sh — verify a run's acceptance signals from state, not testimony.
 #
 # USAGE
-#   bb-status.sh bead <bead-id> [--worktree <path>] [--batch]
+#   bb-status.sh bead <bead-id> [--worktree <path>] [--batch] [--pre-merge]
 #   bb-status.sh wave [--branch <name>] [--remote <name>]
 #   bb-status.sh run <epic-id>
 #   bb-status.sh slot [<epic-id>]
@@ -18,6 +18,13 @@
 #   2  STOP THE WAVE. Signals 3 and 4: the merge or the acceptance never
 #      happened. Not the orchestrator's to repair inline — leave the worktree
 #      standing, since it is the in-flight signal, and surface it.
+#
+# --pre-merge DEFERS SIGNALS 3 AND 4. A wave checks what a subagent returned
+# BEFORE the orchestrator merges the branch and removes the worktree, so both
+# signals would fail by construction: the branch cannot be an ancestor of HEAD
+# yet, and the worktree is supposed to still be there. The wave passes
+# --pre-merge; the orchestrator re-runs without it after merging, which is what
+# actually verifies 3 and 4.
 #   3  invocation error.
 #
 # WHO RUNS IT
@@ -56,14 +63,15 @@ note() { # note <rc>
 
 # ------------------------------------------------------------------ bead mode
 mode_bead() {
-  id=""; wt=""; batch=no
-  [ $# -ge 1 ] || die "usage: bb-status.sh bead <bead-id> [--worktree <path>] [--batch]"
+  id=""; wt=""; batch=no; premerge=no
+  [ $# -ge 1 ] || die "usage: bb-status.sh bead <bead-id> [--worktree <path>] [--batch] [--pre-merge]"
   id="$1"; shift
   while [ $# -gt 0 ]; do
     case "$1" in
-      --worktree) [ $# -ge 2 ] || die "--worktree needs a path"; wt="$2"; shift 2 ;;
-      --batch)    batch=yes; shift ;;
-      *)          die "unknown argument: $1" ;;
+      --worktree)  [ $# -ge 2 ] || die "--worktree needs a path"; wt="$2"; shift 2 ;;
+      --batch)     batch=yes; shift ;;
+      --pre-merge) premerge=yes; shift ;;
+      *)           die "unknown argument: $1" ;;
     esac
   done
 
@@ -92,8 +100,15 @@ mode_bead() {
     line FAIL "2 commit: none found" "$c"; note $RC_REPAIR
   fi
 
-  # 3. merged into the current branch. Only meaningful once 2 found a sha.
-  if [ -n "$sha" ]; then
+  # 3. merged into the current branch. Only meaningful once 2 found a sha, and
+  # only AFTER the merge has happened. A wave verifies what a subagent returned
+  # before the orchestrator merges, so it passes --pre-merge and signals 3 and 4
+  # are deferred to the orchestrator's own check after the merge. Without that
+  # split every bead fails signal 3 by construction — the branch is not an
+  # ancestor of HEAD yet, and cannot be.
+  if [ "$premerge" = yes ]; then
+    line SKIP "3 merged: deferred" "(--pre-merge; the merge has not happened yet)"
+  elif [ -n "$sha" ]; then
     c="git merge-base --is-ancestor $sha HEAD"
     if git merge-base --is-ancestor "$sha" HEAD 2>/dev/null; then
       line OK "3 merged into HEAD" "$c"
@@ -109,7 +124,9 @@ mode_bead() {
   c="git worktree prune && git worktree list"
   if [ -n "$wt" ]; then
     if git worktree list 2>/dev/null | grep -qF -- "$wt"; then
-      if [ "$batch" = yes ]; then
+      if [ "$premerge" = yes ]; then
+        line SKIP "4 worktree: deferred" "(--pre-merge; removal follows the merge)"
+      elif [ "$batch" = yes ]; then
         # A batch holds one worktree for every bead it carries, so beads
         # already closed inside it have a surviving worktree by construction.
         # Charging each of them fails the whole batch but its last bead.
@@ -561,7 +578,7 @@ print(" ".join(x.get("id","") for x in d) if isinstance(d,list) else "")' 2>/dev
   _out_ids="$(printf '%s\n' "$_out" | sed -n 's/^OUTSTANDING|[0-9]*|//p')"
   if [ "${_adm:-0}" -eq 0 ] 2>/dev/null; then
     line FAIL "manifest records no admitted set — DoD cannot be checked" \
-         "bd show $_epic --json | jq .metadata.admitted"; note $RC_REPAIR
+         "bd show $_epic --json | jq '.[0].metadata.admitted'"; note $RC_REPAIR
   elif [ "${_out_n:-0}" -gt 0 ] 2>/dev/null; then
     line FAIL "$_out_n admitted bead(s) not closed: $_out_ids" "manifest .admitted"
     note $RC_STOP

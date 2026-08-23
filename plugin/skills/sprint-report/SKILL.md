@@ -36,8 +36,13 @@ Every decision this run made that changed what "correct" means: an acceptance
 criterion amended, a standard/requirement/AC tension resolved, a contract or
 interface changed, a spec silent where a bead needed it to speak.
 
+An incident is a severity, not a kind: it is an ordinary
+`retro:<kind>:<target>` finding whose text carries the word ` incident ` after
+the prefix. Match on that, not on a `retro: incident` prefix — nothing writes
+one.
+
 ```bash
-bd export | jq -r '.comments[]?.text' | grep -E '^(retro: incident|amend: incident)'
+bd export | jq -r '.comments[]?.text' | grep -E '^(retro:[a-z]+:[^ ]+ incident|amend: incident)'
 ```
 
 One row each — the bead, what was decided, what was rejected and at what cost.

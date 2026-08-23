@@ -25,11 +25,17 @@ if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   exit 2
 fi
 
-unstaged="$(git diff --stat -- "$@")"
-staged="$(git diff --staged --stat -- "$@")"
+# Each git call's status is read, not just its stdout. A failing git — a
+# pathspec that matches nothing tracked, a corrupt index — prints to stderr and
+# returns EMPTY stdout, which is byte-for-byte what a clean tree returns. Left
+# unchecked, the one case where the check could not run reads as the one case
+# where it passed.
+unstaged="$(git diff --stat -- "$@")"           || { echo "bb-verify-skip: git diff failed" >&2; exit 2; }
+staged="$(git diff --staged --stat -- "$@")"    || { echo "bb-verify-skip: git diff --staged failed" >&2; exit 2; }
 # Untracked files count as work too: a subagent that wrote a new file and
 # claimed a skip is the same contradiction as one that edited an existing file.
-untracked="$(git ls-files --others --exclude-standard -- "$@")"
+untracked="$(git ls-files --others --exclude-standard -- "$@")" \
+  || { echo "bb-verify-skip: git ls-files failed" >&2; exit 2; }
 
 if [ -z "$unstaged" ] && [ -z "$staged" ] && [ -z "$untracked" ]; then
   echo "bb-verify-skip: CLEAN — no unstaged, staged, or untracked changes."

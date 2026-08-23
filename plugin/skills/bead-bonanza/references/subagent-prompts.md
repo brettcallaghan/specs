@@ -12,15 +12,16 @@ and is also the run id, `{BRANCH}` is the sprint branch from the manifest,
 `{SCRIPTS}` is the absolute path to this skill's `scripts/` directory,
 `{CHECKS_IDS}` is the ids the project declared (emitted as `BB_CHECKS_IDS`),
 and `{CHECKS_BASELINE_TEXT}` is the manifest's baseline —
-`bd show {EPIC} --json | jq -r .metadata.checks_baseline`.
+`bd show {EPIC} --json | jq -r '.[0].metadata.checks_baseline'`.
 A subagent can infer none of them.
 
 **There is no run directory.** The run's record is the epic: the manifest in
 its metadata, the amendments in its comments.
 
 **`{EPIC}` is also where incidents land.** A subagent that has to decide
-something changing what "correct" means writes `retro: incident — …` on the
-bead and `amend: incident on <id> — …` on the epic. `run-bead` carries the
+something changing what "correct" means writes
+`retro:<kind>:<target> incident — …` on the bead and
+`amend: incident on <id> — …` on the epic. `run-bead` carries the
 rule; the prompt only has to supply the id, which no subagent can infer.
 
 `{DISPATCH_ID}` is resolved **per subagent** — one id for a batch, shared by

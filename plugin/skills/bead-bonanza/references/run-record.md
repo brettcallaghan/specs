@@ -17,7 +17,7 @@ after `sprint-scope` returns the epic and before you dispatch grooming.
    **Merge, never replace.** Pre-flight writes the baseline into the same
    object, and the epic already carries grooming's own keys. Read it, update
    your keys, write it back:
-   `bd show <epic> --json | jq .metadata` → edit → `bd update <epic> --metadata @file.json`.
+   `bd show <epic> --json | jq '.[0].metadata'` → edit → `bd update <epic> --metadata @file.json`.
 
    Recovery reads the epic rather than re-deriving the run, and the epic
    outlives a reclaimed container where a `/tmp` path does not.
