@@ -54,11 +54,15 @@ prune_worktrees() { # prune_worktrees <epic>
   # bd's JSON is the authority on who still holds what. A worktree whose bead
   # reads `running` is left standing: it is either a live agent or a corpse,
   # and only a human can tell those apart.
-  wts="$(git worktree list --porcelain 2>/dev/null | awk '/^worktree /{print $2}')"
+  wts="$(git worktree list --porcelain 2>/dev/null | parse_worktrees)"
   main="$(git rev-parse --show-toplevel 2>/dev/null)"
   [ -n "$wts" ] || { say "no worktrees registered"; return 0; }
 
-  beads="$(bd list --parent "$epic" --json 2>/dev/null)" || beads='[]'
+  # Keyed on the worktree path, not on the epic: `bd list --parent` returns
+  # DIRECT children only, so on a nested run epic every leaf bead's worktree
+  # would read "no dispatch record" and be left standing. `--all` because a
+  # returned bead is closed and `bd list` defaults to open.
+  beads="$(bd list --all --has-metadata-key worktree --json 2>/dev/null)" || beads='[]'
   seen=0
   # A pipe would put this loop in a subshell, where note_left cannot reach
   # $left and a LEFT worktree would print while the script still exited 0.
@@ -80,6 +84,26 @@ WTLIST
   return 0
 }
 
+# ----------------------------------------------------------------- parsers
+# Both read stdin and are pure text transforms, so the self-test can drive
+# them with synthetic input and needs neither a repository nor a tracker.
+
+# sed, not `awk '{print $2}'`: a worktree path containing a space is truncated
+# at the space by field splitting, and the truncated path then matches no bead
+# and is reported LEFT forever.
+parse_worktrees() { sed -n 's/^worktree //p'; }
+
+# `bd swarm list --json` is the only lookup that works. Molecules carry NO
+# metadata (so an `.metadata.epic` predicate matches nothing) and are absent
+# from `bd list --type molecule` entirely; the swarm listing carries the epic
+# link and the real status as fields. Its TEXT output files closed molecules
+# under "Active Swarms" — the JSON's `status` does not lie.
+select_molecule() { # select_molecule <epic>  < swarm-list-json
+  jq -r --arg e "$1" \
+    '[.swarms[]? | select(.epic_id == $e and .status != "closed")] | .[0].id // empty' \
+    2>/dev/null
+}
+
 # -------------------------------------------------------------- merge slot
 release_slot() { # release_slot <epic>
   out="$(bd merge-slot check 2>&1)"; rc=$?
@@ -93,11 +117,8 @@ release_slot() { # release_slot <epic>
 # ------------------------------------------------------------------- swarm
 close_molecule() { # close_molecule <epic>
   epic="$1"
-  # `bd swarm list` reports CLOSED molecules under "Active", so read status
-  # from the molecule itself rather than trusting that listing.
-  mols="$(bd list --type molecule --status open --json 2>/dev/null)" || mols='[]'
-  mol="$(printf '%s' "$mols" | jq -r --arg e "$epic" \
-        '[.[] | select((.metadata.epic // "") == $e)] | .[0].id // empty' 2>/dev/null)"
+  mols="$(bd swarm list --json 2>/dev/null)" || mols='{}'
+  mol="$(printf '%s' "$mols" | select_molecule "$epic")"
   [ -n "$mol" ] || { say "no open swarm molecule for $epic"; return 0; }
   run "close swarm molecule" bd close "$mol" --reason "sprint complete"
 }
@@ -126,6 +147,18 @@ self_test() {
   t "no argument is a usage error"        "$RC_USAGE" "$0"
   t "unknown flag is a usage error"       "$RC_USAGE" "$0" some-epic --bogus
   t "--self-test takes no epic"           "$RC_USAGE" "$0" --self-test extra
+  # The two parsers, driven with synthetic input. Each replaces a form that
+  # was measured wrong: `awk '{print $2}'` truncated a path at its first
+  # space, and a molecule lookup keyed on `.metadata.epic` matched nothing
+  # because molecules carry no metadata at all.
+  _sw() { printf '%s' '{"swarms":[{"id":"m-closed","epic_id":"E","status":"closed"},{"id":"m-open","epic_id":"E","status":"active"},{"id":"m-other","epic_id":"F","status":"active"}]}'; }
+  r="$(_sw | select_molecule E)"
+  if [ "$r" = "m-open" ]; then printf '  ok   %s\n' "molecule lookup skips closed and other epics"
+  else printf '  FAIL %s (expected m-open, got %s)\n' "molecule lookup skips closed and other epics" "$r"; fails=$((fails+1)); fi
+  r="$(printf 'worktree /a/b c\nHEAD deadbeef\nbranch refs/heads/x\n\nworktree /d/e\n' | parse_worktrees)"
+  if [ "$r" = "/a/b c
+/d/e" ]; then printf '  ok   %s\n' "a worktree path keeps its spaces"
+  else printf '  FAIL %s (got [%s])\n' "a worktree path keeps its spaces" "$r"; fails=$((fails+1)); fi
   # NOT asserted: a dry run's exit status. It reports 1 whenever ANY worktree
   # is registered and unaccounted for, and during a sprint worktrees exist by
   # construction — so asserting 0 here made this self-test, and the declared
