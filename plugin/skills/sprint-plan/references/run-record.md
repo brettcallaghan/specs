@@ -59,9 +59,22 @@ opens against it.
   "wave_preview": "accepted | overridden — <why> | none (no C4 docs) | not returned",
   "review_passes": 0,
   "review_budget": 2,
+  "findings_path": "<sprint-retro's findings document>",
+  "retro_filed": 0,
+  "retro_declined": 0,
+  "retro_outbox": 0,
+  "report_path": "<sprint-report's report>",
   "ledger": ["<claim> — proved by <command>, observed <result>"]
 }
 ```
+
+**The four retro keys and `report_path` are written by their own skills, at the
+end of the run, in that order.** They are why `sprint-report`'s only input is
+the epic id: the retro runs first and leaves its outcome here, so the report
+names what the retro produced without being handed it, and a session that did
+not run the sprint can still write one. **An absent retro key means the retro
+did not run** — which the report states rather than omits, since a skipped
+retro and one that found nothing are different results.
 
 **Merge, never replace.** The epic already carries grooming's keys and
 pre-flight writes the baseline into the same object: read it, update your keys,

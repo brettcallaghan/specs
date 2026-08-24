@@ -22,12 +22,11 @@ next run better.** Not a report someone reads; not a queue someone drains.
 | | |
 |---|---|
 | `{EPIC}` | the run epic. Its manifest, its `amend:` comments, and its descendants are the whole of what you need |
-| the run's report | `sprint-report` wrote it and recorded its path in the manifest. You read its tables; you do not recompute them |
 
 ## What you return
 
 - **The findings**, every one of them, verbatim and grouped by kind — written
-  into the sprint report.
+  into the run's findings document, which you create.
 - **N candidate issues**, in the issue template's shape.
 - **The human's decision per candidate**, and what you filed for each yes.
 - **Counts**: harvested, routed per branch, unrouted, filed, declined.
@@ -41,8 +40,8 @@ fires on success cannot see the failures.
 
 ## Do not re-derive the run
 
-The inputs are the harvested findings, the report's tables, the epic's
-`amend:` comments and `git log` on the sprint branch. **Do NOT re-read diffs,
+The inputs are the harvested findings, the epic's manifest, its `amend:`
+comments and `git log` on the sprint branch. **Do NOT re-read diffs,
 re-run checks, or re-open the beads' work.** A retro that costs a second pass
 over the run is a retro that gets skipped.
 
@@ -81,7 +80,7 @@ authored — `references/shared/findings-capture-protocol.md` says why.
 
 ```
 kind == tooling          → the SKILL audience
-kind == proof            → the report, attached to what it supports. No issue.
+kind == proof            → the findings document, beside what it supports. No issue.
 kind == environment      → the project's environmental-failure ledger. No issue.
 kind is one of the six    → the PROJECT audience
 kind missing or unknown  → UNROUTED — a count and a list, never dropped
@@ -110,12 +109,21 @@ for different people.
 
 ### (a) Every finding, verbatim, grouped by kind
 
-Into the sprint report at `rfcs/sprints/<YYYY-MM-DD>-<epic-slug>.md`. Not a
-summary and not a selection.
+**Into the run's findings document, which is yours to write** — the retro runs
+BEFORE the report, so there is no report to write into yet:
+
+```sh
+path="rfcs/sprints/<YYYY-MM-DD>-<epic-slug>-findings.md"
+bd update {EPIC} --set-metadata findings_path="$path"
+```
+
+Recording the path is what lets `sprint-report` cite the document without being
+handed anything: its only input stays the epic id, so a session that did not
+run the sprint can still write the report. Not a summary and not a selection.
 
 **The complete set is the substrate recurrence runs on.** A finding filtered
 out once can never be observed appearing twice, and recurrence is the only
-signal separating a real defect from one bad afternoon. Filtering the report
+signal separating a real defect from one bad afternoon. Filtering the document
 down to what looks actionable breaks that accumulation silently.
 
 ### (b) N candidate issues
@@ -130,7 +138,7 @@ restate it.
 a summary. "The `schema`-labelled beads were batched shared-surface but each
 regenerated the same fixture, so the batch serialized anyway — batch that
 label sequential" is a candidate. Only findings that clear that bar become
-candidates; the rest stay in the report, where recurrence can still find them.
+candidates; the rest stay in the document, where recurrence can still find them.
 
 **Incidents are the best material.** Each marks a place the corpus failed to
 answer a question a bead needed answered — a candidate against a *document*
@@ -138,17 +146,17 @@ rather than a complaint about the run.
 
 ## 5 · Decide — one human, once
 
-**Ask once**, right after the report, while the evidence is on screen. Per
-**candidate**, not per finding — one or two orders of magnitude fewer
-questions.
+**Ask once**, with the candidate list on screen — that is the evidence, and it
+is yours, not the report's. Per **candidate**, not per finding — one or two
+orders of magnitude fewer questions.
 
 **Declining is normal and is recorded.** A declined candidate stays in the
-report as findings; nothing is deleted. A later sprint hitting the same
+findings document; nothing is deleted. A later sprint hitting the same
 friction raises it again with a higher recurrence count, which is how a
 decision that was wrong corrects itself with nobody tracking it.
 
-**If nobody answers, the run does not block.** The report is complete and the
-candidates are decidable later from it.
+**If nobody answers, the run does not block.** The findings document is
+complete and the candidates are decidable later from it.
 
 ## 6 · File — one format, two destinations
 
@@ -191,7 +199,16 @@ leads back to its findings.
 ## Close the loop
 
 Append one row for the sprint to `rfcs/retro-log.md`, so one index covers all
-retro activity, and commit it with the report and anything filed.
+retro activity, and commit it with the findings document and anything filed.
+The report is written after you and commits itself.
+
+**Record the outcome on the epic**, so `sprint-report` — which runs after you
+and takes only the epic id — can name what you produced:
+
+```sh
+bd update {EPIC} --set-metadata retro_filed=<n> \
+  --set-metadata retro_declined=<n> --set-metadata retro_outbox=<n>
+```
 
 **Every issue carries the run's model lineup and effort from the manifest into
 its provenance.** The manifest records them precisely so this step can, and an

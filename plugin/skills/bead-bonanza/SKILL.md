@@ -47,15 +47,15 @@ anything else means something failed, and the output says what.
 │      └ 5c supervise       ─┘ front is dry   bb-status.sh
 │  6   review ................................ sprint-review → declared reviewer
 └───── findings admitted AND passes < 3 ? ─── yes ──┘
-7     report ................................ sprint-report
-8     retro ................................. sprint-retro
+7     retro ................................. sprint-retro
+8     report ................................ sprint-report
 9     post-flight ........................... sprint-cleanup.sh
 ```
 
 **Two nested loops, both bounded**: the wave loop ends when the ready front is
 dry, the review loop at 3 passes or no admitted findings. Neither exhausting is
-a failure — what is left is filed and named. **7 and 8 run report-then-retro**;
-the retro reads the report's tables.
+a failure — what is left is filed and named. **7 and 8 run retro-then-report**,
+so what the retro produced reaches the report.
 
 **A human's pull-request review is not a step here.** Whether one happens, and
 when, is the project's business — the run ends at post-flight either way, and
@@ -76,7 +76,7 @@ run:
 - [ ] 3. Waves via `sprint-wave`; merge each accepted branch, then re-check it
 - [ ] 3b. `sprint-review`; loop back to groom & plan if findings were admitted
         and the pass budget is not spent
-- [ ] 4. `sprint-report` (incidents first), then `sprint-retro`
+- [ ] 4. `sprint-retro`, then `sprint-report` (incidents first)
 - [ ] 5. Post-flight cleanup, then cancel the durable trigger
 ```
 
@@ -246,7 +246,7 @@ Where the run is, which of three deaths you are looking at, and why the obvious
 
 ## Review the run's own diff — invoke `sprint-review`
 
-When the ready front is dry, **before the report**: invoke `sprint-review`. It
+When the ready front is dry, **before the retro**: invoke `sprint-review`. It
 runs the reviewer the project declared in `sf.toml`'s `[review]`, scopes it to
 `base_sha`..sprint head, files every finding as a bead, and classifies each in
 or out of the run's authorized scope.
@@ -265,41 +265,45 @@ not a failure: `references/supervision.md`.
 
 **Undeclared is not a skip**: it finds a reviewer or uses a bare agent, and
 the report names which.
-## Report — invoke `sprint-report`
+## Retro — invoke `sprint-retro`
 
-After the queue drains (or the circuit breaker trips), invoke `sprint-report`.
-**Pass it the run epic id and nothing else** — everything it needs is on that
-epic, which is what lets a resumed session report on a run it did not hold.
-
-It leads with the **incidents**, then the results table, routing evidence,
-follow-up beads, exclusions, and what the run could not verify, and records its
-path in the manifest. **Read it before you hand it over**: you own that it is
-true, not that it is written.
-
-**A report is always produced**, including for a run that stopped early. A run
-ending without one has failed, whatever else it achieved.
-
-### Then the retro — invoke `sprint-retro`
-
-**After the report, whose tables it reads**, and **on every run** — including
-one that closed nothing. A sprint that bounced its whole queue produced no code
-and a lot of evidence about grooming; a retro firing only on success cannot see
-the failures.
+After the queue drains (or the circuit breaker trips), invoke `sprint-retro` —
+**before the report, so what it produces can be reported** — and **on every
+run**, including one that closed nothing. A sprint that bounced its whole queue
+produced no code and a lot of evidence about grooming; a retro firing only on
+success cannot see the failures.
 
 It harvests every finding, routes each by kind, reasons them into candidates,
 puts those to the user once, and files what they accept — beads here,
-`.sf/outbox/` files for the skills it ran on.
+`.sf/outbox/` files for the skills it ran on. It writes **its own** findings
+document rather than into the report, and records that path plus its filed /
+declined / outbox counts on the epic, which is what keeps the report's only
+input the epic id.
 
-**Two of the nine kinds never become issues** — `proof` stays in the report,
-`environment` goes to the environmental-failure ledger. Measured at 7 of 73 on
-a real run, so expect them.
+**Two of the nine kinds never become issues** — `proof` stays with the
+findings, `environment` goes to the environmental-failure ledger. Measured at 7
+of 73 on a real run, so expect them.
 
 **Incidents are its best material** — each marks a place the corpus failed to
 answer a question a bead needed, which is a finding against a *document*
 rather than a complaint about the run.
+
+### Then the report — invoke `sprint-report`
+
+**Pass it the run epic id and nothing else** — everything it needs, the retro's
+outcome included, is on that epic, which is what lets a resumed session report
+on a run it did not hold.
+
+It leads with the **incidents**, then the results table, routing evidence, the
+retro's outcome, follow-up beads, exclusions, and what the run could not
+verify, and records its path in the manifest. **Read it before you hand it
+over**: you own that it is true, not that it is written.
+
+**A report is always produced**, including for a run that stopped early. A run
+ending without one has failed, whatever else it achieved.
 ## Post-flight — the cleanup script
 
-The last act, after the report and the retro:
+The last act, after the retro and the report:
 
 ```sh
 "$SCRIPTS"/sprint-cleanup.sh <epic>         # add --dry-run to see it first
