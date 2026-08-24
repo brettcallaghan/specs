@@ -51,6 +51,17 @@ them as a starting point and still confirm each against the sources below.
 A fact with no source named is not part of the output. A reconstruction that
 could not read the manifest is a *reconstruction*, and says so.
 
+**Your actor is the coordinator's, and you cannot export it until step 1 gives
+you the run id.** You are resuming a coordinator, not a new role, so once you
+have the run epic — before any `bd` write, and before you reclaim a hold —
+`export BEADS_ACTOR=coordinator-<run-id>`, the epic id with the project prefix
+dropped. That is the same string the interrupted session used, which is the
+whole reason ids are derived rather than minted: it is what lets you find the
+merge slot and the authorization gate you already hold. Exported as anything
+else, you take a second hold beside your own and neither releases the other.
+The roster and the derivation rule are the coordinator's dispatch policy's,
+their only copy.
+
 ## Work these steps in order
 
 0. **Take the run's vital signs first — `bb-status.sh branch`.** From the sprint

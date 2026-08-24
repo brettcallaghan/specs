@@ -9,6 +9,7 @@ dispatch, and again when a batch returns.
 - Dispatch continuously — the ready front is re-queried, never walked from a
   stored list
 - Filling in the prompt — every placeholder, and where each is resolved from
+- Ceremony dispatches — the two writes that give a phase an identity
 - Verify against state, never against testimony — skip claims, the acceptance
   check, and what a standing worktree actually means
 - The push, and proving it landed
@@ -72,6 +73,29 @@ Batches go out with the batch prompt (`prompt-batch.md`), one
 subagent per batch; a bead with no batch peers goes out alone with
 `prompt-per-bead.md`. Each gets one worktree
 (`worktree-mechanics.md`).
+
+## Ceremony dispatches carry an agent id too
+
+A ceremony phase is dispatched the same way a batch is, and **the id is yours
+to hand over, not the agent's to invent** — `dispatch-policy.md` has the roster
+and the derivation rule, and it is their only copy.
+
+Two writes, both yours, both before you invoke the phase:
+
+- **Assign the phase's epic to its id** — `bd update <ceremony-epic>
+  --assignee <role>-<run-id>`. `sprint-scope` does this for every ceremony epic
+  as it creates them, so at dispatch time you are confirming it rather than
+  doing it; a phase epic assigned to nobody is one `bd ready --assignee` cannot
+  find, and the run then has a phase in flight that no query reports.
+- **State the id in the prompt**, exactly as `{DISPATCH_ID}` is stated to a
+  batch, with the instruction to export it as `BEADS_ACTOR` before its first
+  `bd` call.
+
+**Why the export and not just the assignment:** a ceremony agent claims. It
+comments on beads, holds the merge slot, closes what it finished. With
+`BEADS_ACTOR` unset those writes land under the harness default — `bd update
+--claim` on an unassigned bead silently rewrites the assignee to git
+`user.name` and exits 0 — and the phase's own queue stops answering for it.
 
 ## Verify against state, never against testimony
 

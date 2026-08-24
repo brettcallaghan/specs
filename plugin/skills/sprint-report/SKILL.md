@@ -17,6 +17,14 @@ The run's own output. **Its only input is the run epic id** — everything the
 report needs is on that epic or reachable from it, which is what lets a session
 that did not run the sprint still write one.
 
+**Before your first `bd` call: `export BEADS_ACTOR=report-<run-id>`**, where
+`<run-id>` is that epic id with the project prefix dropped. You write the
+report's path back onto the manifest, so you write; unset, that write lands
+under the harness default and `bd ready --assignee report-<run-id>` stops
+answering for your phase. Take the id the orchestrator handed you rather than
+minting one — the roster and the derivation rule are the coordinator's dispatch
+policy's, their only copy.
+
 ## What you produce
 
 One human-facing report, written to a file, with its path recorded in the

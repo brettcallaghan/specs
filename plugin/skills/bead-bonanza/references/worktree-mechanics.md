@@ -168,13 +168,27 @@ committing them lands in-flight bead state on the sprint branch.
 
    ### The slot the merge bead holds
 
-   Take the merge slot first and release it after:
+   **Export the merge agent's id before any of it** — you are the coordinator,
+   but for this bead you are acting as the merge agent, and the bead is already
+   assigned to it:
 
    ```sh
+   export BEADS_ACTOR=merge-<run-id>
    bd merge-slot acquire            # --wait to register; see below
    git -C "$REPO" merge --ff-only <suffix>
    bd merge-slot release
    ```
+
+   Two things depend on that one line. **A claim from an actor that is not the
+   bead's assignee is refused** — measured on bd 1.2.2 against a bead assigned
+   `agent-alpha`: with `BEADS_ACTOR=agent-beta`, `bd update <id> --claim` exits
+   1 with `issue already claimed by agent-alpha`, leaving the bead `open` and
+   the assignee untouched; the same call as `agent-alpha` exits 0 and sets
+   `in_progress`. And **the slot records its holder as the actor** — measured:
+   acquired with `BEADS_ACTOR=merge-scratch`, `bd merge-slot check` reports
+   `Holder: merge-scratch` — so a slot taken as anything else is one a resumed
+   session looking for `merge-<run-id>` will not recognise as its own. The id
+   is derived, never minted — `dispatch-policy.md`.
 
    `bd merge-slot create` once per run makes the slot bead (`<prefix>-merge-slot`)
    if the project has none. It works outside a Gas Town rig.

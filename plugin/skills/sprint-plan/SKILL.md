@@ -44,6 +44,9 @@ WHEN an input is missing, say so in the return rather than substituting a
 guess — a plan built on an inferred queue is the failure the enumeration rule
 exists to prevent.
 
+**Export `BEADS_ACTOR=plan-<run-id>` before your first `bd` call** — you write
+labels and assignees, and unset they land under the harness default.
+
 **Out** — two things, and nothing else:
 
 1. **The readiness verdict** — per bead: ready, or NOT-READY with the gap a

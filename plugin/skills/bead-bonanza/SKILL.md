@@ -347,6 +347,7 @@ is a skill you invoke or a script you run, and its section says which.
 | The manifest, swarm registration, amendments | `references/run-record.md` |
 | Concurrency entry, tier routing, push mode | `references/dispatch-policy.md` |
 | Sending a dispatch out and verifying what returns | `references/dispatching.md` |
+| Handing a ceremony phase its agent id | `references/dispatching.md` |
 | Dispatching one bead alone | `references/prompt-per-bead.md` |
 | Dispatching a batch | `references/prompt-batch.md` |
 | Creating, merging and removing a worktree | `references/worktree-mechanics.md` |

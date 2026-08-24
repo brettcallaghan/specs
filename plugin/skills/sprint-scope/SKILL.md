@@ -48,6 +48,23 @@ before grooming answers a question about beads that are about to change.
 **Say what you could not establish** rather than omitting it. A run opened on
 an unverified fact is the failure this step exists to prevent.
 
+## Your agent id — export it the moment the run epic exists
+
+You are the coordinator's own scoping step, so your actor is
+`coordinator-<run-id>` — the run epic id with the project prefix dropped. You
+cannot export it before you start, because you are the step that mints the
+epic. Export it the instant you have one, and **before any write that records a
+holder** — the authorization gate below is exactly such a write:
+
+```sh
+export BEADS_ACTOR=coordinator-<run-id>
+```
+
+Unset, every `bd` write you make lands under the harness default (git
+`user.name`), and the gate you take is held by a string a resumed coordinator
+cannot recompute, so nobody can release it. The roster and the derivation rule
+are the coordinator's dispatch policy's, their only copy.
+
 ## Admission — resolve the run epic
 
 **A run is one epic.** Its id is the run id, its descendants are the queue, and
@@ -134,6 +151,19 @@ Three rules, and each of them is forced rather than chosen:
 
 The measurements behind all three are in the coordinator's run-record
 reference, which is where the shape is specified; do not restate them here.
+
+**Assign every phase epic to its own agent id as you create it** —
+`bd update <phase-epic> --assignee <role>-<run-id>`, where `<run-id>` is the
+run epic id with the project prefix dropped. That single string is also what
+the phase's agent exports as `BEADS_ACTOR`, which is what makes
+`bd ready --assignee <role>-<run-id>` that phase's queue. The roster of roles
+and the derivation rule are the coordinator's dispatch policy's, their only
+copy — take the ids from there and restate no table here. Pre-flight, scope and
+post-flight have no role of their own and take `coordinator-<run-id>`.
+
+**A phase epic assigned to nobody is the failure this prevents:** nothing
+reports it as in flight, and a `--claim` against any of its children silently
+rewrites the assignee to the harness default and exits 0.
 
 ### Scope stays live, and the delta is reported
 

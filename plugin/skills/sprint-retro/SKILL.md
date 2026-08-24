@@ -22,6 +22,14 @@ next run better.** Not a report someone reads; not a queue someone drains.
 | | |
 |---|---|
 | `{EPIC}` | the run epic. Its manifest, its `amend:` comments, and its descendants are the whole of what you need |
+| `{DISPATCH_ID}` | your agent id — `retro-<run-id>`, handed to you, never minted |
+
+**Before your first `bd` call: `export BEADS_ACTOR={DISPATCH_ID}`.** You file
+beads for what the human accepts, so you write; unset, those writes land under
+the harness default and `bd ready --assignee retro-<run-id>` stops answering
+for your phase. `<run-id>` is `{EPIC}` with the project prefix dropped. The
+roster of agent ids and the derivation rule are the coordinator's dispatch
+policy's, their only copy — take yours from there rather than inventing one.
 
 ## What you return
 

@@ -33,6 +33,14 @@ So: run whatever the project declared, and route what comes back.
 | `{EPIC}` | the run epic. Its manifest carries `base_sha` and `branch` |
 | the authorization set | what the run was authorized to take on, from the gate |
 | the pass number | which review pass this is. You do not decide whether there is another |
+| `{DISPATCH_ID}` | your agent id — `review-<run-id>`, handed to you, never minted |
+
+**Before your first `bd` call: `export BEADS_ACTOR={DISPATCH_ID}`.** You file
+beads and comment on them, so you write; unset, those writes land under the
+harness default and `bd ready --assignee review-<run-id>` stops answering for
+your phase. `<run-id>` is `{EPIC}` with the project prefix dropped. The roster
+of agent ids and the derivation rule are the coordinator's dispatch policy's,
+their only copy — take yours from there rather than inventing one.
 
 ## What you return
 

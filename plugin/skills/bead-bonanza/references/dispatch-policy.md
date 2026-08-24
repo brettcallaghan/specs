@@ -57,7 +57,19 @@ under-subscribes the dev pool by the number of ceremony roles.
 
 **Ceremony agents are assigned beads like any other agent.** That is what makes
 `bd ready --assignee groom-<run-id>` the groom agent's queue and keeps one
-dispatch mechanism for the whole run.
+dispatch mechanism for the whole run. Each ceremony EPIC is assigned to its
+phase's id at creation, and the phase's agent exports that same id before its
+first `bd` call.
+
+**Three phases have no row of their own, and it is not an omission.**
+Pre-flight, scope and post-flight are the coordinator's own steps — the first
+and last are scripts it runs, and scope MINTS the run epic, so no `<run-id>`
+exists to derive an id from until it returns. All three act as
+`coordinator-<run-id>`, which is also what makes a resumed coordinator able to
+recompute the authorization gate's holder: scope takes that gate, and a hold
+under an id the coordinator cannot recompute is a hold nobody can release.
+`sprint-scope` therefore exports its actor **after** it creates the run epic
+and before any write that records a holder.
 
 #### Ids are DERIVED from the run epic id, never minted
 
