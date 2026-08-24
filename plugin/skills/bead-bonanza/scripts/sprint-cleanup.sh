@@ -76,19 +76,30 @@ prune_worktrees() { # prune_worktrees <epic>
     wt="${pair%%	*}"; br="${pair#*	}"
     [ "$wt" = "$main" ] && continue
     seen=$((seen+1))
-    who="$(printf '%s' "$beads" | assignee_for_branch "$br")"
-    if [ -z "$who" ]; then
-      line "LEFT" "worktree, no bead owns its branch" "$wt"; note_left
-    elif agent_drained "$who"; then
-      run "remove worktree ($who drained)" git worktree remove --force "$wt"
-    else
-      line "LEFT" "worktree, $who still has a queue" "$wt"; note_left
-    fi
+    handle_worktree "$wt" "$br" "$beads"
   done <<WTLIST
 $pairs
 WTLIST
   [ "$seen" = 0 ] && say "no run worktrees registered"
   return 0
+}
+
+# ONE worktree's fate — decided and acted on. Separate from prune_worktrees so
+# the self-test can drive the guard itself with `agent_drained` and `run`
+# stubbed, needing neither a tracker nor a repository. The exit-status wiring is
+# part of the case, not an afterthought: a guard that decides LEFT correctly and
+# still lets the script exit 0 has torn nothing down but has also warned nobody.
+# Callers must NOT capture its stdout — a command substitution runs it in a
+# subshell, where note_left cannot reach $left.
+handle_worktree() { # handle_worktree <path> <branch> <beads-json>
+  _hw_who="$(printf '%s' "$3" | assignee_for_branch "$2")"
+  if [ -z "$_hw_who" ]; then
+    line "LEFT" "worktree, no bead owns its branch" "$1"; note_left
+  elif agent_drained "$_hw_who"; then
+    run "remove worktree ($_hw_who drained)" git worktree remove --force "$1"
+  else
+    line "LEFT" "worktree, $_hw_who still has a queue" "$1"; note_left
+  fi
 }
 
 # ----------------------------------------------------------------- parsers
@@ -216,6 +227,33 @@ self_test() {
     if [ "$_g" = "$_e" ]; then printf '  ok   %s\n' "$_n"
     else printf '  FAIL %s (expected %s, got %s)\n' "$_n" "$_e" "$_g"; fails=$((fails+1)); fi
   done
+  # THE GUARD ITSELF, end to end, through the real decision function. Component
+  # coverage above is not this: a lookup and an emptiness test can each be right
+  # while the verdict they feed is wrong. A worktree is torn down ONLY when the
+  # tracker says its owner has drained; every other answer leaves it standing
+  # AND raises the flag that makes the script exit RC_LEFT.
+  # `agent_drained` and `run` are stubbed, so nothing here reads a tracker or a
+  # repository. Not captured in a `$( )`: that subshell would swallow $left.
+  _hw_beads='[{"id":"acme-r7k.4","assignee":"dev-live"},{"id":"acme-jh6","assignee":"dev-done"},{"id":"acme-zz9","assignee":null}]'
+  agent_drained() { [ "$1" = dev-done ]; }
+  run() { _hw_ran="yes"; }
+  for _c in "guard, a still-claimed bead keeps its worktree:1:r7k.4" \
+            "guard, a drained agent's worktree is removed:0:jh6" \
+            "guard, a bead assigned to nobody keeps it:1:zz9" \
+            "guard, no bead owns the branch, keep it:1:nope" \
+            "guard, a detached worktree is kept:1:"; do
+    _n="${_c%%:*}"; _r="${_c#*:}"; _e="${_r%%:*}"; _b="${_r#*:}"
+    left=0; _hw_ran=no
+    handle_worktree "/wt/$_b" "$_b" "$_hw_beads" >/dev/null 2>&1
+    # left=1 must coincide with "no removal attempted", and left=0 with one.
+    if [ "$left" = "$_e" ] && { { [ "$_e" = 1 ] && [ "$_hw_ran" = no ]; } || { [ "$_e" = 0 ] && [ "$_hw_ran" = yes ]; }; }; then
+      printf '  ok   %s\n' "$_n"
+    else
+      printf '  FAIL %s (expected left=%s, got left=%s removal-attempted=%s)\n' "$_n" "$_e" "$left" "$_hw_ran"; fails=$((fails+1))
+    fi
+  done
+  left=0   # the stubs stay defined for the rest of the self-test; nothing below calls them.
+
   # Pairing a worktree with its branch, spaces and detachment included.
   _g="$(printf 'worktree /a/b c\nHEAD deadbeef\nbranch refs/heads/qozp.8\n\nworktree /d/e\nHEAD cafe\n' | parse_worktree_branches)"
   _e="$(printf '/a/b c\tqozp.8\n/d/e\t')"

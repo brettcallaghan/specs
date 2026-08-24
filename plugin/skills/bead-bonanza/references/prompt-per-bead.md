@@ -11,8 +11,8 @@ Push mode: {push_per_bead | defer_push}
 Worktree: {WORKTREE}        (work HERE, not in the main checkout; it is yours alone)
 Scripts: {SCRIPTS}          (bb-verify-skip.sh, bb-close-bead.sh)
 Agent id: {DISPATCH_ID}     (yours — export it as BEADS_ACTOR before any bd call, below)
-    (The agent id, the bead's assignee and `dispatch_id` are ONE string,
-     DERIVED from the run epic id, never minted. Roster and derivation:
+    (The agent id and the bead's assignee are ONE string, DERIVED from the
+     run epic id, never minted, and written nowhere else. Roster and derivation:
      `dispatch-policy.md` in this same references directory, the only copy.)
 Trailers: {"on the run epic" if any}   (pass `--trailers-from {EPIC}` to bb-close-bead.sh; omit it when the run resolved none)
 Checks baseline:

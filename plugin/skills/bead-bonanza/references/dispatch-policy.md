@@ -24,8 +24,10 @@ the policy it runs under.
 skill that mints or reads an agent id cites it here rather than restating the
 table; a second copy is what drifts.
 
-**One string is an agent's whole identity** — it is the bead's `assignee`, the
-agent's `$BEADS_ACTOR`, and its `metadata.dispatch_id`, all the same value.
+**One string is an agent's whole identity** — the bead's `assignee` and the
+agent's `$BEADS_ACTOR` are the same value, and there is no third place it is
+recorded. Nothing is written at dispatch time to make that true, so nothing can
+be forgotten or go stale.
 Beads keeps no agent registry (an assignee is a plain string), so nothing
 reconciles two spellings of the same agent, and one string is what makes
 `bd ready --assignee <id>` that agent's queue.
