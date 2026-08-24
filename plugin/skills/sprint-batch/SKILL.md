@@ -37,6 +37,15 @@ Infer none of it. A missing input is reported, never guessed.
 
 Four checks, before you touch a bead. Each is cheap and each has caught a run.
 
+Before any bd call, in every shell you run `bd` from, export your dispatch id:
+
+```sh
+export BEADS_ACTOR={DISPATCH_ID}
+```
+
+A shell that loses it claims as the harness default, and an unassigned bead
+claimed that way is reassigned with no error anywhere.
+
 1. **The worktree is clean** — `git status --porcelain` in it, empty.
 2. **The base ref is the sprint branch, not the default branch.** Verify it:
 
