@@ -27,7 +27,7 @@ Five. Two of them are **not reachable by this skill's own incident query**
 the tracker on the retro's instruction — they are the two most consequential
 records the run produced, and they lead.
 
-### 1.1 — The run shipped a confirmed P0 and admitted none of its review
+### 1.1 — The run admitted none of its review (and the "P0" was later disproved)
 
 `agent-plugins-qozp` comment #19, verbatim in part:
 
@@ -42,11 +42,12 @@ What was decided: the review loop **ended at pass 1** with 0 admitted, well
 inside the budget of 2 loops, and all 11 findings were deferred with
 `grooming_status=out-of-scope-this-run`.
 
-What was rejected, and at what cost: admitting `agent-plugins-qozp.18` — a P0
-silent-data-loss path **in code this run merged** (`872f390`) — was rejected
-because the scope gate is unauthorized, not because the defect is small.
-The cost is that the run merged and pushed a defect it had already confirmed.
-It sits at the top of the run-2 backlog.
+What was rejected, and at what cost: admitting `agent-plugins-qozp.18` — then
+believed to be a P0 silent-data-loss path **in code this run merged**
+(`872f390`) — was rejected because the scope gate is unauthorized, not because
+the defect looked small. The mechanism is what matters here and it is
+unchanged by §1.2's correction: the gate would have refused a genuine P0 just
+as readily, because severity is not an input to it.
 
 A second cost, recorded in the same comment: the 11 findings **entered the
 ready front on creation**, so without the manual deferral the next wave
@@ -56,7 +57,7 @@ The deferral was the coordinator's act, not the skill's.
 Escalation was not attempted mid-run, per the operating principle that a run
 records rather than escalates.
 
-### 1.2 — The P0, independently verified, and pre-existing at a second site
+### 1.2 — The "P0", and why the verification of it did not hold
 
 `agent-plugins-qozp.18` comment #1 — the coordinator's own confirmation against
 source rather than acceptance of the reviewer's testimony:
@@ -77,13 +78,31 @@ source rather than acceptance of the reviewer's testimony:
 > new class of one. A fix must repair BOTH sites, and the two should share one
 > read-merge-write helper rather than a third copy.
 
-The suggested guard: treat a non-zero return code, or a parse failure, as
-fatal — an empty dict is indistinguishable from a genuinely empty manifest.
+**CORRECTION, added after the run — the P0 premise is false.** Both the
+review finding and the coordinator's verification above rest on
+`bd update --metadata` replacing the object. Measured afterwards on bd 1.2.2,
+it does not: seeding `{"alpha":1,"beta":"two","gamma":["x","y"]}` and then
+writing `{"delta":9}` leaves all four keys. A second control drove the exact
+old code with a `PATH` shim failing only `bd show` — the transient-read case —
+and a seeded manifest carrying `admitted`, `branch`, `base_sha`,
+`standing_auth` and `review_passes` came through intact. **There was no
+data-loss path, and nothing was shipped broken.**
 
-This matters beyond the bead: `references/scripts.md` states that pre-flight
-writes the baseline "merging rather than replacing so grooming's and
-admission's keys survive". On the `except` path that documented guarantee does
-not hold, and has not held for the pre-existing site either.
+The verification checked the code shape and not the consequence, which is the
+lesson worth keeping: a code-shape match plus a *documented* behaviour is not a
+measurement. The false premise came from
+`groom-beads/references/capability-tier.md:57-60`, which states the replace
+semantics as fact — corrected under `agent-plugins-4tjk`, and the more
+valuable finding of the two, because it propagated into a P0 review finding
+and a coordinator verification before anyone measured it.
+
+What survived the correction, and was fixed under `agent-plugins-qozp.18`
+(P2, commit `a3e7d38`): a failed read was reported as a write success, and
+the script staked the admission record on undocumented merge behaviour that
+is only **shallow** — a nested value IS replaced wholesale (`{"a":1,"b":2}`
+overwritten with `{"c":3}` yields `{"c":3}`), and `standing_auth` is nested.
+Both sites now share one `manifest_merge` helper that fails loudly on an
+unreadable manifest instead of guessing an empty one.
 
 ### 1.3 — `agent-plugins-qozp.2` — the roster cannot be cited by path
 
@@ -282,7 +301,7 @@ Eleven findings, all filed against their origin, **all deferred**:
 
 | Bead | P | Finding |
 |------|---|---------|
-| `agent-plugins-qozp.18` | **P0** | `pre-flight-check.sh` can silently replace the entire run manifest with just `concurrency_cap` |
+| `agent-plugins-qozp.18` | ~~P0~~ **P2** | Filed as "can silently replace the entire run manifest"; **disproved after the run** — `--metadata` merges on bd 1.2.2 (§1.2). What was real — a failed read reported as a write success — is fixed in `a3e7d38` |
 | `agent-plugins-qozp.19` | P1 | `bd epic close-eligible` takes no epic argument — the coordinator loop closes epics repo-wide |
 | `agent-plugins-qozp.20` | P1 | The new epic-DoR assignee gate has no producer and runs before assignees can exist |
 | `agent-plugins-qozp.21` | P1 | `sprint-wave` cannot resolve `{DISPATCH_ID}` — the derivation rule exists only in `bead-bonanza`'s references |
@@ -363,12 +382,14 @@ both about gates that run 2 will hit at its first wave boundary.
   this skill, a report does not cost a second pass over the run — so treat
   these as the run's testimony, checked against its record, not as independent
   confirmation.
-- **The P0 of §1.2 is confirmed but unfixed, and its blast radius is not
-  measured.** Both sites are known (`pre-flight-check.sh` 712–736 and the
-  pre-existing 653–672); what is *not* established is whether the `except` path
-  ever fired during this run. It did not visibly — the manifest is intact and
-  carries all its keys — but nothing logged the branch taken, so "it did not
-  fire" is inference from an intact manifest rather than a measurement.
+- **~~The P0 of §1.2 is confirmed but unfixed.~~ Superseded:** it was
+  disproved after the run (§1.2) and the residual defect is fixed in
+  `a3e7d38`. What this entry got right, and what remains unverified, is
+  narrower: nothing logged which branch the old `except` path took, so
+  "it never fired during this run" is still inference from an intact
+  manifest rather than a measurement. The new `manifest_merge` makes the
+  question moot going forward — that path now exits non-zero and names
+  the cause instead of continuing silently.
 - **The three environmental entries the retro drafted have no owner yet** and
   are not in `AGENTS.md`: `bd setup claude`'s conditional "stale" verdict, the
   Bash worktree-isolation guard's non-deterministic refusals, and the Actions
