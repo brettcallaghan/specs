@@ -66,6 +66,144 @@ out="$(bd show "$id" --json)"                 # right — capture, then test
 The fix is the same in both directions: **put the value in a variable or a
 file, then test it.** A pipeline is for moving data, not for carrying a verdict.
 
+## Tool claims are measured at the point of use
+
+**A claim about what a command does binds only where somebody ran it.**
+Inheriting one is not measuring it — not from a document in this repository,
+not from a dispatch prompt, not from an epic comment, not from a prior run's
+report. Prose records nothing about which of the two it was, so a claim
+nobody ran reads exactly like one somebody did.
+
+Before you **act on** such a claim, or restate it anywhere, run the command
+and read the output; carry the invocation and its output with the claim
+wherever you state it. Where you cannot run it, mark the claim **unverified**
+and say what would settle it. This binds hardest while *correcting* someone
+else's claim — the replacement is a new claim and carries the same burden.
+
+This is the evidence rule from the environmental-failure ledger below, moved
+one step earlier: it binds when a belief is **used or copied**, not only when
+a ledger entry is admitted.
+
+### Why the ledger rule alone did not bind
+
+The ledger has required evidence throughout, and run `agent-plugins-so39`
+violated it four times while correcting three other documents for exactly
+this defect. Four structural reasons, each a thing to fix rather than a thing
+to try harder at:
+
+1. **Its subject is a document section, not an author.** It governs
+   *admitting an entry to the ledger*. None of the four was a ledger entry —
+   they were a paragraph in a skill reference, a sentence in a dispatch
+   prompt, a line of shell in one of our own scripts, and a prompt armed on a
+   trigger. An agent writing any of those is not performing the act the rule
+   names, so the rule never comes up for application.
+
+2. **Its placement scopes it.** It sits under `## Checks`, headed
+   "Environmental-failure ledger". An agent that needs to state a fact about
+   `bd` has no reason to open a section about container environment failures,
+   and a rule filed under a heading is read as being about that heading.
+
+3. **It governs origination; three of the four were propagation.** "Run it
+   first, record it after" says what to do when you *make* a claim and
+   nothing about relaying one — and relaying feels like citing a source
+   rather than making a claim. The citation requirement is the only thing
+   separating a measured claim from an inherited one, and it is demanded only
+   of ledger entries, so every other surface loses the distinction.
+
+4. **Correction is the moment of highest confidence, and nothing gates the
+   replacement.** The sharpest instance: the bead whose job was removing a
+   false claim about `bd update --metadata` shipped a different false claim
+   about `--set-metadata` in its place. The evidence standard was applied to
+   the sentence being deleted and not to the one being installed.
+
+A fifth reason is not about placement: **the rule has no automated check.**
+`specs/standards/skill-best-practices.md` requires every invariant a skill
+asserts about itself to be enforced by a check; this one is enforced by
+authorial memory, which is the condition it exists to correct. Stating it at
+the point of use narrows the gap. It does not close it.
+
+### The four instances
+
+- **"`--set-metadata` stores every value as a string"** — false. Measured on
+  bd 1.2.2: `num=5` → number, `b=true` → boolean, `f=1.5` → number,
+  `n=null` → null; only arrays, objects and non-numeric text are stored as
+  strings. Installed by `agent-plugins-4tjk`, which was removing a different
+  false claim — "`bd update --metadata` replaces the entire metadata object";
+  measured, it merges at the **top level** and replaces a **nested** value
+  wholesale. The false universal survives in `capability-tier.md`
+  (`agent-plugins-so39.5`, deferred).
+
+- **`sync_dir`'s `rm -rf "$dest"` attributed to
+  `scripts/sync-shared-references.sh`** in a dispatch prompt, with an argument
+  built on top of it. Measured:
+  `grep -rn 'sync_dir\|rm -rf' scripts/sync-shared-references.sh scripts/generate-schemas.sh`
+  returns nothing from the first file and `generate-schemas.sh:183:sync_dir() {`
+  plus `generate-schemas.sh:192:    rm -rf "$dest"` from the second;
+  `render()` in `sync-shared-references.sh` ends `cat "$1"`. The receiving
+  agent measured instead of believing, so the rule it shipped rests on the
+  real mechanic.
+
+- **"`bd search` is non-functional"** — false; it excludes closed issues by
+  default. Measured: `bd search metadata` → `Found 2 issues`; the same query
+  with `--status all` → 3, the extra one `closed`. The claim was relayed into
+  an epic comment **and** into a durable recovery trigger's prompt, where a
+  resuming agent would have inherited it as a hard constraint. The trigger was
+  deleted before firing, because a report caught it.
+
+- **`printf … | grep -qxF` under `set -o pipefail`** in this repository's own
+  orphan guard, `scripts/sync-shared-references.sh:227` — the trap
+  "Pipes hide exit statuses" above already names. Measured by
+  `agent-plugins-b9ft`: 2 failures in 30 `--check` runs on an unchanged tree,
+  herestring control 100/100 clean. Intermittent by construction — a
+  three-line reproduction (`printf '%s\n' a b c | grep -qxF a`) exits 0, so
+  failing to trigger it is not evidence against it.
+
+The common shape: a claim arrived as an inherited premise and was acted on
+without being measured where it was used. Three of the four were then copied
+onto a surface nobody re-reads.
+
+### Surfaces that carry a copy of a belief
+
+A retraction reaches the surface in front of you. It does not reach the
+copies, and most of them are never read again by anybody positioned to notice.
+
+| surface | lives | re-read by | audited by |
+|---|---|---|---|
+| **a durable trigger prompt** (a Routine, a recovery check-in) | past the session, the container and the run | a fresh agent with no memory of the retraction, as a hard constraint | **nobody.** `list_triggers` shows that a trigger exists; nothing reads its prompt text against reality. Only whoever armed it. |
+| a dispatch prompt | dies with its agent — but goes to several agents at once | its recipient, once | nobody; it is not in the repo and no check sees it. The dispatcher, before sending. |
+| a `.sf/outbox` issue | until triaged, possibly across runs and repositories | the triaging agent, who reads it as already human-approved | partially. `triage-issue` re-checks that the quoted evidence still *exists* in the source it cites; nothing re-runs a tool claim the issue asserts, so a false one passes triage intact and lands in the run record |
+| a bead description or acceptance criterion | until the bead closes; longer through `discovered-from` edges | the implementing agent, cold, without the conversation that retracted it | grooming, once; after that nobody |
+| an epic comment, a run record, a sprint report | permanent | the report and the retro | the report's author |
+| a plan document under `docs/plans/` | until the change lands | whoever resumes the plan | nobody — transient by policy, so no check covers it |
+| a committed document (`AGENTS.md`, `specs/**`, a `SKILL.md`) | permanent | every future agent | `scripts/ci.sh`, for shape — never for truth |
+| a generated `references/shared/` copy | permanent | every agent that loads the consuming skill | `scripts/sync-shared-references.sh --check` propagates a corrected source, and reaches no hand-written citation of the same claim |
+| this repository's own scripts and checks | permanent | the runtime, every run | the check itself, where one exists |
+
+**The durable trigger prompt is the worst of them**, and the one the rest of
+the corpus does not mention: it is the only surface that can deliver a
+retracted claim to an agent with no way to learn it was retracted. A dispatch
+prompt is the same defect one tier less durable.
+
+### Retracting a claim found false
+
+Not a checklist for its own sake. The point is that a retraction is a sweep,
+not an edit.
+
+1. **Record the measurement first** — the command and its output, before you
+   change anything. It is what every replacement will cite.
+2. **Grep the claim's distinctive phrasing across the tree BEFORE you fix the
+   source.** Afterwards the string is gone, and the one place you were certain
+   of it is the place you just destroyed. Include untracked files —
+   `.sf/outbox/`, `docs/plans/`.
+3. **Sweep in order of reach**: durable triggers first, because they can fire
+   while you work; then beads and epic comments; then documents; then
+   generated copies, via the sync script.
+4. **Measure the replacement.** Do not install a corrected universal you have
+   not run.
+5. **Say where you could not reach.** A prompt already sent, a run record
+   already written, a trigger in another account — an unreachable copy is a
+   finding to file, not a silence.
+
 ## Checks
 
 This repository is a documentation-and-skills corpus **plus** the Go module

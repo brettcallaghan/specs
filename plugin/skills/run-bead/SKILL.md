@@ -8,7 +8,7 @@ description: Take one bead from claimed to committed — the ordered per-bead
   the project's gates, recording findings as retro-prefixed comments, and
   closing so the bead's closure and its code land in one commit. Also carries
   the blocked and skipped paths, which are where a bead most often goes wrong.
-version: "0.1"
+version: "0.2"
 user-invocable: true
 ---
 
@@ -61,6 +61,27 @@ Write no progress file.
    it.** A test written after the fix encodes the fix's own assumptions and can
    stay green while the defect is live. Record the observed failure — it goes
    in a `retro:` comment at step 6.
+
+   **A claim about what a command does is measured HERE, before you act on
+   it.** The bead, your prompt, a reference file and a prior run's report all
+   state such claims as plain prose, and prose records nothing about whether
+   anybody ran them — an inherited claim and a measured one are
+   indistinguishable on the page. So run the command, read the output, and
+   carry the invocation and its output wherever you restate the claim. Where
+   you cannot run it, write the claim as **unverified** and say what would
+   settle it. This binds hardest when you are *correcting* someone else's
+   claim: the replacement is a new claim and carries the same burden.
+
+   **Finding a claim false is a sweep, not an edit.** Grep its distinctive
+   phrasing across the tree *before* you fix the source — afterwards you no
+   longer have the string, and the one place you were sure of it is the place
+   you just destroyed. Then check the surfaces holding copies nobody re-reads:
+   **durable trigger prompts first**, because they outlive the run and hand
+   the retracted claim to a resuming agent as a constraint it cannot know was
+   withdrawn; then sibling dispatch prompts, bead descriptions, epic comments,
+   plan documents, and generated copies of a corrected reference. Record any
+   copy you could not reach as a `retro:` finding rather than leaving it
+   silent.
 
    **Work you find that is not this bead's** is filed, not done and not
    dropped: `bd create` with a `discovered-from` link to `{ID}`, and one line
