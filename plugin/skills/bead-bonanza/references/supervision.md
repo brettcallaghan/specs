@@ -9,6 +9,9 @@ computed from state.
 - Where is this run — the durable view, and what it cannot see
 - When something dies — which of three situations you are in
 - When the run is done — the completion rule, and why the obvious query is wrong
+- The `Stop` hook — the loop enforced by the harness, its bound, and how to
+  stop anyway
+- Running without the hooks — the fallback every step is written against
 - The review loop's budget — what the counter bounds, and what it does not
 
 ## Where is this run
@@ -76,6 +79,60 @@ they answer "what is in this epic" and two of them lie:
 
 None of the three is "every bead in this run", which is why the script walks
 the descendants itself.
+
+## The `Stop` hook
+
+The ready-loop is enforced by the harness rather than remembered. The plugin
+declares a `Stop` hook in `hooks/hooks.json` at its root, running
+`hooks/bb-stop-ready-loop.sh`, that exits **2** — which continues the
+conversation — while the armed run epic still has ready beads.
+
+**It is inert until armed, once per run:**
+
+```sh
+"${CLAUDE_PLUGIN_ROOT}"/hooks/bb-stop-ready-loop.sh --arm <run-epic>  # at the first dispatch
+"${CLAUDE_PLUGIN_ROOT}"/hooks/bb-stop-ready-loop.sh --status          # armed, or inert?
+"${CLAUDE_PLUGIN_ROOT}"/hooks/bb-stop-ready-loop.sh --disarm          # when the run drains
+```
+
+**Arming writes a file outside the repository; it is not an environment
+variable, and it cannot be.** A hook is spawned by the harness, not by your
+shell, so the `BB_*` facts pre-flight emits for you to `eval` never reach it.
+An epic id it cannot read from disk is an epic id it does not have — and that
+is not a cosmetic difference, because `bd ready --parent ""` is repo-wide
+rather than empty. A hook falling back to an unset variable would block on
+unrelated work, forever.
+
+**The bound: at most 8 consecutive blocks per arming**
+(`BB_STOP_HOOK_MAX_BLOCKS`), after which the hook stands down and says so. It
+does **not** reset itself at the cap — only a drained queue, or a fresh
+`--arm`, restores the budget. A queue that will not drain is a run that needs a
+human, and holding the session hostage is not how it gets one.
+
+**Stopping anyway.** Both forms are printed on every block, so neither is
+something to remember:
+
+| | |
+|---|---|
+| `bb-stop-ready-loop.sh --disarm` | removes this project's state; the hook goes inert |
+| `BB_STOP_HOOK=0` | inert everywhere, touching no files |
+
+**Everything that is not "armed, and the queue provably non-empty" exits 0** —
+`bd` missing, the query failing, output that will not parse, an empty epic id.
+A hook that blocked on its own malfunction would be a session an operator has
+to kill, which is a worse failure than the one it prevents.
+
+## Running without the hooks
+
+**Every hook this plugin ships is a convenience over a path that still works
+without it.** An adopter may run with the plugin disabled, on a harness that is
+not Claude Code, or on one whose hook surface differs. Nothing in this
+ceremony may depend on a hook having fired.
+
+WHEN no hook is installed, the loop is yours to run: after every wave, re-query
+the ready front by the two steps above and stop only when it is empty. That is
+the identical check, made by you instead of by the harness. `--status`, or the
+absence of the script, says which of the two you are in.
 
 ## The review loop's budget
 

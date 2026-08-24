@@ -147,7 +147,12 @@ for p in glob.glob('plugin/skills/**/*.md', recursive=True) + glob.glob('.claude
     d = os.path.dirname(p)
     for m in re.finditer(r'`((?:\.\./)*[A-Za-z0-9_./-]+\.(?:md|json|sh|py))`', open(p).read()):
         t = m.group(1)
-        if t in IGNORE or t.startswith(('http','docs/','rfcs/','plans/','word/','ooxml/','scripts/','.claude/')): continue
+        # `hooks/` and `monitors/` are plugin-ROOT components, not skill-bundled
+        # files: a skill names them so a reader knows what the plugin installs
+        # around it, and the path a reader actually uses is
+        # ${CLAUDE_PLUGIN_ROOT}-relative. Nothing resolves from a skill
+        # directory and nothing should — same reason `scripts/` is here.
+        if t in IGNORE or t.startswith(('http','docs/','rfcs/','plans/','word/','ooxml/','scripts/','.claude/','hooks/','monitors/')): continue
         if os.path.basename(p) in TEACHING and t == 'references/c4-guide.md': continue
         if not os.path.exists(os.path.join(d, t)):
             err(p, f"backticked path does not resolve from this file: {t}")

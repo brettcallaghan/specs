@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/bb-stop-ready-loop.sh",
+            "timeout": 30,
+            "statusMessage": "Checking the run epic's ready queue..."
+          }
+        ]
+      }
+    ]
+  }
+}

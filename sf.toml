@@ -85,7 +85,13 @@ id = "script-self-tests"
 # count, and adds no refs/dolt/preflight-probe-* on the remote. It asserts the
 # invocation surface, the portability guards, and (since --json) that both
 # output modes carry the same keys.
-command = 'd=plugin/skills/bead-bonanza/scripts; rc=0; for t in bb-status.sh bb-close-bead.sh sprint-cleanup.sh bb-checks.py pre-flight-check.sh; do "$d/$t" --self-test || rc=1; done; exit $rc'
+#
+# plugin/hooks/bb-stop-ready-loop.sh is here for a stronger reason than the
+# others: it is a Stop hook that can BLOCK a session, so its bound — at most N
+# consecutive blocks, then it stands down — is the difference between a
+# convenience and a trap. Its --self-test stubs `bd` on PATH and points the
+# state directory at a temp dir, so it needs no database either.
+command = 'rc=0; for t in plugin/skills/bead-bonanza/scripts/bb-status.sh plugin/skills/bead-bonanza/scripts/bb-close-bead.sh plugin/skills/bead-bonanza/scripts/sprint-cleanup.sh plugin/skills/bead-bonanza/scripts/bb-checks.py plugin/skills/bead-bonanza/scripts/pre-flight-check.sh plugin/hooks/bb-stop-ready-loop.sh; do "$t" --self-test || rc=1; done; exit $rc'
 
 # Green since 2026-08-22. It exits 1 on a WARNING as well as an error, which is
 # the point: a skill body over the cap is a real defect and this is what says
