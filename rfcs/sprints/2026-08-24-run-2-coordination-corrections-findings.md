@@ -272,7 +272,18 @@ constraint. Candidate **C13**.
 
 ## 4 · Candidates
 
-Fourteen. Ranked. Audience per the merge test; nothing here is filed.
+Fourteen. Ranked. Audience per the merge test.
+
+> **Filed 2026-08-24 after human review.** This section was written before the
+> decisions existed and its ranking is unchanged; the outcome is recorded
+> per candidate in section 5 and totalled in section 8. In short: **10 filed,
+> 3 declined, 1 left undecided.** Filed as drafted — C1, C2, C3, C4, C5, C6,
+> C8. Filed amended — C11 (split; only the invariant half filed), C12 (the
+> applicability of the check made explicit), C13 (wording, plus a state change
+> in `agent-plugins-qozp.22`). Not filed — C7 (folded into
+> `agent-plugins-x5tk`), C9 (superseded by `agent-plugins-0913`, which drops
+> both keys instead of repairing the write path), C10 (deferred to the end of
+> the refactor). Undecided — C14.
 
 | # | audience | target | priority | one line |
 |---|---|---|---|---|
@@ -291,12 +302,16 @@ Fourteen. Ranked. Audience per the merge test; nothing here is filed.
 | C11 | skill | `bead-bonanza` | 3 | The recovery trigger's interval is the whole liveness guarantee at a ceremony boundary |
 | C13 | project | `agent-plugins-qozp.22` | 3 | A deferred bead is now stale in a way that would re-break shipped work |
 
-Full text for each candidate is in section 5. Findings not promoted stay in
-section 6, where recurrence can still find them.
+Full text for each candidate is in section 5, each now carrying its decision.
+Findings not promoted stay in section 6, where recurrence can still find them —
+and so do the findings behind C7, C9, C10 and C14, since recurrence counts
+*unfiled* findings and a declined candidate is exactly that.
 
 ## 5 · Candidates in full
 
 ### C1 — `bd search` excludes closed issues by default (project · P1)
+
+> **Decision (human review, 2026-08-24):** **FILED** — project bead `agent-plugins-9owj` (P1, `discovered-from` → `agent-plugins-so39`), as drafted.
 
 **What is wrong, and what it costs.** The run recorded, and this retro's own
 dispatch brief restated as a hard constraint, that `bd search` is non-functional
@@ -321,6 +336,8 @@ default is not evidence of a broken index.
 
 ### C2 — A pre-create dedupe step, with a mechanism that works (skill · `bead-bonanza` · P1)
 
+> **Decision (human review, 2026-08-24):** **FILED** — new outbox file `.sf/outbox/bead-bonanza/2026-08-24-a-pre-create-dedupe-step-needs-a-mechanism-that-works.md`, as drafted.
+
 **What is wrong, and what it costs.** The coordinator filed the same bead twice
 27 minutes apart — `agent-plugins-vcka` (16:13:59Z) and `agent-plugins-xpn8`
 (16:41:04Z), same two call sites, same pipeline, near-identical acceptance
@@ -344,6 +361,8 @@ the hits before creating. Naming `--status all` is the whole of the fix — the
 bare form silently hides every closed bead, which on a long run is most of them.
 
 ### C3 — The manifest omits `models` and `effort` (skill · `bead-bonanza` · P2)
+
+> **Decision (human review, 2026-08-24):** **FILED** — new outbox file `.sf/outbox/bead-bonanza/2026-08-24-the-manifest-omits-models-and-effort.md`, as drafted. It ships with an empty `findings:` list, which is the one field this retro could not fill: no `retro:` comment records the omission, so the issue names the measurement and says why the list is empty rather than inventing a finding id.
 
 **What is wrong, and what it costs.** `sprint-plan/references/run-record.md`
 lines 58-59 specify `"models": {"light": …, "standard": …, "advanced": …,
@@ -371,6 +390,8 @@ case where the key can legitimately be missing.
 
 ### C4 — Kind drift and the bare `incident:` recurred (skill · `bead-bonanza` · extend · P1)
 
+> **Decision (human review, 2026-08-24):** **FILED as an EXTENSION** — `.sf/outbox/bead-bonanza/2026-08-24-bare-incident-comment-is-harvested-by-nothing.md` was edited in place: `recurrence` 0 → 1, run 2's findings added, and the coordinator-role argument added to the proposed change. No second file was created.
+
 **What is wrong, and what it costs.** This is not a new issue. It is run 2's
 recurrence of `.sf/outbox/bead-bonanza/2026-08-24-bare-incident-comment-is-harvested-by-nothing.md`,
 whose `recurrence` currently reads `0`. All three shapes that file names came
@@ -392,6 +413,8 @@ drift in both runs, which argues for the fix landing where the coordinator is
 told to record, not in the shared protocol reference it never opens.
 
 ### C5 — Severity cannot override the scope gate, again (skill · `sprint-review` · extend · P1)
+
+> **Decision (human review, 2026-08-24):** **FILED as an EXTENSION** — `.sf/outbox/sprint-review/2026-08-24-severity-cannot-override-the-scope-gate.md` was edited in place: `recurrence` 0 → 1, run 2's evidence added, and the admission trigger narrowed to the conjunction (defect introduced by the run's own merged diff **and** falsifying the run's stated purpose). No second file was created.
 
 **What is wrong, and what it costs.** Recurrence of
 `.sf/outbox/sprint-review/2026-08-24-severity-cannot-override-the-scope-gate.md`,
@@ -416,6 +439,8 @@ narrower and more defensible admission trigger than raw severity.
 
 ### C6 — Run 1's outbox issue asserts the claim this run measured false (skill · `sprint-plan` · correct · P1)
 
+> **Decision (human review, 2026-08-24):** **FILED as a CORRECTION** — `.sf/outbox/sprint-plan/2026-08-24-run-record-omits-how-to-write-the-manifest.md` was edited in place. Both false clauses were narrowed, not just the one: `--set-metadata` "stores a value as a string" **and** `--metadata` "replaces the whole object" (it merges at the top level and replaces a nested value wholesale). The proposal is unchanged; only its rationale was wrong.
+
 **What is wrong, and what it costs.** `.sf/outbox/sprint-plan/2026-08-24-run-record-omits-how-to-write-the-manifest.md`
 states: "`bd`'s `--set-metadata` stores a value as a **string**; arrays need
 `--metadata`". Measured on bd 1.2.2, the first clause is false as a universal:
@@ -437,6 +462,8 @@ are what it stringifies, and those are what need `--metadata` plus a
 read-modify-write. Everything else in the file stands.
 
 ### C7 — A dispatch prompt is an unaudited authoring surface (skill · `bead-bonanza` · P1)
+
+> **Decision (human review, 2026-08-24):** **NOT FILED — folded into `agent-plugins-x5tk`**, which the human approved separately and which enumerates every belief-carrying surface, trigger prompts included. A note recording the fold, and the evidence C7 rested on, was added to that bead.
 
 **What is wrong, and what it costs.** Dispatch prompts are the highest-fanout
 text in a run — six agents this wave — and nothing checks them. Two false
@@ -465,6 +492,8 @@ so the rule is cheap — it removes text rather than adding a check.
 
 ### C8 — A batch's return line does not carry a findings count (skill · `sprint-batch` · P2)
 
+> **Decision (human review, 2026-08-24):** **FILED** — new outbox file `.sf/outbox/sprint-batch/2026-08-24-a-batch-return-line-carries-no-findings-count.md`, as drafted, sequencing note included.
+
 **What is wrong, and what it costs.** The light-tier batch — `dev-so39-6`,
 haiku, three beads — recorded **zero** `retro:` comments, though the dispatch
 prompt asked for them explicitly. Two readings, not equally likely: three
@@ -488,6 +517,8 @@ whatever replaces it, or made part of item 9.
 
 ### C9 — `dispatch_state` and `terminal_state` are written on one path of two (skill · `run-bead` · P2)
 
+> **Decision (human review, 2026-08-24):** **NOT FILED — SUPERSEDED.** The human decided to drop `dispatch_state` and `terminal_state` **entirely** rather than repair the write path, and let bead status carry the dispatch lifecycle. That is filed as `agent-plugins-0913` (P1, open). C9 proposed moving the write to `run-bead` so the two paths could not diverge; a key that no longer exists cannot diverge, so the proposal is moot rather than declined on its merits. The two consumers C9 named — `sprint-cleanup.sh`'s live-worker test and supervision's three-deaths diagnosis — still need a signal, and `agent-plugins-0913` is where that is now decided.
+
 **What is wrong, and what it costs.** A bead dispatched to `run-bead` directly
 returns with `metadata.dispatch_state` and `metadata.terminal_state` both null;
 a bead dispatched through `sprint-batch` returns with `returned` and `completed`.
@@ -509,6 +540,8 @@ paths share. Whatever `sprint-batch` writes today becomes redundant rather than
 load-bearing, so the two paths cannot diverge again.
 
 ### C10 — Three SKILL.md files are at the byte cap (project · P2)
+
+> **Decision (human review, 2026-08-24):** **NOT FILED — deferred** by the human to the end of the refactor. The measurement stands and is unfiled, so a later run hitting the cap again raises it with a recurrence count.
 
 **What is wrong, and what it costs.** Measured on the merged head:
 `sprint-plan/SKILL.md` 19,946 bytes against a 20,000 cap (**54 free**),
@@ -536,6 +569,8 @@ deleting a rule", so that the criterion is measurable and the anti-goal is named
 
 ### C11 — The recovery trigger's interval is the liveness guarantee (skill · `bead-bonanza` · P3)
 
+> **Decision (human review, 2026-08-24):** **FILED, AMENDED — split in two, on the human's decision.** The invariant is filed as `.sf/outbox/bead-bonanza/2026-08-24-naming-the-next-ceremony-is-not-dispatching-it.md`; it survives the wave refactor untouched, because ceremonies remain after waves are deleted. **The interval-as-liveness-budget half was deliberately NOT filed**: it is subsumed by rollout plan item 14 (`agent-plugins-qozp.15`, a background monitor on the bead event log), which reacts to the absence of events rather than polling on a timer and is the better mechanism. The outbox file says so, and a `related:` comment on `agent-plugins-qozp.15` records that the interval question now lives there. That bead's status was not touched.
+
 **What is wrong, and what it costs.** The coordinator ended a turn announcing
 the next ceremony without dispatching it, with nothing in flight, and the run
 sat still until the human asked. The mechanism that would have recovered it
@@ -558,6 +593,8 @@ liveness budget rather than inherited: it bounds dead time at a boundary, it doe
 not prevent one.
 
 ### C12 — Validate an acceptance test against the case that motivated the bead (skill · `groom-beads` · P2)
+
+> **Decision (human review, 2026-08-24):** **FILED, AMENDED** — new outbox file `.sf/outbox/groom-beads/2026-08-24-validate-an-acceptance-test-against-its-motivating-case.md`. The human's caveat is carried in the proposed change rather than left implicit: the check applies only where the criterion is **mechanical** (a grep, a count, a branch rule — something with an answer) and the **motivating case is reachable at grooming time**, against the tree as it stands, without the bead's own change having landed. Where either condition fails, grooming records which one, so the exemption is visible rather than assumed.
 
 **What is wrong, and what it costs.** Two beads this run shipped with an
 acceptance test that had never been run against the case the bead was written
@@ -583,6 +620,8 @@ exceeding it.
 
 ### C13 — `agent-plugins-qozp.22` is stale, not merely deferred (project · P3)
 
+> **Decision (human review, 2026-08-24):** **FILED, AMENDED** — project bead `agent-plugins-6pib` (P3, `discovered-from` → `agent-plugins-qozp.20`). Two amendments. (1) The wording no longer implies a filing mechanism that does not exist: "filed against X" names **attribution, not machinery** — there is no special channel, it is an ordinary `bd create` plus a `discovered-from` edge, and `agent-plugins-b9ft` (`type=bug`, P1, `discovered-from` → `agent-plugins-uva5`) is the worked instance. (2) **`agent-plugins-qozp.22` has moved since this candidate was drafted**: measured 2026-08-24T20:37Z it is `closed`, `closed_at` 2026-08-24T20:35:50Z, still carrying `grooming_status=out-of-scope-this-run`, with **no comments and no supersede edge** to `qozp.20`. Its sibling `qozp.21` is still `deferred`. Nothing in this retro closed it. The record C13 asks for still does not exist — a reader of `qozp.22` cannot tell superseded from fixed from closed-by-accident — so the bead was filed with that state recorded on it.
+
 **What is wrong, and what it costs.** `qozp.22` reports the same defect
 `qozp.20` fixed and proposes the opposite derivation:
 `dev-<run-id>-<wave>-<batch>` against the run-wide numbering that shipped
@@ -604,6 +643,8 @@ Filing a bead is not undeferring `qozp.22`; the decision stays with whoever
 grooms the next run.
 
 ### C14 — A one-run checks baseline cannot tell a flake from a regression (skill · `bead-bonanza` · P2)
+
+> **Decision (human review, 2026-08-24):** **UNDECIDED — left open**, neither filed nor declined. Its findings stay unfiled, so recurrence still counts them. One clarification from the human's review belongs with it, because the phrase it corrects lives in C14's proposed change and nowhere else: **"filed against the check rather than against the bead" names attribution, not machinery.** There is no mechanism for filing against a check. It is an ordinary bead — `bd create` plus a `discovered-from` edge to whatever tripped over it — and `agent-plugins-b9ft` (`type=bug`, P1, `discovered-from` → `agent-plugins-uva5`) is the instance already in the tracker. Whoever decides C14 should read the phrase that way and write it that way.
 
 **What is wrong, and what it costs.** `agent-plugins-so39`'s `checks_baseline`
 records `shared-refs` as **passed**, and `shared-refs` fails roughly 2 times in
@@ -978,27 +1019,35 @@ plan-so39: set status=deferred as the mechanism that keeps this bounce out of th
 | **unrouted** | **2** — both `retro:process:`, both the coordinator's |
 | deduped against beads already filed | 3 (`agent-plugins-b9ft` ×2, `agent-plugins-b1gl` ×1) |
 | candidates | **14** — 9 new skill issues, 3 project beads, 2 extensions of run-1 outbox files, 1 correction to a run-1 outbox file (C4, C5 and C6 are the three that touch existing files) |
-| filed | 0 — **awaiting the human's decision** |
-| declined | 0 |
-| outbox written | 0 |
+| **filed** | **10** — C1, C2, C3, C4, C5, C6, C8, C11, C12, C13 |
+| **declined** | **3** — C7 (folded into `agent-plugins-x5tk`), C9 (superseded by `agent-plugins-0913`), C10 (deferred to the end of the refactor) |
+| **undecided** | **1** — C14 |
+| **outbox written** | **8** — 5 new files (`bead-bonanza` ×3, `sprint-batch` ×1, `groom-beads` ×1), 2 existing files extended, 1 existing file corrected |
+| **project beads created** | **2** — `agent-plugins-9owj` (C1, P1), `agent-plugins-6pib` (C13, P3) |
 
-**Nothing is filed.** `sprint-retro` files nothing without a human's yes, and
-this retro was dispatched read-only besides. Every candidate in section 5 is
-written to the point where filing is mechanical: a project-audience candidate is
-one `bd create`, a skill-audience candidate is one file at
-`.sf/outbox/<target>/2026-08-24-<slug>.md` in the issue template's shape, and
-C4/C5/C6 are edits to named existing files.
+**Filed 2026-08-24, after human review.** `sprint-retro` files nothing without a
+human's yes; the yes arrived per candidate and the filing step ran against it.
+Two project beads were created (`agent-plugins-9owj`, `agent-plugins-6pib`) and
+eight outbox files written or edited under `.sf/outbox/`. Nothing was committed
+or pushed by the filing step — the coordinator commits.
 
-Two closing steps were not taken, deliberately:
+Both closing steps have now been taken:
 
-- **The `rfcs/retro-log.md` row.** It records the outcome counts, which do not
-  exist until the decisions do, and the skill requires it committed. Both are
-  outside this retro's authority. The row should read: `2026-08-24 | self |
-  bead-bonanza sprint (epic agent-plugins-so39) | [findings](sprints/2026-08-24-run-2-coordination-corrections-findings.md)
-  | 28 findings harvested, 10/11 admitted beads closed (1 bounced), 14
-  candidates drafted, <n> accepted …`.
-- **`retro:filed:` back-references.** They are written the moment a candidate is
-  filed, so that recurrence counts unfiled findings only. None exist yet.
+- **The `rfcs/retro-log.md` row** is appended, carrying the real counts.
+- **`retro:filed:` back-references** are written, so recurrence counts unfiled
+  findings only: on `agent-plugins-so39` (seven), `agent-plugins-so39.5`,
+  `agent-plugins-4tjk`, `agent-plugins-uva5` and `agent-plugins-qozp.20`. No
+  bead's status was touched in the process; every deferred bead named in
+  section 9 is still deferred.
+
+**Epic metadata corrected** on `agent-plugins-so39`, with `--set-metadata`:
+`retro_filed=10`, `retro_declined=3`, `retro_outbox=8`, and `retro_status`
+from `awaiting-decision` to `filed (10 filed, 3 declined, 1 undecided: C14)`.
+All 22 metadata keys survive with their types intact — verified after the write:
+`admitted` 11 entries, `excluded` 22, `standing_auth` 7 rows, `checks_baseline`
+14,093 bytes with `checks_baseline_status=0`, and `branch`, `base_sha`,
+`concurrency_cap`, `review_passes`, `findings_path` and `report_path`
+unchanged.
 
 ## 9 · What this document is not
 
