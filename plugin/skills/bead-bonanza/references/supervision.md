@@ -38,8 +38,9 @@ a finished ceremony phase stays open, the beads it gates never reach the
 front, and an empty front reads as the run being done when it has only
 stalled.
 
-Live progress — the event stream, the per-wave `Monitor`, and the durable
-out-of-session trigger — is `progress-streaming.md`.
+Live progress — the event stream, the plugin's background monitor that reads
+it without being armed, and the durable out-of-session trigger — is
+`progress-streaming.md`.
 
 ## When something dies
 
