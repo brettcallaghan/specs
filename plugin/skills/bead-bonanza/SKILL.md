@@ -202,9 +202,9 @@ healthy run.** That rule, what the slot is and is not for, the base-ref remedy,
 and the create/merge/remove lifecycle: `references/worktree-mechanics.md`.
 ## Dispatch the ready front — continuously
 
-**`bd ready --parent <epic> --exclude-type=epic` IS the dispatch list.** The
-collision edges make it safe to dispatch whole — nothing to freeze, wait on,
-or intersect. Dispatch what is in it and not already held, then re-query as
+**`bd ready --parent <epic> --exclude-type=epic --exclude-label human` IS the
+dispatch list.** The collision edges make it safe to dispatch whole — nothing
+to freeze, wait on, or intersect. Dispatch what is in it and not already held, then re-query as
 each batch returns, so a bead that became ready behind a slow one goes out at
 once rather than waiting for its neighbours.
 

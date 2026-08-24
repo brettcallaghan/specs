@@ -185,6 +185,28 @@ redundancy.
 early: the human invokes, authorizes, and does not hear from the run again
 until the pull request.
 
+**It is a real `bd` gate, not a convention.** Open it against the scope epic's
+task child **before** you ask, so a session that dies mid-question leaves the
+run held rather than authorized:
+
+```sh
+bd gate create -t human --blocks <gate-task> -r "run authorization"
+#   ... ask the whole set, get the answer, record standing_auth ...
+bd gate resolve <gate-id>          # the id the create printed
+```
+
+Measured: with the gate open, `bd ready --parent <run-epic> --exclude-type=epic`
+returns nothing at all — the gate task holds the scope epic, which blocks every
+phase after it — and `bd gate list` shows it. `bd gate resolve` puts the gate
+task into the ready front, and closing that task lets the chain advance. So an
+unanswered gate cannot be stepped over, and nothing downstream has to check for
+one.
+
+This is one of the run's **three human channels**, and the only one that blocks
+at the start. The other two — an incident, recorded and never blocking, and a
+deferred review that blocks only at the end — are the coordinator's run-record
+reference's, where all three are tabulated together. Do not restate them here.
+
 Ask the whole set at once, with the resolved value stated per row so a human
 can accept the lot in a sentence.
 

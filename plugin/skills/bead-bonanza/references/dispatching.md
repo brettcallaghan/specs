@@ -19,11 +19,21 @@ dispatch, and again when a batch returns.
 ## Dispatch continuously
 
 **Do not freeze a cohort and wait for it.** `bd ready --parent <epic>
---exclude-type=epic` already returns the complete set of beads nothing is
-blocking, so a freeze-dispatch-wait-requery cycle adds only the wait: the
-slowest bead in the cohort holds up every bead that became ready behind it.
-Re-query the front, dispatch what is in it and not already held, and re-query
-again as each batch returns.
+--exclude-type=epic --exclude-label human` already returns the complete set of
+beads nothing is blocking, so a freeze-dispatch-wait-requery cycle adds only
+the wait: the slowest bead in the cohort holds up every bead that became ready
+behind it. Re-query the front, dispatch what is in it and not already held, and
+re-query again as each batch returns.
+
+**`--exclude-label human` is on the DISPATCH query and nowhere else.** A
+`human`-labelled bead is the deferred-review channel — a question the run put
+to a human, parented to a late ceremony phase so it surfaces at the end. The
+label does **not** hold it out of `bd ready` (measured; only the parent phase
+does), so once that phase opens it is ordinary-looking ready work and an
+agent gets handed a question meant for a person. Do not copy the flag onto a
+completion or queue count: a count that hides `human` beads reports a run as
+drained while a human still owes it an answer. The channel, and the `bd`
+behaviour behind it, are in `run-record.md`.
 
 **Concurrency policy is in the graph, not in a schedule.** Two beads that
 share a `c4_changes` component must not run at once; the plan expresses that as

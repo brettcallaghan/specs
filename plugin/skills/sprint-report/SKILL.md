@@ -63,6 +63,28 @@ earns an autonomous run its autonomy**. The count is a quality metric for the
 specs, not for the run: each incident marks a place the corpus failed to answer
 a question, which makes it the retro's material rather than a complaint.
 
+### Then, still before the results: what the run is waiting on a human for
+
+An incident is decided. A **deferred review** is not — it is a decision the run
+took and asked a human to look at before the run is handed over, filed as a
+`human`-labelled bead under a late ceremony epic. Those are open questions
+addressed to the reader of this very report, so they go above the results:
+
+```bash
+bd list --label human --status open --json
+```
+
+**Not `bd human list`, and this is the trap.** That command keeps listing a
+bead after it has been closed — measured on bd 1.2.2: with `bd show` reporting
+`status=closed`, `bd human list` still printed `Human-needed beads (1 found)`.
+A report built on it says a human owes an answer that was given days ago, and
+it never stops saying so. Filter by status, always.
+
+One row each — the bead id, the question, and the phase epic it is holding
+open. **State `none` explicitly** when there are none, for the same reason the
+incidents section does. The three human channels, and why this one blocks only
+at the end, are the coordinator's run-record reference's.
+
 ## Then, in order
 
 1. A markdown table: `| ID | Status | Batch | Commit | Notes |`

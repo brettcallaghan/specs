@@ -545,12 +545,24 @@ print(" ".join(sorted(flagged & q)))' "$_epic" 2>/dev/null)"
     line OK "bd lint: nothing flagged in this run's queue" "bd lint"
   fi
 
-  _human="$(bd human list 2>&1 | grep -c '^ *[a-z].*-' || true)"
-  case "$(bd human list 2>&1)" in
-    *"No human-needed"*) line OK "human queue: empty" "bd human list" ;;
-    *) line FAIL "human queue: $_human item(s) awaiting a decision" "bd human list"
-       note $RC_REPAIR ;;
-  esac
+  # NOT `bd human list`: it keeps listing a bead after it has been CLOSED
+  # (measured — `bd show` reports status=closed while `bd human list` still
+  # prints "Human-needed beads (1 found)"), so this gate went red on the first
+  # question a run ever asked and stayed red forever after it was answered.
+  # `bd list --label human --status open` is the same question with the status
+  # actually applied.
+  _human_json="$(bd list --label human --status open --json 2>/dev/null)"
+  _human="$(printf '%s' "$_human_json" | python3 -c 'import json,sys
+try: d=json.load(sys.stdin)
+except Exception: d=[]
+print(len(d) if isinstance(d,list) else 0)' 2>/dev/null)"
+  if [ "${_human:-0}" -gt 0 ] 2>/dev/null; then
+    line FAIL "human queue: $_human open item(s) awaiting a decision" \
+         "bd list --label human --status open"
+    note $RC_REPAIR
+  else
+    line OK "human queue: empty" "bd list --label human --status open"
+  fi
 
   _notier="$(bd ready --parent "$_epic" --exclude-type=epic --json 2>/dev/null | python3 -c 'import json,sys
 try: d=json.load(sys.stdin)

@@ -278,6 +278,39 @@ is a quality metric for the specs, not for you** — each one marks a place the
 corpus failed to answer a question, which is a finding against a document
 rather than against the work.
 
+### WHEN you want a human to look at it — file it for LATER, never ask now
+
+An incident is a record. Sometimes you want more: a decision you took that a
+human should actually review before the run is handed over. That is the
+**deferred-review channel**, and it is still not a question you stop for.
+
+```sh
+bd create "<the decision, as a question>" -p 2 \
+  --design "<what you chose, what you rejected, and what would change the answer>"
+bd update <new-id> --parent <a LATE ceremony epic — review or report>
+bd update <new-id> --add-label human
+```
+
+Three things about it, each measured rather than assumed:
+
+- **`--add-label`, not `--labels`.** `bd update <id> --labels human` exits 1
+  with `unknown flag: --labels` and sets nothing.
+- **The label is what a human sees; the PARENT is what makes it wait.** A
+  `human`-labelled bead appears in `bd human list` immediately, so a human can
+  answer whenever — but the label does not hold it out of `bd ready`. Parenting
+  it to a late ceremony epic does: that epic is blocked behind the target for
+  the whole run, and it cannot close until your bead is closed.
+- **Parent it to a LATE phase, never to the target.** Under the target it is
+  ordinary ready work and gets dispatched to an agent, which is the opposite of
+  asking a human.
+
+WHEN you are working solo and there is no run — `{EPIC}` is `none` — there is no
+late phase to hang it on. File the bead with the `human` label and no parent,
+and say in your return line that one is waiting.
+
+The three channels and the `bd` behaviour behind them are tabulated in the
+coordinator's run-record reference, their only home.
+
 ## Constraints
 
 - Do not ask the user questions. Decisions are settled before you start —

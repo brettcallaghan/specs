@@ -4,6 +4,8 @@
 
 - The run's epic shape — ceremony epics chained under the run epic, one flat
   swarmed target, and the gate as a task
+- The three human channels — authorization, incident, deferred review — and
+  the four measured `bd` facts the deferred one depends on
 - The three things the orchestrator owns: the manifest, the swarm
   registration, the run's amendments
 - `graph_plan` — validating and loading the `bd create --graph` document the
@@ -56,6 +58,64 @@ holding its task child holds the whole chain. Verified end to end: with
 `bd gate create -t human --blocks <gate-task>` open, `bd ready --parent <scope>`
 returned nothing; the gate task had entered the ready front the moment
 pre-flight's own epic closed.
+
+## The three human channels
+
+**This table is their only home.** Every skill that opens one of these channels
+states its own row inline and names this document by role rather than copying
+the table; a second copy is what drifts.
+
+Three ways a run reaches a human, separated by **when the run consumes the
+answer** — not by urgency, and not by who wrote them:
+
+| channel | filed as | blocks | resolved by |
+|---|---|---|---|
+| **authorization** | `bd gate create -t human --blocks <gate-task>` on the scope epic's task child | at the START — the gate holds the whole phase chain | `bd gate resolve <gate-id>` |
+| **incident** | a `retro:<kind>:<target> incident — …` comment on the bead, and an `amend:` on the run epic | NEVER — recorded, and read at the retro and the report | nothing; it is a record, not a question |
+| **deferred review** | a task labelled `human`, parented to a LATE ceremony epic (review or report) | only at the END — that epic cannot close while it is open | `bd update <id> --status closed` |
+
+**A run is autonomous because of the middle row.** The first row is taken once,
+before any work; the third does not interrupt anything; everything else in
+between is decided by the agent and recorded. A fourth channel — stopping to
+ask mid-run — is the thing this design exists to make unnecessary.
+
+### Four measured facts the deferred channel depends on
+
+All four on bd 1.2.2, in a scratch database with the phase chain above.
+
+- **The `human` label does NOT hold a bead out of `bd ready`.** Only the
+  parent phase does. Measured both ways: while the report epic was blocked
+  behind the target, `bd ready --parent <run> --exclude-type=epic --json`
+  returned `[]`; with the target closed, the same query returned the
+  `human`-labelled bead as ready work. A control bead labelled `human` under
+  the already-closed TARGET was returned immediately.
+
+  **So the dispatch front must exclude it** — `bd ready --parent <epic>
+  --exclude-type=epic --exclude-label human`. Without that, the run hands a
+  question meant for a human to an agent. The exclusion belongs on the
+  DISPATCH query only: a completion or queue count that hides `human` beads
+  reports a run as drained while a human still owes it an answer.
+
+- **`bd human list` shows it from the moment it is filed**, while it is still
+  invisible to `bd ready` — which is the whole asymmetry the channel is built
+  on. A human can answer whenever; the run never waits.
+
+- **`bd human respond` and `bd human dismiss` BOTH fail.** Measured:
+  `bd human respond <id> -r "…"` → exit 1,
+  `Error: resolving issue ID <id>: cannot resolve issue ID "<id>": storage is
+  nil`; `bd human dismiss <id>` → exit 1, identical error. Close the bead
+  instead: `bd update <id> --status closed` exits 0, and `bd epic
+  close-eligible` then closes the phase that was waiting on it (measured — the
+  report epic went `open` → `closed` on the next call, and the run epic after
+  it).
+
+- **`bd human list` keeps listing a CLOSED bead.** Measured: after
+  `bd update <id> --status closed` succeeded and `bd show` reported
+  `status=closed`, `bd human list` still printed `Human-needed beads (1
+  found)`. **Never read that command as a queue depth.** Anything asking "does
+  a human still owe this run an answer" must filter by status —
+  `bd list --label human --status open` — or it stays red forever after the
+  first question is answered.
 
 **Closing a ceremony epic is `bd epic close-eligible`, scoped BY HAND.** It
 takes no positional epic. Measured: with one run's pre-flight child closed, the
