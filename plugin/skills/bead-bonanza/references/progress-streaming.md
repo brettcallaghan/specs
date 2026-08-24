@@ -77,26 +77,15 @@ Three properties of the mechanism that decide how it is used:
 ## Arm a Monitor for every wave
 
 **One Monitor per wave, armed before the wave's first dispatch. No condition,
-no judgement.** Pattern:
+no judgement.** One event log carries the whole run, so a wave needs ONE
+Monitor however many subagents it dispatches. Pattern:
 
 ```
-tail -n +1 -F <run-dir>/events.tsv | grep -E --line-buffered 'close|update'
+tail -n +1 -F "$BB_EVENT_LOG" | grep -E --line-buffered 'close|update'
 ```
 
 Arm it with `persistent: true` and stop it with `TaskStop` when the wave
 drains.
-
-**It is unconditional because the condition was unmeasurable.** "Monitor a
-subagent expected to run past five minutes" asks the orchestrator to predict a
-duration before dispatch and then measure one afterwards — but it is blocked on
-the subagent's return the whole time it is running, so it has nothing to
-measure with. The only thing that could time a subagent is a Monitor, which is
-the thing the rule was gating.
-
-**And it costs nothing to always do.** One event log carries the whole run, so
-a wave needs ONE Monitor however many subagents it dispatches. On a fast wave
-it emits a few lines and is stopped at the boundary; on a slow one it is the
-difference between live progress and half an hour of silence.
 
 **Set `timeout_ms` explicitly.** The default is five minutes, which is shorter
 than most waves, so a Monitor armed without it expires part-way through the
