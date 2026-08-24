@@ -33,6 +33,33 @@ operator to ignore the signal.
 
 - `qozp#5` — "retro:tooling:bead-bonanza — bb-status.sh's human-queue check is not scoped to the run's admitted set. It reported 'FAIL human queue: 1 item(s) awaiting a decision' for agent-plugins-qozp.12 (DECISION D1), which is DEFERRED and explicitly excluded at admission."
 
+## Status — DEFERRED pending a design
+
+The owner deferred this on 2026-08-24: the mechanical fix below is correct
+but too small a lens. `bd human` is the whole human-decision lifecycle —
+flagging a decision, listing what is outstanding, answering it, withdrawing
+it — and this run hit defects in three of those four steps, which suggests
+the shape of the wrapper matters more than this one check. Reopen it behind
+a design that settles how a run assigns a decision to a human and manages
+its lifecycle; the fix below is then a consequence of that design rather
+than a patch to a check.
+
+What the design has to account for, all measured on bd 1.2.2:
+
+- `bd human list` has no scope flag. It is repo-wide, and the intersection
+  has to be computed by the caller.
+- It counts CLOSED beads. `--status=open` fixes that half and already
+  exists; a scratch database with one open and one closed human-labelled
+  bead showed both under the bare call and only the open one under
+  `--status=open`.
+- `bd human list --json` returns `null`, not `[]`, when the queue is empty.
+  A consumer that assumes a list breaks on the empty case.
+- `bd human dismiss` fails with `storage is nil` while every other
+  subcommand resolves the same id in the same shell. The working path is
+  `bd update <id> --remove-label human`.
+- There is no `bd human create`. A decision reaches the queue only by
+  labelling: `bd update <id> --add-label human`.
+
 ## Proposed change
 
 **Two defects, and only one needs code.**
