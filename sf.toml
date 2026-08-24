@@ -102,15 +102,50 @@ advanced = "opus"
 frontier = "fable"
 
 [run]
-# Project-level run defaults — things this repository owns, as opposed to
-# things a run decides. Omit a key to leave the decision to the run.
+# Project-level run defaults. These are the authorization gate's seven rows:
+# `sprint-scope` resolves each from here when the key is present and from its
+# own default when it is absent, then puts the RESOLVED set to the human as one
+# confirmation.
 #
-# push_mode: "defer_push" (the orchestrator pushes per bucket) or
-#            "push_per_bead" (each subagent pushes its own branch).
+# Setting a key changes WHAT is confirmed, never WHETHER it is. The gate still
+# runs even with all seven set — a run that stops asking is a run that
+# authorized itself. What you buy is one sentence instead of seven questions.
+#
+# Omit a key to take the skill default, which is always "do the smaller thing
+# and say so". The manifest records every row's value AND its source, so a
+# project-level default cannot hide from whoever reads the report.
+
+# "defer_push" — the orchestrator pushes per wave (skill default)
+# "push_per_bead" — each subagent pushes its own branch
 push_mode = "defer_push"
 
+# "draft" — open as draft at the start, mark ready at the end (skill default)
+# "ready" — open ready for review
+# "none"  — open none; the branch is pushed and that is all
+# pull_request = "draft"
+
+# false — a bead belonging to another epic is EXCLUDED and the run goes
+#         narrower (skill default). true — move it into this run's epic.
+# move_foreign_beads = false
+
+# false — review findings are filed as beads but NOT worked in this run
+#         (skill default). true — admit them and re-enter the wave loop.
+# admit_review_findings = false
+
+# "once"  — escalate one tier on repeated failure, once, and report it
+#           (skill default). "never" — report the failure, do not escalate.
+# tier_escalation = "once"
+
+# Review loops. 2 = three passes total (skill default). 0 disables the loop;
+# the single review still runs.
+# review_budget = 2
+
+# false — never merge to the default branch; that is the pull request's job,
+#         not the run's (skill default).
+# merge_to_default = false
+
 # run_root: where a run's directory is created. Defaults to
-#           ${TMPDIR:-/tmp}/claude/bead-bonanza when unset.
+#           ${TMPDIR:-/tmp}/claude/bead-bonanza when unset. Not a gate row.
 # run_root = ""
 
 [review]

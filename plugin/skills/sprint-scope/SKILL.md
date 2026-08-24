@@ -116,23 +116,43 @@ redundancy.
 early: the human invokes, authorizes, and does not hear from the run again
 until the pull request.
 
-Ask the whole set at once, with the default stated per row so a human can
-accept the lot in a sentence. **A row not authorized takes its default** — and
-the default of every row is "do the smaller thing and say so", which is the
-only kind of default safe to apply without asking.
+Ask the whole set at once, with the resolved value stated per row so a human
+can accept the lot in a sentence.
 
-| decision | default, taken if unauthorized |
-|---|---|
-| **Push mode** | defer — the orchestrator pushes per wave |
-| **Pull request** | open as draft at the start, mark ready at the end |
-| **Moving beads** that already belong to another epic | **do not move** — exclude them and run narrower |
-| **Scope growth** from review findings | file the beads, do **not** admit them into this run |
-| **Tier escalation** on repeated failure | escalate one tier, once, and report it |
-| **Review loop budget** | 2 loops (three passes total) |
-| **Merge to the default branch** | never — that is the pull request's, not the run's |
+**Resolve each row before asking**, in this order: `sf.toml`'s `[run]` if it
+carries the key, else the skill default below. The skill defaults all say "do
+the smaller thing and say so", which is the only kind of default safe to apply
+without asking; a project that configures a row has said something louder than
+that, and gets to.
 
-Record the outcome in the manifest's `standing_auth`, including the rows that
-took their default. A row nobody remembers deciding is a row that will be
+| decision | `[run]` key | skill default |
+|---|---|---|
+| **Push mode** | `push_mode` | defer — the orchestrator pushes per wave |
+| **Pull request** | `pull_request` | open as draft at the start, mark ready at the end |
+| **Moving beads** that already belong to another epic | `move_foreign_beads` | **do not move** — exclude them and run narrower |
+| **Scope growth** from review findings | `admit_review_findings` | file the beads, do **not** admit them into this run |
+| **Tier escalation** on repeated failure | `tier_escalation` | escalate one tier, once, and report it |
+| **Review loop budget** | `review_budget` | 2 loops (three passes total) |
+| **Merge to the default branch** | `merge_to_default` | never — that is the pull request's, not the run's |
+
+**Configuring a row changes what is confirmed, never whether it is.** A project
+that sets all seven still gets the gate — as one confirmation of seven resolved
+values rather than seven questions, which is the point. **A run that stops
+asking is a run that authorized itself.**
+
+Record the outcome in the manifest's `standing_auth` — every row's value **and
+where it came from**, `sf.toml` or the skill:
+
+```json
+"standing_auth": {
+  "push_mode":     {"value": "defer_push", "source": "sf.toml"},
+  "review_budget": {"value": 2,            "source": "default"}
+}
+```
+
+The source matters because the record exists to stop a row being re-litigated
+mid-run, and a project-level default is one more place a decision can hide from
+whoever reads the report. A row nobody remembers deciding is a row that will be
 re-litigated mid-run, and mid-run is exactly when there is nobody to ask.
 
 ### After this, the run does not ask again

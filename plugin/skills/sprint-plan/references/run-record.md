@@ -51,7 +51,7 @@ opens against it.
   "checks_baseline_status": 1,
   "models": {"light": "…", "standard": "…", "advanced": "…", "frontier": "…"},
   "effort": "low|medium|high|xhigh|unrecorded",
-  "standing_auth": "what the user authorized without further asking",
+  "standing_auth": {"<row>": {"value": "<resolved>", "source": "sf.toml|default"}},
   "trailers": "<commit trailers, or absent when the run resolved none>",
   "admitted": ["<bead-id>", "…"],
   "excluded": [{"id": "<bead-id>", "reason": "declined move out of <epic-id>"}],
@@ -71,6 +71,12 @@ write it back.
 counter would loop forever. `review_budget` records what the authorization gate
 decided, so a run resumed by a session that never met the human still honours
 it.
+
+**`standing_auth` records each gate row's SOURCE as well as its value.** A row
+resolved from `sf.toml`'s `[run]` and a row that took the skill default are
+different facts, and the record exists to stop a decision being re-litigated
+mid-run — a project-level default is one more place one can hide from whoever
+reads the report.
 
 `admitted` / `excluded` / `moved` are the admission record. A run that finished
 its admitted set while beads sat out is done, and must say so rather than
