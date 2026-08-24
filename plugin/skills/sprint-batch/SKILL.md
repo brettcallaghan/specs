@@ -3,7 +3,7 @@ name: sprint-batch
 description: Take one batch of beads from assignment to handed-back branch —
   the developer tier of a sprint. One subagent, one batch, one worktree, one
   commit per bead. Use when dispatched with several beads to work in order,
-  when asked to run a doc/chore fast lane or a shared-surface batch, or when a
+  when asked to run a batch of beads over a shared surface, or when a
   batch must account for every bead it was given. Covers accepting the
   assignment (base ref, clean tree, manifest), running run-bead per bead, and
   the return line the orchestrator reads. It merges nothing and pushes only

@@ -29,7 +29,7 @@ never got closed and silently drops nearly everything else.
 
 ### Wiring
 
-Every dispatch prompt — sequential, batch and fast-lane alike — instructs the
+Every dispatch prompt — batch and sequential alike — instructs the
 agent to record `retro:`-prefixed `bd comment`s on the bead it is working:
 one per friction point, 1-3 sentences, friction only, zero analysis.
 

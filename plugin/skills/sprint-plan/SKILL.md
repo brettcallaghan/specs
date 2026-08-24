@@ -297,20 +297,24 @@ close, hand back, then the next. Holding two at once makes worktree presence
 ambiguous and breaks the in-flight signal for every reader. Never pack a batch
 in a way that assumes otherwise.
 
-1. **Doc/chore fast lane** — `trivial` beads. ONE subagent processes the cluster
-   sequentially. Per bead: targeted tests plus the project's declared checks,
-   before that bead's close. One commit per bead. Cap ~6 beads per fast-lane
-   subagent.
+1. **Batch** — ONE subagent processes a cluster sequentially, one commit per
+   bead. Per bead, before its close: any regeneration, **targeted tests
+   (non-negotiable)**, then the project's declared checks. Two clusters qualify
+   and they take the SAME prompt, differing only in the surface it names:
 
-2. **Shared-surface batch** — `shared-surface` beads that cluster on the same
-   fixture/code area. ONE subagent processes the cluster sequentially. Per bead,
-   before its close: any regeneration, **surface-relevant targeted tests
-   (non-negotiable)**, then the project's declared checks. One commit per bead.
+   - `shared-surface` beads on one fixture/code area — that area is the
+     surface, and the targeted tests are the ones covering it.
+   - `trivial` beads — surface "documentation and chores; no shared code
+     surface". Cap ~6 per subagent.
 
-   **Threshold:** use shared-surface batch when **≥2** beads share a surface and
-   decisions are independent (bead A's choice doesn't change bead B's
-   implementation). Even at 2 the gain is real: the pair stops blocking the
-   wave, and the second bead sees the first's work instead of racing it.
+   **There is no faster lane.** Both run the full declared set before every
+   close — the dominant cost — so a trivial cluster is batched to stop it
+   taking a dispatch slot per bead, not because it is cheaper.
+
+   **Threshold:** batch when **≥2** beads share a surface and decisions are
+   independent (bead A's choice doesn't change bead B's implementation). Even
+   at 2 the gain is real: the pair stops blocking the wave, and the second bead
+   sees the first's work instead of racing it.
 
    **Don't over-split:** if 7 beads cluster on one surface and only 1–2 of them
    are "larger" (substantial new features), they can still go in one shared
@@ -318,7 +322,7 @@ in a way that assumes otherwise.
    when bead A's implementation would conflict with bead B's, or when decisions
    overlap such that one bead's choice changes another bead's plan.
 
-3. **Concurrent wave** — `isolated` beads dispatched at the same time rather
+2. **Concurrent wave** — `isolated` beads dispatched at the same time rather
    than one after another, each in its own worktree. Every bead already runs in
    a worktree, so this buys wall-clock and nothing else. A wave is the unit of
    parallelism and waves stay sequential, so put **no two beads sharing a

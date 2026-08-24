@@ -32,7 +32,7 @@
 #
 # Exit status
 #   0  in sync (or written successfully)
-#   1  --check found a stale copy or block, a missing copy, or an orphan
+#   1  --check found a stale copy, a missing copy, or an orphaned header
 #   2  bad invocation / missing source file
 
 set -euo pipefail
@@ -192,62 +192,6 @@ while IFS=$'\t' read -r dest_rel src_rel; do
   fi
 done <<< "$ENTRIES"
 
-# ---- block-level generated copies ----------------------------------------
-#
-# Whole-file vendoring above cannot say "this block appears verbatim inside
-# two hand-authored files". The batch prompt templates need exactly that: each
-# must be readable and pasteable on its own, so the shared opening is
-# duplicated into both rather than cross-referenced — and a duplicate nobody
-# generates is the drift this script exists to prevent.
-#
-# destination  <TAB>  block source. Both repo-relative. The destination marks
-# the span with a BEGIN line naming the source and an END line; everything
-# between the two is replaced by the source, verbatim.
-BLOCKS=$(cat <<'EOF'
-plugin/skills/bead-bonanza/references/prompt-fast-lane.md	plugin/skills/bead-bonanza/references/prompt-batch-preamble.md
-plugin/skills/bead-bonanza/references/prompt-shared-surface.md	plugin/skills/bead-bonanza/references/prompt-batch-preamble.md
-EOF
-)
-
-BLOCK_BEGIN="<!-- BEGIN GENERATED BLOCK: "
-BLOCK_END="<!-- END GENERATED BLOCK -->"
-
-bstale=0 bwrote=0 bchecked=0
-while IFS=$'\t' read -r dest_rel src_rel; do
-  [ -n "$dest_rel" ] || continue
-  dest="$REPO_ROOT/$dest_rel"
-  src="$REPO_ROOT/$src_rel"
-  [ -f "$dest" ] || { echo "error: block destination not found: $dest_rel" >&2; exit 2; }
-  [ -f "$src" ]  || { echo "error: block source not found: $src_rel" >&2; exit 2; }
-  bchecked=$((bchecked + 1))
-
-  # Capture, then read — a `grep | head` pipeline reports the reader's status
-  # under pipefail, so the line number and the verdict both come from a
-  # variable here rather than from the end of a pipe.
-  hits=$(grep -n -F -- "${BLOCK_BEGIN}${src_rel} " "$dest" || true)
-  b=$(printf '%s\n' "$hits" | sed -n '1s/:.*//p')
-  hits=$(grep -n -x -F -- "$BLOCK_END" "$dest" || true)
-  e=$(printf '%s\n' "$hits" | sed -n '1s/:.*//p')
-  if [ -z "$b" ] || [ -z "$e" ] || [ "$e" -le "$b" ]; then
-    echo "error: $dest_rel carries no BEGIN/END block naming $src_rel" >&2
-    exit 2
-  fi
-
-  rendered="$(mktemp)"
-  { sed -n "1,${b}p" "$dest"; cat "$src"; sed -n "${e},\$p" "$dest"; } > "$rendered"
-  if [ "$CHECK" -eq 1 ]; then
-    if ! diff -q "$rendered" "$dest" >/dev/null 2>&1; then
-      echo "  STALE (block)    $dest_rel  <-  $src_rel"
-      bstale=$((bstale + 1))
-    fi
-    rm -f "$rendered"
-  else
-    mv -f "$rendered" "$dest"
-    bwrote=$((bwrote + 1))
-    echo "  $dest_rel  <-  $src_rel  (block)"
-  fi
-done <<< "$BLOCKS"
-
 if [ "$CHECK" -eq 1 ]; then
   # ---- orphan guard: a GENERATED COPY header that nothing generates --------
   #
@@ -301,30 +245,10 @@ if [ "$CHECK" -eq 1 ]; then
     fi
   done <<< "$candidates"
 
-  # A BEGIN GENERATED BLOCK marker in a file BLOCKS does not list fails open
-  # exactly as an unmanaged GENERATED COPY header does: the marker tells a
-  # reader not to edit the span, and nothing regenerates it.
-  managed_blocks=$(printf '%s\n' "$BLOCKS" | cut -f1)
-  while IFS= read -r rel; do
-    [ -n "$rel" ] || continue
-    [ -f "$REPO_ROOT/$rel" ] || continue
-    grep -q -F -- "$BLOCK_BEGIN" "$REPO_ROOT/$rel" || continue
-    if ! printf '%s\n' "$managed_blocks" | grep -qxF -- "$rel"; then
-      echo "  ORPHAN  $rel" >&2
-      echo "          carries a BEGIN GENERATED BLOCK marker that no BLOCKS" >&2
-      echo "          entry regenerates. Add one, or drop the marker." >&2
-      orphans=$((orphans + 1))
-    fi
-  done <<< "$candidates"
-
-  if [ "$stale" -ne 0 ] || [ "$orphans" -ne 0 ] || [ "$bstale" -ne 0 ]; then
+  if [ "$stale" -ne 0 ] || [ "$orphans" -ne 0 ]; then
     echo
     if [ "$stale" -ne 0 ]; then
       echo "RESULT: $stale of $checked vendored reference(s) out of date." >&2
-      echo "        Run scripts/sync-shared-references.sh and commit the result." >&2
-    fi
-    if [ "$bstale" -ne 0 ]; then
-      echo "RESULT: $bstale of $bchecked generated block(s) out of date." >&2
       echo "        Run scripts/sync-shared-references.sh and commit the result." >&2
     fi
     if [ "$orphans" -ne 0 ]; then
@@ -332,10 +256,10 @@ if [ "$CHECK" -eq 1 ]; then
     fi
     exit 1
   fi
-  echo "RESULT: all $checked vendored references and $bchecked generated block(s) are current."
+  echo "RESULT: all $checked vendored references are current."
   echo "        $elsewhere further generated file(s) name a generator this repo runs; 0 unmanaged."
   exit 0
 fi
 
 echo
-echo "RESULT: wrote $wrote vendored reference(s) and $bwrote generated block(s)."
+echo "RESULT: wrote $wrote vendored reference(s)."

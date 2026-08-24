@@ -58,14 +58,37 @@ prints the command that established it so any single line can be re-run. This
 is the rule the rest of this file implements; where a step and this rule
 disagree, this rule wins.
 
+## Fill in the prompt before you send it
+
+The coordinator's prompt files are the prompt and nothing else — send one
+whole, with no block to extract. **You** resolve every `{PLACEHOLDER}` first; a
+subagent has no session context to infer one from, and an unsubstituted
+placeholder is the single most common dispatch defect.
+
+| resolved | placeholder | from |
+|---|---|---|
+| once per run | `{EPIC}` | the run epic (emitted as `BB_EPIC`); also the run id |
+| | `{BRANCH}` | the sprint branch, from the manifest |
+| | `{SCRIPTS}` | absolute path to the orchestrator's `scripts/` directory |
+| | `{CHECKS_IDS}` | the ids the project declared (`BB_CHECKS_IDS`) |
+| | `{CHECKS_BASELINE_TEXT}` | `bd show {EPIC} --json \| jq -r '.[0].metadata.checks_baseline'` |
+| per dispatch | `{DISPATCH_ID}` | yours to mint — one id per subagent, shared by every bead it holds, which is what makes "what is that agent holding" a query |
+| | `{WORKTREE}` | the absolute path to the worktree you created for it |
+| | `{SURFACE}` | what the batch's beads have in common, or "documentation and chores; no shared code surface" |
+| | `{SURFACE_TARGETED_TESTS}` | the tests covering that surface |
+| per bead | `{ID}`, `{PRIORITY}`, `{TITLE}`, `{DECISION}`, `{IMPLICIT_NOTES}` | the bead and the wave table; numbered (`{ID_1}`, …) in the batch prompt, one line per bead in processing order |
+
+**There is no run directory.** The run's record is the epic: the manifest in
+its metadata, the amendments in its comments.
+
 ## Dispatch the batches
 
-Execute batches in this order (lowest blast radius first):
+Execute in this order (lowest blast radius first):
 
-1. **Doc/chore fast lane** — single subagent, one worktree at a time.
-2. **Shared-surface batches** — one subagent per batch, sequentially across
+1. **Batches** — the batch prompt, one subagent per batch, sequentially across
    batches, one worktree at a time within each.
-3. **Plain sequential** — one subagent per bead, in `bd ready` order.
+2. **Plain sequential** — the per-bead prompt, one subagent per bead, in
+   `bd ready` order.
 
 Within a batch, dispatch `isolated` beads concurrently where the planning step's entry
 conditions hold; otherwise one at a time. Either way, merge and remove each
@@ -123,7 +146,7 @@ After each subagent returns:
    standing. The flag defers both. **The orchestrator re-runs the check
    without it after merging**, and that is what actually verifies them.
 
-   Applies **per bead, not per subagent**. A fast-lane subagent that processed
+   Applies **per bead, not per subagent**. A batch subagent that processed
    six beads is checked six times — that is exactly where a silent omission
    hides.
 

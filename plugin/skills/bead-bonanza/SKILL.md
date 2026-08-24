@@ -6,7 +6,7 @@ description: Process many beads autonomously by orchestrating subagents. Use
   the queue, gates every bead for readiness (grooming under-specified beads via a
   subagent, or bouncing what can't be made ready), surfaces both explicit and
   implicit decisions up front, dispatches via the cheapest viable execution mode
-  (doc fast lane / shared-surface batch / sequential), runs every dispatch in
+  (batch / sequential), runs every dispatch in
   its own git worktree, streams per-bead progress, and lands each bead in a
   single commit.
 version: "2.0"
@@ -335,8 +335,7 @@ is a skill you invoke or a script you run, and its section says which.
 | The manifest, swarm registration, amendments | `references/run-record.md` |
 | Concurrency entry, tier routing, push mode | `references/dispatch-policy.md` |
 | Dispatching one bead alone | `references/prompt-per-bead.md` |
-| Dispatching a batch | `references/prompt-fast-lane.md` or `references/prompt-shared-surface.md` |
-| What the orchestrator substitutes into a prompt | `references/prompt-placeholders.md` |
+| Dispatching a batch | `references/prompt-batch.md` |
 | Creating, merging and removing a worktree | `references/worktree-mechanics.md` |
 | How to call a script, and what it leaves behind | `references/scripts.md` |
 | Live progress: the wave's Monitor and the trigger | `references/progress-streaming.md` |
@@ -346,8 +345,8 @@ is a skill you invoke or a script you run, and its section says which.
 | Resuming a run whose state you do not hold | the **`sprint-recovery`** skill |
 | The Definition of Ready the readiness gate enforces | `references/shared/work-order-definition-of-ready.md` |
 
-`references/prompt-batch-preamble.md` is the authored copy of the block both
-batch prompts open with; edit it there, never in a prompt file.
+**A prompt file IS the prompt** — send it whole, with no block to extract.
+`sprint-wave` resolves the placeholders.
 
 **Scripts are executed, not read** — `references/scripts.md` carries every
 interface, so nothing sends you into a script's source.

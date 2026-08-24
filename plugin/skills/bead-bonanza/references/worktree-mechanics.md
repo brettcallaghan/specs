@@ -2,8 +2,8 @@
 
 **Not a prompt.** This is the orchestrator's own procedure: how a dispatch's
 worktree is created, verified, merged and removed. No subagent reads it — a
-subagent is told only its `{WORKTREE}` path, by
-[prompt-placeholders.md](prompt-placeholders.md).
+subagent is told only its `{WORKTREE}` path, which the **`sprint-wave`** skill
+resolves along with every other placeholder.
 
 ## Contents
 

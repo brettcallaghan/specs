@@ -109,7 +109,7 @@ lineup` block in `sf.toml`, echoed by pre-flight. Honor these:
 - **`push-per-bead`** — subagent pushes after each commit. Best for sequential
   mode (recovery is easier on a per-bead failure).
 - **`defer-push`** — subagent commits per bead, orchestrator pushes once at
-  batch end. Default for fast-lane and shared-surface batch (one process;
+  batch end. Default for a batch (one process;
   failures are observable).
 
 For a single-bead "wave," `push-per-bead` and `defer-push` are equivalent —

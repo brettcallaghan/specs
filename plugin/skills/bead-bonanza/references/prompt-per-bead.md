@@ -1,15 +1,3 @@
-# Per-bead subagent prompt
-
-**One bead, dispatched alone into its own worktree.** The canonical ceremony —
-the fast-lane and shared-surface batch prompts reference this workflow rather
-than restating it, so read this one first.
-
-Fill every `{PLACEHOLDER}` from
-[prompt-placeholders.md](prompt-placeholders.md); create and later remove the
-worktree per [worktree-mechanics.md](worktree-mechanics.md). Everything inside
-the fence below is what you send.
-
-```
 You are addressing a single bead in this repo. Read CLAUDE.md and AGENTS.md if you need repo conventions or the bead workflow. Validation comes from the checks the project declares in `sf.toml`.
 
 Bead: {ID} (P{PRIORITY}) — {TITLE}
@@ -54,4 +42,3 @@ especially then.
 implement in scope, gate, caveat, findings, close-and-commit, push, return —
 together with the blocked and skipped paths and its own acceptance criteria.
 The template above supplies its inputs; it supplies the procedure.
-```

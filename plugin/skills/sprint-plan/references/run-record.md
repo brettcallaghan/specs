@@ -127,8 +127,8 @@ enter through Phase 1.5 step 4's scope test, and are recorded as an amendment.
 ```markdown
 | Wave | Bead | Class | Batch | Tier | Push | Reason |
 |------|------|-------|--------|------|------|--------|
-| 1 | demo-89s | trivial | fast-lane #1 | light | defer | docs only |
-| 1 | demo-aqw | trivial | fast-lane #1 | light | defer | comment only |
+| 1 | demo-89s | trivial | batch #1 | light | defer | docs only |
+| 1 | demo-aqw | trivial | batch #1 | light | defer | comment only |
 | 2 | demo-9h0 | shared | shared-batch #1 | standard | defer | same serializer + fixture cluster |
 | 2 | demo-04y | shared | shared-batch #1 | standard | defer | same cluster |
 | 2 | demo-ojt | shared | shared-batch #1 | standard | defer | same cluster |
