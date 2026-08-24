@@ -145,7 +145,6 @@ reorder.
 
 1. `<claim>` — proved by `<command>`, observed `<result>`
 1. `<claim>` — unverified; would be settled by `<command>`
-```
 
 A gate recorded `fail` in the baseline is the bar for every bead in this run:
 "no findings beyond the baseline", not "exit 0". A gate with no recorded
