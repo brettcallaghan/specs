@@ -34,10 +34,11 @@ three things and derive the rest, so the orchestrator has nothing to forget:
 m="$(bd show {EPIC} --json | jq '.[0].metadata')"   # note .[0] — the JSON is an array
 ```
 
-`branch`, `checks_ids`, `checks_baseline`. **Mint `{DISPATCH_ID}` yourself**,
-one per batch subagent and shared by every bead in that batch; nothing upstream
-supplies it. Pass all four into each `sprint-batch` prompt — a batch that has
-to infer any of them cannot run its own base-ref check.
+`branch`, `checks_ids`, `checks_baseline`. **`{DISPATCH_ID}` you DERIVE, never
+mint** — it is the subagent's agent id, one per batch subagent and shared by
+every bead in that batch, computed from `{EPIC}` by the rule the coordinator's
+dispatch policy carries. Pass all four into each `sprint-batch` prompt — a
+batch that has to infer any of them cannot run its own base-ref check.
 
 The sprint branch already exists and the manifest already carries it. **You do
 not create one**, and you never dispatch from the default branch.
@@ -72,7 +73,7 @@ placeholder is the single most common dispatch defect.
 | | `{SCRIPTS}` | absolute path to the orchestrator's `scripts/` directory |
 | | `{CHECKS_IDS}` | the ids the project declared (`BB_CHECKS_IDS`) |
 | | `{CHECKS_BASELINE_TEXT}` | `bd show {EPIC} --json \| jq -r '.[0].metadata.checks_baseline'` |
-| per dispatch | `{DISPATCH_ID}` | yours to mint — one id per subagent, shared by every bead it holds, which is what makes "what is that agent holding" a query |
+| per dispatch | `{DISPATCH_ID}` | the subagent's **agent id**, DERIVED from `{EPIC}` and never minted — one per subagent, shared by every bead it holds. It is also the bead's `assignee` and the subagent's `$BEADS_ACTOR`: one string, which is what makes "what is that agent holding" a query and lets a resumed session recompute it. The roster of agent kinds and the derivation rule live in the coordinator's dispatch-policy reference, which is their only copy — read the id off it, do not invent one |
 | | `{WORKTREE}` | the absolute path to the worktree you created for it |
 | | `{SURFACE}` | what the batch's beads have in common, or "documentation and chores; no shared code surface" |
 | | `{SURFACE_TARGETED_TESTS}` | the tests covering that surface |

@@ -2,7 +2,20 @@ Read CLAUDE.md and AGENTS.md if you need conventions; validation comes from the 
 
 FIRST, invoke the `sprint-batch` skill. It is the whole of how a batch is run: accepting the assignment, run-bead per bead in order, the dispatch record, and the return line. Everything below is the assignment it takes.
 
-Dispatch id: {DISPATCH_ID}   (yours; shared by every bead in this batch)
+Dispatch id: {DISPATCH_ID}   (your agent id; shared by every bead in this batch)
+    (Agent id, assignee and `dispatch_id` are ONE string, DERIVED from the run
+     epic id, never minted. Roster and derivation: `dispatch-policy.md` in
+     this same references directory, the only copy.)
+
+Export it before any bd call, in every shell you run `bd` from:
+
+```sh
+export BEADS_ACTOR={DISPATCH_ID}
+```
+
+A shell that loses it claims as the harness default, and an unassigned bead
+claimed that way is reassigned with no error anywhere.
+
 Sprint branch: {BRANCH}      (your worktree MUST descend from this, never from the default branch)
 Worktree: {WORKTREE}        (ONE for this whole batch — process the beads in order,
 `git checkout -b <suffix>` per bead so each branches off the last, one commit each,

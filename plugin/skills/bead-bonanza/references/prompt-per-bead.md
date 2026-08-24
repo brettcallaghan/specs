@@ -10,6 +10,10 @@ Checks: {SCRIPTS}/bb-checks.py       (declared ids: {CHECKS_IDS})
 Push mode: {push_per_bead | defer_push}
 Worktree: {WORKTREE}        (work HERE, not in the main checkout; it is yours alone)
 Scripts: {SCRIPTS}          (bb-verify-skip.sh, bb-close-bead.sh)
+Agent id: {DISPATCH_ID}     (yours — export it as BEADS_ACTOR before any bd call, below)
+    (The agent id, the bead's assignee and `dispatch_id` are ONE string,
+     DERIVED from the run epic id, never minted. Roster and derivation:
+     `dispatch-policy.md` in this same references directory, the only copy.)
 Trailers: {"on the run epic" if any}   (pass `--trailers-from {EPIC}` to bb-close-bead.sh; omit it when the run resolved none)
 Checks baseline:
 {CHECKS_BASELINE_TEXT}
@@ -18,14 +22,21 @@ Checks baseline:
      even when the checks passed, because the text says so and a MISSING block
      means no baseline was taken, which is a different thing.)
 
-Before your first action, record that you hold this bead:
+Before your first action — the export comes FIRST, before any other `bd`
+call — record that you hold this bead:
 
 ```sh
+export BEADS_ACTOR={DISPATCH_ID}
+
 bd update {ID} --set-metadata dispatch_id={DISPATCH_ID} \
   --set-metadata dispatch_state=running \
   --set-metadata worktree={WORKTREE} \
   --set-metadata dispatched_at="$(date -u +%FT%TZ)"
 ```
+
+Export it in every shell you run `bd` from; a shell that loses it claims as
+the harness default, and an unassigned bead claimed that way is reassigned
+with no error anywhere.
 
 and as your last action, whatever the outcome:
 

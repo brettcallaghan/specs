@@ -1,4 +1,4 @@
-# Dispatch policy — concurrency, tier, push
+# Dispatch policy — identity, concurrency, tier, push
 
 **The circuit breaker stops the RUN, not just the wave.** Three consecutive
 blocked or failed beads is systemic — a broken base, a wrong assumption in the
@@ -10,11 +10,83 @@ Read this at the wave boundary, when you are deciding how a wave goes out.
 
 ## Contents
 
+- Agent identity — the roster of agent ids, how each one is derived, and the
+  `BEADS_ACTOR` export every dispatch prompt carries
 - Concurrent dispatch — the entry conditions that must ALL hold before two
   beads go out at once, and what to do when one does not
 - Tier selection per bead — resolving a bead's tier to a model, the escalation
   rule, and why a downgrade never happens mid-run
 - Push policy — `defer_push` versus `push_per_bead`, and who pushes
+
+### Agent identity — the roster, and `BEADS_ACTOR`
+
+**This section is the roster's only home.** Every dispatch prompt and every
+skill that mints or reads an agent id cites it here rather than restating the
+table; a second copy is what drifts.
+
+**One string is an agent's whole identity** — it is the bead's `assignee`, the
+agent's `$BEADS_ACTOR`, and its `metadata.dispatch_id`, all the same value.
+Beads keeps no agent registry (an assignee is a plain string), so nothing
+reconciles two spellings of the same agent, and one string is what makes
+`bd ready --assignee <id>` that agent's queue.
+
+**Every agent and subagent exports `BEADS_ACTOR=<its id>` before its first
+`bd` call.** Not because it intends to claim, but because a claim may happen:
+`run-bead` claims, a recovery path claims, a retry claims.
+
+One kind per agent the coordinator spawns:
+
+| agent | id | count | concurrent? |
+|---|---|---|---|
+| coordinator | `coordinator-<run-id>` | 1 | — |
+| groom | `groom-<run-id>` | 1 | no |
+| plan | `plan-<run-id>` | 1 | no |
+| dev | `dev-<run-id>-<batch-id>` | N | **yes** |
+| merge | `merge-<run-id>` | 1 | no |
+| review | `review-<run-id>` | 1 | no |
+| retro | `retro-<run-id>` | 1 | no |
+| report | `report-<run-id>` | 1 | no |
+
+**Only the `dev` pool is concurrent.** Every other kind runs alone, in a chain
+the dependency graph already serializes, so they cost one slot between them
+rather than one each — which is why a concurrency check counts *concurrent*
+assignees rather than distinct ones. Counting distinct assignees
+under-subscribes the dev pool by the number of ceremony roles.
+
+**Ceremony agents are assigned beads like any other agent.** That is what makes
+`bd ready --assignee groom-<run-id>` the groom agent's queue and keeps one
+dispatch mechanism for the whole run.
+
+#### Ids are DERIVED from the run epic id, never minted
+
+`<run-id>` is the run epic id with the project prefix dropped — `acme-r7k`
+becomes `r7k` — and `<batch-id>` is the batch's position in its wave. Both
+follow from the epic id and the wave table, so a **resumed session recomputes
+the same string** and finds its own queue and its own merge-slot hold. A
+randomly minted id cannot be recomputed, and a resumed session loses both.
+
+**The `<run-id>` segment is not optional.** Batch ids restart every run while
+the tracker is shared, so a bare `dev-3` collides across runs with nothing
+reporting it.
+
+#### Why the export matters
+
+Measured on `bd` 1.2.2, claiming with `bd update <id> --claim`:
+
+| bead's `assignee` | `$BEADS_ACTOR` | result |
+|---|---|---|
+| the agent's id | the same id | assignee unchanged; status `in_progress` |
+| the agent's id | unset | refused, exit 1: `issue already claimed by <id>` |
+| unset | unset | assignee **silently becomes** the harness default — git `user.name` — exit 0 |
+
+The last row is the failure the export prevents: nothing errors, and the
+coordinator's ownership view decays. `bd ready --claim` writes the actor into
+`assignee` the same way, and on an already-assigned ready front it claims
+nothing at all and returns `[]`.
+
+An unassigned bead is therefore the only bead a claim can move to the wrong
+owner, which is why assigning every bead before dispatch and exporting
+`BEADS_ACTOR` everywhere are belt and braces rather than alternatives.
 
 ### Concurrent dispatch
 
