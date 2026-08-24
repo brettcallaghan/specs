@@ -304,17 +304,69 @@ outcome is a bug report upstream and no change here.
 becomes one JSON document that builds the run.
 
 **Change.** `sprint-plan` emits a graph plan; the coordinator loads it with
-`bd create --graph`. Schema (measured, design §4a):
+`bd create --graph`. Schema (measured against bd 1.2.x; corrected copy of
+design §4a's schema, which shows the same fields with no orientation prose —
+see `agent-plugins-fvnp`):
 
 ```json
 {"nodes":[{"key":"…","title":"…","type":"epic|task","parent_key":"…",
-           "assignee":"…","priority":2,"description":"…"}],
+           "assignee":"…","priority":2,"description":"…","metadata":{"tier":"…"}}],
  "edges":[{"from_key":"…","to_key":"…","type":"blocks"}]}
 ```
 
 Without item 7 the emitted shape is flat: run epic, work beads as its children,
 edges between them. The ceremony epics arrive with item 7 and the schema does
 not change.
+
+**`from_key` WAITS FOR `to_key` — the opposite of how `"type": "blocks"` reads
+at a glance.** Writing an edge so the `from_key` node is the one that runs
+*first* inverts every dependency in the run, exits 0, and produces a `bd
+ready` front that still looks plausible. Measured in a scratch database:
+
+```
+$ cat edge-orientation.json
+{"nodes": [{"key": "alpha", "title": "alpha bead"}, {"key": "beta", "title": "beta bead"}],
+ "edges": [{"from_key": "alpha", "to_key": "beta", "type": "blocks"}]}
+$ bd create --graph edge-orientation.json
+Created 2 issues
+  alpha -> scr-d4c
+  beta -> scr-h6j
+$ bd ready
+  ○ scr-h6j ● P2 beta bead
+$ bd blocked
+  [● P2] scr-d4c: alpha bead
+    Blocked by 1 open dependencies: [scr-h6j]
+```
+
+`alpha` is the `from_key` and comes out **blocked**; `beta` is the `to_key`
+and comes out **ready**. Same result, independently, in
+`plugin/skills/sprint-plan/references/run-record.md` ("The graph plan" —
+merged earlier this run and now the source of truth this section agrees
+with) and the negative control it documents. Assert the ready front after
+loading rather than trusting the file.
+
+**`parent_key` and `parent_id` are not interchangeable, and `bd` gives no
+warning when they're confused.** `parent_key` references another node's
+`key` **in this plan** — it is what builds the run's hierarchy. `parent_id`
+is for hanging a plan off an id that **already exists** in the tracker.
+Measured:
+
+```
+$ cat parent-id-trap.json
+{"nodes": [{"key": "child_via_parent_id", "title": "child via parent_id", "parent_id": "some-plan-key"}], "edges": []}
+$ bd create --graph parent-id-trap.json
+Created 1 issues
+  child_via_parent_id -> scr-odc
+$ bd show scr-odc            # no PARENT section in the output
+$ bd dep list scr-odc
+scr-odc has no dependencies
+```
+
+Giving `parent_id` a plan key instead of a real tracker id is accepted with
+**no warning** and produces an orphan: the node lands outside the intended
+epic entirely, and every `--parent`-scoped query then under-reports the
+queue. Use `parent_key` for every node this plan creates; reserve `parent_id`
+for attaching to a bead that already exists.
 
 **Files.** `plugin/skills/sprint-plan/SKILL.md` (the output contract),
 `plugin/skills/sprint-plan/references/run-record.md` (where the plan file lives
@@ -329,13 +381,39 @@ assert: node count matches, every edge present, every bead assigned, and
 `bd ready` returns exactly the expected front. **Diff the plan before loading** —
 being reviewable pre-load is most of the value.
 
-**Open.** Whether `--graph` accepts gates or per-node metadata is unverified;
-probe before relying on either.
+**Resolved (was Open).** Whether `--graph` accepts gates or per-node metadata
+is no longer unverified: it accepts per-node `metadata` (`map[string]string`
+— a number or nested object aborts the load with a parse error before
+anything is created) but it does **not** accept gates. Measured:
+
+```
+$ cat fields-probe.json
+{"nodes": [{"key": "n1", "title": "field probe", "metadata": {"tier": "advanced"}, "gate": "human", "acceptance": "x", "notes": "y"}], "edges": []}
+$ bd create --graph fields-probe.json
+warning: graph plan node["n1"] has unknown field(s): [acceptance gate notes] (silently dropped — see 'bd create --graph' schema)
+Created 1 issues
+  n1 -> scr-9j0
+$ bd show scr-9j0 --json | jq .metadata
+{"tier": "advanced"}
+```
+
+`metadata` landed on the created bead; `gate`, `acceptance` and `notes` were
+silently dropped — warned, not refused, exit 0. Accepted node fields in full:
+`key title type parent_key parent_id assignee priority description labels
+metadata`. Rejected (dropped with a warning, never an error): `id blocked_by
+acceptance deps design estimate external_ref gate notes status`. Edges accept
+only `from_key to_key type`. **The consequence for item 10: gates must be
+created against already-loaded beads (`bd gate create`), never declared
+inside the graph plan.**
 
 **Risk.** A malformed plan fails at load having created part of the graph.
-`bd create --graph` reports unknown fields as warnings and **silently drops
-them** — so a typo in a key name is a silently missing assignee, not an error.
-Validate the plan against the known field set before loading.
+`bd create --graph` reports unknown *fields* as warnings and **silently drops
+them** at exit 0 — so a typo in a key name is a silently missing assignee, not
+an error. A malformed *value* (a non-string `metadata` entry, for instance) is
+the opposite: it aborts the load before creating anything. The fail-open case
+— a warning that still exits 0 — is the one a validator has to cover; a bad
+value already fails loud on its own. Validate the plan against the known
+field set (above) before loading.
 
 **Validate flatness too, now rather than later** (see the item-7 constraint
 above): no node parented to the target epic may be `type: "epic"`. This costs
