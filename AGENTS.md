@@ -357,6 +357,61 @@ This applies to `plugin/skills/**` and anything vendored from it. Files that
 never leave this repo — `CLAUDE.md`, `AGENTS.md`, `docs/`, `.beads/config.yaml`
 — may cite ids, and should still keep the narrative short.
 
+## Citing another skill's reference
+
+`scripts/check-skills.sh` makes one skill unable to *link* another skill's
+reference file: rule 3 errors on any `../<skill>/references/` path, and rule 2
+requires a backticked `*.md` path to resolve from the citing file's own
+directory. That is deliberate — a skill is copied out of this repo on its own,
+and a path reaching outside its directory dangles the moment it is. Two remedies
+exist, and **which one is right is a rule, not a preference:**
+
+> **Vendor when the citing skill needs the WHOLE cited file and only APPLIES
+> it — a procedure, checklist, standard or template. Cite the owning skill by
+> ROLE in prose, with no path, when you need one fact out of a larger document,
+> or when the file is a REGISTRY that a second copy would give a second place
+> to extend.**
+
+**The two tests, in order.**
+
+1. **Do you need the whole file?** `scripts/sync-shared-references.sh` vendors a
+   file, never a section — `render` is `cat` over the source, so there is no way
+   to generate part of one, and none to graft a section into a hand-authored
+   file. Needing one fact out of a larger document therefore has no vendoring
+   form: it would ship the citing skill a document it does not own and must not
+   act on. **One fact out of a larger document → cite by role.**
+2. **Is the file applied, or extended?** A procedure, checklist, standard or
+   template is *applied*: it reads identically in every skill that ships it, and
+   a generated copy is inert. A registry — a roster, an id table, an enum of
+   kinds — is *extended*: its content asserts that it is the one place an entry
+   may be added, and a second copy makes that claim false the moment somebody
+   adds to the wrong one. The generator prevents drift between copies; it does
+   not prevent a reader from treating a copy as a home. **Extended → cite by
+   role. Applied → vendor.**
+
+**VENDOR** means: add a `consumer<TAB>source` line to
+`scripts/sync-shared-references.sh`'s `MAP`, run the script, and cite the
+generated `references/shared/<file>.md` by path from the citing skill. The cost
+you accept is one more generated file that `--check` must keep current forever.
+
+**CITE BY ROLE** means: state the fact the reader needs, in the citing skill's
+own words, and name the owner by its **role** rather than by a path — "the
+coordinator's dispatch policy", "the grooming skill's Definition of Ready". No
+path, because no path resolves for a reader who has only the citing skill. The
+cost you accept is an unlinked hop, so say enough that a reader who never makes
+the hop still behaves correctly.
+
+**Both forms are already in the tree, and each is the right one for its case:**
+
+| citation | whole file? | applied or extended? | form |
+|---|---|---|---|
+| `sprint-wave` → the agent roster and the id-derivation rule, in `bead-bonanza`'s dispatch policy | no — one fact from a coordinator-scoped policy document | extended (a roster) | **cite by role** |
+| `sprint-plan` → `groom-beads`' epic Definition of Ready | yes — the file *is* the two checks `sprint-plan` runs | applied (a checklist) | **vendor** |
+
+Neither test is a tiebreak for the other: they agree on both rows, and test 1
+alone settles the first. Where they disagree, test 1 wins — a section cannot be
+vendored at all.
+
 ## Beads Issue Tracker
 
 This project uses **bd (beads)** for issue tracking. Run `bd prime` to see full workflow context and commands.

@@ -156,8 +156,18 @@ for p in glob.glob('plugin/skills/**/*.md', recursive=True) + glob.glob('.claude
 for p in glob.glob('plugin/skills/**/*.md', recursive=True):
     if '/references/shared/' in p: continue
     for m in re.finditer(r'\.\./[a-z-]+/references/', open(p).read()):
-        err(p, "cites a sibling skill's references directly; vendor it into "
-               "references/shared/ via scripts/sync-shared-references.sh")
+        err(p, "cites a sibling skill's references directly. Two remedies, and "
+               "which is right is a rule, not a preference: VENDOR when the "
+               "citing skill needs the WHOLE cited file and only APPLIES it — "
+               "a procedure, checklist, standard or template — by adding a MAP "
+               "line to scripts/sync-shared-references.sh and citing the "
+               "generated references/shared/ copy. CITE the owning skill BY "
+               "ROLE in prose, with no path, when you need one fact out of a "
+               "larger document (the generator vendors whole files, never "
+               "sections), or when the file is a REGISTRY that a second copy "
+               "would give a second place to extend. Both tests and the two "
+               "worked examples: AGENTS.md, \"Citing another skill's "
+               "reference\".")
 
 # ---- 4. long reference files carry a table of contents --------------------
 for p in glob.glob('plugin/skills/*/references/*.md'):
