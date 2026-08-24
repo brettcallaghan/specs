@@ -1,6 +1,6 @@
 # Rolling coordination onto the beads graph
 
-Implementation plan for items **1–6 and 8–14** of the ranked list in
+Implementation plan for items **1–14** of the ranked list in
 [beads-coordination-design.md](beads-coordination-design.md). Each item below is
 sized to become one bead, with the evidence already recorded in the design doc
 and not repeated here.
@@ -9,69 +9,117 @@ Transient. Delete when the change lands.
 
 ---
 
-## Item 7 is out of this plan's scope, but it is decided — and it carries a constraint
+## 7 · The run-epic shape, and the constraint that governs it
 
-**Item 7** — ceremony as epics, target epic as payload, one `bd swarm` on the
-target — is not planned here, but it is **wanted**: swarm is being adopted. This
-plan is the groundwork under it, so two things follow.
+**In scope, and it changes how items 1 and 10 are justified** — both are revised
+below rather than left as written.
 
-### The constraint item 7 must carry: the swarmed target is FLAT
+### The shape
 
-**Measured, and swarm gives no warning when this is violated:**
+```
+run epic  (container; NEVER swarmed)
+├── preflight   (epic)  ─┐
+├── scope       (epic)  ─┤  ceremony: epics, chained epic→epic
+├── plan        (epic)  ─┤
+├── TARGET      (epic)  ←─  swarmed. FLAT: tasks only.
+├── review      (epic)  ─┤
+├── retro       (epic)  ─┤
+├── report      (epic)  ─┤
+└── postflight  (epic)  ─┘
+```
+
+Forced, not chosen: `bd dep add` refuses `task→epic` and `epic→task`, so anything
+that must block the target epic has to be an epic itself. One `epic→epic` edge
+then blocks every bead under the target, and beads added mid-run inherit that
+block structurally.
+
+### The constraint: the swarmed target is FLAT, and swarm will not tell you
+
+**Measured:**
 
 | target shape | `bd swarm validate` reports |
 |---|---|
 | epic → 2 tasks | `Total issues: 2` · Wave 1: both leaves |
 | epic → child epic → 2 tasks | `Total issues: 1` · Wave 1: **the child epic** |
 
-A nested target makes swarm count the child epic as a single issue and never see
-the real beads beneath it. Progress is wrong, the ready-front analysis treats a
-container as work, and `validate` — the command whose whole job is to check epic
-structure for swarming — **reports the wrong total as though it were correct.**
+A nested target makes swarm count the child epic as one issue and never see the
+real beads beneath it. Progress is wrong, the ready-front analysis treats a
+container as work, and `validate` — whose whole job is checking epic structure
+for swarming — **reports the wrong total as though it were correct.**
 
-So item 7's shape is: ceremony epics under the RUN epic (never swarmed), and a
-**flat** target epic containing tasks only. Work that genuinely decomposes into
-sub-epics becomes a *second* target under the run epic, swarmed separately.
+So: **the target contains tasks only.** Ceremony epics are children of the run
+epic, which is never swarmed. Work that genuinely decomposes into sub-epics
+becomes a *second* target under the run epic, swarmed separately. It is an
+admission rule too — scope creep arriving as an epic silently removes everything
+beneath it from the swarm's view.
 
-**This reaches into item 6 now.** The graph plan that item 6 emits is what
-creates the target's children, so the flatness rule is a plan-validation rule
-from the start: **no node whose `parent_key` is the target may have
-`type: "epic"`.** Cheaper to enforce in the emitter than to discover from a
-wrong swarm total later. It is also an admission rule for mid-run additions —
-scope creep arriving as an epic silently removes everything under it from the
-swarm's view.
+### Gates attach to task children, never to the ceremony epic
 
-### And two items are justified differently while 7 is outstanding
+Measured: a `[steps.gate]` on an epic cannot be created (the gate bead is a task,
+and gating an epic needs the refused `task→epic` edge). So the authorization gate
+lives on a **task child** of the `scope` epic:
 
-**Item 1's severity drops from critical to hygiene.** The silent deadlock in the
-design doc arises specifically from epic→epic ceremony gating: ceremony epics
-that never close leave the target blocked while `bd ready` reads empty. Without
-item 7 there are no ceremony epics, so that deadlock cannot occur yet. `bd epic
-close-eligible` is still needed — the run epic must close, and `bd epic status`
-is wrong until it does — but it is **not** the highest-severity item any more.
-Do it anyway: it is one line, and it is a prerequisite the day item 7 lands.
+```
+scope (epic)                 ← blocks the target epic
+└── authorization (task)     ← bd gate create --blocks <this>
+```
 
-**Item 10's deferred-review channel needs a different holder.** The design's
-mechanism parks the `human`-labelled bead under a late ceremony epic. With no
-ceremony epics, use a plain task→task edge instead: the human bead **blocks the
-run's report bead**. Same effect — invisible to dispatch until the end, visible
-in `bd human list` immediately — and it works with the graph as it stands today.
+The epic cannot become close-eligible until its children close; the gated child
+cannot close until a human resolves it. Verified end to end.
 
-Everything else in 1–14 is independent of item 7.
+**Change.** The run shape, its creation, and the swarm call.
+
+**Files.** `plugin/skills/bead-bonanza/SKILL.md` (the shape and the swarm call),
+`plugin/skills/sprint-scope/SKILL.md` (run epic + ceremony epics + the
+authorization gate on a task child), `plugin/skills/sprint-plan/SKILL.md` (the
+target is flat; emit it that way),
+`plugin/skills/sprint-plan/references/run-record.md` (record `target_epic`
+alongside the run epic).
+
+**Verify.** Build the shape in a scratch database; assert (a) every bead under
+the target is absent from `bd ready` until pre-flight's epic closes via
+`bd epic close-eligible`, (b) `bd swarm validate <target>` reports the true leaf
+count, (c) a bead added to the target mid-run is blocked without being wired.
+
+**Depends on.** 6 — the graph plan is what builds this shape. **1 is a hard
+prerequisite**, not a nicety: see below.
+
+**Size.** L.
+
+---
+
+## Revised: items 1 and 10 under item 7
+
+**Item 1 returns to critical, and becomes a prerequisite.** With ceremony epics
+in play the silent deadlock is live: ceremony beads all close, the ceremony epic
+stays `open` because nothing closes it, the target stays blocked forever,
+`bd ready` returns empty, and an is-the-front-empty termination check reads that
+as **success**. The run reports done having done nothing. So item 1 is not
+hygiene — **it must land before item 7, or item 7 ships a deadlock.**
+
+**Item 10 reverts to the design's mechanism.** The deferred-review bead parks
+under the **`review` or `report` ceremony epic** rather than taking a task→task
+edge to the report bead. Same asymmetry — absent from `bd ready` until that phase
+opens, present in `bd human list` immediately — and it needs no special-case
+edge now that the late epics exist.
+
+---
 
 ---
 
 ## Sequencing
 
 ```
-1 ─┐
-2 ─┼─→ 3          (3 enforces what 2 and 4 decide)
+1 ─────────────→ 7        1 is a HARD prerequisite: 7 without it ships a deadlock
+2 ─┬─→ 3                  3 enforces what 2 and 4 decide
 4 ─┘
 5     independent
 
-6 ─────→ 8, 9     (both consume the graph 6 emits)
-              10  (independent; needs the item-7 note above)
-              11  independent
+6 ─┬─→ 7                  the graph plan builds the run shape
+   ├─→ 8, 9               both consume the graph 6 emits
+   └─→ 11                 merge beads are graph nodes
+
+7 ─────→ 10               deferred review parks under a late ceremony epic
 
 12 ─┐
 13 ─┼─ all three need the DISTRIBUTION decision below settled first
@@ -141,8 +189,13 @@ by recording the value rather than assuming it (D2).
 ### 3 · Two Definition-of-Ready checks
 
 **Change.** Add to the epic-level DoR: (a) every bead in the run epic carries an
-assignee; (b) the distinct-assignee count is ≤ `concurrency_cap`. Both fail
-loudly at plan time; both are invisible at run time.
+assignee; (b) the **concurrent** assignee count — the `dev` pool — is
+≤ `concurrency_cap − 1`. Both fail loudly at plan time; both are invisible at
+run time.
+
+**Count the dev pool, not all distinct assignees** (see item 4's roster).
+Ceremony agents are serialized by the graph and share one slot; counting them
+would under-subscribe the pool by the number of ceremony roles.
 
 **Files.** `plugin/skills/groom-beads/references/epic-definition-of-ready.md`,
 and the readiness gate in `plugin/skills/sprint-plan/SKILL.md`.
@@ -160,12 +213,41 @@ the count.
 ### 4 · `BEADS_ACTOR` in every agent and subagent
 
 **Change.** Every dispatch prompt exports `BEADS_ACTOR=<agent id>` before any
-`bd` call. Agent ids per the design doc: `coordinator-<run-epic-id>`,
-`dev-<run-id>-<batch-id>`, `merge-<run-id>`.
+`bd` call.
+
+**The roster is wider than the design doc said, and item 7 is why.** Once
+ceremony is beads, each ceremony epic is work someone does — so there is one
+agent kind per agent the coordinator spawns:
+
+| agent | id | count | concurrent? |
+|---|---|---|---|
+| coordinator | `coordinator-<run-epic-id>` | 1 | — |
+| groom | `groom-<run-id>` | 1 | no |
+| plan | `plan-<run-id>` | 1 | no |
+| dev | `dev-<run-id>-<batch-id>` | N | **yes** |
+| merge | `merge-<run-id>` | 1 | no |
+| review | `review-<run-id>` | 1 | no |
+| retro | `retro-<run-id>` | 1 | no |
+| report | `report-<run-id>` | 1 | no |
+
+**This interacts with item 2 and the interaction is easy to get wrong.** The
+concurrency cap bounds *simultaneous* agents. Ceremony agents run one at a time,
+in a chain the graph already serializes — so they cost one slot between them,
+not seven. **Only the `dev` pool is concurrent**, so item 3's check should count
+concurrent assignees, not distinct ones. Counting all distinct assignees would
+under-subscribe the pool by the number of ceremony roles.
+
+The practical rule: `N_dev ≤ cap − 1` (one slot for whichever ceremony agent is
+running).
+
+**Ceremony beads are assigned like any other**, which is what makes
+`bd ready --assignee groom-<run-id>` the groom agent's queue and keeps the
+dispatch mechanism uniform.
 
 **Files.** `plugin/skills/bead-bonanza/references/prompt-per-bead.md`,
-`prompt-batch.md`, and the placeholder table in
-`plugin/skills/sprint-wave/SKILL.md`.
+`prompt-batch.md`, the placeholder table in
+`plugin/skills/sprint-wave/SKILL.md`, and — once item 7 lands — wherever each
+ceremony agent is dispatched from.
 
 **Verify.** In a scratch database: assign a bead to `dev-x`, claim it with
 `BEADS_ACTOR=dev-x`, assert the assignee is unchanged. Repeat without the
@@ -432,9 +514,7 @@ than the plugin, this one may not have a home at all. Settle D1 first.
 
 ## What this plan does not cover
 
-- **Item 7** — the run-epic shape and swarm adoption. Decided but not planned
-  here; its flatness constraint is recorded at the top and item 6 enforces it
-  from the start.
+- Nothing from 1–14. Item 7 is now planned above.
 - **Items 15–19** — open questions. Each could change a decision here; none
   blocks starting.
 - **Item 20** — the prototype. It is the point of all of this, and it should
