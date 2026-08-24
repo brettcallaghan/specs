@@ -192,6 +192,235 @@ the only state there is.
 is a true dependency and deserves a real edge. The distinction stays visible
 instead of being flattened into "everything in a batch is chained".
 
+### Should a batch be an epic instead?
+
+**No — and the type system is the reason.** Measured on 1.2.2, dependency edges
+do not cross the task/epic boundary:
+
+```
+bd dep add <epic-B> <epic-A>   → ✓ added
+bd dep add <task>   <epic-A>   → Error: tasks can only block other tasks, not epics
+bd dep add <epic-B> <task>     → Error: epics can only block other epics, not tasks
+```
+
+Making a batch an epic buys `bd epic status` and the ability to participate in
+epic↔epic edges. It costs three things:
+
+- **Nested epics break the parent query.** This repository has already measured
+  that `bd list --parent` is direct-children-only, so a batch-epic hides its
+  beads from every `--parent <run-epic>` query the coordinator makes.
+- **It re-adds structure assignment already expresses.** "Which beads does
+  `dev-3` hold" is a query either way; the epic adds a record to maintain.
+- **It infects the edges.** A batch-epic can no longer be blocked by a task or
+  block one, so any real sequencing involving a batch member has to be
+  re-expressed at epic granularity — which is coarser than the truth.
+
+**The distinction worth keeping is what the thing IS.** Ceremony steps are
+*phases of the run*: they must block one another, so they must be epics.
+Batches are *who does what*: they need no edges at all, so they should carry
+none. Same run, two different kinds of object, and conflating them is what
+would force fake edges back in.
+
+---
+
+## 4a · Ceremony: the run epic encapsulates the target, and it must
+
+Your instinct here is not just workable — **the type rules force it.**
+
+**Pre-flight cannot block a bead-level target, and it does not need to.**
+Measured, in order:
+
+```
+# preflight epic blocks target epic
+bd dep add <target-epic> <preflight-epic>     → ✓
+
+# does the block reach the target's CHILDREN?
+bd ready    → child of target epic ABSENT
+bd blocked  → child of target epic PRESENT, and the epic itself
+```
+
+**One epic↔epic edge blocks every bead under the target.** That is the answer to
+"we probably don't want to make a pre-flight check a dependency for every bead
+in the epic" — you don't have to, and you can't: a task→epic edge is refused, so
+per-bead ceremony edges were never available anyway.
+
+So the shape is exactly the one you proposed:
+
+```
+run epic  (the container; never swarmed)
+├── preflight   (epic)  ─┐
+├── scope       (epic)  ─┤ ceremony: epics, chained with needs/dep edges
+├── plan        (epic)  ─┤
+├── TARGET      (epic)  ←─ the payload. THIS is what `bd swarm` runs on.
+├── review      (epic)  ─┤
+├── retro       (epic)  ─┤
+├── report      (epic)  ─┤
+└── postflight  (epic)  ─┘
+```
+
+`bd swarm` stays useful precisely because it is pointed at **one** epic — the
+target — rather than at the run epic. Ceremony is not swarmed; it is a chain,
+and a chain needs no swarm.
+
+### The deadlock this creates, and it is silent
+
+**Measured: an epic does NOT close when its children close.**
+
+```
+bd close <preflight-epic's only child>
+bd show <preflight-epic>  → status: open          # still open
+bd ready                  → target's child ABSENT # still blocked
+
+bd epic close-eligible    → ✓ Closed 1 epic(s)
+bd ready                  → target's child PRESENT
+```
+
+Nothing closes the epic on its own. If the coordinator's loop does not call
+`bd epic close-eligible`, the run deadlocks in the worst possible way: every
+ceremony bead is closed, the target stays blocked forever, `bd ready` returns
+empty — and an "is the ready front empty?" termination check reads that as
+**success**. The run reports done having done nothing.
+
+**So the loop is two commands, not one:**
+
+```
+until done:
+    bd epic close-eligible                                   # release finished phases
+    bd ready --parent {RUN_EPIC} --exclude-type=epic --json  # dispatch what is ready
+```
+
+`--exclude-type=epic` matters too: measured, **epics appear in `bd ready`
+themselves**, so without it the coordinator will try to dispatch a phase
+container as if it were work.
+
+### A drafted formula, and what cooking it revealed
+
+Written to `.beads/formulas/run-swarm.formula.toml` in the scratch lab:
+
+```toml
+formula = "run-swarm"
+description = "One autonomous run: ceremony as beads, the target epic as the payload"
+version = 1
+type = "workflow"
+
+[vars.target_epic]
+description = "The epic whose children are the run's actual work"
+required = true
+
+[vars.branch]
+description = "Sprint branch the run works on"
+required = true
+
+# Every ceremony step is type=epic. Not decoration: `bd dep add` refuses a
+# task->epic edge, so any step that must block the target epic must be an epic.
+
+[[steps]]
+id = "preflight"
+type = "epic"
+title = "Pre-flight for {{target_epic}}"
+description = "Each failed check becomes a child bead; the epic cannot close until they do."
+
+[[steps]]
+id = "scope"
+type = "epic"
+title = "Resolve scope and take authorization"
+needs = ["preflight"]
+
+[[steps]]
+id = "plan"
+type = "epic"
+title = "Build the graph for {{target_epic}}"
+description = "Groom to Ready, assign every bead, compile surface collisions into edges."
+needs = ["scope"]
+
+[[steps]]
+id = "execute"
+type = "epic"
+title = "Execute {{target_epic}} on {{branch}}"
+needs = ["plan"]
+
+[[steps]]
+id = "review"
+type = "epic"
+title = "Review the run's own diff"
+needs = ["execute"]
+
+[[steps]]
+id = "retro"
+type = "epic"
+title = "Retro: harvest findings into issues"
+needs = ["review"]
+
+[[steps]]
+id = "report"
+type = "epic"
+title = "Report the run"
+needs = ["retro"]
+
+[[steps]]
+id = "postflight"
+type = "epic"
+title = "Post-flight cleanup"
+needs = ["report"]
+```
+
+**It cooks.** `bd cook run-swarm --mode=runtime --var … --dry-run` resolves all
+eight steps, substitutes both variables, and shows the `needs` chain intact.
+
+**The first draft did not pour**, and the failure is worth more than the draft:
+
+```
+bd mol pour run-swarm --var target_epic=lab-1eg --var branch=sprint/x
+→ Error: pouring proto: failed to create dependency:
+         epics can only block other epics, not tasks
+```
+
+Isolated with two-step controls: an all-task formula pours, an all-epic formula
+pours, and the difference is a `[steps.gate]` block:
+
+| formula | pours? |
+|---|---|
+| `[steps.gate]` on a **task** step | ✓ |
+| `[steps.gate]` on an **epic** step | ✗ same error |
+
+**A gate cannot be attached to an epic step on 1.2.2**, because the gate is
+itself a task and gating an epic would need the task→epic edge the type rules
+refuse. That collides head-on with what we want: ceremony steps must be epics,
+and the authorization step is exactly where a human gate belongs.
+
+**The way out, measured end to end:** put the gate on a **task child** of the
+ceremony epic. The epic cannot become close-eligible until its children close,
+and the gated child cannot close until a human resolves it — so the block
+propagates without ever needing a task→epic edge.
+
+```
+scope (epic)                    ← blocks the target epic
+└── authorization (task)        ← bd gate create --blocks <this>
+```
+
+```
+work bead ready, gate open          → 0
+gate resolved + auth closed         → 0     # epic still open
+after bd epic close-eligible        → 1     # released
+```
+
+So the formula drops `[steps.gate]` entirely and the coordinator creates gates
+against child beads at runtime. **[unverified]:** whether a formula can express
+"step B is a *child* of step A" rather than merely `needs` it — `bd mol bond
+--ref` looks like the mechanism, and settling it would let the gated child ship
+in the template instead of being created by hand.
+
+### Should we build this formula at all?
+
+**Not yet.** It is the right shape and the exercise paid for itself — it found
+the gate/epic incompatibility and the close-eligible deadlock, neither of which
+was visible from the documentation. But three things argue against adopting it
+now: this repository has no formulas today, so it would be the first user of a
+subsystem we have not otherwise exercised; the pour path already failed once on
+a plausible construction; and the ceremony chain is eight `bd create` calls,
+which is not the expensive part of a run. **Build the graph by hand first, run
+it, and reach for a formula when the ceremony has stopped changing shape.**
+
 ---
 
 ## 5 · Human decisions belong in the graph, and beads already models them
@@ -381,6 +610,45 @@ from bd, and not *subagents* — a subagent cannot be woken, only spawned. But t
 **coordinator** can be kept alive and re-driven by `Stop`, told the instant a
 worker finishes by `SubagentStop`, and fed bead-state changes by a background
 monitor. Polling is the fallback, not the design.
+
+### Can `SubagentStop` tell us a worker is really done — or only stalled?
+
+**Done: yes, and it is strictly better than what we do today.** The hook fires
+when the subagent finishes and **can block** — exit 2 prevents it from
+stopping **[doc]**. So the hook is an acceptance check the worker cannot talk
+its way past:
+
+```sh
+# SubagentStop hook, sketch
+left=$(bd ready --assignee "$AGENT_ID" --json | jq 'length')
+busy=$(bd list --assignee "$AGENT_ID" --status in_progress --json | jq 'length')
+[ "$left" -eq 0 ] && [ "$busy" -eq 0 ] || exit 2   # not done — keep working
+```
+
+This is the same acceptance question the sprint system asks today, moved from
+*the coordinator remembering to verify a subagent's testimony* to *the harness
+refusing to accept the claim*. The whole "verify against state, never against
+testimony" apparatus exists because a subagent can say it finished when it did
+not; a blocking hook makes saying so ineffective. It also receives `agent_id`,
+so it knows whose queue to check without being told.
+
+**Stalled: no, and it cannot.** `SubagentStop` fires when a subagent *finishes*.
+A stalled subagent never finishes, so it never fires. **Absence of an event is
+not an event** — no hook can report a thing that did not happen.
+
+Stall detection therefore stays where it is, and stays a judgement over three
+signals that are all cheap:
+
+| signal | says |
+|---|---|
+| time since the agent's last event log line | nothing moving |
+| `bd list --assignee <id> --status in_progress` | what it claims to hold |
+| its worktree still standing, and `git log` in it | whether work landed |
+
+**The one hook that helps is `Stop` on the coordinator**, because a coordinator
+kept alive by an exit-2 loop is a coordinator still available to notice. The
+harness cannot detect the stall for us; it can stop us from wandering off before
+we do.
 
 ---
 
