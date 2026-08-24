@@ -214,14 +214,17 @@ is what verifies them**; skip it and nothing checks that the merge and the
 removal happened. Exit 2 stops the wave.
 
 
-**Re-query the ready front at every wave boundary — two commands, in order:**
-`bd epic close-eligible`, then `bd ready --parent <epic> --exclude-type=epic`.
-**Omitting `close-eligible` is a silent deadlock, not a slowdown**: an epic
-does not close on its own when its children do (measured), so a finished
-ceremony phase stays open, the beads it gates never enter the ready front, and
-an empty front reads as the run being done when it has stalled instead.
-**That query is the order**: closed beads leave it, beads the last wave
-unblocked enter it, and a bead added mid-run is in scope by construction.
+**Re-query the ready front at every wave boundary.** `bd epic close-eligible`
+takes NO epic argument — a passed id is silently ignored, so the bare command
+closes every eligible epic in the database, not just this run's. Scope it by
+hand, then `bd ready --parent <epic> --exclude-type=epic`: procedure in
+`references/supervision.md`. **Omitting `close-eligible` entirely is a silent
+deadlock, not a slowdown**: an epic does not close on its own when its
+children do (measured), so a finished ceremony phase stays open, the beads it
+gates never enter the ready front, and an empty front reads as the run being
+done when it has stalled instead. **That query is the order**: closed beads
+leave it, beads the last wave unblocked enter it, and a bead added mid-run is
+in scope by construction.
 
 **How a wave goes out**, and the circuit breaker that stops the RUN rather
 than the wave: `references/dispatch-policy.md`.

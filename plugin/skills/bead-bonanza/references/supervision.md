@@ -21,12 +21,19 @@ leaves under them. Where the run epic is nested, fall back to the re-queried
 ready front plus a walked descendant count — and say which of the two you used,
 because the numbers differ and a reader cannot tell them apart.
 
-**Re-querying the ready front is two commands, in order: `bd epic
-close-eligible`, then `bd ready --parent <epic> --exclude-type=epic`.** An epic
-does not close on its own when its children do (measured), so skipping
-`close-eligible` is a silent deadlock, not a slowdown — a finished ceremony
-phase stays open, the beads it gates never reach the front, and an empty front
-reads as the run being done when it has only stalled.
+**Re-querying the ready front is two steps, in order.** First, close eligible
+epics — scoped by hand, never with the bare command: `bd epic close-eligible`
+takes NO epic argument (bd 1.2.2, `--help`) and a passed id is silently
+ignored, so `bd epic close-eligible <epic>` reads as scoped and is not. Run
+`bd epic close-eligible --dry-run`, intersect what it names with the epics
+under this run, and close only those explicitly — the bare command (no
+`--dry-run`) closes every eligible epic in the database, including epics
+belonging to other runs and other humans. Then `bd ready --parent <epic>
+--exclude-type=epic`. An epic does not close on its own when its children do
+(measured), so skipping the first step is a silent deadlock, not a slowdown —
+a finished ceremony phase stays open, the beads it gates never reach the
+front, and an empty front reads as the run being done when it has only
+stalled.
 
 Live progress — the event stream, the per-wave `Monitor`, and the durable
 out-of-session trigger — is `progress-streaming.md`.
