@@ -237,8 +237,8 @@ bind whatever it says:
   retro loop below needs it to recalibrate.
 
 **The keys, why the `execution_*` ones are `bd`'s own convention rather than
-ours, and the trap that `--metadata` REPLACES where `--set-metadata` adds:**
-`references/capability-tier.md`.
+ours, and how `--metadata` merges (shallowly) against `--set-metadata`'s
+add-only, string-only writes:** `references/capability-tier.md`.
 
 ### 5. Tag C4 blast radius
 
@@ -256,8 +256,8 @@ These three fields are **arrays**, which is why this phase uses
 `--metadata` and not `--set-metadata`: the latter would store
 `["auth-service"]` as the literal string `"[\"auth-service\"]"`, and
 anything reading `c4_changes` as a list — wave-collision packing above
-all — would not see a component name. Because `--metadata` replaces the
-whole object, restate the tier keys phase 4 already wrote, as shown.
+all — would not see a component name. `--metadata` merges at the top
+level, so phase 4's tier keys survive without restating them.
 
 - Distinguish **changes** (code this bead edits) from **impacts** (downstream
   components affected but not edited). Both matter; see below.

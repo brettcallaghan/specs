@@ -8,7 +8,7 @@ skill can act on it.
 ## Contents
 
 - The metadata keys, and which are `bd`'s own convention rather than ours
-- `--set-metadata` versus `--metadata` — additive versus replacing
+- `--set-metadata` versus `--metadata` — additive versus merging (shallowly)
 - The rules that bind whatever the rubric says
 
 Record the tier in **metadata** so it rides with the bead and the orchestrator
@@ -53,11 +53,30 @@ before a bulk pass:
 
 - `--set-metadata key=value` is **repeatable and additive**: it leaves
   other keys intact, so it is what you want for touching one field on an
-  already-groomed bead. It stores every value as a **string**.
-- `--metadata '<json>'` takes real JSON types but **replaces the entire
-  metadata object**. Use it to write a bead's metadata in one shot (at
-  creation); do NOT reach for it to add a key, or you will silently drop
-  every key you did not restate.
+  already-groomed bead. It stores every value as a **string** — an array
+  written this way reads back as the literal `["a","b"]`, not a list, so
+  reach for `--metadata` instead when a value is an array or object.
+- `--metadata '<json>'` takes real JSON types and **merges at the top
+  level**: a key you do not restate survives. The merge is shallow,
+  though — a **nested object value is replaced wholesale**, not merged,
+  so a partial write to a nested key (e.g. a manifest's `standing_auth`)
+  discards that object's other siblings unless you restate them too.
+
+  Measured on bd 1.2.2 (dev) in a throwaway scratch database:
+
+  ```
+  bd update <id> --metadata '{"alpha":1,"beta":"two","gamma":["x","y"]}'
+  bd update <id> --metadata '{"delta":9}'
+  bd show <id> --json | jq -c '.[0].metadata'
+  -> {"beta":"two","alpha":1,"delta":9,"gamma":["x","y"]}
+  # all four keys survive — top-level merge, not replace
+
+  bd update <id> --metadata '{"nest":{"a":1,"b":2}}'
+  bd update <id> --metadata '{"nest":{"c":3}}'
+  bd show <id> --json | jq -c '.[0].metadata'
+  -> {"nest":{"c":3}}
+  # "a" and "b" are gone — the nested object VALUE was replaced whole
+  ```
 
 Beads carry a **tier** (`light | standard | advanced | frontier`, least to
 most capable), not a model name. The orchestrator resolves tier → model at
