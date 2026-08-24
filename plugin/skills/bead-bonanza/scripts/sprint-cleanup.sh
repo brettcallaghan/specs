@@ -93,8 +93,15 @@ WTLIST
 # subshell, where note_left cannot reach $left.
 handle_worktree() { # handle_worktree <path> <branch> <beads-json>
   _hw_who="$(printf '%s' "$3" | assignee_for_branch "$2")"
+  _hw_st="$(printf '%s' "$3" | status_for_branch "$2")"
   if [ -z "$_hw_who" ]; then
     line "LEFT" "worktree, no bead owns its branch" "$1"; note_left
+  elif [ "$_hw_st" = blocked ]; then
+    # Checked BEFORE agent_drained: a blocked bead satisfies agent_drained too
+    # (bd ready and bd list --status in_progress both exclude it), and the
+    # worktree holds the partial work — the durable record that the bead is
+    # unfinished — so it is left standing, not torn down.
+    line "LEFT" "worktree, its bead is BLOCKED (partial work)" "$1"; note_left
   elif agent_drained "$_hw_who"; then
     run "remove worktree ($_hw_who drained)" git worktree remove --force "$1"
   else
@@ -136,6 +143,17 @@ assignee_for_branch() { # assignee_for_branch <branch>  < beads-json  ->  assign
   [ -n "$1" ] || return 0
   jq -r --arg b "-$1" \
     'first(.[] | select(.id | endswith($b)) | .assignee // "") // ""' 2>/dev/null
+}
+
+# Same lookup, same branch-is-a-hash-suffix reasoning as assignee_for_branch,
+# reading .status instead of .assignee. handle_worktree consults this BEFORE
+# agent_drained: a blocked bead's worker has nothing ready and nothing
+# in_progress, so agent_drained alone reads it as finished and its worktree —
+# the durable record of unfinished work — would be torn down.
+status_for_branch() { # status_for_branch <branch>  < beads-json  ->  status|""
+  [ -n "$1" ] || return 0
+  jq -r --arg b "-$1" \
+    'first(.[] | select(.id | endswith($b)) | .status // "") // ""' 2>/dev/null
 }
 
 # Drained = nothing ready and nothing in progress. BOTH are required: `bd
@@ -219,6 +237,14 @@ self_test() {
     if [ "$_g" = "$_e" ]; then printf '  ok   branch owner, %s\n' "$_n"
     else printf '  FAIL branch owner, %s (expected [%s], got [%s])\n' "$_n" "$_e" "$_g"; fails=$((fails+1)); fi
   done
+  # Same lookup, for status — feeds the blocked guard below.
+  _sl='[{"id":"acme-r7k.4","status":"blocked"},{"id":"acme-jh6","status":"in_progress"},{"id":"acme-zz9","status":null}]'
+  for _c in "blocked:blocked:r7k.4" "in_progress:in_progress:jh6" "null status::zz9" "no such branch::nope" "detached worktree::"; do
+    _n="${_c%%:*}"; _r="${_c#*:}"; _e="${_r%%:*}"; _b="${_r#*:}"
+    _g="$(printf '%s' "$_sl" | status_for_branch "$_b")"
+    if [ "$_g" = "$_e" ]; then printf '  ok   branch status, %s\n' "$_n"
+    else printf '  FAIL branch status, %s (expected [%s], got [%s])\n' "$_n" "$_e" "$_g"; fails=$((fails+1)); fi
+  done
   # Emptiness, which decides whether an agent has drained. `bd ready --json`
   # answers null rather than [], so both spellings must read as empty.
   for _c in "null is empty:0:null" "[] is empty:0:[]" "unset is empty:0:" "a one-item list is not:1:[{}]"; do
@@ -234,10 +260,15 @@ self_test() {
   # AND raises the flag that makes the script exit RC_LEFT.
   # `agent_drained` and `run` are stubbed, so nothing here reads a tracker or a
   # repository. Not captured in a `$( )`: that subshell would swallow $left.
-  _hw_beads='[{"id":"acme-r7k.4","assignee":"dev-live"},{"id":"acme-jh6","assignee":"dev-done"},{"id":"acme-zz9","assignee":null}]'
+  _hw_beads='[{"id":"acme-r7k.4","assignee":"dev-live"},{"id":"acme-blk7","assignee":"dev-done","status":"blocked"},{"id":"acme-jh6","assignee":"dev-done"},{"id":"acme-zz9","assignee":null}]'
   agent_drained() { [ "$1" = dev-done ]; }
   run() { _hw_ran="yes"; }
+  # The blocked case MUST run before the drained case: acme-blk7's assignee is
+  # dev-done, the same stub agent_drained reports drained, so this is the one
+  # arrangement that actually exercises the ordering — a guard that checked
+  # agent_drained first would remove this worktree too.
   for _c in "guard, a still-claimed bead keeps its worktree:1:r7k.4" \
+            "guard, a blocked bead's worktree is left despite a drained agent:1:blk7" \
             "guard, a drained agent's worktree is removed:0:jh6" \
             "guard, a bead assigned to nobody keeps it:1:zz9" \
             "guard, no bead owns the branch, keep it:1:nope" \
