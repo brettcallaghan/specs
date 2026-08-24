@@ -451,6 +451,19 @@ print("EXCLUDED|%d|%s" % (len(excluded),
       "; ".join("%s (%s)" % (e.get("id"), e.get("reason", "no reason recorded"))
                 for e in excluded if isinstance(e, dict))))
 print("OUTSTANDING|%d|%s" % (len(outstanding), " ".join(outstanding)))
+
+# Ready-front creep: beads the tracker would dispatch next that the run never
+# admitted — a discovered-from bead, an undeferred one, a human addition mid-
+# run. `bd ready --json` returns null (not []) when the front is empty.
+r = subprocess.run(["bd", "ready", "--parent", epic, "--exclude-type=epic", "--json"],
+                   capture_output=True, text=True)
+try:
+    front_raw = json.loads(r.stdout)
+except Exception:
+    front_raw = None
+front = {x.get("id") for x in front_raw} if isinstance(front_raw, list) else set()
+creep = sorted(front - set(admitted))
+print("CREEP|%d|%s" % (len(creep), " ".join(creep)))
 PY
 )" || die "run mode: could not walk $_epic"
 
@@ -578,6 +591,17 @@ print(" ".join(x.get("id","") for x in d) if isinstance(d,list) else "")' 2>/dev
     note $RC_STOP
   else
     line OK "every admitted bead is closed" "manifest .admitted"
+  fi
+
+  # Ready front vs manifest.admitted — named, not gated. A non-empty diff is
+  # the coordinator's call (admit as an amendment, or defer out), not a defect.
+  _creep_n="$(printf '%s\n' "$_out" | sed -n 's/^CREEP|\([0-9]*\)|.*/\1/p')"
+  _creep_ids="$(printf '%s\n' "$_out" | sed -n 's/^CREEP|[0-9]*|//p')"
+  if [ "${_creep_n:-0}" -gt 0 ] 2>/dev/null; then
+    line OK "ready front vs manifest.admitted: $_creep_n bead(s) NOT admitted: $_creep_ids — resolve before dispatch" \
+         "bb-status.sh run $_epic"
+  else
+    line OK "ready front matches manifest.admitted — no creep" "bb-status.sh run $_epic"
   fi
 
   # --- what this script CANNOT verify ------------------------------------

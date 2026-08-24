@@ -224,7 +224,10 @@ children do (measured), so a finished ceremony phase stays open, the beads it
 gates never enter the ready front, and an empty front reads as the run being
 done when it has stalled instead. **That query is the order**: closed beads
 leave it, beads the last wave unblocked enter it, and a bead added mid-run is
-in scope by construction.
+in scope by construction — but before dispatching it, diff it against
+`manifest.admitted` (`bb-status.sh run <epic>` names the difference) and
+resolve any creep, admitted as an amendment or deferred out, rather than
+dispatching it unexamined.
 
 **How a wave goes out**, and the circuit breaker that stops the RUN rather
 than the wave: `references/dispatch-policy.md`.
