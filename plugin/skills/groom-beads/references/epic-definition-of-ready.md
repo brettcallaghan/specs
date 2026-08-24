@@ -23,6 +23,13 @@ Check it whenever you groom under an epic.
       `assignee` and exits 0. Nothing reports it, so the run's ownership view
       decays silently.
 
+      **The producer is `sprint-plan`'s assign step**, which writes
+      `dev-<run-id>-<batch-id>` onto every planned bead once the wave table
+      that value derives from exists. Nothing earlier in a run writes an
+      assignee, so this check runs AFTER that step. Run before it and it names
+      every child of every epic on every run — a check that always fires is
+      indistinguishable from one that never fires.
+
       ```sh
       bd list --parent <epic> --status all --json \
         | jq -r '.[] | select((.assignee // "") == "") | .id'

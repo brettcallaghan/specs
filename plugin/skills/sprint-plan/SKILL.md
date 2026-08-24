@@ -108,13 +108,6 @@ A queue that is entirely ready makes this phase a one-line no-op for *grooming*:
 say so and hand back — the orchestrator still dispatches one subagent for
 planning alone.
 
-### 1b. Gate the EPIC as well as its beads
-
-Two defects the per-bead gate cannot see: a bead nobody owns, and a dev pool
-larger than the concurrency cap. Both checks live in
-`references/shared/epic-definition-of-ready.md`; run them from there and report
-the bead or the count each one names.
-
 ### 2. Groom what fails — invoke `groom-beads`
 
 If any bead fails the check, do NOT dispatch it and do NOT fix it inline —
@@ -235,8 +228,6 @@ re-derive it from prose. The `jq` and a worked example are in
    - Two beads sharing a `c4_changes` component are **shared-surface** whatever
      their file paths say — the same component through different files still
      collides. They MAY batch; they SHALL NOT share a concurrent wave.
-     **The hazard is a *merge* collision**, not one between the agents, so
-     worktree isolation does not relax this rule.
    - Bead B whose `c4_impacts` intersects bead A's `c4_changes` consumes a
      contract A is changing. That is a **sequencing** constraint, not a batching
      one, and it holds with zero file overlap. **It belongs in the graph**, not
@@ -329,15 +320,27 @@ resolution and any escalation to the orchestrator at dispatch.
 ## The dev pool is capped
 
 **Never plan more concurrent dev assignees than the harness can run:
-N_dev ≤ `concurrency_cap` − 1.** Ceremony agents (groom, plan, review, retro,
-report, merge) are serialized by the graph and never run alongside one another,
-so they share ONE slot between them — counting them individually
-under-subscribes the dev pool by the number of ceremony roles. Breadth beyond
+N_dev ≤ `concurrency_cap` − 1.** Ceremony agents are serialized by the graph
+and share ONE slot between them, so count dev assignees only — the epic gate's
+reference carries that rule and the `jq` that implements it. Breadth beyond
 N_dev is more beads per dev, never more devs: a spawn past the cap is refused,
 and the unspawned devs' queues stay ready, correctly assigned and permanently
 undrained, with nothing reporting it. Read `concurrency_cap` off the manifest
 — source, default and the plan-time check are in `references/run-record.md`
 — rather than assuming a number.
+
+## Assign every planned bead, then gate the epic
+
+**The wave table is what makes an assignee computable**, so assignment happens
+here and not at the readiness gate. Per row: `bd update <id> --assignee
+dev-<run-id>-<batch-id>` on every bead it holds, the id derived in the
+coordinator's dispatch-policy reference and never minted. Ceremony beads take
+that same reference's roster ids.
+
+Then run the epic's own gate, `references/shared/epic-definition-of-ready.md`
+— a bead nobody owns and a dev pool over the concurrency cap, neither visible
+to the per-bead gate. Report the bead or count each names. It runs **after**
+the assign step: nothing earlier in a run writes an assignee.
 
 ## Return the plan
 

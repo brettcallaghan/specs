@@ -60,10 +60,18 @@ dispatch mechanism for the whole run.
 #### Ids are DERIVED from the run epic id, never minted
 
 `<run-id>` is the run epic id with the project prefix dropped — `acme-r7k`
-becomes `r7k` — and `<batch-id>` is the batch's position in its wave. Both
-follow from the epic id and the wave table, so a **resumed session recomputes
-the same string** and finds its own queue and its own merge-slot hold. A
-randomly minted id cannot be recomputed, and a resumed session loses both.
+becomes `r7k` — and `<batch-id>` is the batch's position in the **run**,
+numbered once across every wave: wave 1's batches take 1..n and wave 2's
+continue from n+1.
+
+**Not its position in its wave.** Numbered per wave, wave 1's first batch and
+wave 2's first batch both resolve to `dev-<run-id>-1` — two agents in one run
+sharing an id, and the recomputation below then returns an ambiguous answer.
+
+Both follow from the epic id and the wave table, so a **resumed session
+recomputes the same string** and finds its own queue and its own merge-slot
+hold. A randomly minted id cannot be recomputed, and a resumed session loses
+both.
 
 **The `<run-id>` segment is not optional.** Batch ids restart every run while
 the tracker is shared, so a bare `dev-3` collides across runs with nothing
