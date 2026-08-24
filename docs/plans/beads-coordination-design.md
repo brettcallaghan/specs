@@ -15,6 +15,75 @@ Measured against **bd 1.2.2 (dev)**, 2026-08-24, in a scratch database at
 
 ---
 
+## Recommendations, ranked
+
+Ordered by **value ÷ risk**, and grouped by what each one unblocks. Every item
+names the section holding its evidence. Nothing here is a plan yet — these are
+the units to turn into beads.
+
+### Do first — cheap, independent, and each removes a known failure
+
+| # | Action | Why now | Evidence |
+|---|---|---|---|
+| **1** | **Put `bd epic close-eligible` in the coordinator loop, before every ready query.** | Without it the run deadlocks *silently* and reports success. This is the single highest-severity finding in the document, and the fix is one line. | §4a |
+| **2** | **Cap distinct assignees at the concurrency limit (20 default), and record the cap in the manifest.** | A plan with more assignees than agents leaves queues permanently undrained, with nothing reporting it. | §4 |
+| **3** | **Add two Definition-of-Ready checks: every bead assigned, assignee count ≤ cap.** | Both failures are invisible at runtime and trivial to catch at plan time. | §2, §4 |
+| **4** | **Export `BEADS_ACTOR` = the agent id in every agent and subagent.** | A claim without it silently rewrites `assignee` and decays the coordinator's ownership view. One env var. | §2 |
+| **5** | **Run `bd setup claude` and review the diff.** | Already installed but stale; we are running against drifted guidance today. | §9 |
+
+### Do next — the core rebuild, in dependency order
+
+| # | Action | Why | Evidence |
+|---|---|---|---|
+| **6** | **Make planning emit a `bd create --graph` JSON plan.** | One call builds the whole run — ceremony epics, target, work beads, parentage, assignees, edges. Declarative, diffable, reviewable *before* it is loaded. This is the keystone: most other simplifications depend on the graph being real. | §4a |
+| **7** | **Adopt the run-epic shape: ceremony as epics, target epic as payload, one `bd swarm` on the target.** | Forced by the type rules, and it makes mid-run additions inherit their blocks structurally. | §4a, §3 |
+| **8** | **Compile surface collisions into dependency edges at plan time; delete the wave table.** | The ready front *is* the wave. Label these edges as policy so they stay distinguishable from real dependencies. | §3, §12 |
+| **9** | **Replace batch bookkeeping with assignment.** `bd ready --assignee X` empty + nothing `in_progress` is the return line. | Deletes dispatch-state metadata, return-line parsing, and the acceptance-signal machinery. | §4, §11 |
+| **10** | **Move human decisions onto gates, and add the deferred-review channel.** | Three channels, each free: authorization (gate), incident (comment), deferred review (`human` label under a late epic). Retires `decision-required`. | §5 |
+| **11** | **Merge beads + merge slot replace the merge-queue prose.** Register `merge-request` as a custom type. | Documented fan-in; the slot is already a waiter queue. | §6 |
+
+### Then — harness integration, which is where the remaining prose goes
+
+| # | Action | Why | Evidence |
+|---|---|---|---|
+| **12** | **`Stop` hook that exits 2 while `bd ready` is non-empty.** | Makes the loop structural. A run cannot end early with beads ready, because stopping is what the hook refuses — a fix for this system's most expensive failure mode. | §8 |
+| **13** | **`SubagentStop` hook that verifies the worker's queue before letting it stop.** | Moves acceptance from "coordinator verifies testimony" to "harness refuses the claim". | §8 |
+| **14** | **Plugin background monitor tailing `$BB_EVENT_LOG`.** | Deletes the arm-a-Monitor-per-wave ceremony; the watch becomes declarative and always-on. | §8 |
+
+### Settle before committing — each could change a decision above
+
+| # | Question | What settles it | If it goes badly |
+|---|---|---|---|
+| **15** | Do `gh:run` / `gh:pr` gates work? | Create one against a real PR and watch it resolve. | CI waits stay coordinator-polled; nothing else changes. |
+| **16** | Does the beads plugin's `@task-agent` work on every surface we use? | Install it; run `/beads:ready` and one dispatch per surface. | The worker cannot depend on it, and we write our own (item 9 already assumes we might). |
+| **17** | Does `types.custom` travel with the Dolt database? | Check a second clone after `bd dolt push`. | `merge-request` becomes a per-clone setup step, or we use plain `task`. |
+| **18** | Can a formula express parent-child, not just `needs`? | Try `bd mol bond --ref`. | Gated children are created at runtime rather than shipped in the template. |
+| **19** | Does `bd batch` make graph loading atomic? | Load a graph inside a batch; kill it midway. | `--graph` is already one call; this is an optimization, not a blocker. |
+
+### Deliberately NOT doing
+
+- **A formula for the top-level run ceremony.** Measured impossible: a molecule
+  root is task-shaped and cannot gate an epic (§4a). Formulas stay for repeating
+  sub-ceremonies.
+- **Batches as epics.** Nested epics hide beads from `bd list --parent` (§4).
+- **A per-branch merge slot.** Reimplementing a lock whose failure mode is a
+  corrupted merge costs more than the over-serialization it avoids (§6).
+- **Wisps as a gating mechanism.** Same molecule-root limitation (§4a).
+
+### The one thing that would falsify this design
+
+**A run where the graph is right and the coordinator still cannot proceed.**
+Everything above assumes the graph can express what the run needs to know. The
+places that assumption is already strained are recorded honestly: concurrency
+policy has no native representation (§12), the merge slot has no branch scope
+(§6), and stall detection cannot come from the graph at all (§8). **The prototype is therefore item
+20** — one root epic, collisions as edges, a fixed worker
+pool, a merge bead and a human gate, run against a real feature — because a
+fourth strained assumption discovered during a real run is worth more than any
+further measurement here.
+
+---
+
 ## What this costs today
 
 | | bytes |
@@ -49,12 +118,15 @@ is the entire wave mechanism the sprint system implements in prose.
 So the coordinator's inner loop reduces to:
 
 ```
-until bd ready --parent {EPIC} is empty and nothing is in_progress:
+until bd ready --parent {RUN_EPIC} is empty and nothing is in_progress:
+    bd epic close-eligible                      # MANDATORY — see §4a
     dispatch what is ready, up to the concurrency cap
 ```
 
 **`bd epic close-eligible`** ("Close epics where all children are complete") is
-the termination signal, and it is a command rather than a judgement.
+both the phase-release step and the termination signal, and it is a command
+rather than a judgement. **It is not optional and omitting it deadlocks the run
+silently** — §4a measures why.
 
 ### Per-agent work queues are native
 
@@ -184,12 +256,25 @@ So: **compile collisions into dependency edges at plan time, and delete the
 wave.** The dispatch loop becomes a concurrency cap over the ready front, which
 is one number rather than a planning artifact.
 
-> **Should each wave be a swarm, with its own epic?** No. That re-adds the
-> structure the graph already implies, and buys a progress view
-> (`bd swarm status`) obtainable from `bd ready --parent` plus
-> `bd epic status`. Nested epics also cost real accuracy — this repository has
-> already measured that `bd list --parent` is direct-children-only and misses
-> every leaf of a nested run epic.
+> **Should each wave be a swarm, with its own epic?** No — but `bd swarm` is
+> more useful than I first credited, so point it at the *target* epic once
+> rather than at a wave. Measured:
+>
+> ```
+> bd swarm create <target-epic>  → ✓ Created swarm molecule: lab-2f9
+> bd swarm status <target-epic>  → Ready Front Analysis
+>                                   Completed: (none)
+>                                   Active:    (none)
+>                                   Ready:     lab-spi.1, lab-spi.2
+> ```
+>
+> That three-way split in one call is a better supervision view than
+> `bd ready --parent` plus `bd epic status`, and it is exactly what a
+> coordinator wants each loop. One swarm per run, on the payload.
+>
+> A swarm **per wave** still buys nothing, and nested epics cost real accuracy —
+> this repository has already measured that `bd list --parent` is
+> direct-children-only and misses every leaf of a nested run epic.
 
 ---
 
@@ -218,6 +303,52 @@ the only state there is.
 **Where a batch genuinely IS ordered** — bead B builds on bead A's change — that
 is a true dependency and deserves a real edge. The distinction stays visible
 instead of being flattened into "everything in a batch is chained".
+
+### The harness caps concurrency, and it sizes the worker POOL — not the dispatch rhythm
+
+**Yes, and the number is 20.** Claude Code's default is **20 concurrent
+subagents** per session **[doc]**; exceeding it fails the spawn with
+`Concurrent subagent limit reached`, and the error explicitly tells the agent not
+to retry. It is configurable via `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` in
+`settings.json`, and ultracode sessions are exempt. Workflows and agent teams
+have their own separate limits — the Workflow tool, for instance, caps at
+`min(16, CPUs - 2)`, which on this 4-CPU container is **2**. So "the cap" is not
+one number; it is per-mechanism, and a design that assumes 20 will behave very
+differently under a workflow.
+
+**The consequence for planning is not what it first appears.** The cap does not
+constrain how wide the ready front may be — `bd ready` returning 50 is harmless,
+because the coordinator simply dispatches at most N of them. What the cap
+constrains is **how many distinct assignees a plan may create.**
+
+That is the trap: assign work across `dev-run7-1 … dev-run7-50` when only 20
+agents can exist, and thirty of those queues have no agent to drain them. The
+beads are ready, correctly assigned, and permanently unstarted — and nothing
+reports it, because from the tracker's point of view everything is fine.
+
+**So the rule is a fixed worker pool sized to the cap:**
+
+> **Planning MUST NOT create more distinct assignees than the concurrency cap.**
+> Assign the run's beads across N workers where N ≤ cap; each worker loops
+> `bd ready --assignee <id>` until empty. Breadth beyond N is expressed as more
+> beads per worker, never as more workers.
+
+This is cheap to check and belongs beside the every-bead-is-assigned gate:
+
+```sh
+bd list --parent {RUN_EPIC} --json \
+  | jq -r '[.[].assignee] | map(select(. != null and . != "")) | unique | length'
+# must be <= the configured cap
+```
+
+**And it strengthens the case for deleting waves.** A fixed pool is
+self-limiting: workers outlive individual beads, so there is no dispatch rhythm
+to schedule and no wave boundary to wait at. The cap sets the pool size once,
+at plan time, and the ready front does the rest.
+
+**Record the cap in the manifest.** It is an environmental fact the plan depends
+on, it differs by harness and by session config, and a resumed run on a
+differently-configured session needs to know what the plan assumed.
 
 ### Should a batch be an epic instead?
 
@@ -787,10 +918,16 @@ checking a second clone after a `bd dolt push`.
 `bd formula list` reports none across both search paths. The whole subsystem is
 unused here.
 
-This is the natural home for ceremony. Pre-flight, post-flight, and the close
-sequence are a fixed DAG of steps instantiated per run — exactly what a proto
-is. The ceremony stops being prose an agent must follow and becomes beads that
-must close.
+**This section originally called formulas the natural home for the run's
+ceremony. §4a disproves that** and the correction matters: a poured molecule's
+root is `molecule`-typed, which the segregation rule treats as a task, so **a
+formula cannot produce a ceremony that gates an epic-shaped target.** The run's
+top-level ceremony is epics, built by `bd create --graph`.
+
+What formulas ARE the natural home for is the layer below: **sub-ceremonies that
+repeat, do not need to gate an epic, and benefit from variables** — a review
+pass (§4a), a bead's close sequence, a recovery routine. There the template
+earns its keep and the epic constraint never arises.
 
 **Wisps** are ephemeral beads, `dolt_ignore`d so they never reach the synced
 history; `bd promote` makes one permanent (preserving id, labels, deps, events,
@@ -934,10 +1071,10 @@ directly useful for attributing a swarm's commits.
 - **`bd batch`** — "run multiple write operations in a single database
   transaction". Building one large graph is this design's central act, and doing
   it as N `bd create` calls is both slow and non-atomic.
-- **`bd create` accepts markdown or graph JSON** (`bd create --help`: "or batch
-  from markdown/graph JSON"). Planning could emit a graph document and load it
-  in one call. **[unverified]** — settled by writing a graph JSON file and
-  loading it.
+- ~~**`bd create` accepts markdown or graph JSON** — [unverified]~~
+  **SETTLED, and promoted to the core recommendation.** `--graph` loads a whole
+  run in one call; see §4a for the schema and the measurement. The `--file`
+  markdown form remains unexplored.
 - **Cross-repo dependencies** — `bd dep add bd-42 external:backend:api-ready`
   **[doc]**, plus `bd ship` ("publish a capability for cross-project
   dependencies") and `bd federation`. A run blocked on another repository's work
@@ -1047,8 +1184,8 @@ which is your thesis, and it is the right place to spend.
 
 ## 13 · What to settle next
 
-1. Load a real graph via `bd create` from graph JSON, and via `bd batch` — the
-   planning step's throughput depends on it.
+1. ~~Load a real graph via `bd create` from graph JSON~~ — **done, §4a.**
+   `bd batch` (atomicity, not throughput) remains open as item 19.
 2. Install and read the beads Claude Code plugin's `@task-agent`. If it is the
    worker loop, `sprint-batch` may not need to exist. **Check portability
    first** — the plugin ships slash commands, lifecycle hooks and a bundled
@@ -1064,5 +1201,6 @@ which is your thesis, and it is the right place to spend.
 3. Test `gh:run` and `gh:pr` gates against a real PR — they are the highest-value
    unmeasured claim here.
 4. Run `bd setup claude` and review the diff against the stale CLAUDE.md block.
-5. Prototype: one root epic, collisions compiled to edges, three assigned
-   workers, a merge bead, a human gate. Measure against a real feature.
+**20.** Prototype: one root epic, collisions compiled to edges, a fixed worker
+pool, a merge bead and a human gate — run against a real feature. This is the
+item the ranked list ends on, and the only one that can falsify the design.
