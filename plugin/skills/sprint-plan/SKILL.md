@@ -108,6 +108,13 @@ A queue that is entirely ready makes this phase a one-line no-op for *grooming*:
 say so and hand back — the orchestrator still dispatches one subagent for
 planning alone.
 
+### 1b. Gate the EPIC as well as its beads
+
+Two defects the per-bead gate cannot see: a bead nobody owns, and a dev pool
+larger than the concurrency cap. Both checks live in
+`references/shared/epic-definition-of-ready.md`; run them from there and report
+the bead or the count each one names.
+
 ### 2. Groom what fails — invoke `groom-beads`
 
 If any bead fails the check, do NOT dispatch it and do NOT fix it inline —

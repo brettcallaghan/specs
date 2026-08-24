@@ -17,6 +17,52 @@ Check it whenever you groom under an epic.
       edge is honoured by the tracker at every dispatch.
 - [ ] **Nothing the run needs is derivable-only-by-you.** Anything an
       orchestrator cannot recompute from the graph belongs on the epic.
+- [ ] **Every child carries an assignee, and the check NAMES the ones that do
+      not.** An unowned bead is not idle — it is claimed by whoever gets there
+      first, and `bd update <id> --claim` writes the claimer into an empty
+      `assignee` and exits 0. Nothing reports it, so the run's ownership view
+      decays silently.
+
+      ```sh
+      bd list --parent <epic> --status all --json \
+        | jq -r '.[] | select((.assignee // "") == "") | .id'
+      ```
+
+      **Read `assignee` out of `--json`, never off `bd show`'s `Owner:` line —
+      that line prints `created_by`.** Measured on bd 1.2.2: `bd show <id>`
+      printed `Owner: dev-4` for a bead whose `--json` returned
+      `assignee: null`, `created_by: dev-4`. A check written against the Owner
+      line passes on an epic where not one bead is assigned, which is the exact
+      condition it exists to catch.
+
+      `--status all` is not optional either: `bd list` defaults to open issues,
+      so a check written without it silently skips every closed and deferred
+      child.
+
+- [ ] **The dev pool fits the concurrency cap, and the check NAMES the count
+      and the cap.** Require `N_dev <= concurrency_cap - 1` — the coordinator
+      holds a slot of its own. Above that the surplus agents queue behind the
+      cap and the wave never drains; the run looks alive and makes no progress.
+
+      ```sh
+      cap=$(bd show <epic> --json | jq '.[0].metadata.concurrency_cap')
+      n=$(bd list --parent <epic> --status all --json \
+            | jq '[.[].assignee | select(. != null) | select(startswith("dev-"))]
+                  | unique | length')
+      echo "dev pool $n, cap $cap, budget $((cap - 1))"
+      ```
+
+      **Count the DEV POOL, not every distinct assignee.** Only the dev pool is
+      concurrent; the ceremony agents — groom, plan, merge, review, retro,
+      report — run one at a time in a chain the dependency graph already
+      serializes, so they cost one slot between them rather than one each.
+      Counting all distinct assignees under-subscribes the dev pool by the
+      number of ceremony roles the run happens to have used.
+
+      WHERE the epic's manifest carries no `concurrency_cap`, report the check
+      as **unmeasurable** and say so. An epic that was never pre-flighted has
+      no cap to plan against, and a default substituted here is a number
+      nobody measured reading as one somebody did.
 
 ## Flatness is preferred, not required
 
