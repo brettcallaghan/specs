@@ -4,7 +4,7 @@ description: Replace verbatim inlining of the baseline in every subagent prompt 
 slug: issue-checks-baseline-inlining-does-not-scale
 audience: skill
 target: bead-bonanza
-priority: 2
+priority: 1
 updated_at: 2026-08-24T13:58:35Z
 
 # Evidence — what this issue rests on
@@ -23,11 +23,15 @@ model: <fill in — the model that ran this run> (coordinator)
 
 `references/prompt-per-bead.md` requires the run epic's `checks_baseline` be
 "inlined verbatim" into every subagent prompt, with an explicit warning against
-sending the one-word status instead. On this run the baseline text is ~6 KB and
-wave 1 dispatched 4 agents, so obeying the rule literally costs ~24 KB of
-duplicated prompt — a cost that grows linearly with the wave and is paid before
-the agent has done anything. The coordinator deviated rather than pay it, which
-means the rule as written is one an orchestrator will break under load.
+sending the one-word status instead. Measured on this run's epic, the baseline is
+**14,098 bytes / 230 lines**, and wave 1 dispatched 4 agents — ~56 KB of
+duplicated prompt, paid before any agent has done anything, growing linearly
+with the number of concurrent agents.
+
+The cost is genuinely per-agent and not per-bead: `prompt-batch.md` already
+carries the block once for a whole batch, so batching is not the lever. What is
+left is a straight trade of ~14 KB of prompt against one command the agent
+could run itself.
 
 ## Evidence
 

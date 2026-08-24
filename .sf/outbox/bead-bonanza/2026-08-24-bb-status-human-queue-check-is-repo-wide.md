@@ -35,6 +35,37 @@ operator to ignore the signal.
 
 ## Proposed change
 
-Scope the human-queue check to the run's admitted set, the way the neighbouring
-checks already are. Done: a human-needed item outside `manifest.admitted` does
-not fail the run's health.
+**Two defects, and only one needs code.**
+
+`bd human list` counts CLOSED beads. Measured on bd 1.2.2 in a throwaway
+database: a bead closed with `bd close` still appears in the listing, and in
+this run `bd human list` printed `agent-plugins-qozp.12` with `Status: closed`
+after it had been answered and closed. A flag already fixes this —
+`bd human list --status=open` — and it is documented in the command's own
+`--help`.
+
+Scope needs an intersection, because there is no scope flag. Take the shape
+from the `bd lint` check ten lines above, which solves the identical problem by
+parsing ids and intersecting with the run's queue:
+
+```python
+run_ids  = manifest["admitted"] | descendants(epic)
+queue    = {i["id"] for i in bd_json("human list --status=open") or []}
+blocking = queue & run_ids
+```
+
+`or []` is load-bearing: `bd human list --json` returns **`null`**, not `[]`,
+when the queue is empty (measured). Iterating that is the same class of trap
+that produced the character-by-character `admitted` bug.
+
+Report both halves, so the fix does not create a false signal in the other
+direction:
+
+```
+FAIL  human queue: 1 item(s) awaiting a decision in this run: agent-plugins-qozp.12
+OK    human queue: clear for this run (2 open elsewhere in the tracker)
+```
+
+Done: an open human-needed item outside `manifest.admitted` does not fail the
+run's health, a closed one is never counted at all, and the OK line still says
+how many exist elsewhere.

@@ -23,16 +23,20 @@ model: <fill in — the model that ran this run> (coordinator)
 
 Section 4's in-scope test requires **both** a defect in what the run changed
 **and** gate authorization for scope growth. `admit_review_findings` resolved
-to `false` from the skill default, so the second condition failed for every
-finding regardless of severity — and the run therefore merged and shipped
-`872f390`, which review then confirmed carries a silent data-loss path that
-wipes `admitted`, `excluded`, `branch`, `base_sha`, `standing_auth`,
-`checks_ids`, `checks_baseline`, `review_passes` and `review_budget` from a run
-manifest while printing a success line. That is a P0 regression **the run
-itself introduced**, declined by a gate whose purpose is to stop the run
-growing into work nobody asked for — a different thing entirely. The gate is
-right to refuse new work; it should not be the mechanism by which a run ships a
-defect it created.
+to `false` from the skill default, so the second condition failed for **every
+finding regardless of severity**, and the run merged and shipped `872f390` with
+its review finding declined unread on the merits.
+
+**The motivating example did not survive verification, and the structural
+defect did.** Review filed that finding as a P0 silent-data-loss path on the
+premise that `bd update --metadata` replaces the object; measured on bd 1.2.2
+it merges at the top level, so no data was lost and the bead was downgraded to
+P2. What remains is the shape of the decision: the gate refused the finding on
+*scope*, having never weighed *severity*, so a genuine P0 in the run's own diff
+would have been declined by exactly the same path, for exactly the same reason.
+The gate is right to refuse new work; it should not be the mechanism by which a
+run ships a defect it created — and this run demonstrated that mechanism
+operating, with the severity question never reached.
 
 ## Evidence
 

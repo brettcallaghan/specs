@@ -39,9 +39,29 @@ handoff named them.
 
 ## Proposed change
 
-Where `bead-bonanza` tells the coordinator to record an incident, name the two
-admissible prefixes verbatim and state that a bare `incident:` is harvested by
-nothing; and require coordinator verification of a review finding to be
-recorded as a `retro:proof:<bead>` comment rather than an unprefixed one. Done:
-every comment a coordinator is instructed to write carries a prefix one of the
-two harvests matches.
+**Reduce the admissible forms from two to one, then state it where the
+coordinator reads.**
+
+`run-bead/SKILL.md:245` already has this right — "an incident is a severity,
+not a kind": an ordinary `retro:<kind>:<target>` comment carrying the word
+` incident ` after the prefix, harvested by the same query as every other
+finding and routed by its kind. There is one collection process already, and
+nothing to split off.
+
+The second form is the problem. `run-bead/SKILL.md:242` also prescribes
+`amend: incident on {ID}` on the epic — an epic-level *pointer* to a finding
+the bead-level harvest already carries. It buys nothing and costs the second
+alternation in `sprint-report`'s matcher
+(`^(retro:[a-z]+:[^ ]+ incident|amend: incident)`), which is the ambiguity that
+made a bare `incident:` look plausible to write. **Drop the pointer form**; the
+bead is the single home.
+
+Then state the surviving form in `bead-bonanza`, at the point a coordinator is
+told to record one — today the rule lives only in `run-bead`, which a
+coordinator never reads. Say explicitly that a bare `incident:` is harvested by
+nothing. Require coordinator verification of a review finding to be recorded as
+`retro:proof:<bead>` rather than unprefixed.
+
+Done: one admissible incident form, `sprint-report`'s matcher is a single
+alternation, and every comment a coordinator is instructed to write carries a
+prefix the harvest matches.
