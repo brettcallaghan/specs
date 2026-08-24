@@ -131,6 +131,30 @@ bare `dev-3` from last week's run collides with this week's — silently, becaus
 an assignee is a plain string and nothing validates it. `bd ready --assignee
 dev-3` would then return two runs' work to one agent.
 
+**The coordinator needs one too, and it is `coordinator-<run-epic-id>`.** It has
+no batch, so the batch segment drops. Two reasons it is not optional:
+
+- **Ceremony beads are assigned to it.** Pre-flight, plan, report and post-flight
+  are work someone does, so `bd ready --assignee coordinator-<run>` is the
+  coordinator's own queue — the same mechanism as every worker, not a special
+  case.
+- **It is the merge-slot holder.** The slot records `$BEADS_ACTOR`, so a slot
+  held by `coordinator-agent-plugins-x7f` says which run holds it, which a bare
+  `Claude` does not.
+
+**It must be DERIVED from the run epic id, never minted.** A resumed session has
+to arrive at the same string to find its own queue and to recognise its own
+merge-slot hold; a random or timestamped id would strand both. Deriving it from
+the one identifier a recovering session is always given makes recovery free.
+
+The full roster for a run, then:
+
+| agent | id |
+|---|---|
+| coordinator | `coordinator-<run-epic-id>` |
+| worker | `dev-<run-id>-<batch-id>` |
+| merge agent | `merge-<run-id>` |
+
 ---
 
 ## 3 · Waves: delete them
@@ -503,8 +527,51 @@ the wrong tool for expressing "nothing starts until pre-flight passes."
 
 ### Formalizing the review loop
 
-**A formula cannot express a loop.** `needs` builds a DAG; there is no
-back-edge. Three ways to get the effect, in ascending honesty:
+**Correcting the framing: there is no loop to express.** I wrote "a formula
+cannot express a loop", which is true and beside the point. Nothing in the graph
+repeats. A review pass **extends** the DAG — it files findings as new beads,
+wires them in, and those become ready like any other work. The graph is
+monotonic; it only ever grows. The "loop" exists solely in the coordinator's
+control flow, as the question *do I run another pass?*
+
+So a formula expresses exactly what it should: **one cycle**, as a four-step
+chain that a subsequent pass instantiates again.
+
+```toml
+formula = "review-cycle"
+[vars.pass]
+required = true
+[[steps]]
+id = "review"
+title = "Review pass {{pass}}: read the diff, file findings as beads"
+[[steps]]
+id = "triage"
+title = "Triage pass {{pass}} findings: in-scope or out"
+needs = ["review"]
+[[steps]]
+id = "groom"
+title = "Groom admitted findings to Ready"
+needs = ["triage"]
+[[steps]]
+id = "dispatch"
+title = "Assign and wire admitted beads into the graph"
+needs = ["groom"]
+```
+
+**Measured — re-pouring extends cleanly and does not collide:**
+
+```
+bd mol pour review-cycle --var pass=1   → root lab-mol-hp9, 5 issues
+bd mol pour review-cycle --var pass=2   → root lab-mol-5pw, 5 issues
+                                          # distinct molecules, vars substituted per pass
+```
+
+That settles it: what gets repeated is the *instantiation*, not any structure
+inside the graph. `sprint-review`'s prose — what a pass consists of, in what
+order — becomes this template, and the only thing left in the coordinator is the
+budget check.
+
+For completeness, the alternatives and why they are worse:
 
 1. **Bounded unrolling.** Declare `review-1`, `review-2`, `review-3` as steps,
    each `needs` the last. Deterministic, matches the 3-pass budget the system
@@ -520,9 +587,20 @@ back-edge. Three ways to get the effect, in ascending honesty:
 
 **Recommendation: (3), with the pass counter staying in the manifest.** The
 budget is a coordinator decision that must survive a resumed session, and
-`review_passes` already exists for exactly that reason. What (3) buys is that
-"what a review pass consists of" stops being prose in `sprint-review` and
-becomes a template.
+`review_passes` already exists for exactly that reason.
+
+### The same shape covers grooming and planning
+
+Review is not special. **Every step that can produce new work is a DAG
+extension**, and the same template-instantiated-again pattern covers all of
+them: a groom pass that splits a boulder bead, a plan pass that admits a
+discovered prerequisite, a triage pass that accepts an out-of-scope finding.
+Each appends nodes and edges to a graph that never rewinds.
+
+That is worth stating as a property rather than a technique, because it is what
+makes "loop until the epic is done" safe: **the run terminates not because the
+graph stops changing, but because the ready front empties and stays empty.** A
+growing graph is the normal case, not an exception to plan around.
 
 ---
 
@@ -557,6 +635,45 @@ ready for gate-resume dispatch) tells the coordinator exactly when to move.
 `decision` is also a first-class issue type (`bd types`: "Architecture decision
 record (ADR)"), so a decision that deserves a durable record can be a bead
 rather than only a gate.
+
+### Deferred human review: answer any time, consume at the end
+
+A second human case, and it wants the opposite timing from a gate. **An agent
+makes a call it wants a human to look at — but not now.** It should not stop the
+run, and it should not wait for the pull request either; it should surface
+before the PR, when the run is winding down.
+
+**Beads already does this, and the mechanism is a label.** `bd human` is a whole
+subsystem keyed on the `human` label — `list`, `respond` (adds a comment and
+closes), `dismiss`, `stats`. No new type, no gate, no config.
+
+The timing falls out of where the bead sits in the graph. Measured, with the
+bead as a child of a late ceremony epic that is blocked behind the work:
+
+```
+bd create --title "decision: chose bcrypt over argon2" \
+          --parent <late-review-epic> --labels human
+
+bd ready       → absent          # the run will not dispatch it
+bd human list  → PRESENT         # a human can see and answer it right now
+```
+
+**That asymmetry is the whole feature.** The bead is invisible to the
+coordinator's dispatch loop until the late phase opens, so it never interrupts
+work — while being visible in the human's inbox from the moment it is filed, so
+the answer can arrive at any point. `bd human respond <id>` closes it, which
+lets the late phase become close-eligible.
+
+So the run gets three distinct human channels, and they differ by *when the run
+consumes the answer*:
+
+| | filed as | run blocks? | human sees it |
+|---|---|---|---|
+| **authorization** | gate on a task child of `scope` | immediately, at the start | immediately |
+| **incident** | `retro:` comment + `amend:` on the epic | never — recorded, not asked | in the report |
+| **deferred review** | bead labelled `human` under a late epic | only at the end | immediately |
+
+The third is the one we do not have today, and it is free.
 
 ---
 
