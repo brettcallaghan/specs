@@ -19,10 +19,9 @@ below is a subprocess: you invoke it, read what it returns, and decide what
 happens next. You never hold a subprocess's method.
 
 **What you retain — the whole context budget:** the run epic id, the review
-pass counter, the authorization set, where the wave loop is, and what the last
+pass counter, the authorization set, where the wave loop is, what the last
 subprocess returned, and `sprint-plan`'s wave table as a passthrough you never
-reason about. Not a subprocess's reasoning, not the evidence behind a verdict
-you were handed.
+reason about. Not a subprocess's reasoning, not the evidence behind a verdict.
 
 **Act on the verdict, not the evidence.** A subprocess whose output you have to
 reason about has pushed work back up the tier it was meant to absorb.
@@ -90,8 +89,6 @@ the whole checklist passed. Run it at every wave boundary and at the end.
 
 ## Opening a run — pre-flight, then `sprint-scope`
 
-Three things happen before the first bead, in this order:
-
 **The scripts are in THIS skill's `scripts/`, not the repository's** — your cwd
 is the repository root, where `scripts/` is something else. The first call needs
 the skill path; every call after uses `$SCRIPTS`, which pre-flight emits.
@@ -112,18 +109,14 @@ weigh. `references/pre-flight.md` only when it blocks, and **a blocking
 condition means the run does not start** — never work around it.
 
 **2 is `sprint-scope`.** It turns whatever the user gave into exactly one run
-epic, takes the run's single authorization gate in the same interaction, and
-dispatches nothing. What you need from it:
+epic, takes the run's single authorization gate, and dispatches nothing. What
+you need from it:
 
 - `BB_EPIC` — its id is the run id and its descendants are the queue
   (`bd ready --parent <epic> --exclude-type=epic`).
 - The admission record — admitted, **excluded** and why, moved and from where.
   A run that narrowed its own scope says so in the final report.
 - The authorization set as decided, including the rows that took their default.
-
-**The readiness gate is not here and not in `sprint-scope`** — it belongs to
-grooming: readiness is a property of a groomed bead, and asking before grooming
-answers a question about beads that are about to change.
 ## Groom & plan — invoke `sprint-plan`
 
 **One dispatch, two returns.** `sprint-plan` grooms every bead that is not
@@ -134,10 +127,10 @@ still holds every bead in context — partitions what came out:
    ones are raised into `bd human` by the skill and named in your report.
 2. **The wave table**, plus one line per override of its own preview.
 
-**They are one step because they are one read** — partitioning needs exactly
-what grooming just acquired, so a second agent would re-read the queue to learn
-what the first already knew. **One subagent, never two**; where nothing needed
-grooming, it plans alone.
+**They are one step because they are one read** — partitioning needs what
+grooming just acquired, so a second agent would re-read the queue to learn what
+the first knew. **One subagent, never two**; with nothing to groom, it plans
+alone.
 
 **Do not store the wave table** — no file, no manifest key. Carry what
 `sprint-plan` returned and hand it to `sprint-wave` each wave, which intersects
@@ -165,14 +158,12 @@ fi
 ```
 
 **Read the manifest before you create anything.** Reuse is what makes a resumed
-run land on the same branch. **A name already taken by an unrelated branch stops
-the run here**, before any worktree exists.
+run land on the same branch, and **a name already taken by an unrelated branch
+stops the run here**, before any worktree exists.
 
-**`base_sha` is recorded at creation because that is the only moment it is
-unambiguous.** Deriving it later from a merge-base assumes the base branch has
-not moved, and on a long run it will have. Three things consume it and none may
-create it: the review scopes its diff `base_sha`..sprint head, every worktree
-branches from sprint HEAD, and the pull request opens against it.
+**`base_sha` is recorded at creation** because that is the only moment it is
+unambiguous, and three things consume it that may never create it:
+`references/run-record.md`.
 ## Every dispatch runs in its own worktree
 
 **This is universal, not opt-in**, and it is **per dispatch, not per bead**: a
@@ -217,10 +208,10 @@ its dispatch. `sprint-wave` merges nothing.
 "$SCRIPTS"/bb-status.sh bead <bead-id> --worktree <path>
 ```
 
-`sprint-wave` ran before you merged, so it passed `--pre-merge` and signals 3
-(merged into HEAD) and 4 (worktree gone) were deferred — pre-merge they fail by
-construction. **This run is what verifies them**; skip it and nothing ever
-checks that the merge and the removal happened. Exit 2 stops the wave.
+`sprint-wave` ran before you merged, so signals 3 (merged into HEAD) and 4
+(worktree gone) were deferred — pre-merge they fail by construction. **This run
+is what verifies them**; skip it and nothing checks that the merge and the
+removal happened. Exit 2 stops the wave.
 
 
 **Re-query the ready front at every wave boundary** — `bd ready --parent <epic>
@@ -228,11 +219,8 @@ checks that the merge and the removal happened. Exit 2 stops the wave.
 the last wave unblocked enter it, and a bead added mid-run is in scope by
 construction.
 
-**A tripped circuit breaker stops the run, not just the wave.** Three
-consecutive blocked or failed beads is systemic; the next wave meets it too.
-
-**How a wave goes out** — concurrency entry conditions, tier routing and
-escalation, push mode: `references/dispatch-policy.md`.
+**How a wave goes out**, and the circuit breaker that stops the RUN rather
+than the wave: `references/dispatch-policy.md`.
 
 ### The run's health — the one thing nothing else can express
 
@@ -241,38 +229,20 @@ is **asserted**, not derived — `bd set-state <epic> health=<value> --reason`,
 at run start and every wave boundary. **An unset health reads as repairable**:
 a watchdog seeing no label cannot tell a healthy run from an abandoned one.
 The closed set of five values and what each means: `references/run-record.md`.
-### Watching it, and picking it back up
-
-**`bd swarm status <epic>`** answers "where is this run", computed from the
-beads so it survives any crash. On a **nested** epic it is one level deep and
-reports sub-epics; fall back to the re-queried ready front plus a walked
-count, and say which you used.
+### Watching it, and knowing when it is done
 
 **Arm a `Monitor`** for EVERY wave — one covers it, `persistent`, an explicit
 `timeout_ms`, stopped with `TaskStop` when the wave drains — and, before the
 first dispatch, the durable out-of-session trigger, cancelled at post-flight.
-Both: `references/progress-streaming.md`.
 
-**When something dies**, take the one you are in: live progress →
-`references/progress-streaming.md`; a subagent that crashed mid-ceremony →
-`references/recovery.md`; **the orchestrator itself** → invoke
-`sprint-recovery`, a skill rather than a file because the session that needs it
-may be fresh with nothing loaded.
-### When the run is done
+**A run is done when every bead the manifest's `admitted` list names is closed
+or accounted for as blocked-with-a-reason** — `bb-status.sh run <epic>` decides
+it, exit 0 clear / 1 repairable / 2 stop. Beads excluded at admission are
+reported alongside, because a run that finished its admitted set while three
+sat out is done over a *narrowed* scope.
 
-**`bb-status.sh run <epic>`** — computed from state, not from your recollection
-of what you dispatched. A run is done when every bead the manifest's `admitted`
-list names is closed or accounted for as blocked-with-a-reason. **Beads
-excluded at admission are reported alongside**: a run that finished its
-admitted set while three sat out is done over a *narrowed* scope and must say
-so.
-
-It walks the epic's descendants rather than calling `bd epic status`, which
-counts direct children only and on a nested epic answers about sub-epics.
-`bd list --parent` is direct-children-only too; only `bd ready --parent` is
-transitive, and it omits closed beads.
-
-Exit 0 clear, 1 repairable (no admitted set recorded), 2 stop.
+Where the run is, which of three deaths you are looking at, and why the obvious
+`bd` queries answer the wrong question: `references/supervision.md`.
 
 ## Review the run's own diff — invoke `sprint-review`
 
@@ -288,14 +258,10 @@ admitted **and** passes under budget means re-enter, anything else means done.
 **Re-enter at groom & plan, never at dispatch.** Review *files*; it does not
 groom. An admitted finding earns its readiness like any other bead, or bounces.
 
-**The budget is 2 loops — three passes** unless the gate said otherwise, and
-**findings from the human's pull-request review do not consume it**: that
-counter bounds the machine reviewing itself. **Keep it in the manifest as
-`review_passes`** — a resumed run that restarted it would loop forever.
-
-**Exhausting it is not a failure.** What is left stays filed and is named in
-the report. A third pass that still finds things is information for the human,
-not a reason to keep going.
+**The budget is 2 loops — three passes** unless the gate said otherwise, kept
+in the manifest as `review_passes` because a resumed run that restarted it
+would loop forever. What it does and does not bound, and why exhausting it is
+not a failure: `references/supervision.md`.
 
 **No reviewer declared** returns a skip and the report says so. Do not
 substitute your own review.
@@ -317,17 +283,16 @@ ending without one has failed, whatever else it achieved.
 
 **After the report, whose tables it reads**, and **on every run** — including
 one that closed nothing. A sprint that bounced its whole queue produced no code
-and a great deal of evidence about grooming; a retro that fires only on success
-cannot see the failures.
+and a lot of evidence about grooming; a retro firing only on success cannot see
+the failures.
 
-It harvests every finding, routes each by kind, reasons them into candidate
-issues, puts those to the user once, and files what they accept — beads here,
+It harvests every finding, routes each by kind, reasons them into candidates,
+puts those to the user once, and files what they accept — beads here,
 `.sf/outbox/` files for the skills it ran on.
 
-**Two of the nine kinds never become issues.** `proof` (how a claim was
-established) stays in the report; `environment` (a dependency's behaviour no
-bead could have carried) goes to the environmental-failure ledger. Measured at
-7 of 73 on a real run, so expect them.
+**Two of the nine kinds never become issues** — `proof` stays in the report,
+`environment` goes to the environmental-failure ledger. Measured at 7 of 73 on
+a real run, so expect them.
 
 **Incidents are its best material** — each marks a place the corpus failed to
 answer a question a bead needed, which is a finding against a *document*
@@ -369,6 +334,7 @@ is a skill you invoke or a script you run, and its section says which.
 | How to call a script, and what it leaves behind | `references/scripts.md` |
 | Live progress: the wave's Monitor and the trigger | `references/progress-streaming.md` |
 | A subagent that crashed or timed out mid-ceremony | `references/recovery.md` |
+| Where the run is; when it is done; which death you have | `references/supervision.md` |
 | A bead interrupted mid-implementation; all principles | `references/operating-principles.md` |
 | Resuming a run whose state you do not hold | the **`sprint-recovery`** skill |
 | The Definition of Ready the readiness gate enforces | `references/shared/work-order-definition-of-ready.md` |
@@ -383,12 +349,9 @@ full list is in `references/operating-principles.md`.
 
 - **Don't read source files.** Reading a file to decide something is a
   subagent's job; you route.
-- **Nothing escalates to a human mid-run.** Not an ambiguous acceptance
-  criterion, not a contract change, not a silent spec. Decide, record it as an
-  **incident** the way the capture protocol specifies, and the report names it
-  first. A recorded decision is reviewed at the pull request and revised in a
-  later run — cheaper than a night blocked on a question nobody is awake to
-  answer. This binds you as much as your subagents.
+- **Nothing escalates to a human mid-run.** Decide, record it as an
+  **incident**, and the report names it first. This binds you as much as your
+  subagents; the four kinds and why, in `references/operating-principles.md`.
 - **Findings serve two audiences.** A finding about **this project** becomes a
   bead here. A finding about **a skill this run used** leaves through
   `.sf/outbox/<skill>/` and is never filed in this project's backlog — a

@@ -5,6 +5,7 @@
 - The three things the orchestrator owns: the manifest, the swarm
   registration, the run's amendments
 - Run health — the asserted dimension and its five values
+- `base_sha` — why it is recorded at creation and never derived
 
 **Three things the orchestrator owns and never delegates.** Read this once,
 after `sprint-scope` returns the epic and before you dispatch grooming.
@@ -112,3 +113,16 @@ bd set-state <epic> health=<value> --reason "<why>"
 
 `slow` vs `stalled` is the distinction the dimension exists for. The label
 **replaces** rather than accumulates.
+
+## `base_sha` is recorded at creation, never derived
+
+Because that is the only moment it is unambiguous. Deriving it later from a
+merge-base assumes the base branch has not moved, and on a long run it will
+have — leaving the review scoped to a diff that silently excludes whatever
+landed on the base meanwhile.
+
+Three things consume it and none may create it:
+
+- the review scopes its diff `base_sha`..sprint head
+- every worktree branches from sprint HEAD
+- the pull request opens against it

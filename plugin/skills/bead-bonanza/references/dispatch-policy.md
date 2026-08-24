@@ -1,5 +1,10 @@
 # Dispatch policy — concurrency, tier, push
 
+**The circuit breaker stops the RUN, not just the wave.** Three consecutive
+blocked or failed beads is systemic — a broken base, a wrong assumption in the
+plan, an environment fault — and the next wave meets it too. Stopping the wave
+alone hands the same failure to a fresh set of agents.
+
 Read this at the wave boundary, when you are deciding how a wave goes out.
 `sprint-wave` executes the wave; this file is the policy it executes under.
 

@@ -4,6 +4,12 @@
 read it, done. Read this file only when it BLOCKS — it names each blocker and
 the remedy, so there is nothing here to weigh in the normal case.
 
+## The readiness gate is NOT here
+
+It belongs to grooming. Readiness is a property of a groomed bead, so asking
+before grooming answers a question about beads that are about to change.
+`sprint-scope` does not carry it either.
+
 ## Running it
 
 One script measures the environment; you act on what it returns. It runs

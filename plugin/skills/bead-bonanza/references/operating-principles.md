@@ -17,6 +17,7 @@ skill and are enforced by the close script.
   tracker write may happen, and whose claims it may reset
 - Principles the coordinator applies but does not carry — the ones SKILL.md
   summarises only where they change a turn's routing
+- Incidents — the four kinds, and why nothing escalates mid-run
 
 ## Findings harvest
 
@@ -114,3 +115,17 @@ full.
 - **Tracker writes are never deferred.** Groom a discovered bead, bake a
   decision, or wire a dependency edge at any time, mid-wave included. Only the
   working tree needs care; see "Guard against foreign dirt" above.
+
+## Incidents — why nothing escalates mid-run
+
+**Not an ambiguous acceptance criterion, not a contract change, not a silent
+spec.** Decide it, record it as an **incident** the way the capture protocol
+specifies, and the report names it first.
+
+A recorded decision is reviewed at the pull request and revised in a later run.
+That is cheaper than a night blocked on a question nobody is awake to answer —
+which is the actual alternative for an autonomous run, not "ask and continue".
+
+**This binds the coordinator as much as its subagents.** A coordinator that
+escalates has converted an autonomous run into a supervised one without saying
+so, and the human it is waiting for finds out in the morning.
