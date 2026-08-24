@@ -71,8 +71,10 @@ These are the artifacts each script creates, writes, or repoints.
   `git worktree prune` at startup; **pushes to the remote** — probes tracker
   write access with `git push <remote> HEAD:refs/dolt/preflight-probe-$$`,
   then deletes that ref, both against the same remote the bead's own work
-  will later push to; and **executes the project's declared checks**, which
-  run whatever commands that project declared. It does not write user-global state — where
+  will later push to; **executes the project's declared checks**, which
+  run whatever commands that project declared; and **writes concurrency_cap to
+  the run epic's manifest** on any epic-scoped pass, merged with existing keys.
+  It does not write user-global state — where
   Dolt telemetry suppression or the `eventsapi.dolthub.com` deny entry is
   absent, it reports that and prints the command to run yourself.
 - **`scripts/bb-close-bead.sh`** — runs `bd update --status closed`, stages
