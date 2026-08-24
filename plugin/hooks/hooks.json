@@ -11,6 +11,18 @@
           }
         ]
       }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/bb-subagent-stop-queue.sh",
+            "timeout": 30,
+            "statusMessage": "Checking the worker's queue..."
+          }
+        ]
+      }
     ]
   }
 }

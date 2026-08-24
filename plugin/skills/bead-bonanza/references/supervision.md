@@ -11,6 +11,8 @@ computed from state.
 - When the run is done — the completion rule, and why the obvious query is wrong
 - The `Stop` hook — the loop enforced by the harness, its bound, and how to
   stop anyway
+- The `SubagentStop` hook — a worker held to its own queue, and why a BLOCKED
+  bead is accepted where an unfinished one is not
 - Running without the hooks — the fallback every step is written against
 - The review loop's budget — what the counter bounds, and what it does not
 
@@ -123,6 +125,62 @@ something to remember:
 A hook that blocked on its own malfunction would be a session an operator has
 to kill, which is a worse failure than the one it prevents.
 
+## The `SubagentStop` hook
+
+The `Stop` hook holds YOU to the ready loop. This one holds a WORKER to its own
+queue: the same `hooks/hooks.json` declares a `SubagentStop` hook running
+`hooks/bb-subagent-stop-queue.sh`, which exits **2** when a subagent stops
+while beads assigned to it are still ready or in progress.
+
+**It moves acceptance from testimony to state.** A batch that returns
+"completed" on a bead it never touched is the one failure the whole
+verify-against-state apparatus exists to catch, and until now it was caught
+*after* the fact, by the coordinator. The harness can now refuse the claim.
+
+**It cannot detect a stall**, and nothing can: a stalled subagent never
+finishes, so the event never fires. Absence of an event is not an event. This
+catches a worker that stops EARLY, never one that stops never — the three
+deaths above are still yours to tell apart.
+
+```sh
+"${CLAUDE_PLUGIN_ROOT}"/hooks/bb-subagent-stop-queue.sh --arm      # takes no epic
+"${CLAUDE_PLUGIN_ROOT}"/hooks/bb-subagent-stop-queue.sh --status
+"${CLAUDE_PLUGIN_ROOT}"/hooks/bb-subagent-stop-queue.sh --disarm
+```
+
+**A BLOCKED bead is accepted; an unfinished one is not.** That distinction is
+the whole design, because getting it wrong traps a worker forever — refused on
+every attempt to return, with no way to satisfy the refusal. It falls out of
+two queries rather than a special case, measured on one bead in four states:
+
+| the worker's bead | `bd ready --assignee` | `--status in_progress` | verdict |
+|---|---|---|---|
+| `open`, never started | 1 | 0 | **refused** |
+| `in_progress` | 0 | 1 | **refused** |
+| `blocked` (the `run-bead` Blocked path) | 0 | 0 | allowed |
+| `closed` | 0 | 0 | allowed |
+
+`bd ready` excludes blocked beads and `--status in_progress` does not match
+them, so a worker that declared its blocker is drained by both. **So the way
+out of a refusal is to declare the block, not to argue with the hook** — which
+is what the ceremony asks for anyway.
+
+**Scoped from the payload, or silent.** The agent id comes from the
+`SubagentStop` payload on stdin and nowhere else: a hook is spawned by the
+harness, so nothing you export reaches it, and a single id on disk could not
+say which of several concurrent workers stopped. With no id in the payload the
+hook exits 0 and says so. It must never guess — measured,
+`bd ready --assignee ""` returned 3 rows and
+`bd list --assignee "" --status in_progress` returned 2 on a tracker where the
+intended agent held none.
+
+**The bound is 3 consecutive blocks PER AGENT**
+(`BB_SUBAGENT_HOOK_MAX_BLOCKS`), lower than the `Stop` hook's 8 because a
+worker cannot dispatch its way out of a queue the way a coordinator can. Per
+agent, so one wedged worker cannot spend another's budget. As with the other
+hook it does **not** reset at the cap. Kill switches: `--disarm`, or
+`BB_SUBAGENT_HOOK=0`.
+
 ## Running without the hooks
 
 **Every hook this plugin ships is a convenience over a path that still works
@@ -134,6 +192,19 @@ WHEN no hook is installed, the loop is yours to run: after every batch returns, 
 the ready front by the two steps above and stop only when it is empty. That is
 the identical check, made by you instead of by the harness. `--status`, or the
 absence of the script, says which of the two you are in.
+
+**Same for the `SubagentStop` check.** With no hook, run its two queries
+yourself as each batch returns, before you accept anything it reported:
+
+```sh
+bd ready --assignee <dispatch-id> --json                        # must be empty
+bd list  --assignee <dispatch-id> --status in_progress --json   # must be empty
+```
+
+Both empty is the DRAINED test the dispatch procedure already states, so this
+adds no new rule — the hook only makes it non-optional. **A bead the worker set
+`blocked` satisfies both**, which is why "drained" and "every bead closed" are
+different questions and only the first one gates acceptance.
 
 ## The review loop's budget
 

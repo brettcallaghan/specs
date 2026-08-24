@@ -92,10 +92,15 @@ id = "script-self-tests"
 # convenience and a trap. Its --self-test stubs `bd` on PATH and points the
 # state directory at a temp dir, so it needs no database either.
 #
+# plugin/hooks/bb-subagent-stop-queue.sh is here for the same reason and one
+# more: it must let a worker holding a BLOCKED bead stop. Refusing that one
+# traps the worker forever, so the case is a self-test assertion rather than a
+# comment. Same stubbing, so it needs no database either.
+#
 # plugin/monitors/bb-events-monitor.sh --self-test appends to real files in a
 # temp directory and waits for its own background tails to report, so it is
 # the slow one here — about ten seconds, and it is timing-sensitive by nature.
-command = 'rc=0; for t in plugin/skills/bead-bonanza/scripts/bb-status.sh plugin/skills/bead-bonanza/scripts/bb-close-bead.sh plugin/skills/bead-bonanza/scripts/sprint-cleanup.sh plugin/skills/bead-bonanza/scripts/bb-checks.py plugin/skills/bead-bonanza/scripts/pre-flight-check.sh plugin/hooks/bb-stop-ready-loop.sh plugin/monitors/bb-events-monitor.sh; do "$t" --self-test || rc=1; done; exit $rc'
+command = 'rc=0; for t in plugin/skills/bead-bonanza/scripts/bb-status.sh plugin/skills/bead-bonanza/scripts/bb-close-bead.sh plugin/skills/bead-bonanza/scripts/sprint-cleanup.sh plugin/skills/bead-bonanza/scripts/bb-checks.py plugin/skills/bead-bonanza/scripts/pre-flight-check.sh plugin/hooks/bb-stop-ready-loop.sh plugin/hooks/bb-subagent-stop-queue.sh plugin/monitors/bb-events-monitor.sh; do "$t" --self-test || rc=1; done; exit $rc'
 
 # Green since 2026-08-22. It exits 1 on a WARNING as well as an error, which is
 # the point: a skill body over the cap is a real defect and this is what says
