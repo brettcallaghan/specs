@@ -66,123 +66,29 @@ out="$(bd show "$id" --json)"                 # right — capture, then test
 The fix is the same in both directions: **put the value in a variable or a
 file, then test it.** A pipeline is for moving data, not for carrying a verdict.
 
-## bead-bonanza gates
+## Checks
 
 This repository is a documentation-and-skills corpus **plus** the Go module
-under `cli/` that implements the Spec CLI.
+under `cli/` that implements the Spec CLI. Run the Go checks from `cli/` if you
+invoke them individually — that is the module root, so `./...` resolves there.
 
-**The checks a bead runs are declared in `sf.toml`, not in this file.**
-Thirteen `[[checks]]` entries, each an `id` and a `command`. The sprint runs
-them; `run-bead` says how, and nothing outside a skill invocation needs to.
+Two lists, and they are not the same list:
 
-Thirteen ids: `format`, `vet`, `build`, `test-go`, `skills`, `shared-refs`,
-`strata-docs`, `schemas`, `corpus`, `ref-links`, `template-drift`,
-`script-self-tests`, `skills-strict`.
-
-**By hand, run `scripts/ci.sh`** — which now runs exactly that declaration
-through the same runner, so "what I ran locally" and "what the bead ran"
-cannot drift. It deliberately omits the **release bar**: the cross-compile
-matrix, the three-platform test matrix, and the busybox smoke test only mean
-something across the whole repository at release time, and those are the
-workflows'.
-
-Two things the declaration encodes that prose kept getting wrong:
-
-- **`skills-strict` is its own check**, because it is known-red (below) and
-  folding it into `skills` would mark a healthy one red too. The three
-  doc-corpus checks are likewise separate entries rather than one chained
-  command — chaining them with `&&` would let the known-red one short-circuit
-  the other two before they ran.
-- **`format` is a file list, not an exit status.** `gofmt -l` exits 0 whether
-  or not it found unformatted files, so a check reading only the status would
-  always pass. That is why `format` points at `scripts/format-check` rather
-  than carrying a `command` one-liner.
-
-Run the Go checks from `cli/` if you invoke them individually — that is the
-module root, so `./...` resolves there. The declared commands `cd` there
-themselves.
-
-
-### What CI runs
-
-Three workflows under `.github/workflows/`, all on push and pull request
-except the last:
-
-- `checks.yml` — the docs-corpus gates on one Linux runner:
-  `check-skills.sh` (not `--strict`), `sync-shared-references.sh --check`,
-  `check-reference-links.py`, `check-template-drift.py`. Its `corpus` job
-  builds the Spec CLI and runs `spec check --strict` over `specs/`, then
-  `spec check --config rfcs/specs.toml` over the RFC queue with a narrowed
-  `--only` rule set.
-- `cli.yml` — the Go gates. `go vet`, `go build` and `go test ./...` on
-  ubuntu, macOS and Windows (the matrix is the cross-platform half of
-  AC-SPEC-009.7: one committed set of expected bytes, three platforms);
-  `gofmt -l` on ubuntu only; a cross-compile of all six release targets;
-  and a run of the static binary inside a busybox image, which is
-  AC-SPEC-009.4's worked example executed rather than asserted.
-- `release.yml` — on a `cli/vX.Y.Z` tag. Cross-compiles the six targets
-  on one Linux runner, packages one archive each plus `SHA256SUMS`, and
-  publishes a GitHub Release.
-
-Neither `check-skills.sh --strict` nor `generate-schemas.sh --check` runs
-in CI — the first is known red (below) and the second needs the Strata
-compiler. Both remain local gates.
-
-**CI and the declaration overlap deliberately and are not the same set.** CI
-adds the release bar the declaration leaves out (three platforms, six
-cross-compile targets, the busybox smoke test); the declaration adds two gates
-CI cannot run. That is the whole of the difference — anything else appearing in
-one and not the other is drift, and was drift until 2026-08-22, when `corpus`,
-`ref-links` and `template-drift` were declared. Before that a bead could break
-a `[[slug]]` reference or the corpus itself and no per-bead check would catch
-it.
-
-`.gitattributes` pins the working tree to LF on every platform. It has to:
-the expected artifacts under `cli/testdata/cases/**/expected/` are compared
-byte for byte, and Git's `core.autocrlf` default on Windows would rewrite
-them on checkout. The CRLF checkout AC-SPEC-009.7 names is reproduced
-synthetically instead, on every platform, by `cli/cmd/portability_test.go`.
-
-### Targeted tests by surface
-
-Which declared checks cover which surface, for a bead narrowing its runs:
-
-| touched | ids to pass |
+| | |
 |---|---|
-| `cli/**` | `format vet build test-go corpus` |
-| `schemas/*.strata` | `schemas build corpus` |
-| `specs/**` | `corpus ref-links` |
-| `plugin/skills/**` | `skills shared-refs ref-links template-drift` |
-| `scripts/**` | `skills shared-refs` |
-| `plugin/skills/*/scripts/**` | `script-self-tests` |
-| `.claude/skills/strata/references/**` | `strata-docs` |
+| `scripts/ci.sh` | everything a contributor should see green before pushing |
+| `sf.toml`'s `[[checks]]` | the quality bar for ONE COMMIT — what a bead runs before its own close |
 
-The mapping is documented here rather than declared, because which checks a
-change needs is a judgement about this repository, not a property of the
-checks.
+They overlap today and will not stay that way: anything too slow to pay per
+bead belongs in `ci.sh` and not in the declaration. Neither is the **release
+bar** — the cross-compile matrix, the three-platform test matrix and the
+busybox smoke test only mean something across the whole repository, and
+`.github/workflows/` owns them.
 
-**There is no ordering dependency among them.** `schemas` runs `--check`,
-which verifies without regenerating, so nothing must precede `build` — the
-declaration's order is the order they are reported in, not a constraint.
-
-Two entries are about how to *read* a result rather than which gate to run:
-
-- `.claude/skills/*/SKILL.md` — only the project-native skills `triage-issue` and
-  `strata` are checked; the committed symlinks to `plugin/skills/` are skipped
-  and checked at their source.
-- `.claude/skills/strata/references/**` — generated verbatim from
-  `strata-lang/strata`; never hand-edit them. The `strata-docs` gate reports
-  SKIP (exit 0) when no strata checkout is present.
-
-One surface has its own guard rather than a gate:
-
-- `plugin/skills/groom-beads/scripts/**` → `python3 plugin/skills/groom-beads/scripts/validate_beads.py <fixture>.jsonl`
-
-The bead-bonanza scripts are no longer in that list: **all five now carry a
-`--self-test` and the `script-self-tests` check runs every one**, so a change
-to any of them is covered by the declaration rather than by remembering to run
-a guard named in a header.
-
+One trap worth naming, because the obvious fix is wrong: **`format` is a file
+list, not an exit status.** `gofmt -l` exits 0 whether or not it found
+unformatted files, so a check reading only the status always passes. That is
+why it points at `scripts/format-check`.
 
 ### Environmental-failure ledger
 
@@ -373,21 +279,6 @@ sessions, where `.claude/hooks/session-start.sh` provisions it because the
   higher than the documented ~1m50s on this run — cache warmth and container
   CPU allocation can move it; treat ~1m50s–2m35s as the observed range rather
   than a fixed number.
-
-## code reviewer
-
-Declared in `sf.toml` under `[review]`, not here. This repository declares the
-harness's own `code-review` skill. Undeclared, a run skips its review step and
-says so in the report — it is not an error, and a silently skipped review reads
-exactly like a clean one.
-
-## model lineup
-
-Declared in `sf.toml` under `[models]`, not here — it is a routing fact the
-orchestrator resolves at dispatch, so it lives somewhere a script can read
-without parsing prose. Beads carry a tier in `metadata.tier`; pre-flight emits
-each tier's model as a `BB_MODEL_*` fact.
-
 
 ## Where documents live
 
@@ -588,23 +479,6 @@ was made.
 See `.claude/hooks/session-start.sh` and `docs/session-bootstrap.md`. The
 `bead-bonanza` skill itself never names a credential — it requires only "write
 access to `refs/dolt/data`", and the mechanism is this repository's business.
-
-### `sync.remote` is configured normally — keep it that way
-
-`.beads/config.yaml` sets `sync.remote` to
-`git+https://github.com/brettcallaghan/agent-plugins.git`, exactly as beads'
-own documentation says to, and exactly the value `bd bootstrap` derives and
-writes for itself.
-
-It was deliberately unset until 2026-08-20, on a bd 1.2.1 behaviour that 1.2.2
-does not have. Unset, `bd prime` tells every agent "No git remote configured.
-Issues are saved locally only" and omits `bd dolt push`/`pull` from its command
-reference — so the tracker's own guidance contradicted the way this repository
-works, every session.
-
-The hook still verifies the tracker by issue count rather than by directory
-existence, moves a stale empty database aside, bootstraps, and fails loudly if
-the count is still zero. Nothing here needs an agent to act.
 
 ### Two hazards that remain
 

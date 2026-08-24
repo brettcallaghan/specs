@@ -31,7 +31,7 @@ Then, for that bead:
 
 1. **Is there work in its worktree?** Everything dirty there belongs to this bead: an earlier bead in the same batch would have committed before this one started, so uncommitted changes can only be this one's.
 2. **If the worktree holds work and the bead is not closed** — the change is in the tree and the close ceremony is incomplete. **Re-run the project's checks before closing.** This is the **happy crash path**:
-   - Run the project's checks script in the worktree. Do not skip them on the strength of anything the dead subagent recorded: a run that recorded a clean check and exited 1 with 222 findings is the measured failure this ordering exists to prevent. The cost of re-running is one check suite per crash — across 31 beads measured, one crash — against accepting a close whose only evidence is the testimony of an agent that then died.
+   - Run the project's declared checks in the worktree. Do not skip them on the strength of anything the dead subagent recorded: a run that recorded a clean check and exited 1 with 222 findings is the measured failure this ordering exists to prevent. The cost of re-running is one check suite per crash — across 31 beads measured, one crash — against accepting a close whose only evidence is the testimony of an agent that then died.
    - If the checks fail, this is not the happy path: treat it as step 3.
    - Read the bead's comments for a `caveat:` line — anything the close must do differently, such as a regen step to run before staging. Honor it before you stage. Most beads carry none.
    - The worktree names the paths: everything dirty in `git -C <worktree> status --porcelain` belongs to this bead, for the reason in step 1. The close stages all of it.

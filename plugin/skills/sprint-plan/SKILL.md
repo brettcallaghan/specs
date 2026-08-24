@@ -199,7 +199,7 @@ largest safe batch, not to default to one-bead-per-subagent for caution.
 Sequential is the *exception*, not the rule.
 
 **Batching does not buy fewer check runs.** Every bead runs the project's
-checks script before its own close whether batched or not — that script is the
+declared checks before its own close whether batched or not — those are the
 quality bar for one commit, sized to be affordable every time. A batch changes
 who does the work and what can run alongside it, never what gets validated.
 
@@ -299,14 +299,14 @@ ambiguous and breaks the in-flight signal for every reader. Never pack a batch
 in a way that assumes otherwise.
 
 1. **Doc/chore fast lane** — `trivial` beads. ONE subagent processes the cluster
-   sequentially. Per bead: targeted tests plus the project's checks script,
+   sequentially. Per bead: targeted tests plus the project's declared checks,
    before that bead's close. One commit per bead. Cap ~6 beads per fast-lane
    subagent.
 
 2. **Shared-surface batch** — `shared-surface` beads that cluster on the same
    fixture/code area. ONE subagent processes the cluster sequentially. Per bead,
    before its close: any regeneration, **surface-relevant targeted tests
-   (non-negotiable)**, then the project's checks script. One commit per bead.
+   (non-negotiable)**, then the project's declared checks. One commit per bead.
 
    **Threshold:** use shared-surface batch when **≥2** beads share a surface and
    decisions are independent (bead A's choice doesn't change bead B's

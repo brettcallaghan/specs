@@ -1,5 +1,13 @@
 # Scripts — interfaces and side effects
 
+**Scoped to what the COORDINATOR runs.** Three of the bundled scripts are its
+own — `scripts/pre-flight-check.sh`, `scripts/bb-status.sh`,
+`scripts/sprint-cleanup.sh` — plus `scripts/bb-close-bead.sh` on exactly one
+path, finishing a bead a crashed subagent left behind (`recovery.md`). The
+skip-verification script belongs to the **`sprint-wave`** and **`sprint-batch`**
+skills, and the checks runner to **`run-bead`**; each is documented where it is
+called.
+
 **The scripts are executed, not read.** Each encodes an ordering, quoting or
 portability rule that is easy to state and easy to get wrong under pressure.
 Run them rather than reproducing what they do — and read this file rather than
@@ -12,9 +20,11 @@ disagreement is a finding worth recording.
 
 ```
 pre-flight-check.sh [<epic-id>] [--self-test]                   # sandbox ON
-bb-verify-skip.sh [pathspec ...]        # no pathspec = whole working tree
-bb-close-bead.sh [--trailers-file <path>|--trailers-from <epic>] <bead-id> <priority> <title> [path ...]
+bb-status.sh bead <id> [--worktree <path>] [--pre-merge] | wave | run <epic> | harvest
+sprint-cleanup.sh <epic-id> [--dry-run]
+bb-close-bead.sh [--trailers-from <epic>] <bead-id> <priority> <title>
 ```
+The last one is the recovery path only — see its entry below.
 
 - **`scripts/pre-flight-check.sh`** — the environment probe. Human report on
   stderr, an evalable `SCRIPTS=`/`BB_*=` block on stdout. Exit 0
@@ -35,26 +45,16 @@ bb-close-bead.sh [--trailers-file <path>|--trailers-from <epic>] <bead-id> <prio
   Exit 0 clear, 1 repairable, 2 stop-the-wave, 3 invocation error. **Run-level:
   a subagent never runs it** — inside its own worktree signal 4 reads
   differently by construction.
-- **`scripts/bb-verify-skip.sh`** — the two-sided skip check. With no argument it
-  examines the whole working tree; pass pathspecs to scope it.
-- **`scripts/bb-close-bead.sh`** — the close ceremony, in its required order.
-  `--trailers-file <path>` / `--trailers-from <epic>` are optional, mutually
-  exclusive, and must precede `<bead-id>`. `--trailers-from` reads the
-  manifest's `trailers` key off the run epic; the file form's
-  contents are appended to the commit body after a blank line, so a project's
-  required trailers (`Co-Authored-By`, a session URL) land in the one commit
-  this script makes and no caller needs `git commit --amend` to add them.
-  Omitting it appends no trailers.
-  `<path ...>` are the code files this bead changed; WHEN omitted it stages
-  everything currently modified, so pass explicit paths whenever another
-  agent may be sharing the tree. It closes with a status-only `bd update` and
-  never writes the description. It then **verifies the close against the
-  database** — `bd show <id>` must read `closed` — and refuses to stage or
-  commit anything when it does not, so a `bd update` that silently did not
-  take cannot produce a commit claiming a closure that never happened. After
-  the commit it runs `bd dolt push`; a push failure is a WARNING, not an
-  error — the bead IS closed and committed, and the repair is another push,
-  never a second `bd update`.
+- **`scripts/bb-close-bead.sh`** — **`run-bead` owns this**; the coordinator runs
+  it on one path only, finishing a bead a crashed subagent left uncommitted.
+  There, from inside that worktree: `--trailers-from <epic>` (optional, before
+  `<bead-id>`) reads the manifest's `trailers` key, and passing **no paths**
+  stages everything modified, which is correct because everything uncommitted
+  in that tree is the bead's. It **verifies the close against the database**
+  before staging anything, so a `bd update` that silently did not take cannot
+  produce a commit claiming a closure that never happened. A `bd dolt push`
+  failure afterwards is a WARNING — the bead IS closed and committed, and the
+  repair is another push, never a second `bd update`.
 
 ## Side effects — what each script leaves behind
 
@@ -72,8 +72,6 @@ These are the artifacts each script creates, writes, or repoints.
   run whatever commands that project declared. It does not write user-global state — where
   Dolt telemetry suppression or the `eventsapi.dolthub.com` deny entry is
   absent, it reports that and prints the command to run yourself.
-- **`scripts/bb-verify-skip.sh`** — no side effects; exits 0 (skip
-  verified), 1 (not skipped), or 2 (invocation error).
 - **`scripts/bb-close-bead.sh`** — runs `bd update --status closed`, stages
   the specified paths (or, with none given, everything modified **except
   `.beads/*.jsonl`**), makes one commit, then runs `bd dolt push` when a Dolt remote

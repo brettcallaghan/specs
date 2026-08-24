@@ -7,7 +7,7 @@ comes back here.
 
 ## Contents
 
-- The `checks` script — how this project validates a bead
+- The declared checks — how this project validates a bead
 - Model lineup — how capability tiers resolve to models (`sf.toml` `[models]`)
 - Code reviewer — which reviewer the run dispatches (`sf.toml` `[review]`)
 - Issue outbox — where findings about someone else's skills go
@@ -19,18 +19,20 @@ write any of it silently.
 
 ---
 
-1. **Resolve the checks script.** bead-bonanza learns how to validate a bead
-   by running the project's **`checks` script**.
+1. **Resolve the declared checks.** bead-bonanza learns how to validate a bead
+   from `sf.toml`'s `[[checks]]`. **There is no `checks` script** — the project
+   declares the commands it already runs, and the bundled runner executes the
+   declaration.
 
-   **It is the quality bar for a single commit, not the release bar.** Every
-   bead runs it before its own close, so what belongs in it is the checks that
-   give real confidence in one bead's change and are cheap enough to pay every
-   time. A check that takes minutes, or that only means anything across the
-   whole repository at release time, belongs in CI — a `checks` script a bead
-   cannot afford to run is one agents will find reasons to skip.
+   **They are the quality bar for a single commit, not the release bar.** Every
+   bead runs them before its own close, so what belongs here is what gives real
+   confidence in one bead's change and is cheap enough to pay every time. A
+   check that takes minutes, or that only means anything across the whole
+   repository at release time, belongs in CI — a declared check a bead cannot
+   afford to run is one agents will find reasons to skip.
 
-   They are declared in `sf.toml`, a plugin-scoped config file at the
-   repository root — an array of tables, two keys each, and no others accepted:
+   `sf.toml` is a plugin-scoped config file at the repository root — an array of
+   tables, two keys each, and no others accepted:
 
    ```toml
    [[checks]]

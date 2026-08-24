@@ -20,7 +20,8 @@ export:
 # committed is idempotent rather than a fight. Setting it is also what makes
 # `bd prime` emit the Dolt sync commands and the push half of its session-close
 # protocol; unset, bd tells every agent "No git remote configured. Issues are
-# saved locally only."
+# saved locally only." KEEP IT SET — unsetting it makes the tracker's own
+# guidance contradict the way this repository works, every session.
 #
 # Trap: a 403 from `bd dolt push` is NOT GitHub refusing refs/dolt/* writes. It
 # is an egress proxy substituting a brokered GitHub App token scoped to
