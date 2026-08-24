@@ -109,8 +109,8 @@ for different people.
 
 ### (a) Every finding, verbatim, grouped by kind
 
-**Into the run's findings document, which is yours to write** — the retro runs
-BEFORE the report, so there is no report to write into yet:
+**Into the run's findings document, which is yours to write and yours alone.**
+You write no part of the report and the report writes no part of this:
 
 ```sh
 path="rfcs/sprints/<YYYY-MM-DD>-<epic-slug>-findings.md"
@@ -118,8 +118,8 @@ bd update {EPIC} --set-metadata findings_path="$path"
 ```
 
 Recording the path is what lets `sprint-report` cite the document without being
-handed anything: its only input stays the epic id, so a session that did not
-run the sprint can still write the report. Not a summary and not a selection.
+handed anything — and what makes the two skills order-independent, since
+neither reads the other's output directly. Not a summary and not a selection.
 
 **The complete set is the substrate recurrence runs on.** A finding filtered
 out once can never be observed appearing twice, and recurrence is the only
@@ -200,10 +200,9 @@ leads back to its findings.
 
 Append one row for the sprint to `rfcs/retro-log.md`, so one index covers all
 retro activity, and commit it with the findings document and anything filed.
-The report is written after you and commits itself.
 
-**Record the outcome on the epic**, so `sprint-report` — which runs after you
-and takes only the epic id — can name what you produced:
+**Record the outcome on the epic**, so `sprint-report` can name what you
+produced from the manifest alone:
 
 ```sh
 bd update {EPIC} --set-metadata retro_filed=<n> \

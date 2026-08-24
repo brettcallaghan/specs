@@ -173,8 +173,32 @@ committing them lands in-flight bead state on the sprint branch.
    Rebase keeps one-commit-per-bead and a linear history, so it is the
    concurrent analogue of the sequential guarantee. **The collision signal moves
    to the rebase:** a rebase CONFLICT means two beads genuinely changed the same
-   lines, which is the failure `--ff-only` was standing in for. Stop the wave on
-   a rebase conflict, exactly as you would on a sequential `--ff-only` refusal.
+   lines, which is the failure `--ff-only` was standing in for.
+
+   **A conflict is an INCIDENT, and recording it is not optional.** The wave
+   packing is built on the claim that these two beads do not touch each other;
+   a conflict is that claim failing, which is exactly a decision changing what
+   "correct" means. It is kind `sequencing` — a blocker the dependency graph
+   did not encode — targeted at the bead it collided with. Record it before
+   doing anything else, so the report leads with it and the retro gets the
+   material:
+
+   ```sh
+   bd comment <bead> "retro:sequencing:<other bead> incident — rebase conflict on <files>; wave packing claimed isolation"
+   bd comment {EPIC} "amend: incident on <bead> — wave packing claimed isolation; rebase conflicted on <files>"
+   ```
+
+   **Then stop the WAVE, not the run.** Every bead already merged stays merged
+   and every other branch in the wave is still mergeable; what is unsafe is
+   dispatching further work on a base whose isolation assumption just failed.
+   Mark the unmerged bead `blocked`, leave its worktree standing, and report.
+
+   **Resolving the conflict is NOT the merging agent's.** It holds the merge
+   slot and no bead's context — it did not make either change and cannot know
+   which side to keep, so a resolution it invents is an unreviewed edit landing
+   under someone else's commit. Two beads that genuinely collided are a
+   re-planning problem: the surface they share belongs in ONE batch, sequential,
+   which is the fix the next wave applies.
 4. **Remove the worktree — the final act of accepting the dispatch**, once
    every bead in it has merged:
    ```sh

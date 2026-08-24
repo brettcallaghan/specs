@@ -26,10 +26,6 @@ manifest so the report outlives the session that produced it:
 bd update <epic> --set-metadata report_path=<path>
 ```
 
-**You run after `sprint-retro`, not before it.** That is what lets you name
-what the retro produced; it in turn writes its own findings document rather
-than into yours, so neither skill waits on the other.
-
 **A report is always produced**, including for a run that stopped early, was
 interrupted, or tripped its circuit breaker. **A run that ends without one has
 failed**, whatever else it achieved.
@@ -119,8 +115,8 @@ a question, which makes it the retro's material rather than a complaint.
    filed with a `discovered-from` link, awaiting triage).
 5. **Stashes** — if any were created during recovery, list with `git stash
    list`.
-5a. **The retro's outcome** — `sprint-retro` ran BEFORE you and recorded what
-    it produced on the epic. Not yours to run; read it and name it:
+5a. **The retro's outcome** — read from the manifest, where `sprint-retro`
+    records it. Not yours to run and not yours to sequence; name what is there:
 
     ```
     Retro: <retro_filed> filed, <retro_declined> declined,
@@ -130,9 +126,10 @@ a question, which makes it the retro's material rather than a complaint.
 
     **Cite `findings_path`, never restate the findings.** The complete set is
     what recurrence accumulates over, and a second copy that drifts is worse
-    than a link. **WHEN either key is absent**, say `Retro: not run` rather
-    than omitting the line — a retro that was skipped and one that found
-    nothing are different results, and only the first is a defect.
+    than a link. **WHEN the keys are absent**, say `Retro: not run` rather than
+    omitting the line — a retro that was skipped and one that found nothing are
+    different results, and only the first is a defect. Absent is the honest
+    reading whatever the reason, so this needs no knowledge of what ran when.
 6. **Pushes** — confirm all closed beads' commits are on the remote.
 6a. **The durable out-of-session trigger's disposition** —
     `Durable trigger: cancelled (<id>)` or `Durable trigger: none armed`. Both
