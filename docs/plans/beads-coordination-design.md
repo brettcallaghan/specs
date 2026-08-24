@@ -99,10 +99,34 @@ one worktree, committing serially. Pull cannot express "these five belong
 together"; push can, and the two-step claim is not a real cost because the
 assignment already guarantees exclusivity.
 
-**Set `BEADS_ACTOR` to the agent id** in every dispatched subagent. Otherwise a
-claim silently rewrites your assignment to the harness default and the
-coordinator's view of who holds what decays. This is the answer to "what should
-we use for agent IDs": one string, used as both the assignee and `BEADS_ACTOR`.
+**Decided: assign wherever possible, and set `BEADS_ACTOR` in every agent
+anyway.** The two are belt and braces, not alternatives:
+
+1. **Planning assigns every bead.** An unassigned bead is a planning defect, not
+   a free-for-all — so this becomes a **Definition of Ready check**: *every bead
+   in the run epic carries an assignee before the first dispatch.* It is cheap
+   to verify and it fails loudly:
+
+   ```sh
+   bd list --parent {EPIC} --json | jq -r '.[] | select(.assignee == null or .assignee == "") | .id'
+   ```
+
+   Anything that prints is unready. This is the one gate that makes the push
+   model safe, because the failure it catches — a bead nobody owns, silently
+   picked up by whoever claims first — is invisible at runtime.
+
+2. **Every agent and subagent exports `BEADS_ACTOR` = its agent id.** Not
+   because we intend to claim, but because a claim *may* happen — `run-bead`
+   claims, a recovery path claims, a worker retries. With `BEADS_ACTOR` set,
+   a claim rewrites `assignee` to the value it already had and nothing moves.
+   Without it, the claim silently reassigns the bead to the harness default and
+   the coordinator's ownership view decays with no error anywhere.
+
+That is also the answer to "what should we use for agent IDs": **one string,
+used as both the assignee and `BEADS_ACTOR`.** Beads has no agent registry —
+assignees are plain strings **[doc]** — so the id is ours to choose, and
+`<agent-slug>-<batch-id>` (e.g. `dev-3`) is enough as long as it is stable for
+the agent's lifetime.
 
 ---
 
@@ -238,6 +262,35 @@ beads docs themselves recommend.
 notion of a branch at all, so the base is whatever the merging agent has checked
 out. Merging into this run's feature branch needs nothing from beads.
 
+**But that cuts the other way, and it is the sharp edge here.** Because the slot
+knows nothing about branches, **two sessions merging into two different branches
+still contend for the same slot.** Measured:
+
+- There is exactly **one slot per repository**, named from the issue prefix
+  (`lab-merge-slot`). Running `bd merge-slot create` a second time returns the
+  *same* id — it is idempotent, not a second slot.
+- `bd merge-slot acquire` takes only `--holder` and `--wait`. There is no
+  `--branch`, no `--id`, no scope of any kind.
+- The held record is `{"holder": "...", "waiters": [...]}` and carries no branch.
+
+So the slot is a **repository-wide** lock. For a single run that is exactly
+right: it is what stops two of our own agents merging at once. Across
+*concurrent runs on different feature branches* it is over-serialization — run B
+waits on run A for a merge that could not have conflicted.
+
+**Options, none of them free:**
+
+| | |
+|---|---|
+| **Live with it** | Correct, never wrong, costs wall-clock only when two runs overlap. Simplest, and the honest default until overlap is actually observed. |
+| **Roll a per-branch slot** | The slot is just a bead with a `gt:slot` label and holder/waiters metadata. A per-branch equivalent is `bd create` + `bd update --set-metadata`, but `bd merge-slot acquire` cannot address it, so we would reimplement acquire/release/wait — including the two measured traps (acquire is not idempotent for the holder; release checks nothing). |
+| **Ask upstream for scope** | A `--scope` or `--id` on the merge-slot commands is a small change that would make the primitive branch-aware for everyone. |
+
+**Recommendation: live with it, and record the contention if it appears.** One
+run at a time is this system's normal state; a second concurrent run is the
+unusual case, and paying for it in wall-clock beats reimplementing a lock whose
+failure mode is a corrupted merge.
+
 **Caution — `merge-request` is not a usable type on 1.2.2.** `bd ready --type`'s
 help advertises `merge-request` with an `mr` alias, but creation rejects it:
 
@@ -282,19 +335,52 @@ genuine find: recovery paths become part of the template instead of prose.
 
 ---
 
-## 8 · Wakeups: there is no push, and we already built the only substitute
+## 8 · Wakeups: bd has no push, but the harness does — and we use almost none of it
 
 **Measured.** A grep of bd's entire command surface for
-`watch|notify|subscribe|poll` returns nothing. There is no mechanism to wake a
-subagent when a bead becomes ready.
+`watch|notify|subscribe|poll` returns nothing. **bd itself cannot wake anybody.**
 
-What exists is what this repository already uses: `bd` runs `.beads/hooks/on_update`
-on every status change, and the harness tails that log with a Monitor. That is
-the wakeup, and `progress-streaming.md` already specifies it.
+But the wakeup does not have to come from bd, and this is where the harness
+earns its place. Claude Code's hook surface has ~30 events **[doc]**, and four
+of them are built for exactly this:
 
-So the honest answer to "can we wake up subagents when beads become ready" is
-**no, and you already have the best available approximation.** Workers poll
-their own queue; the coordinator watches the event stream. Design for polling.
+| hook | fires | can block? | what it buys us |
+|---|---|---|---|
+| **`Stop`** | the coordinator finishes responding | **yes** — exit 2 continues the conversation | **the ready-loop, enforced by the harness.** Check `bd ready --parent {EPIC}`; if work remains, exit 2 and the coordinator keeps going |
+| **`SubagentStop`** | a subagent finishes | **yes** | receives `agent_id`, `agent_type`, `last_assistant_message` — dispatch the next bead the moment one frees up, instead of polling for it |
+| **`SubagentStart`** | a subagent is spawned | no | record the dispatch without trusting the agent to record itself |
+| **`WorktreeCreate` / `WorktreeRemove`** | worktree lifecycle | create: yes | enforce the base-ref rule at the harness rather than in prose a subagent must obey |
+
+**`Stop` returning exit 2 is the important one.** It converts the coordinator's
+loop from something the model must remember to do into something the harness
+will not let it skip. A run cannot end early with beads still ready, because
+stopping is what the hook refuses. That is a structural fix for the single
+most expensive failure mode this system has — a coordinator that quietly
+decides it is finished.
+
+**Plugin background monitors are the second.** A plugin can declare
+`monitors/monitors.json` **[doc]**:
+
+```json
+[{ "name": "beads", "command": "tail -F $BB_EVENT_LOG", "description": "bead state changes" }]
+```
+
+"Each stdout line from `command` is delivered to Claude as a notification during
+the session," and "Claude Code starts each monitor automatically when the plugin
+is active, so you don't need to instruct Claude to start the watch." That
+deletes the entire arm-a-Monitor-per-wave ceremony in `progress-streaming.md` —
+the watch becomes declarative and always-on instead of a step an orchestrator
+must remember at the right moment.
+
+**What this repository registers today:** `SessionStart` (×2) and `Stop` (the
+Dolt push). Measured from `.claude/settings.json`. So of the four hooks above we
+use one, for something unrelated to coordination.
+
+**Revised answer to "can we wake up subagents when beads become ready":** not
+from bd, and not *subagents* — a subagent cannot be woken, only spawned. But the
+**coordinator** can be kept alive and re-driven by `Stop`, told the instant a
+worker finishes by `SubagentStop`, and fed bead-state changes by a background
+monitor. Polling is the fallback, not the design.
 
 ---
 
@@ -385,20 +471,55 @@ which is your thesis, and it is the right place to spend.
 
 ## 12 · Risks, honestly
 
-- **Planning becomes a single point of failure.** Today a mediocre graph is
-  rescued by a coordinator that re-reads and re-plans. Loop-on-the-graph has no
-  such rescue: a missing edge is a race, a wrong edge is a stall. The
-  Definition of Ready stops being paperwork and becomes load-bearing.
+- **Planning carries more weight — but it is not a single point of failure.**
+  A missing edge is a race and a wrong edge is a stall, so the Definition of
+  Ready stops being paperwork and becomes load-bearing. What keeps this from
+  being fatal is that **the coordinator remains an advanced agent that can edit
+  the graph mid-run.** Loop-on-the-graph does not mean loop-on-a-frozen-graph:
+  discovering a missing edge is ordinary work, and the fix is `bd dep add`
+  rather than a re-plan.
+  **Two things keep that authority honest.** Standing authorization says which
+  edits the coordinator may make unattended — and grows as we identify new
+  scenarios rather than being guessed up front. Anything outside it becomes a
+  gate, which surfaces the blocker to a human without stalling the beads that
+  are still ready. Early runs will lean on gates; the ratio of self-served
+  edits to gates is the metric that says whether planning is improving.
 - **Claim-versus-assign must be chosen once**, and mixing them is a measured
   error, not a style question.
 - **`--claim` rewrites `assignee`.** Any worker that claims without
   `BEADS_ACTOR` set corrupts the coordinator's ownership view silently.
-- **JSON shapes are inconsistent.** Measured: `bd create --json` returns an
-  **object**; `bd show --json` and `bd ready --json` return **arrays**. This is
-  the same defect class as the `.metadata` array bug this repository's audit
-  already found, and it will bite again.
-- **Polling costs turns.** No push means the coordinator wakes on its own
-  schedule; a tight loop burns context, a loose one adds latency.
+- **JSON shapes differ across commands, but are stable within one.** Your
+  condition — consistent per command — **holds. Measured**, varying result
+  counts to try to break it:
+
+  | command | 0 results | 1 result | N results |
+  |---|---|---|---|
+  | `bd create --json` | — | object | — |
+  | `bd ready --json` | `array len=0` | `array len=1` | `array len=2` |
+  | `bd ready --claim --json` | — | `array len=1` | — |
+  | `bd show --json` | — | `array len=1` | `array len=2` (2 ids) |
+  | `bd list --json` | — | — | `array len=6` |
+
+  So a script may rely on a given command's shape; what it may never do is
+  assume **one** shape across commands. `create` returning an object while
+  everything else returns an array is the trap, and it is a fixed one rather
+  than a moving one.
+
+  **The rule that follows: every script parsing `bd` uses `--json`**, and
+  indexes according to that command's own shape — `.id` for `create`, `.[0].id`
+  for `show`/`ready`. Never parse human output.
+
+  **One thing to know before trusting that:** `bd ready --limit N` prints
+  "Showing 1 of 2 ready issues…" when stdout is a TTY. **Measured** with output
+  redirected — as it is in any script — stdout is pure JSON and stderr is
+  empty, so the hint is TTY-only and safe. Worth knowing because it looks
+  alarming the first time you see it interactively.
+- **Polling costs turns — but the harness can carry most of it.** bd has no
+  push. The `Stop` / `SubagentStop` hooks and plugin background monitors move
+  the loop into the harness (§8), leaving polling as the fallback rather than
+  the mechanism. The residual risk is that hooks are harness-specific: a run
+  driven from a surface without them degrades to polling, and the skill must
+  work either way.
 - **Concurrency policy has no native representation.** Compiling C4 collisions
   into edges works, but the graph then encodes a *policy* as a *dependency* —
   the same conflation this document rejects for batches. It is the one place
@@ -415,7 +536,17 @@ which is your thesis, and it is the right place to spend.
 1. Load a real graph via `bd create` from graph JSON, and via `bd batch` — the
    planning step's throughput depends on it.
 2. Install and read the beads Claude Code plugin's `@task-agent`. If it is the
-   worker loop, `sprint-batch` may not need to exist.
+   worker loop, `sprint-batch` may not need to exist. **Check portability
+   first** — the plugin ships slash commands, lifecycle hooks and a bundled
+   agent, and whether all three behave identically outside the terminal CLI is
+   **[unverified]**: the plugins documentation describes authoring and
+   installation without stating per-surface support, and says nothing about
+   Claude Desktop as distinct from Claude Code. Settle it by installing the
+   plugin and running `/beads:ready` plus one `@task-agent` dispatch on each
+   surface we actually use. **This matters more than it looks:** if the worker
+   depends on a plugin that only works in one surface, the skill stops being
+   portable — which is the property this whole repository exists to vend. A
+   plugin-dependent design needs a documented fallback, or it is not shippable.
 3. Test `gh:run` and `gh:pr` gates against a real PR — they are the highest-value
    unmeasured claim here.
 4. Run `bd setup claude` and review the diff against the stale CLAUDE.md block.
