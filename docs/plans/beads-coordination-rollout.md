@@ -71,10 +71,13 @@ cannot close until a human resolves it. Verified end to end.
 
 **Files.** `plugin/skills/bead-bonanza/SKILL.md` (the shape and the swarm call),
 `plugin/skills/sprint-scope/SKILL.md` (run epic + ceremony epics + the
-authorization gate on a task child), `plugin/skills/sprint-plan/SKILL.md` (the
+authorization gate on a task child — **and this is what WRITES `target_epic`
+into the manifest**, because `sprint-plan`'s run-record forbids that skill from
+writing the manifest at all: "The manifest is the orchestrator's, not yours …
+Read it; never rewrite it"), `plugin/skills/sprint-plan/SKILL.md` (the
 target is flat; emit it that way),
-`plugin/skills/sprint-plan/references/run-record.md` (record `target_epic`
-alongside the run epic).
+`plugin/skills/sprint-plan/references/run-record.md` (the `target_epic` key
+*spec* — where the key is specified, not where it is written).
 
 **Verify.** Build the shape in a scratch database; assert (a) every bead under
 the target is absent from `bd ready` until pre-flight's epic closes via
@@ -315,7 +318,11 @@ not change.
 
 **Files.** `plugin/skills/sprint-plan/SKILL.md` (the output contract),
 `plugin/skills/sprint-plan/references/run-record.md` (where the plan file lives
-and how it is recorded), `plugin/skills/bead-bonanza/SKILL.md` (the load step).
+and how it is recorded), `plugin/skills/bead-bonanza/SKILL.md` (the load step),
+`plugin/skills/bead-bonanza/references/dispatch-policy.md` (the agent-id
+roster — the plan writes an `assignee` on every node, and items 9, 11 and 13
+all read those ids back, so the emitter must mint them from the roster rather
+than invent a spelling).
 
 **Verify.** Emit a plan for a real epic, load it into a scratch database, and
 assert: node count matches, every edge present, every bead assigned, and
@@ -344,12 +351,15 @@ a quietly wrong swarm total once item 7 lands.
 **Change.** The C4 co-edit computation stops producing a wave table and starts
 producing dependency edges in the graph plan. Everything describing waves goes.
 
-**Files.** `plugin/skills/sprint-plan/SKILL.md`,
+**Files.** `plugin/skills/sprint-plan/SKILL.md` (the emitter — it is what
+writes the edges and their policy label),
 `plugin/skills/sprint-plan/references/run-record.md` (wave table section),
 `plugin/skills/bead-bonanza/SKILL.md`,
 `plugin/skills/bead-bonanza/references/dispatch-policy.md`,
-`plugin/skills/sprint-recovery/SKILL.md`, and `sprint-wave` in its entirety —
-this item is what deletes that skill.
+`plugin/skills/sprint-recovery/SKILL.md`,
+`plugin/skills/bead-bonanza/scripts/bb-status.sh` (its `wave` mode emits
+wave-shaped status and goes with the table), and `sprint-wave` in its
+entirety — this item is what deletes that skill.
 
 **Label the policy edges.** A collision edge is a *policy* expressed as a
 *dependency*, which is the conflation this design rejects elsewhere. Mark them
@@ -372,10 +382,14 @@ nothing `in_progress`. Delete `dispatch_state`, `dispatched_at` and `worktree`
 metadata, the return-line contract, and the acceptance-signal machinery that
 existed to check a subagent's testimony.
 
-**Files.** `plugin/skills/sprint-batch/SKILL.md`,
+**Files.** `plugin/skills/sprint-batch/SKILL.md` (the writer — it is what sets
+`dispatch_state`, `dispatched_at` and `worktree`),
 `plugin/skills/sprint-wave/SKILL.md`,
 `plugin/skills/bead-bonanza/references/recovery.md`, `scripts.md`,
-`prompt-per-bead.md`, `plugin/skills/sprint-recovery/SKILL.md`, and the scripts
+`prompt-per-bead.md`, `prompt-batch.md` (it carries the return-line contract
+this item deletes), `plugin/skills/bead-bonanza/SKILL.md` (it reads
+`dispatch_state=running` to tell a live worker from a dead one),
+`plugin/skills/sprint-recovery/SKILL.md`, and the scripts
 `bb-status.sh` and `sprint-cleanup.sh`.
 
 **Verify.** Assign three beads to one worker; close two; assert
@@ -426,7 +440,14 @@ it is a per-clone setup step and a clone that has not run it cannot create or
 filter those beads. If that is unacceptable, use `task` and a label.
 
 **Files.** `plugin/skills/bead-bonanza/references/worktree-mechanics.md`,
-`plugin/skills/bead-bonanza/SKILL.md`.
+`plugin/skills/bead-bonanza/SKILL.md`,
+`plugin/skills/sprint-plan/SKILL.md` — a merge bead is a graph node, so the
+plan emitter is what creates it and writes its `merge-<run-id>` assignee;
+`plugin/skills/bead-bonanza/references/dispatch-policy.md`, the roster's only
+home and therefore where `merge-<run-id>` is minted; and
+`plugin/skills/bead-bonanza/references/project-setup.md`, which is where a
+per-clone setup step has to be written down — an unregistered `merge-request`
+type is a clone that cannot create or filter these beads at all.
 
 **Verify.** Two work beads and a merge bead depending on both: the merge bead is
 absent from `bd ready` until both close, then present, assigned to the merge
@@ -460,6 +481,14 @@ left=$(bd ready --parent "$RUN_EPIC" --exclude-type=epic --json | jq 'length')
 [ "$left" -eq 0 ] || exit 2
 ```
 
+**Files.** `plugin/hooks/hooks.json` (new) or this repository's own
+`.claude/settings.json`, per D1;
+`plugin/skills/bead-bonanza/scripts/pre-flight-check.sh` — **nothing writes
+`$RUN_EPIC` today**, and pre-flight is what emits run facts into the
+coordinator's shell (`BB_*`), so that is where the export has to come from;
+and `plugin/skills/bead-bonanza/SKILL.md`, which carries the remembered loop
+this hook makes structural.
+
 **Verify.** With ready work outstanding, the coordinator cannot end its turn.
 With none, it can.
 
@@ -485,6 +514,15 @@ left=$(bd ready --assignee "$AGENT_ID" --json | jq 'length')
 busy=$(bd list --assignee "$AGENT_ID" --status in_progress --json | jq 'length')
 [ "$left" -eq 0 ] && [ "$busy" -eq 0 ] || exit 2
 ```
+
+**Files.** `plugin/hooks/hooks.json` (new) or this repository's own
+`.claude/settings.json`, per D1;
+`plugin/skills/bead-bonanza/references/prompt-batch.md` and
+`prompt-per-bead.md`, which are what export the agent id the hook reads — note
+the sketch calls it `$AGENT_ID` while item 4 writes `BEADS_ACTOR`, so the two
+names have to be reconciled or the hook reads an unset variable; and
+`plugin/skills/bead-bonanza/references/dispatch-policy.md`, the roster's only
+home and therefore where that id is minted.
 
 **Verify.** A worker that stops with an open bead is refused; one with an empty
 queue is allowed.
@@ -513,7 +551,14 @@ arm-a-Monitor-per-wave ceremony with an always-on declarative watch.
 
 **Files.** `plugin/monitors/monitors.json` (new) or this repository's own
 config, per D1. Deletes most of
-`plugin/skills/bead-bonanza/references/progress-streaming.md`.
+`plugin/skills/bead-bonanza/references/progress-streaming.md` — but **not the
+two things that write the log the monitor tails**:
+`plugin/skills/bead-bonanza/scripts/pre-flight-check.sh` sets `BB_EVENT_LOG`
+(`emitq BB_EVENT_LOG "$EVENT_LOG"`, and emits `BB_EVENT_LOG=''` when the path
+is unwritable), and the `on_update` hook that `progress-streaming.md` installs
+into `.beads/hooks/` is what appends the lines — a per-project install, so there
+is no committed path to point at beyond the reference that specifies it. Delete
+either and the monitor tails a path nothing sets or a file nothing writes.
 
 **Verify.** Close a bead; assert the line reaches the session without anything
 having armed a watch.
