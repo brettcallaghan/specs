@@ -131,6 +131,11 @@ triage side's call — never the retro's. Record:
   SKILL.md frontmatter version.
 - **model** and **effort** — exact model id and reasoning effort
   (e.g. `claude-opus-4-8[1m]`, effort high). Not "Claude".
+- **session** — the harness's session identifier, WHERE it exposes one.
+  Optional, and it is not a substitute for `model`: `model` says what
+  behaviour to reproduce, `session` says *which agent* produced the
+  finding, which is what lets triage disclose self-approval. Two
+  unrelated agents can share a model, so `model` cannot answer it.
 - **runs_observed** — how many runs stand behind this evidence. This is
   the denominator for any "every run" claim; never assert more
   recurrence than you observed.

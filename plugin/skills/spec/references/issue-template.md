@@ -17,7 +17,12 @@ recurrence: 0                        # prior runs in the window carrying an
 report: <path>                       # the run report carrying those findings
 
 # Provenance — who and what produced this
-run: <run id>
+run: <run id>                        # the sprint run epic; absent for a solo retro
+session: <session id>                # OPTIONAL — the authoring agent's session,
+                                     # where the harness exposes one. This is the
+                                     # IDENTITY field: it answers "was this the
+                                     # same agent", which `model` cannot, since
+                                     # two unrelated agents can share a model.
 branch: <branch the run worked on>
 skill_version: <what was being exercised>
 model: <model that produced the findings>   # load-bearing; never omit

@@ -106,12 +106,26 @@ Then, per issue, in received order:
    evidence section names no finding is not verifiable and is returned
    to its reporter rather than triaged on plausibility.
 
-   WHEN the model triaging an issue is the model named in its `model`
-   field, the record SHALL state that it was authored and triaged by
-   the same agent, and name any change that ratifies a decision its own
-   author made. This does not disqualify it — self-report is how this
-   repository improves — but an approval recorded without the
-   disclosure reads as independent corroboration when there was none.
+   **Disclose self-approval, and test IDENTITY rather than model.** Take
+   the first of these the issue carries: `session`, else `run`. WHEN it
+   matches this triage session's own, the record SHALL state that the
+   issue was authored and triaged by the same agent, and name any change
+   that ratifies a decision its own author made. This does not
+   disqualify it — self-report is how this repository improves — but an
+   approval recorded without the disclosure reads as independent
+   corroboration when there was none.
+
+   **`model` is not an identity and SHALL NOT be used for this test.**
+   Two unrelated agents, weeks apart, can run the same model — testing
+   on it reports a conflict that does not exist, and misses the real one
+   whenever the two sessions happen to differ. `model` stays in the
+   template as provenance for reproducing a finding; it answers a
+   different question.
+
+   WHERE the issue carries neither `session` nor `run`, the record SHALL
+   say the check **could not be made**. Silence there reads as
+   independent corroboration, which is the outcome this rule exists to
+   prevent.
 2. **Dedupe.** Search this repo's `rfcs/` for prior proposals on the
    same theme, and the beads:
 
