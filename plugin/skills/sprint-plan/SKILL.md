@@ -305,11 +305,8 @@ in a way that assumes otherwise.
    - `shared-surface` beads on one fixture/code area — that area is the
      surface, and the targeted tests are the ones covering it.
    - `trivial` beads — surface "documentation and chores; no shared code
-     surface". Cap ~6 per subagent.
-
-   **There is no faster lane.** Both run the full declared set before every
-   close — the dominant cost — so a trivial cluster is batched to stop it
-   taking a dispatch slot per bead, not because it is cheaper.
+     surface". Batched to stop them taking a dispatch slot each, not because
+     they validate any cheaper. Cap ~6 per subagent.
 
    **Threshold:** batch when **≥2** beads share a surface and decisions are
    independent (bead A's choice doesn't change bead B's implementation). Even
