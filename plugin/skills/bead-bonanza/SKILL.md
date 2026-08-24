@@ -359,7 +359,7 @@ full list is in `references/operating-principles.md`.
   channel.
 - **Auto-chain waves.** The gate already asked, so emit the wave's report and
   **dispatch the next in the same turn** — the report is a progress notice, not
-  a checkpoint. The turn ends when the queue is dry, a `decision-required` bead
+  a checkpoint. The turn ends when the queue is dry, a bead carrying `human`
   is reached, or the circuit breaker trips. **Ending a turn with a non-empty
   queue and none of those is a defect, not a pause**: nobody is waiting to
   restart it.

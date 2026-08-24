@@ -47,8 +47,8 @@ exists to prevent.
 **Out** — two things, and nothing else:
 
 1. **The readiness verdict** — per bead: ready, or NOT-READY with the gap a
-   human must close. Bounced beads carry the `decision-required` and `human`
-   labels, so the verdict is queryable and not merely reported.
+   human must close. Bounced beads carry the **`human`** label, so the verdict
+   is queryable and not merely reported.
 2. **The wave table** — plus **one line per override** of the grooming wave
    preview saying what you changed and why.
 
@@ -61,21 +61,20 @@ recovery re-derives it rather than reading one.
 A sprint dispatches **only groomed beads.** Every later phase already
 assumes grooming's outputs: the ready front's ordering comes from the
 dependency graph grooming wires; this gate's own cheap check reads the
-`decision-required` label grooming sets (DoR check 9); the classification below reads the
-tier assignment grooming makes.
+open-decision verdict grooming reaches (DoR check 9); the classification below
+reads the tier assignment grooming makes.
 
-**Raise every bounced bead into `bd`'s human queue.** A bead this gate bounces
-carries `decision-required`; also add the **`human`** label, which is what
-`bd human list` and `bd human stats` read. The bounce then has a queryable
-state rather than living only in a report line the user has to notice — and it
-survives the session that produced it, which a report line does not. Surface
-`bd human list` at the point the report prints the bounce list, so the two
-cannot disagree.
+**Raise every bounced bead into `bd`'s human queue.** Add the **`human`**
+label, which is what `bd human list` and `bd human stats` read. The bounce then
+has a queryable state rather than living only in a report line the user has to
+notice — and it survives the session that produced it, which a report line does
+not. Surface `bd human list` at the point the report prints the bounce list, so
+the two cannot disagree.
 
 **Resolve by removing the label, never with `bd human respond`.** The answer
 goes on the bead as a `bd comment`, then `bd update <id> --remove-label human`
-(and `decision-required` once the gap is actually closed), and the bead
-re-enters the readiness gate on the next pass — no full re-run. Two independent
+once the gap is actually closed, and the bead re-enters the readiness gate on
+the next pass — no full re-run. Two independent
 reasons not to use `respond`: it is documented to add a comment **and close**
 the bead, and a bounced bead is not finished; and on bd 1.2.2 it fails outright
 — `bd human respond <id> -r "..."` errors with `cannot resolve issue ID
@@ -174,9 +173,9 @@ decides:
   `blocks` edge so it orders ahead of the bead it unblocks, and dispatch it
   under the standing auto-chain authorization. No new prompt — this is the
   intended autonomy. Grooming closes decisions along with the rest of the
-  Definition of Ready. (A groomed prerequisite that still lands a
-  `decision-required` label stops for the user, per the standing-authorization
-  terms — and is raised into the human queue with it.) Grooming and wiring the edge are tracker writes, which need not wait
+  Definition of Ready. (A groomed prerequisite that still fails DoR check 9
+  stops for the user, per the standing-authorization terms — and is raised into
+  the human queue with the `human` label.) Grooming and wiring the edge are tracker writes, which need not wait
   for a wave boundary.
 - **Out-of-scope** → leave it filed and linked, do NOT dispatch it, and surface
   it in the final report for the user to triage. The standing authorization
