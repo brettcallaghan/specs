@@ -110,6 +110,82 @@ _flush() {
 block() { BLOCKERS="$BLOCKERS
   - $*"; REPORT_FAIL=1; }
 
+# ------------------------------------------------------- the manifest, merged
+#
+# Every manifest write is a read-merge-write, and this one FAILS rather than
+# falling back to an empty object on an unreadable manifest. Two reasons, and
+# the first is the one that bites today:
+#
+#   A read error must not be reported as a write success. Swallowing it means
+#   the caller prints "written: ..." having merged onto whatever it guessed.
+#
+#   `bd update --metadata` merges at the top level on bd 1.2.2 (measured:
+#   writing `{"delta":9}` over `{"alpha":1,"beta":"two"}` leaves all three) —
+#   so an empty base is survivable HERE. It is not survivable by contract:
+#   a nested value IS replaced wholesale (`{"a":1,"b":2}` overwritten with
+#   `{"c":3}` yields `{"c":3}`), and merge-on-top-level is undocumented
+#   behaviour this script should not stake the admission record on.
+#
+# manifest_merge <epic> <key=value>...   value prefixes:
+#   @path   the file's contents, as a string
+#   #digits a JSON number
+#   %words  whitespace-split into an array of strings
+#   (none)  the literal string
+manifest_merge() {
+  python3 - "$@" <<'PY'
+import json, subprocess, sys
+
+eid, pairs = sys.argv[1], sys.argv[2:]
+
+def fail(msg):
+    sys.stderr.write("manifest_merge: %s\n" % msg)
+    sys.exit(1)
+
+r = subprocess.run(["bd", "show", eid, "--json"], capture_output=True, text=True)
+if r.returncode != 0:
+    fail("bd show %s exited %d: %s" % (eid, r.returncode, r.stderr.strip()))
+try:
+    d = json.loads(r.stdout)
+except Exception as e:
+    fail("bd show %s returned unparseable JSON (%s)" % (eid, e))
+d = d[0] if isinstance(d, list) and d else d
+if not isinstance(d, dict):
+    fail("bd show %s returned no issue" % eid)
+md = d.get("metadata") or {}
+try:
+    cur = json.loads(md) if isinstance(md, str) else (md or {})
+except Exception as e:
+    fail("%s's metadata is not JSON (%s)" % (eid, e))
+if not isinstance(cur, dict):
+    fail("%s's metadata is not an object" % eid)
+
+for p in pairs:
+    k, sep, v = p.partition("=")
+    if not sep:
+        fail("argument %r is not key=value" % p)
+    if v.startswith("@"):
+        try:
+            with open(v[1:]) as fh:
+                cur[k] = fh.read()
+        except OSError as e:
+            fail("cannot read %s for key %s (%s)" % (v[1:], k, e))
+    elif v.startswith("#"):
+        try:
+            cur[k] = int(v[1:])
+        except ValueError:
+            fail("value for %s is not a number: %r" % (k, v[1:]))
+    elif v.startswith("%"):
+        cur[k] = v[1:].split()
+    else:
+        cur[k] = v
+
+w = subprocess.run(["bd", "update", eid, "--metadata", json.dumps(cur)],
+                   capture_output=True, text=True)
+if w.returncode != 0:
+    fail("bd update %s exited %d: %s" % (eid, w.returncode, w.stderr.strip()))
+PY
+}
+
 # ================================================================== self-test
 #
 # Every probe above is exercised against a scratch fixture, so the
@@ -647,31 +723,13 @@ elif [ -n "$CHECKS_IDS" ]; then
     say "baseline: ALREADY FAILING (exit $_st) — a bead is not expected to fix it"
   fi
 
-  # Onto the epic. Merged into whatever the manifest already holds rather than
-  # replacing it, so a second pre-flight pass does not discard the admission
-  # record admission wrote before this script ever ran.
-  if python3 - "$EPIC" "$_raw" "$CHECKS_IDS" "$_st" <<'PY'
-import json, subprocess, sys
-eid, raw, ids, st = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
-cur = {}
-r = subprocess.run(["bd", "show", eid, "--json"], capture_output=True, text=True)
-try:
-    d = json.loads(r.stdout)
-    d = d[0] if isinstance(d, list) and d else d
-    md = d.get("metadata") or {}
-    cur = json.loads(md) if isinstance(md, str) else (md or {})
-except Exception:
-    cur = {}
-# An array, not the space-joined string: a consumer that has to re-split a
-# string is one that will split it wrong the first time an id contains a space.
-cur["checks_ids"] = ids.split()
-cur["checks_baseline_status"] = int(st)
-with open(raw) as fh:
-    cur["checks_baseline"] = fh.read()
-w = subprocess.run(["bd", "update", eid, "--metadata", json.dumps(cur)],
-                   capture_output=True, text=True)
-sys.exit(0 if w.returncode == 0 else 1)
-PY
+  # Onto the epic. `checks_ids` goes as an array, not the space-joined string:
+  # a consumer that has to re-split a string is one that will split it wrong
+  # the first time an id contains a space.
+  if manifest_merge "$EPIC" \
+       "checks_ids=%$CHECKS_IDS" \
+       "checks_baseline_status=#$_st" \
+       "checks_baseline=@$_raw"
   then
     say "written: manifest on $EPIC (\`bd show $EPIC --json | jq -r '.[0].metadata.checks_baseline'\`)"
     say "INLINE it into every subagent prompt — a baseline that stops at the"
@@ -710,24 +768,8 @@ say "concurrency_cap: $CONCURRENCY_CAP (a plan may size N_dev <= $((CONCURRENCY_
 # its waves against the cap, and a key written only on the baseline path would
 # be null for exactly those runs.
 if [ -n "$EPIC" ]; then
-  if python3 - "$EPIC" "$CONCURRENCY_CAP" <<'PY'
-import json, subprocess, sys
-eid, cap = sys.argv[1], sys.argv[2]
-cur = {}
-r = subprocess.run(["bd", "show", eid, "--json"], capture_output=True, text=True)
-try:
-    d = json.loads(r.stdout)
-    d = d[0] if isinstance(d, list) and d else d
-    md = d.get("metadata") or {}
-    cur = json.loads(md) if isinstance(md, str) else (md or {})
-except Exception:
-    cur = {}
-# A JSON number, matching the shape sprint-plan's run-record.md documents.
-cur["concurrency_cap"] = int(cap)
-w = subprocess.run(["bd", "update", eid, "--metadata", json.dumps(cur)],
-                   capture_output=True, text=True)
-sys.exit(0 if w.returncode == 0 else 1)
-PY
+  # A JSON number, matching the shape sprint-plan's run-record.md documents.
+  if manifest_merge "$EPIC" "concurrency_cap=#$CONCURRENCY_CAP"
   then
     say "written: concurrency_cap on $EPIC (\`bd show $EPIC --json | jq '.[0].metadata.concurrency_cap'\`)"
   else
