@@ -27,6 +27,9 @@ when this skill is invoked. Read it; never rewrite it.
   parallelizes
 - Trusting `bd swarm validate`'s preview — the two measured conditions that
   void its partition
+- The graph plan — the `bd create --graph` document the plan emits, its
+  measured schema, the two validators that run before it is loaded, and a
+  worked example
 - Amendments — `amend:` comments on the epic, append-only by construction
 
 Every run gets one, whatever its size. A two-bead run interrupted at bead one
@@ -65,6 +68,7 @@ opens against it.
   "wave_preview": "accepted | overridden — <why> | none (no C4 docs) | not returned",
   "review_passes": 0,
   "review_budget": 2,
+  "graph_plan": "<path to the graph plan this skill emitted>",
   "findings_path": "<sprint-retro's findings document>",
   "retro_filed": 0,
   "retro_declined": 0,
@@ -258,6 +262,124 @@ measured conditions:
 
 Under either, derive packing from the re-queried ready front instead, and say in
 the return which one was used.
+
+## The graph plan
+
+**One JSON document builds the run.** Instead of describing a shape for the
+orchestrator to construct bead by bead, the plan emits the nodes and edges and
+the orchestrator loads them with a single `bd create --graph <path>`. Write it
+where the run can find it again — `.beads/plans/<run-id>.graph.json` — and
+**return the path**; `graph_plan` is a manifest key and the manifest is the
+orchestrator's to write, not yours.
+
+**Being reviewable before it is loaded is most of the value.** Emit it, diff
+it, validate it, then load it. A malformed plan fails partway through and
+leaves half a graph behind.
+
+### Schema
+
+```json
+{"nodes": [{"key": "i6", "title": "…", "type": "task",
+            "parent_key": "target", "assignee": "dev-<run-id>-1",
+            "priority": 1, "description": "…",
+            "labels": ["human"], "metadata": {"tier": "advanced"}}],
+ "edges": [{"from_key": "i7", "to_key": "i6", "type": "blocks"}]}
+```
+
+Every field below is measured against `bd create --graph`; nothing else is
+accepted, and what is not accepted is **dropped rather than refused**.
+
+| Node field | Meaning |
+|---|---|
+| `key` | the plan-local handle other nodes and edges reference. Not an issue id |
+| `title` | the bead's title |
+| `type` | `epic` or `task` |
+| `parent_key` | another node's `key` **in this plan** — this is what builds the run's hierarchy |
+| `parent_id` | an id that **already exists** in the tracker, for hanging a plan off a live epic |
+| `assignee` | minted from the coordinator's agent roster, never spelled by hand |
+| `priority` | integer, 0–4 |
+| `description`, `labels`, `metadata` | as on `bd create`. `metadata` values are **strings**; a number or nested object is a parse error |
+
+`acceptance`, `design`, `notes`, `estimate`, `external_ref`, `status`, `deps`
+and `gate` are **not** node fields — a gate in particular cannot be created
+from a plan, so anything needing one creates it against the loaded bead
+afterwards.
+
+| Edge field | Meaning |
+|---|---|
+| `from_key` | the node that **waits** |
+| `to_key` | the node it waits for |
+| `type` | `blocks` |
+
+### Three traps, each of which fails silently
+
+**`from_key` waits for `to_key` — the opposite of how `"type": "blocks"`
+reads.** `{"from_key": "a", "to_key": "b", "type": "blocks"}` puts **b** in
+`bd ready` and **a** in `bd blocked`. Getting it backwards inverts every
+dependency in the run, exits 0, and produces a ready front that looks
+plausible. Assert the front after loading rather than trusting the file.
+
+**`parent_key` and `parent_id` are not interchangeable.** `parent_id` holding a
+plan key is accepted with **no warning** and creates an orphan — the node lands
+outside the run epic entirely, and every `--parent` query then under-reports the
+queue. Use `parent_key` for nodes this plan creates.
+
+**An unknown field is a warning, not an error, and the load still exits 0.**
+`bd create --graph` prints `graph plan node["x"] has unknown field(s): […]
+(silently dropped)` and carries on, so a mistyped `assignee` is a bead nobody
+owns and a mistyped edge key is a dependency that was never wired. A *parse*
+error is the opposite — it aborts before creating anything. So the fail-open
+case is the one a validator has to cover.
+
+### Two validators, before the plan is handed over
+
+**1. Unknown fields.** Check every node and edge object against the field
+tables above and **name the offending key** in the failure. Do not rely on
+`bd`'s warning: it appears on a run that also reports success, so nothing
+downstream treats it as a failure.
+
+**2. Flatness of the swarmed target.** **No node whose `parent_key` is the
+target epic may have `type: "epic"`.** A nested target makes `bd swarm
+validate` count the child epic as one issue and never see the beads beneath
+it — measured, a target with one child epic over two tasks reports `Total
+issues: 1` and puts the *child epic* in Wave 1, while the same two tasks
+parented directly report `Total issues: 2`. Both report `Swarmable: YES`. Work
+that genuinely decomposes becomes a second target under the run epic, swarmed
+separately.
+
+### Worked example
+
+Run epic as the container, ceremony epics and a flat target beneath it, work
+beads assigned, dependencies as edges:
+
+```json
+{"nodes": [
+  {"key": "run",       "title": "(EPIC) Run 3: the beads graph", "type": "epic", "priority": 1},
+  {"key": "preflight", "title": "Pre-flight", "type": "epic", "parent_key": "run", "priority": 1},
+  {"key": "target",    "title": "(TARGET) plan items 6-14", "type": "epic", "parent_key": "run", "priority": 1},
+  {"key": "report",    "title": "Report", "type": "epic", "parent_key": "run", "priority": 2},
+  {"key": "i6", "title": "Item 6: the graph plan", "type": "task", "parent_key": "target", "assignee": "dev-mpnf-3", "priority": 1},
+  {"key": "i7", "title": "Item 7: the run-epic shape", "type": "task", "parent_key": "target", "assignee": "dev-mpnf-1", "priority": 1},
+  {"key": "i8", "title": "Item 8: collisions as edges", "type": "task", "parent_key": "target", "assignee": "dev-mpnf-2", "priority": 2}],
+ "edges": [
+  {"from_key": "target", "to_key": "preflight", "type": "blocks"},
+  {"from_key": "report", "to_key": "target",    "type": "blocks"},
+  {"from_key": "i7",     "to_key": "i6",        "type": "blocks"},
+  {"from_key": "i8",     "to_key": "i6",        "type": "blocks"}]}
+```
+
+Loading that prints `Created 7 issues` and one `key -> id` line each. Assert
+four things against the database, not against the file: the node count, every
+edge (`bd dep list <id>` per node), an assignee on every work bead, and the
+ready front — here `bd ready` returns the run epic and pre-flight, and `bd
+blocked` returns the other five.
+
+**A blocked parent blocks its children**, which is what makes one `epic→epic`
+edge order a whole phase: with the target waiting on pre-flight, `bd blocked`
+reports `i6` as blocked by the *target*, not by anything in its own row of the
+plan. That is also why the queue is always
+`bd ready --parent <epic> --exclude-type=epic` — the run epic answers `bd
+ready` on its own account.
 
 ## Amendments
 

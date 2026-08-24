@@ -2,11 +2,12 @@
 name: sprint-plan
 description: Groom a sprint's queue and partition it in one pass — bring every
   bead to Ready (invoking groom-beads for what fails, bouncing what grooming
-  cannot clear) and return both the readiness verdict and the wave table of
-  batches the run dispatches. Use when a sprint orchestrator is preparing a run
-  epic's queue for dispatch, or when asked to gate beads for readiness,
-  classify them as trivial / isolated / shared-surface, compute C4 co-edit and
-  sequencing overlap, choose a dispatch mode per batch, or produce a sprint's
+  cannot clear) and return the readiness verdict, the wave table of batches the
+  run dispatches, and the graph plan that builds the run. Use when a sprint
+  orchestrator is preparing a run epic's queue for dispatch, or when asked to
+  gate beads for readiness, classify them as trivial / isolated /
+  shared-surface, compute C4 co-edit and sequencing overlap, choose a dispatch
+  mode per batch, emit a `bd create --graph` JSON plan, or produce a sprint's
   wave table. Takes the run epic, resolves its queue from the graph, and
   dispatches nothing.
 version: "0.2"
@@ -44,17 +45,19 @@ WHEN an input is missing, say so in the return rather than substituting a
 guess — a plan built on an inferred queue is the failure the enumeration rule
 exists to prevent.
 
-**Out** — two things, and nothing else:
+**Out** — three things, and nothing else:
 
 1. **The readiness verdict** — per bead: ready, or NOT-READY with the gap a
    human must close. Bounced beads carry the **`human`** label, so the verdict
    is queryable and not merely reported.
 2. **The wave table** — plus **one line per override** of the grooming wave
    preview saying what you changed and why.
+3. **The graph plan** — the run's beads and edges as one `bd create --graph`
+   document, validated before you return its path: `references/run-record.md`.
 
-The orchestrator dispatches ready beads from the table and does **not** store
-it. The table is derived from the ready front; a stored copy only drifts, and
-recovery re-derives it rather than reading one.
+The orchestrator dispatches from the table and does **not** store it: it is
+derived from the ready front, a stored copy only drifts, and recovery
+re-derives it.
 
 ## The readiness gate — run it before you classify anything
 
@@ -295,9 +298,8 @@ in a way that assumes otherwise.
 
    **Don't over-split:** if 7 beads cluster on one surface and only 1–2 of them
    are "larger" (substantial new features), they can still go in one shared
-   batch. Splitting buys you nothing if decisions don't conflict. Only split
-   when bead A's implementation would conflict with bead B's, or when decisions
-   overlap such that one bead's choice changes another bead's plan.
+   batch. Split only when bead A's implementation would conflict with bead B's,
+   or when one bead's choice changes another's plan — never for caution alone.
 
 2. **Concurrent wave** — `isolated` beads dispatched at the same time rather
    than one after another, each in its own worktree. Every bead already runs in
@@ -344,12 +346,11 @@ the assign step: nothing earlier in a run writes an assignee.
 
 ## Return the plan
 
-**The wave table is not written to disk** — see **Out**, above. Return it; the
-orchestrator prints it and dispatches from the re-queried ready front. Its
-format, including the `Reason` column's required shape, is in
-`references/run-record.md`.
+**The wave table is not written to disk** — see **Out**, above. The graph plan
+is: emit it, diff it, validate it, return the path. Its format, the plan's
+schema, and the `Reason` column's required shape: `references/run-record.md`.
 
-Three rules that make the table worth returning:
+Three rules that make the plan worth returning:
 
 - **The plan names beads, and says which epic they came from.** The queue is
   `bd ready --parent <epic> --exclude-type=epic`, re-derivable from one durable

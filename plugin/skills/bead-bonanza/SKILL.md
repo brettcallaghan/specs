@@ -71,7 +71,7 @@ run:
 - [ ] 0. pre-flight run, BB_* facts eval'd
 - [ ] 1. `sprint-scope`: run epic, admission record, authorization gate
 - [ ] 1b. pre-flight re-run with the epic: checks baseline on the manifest
-- [ ] 2. `sprint-plan`: readiness verdict + wave table
+- [ ] 2. `sprint-plan`: verdict + wave table; graph plan validated & loaded
 - [ ] 2b. Sprint branch created (or reused), `branch` + `base_sha` in manifest
 - [ ] 3. Waves via `sprint-wave`; merge each accepted branch, then re-check it
 - [ ] 3b. `sprint-review`; loop back to groom & plan if findings were admitted
@@ -119,13 +119,17 @@ you need from it:
 - The authorization set as decided, including the rows that took their default.
 ## Groom & plan — invoke `sprint-plan`
 
-**One dispatch, two returns.** `sprint-plan` grooms every bead that is not
+**One dispatch, three returns.** `sprint-plan` grooms every bead that is not
 Ready (invoking `groom-beads`), bounces what it cannot clear, and — while it
 still holds every bead in context — partitions what came out:
 
 1. **The readiness verdict** per bead. You dispatch only ready beads; bounced
    ones are raised into `bd human` by the skill and named in your report.
 2. **The wave table**, plus one line per override of its own preview.
+3. **The graph plan.** Diff it, re-run its validators, load it with
+   `bd create --graph <path>`, then record the path as `graph_plan` on the
+   manifest. A failed load leaves half a graph behind, and an unknown field is
+   a *warning* that still exits 0: `references/run-record.md`.
 
 **They are one step because they are one read** — partitioning needs what
 grooming just acquired, so a second agent would re-read the queue to learn what

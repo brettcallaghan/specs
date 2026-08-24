@@ -4,6 +4,8 @@
 
 - The three things the orchestrator owns: the manifest, the swarm
   registration, the run's amendments
+- `graph_plan` — validating and loading the `bd create --graph` document the
+  plan returns, and why both of its failure modes are silent
 - Run health — the asserted dimension and its five values
 - `base_sha` — why it is recorded at creation and never derived
 
@@ -27,6 +29,21 @@ after `sprint-scope` returns the epic and before you dispatch grooming.
    key is a silent break: the reader gets `null` and dispatches without it. The
    full key set is the JSON block the **`sprint-plan`** skill writes, in its own
    run-record reference.
+
+   **`graph_plan` is yours to write and the planner's to produce.** The plan
+   returns the path of the `bd create --graph` JSON document that builds the
+   run; you load it and record the path here, so a recovering session can diff
+   what the run was supposed to be against what the graph now holds. Two rules
+   the loader cannot skip, because both failures are silent:
+
+   - **Re-run the plan's validators before loading.** `bd create --graph`
+     reports an unknown node or edge field as a *warning*, drops it, and still
+     exits 0 — a mistyped `assignee` is then a bead nobody owns and a mistyped
+     edge key a dependency that was never wired. A malformed *value* is the
+     opposite: it aborts before creating anything.
+   - **Diff the plan before loading it.** A load that fails partway leaves the
+     graph half-built, and being reviewable pre-load is most of what the
+     document is for.
 
    **Merge, never replace.** Pre-flight writes the baseline into the same
    object, and the epic already carries grooming's own keys. Read it, update
