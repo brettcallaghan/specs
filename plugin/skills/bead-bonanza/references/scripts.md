@@ -19,7 +19,7 @@ disagreement is a finding worth recording.
 
 
 ```
-pre-flight-check.sh [<epic-id>] [--self-test]                   # sandbox ON
+pre-flight-check.sh [<epic-id>] [--json] [--self-test]          # sandbox ON
 bb-status.sh bead <id> [--worktree <path>] [--pre-merge] | wave | run <epic> | harvest
 sprint-cleanup.sh <epic-id> [--dry-run]
 bb-close-bead.sh [--trailers-from <epic>] <bead-id> <priority> <title>
@@ -36,7 +36,10 @@ The last one is the recovery path only — see its entry below.
   charged to the first bead — there is no opt-out, because the run where a
   baseline is most expensive to skip is exactly the slow one somebody would
   want to skip it on. `--self-test` exercises the portability wrappers and
-  takes no run id.
+  takes no run id; it runs no probe, so it touches neither git nor the network.
+  `--json` emits the same facts as one JSON object instead of the eval block —
+  an additional mode for an agent that wants structure without eval, never a
+  replacement, since a shell cannot eval JSON.
 - **`scripts/bb-status.sh`** — read-only; repairs nothing. `bead` verifies the
   five acceptance signals in order; `wave` reports tree cleanliness, the
   landing check (unpushed commits against the upstream), surviving worktrees

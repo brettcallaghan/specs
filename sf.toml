@@ -78,11 +78,14 @@ id = "script-self-tests"
 # rest, which is the exact rule bb-checks.py exists to enforce. This records
 # every status and fails at the end.
 #
-# pre-flight-check.sh is DELIBERATELY ABSENT. Its --self-test falls through to
-# the full environment probe, which pushes a probe ref to origin and runs
-# `git worktree prune` on the live repo — measured. A per-bead check must not
-# do network I/O, and this one would do two round-trips per close.
-command = 'd=plugin/skills/bead-bonanza/scripts; rc=0; for t in bb-status.sh bb-close-bead.sh sprint-cleanup.sh bb-checks.py; do "$d/$t" --self-test || rc=1; done; exit $rc'
+# pre-flight-check.sh IS included. It was excluded on the claim that its
+# --self-test falls through to the environment probe and pushes a ref. That is
+# false: the arg loop runs `self_test; exit $?` before any probe. Measured on a
+# clean tree — it emits zero BB_* facts, leaves `git worktree list` at the same
+# count, and adds no refs/dolt/preflight-probe-* on the remote. It asserts the
+# invocation surface, the portability guards, and (since --json) that both
+# output modes carry the same keys.
+command = 'd=plugin/skills/bead-bonanza/scripts; rc=0; for t in bb-status.sh bb-close-bead.sh sprint-cleanup.sh bb-checks.py pre-flight-check.sh; do "$d/$t" --self-test || rc=1; done; exit $rc'
 
 # Green since 2026-08-22. It exits 1 on a WARNING as well as an error, which is
 # the point: a skill body over the cap is a real defect and this is what says

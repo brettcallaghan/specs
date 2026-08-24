@@ -10,12 +10,34 @@
 #   There is NO run directory. The run's record — manifest, baseline,
 #   amendments — lives on the run epic, which outlives a reclaimed container.
 #
+# Where a new fact goes — the rule, because there are two destinations
+#   A fact about the RUN is durable: write it to the epic's manifest AND emit
+#   it. A resumed session reads the manifest and has nothing else.
+#   A fact about the CONTAINER is ephemeral: emit it only. In the manifest it
+#   would let a run resumed in a DIFFERENT container read a stale measurement
+#   of an environment that no longer exists — worse than absent, because it
+#   reads as current.
+#
+#   Manifest + emitted:  checks_ids, checks_baseline, the model lineup
+#   Emitted only:        SCRIPTS, BB_NO_AGENT, BB_TREE_CLEAN,
+#                        BB_PUSH_NEEDS_REFSPEC, BB_GIT_CONFIG_WRITABLE,
+#                        BB_DOLT_*, BB_BRANCH / REMOTE / UPSTREAM,
+#                        BB_WORKTREE_BASEREF, BB_EVENT_LOG
+#   Audited against this rule when it was written; every fact is on the side
+#   the rule puts it.
+#
 # Usage
-#   pre-flight-check.sh [<epic-id>] [--self-test]
+#   pre-flight-check.sh [<epic-id>] [--json] [--self-test]
 #
 #   pre-flight-check.sh                    # environment only — run this FIRST
 #   pre-flight-check.sh agent-plugins-bir9 # + run dir and checks baseline
+#   pre-flight-check.sh --json             # the same facts as ONE JSON object
 #   pre-flight-check.sh --self-test        # portability guards only
+#
+#   --json is an ADDITIONAL mode, not a replacement. The default is
+#   shell-evalable because the caller runs `eval "$(pre-flight-check.sh)"`, and
+#   a shell cannot eval JSON. Both render from the same emit calls, so they
+#   cannot carry different keys — asserted in --self-test.
 #
 #   The run id IS the run epic's bead id. Two modes, because admission has to
 #   write to the tracker to resolve that epic and must not do so before the
@@ -64,8 +86,26 @@ BLOCKERS=""
 
 say()  { printf '  %s\n' "$*" >&2; }
 head_() { printf '\n%s\n' "$*" >&2; }
-emit() { printf '%s=%s\n' "$1" "$2"; }
-emitq() { printf '%s=%s\n' "$1" "$(printf '%s' "$2" | sed "s/'/'\\\\''/g; s/^/'/; s/$/'/")"; }
+# Both output modes render from the SAME emit call, so they cannot carry
+# different keys. Nothing prints until _flush; JSON_OUT picks the buffer.
+_SHELL=""
+_JSON=""
+_json_add() { # _json_add <key> <value>
+  _e=$(printf '%s' "$2" | sed 's/\\/\\\\/g; s/"/\\"/g')
+  _JSON="${_JSON}  \"$1\": \"${_e}\",
+"
+}
+emit() { _SHELL="${_SHELL}$1=$2
+"; _json_add "$1" "$2"; }
+emitq() { _SHELL="${_SHELL}$1=$(printf '%s' "$2" | sed "s/'/'\\\\''/g; s/^/'/; s/$/'/")
+"; _json_add "$1" "$2"; }
+_flush() {
+  if [ "${JSON_OUT:-no}" = yes ]; then
+    printf '{\n%s\n}\n' "$(printf '%s' "$_JSON" | sed '$ s/,$//')"
+  else
+    printf '%s' "$_SHELL"
+  fi
+}
 block() { BLOCKERS="$BLOCKERS
   - $*"; REPORT_FAIL=1; }
 
@@ -161,6 +201,28 @@ self_test() {
   hits="$(grep -n '\${[A-Za-z_][A-Za-z_0-9]*\^\^}' "$code")"
   st "no bash-4 case expansion" "" "$hits"
 
+  # --json renders from the same emit calls as the eval block, so the two
+  # cannot drift apart in KEYS. Assert that on a synthetic emit set rather
+  # than by running the probe: this self-test must stay free of git and
+  # network I/O, which is what lets CI and a per-bead check run it.
+  _SHELL=""; _JSON=""
+  emitq SELFTEST_A "a value with 'quotes' and spaces"
+  emit  SELFTEST_B plain
+  emitq SELFTEST_C 'back\slash and "double"'
+  _sh_keys="$(printf '%s' "$_SHELL" | sed -n 's/^\([A-Za-z_][A-Za-z_0-9]*\)=.*/\1/p' | tr '\n' ' ')"
+  JSON_OUT=yes; _json_text="$(_flush)"; JSON_OUT=no
+  _js_keys="$(printf '%s' "$_json_text" | sed -n 's/^  "\([^"]*\)".*/\1/p' | tr '\n' ' ')"
+  st "--json carries the same keys as the eval block" "$_sh_keys" "$_js_keys"
+
+  if command -v python3 >/dev/null 2>&1; then
+    if printf '%s' "$_json_text" | python3 -c 'import json,sys; json.load(sys.stdin)' 2>/dev/null
+    then st "--json is valid JSON" ok ok
+    else st "--json is valid JSON" ok "PARSE FAILED"; fi
+  else
+    st "--json is valid JSON" skipped skipped
+  fi
+  _SHELL=""; _JSON=""
+
   echo
   if [ "$st_fail" -eq 0 ]; then echo "RESULT: PASS"; return 0; fi
   echo "RESULT: FAIL"; return 1
@@ -193,10 +255,12 @@ deny_entry_present() {
 # Without an epic id there is no run directory and no checks baseline, and the
 # report says so rather than leaving their absence to be inferred.
 EPIC=""
-[ $# -le 2 ] || die "usage: pre-flight-check.sh [<epic-id>] [--self-test]"
+JSON_OUT=no
+[ $# -le 3 ] || die "usage: pre-flight-check.sh [<epic-id>] [--json] [--self-test]"
 for arg in "$@"; do
   case "$arg" in
     --self-test)     self_test; exit $? ;;
+    --json)          JSON_OUT=yes ;;
     -*)              die "unknown option '$arg'" ;;
     *)               [ -z "$EPIC" ] || die "only one epic id may be given"
                      EPIC="$arg" ;;
@@ -695,5 +759,7 @@ emit  BB_CHECKS_BASELINE "$CHECKS_BASELINE"
 emitq BB_EPIC "$EPIC"
 emitq BB_EVENT_LOG "$EVENT_LOG"
 emitq BB_EPIC_QUEUE "$EPIC_QUEUE"
+
+_flush
 
 exit "$REPORT_FAIL"
