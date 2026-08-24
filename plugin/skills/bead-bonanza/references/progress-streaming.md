@@ -2,10 +2,9 @@
 
 How the orchestrator sees a run while it is still in flight: the tracker-fed
 event stream, the in-session `Monitor` armed over it, and the durable
-out-of-session trigger that backs the Monitor up. Read this WHEN a subagent is
-expected to run past 5 minutes — any non-trivial bead, given full test runs —
-and before the first dispatch of a run, which is when the stream is armed and
-the durable trigger set.
+out-of-session trigger that backs the Monitor up. Read this before the first
+dispatch of a run, which is when the stream is armed and the durable trigger
+set.
 
 Two neighbouring situations are elsewhere, so this file can be read on its own:
 WHEN a subagent dies mid-ceremony, read `recovery.md`; WHEN you are resuming a
@@ -21,7 +20,7 @@ costs mid-flight visibility, not the run's record.
 
 - The event source — one line per tracker status change, written by `bd`
   rather than by the agent whose progress it reports
-- Monitor any subagent past 5 minutes — the tail pattern, and what it filters to
+- Arm a Monitor for every wave — the tail pattern, and what it filters to
 - Back the Monitor with a durable trigger — the out-of-session check-in that
   survives an interrupt killing the orchestrator, and when it is cancelled
 
@@ -75,30 +74,41 @@ Three properties of the mechanism that decide how it is used:
   its contents. Treat the file as something `bd` may overwrite: install it at
   run start rather than assuming it survived from last time.
 
-## Monitor any subagent past 5 minutes
+## Arm a Monitor for every wave
 
-**Monitor any subagent past 5 minutes.** If a subagent is expected to (or
-actually does) run >5 min — true for any non-trivial bead given full test runs
-— the orchestrator must arm a `Monitor` on the event log so the user sees
-events live. Don't leave the user staring at silence for 30+ minutes. Pattern:
+**One Monitor per wave, armed before the wave's first dispatch. No condition,
+no judgement.** Pattern:
 
 ```
 tail -n +1 -F <run-dir>/events.tsv | grep -E --line-buffered 'close|update'
 ```
 
 Arm it with `persistent: true` and stop it with `TaskStop` when the wave
-drains. The default `timeout_ms` is five minutes — the exact threshold at
-which this rule requires a Monitor — so a Monitor armed without it expires on
-precisely the runs that need it. The `tail -F` pattern above never exits on
-its own, so under a timeout it stays armed until it is killed rather than
-ending when the work does. WHEN a Monitor does expire while its subagent is
-still live, re-arm it; expiry is not information about the bead.
+drains.
 
-One log carries the whole run, including every bead a batch subagent processes,
-so one Monitor covers a wave. The orchestrator acts on a bead reaching
-`closed`; intermediate transitions are there for reading a stalled run, not for
-waking on. Relaying every transition wakes the orchestrator per event and adds
-a conversation turn each time for narration nobody needs.
+**It is unconditional because the condition was unmeasurable.** "Monitor a
+subagent expected to run past five minutes" asks the orchestrator to predict a
+duration before dispatch and then measure one afterwards — but it is blocked on
+the subagent's return the whole time it is running, so it has nothing to
+measure with. The only thing that could time a subagent is a Monitor, which is
+the thing the rule was gating.
+
+**And it costs nothing to always do.** One event log carries the whole run, so
+a wave needs ONE Monitor however many subagents it dispatches. On a fast wave
+it emits a few lines and is stopped at the boundary; on a slow one it is the
+difference between live progress and half an hour of silence.
+
+**Set `timeout_ms` explicitly.** The default is five minutes, which is shorter
+than most waves, so a Monitor armed without it expires part-way through the
+work it exists to report. The `tail -F` pattern never exits on its own, so it
+stays armed until killed rather than ending when the work does. WHEN one does
+expire while its wave is still live, re-arm it — expiry is not information
+about any bead.
+
+The orchestrator acts on a bead reaching `closed`; intermediate transitions are
+there for reading a stalled run, not for waking on. Relaying every transition
+wakes the orchestrator per event and adds a conversation turn each time for
+narration nobody needs.
 
 ## Back the Monitor with a durable trigger
 

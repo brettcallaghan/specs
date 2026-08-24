@@ -144,22 +144,30 @@ write any of it silently.
    A silently skipped review reads exactly like a clean one, which is why the
    skip is reported rather than defaulted away.
 
-1c. **Create the issue outbox.** A run reports findings about the skills
-   it used as well as about the project itself. The second kind cannot be
-   filed here — this project does not own those skills — so they are
-   written to a directory its owner forwards:
+1c. **Agree the issue outbox — but do not create it yet.** A run reports
+   findings about the skills it used as well as about the project itself. The
+   second kind cannot be filed here — this project does not own those skills —
+   so they are written to a directory its owner forwards, at the repository
+   root:
 
    ```
-   <project>/.sf/outbox/<skill>/<YYYY-MM-DD>-<slug>.md
+   .sf/outbox/<skill>/<YYYY-MM-DD>-<slug>.md
    ```
 
-   One file per issue, in the issue template's format. **Nothing about a
-   skill this project does not own is ever filed in this project's own
-   tracker**, under any label: a backlog of proposals its owners cannot
+   One file per issue, in the issue template's format.
+
+   **It is created lazily, by the first issue that needs it**, because git does
+   not track empty directories: a setup step that makes `.sf/outbox/` produces
+   nothing to commit, so the directory would vanish for everyone but the
+   session that made it. A run with no skill findings leaves no outbox, which
+   is the honest state.
+
+   **Nothing about a skill this project does not own is ever filed in this
+   project's own tracker**, under any label: a backlog of proposals its owners cannot
    act on teaches them to ignore the channel, and that is the failure the
    whole split exists to prevent.
 
-   - **Track the directory, do not gitignore it.** The issues are the
+   - **Track it once it exists, do not gitignore it.** The issues are the
      deliverable of a run and should survive a reclaimed container. An
      ignored outbox loses them silently.
    - **The outbox is the project's.** Emptying it, forwarding it, or

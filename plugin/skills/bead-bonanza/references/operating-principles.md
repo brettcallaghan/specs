@@ -6,37 +6,17 @@ statement.
 
 ## Contents
 
-- One commit per bead, always — where an interrupted bead's work lives, and how
-  to resume it or surrender it
+**Scoped to the coordinator.** A principle the per-bead ceremony enforces is
+stated where that ceremony lives, not here — one commit per bead, and where an
+interrupted bead's uncommitted work stays, both belong to the **`run-bead`**
+skill and are enforced by the close script.
+
 - Findings harvest — how to wire `retro:` capture; the harvest pipeline
   itself lives in the vendored findings-capture protocol, not here
-- Guard against foreign dirt — how the orchestrator and a subagent each stage a
-  commit, when a tracker write may happen, and whose claims an agent may reset
+- Guard against foreign dirt — how the orchestrator stages a commit, when a
+  tracker write may happen, and whose claims it may reset
 - Principles the coordinator applies but does not carry — the ones SKILL.md
   summarises only where they change a turn's routing
-
-## One commit per bead, always
-
-Every closed bead = exactly one commit on the branch. The close happens via a
-plain `bd update --status closed` BEFORE staging, so the close is folded into
-the implementation commit. Closing never rewrites the
-description — grooming owns it.
-
-### No exceptions: the worktree holds interrupted work
-
-An interrupted bead's changes stay **uncommitted in its own worktree**, on its
-own branch, where no other agent will ever look. The worktree's continued
-existence is precisely the signal that the bead is unfinished. There is no
-`WIP` commit to make and nothing to squash.
-
-**To resume an interrupted bead:** re-enter its worktree, finish the work, and
-run the close ceremony once.
-
-**WHEN the work must be surrendered rather than resumed** — the bead is
-genuinely blocked, not merely interrupted — leave the worktree in place, mark
-the bead `blocked` with a reason, and report it. Do not commit partial work to
-"save" it: the worktree already saves it, and a partial commit on the bead's
-branch would merge into the sprint branch as an incomplete bead.
 
 ## Findings harvest
 
@@ -71,15 +51,11 @@ here. This skill restates none of it.
 
 ## Guard against foreign dirt
 
-### Working-tree dirt: the orchestrator's hazard, not a subagent's
+### Working-tree dirt is the orchestrator's hazard
 
-**A subagent does not face this hazard.** It implements in its own worktree,
-which contains that bead's changes and nothing else. There is no foreign dirt
-to guard against, nothing to enumerate as untouchable, and no need to name the
-paths a bead touched so the close can stage them — inside a worktree,
-"everything here" is exactly this bead's work.
-
-**The orchestrator does face it.** It works in the shared checkout, where a
+A subagent does not face it — inside its own worktree, "everything here" is
+exactly its bead's work. **The orchestrator does face it.** It works in the
+shared checkout, where a
 diagnosis agent's uncommitted fixes, a regenerated fixture, or a half-applied
 edit can be sitting alongside its own work. It therefore commits by explicit
 pathspec (`git commit -- <files>`). The same applies on the main-loop fallback

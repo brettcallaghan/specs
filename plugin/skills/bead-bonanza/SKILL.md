@@ -248,13 +248,13 @@ beads so it survives any crash. On a **nested** epic it is one level deep and
 reports sub-epics; fall back to the re-queried ready front plus a walked
 count, and say which you used.
 
-**Arm a `Monitor`** on the progress file for any subagent expected past 5
-minutes, `persistent`, stopped with `TaskStop` when the wave drains — and,
-before the first dispatch, the durable out-of-session trigger, cancelled at
-post-flight. Both: `references/progress-streaming.md`.
+**Arm a `Monitor`** for EVERY wave — one covers it, `persistent`, an explicit
+`timeout_ms`, stopped with `TaskStop` when the wave drains — and, before the
+first dispatch, the durable out-of-session trigger, cancelled at post-flight.
+Both: `references/progress-streaming.md`.
 
-**When something dies**, take the one you are in: a subagent past 5 minutes →
-`references/progress-streaming.md`; one that crashed mid-ceremony →
+**When something dies**, take the one you are in: live progress →
+`references/progress-streaming.md`; a subagent that crashed mid-ceremony →
 `references/recovery.md`; **the orchestrator itself** → invoke
 `sprint-recovery`, a skill rather than a file because the session that needs it
 may be fresh with nothing loaded.
@@ -367,7 +367,7 @@ is a skill you invoke or a script you run, and its section says which.
 | Concurrency entry, tier routing, push mode | `references/dispatch-policy.md` |
 | Dispatching an execution subagent | `references/subagent-prompts.md` |
 | How to call a script, and what it leaves behind | `references/scripts.md` |
-| A subagent past 5 minutes; Monitor and trigger | `references/progress-streaming.md` |
+| Live progress: the wave's Monitor and the trigger | `references/progress-streaming.md` |
 | A subagent that crashed or timed out mid-ceremony | `references/recovery.md` |
 | A bead interrupted mid-implementation; all principles | `references/operating-principles.md` |
 | Resuming a run whose state you do not hold | the **`sprint-recovery`** skill |
