@@ -191,7 +191,7 @@ merge and one removal per batch, then the acceptance check per bead. Hold
 **A `--ff-only` refusal means different things in a sequential and a concurrent
 wave, and reading it wrong stops a healthy one.** That rule, what the slot is
 and is not for, the base-ref remedy, and the create/merge/remove lifecycle:
-`references/subagent-prompts.md`, "Worktree mechanics".
+`references/worktree-mechanics.md`.
 ## Execute the waves — invoke `sprint-wave`
 
 Per wave, from the wave table: **invoke `sprint-wave`**. It dispatches a
@@ -330,7 +330,10 @@ is a skill you invoke or a script you run, and its section says which.
 | A project with no declared `[[checks]]`, `[models]` or `[review]` | `references/project-setup.md` |
 | The manifest, swarm registration, amendments | `references/run-record.md` |
 | Concurrency entry, tier routing, push mode | `references/dispatch-policy.md` |
-| Dispatching an execution subagent | `references/subagent-prompts.md` |
+| Dispatching one bead alone | `references/prompt-per-bead.md` |
+| Dispatching a batch | `references/prompt-fast-lane.md` or `references/prompt-shared-surface.md` |
+| What the orchestrator substitutes into a prompt | `references/prompt-placeholders.md` |
+| Creating, merging and removing a worktree | `references/worktree-mechanics.md` |
 | How to call a script, and what it leaves behind | `references/scripts.md` |
 | Live progress: the wave's Monitor and the trigger | `references/progress-streaming.md` |
 | A subagent that crashed or timed out mid-ceremony | `references/recovery.md` |
@@ -338,6 +341,9 @@ is a skill you invoke or a script you run, and its section says which.
 | A bead interrupted mid-implementation; all principles | `references/operating-principles.md` |
 | Resuming a run whose state you do not hold | the **`sprint-recovery`** skill |
 | The Definition of Ready the readiness gate enforces | `references/shared/work-order-definition-of-ready.md` |
+
+`references/prompt-batch-preamble.md` is the authored copy of the block both
+batch prompts open with; edit it there, never in a prompt file.
 
 **Scripts are executed, not read** — `references/scripts.md` carries every
 interface, so nothing sends you into a script's source.
