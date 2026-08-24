@@ -18,7 +18,8 @@
 #   of an environment that no longer exists — worse than absent, because it
 #   reads as current.
 #
-#   Manifest + emitted:  checks_ids, checks_baseline, the model lineup
+#   Manifest + emitted:  checks_ids, checks_baseline, concurrency_cap,
+#                        the model lineup
 #   Emitted only:        SCRIPTS, BB_NO_AGENT, BB_TREE_CLEAN,
 #                        BB_PUSH_NEEDS_REFSPEC, BB_GIT_CONFIG_WRITABLE,
 #                        BB_DOLT_*, BB_BRANCH / REMOTE / UPSTREAM,
@@ -684,6 +685,58 @@ else
   say "pass and a pre-existing failure will be misread as a regression."
 fi
 
+# ================================================== 8b. concurrency cap
+
+# How many subagents the harness will run at once, and therefore how large a
+# dev pool a plan may size (N_dev <= cap - 1: the coordinator holds a slot).
+#
+# A RUN fact, not a container fact, even though its source is a session
+# environment variable: a run resumed on a differently-configured session has
+# to be able to read what the PLAN assumed, not what the current container
+# happens to allow. So it goes to the manifest as well as being emitted.
+head_ "Concurrency"
+CONCURRENCY_CAP="${CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS:-20}"
+case "$CONCURRENCY_CAP" in
+  ''|*[!0-9]*)
+    # A string in the manifest is worse than the default: the consumer is a
+    # count comparison, and it would compare a number against text.
+    say "CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS='${CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS:-}' is not a number — using 20"
+    CONCURRENCY_CAP=20 ;;
+esac
+say "concurrency_cap: $CONCURRENCY_CAP (a plan may size N_dev <= $((CONCURRENCY_CAP - 1)))"
+
+# Merged onto the epic on ANY epic-scoped pass. Deliberately NOT inside the
+# checks-baseline branch above: a project that declares no checks still plans
+# its waves against the cap, and a key written only on the baseline path would
+# be null for exactly those runs.
+if [ -n "$EPIC" ]; then
+  if python3 - "$EPIC" "$CONCURRENCY_CAP" <<'PY'
+import json, subprocess, sys
+eid, cap = sys.argv[1], sys.argv[2]
+cur = {}
+r = subprocess.run(["bd", "show", eid, "--json"], capture_output=True, text=True)
+try:
+    d = json.loads(r.stdout)
+    d = d[0] if isinstance(d, list) and d else d
+    md = d.get("metadata") or {}
+    cur = json.loads(md) if isinstance(md, str) else (md or {})
+except Exception:
+    cur = {}
+# A JSON number, matching the shape sprint-plan's run-record.md documents.
+cur["concurrency_cap"] = int(cap)
+w = subprocess.run(["bd", "update", eid, "--metadata", json.dumps(cur)],
+                   capture_output=True, text=True)
+sys.exit(0 if w.returncode == 0 else 1)
+PY
+  then
+    say "written: concurrency_cap on $EPIC (\`bd show $EPIC --json | jq '.[0].metadata.concurrency_cap'\`)"
+  else
+    block "could not write concurrency_cap into $EPIC's manifest"
+  fi
+else
+  say "not written — no epic id was given, so there is no manifest to merge it into."
+fi
+
 # ==================================================== 9. tracker durability
 #
 # Can a closure actually be persisted? Where beads syncs to a Dolt remote, a
@@ -731,6 +784,7 @@ fi
 # The evalable block. Values that can contain spaces are single-quoted.
 emitq SCRIPTS "$SCRIPTS"
 emitq BB_CHECKS_IDS "$CHECKS_IDS"
+emit  BB_CONCURRENCY_CAP "$CONCURRENCY_CAP"
 emit  BB_LINEUP "$LINEUP"
 emitq BB_MODEL_LIGHT "$MODEL_LIGHT"
 emitq BB_MODEL_STANDARD "$MODEL_STANDARD"
