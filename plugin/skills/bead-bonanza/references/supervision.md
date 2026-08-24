@@ -45,7 +45,7 @@ it without being armed, and the durable out-of-session trigger — is
 ## When something dies
 
 Take the one you are in; they have different remedies and reading the wrong one
-wastes a wave:
+wastes a dispatch:
 
 | what died | where to go |
 |---|---|
@@ -130,7 +130,7 @@ without it.** An adopter may run with the plugin disabled, on a harness that is
 not Claude Code, or on one whose hook surface differs. Nothing in this
 ceremony may depend on a hook having fired.
 
-WHEN no hook is installed, the loop is yours to run: after every wave, re-query
+WHEN no hook is installed, the loop is yours to run: after every batch returns, re-query
 the ready front by the two steps above and stop only when it is empty. That is
 the identical check, made by you instead of by the harness. `--status`, or the
 absence of the script, says which of the two you are in.

@@ -543,7 +543,7 @@ the hop still behaves correctly.
 
 | citation | whole file? | applied or extended? | form |
 |---|---|---|---|
-| `sprint-wave` → the agent roster and the id-derivation rule, in `bead-bonanza`'s dispatch policy | no — one fact from a coordinator-scoped policy document | extended (a roster) | **cite by role** |
+| `sprint-plan` → the agent roster and the id-derivation rule, in `bead-bonanza`'s dispatch policy | no — one fact from a coordinator-scoped policy document | extended (a roster) | **cite by role** |
 | `sprint-plan` → `groom-beads`' epic Definition of Ready | yes — the file *is* the two checks `sprint-plan` runs | applied (a checklist) | **vendor** |
 
 Neither test is a tiebreak for the other: they agree on both rows, and test 1

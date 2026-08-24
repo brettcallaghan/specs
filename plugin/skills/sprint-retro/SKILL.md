@@ -134,7 +134,7 @@ issue template's frontmatter plus its three sections —
 `references/shared/issue-template.md` is the format, and this skill does not
 restate it.
 
-**The bar: it changes how the next run goes.** "Wave 2 needed three cycles" is
+**The bar: it changes how the next run goes.** "One batch needed three cycles" is
 a summary. "The `schema`-labelled beads were batched shared-surface but each
 regenerated the same fixture, so the batch serialized anyway — batch that
 label sequential" is a candidate. Only findings that clear that bar become

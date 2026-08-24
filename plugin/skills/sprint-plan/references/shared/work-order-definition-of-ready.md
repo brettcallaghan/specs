@@ -118,7 +118,7 @@ the orchestrator/verifier confirms it.
 Real edges only, correct field (`depends_on` / `blocks`, `parent_slug`,
 `related`, `discovered_from`), each referencing another work order by slug.
 Ordering SHALL live in the graph, not in prose or priority. A missing real edge
-is a wave-time race; a fabricated edge over-serializes.
+is a dispatch-time race; a fabricated edge over-serializes.
 
 ### 7. Tier assigned (+ reason)
 `tier` from the closed, ordered set (`light | standard | advanced |

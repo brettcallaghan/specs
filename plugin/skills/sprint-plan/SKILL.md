@@ -2,14 +2,13 @@
 name: sprint-plan
 description: Groom a sprint's queue and partition it in one pass — bring every
   bead to Ready (invoking groom-beads for what fails, bouncing what grooming
-  cannot clear) and return the readiness verdict, the wave table of batches the
-  run dispatches, and the graph plan that builds the run. Use when a sprint
+  cannot clear) and return the readiness verdict plus the graph plan that
+  builds the run, collision edges and assignments included. Use when a sprint
   orchestrator is preparing a run epic's queue for dispatch, or when asked to
   gate beads for readiness, classify them as trivial / isolated /
-  shared-surface, compute C4 co-edit and sequencing overlap, choose a dispatch
-  mode per batch, emit a `bd create --graph` JSON plan, or produce a sprint's
-  wave table. Takes the run epic, resolves its queue from the graph, and
-  dispatches nothing.
+  shared-surface, compute C4 co-edit and sequencing overlap, group beads into
+  batches behind one agent, or emit a `bd create --graph` JSON plan. Takes the
+  run epic, resolves its queue from the graph, and dispatches nothing.
 version: "0.2"
 user-invocable: false
 ---
@@ -17,7 +16,7 @@ user-invocable: false
 # sprint-plan
 
 Take a run epic's queue from wherever it is to **groomed and partitioned**, in
-one dispatch. Two returns: the readiness verdict per bead, and the wave table.
+one dispatch. Two returns: the readiness verdict per bead, and the graph plan.
 
 **They are one step because they are one read.** Partitioning needs exactly the
 knowledge grooming just acquired — every bead's scope, surfaces and
@@ -39,25 +38,27 @@ here creates a worktree, edits a bead's code, or merges anything.
 | Checks script and checks baseline | A gate recorded `fail` in the baseline sets "no findings beyond the baseline" as the bar, not exit 0 |
 | Model lineup | Resolves a bead's tier (`metadata.execution_suggested_model`, else `metadata.tier`) to a model; leave the `Tier` column's model blank where the project declares none |
 | Standing authorization | What the user authorized without further asking (push mode, PR, scope) |
-| The grooming wave preview | The candidate partition, WHEN one was produced |
+| The grooming partition preview | The candidate grouping, WHEN one was produced |
 
 WHEN an input is missing, say so in the return rather than substituting a
 guess — a plan built on an inferred queue is the failure the enumeration rule
 exists to prevent.
 
-**Out** — three things, and nothing else:
+**Out** — two things, and nothing else:
 
 1. **The readiness verdict** — per bead: ready, or NOT-READY with the gap a
    human must close. Bounced beads carry the **`human`** label, so the verdict
    is queryable and not merely reported.
-2. **The wave table** — plus **one line per override** of the grooming wave
-   preview saying what you changed and why.
-3. **The graph plan** — the run's beads and edges as one `bd create --graph`
-   document, validated before you return its path: `references/run-record.md`.
+2. **The graph plan** — the run's beads, assignments and edges as one
+   `bd create --graph` document, validated before you return its path:
+   `references/run-record.md`. Plus **one line per override** of the grooming
+   partition preview saying what you changed and why.
 
-The orchestrator dispatches from the table and does **not** store it: it is
-derived from the ready front, a stored copy only drifts, and recovery
-re-derives it.
+**The partition is not a document — it is in the graph.** Which beads may not
+run at once is a **collision edge**; which agent holds a bead is its
+`assignee`; what runs next is `bd ready` re-queried. The orchestrator
+dispatches from that front continuously, so there is nothing to store and no
+schedule to keep in step with a graph that moves under it.
 
 ## The readiness gate — run it before you classify anything
 
@@ -89,8 +90,8 @@ here: gates are created by a formula step's `gate` field, and a sprint runs
 no formula. A human item stopping the chain is the behaviour that matters, and
 the label already delivers it. An ungroomed queue makes every one of them
 unreliable — and handing a fresh, zero-context subagent an under-specified
-bead is the single most expensive failure mode a run has: it detonates
-mid-wave, after later beads have built on it.
+bead is the single most expensive failure mode a run has: it detonates late,
+after other beads have built on it.
 
 So before dispatch, gate the queue against the **Definition of
 Ready** — the checklist owned by the `spec` skill
@@ -117,9 +118,9 @@ If any bead fails the check, do NOT dispatch it and do NOT fix it inline —
 grooming reads source and wires graphs, which belongs in a subagent (see "don't
 read source files in the orchestrator"). Dispatch a **grooming subagent** over
 the ungroomed subset (template below); it runs `groom-beads` to the Definition
-of Ready and returns a per-bead readiness report plus a **wave preview** — its
-candidate partition under dependencies and C4 collisions. **Its final act is to
-invoke `sprint-plan`**, which turns that preview into the run's wave table:
+of Ready and returns a per-bead readiness report plus a **partition preview** —
+its candidate grouping under dependencies and C4 collisions. **Its final act is
+to invoke `sprint-plan`**, which turns that preview into the run's graph plan:
 it has already read every bead, so a second agent would only re-derive the same
 partition and leave two to reconcile.
 
@@ -178,8 +179,8 @@ decides:
   intended autonomy. Grooming closes decisions along with the rest of the
   Definition of Ready. (A groomed prerequisite that still fails DoR check 9
   stops for the user, per the standing-authorization terms — and is raised into
-  the human queue with the `human` label.) Grooming and wiring the edge are tracker writes, which need not wait
-  for a wave boundary.
+  the human queue with the `human` label.) Grooming and wiring the edge are
+  tracker writes, and the next `bd ready` picks them up.
 - **Out-of-scope** → leave it filed and linked, do NOT dispatch it, and surface
   it in the final report for the user to triage. The standing authorization
   finishes the launched scope; it never enlarges it.
@@ -193,12 +194,11 @@ The grooming subagent prompt template is in `references/grooming-prompt.md`.
 
 ## Bias toward batching
 
-**Batching is how a wave gets to run in parallel.** Beads that would collide
-if dispatched side by side go behind ONE agent that takes them in order, which
-frees the rest of the wave to dispatch concurrently around them. Left
-un-batched they force the whole wave sequential. Your job is to find the
-largest safe batch, not to default to one-bead-per-subagent for caution.
-Sequential is the *exception*, not the rule.
+**A batch is a collision cluster behind one agent.** Beads that would collide
+if dispatched side by side are chained by collision edges and given ONE
+assignee, so that agent takes them in order while everything else dispatches
+around them. Your job is to find the largest safe batch, not to default to
+one-bead-per-subagent for caution. A bead alone is the *exception*.
 
 **Batching does not buy fewer check runs.** Every bead runs the project's
 declared checks before its own close whether batched or not; a batch changes
@@ -230,13 +230,15 @@ re-derive it from prose. The `jq` and a worked example are in
    `.metadata.c4_impacts` from `bd list --json` for every queued bead.
    - Two beads sharing a `c4_changes` component are **shared-surface** whatever
      their file paths say — the same component through different files still
-     collides. They MAY batch; they SHALL NOT share a concurrent wave.
+     collides. **Emit a collision edge between them** so they cannot both be
+     ready at once, and give the cluster one assignee so one agent takes it in
+     order. Shape and marking: `references/run-record.md`.
    - Bead B whose `c4_impacts` intersects bead A's `c4_changes` consumes a
      contract A is changing. That is a **sequencing** constraint, not a batching
-     one, and it holds with zero file overlap. **It belongs in the graph**, not
-     in this table: a `blocks` edge survives every re-query of the ready front,
-     a table row does not. WHEN you find one grooming missed, say so in your
-     return so the orchestrator can wire it — never as silent batch order.
+     one, and it holds with zero file overlap. It is a real `blocks` edge, not a
+     collision edge, and the two are marked differently so a reader can tell
+     them apart. WHEN you find one grooming missed, wire it in the plan and say
+     so in your return — never as silent batch order.
    - Disjoint changes with no impact intersection is isolated *architecturally*
      only — layer 2 still runs.
 2. **File paths — fallback and corroborator.** Scan each bead's description for
@@ -244,36 +246,31 @@ re-derive it from prose. The `jq` and a worked example are in
    and it runs alongside C4 where both exist. WHEN the two disagree — disjoint
    components, overlapping files — take the **union** as the collision set and
    note the discrepancy in the plan; do not silently prefer one signal.
-3. **The grooming wave preview — starting partition.** WHEN one was produced,
-   start from it instead of re-deriving the partition, and record whether you
+3. **The grooming partition preview — starting point.** WHEN one was produced,
+   start from it instead of re-deriving the grouping, and record whether you
    accepted or overrode it and why. You are the source of truth on packing;
    the preview is an input, not an instruction.
 
 **Dependency ORDER is not yours to compute.** The graph already holds it, and
 the orchestrator reads it by re-querying `bd ready --parent <epic>
---exclude-type=epic` at every wave boundary. What you decide is **packing** —
-which of the beads that are simultaneously ready can safely share a wave, and
-which must be batched behind one agent because they would collide.
-
-`bd swarm validate <epic>` gives a wave PREVIEW worth starting from, but **two
-measured conditions void its partition** — an outside-dependency warning, and a
-nested run epic. Both are in `references/run-record.md`; under either, derive
-packing from the re-queried front instead. Say in your return which you used.
+--exclude-type=epic`. What you decide is **packing** — which beads would
+collide, so that a collision edge chains them behind one agent instead of
+letting them reach the ready front together.
 
 Where the repo documents no C4 architecture, grooming skips the tagging and
 `c4_*` is absent — file scanning is then the whole signal, and absent metadata
 means *unknown*, never "no collisions".
 
-The `Reason` column SHALL name which of the two classes a row is — they have
-different consequences and must not read alike. Required shapes:
-`references/run-record.md`.
+**Say which class each edge you emit is.** A co-edit collision and a sequencing
+constraint have different consequences and must not read alike; the marking
+that keeps them distinguishable is in `references/run-record.md`.
 
-## Choose a dispatch mode per batch
+## Choose a grouping per cluster
 
-Modes decide **how many beads share a subagent**, not how they are isolated —
-isolation is settled above and is the same everywhere. Pick the broadest one
-that's safe: you're maximizing what can run concurrently, not minimizing check
-runs — those are per bead regardless.
+A grouping decides **how many beads share a subagent**, not how they are
+isolated — isolation is settled above and is the same everywhere. Pick the
+broadest one that's safe: you're maximizing what can run concurrently, not
+minimizing check runs — those are per bead regardless.
 
 **A batch subagent holds exactly one worktree at a time** — create, implement,
 close, hand back, then the next. Holding two at once makes worktree presence
@@ -293,31 +290,26 @@ in a way that assumes otherwise.
 
    **Threshold:** batch when **≥2** beads share a surface and decisions are
    independent (bead A's choice doesn't change bead B's implementation). Even
-   at 2 the gain is real: the pair stops blocking the wave, and the second bead
-   sees the first's work instead of racing it.
+   at 2 the gain is real: the second bead sees the first's work instead of
+   racing it.
 
    **Don't over-split:** if 7 beads cluster on one surface and only 1–2 of them
    are "larger" (substantial new features), they can still go in one shared
    batch. Split only when bead A's implementation would conflict with bead B's,
    or when one bead's choice changes another's plan — never for caution alone.
 
-2. **Concurrent wave** — `isolated` beads dispatched at the same time rather
-   than one after another, each in its own worktree. Every bead already runs in
-   a worktree, so this buys wall-clock and nothing else. A wave is the unit of
-   parallelism and waves stay sequential, so put **no two beads sharing a
-   `c4_changes` component in one wave** — the orchestrator re-verifies that and
-   the base ref before it dispatches, and a wave that cannot pass the check is a
-   planning error, not a dispatch-time surprise.
+2. **Alone** — reserved for: a single bead with no batch peers, OR a bead whose
+   surface diverges from every other queued bead, OR explicit user override.
+   Not the default. If you find yourself putting >1 bead in a row here,
+   reconsider — they probably belong in a shared batch.
 
-4. **Plain sequential** — reserved for: a single bead with no batch peers, OR a
-   bead whose surface diverges from every other queued bead, OR explicit user
-   override. Not the default. If you find yourself defaulting here for >1 bead
-   in a row, reconsider — they probably belong in a shared batch.
+   Beads grouped this way need **no** collision edge and get their own
+   assignee, so they reach the ready front together and dispatch concurrently.
 
 Tier is not a batching decision of yours: carry each bead's tier
-(`metadata.execution_suggested_model`, else `metadata.tier`) into
-the wave table's `Tier` column as grooming assigned it, and leave the
-resolution and any escalation to the orchestrator at dispatch.
+(`metadata.execution_suggested_model`, else `metadata.tier`) into the plan's
+node metadata as grooming assigned it, and leave the resolution and any
+escalation to the orchestrator at dispatch.
 
 ## The dev pool is capped
 
@@ -333,11 +325,13 @@ undrained, with nothing reporting it. Read `concurrency_cap` off the manifest
 
 ## Assign every planned bead, then gate the epic
 
-**The wave table is what makes an assignee computable**, so assignment happens
-here and not at the readiness gate. Per row: `bd update <id> --assignee
+**The partition is what makes an assignee computable**, so assignment happens
+here and not at the readiness gate. Per batch: `bd update <id> --assignee
 dev-<run-id>-<batch-id>` on every bead it holds, the id derived in the
 coordinator's dispatch-policy reference and never minted. Ceremony beads take
-that same reference's roster ids.
+that same reference's roster ids. **The assignee is what groups a batch and
+the collision edges are what order it** — together they are the whole of what
+a table used to say.
 
 Then run the epic's own gate, `references/shared/epic-definition-of-ready.md`
 — a bead nobody owns and a dev pool over the concurrency cap, neither visible
@@ -346,9 +340,9 @@ the assign step: nothing earlier in a run writes an assignee.
 
 ## Return the plan
 
-**The wave table is not written to disk** — see **Out**, above. The graph plan
-is: emit it, diff it, validate it, return the path. Its format, the plan's
-schema, and the `Reason` column's required shape: `references/run-record.md`.
+**The graph plan is the only artifact** — see **Out**, above. Emit it, diff it,
+validate it, return the path. Its schema, the collision edge's shape and the
+validators that run before it is loaded: `references/run-record.md`.
 
 Three rules that make the plan worth returning:
 
@@ -363,9 +357,9 @@ Three rules that make the plan worth returning:
   that proved it and the result observed; an untested claim is recorded as
   `unverified` with what would settle it, not omitted.
 
-Do not ask for approval — the orchestrator prints the table and proceeds, and
+Do not ask for approval — the orchestrator prints the plan and proceeds, and
 the user can interrupt.
 
-Amendments after this point are the **orchestrator's** — a wave resequenced, a
-bead admitted or bounced, a tier escalated. Do not re-partition a run in
-flight, and do not expect to be invoked twice.
+Amendments after this point are the **orchestrator's** — an edge added, a bead
+admitted or bounced, a tier escalated. Do not re-partition a run in flight, and
+do not expect to be invoked twice.

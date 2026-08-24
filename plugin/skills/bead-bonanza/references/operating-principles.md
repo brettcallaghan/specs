@@ -69,7 +69,7 @@ The tracker is a database synced to `origin refs/dolt/data`, not a file in the
 working tree, and the close ceremony stages code only. No tracker write can
 ride into another agent's commit, so **the orchestrator may groom a discovered
 bead, bake a decision, or wire a dependency edge at any time, including
-mid-wave.**
+mid-run.**
 
 Worktrees are not what makes this safe, and must not be relied on for it: every
 worktree resolves the same database through git's common directory — precisely
@@ -83,7 +83,7 @@ and assignee in one write and is idempotent when the claim is already yours —
 so the rule no longer has to cover the race between reading a status and
 setting it. What it still covers is ownership: a bead claimed by a **different
 assignee** belongs to a live sibling, and a subagent may not take it. The
-orchestrator, never a subagent, owns reconciling claims across waves.
+orchestrator, never a subagent, owns reconciling claims across dispatches.
 
 ## Principles the coordinator applies but does not carry
 
@@ -107,13 +107,13 @@ full.
 - **Project rules win over skill defaults.** `sf.toml` is the source of truth
   for what runs per bead. Follow the project's commit conventions. The skill is
   opinionated, not authoritative.
-- **Never re-diagnose an environmental failure per wave.** Pre-flight captured
+- **Never re-diagnose an environmental failure per dispatch.** Pre-flight captured
   the baseline once and every subagent prompt carries it as fact. The dangerous
   case is a check that silently PASSES without exercising the change — a stale
   prebuilt binary, a skipped suite, a cached result — so where a check *can*
   pass without touching the change, force a clean rebuild before trusting it.
 - **Tracker writes are never deferred.** Groom a discovered bead, bake a
-  decision, or wire a dependency edge at any time, mid-wave included. Only the
+  decision, or wire a dependency edge at any time, mid-dispatch included. Only the
   working tree needs care; see "Guard against foreign dirt" above.
 
 ## Incidents — why nothing escalates mid-run

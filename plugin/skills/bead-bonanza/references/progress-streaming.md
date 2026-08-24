@@ -103,7 +103,7 @@ Three properties of the mechanism that decide how it is used:
 The plugin declares a background monitor — `monitors/monitors.json` at its
 root, running `monitors/bb-events-monitor.sh` — and Claude Code starts it when
 the **`bead-bonanza`** skill is invoked. Each line it prints arrives as a
-session notification. **There is nothing to arm, and nothing to arm per wave.**
+session notification. **There is nothing to arm, and nothing to re-arm.**
 
 It watches the *directory* `${TMPDIR:-/tmp}` for `bb-events-*.log` rather than
 being handed a path, because it cannot be handed one: a monitor is spawned by
@@ -129,25 +129,25 @@ never invoked `bead-bonanza` (a solo `run-bead`, or a `sprint-recovery`
 resuming someone else's run), or the harness offers no Monitor tool at all — on
 those hosts a declared monitor is skipped silently.
 
-WHERE the harness has a `Monitor` tool, arm one by hand, once per wave, before
-the wave's first dispatch. One event log carries the whole run, so a wave needs
-ONE Monitor however many subagents it dispatches:
+WHERE the harness has a `Monitor` tool, arm one by hand, once, before the first
+dispatch. One event log carries the whole run, so the run needs ONE Monitor
+however many subagents it dispatches:
 
 ```
 tail -n +1 -F "$BB_EVENT_LOG"
 ```
 
-Arm it with `persistent: true` and stop it with `TaskStop` when the wave
-drains. **Set `timeout_ms` explicitly** — the default is five minutes, shorter
-than most waves, so a Monitor armed without it expires part-way through the
-work it exists to report. The `tail -F` pattern never exits on its own, so it
-stays armed until killed rather than ending when the work does. WHEN one does
-expire while its wave is still live, re-arm it — expiry is not information
-about any bead.
+Arm it with `persistent: true` and stop it with `TaskStop` when the ready front
+dries. **Set `timeout_ms` explicitly** — the default is five minutes, shorter
+than most runs, so a Monitor armed without it expires part-way through the work
+it exists to report. The `tail -F` pattern never exits on its own, so it stays
+armed until killed rather than ending when the work does. WHEN one does expire
+while the run is still live, re-arm it — expiry is not information about any
+bead.
 
 WHERE the harness has neither, say so once and use `bd swarm status <epic>`
-between waves. No step in the ceremony depends on a monitor having reported
-anything.
+between dispatches. No step in the ceremony depends on a monitor having
+reported anything.
 
 ## Back it with a durable trigger
 

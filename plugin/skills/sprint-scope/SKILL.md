@@ -76,14 +76,14 @@ must never have to choose between running a sprint and keeping their
 structure.
 
 **Never flatten a nested epic**, and never adopt the leaf beads out of the
-epics you were given. The queue is correct through nesting; only the wave
+epics you were given. The queue is correct through nesting; only the swarm
 preview and the progress count degrade, and both are recomputable. Flattening
 trades a real structure for a display detail, and emptying a source epic of its
 open work is the false-complete failure above.
 
 **What a nested run epic costs, stated once at run start:** `bd swarm validate`
 and `bd swarm status` are one level deep, so they report sub-epics rather than
-leaf beads. The wave preview comes from `sprint-plan` instead, and the progress
+leaf beads. The partition comes from `sprint-plan` instead, and the progress
 count from `bb-status.sh run <epic>`, which walks the tree. Dispatch is
 unaffected — the re-queried ready front is transitive and honours dependency
 edges that cross between the adopted epics.
@@ -92,7 +92,7 @@ edges that cross between the adopted epics.
 together, and `swarm validate` reports them as warnings and acts on none of
 them.** Surface every such warning at run start rather than dropping it: an
 edge from a bead in one adopted epic to a bead in another is exactly what makes
-the wave preview untrustworthy, and it is what the ready front gets right.
+the swarm preview untrustworthy, and it is what the ready front gets right.
 
 Then print the scope: the epic id, the ready count, and any exclusions.
 
@@ -127,7 +127,7 @@ that, and gets to.
 
 | decision | `[run]` key | skill default |
 |---|---|---|
-| **Push mode** | `push_mode` | defer — the orchestrator pushes per wave |
+| **Push mode** | `push_mode` | defer — the orchestrator pushes per batch |
 | **Pull request** | `pull_request` | open as draft at the start, mark ready at the end |
 | **Moving beads** that already belong to another epic | `move_foreign_beads` | **do not move** — exclude them and run narrower |
 | **Scope growth** from review findings | `admit_review_findings` | file the beads, do **not** admit them into this run |

@@ -58,10 +58,10 @@ framework standardizes on:
   required (a model-specific capability or an explicit user instruction).
   Normal orders carry `tier` and no `model`. See "Why tiers, not model
   names" below.
-- `est_size` — `XS | S | M | L | XL`; lets the orchestrator pack waves by
+- `est_size` — `XS | S | M | L | XL`; lets the orchestrator pack batches by
   effort independently of tier. Correlated with tier but not identical.
 - `c4_changes` — components whose code this order edits (the collision key for
-  wave isolation: two orders that both change the same component collide even
+  dispatch isolation: two orders that both change the same component collide even
   when neither blocks the other).
 - `c4_impacts` — components affected downstream but not edited.
 - `c4_docs` — the C4 doc files that may need updating as a result.
@@ -169,7 +169,7 @@ calibration and equally consistent with routing everything too high.
 
 ## A note on estimates vs. tiers
 
-`est_size` answers "how much work" and drives wave packing (don't cram ten `L`
-orders into one wave). `tier` answers "how much capability per unit work." A
+`est_size` answers "how much work" and drives packing (don't cram ten `L`
+orders into one batch). `tier` answers "how much capability per unit work." A
 large but mechanical order can be `L` + `light`; a tiny but subtle order can
 be `S` + `frontier`. Grooming should set both.

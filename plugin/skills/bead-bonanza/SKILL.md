@@ -19,9 +19,9 @@ below is a subprocess: you invoke it, read what it returns, and decide what
 happens next. You never hold a subprocess's method.
 
 **What you retain — the whole context budget:** the run epic id, the review
-pass counter, the authorization set, where the wave loop is, what the last
-subprocess returned, and `sprint-plan`'s wave table as a passthrough you never
-reason about. Not a subprocess's reasoning, not the evidence behind a verdict.
+pass counter, the authorization set, where the dispatch loop is, and what the
+last subprocess returned. Not a subprocess's reasoning, not the evidence behind
+a verdict.
 
 **Act on the verdict, not the evidence.** A subprocess whose output you have to
 reason about has pushed work back up the tier it was meant to absorb.
@@ -42,9 +42,9 @@ anything else means something failed, and the output says what.
 ┌─ 3+4 groom & plan .......................... sprint-plan → groom-beads
 │  5   sprint ................................ coordinator + subagents
 │      ├ create the sprint branch, once ..... coordinator
-│      ├ 5a dispatch a wave ─┐ repeat until   sprint-wave → sprint-batch
-│      ├ 5b merge            │ the ready      coordinator
-│      └ 5c supervise       ─┘ front is dry   bb-status.sh
+│      ├ 5a dispatch the front ─┐ repeat      sprint-batch
+│      ├ 5b merge               │ until the   coordinator
+│      └ 5c supervise          ─┘ front dries bb-status.sh
 │  6   review ................................ sprint-review → declared reviewer
 └───── findings admitted AND passes < 3 ? ─── yes ──┘
 7     retro ................................. sprint-retro
@@ -52,10 +52,10 @@ anything else means something failed, and the output says what.
 9     post-flight ........................... sprint-cleanup.sh
 ```
 
-**Two nested loops, both bounded**: the wave loop ends when the ready front is
-dry, the review loop at 3 passes or no admitted findings. Neither exhausting is
-a failure — what is left is filed and named. **7 and 8 run retro-then-report**,
-so what the retro produced reaches the report.
+**Two nested loops, both bounded**: the dispatch loop ends when the ready front
+is dry, the review loop at 3 passes or no admitted findings. Neither exhausting
+is a failure — what is left is filed and named. **7 and 8 run
+retro-then-report**, so what the retro produced reaches the report.
 
 **A human's pull-request review is not a step here.** Whether one happens, and
 when, is the project's business — the run ends at post-flight either way, and
@@ -71,9 +71,9 @@ run:
 - [ ] 0. pre-flight run, BB_* facts eval'd
 - [ ] 1. `sprint-scope`: run epic, admission record, authorization gate
 - [ ] 1b. pre-flight re-run with the epic: checks baseline on the manifest
-- [ ] 2. `sprint-plan`: verdict + wave table; graph plan validated & loaded
+- [ ] 2. `sprint-plan`: readiness verdict; graph plan validated & loaded
 - [ ] 2b. Sprint branch created (or reused), `branch` + `base_sha` in manifest
-- [ ] 3. Waves via `sprint-wave`; merge each accepted branch, then re-check it
+- [ ] 3. Dispatch the ready front; merge each branch, then re-check it
 - [ ] 3b. `sprint-review`; loop back to groom & plan if findings were admitted
         and the pass budget is not spent
 - [ ] 4. `sprint-retro`, then `sprint-report` (incidents first)
@@ -84,7 +84,7 @@ run:
 verifies the mechanical half — counts, health set, lint clean *within this
 run's queue*, no open human item, every ready bead tiered, every admitted bead
 closed — then **names what it cannot verify**, so a clean report never implies
-the whole checklist passed. Run it at every wave boundary and at the end.
+the whole checklist passed. Run it at every re-query and at the end.
 
 
 ## Opening a run — pre-flight, then `sprint-scope`
@@ -119,33 +119,34 @@ you need from it:
 - The authorization set as decided, including the rows that took their default.
 ## Groom & plan — invoke `sprint-plan`
 
-**One dispatch, three returns.** `sprint-plan` grooms every bead that is not
+**One dispatch, two returns.** `sprint-plan` grooms every bead that is not
 Ready (invoking `groom-beads`), bounces what it cannot clear, and — while it
 still holds every bead in context — partitions what came out:
 
 1. **The readiness verdict** per bead. You dispatch only ready beads; bounced
    ones are raised into `bd human` by the skill and named in your report.
-2. **The wave table**, plus one line per override of its own preview.
-3. **The graph plan.** Diff it, re-run its validators, load it with
-   `bd create --graph <path>`, then record the path as `graph_plan` on the
-   manifest. A failed load leaves half a graph behind, and an unknown field is
-   a *warning* that still exits 0: `references/run-record.md`.
+2. **The graph plan**, plus one line per override of its own preview. Diff it,
+   re-run its validators, load it with `bd create --graph <path>`, then record
+   the path as `graph_plan` on the manifest. A failed load leaves half a graph
+   behind, and an unknown field is a *warning* that still exits 0:
+   `references/run-record.md`.
 
 **They are one step because they are one read** — partitioning needs what
 grooming just acquired, so a second agent would re-read the queue to learn what
 the first knew. **One subagent, never two**; with nothing to groom, it plans
 alone.
 
-**Do not store the wave table** — no file, no manifest key. Carry what
-`sprint-plan` returned and hand it to `sprint-wave` each wave, which intersects
-it with the re-queried front. A written copy outlives the graph it describes.
+**The partition is in the graph, not in a schedule.** Beads that must not run
+at once carry a **collision edge** between them, so the ready front is safe to
+dispatch whole. Which edges are policy and which are real:
+`references/run-record.md`.
 
 **Three things stay yours** — the run manifest, the swarm registration, and
 the run's amendments. All three: `references/run-record.md`.
 
 ## The sprint branch — you create it, once, before the first worktree
 
-**Immediately before dispatching wave 1**, not earlier. A run that bounced
+**Immediately before the first dispatch**, not earlier. A run that bounced
 every bead has nothing to branch for, and a branch cut before grooming records
 a `base_sha` predating the grooming commits.
 
@@ -182,9 +183,9 @@ not yet accepted — you remove it as the final act of accepting, after the last
 of its branches merges. `git worktree list` answers what is in flight; each
 bead's dispatch record answers which bead.
 
-**Hard gate — verify `BB_WORKTREE_BASEREF` is `head` before each wave's first
-worktree, and do not dispatch otherwise.** It is global user state no repository
-owns, so it can change between waves, and a worktree cut from the default branch
+**Hard gate — verify `BB_WORKTREE_BASEREF` is `head` before every worktree you
+create, and do not dispatch otherwise.** It is global user state no repository
+owns, so it can change under you, and a worktree cut from the default branch
 cannot see what the sprint branch already carries.
 
 **You merge, one at a time; subagents never do.** A chained batch merges by
@@ -192,61 +193,55 @@ fast-forwarding the LAST bead's branch, which carries its predecessors — one
 merge and one removal per batch, then the acceptance check per bead. Hold
 `bd merge-slot` across each.
 
-**A `--ff-only` refusal means different things in a sequential and a concurrent
-wave, and reading it wrong stops a healthy one.** That rule, what the slot is
-and is not for, the base-ref remedy, and the create/merge/remove lifecycle:
-`references/worktree-mechanics.md`.
-## Execute the waves — invoke `sprint-wave`
+**A `--ff-only` refusal means one thing for the first branch merged onto a
+base and another for every branch after it, and reading it wrong stops a
+healthy run.** That rule, what the slot is and is not for, the base-ref remedy,
+and the create/merge/remove lifecycle: `references/worktree-mechanics.md`.
+## Dispatch the ready front — continuously
 
-Per wave, from the wave table: **invoke `sprint-wave`**. It dispatches a
-subagent per batch, verifies every return against the tracker and git rather
-than against the subagent's account, and returns one line per bead —
-`completed` / `blocked` / `skipped`, each with a sha — plus the push verdict.
+**`bd ready --parent <epic> --exclude-type=epic` IS the dispatch list.** The
+collision edges make it safe to dispatch whole — nothing to freeze, wait on,
+or intersect. Dispatch what is in it and not already held, then re-query as
+each batch returns, so a bead that became ready behind a slow one goes out at
+once rather than waiting for its neighbours.
+
+Each dispatch is one subagent running `sprint-batch` in one worktree. **The
+procedure — filling in the prompt, verifying skip claims, the per-bead
+acceptance check, the push, the circuit breaker and the dispatch record — is
+`references/dispatching.md`.** Read it before the first dispatch.
 
 **Then you merge**, one branch at a time, removing each worktree as you accept
-its dispatch. `sprint-wave` merges nothing.
+its dispatch. Subagents merge nothing.
 
-**Then re-run the acceptance check, without `--pre-merge`:**
+**Then re-run the acceptance check without `--pre-merge`** —
+`"$SCRIPTS"/bb-status.sh bead <id> --worktree <path>`. The pre-merge run
+deferred signals 3 and 4, which fail by construction before a merge, so this
+run is the only thing that checks the merge and the removal happened. Exit 2
+stops the run.
 
-```sh
-"$SCRIPTS"/bb-status.sh bead <bead-id> --worktree <path>
-```
-
-`sprint-wave` ran before you merged, so signals 3 (merged into HEAD) and 4
-(worktree gone) were deferred — pre-merge they fail by construction. **This run
-is what verifies them**; skip it and nothing checks that the merge and the
-removal happened. Exit 2 stops the wave.
-
-
-**Re-query the ready front at every wave boundary.** `bd epic close-eligible`
+**Re-query before every dispatch, and run `bd epic close-eligible` first.** It
 takes NO epic argument — a passed id is silently ignored, so the bare command
 closes every eligible epic in the database, not just this run's. Scope it by
-hand, then `bd ready --parent <epic> --exclude-type=epic`: procedure in
-`references/supervision.md`. **Omitting `close-eligible` entirely is a silent
-deadlock, not a slowdown**: an epic does not close on its own when its
-children do (measured), so a finished ceremony phase stays open, the beads it
-gates never enter the ready front, and an empty front reads as the run being
-done when it has stalled instead. **That query is the order**: closed beads
-leave it, beads the last wave unblocked enter it, and a bead added mid-run is
-in scope by construction — but before dispatching it, diff it against
+hand: `references/supervision.md`. **Omitting it is a silent deadlock, not a
+slowdown**: an epic does not close on its own when its children do (measured),
+so a finished ceremony phase stays open, the beads it gates never enter the
+front, and an empty front reads as the run being done when it has stalled.
+**That query is the order** — and a bead added mid-run is in scope by
+construction, so before dispatching it diff the front against
 `manifest.admitted` (`bb-status.sh run <epic>` names the difference) and
-resolve any creep, admitted as an amendment or deferred out, rather than
-dispatching it unexamined.
-
-**How a wave goes out**, and the circuit breaker that stops the RUN rather
-than the wave: `references/dispatch-policy.md`.
+resolve any creep, admitted as an amendment or deferred out.
 
 ### The run's health — the one thing nothing else can express
 
 A stuck agent and a slow one look identical in git and bead status, so health
 is **asserted**, not derived — `bd set-state <epic> health=<value> --reason`,
-at run start and every wave boundary. **An unset health reads as repairable**:
+at run start and every re-query. **An unset health reads as repairable**:
 a watchdog seeing no label cannot tell a healthy run from an abandoned one.
 The closed set of five values and what each means: `references/run-record.md`.
 ### Watching it, and knowing when it is done
 
-**Arm a `Monitor`** for EVERY wave — one covers it, `persistent`, an explicit
-`timeout_ms`, stopped with `TaskStop` when the wave drains — and, before the
+**Arm a `Monitor`** over the dispatches in flight — `persistent`, an explicit
+`timeout_ms`, stopped with `TaskStop` when the front dries — and, before the
 first dispatch, the durable out-of-session trigger, cancelled at post-flight.
 
 **A run is done when every bead the manifest's `admitted` list names is closed
@@ -348,11 +343,12 @@ is a skill you invoke or a script you run, and its section says which.
 | A project with no declared `[[checks]]`, `[models]` or `[review]` | `references/project-setup.md` |
 | The manifest, swarm registration, amendments | `references/run-record.md` |
 | Concurrency entry, tier routing, push mode | `references/dispatch-policy.md` |
+| Sending a dispatch out and verifying what returns | `references/dispatching.md` |
 | Dispatching one bead alone | `references/prompt-per-bead.md` |
 | Dispatching a batch | `references/prompt-batch.md` |
 | Creating, merging and removing a worktree | `references/worktree-mechanics.md` |
 | How to call a script, and what it leaves behind | `references/scripts.md` |
-| Live progress: the wave's Monitor and the trigger | `references/progress-streaming.md` |
+| Live progress: the Monitor and the trigger | `references/progress-streaming.md` |
 | A subagent that crashed or timed out mid-ceremony | `references/recovery.md` |
 | Where the run is; when it is done; which death you have | `references/supervision.md` |
 | A bead interrupted mid-implementation; all principles | `references/operating-principles.md` |
@@ -360,7 +356,7 @@ is a skill you invoke or a script you run, and its section says which.
 | The Definition of Ready the readiness gate enforces | `references/shared/work-order-definition-of-ready.md` |
 
 **A prompt file IS the prompt** — send it whole, with no block to extract.
-`sprint-wave` resolves the placeholders.
+You resolve the placeholders: `references/dispatching.md`.
 
 **Scripts are executed, not read** — `references/scripts.md` carries every
 interface, so nothing sends you into a script's source.
@@ -380,12 +376,12 @@ full list is in `references/operating-principles.md`.
   `.sf/outbox/<skill>/` and is never filed in this project's backlog — a
   project that accumulates proposals it cannot act on learns to ignore the
   channel.
-- **Auto-chain waves.** The gate already asked, so emit the wave's report and
-  **dispatch the next in the same turn** — the report is a progress notice, not
-  a checkpoint. The turn ends when the queue is dry, a bead carrying `human`
-  is reached, or the circuit breaker trips. **Ending a turn with a non-empty
-  queue and none of those is a defect, not a pause**: nobody is waiting to
-  restart it.
+- **Auto-chain dispatches.** The gate already asked, so emit the progress
+  report and **dispatch what is ready in the same turn** — the report is a
+  notice, not a checkpoint. The turn ends when the front is dry, a bead
+  carrying `human` is reached, or the circuit breaker trips. **Ending a turn
+  with a non-empty front and none of those is a defect, not a pause**: nobody
+  is waiting to restart it.
 
 ## Retro this skill
 

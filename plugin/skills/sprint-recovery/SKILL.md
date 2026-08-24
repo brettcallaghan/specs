@@ -53,13 +53,13 @@ could not read the manifest is a *reconstruction*, and says so.
 
 ## Work these steps in order
 
-0. **Take the run's vital signs first — `bb-status.sh wave`.** From the sprint
+0. **Take the run's vital signs first — `bb-status.sh branch`.** From the sprint
    branch, resolved from the sprint orchestrator's own `scripts/`. It needs no epic and no
    context, so it runs before you know anything: it answers whether the tree is
    clean and whether the branch has **landed**, and prints the command behind
    each line so any of them can be re-derived. It repairs nothing.
 
-   Its exit code is the first thing worth reporting: `2` means a wave is
+   Its exit code is the first thing worth reporting: `2` means the run is
    stopped, not merely paused.
 
 1. **Find the run — derive it from the branch.** A run happens on its own
@@ -100,13 +100,12 @@ could not read the manifest is a *reconstruction*, and says so.
 
    **The queue is not stored — re-derive it**: `bd ready --parent <epic>
    --exclude-type=epic`. That is deliberate. Membership of the epic IS the
-   scope, so a bead added since the run started is in scope now, and the
-   wave table was never written down because it drifts the moment the graph
-   moves.
+   scope, so a bead added since the run started is in scope now. Nothing wrote
+   a dispatch order down, because it drifts the moment the graph moves.
 
    **Re-entering costs almost nothing, and that is by design.** Grooming and
    planning are one step (`sprint-plan`) that grooms only what is not already
-   Ready and re-derives the wave table from the **current** ready front. Closed
+   Ready and re-derives the partition from the **current** ready front. Closed
    beads are not in that front, so they are not re-dispatched. Scope resolution
    has nothing to resolve, because the epic already exists. Re-running the
    whole process against the same epic id is therefore a *narrower repeat*, not
@@ -130,11 +129,11 @@ could not read the manifest is a *reconstruction*, and says so.
    directories deleted but still registered, and a stale entry reads as
    in-flight forever.
 
-   **Step 0's `wave` is the one that catches the invisible failure.** An
+   **Step 0's `branch` is the one that catches the invisible failure.** An
    orchestrator that dies between committing and pushing leaves every other
    signal reading "finished" — no worktrees, clean tree, beads closed in the
-   tracker. Only the comparison against the remote separates a landed wave from
-   an unlanded one. WHEN commits are unpushed, push them before concluding
+   tracker. Only the comparison against the remote separates a landed branch
+   from an unlanded one. WHEN commits are unpushed, push them before concluding
    anything, and record why they were not: a rejection has a cause that will
    recur. A credential refused for `.github/workflows/**` rejects the WHOLE
    push, stranding every commit behind one file.

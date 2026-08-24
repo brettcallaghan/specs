@@ -23,10 +23,10 @@ after `sprint-scope` returns the epic and before you dispatch grooming.
    never omit the field and never guess a value; an omitted field is
    indistinguishable from a forgotten one, and a guessed value is worse.
 
-   **The key names are the contract**, because the wave tier reads them back
-   rather than being handed them — `sprint-wave` takes `branch`, `checks_ids`
-   and `checks_baseline` off the manifest to build each batch prompt. A renamed
-   key is a silent break: the reader gets `null` and dispatches without it. The
+   **The key names are the contract**, because dispatch reads them back rather
+   than being handed them — `branch`, `checks_ids` and `checks_baseline` come
+   off the manifest to build each batch prompt. A renamed key is a silent
+   break: the reader gets `null` and dispatches without it. The
    full key set is the JSON block the **`sprint-plan`** skill writes, in its own
    run-record reference.
 
@@ -80,30 +80,29 @@ after `sprint-scope` returns the epic and before you dispatch grooming.
    mandatory, because `--parent` is transitive and would otherwise hand back
    the run's own sub-epics as if they were work.
 3. **Amendments — `amend:`-prefixed comments on the run epic.** WHEN the run
-   diverges mid-flight — a wave resequenced, a batch reclassified, a bead
+   diverges mid-flight — an edge added, a batch reclassified, a bead
    admitted or bounced, a tier escalated — `bd comment <epic> "amend: <what
    and why>"`. Append-only and timestamped by construction, so there is no
    read-modify-write to lose and no ordering to maintain. Never re-invoke
    `sprint-plan` to re-partition a run in flight.
 
-   **The wave table is not stored anywhere.** It is derivable from the graph —
-   `bd ready --parent <epic> --exclude-type=epic` re-queried, plus
-   `bd swarm validate` for a preview — so a stored copy can only drift out of
-   agreement with the beads it describes.
+   **The dispatch order is not stored anywhere.** It is
+   `bd ready --parent <epic> --exclude-type=epic` re-queried, so a stored copy
+   can only drift out of agreement with the beads it describes.
 
-   **`swarm validate` is a preview, never the dispatch order.** It scopes
+   **`bd swarm validate` is a preview, never the dispatch order.** It scopes
    dependency analysis to the epic it is given: it reports an edge to a bead
-   outside that epic as a *warning*, then computes waves and readiness as if
-   the edge were absent — measured placing a blocked bead in Wave 1. It is also
-   one level deep, so on a nested run epic it lists sub-epics as work items and
-   never sees their leaves. **Suppress the preview** when the run epic is
-   nested or when `swarm validate` warns about an outside dependency; the
-   re-queried front is correct in both cases.
+   outside that epic as a *warning*, then computes readiness as if the edge
+   were absent — measured, it grouped a blocked bead with the ready ones. It is
+   also one level deep, so on a nested run epic it lists sub-epics as work
+   items and never sees their leaves. **Suppress the preview** when the run
+   epic is nested or when it warns about an outside dependency; the re-queried
+   front is correct in both cases.
 
 **The manifest is written on every run** — there is no queue-size or
 batch-count exemption. Chat is the one store that does not survive.
 
-Print the returned wave table to chat. Don't ask for approval — just print and
+Print the returned plan to chat. Don't ask for approval — just print and
 proceed. The user can interrupt if they disagree.
 
 WHEN no `Agent` tool is available, nothing can be delegated, planning included
@@ -113,8 +112,8 @@ the `run-bead` skill, one bead at a time.
 ## Run health
 
 Asserted by the orchestrator, never derived — a stuck agent and a slow one look
-identical in git and in bead status. Set it at run start and at every wave
-boundary; `bb-status.sh run` prints the evidence for and against beside it.
+identical in git and in bead status. Set it at run start and at every re-query
+of the front; `bb-status.sh run` prints the evidence for and against beside it.
 
 ```sh
 bd set-state <epic> health=<value> --reason "<why>"

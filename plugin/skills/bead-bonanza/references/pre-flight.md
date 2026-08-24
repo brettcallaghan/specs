@@ -39,8 +39,8 @@ from memory what the script just measured** — push mechanics in particular
 vary by container. WHEN `BB_PUSH_NEEDS_REFSPEC=yes`, push with an explicit
 refspec (`git push <remote> <branch>`) every time, and never let a pipe to
 `tail` mask a push's exit status. Verifying that a push **landed** is not
-conditional on that fact and is not `git status -sb` — it is the end-of-wave
-check the orchestrator performs on every wave.
+conditional on that fact and is not `git status -sb` — it is the landing check
+the orchestrator performs after every push.
 
 **Commit trailers.** WHEN `CLAUDE.md`/`AGENTS.md` states a commit-trailer
 convention (`Co-Authored-By`, a session URL, etc.), resolve it once here and

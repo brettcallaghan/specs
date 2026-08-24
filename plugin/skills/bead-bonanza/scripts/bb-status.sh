@@ -4,7 +4,7 @@
 #
 # USAGE
 #   bb-status.sh bead <bead-id> [--worktree <path>] [--pre-merge]
-#   bb-status.sh wave [--branch <name>] [--remote <name>]
+#   bb-status.sh branch [--branch <name>] [--remote <name>]
 #   bb-status.sh run <epic-id>
 #   bb-status.sh slot [<epic-id>]
 #   bb-status.sh harvest <bead-id> [<bead-id>...]
@@ -15,21 +15,22 @@
 #   1  REPAIRABLE failure. Signals 1, 2 and 5: close the bead, or add the
 #      missing `retro:` comment from the returned summary. State the repair in
 #      the report.
-#   2  STOP THE WAVE. Signals 3 and 4: the merge or the acceptance never
+#   2  STOP. Signals 3 and 4: the merge or the acceptance never
 #      happened. Not the orchestrator's to repair inline — leave the worktree
 #      standing, since it is the in-flight signal, and surface it.
 #
-# --pre-merge DEFERS SIGNALS 3 AND 4. A wave checks what a subagent returned
-# BEFORE the orchestrator merges the branch and removes the worktree, so both
-# signals would fail by construction: the branch cannot be an ancestor of HEAD
-# yet, and the worktree is supposed to still be there. The wave passes
-# --pre-merge; the orchestrator re-runs without it after merging, which is what
-# actually verifies 3 and 4.
+# --pre-merge DEFERS SIGNALS 3 AND 4. The acceptance check runs on what a
+# subagent returned BEFORE the orchestrator merges the branch and removes the
+# worktree, so both signals would fail by construction: the branch cannot be an
+# ancestor of HEAD yet, and the worktree is supposed to still be there. That
+# run passes --pre-merge; the orchestrator re-runs without it after merging,
+# which is what actually verifies 3 and 4.
 #   3  invocation error.
 #
 # WHO RUNS IT
-#   The ORCHESTRATOR, after each bead's acceptance check and at every wave
-#   boundary; a recovering session, as its first act; a woken durable trigger.
+#   The ORCHESTRATOR, after each bead's acceptance check and at every re-query
+#   of the ready front; a recovering session, as its first act; a woken
+#   durable trigger.
 #
 #   **A subagent never runs it.** Inside its own worktree the signals read
 #   differently by construction — signal 4 asks whether the worktree is gone,
@@ -38,7 +39,7 @@
 # WHAT IT DOES NOT DO
 #   It does not check the Phase 4 report's prose. Whether a report NAMES a
 #   failing signal is a property of text this script cannot read; what it can
-#   do is make the underlying facts cheap to re-derive, which is `wave` mode.
+#   do is make the underlying facts cheap to re-derive, which is `branch` mode.
 #   It never repairs anything: every mode is read-only.
 #
 # Every line prints the verified state AND the command that established it, so
@@ -100,7 +101,7 @@ mode_bead() {
   fi
 
   # 3. merged into the current branch. Only meaningful once 2 found a sha, and
-  # only AFTER the merge has happened. A wave verifies what a subagent returned
+  # only AFTER the merge has happened. Acceptance verifies what a subagent returned
   # before the orchestrator merges, so it passes --pre-merge and signals 3 and 4
   # are deferred to the orchestrator's own check after the merge. Without that
   # split every bead fails signal 3 by construction — the branch is not an
@@ -187,8 +188,8 @@ mode_harvest() {
   fi
 }
 
-# ------------------------------------------------------------------ wave mode
-mode_wave() {
+# ---------------------------------------------------------------- branch mode
+mode_branch() {
   branch=""; remote=""
   while [ $# -gt 0 ]; do
     case "$1" in
@@ -200,7 +201,7 @@ mode_wave() {
   [ -n "$branch" ] || branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"
   [ -n "$remote" ] || remote="$(git config --get "branch.$branch.remote" 2>/dev/null || echo origin)"
 
-  echo "wave: branch $branch, remote $remote"
+  echo "branch: $branch, remote $remote"
 
   c="git status --porcelain"
   if [ -z "$(git status --porcelain 2>/dev/null)" ]; then
@@ -211,7 +212,7 @@ mode_wave() {
 
   # The landing check. An orchestrator that dies between committing and pushing
   # leaves every other signal reading "finished": no worktrees, clean tree,
-  # beads closed. Only this comparison separates a landed wave from an unlanded
+  # beads closed. Only this comparison separates a landed branch from an unlanded
   # one.
   c="git rev-list --count $remote/$branch..$branch"
   if git rev-parse --verify -q "$remote/$branch" >/dev/null 2>&1; then
@@ -614,11 +615,11 @@ print(" ".join(x.get("id","") for x in d) if isinstance(d,list) else "")' 2>/dev
   echo "      - the final report's prose: totals, follow-ups, stashes, pushes"
 }
 
-[ $# -ge 1 ] || die "usage: bb-status.sh bead|wave|run|slot|harvest|--self-test"
+[ $# -ge 1 ] || die "usage: bb-status.sh bead|branch|run|slot|harvest|--self-test"
 sub="$1"; shift
 case "$sub" in
   bead)        mode_bead "$@" ;;
-  wave)        mode_wave "$@" ;;
+  branch)      mode_branch "$@" ;;
   run)         mode_run "$@" ;;
   slot)        mode_slot "$@" ;;
   harvest)     mode_harvest "$@" ;;

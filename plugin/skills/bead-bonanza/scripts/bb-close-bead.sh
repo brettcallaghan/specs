@@ -258,9 +258,9 @@ else
 fi
 
 sha="$(git rev-parse --short HEAD)"
-# 5. Push the tracker. PER-CLOSE, not per-wave. A bead's closure is the unit of durable work, and
-#    deferring to a wave boundary loses every closure since the last push when
-#    a container is reclaimed mid-wave, which is the loss this epic exists to
+# 5. Push the tracker. PER-CLOSE, not per-batch. A bead's closure is the unit of durable work, and
+#    deferring to the end of a batch loses every closure since the last push when
+#    a container is reclaimed mid-batch, which is the loss this epic exists to
 #    prevent. The cost is one push per bead, seconds.
 #
 #    Skipped quietly where no Dolt remote is configured: this script ships with

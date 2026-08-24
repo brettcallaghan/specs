@@ -31,7 +31,7 @@ Shared surface: {SURFACE}
     (What these beads have in common, e.g. "the JSON serializer in src/serialize.*
      and the serializer golden fixtures" — or "documentation and chores; no shared
      code surface". The beads are batched because they would collide if dispatched
-     side by side, so one agent takes them in order and the rest of the wave runs
+     side by side, so one agent takes them in order and everything else runs
      concurrently around them.)
 Targeted tests for this surface: {SURFACE_TARGETED_TESTS}
 

@@ -2,20 +2,20 @@
 
 **Not a prompt.** This is the orchestrator's own procedure: how a dispatch's
 worktree is created, verified, merged and removed. No subagent reads it — a
-subagent is told only its `{WORKTREE}` path, which the **`sprint-wave`** skill
-resolves along with every other placeholder.
+subagent is told only its `{WORKTREE}` path, which the coordinator resolves
+along with every other placeholder (`dispatching.md`).
 
 ## Contents
 
 - The base-ref trap — why every worktree must branch from the sprint branch,
-  and the per-wave check that proves it did
+  and the per-dispatch check that proves it did
 - Beads inside a worktree — `bd` resolves the shared tracker from any of them
 - The worktree lifecycle — create, dispatch, accept, merge (slot, `--ff-only`,
   rebase), remove
-- Concurrent dispatch within a wave
+- Concurrent dispatch out of one ready front
 
 
-## The base-ref trap — read before the first wave
+## The base-ref trap — read before the first dispatch
 
 **Every worktree MUST branch from the sprint's own branch, never the
 default branch.** Two conditions produce that, and both are checked: the
@@ -36,7 +36,7 @@ with a dependency edge. Fix (set it in user scope; project scope is untested):
 Takes effect immediately, no restart — a failed check is stop-and-fix, not
 stop-and-abandon.
 
-**Verify before every wave** — this is global state the repo doesn't own and
+**Verify before every dispatch** — this is global state the repo doesn't own and
 can change without warning. Note session HEAD (`git rev-parse --short HEAD`)
 and give the **first** worktree subagent this instruction:
 
@@ -47,8 +47,9 @@ Before doing anything else, run in your worktree:
 Report both lines verbatim as the first line of your reply.
 ```
 
-WHEN `ancestor-exit` is non-zero, **abort the wave**: wrong base, do not
-merge anything back. Fix `worktree.baseRef`, or fall back to sequential mode.
+WHEN `ancestor-exit` is non-zero, **do not dispatch**: wrong base, and do not
+merge anything back. Fix `worktree.baseRef`, or fall back to one bead at a
+time.
 
 ## Beads inside a worktree
 
@@ -116,7 +117,7 @@ committing them lands in-flight bead state on the sprint branch.
    **What the slot is for here, and what it is not.** Only the orchestrator
    merges, so within one run the serialization already holds by construction —
    the slot is not what makes merges one-at-a-time. It earns its place by making
-   that state *visible*: `bd merge-slot check` names the holder, so a wave that
+   that state *visible*: `bd merge-slot check` names the holder, so a run that
    looks stalled has an answer, and a second session that resumed the same run
    finds the slot held rather than merging concurrently with the first.
 
@@ -139,17 +140,18 @@ committing them lands in-flight bead state on the sprint branch.
    - **The holder is the actor** (`$BEADS_ACTOR`, else git `user.name`), so set
      `BEADS_ACTOR` if you want the holder to name something more specific than
      the harness default.
-   **`--ff-only` is deliberate — in a SEQUENTIAL wave.** Each bead branches
-   from an already-updated head, so every merge is a fast-forward and a refusal
-   means an invariant broke: a worktree branched from the wrong base. **Stop
-   the wave and report it; do not resolve it inline** and do not retry without
+   **`--ff-only` is deliberate — where dispatches were SERIALIZED.** Each bead
+   branches from an already-updated head, so every merge is a fast-forward and a
+   refusal means an invariant broke: a worktree branched from the wrong base.
+   **Stop and report it; do not resolve it inline** and do not retry without
    `--ff-only`.
 
-   **In a CONCURRENT wave, only the first merge can fast-forward**, and that is
-   not a fault — every branch in the wave shares one base by construction, so
-   the second onward necessarily diverge and `--ff-only` refuses them with "Not
-   possible to fast-forward". Applying the sequential rule literally would stop
-   every concurrent wave of 2+ beads and report a healthy wave as broken.
+   **Where several went out CONCURRENTLY, only the first merge can
+   fast-forward**, and that is not a fault — every branch dispatched off one
+   front shares its base by construction, so the second onward necessarily
+   diverge and `--ff-only` refuses them with "Not possible to fast-forward".
+   Applying the serialized rule literally would stop every concurrent dispatch
+   of 2+ beads and report a healthy run as broken.
 
    So for each branch after the first: **rebase it onto the updated sprint head,
    then fast-forward.**
@@ -160,10 +162,10 @@ committing them lands in-flight bead state on the sprint branch.
    git merge --ff-only <suffix>                      # now it fast-forwards
    ```
 
-   **Read the target at merge time, never earlier in the wave.** Each bead is
-   merged into the sprint branch as it is accepted, so accepting the wave's
-   first bead moves the head before its second is merged. A sha noted at wave
-   start is already stale, and `--ff-only` is right to refuse it.
+   **Read the target at merge time, never earlier.** Each bead is merged into
+   the sprint branch as it is accepted, so accepting the first moves the head
+   before the second is merged. A sha noted at dispatch time is already stale,
+   and `--ff-only` is right to refuse it.
 
    **The merge slot does not cover this rule, so the rule stays.** The slot
    serializes *who merges*; staleness is a single merger reading a sha too
@@ -175,7 +177,7 @@ committing them lands in-flight bead state on the sprint branch.
    to the rebase:** a rebase CONFLICT means two beads genuinely changed the same
    lines, which is the failure `--ff-only` was standing in for.
 
-   **A conflict is an INCIDENT, and recording it is not optional.** The wave
+   **A conflict is an INCIDENT, and recording it is not optional.** The
    packing is built on the claim that these two beads do not touch each other;
    a conflict is that claim failing, which is exactly a decision changing what
    "correct" means. It is kind `sequencing` — a blocker the dependency graph
@@ -184,13 +186,13 @@ committing them lands in-flight bead state on the sprint branch.
    material:
 
    ```sh
-   bd comment <bead> "retro:sequencing:<other bead> incident — rebase conflict on <files>; wave packing claimed isolation"
-   bd comment {EPIC} "amend: incident on <bead> — wave packing claimed isolation; rebase conflicted on <files>"
+   bd comment <bead> "retro:sequencing:<other bead> incident — rebase conflict on <files>; no collision edge separated them"
+   bd comment {EPIC} "amend: incident on <bead> — packing claimed isolation; rebase conflicted on <files>"
    ```
 
-   **Then stop the WAVE, not the run.** Every bead already merged stays merged
-   and every other branch in the wave is still mergeable; what is unsafe is
-   dispatching further work on a base whose isolation assumption just failed.
+   **Then stop DISPATCHING, not the run.** Every bead already merged stays
+   merged and every branch already returned is still mergeable; what is unsafe
+   is sending further work onto a base whose isolation assumption just failed.
    Mark the unmerged bead `blocked`, leave its worktree standing, and report.
 
    **Resolving the conflict is NOT the merging agent's.** It holds the merge
@@ -198,7 +200,7 @@ committing them lands in-flight bead state on the sprint branch.
    which side to keep, so a resolution it invents is an unreviewed edit landing
    under someone else's commit. Two beads that genuinely collided are a
    re-planning problem: the surface they share belongs in ONE batch, sequential,
-   which is the fix the next wave applies.
+   which is the fix a collision edge between them expresses.
 4. **Remove the worktree — the final act of accepting the dispatch**, once
    every bead in it has merged:
    ```sh
@@ -248,11 +250,12 @@ directories without deregistering them, and a stale entry reads as in-flight
 forever: `git worktree prune` before `git worktree list` in pre-flight and in
 recovery.
 
-## Concurrent dispatch within a wave (enabled)
+## Concurrent dispatch out of one ready front (enabled)
 
 Spawn several beads at once — one `Agent` call per bead with
-`isolation: "worktree"`, all in a single message. Waves themselves stay
-sequential; concurrency is across beads *inside* a wave.
+`isolation: "worktree"`, all in a single message. What may go out together is
+whatever the front holds: collision edges keep anything that would conflict out
+of it.
 
 The lifecycle above is unchanged per bead. Two additions when running
 concurrently: merge each branch as it returns rather than after all return, and

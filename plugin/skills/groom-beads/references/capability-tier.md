@@ -89,7 +89,7 @@ still routes correctly after the lineup changes. The routing rubric is owned by
   the orchestrator reports back. Bias toward the cheaper call.
 - **Always record `tier_reason`** — a bare tier can't be audited, and the
   retro uses the reason to tell whether routing was calibrated.
-- **Assign a default, never null** — a mis-groomed bead must not stall a wave.
+- **Assign a default, never null** — a mis-groomed bead must not stall a run.
   WHEN genuinely unsure, `standard` and say so.
 - Set a named `model` **only** as an override, when a specific model is
   genuinely required. Normal beads carry `tier` and no `model`.

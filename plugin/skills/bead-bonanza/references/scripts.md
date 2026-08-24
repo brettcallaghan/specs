@@ -4,9 +4,9 @@
 own — `scripts/pre-flight-check.sh`, `scripts/bb-status.sh`,
 `scripts/sprint-cleanup.sh` — plus `scripts/bb-close-bead.sh` on exactly one
 path, finishing a bead a crashed subagent left behind (`recovery.md`). The
-skip-verification script belongs to the **`sprint-wave`** and **`sprint-batch`**
-skills, and the checks runner to **`run-bead`**; each is documented where it is
-called.
+skip-verification script is the **`sprint-batch`** skill's, and the checks
+runner **`run-bead`**'s; each is documented where it is called, and the
+coordinator's own use of the skip check is in `dispatching.md`.
 
 **The scripts are executed, not read.** Each encodes an ordering, quoting or
 portability rule that is easy to state and easy to get wrong under pressure.
@@ -20,7 +20,7 @@ disagreement is a finding worth recording.
 
 ```
 pre-flight-check.sh [<epic-id>] [--json] [--self-test]          # sandbox ON
-bb-status.sh bead <id> [--worktree <path>] [--pre-merge] | wave | run <epic> | harvest
+bb-status.sh bead <id> [--worktree <path>] [--pre-merge] | branch | run <epic> | harvest
 sprint-cleanup.sh <epic-id> [--dry-run]
 bb-close-bead.sh [--trailers-from <epic>] <bead-id> <priority> <title>
 ```
@@ -41,11 +41,11 @@ The last one is the recovery path only — see its entry below.
   an additional mode for an agent that wants structure without eval, never a
   replacement, since a shell cannot eval JSON.
 - **`scripts/bb-status.sh`** — read-only; repairs nothing. `bead` verifies the
-  five acceptance signals in order; `wave` reports tree cleanliness, the
+  five acceptance signals in order; `branch` reports tree cleanliness, the
   landing check (unpushed commits against the upstream), surviving worktrees
   and the merge slot's holder; `harvest` asserts a run's `retro:` total is
   non-zero, since a zero total is a broken pipeline rather than a flawless run.
-  Exit 0 clear, 1 repairable, 2 stop-the-wave, 3 invocation error. **Run-level:
+  Exit 0 clear, 1 repairable, 2 stop, 3 invocation error. **Run-level:
   a subagent never runs it** — inside its own worktree signal 4 reads
   differently by construction.
 - **`scripts/bb-close-bead.sh`** — **`run-bead` owns this**; the coordinator runs

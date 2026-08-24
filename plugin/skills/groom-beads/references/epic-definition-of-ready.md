@@ -11,7 +11,7 @@ Check it whenever you groom under an epic.
 - [ ] **It has children.** An epic with none scopes an empty run, which reads
       exactly like a finished one.
 - [ ] **Every child meets the per-bead DoR**, or is explicitly out of scope and
-      says so. A single un-ready child stalls a wave that has already started.
+      says so. A single un-ready child stalls a run that has already started.
 - [ ] **Dependency edges among the children are wired, not implied.** An order
       that lives only in prose is honoured only if someone reads the prose; an
       edge is honoured by the tracker at every dispatch.
@@ -24,7 +24,7 @@ Check it whenever you groom under an epic.
       decays silently.
 
       **The producer is `sprint-plan`'s assign step**, which writes
-      `dev-<run-id>-<batch-id>` onto every planned bead once the wave table
+      `dev-<run-id>-<batch-id>` onto every planned bead once the partition
       that value derives from exists. Nothing earlier in a run writes an
       assignee, so this check runs AFTER that step. Run before it and it names
       every child of every epic on every run — a check that always fires is
@@ -49,7 +49,7 @@ Check it whenever you groom under an epic.
 - [ ] **The dev pool fits the concurrency cap, and the check NAMES the count
       and the cap.** Require `N_dev <= concurrency_cap - 1` — the coordinator
       holds a slot of its own. Above that the surplus agents queue behind the
-      cap and the wave never drains; the run looks alive and makes no progress.
+      cap and their queues never drain; the run looks alive and makes no progress.
 
       ```sh
       cap=$(bd show <epic> --json | jq '.[0].metadata.concurrency_cap')
@@ -82,7 +82,7 @@ dependency edges that cross between sub-epics. But those three commands are
 **one level deep** — they report the sub-epics as work items and never see
 their leaves, and `bd epic status` counts sub-epics rather than beads.
 
-So a nested epic costs the wave preview and the progress count, both of which
+So a nested epic costs the swarm preview and the progress count, both of which
 the orchestrator can recompute, and costs nothing else.
 
 **Report which shape the epic is in; do not require flatness.** Requiring it

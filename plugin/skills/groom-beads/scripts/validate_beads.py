@@ -14,7 +14,7 @@ Two layers of checking:
      parent IDs resolve, no cycles in the blocks graph, C4 component names are in
      the controlled vocabulary from your C4 docs, model is non-null on ready
      beads, ready features/bugs carry acceptance criteria, plus a session-phrase
-     lint and a wave-collision advisory.
+     lint and a collision advisory.
 
 Exit status: 0 = clean (warnings allowed), 1 = hard errors, 2 = bad invocation.
 With --strict, warnings are promoted to errors.
@@ -280,8 +280,8 @@ def semantic_checks(beads, rep, vocab, have_c4_docs):
     if cyc:
         rep.err(cyc[0], "cycle in blocks graph: " + " -> ".join(cyc))
 
-    # wave-collision advisory: ready beads sharing a c4_changes component with no
-    # blocks edge between them cannot safely share a wave.
+    # collision advisory: ready beads sharing a c4_changes component with no
+    # blocks edge between them cannot safely be dispatched together.
     ready = [b for b in beads if (b.get("grooming_status") or "ready") == "ready" and b.get("id")]
     reach = _transitive(adj)
     for i in range(len(ready)):
@@ -295,7 +295,7 @@ def semantic_checks(beads, rep, vocab, have_c4_docs):
             ai, ci = a["id"], c["id"]
             linked = ci in reach.get(ai, set()) or ai in reach.get(ci, set())
             if not linked:
-                rep.info(ai, f"shares c4_changes {sorted(shared)} with '{ci}' and neither blocks the other — keep them in different waves")
+                rep.info(ai, f"shares c4_changes {sorted(shared)} with '{ci}' and neither blocks the other — wire a collision edge")
 
 
 def _closest(word, vocab):

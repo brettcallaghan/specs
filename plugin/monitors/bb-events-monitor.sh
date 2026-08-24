@@ -15,7 +15,7 @@
 #
 # So it watches the DIRECTORY and follows whatever appears. A run that starts
 # an hour from now is picked up without anyone restarting anything, which is
-# the always-on property that makes the per-wave ceremony unnecessary.
+# the always-on property that makes the arm-per-dispatch ceremony unnecessary.
 #
 # STDOUT IS THE PRODUCT. Every line printed here becomes a notification, so
 # this prints event lines and nothing else -- no banners, no status, no
@@ -77,7 +77,7 @@ mode_watch() {
 # No database, no repository, no network: temp directory, files appended by
 # hand. What it proves is that the monitor picks up a log created AFTER it
 # started, and a second one after that -- the property that lets it replace an
-# armed-per-wave watch.
+# hand-armed watch.
 mode_self_test() {
   t=0 f=0
   ok()  { t=$((t+1)); printf '  ok   %s\n' "$1"; }

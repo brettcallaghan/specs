@@ -650,7 +650,7 @@ fi
 say "worktree.baseRef: $WORKTREE_BASEREF"
 if [ "$WORKTREE_BASEREF" != head ]; then
   say "  ^ NOT 'head'. isolation:\"worktree\" will branch from the default branch,"
-  say "    not session HEAD, and every worktree wave loses the sprint branch's commits."
+  say "    not session HEAD, and every worktree loses the sprint branch's commits."
   block "worktree.baseRef is '$WORKTREE_BASEREF', not 'head' — every worktree dispatched this run will branch from the default branch instead of session HEAD, silently dropping every commit the sprint branch carries, isolated beads included. Fix: set .worktree.baseRef = \"head\" in $USER_SETTINGS (user scope; takes effect immediately, no restart), then re-run pre-flight-check.sh before dispatching."
 fi
 
@@ -765,7 +765,7 @@ say "concurrency_cap: $CONCURRENCY_CAP (a plan may size N_dev <= $((CONCURRENCY_
 
 # Merged onto the epic on ANY epic-scoped pass. Deliberately NOT inside the
 # checks-baseline branch above: a project that declares no checks still plans
-# its waves against the cap, and a key written only on the baseline path would
+# its dev pool against the cap, and a key written only on the baseline path would
 # be null for exactly those runs.
 if [ -n "$EPIC" ]; then
   # A JSON number, matching the shape sprint-plan's run-record.md documents.

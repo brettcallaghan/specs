@@ -128,7 +128,7 @@ frontier = "fable"
 # and say so". The manifest records every row's value AND its source, so a
 # project-level default cannot hide from whoever reads the report.
 
-# "defer_push" — the orchestrator pushes per wave (skill default)
+# "defer_push" — the orchestrator pushes per batch (skill default)
 # "push_per_bead" — each subagent pushes its own branch
 push_mode = "defer_push"
 
@@ -142,7 +142,7 @@ push_mode = "defer_push"
 # move_foreign_beads = false
 
 # false — review findings are filed as beads but NOT worked in this run
-#         (skill default). true — admit them and re-enter the wave loop.
+#         (skill default). true — admit them and re-enter the dispatch loop.
 # admit_review_findings = false
 
 # "once"  — escalate one tier on repeated failure, once, and report it

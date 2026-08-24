@@ -1,12 +1,12 @@
 # Dispatch policy — identity, concurrency, tier, push
 
-**The circuit breaker stops the RUN, not just the wave.** Three consecutive
+**The circuit breaker stops the RUN, not just the batch.** Three consecutive
 blocked or failed beads is systemic — a broken base, a wrong assumption in the
-plan, an environment fault — and the next wave meets it too. Stopping the wave
-alone hands the same failure to a fresh set of agents.
+plan, an environment fault — and the next dispatch meets it too. Stopping one
+batch alone hands the same failure to a fresh set of agents.
 
-Read this at the wave boundary, when you are deciding how a wave goes out.
-`sprint-wave` executes the wave; this file is the policy it executes under.
+Read this before you dispatch. `dispatching.md` is the procedure; this file is
+the policy it runs under.
 
 ## Contents
 
@@ -61,14 +61,14 @@ dispatch mechanism for the whole run.
 
 `<run-id>` is the run epic id with the project prefix dropped — `acme-r7k`
 becomes `r7k` — and `<batch-id>` is the batch's position in the **run**,
-numbered once across every wave: wave 1's batches take 1..n and wave 2's
-continue from n+1.
+numbered once across the whole run: the first batches take 1..n and batches
+planned later continue from n+1.
 
-**Not its position in its wave.** Numbered per wave, wave 1's first batch and
-wave 2's first batch both resolve to `dev-<run-id>-1` — two agents in one run
-sharing an id, and the recomputation below then returns an ambiguous answer.
+**Never restarted.** Two batches numbered 1 in one run resolve to the same
+`dev-<run-id>-1` — two agents sharing an id, and the recomputation below then
+returns an ambiguous answer.
 
-Both follow from the epic id and the wave table, so a **resumed session
+Both follow from the epic id and the partition, so a **resumed session
 recomputes the same string** and finds its own queue and its own merge-slot
 hold. A randomly minted id cannot be recomputed, and a resumed session loses
 both.
@@ -98,30 +98,26 @@ owner, which is why assigning every bead before dispatch and exporting
 
 ### Concurrent dispatch
 
-**Concurrent dispatch is ENABLED.** Several beads may be dispatched at once
-within a wave, each in its own worktree, merged as each returns.
+**Concurrent dispatch is ENABLED.** Several beads may go out of the ready front
+at once, each in its own worktree, merged as each returns.
 
-Note what is and is not concurrent. **A wave is the unit of parallelism**, and
-waves remain sequential — a wave boundary is where dependency edges resolve and
-where the base ref advances. Concurrency is *within* a wave, across beads that
-the dispatch plan established are independent.
-
-**A wave is the current ready front, packed.** Re-query
-`bd ready --parent <epic> --exclude-type=epic` at every boundary; what comes
-back is what dependencies now allow, and the plan says only how to pack it.
-Never advance by walking a stored wave list — a bead that closed early, a bead
-blocked by something discovered mid-run, and a bead admitted since the plan was
-made all make a stored position wrong, and the graph is right about all three.
+**The ready front IS what may run concurrently.** Re-query
+`bd ready --parent <epic> --exclude-type=epic` before every dispatch; what
+comes back is what dependencies and collision edges now allow. Never advance by
+walking a stored list — a bead that closed early, a bead blocked by something
+discovered mid-run, and a bead admitted since the plan was made all make a
+stored position wrong, and the graph is right about all three.
 
 Entry conditions, both required and both about **safety**: **no shared
-`c4_changes` component** between any two beads in the wave, and the base-ref
-check re-verified for this wave. Both are yours to check at dispatch, whatever
-the plan says.
+`c4_changes` component** between any two beads dispatched at once — the
+collision edges should already guarantee it, and you check rather than assume —
+and the base-ref check re-verified. Both are yours at dispatch, whatever the
+plan says.
 
 **There is no minimum bead count, and do not reintroduce one** — a count in a
 list of safety conditions reads as one, and nothing about two concurrent beads
-is less safe than three. Whether a wave is *worth* dispatching concurrently is
-ordinary judgment; whether it is *safe* is the entry conditions above.
+is less safe than three. Whether concurrency is *worth* it is ordinary
+judgment; whether it is *safe* is the entry conditions above.
 
 ### Tier selection per bead
 
@@ -181,8 +177,8 @@ lineup` block in `sf.toml`, echoed by pre-flight. Honor these:
   direct evidence about whether grooming's routing is calibrated. WHEN
   `CLAUDE_CODE_SUBAGENT_MODEL` is set, report it as Phase 4's "Tier
   escalations" section directs.
-- **Record the routing** — the dispatch plan's wave table carries a
-  `Tier` column for every bead.
+- **Record the routing** — every bead in the graph plan carries its tier in
+  node metadata.
 
 ### Push policy
 
@@ -192,5 +188,5 @@ lineup` block in `sf.toml`, echoed by pre-flight. Honor these:
   batch end. Default for a batch (one process;
   failures are observable).
 
-For a single-bead "wave," `push-per-bead` and `defer-push` are equivalent —
-don't bother labeling. Just push when the subagent returns.
+For a batch of one, `push-per-bead` and `defer-push` are equivalent — don't
+bother labeling. Just push when the subagent returns.

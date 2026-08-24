@@ -6,7 +6,7 @@ description: >-
   zero-context agent. Use this skill whenever the user wants to groom,
   refine, triage, prepare, clean up, or "get beads ready" — or mentions a
   backlog of beads, a `.beads/` directory, `bd ready`, running beads in
-  waves, assigning capability tiers to beads, or wiring bead dependencies
+  batches, assigning capability tiers to beads, or wiring bead dependencies
   before a long-running or orchestrated session. Trigger even if the user
   just says "groom these" or "make these beads ready" in a repo that uses
   beads.
@@ -22,15 +22,15 @@ backend**. A *work order* is this framework's portable, atomic unit of
 executable work — everything a fresh agent needs to complete one job, with no
 planning conversation to lean on. This skill materializes work orders as
 **beads** and drives each to the **Definition of Ready**, so an orchestrator can
-pull ready beads, group them into **waves**, and dispatch each to an **isolated
-sub-agent** with zero session context.
+pull ready beads, group them into **batches**, and dispatch each to an
+**isolated sub-agent** with zero session context.
 
 That execution model is the whole reason grooming matters. Every sub-agent is a
 *fresh agent with zero context*. So the job of grooming is not "fill in fields"
 — it is to **manufacture context-independence and correct ordering**, because
 those are the two things the orchestrator actually consumes. A bead that reads
 fine to someone who was in the planning session but is unworkable cold is the
-central failure mode, and it is invisible until it detonates three waves deep.
+central failure mode, and it is invisible until it detonates three beads deep.
 
 The north star, applied to every bead you touch:
 
@@ -54,7 +54,7 @@ copies live in the `spec` skill, so authoring and grooming can never disagree):
 
 What lives *here* is the beads-specific machinery: probing the `bd` CLI, mapping
 the work-order format onto bead fields and metadata, wiring the edge graph,
-validating the result, and previewing waves.
+validating the result, and previewing the partition.
 
 ## The work-order → bead mapping
 
@@ -162,7 +162,7 @@ child ready or explicitly out of scope, dependency edges wired rather than
 implied, nothing the run needs derivable only by you.
 
 **Flatness is preferred, not required**, and the reference says what a nested
-epic costs: the wave preview and the progress count, both recomputable.
+epic costs: the swarm preview and the progress count, both recomputable.
 Dispatch is unaffected. Report which shape the epic is in; requiring flatness
 would push the author to move beads out of the epics that own them.
 
@@ -188,14 +188,14 @@ numbers**. Encode real relationships with the right edge type (these realize the
 work order's `depends_on` / `blocks` / `parent_slug` / `related` /
 `discovered_from` fields):
 
-- `blocks` / `blocked-by` — genuine sequential dependencies. This is what defines
-  wave boundaries via `bd ready`.
+- `blocks` / `blocked-by` — genuine sequential dependencies. This is what the
+  ready front is computed from.
 - `parent` — the bead belongs to an epic.
 - `related` — relevant but non-blocking.
 - `discovered-from` — work surfaced while implementing another bead. Preserve
   these; they're how emergent work stays attached to its origin.
 
-Add only edges you can justify. A missing real edge is a wave-time race; a
+Add only edges you can justify. A missing real edge is a dispatch-time race; a
 fabricated edge needlessly serializes work the orchestrator could parallelize.
 
 **A sequencing constraint you discover here is an edge, not a note.** WHEN one
@@ -203,8 +203,8 @@ bead consumes a contract another is changing — `c4_impacts` intersecting
 another bead's `c4_changes`, or a stated prerequisite — wire
 `bd dep add <consumer> <producer>`. An orchestrator dispatches from the
 re-queried ready front, so an edge is honoured automatically, at any depth and
-across epic boundaries; a line of prose in a wave preview is honoured only if
-someone reads it, and nothing re-reads it after the first wave.
+across epic boundaries; a line of prose in a preview is honoured only if
+someone reads it, and nothing re-reads it after the first dispatch.
 
 **`blocks` edges are type-segregated** — task↔task and epic↔epic are accepted,
 task↔epic is refused in both directions (`tasks can only block other tasks, not
@@ -255,7 +255,7 @@ bd update <id> --metadata '{"tier":"standard","tier_reason":"...","est_size":"S"
 These three fields are **arrays**, which is why this phase uses
 `--metadata` and not `--set-metadata`: the latter would store
 `["auth-service"]` as the literal string `"[\"auth-service\"]"`, and
-anything reading `c4_changes` as a list — wave-collision packing above
+anything reading `c4_changes` as a list — collision packing above
 all — would not see a component name. `--metadata` merges at the top
 level, so phase 4's tier keys survive without restating them.
 
@@ -265,7 +265,7 @@ level, so phase 4's tier keys survive without restating them.
   names that exist. If a bead targets a component with no doc, flag it in the
   report — that mismatch is either a stale doc or a misunderstanding, and both are
   worth surfacing.
-- This pays off three ways: **wave isolation** (two beads that both *change*
+- This pays off three ways: **dispatch isolation** (two beads that both *change*
   `auth-service` are a collision even when both are `bd ready` — dependency-free ≠
   safe-to-parallelize), **tier routing** (blast radius is a risk signal), and
   **doc freshness** (a bead that changes a component should carry an acceptance
@@ -304,7 +304,7 @@ on whether `bd` is live:
 Either way: cycles, orphans and dangling references are hard problems — fix
 them, don't report around them.
 
-### 7. Report — and optionally preview waves
+### 7. Report — and optionally preview the partition
 
 Close the pass with a concise report:
 - What you groomed and the notable changes per bead (especially descriptions you
@@ -314,12 +314,11 @@ Close the pass with a concise report:
 - Any flags for the human: invented-looking dependencies you declined to wire,
   C4 component mismatches, beads too ambiguous to size.
 
-**Optional wave preview** (default on, non-authoritative): group the ready beads
-into candidate waves under *two* constraints — dependencies **and** no two beads
-sharing a `c4_changes` component in the same wave — and present it as a
-suggestion for the orchestrator to accept or ignore. The orchestrator remains
-the source of truth on wave-packing; this just hands it the C4-collision insight
-for free. Say explicitly that it's a preview.
+**Optional partition preview** (default on, non-authoritative): name every pair
+of ready beads sharing a `c4_changes` component, and group each cluster into a
+candidate batch in dependency order. Those pairs become **collision edges** in
+the plan, so a pair never reaches the ready front together. The planner remains
+the source of truth on packing; say explicitly that this is a preview.
 
 ## The retro loop (closing the circle)
 
@@ -331,7 +330,7 @@ runs a retro (or asks you to help with one), the highest-value outputs are:
   are the run's only direct routing evidence. Note the asymmetry: escalations
   surface under-routing, but nothing surfaces over-routing — so a large run
   with zero escalations is worth examining, not celebrating.
-- **Grooming misses** — beads reopened or blocked mid-wave for missing context.
+- **Grooming misses** — beads reopened or blocked mid-run for missing context.
   Capture the *pattern* as `bd remember "<insight>"` so future grooming (via
   `bd prime`) inherits it, and ideally propose it as an RFC against the
   Definition of Ready (which the `spec` skill owns).

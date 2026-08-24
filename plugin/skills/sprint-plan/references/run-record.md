@@ -1,11 +1,11 @@
 # Run Record Format
 
 **The run's record is its epic**, not a file: the manifest is `--metadata` JSON
-on it, the amendments are `amend:`-prefixed comments on it, and the wave table
-is returned rather than stored. There is no `dispatch.md` and no run directory —
-the tracker outlives a reclaimed container, and a `/tmp` path does not.
+on it and the amendments are `amend:`-prefixed comments on it. There is no
+`dispatch.md` and no run directory — the tracker outlives a reclaimed
+container, and a `/tmp` path does not.
 
-Read this when you produce a wave table, and again whenever the orchestrator
+Read this when you produce the graph plan, and again whenever the orchestrator
 amends the run. It is written for whoever picks the sprint back up — which may
 be an agent with no memory of having written it.
 
@@ -19,16 +19,13 @@ when this skill is invoked. Read it; never rewrite it.
   exit 0, as the bar for every bead
 - `concurrency_cap` — the size of the harness's worker pool, and the
   N_dev ≤ cap − 1 rule the plan is checked against
-- Wave table — returned to the orchestrator, never stored; names beads, and
-  every row carries class, batch, tier and push mode, with its Reason naming
-  which collision class applies
+- Collision edges — a concurrency policy expressed as a dependency, how it is
+  marked so a reader can tell it from a real one, and why a co-edit collision
+  batches rather than parallelizes
 - Reading C4 overlap — compute co-edit and sequencing edges from bead metadata,
-  not from file paths; and why a co-edit collision batches rather than
-  parallelizes
-- Trusting `bd swarm validate`'s preview — the two measured conditions that
-  void its partition
+  not from file paths
 - The graph plan — the `bd create --graph` document the plan emits, its
-  measured schema, the two validators that run before it is loaded, and a
+  measured schema, the three validators that run before it is loaded, and a
   worked example
 - Amendments — `amend:` comments on the epic, append-only by construction
 
@@ -42,7 +39,7 @@ needs its record exactly as much as a twenty-bead run does.
 whole with `bd show <epic-id> --json | jq '.[0].metadata'`.
 
 **`branch` and `base_sha` are the orchestrator's, written once.** It creates
-the sprint branch immediately before dispatching wave 1 — after grooming, so
+the sprint branch immediately before its first dispatch — after grooming, so
 `base_sha` includes the grooming commits — and writes both keys then. A run
 whose manifest already carries them **reuses** the branch and creates nothing;
 that is what makes a resumed run land where the original did. Three things read
@@ -65,7 +62,7 @@ opens against it.
   "admitted": ["<bead-id>", "…"],
   "excluded": [{"id": "<bead-id>", "reason": "declined move out of <epic-id>"}],
   "moved": [{"id": "<bead-id>", "from": "<previous parent>"}],
-  "wave_preview": "accepted | overridden — <why> | none (no C4 docs) | not returned",
+  "partition_preview": "accepted | overridden — <why> | none (no C4 docs) | not returned",
   "review_passes": 0,
   "review_budget": 2,
   "graph_plan": "<path to the graph plan this skill emitted>",
@@ -136,7 +133,7 @@ bd list --parent <run-epic> --json \
 
 ## Environmental ledger
 
-Facts established this run that no wave should re-diagnose. Admitted on
+Facts established this run that no dispatch should re-diagnose. Admitted on
 evidence, not on reasoning: every entry — including a claim of sufficiency
 ("this check verifies X"), not only a claim of impossibility — names the
 command that proved it and the result observed; run it first, record it
@@ -154,51 +151,63 @@ A gate recorded `fail` in the baseline is the bar for every bead in this run:
 "no findings beyond the baseline", not "exit 0". A gate with no recorded
 baseline is expected to exit 0.
 
-## Wave table
+## Collision edges
 
-**The plan names beads, and records the epic they came from.** The queue is
-re-derivable from that one id — `bd ready --parent <epic-id> --exclude-type=epic`
-— which is why the table is returned rather than stored: a stored copy can only
-drift out of agreement with the graph it describes. Beads discovered mid-run
-enter through Phase 1.5 step 4's scope test, and are recorded as an amendment.
+**The partition is edges in the graph, not a schedule.** Two beads that must
+not run at once get a `blocks` edge between them, so they cannot both be in
+`bd ready` and the coordinator can dispatch the front continuously without
+consulting a plan. Beads discovered mid-run enter through the emergent-work
+scope test and are recorded as an amendment; the graph absorbs them without a
+re-plan, which a schedule could not.
 
-```markdown
-| Wave | Bead | Class | Batch | Tier | Push | Reason |
-|------|------|-------|--------|------|------|--------|
-| 1 | demo-89s | trivial | batch #1 | light | defer | docs only |
-| 1 | demo-aqw | trivial | batch #1 | light | defer | comment only |
-| 2 | demo-9h0 | shared | shared-batch #1 | standard | defer | same serializer + fixture cluster |
-| 2 | demo-04y | shared | shared-batch #1 | standard | defer | same cluster |
-| 2 | demo-ojt | shared | shared-batch #1 | standard | defer | same cluster |
-| 2 | demo-1kq | shared | shared-batch #2 | standard | defer | same c4_changes: auth-service as demo-4tp (no file overlap) |
-| 2 | demo-4tp | shared | shared-batch #2 | standard | defer | same c4_changes: auth-service |
-| 3 | demo-7wb | isolated | sequential | standard | — | consumes auth-service, changed by demo-1kq |
-| 3 | demo-d3j | isolated | sequential | advanced | — | validator change; different surface |
+**A collision edge is a POLICY expressed as a dependency**, and that conflation
+is the price of putting it in the graph. Pay it explicitly: **both ends carry
+`metadata.collision` naming the shared surface**, so a reader can tell a policy
+edge from a real one. Nothing else in the plan can carry the mark — measured,
+`bd create --graph` drops an unknown field on an **edge** object and an unknown
+key on the **plan** object with a warning and exit 0, exactly as it does on a
+node, so a label placed there reaches the tracker as nothing at all.
+
+```json
+{"key": "b", "title": "…", "type": "task", "parent_key": "target",
+ "assignee": "dev-r7k-2", "metadata": {"c4_changes": "auth-service",
+                                       "collision": "c4_changes:auth-service"}}
 ```
 
-`Tier` is the bead's `metadata.execution_suggested_model` (else
-`metadata.tier`), resolved to a model at dispatch via the
-project's `sf.toml` `[models]` lineup. Leave it blank only when the project declares no
-lineup — the subagent then inherits the session model.
+Two beads blocked apart by an edge and carrying the same `collision` value were
+separated by policy. A blocked bead with no `collision` mark, or one whose mark
+differs from its blocker's, has a real dependency.
 
-### The Reason column names the collision class
+**Chain a cluster, do not fan it.** N beads on one surface get N−1 edges in a
+line, and the whole line takes ONE `assignee` — that is what a batch is now.
+The assignee groups it; the edges order it; `bd ready --assignee dev-<id>`
+returns its head. A fan (every bead blocked on one) would leave the rest ready
+simultaneously and defeat the point.
 
-The two collision classes have different consequences, so they must not read
-alike. Spell out which one a row is:
+**Order the chain by dependency first, then by priority.** Where two beads in a
+cluster already have a real edge between them, the collision chain must not
+contradict it — a cycle is refused, and an order that fights the real
+dependency serializes the wrong way round.
 
-- **Co-edit collision** — names the shared surface: `same c4_changes:
-  auth-service`, `same fixture cluster`, `both edit testdata/golden.json`. These
-  beads may share a batch; they may never share a concurrent wave.
-- **Sequencing constraint** — names what is consumed and whose change it
-  consumes: `consumes auth-service, changed by demo-1kq`. This is an *ordering*
-  edge, not a batching one; it can hold with zero file overlap. The consumer
-  goes in a later wave, or after the producer inside one batch. WHEN the
-  ordering must survive recovery or a re-plan, wire a real `blocks` edge and say
-  so in the row.
-- **Signal disagreement** — say both signals and that you took the union:
-  `union: disjoint c4, overlapping fixture testdata/golden.json`. A
+### Name which class each edge is
+
+The two classes have different consequences, so they must not read alike:
+
+- **Co-edit collision** — the shared surface: `c4_changes:auth-service`,
+  `fixture:testdata/golden.json`. Marked with `metadata.collision`, removable
+  without changing what any bead means.
+- **Sequencing constraint** — the consumer waits for the producer, because it
+  consumes a contract the producer is changing. It holds with zero file
+  overlap, it is a real dependency, and it carries **no** `collision` mark.
+- **Signal disagreement** — the file scan and the C4 tags disagree. Take the
+  **union** as the collision set, mark it, and say so in the return: a
   disagreement usually means stale C4 tagging or a bead scoped wider than its
   tags say, so it is worth a line even when the packing is unaffected.
+
+Tier is not an edge at all: it rides on the bead as
+`metadata.execution_suggested_model` (else `metadata.tier`) and resolves to a
+model at dispatch via the project's `sf.toml` `[models]` lineup. Where the
+project declares no lineup the subagent inherits the session model.
 
 ## Reading C4 overlap
 
@@ -230,38 +239,23 @@ Worked example, four beads:
 | C | `web-spa` | `auth-service` |
 | D | `reporting-service` | — |
 
-A + B collide on `auth-service` even if they share no file: shared-surface, one
-batch, never the same parallel wave. C changes a different component and shares
-no file with either, but consumes `auth-service` — a sequencing constraint, so C
-runs after both. D is isolated on both signals. Nothing in this reads a file
-path, which is the point: the file scan would have parallelized A with B and
-seen no relationship at all between C and them.
+A + B collide on `auth-service` even if they share no file: shared-surface, so
+a **collision edge** chains them behind one assignee. C changes a different
+component and shares no file with either, but consumes `auth-service` — a
+sequencing constraint, so C gets a real `blocks` edge after both. D is isolated
+on both signals and gets neither. Nothing in this reads a file path, which is
+the point: the file scan would have parallelized A with B and seen no
+relationship at all between C and them.
 
 ### Why a co-edit collision batches rather than parallelizes
 
 **Worktrees isolate the agents but not the merge.** Two agents in two worktrees
 never see each other's edits; then both branches come back to the orchestrator,
 the second lands on a file the first already rewrote, and under `--ff-only` the
-merge refuses and stops the wave. Batching removes that: the beads go behind one
-agent, in order, each branching from the last, so what returns is already
-reconciled. Isolation is never grounds to relax a batching rule — it prevents a
-collision that was never the hazard.
-
-## Trusting `bd swarm validate`'s preview
-
-`bd swarm validate <epic>` gives a wave preview worth starting from, under two
-measured conditions:
-
-- **It scopes dependency analysis to the epic given.** An edge to a bead outside
-  that epic is reported as a warning and then ignored — observed placing a
-  blocked bead in Wave 1. If it warns about an outside dependency, do not use
-  its partition.
-- **It is one level deep.** On a nested run epic it lists sub-epics as work
-  items and never sees their leaves. If the run epic is nested, do not use its
-  partition.
-
-Under either, derive packing from the re-queried ready front instead, and say in
-the return which one was used.
+merge refuses. Batching removes that: the beads go behind one agent, in order,
+each branching from the last, so what returns is already reconciled. Isolation
+is never grounds to relax a batching rule — it prevents a collision that was
+never the hazard.
 
 ## The graph plan
 
@@ -311,6 +305,9 @@ afterwards.
 | `to_key` | the node it waits for |
 | `type` | `blocks` |
 
+**An edge carries nothing else** — which is why a collision edge's mark lives
+in the waiting node's `metadata` and not on the edge.
+
 ### Three traps, each of which fails silently
 
 **`from_key` waits for `to_key` — the opposite of how `"type": "blocks"`
@@ -324,33 +321,42 @@ plan key is accepted with **no warning** and creates an orphan — the node land
 outside the run epic entirely, and every `--parent` query then under-reports the
 queue. Use `parent_key` for nodes this plan creates.
 
-**An unknown field is a warning, not an error, and the load still exits 0.**
-`bd create --graph` prints `graph plan node["x"] has unknown field(s): […]
-(silently dropped)` and carries on, so a mistyped `assignee` is a bead nobody
-owns and a mistyped edge key is a dependency that was never wired. A *parse*
-error is the opposite — it aborts before creating anything. So the fail-open
-case is the one a validator has to cover.
+**An unknown field is a warning, not an error, and the load still exits 0** —
+at all three levels. Measured on one load: an unknown field on a **node**, on
+an **edge**, and an unknown key on the **plan object itself** each printed
+`graph plan … has unknown field(s): […] (silently dropped — see 'bd create
+--graph' schema)` and the load reported `Created 3 issues`, exit 0. So a
+mistyped `assignee` is a bead nobody owns, a mistyped edge key a dependency
+that was never wired, and a sidecar list of collision edges reaches the tracker
+as nothing at all. A *parse* error is the opposite — it aborts before creating
+anything. The fail-open case is the one a validator has to cover.
 
-### Two validators, before the plan is handed over
+### Three validators, before the plan is handed over
 
-**1. Unknown fields.** Check every node and edge object against the field
-tables above and **name the offending key** in the failure. Do not rely on
-`bd`'s warning: it appears on a run that also reports success, so nothing
-downstream treats it as a failure.
+**1. Unknown fields.** Check every node and edge object — and the top-level
+plan object — against the field tables above and **name the offending key** in
+the failure. Do not rely on `bd`'s warning: it appears on a run that also
+reports success, so nothing downstream treats it as a failure.
 
 **2. Flatness of the swarmed target.** **No node whose `parent_key` is the
 target epic may have `type: "epic"`.** A nested target makes `bd swarm
 validate` count the child epic as one issue and never see the beads beneath
 it — measured, a target with one child epic over two tasks reports `Total
-issues: 1` and puts the *child epic* in Wave 1, while the same two tasks
-parented directly report `Total issues: 2`. Both report `Swarmable: YES`. Work
-that genuinely decomposes becomes a second target under the run epic, swarmed
-separately.
+issues: 1` and treats the *child epic* as the work item, while the same two
+tasks parented directly report `Total issues: 2`. Both report `Swarmable: YES`.
+Work that genuinely decomposes becomes a second target under the run epic,
+swarmed separately.
+
+**3. Every collision edge is marked.** For each edge you emitted as a
+collision, both endpoints must carry `metadata.collision` with the same value,
+and no node may carry the mark without an edge to justify it. Unmarked, the
+policy is indistinguishable from a real dependency the moment the plan file is
+out of view — which is every reader after the run starts.
 
 ### Worked example
 
 Run epic as the container, ceremony epics and a flat target beneath it, work
-beads assigned, dependencies as edges:
+beads assigned, dependencies and one collision as edges:
 
 ```json
 {"nodes": [
@@ -359,14 +365,21 @@ beads assigned, dependencies as edges:
   {"key": "target",    "title": "(TARGET) plan items 6-14", "type": "epic", "parent_key": "run", "priority": 1},
   {"key": "report",    "title": "Report", "type": "epic", "parent_key": "run", "priority": 2},
   {"key": "i6", "title": "Item 6: the graph plan", "type": "task", "parent_key": "target", "assignee": "dev-mpnf-3", "priority": 1},
-  {"key": "i7", "title": "Item 7: the run-epic shape", "type": "task", "parent_key": "target", "assignee": "dev-mpnf-1", "priority": 1},
-  {"key": "i8", "title": "Item 8: collisions as edges", "type": "task", "parent_key": "target", "assignee": "dev-mpnf-2", "priority": 2}],
+  {"key": "i7", "title": "Item 7: the run-epic shape", "type": "task", "parent_key": "target", "assignee": "dev-mpnf-1", "priority": 1,
+   "metadata": {"c4_changes": "bead-bonanza", "collision": "c4_changes:bead-bonanza"}},
+  {"key": "i8", "title": "Item 8: collisions as edges", "type": "task", "parent_key": "target", "assignee": "dev-mpnf-1", "priority": 2,
+   "metadata": {"c4_changes": "bead-bonanza", "collision": "c4_changes:bead-bonanza"}}],
  "edges": [
   {"from_key": "target", "to_key": "preflight", "type": "blocks"},
   {"from_key": "report", "to_key": "target",    "type": "blocks"},
   {"from_key": "i7",     "to_key": "i6",        "type": "blocks"},
-  {"from_key": "i8",     "to_key": "i6",        "type": "blocks"}]}
+  {"from_key": "i8",     "to_key": "i7",        "type": "blocks"}]}
 ```
+
+`i7` and `i8` both edit `bead-bonanza`, so the last edge is a **collision**:
+both ends carry the same `metadata.collision`, and both are assigned to
+`dev-mpnf-1`, which is what makes them one batch worked in order. The
+`i7 <- i6` edge above it carries no mark, so it is a real dependency.
 
 Loading that prints `Created 7 issues` and one `key -> id` line each. Assert
 four things against the database, not against the file: the node count, every
@@ -384,17 +397,17 @@ ready` on its own account.
 ## Amendments
 
 Amendments are **`amend:`-prefixed comments on the run epic**. WHEN the run
-diverges mid-flight — a wave resequenced, a batch reclassified, a bead
-admitted or bounced, a tier escalated — `bd comment <epic-id> "amend: …"`.
+diverges mid-flight — an edge added, a batch reclassified, a bead admitted or
+bounced, a tier escalated — `bd comment <epic-id> "amend: …"`.
 
 Append-only and timestamped by construction, so there is no read-modify-write
 to lose and no ordering to maintain. There is no second copy to keep in step:
-the wave table is re-derived, not stored, and the tracker is the only record.
+the graph is the plan, and the tracker is the only record.
 
 ```
-bd comment <epic-id> "amend: wave 5 (demo-9kb.6, .7, .9) re-planned from one
-shared batch to strictly sequential — .7's change to the shared fixture
-invalidates .9's expected bytes, so they cannot share a checks run."
+bd comment <epic-id> "amend: collision edge added demo-9kb.9 <- demo-9kb.7 —
+.7's change to the shared fixture invalidates .9's expected bytes, so they
+cannot share a checks run."
 
 bd comment <epic-id> "amend: demo-9kb.8 escalated standard -> advanced after
 two failed checks cycles."
