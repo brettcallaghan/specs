@@ -213,7 +213,12 @@ the count.
 ### 4 · `BEADS_ACTOR` in every agent and subagent
 
 **Change.** Every dispatch prompt exports `BEADS_ACTOR=<agent id>` before any
-`bd` call.
+`bd` call. Measured on `bd` 1.2.2, a claim with the variable unset silently
+rewrites `assignee` on an **unassigned** bead (exit 0, the git `user.name`
+fallback) and is refused loudly on an assigned one (exit 1, `issue already
+claimed by <id>`). So this export and item 3's “every bead assigned before
+dispatch” check are belt and braces rather than alternatives — the export
+covers the loud arm, the assignment closes the silent one.
 
 **The roster is wider than the design doc said, and item 7 is why.** Once
 ceremony is beads, each ceremony epic is work someone does — so there is one
@@ -249,10 +254,18 @@ dispatch mechanism uniform.
 `plugin/skills/sprint-wave/SKILL.md`, and — once item 7 lands — wherever each
 ceremony agent is dispatched from.
 
-**Verify.** In a scratch database: assign a bead to `dev-x`, claim it with
-`BEADS_ACTOR=dev-x`, assert the assignee is unchanged. Repeat without the
-variable and assert it changed — the negative control is the point, because the
-failure is silent.
+**Verify.** In a scratch database, three arms — and the negative control must
+start from an **unassigned** bead, which is the one entry point the failure
+has:
+
+1. Assign a bead to `dev-x` and claim it with `BEADS_ACTOR=dev-x`. Assert exit
+   0 and the assignee unchanged.
+2. Claim that same assigned bead with the variable unset. Assert exit 1,
+   `issue already claimed by dev-x`, and the assignee unchanged — this arm is
+   refused loudly, so it is not the control.
+3. Claim an **unassigned** bead with the variable unset. Assert exit 0 and
+   `assignee` silently set to the git `user.name` fallback. This is the
+   negative control, because this is the failure that is silent.
 
 **Risk.** None. Additive.
 

@@ -28,7 +28,7 @@ the units to turn into beads.
 | **1** | **Put `bd epic close-eligible` in the coordinator loop, before every ready query.** | Without it the run deadlocks *silently* and reports success. This is the single highest-severity finding in the document, and the fix is one line. | §4a |
 | **2** | **Cap distinct assignees at the concurrency limit (20 default), and record the cap in the manifest.** | A plan with more assignees than agents leaves queues permanently undrained, with nothing reporting it. | §4 |
 | **3** | **Add two Definition-of-Ready checks: every bead assigned, assignee count ≤ cap.** | Both failures are invisible at runtime and trivial to catch at plan time. | §2, §4 |
-| **4** | **Export `BEADS_ACTOR` = the agent id in every agent and subagent.** | A claim without it silently rewrites `assignee` and decays the coordinator's ownership view. One env var. | §2 |
+| **4** | **Export `BEADS_ACTOR` = the agent id in every agent and subagent.** | Measured on `bd` 1.2.2: a claim without it silently rewrites `assignee` on an **unassigned** bead (exit 0, the git `user.name` fallback), and is refused loudly on an already-assigned one (exit 1, `issue already claimed by <id>`, nothing changed). The silent arm is the one that decays the coordinator's ownership view — so exporting this everywhere and assigning every bead before dispatch are belt and braces, not alternatives. One env var. | §2 |
 | **5** | **Run `bd setup claude` and review the diff.** | Already installed but stale; we are running against drifted guidance today. | §9 |
 
 ### Do next — the core rebuild, in dependency order
@@ -1160,8 +1160,16 @@ which is your thesis, and it is the right place to spend.
   edits to gates is the metric that says whether planning is improving.
 - **Claim-versus-assign must be chosen once**, and mixing them is a measured
   error, not a style question.
-- **`--claim` rewrites `assignee`.** Any worker that claims without
-  `BEADS_ACTOR` set corrupts the coordinator's ownership view silently.
+- **`--claim` rewrites `assignee`, but only on an UNASSIGNED bead.** Measured
+  on `bd` 1.2.2, with `BEADS_ACTOR` unset: on an unassigned bead the claim
+  exits 0 and `assignee` silently becomes the harness default — git
+  `user.name` — which is what decays the coordinator's ownership view; on an
+  already-assigned bead the same claim exits 1 with `issue already claimed by
+  <id>` and changes nothing, and `bd ready --claim` against an
+  already-assigned ready front claims nothing and returns `[]`. An unassigned
+  bead is therefore the only bead a claim can move to the wrong owner — which
+  is why exporting `BEADS_ACTOR` in every agent and assigning every bead
+  before dispatch are belt and braces rather than alternatives.
 - **JSON shapes differ across commands, but are stable within one.** Your
   condition — consistent per command — **holds. Measured**, varying result
   counts to try to break it:
