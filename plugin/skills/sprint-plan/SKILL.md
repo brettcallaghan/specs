@@ -198,17 +198,12 @@ largest safe batch, not to default to one-bead-per-subagent for caution.
 Sequential is the *exception*, not the rule.
 
 **Batching does not buy fewer check runs.** Every bead runs the project's
-declared checks before its own close whether batched or not — those are the
-quality bar for one commit, sized to be affordable every time. A batch changes
-who does the work and what can run alongside it, never what gets validated.
+declared checks before its own close whether batched or not; a batch changes
+who does the work and what runs alongside it, never what gets validated.
 
 **Worktrees do not make batching redundant, because the collision is at the
-merge.** A worktree isolates two agents from each other perfectly — they never
-see each other's edits. Then both branches come back to the orchestrator, the
-second one lands on a file the first already rewrote, and under `--ff-only` it
-refuses and stops the wave. Batching is what removes that: the two beads go
-behind one agent, in order, each branching from the last, so what returns is
-already reconciled. Isolation is never grounds to relax the rules below.
+merge, not between the agents.** Isolation is never grounds to relax the rules
+below — why, in `references/run-record.md`.
 
 ## Classify each bead
 
@@ -233,17 +228,14 @@ re-derive it from prose. The `jq` and a worked example are in
    - Two beads sharing a `c4_changes` component are **shared-surface** whatever
      their file paths say — the same component through different files still
      collides. They MAY batch; they SHALL NOT share a concurrent wave.
-     **The hazard is a *merge* collision:** two branches changing the same
-     component conflict when the second one merges, and under `--ff-only` that
-     stops the wave. Worktrees isolate the agents but not the merge, so
-     isolation is never grounds to relax this rule.
+     **The hazard is a *merge* collision**, not one between the agents, so
+     worktree isolation does not relax this rule.
    - Bead B whose `c4_impacts` intersects bead A's `c4_changes` consumes a
      contract A is changing. That is a **sequencing** constraint, not a batching
-     one, and it holds with zero file overlap. **It belongs in the graph:** a
-     `blocks` edge is honoured by every re-query of the ready front, where an
-     ordering noted only in this table is honoured once, by whoever reads the
-     table. WHEN you find one grooming missed, say so in your return so the
-     orchestrator can wire it — do not silently encode it as batch order.
+     one, and it holds with zero file overlap. **It belongs in the graph**, not
+     in this table: a `blocks` edge survives every re-query of the ready front,
+     a table row does not. WHEN you find one grooming missed, say so in your
+     return so the orchestrator can wire it — never as silent batch order.
    - Disjoint changes with no impact intersection is isolated *architecturally*
      only — layer 2 still runs.
 2. **File paths — fallback and corroborator.** Scan each bead's description for
@@ -262,28 +254,18 @@ the orchestrator reads it by re-querying `bd ready --parent <epic>
 which of the beads that are simultaneously ready can safely share a wave, and
 which must be batched behind one agent because they would collide.
 
-`bd swarm validate <epic>` gives a wave PREVIEW worth starting from, with two
-conditions on trusting it, both measured:
-
-- It scopes dependency analysis to the epic given. An edge to a bead outside
-  that epic is reported as a warning and then ignored — it placed a blocked
-  bead in Wave 1. **If it warns about an outside dependency, do not use its
-  partition.**
-- It is one level deep. On a nested run epic it lists sub-epics as work items
-  and never sees their leaves. **If the run epic is nested, do not use its
-  partition.**
-
-In either case derive packing from the re-queried front instead. Say in your
-return which you used.
+`bd swarm validate <epic>` gives a wave PREVIEW worth starting from, but **two
+measured conditions void its partition** — an outside-dependency warning, and a
+nested run epic. Both are in `references/run-record.md`; under either, derive
+packing from the re-queried front instead. Say in your return which you used.
 
 Where the repo documents no C4 architecture, grooming skips the tagging and
 `c4_*` is absent — file scanning is then the whole signal, and absent metadata
 means *unknown*, never "no collisions".
 
-The two collision classes read differently in the plan's `Reason` column: a
-merge collision names what is shared (`same c4_changes: auth-service`); a
-sequencing constraint names what is consumed and from whom (`consumes
-auth-service, changed by demo-9h0`).
+The `Reason` column SHALL name which of the two classes a row is — they have
+different consequences and must not read alike. Required shapes:
+`references/run-record.md`.
 
 ## Choose a dispatch mode per batch
 
@@ -337,12 +319,24 @@ Tier is not a batching decision of yours: carry each bead's tier
 the wave table's `Tier` column as grooming assigned it, and leave the
 resolution and any escalation to the orchestrator at dispatch.
 
+## The dev pool is capped
+
+**Never plan more concurrent dev assignees than the harness can run:
+N_dev ≤ `concurrency_cap` − 1.** Ceremony agents (groom, plan, review, retro,
+report, merge) are serialized by the graph and never run alongside one another,
+so they share ONE slot between them — counting them individually
+under-subscribes the dev pool by the number of ceremony roles. Breadth beyond
+N_dev is more beads per dev, never more devs: a spawn past the cap is refused,
+and the unspawned devs' queues stay ready, correctly assigned and permanently
+undrained, with nothing reporting it. Read `concurrency_cap` off the manifest
+— source, default and the plan-time check are in `references/run-record.md`
+— rather than assuming a number.
+
 ## Return the plan
 
-**The wave table is not written to disk.** It is derivable from the graph, so a
-stored copy only drifts out of agreement with the beads it describes. Return
-it; the orchestrator prints it and dispatches from the re-queried ready front.
-The table's format — including the `Reason` column's required shape — is in
+**The wave table is not written to disk** — see **Out**, above. Return it; the
+orchestrator prints it and dispatches from the re-queried ready front. Its
+format, including the `Reason` column's required shape, is in
 `references/run-record.md`.
 
 Three rules that make the table worth returning:

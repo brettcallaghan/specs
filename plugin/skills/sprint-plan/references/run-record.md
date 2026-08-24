@@ -17,11 +17,16 @@ when this skill is invoked. Read it; never rewrite it.
 - Run manifest — `--metadata` on the run epic; the facts recovery cannot
   re-derive. A check whose baseline is `fail` sets "no new findings", not
   exit 0, as the bar for every bead
+- `concurrency_cap` — the size of the harness's worker pool, and the
+  N_dev ≤ cap − 1 rule the plan is checked against
 - Wave table — returned to the orchestrator, never stored; names beads, and
   every row carries class, batch, tier and push mode, with its Reason naming
   which collision class applies
 - Reading C4 overlap — compute co-edit and sequencing edges from bead metadata,
-  not from file paths
+  not from file paths; and why a co-edit collision batches rather than
+  parallelizes
+- Trusting `bd swarm validate`'s preview — the two measured conditions that
+  void its partition
 - Amendments — `amend:` comments on the epic, append-only by construction
 
 Every run gets one, whatever its size. A two-bead run interrupted at bead one
@@ -49,6 +54,7 @@ opens against it.
   "checks_ids": ["format", "vet", "build", "test-go", "…"],
   "checks_baseline": "<verbatim text — inline this into EVERY subagent prompt>",
   "checks_baseline_status": 1,
+  "concurrency_cap": 20,
   "models": {"light": "…", "standard": "…", "advanced": "…", "frontier": "…"},
   "effort": "low|medium|high|xhigh|unrecorded",
   "standing_auth": {"<row>": {"value": "<resolved>", "source": "sf.toml|default"}},
@@ -94,6 +100,35 @@ reads the report.
 `admitted` / `excluded` / `moved` are the admission record. A run that finished
 its admitted set while beads sat out is done, and must say so rather than
 reading as complete over a scope nobody remembers narrowing.
+
+## `concurrency_cap`
+
+**The size of the harness's worker pool, not a dispatch rhythm.** Its value is
+`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` where the session sets it, and **20** —
+Claude Code's documented default — where it does not. It is recorded rather
+than assumed because it varies by harness and by session: the Workflow tool
+caps at `min(16, CPUs − 2)`, which is 2 on a 4-CPU container, and a run resumed
+on a differently-configured session has to know what the plan assumed. The
+orchestrator resolves it once, with the rest of the manifest and before
+grooming is dispatched — `${CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS:-20}`.
+
+It bounds **simultaneous** agents, so the planning rule is **N_dev ≤ cap − 1**:
+the ceremony roles (groom, plan, review, retro, report, merge) are serialized by
+the graph, never run alongside one another, and so share the one remaining slot
+between them. Counting each ceremony role against the cap under-subscribes the
+dev pool by the number of roles; counting none of them oversubscribes it by one.
+
+**Exceeding it does not fail loudly.** A spawn past the cap is refused, and the
+beads assigned to a dev that was never spawned then sit ready, correctly
+assigned and permanently unstarted — from the tracker's point of view nothing is
+wrong. Breadth beyond N_dev is therefore expressed as more beads per dev, never
+as more devs. Check it at plan time, counting dev assignees only:
+
+```sh
+bd list --parent <run-epic> --json \
+  | jq -r '[.[].assignee] | map(select(. != null and . != "")) | unique | length'
+# must be <= manifest.concurrency_cap - 1
+```
 
 ## Environmental ledger
 
@@ -198,6 +233,32 @@ no file with either, but consumes `auth-service` — a sequencing constraint, so
 runs after both. D is isolated on both signals. Nothing in this reads a file
 path, which is the point: the file scan would have parallelized A with B and
 seen no relationship at all between C and them.
+
+### Why a co-edit collision batches rather than parallelizes
+
+**Worktrees isolate the agents but not the merge.** Two agents in two worktrees
+never see each other's edits; then both branches come back to the orchestrator,
+the second lands on a file the first already rewrote, and under `--ff-only` the
+merge refuses and stops the wave. Batching removes that: the beads go behind one
+agent, in order, each branching from the last, so what returns is already
+reconciled. Isolation is never grounds to relax a batching rule — it prevents a
+collision that was never the hazard.
+
+## Trusting `bd swarm validate`'s preview
+
+`bd swarm validate <epic>` gives a wave preview worth starting from, under two
+measured conditions:
+
+- **It scopes dependency analysis to the epic given.** An edge to a bead outside
+  that epic is reported as a warning and then ignored — observed placing a
+  blocked bead in Wave 1. If it warns about an outside dependency, do not use
+  its partition.
+- **It is one level deep.** On a nested run epic it lists sub-epics as work
+  items and never sees their leaves. If the run epic is nested, do not use its
+  partition.
+
+Under either, derive packing from the re-queried ready front instead, and say in
+the return which one was used.
 
 ## Amendments
 
