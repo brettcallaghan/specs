@@ -272,6 +272,29 @@ is one number rather than a planning artifact.
 > `bd ready --parent` plus `bd epic status`, and it is exactly what a
 > coordinator wants each loop. One swarm per run, on the payload.
 >
+> **But the target epic MUST BE FLAT, and swarm will not tell you otherwise.**
+> Measured, the same epic shape with and without a child epic:
+>
+> | target | `bd swarm validate` reports |
+> |---|---|
+> | epic → 2 tasks | `Total issues: 2` · Wave 1: both leaves |
+> | epic → child epic → 2 tasks | `Total issues: 1` · Wave 1: **the child epic** |
+>
+> A nested target makes swarm count the child epic as one issue and never see
+> the two real beads under it. Progress is wrong, the ready-front analysis
+> treats a container as work, and **nothing warns** — `validate` reports the
+> wrong total as though it were right. This is the `bd list --parent`
+> direct-children-only limitation surfacing where it does the most damage.
+>
+> **So the rule: the swarmed target epic contains tasks only.** Ceremony epics
+> are children of the RUN epic, which is never swarmed, so they are unaffected.
+> Work that genuinely decomposes into sub-epics becomes a second target under
+> the run epic — swarmed separately — rather than a nested one.
+>
+> That is an admission rule as much as a planning rule: **a bead admitted to the
+> target mid-run must be a task.** Scope creep that arrives as an epic silently
+> removes everything under it from the swarm's view.
+>
 > A swarm **per wave** still buys nothing, and nested epics cost real accuracy —
 > this repository has already measured that `bd list --parent` is
 > direct-children-only and misses every leaf of a nested run epic.
