@@ -180,19 +180,21 @@ suffix (`jh6`, `92q.14`, not the full id). The branches keep the beads apart.
 Nothing is implemented in the shared checkout except by you.
 
 **Presence is the in-flight signal.** A standing worktree means its dispatch is
-not yet accepted — you remove it as the final act of accepting, after the last
-of its branches merges. `git worktree list` answers what is in flight; each
-worktree's checked-out branch answers which bead.
+not yet accepted — removal is the final act of accepting, after the last of its
+branches merges. `git worktree list` says what is in flight; each tree's
+checked-out branch says which bead.
 
-**Hard gate — verify `BB_WORKTREE_BASEREF` is `head` before every worktree you
-create, and do not dispatch otherwise.** It is global user state no repository
-owns, so it can change under you, and a worktree cut from the default branch
-cannot see what the sprint branch already carries.
+**Hard gate — `BB_WORKTREE_BASEREF` must read `head` before every worktree you
+create.** It is global user state no repository owns, so it can change under
+you, and a worktree cut from the default branch cannot see what the sprint
+branch already carries.
 
-**You merge, one at a time; subagents never do.** A chained batch merges by
-fast-forwarding the LAST bead's branch, which carries its predecessors — one
-merge and one removal per batch, then the acceptance check per bead. Hold
-`bd merge-slot` across each.
+**A batch's merge is a BEAD** — a task labelled `merge`, assigned to
+`merge-<run-id>`, waiting on every bead whose branch it lands, so it enters the
+ready front exactly when its inputs are done. Landing it fast-forwards the LAST
+bead's branch, which carries its predecessors: one merge and one removal per
+batch, then the acceptance check per bead. Hold `bd merge-slot` across it — the
+slot is repository-wide and branch-unaware, so concurrent runs contend.
 
 **A `--ff-only` refusal means one thing for the first branch merged onto a
 base and another for every branch after it, and reading it wrong stops a

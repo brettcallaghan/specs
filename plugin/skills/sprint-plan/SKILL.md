@@ -36,7 +36,7 @@ here creates a worktree, edits a bead's code, or merges anything.
 | The run epic | Its id is the run id, and its `--metadata` is the manifest the orchestrator already wrote |
 | The **bead id list** | Explicit ids, and the epic they came from. Re-derive with `bd ready --parent <epic> --exclude-type=epic` rather than from any filter — admission decided that membership and may have excluded beads deliberately |
 | Checks script and checks baseline | A gate recorded `fail` in the baseline sets "no findings beyond the baseline" as the bar, not exit 0 |
-| Model lineup | Resolves a bead's tier (`metadata.execution_suggested_model`, else `metadata.tier`) to a model; leave the `Tier` column's model blank where the project declares none |
+| Model lineup | Resolves a bead's tier (`metadata.execution_suggested_model`, else `metadata.tier`) to a model; leave it unset where the project declares none |
 | Standing authorization | What the user authorized without further asking (push mode, PR, scope) |
 | The grooming partition preview | The candidate grouping, WHEN one was produced |
 
@@ -272,10 +272,9 @@ isolated — isolation is settled above and is the same everywhere. Pick the
 broadest one that's safe: you're maximizing what can run concurrently, not
 minimizing check runs — those are per bead regardless.
 
-**A batch subagent holds exactly one worktree at a time** — create, implement,
-close, hand back, then the next. Holding two at once makes worktree presence
-ambiguous and breaks the in-flight signal for every reader. Never pack a batch
-in a way that assumes otherwise.
+**A batch subagent holds exactly one worktree at a time.** Holding two makes
+worktree presence ambiguous and breaks the in-flight signal for every reader;
+never pack a batch in a way that assumes otherwise.
 
 1. **Batch** — ONE subagent processes a cluster sequentially, one commit per
    bead. Per bead, before its close: any regeneration, **targeted tests
@@ -305,6 +304,10 @@ in a way that assumes otherwise.
 
    Beads grouped this way need **no** collision edge and get their own
    assignee, so they reach the ready front together and dispatch concurrently.
+
+**Every batch gets a MERGE BEAD in the plan** — a task labelled `merge`,
+assigned to `merge-<run-id>`, waiting on every bead in the batch, so it becomes
+ready exactly when they are all closed. Shape: `references/run-record.md`.
 
 Tier is not a batching decision of yours: carry each bead's tier
 (`metadata.execution_suggested_model`, else `metadata.tier`) into the plan's

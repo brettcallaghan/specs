@@ -190,6 +190,34 @@ cluster already have a real edge between them, the collision chain must not
 contradict it — a cycle is refused, and an order that fights the real
 dependency serializes the wrong way round.
 
+### The merge bead
+
+**One per batch, in the plan.** A task labelled `merge`, assigned to
+`merge-<run-id>`, with a `blocks` edge from it to every bead in that batch:
+
+```json
+{"key": "m1", "title": "Merge batch 1", "type": "task", "parent_key": "target",
+ "priority": 1, "assignee": "merge-<run-id>", "labels": ["merge"]}
+```
+```json
+{"from_key": "m1", "to_key": "<each bead in the batch>", "type": "blocks"}
+```
+
+Remember the orientation: `from_key` **waits for** `to_key`, so the merge bead
+is the `from_key` on every one of those edges.
+
+Measured on a two-bead batch: `bd ready --assignee merge-<run-id>` returned
+nothing while either input was open — including after only the first closed —
+and returned the merge bead the moment the second closed. `bd ready --label
+merge` answers the same, so nothing has to know the agent id to find it.
+
+**A task plus a label, not a custom type.** `bd config set types.custom
+merge-request` works and behaves as a task for segregation, but it lives in
+LOCAL config, so it is a per-clone setup step and a clone that has not run it
+cannot create or filter those beads. The coordinator's worktree-mechanics
+reference carries that decision and its rationale in full; do not re-open it
+here.
+
 ### Name which class each edge is
 
 The two classes have different consequences, so they must not read alike:

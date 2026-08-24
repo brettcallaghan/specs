@@ -12,8 +12,9 @@ along with every other placeholder (`dispatching.md`).
 - The base-ref trap — why every worktree must branch from the sprint branch,
   and the per-dispatch check that proves it did
 - Beads inside a worktree — `bd` resolves the shared tracker from any of them
-- The worktree lifecycle — create, dispatch, accept, merge (slot, `--ff-only`,
-  rebase), remove
+- The worktree lifecycle — create, dispatch, accept, merge, remove
+- The merge bead — a fan-in bead per batch, why it is a labelled task and not
+  a custom type, and the branch-unaware slot it holds
 - Concurrent dispatch out of one ready front
 
 
@@ -129,12 +130,48 @@ committing them lands in-flight bead state on the sprint branch.
    cuts its own branch per bead there with `git checkout -b <suffix>`.
 2. **Accept, per bead**: verify each bead reads `closed` and its commit exists
    on that bead's branch.
-3. **Merge, per dispatch.** A chained batch fast-forwards the LAST bead's
-   branch, which already carries its predecessors — one merge, not one per
-   bead. Take the merge slot first and release it after:
+3. **Merge, per dispatch — and the merge is a BEAD.** A chained batch
+   fast-forwards the LAST bead's branch, which already carries its
+   predecessors: one merge, not one per bead. What schedules that merge is a
+   **merge bead** in the graph, not a queue anyone maintains.
+
+   ### The merge bead
+
+   **One per batch**, assigned to `merge-<run-id>`, depending on every bead
+   whose branch it lands. It is a task carrying the label `merge`:
+
+   ```json
+   {"key": "m1", "title": "Merge batch 1", "type": "task", "parent_key": "target",
+    "priority": 1, "assignee": "merge-<run-id>", "labels": ["merge"]}
+   ```
+   ```json
+   {"from_key": "m1", "to_key": "<each bead in the batch>", "type": "blocks"}
+   ```
+
+   That is the documented fan-in, and it makes "is this batch ready to land"
+   the same question as everything else in the run. Measured: with two beads
+   feeding one merge bead, `bd ready --assignee merge-<run-id>` returned
+   nothing while either input was open — including after only the first
+   closed — and returned the merge bead the moment the second closed.
+   `bd ready --label merge` answers identically, so the mechanism is queryable
+   without knowing the agent id.
+
+   **A task plus a label, NOT a custom type.** `bd config set types.custom
+   merge-request` does work — its "not a recognized config key" warning is
+   misleading — and the type then behaves as a task for segregation, which is
+   what a fan-in bead needs. It is rejected anyway, and for a portability
+   reason rather than a technical one: the setting lives in **local** config,
+   so it is a per-clone setup step, and a clone that has not run it cannot
+   create or filter those beads at all. A mechanism that silently degrades on a
+   fresh clone fails the test this skill set is vended under. The label costs
+   one word and works everywhere.
+
+   ### The slot the merge bead holds
+
+   Take the merge slot first and release it after:
 
    ```sh
-   bd merge-slot acquire            # --wait to queue behind a holder
+   bd merge-slot acquire            # --wait to register; see below
    git -C "$REPO" merge --ff-only <suffix>
    bd merge-slot release
    ```
@@ -142,15 +179,31 @@ committing them lands in-flight bead state on the sprint branch.
    `bd merge-slot create` once per run makes the slot bead (`<prefix>-merge-slot`)
    if the project has none. It works outside a Gas Town rig.
 
-   **What the slot is for here, and what it is not.** Only the orchestrator
+   **What the slot is for here, and what it is not.** Only the merge agent
    merges, so within one run the serialization already holds by construction —
    the slot is not what makes merges one-at-a-time. It earns its place by making
    that state *visible*: `bd merge-slot check` names the holder, so a run that
    looks stalled has an answer, and a second session that resumed the same run
    finds the slot held rather than merging concurrently with the first.
 
-   Three measured behaviours to hold it correctly:
+   **KNOWN LIMITATION, to live with rather than fix: the slot is
+   repository-wide and branch-unaware.** There is exactly one slot bead per
+   project prefix and it records no branch — measured, its metadata is
+   `{"holder": …, "waiters": […]}` and nothing else — so two runs on two
+   different branches contend for it even though their merges could not
+   possibly collide. The cost is a wait, never a wrong merge. Record the
+   contention if it appears; do not work around it with a second slot, which
+   would make `bd merge-slot check` ambiguous for every reader.
 
+   Four measured behaviours to hold it correctly:
+
+   - **`--wait` registers; it does not block.** `bd merge-slot acquire --wait`
+     against a held slot returns immediately with `Slot held by <holder>, added
+     to waiters queue (position 1)`. So a waiter polls its position rather than
+     holding a process open. **Release does not promote anyone** — measured,
+     after the holder released, the slot read `open` with `waiters` still
+     listing the waiter — so a waiter must re-acquire, and a stale entry there
+     is an advertisement of intent, never a grant.
    - **Acquire is not idempotent.** Re-acquiring a slot you already hold fails
      with `slot held by: <you>`. So a failed release leaves your own next
      acquire failing, indistinguishable from a sibling holding it — release on
@@ -161,7 +214,7 @@ committing them lands in-flight bead state on the sprint branch.
      command. **Do not decide that by eye: run
      `{SCRIPTS}/bb-status.sh slot {EPIC}`.** It prints the holder beside the
      evidence for and against them still being alive — standing worktrees, the
-     age of the last commit, and which dispatches report `running` — and
+     age of the last commit, and which beads are claimed and in progress — and
      recommends a release only when every signal agrees. It never releases
      anything itself, so a wrong reading costs a second look rather than
      someone else's merge.
