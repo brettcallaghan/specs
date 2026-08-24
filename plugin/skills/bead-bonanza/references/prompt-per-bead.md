@@ -22,32 +22,22 @@ Checks baseline:
      even when the checks passed, because the text says so and a MISSING block
      means no baseline was taken, which is a different thing.)
 
-Before your first action — the export comes FIRST, before any other `bd`
-call — record that you hold this bead:
+Before your first action — before any other `bd` call:
 
 ```sh
 export BEADS_ACTOR={DISPATCH_ID}
-
-bd update {ID} --set-metadata dispatch_id={DISPATCH_ID} \
-  --set-metadata dispatch_state=running \
-  --set-metadata worktree={WORKTREE} \
-  --set-metadata dispatched_at="$(date -u +%FT%TZ)"
 ```
 
 Export it in every shell you run `bd` from; a shell that loses it claims as
 the harness default, and an unassigned bead claimed that way is reassigned
 with no error anywhere.
 
-and as your last action, whatever the outcome:
-
-```sh
-bd update {ID} --set-metadata dispatch_state=returned \
-  --set-metadata terminal_state=completed|blocked|skipped
-```
-
-That pair is what lets an orchestrator tell a live agent from a dead one
-without guessing at your worktree. Write the second even when you are blocked —
-especially then.
+**That export, plus claiming and closing the bead, is your whole obligation to
+the run's bookkeeping.** There is nothing else to record: the bead's
+`assignee` says who holds it, its `status` says where it is, and the
+orchestrator reads both directly. Claim it (`bd update {ID} --claim`) so it
+leaves the ready front while you work, and close it when it is done — those
+two writes are what "this agent is finished" is computed from.
 
 **Then invoke the `run-bead` skill.** It carries the ceremony — claim, read,
 implement in scope, gate, caveat, findings, close-and-commit, push, return —

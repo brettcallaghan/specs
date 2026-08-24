@@ -181,7 +181,7 @@ Nothing is implemented in the shared checkout except by you.
 **Presence is the in-flight signal.** A standing worktree means its dispatch is
 not yet accepted — you remove it as the final act of accepting, after the last
 of its branches merges. `git worktree list` answers what is in flight; each
-bead's dispatch record answers which bead.
+worktree's checked-out branch answers which bead.
 
 **Hard gate — verify `BB_WORKTREE_BASEREF` is `head` before every worktree you
 create, and do not dispatch otherwise.** It is global user state no repository
@@ -207,7 +207,7 @@ once rather than waiting for its neighbours.
 
 Each dispatch is one subagent running `sprint-batch` in one worktree. **The
 procedure — filling in the prompt, verifying skip claims, the per-bead
-acceptance check, the push, the circuit breaker and the dispatch record — is
+acceptance check, the push, the circuit breaker and reading a live agent — is
 `references/dispatching.md`.** Read it before the first dispatch.
 
 **Then you merge**, one branch at a time, removing each worktree as you accept
@@ -322,10 +322,10 @@ It prunes worktrees, releases the merge slot, closes the swarm molecule, sets
 terminal health and pushes the tracker, printing the command behind each
 removal.
 
-**Exit 1 means something was left standing on purpose** — a worktree whose bead
-still reads `dispatch_state=running` is a live worker or a dead one, and no
-script can tell them apart. Resolve each before treating the sprint as torn down.
-**Do not force it.**
+**Exit 1 means something was left standing on purpose** — a worktree whose
+agent still holds a queue is a live worker or a dead one, and no script can
+tell them apart. Resolve each before treating the sprint as torn down. **Do not
+force it.**
 
 **Then cancel the durable trigger** armed at first dispatch — a harness action
 no script can do. One left armed wakes an agent into a finished sprint, which

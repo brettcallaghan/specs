@@ -1,11 +1,12 @@
 Read CLAUDE.md and AGENTS.md if you need conventions; validation comes from the checks the project declares in `sf.toml`.
 
-FIRST, invoke the `sprint-batch` skill. It is the whole of how a batch is run: accepting the assignment, run-bead per bead in order, the dispatch record, and the return line. Everything below is the assignment it takes.
+FIRST, invoke the `sprint-batch` skill. It is the whole of how a batch is run: accepting the assignment, run-bead per bead in order, and the return line. Everything below is the assignment it takes.
 
 Dispatch id: {DISPATCH_ID}   (your agent id; shared by every bead in this batch)
-    (Agent id, assignee and `dispatch_id` are ONE string, DERIVED from the run
-     epic id, never minted. Roster and derivation: `dispatch-policy.md` in
-     this same references directory, the only copy.)
+    (Agent id and assignee are ONE string, DERIVED from the run epic id, never
+     minted. Roster and derivation: `dispatch-policy.md` in this same
+     references directory, the only copy. Your queue is
+     `bd ready --assignee {DISPATCH_ID}`.)
 
 Export it before any bd call, in every shell you run `bd` from:
 

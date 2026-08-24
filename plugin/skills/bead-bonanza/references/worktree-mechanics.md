@@ -228,7 +228,7 @@ committing them lands in-flight bead state on the sprint branch.
    surviving worktree means "not yet accepted", which is the stronger reading
    of the in-flight signal than "not yet committed". At batch granularity it
    reads "this DISPATCH is unfinished"; which of its beads is unfinished comes
-   from the dispatch record, not from counting trees.
+   from its branch and that bead's `assignee`, not from counting trees.
 5. **Push** per the batch's push mode.
 
 WHEN a bead is blocked rather than finished, **leave its worktree in place**

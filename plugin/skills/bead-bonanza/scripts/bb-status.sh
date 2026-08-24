@@ -319,23 +319,24 @@ print((d or {}).get("updated_at") or "")' 2>/dev/null)"
   _last="$(git log -1 --format=%cr 2>/dev/null)"
   line OK "  last commit: ${_last:-unknown}" "git log -1 --format=%cr"
 
-  # Evidence 4 — the strongest, when a run epic is known: an agent that says
-  # it is running. This is the dispatch record, not an inference.
+  # Evidence 4 — the strongest, when a run epic is known: a bead an agent has
+  # claimed. This is the tracker's own status, not a bookkeeping key somebody
+  # had to remember to write.
   _live=""
   if [ -n "$_epic" ]; then
-    _live="$(bd list --parent "$_epic" --metadata-field dispatch_state=running --json 2>/dev/null | python3 -c 'import json,sys
+    _live="$(bd list --parent "$_epic" --status in_progress --json 2>/dev/null | python3 -c 'import json,sys
 try: d=json.load(sys.stdin)
 except Exception: d=[]
-print(" ".join(x.get("id","") for x in d) if isinstance(d,list) else "")' 2>/dev/null)"
+print(" ".join("%s(%s)" % (x.get("id",""), x.get("assignee") or "unassigned") for x in d) if isinstance(d,list) else "")' 2>/dev/null)"
     if [ -n "$_live" ]; then
-      line OK "  dispatches reporting running: $_live" \
-           "bd list --parent $_epic --metadata-field dispatch_state=running"
+      line OK "  beads in progress: $_live" \
+           "bd list --parent $_epic --status in_progress"
     else
-      line OK "  dispatches reporting running: none" \
-           "bd list --parent $_epic --metadata-field dispatch_state=running"
+      line OK "  beads in progress: none" \
+           "bd list --parent $_epic --status in_progress"
     fi
   else
-    line OK "  dispatch records: not checked (pass the run epic to include them)" \
+    line OK "  claims: not checked (pass the run epic to include them)" \
          "bb-status.sh slot <epic-id>"
   fi
 
@@ -345,10 +346,10 @@ print(" ".join(x.get("id","") for x in d) if isinstance(d,list) else "")' 2>/dev
     line FAIL "do NOT release — $_wt worktree(s) standing; an agent is holding work" \
          "git worktree list"; note $RC_STOP
   elif [ -n "$_live" ]; then
-    line FAIL "do NOT release — a dispatch reports running: $_live" \
-         "bd list --parent $_epic --metadata-field dispatch_state=running"; note $RC_STOP
+    line FAIL "do NOT release — a bead is claimed and in progress: $_live" \
+         "bd list --parent $_epic --status in_progress"; note $RC_STOP
   else
-    line OK "no worktree and no running dispatch backs ${_holder:-the holder}" ""
+    line OK "no worktree and no claimed bead backs ${_holder:-the holder}" ""
     line OK "RELEASE IS DEFENSIBLE: bd merge-slot release" "bd merge-slot release"
     line OK "  (this script never releases it — read the evidence above first)" ""
   fi
@@ -569,17 +570,19 @@ print(" ".join(out))' 2>/dev/null)"
     line OK "every ready bead carries a tier" "bd ready --parent $_epic --exclude-type=epic"
   fi
 
-  # --- dispatched versus returned ----------------------------------------
-  _running="$(bd list --parent "$_epic" --metadata-field dispatch_state=running --json 2>/dev/null | python3 -c 'import json,sys
+  # --- who is still holding work -----------------------------------------
+  # Assignment plus status, not a dispatch record: an agent has drained when
+  # `bd ready --assignee <id>` is empty AND it holds nothing in_progress.
+  _running="$(bd list --parent "$_epic" --status in_progress --json 2>/dev/null | python3 -c 'import json,sys
 try: d=json.load(sys.stdin)
 except Exception: d=[]
-print(" ".join(x.get("id","") for x in d) if isinstance(d,list) else "")' 2>/dev/null)"
+print(" ".join("%s(%s)" % (x.get("id",""), x.get("assignee") or "unassigned") for x in d) if isinstance(d,list) else "")' 2>/dev/null)"
   if [ -n "$_running" ]; then
-    line OK "dispatches still running: $_running" \
-         "bd list --parent $_epic --metadata-field dispatch_state=running"
+    line OK "beads in progress: $_running" \
+         "bd list --parent $_epic --status in_progress"
   else
-    line OK "dispatches still running: none" \
-         "bd list --parent $_epic --metadata-field dispatch_state=running"
+    line OK "beads in progress: none" \
+         "bd list --parent $_epic --status in_progress"
   fi
 
   _out_n="$(printf '%s\n' "$_out" | sed -n 's/^OUTSTANDING|\([0-9]*\)|.*/\1/p')"

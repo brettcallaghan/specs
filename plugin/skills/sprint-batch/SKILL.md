@@ -61,17 +61,15 @@ claimed that way is reassigned with no error anywhere.
 3. **Read the manifest** — `bd show {EPIC} --json | jq -r '.[0].metadata'`. The
    checks baseline is in it, and it is what "no findings beyond the baseline"
    means for every bead you are about to run.
-4. **Record that you hold them.** For each bead in the batch:
+4. **Confirm the batch is yours** — `bd ready --assignee {DISPATCH_ID}` plus
+   `bd list --assignee {DISPATCH_ID} --status blocked`. Between them they are
+   your queue, and their union must be the beads you were handed.
 
-   ```sh
-   bd update <id> --set-metadata dispatch_id={DISPATCH_ID} \
-     --set-metadata dispatch_state=running \
-     --set-metadata worktree={WORKTREE} \
-     --set-metadata dispatched_at="$(date -u +%FT%TZ)"
-   ```
-
-   One `dispatch_id` for the whole batch. That is what makes "which agent is
-   holding this bead" a query rather than an inference.
+   **Assignment is the only record, so there is nothing to write here.** A bead
+   in your list that is not assigned to you is a dispatch error: report it and
+   do not start, rather than claiming your way into someone else's queue. A
+   bead assigned to you that is missing from your list is blocked behind
+   something — say which, from `bd show <id>`.
 
 ## D2 · Work — `run-bead`, per bead, in order
 
@@ -125,17 +123,12 @@ worktree, so that work is sitting where the next bead would start. Run
 
 ## D3 · Close — hand off
 
-Your last act per bead, whatever the outcome:
-
-```sh
-bd update <id> --set-metadata dispatch_state=returned \
-  --set-metadata terminal_state=completed|blocked|skipped
-```
-
-**Write it even when the bead is blocked — especially then.** The worktree is
-shared across the batch, so it says only that this DISPATCH is unfinished; the
-dispatch record is what says which bead. That pair is what tells the
-orchestrator a live agent from a dead one without guessing.
+**Every bead ends in a tracker status, and that status is the hand-off.**
+`run-bead` closes a completed bead and sets a blocked one to `blocked`; a
+skipped bead is closed with its rationale in the notes. Leave none of them
+`in_progress` — an agent that walks away from a claimed bead is
+indistinguishable from one still working, which is the single reading the
+orchestrator cannot recover from.
 
 Then return **one message**: one line per bead, then
 
@@ -150,22 +143,23 @@ you never reached is `blocked` with the reason, not omitted.
 at a time, which is what keeps history linear. In `defer_push` mode you do not
 push either.
 
-## What the four states mean
+## How the orchestrator reads you
 
-The orchestrator reads your dispatch record, per bead, against the batch's one
-worktree:
+Not from your return line — from your queue. **You have DRAINED when
+`bd ready --assignee {DISPATCH_ID}` is empty and you hold nothing
+`in_progress`.** Both halves are required: `bd ready` excludes `in_progress`,
+so a bead you are working right now empties the ready front, and the ready
+query alone would report you finished mid-bead.
 
-| worktree | `dispatch_state` | reading |
+| your queue | your worktree | reading |
 |---|---|---|
-| present | any bead `running` | live worker |
-| present | every bead `returned` | finished; orphaned tree, the orchestrator removes it |
-| absent | any bead `running` | the worker died |
-| absent | every bead `returned` | done and cleaned up |
+| not drained | present | live worker |
+| drained | present | finished; orphaned tree, the orchestrator removes it |
+| not drained | absent | the worker died |
+| drained | absent | done and cleaned up |
 
-**Every bead pointing at the tree must have returned before it can go** — one
-bead still `running` holds it for the whole batch, and the orchestrator's
-cleanup script enforces that.
-
-Writing both ends of that record is the whole of your obligation to it. A
-standing worktree with no record is three paragraphs of prose to interpret; one
-with a record is a table lookup.
+Nothing in that is yours to write, which is why nothing in it can go stale.
+**Your obligation is to leave every bead in a truthful status** — claimed while
+you work it, closed or `blocked` when you stop. A worktree is matched to you
+through its checked-out branch, which is a bead's hash suffix, so the branch
+names the bead and the bead names you.

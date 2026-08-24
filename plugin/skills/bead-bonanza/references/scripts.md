@@ -17,7 +17,6 @@ Each script's own header carries the same usage line. WHEN a usage line here
 disagrees with the script, **the script is authoritative**, and the
 disagreement is a finding worth recording.
 
-
 ```
 pre-flight-check.sh [<epic-id>] [--json] [--self-test]          # sandbox ON
 bb-status.sh bead <id> [--worktree <path>] [--pre-merge] | branch | run <epic> | harvest
@@ -61,7 +60,6 @@ The last one is the recovery path only — see its entry below.
 
 ## Side effects — what each script leaves behind
 
-
 These are the artifacts each script creates, writes, or repoints.
 
 - **`scripts/pre-flight-check.sh`** — **writes the checks baseline into the
@@ -84,12 +82,15 @@ These are the artifacts each script creates, writes, or repoints.
   tracker's transport is `origin refs/dolt/data`, the JSONL exports are
   untracked, and a close commit carries code only.
 
-- **`scripts/sprint-cleanup.sh`** — removes worktrees whose bead reads
-  `dispatch_state=returned`, runs `git worktree prune`, releases the merge
-  slot, closes the run's swarm molecule, sets the epic's terminal health, and
-  runs `bd dolt push`. **It leaves anything ambiguous standing** — a worktree
-  whose bead still reads `running`, or one with no dispatch record — and exits
-  1 naming each. `--dry-run` performs none of it and prints what it would do.
+- **`scripts/sprint-cleanup.sh`** — removes a worktree whose owning agent has
+  DRAINED, runs `git worktree prune`, releases the merge slot, closes the run's
+  swarm molecule, sets the epic's terminal health, and runs `bd dolt push`. It
+  finds the owner through the worktree's checked-out branch — a bead's hash
+  suffix, hence a bead, hence an `assignee` — and calls it drained when
+  `bd ready --assignee <id>` is empty and it holds nothing `in_progress`.
+  **It leaves anything ambiguous standing** — an agent still holding a queue,
+  or a branch no bead owns — and exits 1 naming each. `--dry-run` performs none
+  of it and prints what it would do.
 
 Files under `references/shared/` are **generated copies** of reference
 documents owned by a sibling skill, vendored in by the repo-level

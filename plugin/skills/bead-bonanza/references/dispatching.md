@@ -13,7 +13,7 @@ dispatch, and again when a batch returns.
   check, and what a standing worktree actually means
 - The push, and proving it landed
 - The circuit breaker
-- The dispatch record — what an agent is holding, as a query
+- What an agent is holding, and when it is done — as a query
 
 ## Dispatch continuously
 
@@ -205,46 +205,50 @@ just the batch.** That is systemic — a broken base, a wrong assumption in the
 plan, an environment fault — and the next dispatch meets it too. Stopping one
 batch alone hands the same failure to a fresh set of agents.
 
-## The dispatch record — what an agent is holding
+## What an agent is holding, and when it is done — as a query
 
-A bead has a branch, a worktree, a commit and a comment thread. A **subagent**
-has none of that on its own: no id, no record, no way to ask which agent is
-running and what it is holding.
-
-**The record is metadata on the beads, not new beads.** On dispatch:
-
-```sh
-bd update <bead> --set-metadata dispatch_id=<id> \
-  --set-metadata dispatch_state=running \
-  --set-metadata dispatch_model=<model> --set-metadata dispatch_tier=<tier> \
-  --set-metadata worktree=<abs path> \
-  --set-metadata dispatched_at="$(date -u +%FT%TZ)"
-```
-
-On return, the same keys plus `dispatch_state=returned` and
-`terminal_state=completed|blocked|skipped`. `--set-metadata` merges at the top
-level, so each write adds without disturbing grooming's `tier` and `c4_*` keys.
-
-**One `dispatch_id` per subagent, not per bead.** A batch's beads all carry the
-same one, which is what makes "what is it holding" answerable:
+**Assignment IS the record.** One string is an agent's whole identity — the
+bead's `assignee`, the agent's `$BEADS_ACTOR`, its `{DISPATCH_ID}` — so the
+tracker already answers every question a separate bookkeeping record would,
+and answers it for a bead nobody remembered to annotate:
 
 ```sh
-bd list --parent <epic> --metadata-field dispatch_state=running   # who is live
-bd list --parent <epic> --metadata-field dispatch_id=<id>         # what it holds
+bd ready --assignee <id>                       # what it may start next
+bd list --assignee <id> --status in_progress   # what it is working on now
+bd list --assignee <id> --status blocked       # what it gave up on
 ```
 
-**This is what a standing worktree means**, without prose to interpret:
+**An agent has DRAINED when the first two are empty.** Both are required and
+this is measured: `bd ready` excludes `in_progress`, so a bead being worked
+right now makes the ready front empty and the ready query ALONE reports a live
+agent as finished. `bd ready --json` answers `null` rather than `[]` when
+empty, so an emptiness test has to accept both.
 
-| worktree | `dispatch_state` | reading |
+Then read the third: drained with nothing `blocked` is finished; drained with a
+`blocked` bead is finished-with-a-block, and the two must not be reported alike.
+
+**Nothing is written at dispatch time to make this work**, which is the point —
+there is no key to forget, none to go stale, and a bead added to an agent's
+queue mid-run is in the answer immediately.
+
+### A standing worktree
+
+Read it through its branch, not through a stored path. `git worktree list`
+prints each registration's checked-out branch; a batch's branches are named for
+their beads' hash suffixes, so the branch names the bead, the bead names the
+`assignee`, and the assignee's queue says whether it is still working:
+
+| the branch's bead | the agent's queue | reading |
 |---|---|---|
-| present | `running` | live agent, working — leave it alone |
-| present | `returned` | finished; the tree is orphaned, remove it |
-| absent | `running` | the agent died. Recover the bead |
-| absent | `returned` | done and cleaned up |
+| open or `in_progress` | not drained | live agent, working — leave it alone |
+| closed | drained | finished; the tree is orphaned, remove it |
+| open or `in_progress` | drained | the agent died holding it. Recover the bead |
+| closed | not drained | a batch mid-flight; its later beads are still to come |
 
-**Why not event beads.** Measured: 100 event beads took `bd dolt push` from
-0.63s to 5.36s, and *deleting them* left it at 1.56s — Dolt is versioned, so
-the weight is permanent and is charged to every future clone. A 12-bead
-dispatch would be 24 such beads. Metadata was measured cheap on the same run:
-nested values round-trip, successive writes merge, and a 100,000-character
-value was accepted.
+`{SCRIPTS}/sprint-cleanup.sh` applies exactly this rule and removes only the
+unambiguous rows. A worktree whose branch no bead owns is left standing and
+named, never removed on a guess.
+
+**A return line is a summary, not a signal.** A subagent's account of what it
+did is worth reading and is never what you record: every verdict above comes
+from the tracker or from git. Do not parse it.

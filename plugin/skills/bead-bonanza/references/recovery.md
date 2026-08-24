@@ -25,7 +25,7 @@ path into one.
 
 If a subagent times out, returns an "API Error" instead of a summary, or otherwise dies before its summary line — read the state it left behind, never a report of it. Two places hold that state: the bead's worktree (`git -C <worktree> status --porcelain`) and the tracker (`bd show <id>`).
 
-**One worktree per dispatch, so first find which bead it died on.** A batch holds ONE worktree for all of its beads, and the beads it finished are already committed on their own branches inside it. The bead whose `dispatch_state` is not `returned` is where it died — `bd list --all --has-metadata-key worktree --json`, filtered to that path. Beads before it in the batch order need nothing. Recover that one bead in the tree it is already standing in, then re-dispatch the remainder of the batch as a fresh batch.
+**One worktree per dispatch, so first find which bead it died on.** A batch holds ONE worktree for all of its beads, and the beads it finished are already committed on their own branches inside it. Two reads name the survivor: the worktree's checked-out branch is a bead's hash suffix (`git -C <worktree> rev-parse --abbrev-ref HEAD`), and `bd list --assignee <dispatch-id> --status in_progress` names any bead still claimed. Whichever they agree on is where it died; beads before it in the batch order need nothing. Recover that one bead in the tree it is already standing in, then re-dispatch the remainder of the batch — `bd ready --assignee <dispatch-id>` is exactly that remainder — as a fresh batch.
 
 Then, for that bead:
 

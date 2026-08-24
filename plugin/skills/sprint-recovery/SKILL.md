@@ -139,20 +139,26 @@ could not read the manifest is a *reconstruction*, and says so.
    push, stranding every commit behind one file.
 
 4. **Classify what the scripts flagged — this is the judgment, and it is what
-   remains yours.** For each bead not closed, read its dispatch record against
-   its worktree:
+   remains yours.** For each bead not closed, read its status against the
+   worktree whose branch names it. `git worktree list` prints each
+   registration's checked-out branch; a bead's branch is its hash suffix, so
+   the branch names the bead and the bead's `assignee` names the agent.
 
-   | worktree | `dispatch_state` | what it means | what to do |
+   | bead status | its branch's worktree | what it means | what to do |
    |---|---|---|---|
-   | present | `running` | the agent died holding it | re-run the project's checks IN that worktree |
-   | present | `returned` | finished; tree is orphaned | verify the commit, then remove the tree |
-   | absent | `running` | died before or without a worktree | confirm with `bd show`, re-dispatch |
-   | absent | `returned`/unset | never started, or done and cleaned up | `bd show <id>` settles it |
+   | `in_progress` | present | the agent died holding it | re-run the project's checks IN that worktree |
+   | `open` | present | started and abandoned, or never claimed | read the tree: dirty means partial work, clean means unstarted |
+   | `in_progress` | absent | died before or without a worktree | confirm with `bd show`, re-dispatch |
+   | `open` | absent | never started | re-dispatch under its existing `assignee` |
+   | `blocked` | either | it stopped on purpose | read its notes for the blocker; do not re-dispatch blind |
 
-   That table replaces inference. **Where a bead has no dispatch record at all**
-   — a run that predates them, or one that died before writing one — fall back
-   to: worktree present means unfinished, then `bd show <id>`, then
-   `git log --oneline --grep=<id>`, naming which source answered.
+   That table replaces inference, and nothing had to be written at dispatch
+   time for it to work. **An agent has drained when `bd ready --assignee <id>`
+   is empty AND it holds nothing `in_progress`** — both, because `bd ready`
+   excludes `in_progress`, so the ready query alone reports a live agent as
+   finished. Where a worktree's branch matches no bead, say so and leave the
+   tree standing; `git log --oneline --grep=<id>` is the last resort, and name
+   which source answered.
 
    **Checks clean in a standing worktree means only the close is outstanding.**
    Read the bead's comments for a `caveat:` line, honour it, then run
