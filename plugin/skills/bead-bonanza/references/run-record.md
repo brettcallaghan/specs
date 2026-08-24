@@ -2,12 +2,68 @@
 
 ## Contents
 
+- The run's epic shape — ceremony epics chained under the run epic, one flat
+  swarmed target, and the gate as a task
 - The three things the orchestrator owns: the manifest, the swarm
   registration, the run's amendments
 - `graph_plan` — validating and loading the `bd create --graph` document the
   plan returns, and why both of its failure modes are silent
 - Run health — the asserted dimension and its five values
 - `base_sha` — why it is recorded at creation and never derived
+
+## The run's epic shape
+
+`sprint-scope` builds it; everything below assumes it. The run epic holds one
+epic per phase — pre-flight, scope, plan, TARGET, review, retro, report,
+post-flight — chained `epic→epic` in that order, with the work beads as flat
+task children of the TARGET.
+
+**Ceremony phases are epics because nothing else can block the target.**
+Measured on bd 1.2.2: `bd dep add <task> <epic>` fails with `tasks can only
+block other tasks, not epics`, and `bd dep add <epic> <task>` with `epics can
+only block other epics, not tasks`. So a task cannot gate a phase. One
+`epic→epic` edge does the whole job: measured on a run epic shaped this way,
+`bd ready --parent <target> --exclude-type=epic` returned nothing while the
+target waited on the plan epic — **a blocked parent blocks its children** — and
+a bead created under the target mid-run came back from `bd blocked` as
+`Blocked by 1 open dependencies: [<target>]` with no edge wired for it.
+
+**The TARGET is FLAT — tasks only — and flatness is an ADMISSION rule.** It
+binds every bead added mid-run, not only the ones the plan created, because
+`bd swarm validate` is one level deep and a sub-epic added later breaks the
+count exactly as one planned would. Measured on the same database: `bd swarm
+validate <target>` over two task children reported `Total issues: 2` and named
+both beads; `bd swarm validate <run-epic>`, whose five children are all epics,
+reported `Total issues: 5` and named the ceremony epics as the work — never
+seeing the beads at all. Both printed `Swarmable: YES`. **Work that genuinely
+decomposes into sub-epics becomes a SECOND target under the run epic**, swarmed
+separately, rather than a sub-epic under the first.
+
+**The queue expression is unchanged by the shape, and this is measured rather
+than assumed.** `bd ready --parent <run-epic> --exclude-type=epic` still returns
+exactly the target's open leaves: by the time the target opens, the phases
+before it are CLOSED (so their task children are too — an epic is only
+close-eligible once every child is closed), and the phases after it are still
+blocked behind it. Observed on the demonstration run at that moment: three
+rows, all three the target's, the mid-run addition among them. So the run epic
+stays the one id a recovering session needs, and only `bd swarm` takes the
+target.
+
+**The authorization gate is a TASK child of the scope epic.** A gate cannot
+attach to a ceremony epic — gating one would need the refused task→epic edge —
+and it does not need to: the scope epic already blocks the plan epic, so
+holding its task child holds the whole chain. Verified end to end: with
+`bd gate create -t human --blocks <gate-task>` open, `bd ready --parent <scope>`
+returned nothing; the gate task had entered the ready front the moment
+pre-flight's own epic closed.
+
+**Closing a ceremony epic is `bd epic close-eligible`, scoped BY HAND.** It
+takes no positional epic. Measured: with one run's pre-flight child closed, the
+bare command printed `✓ Closed 2 epic(s)` — pre-flight **and an unrelated epic
+from another run in the same database**. Read what it names and confirm every
+line belongs to this run.
+
+## The three things you own
 
 **Three things the orchestrator owns and never delegates.** Read this once,
 after `sprint-scope` returns the epic and before you dispatch grooming.
@@ -53,9 +109,11 @@ after `sprint-scope` returns the epic and before you dispatch grooming.
    Recovery reads the epic rather than re-deriving the run, and the epic
    outlives a reclaimed container where a `/tmp` path does not.
 
-   **Register the run: `bd swarm create <epic>`.** Once, after the manifest is
-   written. It makes the run discoverable by `bd swarm list` to a session that
-   has nothing else, and `bd swarm status` becomes the live view.
+   **Register the run: `bd swarm create <target>` — the TARGET epic, never the
+   run epic.** Once, after the manifest is written. It makes the run
+   discoverable by `bd swarm list` to a session that has nothing else, and
+   `bd swarm status` becomes the live view. Pointed at the run epic it counts
+   the ceremony epics as the work and never sees a bead (measured, above).
 
    - It is **not** silently idempotent — a second call prints
      `Swarm already exists: <id>`. On a restart that is the recovery path:

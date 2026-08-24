@@ -1,12 +1,13 @@
 ---
 name: sprint-scope
 description: Resolve a sprint's scope — turn whatever the user gave (an epic,
-  several epics, bead ids, a label, a priority) into exactly one run epic, and
-  take the run's single authorization gate in the same interaction. Use when a
-  sprint orchestrator is opening a run, when asked to set up or begin a sprint
-  over a set of beads, or when a run must be re-scoped. Returns the run epic id
-  and the admission record — which beads were admitted, which excluded and why,
-  which moved and from where. It dispatches nothing and grooms nothing.
+  several epics, bead ids, a label, a priority) into exactly one run epic with
+  its ceremony epics and one flat swarmed target, and take the run's single
+  authorization gate in the same interaction. Use when a sprint orchestrator is
+  opening a run, when asked to set up or begin a sprint over a set of beads, or
+  when a run must be re-scoped. Returns the run epic id and the admission
+  record — which beads were admitted, which excluded and why, which moved and
+  from where. It dispatches nothing and grooms nothing.
 version: "0.2"
 user-invocable: false
 ---
@@ -36,6 +37,9 @@ before grooming answers a question about beads that are about to change.
 
 - `BB_EPIC` — the run epic. Its id **is** the run id, and
   `bd ready --parent <epic> --exclude-type=epic` **is** the queue.
+- `BB_TARGET` — the flat target epic beneath it, and the id `bd swarm` is
+  given. Never the run epic: pointed there, swarm counts the ceremony epics as
+  the work and never sees a bead.
 - The admission record: which beads were admitted, which were **excluded** and
   why, which were **moved** and from where.
 - The authorization set, as decided — including every row left at its default.
@@ -81,6 +85,11 @@ preview and the progress count degrade, and both are recomputable. Flattening
 trades a real structure for a display detail, and emptying a source epic of its
 open work is the false-complete failure above.
 
+**That is not in tension with the flat-target rule.** The target this run
+CREATES is flat; an epic the user already owns is adopted whole and becomes its
+own target, swarmed separately. Flatness is a rule about what the run builds,
+never a licence to restructure what it was given.
+
 **What a nested run epic costs, stated once at run start:** `bd swarm validate`
 and `bd swarm status` are one level deep, so they report sub-epics rather than
 leaf beads. The partition comes from `sprint-plan` instead, and the progress
@@ -95,6 +104,36 @@ edge from a bead in one adopted epic to a bead in another is exactly what makes
 the swarm preview untrustworthy, and it is what the ready front gets right.
 
 Then print the scope: the epic id, the ready count, and any exclusions.
+
+### Build the shape, not just the epic
+
+**A run epic is a container of PHASE EPICS, one of which is the target.** Create
+them in the same act as the run epic, chained `epic→epic` in order:
+
+```
+run epic  ──  pre-flight → scope → plan → TARGET → review → retro → report → post-flight
+                            │                 └ the work, as flat TASK children
+                            └ AUTHORIZATION GATE, a TASK child of scope
+```
+
+Three rules, and each of them is forced rather than chosen:
+
+- **Phases are epics.** `bd dep add` refuses task→epic and epic→task in both
+  directions, so nothing but an epic can block the target. One `epic→epic` edge
+  then blocks every bead beneath it.
+- **The target is FLAT — tasks only — and that binds admission, not just
+  planning.** A sub-epic added mid-run breaks `bd swarm validate`'s count
+  exactly as a planned one would: it is one level deep and reports the sub-epic
+  as the work item. Adopted epics that are genuinely nested become a **second
+  target** under the run epic, swarmed separately; they are never flattened and
+  never adopted as leaves (below).
+- **The authorization gate is a TASK child of the scope epic**, gated with
+  `bd gate create`. Gating the scope epic itself would need the refused
+  task→epic edge, and is unnecessary — the scope epic already blocks the plan
+  epic, so holding its task child holds the chain.
+
+The measurements behind all three are in the coordinator's run-record
+reference, which is where the shape is specified; do not restate them here.
 
 ### Scope stays live, and the delta is reported
 

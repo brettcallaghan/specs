@@ -49,6 +49,7 @@ opens against it.
 
 ```json
 {
+  "target": "<the flat target epic; what `bd swarm` is given>",
   "branch": "<branch>",
   "base_sha": "<sha at branch creation, after grooming>",
   "checks_ids": ["format", "vet", "build", "test-go", "…"],

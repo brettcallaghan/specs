@@ -7,6 +7,8 @@ along with every other placeholder (`dispatching.md`).
 
 ## Contents
 
+- The sprint branch — created once, reused on a resume, and where `base_sha`
+  comes from
 - The base-ref trap — why every worktree must branch from the sprint branch,
   and the per-dispatch check that proves it did
 - Beads inside a worktree — `bd` resolves the shared tracker from any of them
@@ -14,6 +16,32 @@ along with every other placeholder (`dispatching.md`).
   rebase), remove
 - Concurrent dispatch out of one ready front
 
+
+## The sprint branch — created once, before the first worktree
+
+The orchestrator's, and only its. Run it immediately before the first dispatch:
+
+```bash
+br="$(bd show "$BB_EPIC" --json | jq -r '.[0].metadata.branch // empty')"
+if [ -n "$br" ]; then git checkout "$br"          # RESUME — create nothing
+else
+  br="sprint/<epic-suffix>"
+  git rev-parse --verify "$br" >/dev/null 2>&1 && { echo "branch $br taken"; exit 1; }
+  git checkout -b "$br"
+  bd update "$BB_EPIC" --set-metadata branch="$br" \
+                       --set-metadata base_sha="$(git rev-parse HEAD)"
+fi
+```
+
+**The manifest read comes first.** Reuse is what makes a resumed run land on the
+same branch as the original; creating a second one forks the run's history from
+the work it is meant to continue. A name already taken by an unrelated branch
+stops the run here, before any worktree exists.
+
+**`base_sha` is recorded at creation** because that is the only moment it is
+unambiguous — deriving it later from a merge-base assumes the base branch has
+not moved, and on a long run it will have. Three things consume it and none may
+create it: `run-record.md`.
 
 ## The base-ref trap — read before the first dispatch
 

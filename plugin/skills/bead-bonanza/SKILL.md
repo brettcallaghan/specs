@@ -33,33 +33,46 @@ format command. Validation comes from the checks the project declares in
 `sf.toml`, run by `scripts/bb-checks.py`: exit 0 means every check passed,
 anything else means something failed, and the output says what.
 
-## The shape of a run
+## The shape of a run — it IS the graph
+
+**Every phase is an EPIC under the run epic, chained `epic→epic` in order.** The
+run's sequence is not a list you walk; it is edges the tracker enforces.
 
 ```
-1     pre-flight ............................ pre-flight-check.sh
-2     resolve scope ......................... sprint-scope
-      └─ AUTHORIZATION GATE ................. HUMAN, once
-┌─ 3+4 groom & plan .......................... sprint-plan → groom-beads
-│  5   sprint ................................ coordinator + subagents
-│      ├ create the sprint branch, once ..... coordinator
-│      ├ 5a dispatch the front ─┐ repeat      sprint-batch
-│      ├ 5b merge               │ until the   coordinator
-│      └ 5c supervise          ─┘ front dries bb-status.sh
-│  6   review ................................ sprint-review → declared reviewer
-└───── findings admitted AND passes < 3 ? ─── yes ──┘
-7     retro ................................. sprint-retro
-8     report ................................ sprint-report
-9     post-flight ........................... sprint-cleanup.sh
+run epic .................. never swarmed; its id is the run id
+├ pre-flight .............. pre-flight-check.sh
+├ scope ................... sprint-scope
+│   └ AUTHORIZATION GATE .. a TASK child, gated; HUMAN, once
+├ groom & plan ─┐ ......... sprint-plan → groom-beads
+├ TARGET ───────┤ SWARMED . FLAT: tasks only
+│  ├ dispatch ┐ │ repeat    sprint-batch
+│  ├ merge    │ │ until the coordinator
+│  └ supervise┘ │ front dry bb-status.sh
+├ review ───────┘ ......... sprint-review → declared reviewer
+│   findings admitted AND passes < 3 ? — yes, re-enter at groom & plan
+├ retro ................... sprint-retro
+├ report .................. sprint-report
+└ post-flight ............. sprint-cleanup.sh
 ```
+
+**Epics because the type rules leave no other form.** Measured: `bd dep add`
+refuses task→epic (`tasks can only block other tasks, not epics`) and
+epic→task alike, so whatever blocks the target must be an epic. One `epic→epic`
+edge then blocks **every bead beneath the target**, and a bead added there
+mid-run inherits the block with nothing wired.
+
+**The TARGET is flat, and is what `bd swarm` is given** — never the run epic.
+Both rules and the second target that sub-epic work becomes:
+`references/run-record.md`.
 
 **Two nested loops, both bounded**: the dispatch loop ends when the ready front
 is dry, the review loop at 3 passes or no admitted findings. Neither exhausting
-is a failure — what is left is filed and named. **7 and 8 run
-retro-then-report**, so what the retro produced reaches the report.
+is a failure — what is left is filed and named. **Retro runs before report**,
+so what the retro produced reaches the report.
 
-**A human's pull-request review is not a step here.** Whether one happens, and
-when, is the project's business — the run ends at post-flight either way, and
-findings that come back from a review do not consume the review budget.
+**A human's pull-request review is not a step here.** Whether one happens is
+the project's business — the run ends at post-flight either way, and findings
+from one do not consume the review budget.
 
 ## Run checklist
 
@@ -114,6 +127,7 @@ you need from it:
 
 - `BB_EPIC` — its id is the run id and its descendants are the queue
   (`bd ready --parent <epic> --exclude-type=epic`).
+- `BB_TARGET` — the flat target epic. `bd swarm` takes THIS, never `BB_EPIC`.
 - The admission record — admitted, **excluded** and why, moved and from where.
   A run that narrowed its own scope says so in the final report.
 - The authorization set as decided, including the rows that took their default.
@@ -146,29 +160,16 @@ the run's amendments. All three: `references/run-record.md`.
 
 ## The sprint branch — you create it, once, before the first worktree
 
-**Immediately before the first dispatch**, not earlier. A run that bounced
+**Immediately before the first dispatch**, not earlier: a run that bounced
 every bead has nothing to branch for, and a branch cut before grooming records
 a `base_sha` predating the grooming commits.
 
-```bash
-br="$(bd show "$BB_EPIC" --json | jq -r '.[0].metadata.branch // empty')"
-if [ -n "$br" ]; then git checkout "$br"          # RESUME — create nothing
-else
-  br="sprint/<epic-suffix>"
-  git rev-parse --verify "$br" >/dev/null 2>&1 && { echo "branch $br taken"; exit 1; }
-  git checkout -b "$br"
-  bd update "$BB_EPIC" --set-metadata branch="$br" \
-                       --set-metadata base_sha="$(git rev-parse HEAD)"
-fi
-```
-
-**Read the manifest before you create anything.** Reuse is what makes a resumed
-run land on the same branch, and **a name already taken by an unrelated branch
-stops the run here**, before any worktree exists.
-
-**`base_sha` is recorded at creation** because that is the only moment it is
-unambiguous, and three things consume it that may never create it:
-`references/run-record.md`.
+**Read the manifest before you create anything.** A run whose manifest already
+carries `branch` reuses it and creates nothing, which is what makes a resumed
+run land where the original did; **a name already taken by an unrelated branch
+stops the run here**, before any worktree exists. The exact sequence, and why
+`base_sha` is recorded at creation rather than derived:
+`references/worktree-mechanics.md`.
 ## Every dispatch runs in its own worktree
 
 **This is universal, not opt-in**, and it is **per dispatch, not per bead**: a
