@@ -263,8 +263,8 @@ in the manifest as `review_passes` because a resumed run that restarted it
 would loop forever. What it does and does not bound, and why exhausting it is
 not a failure: `references/supervision.md`.
 
-**No reviewer declared** returns a skip and the report says so. Do not
-substitute your own review.
+**Undeclared is not a skip**: it finds a reviewer or uses a bare agent, and
+the report names which.
 ## Report — invoke `sprint-report`
 
 After the queue drains (or the circuit breaker trips), invoke `sprint-report`.

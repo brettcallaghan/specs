@@ -1,9 +1,10 @@
 ---
 name: sprint-review
 description: Review a sprint's own diff and turn what comes back into beads —
-  invoke the reviewer the project declared in sf.toml's [review], scope it to
-  this run's diff, file each finding as a bead against its origin, and classify
-  each as in or out of the run's authorized scope. Use when a sprint
+  resolve a reviewer (the one declared in sf.toml's [review], else one found in
+  the session, else a bare agent), scope it to this run's diff, file each
+  finding as a bead against its origin, and classify each as in or out of the
+  run's authorized scope. Use when a sprint
   orchestrator reaches its review step, or when asked to review a sprint's
   accumulated changes, triage review findings into beads, or decide which
   findings a run is allowed to take on. It does not review code itself and does
@@ -18,6 +19,10 @@ user-invocable: false
 provide one, the ecosystem is full of them, and reviewing a diff is the most
 generic thing in a sprint. What is not generic — and is entirely the sprint's —
 is what happens to the findings.
+
+**That does not mean a run may go unreviewed.** Shipping no reviewer is a
+statement about what this framework builds, not about what a run does. Every
+run gets a review; step 1 is how one is found.
 
 So: run whatever the project declared, and route what comes back.
 
@@ -34,8 +39,10 @@ So: run whatever the project declared, and route what comes back.
 - **The findings**, as beads that now exist — id, one line, and in-scope or
   out-of-scope.
 - **The counts**: filed, admitted into this run, held out of it.
-- **`review skipped — no reviewer declared`**, where that is the case, as the
-  whole return.
+- **`reviewer_source`** — `declared`, `discovered`, or `none`, and the name of
+  whatever ran. The report needs it: a review by the project's declared
+  reviewer and a review by a bare agent are not the same evidence, and a report
+  that cannot tell them apart lets a weak review read like a strong one.
 
 You do not return a recommendation about looping. The orchestrator owns the
 counter and the budget.
@@ -50,11 +57,23 @@ skill   = "code-review"          # dispatch a skill by name
 # command = 'my-linter --diff'   # or run a command; its stdout is the report
 ```
 
-**Undeclared is not an error — and not a pass.** Return
-`review skipped — no reviewer declared` and stop. The orchestrator names the
-skip in the report, because a silently skipped review reads exactly like a
-clean one. Do not substitute your own review, and do not prompt for a
-declaration mid-run.
+**Undeclared is not an error, not a pass, and not a skip.** Take the first of
+these that resolves, and report which one:
+
+| | `reviewer_source` | |
+|---|---|---|
+| 1 | `declared` | `[review]` names a skill or command. Use it. |
+| 2 | `discovered` | Undeclared: look for a review skill available in this session and use it. Name the one you picked. |
+| 3 | `none` | No skill available: dispatch a plain agent to review the diff with no skill, and say the review ran without one. |
+
+**Never prompt for a declaration mid-run** — the run has one human touchpoint
+and it is already past.
+
+**Why not skip.** A skipped review reads exactly like a clean one, which is why
+skipping was never safe; but returning nothing also threw away a review the
+session could have performed. Falling back keeps the review and keeps the
+distinction, as long as `reviewer_source` reaches the report — which is the
+condition, not a nicety.
 
 ## 2 · Scope it to this run's diff
 

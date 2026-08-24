@@ -143,9 +143,17 @@ Two things a report must never let a reader misread as completeness:
 - **Findings left at loop exhaustion** — filed as beads, named here. A review
   budget spent is not a failure; a budget spent silently is.
 
-And where `sprint-review` returned a skip: **`review skipped — no reviewer
-declared`**, in the report, in those words. A silently skipped review reads
-exactly like a clean one.
+And **which reviewer ran**, from `sprint-review`'s `reviewer_source`:
+
+| value | what the report says |
+|---|---|
+| `declared` | reviewed by the reviewer `sf.toml` declares — name it |
+| `discovered` | **no reviewer declared**; reviewed by a skill found in the session — name it |
+| `none` | **no reviewer declared and none available**; reviewed by a plain agent with no skill |
+
+The last two are weaker evidence than the first and the report SHALL say so.
+Collapsing them lets a bare-agent review read exactly like the project's own,
+which is the same failure a silently skipped review used to produce.
 
 ## What you do not do
 
