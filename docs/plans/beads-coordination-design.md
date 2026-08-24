@@ -125,8 +125,11 @@ anyway.** The two are belt and braces, not alternatives:
 That is also the answer to "what should we use for agent IDs": **one string,
 used as both the assignee and `BEADS_ACTOR`.** Beads has no agent registry —
 assignees are plain strings **[doc]** — so the id is ours to choose, and
-`<agent-slug>-<batch-id>` (e.g. `dev-3`) is enough as long as it is stable for
-the agent's lifetime.
+**`<agent-slug>-<run-id>-<batch-id>`** (e.g. `dev-run7-2`). The run id is not
+optional: the tracker is shared across every run, batch ids restart at 1, and a
+bare `dev-3` from last week's run collides with this week's — silently, because
+an assignee is a plain string and nothing validates it. `bd ready --assignee
+dev-3` would then return two runs' work to one agent.
 
 ---
 
@@ -410,16 +413,116 @@ against child beads at runtime. **[unverified]:** whether a formula can express
 --ref` looks like the mechanism, and settling it would let the gated child ship
 in the template instead of being created by hand.
 
-### Should we build this formula at all?
+### Can a formula avoid child epics? — and I was wrong about "by hand first"
 
-**Not yet.** It is the right shape and the exercise paid for itself — it found
-the gate/epic incompatibility and the close-eligible deadlock, neither of which
-was visible from the documentation. But three things argue against adopting it
-now: this repository has no formulas today, so it would be the first user of a
-subsystem we have not otherwise exercised; the pour path already failed once on
-a plausible construction; and the ceremony chain is eight `bd create` calls,
-which is not the expensive part of a run. **Build the graph by hand first, run
-it, and reach for a formula when the ceremony has stopped changing shape.**
+**Correcting myself:** I argued for building by hand first because eight
+`bd create` calls are cheap. That weighed the wrong cost. The value of a
+declarative template is not saved keystrokes, it is **consistency, determinism
+and less prose** — and those are the things this system is short of. The
+question is not whether to declare the run; it is what to declare it *in*.
+
+**First, the constraint that rules out one option.** A poured molecule's root is
+type `molecule`, and measured, it is treated as a **task** by the segregation
+rule:
+
+```
+bd mol pour t-alltask        → root lab-mol-ku3, issue_type "molecule"
+                               children: two type=task steps
+bd dep add <epic> <molecule-root>
+                             → Error: epics can only block other epics, not tasks
+```
+
+So **a molecule cannot gate an epic.** A formula-poured ceremony cannot block an
+epic-shaped target, whatever we do — which means avoiding child epics is not a
+preference here, it is the only way a formula can drive the whole run.
+
+**Second, does avoiding them force per-bead edges?** Yes, and `--deps` makes the
+wiring free at creation time (`bd create --deps 'blocks:lab-x'`). But free to
+*write* is not the same as safe, and this is the measurement that decides it:
+
+```
+# target epic blocked by pre-flight epic; add a NEW bead to it mid-run
+bd create --title "work 2 (added later)" --parent <blocked-target-epic>
+bd ready → absent
+```
+
+**A bead added to a blocked epic inherits the block automatically.** With
+per-bead edges it does not: every bead admitted mid-run — every scope-creep
+bead, every finding the review files — must be wired by whoever adds it, and
+forgetting is silent. That is precisely the "a missing edge is a race" failure,
+and it lands on the path we *know* gets exercised, because scope creep is
+handled by modifying the graph.
+
+So the trade is real and it is not about typing:
+
+| | epic-gated ceremony | per-bead edges from a formula |
+|---|---|---|
+| mid-run additions | **inherit the block structurally** | must be wired each time, silently wrong if missed |
+| can a formula drive it? | **no** — a molecule cannot block an epic | yes |
+| edges for N work beads | 1 | N, plus N more for the fan-in |
+
+**Third — and this dissolves the dilemma — `bd create --graph` is the better
+tool than a formula for the run graph.** Measured, one call:
+
+```
+bd create --graph run.json
+→ Created 9 issues        # ceremony epics, target epic, work beads,
+                          # parentage, assignees, and 5 edges
+bd ready → only the pre-flight check, correctly assigned
+```
+
+The schema, which bd will tell you if you guess wrong (its unknown-field
+warnings name the right keys):
+
+```json
+{"nodes":[{"key":"tgt","title":"Target","type":"epic","parent_key":"run",
+           "assignee":"dev-run7-1","priority":2,"description":"…"}],
+ "edges":[{"from_key":"rev","to_key":"tgt","type":"blocks"}]}
+```
+
+That is *exactly* "planning produces a really high quality graph and nothing
+more" — declarative, diffable, reviewable before it is loaded, and it keeps the
+epic structure that makes mid-run additions safe. It is not a template (no
+variables, no reuse), so it does not replace a formula for **recurring**
+ceremony; it replaces one for the **run-specific** graph, which is the part that
+differs every time anyway.
+
+**Recommendation, revised:** declare the run graph as a `--graph` JSON plan
+emitted by planning, keep ceremony as epics, and reserve formulas for the
+genuinely repeating sub-ceremonies where variables earn their keep (a review
+pass, a bead's close sequence). **[unverified]:** whether `--graph` accepts
+gates or metadata per node — the warnings enumerate only the fields I probed.
+
+### Wisps: not a gating mechanism
+
+A wisp is a molecule in vapor phase — measured, `bd mol wisp` creates the same
+`molecule`-typed root as `pour`, just ephemeral and `dolt_ignore`d. So it
+inherits the same limitation: **a wisp cannot gate an epic either.** Wisps are
+the right phase for ceremony that should not accumulate in a shared tracker, and
+the wrong tool for expressing "nothing starts until pre-flight passes."
+
+### Formalizing the review loop
+
+**A formula cannot express a loop.** `needs` builds a DAG; there is no
+back-edge. Three ways to get the effect, in ascending honesty:
+
+1. **Bounded unrolling.** Declare `review-1`, `review-2`, `review-3` as steps,
+   each `needs` the last. Deterministic, matches the 3-pass budget the system
+   already has, and every pass is visible in the graph before the run starts.
+   Ugly, and it creates beads for passes that will usually not happen.
+2. **Conditional bonding.** `bd mol bond` supports a `conditional` bond type —
+   "B runs only if A fails" **[doc]**. That is one branch, not a loop, but it is
+   the natural encoding of "if review found things, do another pass."
+3. **Re-pour per pass.** The loop lives in the coordinator; each *iteration* is
+   a freshly poured molecule bonded onto the run (`mol + proto → spawn and
+   attach` **[doc]**). The loop is not declarative, but the ceremony of a pass
+   is — which is where the prose actually lives.
+
+**Recommendation: (3), with the pass counter staying in the manifest.** The
+budget is a coordinator decision that must survive a resumed session, and
+`review_passes` already exists for exactly that reason. What (3) buys is that
+"what a review pass consists of" stops being prose in `sprint-review` and
+becomes a template.
 
 ---
 
@@ -520,16 +623,42 @@ run at a time is this system's normal state; a second concurrent run is the
 unusual case, and paying for it in wall-clock beats reimplementing a lock whose
 failure mode is a corrupted merge.
 
-**Caution — `merge-request` is not a usable type on 1.2.2.** `bd ready --type`'s
-help advertises `merge-request` with an `mr` alias, but creation rejects it:
+**On the `merge-request` type — you can have both, and the answer changed.**
+`merge-request` is not a *built-in* type on 1.2.2; creation rejects it outright:
 
 ```
 bd create --title "…" --type merge-request
 → Error: validation failed: invalid issue type: merge-request
 ```
 
-Use `task`, or add one via `bd config set types.custom` **[unverified]** —
-settled by setting it and creating a bead of that type.
+**But it can be registered as a custom type, and then it works.** Measured, and
+the warning it prints is misleading:
+
+```
+bd config set types.custom "merge-request"
+→ Warning: "types.custom" is not a recognized config key…     # ignore this
+→ Set types.custom = merge-request
+
+bd types            → Configured custom types:  merge-request
+bd create --title "merge b1" --type merge-request   → lab-fij
+bd show lab-fij --json | jq -r '.[0].issue_type'    → merge-request
+```
+
+**And it behaves as a task for the segregation rule**, which is exactly what a
+merge bead needs — it fans in from work beads:
+
+```
+bd dep add <merge-request-bead> <task>   → ✓
+bd dep add <merge-request-bead> <epic>   → Error: tasks can only block other tasks, not epics
+```
+
+So: the *pattern* (a bead every branch's work blocks, assigned to a merge agent)
+works with any task-shaped type. The *name* costs one config key and buys a
+queryable `--type merge-request` across the whole tracker. Worth it — but note
+the type lives in local config, so it is a **per-clone setup step**, and a clone
+that has not run it cannot create or filter those beads. **[unverified]** whether
+`types.custom` travels with the Dolt database or stays local; settled by
+checking a second clone after a `bd dolt push`.
 
 ---
 
