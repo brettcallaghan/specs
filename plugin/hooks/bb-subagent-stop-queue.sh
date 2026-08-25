@@ -132,11 +132,14 @@ for k in ("agent_id", "subagent_id", "agentId", "subagentId", "agent"):
 }
 
 # ------------------------------------------------------------------- counting
-# Never `jq length` bare: `bd ready --json` returns `null`, not `[]`, when the
-# queue is empty. Anything that is not an array counts as 0 — the fail-open
-# direction. A non-zero exit or empty output returns 1 so the caller can tell
-# "could not count" from "counted zero"; conflating those two is what makes a
-# hook block on a missing dependency.
+# Never `jq length` bare. `bd ready --json` prints `[]` when the queue is
+# empty — measured on bd 1.2.2 in every configuration tried — but `length`
+# answers for whatever it is given, and on a string it returns the character
+# count, so a 16-character error string read back bare reports a queue of 16
+# and blocks this hook forever. Anything that is not an array counts as 0 —
+# the fail-open direction. A non-zero exit or empty output returns 1 so the
+# caller can tell "could not count" from "counted zero"; conflating those two
+# is what makes a hook block on a missing dependency.
 count_json() { # count_json <bd args...>  ->  prints a number, or returns 1
   _out="$("$BD" "$@" --json 2>/dev/null)" || return 1
   [ -n "$_out" ] || return 1

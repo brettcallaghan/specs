@@ -170,8 +170,12 @@ status_for_branch() { # status_for_branch <branch>  < beads-json  ->  status|""
 # Drained = nothing ready and nothing in progress. BOTH are required: `bd
 # ready` excludes in_progress, so a bead being worked right now makes the ready
 # front empty, and the ready query alone reports a live agent as finished.
-# `bd ready --json` returns null rather than [] when empty, so the emptiness
-# test has to accept both.
+# `bd ready --json` prints [] when the front is empty -- measured on bd 1.2.2
+# in every configuration tried, and null in none of them. json_empty accepts
+# null and the empty string as well: it is a shape guard rather than a
+# restatement of what bd emits, and what separates "nothing there" from
+# "could not tell" is the query's exit status, read below before json_empty
+# is reached at all.
 # Shell functions share globals, so every local here is prefixed `_ad_`/`_je_`.
 # An unprefixed `_n` silently overwrote the self-test's own loop variable and
 # made a passing assertion print the wrong name.
@@ -311,8 +315,9 @@ self_test() {
     if [ "$_g" = "$_e" ]; then printf '  ok   branch status, %s\n' "$_n"
     else printf '  FAIL branch status, %s (expected [%s], got [%s])\n' "$_n" "$_e" "$_g"; fails=$((fails+1)); fi
   done
-  # Emptiness, which decides whether an agent has drained. `bd ready --json`
-  # answers null rather than [], so both spellings must read as empty.
+  # Emptiness, which decides whether an agent has drained. The measured shape
+  # is [], but json_empty must read every non-list payload as empty too, so
+  # each spelling is exercised rather than only the one bd emits.
   for _c in "null is empty:0:null" "[] is empty:0:[]" "unset is empty:0:" "a one-item list is not:1:[{}]"; do
     _n="${_c%%:*}"; _r="${_c#*:}"; _e="${_r%%:*}"; _j="${_r#*:}"
     if json_empty "$_j"; then _g=0; else _g=1; fi

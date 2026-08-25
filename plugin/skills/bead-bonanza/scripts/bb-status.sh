@@ -557,7 +557,10 @@ print("OUTSTANDING|%d|%s" % (len(outstanding), " ".join(outstanding)))
 
 # Ready-front creep: beads the tracker would dispatch next that the run never
 # admitted — a discovered-from bead, an undeferred one, a human addition mid-
-# run. `bd ready --json` returns null (not []) when the front is empty.
+# run. `bd ready --json` prints [] when the front is empty — measured on bd
+# 1.2.2 in every configuration tried. The isinstance guard below is wider than
+# that measurement deliberately: an unparseable or non-list payload must read
+# as an empty front rather than raise.
 r = subprocess.run(["bd", "ready", "--parent", epic, "--exclude-type=epic", "--json"],
                    capture_output=True, text=True)
 try:

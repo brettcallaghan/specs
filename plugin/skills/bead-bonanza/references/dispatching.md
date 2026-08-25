@@ -255,8 +255,14 @@ bd list --assignee <id> --status blocked       # what it gave up on
 **An agent has DRAINED when the first two are empty.** Both are required and
 this is measured: `bd ready` excludes `in_progress`, so a bead being worked
 right now makes the ready front empty and the ready query ALONE reports a live
-agent as finished. `bd ready --json` answers `null` rather than `[]` when
-empty, so an emptiness test has to accept both.
+agent as finished. `bd ready --json` prints `[]` when the front is empty —
+measured on bd 1.2.2 in every configuration tried (empty tracker; issues
+present with a filter matching none; every issue closed; `--parent`,
+`--assignee` and `--exclude-type` filters), and `null` in none of them. Read
+the emptiness test defensively all the same: count only a JSON array and treat
+any other payload as empty. A bare `length` answers for whatever it is handed
+— on a string it returns the character count — so an error body read back
+unguarded reports a queue as long as its own text.
 
 Then read the third: drained with nothing `blocked` is finished; drained with a
 `blocked` bead is finished-with-a-block, and the two must not be reported alike.

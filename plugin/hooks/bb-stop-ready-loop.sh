@@ -81,10 +81,12 @@ state_dir() {
 warn() { printf '[bb-stop-ready-loop] %s\n' "$*" >&2; }
 
 # ------------------------------------------------------------------- counting
-# Never `jq 'length'` bare: `bd ready --json` returns `null`, not `[]`, when the
-# queue is empty, and a consumer that assumes a list is exactly the bug this
-# hook must not have. Anything that is not an array counts as 0 -- the
-# fail-open direction.
+# Never `jq 'length'` bare. `bd ready --json` prints `[]` when the queue is
+# empty -- measured on bd 1.2.2 in every configuration tried -- but `length`
+# answers for whatever it is given, and on a string it returns the character
+# count, so a 16-character error string read back bare reports a queue of 16
+# and blocks this hook forever. Anything that is not an array counts as 0 --
+# the fail-open direction.
 count_ready() {
   _epic="$1" _out=""
   _out="$("$BD" ready --parent "$_epic" --exclude-type=epic --json 2>/dev/null)" || return 1
@@ -225,7 +227,7 @@ mode_self_test() {
 
   # -- a drained queue restores the budget
   stub 'null'
-  is "empty queue (null, not []) does not block" "$(run)" 0
+  is "a non-list payload counts as an empty queue" "$(run)" 0
   stub '[{"id":"x"}]'
   is "budget restored after the queue drained" "$(run)" 2
 
