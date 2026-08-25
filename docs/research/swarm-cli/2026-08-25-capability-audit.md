@@ -546,7 +546,110 @@ its predecessors today either — the chained branches guarantee it.
 "do not delete the branch until the fast-forward succeeded" warning, and the
 suffix-derivation rule restated in five places.
 
-## 6. Open questions for the owner
+## 6. What is working, what is friction, and what is not a factor
+
+Measured this session over the whole tracker — three runs' worth of captured
+findings — rather than read off any run's report:
+
+```
+$ bd export > e.jsonl
+$ jq -r '.comments[]?.text' e.jsonl | grep -c '^retro:'          -> 822
+$ jq -r '.comments[]?.text' e.jsonl | grep -oE '^retro:[a-z]+' | sort | uniq -c | sort -rn
+   66 proof   52 filed   32 decision   30 tooling   19 gap   14 stale
+   12 environment   9 scope   6 unverifiable   4 process   4 decided
+   3 sequencing   2 incident   1 misleading
+$ jq -r 'select(.status=="blocked") | .id' e.jsonl | wc -l       -> 1
+```
+
+**211 beads carried findings; 810 findings; mean 3.8 per bead.**
+
+### The top reason it works: the per-bead ceremony, and nothing has gone wrong there
+
+**Exactly ONE bead has ever taken the Blocked path**, across three runs and 211
+beads that recorded findings. And the split of `tooling` findings by target is
+the sharper measurement:
+
+```
+$ jq -r '.comments[]?.text' e.jsonl | grep -oE '^retro:tooling:[^ ]+' | sort | uniq -c | sort -rn
+   8 bead-bonanza   4 bd   2 sprint-retro   2 scripts/check-skills.sh
+   1 sprint-wave    1 sync-shared-references.sh   1 sprint-cleanup.sh
+   1 scripts   1 findings-capture-protocol   1 coordinator   1 bb-status   1 agent-plugins
+
+$ ... | grep -cE '^retro:tooling:(run-bead|sprint-batch)'     -> 0
+$ ... | grep -cE '^retro:tooling:(bead-bonanza|coordinator|sprint-wave|sprint-cleanup|scripts)' -> 15
+```
+
+**Zero tooling findings against the developer tier. Fifteen against the
+coordinator's machinery.** Three runs of agents claiming a bead, implementing
+in scope, gating, recording findings and closing into one commit produced no
+complaint about the procedure at all. That is the thing that is working, and it
+is worth naming because it is the part nobody writes findings about.
+
+Four properties do the work, and each is cheap:
+
+1. **One worktree per dispatch** — a subagent cannot see or damage another's
+   tree, so "did agent A break agent B" is not a question anybody asks.
+2. **One commit per bead, with the close folded into it** — a bead is either
+   closed-and-committed or neither, so there is no half-state to reconcile.
+3. **Assignment IS the record.** One string is an agent's whole identity, and
+   nothing is written at dispatch time to make "what is that agent holding" a
+   query. There is no bookkeeping key to forget or to go stale.
+4. **Verify against state, never against testimony.** Every acceptance verdict
+   is read from git or the tracker, so a lost completion notification, a
+   subagent that never returns, and a subagent that lies all reduce to the same
+   five signals.
+
+### The friction is entirely in the machinery around the work
+
+Every recorded failure is coordination: routing, prompts, worktree lifecycle,
+acceptance criteria, tool claims, liveness. The three that cost most, in order:
+
+- **Liveness.** A five-hour stall with eleven beads Ready, a health label that
+  read `healthy` throughout, and a one-shot recovery trigger that had fired
+  before the stall and disabled itself. What resumed the session was the
+  owner's PR comments. §4.3 and §4.5 are the two halves; the derived health
+  signal already existed and was already correct.
+- **The dispatch prompt.** It is an authoring surface with no reviewer, filled
+  in by hand, and the highest-reach carrier of a false claim in the system — a
+  retracted tool claim reached three of them in one run. E4 is the remedy:
+  render it, do not fill it.
+- **Prose-enforced ordering.** Merge-then-remove, `--ff-only`'s two meanings,
+  `bd epic close-eligible`'s hand-scoping. Each is one shell character away
+  from breaking, and one of them broke.
+
+### What is not a factor in its success
+
+- **`bd swarm` registration.** Three subcommands with three recorded traps,
+  consulted for a preview the corpus itself instructs you to suppress. §4.6.
+- **The merge slot.** Its own reference says the serialization it appears to
+  provide already holds by construction. §4.1.
+- **The bd event-hook stream.** `bd update --claim` emits no event and that is
+  the primitive every worker uses, so the stream shows closes and nothing else.
+  §4.5.
+- **The graph plan.** It creates nothing that is not created elsewhere. §4.2.
+- **Push modes.** Two branches of prose for a choice that stops existing once
+  the coordinator merges as dispatches return.
+
+### The taxonomy is leaking, and by more than the retros reported
+
+Each run's retro reported **2** unrouted findings. Across the tracker the real
+figure is higher, because a finding in an invented kind is only visible to a
+sweep that goes looking for one:
+
+```
+$ jq -r '.comments[]?.text' e.jsonl | grep -E '^retro:(process|decided|incident|misleading)' | wc -l
+11
+```
+
+Four inventions — `process` (4), `decided-silently` (4), `incident` (2),
+`misleading-text` (1) — and **every one of the eleven was written by the
+coordinator or is about a bead's own text.** None came from a developer agent
+working a bead. The nine kinds are adequate for the work; they are not adequate
+for describing the coordination around it, which is exactly where the friction
+is. That is a finding about the taxonomy, not about the authors, and it is one
+more argument for the write path validating the kind (F4).
+
+## 7. Open questions for the owner
 
 1. **Where does the CLI live?** This repository already has a Go module at
    `cli/` (`github.com/brettcallaghan/agent-plugins/cli`, Go 1.24, cobra) that
@@ -568,7 +671,7 @@ suffix-derivation rule restated in five places.
    comment leans toward clear criteria plus the agent's call. That is a
    decision the FRD needs, not the audit.
 
-## 7. What this audit did not establish
+## 8. What this audit did not establish
 
 - **No `bd` behaviour was re-measured except §3.1.** Every trap marked
   **[corpus]** is what the family currently instructs an agent to believe. Run
@@ -577,10 +680,15 @@ suffix-derivation rule restated in five places.
   a guarantee must be re-measured at that point.**
 - **Nothing here measures whether a capability is *used*.** The inventory is
   what the corpus instructs; a run may skip a step and nothing would show it
-  here. The owner's §4.1 question — which skills and approaches are not a
-  factor in the swarm's success, or are a point of friction — is a question
-  about run records, and answering it needs the three epics' comment streams
-  read against this inventory. That is a separate piece of work.
+  here. §6 answers the adjacent question — where friction concentrated — from
+  the captured findings, but a finding is evidence that a step went wrong, not
+  evidence that it ran.
+- **§6's per-bead evidence could not be joined to commits in this clone.** The
+  three runs' branches were squash-merged, so no `<id> P<n> <title>` subject
+  survives in this checkout's history (`git log --all --format=%s | grep -cE
+  '^agent-plugins-.* P[0-4] '` → 0). The bead outcomes in §6 are read from the
+  tracker alone; "one commit per bead landed" is inherited from the run
+  records, not re-measured here.
 - **No cost model.** "34 capabilities to mechanize" is a count, not an
   estimate; several (B2, E4, L3) are a day's work each and several are an hour.
 - **The Windows target is unexercised.** Every measurement in §3.1 and every
