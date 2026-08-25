@@ -44,7 +44,7 @@ run epic .................. its id is the run id
 │   └ AUTHORIZATION GATE .. a TASK child, gated; HUMAN, once
 ├ groom & plan ─┐ ......... sprint-plan → groom-beads
 ├ TARGET ───────┤ FLAT: tasks only
-│  ├ dispatch ┐ │ repeat    run-bead, one subagent per dispatch
+│  ├ dispatch ┐ │ repeat    run-batch, one subagent per dispatch
 │  ├ merge    │ │ until the coordinator, as each dispatch returns
 │  └ supervise┘ │ front dry bb-status.sh
 ├ review ───────┘ ......... sprint-review → declared reviewer
@@ -103,60 +103,45 @@ the whole checklist passed. Run it at every re-query and at the end.
 
 **The scripts are in THIS skill's `scripts/`, not the repository's** — your cwd
 is the repository root, where `scripts/` is something else. The first call needs
-the skill path; every call after uses `$SCRIPTS`, which pre-flight emits.
+the skill path; every call after uses `$SCRIPTS`, which pre-flight emits, and
+every dispatch is handed it because a subagent cannot infer it.
 
 ```bash
 SKILL=<this skill's directory>                     # e.g. .../plugin/skills/bead-bonanza
 eval "$("$SKILL"/scripts/pre-flight-check.sh)"     # 1. environment; sets SCRIPTS
-#   2. invoke `sprint-scope` — it returns BB_EPIC
+#   2. invoke `sprint-scope` — it returns BB_EPIC and BB_TARGET
 eval "$("$SCRIPTS"/pre-flight-check.sh "$BB_EPIC")" # 3. + checks baseline
 ```
-
-**After step 1, use `$SCRIPTS` for every script and pass it to every
-subagent** as `{SCRIPTS}`. A subagent cannot infer it.
 
 **1 and 3 are a script**, not a skill: run it, eval the stdout, read the stderr
 report once. It names each blocker AND its remedy, so there is nothing to
 weigh. `references/pre-flight.md` only when it blocks, and **a blocking
 condition means the run does not start** — never work around it.
 
-**2 is `sprint-scope`.** It turns whatever the user gave into exactly one run
-epic, takes the run's single authorization gate, and dispatches nothing. What
-you need from it:
+**2 is `sprint-scope`.** Read three things off its return and route on them:
+`BB_EPIC`, whose id is the run id and whose descendants are the queue;
+`BB_TARGET`, the flat target; and the admission record, because **a run that
+narrowed its own scope says so in its record**.
 
-- `BB_EPIC` — its id is the run id and its descendants are the queue
-  (`bd ready --parent <epic> --exclude-type=epic`).
-- `BB_TARGET` — the flat target epic, whose task children are the work.
-- The admission record — admitted, **excluded** and why, moved and from where.
-  A run that narrowed its own scope says so in the final report.
-- The authorization set as decided, including the rows that took their default.
 ## Groom & plan — invoke `sprint-plan`
 
-**One dispatch, two returns.** `sprint-plan` grooms every bead that is not
-Ready (invoking `groom-beads`), bounces what it cannot clear, and — while it
-still holds every bead in context — partitions what came out:
+**One subagent, never two**, and it returns two things:
 
-1. **The readiness verdict** per bead. You dispatch only ready beads; bounced
-   ones are raised into `bd human` by the skill and named in your report.
-2. **The collision edges** — one file of `blocks` edges between beads that must
-   not run at once, plus one line per override of the plan's own preview. Diff
-   it, re-run its validators, load it with `bd dep add --file <path>`, then
-   record the path as `collision_edges` on the manifest. **Nothing else is
-   created here**: the work beads already exist, so a plan has only edges to
-   contribute (`references/run-record.md`).
+1. **The readiness verdict** per bead. Dispatch only the ready ones; the skill
+   bounces the rest into `bd human` itself.
+2. **A collision-edge file.** Diff it, re-run the validators the plan names,
+   load it with `bd dep add --file <path>`, and record the path as
+   `collision_edges` on the manifest. **It creates no beads** — the work beads
+   already exist, so edges are all a plan contributes.
 
-**They are one step because they are one read** — partitioning needs what
-grooming just acquired, so a second agent would re-read the queue to learn what
-the first knew. **One subagent, never two**; with nothing to groom, it plans
-alone.
+**Then assert the front rather than trusting the file**: an edge written the
+wrong way round inverts a dependency at exit 0.
 
-**The partition is in the graph, not in a schedule.** Beads that must not run
-at once carry a **collision edge** between them, so the ready front is safe to
-dispatch whole. Which edges are policy and which are real:
-`references/run-record.md`.
+**The partition lives in the graph, not in a schedule you keep** — which is why
+the ready front is safe to dispatch whole and there is nothing to re-derive.
 
-**Three things stay yours** — the run manifest, the swarm registration, and
-the run's amendments. All three: `references/run-record.md`.
+**Two things stay yours**, and neither is ever delegated: the run manifest and
+the run's amendments. Both: `references/run-record.md`.
 
 ## The sprint branch — you create it, once, before the first worktree
 
@@ -208,7 +193,7 @@ to freeze, wait on, or intersect. Dispatch what is in it and not already held, t
 each batch returns, so a bead that became ready behind a slow one goes out at
 once rather than waiting for its neighbours.
 
-Each dispatch is one subagent running `run-bead` in one worktree, on one
+Each dispatch is one subagent running `run-batch` in one worktree, on one
 branch named for the dispatch. **The procedure — filling in the prompt,
 verifying skip claims, the per-bead acceptance check, the push, the circuit
 breaker and reading a live agent — is `references/dispatching.md`.** Read it
@@ -262,51 +247,33 @@ Where the run is, which of three deaths you are looking at, and why the obvious
 
 ## Review the run's own diff — invoke `sprint-review`
 
-When the ready front is dry, **before the retro**: invoke `sprint-review`. It
-runs the reviewer the project declared in `sf.toml`'s `[review]`, scopes it to
-`base_sha`..sprint head, files every finding as a bead, and classifies each in
-or out of the run's authorized scope.
+When the ready front is dry, **before the retro**. It files what it finds and
+classifies each finding in or out of scope; it does not decide whether to loop.
 
-**The loop is yours, and only the loop.** `sprint-review` owns finding things;
-you own the counter, the budget, and the decision to go round again — findings
-admitted **and** passes under budget means re-enter, anything else means done.
+**The loop is yours, and only the loop** — findings admitted **and** passes
+under budget means re-enter, anything else means done.
 
 **Re-enter at groom & plan, never at dispatch.** Review *files*; it does not
-groom. An admitted finding earns its readiness like any other bead, or bounces.
+groom, so an admitted finding earns its readiness like any other bead.
 
-**The budget is 2 loops — three passes** unless the gate said otherwise, kept
-in the manifest as `review_passes` because a resumed run that restarted it
-would loop forever. What it does and does not bound, and why exhausting it is
-not a failure: `references/supervision.md`.
+**The budget is 2 loops — three passes** unless the gate said otherwise, and it
+lives in the manifest as `review_passes` because a resumed run that restarted
+the counter would never exhaust it. Why exhausting it is not a failure:
+`references/supervision.md`.
 
-**Undeclared is not a skip**: it finds a reviewer or uses a bare agent, and
-the report names which.
 ## Retro — invoke `sprint-retro`
 
-After the queue drains (or the circuit breaker trips), invoke `sprint-retro` —
-**before the report, so what it produces can be reported** — and **on every
-run**, including one that closed nothing. A sprint that bounced its whole queue
-produced no code and a lot of evidence about grooming; a retro firing only on
-success cannot see the failures.
+After the queue drains, or the circuit breaker trips, and **on every run** —
+including one that closed nothing. A run that bounced its whole queue produced
+no code and a great deal of evidence about grooming, and a retro that only
+fires on success cannot see it.
 
-It harvests every finding, routes each by kind, reasons them into candidates,
-puts those to the user once, files what they accept, and **writes the run's one
-human-facing document** — the findings, the results, and what the run could not
-verify, in the destination the project configured. It records that path on the
-epic, so a resumed session can find it with the epic id alone.
+It writes **the run's one human-facing document** and records its path on the
+epic, which is what lets a later session find it from the epic id alone.
 
-**Two of the nine kinds never become issues** — `proof` stays with the
-findings, `environment` goes to the environmental-failure ledger. Measured at 7
-of 73 on a real run, so expect them.
+**Read it before you hand it over**: you own that it is true, not that it is
+written. **A run ending without one has failed**, whatever else it achieved.
 
-**Its best material is the findings that changed what "correct" means** —
-`decision`, `scope` and `gap` against a document. Each marks a place the corpus
-failed to answer a question a bead needed, which is a finding against a *spec*
-rather than a complaint about the run.
-
-**The document is always produced**, including for a run that stopped early,
-and **read it before you hand it over**: you own that it is true, not that it
-is written. A run ending without one has failed, whatever else it achieved.
 ## Post-flight — the cleanup script
 
 The last act, after the retro and the report:
@@ -337,7 +304,7 @@ is a skill you invoke or a script you run, and its section says which.
 |---|---|
 | Pre-flight blocked; the remedy | `references/pre-flight.md` |
 | A project with no declared `[[checks]]`, `[models]` or `[review]` | `references/project-setup.md` |
-| The manifest, swarm registration, amendments | `references/run-record.md` |
+| The manifest, the epic shape, amendments, the ledger | `references/run-record.md` |
 | Concurrency entry and tier routing | `references/dispatch-policy.md` |
 | Sending a dispatch out and verifying what returns | `references/dispatching.md` |
 | Handing a ceremony phase its agent id | `references/dispatching.md` |
@@ -349,7 +316,6 @@ is a skill you invoke or a script you run, and its section says which.
 | Where the run is; when it is done; which death you have | `references/supervision.md` |
 | A bead interrupted mid-implementation; all principles | `references/operating-principles.md` |
 | Resuming a run whose state you do not hold | the **`sprint-recovery`** skill |
-| The Definition of Ready the readiness gate enforces | `references/shared/work-order-definition-of-ready.md` |
 
 **A prompt file IS the prompt** — send it whole, with no block to extract.
 You resolve the placeholders: `references/dispatching.md`.

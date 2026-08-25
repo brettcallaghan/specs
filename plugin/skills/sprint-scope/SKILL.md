@@ -248,7 +248,7 @@ That holds even for the four decisions that change what *correct* means — an
 acceptance criterion needing amendment, a standard/requirement/AC tension, a
 contract or interface change, a spec silent where a bead needs it to speak.
 Those are decided and recorded as ordinary findings of their kind, never
-escalated. `run-bead` carries the rule.
+escalated. `run-batch` carries the rule.
 
 **The human may still ask you anything, at any time.** The asymmetry is
 one-way: answering costs the run nothing and interrupts nothing, while a run

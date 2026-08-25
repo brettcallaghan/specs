@@ -8,7 +8,7 @@ statement.
 
 **Scoped to the coordinator.** A principle the per-bead ceremony enforces is
 stated where that ceremony lives, not here — one commit per bead, and where an
-interrupted bead's uncommitted work stays, both belong to the **`run-bead`**
+interrupted bead's uncommitted work stays, both belong to the **`run-batch`**
 skill and are enforced by the close script.
 
 - Findings harvest — how to wire `retro:` capture; the harvest pipeline

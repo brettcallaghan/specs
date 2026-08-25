@@ -4,7 +4,7 @@
 own — `scripts/pre-flight-check.sh`, `scripts/bb-status.sh`,
 `scripts/sprint-cleanup.sh` — plus `scripts/bb-close-bead.sh` on exactly one
 path, finishing a bead a crashed subagent left behind (`recovery.md`). The
-skip-verification script and the checks runner are both the **`run-bead`**
+skip-verification script and the checks runner are both the **`run-batch`**
 skill's; each is documented where it is called, and the coordinator's own use
 of the skip check is in `dispatching.md`.
 
@@ -48,7 +48,7 @@ The last one is the recovery path only — see its entry below.
   Exit 0 clear, 1 repairable, 2 stop, 3 invocation error. **Run-level:
   a subagent never runs it** — inside its own worktree signal 4 reads
   differently by construction.
-- **`scripts/bb-close-bead.sh`** — **`run-bead` owns this**; the coordinator runs
+- **`scripts/bb-close-bead.sh`** — **`run-batch` owns this**; the coordinator runs
   it on one path only, finishing a bead a crashed subagent left uncommitted.
   There, from inside that worktree: `--trailers-from <epic>` (optional, before
   `<bead-id>`) reads the manifest's `trailers` key, and passing **no paths**

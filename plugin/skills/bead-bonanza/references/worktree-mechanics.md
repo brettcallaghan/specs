@@ -1,9 +1,9 @@
 # Worktree mechanics (coordinator)
 
 **Not a prompt.** This is the coordinator's own procedure: how a dispatch's
-worktree is created, verified, merged and removed. No subagent reads it — a
-subagent is told only its `{WORKTREE}` path, which the coordinator resolves
-along with every other placeholder (`dispatching.md`).
+worktree is created, verified, merged and removed. No subagent reads it, and
+none is told the path either — an agent resolves its own worktree from the tree
+it is standing in (`dispatching.md`).
 
 ## Contents
 

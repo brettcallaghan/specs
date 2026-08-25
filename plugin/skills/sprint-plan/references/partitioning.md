@@ -1,22 +1,16 @@
-# Run Record Format
+# Partitioning — collisions, overlap, and the edge file
 
-**The run's record is its epic**, not a file: the manifest is `--metadata` JSON
-on it and the amendments are `amend:`-prefixed comments on it. There is no
-`dispatch.md` and no run directory — the tracker outlives a reclaimed
-container, and a `/tmp` path does not.
+**What a plan produces, and how it decides.** One artifact: a `bd dep add
+--file` document of `blocks` edges between beads that already exist. This file
+is how each edge is chosen, marked and validated.
 
-Read this when you produce the edge file, and again whenever the coordinator
-amends the run. It is written for whoever picks the sprint back up — which may
-be an agent with no memory of having written it.
-
-**The manifest is the orchestrator's, not yours.** It is already on the epic
-when this skill is invoked. Read it; never rewrite it.
+**The run's record is not here.** The manifest, the environmental ledger and
+the run's amendments all live on the run epic and belong to the coordinator;
+its own run-record reference specifies them. Read the manifest
+(`bd show <epic> --json | jq '.[0].metadata'`); never rewrite it.
 
 ## Contents
 
-- Run manifest — `--metadata` on the run epic; the facts recovery cannot
-  re-derive. A check whose baseline is `fail` sets "no new findings", not
-  exit 0, as the bar for every bead
 - `concurrency_cap` — the size of the harness's worker pool, and the
   N_dev ≤ cap − 1 rule the plan is checked against
 - Collision edges — a concurrency policy expressed as a dependency, how it is
@@ -26,78 +20,6 @@ when this skill is invoked. Read it; never rewrite it.
   not from file paths
 - The edge file — the one artifact a plan produces, its measured
   all-or-nothing loading, and the validators that run before it is handed over
-- Amendments — `amend:` comments on the epic, append-only by construction
-
-Every run gets one, whatever its size. A two-bead run interrupted at bead one
-needs its record exactly as much as a twenty-bead run does.
-
-## Run manifest
-
-`--metadata` JSON on the run epic, **written by the orchestrator itself** from
-`scripts/pre-flight-check.sh`'s output plus what admission decided. Retrieve it
-whole with `bd show <epic-id> --json | jq '.[0].metadata'`.
-
-**`branch` and `base_sha` are the orchestrator's, written once.** It creates
-the sprint branch immediately before its first dispatch — after grooming, so
-`base_sha` includes the grooming commits — and writes both keys then. A run
-whose manifest already carries them **reuses** the branch and creates nothing;
-that is what makes a resumed run land where the original did. Three things read
-them and none may write them: the review scopes its diff `base_sha`..sprint
-head, every worktree branches from that branch's HEAD, and the pull request
-opens against it.
-
-```json
-{
-  "target": "<the flat target epic; its task children are the work>",
-  "branch": "<branch>",
-  "base_sha": "<sha at branch creation, after grooming>",
-  "checks_ids": ["format", "vet", "build", "test-go", "…"],
-  "checks_baseline": "<verbatim text — inline this into EVERY subagent prompt>",
-  "checks_baseline_status": 1,
-  "concurrency_cap": 20,
-  "models": {"light": "…", "standard": "…", "advanced": "…", "frontier": "…"},
-  "effort": "low|medium|high|xhigh|unrecorded",
-  "standing_auth": {"<row>": {"value": "<resolved>", "source": "sf.toml|default"}},
-  "trailers": "<commit trailers, or absent when the run resolved none>",
-  "admitted": ["<bead-id>", "…"],
-  "excluded": [{"id": "<bead-id>", "reason": "declined move out of <epic-id>"}],
-  "moved": [{"id": "<bead-id>", "from": "<previous parent>"}],
-  "partition_preview": "accepted | overridden — <why> | none (no C4 docs) | not returned",
-  "review_passes": 0,
-  "review_budget": 2,
-  "collision_edges": "<path to the edge file this skill emitted>",
-  "findings_path": "<sprint-retro's run record — the run's one document>",
-  "retro_filed": 0,
-  "retro_declined": 0,
-  "retro_routed": 0,
-  "ledger": ["<claim> — proved by <command>, observed <result>"]
-}
-```
-
-**The four retro keys are `sprint-retro`'s, written at the end of the run.**
-They are what lets a session that did not hold the run find its record from the
-epic id alone. **An absent `findings_path` means the retro did not run** — a
-different result from a retro that found nothing, and one a reader must not
-have to guess at.
-
-**Merge, never replace.** The epic already carries grooming's keys and
-pre-flight writes the baseline into the same object: read it, update your keys,
-write it back.
-
-**`review_passes` is durable for one reason:** a resumed run that restarted the
-counter would loop forever. `review_budget` records what the authorization gate
-decided, so a run resumed by a session that never met the human still honours
-it.
-
-**`standing_auth` records each gate row's SOURCE as well as its value.** A row
-resolved from `sf.toml`'s `[run]` and a row that took the skill default are
-different facts, and the record exists to stop a decision being re-litigated
-mid-run — a project-level default is one more place one can hide from whoever
-reads the report.
-
-`admitted` / `excluded` / `moved` are the admission record. A run that finished
-its admitted set while beads sat out is done, and must say so rather than
-reading as complete over a scope nobody remembers narrowing.
 
 ## `concurrency_cap`
 
@@ -127,26 +49,6 @@ bd list --parent <run-epic> --json \
   | jq -r '[.[].assignee] | map(select(. != null and . != "")) | unique | length'
 # must be <= manifest.concurrency_cap - 1
 ```
-
-## Environmental ledger
-
-Facts established this run that no dispatch should re-diagnose. Admitted on
-evidence, not on reasoning: every entry — including a claim of sufficiency
-("this check verifies X"), not only a claim of impossibility — names the
-command that proved it and the result observed; run it first, record it
-after. Note the conditions the command ran under when they could change the
-result (attached repos, credentials, cache warmth, toolchain version). A
-claim that cannot be tested cheaply is recorded as `unverified` with what
-would settle it, not omitted. Keep the ORDER — dispatch prompts cite entries
-by position ("ledger entry 1", "ledger entry 2"), so append rather than
-reorder.
-
-1. `<claim>` — proved by `<command>`, observed `<result>`
-1. `<claim>` — unverified; would be settled by `<command>`
-
-A gate recorded `fail` in the baseline is the bar for every bead in this run:
-"no findings beyond the baseline", not "exit 0". A gate with no recorded
-baseline is expected to exit 0.
 
 ## Collision edges
 
@@ -357,24 +259,3 @@ After the coordinator loads the file, `bd ready --parent <epic>
 Assert that rather than trusting the orientation: an inverted edge produces a
 plausible-looking front and no error anywhere.
 
-## Amendments
-
-Amendments are **`amend:`-prefixed comments on the run epic**. WHEN the run
-diverges mid-flight — an edge added, a batch reclassified, a bead admitted or
-bounced, a tier escalated — `bd comment <epic-id> "amend: …"`.
-
-Append-only and timestamped by construction, so there is no read-modify-write
-to lose and no ordering to maintain. There is no second copy to keep in step:
-the graph is the plan, and the tracker is the only record.
-
-```
-bd comment <epic-id> "amend: collision edge added demo-9kb.9 <- demo-9kb.7 —
-.7's change to the shared fixture invalidates .9's expected bytes, so they
-cannot share a checks run."
-
-bd comment <epic-id> "amend: demo-9kb.8 escalated standard -> advanced after
-two failed checks cycles."
-```
-
-Read them back with `bd show <epic-id>`, or
-`bd export | jq -r 'select(.id=="<epic-id>") | .comments[].text' | grep '^amend:'`.

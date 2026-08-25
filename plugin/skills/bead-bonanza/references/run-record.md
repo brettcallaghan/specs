@@ -6,7 +6,9 @@
   target, and the gate as a task
 - The two human channels — authorization at the start, findings at the end
 - The two things the coordinator owns: the manifest and the run's amendments
-- `collision_edges` — validating and loading the edge file the plan returns
+- The run manifest — every key, and why the key names are a contract
+- The environmental ledger — admitted on evidence, ordered, never reordered
+- Amendments — `amend:` comments on the epic, append-only by construction
 - `base_sha` — why it is recorded at creation and never derived
 
 ## The run's epic shape
@@ -112,9 +114,8 @@ after `sprint-scope` returns the epic and before you dispatch grooming.
    **The key names are the contract**, because dispatch reads them back rather
    than being handed them — `branch`, `checks_ids` and `checks_baseline` come
    off the manifest to build each dispatch prompt. A renamed key is a silent
-   break: the reader gets `null` and dispatches without it. The
-   full key set is the JSON block the **`sprint-plan`** skill writes, in its own
-   run-record reference.
+   break: the reader gets `null` and dispatches without it. Every key is
+   specified under "Run manifest" below.
 
    **`collision_edges` is yours to write and the planner's to produce.** The
    plan returns the path of one `bd dep add --file` document: `blocks` edges
@@ -157,8 +158,118 @@ Print the returned plan to chat. Don't ask for approval — just print and
 proceed. The user can interrupt if they disagree.
 
 WHEN no `Agent` tool is available, nothing can be delegated, planning included
-— that is a blocking pre-flight condition, not a mode. Stop and hand the queue to
-the `run-bead` skill, one bead at a time.
+— that is a blocking pre-flight condition, not a mode. Stop and hand the queue
+to the `run-batch` skill.
+
+## Run manifest
+
+`--metadata` JSON on the run epic, **written by the orchestrator itself** from
+`scripts/pre-flight-check.sh`'s output plus what admission decided. Retrieve it
+whole with `bd show <epic-id> --json | jq '.[0].metadata'`.
+
+**`branch` and `base_sha` are the orchestrator's, written once.** It creates
+the sprint branch immediately before its first dispatch — after grooming, so
+`base_sha` includes the grooming commits — and writes both keys then. A run
+whose manifest already carries them **reuses** the branch and creates nothing;
+that is what makes a resumed run land where the original did. Three things read
+them and none may write them: the review scopes its diff `base_sha`..sprint
+head, every worktree branches from that branch's HEAD, and the pull request
+opens against it.
+
+```json
+{
+  "target": "<the flat target epic; its task children are the work>",
+  "branch": "<branch>",
+  "base_sha": "<sha at branch creation, after grooming>",
+  "checks_ids": ["format", "vet", "build", "test-go", "…"],
+  "checks_baseline": "<verbatim text — inline this into EVERY subagent prompt>",
+  "checks_baseline_status": 1,
+  "concurrency_cap": 20,
+  "models": {"light": "…", "standard": "…", "advanced": "…", "frontier": "…"},
+  "effort": "low|medium|high|xhigh|unrecorded",
+  "standing_auth": {"<row>": {"value": "<resolved>", "source": "sf.toml|default"}},
+  "trailers": "<commit trailers, or absent when the run resolved none>",
+  "admitted": ["<bead-id>", "…"],
+  "excluded": [{"id": "<bead-id>", "reason": "declined move out of <epic-id>"}],
+  "moved": [{"id": "<bead-id>", "from": "<previous parent>"}],
+  "partition_preview": "accepted | overridden — <why> | none (no C4 docs) | not returned",
+  "review_passes": 0,
+  "review_budget": 2,
+  "collision_edges": "<path to the edge file this skill emitted>",
+  "findings_path": "<sprint-retro's run record — the run's one document>",
+  "retro_filed": 0,
+  "retro_declined": 0,
+  "retro_routed": 0,
+  "ledger": ["<claim> — proved by <command>, observed <result>"]
+}
+```
+
+**The four retro keys are `sprint-retro`'s, written at the end of the run.**
+They are what lets a session that did not hold the run find its record from the
+epic id alone. **An absent `findings_path` means the retro did not run** — a
+different result from a retro that found nothing, and one a reader must not
+have to guess at.
+
+**Merge, never replace.** The epic already carries grooming's keys and
+pre-flight writes the baseline into the same object: read it, update your keys,
+write it back.
+
+**`review_passes` is durable for one reason:** a resumed run that restarted the
+counter would loop forever. `review_budget` records what the authorization gate
+decided, so a run resumed by a session that never met the human still honours
+it.
+
+**`standing_auth` records each gate row's SOURCE as well as its value.** A row
+resolved from `sf.toml`'s `[run]` and a row that took the skill default are
+different facts, and the record exists to stop a decision being re-litigated
+mid-run — a project-level default is one more place one can hide from whoever
+reads the report.
+
+`admitted` / `excluded` / `moved` are the admission record. A run that finished
+its admitted set while beads sat out is done, and must say so rather than
+reading as complete over a scope nobody remembers narrowing.
+
+## Environmental ledger
+
+Facts established this run that no dispatch should re-diagnose. Admitted on
+evidence, not on reasoning: every entry — including a claim of sufficiency
+("this check verifies X"), not only a claim of impossibility — names the
+command that proved it and the result observed; run it first, record it
+after. Note the conditions the command ran under when they could change the
+result (attached repos, credentials, cache warmth, toolchain version). A
+claim that cannot be tested cheaply is recorded as `unverified` with what
+would settle it, not omitted. Keep the ORDER — dispatch prompts cite entries
+by position ("ledger entry 1", "ledger entry 2"), so append rather than
+reorder.
+
+1. `<claim>` — proved by `<command>`, observed `<result>`
+1. `<claim>` — unverified; would be settled by `<command>`
+
+A gate recorded `fail` in the baseline is the bar for every bead in this run:
+"no findings beyond the baseline", not "exit 0". A gate with no recorded
+baseline is expected to exit 0.
+
+## Amendments
+
+Amendments are **`amend:`-prefixed comments on the run epic**. WHEN the run
+diverges mid-flight — an edge added, a batch reclassified, a bead admitted or
+bounced, a tier escalated — `bd comment <epic-id> "amend: …"`.
+
+Append-only and timestamped by construction, so there is no read-modify-write
+to lose and no ordering to maintain. There is no second copy to keep in step:
+the graph is the plan, and the tracker is the only record.
+
+```
+bd comment <epic-id> "amend: collision edge added demo-9kb.9 <- demo-9kb.7 —
+.7's change to the shared fixture invalidates .9's expected bytes, so they
+cannot share a checks run."
+
+bd comment <epic-id> "amend: demo-9kb.8 escalated standard -> advanced after
+two failed checks cycles."
+```
+
+Read them back with `bd show <epic-id>`, or
+`bd export | jq -r 'select(.id=="<epic-id>") | .comments[].text' | grep '^amend:'`.
 
 ## `base_sha` is recorded at creation, never derived
 

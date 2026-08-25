@@ -1,14 +1,14 @@
 # Dispatching — send a batch out, verify what comes back
 
 **The orchestrator's own procedure.** No subagent reads it: a batch subagent is
-told its placeholders and runs `run-bead`. Read this when you are about to
+told three values and runs `run-batch`. Read this when you are about to
 dispatch, and again when a batch returns.
 
 ## Contents
 
 - Dispatch continuously — the ready front is re-queried, never walked from a
   stored list
-- Filling in the prompt — every placeholder, and where each is resolved from
+- The prompt — the three values it carries, and why it carries nothing else
 - Ceremony dispatches — the two writes that give a phase an identity
 - Verify against state, never against testimony — skip claims, the acceptance
   check, and what a standing worktree actually means
@@ -56,32 +56,33 @@ shared surface so a reader can tell them apart: `run-record.md`.
   the difference) and resolve any creep — admitted as an amendment, or deferred
   out — rather than dispatching an unexamined bead.
 
-## Fill in the prompt before you send it
+## The prompt is three values
 
-The prompt files are the prompt and nothing else — send one whole, with no
-block to extract. **You** resolve every `{PLACEHOLDER}` first; a subagent has no
-session context to infer one from, and an unsubstituted placeholder is the
-single most common dispatch defect.
+**A dispatch prompt carries what the subagent cannot look up, and nothing
+else.** Three values, because `run-batch` resolves the rest from the tracker
+and from the tree it is standing in:
 
-| resolved | placeholder | from |
-|---|---|---|
-| once per run | `{EPIC}` | the run epic (emitted as `BB_EPIC`); also the run id |
-| | `{BRANCH}` | the sprint branch, from the manifest |
-| | `{SCRIPTS}` | absolute path to the orchestrator's `scripts/` directory |
-| | `{CHECKS_IDS}` | the ids the project declared (`BB_CHECKS_IDS`) |
-| | `{CHECKS_BASELINE_TEXT}` | `bd show {EPIC} --json \| jq -r '.[0].metadata.checks_baseline'` |
-| per dispatch | `{DISPATCH_ID}` | the subagent's **agent id**, DERIVED from `{EPIC}` and never minted — one per subagent, shared by every bead it holds. It is also the bead's `assignee` and the subagent's `$BEADS_ACTOR`: one string, which is what makes "what is that agent holding" a query and lets a resumed session recompute it. The roster of agent kinds and the derivation rule are in `dispatch-policy.md`, their only copy — read the id off it, do not invent one |
-| | `{WORKTREE}` | the absolute path to the worktree you created for it |
-| | `{SURFACE}` | what the batch's beads have in common, or "documentation and chores; no shared code surface" |
-| | `{SURFACE_TARGETED_TESTS}` | the tests covering that surface |
-| per bead | `{ID}`, `{PRIORITY}`, `{TITLE}`, `{DECISION}`, `{IMPLICIT_NOTES}` | the bead itself; numbered (`{ID_1}`, …), one line per bead in processing order |
+| | resolved from |
+|---|---|
+| `{DISPATCH_ID}` | the roster — **derived** from `{EPIC}`, never minted (`dispatch-policy.md`) |
+| `{EPIC}` | the run epic (`BB_EPIC`); also the run id |
+| `{SCRIPTS}` | absolute path to the coordinator's `scripts/` directory |
+
+Everything a prompt used to carry — the branch, the checks baseline, the check
+ids, the trailers, the worktree path, and every bead's id, priority, title and
+decision — is one query away for the agent and was a hand-copied second copy
+here. **The assignee IS the batch**: `bd ready --assignee {DISPATCH_ID}` is the
+queue, in order, and `bd show <id>` is the bead.
+
+**So assign before you dispatch.** That write is now the whole handover; a bead
+you meant to include and did not assign is a bead the agent will never see, and
+an empty queue is the error it reports.
+
+`prompt-dispatch.md` **IS the prompt** — send it whole, with the three values
+filled in. There is no block to extract and nothing to summarise.
 
 **There is no run directory.** The run's record is the epic: the manifest in
 its metadata, the amendments in its comments.
-
-One prompt covers both — `prompt-dispatch.md` — because a bead with no batch
-peers is a batch of one. Each dispatch gets one worktree and one branch
-(`worktree-mechanics.md`).
 
 ## Ceremony dispatches carry an agent id too
 

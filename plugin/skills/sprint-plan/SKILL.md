@@ -54,7 +54,7 @@ labels and assignees, and unset they land under the harness default.
    human must close. Bounced beads carry the **`human`** label, so the verdict
    is queryable and not merely reported.
 2. **The plan — one edge file**, validated before you return its path:
-   `references/run-record.md`. Plus **one line per override** of the grooming
+   `references/partitioning.md`. Plus **one line per override** of the grooming
    partition preview saying what you changed and why.
 
 **The partition is not a document — it is in the graph.** Which beads may not
@@ -187,7 +187,7 @@ who does the work and what runs alongside it, never what gets validated.
 
 **Worktrees do not make batching redundant, because the collision is at the
 merge, not between the agents.** Isolation is never grounds to relax the rules
-below — why, in `references/run-record.md`.
+below — why, in `references/partitioning.md`.
 
 ## Classify each bead
 
@@ -205,7 +205,7 @@ below — why, in `references/run-record.md`.
 computed the blast radius onto each bead — `c4_changes` (components it edits)
 and `c4_impacts` (downstream components affected but not edited). Read it; don't
 re-derive it from prose. The `jq` and a worked example are in
-`references/run-record.md`.
+`references/partitioning.md`.
 
 1. **C4 metadata — primary.** Read `.metadata.c4_changes` and
    `.metadata.c4_impacts` from `bd list --json` for every queued bead.
@@ -213,7 +213,7 @@ re-derive it from prose. The `jq` and a worked example are in
      their file paths say — the same component through different files still
      collides. **Emit a collision edge between them, in the edge file** so they
      cannot both be ready at once, and give the cluster one assignee so one
-     agent takes it in order. Shape and marking: `references/run-record.md`.
+     agent takes it in order. Shape and marking: `references/partitioning.md`.
    - Bead B whose `c4_impacts` intersects bead A's `c4_changes` consumes a
      contract A is changing. That is a **sequencing** constraint, not a batching
      one, and it holds with zero file overlap. It is a real `blocks` edge, not a
@@ -244,7 +244,7 @@ means *unknown*, never "no collisions".
 
 **Say which class each edge you emit is.** A co-edit collision and a sequencing
 constraint have different consequences; the marking that distinguishes them is
-in `references/run-record.md`.
+in `references/partitioning.md`.
 
 ## Choose a grouping per cluster
 
@@ -286,9 +286,8 @@ never pack a batch in a way that assumes otherwise.
    Beads grouped this way need **no** collision edge and get their own
    assignee, so they reach the ready front together and dispatch concurrently.
 
-**Every batch gets a MERGE BEAD in the plan** — a task labelled `merge`,
-assigned to `merge-<run-id>`, waiting on every bead in the batch, so it becomes
-ready exactly when they are all closed. Shape: `references/run-record.md`.
+**No batch gets a merge bead.** The coordinator merges each dispatch's branch
+as that dispatch returns; nothing schedules that, and a plan creates no beads.
 
 Tier is not a batching decision of yours: carry each bead's tier
 (`metadata.execution_suggested_model`, else `metadata.tier`) into the plan's
@@ -304,8 +303,8 @@ reference carries that rule and the `jq` that implements it. Breadth beyond
 N_dev is more beads per dev, never more devs: a spawn past the cap is refused,
 and the unspawned devs' queues stay ready, correctly assigned and permanently
 undrained, with nothing reporting it. Read `concurrency_cap` off the manifest
-— source, default and the plan-time check are in `references/run-record.md`
-— rather than assuming a number.
+rather than assuming a number; its source, its default and the plan-time check
+are in `references/partitioning.md`.
 
 ## Assign every planned bead, then gate the epic
 
@@ -328,7 +327,7 @@ the assign step: nothing earlier in a run writes an assignee.
 no beads**: the work beads were admitted before you were invoked, and
 `sprint-scope` already built the ceremony epics and the target, so edges
 between beads that already exist are the whole of what a plan contributes.
-Emit it, diff it, validate it, return its path: `references/run-record.md`.
+Emit it, diff it, validate it, return its path: `references/partitioning.md`.
 
 Three rules that make the plan worth returning:
 

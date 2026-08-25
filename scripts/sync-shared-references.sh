@@ -61,7 +61,6 @@ esac
 # consistency check cross-references it against their `references/shared/`
 # citations.
 MAP=$(cat <<'EOF'
-bead-bonanza	specs/standards/work-order-definition-of-ready.md
 bead-bonanza	specs/standards/findings-capture-protocol.md
 sprint-plan	specs/standards/work-order-definition-of-ready.md
 sprint-plan	groom-beads/references/epic-definition-of-ready.md
@@ -73,7 +72,7 @@ groom-feature-blueprint	specs/standards/blueprint-readiness-checklist.md
 groom-feature-blueprint	spec/references/feature-blueprint-template.md
 groom-feature-blueprint	spec/references/work-order-template.md
 groom-feature-blueprint	specs/standards/findings-capture-protocol.md
-run-bead	specs/standards/findings-capture-protocol.md
+run-batch	specs/standards/findings-capture-protocol.md
 sprint-retro	specs/standards/findings-capture-protocol.md
 sprint-retro	spec/references/issue-template.md
 retro-skill	specs/standards/findings-capture-protocol.md

@@ -33,7 +33,7 @@ reconciles two spellings of the same agent, and one string is what makes
 
 **Every agent and subagent exports `BEADS_ACTOR=<its id>` before its first
 `bd` call.** Not because it intends to claim, but because a claim may happen:
-`run-bead` claims, a recovery path claims, a retry claims.
+`run-batch` claims, a recovery path claims, a retry claims.
 
 One kind per agent the coordinator spawns:
 

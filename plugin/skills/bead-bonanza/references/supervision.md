@@ -161,7 +161,7 @@ two queries rather than a special case, measured on one bead in four states:
 |---|---|---|---|
 | `open`, never started | 1 | 0 | **refused** |
 | `in_progress` | 0 | 1 | **refused** |
-| `blocked` (the `run-bead` Blocked path) | 0 | 0 | allowed |
+| `blocked` (the `run-batch` Blocked path) | 0 | 0 | allowed |
 | `closed` | 0 | 0 | allowed |
 
 `bd ready` excludes blocked beads and `--status in_progress` does not match

@@ -115,7 +115,7 @@ write them.
 
 ### `target` — what the finding is about
 
-The skill or script (`retro:tooling:run-bead`), or the document or
+The skill or script (`retro:tooling:run-batch`), or the document or
 item (`retro:gap:FRD-014`). Omit it only where there genuinely is not
 one; an omitted target costs a cluster, not a finding.
 

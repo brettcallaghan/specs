@@ -125,7 +125,7 @@ on.
 
 **The monitor is a convenience over a path that still works without it**, and
 several ordinary situations have none: the plugin is not installed, the session
-never invoked `bead-bonanza` (a solo `run-bead`, or a `sprint-recovery`
+never invoked `bead-bonanza` (a solo `run-batch`, or a `sprint-recovery`
 resuming someone else's run), or the harness offers no Monitor tool at all — on
 those hosts a declared monitor is skipped silently.
 
