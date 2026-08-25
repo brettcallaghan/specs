@@ -221,24 +221,51 @@ dependency serializes the wrong way round.
 
 ### The merge bead
 
-**One per batch, in the plan.** A task labelled `merge`, assigned to
-`merge-<run-id>`, with a `blocks` edge from it to every bead in that batch:
+**One per batch. The BEAD is a plan node; its FAN-IN is sidecar lines.** The
+merge bead is new, so the plan creates it — a task labelled `merge`, assigned
+to `merge-<run-id>`:
 
 ```json
 {"key": "m1", "title": "Merge batch 1", "type": "task", "parent_key": "target",
  "priority": 1, "assignee": "merge-<run-id>", "labels": ["merge"]}
 ```
-```json
-{"from_key": "m1", "to_key": "<each bead in the batch>", "type": "blocks"}
+
+Every bead it waits for already exists, so none of those edges can be a plan
+edge. They are sidecar lines, one per batch bead:
+
+```
+{"from":"<the merge bead's id>","to":"<each bead in the batch>","type":"blocks"}
 ```
 
-Remember the orientation: `from_key` **waits for** `to_key`, so the merge bead
-is the `from_key` on every one of those edges.
+Remember the orientation: **`from` waits for `to`**, so the merge bead is the
+`from` on every one of those lines — exactly as it was the `from_key` back when
+these were plan edges.
 
-Measured on a two-bead batch: `bd ready --assignee merge-<run-id>` returned
-nothing while either input was open — including after only the first closed —
-and returned the merge bead the moment the second closed. `bd ready --label
-merge` answers the same, so nothing has to know the agent id to find it.
+**The three-step order bites hardest here**, because the merge bead's id does
+not exist until the plan has loaded: load the plan, substitute the printed
+`key -> id` into the sidecar's `from` fields, then `bd dep add --file`. Emit
+the sidecar with a placeholder rather than a guessed id — an unsubstituted line
+fails the load loudly instead of wiring the wrong bead. Full mechanism: "The
+edge sidecar", above.
+
+Measured on a two-bead batch, bd 1.2.2, with the merge bead created by the plan
+(`m1 -> mb-3p1`) and fanned in by the sidecar (`✓ Added 2 dependencies`,
+exit 0):
+
+```
+$ bd ready --assignee merge-mb --json     # both inputs open
+[]
+$ bd ready --assignee merge-mb --json     # after closing only the first
+[]
+$ bd ready --assignee merge-mb --json     # after closing both
+[{"id":"mb-3p1","assignee":"merge-mb","labels":["merge"]}]
+$ bd ready --label merge --json
+["mb-3p1"]
+```
+
+So the fan-in behaves through the sidecar exactly as it was documented to
+behave as a plan edge, and `bd ready --label merge` still answers without
+anyone knowing the agent id. Only the mechanism changed.
 
 **A task plus a label, not a custom type.** `bd config set types.custom
 merge-request` works and behaves as a task for segregation, but it lives in

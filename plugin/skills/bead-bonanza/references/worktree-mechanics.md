@@ -138,23 +138,38 @@ committing them lands in-flight bead state on the sprint branch.
    ### The merge bead
 
    **One per batch**, assigned to `merge-<run-id>`, depending on every bead
-   whose branch it lands. It is a task carrying the label `merge`:
+   whose branch it lands. It is a task carrying the label `merge`, and the
+   planner's graph plan creates it:
 
    ```json
    {"key": "m1", "title": "Merge batch 1", "type": "task", "parent_key": "target",
     "priority": 1, "assignee": "merge-<run-id>", "labels": ["merge"]}
    ```
-   ```json
-   {"from_key": "m1", "to_key": "<each bead in the batch>", "type": "blocks"}
+
+   **Its fan-in is not part of that plan.** Every bead the merge bead waits for
+   already exists in the tracker, and a graph-plan edge resolves only against
+   keys inside the plan — one naming a real id aborts the whole load and
+   creates nothing, the merge bead included. Those edges arrive instead as
+   lines in the plan's **edge sidecar**, loaded with `bd dep add --file` after
+   the plan, with the merge bead's freshly minted id substituted in:
+
+   ```
+   {"from":"<the merge bead's id>","to":"<each bead in the batch>","type":"blocks"}
    ```
 
+   `from` **waits for** `to`, so the merge bead is the `from` on every one of
+   those lines. The sidecar's format, its all-or-nothing loading and the order
+   the two files load in belong to the planner; its run-record reference is
+   where they live, and none of it is restated here.
+
    That is the documented fan-in, and it makes "is this batch ready to land"
-   the same question as everything else in the run. Measured: with two beads
-   feeding one merge bead, `bd ready --assignee merge-<run-id>` returned
-   nothing while either input was open — including after only the first
-   closed — and returned the merge bead the moment the second closed.
-   `bd ready --label merge` answers identically, so the mechanism is queryable
-   without knowing the agent id.
+   the same question as everything else in the run. Measured on bd 1.2.2 with
+   two beads feeding one merge bead created by the plan and fanned in by the
+   sidecar: `bd ready --assignee merge-<run-id> --json` returned `[]` while
+   either input was open — including after only the first closed — and returned
+   the merge bead the moment the second closed. `bd ready --label merge --json`
+   answers identically, so the mechanism is queryable without knowing the agent
+   id.
 
    **A task plus a label, NOT a custom type.** `bd config set types.custom
    merge-request` does work — its "not a recognized config key" warning is
