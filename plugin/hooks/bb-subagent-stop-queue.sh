@@ -79,7 +79,22 @@ BD="${BB_SUBAGENT_HOOK_BD:-bd}"
 state_dir() {
   if [ -n "${BB_SUBAGENT_HOOK_DIR:-}" ]; then printf '%s\n' "$BB_SUBAGENT_HOOK_DIR"; return; fi
   _root="${CLAUDE_PLUGIN_DATA:-${TMPDIR:-/tmp}}"
-  _proj="${CLAUDE_PROJECT_DIR:-$PWD}"
+  # The project identity must be the SAME whether resolved from the shell
+  # that runs --arm or from the harness process that later runs the hook --
+  # CLAUDE_PROJECT_DIR and $PWD are not guaranteed to agree between the two
+  # (a multi-root session, or arming from inside a bead's worktree). The
+  # absolute common git directory is stable across both: unlike
+  # `--show-toplevel`, it resolves to the SAME path from a worktree as from
+  # its main checkout.
+  _proj=""
+  if command -v git >/dev/null 2>&1; then
+    _gcd="$(git rev-parse --git-common-dir 2>/dev/null)" || _gcd=""
+    if [ -n "$_gcd" ]; then
+      _proj="$(cd "$_gcd" 2>/dev/null && pwd)" || _proj=""
+    fi
+  fi
+  # Fallback for a directory outside a git repository, or git unavailable.
+  [ -n "$_proj" ] || _proj="${CLAUDE_PROJECT_DIR:-$PWD}"
   _key="$(basename "$_proj")-$(printf '%s' "$_proj" | cksum | cut -d' ' -f1)"
   printf '%s\n' "$_root/bb-subagent-stop-queue/$_key"
 }
@@ -343,6 +358,39 @@ mode_self_test() {
      "$(PATH="$bin:$PATH" "$self" --arm extra >/dev/null 2>&1; echo $?)" 2
   is "unknown option is a usage error" \
      "$(PATH="$bin:$PATH" "$self" --nope >/dev/null 2>&1; echo $?)" 2
+
+  # -- state_dir: keyed by the absolute git common directory, not $PWD or
+  # CLAUDE_PROJECT_DIR, so --arm and the hook resolve the SAME directory
+  # regardless of which one ran from a worktree. Calls state_dir directly
+  # (BB_SUBAGENT_HOOK_DIR is exported above and would short-circuit
+  # derivation through run()). nogit_bin carries coreutils but no git, so
+  # PATH can drop git alone without also breaking basename/cksum/cut.
+  _owd="$PWD"
+  unset BB_SUBAGENT_HOOK_DIR CLAUDE_PROJECT_DIR
+  nogit_bin="$tmp/nogit-bin"; mkdir -p "$nogit_bin"
+  for _c in basename cksum cut; do
+    _p="$(command -v "$_c" 2>/dev/null)"
+    [ -n "$_p" ] && ln -s "$_p" "$nogit_bin/$_c"
+  done
+  gsrc="$tmp/gsrc"; gwt="$tmp/gwt"
+  if git init -q "$gsrc" >/dev/null 2>&1 \
+     && git -C "$gsrc" -c user.email=t@t -c user.name=t commit -q --allow-empty -m init >/dev/null 2>&1 \
+     && git -C "$gsrc" worktree add -q "$gwt" -b bb-selftest-wt >/dev/null 2>&1; then
+    cd "$gsrc" || true; d_root="$(state_dir)"
+    cd "$gwt"  || true; d_wt="$(state_dir)"
+    is "state_dir matches from repo root and a worktree of it" "$d_root" "$d_wt"
+  else
+    ok "state_dir git-worktree derivation (git init/worktree unavailable, skipped)"
+  fi
+  cd "$tmp" || true                                   # not a git repository
+  d_nonrepo="$(state_dir)"
+  if [ -n "$d_nonrepo" ]; then ok "state_dir returns a path outside a git repository"
+  else bad "state_dir returns a path outside a git repository (got empty)"; fi
+  d_nogit="$(PATH="$nogit_bin" state_dir)"            # git absent from PATH
+  if [ -n "$d_nogit" ]; then ok "state_dir returns a path with git unavailable"
+  else bad "state_dir returns a path with git unavailable (got empty)"; fi
+  cd "$_owd" || true
+  export BB_SUBAGENT_HOOK_DIR="$tmp/state"
 
   echo
   if [ "$f" -eq 0 ]; then echo "RESULT: PASS ($t assertions)"; return 0; fi
