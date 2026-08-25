@@ -2,13 +2,14 @@
 name: sprint-plan
 description: Groom a sprint's queue and partition it in one pass — bring every
   bead to Ready (invoking groom-beads for what fails, bouncing what grooming
-  cannot clear) and return the readiness verdict plus the graph plan that
-  builds the run, collision edges and assignments included. Use when a sprint
-  orchestrator is preparing a run epic's queue for dispatch, or when asked to
-  gate beads for readiness, classify them as trivial / isolated /
-  shared-surface, compute C4 co-edit and sequencing overlap, group beads into
-  batches behind one agent, or emit a `bd create --graph` JSON plan. Takes the
-  run epic, resolves its queue from the graph, and dispatches nothing.
+  cannot clear) and return the readiness verdict plus the two files that build
+  the run — a graph plan and its edge sidecar, collision edges and assignments
+  included. Use when a sprint orchestrator is preparing a run epic's queue for
+  dispatch, or when asked to gate beads for readiness, classify them as trivial
+  / isolated / shared-surface, compute C4 co-edit and sequencing overlap, group
+  beads into batches behind one agent, or emit a `bd create --graph` JSON plan
+  and the `bd dep add --file` sidecar beside it. Takes the run epic, resolves
+  its queue from the graph, and dispatches nothing.
 version: "0.2"
 user-invocable: false
 ---
@@ -52,16 +53,15 @@ labels and assignees, and unset they land under the harness default.
 1. **The readiness verdict** — per bead: ready, or NOT-READY with the gap a
    human must close. Bounced beads carry the **`human`** label, so the verdict
    is queryable and not merely reported.
-2. **The graph plan** — the run's beads, assignments and edges as one
-   `bd create --graph` document, validated before you return its path:
-   `references/run-record.md`. Plus **one line per override** of the grooming
-   partition preview saying what you changed and why.
+2. **The plan — a graph document plus an edge sidecar**, both validated before
+   you return their paths: `references/run-record.md`. Plus **one line per
+   override** of the grooming partition preview saying what you changed and why.
 
 **The partition is not a document — it is in the graph.** Which beads may not
 run at once is a **collision edge**; which agent holds a bead is its
 `assignee`; what runs next is `bd ready` re-queried. The orchestrator
-dispatches from that front continuously, so there is nothing to store and no
-schedule to keep in step with a graph that moves under it.
+dispatches from that front continuously, so there is no schedule to keep in
+step with a graph that moves under it.
 
 ## The readiness gate — run it before you classify anything
 
@@ -233,15 +233,15 @@ re-derive it from prose. The `jq` and a worked example are in
    `.metadata.c4_impacts` from `bd list --json` for every queued bead.
    - Two beads sharing a `c4_changes` component are **shared-surface** whatever
      their file paths say — the same component through different files still
-     collides. **Emit a collision edge between them** so they cannot both be
-     ready at once, and give the cluster one assignee so one agent takes it in
-     order. Shape and marking: `references/run-record.md`.
+     collides. **Emit a collision edge between them, in the sidecar** so they
+     cannot both be ready at once, and give the cluster one assignee so one
+     agent takes it in order. Shape and marking: `references/run-record.md`.
    - Bead B whose `c4_impacts` intersects bead A's `c4_changes` consumes a
      contract A is changing. That is a **sequencing** constraint, not a batching
      one, and it holds with zero file overlap. It is a real `blocks` edge, not a
      collision edge, and the two are marked differently so a reader can tell
-     them apart. WHEN you find one grooming missed, wire it in the plan and say
-     so in your return — never as silent batch order.
+     them apart. WHEN you find one grooming missed, wire it in the sidecar and
+     say so in your return — never as silent batch order.
    - Disjoint changes with no impact intersection is isolated *architecturally*
      only — layer 2 still runs.
 2. **File paths — fallback and corroborator.** Scan each bead's description for
@@ -265,8 +265,8 @@ Where the repo documents no C4 architecture, grooming skips the tagging and
 means *unknown*, never "no collisions".
 
 **Say which class each edge you emit is.** A co-edit collision and a sequencing
-constraint have different consequences and must not read alike; the marking
-that keeps them distinguishable is in `references/run-record.md`.
+constraint have different consequences; the marking that distinguishes them is
+in `references/run-record.md`.
 
 ## Choose a grouping per cluster
 
@@ -346,9 +346,11 @@ the assign step: nothing earlier in a run writes an assignee.
 
 ## Return the plan
 
-**The graph plan is the only artifact** — see **Out**, above. Emit it, diff it,
-validate it, return the path. Its schema, the collision edge's shape and the
-validators that run before it is loaded: `references/run-record.md`.
+**Two artifacts, not one** — see **Out**. A graph-plan edge resolves only
+against keys INSIDE the plan, so every edge between beads that already exist —
+collision and sequencing alike — goes in the **edge sidecar**, loaded with
+`bd dep add --file` after the plan. Emit, diff and validate both; return both
+paths: `references/run-record.md`.
 
 Three rules that make the plan worth returning:
 

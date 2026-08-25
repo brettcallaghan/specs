@@ -24,9 +24,11 @@ when this skill is invoked. Read it; never rewrite it.
   batches rather than parallelizes
 - Reading C4 overlap — compute co-edit and sequencing edges from bead metadata,
   not from file paths
+- The edge sidecar — where every edge naming a bead that ALREADY EXISTS goes,
+  because a graph-plan edge resolves only against keys inside the plan
 - The graph plan — the `bd create --graph` document the plan emits, its
-  measured schema, the three validators that run before it is loaded, and a
-  worked example
+  measured schema, the three validators that run before either file is loaded,
+  and a worked example over both
 - Amendments — `amend:` comments on the epic, append-only by construction
 
 Every run gets one, whatever its size. A two-bead run interrupted at bead one
@@ -67,6 +69,7 @@ opens against it.
   "review_passes": 0,
   "review_budget": 2,
   "graph_plan": "<path to the graph plan this skill emitted>",
+  "edges_sidecar": "<path to the edge sidecar this skill emitted>",
   "findings_path": "<sprint-retro's findings document>",
   "retro_filed": 0,
   "retro_declined": 0,
@@ -161,13 +164,39 @@ consulting a plan. Beads discovered mid-run enter through the emergent-work
 scope test and are recorded as an amendment; the graph absorbs them without a
 re-plan, which a schedule could not.
 
+**Both ends of a collision edge ALREADY EXIST, so the edge goes in the SIDECAR
+and never in the graph plan.** Admission created those beads and this skill
+assigns them; a graph-plan edge resolves only against keys inside the plan, so
+one naming an admitted bead aborts the whole load and creates nothing. "The
+edge sidecar" below is the mechanism; this section is only what the edge means.
+
 **A collision edge is a POLICY expressed as a dependency**, and that conflation
 is the price of putting it in the graph. Pay it explicitly: **both ends carry
 `metadata.collision` naming the shared surface**, so a reader can tell a policy
-edge from a real one. Nothing else in the plan can carry the mark — measured,
-`bd create --graph` drops an unknown field on an **edge** object and an unknown
-key on the **plan** object with a warning and exit 0, exactly as it does on a
-node, so a label placed there reaches the tracker as nothing at all.
+edge from a real one. The mark cannot ride on the edge, in either artifact: a
+sidecar line carries only `from` / `to` / `type`, and an unknown field on a
+plan **edge** object — like one on a **node** or on the **plan** object itself
+— is dropped with a warning and exit 0, so a mark placed there reaches the
+tracker as nothing at all.
+
+**Write the mark with `bd update`, on the bead itself**, in the same pass that
+writes assignees. Both are writes against a bead that already exists, and
+neither can come from the plan. Measured on bd 1.2.2:
+
+```sh
+bd update <id> --set-metadata collision=c4_changes:auth-service
+# bd show <id> --json | jq -c '.[0].metadata'
+#   -> {"collision":"c4_changes:auth-service"}
+```
+
+**Write the value BARE.** A JSON-quoted value stores the quotes literally —
+measured, `--set-metadata collision='"c4_changes:auth-service"'` exits 0 and
+`bd show --json` then returns `{"collision":"\"c4_changes:auth-service\""}`.
+That matches no other bead's mark, so it defeats validator 3 while looking
+correct in every listing.
+
+Where a collision endpoint IS a node this plan creates, the mark rides in its
+`metadata` like any other key:
 
 ```json
 {"key": "b", "title": "…", "type": "task", "parent_key": "target",
@@ -220,7 +249,9 @@ here.
 
 ### Name which class each edge is
 
-The two classes have different consequences, so they must not read alike:
+The two classes have different consequences, so they must not read alike.
+Both are sidecar lines wherever their endpoints are admitted beads — the class
+changes the mark, never which file the edge goes in:
 
 - **Co-edit collision** — the shared surface: `c4_changes:auth-service`,
   `fixture:testdata/golden.json`. Marked with `metadata.collision`, removable
@@ -286,14 +317,117 @@ each branching from the last, so what returns is already reconciled. Isolation
 is never grounds to relax a batching rule — it prevents a collision that was
 never the hazard.
 
+## The edge sidecar
+
+**The graph plan creates beads. The sidecar wires beads that already exist.**
+A `bd create --graph` edge resolves both endpoints only against `key`s inside
+the plan; an edge naming a real tracker id is a plan-level error, not a
+dropped-field warning. Measured on bd 1.2.2:
+
+```
+$ cat t1.json
+{"nodes":[{"key":"m1","title":"merge bead","type":"task","priority":1}],
+ "edges":[{"from_key":"m1","to_key":"scr3-9c4","type":"blocks"}]}
+$ bd create --graph t1.json ; echo $?
+Error: invalid graph plan: edge 0: to key "scr3-9c4" not found in plan
+1
+```
+
+**The abort is total.** `bd list --status all` afterwards returned only the two
+beads that pre-dated the attempt — the `m1` node in `nodes` was not created
+either. One such edge therefore costs the whole load, at the first executable
+step of the run.
+
+**Every bead a sprint dispatches already exists when the plan is written:**
+`sprint-scope` admits them under the target, and this skill assigns them with
+`bd update --assignee`. So **every edge with an admitted bead at either end
+goes in the sidecar** — collision chains and sequencing constraints alike.
+
+Write it beside the plan:
+
+```
+.beads/plans/<run-id>.graph.json    nodes the run creates, and edges among
+                                    those nodes only
+.beads/plans/<run-id>.edges.jsonl   every edge with an endpoint that already
+                                    exists
+```
+
+One newline-delimited JSON object per line:
+
+```json
+{"from": "<the bead that WAITS>", "to": "<the bead it waits for>", "type": "blocks"}
+```
+
+**`from` is the WAITER** — the same orientation as the plan's `from_key`, so a
+plan edge translates to a sidecar line unchanged and there is no second
+convention to remember. Measured: after
+`{"from":"scr3-x88","to":"scr3-9c4","type":"blocks"}` loaded, `bd ready`
+returned `scr3-9c4`, and `bd blocked` reported `scr3-x88: Blocked by 1 open
+dependencies: [scr3-9c4]`.
+
+Load it with `bd dep add --file <path>`. Per `bd dep add --help`, each line
+must be an object with `from` and `to` and may include `type`; the aliases
+`issue_id` / `depends_on_id` are accepted, and `--file -` reads stdin. Measured
+on a one-line file: `✓ Added 1 dependencies`, exit 0.
+
+**Validation is all-or-nothing, and that is what makes a sidecar reviewable
+before it loads.** A file whose second line names a nonexistent id wires
+nothing — not even the valid first line:
+
+```
+$ bd dep add --file bad.jsonl ; echo $?
+Error: bulk dependency validation failed:
+  line 2: resolving dependency ID scr3-nope: resolving issue ID scr3-nope: no issue found matching "scr3-nope"
+1
+$ bd dep list scr3-x88
+scr3-x88 has no dependencies
+```
+
+So a malformed sidecar leaves no half-wired graph, exactly as a malformed plan
+leaves no half-built one.
+
+**Replay is safe.** Re-loading an identical sidecar exits 0 and prints
+`✓ Added 1 dependencies` again, with no duplicate-edge error, so a resumed run
+may re-run it rather than reason about what already landed. The neighbouring
+trap is not: `bd dep add` refuses to UPGRADE an existing edge's type, so a
+sidecar that would turn a `related` edge into a `blocks` fails rather than
+quietly leaving the weaker one in place.
+
+### Order of operations
+
+Fixed, because the plan mints ids the sidecar needs.
+
+1. **`bd create --graph <plan>`** — creates every new node and prints each plan
+   key against the id it minted:
+
+   ```
+   Created 2 issues
+     m2 -> scr3-768
+     m3 -> scr3-ije
+   ```
+
+2. **Substitute those ids** into every sidecar line naming a node the plan
+   created. Emit the sidecar with an obvious placeholder (`M8`) rather than a
+   guessed id: an unsubstituted line then fails loudly instead of wiring the
+   wrong bead — measured, `{"from":"M8",…}` gives `line 1: resolving issue ID
+   M8: … no issue found matching "M8"`, exit 1, and by all-or-nothing the rest
+   of the file does not land either.
+3. **`bd dep add --file <sidecar>`** — wires every edge touching a bead that
+   already exists.
+
+Assignees and collision marks are written alongside step 3: they are `bd
+update` against beads that already exist, and neither can come from the plan.
+
 ## The graph plan
 
-**One JSON document builds the run.** Instead of describing a shape for the
-orchestrator to construct bead by bead, the plan emits the nodes and edges and
-the orchestrator loads them with a single `bd create --graph <path>`. Write it
-where the run can find it again — `.beads/plans/<run-id>.graph.json` — and
-**return the path**; `graph_plan` is a manifest key and the manifest is the
-orchestrator's to write, not yours.
+**One JSON document builds the run's new beads.** Instead of describing a
+shape for the orchestrator to construct bead by bead, the plan emits the nodes
+and the edges among them, and the orchestrator loads them with a single
+`bd create --graph <path>`. Everything reaching a bead that already exists is
+the edge sidecar's, above. Write both where the run can find them again —
+`.beads/plans/<run-id>.graph.json` and `.beads/plans/<run-id>.edges.jsonl` —
+and **return both paths**; `graph_plan` and `edges_sidecar` are manifest keys
+and the manifest is the orchestrator's to write, not yours.
 
 **Being reviewable before it is loaded is most of the value.** Emit it, diff
 it, validate it, then load it. A malformed plan fails partway through and
@@ -330,12 +464,16 @@ afterwards.
 
 | Edge field | Meaning |
 |---|---|
-| `from_key` | the node that **waits** |
-| `to_key` | the node it waits for |
+| `from_key` | the node that **waits** — a `key` in THIS plan, never a tracker id |
+| `to_key` | the node it waits for — likewise a `key` in this plan |
 | `type` | `blocks` |
 
 **An edge carries nothing else** — which is why a collision edge's mark lives
 in the waiting node's `metadata` and not on the edge.
+
+**And an edge reaches nothing outside the plan.** `parent_id` is the only
+escape hatch to a live tracker id and it is a NODE field; an edge naming a bead
+that already exists aborts the whole load. Those edges are the sidecar's.
 
 ### Three traps, each of which fails silently
 
@@ -356,16 +494,17 @@ an **edge**, and an unknown key on the **plan object itself** each printed
 `graph plan … has unknown field(s): […] (silently dropped — see 'bd create
 --graph' schema)` and the load reported `Created 3 issues`, exit 0. So a
 mistyped `assignee` is a bead nobody owns, a mistyped edge key a dependency
-that was never wired, and a sidecar list of collision edges reaches the tracker
-as nothing at all. A *parse* error is the opposite — it aborts before creating
+that was never wired, and an extra list of collision edges bolted onto the plan
+object reaches the tracker as nothing at all. A *parse* error is the opposite — it aborts before creating
 anything. The fail-open case is the one a validator has to cover.
 
-### Three validators, before the plan is handed over
+### Three validators, before either file is handed over
 
 **1. Unknown fields.** Check every node and edge object — and the top-level
 plan object — against the field tables above and **name the offending key** in
 the failure. Do not rely on `bd`'s warning: it appears on a run that also
-reports success, so nothing downstream treats it as a failure.
+reports success, so nothing downstream treats it as a failure. Hold sidecar
+lines to the same bar: `from`, `to`, `type` and nothing else.
 
 **2. Flatness of the swarmed target.** **No node whose `parent_key` is the
 target epic may have `type: "epic"`.** A nested target makes `bd swarm
@@ -376,50 +515,67 @@ tasks parented directly report `Total issues: 2`. Both report `Swarmable: YES`.
 Work that genuinely decomposes becomes a second target under the run epic,
 swarmed separately.
 
-**3. Every collision edge is marked.** For each edge you emitted as a
-collision, both endpoints must carry `metadata.collision` with the same value,
-and no node may carry the mark without an edge to justify it. Unmarked, the
-policy is indistinguishable from a real dependency the moment the plan file is
-out of view — which is every reader after the run starts.
+**3. Every collision edge is marked — checked against the SIDECAR.** For each
+sidecar line you emitted as a collision, both endpoint beads must carry
+`metadata.collision` with the same value, and no bead may carry the mark
+without a line to justify it. **Read the marks back from the tracker**
+(`bd show <id> --json | jq -c '.[0].metadata'`), not from either file: an
+admitted bead's mark is written with `bd update --set-metadata` and appears in
+neither. Unmarked, the policy is indistinguishable from a real dependency the
+moment the two files are out of view — which is every reader after the run
+starts.
 
 ### Worked example
 
-Run epic as the container, ceremony epics and a flat target beneath it, work
-beads assigned, dependencies and one collision as edges:
+Run epic as the container, ceremony epics and a flat target beneath it — those
+the plan creates. The work beads were admitted before planning began, so their
+edges, their assignees and their collision marks are all sidecar-side work.
+
+`.beads/plans/<run-id>.graph.json`:
 
 ```json
 {"nodes": [
   {"key": "run",       "title": "(EPIC) Run 3: the beads graph", "type": "epic", "priority": 1},
   {"key": "preflight", "title": "Pre-flight", "type": "epic", "parent_key": "run", "priority": 1},
-  {"key": "target",    "title": "(TARGET) plan items 6-14", "type": "epic", "parent_key": "run", "priority": 1},
-  {"key": "report",    "title": "Report", "type": "epic", "parent_key": "run", "priority": 2},
-  {"key": "i6", "title": "Item 6: the graph plan", "type": "task", "parent_key": "target", "assignee": "dev-mpnf-3", "priority": 1},
-  {"key": "i7", "title": "Item 7: the run-epic shape", "type": "task", "parent_key": "target", "assignee": "dev-mpnf-1", "priority": 1,
-   "metadata": {"c4_changes": "bead-bonanza", "collision": "c4_changes:bead-bonanza"}},
-  {"key": "i8", "title": "Item 8: collisions as edges", "type": "task", "parent_key": "target", "assignee": "dev-mpnf-1", "priority": 2,
-   "metadata": {"c4_changes": "bead-bonanza", "collision": "c4_changes:bead-bonanza"}}],
+  {"key": "target",    "title": "(TARGET) plan items 6-8", "type": "epic", "parent_key": "run", "priority": 1},
+  {"key": "report",    "title": "Report", "type": "epic", "parent_key": "run", "priority": 2}],
  "edges": [
   {"from_key": "target", "to_key": "preflight", "type": "blocks"},
-  {"from_key": "report", "to_key": "target",    "type": "blocks"},
-  {"from_key": "i7",     "to_key": "i6",        "type": "blocks"},
-  {"from_key": "i8",     "to_key": "i7",        "type": "blocks"}]}
+  {"from_key": "report", "to_key": "target",    "type": "blocks"}]}
 ```
 
-`i7` and `i8` both edit `bead-bonanza`, so the last edge is a **collision**:
-both ends carry the same `metadata.collision`, and both are assigned to
-`dev-mpnf-1`, which is what makes them one batch worked in order. The
-`i7 <- i6` edge above it carries no mark, so it is a real dependency.
+`.beads/plans/<run-id>.edges.jsonl`, over the three beads already sitting under the
+target:
 
-Loading that prints `Created 7 issues` and one `key -> id` line each. Assert
-four things against the database, not against the file: the node count, every
-edge (`bd dep list <id>` per node), an assignee on every work bead, and the
-ready front — here `bd ready` returns the run epic and pre-flight, and `bd
-blocked` returns the other five.
+```
+{"from":"r7k-m10.2","to":"r7k-m10.1","type":"blocks"}
+{"from":"r7k-m10.3","to":"r7k-m10.2","type":"blocks"}
+```
+
+and the writes neither file can carry:
+
+```sh
+for b in r7k-m10.1 r7k-m10.2 r7k-m10.3; do bd update "$b" --assignee dev-r7k-1; done
+bd update r7k-m10.2 --set-metadata collision=c4_changes:bead-bonanza
+bd update r7k-m10.3 --set-metadata collision=c4_changes:bead-bonanza
+```
+
+`r7k-m10.2` and `r7k-m10.3` both edit `bead-bonanza`, so the second sidecar
+line is a **collision**: both ends carry the same `metadata.collision`, and
+both are assigned to `dev-r7k-1`, which is what makes them one batch worked in
+order. The first line carries no mark, so it is a real dependency.
+
+Measured end to end on bd 1.2.2: the plan printed `Created 4 issues` with one
+`key -> id` line each, and `bd dep add --file` printed `✓ Added 2
+dependencies`, exit 0. Assert four things against the DATABASE, not against
+the files: the node count, every edge (`bd dep list <id>` per bead), an
+assignee on every work bead, and the ready front — here `bd ready` returned the
+run epic and pre-flight, and `bd blocked` returned the other five.
 
 **A blocked parent blocks its children**, which is what makes one `epic→epic`
 edge order a whole phase: with the target waiting on pre-flight, `bd blocked`
-reports `i6` as blocked by the *target*, not by anything in its own row of the
-plan. That is also why the queue is always
+reports `r7k-m10.1` as blocked even though nothing in the sidecar names it —
+its *parent* is what holds it. That is also why the queue is always
 `bd ready --parent <epic> --exclude-type=epic` — the run epic answers `bd
 ready` on its own account.
 
