@@ -1,9 +1,9 @@
 # Grooming Prompt Template
 
-The prompt Phase 1.5 fills in and dispatches when beads need grooming. Substitute
-every `{PLACEHOLDER}` before sending — an unsubstituted placeholder is the single
-most common dispatch defect, because the subagent has no session context to infer
-it from.
+The prompt the coordinator fills in and dispatches when beads need grooming.
+Substitute every `{PLACEHOLDER}` before sending — an unsubstituted placeholder is
+the single most common dispatch defect, because the subagent has no session
+context to infer it from.
 
 `{EPIC}` is the run epic this phase resolved; its id is the run id and
 `bd ready --parent {EPIC} --exclude-type=epic` is the queue. `{RUN_ID}` does not
@@ -34,7 +34,7 @@ Then produce the **partition preview** `groom-beads` produces, as its own block 
 - `partition-preview: none (no C4 docs)` instead of the above WHEN the repo documents no architecture and you skipped C4 tagging — the reader must know the signal is absent, not empty
 - `c4-untagged: {ID} — <why>` for any bead you could not tag (component with no doc, scope unclear)
 
-FINALLY, as your last act, invoke the `sprint-plan` skill and follow it to produce the run's graph plan. RETURN its path and its edge list in your report. You have just read every bead, which is why planning is yours and not a second agent's. Pass it:
+FINALLY, as your last act, invoke the `sprint-plan` skill and follow it to produce the run's collision-edge file. RETURN its path and its edge list in your report. You have just read every bead, which is why planning is yours and not a second agent's. Pass it:
 - The run epic `{EPIC}` — its id IS the run id, `bd ready --parent {EPIC} --exclude-type=epic` IS the queue, and its metadata IS the manifest. Read the manifest; do NOT rewrite it
 - The bead ids to plan: {PLAN_IDS}, which is `bd ready --parent {EPIC} --exclude-type=epic` as it stood when this prompt was written. Re-derive it from the epic rather than from any filter, and never add a bead the epic does not contain — admission decided that membership and may have excluded beads deliberately
 - Checks: the declared ids `{CHECKS_IDS}`, run in full per bead; the baseline is `.metadata.checks_baseline` on `{EPIC}`
@@ -42,7 +42,7 @@ FINALLY, as your last act, invoke the `sprint-plan` skill and follow it to produ
 - Standing authorization: {STANDING_AUTH or "none"}
 - Your own partition preview, above
 
-Return the graph plan it produces as the last block of your report, plus one line per edge where you overrode your own preview and why.
+Return the edge file it produces as the last block of your report, plus one line per edge where you overrode your own preview and why.
 ```
 
 

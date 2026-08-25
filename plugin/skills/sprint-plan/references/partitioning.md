@@ -60,7 +60,7 @@ scope test and are recorded as an amendment; the graph absorbs them without a
 re-plan, which a schedule could not.
 
 **Both ends of a collision edge ALREADY EXIST, so the edge goes in the SIDECAR
-and never in the graph plan.** Admission created those beads and this skill
+and never as a new bead.** Admission created those beads and this skill
 assigns them; a graph-plan edge resolves only against keys inside the plan, so
 one naming an admitted bead aborts the whole load and creates nothing. "The
 edge file" below is the mechanism; this section is only what the edge means.

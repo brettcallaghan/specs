@@ -188,5 +188,5 @@ lineup` block in `sf.toml`, echoed by pre-flight. Honor these:
   direct evidence about whether grooming's routing is calibrated. WHEN
   `CLAUDE_CODE_SUBAGENT_MODEL` is set, report it as Phase 4's "Tier
   escalations" section directs.
-- **Record the routing** — every bead in the graph plan carries its tier in
-  node metadata.
+- **Record the routing** — every planned bead keeps the tier grooming assigned
+  it, in its own metadata; nothing re-writes it at dispatch.
