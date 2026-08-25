@@ -314,8 +314,8 @@ here and not at the readiness gate. Per batch: `bd update <id> --assignee
 dev-<run-id>-<batch-id>` on every bead it holds, the id derived in the
 coordinator's dispatch-policy reference and never minted. Ceremony beads take
 that same reference's roster ids. **The assignee is what groups a batch and
-the collision edges are what order it** — together they are the whole of what
-a table used to say.
+the collision edges are what order it.** There is no schedule to write down:
+both live in the graph, which is re-queried rather than remembered.
 
 Then run the epic's own gate, `references/shared/epic-definition-of-ready.md`
 — a bead nobody owns and a dev pool over the concurrency cap, neither visible

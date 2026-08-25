@@ -240,11 +240,11 @@ resolve any creep, admitted as an amendment or deferred out.
 **`bb-status.sh run <epic>` computes it** from surviving worktrees, the age of
 the last commit and the depth of the ready front. Read it; do not write it.
 
-A health label the coordinator sets is a signal whose only writer is the thing
-it monitors, so it reports "no failure" and "no monitor" identically — and did,
-reading `healthy` through a five-hour stall in which nothing was dispatched.
-*Worktrees: 0, plus a stale last commit, plus a non-empty ready front* is a
-stall computable by anyone, with no cooperation from the coordinator.
+**Do not set one instead.** A health label the coordinator writes is a signal
+whose only writer is the thing it monitors, so it reports "no failure" and "no
+monitor" identically. *Worktrees: 0, plus a stale last commit, plus a non-empty
+ready front* is a stall computable by anyone, needing no cooperation from the
+coordinator — which is the whole reason it is derived.
 ### Watching it, and knowing when it is done
 
 **Arm a `Monitor`** over the dispatches in flight — `persistent`, an explicit

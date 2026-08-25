@@ -70,13 +70,11 @@ before any work; everything after it is decided by the agent and recorded. A
 third channel — stopping to ask mid-run — is the thing this design exists to
 make unnecessary.
 
-**There is no separate "incident" channel, and adding one back is a mistake
-that has already been made.** A decision that changes what "correct" means is a
-finding of its ordinary kind (`decision`, `scope`, `gap`, `sequencing`), routed
-by that kind like every other. Making it a severity spelled inside the comment
-text produced three disagreeing counts on one run and sent that run's single
-most consequential record to no audience at all, because the word sat in the
-kind slot where nothing matches it.
+**A decision that changes what "correct" means is a finding, not a third
+channel.** It carries its ordinary kind — `decision`, `scope`, `gap`,
+`sequencing` — and routes by that kind like every other. Marking it with an
+extra severity word instead routes it nowhere: the kind slot accepts only the
+nine, and a word anywhere else is found only by whoever greps for it.
 
 **A bead that genuinely needs a human's answer is BOUNCED, not deferred.**
 Grooming raises it with `bd create --add-label human` (`--labels` exits 1 with

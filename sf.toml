@@ -167,13 +167,8 @@ frontier = "fable"
 # results, every finding verbatim, and what the run could not verify — and
 # records its path on the run epic so a later session finds it from the epic id.
 #
-# There is no separate report skill and no second document: a report and a
-# findings file are the same evidence read for two purposes, and keeping two in
-# agreement is work nobody was doing.
-dir = "docs/reports"
-
-# One index of all retro activity, appended to per run.
-log = "rfcs/retro-log.md"
+# `log.md` in the same directory carries one row per run.
+dir = "docs/retros"
 
 # Where issues against the SKILLS a run used are written. DELIBERATELY UNSET
 # here: this repository is the one that vends those skills, so an issue about

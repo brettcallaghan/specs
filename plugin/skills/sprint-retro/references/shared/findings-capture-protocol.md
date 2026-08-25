@@ -145,14 +145,11 @@ to speak — each already maps onto a kind above, respectively
 under that kind, naming what was decided and what was rejected, and it
 routes like every other finding.
 
-**It carries no extra severity marker, and one SHALL NOT be
-reintroduced.** A severity spelled inside the finding's own text
-depends on an author remembering where the word goes. Measured on one
-run: three sweeps produced three disagreeing counts (8, 11 and 17),
-and that run's single most consequential record reached no audience at
-all because the marker had been written into the `kind` slot, where
-nothing matches it. What makes a finding load-bearing is legible from
-its own text, and the kind is what routes it.
+**A finding SHALL NOT carry an extra severity marker.** The `kind` is
+the only routing field, so a marker written into that slot routes the
+finding nowhere, and one written anywhere else is found only by a
+reader who thinks to grep for it — neither is a severity. What makes a
+finding load-bearing is legible from its own text.
 
 ### Findings are append-only, so a correction supersedes
 

@@ -136,13 +136,10 @@ that matches:
 | a defect in code this run **touched** but did not introduce | in scope **only if** `standing_auth.admit_review_findings` is true |
 | anything else — including a real, serious defect the run neither introduced nor touched | **out of scope** |
 
-**Row 1 does not consult the gate, and that is deliberate.** A defect the run
-shipped is not scope growth; it is the run's own deliverable not working, and a
-run that merges a regression it found in its own diff has failed at the thing
-it was for. Across three runs on this corpus the gate's row was never once
-answered by a human, took its `false` default every time, and was overridden by
-the coordinator in the two most recent runs — a default overridden every time
-it is reached is not a default.
+**Row 1 does not consult the gate, and that is deliberate — do not "fix" it
+into one.** A defect the run shipped is not scope growth; it is the run's own
+deliverable not working, and a run that merges a regression its own review
+found has failed at the thing it was for.
 
 **Two things row 1 does NOT license.** It does not admit a finding whose only
 remedy is prose clarifying a document that has not yet misled anybody — file

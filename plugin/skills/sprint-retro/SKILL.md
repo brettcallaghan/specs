@@ -69,14 +69,12 @@ run is a retro that gets skipped.
 
 ```toml
 [reports]
-# Where a run's record is written. Default: docs/reports/
-dir = "docs/reports"
+# Where a run's record is written. Default: docs/retros/
+dir = "docs/retros"
 # Where issues against the SKILLS a run used go. UNSET means file them as beads
 # in this project's tracker instead — which is right where this repository is
 # the one that vends those skills.
 skill_issues_dir = ".sf/outbox"
-# One index of all retro activity. Default: rfcs/retro-log.md
-log = "rfcs/retro-log.md"
 ```
 
 ```sh
@@ -238,8 +236,8 @@ leads back to its findings.
 
 ## Close the loop
 
-Append one row for the run to `[reports].log`, so one index covers all retro
-activity, and commit it with the record and anything filed.
+Append one row for the run to the **log.md** beside it in `[reports].dir`, so
+one index covers every run, and commit it with the record and anything filed.
 
 **Record the outcome on the epic:**
 

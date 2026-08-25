@@ -45,8 +45,8 @@ it without being armed, and the durable out-of-session trigger — is
 **Health is read off `bb-status.sh run`, never written.** It is derived from
 surviving worktrees, the age of the last commit and the depth of the ready
 front. A label the coordinator sets instead is a signal whose only writer is
-the thing it monitors, so it reports "no failure" and "no monitor" identically
-— and did, reading `healthy` through a five-hour stall.
+the thing it monitors, so it reports "no failure" and "no monitor"
+identically.
 
 ## When something dies
 

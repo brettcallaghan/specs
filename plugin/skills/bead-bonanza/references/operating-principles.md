@@ -80,9 +80,9 @@ why `bd` works inside one.
 The same "don't touch what another agent owns" principle applies to
 tracker *claims*. Claiming is atomic — `bd update <id> --claim` sets status
 and assignee in one write and is idempotent when the claim is already yours —
-so the rule no longer has to cover the race between reading a status and
-setting it. What it still covers is ownership: a bead claimed by a **different
-assignee** belongs to a live sibling, and a subagent may not take it. The
+so there is no read-then-set race to guard. What the rule covers is ownership:
+a bead claimed by a **different assignee** belongs to a live sibling, and a
+subagent may not take it. The
 orchestrator, never a subagent, owns reconciling claims across dispatches.
 
 ## Principles the coordinator applies but does not carry
@@ -125,7 +125,7 @@ work is done, and they are the ones an agent is most tempted to stop for:
 | | kind to record it under |
 |---|---|
 | an **acceptance criterion needs amending** | `decision` |
-| a standard, requirement and AC in **tension**, with no conservative branch | `decision`, one per target |
+| a standard, requirement and AC in **tension**, with no conservative option | `decision`, one per target |
 | a **contract or interface** change | `scope` |
 | a spec **silent** where the bead requires it to speak | `gap` |
 
@@ -135,12 +135,11 @@ pull request and revised in a later run. That is cheaper than a night blocked
 on a question nobody is awake to answer — which is the actual alternative for
 an autonomous run, not "ask and continue".
 
-**None of these is a separate severity, and making one is a mistake already
-made here.** Spelling `incident` inside a finding's text produced three
-disagreeing counts on a single run and routed that run's most consequential
-record to no audience at all, because the word had been put in the kind slot
-where nothing matches it. The nine kinds already carry the whole distinction:
-what makes a finding load-bearing is legible from its own text.
+**Do not mark these with an extra severity word.** The kind is what routes a
+finding, so a word in the kind slot that is not one of the nine routes the
+finding nowhere — and a word elsewhere in the text is found only by whoever
+thinks to grep for it. The nine kinds already carry the distinction: what makes
+a finding load-bearing is legible from its own text.
 
 **This binds the coordinator as much as its subagents.** A coordinator that
 escalates has converted an autonomous run into a supervised one without saying

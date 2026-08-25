@@ -185,11 +185,11 @@ recovery.
 
 ## Merging — the coordinator does it, one dispatch at a time
 
-**There is no merge queue, no merge bead and no lock, because there is nothing
-to serialize.** You are one agent and you merge one branch at a time by
-construction. Merge each dispatch's branch **as that dispatch returns**, rather
-than after all of them return: a branch left unmerged is a base every later
-dispatch is missing.
+**No queue, no merge bead, no lock — do not add one.** You are one agent, so
+you merge one branch at a time by construction and there is nothing left for a
+mechanism to serialize. Merge each dispatch's branch **as that dispatch
+returns**, rather than after all of them return: a branch left unmerged is a
+base every later dispatch is missing.
 
 ```sh
 git merge --ff-only "bb/<dispatch-id>"
