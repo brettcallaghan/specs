@@ -102,10 +102,13 @@ handle_worktree() { # handle_worktree <path> <branch> <beads-json>
     # worktree holds the partial work — the durable record that the bead is
     # unfinished — so it is left standing, not torn down.
     line "LEFT" "worktree, its bead is BLOCKED (partial work)" "$1"; note_left
-  elif agent_drained "$_hw_who"; then
-    run "remove worktree ($_hw_who drained)" git worktree remove --force "$1"
   else
-    line "LEFT" "worktree, $_hw_who still has a queue" "$1"; note_left
+    agent_drained "$_hw_who"; _hw_ad=$?
+    case "$_hw_ad" in
+      0) run "remove worktree ($_hw_who drained)" git worktree remove --force "$1" ;;
+      2) line "LEFT" "worktree, the tracker could not answer for $_hw_who" "$1"; note_left ;;
+      *) line "LEFT" "worktree, $_hw_who still has a queue" "$1"; note_left ;;
+    esac
   fi
 }
 
@@ -164,9 +167,18 @@ status_for_branch() { # status_for_branch <branch>  < beads-json  ->  status|""
 # Shell functions share globals, so every local here is prefixed `_ad_`/`_je_`.
 # An unprefixed `_n` silently overwrote the self-test's own loop variable and
 # made a passing assertion print the wrong name.
-agent_drained() { # agent_drained <assignee>  ->  0 drained / 1 still holding
-  _ad_ready="$(bd ready --assignee "$1" --json 2>/dev/null)"
-  _ad_prog="$(bd list --assignee "$1" --status in_progress --json 2>/dev/null)"
+# THREE outcomes, not two, because a tracker that cannot ANSWER is not a
+# tracker answering "nothing". Both statuses are read: an assignment captures
+# the command substitution's own status, so this is not the discarded-status
+# form the `2>/dev/null` above would otherwise leave. A failed query is the
+# UNKNOWN verdict, and `handle_worktree` treats unknown as LEFT — fail closed,
+# because the action on the other branch is `git worktree remove --force` and
+# takes uncommitted work with it.
+agent_drained() { # agent_drained <assignee>  ->  0 drained / 1 still holding / 2 could not tell
+  _ad_ready="$(bd ready --assignee "$1" --json 2>/dev/null)"; _ad_rrc=$?
+  [ "$_ad_rrc" -eq 0 ] || return 2
+  _ad_prog="$(bd list --assignee "$1" --status in_progress --json 2>/dev/null)"; _ad_prc=$?
+  [ "$_ad_prc" -eq 0 ] || return 2
   json_empty "$_ad_ready" && json_empty "$_ad_prog"
 }
 
@@ -253,6 +265,45 @@ self_test() {
     if [ "$_g" = "$_e" ]; then printf '  ok   %s\n' "$_n"
     else printf '  FAIL %s (expected %s, got %s)\n' "$_n" "$_e" "$_g"; fails=$((fails+1)); fi
   done
+  # A FAILED tracker query is not an empty answer. Driven through the REAL
+  # `agent_drained`, with `bd` shadowed by a stub whose exit status is the
+  # variable under test: reading a failure as "drained" is exactly what
+  # force-removes a live agent's worktree, so the verdict has to be UNKNOWN.
+  # `run` is stubbed alongside it so the end-to-end case cannot reach
+  # `git worktree remove` even if the guard regresses.
+  run() { _hw_ran="yes"; }
+  _adq='[{"id":"acme-r7k.4","assignee":"dev-live"}]'
+  for _c in "both queries fail:2:fail-all" \
+            "the in_progress query alone fails:2:fail-prog" \
+            "both answer empty:0:empty" \
+            "the ready front is non-empty:1:busy"; do
+    _n="${_c%%:*}"; _r="${_c#*:}"; _e="${_r%%:*}"; _adq_mode="${_r#*:}"
+    bd() {
+      case "$_adq_mode" in
+        fail-all)  return 1 ;;
+        fail-prog) if [ "$1" = ready ]; then printf '[]'; return 0; fi; return 1 ;;
+        empty)     printf '[]'; return 0 ;;
+        *)         printf '%s' "$_adq"; return 0 ;;
+      esac
+    }
+    agent_drained dev-live; _g=$?
+    if [ "$_g" = "$_e" ]; then printf '  ok   drained verdict, %s\n' "$_n"
+    else printf '  FAIL drained verdict, %s (expected %s, got %s)\n' "$_n" "$_e" "$_g"; fails=$((fails+1)); fi
+  done
+  # End to end. Component coverage above is not this: `agent_drained` can
+  # answer UNKNOWN correctly while `handle_worktree` still removes the tree.
+  # An unreadable tracker must leave it standing AND raise the flag, so the
+  # script exits RC_LEFT instead of reporting a clean teardown.
+  _adq_mode=fail-all; left=0; _hw_ran=no
+  handle_worktree "/wt/r7k.4" "r7k.4" "$_adq" >/dev/null 2>&1
+  if [ "$left" = 1 ] && [ "$_hw_ran" = no ]; then
+    printf '  ok   %s\n' "guard, an unreadable tracker leaves the worktree standing"
+  else
+    printf '  FAIL %s (expected left=1 removal-attempted=no, got left=%s removal-attempted=%s)\n' \
+      "guard, an unreadable tracker leaves the worktree standing" "$left" "$_hw_ran"; fails=$((fails+1))
+  fi
+  unset -f bd
+  left=0
   # THE GUARD ITSELF, end to end, through the real decision function. Component
   # coverage above is not this: a lookup and an emptiness test can each be right
   # while the verdict they feed is wrong. A worktree is torn down ONLY when the
