@@ -143,10 +143,16 @@ mode_hook() {
     return 0
   fi
 
-  n="$(cat "$d/blocks" 2>/dev/null)"
+  cf="$d/blocks"
+  n="$(cat "$cf" 2>/dev/null)"
   case "$n" in ''|*[!0-9]*) n=0 ;; esac
   n=$((n + 1))
-  printf '%s\n' "$n" > "$d/blocks" 2>/dev/null || true
+  if ! printf '%s\n' "$n" > "$cf" 2>/dev/null; then
+    # Can't persist the bound, so it cannot be enforced. Standing down beats
+    # blocking on an unaccounted budget -- see property 3 above.
+    warn "cannot write the block counter ($cf); not blocking."
+    return 0
+  fi
 
   if [ "$n" -gt "$MAX" ]; then
     # Deliberately does NOT reset the counter. Past the cap this stays quiet
@@ -227,6 +233,18 @@ mode_self_test() {
   is "unparseable output does not block" "$(run)" 0
   stub ''
   is "empty output does not block" "$(run)" 0
+
+  # -- the counter cannot be written: fail OPEN, not closed. A directory at
+  # the counter path fails the write for every user including root, unlike
+  # chmod'ing the parent (which a root-run self-test would not observe).
+  PATH="$bin:$PATH" "$self" --arm demo-epic >/dev/null 2>&1
+  rm -f "$BB_STOP_HOOK_DIR/blocks"
+  mkdir -p "$BB_STOP_HOOK_DIR/blocks"
+  stub '[{"id":"x"}]'
+  seq=""
+  i=0; while [ "$i" -lt 6 ]; do seq="$seq$(run)"; i=$((i+1)); done
+  is "unwritable counter never blocks, over repeated calls" "$seq" "000000"
+  rmdir "$BB_STOP_HOOK_DIR/blocks" 2>/dev/null
 
   # -- invocation surface
   is "--arm with no epic is a usage error" \

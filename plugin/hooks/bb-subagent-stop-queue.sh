@@ -206,7 +206,12 @@ mode_hook() {
   n="$(cat "$cf" 2>/dev/null)"
   case "$n" in ''|*[!0-9]*) n=0 ;; esac
   n=$((n + 1))
-  printf '%s\n' "$n" > "$cf" 2>/dev/null || true
+  if ! printf '%s\n' "$n" > "$cf" 2>/dev/null; then
+    # Can't persist the bound, so it cannot be enforced. Standing down beats
+    # blocking on an unaccounted budget -- see property 4 above.
+    warn "cannot write the block counter ($cf); not blocking."
+    return 0
+  fi
 
   if [ "$n" -gt "$MAX" ]; then
     # Deliberately does NOT reset the counter. Past the cap this stays quiet
@@ -314,6 +319,15 @@ mode_self_test() {
   is "unparseable bd output does not block" "$(run dev-r7k-7)" 0
   stub '' ''
   is "empty bd output does not block" "$(run dev-r7k-7)" 0
+
+  # -- the counter cannot be written: fail OPEN, not closed. A directory at
+  # the counter path fails the write for every user including root, unlike
+  # chmod'ing the parent (which a root-run self-test would not observe).
+  stub '[{"id":"a"}]' 'null'
+  mkdir -p "$BB_SUBAGENT_HOOK_DIR/blocks-$(printf '%s' dev-r7k-unwritable | tr -c 'A-Za-z0-9._-' '_' | cut -c1-64)"
+  seq=""
+  i=0; while [ "$i" -lt 6 ]; do seq="$seq$(run dev-r7k-unwritable)"; i=$((i+1)); done
+  is "unwritable counter never blocks, over repeated calls" "$seq" "000000"
   stub '[{"id":"a"}]' 'null'
   is "kill switch BB_SUBAGENT_HOOK=0" \
      "$(printf '{"agent_id":"dev-r7k-8"}' | BB_SUBAGENT_HOOK=0 PATH="$bin:$PATH" "$self" >/dev/null 2>&1; echo $?)" 0
