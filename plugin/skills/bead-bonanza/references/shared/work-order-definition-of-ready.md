@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/standards/work-order-definition-of-ready.md (version 1.4)
+     Source of truth: specs/standards/work-order-definition-of-ready.md (version 1.5)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -10,8 +10,8 @@ description: The readiness gate a work order must pass before it can be
 slug: work-order-definition-of-ready
 type: standards
 status: active
-updated_at: 2026-08-13T00:00:00Z
-version: "1.4"
+updated_at: 2026-08-25T00:00:00Z
+version: "1.5"
 ---
 
 # Work Order Definition of Ready
@@ -103,6 +103,27 @@ state, not the steps.
 
 This is the shared contract: it's how an isolated agent knows it's done and how
 the orchestrator/verifier confirms it.
+
+**Every executable a criterion names SHALL resolve** — on `PATH` in the
+environment the work order will run in, or as one of the project's declared
+check ids. An acceptance criterion naming a tool that is not there is not
+strict, it is unsatisfiable: measured on one run, two agents independently hit
+the same criterion (`sh -n` and `shellcheck`, "as the project's checks run
+them") where the project ran neither and neither was installed. Both did the
+right thing — recorded the criterion UNVERIFIED and substituted what was
+available — but the criterion should never have passed the gate. Check the
+names at grooming time, when there is still somebody to fix them.
+
+**A criterion SHALL NOT cite a position.** A path plus a quoted string, or a
+class, function, file or component name, is what an agent can still find; a
+line number rots between grooming and dispatch, and does — measured, two of six
+anchors in one run's findings had moved before the beads were dispatched,
+because a sibling in the same batch edited the file. Where a line number helps,
+write it as a hint beside the string, never as the handle.
+
+**A criterion SHALL NOT contradict the work order's own `## Design` scope.**
+Where they disagree, one of them is wrong and an implementing agent has no way
+to tell which; resolve it here.
 
 ### 5. Kind-appropriate completeness
 - **bug** — steps to reproduce, expected vs. actual behavior, and where it
