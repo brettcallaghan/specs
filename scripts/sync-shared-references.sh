@@ -62,7 +62,6 @@ esac
 # citations.
 MAP=$(cat <<'EOF'
 bead-bonanza	specs/standards/findings-capture-protocol.md
-sprint-plan	specs/standards/work-order-definition-of-ready.md
 sprint-plan	groom-beads/references/epic-definition-of-ready.md
 groom-beads	specs/standards/work-order-definition-of-ready.md
 groom-beads	specs/guides/work-order-field-guide.md

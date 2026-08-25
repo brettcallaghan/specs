@@ -96,40 +96,43 @@ unreliable — and handing a fresh, zero-context subagent an under-specified
 bead is the single most expensive failure mode a run has: it detonates late,
 after other beads have built on it.
 
-So before dispatch, gate the queue against the **Definition of
-Ready** — the checklist owned by the `spec` skill
-(`references/shared/work-order-definition-of-ready.md`) and enforced by
-`groom-beads`, which materializes work orders as beads. Those skills are the
-authority; do not restate the checklist here.
+So before dispatch, every bead in the queue carries a readiness **verdict** —
+and **you do not produce it.** The Definition of Ready is a checklist the
+`spec` skill owns and `groom-beads` enforces; a second reader of it here is a
+second place for it to be interpreted, and the one that would drift is this
+one, because grooming is the skill that gets fixed when the checklist changes.
 
-### 1. Cheap check (read-only)
+### 1. Ask grooming for the verdict
 
-Most runs pass in seconds because the user groomed first. Per bead, confirm the
-Definition of Ready's checks hold — read them from
-`references/shared/work-order-definition-of-ready.md`, not from memory — plus
-one signal it does not carry: `bd lint` is clean for the bead, WHERE the
-installed `bd` has it. Parallelize; this is read-only. A bead failing check 9
-(an open decision) is bounced, not questioned mid-run.
+**Send the whole queue, not a subset you pre-filtered.** Grooming triages what
+it is handed and answers per bead — `ready` for one it changed nothing on,
+`ready — <change>` for one it fixed, `NOT-READY — <the gap a human must close>`
+for one it cannot clear. A bead that needed nothing costs it a confirmation
+pass, which is cheaper than this skill holding a copy of the checklist to avoid.
 
-A queue that is entirely ready makes this phase a one-line no-op for *grooming*:
-say so and hand back — the orchestrator still dispatches one subagent for
-planning alone.
+**What you own is the queue, not the criteria**: re-derive it from the epic
+(`bd ready --parent <epic> --exclude-type=epic`), hand grooming exactly that
+set, and account for every id in what comes back. A bead with no verdict is not
+ready — it is unexamined, and the two must never read alike.
 
-### 2. Groom what fails — invoke `groom-beads`
+**One signal grooming's checklist does not carry**, so check it yourself
+alongside: `bd lint` clean for each bead, WHERE the installed `bd` has it.
 
-If any bead fails the check, do NOT dispatch it and do NOT fix it inline —
-grooming reads source and wires graphs, which belongs in a subagent (see "don't
-read source files in the orchestrator"). Dispatch a **grooming subagent** over
-the ungroomed subset (template below); it runs `groom-beads` to the Definition
-of Ready and returns a per-bead readiness report plus a **partition preview** —
-its candidate grouping under dependencies and C4 collisions. **Its final act is
-to invoke `sprint-plan`**, which turns that preview into the run's edges:
-it has already read every bead, so a second agent would only re-derive the same
-partition and leave two to reconcile.
+### 2. Do not fix a bead yourself
 
-When it returns, **re-run `bd ready`** with the run's filter: grooming may have
-wired new dependencies or split a boulder into an epic + children, changing both
-the ordering and the membership of the queue.
+**Not one, not inline, not "it only needed a sentence".** Grooming reads source
+and wires graphs; a bead you repair here is one repaired against your reading
+of a checklist you do not hold, and nothing downstream can tell it apart from
+one grooming cleared.
+
+Grooming also returns a **partition preview** — its candidate grouping under
+dependencies and C4 collisions — which is the starting point for everything
+below. It has already read every bead, which is why the partition is computed
+in the same agent rather than by a second one that would re-derive it.
+
+**Then re-run `bd ready`** with the run's filter: grooming may have wired new
+dependencies or split a boulder into an epic + children, changing both the
+ordering and the membership of the queue.
 
 ### 3. Bounce what grooming can't clear
 

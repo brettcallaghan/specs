@@ -25,12 +25,11 @@ planning conversation to lean on. This skill materializes work orders as
 pull ready beads, group them into **batches**, and dispatch each to an
 **isolated sub-agent** with zero session context.
 
-That execution model is the whole reason grooming matters. Every sub-agent is a
-*fresh agent with zero context*. So the job of grooming is not "fill in fields"
-— it is to **manufacture context-independence and correct ordering**, because
-those are the two things the orchestrator actually consumes. A bead that reads
-fine to someone who was in the planning session but is unworkable cold is the
-central failure mode, and it is invisible until it detonates three beads deep.
+Every sub-agent is a *fresh agent with zero context*, so the job is not "fill
+in fields" — it is to **manufacture context-independence and correct
+ordering**, the two things an orchestrator consumes. A bead that reads fine to
+someone who was in the planning session and is unworkable cold is the central
+failure mode, and it is invisible until it detonates three beads deep.
 
 The north star, applied to every bead you touch:
 
@@ -38,11 +37,11 @@ The north star, applied to every bead you touch:
 > `bd show <id>` and complete the work correctly — right approach, verifiable
 > done-ness — without asking anyone anything.**
 
-Two things live elsewhere and are deliberately NOT restated here (canonical
-copies live in the `spec` skill, so authoring and grooming can never disagree):
+Two things live elsewhere and are NOT restated here, so authoring and grooming
+can never disagree:
 
-- **What "ready" means.** The criteria are owned by the `spec` skill. Load and
-  enforce them; do not paraphrase or fork them:
+- **What "ready" means.** The criteria are the `spec` skill's. Load and enforce
+  them; do not paraphrase or fork them:
   - `references/shared/work-order-definition-of-ready.md` — the checklist.
   - `references/shared/work-order-field-guide.md` — the three text fields kept
     distinct, and the tier-routing rubric.
@@ -113,6 +112,7 @@ Grooming progress:
 - [ ] 1. Scoped the grooming set; showed the user what will change
 - [ ] 2. Every bead driven to the spec-owned Definition of Ready
   - [ ] 2a. No open decisions on any bead (DoR check 9)
+  - [ ] 2b. Every bead reported ready / NOT-READY, including ones you changed nothing on
 - [ ] 3. Dependency graph wired (every edge justified, none fabricated)
 - [ ] 4. Tier + tier_reason on every bead (never null)
 - [ ] 5. C4 blast radius tagged (or explicitly skipped: no C4 docs)
@@ -152,6 +152,14 @@ degradation — the *structure* matters more than the field boundary.
 Prefer editing over rewriting: enrich a thin description, don't discard the
 author's intent. When a description leans on session context, the fix is to
 *inline the missing context*, not to delete the sentence.
+
+**A bead that already passes every check is a VERDICT, not a silence.** Handed
+a set to gate — which is how a sprint calls you — most beads may need nothing,
+and reporting them `ready — no change` is the answer the caller asked for.
+Confirm the checks against the bead; do not re-derive its Design, re-wire edges
+that are already right, or edit it to prove you looked. **You are the only
+holder of this checklist**, so a caller that skipped you has no verdict at all,
+and one that gets silence cannot tell "ready" from "not examined".
 
 ### An epic has its own Definition of Ready
 
@@ -322,27 +330,24 @@ the source of truth on packing; say explicitly that this is a preview.
 
 ## The retro loop (closing the circle)
 
-Grooming quality compounds only if execution feeds back into it. When the user
-runs a retro (or asks you to help with one), the highest-value outputs are:
-- **Router calibration** — beads whose assigned `tier` was wrong are the signal
-  to adjust the field guide's routing rubric. The orchestrator reports every
-  escalation (bead, assigned tier, tier that completed it, what failed); those
-  are the run's only direct routing evidence. Note the asymmetry: escalations
-  surface under-routing, but nothing surfaces over-routing — so a large run
-  with zero escalations is worth examining, not celebrating.
+Grooming quality compounds only if execution feeds back into it. Four signals a
+retro can give you, and nothing else can:
+
+- **Router calibration** — a bead whose `tier` was wrong is the signal to adjust
+  the field guide's rubric. Note the asymmetry: escalations surface
+  *under*-routing and nothing surfaces over-routing, so a large run with zero
+  escalations is worth examining rather than celebrating.
 - **Grooming misses** — beads reopened or blocked mid-run for missing context.
-  Capture the *pattern* as `bd remember "<insight>"` so future grooming (via
-  `bd prime`) inherits it, and ideally propose it as an RFC against the
-  Definition of Ready (which the `spec` skill owns).
-- **C4 drift** — changes that shipped without a doc update; components appearing
-  in `c4_impacts` far more than expected (a coupling hotspot worth a refactor
-  epic).
+  Capture the *pattern* as `bd remember "<insight>"` so future grooming
+  inherits it through `bd prime`, and propose it against the Definition of
+  Ready, which the `spec` skill owns.
+- **C4 drift** — components appearing in `c4_impacts` far more than expected: a
+  coupling hotspot worth a refactor epic.
 - **Discovered-work audit** — near-zero `discovered-from` across a big run is
   suspicious (agents hiding problems to save context); a flood from one epic
   means that epic was under-groomed.
 
-Prefer making the retro itself a tracked bead (type `chore`, or a `retro` type)
-so it's never skipped.
+Make the retro a tracked bead so it is never skipped.
 
 ## Anti-patterns to actively reject
 
@@ -361,12 +366,10 @@ so it's never skipped.
 
 ## Reference files
 
-Files under `references/shared/` are **generated copies** of reference
-documents owned by a sibling skill — vendored in by
-`scripts/sync-shared-references.sh` so this skill is self-contained. Read
-them normally; never edit them. Fix the source named in each file's header
-and re-run the script.
-
+Files under `references/shared/` are **generated copies** vendored in by
+`scripts/sync-shared-references.sh` so this skill is self-contained. Read them
+normally; never edit them — fix the source named in each file's header and
+re-run the script.
 
 - `references/shared/work-order-definition-of-ready.md` — the checklist you
   enforce in phase 2 (spec-owned; do not fork it).
