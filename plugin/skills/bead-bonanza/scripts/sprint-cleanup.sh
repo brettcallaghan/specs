@@ -62,11 +62,19 @@ prune_worktrees() { # prune_worktrees <epic>
   main="$(git rev-parse --show-toplevel 2>/dev/null)"
   [ -n "$wts" ] || { say "no worktrees registered"; return 0; }
 
-  # Not scoped by `bd list --parent`: it returns DIRECT children only, so on a
-  # nested run epic every leaf bead would go unmatched and its worktree be left
-  # standing. `--all` because a finished bead is closed and `bd list` defaults
-  # to open.
+  # Scoped to THIS run: the epic's transitive descendants and nothing else. A
+  # repo-wide lookup matches a CONCURRENT sprint's bead by branch suffix and
+  # force-removes its worktree, taking that run's uncommitted work with it.
+  # `bd list --parent` answers with DIRECT children only, so a nested run epic
+  # (run epic -> target epic -> work beads) needs the walk in `epic_descendants`
+  # rather than one query. `--all` because a finished bead is closed and
+  # `bd list` defaults to open.
+  # A scope that could not be read fully is SHORT, never wide: the worktrees it
+  # misses read as unowned and are left standing, which is the safe direction.
+  scope="$(epic_descendants "$epic")" || say "tracker incomplete — scoping to what could be read"
   beads="$(bd list --all --json 2>/dev/null)" || beads='[]'
+  beads="$(printf '%s' "$beads" | scope_beads "$scope")"
+  [ -n "$beads" ] || beads='[]'
   pairs="$(git worktree list --porcelain 2>/dev/null | parse_worktree_branches)"
   seen=0
   # A pipe would put this loop in a subshell, where note_left cannot reach
@@ -191,6 +199,52 @@ json_empty() { # json_empty <json>  ->  0 when null, [] or unreadable-as-a-list
 select_molecule() { # select_molecule <epic>  < swarm-list-json
   jq -r --arg e "$1" \
     '[.swarms[]? | select(.epic_id == $e and .status != "closed")] | .[0].id // empty' \
+    2>/dev/null
+}
+
+# The run's own beads, and only those. `bd list --parent` answers with DIRECT
+# children only, so a nested run epic (run epic -> target epic -> work beads)
+# needs a walk: expand every child that is itself an epic, accumulating ids.
+# The worklist is this function's OWN positional parameters — a stack that
+# costs no global and cannot collide with a caller's variable, which this file
+# has already been bitten by once.
+# Returns 1 when a query failed. A short scope is safe (the worktrees it misses
+# read as unowned and are LEFT); a wide one force-removes another run's work,
+# which is the asymmetry the whole lookup exists to respect.
+epic_descendants() { # epic_descendants <epic>  ->  descendant ids, one per line
+  _ed_seen=""; _ed_rc=0
+  set -- "$1"
+  while [ "$#" -gt 0 ]; do
+    _ed_cur="$1"; shift
+    _ed_json="$(bd list --parent "$_ed_cur" --all --json 2>/dev/null)" || { _ed_rc=1; continue; }
+    # "<type> <id>" per child. A bead id never contains whitespace, so letting
+    # `read` split it is safe — unlike a worktree PATH, which is why the
+    # parsers above use substring assignment instead.
+    _ed_kids="$(printf '%s' "$_ed_json" | jq -r '.[]? | "\(.issue_type // "-") \(.id)"' 2>/dev/null)"
+    _ed_more=""
+    # A heredoc, not a pipe: a pipe would run this loop in a subshell where
+    # `_ed_seen` is discarded and the walk would return only the last level.
+    while read -r _ed_ty _ed_id; do
+      [ -n "${_ed_id:-}" ] || continue
+      case " $_ed_seen " in *" $_ed_id "*) continue ;; esac
+      _ed_seen="$_ed_seen $_ed_id"
+      [ "$_ed_ty" = epic ] && _ed_more="$_ed_more $_ed_id"
+    done <<EDKIDS
+$_ed_kids
+EDKIDS
+    set -- "$@" $_ed_more
+  done
+  [ -z "$_ed_seen" ] || printf '%s\n' $_ed_seen
+  return "$_ed_rc"
+}
+
+# Narrow a bead list to those ids. A stdin/stdout text transform like the
+# parsers above, so the self-test drives it with synthetic input and needs
+# neither a repository nor a tracker. An EMPTY scope matches NOTHING rather
+# than everything: every failure here has to leave worktrees standing.
+scope_beads() { # scope_beads <ids, one per line>  < beads-json  ->  beads-json
+  jq -c --arg ids "$1" \
+    '($ids | split("\n") | map(select(length > 0))) as $s | [ .[]? | select(.id as $i | $s | index($i)) ]' \
     2>/dev/null
 }
 
@@ -335,6 +389,67 @@ self_test() {
     fi
   done
   left=0   # the stubs stay defined for the rest of the self-test; nothing below calls them.
+
+  # RUN SCOPING. `bd` is stubbed with a NESTED graph — run epic -> target epic
+  # -> tasks — because `bd list --parent` answers with DIRECT children only, so
+  # a single query misses every leaf and the walk is the whole point.
+  # `--all` is asserted through the stub's ANSWER rather than a flag it sets:
+  # every `bd` call here happens inside a command substitution, so a variable
+  # the stub writes is written in a subshell and never comes back. Drop `--all`
+  # from the query and the stub hands back a bead that must not appear.
+  bd() {
+    case " $* " in
+      *" --all "*) : ;;
+      *) printf '[{"id":"acme-MISSING-ALL","issue_type":"task"}]'; return 0 ;;
+    esac
+    case "$3" in
+      acme-run) printf '[{"id":"acme-tgt","issue_type":"epic"},{"id":"acme-d1","issue_type":"task"}]' ;;
+      acme-tgt) printf '[{"id":"acme-g1","issue_type":"task"},{"id":"acme-c1","issue_type":"task"}]' ;;
+      *)        printf '[]' ;;
+    esac
+  }
+  _g="$(epic_descendants acme-run | LC_ALL=C sort | tr '\n' ' ')"
+  _e="acme-c1 acme-d1 acme-g1 acme-tgt "
+  if [ "$_g" = "$_e" ]; then printf '  ok   %s\n' "scope, a nested epic's GRANDchildren are all found"
+  else printf '  FAIL %s (expected [%s], got [%s])\n' "scope, a nested epic's GRANDchildren are all found" "$_e" "$_g"; fails=$((fails+1)); fi
+  case " $_g" in
+    *" acme-MISSING-ALL "*) printf '  FAIL %s (the walk queried without --all)\n' "scope, the walk keeps --all so closed beads are still matched"; fails=$((fails+1)) ;;
+    *) printf '  ok   %s\n' "scope, the walk keeps --all so closed beads are still matched" ;;
+  esac
+  # A tracker that cannot answer yields a non-zero return and a set that is
+  # short, never one that is wrong: an unmatched worktree is LEFT, not removed.
+  bd() { return 1; }
+  _g="$(epic_descendants acme-run)"; _r=$?
+  if [ "$_r" = 1 ] && [ -z "$_g" ]; then printf '  ok   %s\n' "scope, a failed walk reports it and scopes to nothing"
+  else printf '  FAIL %s (expected rc=1 and no ids, got rc=%s [%s])\n' "scope, a failed walk reports it and scopes to nothing" "$_r" "$_g"; fails=$((fails+1)); fi
+  unset -f bd
+  # Narrowing the bead list to that set, driven through the real function.
+  _sc_all='[{"id":"acme-g1","assignee":"dev-done"},{"id":"acme-c1","assignee":"dev-done","status":"closed"},{"id":"acme-foreign","assignee":"dev-done"}]'
+  _sc_ids="$(printf 'acme-g1\nacme-c1\n')"
+  _g="$(printf '%s' "$_sc_all" | scope_beads "$_sc_ids" | jq -r '[.[].id] | join(",")')"
+  if [ "$_g" = "acme-g1,acme-c1" ]; then printf '  ok   %s\n' "scope, a bead outside the run is filtered out and a closed one is kept"
+  else printf '  FAIL %s (expected acme-g1,acme-c1, got [%s])\n' "scope, a bead outside the run is filtered out and a closed one is kept" "$_g"; fails=$((fails+1)); fi
+  _g="$(printf '%s' "$_sc_all" | scope_beads "" | jq -r 'length')"
+  if [ "$_g" = 0 ]; then printf '  ok   %s\n' "scope, an empty scope matches nothing rather than everything"
+  else printf '  FAIL %s (expected 0, got [%s])\n' "scope, an empty scope matches nothing rather than everything" "$_g"; fails=$((fails+1)); fi
+  # END TO END, with the NEGATIVE CONTROL that names the bug. `agent_drained`
+  # and `run` are the stubs installed above; dev-done reads as drained, so the
+  # foreign worktree is eligible for `git worktree remove --force` on content
+  # alone — only the scoping keeps it standing.
+  _sc_scoped="$(printf '%s' "$_sc_all" | scope_beads "$_sc_ids")"
+  for _c in "scoped, an in-run drained agent's worktree is still removed:0:yes:g1:_sc_scoped" \
+            "scoped, a CONCURRENT run's worktree is left, not force-removed:1:no:foreign:_sc_scoped" \
+            "scoped, a closed in-run bead's worktree is still removed:0:yes:c1:_sc_scoped" \
+            "UNSCOPED (the bug), the same foreign worktree IS removed:0:yes:foreign:_sc_all"; do
+    _n="${_c%%:*}"; _r="${_c#*:}"; _e="${_r%%:*}"; _r="${_r#*:}"
+    _x="${_r%%:*}"; _r="${_r#*:}"; _b="${_r%%:*}"; _v="${_r#*:}"
+    eval "_j=\$$_v"
+    left=0; _hw_ran=no
+    handle_worktree "/wt/$_b" "$_b" "$_j" >/dev/null 2>&1
+    if [ "$left" = "$_e" ] && [ "$_hw_ran" = "$_x" ]; then printf '  ok   %s\n' "$_n"
+    else printf '  FAIL %s (expected left=%s removal-attempted=%s, got left=%s removal-attempted=%s)\n' "$_n" "$_e" "$_x" "$left" "$_hw_ran"; fails=$((fails+1)); fi
+  done
+  left=0
 
   # Pairing a worktree with its branch, spaces and detachment included.
   _g="$(printf 'worktree /a/b c\nHEAD deadbeef\nbranch refs/heads/qozp.8\n\nworktree /d/e\nHEAD cafe\n' | parse_worktree_branches)"
