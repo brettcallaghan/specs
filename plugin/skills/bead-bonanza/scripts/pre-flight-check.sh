@@ -534,7 +534,7 @@ else
   else
     EVENT_LOG=""
     say "event log: UNWRITABLE — progress streaming will be unavailable; use"
-    say "\`bd swarm status $EPIC\` instead."
+    say "\`bb-status.sh run $EPIC\` instead."
   fi
 fi
 say "scripts:  $SCRIPTS"

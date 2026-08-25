@@ -10,10 +10,10 @@ Two neighbouring situations are elsewhere, so this file can be read on its own:
 WHEN a subagent dies mid-ceremony, read `recovery.md`; WHEN you are resuming a
 run whose state you do not hold, invoke the **`sprint-recovery`** skill.
 
-**Two views, and they are not interchangeable.** `bd swarm status <epic>` is
-the durable one — computed from the beads themselves, correct after any crash,
-and the right answer to "where is this run". The event log below is a live
-*stream*; it is ephemeral by design and its absence costs mid-flight
+**Two views, and they are not interchangeable.** `bb-status.sh run <epic>` is
+the durable one — computed from the beads and from git, correct after any
+crash, and the right answer to "where is this run". The event log below is a
+live *stream*; it is ephemeral by design and its absence costs mid-flight
 visibility, not the run's record.
 
 ## Contents
@@ -82,7 +82,7 @@ The hooks must also be **executable** — `bd` skips a non-executable hook
 silently too, with the same presentation.
 
 WHEN pre-flight reports the event log as unwritable it emits `BB_EVENT_LOG=''`;
-skip the hooks entirely and use `bd swarm status <epic>` for visibility rather
+skip the hooks entirely and use `bb-status.sh run <epic>` for visibility rather
 than installing one that cannot write.
 
 Three properties of the mechanism that decide how it is used:
@@ -145,7 +145,7 @@ armed until killed rather than ending when the work does. WHEN one does expire
 while the run is still live, re-arm it — expiry is not information about any
 bead.
 
-WHERE the harness has neither, say so once and use `bd swarm status <epic>`
+WHERE the harness has neither, say so once and use `bb-status.sh run <epic>`
 between dispatches. No step in the ceremony depends on a monitor having
 reported anything.
 

@@ -1,45 +1,98 @@
 ---
 name: run-bead
-description: Take one bead from claimed to committed — the ordered per-bead
-  ceremony, with its gate step, findings capture and close-and-commit script.
-  Use when working a single bead end to end, whether dispatched as a
-  bead-bonanza subagent or working solo with no orchestrator at all. Covers
-  claiming atomically, staying in scope while filing what you find, running
-  the project's gates, recording findings as retro-prefixed comments, and
-  closing so the bead's closure and its code land in one commit. Also carries
-  the blocked and skipped paths, which are where a bead most often goes wrong.
-version: "0.2"
-user-invocable: true
+description: Take one bead, or an ordered batch of them, from claimed to
+  committed — the per-bead ceremony with its gate step, findings capture and
+  close-and-commit script, plus the batch rules that keep several beads on one
+  shared surface honest. Use when dispatched as a sprint's developer subagent
+  with one bead or several, or when working a bead solo with no orchestrator at
+  all. Covers accepting an assignment, claiming atomically, staying in scope
+  while filing what you find, running the project's gates, recording findings
+  as retro-prefixed comments, and closing so each bead's closure and its code
+  land in one commit. Also carries the blocked and skipped paths, which are
+  where a bead most often goes wrong.
+version: "0.3"
+user-invocable: false
 ---
 
 # run-bead
 
-Take **one** bead from claimed to committed. The order is the substance: the
-close is folded into the implementation commit, so a step taken out of turn
-produces a bead that is closed but uncommitted, or committed but unclosed.
+Take **one bead at a time** from claimed to committed. The order is the
+substance: the close is folded into the implementation commit, so a step taken
+out of turn produces a bead that is closed but uncommitted, or committed but
+unclosed.
 
-Nothing here needs an orchestrator. Dispatched as a subagent you are handed the
-inputs below; working solo you resolve them yourself, and the ceremony is
-identical.
+**One bead or several, it is the same ceremony.** Dispatched with a batch you
+work the beads **in order, one commit each, and account for every one of
+them** — a batch returning fewer lines than it was given beads is the failure
+this tier exists to prevent. One bead is a batch of one. Working solo you
+resolve the inputs yourself.
 
 ## Inputs
 
 | | Dispatched | Solo |
 |---|---|---|
-| `{ID}`, `{PRIORITY}`, `{TITLE}` | given | `bd ready`, then `bd show <id>` |
+| the bead list | given — ids, priorities, titles, each bead's decision, **in order** | `bd ready`, then `bd show <id>` |
 | `{WORKTREE}` | given — work THERE, it is yours alone | your checkout, on a branch that is not the default |
-| checks | run `{SCRIPTS}/bb-checks.py` | same |
-| `{CHECKS_IDS}` | given — the ids the project declared | `scripts/bb-checks.py --ids` |
+| `{BRANCH}` | given — the sprint branch your worktree descends from | the branch you are on |
+| `{DISPATCH_ID}` | given — yours, shared by every bead in this dispatch | `none` |
+| `{EPIC}` | given — the run epic; its metadata is the manifest | `none` |
 | `{SCRIPTS}` | given | `bead-bonanza/scripts/` |
-| `{EPIC}` | given — the run epic, for incidents | `none` |
+| `{CHECKS_IDS}` | given — the ids the project declared | `scripts/bb-checks.py --ids` |
+| `{CHECKS_BASELINE_TEXT}` | given — what the checks printed before the run | run the checks on a clean tree, before you start |
 | `{TRAILERS_FILE}` | given, or `none` | `none` |
-| `{CHECKS_BASELINE_TEXT}` | given — what the checks printed before the run | run `scripts/bb-checks.py` on a clean tree, before you start |
-| push mode | `push_per_bead` or `defer_push` | push your branch when the work is done |
+| `{SURFACE}` | given — what these beads have in common | — |
+
+Infer none of it. A missing input is reported, never guessed.
 
 **Never work in the main checkout when a worktree was given**, and never work
-on the default branch.
+on the default branch. **You never push and you never merge.** The coordinator
+merges your branch when you return and pushes after it; a subagent that pushes
+lands work the coordinator has not accepted.
 
-## Workflow — follow in order
+## Accept the assignment — four checks, before you touch a bead
+
+Each is cheap and each has caught a run. Before any `bd` call, in every shell
+you run `bd` from:
+
+```sh
+export BEADS_ACTOR={DISPATCH_ID}
+```
+
+A shell that loses it claims as the harness default, and an unassigned bead
+claimed that way is reassigned with no error anywhere.
+
+1. **The worktree is clean** — `git status --porcelain` in it, empty.
+2. **The base ref is the sprint branch, not the default branch:**
+
+   ```sh
+   git -C "{WORKTREE}" merge-base --is-ancestor "$(git rev-parse {BRANCH})" HEAD
+   ```
+
+   **This is the one that silently destroys work.** A worktree branched from
+   the default branch cannot see anything the sprint branch already carries, so
+   every bead here would be written against a tree missing its predecessors'
+   commits — and the merge afterwards looks like a conflict rather than like a
+   mistake. Report and **do not start**.
+3. **Read the manifest** — `bd show {EPIC} --json | jq -r '.[0].metadata'`. The
+   checks baseline is in it, and it is what "no findings beyond the baseline"
+   means for every bead you are about to run.
+4. **Confirm the beads are yours** — `bd ready --assignee {DISPATCH_ID}` plus
+   `bd list --assignee {DISPATCH_ID} --status blocked`. Between them they are
+   your queue, and their union must be the beads you were handed.
+
+   **Assignment is the only record, so there is nothing to write here.** A bead
+   in your list that is not assigned to you is a dispatch error: report it and
+   do not start, rather than claiming your way into someone else's queue. A
+   bead assigned to you that is missing from your list is blocked behind
+   something — say which, from `bd show <id>`.
+
+**One worktree, one branch, both already yours.** The dispatch's branch is
+named for the dispatch, and it is where every bead in this dispatch commits.
+**Do not cut a branch per bead and do not create a second worktree**: the beads
+are separated by being committed one at a time, which the ceremony already
+guarantees, and a second tree isolates a serial agent from nobody.
+
+## Per bead — follow in order
 
 Progress is reported by the tracker, not by you: `bd` emits an event on every
 status change, so claiming and closing the bead is what an orchestrator sees.
@@ -73,15 +126,14 @@ Write no progress file.
    claim: the replacement is a new claim and carries the same burden.
 
    **Finding a claim false is a sweep, not an edit.** Grep its distinctive
-   phrasing across the tree *before* you fix the source — afterwards you no
-   longer have the string, and the one place you were sure of it is the place
-   you just destroyed. Then check the surfaces holding copies nobody re-reads:
-   **durable trigger prompts first**, because they outlive the run and hand
-   the retracted claim to a resuming agent as a constraint it cannot know was
-   withdrawn; then sibling dispatch prompts, bead descriptions, epic comments,
-   plan documents, and generated copies of a corrected reference. Record any
-   copy you could not reach as a `retro:` finding rather than leaving it
-   silent.
+   phrasing across the tree *before* you fix the source — afterwards the string
+   is gone, and the one place you were sure of it is the place you just
+   destroyed. Then sweep the copies nobody re-reads: **durable trigger prompts
+   first**, since they outlive the run and hand the retracted claim to a
+   resuming agent as a constraint it cannot know was withdrawn; then sibling
+   dispatch prompts, bead descriptions, epic comments, plan documents, and
+   generated copies. Record any copy you could not reach as a `retro:`
+   finding.
 
    **Work you find that is not this bead's** is filed, not done and not
    dropped: `bd create` with a `discovered-from` link to `{ID}`, and one line
@@ -94,18 +146,26 @@ Write no progress file.
    take the Blocked path naming the new bead as the blocker; otherwise carry
    on with the original and do not widen scope inline.
 
-   For any implicit decision you have to make, record what you chose and why —
-   that also goes in a `retro:` comment. **When the decision is one of the four
-   below, it is an incident** and gets recorded differently — see "Incidents".
+   **Cite a durable anchor, never a position.** A path plus a quoted string, or
+   a class, function or component name, survives an edit; a line number rots
+   between filing and dispatch. Mark one as a hint beside the string, never as
+   the handle.
 
-4. **Checks — the push is the gate.** Run `{SCRIPTS}/bb-checks.py` here,
-   before any push. It runs everything the project declared, in declaration
-   order, and keeps going after a failure so you see all of them at once.
+4. **Checks — the close is the gate.** Run `{SCRIPTS}/bb-checks.py` here. It
+   runs everything the project declared, in declaration order, and keeps going
+   after a failure so you see all of them at once.
 
    **While iterating, narrow it:** `bb-checks.py <id>...` runs only those, and
    `{CHECKS_IDS}` says which exist. Pick by what you touched — the ids are
    slugs, so `test-go` covers Go tests. **Before your close, run it with NO
    arguments**: a narrowed run is a fast loop, never the gate.
+
+   **Run the targeted tests too.** If the bead names tests for the surface it
+   touches, run them; if none is named for a surface you touched, find the test
+   that covers it. **Nothing there is a signal that the change is broader than
+   expected** — reconsider scope rather than reading it as permission to skip.
+   Where the change is genuinely untestable (a pure docs edit), say so in a
+   `retro:` comment and continue.
 
    On failure, fix the root cause and rerun. **After two full failed cycles,
    take the Blocked path** — do not keep retrying.
@@ -123,18 +183,24 @@ Write no progress file.
    so you cannot tell a pre-existing failure from one you caused. Say so rather
    than guessing.
 
+   **Being in a batch is not a reason to run less.** Because every bead runs
+   the checks there is nothing to bisect: the bead whose run first shows a line
+   absent from the baseline is where it entered. **Fix it in that bead, before
+   starting the next.** Where an *earlier* bead turns out to be at fault, take
+   the Blocked path for that bead rather than repairing it across commits.
+
 5. **WHEN the close must do something differently, record it on the bead
    first** — `bd comment {ID} "caveat: <what and why>"`. A regen step that must
    run before staging; a fixture this bead regenerated. **Only when there is
-   one.** It goes on the bead rather than in a file because the tracker is what
-   a recovering agent already reads, and it outlives the container.
+   one.** It goes on the bead because a recovering agent reads the tracker, and
+   the tracker outlives the container.
 
 6. **Record findings as `retro:` comments on {ID}** — one `bd comment` per
    finding. That channel is what later retrospectives read.
 
    ```
    retro:<kind>[:<target>] <one line: what happened>
-   evidence: <quote | path:line | command + output | expected vs observed>
+   evidence: <quote | path + quoted string | command + output | expected vs observed>
    ```
 
    **`kind` is one of nine, and it is what routes the finding** — so it costs
@@ -152,13 +218,23 @@ Write no progress file.
    | `proof` | how you established a claim — a pre-fix failure observed, a negative control |
    | `environment` | a durable fact about a dependency or platform the next agent will hit |
 
+   **Nothing here is a fifth thing you escalate for.** Four kinds of decision
+   change what "correct" means rather than how the work is done — an acceptance
+   criterion that needs amending, a standard and an AC in tension with no
+   conservative branch, a contract or interface change, a spec silent where the
+   bead requires it to speak. **Decide anyway, do not stop and do not ask**,
+   and record the decision as a finding of its own kind: `decision` for the
+   first two, `scope` for the third, `gap` for the fourth. Name the alternative
+   you rejected and what it would have cost. A recorded decision gets reviewed
+   at the pull request and revised in a later bead, which is cheaper than a run
+   blocked on a question nobody is awake to answer.
+
    **Evidence in full; analysis not at all.** No length limit — the quote, the
-   `path:line`, the command and its output do not survive this session, and
-   whoever reads your finding reads it cold. Root cause, proposal and priority
-   are derivable later by an agent with the whole run in view, so leave them
-   out. Include what you **tried that did not work** (the diff shows only the
-   reading that survived) and what you **decided silently** — choices a
-   diff-reader would not recognise AS choices.
+   command and its output do not survive this session, and whoever reads your
+   finding reads it cold. Root cause, proposal and priority are derivable later
+   by an agent with the whole run in view. Include what you **tried that did
+   not work** and what you **decided silently** — choices a diff-reader would
+   not recognise AS choices.
 
    **`target` decides who gets it, and the test is: where would the fix
    land?** In this project's own repository → it is the project's. In the
@@ -196,10 +272,10 @@ Write no progress file.
    --amend` afterwards: a missing trailer means the trailers file was resolved
    wrong, which is not something to patch here.
 
-8. **Push** — `push_per_bead`: `git push origin <branch>` on the current branch,
-   never the default one. `defer_push`: skip it; the orchestrator pushes.
+   Read the committed sha with `git rev-parse --short HEAD`, not from the
+   script's printout.
 
-9. **Return one line**, in this shape:
+8. **Return one line** for this bead, then start the next:
 
    ```
    {ID}: completed - <one clause on what changed> @ <short-sha>
@@ -216,7 +292,20 @@ stands in the way:
   do NOT commit them. The worktree holds the partial work and its continued
   existence is what tells an orchestrator this bead is unfinished; stashing
   moves the work out of it and destroys that signal.
-- Return the blocked line. Do not push.
+- Return the blocked line.
+
+**Whether the batch continues depends on the tree, not the reason.** The
+partial work is sitting where the next bead would start, so run
+`{SCRIPTS}/bb-verify-skip.sh` in `{WORKTREE}`:
+
+- **CLEAN (exit 0)** — nothing was started. Continue with the next bead.
+- **DIRTY (exit 1)** — the batch ends here. Return the blocked bead with its
+  reason and every remaining bead as `blocked — not reached (batch ended at
+  <id>)`. Leave the tree exactly as it is: committing or stashing it to free
+  the tree destroys the thing the block exists to preserve.
+
+**A bead that conflicts with an earlier bead in this batch** — one removed what
+the next was about to change — takes this path.
 
 ## Skipped path
 
@@ -234,109 +323,78 @@ The bead is already addressed, malformed, or duplicates a closed bead:
    done" without one is not acceptable — nobody can verify it. Find it with
    `git log --oneline --all | grep <keyword>` or `bd show <suspected-id>`.
 
-## Incidents — decisions that change what "correct" means
+## Hand off
 
-Most decisions are about *how* to do the work, and a `retro:` comment is the
-whole of their record. Four kinds change *what correct is*, and guessing at
-those produces confidently wrong work that passes every check:
+**Every bead ends in a tracker status, and that status is the hand-off.** A
+completed bead is `closed`, a blocked one `blocked`, a skipped one closed with
+its rationale in the notes. Leave none of them `in_progress` — an agent that
+walks away from a claimed bead is indistinguishable from one still working,
+which is the single reading the orchestrator cannot recover from.
 
-| | | kind |
+Then return **one message**: one line per bead, then
+
+```
+batch-end: <n> completed, <n> blocked, <n> skipped @ <branch>
+```
+
+**Every bead you were given appears in exactly one of those counts.** A bead
+you never reached is `blocked` with the reason, not omitted. **You hand the
+branch back; you do not merge it and you do not push it.**
+
+### How the orchestrator reads you
+
+Not from your return line — from your queue. **You have DRAINED when
+`bd ready --assignee {DISPATCH_ID}` is empty and you hold nothing
+`in_progress`.** Both halves are required: `bd ready` excludes `in_progress`,
+so a bead you are working right now empties the ready front, and the ready
+query alone would report you finished mid-bead.
+
+| your queue | your worktree | reading |
 |---|---|---|
-| an **acceptance criterion needs amending** | the bead's definition of done is wrong, so any implementation is a guess at intent | `decision` |
-| a standard, requirement and AC are in **tension** | there is no conservative branch — each choice violates something | `decision`, one per target |
-| a **contract or interface** change | the blast radius is outside this bead's scope by construction | `scope` |
-| a spec is **silent** where the bead requires it to speak | your choice writes an undocumented decision into the code | `gap` |
+| not drained | present | live worker |
+| drained | present | finished; orphaned tree, the orchestrator removes it |
+| not drained | absent | the worker died |
+| drained | absent | done and cleaned up |
 
-**Decide anyway. Do not stop and do not ask** — see Constraints. A recorded
-decision gets reviewed at the pull request and revised in a later bead, and
-that is cheaper than a run blocked on a question nobody is awake to answer.
+Nothing in that is yours to write, which is why nothing in it can go stale.
+**Your obligation is to leave every bead in a truthful status** — claimed while
+you work it, closed or `blocked` when you stop. A worktree is matched to you
+through its checked-out branch, which is your dispatch id.
 
-**Record it two ways, both required:**
+## Working solo
 
-```bash
-# <kind> from the table above; <target> is the document or bead it is about.
-bd comment {ID} "retro:<kind>:<target> incident — <what you decided, and why>.
-Alternative considered: <what you rejected, and what it would have cost>."
-
-# and, WHEN {EPIC} is not `none`, so the run's record carries it
-# independently of this bead
-bd comment {EPIC} "amend: incident on {ID} — <one line>"
-```
-
-**An incident is a severity, not a kind** — it carries the ordinary
-`retro:<kind>:<target>` prefix so routing still picks it up, and the word
-` incident ` after the prefix is what makes the class greppable. A comment
-spelled `retro: incident` with no kind routes nowhere and is invisible to the
-report's sweep. The run's report names every one of them **before anything
-else** — that section is what earns an autonomous run its autonomy.
-
-**Working solo (`{EPIC}` is `none`)?** The bead comment alone. Say in your
-return line that an incident was recorded, so whoever reads it knows to look.
-
-An incident is not a failure and does not block the bead. **The incident count
-is a quality metric for the specs, not for you** — each one marks a place the
-corpus failed to answer a question, which is a finding against a document
-rather than against the work.
-
-### WHEN you want a human to look at it — file it for LATER, never ask now
-
-An incident is a record. Sometimes you want more: a decision you took that a
-human should actually review before the run is handed over. That is the
-**deferred-review channel**, and it is still not a question you stop for.
-
-```sh
-bd create "<the decision, as a question>" -p 2 \
-  --design "<what you chose, what you rejected, and what would change the answer>"
-bd update <new-id> --parent <a LATE ceremony epic — review or report>
-bd update <new-id> --add-label human
-```
-
-Three things about it, each measured rather than assumed:
-
-- **`--add-label`, not `--labels`.** `bd update <id> --labels human` exits 1
-  with `unknown flag: --labels` and sets nothing.
-- **The label is what a human sees; the PARENT is what makes it wait.** A
-  `human`-labelled bead appears in `bd human list` immediately, so a human can
-  answer whenever — but the label does not hold it out of `bd ready`. Parenting
-  it to a late ceremony epic does: that epic is blocked behind the target for
-  the whole run, and it cannot close until your bead is closed.
-- **Parent it to a LATE phase, never to the target.** Under the target it is
-  ordinary ready work and gets dispatched to an agent, which is the opposite of
-  asking a human.
-
-WHEN you are working solo and there is no run — `{EPIC}` is `none` — there is no
-late phase to hang it on. File the bead with the `human` label and no parent,
-and say in your return line that one is waiting.
-
-The three channels and the `bd` behaviour behind them are tabulated in the
-coordinator's run-record reference, their only home.
+`{EPIC}` and `{DISPATCH_ID}` are `none`; there is no manifest and no baseline
+unless you take one. Everything else is identical. Findings still go on the
+bead — a retrospective reads them, run or no run — and you push your own
+branch at the end, since no coordinator will.
 
 ## Constraints
 
 - Do not ask the user questions. Decisions are settled before you start —
-  including the four in "Incidents", which are recorded, never escalated.
-- Do not modify code outside this bead's scope.
+  including the four that change what "correct" means, which are recorded as
+  findings, never escalated.
+- Do not modify code outside the current bead's scope.
+- **Every bead is its own commit.** Never combine two.
 - A bead claimed by a **different** assignee belongs to a live sibling — leave
   it alone, exactly like foreign working-tree changes. Re-claiming your own is
   safe and needs no rule.
 - Missed a required step after committing? Add a NEW follow-up commit. Never
   amend a commit that may already be pushed. (Amending a local commit you are
   certain is unpushed, to fold in a missed step, is fine.)
-- Only push the current branch, never the default one.
 
 ## Acceptance criteria
 
-This ceremony is done when all of these hold — they are the same signals an
+Done when all of these hold for every bead you were given — the same signals an
 orchestrator verifies with `bb-status.sh bead <id>`:
 
-- [ ] The bead reads `closed` in the tracker.
+- [ ] The bead reads `closed` in the tracker, or `blocked` with a reason.
 - [ ] Exactly ONE commit exists for it, subject `{ID} P{PRIORITY} {TITLE}`,
       carrying both the code and the closure.
 - [ ] The working tree is clean and no `.beads/*.jsonl` export was staged.
 - [ ] At least one `retro:` comment exists, or the return line states the bead
       was clean.
-- [ ] Gates passed, or the bead is `blocked` with a reason.
+- [ ] Gates passed.
 - [ ] Anything found beyond scope was filed as a bead, not implemented and not
       dropped.
-- [ ] Any decision that changed what "correct" means was recorded as an
-      incident on the bead, and on the run epic when there is one.
+- [ ] Every bead you were given appears in exactly one count of the batch-end
+      line.

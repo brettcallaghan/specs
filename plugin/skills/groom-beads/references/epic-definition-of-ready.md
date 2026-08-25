@@ -74,7 +74,7 @@ Check it whenever you groom under an epic.
 ## Flatness is preferred, not required
 
 An epic whose children are all beads gets exact answers from
-`bd swarm validate`, `bd swarm status` and `bd epic status`.
+`bd swarm validate`, `bd epic status` and `bd list --parent`.
 
 An epic containing **sub-epics** still dispatches correctly: the ready front
 (`bd ready --parent <epic> --exclude-type=epic`) is transitive and honours
@@ -82,8 +82,8 @@ dependency edges that cross between sub-epics. But those three commands are
 **one level deep** — they report the sub-epics as work items and never see
 their leaves, and `bd epic status` counts sub-epics rather than beads.
 
-So a nested epic costs the swarm preview and the progress count, both of which
-the orchestrator can recompute, and costs nothing else.
+So a nested epic costs the progress count and the graph preview, both of which
+an orchestrator can recompute by walking the tree, and costs nothing else.
 
 **Report which shape the epic is in; do not require flatness.** Requiring it
 would push an author to move beads out of the epics that own them — and a bead

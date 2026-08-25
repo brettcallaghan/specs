@@ -86,10 +86,10 @@ convention.
 
 **The subsystem exception, and its own rule.** A skill is prefixed WHEN it
 only makes sense inside that subsystem — `sprint-scope`, `sprint-plan`,
-`sprint-batch`, `sprint-review`, `sprint-report`,
-`sprint-retro`, `sprint-recovery`. A skill that is useful outside it keeps
-verb-object even when a sprint invokes it: `run-bead` works with no
-orchestrator at all, and `groom-beads` is useful with no sprint in sight.
+`sprint-review`, `sprint-retro`, `sprint-recovery`. A skill that is useful
+outside it keeps verb-object even when a sprint invokes it: `run-bead` works a
+bead with no orchestrator at all, and `groom-beads` is useful with no sprint in
+sight.
 
 The trade is deliberate. **A skill is selected by its description, not its
 name**, so the prefix costs nothing at dispatch and buys grouping in a listing

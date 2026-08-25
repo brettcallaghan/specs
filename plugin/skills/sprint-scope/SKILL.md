@@ -2,13 +2,13 @@
 name: sprint-scope
 description: Resolve a sprint's scope — turn whatever the user gave (an epic,
   several epics, bead ids, a label, a priority) into exactly one run epic with
-  its ceremony epics and one flat swarmed target, and take the run's single
+  its ceremony epics and one flat target, and take the run's single
   authorization gate in the same interaction. Use when a sprint orchestrator is
   opening a run, when asked to set up or begin a sprint over a set of beads, or
   when a run must be re-scoped. Returns the run epic id and the admission
   record — which beads were admitted, which excluded and why, which moved and
   from where. It dispatches nothing and grooms nothing.
-version: "0.2"
+version: "0.3"
 user-invocable: false
 ---
 
@@ -37,9 +37,8 @@ before grooming answers a question about beads that are about to change.
 
 - `BB_EPIC` — the run epic. Its id **is** the run id, and
   `bd ready --parent <epic> --exclude-type=epic` **is** the queue.
-- `BB_TARGET` — the flat target epic beneath it, and the id `bd swarm` is
-  given. Never the run epic: pointed there, swarm counts the ceremony epics as
-  the work and never sees a bead.
+- `BB_TARGET` — the flat target epic beneath it, whose task children are the
+  run's work.
 - The admission record: which beads were admitted, which were **excluded** and
   why, which were **moved** and from where.
 - The authorization set, as decided — including every row left at its default.
@@ -97,28 +96,22 @@ must never have to choose between running a sprint and keeping their
 structure.
 
 **Never flatten a nested epic**, and never adopt the leaf beads out of the
-epics you were given. The queue is correct through nesting; only the swarm
-preview and the progress count degrade, and both are recomputable. Flattening
-trades a real structure for a display detail, and emptying a source epic of its
-open work is the false-complete failure above.
+epics you were given. The queue is correct through nesting; only the progress
+count degrades, and it is recomputable by walking the tree. Flattening trades a
+real structure for a display detail, and emptying a source epic of its open
+work is the false-complete failure above.
 
 **That is not in tension with the flat-target rule.** The target this run
 CREATES is flat; an epic the user already owns is adopted whole and becomes its
-own target, swarmed separately. Flatness is a rule about what the run builds,
-never a licence to restructure what it was given.
+own target, run alongside the first. Flatness is a rule about what the run
+builds, never a licence to restructure what it was given.
 
-**What a nested run epic costs, stated once at run start:** `bd swarm validate`
-and `bd swarm status` are one level deep, so they report sub-epics rather than
-leaf beads. The partition comes from `sprint-plan` instead, and the progress
-count from `bb-status.sh run <epic>`, which walks the tree. Dispatch is
-unaffected — the re-queried ready front is transitive and honours dependency
-edges that cross between the adopted epics.
-
-**Cross-epic dependency edges are the reason several epics are being run
-together, and `swarm validate` reports them as warnings and acts on none of
-them.** Surface every such warning at run start rather than dropping it: an
-edge from a bead in one adopted epic to a bead in another is exactly what makes
-the swarm preview untrustworthy, and it is what the ready front gets right.
+**What a nested run epic costs, stated once at run start:** every count has to
+come from a tree walk rather than from one `--parent` query, since `bd list
+--parent` and `bd epic status` are both direct-children-only. `bb-status.sh run
+<epic>` does that walk. Dispatch is unaffected — the re-queried ready front is
+transitive and honours dependency edges that cross between the adopted epics,
+which is the reason several epics are being run together at all.
 
 Then print the scope: the epic id, the ready count, and any exclusions.
 
@@ -128,7 +121,7 @@ Then print the scope: the epic id, the ready count, and any exclusions.
 them in the same act as the run epic, chained `epic→epic` in order:
 
 ```
-run epic  ──  pre-flight → scope → plan → TARGET → review → retro → report → post-flight
+run epic  ──  pre-flight → scope → plan → TARGET → review → retro → post-flight
                             │                 └ the work, as flat TASK children
                             └ AUTHORIZATION GATE, a TASK child of scope
 ```
@@ -139,11 +132,11 @@ Three rules, and each of them is forced rather than chosen:
   directions, so nothing but an epic can block the target. One `epic→epic` edge
   then blocks every bead beneath it.
 - **The target is FLAT — tasks only — and that binds admission, not just
-  planning.** A sub-epic added mid-run breaks `bd swarm validate`'s count
-  exactly as a planned one would: it is one level deep and reports the sub-epic
-  as the work item. Adopted epics that are genuinely nested become a **second
-  target** under the run epic, swarmed separately; they are never flattened and
-  never adopted as leaves (below).
+  planning.** Flatness is what makes "the run's work" and "the target's
+  children" the same set, so a count, a results table and a completion verdict
+  all read from one query. Adopted epics that are genuinely nested become a
+  **second target** under the run epic, run alongside the first; they are never
+  flattened and never adopted as leaves (below).
 - **The authorization gate is a TASK child of the scope epic**, gated with
   `bd gate create`. Gating the scope epic itself would need the refused
   task→epic edge, and is unnecessary — the scope epic already blocks the plan
@@ -202,10 +195,10 @@ task into the ready front, and closing that task lets the chain advance. So an
 unanswered gate cannot be stepped over, and nothing downstream has to check for
 one.
 
-This is one of the run's **three human channels**, and the only one that blocks
-at the start. The other two — an incident, recorded and never blocking, and a
-deferred review that blocks only at the end — are the coordinator's run-record
-reference's, where all three are tabulated together. Do not restate them here.
+This is one of the run's **two human channels**, and the only one that blocks.
+The other — a finding, recorded and never blocking — is the coordinator's
+run-record reference's, where both are tabulated together. Do not restate them
+here.
 
 Ask the whole set at once, with the resolved value stated per row so a human
 can accept the lot in a sentence.
@@ -218,7 +211,6 @@ that, and gets to.
 
 | decision | `[run]` key | skill default |
 |---|---|---|
-| **Push mode** | `push_mode` | defer — the orchestrator pushes per batch |
 | **Pull request** | `pull_request` | open as draft at the start, mark ready at the end |
 | **Moving beads** that already belong to another epic | `move_foreign_beads` | **do not move** — exclude them and run narrower |
 | **Scope growth** from review findings | `admit_review_findings` | file the beads, do **not** admit them into this run |
@@ -227,8 +219,8 @@ that, and gets to.
 | **Merge to the default branch** | `merge_to_default` | never — that is the pull request's, not the run's |
 
 **Configuring a row changes what is confirmed, never whether it is.** A project
-that sets all seven still gets the gate — as one confirmation of seven resolved
-values rather than seven questions, which is the point. **A run that stops
+that sets all six still gets the gate — as one confirmation of six resolved
+values rather than six questions, which is the point. **A run that stops
 asking is a run that authorized itself.**
 
 Record the outcome in the manifest's `standing_auth` — every row's value **and
@@ -236,8 +228,8 @@ where it came from**, `sf.toml` or the skill:
 
 ```json
 "standing_auth": {
-  "push_mode":     {"value": "defer_push", "source": "sf.toml"},
-  "review_budget": {"value": 2,            "source": "default"}
+  "pull_request":  {"value": "draft", "source": "sf.toml"},
+  "review_budget": {"value": 2,       "source": "default"}
 }
 ```
 
@@ -255,8 +247,8 @@ agent decides, records it, and the report names it.
 That holds even for the four decisions that change what *correct* means — an
 acceptance criterion needing amendment, a standard/requirement/AC tension, a
 contract or interface change, a spec silent where a bead needs it to speak.
-Those are recorded as **incidents**, not escalated. `run-bead` carries the
-rule.
+Those are decided and recorded as ordinary findings of their kind, never
+escalated. `run-bead` carries the rule.
 
 **The human may still ask you anything, at any time.** The asymmetry is
 one-way: answering costs the run nothing and interrupts nothing, while a run

@@ -2,22 +2,22 @@
 name: sprint-plan
 description: Groom a sprint's queue and partition it in one pass — bring every
   bead to Ready (invoking groom-beads for what fails, bouncing what grooming
-  cannot clear) and return the readiness verdict plus the two files that build
-  the run — a graph plan and its edge sidecar, collision edges and assignments
-  included. Use when a sprint orchestrator is preparing a run epic's queue for
-  dispatch, or when asked to gate beads for readiness, classify them as trivial
-  / isolated / shared-surface, compute C4 co-edit and sequencing overlap, group
-  beads into batches behind one agent, or emit a `bd create --graph` JSON plan
-  and the `bd dep add --file` sidecar beside it. Takes the run epic, resolves
-  its queue from the graph, and dispatches nothing.
-version: "0.2"
+  cannot clear) and return the readiness verdict plus the collision edges that
+  serialize the run, with every bead assigned. Use when a sprint orchestrator
+  is preparing a run epic's queue for dispatch, or when asked to gate beads for
+  readiness, classify them as trivial / isolated / shared-surface, compute C4
+  co-edit and sequencing overlap, group beads into batches behind one agent, or
+  emit the `bd dep add --file` edge document a run is built from. Takes the run
+  epic, resolves its queue from the graph, and dispatches nothing.
+version: "0.3"
 user-invocable: false
 ---
 
 # sprint-plan
 
 Take a run epic's queue from wherever it is to **groomed and partitioned**, in
-one dispatch. Two returns: the readiness verdict per bead, and the graph plan.
+one dispatch. Two returns: the readiness verdict per bead, and the collision
+edges.
 
 **They are one step because they are one read.** Partitioning needs exactly the
 knowledge grooming just acquired — every bead's scope, surfaces and
@@ -38,7 +38,7 @@ here creates a worktree, edits a bead's code, or merges anything.
 | The **bead id list** | Explicit ids, and the epic they came from. Re-derive with `bd ready --parent <epic> --exclude-type=epic` rather than from any filter — admission decided that membership and may have excluded beads deliberately |
 | Checks script and checks baseline | A gate recorded `fail` in the baseline sets "no findings beyond the baseline" as the bar, not exit 0 |
 | Model lineup | Resolves a bead's tier (`metadata.execution_suggested_model`, else `metadata.tier`) to a model; leave it unset where the project declares none |
-| Standing authorization | What the user authorized without further asking (push mode, PR, scope) |
+| Standing authorization | What the user authorized without further asking (PR, scope, review budget) |
 | The grooming partition preview | The candidate grouping, WHEN one was produced |
 
 WHEN an input is missing, say so in the return rather than substituting a
@@ -53,9 +53,9 @@ labels and assignees, and unset they land under the harness default.
 1. **The readiness verdict** — per bead: ready, or NOT-READY with the gap a
    human must close. Bounced beads carry the **`human`** label, so the verdict
    is queryable and not merely reported.
-2. **The plan — a graph document plus an edge sidecar**, both validated before
-   you return their paths: `references/run-record.md`. Plus **one line per
-   override** of the grooming partition preview saying what you changed and why.
+2. **The plan — one edge file**, validated before you return its path:
+   `references/run-record.md`. Plus **one line per override** of the grooming
+   partition preview saying what you changed and why.
 
 **The partition is not a document — it is in the graph.** Which beads may not
 run at once is a **collision edge**; which agent holds a bead is its
@@ -123,7 +123,7 @@ read source files in the orchestrator"). Dispatch a **grooming subagent** over
 the ungroomed subset (template below); it runs `groom-beads` to the Definition
 of Ready and returns a per-bead readiness report plus a **partition preview** —
 its candidate grouping under dependencies and C4 collisions. **Its final act is
-to invoke `sprint-plan`**, which turns that preview into the run's graph plan:
+to invoke `sprint-plan`**, which turns that preview into the run's edges:
 it has already read every bead, so a second agent would only re-derive the same
 partition and leave two to reconcile.
 
@@ -147,51 +147,29 @@ mid-flight.
 
 ### 4. Admitting emergent work mid-run
 
-During execution (Phase 3) subagents discover work. Some of it belongs in this
-run; some is scope creep wearing a matching label. Telling them apart is the
-point — pulling in the wrong thing is as real a failure as leaving a blocker
-unaddressed. This is where the autonomy the run was launched for lives, and
-where it stops.
+Subagents discover work while the run executes. Some belongs in this run; some
+is scope creep wearing a matching label. **The discovering subagent only files
+it**; whether it is admitted is the coordinator's, and where it is admitted it
+comes back through this gate like any other bead.
 
 **The test is necessity, not resemblance:** emergent work is in-scope only when
 a bead *already in the run* cannot be correctly and completely finished without
-it. These shapes qualify:
+it — an unblocking prerequisite, a piece the assigned bead's own acceptance
+criteria cannot be satisfied without, or coverage the assigned scope already
+implied should exist. **Everything else is out of scope even if it matches the
+run's filter.** Adjacent cleanups, refactors "while I'm here", a new capability
+no assigned bead's AC demands: matching the label is necessary and not
+sufficient.
 
-- **an unblocking prerequisite** — the assigned bead genuinely cannot be
-  completed until this is done;
-- **an acceptance-criteria decomposition** — a piece the assigned bead's own AC
-  cannot be satisfied without (a sign the bead was under-groomed, larger than it
-  looked);
-- **an expected test-coverage gap** — coverage the assigned scope already
-  implied should exist and doesn't.
+Groom an admitted one to Ready like the rest, and wire the `blocks` edge so it
+orders ahead of the bead it unblocks. A groomed prerequisite that still fails
+the decisions check is bounced with the `human` label, exactly as at the front
+of the run.
 
-Everything else — adjacent cleanups, refactors "while I'm here", a new
-capability no assigned bead's AC demands — is **out of scope even if it matches
-the run's filter.** Matching the label is necessary but not sufficient;
-"required to finish a bead already in the run" is the bar.
-
-**Mechanics.** The discovering subagent only *files* the bead (`bd create`) with
-a `discovered-from` edge to its origin and a one-line note of which shape it is
-(or "out-of-scope"); it never implements it. If its own bead is truly blocked by
-it, it takes the Blocked path naming the new id. The **orchestrator** then
-decides:
-
-- **In-scope** → run it through this gate (groom → re-`bd ready`), wire the
-  `blocks` edge so it orders ahead of the bead it unblocks, and dispatch it
-  under the standing auto-chain authorization. No new prompt — this is the
-  intended autonomy. Grooming closes decisions along with the rest of the
-  Definition of Ready. (A groomed prerequisite that still fails DoR check 9
-  stops for the user, per the standing-authorization terms — and is raised into
-  the human queue with the `human` label.) Grooming and wiring the edge are
-  tracker writes, and the next `bd ready` picks them up.
-- **Out-of-scope** → leave it filed and linked, do NOT dispatch it, and surface
-  it in the final report for the user to triage. The standing authorization
-  finishes the launched scope; it never enlarges it.
-
-**Ballooning is a stop signal.** If "prerequisites" multiply — a discovered
-blocker that is really a new epic, or more than a handful of new in-scope beads
-off a single bead — stop and surface it. That means the original scope was
-mis-groomed, which is a human's call, not an autonomous expansion.
+**Ballooning is a stop signal.** WHEN "prerequisites" multiply — a discovered
+blocker that is really a new epic, or more than a handful off a single bead —
+say so in your return rather than grooming them all. That means the original
+scope was mis-groomed, which is a human's call.
 
 The grooming subagent prompt template is in `references/grooming-prompt.md`.
 
@@ -233,14 +211,14 @@ re-derive it from prose. The `jq` and a worked example are in
    `.metadata.c4_impacts` from `bd list --json` for every queued bead.
    - Two beads sharing a `c4_changes` component are **shared-surface** whatever
      their file paths say — the same component through different files still
-     collides. **Emit a collision edge between them, in the sidecar** so they
+     collides. **Emit a collision edge between them, in the edge file** so they
      cannot both be ready at once, and give the cluster one assignee so one
      agent takes it in order. Shape and marking: `references/run-record.md`.
    - Bead B whose `c4_impacts` intersects bead A's `c4_changes` consumes a
      contract A is changing. That is a **sequencing** constraint, not a batching
      one, and it holds with zero file overlap. It is a real `blocks` edge, not a
      collision edge, and the two are marked differently so a reader can tell
-     them apart. WHEN you find one grooming missed, wire it in the sidecar and
+     them apart. WHEN you find one grooming missed, wire it in the edge file and
      say so in your return — never as silent batch order.
    - Disjoint changes with no impact intersection is isolated *architecturally*
      only — layer 2 still runs.
@@ -346,11 +324,11 @@ the assign step: nothing earlier in a run writes an assignee.
 
 ## Return the plan
 
-**Two artifacts, not one** — see **Out**. A graph-plan edge resolves only
-against keys INSIDE the plan, so every edge between beads that already exist —
-collision and sequencing alike — goes in the **edge sidecar**, loaded with
-`bd dep add --file` after the plan. Emit, diff and validate both; return both
-paths: `references/run-record.md`.
+**One artifact** — an edge file, loaded with `bd dep add --file`. **You create
+no beads**: the work beads were admitted before you were invoked, and
+`sprint-scope` already built the ceremony epics and the target, so edges
+between beads that already exist are the whole of what a plan contributes.
+Emit it, diff it, validate it, return its path: `references/run-record.md`.
 
 Three rules that make the plan worth returning:
 

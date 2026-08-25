@@ -162,7 +162,7 @@ child ready or explicitly out of scope, dependency edges wired rather than
 implied, nothing the run needs derivable only by you.
 
 **Flatness is preferred, not required**, and the reference says what a nested
-epic costs: the swarm preview and the progress count, both recomputable.
+epic costs: the graph preview and the progress count, both recomputable.
 Dispatch is unaffected. Report which shape the epic is in; requiring flatness
 would push the author to move beads out of the epics that own them.
 

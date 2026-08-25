@@ -18,13 +18,11 @@ computed from state.
 
 ## Where is this run
 
-**`bd swarm status <epic>`** is the durable answer, computed from the beads, so
-it survives any crash and any lost session.
-
-**On a NESTED epic it is one level deep** and reports sub-epics rather than the
-leaves under them. Where the run epic is nested, fall back to the re-queried
-ready front plus a walked descendant count — and say which of the two you used,
-because the numbers differ and a reader cannot tell them apart.
+**`bb-status.sh run <epic>`** is the durable answer, computed from the beads
+and from git, so it survives any crash and any lost session. It walks the run's
+descendants itself rather than asking `bd` for them, for the reason in "When
+the run is done" below, and prints the command behind every line so any of them
+can be re-derived.
 
 **Re-querying the ready front is two steps, in order.** First, close eligible
 epics — scoped by hand, never with the bare command: `bd epic close-eligible`
@@ -43,6 +41,12 @@ stalled.
 Live progress — the event stream, the plugin's background monitor that reads
 it without being armed, and the durable out-of-session trigger — is
 `progress-streaming.md`.
+
+**Health is read off `bb-status.sh run`, never written.** It is derived from
+surviving worktrees, the age of the last commit and the depth of the ready
+front. A label the coordinator sets instead is a signal whose only writer is
+the thing it monitors, so it reports "no failure" and "no monitor" identically
+— and did, reading `healthy` through a five-hour stall.
 
 ## When something dies
 

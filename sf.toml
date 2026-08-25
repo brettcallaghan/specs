@@ -133,10 +133,6 @@ frontier = "fable"
 # and say so". The manifest records every row's value AND its source, so a
 # project-level default cannot hide from whoever reads the report.
 
-# "defer_push" — the orchestrator pushes per batch (skill default)
-# "push_per_bead" — each subagent pushes its own branch
-push_mode = "defer_push"
-
 # "draft" — open as draft at the start, mark ready at the end (skill default)
 # "ready" — open ready for review
 # "none"  — open none; the branch is pushed and that is all
@@ -165,6 +161,26 @@ push_mode = "defer_push"
 # run_root: where a run's directory is created. Defaults to
 #           ${TMPDIR:-/tmp}/claude/bead-bonanza when unset. Not a gate row.
 # run_root = ""
+
+[reports]
+# Where a run's record goes. `sprint-retro` writes ONE document per run — the
+# results, every finding verbatim, and what the run could not verify — and
+# records its path on the run epic so a later session finds it from the epic id.
+#
+# There is no separate report skill and no second document: a report and a
+# findings file are the same evidence read for two purposes, and keeping two in
+# agreement is work nobody was doing.
+dir = "docs/reports"
+
+# One index of all retro activity, appended to per run.
+log = "rfcs/retro-log.md"
+
+# Where issues against the SKILLS a run used are written. DELIBERATELY UNSET
+# here: this repository is the one that vends those skills, so an issue about
+# `bead-bonanza` is ordinary work in this tracker and belongs in it as a bead.
+# A project that CONSUMES the skills sets this — `.sf/outbox` is the convention
+# — so proposals it cannot act on accumulate somewhere other than its backlog.
+# skill_issues_dir = ".sf/outbox"
 
 [review]
 # The code reviewer a sprint runs at its review step. We do not ship one —

@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/standards/findings-capture-protocol.md (version 0.5)
+     Source of truth: specs/standards/findings-capture-protocol.md (version 0.6)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -11,8 +11,8 @@ description: How agents record retro evidence in-flight during
 slug: findings-capture-protocol
 type: standards
 status: active
-updated_at: 2026-08-22T00:00:00Z
-version: "0.5"
+updated_at: 2026-08-25T00:00:00Z
+version: "0.6"
 ---
 
 # Findings Capture Protocol
@@ -115,7 +115,7 @@ write them.
 
 ### `target` — what the finding is about
 
-The skill or script (`retro:tooling:sprint-batch`), or the document or
+The skill or script (`retro:tooling:run-bead`), or the document or
 item (`retro:gap:FRD-014`). Omit it only where there genuinely is not
 one; an omitted target costs a cluster, not a finding.
 
@@ -136,21 +136,23 @@ has no rule for X" are the same sentence about different artifacts.
 project's. **A project SHALL NOT accumulate issues about skills it
 cannot change.**
 
-### Incidents are a severity, not a kind
+### A decision that changed what *correct* means is an ordinary finding
 
-An **incident** is a decision that changed what *correct* means: an
-amended acceptance criterion, a standard and an AC in tension, a
+An amended acceptance criterion, a standard and an AC in tension, a
 contract or interface change, a spec silent where the item required it
-to speak. Each already maps onto a kind above — respectively
-`decision`, `decision` against two targets, `scope`, `gap`.
+to speak — each already maps onto a kind above, respectively
+`decision`, `decision` against two targets, `scope`, `gap`. Record it
+under that kind, naming what was decided and what was rejected, and it
+routes like every other finding.
 
-What makes it an incident is that the run **acted** on it rather than
-merely noticing. Mark it, so the kind still routes it and the marker
-still escalates it:
-
-```
-retro:gap:ADR-014 incident — <what was decided, and what was rejected>
-```
+**It carries no extra severity marker, and one SHALL NOT be
+reintroduced.** A severity spelled inside the finding's own text
+depends on an author remembering where the word goes. Measured on one
+run: three sweeps produced three disagreeing counts (8, 11 and 17),
+and that run's single most consequential record reached no audience at
+all because the marker had been written into the `kind` slot, where
+nothing matches it. What makes a finding load-bearing is legible from
+its own text, and the kind is what routes it.
 
 ### Findings are append-only, so a correction supersedes
 

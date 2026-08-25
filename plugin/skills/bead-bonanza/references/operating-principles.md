@@ -17,7 +17,7 @@ skill and are enforced by the close script.
   tracker write may happen, and whose claims it may reset
 - Principles the coordinator applies but does not carry — the ones SKILL.md
   summarises only where they change a turn's routing
-- Incidents — the four kinds, and why nothing escalates mid-run
+- Why nothing escalates mid-run
 
 ## Findings harvest
 
@@ -116,15 +116,31 @@ full.
   decision, or wire a dependency edge at any time, mid-dispatch included. Only the
   working tree needs care; see "Guard against foreign dirt" above.
 
-## Incidents — why nothing escalates mid-run
+## Why nothing escalates mid-run
 
 **Not an ambiguous acceptance criterion, not a contract change, not a silent
-spec.** Decide it, record it as an **incident** the way the capture protocol
-specifies, and the report names it first.
+spec.** Four kinds of decision change what "correct" means rather than how the
+work is done, and they are the ones an agent is most tempted to stop for:
 
-A recorded decision is reviewed at the pull request and revised in a later run.
-That is cheaper than a night blocked on a question nobody is awake to answer —
-which is the actual alternative for an autonomous run, not "ask and continue".
+| | kind to record it under |
+|---|---|
+| an **acceptance criterion needs amending** | `decision` |
+| a standard, requirement and AC in **tension**, with no conservative branch | `decision`, one per target |
+| a **contract or interface** change | `scope` |
+| a spec **silent** where the bead requires it to speak | `gap` |
+
+Decide it, record it as a finding of that kind naming the alternative you
+rejected, and the retro surfaces it. A recorded decision is reviewed at the
+pull request and revised in a later run. That is cheaper than a night blocked
+on a question nobody is awake to answer — which is the actual alternative for
+an autonomous run, not "ask and continue".
+
+**None of these is a separate severity, and making one is a mistake already
+made here.** Spelling `incident` inside a finding's text produced three
+disagreeing counts on a single run and routed that run's most consequential
+record to no audience at all, because the word had been put in the kind slot
+where nothing matches it. The nine kinds already carry the whole distinction:
+what makes a finding load-bearing is legible from its own text.
 
 **This binds the coordinator as much as its subagents.** A coordinator that
 escalates has converted an autonomous run into a supervised one without saying
