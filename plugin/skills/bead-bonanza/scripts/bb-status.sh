@@ -62,6 +62,77 @@ note() { # note <rc>
   esac
 }
 
+# ------------------------------------------------------- the ONE tree walk
+#
+# `bd list --parent` is direct-children-only; `bd ready --parent` is
+# transitive. Measured on bd 1.2.2 against a scratch shape matching the one
+# sprint-scope now builds — run epic `zt-1ux` -> phase epic `zt-1ux.1` ->
+# tasks `zt-1ux.1.1` (in_progress, assignee agent-x) and `zt-1ux.1.2`, plus a
+# direct child `zt-1ux.2`:
+#
+#   bd list  --parent zt-1ux --status in_progress --json  -> []
+#   bd list  --parent zt-1ux --json                       -> zt-1ux.2 zt-1ux.1
+#   bd ready --parent zt-1ux --exclude-type=epic --json   -> zt-1ux.2 zt-1ux.1.2
+#
+# So a run epic's work beads are invisible to one `bd list --parent` call, and
+# `bd ready` is no substitute where the question is about STATUS — it excludes
+# in_progress, which is the whole signal the merge-slot gate reads.
+#
+# Every question this script asks about "the beads under an epic" therefore
+# goes through here. A second walk, or a bare `bd list --parent` loop, answers
+# a nested run epic with silence — which reads exactly like "all clear".
+#
+# Emits one line per transitive descendant, epics included:
+#   id|issue_type|status|assignee
+bb_descendants() { # bb_descendants <epic-id>
+  python3 - "$1" <<'PY' 2>/dev/null
+import json, subprocess, sys
+
+def children(i):
+    r = subprocess.run(["bd", "list", "--parent", i, "--status",
+                        "open,in_progress,blocked,deferred,closed", "--json"],
+                       capture_output=True, text=True)
+    try:
+        d = json.loads(r.stdout)
+    except Exception:
+        return []
+    return d if isinstance(d, list) else []
+
+seen, stack = set(), [sys.argv[1]]
+while stack:
+    for c in children(stack.pop()):
+        cid = c.get("id")
+        if not cid or cid in seen:
+            continue
+        seen.add(cid)
+        # Only an epic can hold further work. A task's own children are its
+        # business, and walking them would change what "leaf" counts.
+        if c.get("issue_type") == "epic":
+            stack.append(cid)
+        print("%s|%s|%s|%s" % (cid, c.get("issue_type") or "",
+                               c.get("status") or "", c.get("assignee") or ""))
+PY
+}
+
+# The claimed-and-running beads under an epic, rendered `id(assignee)` — the
+# signal that withholds a merge-slot release, and the answer to "who is still
+# holding work". Read from the walk, so a nested run epic answers the same as
+# a flat one.
+#
+# The read loop takes a heredoc rather than a pipe: a `while read` on the far
+# side of a pipe runs in a subshell and loses what it accumulated.
+bb_in_progress() { # bb_in_progress <epic-id>
+  _bip_all="$(bb_descendants "$1")"
+  _bip_out=""
+  while IFS='|' read -r _bip_id _bip_kind _bip_st _bip_who; do
+    [ -n "$_bip_id" ] && [ "$_bip_st" = in_progress ] || continue
+    _bip_out="${_bip_out}${_bip_out:+ }${_bip_id}(${_bip_who:-unassigned})"
+  done <<EOF
+$_bip_all
+EOF
+  printf '%s' "$_bip_out"
+}
+
 # ------------------------------------------------------------------ bead mode
 mode_bead() {
   id=""; wt=""; premerge=no
@@ -259,13 +330,52 @@ mode_self_test() {
   worst=$RC_REPAIR; note $RC_STOP; t "stop overrides repair"  "2" "$worst"
 
   # Invocation surface. These fail before any tracker read, so the self-test
-  # stays hermetic — the modes' behaviour against real beads is not covered
-  # here and is exercised by using them.
+  # needs no database — the modes' end-to-end behaviour against real beads is
+  # not covered here and is exercised by using them.
   _self="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
   "$_self" run >/dev/null 2>&1;        t "run with no epic exits 3"  "3" "$?"
   "$_self" run a b >/dev/null 2>&1;    t "run with two args exits 3" "3" "$?"
   "$_self" nosuchmode >/dev/null 2>&1; t "unknown mode exits 3"      "3" "$?"
   "$_self" >/dev/null 2>&1;            t "no mode exits 3"           "3" "$?"
+
+  # The tree walk, against a stubbed `bd` on PATH — still no database and no
+  # network. Both the merge-slot release gate and "who holds work" read the
+  # claimed set through it, and a single `bd list --parent` reads that set
+  # EMPTY on a nested run epic, which is indistinguishable from all clear.
+  # `e` is the nested shape; `f` is the flat one, which must answer the same
+  # as it always has.
+  _st_tmp="$(mktemp -d)"; _st_bin="$_st_tmp/bin"; mkdir -p "$_st_bin"
+  cat >"$_st_bin/bd" <<'STUB'
+#!/bin/sh
+# Only `bd list --parent <id> ... --json` is stubbed; that is all the walk calls.
+p=""
+while [ $# -gt 0 ]; do
+  case "$1" in --parent) p="${2:-}"; shift 2 ;; *) shift ;; esac
+done
+case "$p" in
+  e)   echo '[{"id":"e.1","issue_type":"epic","status":"open","assignee":""}]' ;;
+  e.1) echo '[{"id":"e.1.1","issue_type":"task","status":"in_progress","assignee":"dev-a"},{"id":"e.1.2","issue_type":"task","status":"open","assignee":""}]' ;;
+  f)   echo '[{"id":"f.1","issue_type":"task","status":"in_progress","assignee":"dev-b"},{"id":"f.2","issue_type":"task","status":"closed","assignee":"dev-b"}]' ;;
+  g)   echo '[{"id":"g.1","issue_type":"task","status":"in_progress"}]' ;;
+  *)   echo '[]' ;;
+esac
+STUB
+  chmod +x "$_st_bin/bd"
+  _st_path="$PATH"; PATH="$_st_bin:$PATH"
+
+  _st_ids="$(bb_descendants e)"
+  t "walk descends past a phase epic" \
+    "e.1 e.1.1 e.1.2" "$(printf '%s' "$_st_ids" | cut -d'|' -f1 | tr '\n' ' ' | sed 's/ *$//')"
+  t "nested epic: the claimed bead is seen" \
+    "e.1.1(dev-a)" "$(bb_in_progress e)"
+  t "flat epic: unchanged, and only in_progress" \
+    "f.1(dev-b)" "$(bb_in_progress f)"
+  t "a claimed bead with no assignee reads unassigned" \
+    "g.1(unassigned)" "$(bb_in_progress g)"
+  t "an epic with no children holds nobody" \
+    "" "$(bb_in_progress nosuch)"
+
+  PATH="$_st_path"; rm -rf "$_st_tmp"
   echo
   [ "$fails" -eq 0 ] && { echo "RESULT: PASS"; return 0; }
   echo "RESULT: FAIL"; return 1
@@ -322,18 +432,19 @@ print((d or {}).get("updated_at") or "")' 2>/dev/null)"
   # Evidence 4 — the strongest, when a run epic is known: a bead an agent has
   # claimed. This is the tracker's own status, not a bookkeeping key somebody
   # had to remember to write.
+  #
+  # Walked, not `bd list --parent`: the run epic holds phase epics and the
+  # work beads hang off those, so a single call sees none of them and this
+  # gate recommends releasing a slot out from under a live merge.
   _live=""
   if [ -n "$_epic" ]; then
-    _live="$(bd list --parent "$_epic" --status in_progress --json 2>/dev/null | python3 -c 'import json,sys
-try: d=json.load(sys.stdin)
-except Exception: d=[]
-print(" ".join("%s(%s)" % (x.get("id",""), x.get("assignee") or "unassigned") for x in d) if isinstance(d,list) else "")' 2>/dev/null)"
+    _live="$(bb_in_progress "$_epic")"
     if [ -n "$_live" ]; then
       line OK "  beads in progress: $_live" \
-           "bd list --parent $_epic --status in_progress"
+           "bb-status.sh slot $_epic"
     else
       line OK "  beads in progress: none" \
-           "bd list --parent $_epic --status in_progress"
+           "bb-status.sh slot $_epic"
     fi
   else
     line OK "  claims: not checked (pass the run epic to include them)" \
@@ -347,7 +458,7 @@ print(" ".join("%s(%s)" % (x.get("id",""), x.get("assignee") or "unassigned") fo
          "git worktree list"; note $RC_STOP
   elif [ -n "$_live" ]; then
     line FAIL "do NOT release — a bead is claimed and in progress: $_live" \
-         "bd list --parent $_epic --status in_progress"; note $RC_STOP
+         "bb-status.sh slot $_epic"; note $RC_STOP
   else
     line OK "no worktree and no claimed bead backs ${_holder:-the holder}" ""
     line OK "RELEASE IS DEFENSIBLE: bd merge-slot release" "bd merge-slot release"
@@ -368,15 +479,14 @@ print(i.rsplit("-",1)[0] if "-" in i else "")' 2>/dev/null)"
 #
 # The run-level Definition of Done. `bd epic status` counts DIRECT children,
 # so on a nested run epic it answers about sub-epics rather than beads — it
-# read 0/2 with four leaves closed. `bd list --parent` is direct-children-only
-# too, unlike `bd ready --parent` which is transitive. Neither gives a
-# transitive count, so this walks the tree.
+# read 0/2 with four leaves closed. The transitive count comes from
+# `bb_descendants`, the one walk in this file.
 mode_run() {
   [ $# -eq 1 ] || die "usage: bb-status.sh run <epic-id>"
   _epic="$1"
   command -v python3 >/dev/null 2>&1 || die "run mode needs python3"
-  _out="$(python3 - "$_epic" <<'PY'
-import json, subprocess, sys
+  _out="$(BB_DESC="$(bb_descendants "$_epic")" python3 - "$_epic" <<'PY'
+import json, os, subprocess, sys
 
 epic = sys.argv[1]
 
@@ -392,16 +502,6 @@ def show(i):
     d = d[0] if isinstance(d, list) and d else d
     return d if isinstance(d, dict) and not d.get("error") else None
 
-def children(i):
-    r = subprocess.run(["bd", "list", "--parent", i, "--status",
-                        "open,in_progress,blocked,deferred,closed", "--json"],
-                       capture_output=True, text=True)
-    try:
-        d = json.loads(r.stdout)
-    except Exception:
-        return []
-    return d if isinstance(d, list) else []
-
 root = show(epic)
 if root is None:
     print("ERR|no such bead"); raise SystemExit
@@ -413,27 +513,28 @@ if isinstance(md, str):
     try: md = json.loads(md)
     except Exception: md = {}
 
+# `id|issue_type|status|assignee` per transitive descendant, from the shell
+# helper above — this reads the walk, it does not repeat it.
 seen, leaves, nested = set(), [], False
-stack = [epic]
-while stack:
-    cur = stack.pop()
-    for c in children(cur):
-        cid = c.get("id")
-        if not cid or cid in seen:
-            continue
-        seen.add(cid)
-        kind = c.get("issue_type")
-        if kind == "epic":
-            nested = True
-            stack.append(cid)
-        elif kind in SYNTHETIC:
-            # `bd set-state` writes an `event` child on every health change and
-            # a run writes several, so counting them as leaves would report a
-            # run with no work as having beads in scope. Measured: an epic with
-            # two health events and zero beads read "2 leaf bead(s)".
-            continue
-        else:
-            leaves.append(c)
+for ln in os.environ.get("BB_DESC", "").splitlines():
+    if not ln.strip():
+        continue
+    f = ln.split("|")
+    cid = f[0]
+    kind = f[1] if len(f) > 1 else ""
+    if not cid or cid in seen:
+        continue
+    seen.add(cid)
+    if kind == "epic":
+        nested = True
+    elif kind in SYNTHETIC:
+        # `bd set-state` writes an `event` child on every health change and
+        # a run writes several, so counting them as leaves would report a
+        # run with no work as having beads in scope. Measured: an epic with
+        # two health events and zero beads read "2 leaf bead(s)".
+        continue
+    else:
+        leaves.append({"id": cid, "status": (f[2] if len(f) > 2 else "")})
 
 by = {}
 for c in leaves:
@@ -585,16 +686,18 @@ print(" ".join(out))' 2>/dev/null)"
   # --- who is still holding work -----------------------------------------
   # Assignment plus status, not a dispatch record: an agent has drained when
   # `bd ready --assignee <id>` is empty AND it holds nothing in_progress.
-  _running="$(bd list --parent "$_epic" --status in_progress --json 2>/dev/null | python3 -c 'import json,sys
-try: d=json.load(sys.stdin)
-except Exception: d=[]
-print(" ".join("%s(%s)" % (x.get("id",""), x.get("assignee") or "unassigned") for x in d) if isinstance(d,list) else "")' 2>/dev/null)"
+  #
+  # Walked, for the same reason the leaf count above is: on a nested run epic
+  # a single `bd list --parent` reports the phase epics and none of the beads,
+  # so it answers "nobody" while an agent is mid-bead — which is precisely the
+  # question a recovering session asks.
+  _running="$(bb_in_progress "$_epic")"
   if [ -n "$_running" ]; then
     line OK "beads in progress: $_running" \
-         "bd list --parent $_epic --status in_progress"
+         "bb-status.sh run $_epic"
   else
     line OK "beads in progress: none" \
-         "bd list --parent $_epic --status in_progress"
+         "bb-status.sh run $_epic"
   fi
 
   _out_n="$(printf '%s\n' "$_out" | sed -n 's/^OUTSTANDING|\([0-9]*\)|.*/\1/p')"
