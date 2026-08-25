@@ -56,7 +56,14 @@ prune_worktrees() { # prune_worktrees <epic>
   # forever. Pruning them is safe by definition — the directory is gone.
   run "prune stale registrations" git worktree prune
 
-  main="$(git rev-parse --show-toplevel 2>/dev/null)"
+  # NOT `git rev-parse --show-toplevel`: inside a worktree that returns the
+  # WORKTREE, so a cleanup run from inside a run worktree would treat it as the
+  # main checkout and never tear it down. Measured on git in this container —
+  # from a worktree at /tmp/wt-probe, `--show-toplevel` printed /tmp/wt-probe
+  # while `git worktree list --porcelain`'s first entry printed the main
+  # checkout. The first entry is the main worktree by definition.
+  main="$(git worktree list --porcelain 2>/dev/null | main_worktree)"
+  here="$(git rev-parse --show-toplevel 2>/dev/null)"
   pairs="$(git worktree list --porcelain 2>/dev/null | parse_worktree_branches)"
   [ -n "$pairs" ] || { say "no worktrees registered"; return 0; }
 
@@ -68,6 +75,11 @@ prune_worktrees() { # prune_worktrees <epic>
     wt="${pair%%	*}"; br="${pair#*	}"
     [ "$wt" = "$main" ] && continue
     seen=$((seen+1))
+    # A worktree cannot remove itself — `git worktree remove` refuses the one
+    # it is standing in — so say so rather than reporting a failed removal.
+    if [ -n "$here" ] && [ "$wt" = "$here" ]; then
+      line "LEFT" "worktree, this cleanup is standing in it" "$wt"; note_left; continue
+    fi
     handle_worktree "$wt" "$br" "$run_id"
   done <<WTLIST
 $pairs
@@ -120,6 +132,9 @@ handle_worktree() { # handle_worktree <path> <branch> <run-id>
 # at the space by field splitting, and the truncated path then matches no bead
 # and is reported LEFT forever.
 parse_worktrees() { sed -n 's/^worktree //p'; }
+
+# The MAIN checkout, which `git worktree list --porcelain` always lists first.
+main_worktree() { sed -n 's/^worktree //p' | sed -n '1p'; }
 
 # path<TAB>branch, one line per registration, from `git worktree list
 # --porcelain`. A detached worktree has no `branch` line, so it emits an empty
@@ -346,6 +361,12 @@ self_test() {
   _e="$(printf '/a/b c\tqozp.8\n/d/e\t')"
   if [ "$_g" = "$_e" ]; then printf '  ok   %s\n' "worktree pairs keep spaces; a detached tree has no branch"
   else printf '  FAIL %s (got [%s])\n' "worktree pairs keep spaces; a detached tree has no branch" "$_g"; fails=$((fails+1)); fi
+  # The main checkout is the FIRST entry, never `git rev-parse --show-toplevel`
+  # — inside a worktree that returns the worktree, so a cleanup run from one
+  # would treat it as main and never tear it down.
+  r="$(printf 'worktree /main\nHEAD a\nbranch refs/heads/m\n\nworktree /wt/one\nHEAD b\n' | main_worktree)"
+  if [ "$r" = "/main" ]; then printf '  ok   %s\n' "the main checkout is the first worktree entry"
+  else printf '  FAIL %s (expected /main, got [%s])\n' "the main checkout is the first worktree entry" "$r"; fails=$((fails+1)); fi
   r="$(printf 'worktree /a/b c\nHEAD deadbeef\nbranch refs/heads/x\n\nworktree /d/e\n' | parse_worktrees)"
   if [ "$r" = "/a/b c
 /d/e" ]; then printf '  ok   %s\n' "a worktree path keeps its spaces"

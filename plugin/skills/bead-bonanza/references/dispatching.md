@@ -285,9 +285,13 @@ agent's queue says whether it is still working:
 An agent that is drained while a bead it holds is still `open` or
 `in_progress` died holding it — recover that bead (`recovery.md`).
 
-`{SCRIPTS}/sprint-cleanup.sh` applies exactly this rule and removes only the
-unambiguous rows. A worktree whose branch no bead owns is left standing and
-named, never removed on a guess.
+`{SCRIPTS}/sprint-cleanup.sh` decides the same question and **removes only the
+one unambiguous row** — a drained agent, belonging to this run, holding no
+blocked bead. It leaves five cases standing and names each: a branch that
+names no dispatch, a dispatch id belonging to another run, an agent still
+holding a queue, an agent holding a BLOCKED bead (its worktree is the partial
+work), and a tracker that could not answer. It never removes on a guess, and
+it never force-removes to tidy up.
 
 **A return line is a summary, not a signal.** A subagent's account of what it
 did is worth reading and is never what you record: every verdict above comes
