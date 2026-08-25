@@ -28,6 +28,9 @@ decision.
 | 2026-08-13 | self | `bead-bonanza` sprint (run `1786603162-7`) | [sprint report](sprints/2026-08-13-template-drift-and-check-report.md) | 16 findings harvested, 7/7 beads closed; 1 follow-up bead filed (agent-plugins-nu2); RFCs pending owner triage |
 | 2026-08-14 | self | `bead-bonanza` sprint (run `1786686364-15`) | [sprint report](sprints/2026-08-14-markdown-links-and-shipped-specs.md) | 64 findings harvested, 16/16 beads closed (15 queued + 1 admitted mid-run); 4 RFCs filed — `bead-bonanza`, `plan-sprint`, `recover-sprint`, `standards` (rfc-0020); tier calibration not routed (zero escalations, no over-route signal); report written after the RFCs because Phase 4 was skipped and reconstructed |
 | 2026-08-15 | self | `bead-bonanza` sprint (run `1786778523-19`) | [sprint report](sprints/2026-08-15-gherkin-adoption.md) | 73 findings harvested, 21/21 beads closed (20 queued + 1 admitted mid-run); 3 RFCs filed across the feature's phases (rfc-0021 FRD, rfc-0022 grooming, rfc-0023 implementation); `retro-skill` and `groom-beads` routes offered, not filed; 3 follow-up defects named (AC-GHK-006.6 proved 3 of 5 rows, VTAG's AC-SPEC-009.2 budget breach, ADR-021/guide disagreement); 1 bead filed (agent-plugins-h45m); zero tier escalations, 2 deliberate over-routes |
+| 2026-08-24 | self | `bead-bonanza` sprint (epic `agent-plugins-qozp`) | tracker only — see `agent-plugins-qozp` | 33 findings harvested, 6/6 beads closed (5 queued + 1 admitted mid-run); 16 candidates drafted, all 16 accepted by the owner — 12 skill-audience issues written to `.sf/outbox/` (`bead-bonanza` 8, `sprint-review` 2, `sprint-plan` 1, `sprint-wave` 1) and 4 project-audience beads filed (`agent-plugins-uva5`, `agent-plugins-gu3i`, `agent-plugins-bbtl`, `agent-plugins-r9yj`); 0 declined, 2 findings unrouted, 5 deduped against beads already filed; 21 beads left deferred on purpose (10 excluded at admission, 11 review findings the scope gate refused) |
+| 2026-08-24 | self | `bead-bonanza` sprint (epic `agent-plugins-so39`) | tracker only — see `agent-plugins-so39` | 28 findings harvested in 27 comments, 10/11 admitted beads closed (1 bounced); 14 candidates drafted — **10 filed, 3 declined, 1 undecided**. 8 skill-audience issues written to `.sf/outbox/`: 5 new (`bead-bonanza` 3, `sprint-batch` 1, `groom-beads` 1), 2 run-1 files extended to `recurrence: 1` (`bead-bonanza` 1, `sprint-review` 1), and 1 run-1 `sprint-plan` file corrected in place — it asserted the `--set-metadata` universal this run measured false. 2 project beads filed (`agent-plugins-9owj` P1, `agent-plugins-6pib` P3). Declined: C7 folded into `agent-plugins-x5tk`, C9 superseded by `agent-plugins-0913` (drop both keys rather than repair the write path), C10 deferred to the end of the refactor; C14 left undecided. C11 was split — the turn-ending invariant filed, the trigger-interval half dropped as subsumed by `agent-plugins-qozp.15`. 2 findings unrouted (both `retro:process:`, both the coordinator's), 3 deduped against beads already filed. 33 beads left deferred on purpose: 22 excluded at admission, 10 review findings the scope gate refused, and `agent-plugins-xpn8` bounced and `human`-labelled |
+| 2026-08-25 | self | `bead-bonanza` sprint (epic `agent-plugins-mpnf`) | [findings](../docs/research/sprint-findings/2026-08-25-agent-plugins-mpnf.md) | 52 findings harvested (49 in flight + 3 by the retro), 11/23 admitted beads closed as `mpnf.N` children, 27 closed across the run's reachable set; 14 candidates drafted — **12 filed, 2 declined, 7 clusters deduped into existing beads**. NO outbox files and NO sprint document: commit `9cc8844` retired both channels at the owner's instruction, so 8 skill-audience issues were filed as beads under `agent-plugins-y63n` (`.18`–`.25`) and the findings document went to `docs/research/` per the where-documents-live rule. 4 project beads filed (`agent-plugins-sdu1` P2, `agent-plugins-eejf` P2, `agent-plugins-bfng` P3, `agent-plugins-lmrl` P3). Deduped onto `offx.11`, `offx.8`, `offx.4`, `y63n.17`, `y63n.10`, `r9yj`, `p567`. **2 findings unrouted — third consecutive run at 2**, and the new invention `retro:incident:` sent the run's most consequential finding (a removed worktree coexisting with an unmerged branch) to no audience at all. 15 beads left deferred: review findings refused at admission or de-admitted by owner decision as the branch wound up |
 
 ## Run notes
 
@@ -161,3 +164,59 @@ Resolution says that rather than implying independence. Four proposals
 across the three ratify decisions their own author made mid-run. The
 accumulation model has now processed 56 proposals across five runs
 without a single reporter who does not share the triager's assumptions.
+
+**2026-08-17 — partial triage of the orchestration inbox.** 8 RFCs across
+`bead-bonanza` (6), `plan-sprint` (1) and `recover-sprint` (1); 37
+proposals classified, **8 adopted, 0 deferred, 0 rejected, 3 closed as
+already-implemented, 26 left undecided.** No table rows are added yet:
+every one of the 8 RFCs still holds undecided proposals, so a row carrying
+per-proposal counts would read as a completed triage. **Rows are owed for
+all 8 when the remaining 26 are decided** — the interim outcomes are in
+each RFC's Resolution, and all 8 stay in `rfcs/inbox/`, unnumbered and
+unretired.
+
+*What the provenance check bought.* Three proposals were already fixed
+between the version they cite and the tree — the batch-base chaining fix
+(landed mid-run by `agent-plugins-61f.2`), per-bead finding numbering, and
+the Monitor re-arm rule. Two RFCs cite v1.3 and two cite v1.4 against a
+v1.5 tree, which is where all three hits came from. Recorded as *adopted —
+already implemented* rather than *rejected — already addressed*, since
+each would have been adopted on its merits.
+
+*What the extent and sufficiency checks changed.* Four proposals were
+resized rather than accepted as scoped. `rfc-self-wave-chaining` P4 cites
+one worktree assertion; there are two. `rfc-self-worktree-composition` P3
+names two `Gates:` blocks; there are three. `rfc-self-acceptance-signals`
+P2 states that its part 2 can land alone; it cannot — this project's own
+test gate is fenced, so part 2 without part 1 would block every pre-flight
+here. And `rfc-self-report-citations` P3 has no defect site at all: the
+pattern it fixes appears in an orchestrator-authored prompt, not in any
+skill text.
+
+*The dedupe result was the opposite of the expectation.* One genuine
+duplicate in 37 proposals. The RFCs read each other and routed around
+overlap deliberately — `rfc-self-wave-chaining` P3 and
+`rfc-self-worktree-composition` P6 close opposite directions of one gap
+and say so; `rfc-self-wave-chaining` declines to re-propose the
+drained-run trigger because a sibling already owns it. The one real
+convergence is a *cross-skill* one that no single RFC could have seen:
+`rfc-self-push-scope` P2 and `rfc-self-worktree-absence` P1 are the same
+check written into two skills, and were adopted together with each naming
+the other so they cannot drift.
+
+*The tracker was empty at triage.* `bd list` across every status returned
+0 issues and `bd label list-all` found no `theme:` keys, so dedupe against
+prior deferrals was impossible and ran against the 13 retired RFCs
+instead. No deferral bead could be filed for the 4 recommended deferrals
+either. Whatever is wrong with the Dolt bootstrap, the accumulation
+signal this pipeline depends on is currently unavailable — that is a
+prerequisite for the next triage, not a footnote.
+
+*Self-authorship, unchanged and now unambiguous for six of eight.* All 8
+carry `origin: self`. Six name `claude-opus-5`, which is the model that
+triaged them — **authored and triaged by the same model**, stated in each
+Resolution rather than implied. Two withhold the model under the harness
+policy. Six of the eight adopted proposals ratify a workaround their own
+author improvised during the run being described. The accumulation model
+has now processed 93 proposals without one reporter outside this
+repository.

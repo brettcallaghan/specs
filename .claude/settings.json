@@ -19,6 +19,17 @@
         ],
         "matcher": ""
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/dolt-push.sh",
+            "timeout": 130,
+            "type": "command"
+          }
+        ]
+      }
     ]
   }
 }

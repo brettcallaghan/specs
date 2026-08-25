@@ -334,3 +334,40 @@ that cannot be stale, and treats a missing notification as the
 non-event it is.
 
 ## Resolution
+
+**Partial triage 2026-08-17. This RFC is NOT retired** — P4 and P5 are
+recommended for adoption but not yet approved, so the record is incomplete.
+
+| Proposal | Outcome |
+|---|---|
+| P1 — the wave report does not end the turn | **adopted** as written, plus one refinement: the circuit breaker is now cited by its Phase 3 definition (3 consecutive beads `blocked` or failed) rather than named without a referent. `SKILL.md`, "Auto-chain waves under standing authorization". |
+| P2 — bind the rebase target to the moment of merge | **adopted with refinement.** The unbound `<sprint-head>` is replaced by `"$(git rev-parse HEAD)"`, and the reason is stated. Two refinements: the snippet now says to run from the orchestrator's own checkout on the sprint branch, since the substitution is silent if it is not; and the branch-deletion guard was placed beside the `git branch -d` in the worktree-removal step rather than ten lines away in the rebase step, so the warning and the dangerous command sit together. `references/subagent-prompts.md`. |
+| P3 — give the acceptance check a no-return branch | **adopted with refinement.** Landed after the "Signals this check deliberately does NOT use" paragraph rather than immediately after the five signals, so it reads as a narrow exception to the ledger rule instead of a contradiction of it, and it states so explicitly: the ledger still proves nothing alone and is never an acceptance signal; it separates "still running" from "finished" only alongside tracker state. `SKILL.md` Phase 3 step 4. |
+| P4 — only the mutating tools enforce the worktree | **recommended adopt-with-refinement; not yet approved.** Triage's extent check found the worktree is asserted at `references/subagent-prompts.md:91` (per-bead) **and** `:184` (batch preamble); the proposal amends only `:91`. Adopt over both sites. |
+| P5 — mark an unprofiled gate claim as unverified | **recommended adopt; not yet approved.** |
+
+**Provenance check.** `bead-bonanza` v1.5 cited; v1.5 current at triage. All
+five cited anchors were re-read against the tree and every one was still
+present, including `SKILL.md:873` verbatim and the unbound `<sprint-head>` at
+`references/subagent-prompts.md:355`. A grep for
+`never return|did not return|no return|notification` across `SKILL.md`,
+`references/progress-streaming.md` and `references/recovery.md` was re-run and
+still returns nothing, confirming E3's gap.
+
+**Dedupe.** P3 and `rfc-self-worktree-composition-and-shared-gates` P6 close
+opposite directions of one gap — no return vs. returned-with-no-terminal-event
+— and neither subsumes the other, as this RFC states. Both were adopted
+together. No match in retired RFCs 0001–0023.
+
+**Self-authorship, disclosed.** `origin: self`, `model` withheld under the
+harness policy tracked by `rfcs/inbox/retro-skill/rfc-self-retro-skill-withheld-model.md`,
+so whether the authoring and triaging agents were the same model cannot be
+confirmed or excluded. Read these adoptions as this repository approving its
+own proposal, not as independent corroboration. P1 in particular ratifies a
+turn-boundary rule its own author was operating under when the run halted.
+
+**Files changed.** `plugin/skills/bead-bonanza/SKILL.md`,
+`plugin/skills/bead-bonanza/references/subagent-prompts.md`.
+
+**Version bumps.** `bead-bonanza` 1.5 → 1.6 (one bump covering every
+proposal adopted into that bundle across this triage). Plugin 0.18.0 → 0.19.0.

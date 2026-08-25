@@ -37,101 +37,207 @@ cp -rf source dest          # NOT: cp -r source dest
 - `apt-get` - use `-y` flag
 - `brew` - use `HOMEBREW_NO_AUTO_UPDATE=1` env var
 
-## bead-bonanza gates
+## Pipes hide exit statuses
 
-This repository is a documentation-and-skills corpus **plus** the Go module
-under `cli/` that implements the Spec CLI. The gates are the repo's own
-consistency checks and, for anything under `cli/`, the Go toolchain.
+**The symptom is a command that succeeded reporting failure, or one that failed
+reporting success.** Both come from putting a pipe between a command and the
+status you read, and both have bitten this repository more than once.
 
-Run the Go gates from `cli/` — that is the module root, so `./...` and the
-`go test ./core/...` form the work orders cite both resolve there.
-
-- **Format:** `cd cli && gofmt -l .` — must print nothing (`gofmt -w .` to fix)
-- **Lint:** `scripts/check-skills.sh` and, when `cli/` changed, `cd cli && go vet ./...`
-- **Build:** `cd cli && go build ./...` *(no build step for the docs corpus)*
-- **Test (full suite):** run the three checks independently — never chain them
-  with `&&`, since `check-skills.sh --strict` is known red (see the ledger
-  below) and would short-circuit the other two before they ever run:
-
-  ```bash
-  scripts/check-skills.sh --strict;            s1=$?
-  scripts/sync-shared-references.sh --check;    s2=$?
-  scripts/sync-strata-docs.sh --check;          s3=$?
-  echo "check-skills --strict:        exit=$s1"
-  echo "sync-shared-references --check: exit=$s2"
-  echo "sync-strata-docs --check:      exit=$s3"
-  [ "$s1" -eq 0 ] && [ "$s2" -eq 0 ] && [ "$s3" -eq 0 ]
-  ```
-
-  Report each check's exit status; the gate as a whole fails if any of the
-  three failed. And, when `cli/` changed, `cd cli && go test ./...`.
-
-### Custom gates
+**Never read `$?` through a pipe.** `cmd | tail` gives you `tail`'s status, so a
+failing command reads as a pass. Redirect to a file and read the status
+directly:
 
 ```bash
-scripts/generate-schemas.sh --check   # committed artifacts under cli/core/{schema,specmodel}
-                                      # match the schemas/*.strata sources
+cmd >out 2>&1; echo $?          # right
+cmd 2>&1 | tail -5; echo $?     # WRONG — that is tail's status
 ```
 
-Run it after any change to `schemas/*.strata`. The artifacts it checks are
-**generated — never hand-edit them**; regenerate with the same script without
-`--check` and commit the result in the same change.
+**Under `set -o pipefail`, a reader that closes the pipe early inverts it.**
+`grep -q`, `head` and `tail -n` exit as soon as they have what they need; the
+writer then dies on SIGPIPE, and `pipefail` reports the whole pipeline as
+failed. Measured here: `bd show <id> | grep -qi closed` reported a CLOSED bead
+as not closed.
 
-### What CI runs
+```bash
+if bd show "$id" | grep -qi closed; then      # WRONG under pipefail
+out="$(bd show "$id" --json)"                 # right — capture, then test
+```
 
-Three workflows under `.github/workflows/`, all on push and pull request
-except the last:
+The fix is the same in both directions: **put the value in a variable or a
+file, then test it.** A pipeline is for moving data, not for carrying a verdict.
 
-- `checks.yml` — the docs-corpus gates on one Linux runner:
-  `check-skills.sh` (not `--strict`), `sync-shared-references.sh --check`,
-  `check-reference-links.py`, `check-template-drift.py`. Its `corpus` job
-  builds the Spec CLI and runs `spec check --strict` over `specs/`, then
-  `spec check --config rfcs/specs.toml` over the RFC queue with a narrowed
-  `--only` rule set.
-- `cli.yml` — the Go gates. `go vet`, `go build` and `go test ./...` on
-  ubuntu, macOS and Windows (the matrix is the cross-platform half of
-  AC-SPEC-009.7: one committed set of expected bytes, three platforms);
-  `gofmt -l` on ubuntu only; a cross-compile of all six release targets;
-  and a run of the static binary inside a busybox image, which is
-  AC-SPEC-009.4's worked example executed rather than asserted. Its
-  `coverage` job runs `scripts/coverage.sh --check` on ubuntu, which
-  measures the unit, snapshot and end-to-end layers separately and fails
-  if `README.md` does not already carry the resulting figures.
-- `release.yml` — on a `cli/vX.Y.Z` tag. Cross-compiles the six targets
-  on one Linux runner, packages one archive each plus `SHA256SUMS`, and
-  publishes a GitHub Release.
+## Tool claims are measured at the point of use
 
-Neither `check-skills.sh --strict` nor `generate-schemas.sh --check` runs
-in CI — the first is known red (below) and the second needs the Strata
-compiler. Both remain local gates.
+**A claim about what a command does binds only where somebody ran it.**
+Inheriting one is not measuring it — not from a document in this repository,
+not from a dispatch prompt, not from an epic comment, not from a prior run's
+report. Prose records nothing about which of the two it was, so a claim
+nobody ran reads exactly like one somebody did.
 
-`.gitattributes` pins the working tree to LF on every platform. It has to:
-the expected artifacts under `cli/testdata/cases/**/expected/` are compared
-byte for byte, and Git's `core.autocrlf` default on Windows would rewrite
-them on checkout. The CRLF checkout AC-SPEC-009.7 names is reproduced
-synthetically instead, on every platform, by `cli/cmd/portability_test.go`.
+Before you **act on** such a claim, or restate it anywhere, run the command
+and read the output; carry the invocation and its output with the claim
+wherever you state it. Where you cannot run it, mark the claim **unverified**
+and say what would settle it. This binds hardest while *correcting* someone
+else's claim — the replacement is a new claim and carries the same burden.
 
-### Targeted tests by surface
+This is the evidence rule from the environmental-failure ledger below, moved
+one step earlier: it binds when a belief is **used or copied**, not only when
+a ledger entry is admitted.
 
-- `cli/**` → `cd cli && gofmt -l . && go vet ./... && go test ./...`, then
-  `scripts/coverage.sh` from the repository root and commit the README diff
-  it produces (CI runs `scripts/coverage.sh --check` and fails on a stale
-  figure). Use the Go version in `cli/go.mod`: statement counts come from
-  the toolchain.
-- `schemas/*.strata` → `scripts/generate-schemas.sh --check`, then
-  `cd cli && go build ./...` (the generated Go must still compile)
+### Why the ledger rule alone did not bind
 
-- `plugin/skills/*/SKILL.md` → `scripts/check-skills.sh`
-- `plugin/skills/*/references/**` → `scripts/sync-shared-references.sh --check && scripts/check-skills.sh`
-- `.claude/skills/*/SKILL.md` → `scripts/check-skills.sh` (only the
-  project-native skills `triage-rfc` and `strata`; the committed symlinks
-  to `plugin/skills/` are skipped and checked at their source)
-- `.claude/skills/strata/references/**` → `scripts/sync-strata-docs.sh --check`.
-  These are generated verbatim from `strata-lang/strata`; never hand-edit
-  them. `--check` reports SKIP (exit 0) when no strata checkout is present.
-- `plugin/skills/groom-beads/scripts/**` → `python3 plugin/skills/groom-beads/scripts/validate_beads.py <fixture>.jsonl`
-- `plugin/skills/bead-bonanza/scripts/**` → run the script's own guards (see its header)
-- `scripts/**` → `bash -n <file>` then run it in its `--check` mode
+The ledger has required evidence throughout, and run `agent-plugins-so39`
+violated it four times while correcting three other documents for exactly
+this defect. Four structural reasons, each a thing to fix rather than a thing
+to try harder at:
+
+1. **Its subject is a document section, not an author.** It governs
+   *admitting an entry to the ledger*. None of the four was a ledger entry —
+   they were a paragraph in a skill reference, a sentence in a dispatch
+   prompt, a line of shell in one of our own scripts, and a prompt armed on a
+   trigger. An agent writing any of those is not performing the act the rule
+   names, so the rule never comes up for application.
+
+2. **Its placement scopes it.** It sits under `## Checks`, headed
+   "Environmental-failure ledger". An agent that needs to state a fact about
+   `bd` has no reason to open a section about container environment failures,
+   and a rule filed under a heading is read as being about that heading.
+
+3. **It governs origination; three of the four were propagation.** "Run it
+   first, record it after" says what to do when you *make* a claim and
+   nothing about relaying one — and relaying feels like citing a source
+   rather than making a claim. The citation requirement is the only thing
+   separating a measured claim from an inherited one, and it is demanded only
+   of ledger entries, so every other surface loses the distinction.
+
+4. **Correction is the moment of highest confidence, and nothing gates the
+   replacement.** The sharpest instance: the bead whose job was removing a
+   false claim about `bd update --metadata` shipped a different false claim
+   about `--set-metadata` in its place. The evidence standard was applied to
+   the sentence being deleted and not to the one being installed.
+
+A fifth reason is not about placement: **the rule has no automated check.**
+`specs/standards/skill-best-practices.md` requires every invariant a skill
+asserts about itself to be enforced by a check; this one is enforced by
+authorial memory, which is the condition it exists to correct. Stating it at
+the point of use narrows the gap. It does not close it.
+
+### The four instances
+
+- **"`--set-metadata` stores every value as a string"** — false. Measured on
+  bd 1.2.2: `num=5` → number, `b=true` → boolean, `f=1.5` → number,
+  `n=null` → null; only arrays, objects and non-numeric text are stored as
+  strings. Installed by `agent-plugins-4tjk`, which was removing a different
+  false claim — "`bd update --metadata` replaces the entire metadata object";
+  measured, it merges at the **top level** and replaces a **nested** value
+  wholesale. The false universal survives in `capability-tier.md`
+  (`agent-plugins-so39.5`, deferred).
+
+- **`sync_dir`'s `rm -rf "$dest"` attributed to
+  `scripts/sync-shared-references.sh`** in a dispatch prompt, with an argument
+  built on top of it. Measured:
+  `grep -rn 'sync_dir\|rm -rf' scripts/sync-shared-references.sh scripts/generate-schemas.sh`
+  returns nothing from the first file and `generate-schemas.sh:183:sync_dir() {`
+  plus `generate-schemas.sh:192:    rm -rf "$dest"` from the second;
+  `render()` in `sync-shared-references.sh` ends `cat "$1"`. The receiving
+  agent measured instead of believing, so the rule it shipped rests on the
+  real mechanic.
+
+- **"`bd search` is non-functional"** — false; it excludes closed issues by
+  default. Measured: `bd search metadata` → `Found 2 issues`; the same query
+  with `--status all` → 3, the extra one `closed`. The claim was relayed into
+  an epic comment **and** into a durable recovery trigger's prompt, where a
+  resuming agent would have inherited it as a hard constraint. The trigger was
+  deleted before firing, because a report caught it.
+
+- **`printf … | grep -qxF` under `set -o pipefail`** in this repository's own
+  orphan guard, `scripts/sync-shared-references.sh:227` — the trap
+  "Pipes hide exit statuses" above already names. Measured by
+  `agent-plugins-b9ft`: 2 failures in 30 `--check` runs on an unchanged tree,
+  herestring control 100/100 clean. Intermittent by construction — a
+  three-line reproduction (`printf '%s\n' a b c | grep -qxF a`) exits 0, so
+  failing to trigger it is not evidence against it.
+
+The common shape: a claim arrived as an inherited premise and was acted on
+without being measured where it was used. Three of the four were then copied
+onto a surface nobody re-reads.
+
+### Surfaces that carry a copy of a belief
+
+A retraction reaches the surface in front of you. It does not reach the
+copies, and most of them are never read again by anybody positioned to notice.
+
+| surface | lives | re-read by | audited by |
+|---|---|---|---|
+| **a durable trigger prompt** (a Routine, a recovery check-in) | past the session, the container and the run | a fresh agent with no memory of the retraction, as a hard constraint | **nobody.** `list_triggers` shows that a trigger exists; nothing reads its prompt text against reality. Only whoever armed it. |
+| a dispatch prompt | dies with its agent — but goes to several agents at once | its recipient, once | nobody; it is not in the repo and no check sees it. The dispatcher, before sending. |
+| a `.sf/outbox` issue | until triaged, possibly across runs and repositories | the triaging agent, who reads it as already human-approved | partially. `triage-issue` re-checks that the quoted evidence still *exists* in the source it cites; nothing re-runs a tool claim the issue asserts, so a false one passes triage intact and lands in the run record |
+| a bead description or acceptance criterion | until the bead closes; longer through `discovered-from` edges | the implementing agent, cold, without the conversation that retracted it | grooming, once; after that nobody |
+| an epic comment, a run record, a sprint report | permanent | the report and the retro | the report's author |
+| a plan document under `docs/plans/` | until the change lands | whoever resumes the plan | nobody — transient by policy, so no check covers it |
+| a committed document (`AGENTS.md`, `specs/**`, a `SKILL.md`) | permanent | every future agent | `scripts/ci.sh`, for shape — never for truth |
+| a generated `references/shared/` copy | permanent | every agent that loads the consuming skill | `scripts/sync-shared-references.sh --check` propagates a corrected source, and reaches no hand-written citation of the same claim |
+| this repository's own scripts and checks | permanent | the runtime, every run | the check itself, where one exists |
+
+**The durable trigger prompt is the worst of them**, and the one the rest of
+the corpus does not mention: it is the only surface that can deliver a
+retracted claim to an agent with no way to learn it was retracted. A dispatch
+prompt is the same defect one tier less durable.
+
+### Retracting a claim found false
+
+Not a checklist for its own sake. The point is that a retraction is a sweep,
+not an edit.
+
+1. **Record the measurement first** — the command and its output, before you
+   change anything. It is what every replacement will cite.
+2. **Grep the claim's distinctive phrasing across the tree BEFORE you fix the
+   source.** Afterwards the string is gone, and the one place you were certain
+   of it is the place you just destroyed. Include untracked files —
+   `.sf/outbox/`, `docs/plans/`.
+3. **Sweep in order of reach**: durable triggers first, because they can fire
+   while you work; then beads and epic comments; then documents; then
+   generated copies, via the sync script.
+4. **Measure the replacement.** Do not install a corrected universal you have
+   not run.
+5. **Say where you could not reach.** A prompt already sent, a run record
+   already written, a trigger in another account — an unreachable copy is a
+   finding to file, not a silence.
+
+## Checks
+
+This repository is a documentation-and-skills corpus **plus** the Go module
+under `cli/` that implements the Spec CLI. Run the Go checks from `cli/` if you
+invoke them individually — that is the module root, so `./...` resolves there.
+
+Two lists, and they are not the same list:
+
+| | |
+|---|---|
+| `scripts/ci.sh` | everything a contributor should see green before pushing |
+| `sf.toml`'s `[[checks]]` | the quality bar for ONE COMMIT — what a bead runs before its own close |
+
+They overlap today and will not stay that way: anything too slow to pay per
+bead belongs in `ci.sh` and not in the declaration. Neither is the **release
+bar** — the cross-compile matrix, the three-platform test matrix and the
+busybox smoke test only mean something across the whole repository, and
+`.github/workflows/` owns them.
+
+One trap worth naming, because the obvious fix is wrong: **`format` is a file
+list, not an exit status.** `gofmt -l` exits 0 whether or not it found
+unformatted files, so a check reading only the status always passes. That is
+why it points at `scripts/format-check`.
+
+**Coverage belongs to none of those lists.** `scripts/coverage.sh` measures the
+unit, snapshot and end-to-end layers separately and writes the merged figures
+into `README.md` between generated markers; `cli.yml`'s `coverage` job runs
+`scripts/coverage.sh --check` and fails when the committed figures do not match
+a fresh measurement. A change under `cli/**` is therefore not finished until
+that script has been run from the repository root and the README diff committed
+with it. Regenerate with the Go version in `cli/go.mod` — statement counts come
+from the toolchain, so a different one moves the numbers. It is in `ci.sh` and
+deliberately not in `sf.toml`: three instrumented test legs is not a price
+worth paying per bead.
 
 ### Environmental-failure ledger
 
@@ -172,20 +278,6 @@ scope for this run's beads" tells a future reader nothing they can act on.
   it: `scripts/bb-close-bead.sh` now re-exports a bounded number of times and
   refuses to commit a closure the ledger does not carry, and any hand-rolled
   close must verify the ledger the same way rather than trusting one export.
-- **KNOWN RED, pre-existing — `scripts/check-skills.sh --strict`.** It exits 1
-  on a *warning*, not an error. Do not treat the warning as your change's
-  failure and do not try to fix it mid-run; it is editorial scope owned
-  elsewhere. The bar is **no findings beyond this baseline**, not exit 0.
-  Measure the baseline at pre-flight rather than quoting a number from here.
-  The warning is a body size that moves with every editorial bead, so any
-  figure recorded in this file is stale on arrival — and a stale baseline read
-  as current is how a real regression gets waved through. Capture `$?`
-  directly, never through a pipe; piping to `tail` reports the pager's status
-  and reads as a pass:
-
-  ```bash
-  scripts/check-skills.sh --strict >out 2>&1; echo $?
-  ```
 - **`scripts/generate-schemas.sh --check` fails when the installed `strata`
   predates `strata-lang/strata@8997153`.** That commit fixes
   `allowAdditionalProperties: false` silently dropping struct inheritance.
@@ -245,10 +337,36 @@ scope for this run's beads" tells a future reader nothing they can act on.
   installed when this bead started, so no fresh cold/warm timing was taken.
 - The Dolt database (`.beads/embeddeddolt`) is gitignored, so **no clone ever
   has one**. The hook bootstraps it from the Dolt remote with `bd bootstrap`
-  when both `.beads/embeddeddolt` and `.beads/dolt` are absent
-  (`.claude/hooks/session-start.sh`, step "2b. The database"). **Corrected
-  2026-08-12** — this entry previously said the hook runs `bd init` +
-  `bd import`; verified by reading the current hook source that it does not.
+  when the tracker reports zero issues.
+- **`bd stats` exits non-zero when there is no database, and the hook runs under
+  `set -euo pipefail`.** Until 2026-08-20 that combination made the hook die at
+  `_n="$(_count)"` — silently, no message, exit 1 — on any clone without a
+  database, which is the one case the bootstrap step exists for. Measured on a
+  fresh clone against both the then-current hook and its predecessor: two lines
+  of output, exit 1, no bootstrap attempted. `_count` now swallows the status
+  internally. Any future edit there must keep doing so.
+- **A database-name mismatch is the one tracker failure bd does NOT report.**
+  Measured on bd 1.2.2 against a database holding 318 issues: setting
+  `.beads/metadata.json`'s `dolt_database` to a name absent from
+  `.beads/embeddeddolt/` makes bd CREATE an empty database under that name;
+  `bd stats` then prints `Total Issues: 0` and `bd ready` prints "No open
+  issues", both exit 0, no warning. The hook checks this **before** anything
+  reads the tracker and treats it as fatal — ordered after the issue count, the
+  measured sequence was worse than the bug itself: the count read 0, the hook
+  moved the real database aside as stale, re-cloned under the wrong name, and
+  the guard then saw the directory present and stayed silent.
+- **Bootstrap cannot clone over an existing database, and says so.** Measured on
+  1.2.2 with a genuinely initialised empty database in place: exit 1,
+  `can't create database beads; database exists`. An empty *directory* at
+  `.beads/embeddeddolt/` does not block it. This is why the hook moves a stale
+  database aside rather than skipping bootstrap when the directory exists.
+  1.2.2 also compares `metadata.json`'s `project_id` against the database's and
+  refuses loudly on a mismatch — measured: `workspace identity mismatch
+  detected`.
+- **The issue prefix comes from the database, not `config.yaml`.** Measured on
+  1.2.2: with `issue-prefix: "zzztest"` in `.beads/config.yaml` and a database
+  configured `agent-plugins`, `bd create` minted `agent-plugins-4731`. The file
+  key is ignored entirely.
 - `strata`: not preinstalled either. The hook builds it from source — see
   "strata CLI" below.
 - **Corrected 2026-08-12, was stale:** this entry previously read "`bd init`
@@ -311,17 +429,6 @@ sessions, where `.claude/hooks/session-start.sh` provisions it because the
   CPU allocation can move it; treat ~1m50s–2m35s as the observed range rather
   than a fixed number.
 
-## model lineup
-
-Least to most capable. Beads carry a `tier`; the orchestrator resolves it
-here at dispatch.
-
-- **light:** `haiku`
-- **standard:** `sonnet`
-- **advanced:** `opus`
-- **frontier:** `fable`
-
-<!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:970c3bf2 -->
 ## Where documents live
 
 Three homes, distinguished by what the document is *for* rather than by
@@ -399,6 +506,61 @@ This applies to `plugin/skills/**` and anything vendored from it. Files that
 never leave this repo — `CLAUDE.md`, `AGENTS.md`, `docs/`, `.beads/config.yaml`
 — may cite ids, and should still keep the narrative short.
 
+## Citing another skill's reference
+
+`scripts/check-skills.sh` makes one skill unable to *link* another skill's
+reference file: rule 3 errors on any `../<skill>/references/` path, and rule 2
+requires a backticked `*.md` path to resolve from the citing file's own
+directory. That is deliberate — a skill is copied out of this repo on its own,
+and a path reaching outside its directory dangles the moment it is. Two remedies
+exist, and **which one is right is a rule, not a preference:**
+
+> **Vendor when the citing skill needs the WHOLE cited file and only APPLIES
+> it — a procedure, checklist, standard or template. Cite the owning skill by
+> ROLE in prose, with no path, when you need one fact out of a larger document,
+> or when the file is a REGISTRY that a second copy would give a second place
+> to extend.**
+
+**The two tests, in order.**
+
+1. **Do you need the whole file?** `scripts/sync-shared-references.sh` vendors a
+   file, never a section — `render` is `cat` over the source, so there is no way
+   to generate part of one, and none to graft a section into a hand-authored
+   file. Needing one fact out of a larger document therefore has no vendoring
+   form: it would ship the citing skill a document it does not own and must not
+   act on. **One fact out of a larger document → cite by role.**
+2. **Is the file applied, or extended?** A procedure, checklist, standard or
+   template is *applied*: it reads identically in every skill that ships it, and
+   a generated copy is inert. A registry — a roster, an id table, an enum of
+   kinds — is *extended*: its content asserts that it is the one place an entry
+   may be added, and a second copy makes that claim false the moment somebody
+   adds to the wrong one. The generator prevents drift between copies; it does
+   not prevent a reader from treating a copy as a home. **Extended → cite by
+   role. Applied → vendor.**
+
+**VENDOR** means: add a `consumer<TAB>source` line to
+`scripts/sync-shared-references.sh`'s `MAP`, run the script, and cite the
+generated `references/shared/<file>.md` by path from the citing skill. The cost
+you accept is one more generated file that `--check` must keep current forever.
+
+**CITE BY ROLE** means: state the fact the reader needs, in the citing skill's
+own words, and name the owner by its **role** rather than by a path — "the
+coordinator's dispatch policy", "the grooming skill's Definition of Ready". No
+path, because no path resolves for a reader who has only the citing skill. The
+cost you accept is an unlinked hop, so say enough that a reader who never makes
+the hop still behaves correctly.
+
+**Both forms are already in the tree, and each is the right one for its case:**
+
+| citation | whole file? | applied or extended? | form |
+|---|---|---|---|
+| `sprint-plan` → the agent roster and the id-derivation rule, in `bead-bonanza`'s dispatch policy | no — one fact from a coordinator-scoped policy document | extended (a roster) | **cite by role** |
+| `sprint-plan` → `groom-beads`' epic Definition of Ready | yes — the file *is* the two checks `sprint-plan` runs | applied (a checklist) | **vendor** |
+
+Neither test is a tiebreak for the other: they agree on both rows, and test 1
+alone settles the first. Where they disagree, test 1 wins — a section cannot be
+vendored at all.
+
 ## Beads Issue Tracker
 
 This project uses **bd (beads)** for issue tracking. Run `bd prime` to see full workflow context and commands.
@@ -467,12 +629,11 @@ container died or lose your work. `agent-plugins-92q.31` retired all of that.
 
 ### What this requires of you
 
-- **Nothing, on the happy path.** The SessionStart hook bootstraps the database
-  from the remote, and the close ceremony (`bb-close-bead.sh`) pushes after
-  every close. Beads you create or close are durable without ceremony.
-- **If you create or close beads outside the close ceremony, run `bd dolt
-  push`.** That is the one manual step. A closure sitting only in the local
-  database dies with the container, exactly as an unexported one used to.
+- **Nothing.** The SessionStart hook bootstraps the database when it is empty
+  and otherwise pulls; a `Stop` hook (`.claude/hooks/dolt-push.sh`) pushes at
+  the end of every turn. Beads you create or close are durable without
+  ceremony, in or out of the close ceremony. Pushing by hand is never wrong,
+  just redundant.
 - **Never `bd export` as a persistence step.** It writes an untracked file and
   persists nothing. Export only for a viewer or for interchange.
 - **`bd remember` memories are excluded from `bd export`** and are not
@@ -496,10 +657,28 @@ Two things the environment supplies:
    and a credential helper that reads the PAT from the environment at call
    time, so the token is never written to disk.
 
-This was misdiagnosed for a full session as "GitHub refuses `refs/dolt/*`
-writes". It does not. The proof that settled it: a push with a **deliberately
-invalid** token succeeded, which is only possible if the proxy replaced the
-credential.
+Both re-measured 2026-08-20 on this repository, four pushes:
+
+| proxy | token | target | result |
+|---|---|---|---|
+| bypassed | real PAT | `refs/dolt/*` | succeeds |
+| enabled | real PAT | `refs/dolt/*` | **403** |
+| enabled | garbage | `refs/heads/*` | **succeeds** |
+| bypassed | garbage | `refs/dolt/*` | auth failed |
+
+Row 3 is the one that settles it: a push authenticated with a deliberately
+invalid token cannot succeed unless the proxy replaced the credential. So this
+is not GitHub refusing `refs/dolt/*` writes — it is the proxy's brokered token
+being scoped to `refs/heads`.
+
+The credential helper is registered under **both** the suffixless and the
+`.git` form of origin's URL because git matches the config key's path against
+the request's path exactly, and only the matching form answers — measured
+against a clone whose origin carries `.git`: suffixless key alone → `could not
+read Username for 'https://github.com'`; `.git` key alone → push succeeds.
+This repository's origin currently has no suffix, so the suffixless key is the
+live one and the other is the spare; which is which depends on how the clone
+was made.
 
 See `.claude/hooks/session-start.sh` and `docs/session-bootstrap.md`. The
 `bead-bonanza` skill itself never names a credential — it requires only "write
@@ -518,26 +697,3 @@ access to `refs/dolt/data`", and the mechanism is this repository's business.
   runs it — and then nothing bootstraps the database or establishes write
   access. The manual fallback is at the top of this file; the durable fix is
   the per-environment setup script in `docs/session-bootstrap.md`.
-
-## Beads Issue Tracker
-
-Use Beads (`bd`) for durable task tracking in repositories that include it. Use the `beads` skill at `.agents/skills/beads/SKILL.md` (project install) or `~/.agents/skills/beads/SKILL.md` (global install) for Beads workflow guidance, then use the `bd` CLI for issue operations.
-
-### Quick Reference
-
-```bash
-bd ready                # Find available work
-bd show <id>            # View issue details
-bd update <id> --claim  # Claim work
-bd close <id>           # Complete work
-bd prime                # Refresh Beads context
-```
-
-### Rules
-
-- Use `bd` for all task tracking; do not create markdown TODO lists.
-- Run `bd prime` when Beads context is missing or stale. Codex 0.129.0+ can load Beads context automatically through native hooks; use `/hooks` to inspect or toggle them.
-- Keep persistent project memory in Beads via `bd remember`; do not create ad hoc memory files.
-
-**Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md for details and anti-patterns.
-<!-- END BEADS CODEX SETUP -->

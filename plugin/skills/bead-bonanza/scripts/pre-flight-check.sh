@@ -4,15 +4,45 @@
 # Contract
 #   Measures what Phase 0 needs and reports it as a cited fact, not
 #   remembered prose. stderr: human-readable report. stdout: shell-evalable
-#   RUN_DIR=, SCRIPTS=, BB_* facts — eval it. Exit 0 proceed, 1 a blocking
+#   SCRIPTS= and BB_* facts — eval it. Exit 0 proceed, 1 a blocking
 #   condition named in the report, 2 bad invocation.
 #
-# Usage
-#   pre-flight-check.sh <run-id> [--gate-baseline] [--self-test]
+#   There is NO run directory. The run's record — manifest, baseline,
+#   amendments — lives on the run epic, which outlives a reclaimed container.
 #
-#   pre-flight-check.sh 1786345424-bbh                  # probe and report
-#   pre-flight-check.sh 1786345424-bbh --gate-baseline  # also run the gate suite
-#   pre-flight-check.sh --self-test                     # portability guards only
+# Where a new fact goes — the rule, because there are two destinations
+#   A fact about the RUN is durable: write it to the epic's manifest AND emit
+#   it. A resumed session reads the manifest and has nothing else.
+#   A fact about the CONTAINER is ephemeral: emit it only. In the manifest it
+#   would let a run resumed in a DIFFERENT container read a stale measurement
+#   of an environment that no longer exists — worse than absent, because it
+#   reads as current.
+#
+#   Manifest + emitted:  checks_ids, checks_baseline, concurrency_cap,
+#                        the model lineup
+#   Emitted only:        SCRIPTS, BB_NO_AGENT, BB_TREE_CLEAN,
+#                        BB_PUSH_NEEDS_REFSPEC, BB_GIT_CONFIG_WRITABLE,
+#                        BB_DOLT_*, BB_BRANCH / REMOTE / UPSTREAM,
+#                        BB_WORKTREE_BASEREF, BB_EVENT_LOG
+#   Audited against this rule when it was written; every fact is on the side
+#   the rule puts it.
+#
+# Usage
+#   pre-flight-check.sh [<epic-id>] [--json] [--self-test]
+#
+#   pre-flight-check.sh                    # environment only — run this FIRST
+#   pre-flight-check.sh agent-plugins-bir9 # + run dir and checks baseline
+#   pre-flight-check.sh --json             # the same facts as ONE JSON object
+#   pre-flight-check.sh --self-test        # portability guards only
+#
+#   --json is an ADDITIONAL mode, not a replacement. The default is
+#   shell-evalable because the caller runs `eval "$(pre-flight-check.sh)"`, and
+#   a shell cannot eval JSON. Both render from the same emit calls, so they
+#   cannot carry different keys — asserted in --self-test.
+#
+#   The run id IS the run epic's bead id. Two modes, because admission has to
+#   write to the tracker to resolve that epic and must not do so before the
+#   environment pass has shown a closure can be pushed.
 #
 #   The script never writes user-global state (~/.claude/settings.json, the
 #   global Dolt config). Where Dolt telemetry suppression or the
@@ -46,7 +76,6 @@ else
   BB_STAT_FLAVOUR=gnu
 fi
 
-upper_key() { printf '%s' "$1" | tr '[:lower:]' '[:upper:]' | tr -cs '[:alnum:]' '_' | sed 's/_$//'; }
 
 SELF="$(abs_dir "$0")/$(basename "$0")"
 SCRIPTS="$(abs_dir "$0")"
@@ -58,16 +87,110 @@ BLOCKERS=""
 
 say()  { printf '  %s\n' "$*" >&2; }
 head_() { printf '\n%s\n' "$*" >&2; }
-emit() { printf '%s=%s\n' "$1" "$2"; }
-emitq() { printf '%s=%s\n' "$1" "$(printf '%s' "$2" | sed "s/'/'\\\\''/g; s/^/'/; s/$/'/")"; }
+# Both output modes render from the SAME emit call, so they cannot carry
+# different keys. Nothing prints until _flush; JSON_OUT picks the buffer.
+_SHELL=""
+_JSON=""
+_json_add() { # _json_add <key> <value>
+  _e=$(printf '%s' "$2" | sed 's/\\/\\\\/g; s/"/\\"/g')
+  _JSON="${_JSON}  \"$1\": \"${_e}\",
+"
+}
+emit() { _SHELL="${_SHELL}$1=$2
+"; _json_add "$1" "$2"; }
+emitq() { _SHELL="${_SHELL}$1=$(printf '%s' "$2" | sed "s/'/'\\\\''/g; s/^/'/; s/$/'/")
+"; _json_add "$1" "$2"; }
+_flush() {
+  if [ "${JSON_OUT:-no}" = yes ]; then
+    printf '{\n%s\n}\n' "$(printf '%s' "$_JSON" | sed '$ s/,$//')"
+  else
+    printf '%s' "$_SHELL"
+  fi
+}
 block() { BLOCKERS="$BLOCKERS
   - $*"; REPORT_FAIL=1; }
 
+# ------------------------------------------------------- the manifest, merged
+#
+# Every manifest write is a read-merge-write, and this one FAILS rather than
+# falling back to an empty object on an unreadable manifest. Two reasons, and
+# the first is the one that bites today:
+#
+#   A read error must not be reported as a write success. Swallowing it means
+#   the caller prints "written: ..." having merged onto whatever it guessed.
+#
+#   `bd update --metadata` merges at the top level on bd 1.2.2 (measured:
+#   writing `{"delta":9}` over `{"alpha":1,"beta":"two"}` leaves all three) —
+#   so an empty base is survivable HERE. It is not survivable by contract:
+#   a nested value IS replaced wholesale (`{"a":1,"b":2}` overwritten with
+#   `{"c":3}` yields `{"c":3}`), and merge-on-top-level is undocumented
+#   behaviour this script should not stake the admission record on.
+#
+# manifest_merge <epic> <key=value>...   value prefixes:
+#   @path   the file's contents, as a string
+#   #digits a JSON number
+#   %words  whitespace-split into an array of strings
+#   (none)  the literal string
+manifest_merge() {
+  python3 - "$@" <<'PY'
+import json, subprocess, sys
+
+eid, pairs = sys.argv[1], sys.argv[2:]
+
+def fail(msg):
+    sys.stderr.write("manifest_merge: %s\n" % msg)
+    sys.exit(1)
+
+r = subprocess.run(["bd", "show", eid, "--json"], capture_output=True, text=True)
+if r.returncode != 0:
+    fail("bd show %s exited %d: %s" % (eid, r.returncode, r.stderr.strip()))
+try:
+    d = json.loads(r.stdout)
+except Exception as e:
+    fail("bd show %s returned unparseable JSON (%s)" % (eid, e))
+d = d[0] if isinstance(d, list) and d else d
+if not isinstance(d, dict):
+    fail("bd show %s returned no issue" % eid)
+md = d.get("metadata") or {}
+try:
+    cur = json.loads(md) if isinstance(md, str) else (md or {})
+except Exception as e:
+    fail("%s's metadata is not JSON (%s)" % (eid, e))
+if not isinstance(cur, dict):
+    fail("%s's metadata is not an object" % eid)
+
+for p in pairs:
+    k, sep, v = p.partition("=")
+    if not sep:
+        fail("argument %r is not key=value" % p)
+    if v.startswith("@"):
+        try:
+            with open(v[1:]) as fh:
+                cur[k] = fh.read()
+        except OSError as e:
+            fail("cannot read %s for key %s (%s)" % (v[1:], k, e))
+    elif v.startswith("#"):
+        try:
+            cur[k] = int(v[1:])
+        except ValueError:
+            fail("value for %s is not a number: %r" % (k, v[1:]))
+    elif v.startswith("%"):
+        cur[k] = v[1:].split()
+    else:
+        cur[k] = v
+
+w = subprocess.run(["bd", "update", eid, "--metadata", json.dumps(cur)],
+                   capture_output=True, text=True)
+if w.returncode != 0:
+    fail("bd update %s exited %d: %s" % (eid, w.returncode, w.stderr.strip()))
+PY
+}
+
 # ================================================================== self-test
 #
-# Every probe above is exercised against a scratch fixture, so the AGENTS.md
-# targeted-test entry for plugin/skills/bead-bonanza/scripts/** has something to
-# run. It must exit 0 on Linux and on macOS, and it must never touch the real
+# Every probe above is exercised against a scratch fixture, so the
+# targeted-test entry for plugin/skills/bead-bonanza/scripts/** has something
+# to run. It must exit 0 on Linux and on macOS, and it must never touch the real
 # $HOME or the real repository.
 
 st_fail=0
@@ -87,9 +210,15 @@ self_test() {
     echo "  FAIL cannot create fixture dir"; return 1; }
   trap 'rm -rf "$fixture"' EXIT
 
-  # 1. Bad invocation exits 2, and --self-test does not require a run id.
-  "$SELF" >/dev/null 2>&1; st "no args exits 2" 2 "$?"
+  # 1. Bad invocation exits 2. No args is NOT bad invocation — it is the
+  #    environment-only pass, which admission runs before it has an epic id,
+  #    so it may exit 0 or 1 but must never exit 2.
+  "$SELF" >/dev/null 2>&1
+  case "$?" in 2) st "no args is a valid mode" "not 2" "2" ;;
+               *) st "no args is a valid mode" ok ok ;; esac
+  "$SELF" --nope >/dev/null 2>&1; st "unknown option exits 2" 2 "$?"
   "$SELF" a b c d e >/dev/null 2>&1; st "too many args exits 2" 2 "$?"
+  "$SELF" one two >/dev/null 2>&1; st "two epic ids exit 2" 2 "$?"
 
   # 2. mtime wrapper agrees with the platform: an integer, close to now.
   : > "$fixture/probe"
@@ -132,19 +261,8 @@ self_test() {
     printf '  skip deny-entry tests (no jq)\n'
   fi
 
-  # 7. AGENTS.md block detection, both directions.
-  printf '%s\n' '# x' '## bead-bonanza gates' 'body' '## model lineup' 'body' > "$fixture/AGENTS.md"
-  st "gates block detected"  present "$(has_block "$fixture/AGENTS.md" '## bead-bonanza gates')"
-  st "lineup block detected" present "$(has_block "$fixture/AGENTS.md" '## model lineup')"
   printf '%s\n' '# x' > "$fixture/EMPTY.md"
-  st "absent block reported" absent "$(has_block "$fixture/EMPTY.md" '## bead-bonanza gates')"
 
-  # 8. The gate-line parser takes the FIRST backticked span after the label,
-  #    which is the command; the prose that follows often has backticks too.
-  gl='- **Format:** `cd cli && gofmt -l .` — must print nothing (`gofmt -w .` to fix)'
-  st "gate command parsed" "cd cli && gofmt -l ." "$(printf '%s\n' "$gl" | gate_cmd)"
-  st "gate label parsed" "FORMAT" "$(upper_key 'Format')"
-  st "gate label with parens" "TEST_FULL_SUITE" "$(upper_key 'Test (full suite)')"
 
   # 9. Portability lint over this script's own source. Every GNU-only or
   #    bash-4-only construct must carry the `portability-lint-ok` marker,
@@ -160,16 +278,31 @@ self_test() {
   hits="$(grep -n '\${[A-Za-z_][A-Za-z_0-9]*\^\^}' "$code")"
   st "no bash-4 case expansion" "" "$hits"
 
+  # --json renders from the same emit calls as the eval block, so the two
+  # cannot drift apart in KEYS. Assert that on a synthetic emit set rather
+  # than by running the probe: this self-test must stay free of git and
+  # network I/O, which is what lets CI and a per-bead check run it.
+  _SHELL=""; _JSON=""
+  emitq SELFTEST_A "a value with 'quotes' and spaces"
+  emit  SELFTEST_B plain
+  emitq SELFTEST_C 'back\slash and "double"'
+  _sh_keys="$(printf '%s' "$_SHELL" | sed -n 's/^\([A-Za-z_][A-Za-z_0-9]*\)=.*/\1/p' | tr '\n' ' ')"
+  JSON_OUT=yes; _json_text="$(_flush)"; JSON_OUT=no
+  _js_keys="$(printf '%s' "$_json_text" | sed -n 's/^  "\([^"]*\)".*/\1/p' | tr '\n' ' ')"
+  st "--json carries the same keys as the eval block" "$_sh_keys" "$_js_keys"
+
+  if command -v python3 >/dev/null 2>&1; then
+    if printf '%s' "$_json_text" | python3 -c 'import json,sys; json.load(sys.stdin)' 2>/dev/null
+    then st "--json is valid JSON" ok ok
+    else st "--json is valid JSON" ok "PARSE FAILED"; fi
+  else
+    st "--json is valid JSON" skipped skipped
+  fi
+  _SHELL=""; _JSON=""
+
   echo
   if [ "$st_fail" -eq 0 ]; then echo "RESULT: PASS"; return 0; fi
   echo "RESULT: FAIL"; return 1
-}
-
-# Extract the command from an AGENTS.md gate bullet: the first backticked span.
-gate_cmd() { sed -n 's/^[^`]*`\([^`]*\)`.*$/\1/p'; }
-
-has_block() {
-  if grep -q "^$2\$" "$1" 2>/dev/null; then printf 'present'; else printf 'absent'; fi
 }
 
 # Report whether the dolthub telemetry deny entry is present in a settings
@@ -188,22 +321,30 @@ deny_entry_present() {
 
 # ================================================================== arguments
 
-RUN_ID=""
-DO_GATES=no
-[ $# -ge 1 ] || die "usage: pre-flight-check.sh <run-id> [--gate-baseline] [--self-test]"
-[ $# -le 3 ] || die "usage: pre-flight-check.sh <run-id> [--gate-baseline] [--self-test]"
+# The run id IS the run epic's bead id. It is optional, and the two modes
+# exist because of an ordering constraint: admission has to CREATE or adopt
+# into that epic, which is a tracker write, and a tracker write must not
+# happen before section 9 has shown that closures can be pushed.
+#
+#   pre-flight-check.sh                 environment only — run this FIRST
+#   pre-flight-check.sh <epic-id>       everything, once admission has an epic
+#
+# Without an epic id there is no run directory and no checks baseline, and the
+# report says so rather than leaving their absence to be inferred.
+EPIC=""
+JSON_OUT=no
+[ $# -le 3 ] || die "usage: pre-flight-check.sh [<epic-id>] [--json] [--self-test]"
 for arg in "$@"; do
   case "$arg" in
     --self-test)     self_test; exit $? ;;
-    --gate-baseline) DO_GATES=yes ;;
+    --json)          JSON_OUT=yes ;;
     -*)              die "unknown option '$arg'" ;;
-    *)               [ -z "$RUN_ID" ] || die "only one run-id may be given"
-                     RUN_ID="$arg" ;;
+    *)               [ -z "$EPIC" ] || die "only one epic id may be given"
+                     EPIC="$arg" ;;
   esac
 done
-[ -n "$RUN_ID" ] || die "a run-id is required (or pass --self-test)"
-case "$RUN_ID" in
-  */*|*' '*) die "run-id must be a single path segment, got '$RUN_ID'" ;;
+case "$EPIC" in
+  */*|*' '*) die "an epic id is a single bead id, got '$EPIC'" ;;
 esac
 
 # ================================================================ 1. the repo
@@ -214,7 +355,7 @@ fi
 REPO="$(git rev-parse --show-toplevel)"
 cd "$REPO" || die "cannot cd to repo root $REPO"
 
-head_ "pre-flight-check — run $RUN_ID"
+head_ "pre-flight-check${EPIC:+ — run $EPIC}"
 say "repo: $REPO"
 
 # Prune stale worktree registrations before anything downstream trusts
@@ -223,30 +364,118 @@ say "repo: $REPO"
 git worktree prune 2>/dev/null || true
 say "worktree registrations pruned"
 
-# ====================================================== 2. the AGENTS.m blocks
+# ================================================ 2. the project's checks
 
-head_ "AGENTS.md blocks"
-GATES_BLOCK="$(has_block AGENTS.md '## bead-bonanza gates')"
-LINEUP_BLOCK="$(has_block AGENTS.md '## model lineup')"
-say "## bead-bonanza gates: $GATES_BLOCK"
-say "## model lineup:      $LINEUP_BLOCK"
-if [ "$GATES_BLOCK" = absent ] || [ "$LINEUP_BLOCK" = absent ]; then
-  block "a required AGENTS.md block is missing — read references/project-setup.md and draft it WITH the user; do not invent one"
+# The project declares its checks in `sf.toml` at the repository root — an
+# array of `[[checks]]` tables carrying an `id` and a `command` each, never in
+# prose this script parses. `bb-checks.py` reads that array and runs it; the
+# only knob is `$BB_SF_TOML`, which moves the config file.
+head_ "Project checks"
+CHECKS_RUNNER="$SCRIPTS/bb-checks.py"
+CHECKS_IDS=""
+if [ ! -x "$CHECKS_RUNNER" ]; then
+  block "$CHECKS_RUNNER is missing or not executable — it ships with this skill, so a broken checkout is the likely cause"
+else
+  # The runner validates the whole declaration before it would run anything,
+  # so asking it for the ids is also the syntax check. Its message names the
+  # fault precisely; repeating that here in weaker words would only obscure it.
+  _ids_out="$("$CHECKS_RUNNER" --ids 2>&1)"; _ids_st=$?
+  if [ "$_ids_st" -ne 0 ]; then
+    block "the project declares no runnable checks — $_ids_out — read references/project-setup.md and declare them WITH the user; do not invent checks"
+  else
+    CHECKS_IDS="$(printf '%s\n' "$_ids_out" | tr '\n' ' ' | sed 's/  *$//')"
+    say "checks declared: $CHECKS_IDS"
+  fi
 fi
 
-# Echo both blocks so the orchestrator does not have to open AGENTS.md at all —
-# that read was Phase 0 step 1, and this replaces it.
-echo_block() { awk -v h="$1" '$0==h{f=1} /^## /{if(f && $0!=h)exit} f' AGENTS.md 2>/dev/null; }
-for b in '## bead-bonanza gates' '## model lineup'; do
-  printf '\n' >&2
-  echo_block "$b" | sed 's/^/    /' >&2
-done
+# `[models]` and `[run]` are flat key reads, so they need no TOML parser:
+# sf_get <section> <key> prints the quoted value, or nothing. Section-scoped,
+# because `standard` under [models] and `standard` anywhere else are different
+# keys. `[[checks]]` is an array of tables and is NOT readable this way — that
+# is bb-checks.py's job, and why it exists.
+sf_get() {
+  awk -v want="[$1]" -v key="$2" '
+    /^[[:space:]]*\[/ { sec=$0; gsub(/[[:space:]]/,"",sec); next }
+    sec==want {
+      line=$0
+      sub(/^[[:space:]]*/,"",line)
+      if (index(line, key) == 1) {
+        rest=substr(line, length(key)+1)
+        sub(/^[[:space:]]*=[[:space:]]*/,"",rest)
+        if (match(rest, /^"[^"]*"/)) {
+          v=substr(rest, RSTART+1, RLENGTH-2)
+          print v; exit
+        }
+      }
+    }
+  ' "${BB_SF_TOML:-sf.toml}" 2>/dev/null
+}
 
-# The parseable profile is the run of `- **Label:** `cmd`` bullets BEFORE the
-# first `###` subsection. Everything after it is commentary (known-red
-# exceptions, CI description, install notes) whose bullets are prose, not
-# commands, and running them would be nonsense.
-GATE_LINES="$(awk '/^## bead-bonanza gates$/{f=1;next} /^### /{f=0} /^## /{if(f)exit} f && /^- \*\*/' AGENTS.md 2>/dev/null)"
+# The run epic. Verified rather than assumed: everything downstream reads the
+# queue from it, and a typo'd or non-epic id would produce an empty run that
+# looks like a finished one.
+EPIC_KIND=""; EPIC_QUEUE=""; EVENT_LOG=""
+if [ -n "$EPIC" ]; then
+  # `bd show` on an unknown id prints {"error": ...} and exits 1, so a
+  # non-empty stdout is not proof the bead exists. Read the type, and report
+  # "missing" separately from "wrong type" — they need different fixes.
+  _ej="$(bd show "$EPIC" --json 2>/dev/null)"
+  EPIC_KIND="$(printf '%s' "$_ej" | python3 -c 'import json,sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    print("!unreadable"); raise SystemExit
+d = d[0] if isinstance(d, list) and d else d
+if not isinstance(d, dict) or d.get("error") or not d.get("id"):
+    print("!missing")
+else:
+    print(d.get("issue_type", "") or "!untyped")' 2>/dev/null)"
+  [ -n "$EPIC_KIND" ] || EPIC_KIND="!unreadable"
+  if [ "$EPIC_KIND" = "!missing" ] || [ "$EPIC_KIND" = "!unreadable" ]; then
+    block "no bead $EPIC in the tracker — the run id IS the run epic's id, so admission must create or name one that exists"
+  else
+    if [ "$EPIC_KIND" != "epic" ]; then
+      block "$EPIC is type '$EPIC_KIND', not an epic — a run is scoped by an epic; admission creates one when the user gave beads"
+    else
+      # --exclude-type=epic is mandatory, not tidiness: --parent is TRANSITIVE
+      # and returns intermediate epics too, so without it a run would dispatch
+      # its own sub-epics as if they were work.
+      EPIC_QUEUE="$(bd ready --parent "$EPIC" --exclude-type=epic --json 2>/dev/null | python3 -c 'import json,sys
+try: d=json.load(sys.stdin)
+except Exception: d=[]
+print(len(d))' 2>/dev/null)"
+      [ -n "$EPIC_QUEUE" ] || EPIC_QUEUE=0
+      say "run epic: $EPIC — $EPIC_QUEUE bead(s) ready in scope"
+      [ "$EPIC_QUEUE" != "0" ] || say "NOTE: nothing ready. Either every bead is closed or blocked, or admission put nothing in."
+    fi
+  fi
+fi
+unset _ej
+
+# The tier lineup is a routing fact, so it is read as configuration rather than
+# as prose. Each tier resolves independently: a project may declare only the
+# tiers it uses, and an undeclared tier is reported empty rather than guessed.
+MODEL_LIGHT="$(sf_get models light)"
+MODEL_STANDARD="$(sf_get models standard)"
+MODEL_ADVANCED="$(sf_get models advanced)"
+MODEL_FRONTIER="$(sf_get models frontier)"
+if [ -n "$MODEL_LIGHT$MODEL_STANDARD$MODEL_ADVANCED$MODEL_FRONTIER" ]; then
+  LINEUP=declared
+  say "models: light=${MODEL_LIGHT:--} standard=${MODEL_STANDARD:--} advanced=${MODEL_ADVANCED:--} frontier=${MODEL_FRONTIER:--}"
+else
+  # Not a blocker, and deliberately not a guess. Dispatching without a `model`
+  # param makes every subagent inherit the session model, which is a stateable
+  # cost profile; inventing a lineup is not.
+  LINEUP=undeclared
+  say "no [models] lineup in sf.toml — dispatch will omit the model param and every"
+  say "subagent inherits the session model. Say so once at run start."
+fi
+
+# Project-level run defaults. Anything a project genuinely owns rather than
+# decides per run.
+PUSH_MODE_DEFAULT="$(sf_get run push_mode)"
+[ -n "$PUSH_MODE_DEFAULT" ] || PUSH_MODE_DEFAULT=unset
+
 
 # =================================================== 3. beads telemetry + deny
 
@@ -284,17 +513,29 @@ esac
 
 # ======================================================== 4. run dir + scripts
 
-head_ "Run directory"
-RUN_ROOT="${TMPDIR:-/tmp}/claude/bead-bonanza"
-RUN_DIR="$RUN_ROOT/$RUN_ID"
-if mkdir -p "$RUN_DIR" 2>/dev/null && touch "$RUN_DIR/.ok" 2>/dev/null; then
-  say "run dir: $RUN_DIR"
-  # -n is load-bearing: without it the second run's link is created INSIDE the
-  # first run's directory instead of replacing the pointer.
-  ln -sfn "$RUN_DIR" "$RUN_ROOT/current" 2>/dev/null && say "current -> $RUN_ID"
+head_ "Run record"
+if [ -z "$EPIC" ]; then
+  say "no epic id given — environment-only pass; no manifest, no checks baseline."
+  say "Re-run as \`pre-flight-check.sh <epic-id>\` once admission has resolved one."
 else
-  block "run dir is not writable: $RUN_DIR"
-  say "run dir: UNWRITABLE $RUN_DIR"
+  # There is no run directory. The manifest lives in the run epic's metadata
+  # and the amendments in its comments, so the run's record is as durable as
+  # the tracker and survives a reclaimed container, which a /tmp path does not.
+  say "run record: metadata on $EPIC (no run directory — the tracker IS the record)"
+
+  # The event log is the opposite kind of thing: a live STREAM for the
+  # Monitor to tail, not a record. It is ephemeral by design — `bd swarm
+  # status` is the durable view, computed from the beads themselves.
+  EVENT_LOG="${TMPDIR:-/tmp}/bb-events-$EPIC.log"
+  if : >> "$EVENT_LOG" 2>/dev/null; then
+    say "event log: $EVENT_LOG"
+    say "export BB_EVENT_LOG before installing .beads/hooks/on_update — the hook"
+    say "appends to it, and an unset variable makes every write fail silently."
+  else
+    EVENT_LOG=""
+    say "event log: UNWRITABLE — progress streaming will be unavailable; use"
+    say "\`bd swarm status $EPIC\` instead."
+  fi
 fi
 say "scripts:  $SCRIPTS"
 
@@ -354,7 +595,16 @@ fi
 
 if command -v jq >/dev/null 2>&1; then JQ=ok; say "jq:  $(command -v jq)"
 else JQ=missing; say "jq:  MISSING"
-     block "jq is not on PATH — the close script, the retro dump and the bucketing need it"; fi
+     block "jq is not on PATH — the close script, the retro dump and the batching need it"; fi
+
+# `tomllib` is stdlib from 3.11, so probing the import settles both the
+# interpreter and the version in one call.
+if python3 -c 'import tomllib' >/dev/null 2>&1; then
+  PY=ok; say "python3: $(command -v python3) (tomllib present)"
+else
+  PY=missing; say "python3: MISSING or older than 3.11"
+  block "python3 3.11+ is not on PATH — bb-checks.py reads the project's [[checks]] declaration with tomllib"
+fi
 
 if [ -z "$(git status --porcelain 2>/dev/null)" ]; then
   TREE_CLEAN=yes; say "working tree: clean"
@@ -385,7 +635,7 @@ else
   say "$SETTINGS_LOCAL: absent — expect a permission prompt per distinct command"
 fi
 
-# worktree.baseRef — hard gate, blocking. Every bead runs in its own worktree
+# worktree.baseRef — hard gate, blocking. Every dispatch runs in its own worktree
 # (universal, not opt-in — see SKILL.md, "Every bead runs in its own
 # worktree"), so an unset baseRef silently branches EVERY worktree from the
 # DEFAULT branch instead of session HEAD. Measured, because this lives in
@@ -400,64 +650,133 @@ fi
 say "worktree.baseRef: $WORKTREE_BASEREF"
 if [ "$WORKTREE_BASEREF" != head ]; then
   say "  ^ NOT 'head'. isolation:\"worktree\" will branch from the default branch,"
-  say "    not session HEAD, and every worktree wave loses the sprint branch's commits."
+  say "    not session HEAD, and every worktree loses the sprint branch's commits."
   block "worktree.baseRef is '$WORKTREE_BASEREF', not 'head' — every worktree dispatched this run will branch from the default branch instead of session HEAD, silently dropping every commit the sprint branch carries, isolated beads included. Fix: set .worktree.baseRef = \"head\" in $USER_SETTINGS (user scope; takes effect immediately, no restart), then re-run pre-flight-check.sh before dispatching."
 fi
 
 
 # =============================================================== 7. PR CI
 
-head_ "CI"
-# Glob each extension separately and test each file. A single `ls` over both
-# globs exits nonzero whenever one of them matches nothing, which silently
-# reported "no CI" in a repo that has only .yml workflows.
-PR_CI=no
-for wf in .github/workflows/*.yml .github/workflows/*.yaml; do
-  [ -f "$wf" ] || continue
-  if grep -q 'pull_request' "$wf" 2>/dev/null; then PR_CI=yes; break; fi
-done
-if [ "$PR_CI" = yes ]; then
-  say "pull_request-triggered workflows found — a draft PR opened now gets every"
-  say "wave the full CI matrix. Ask the user once."
+# ============================================== 7b. the Agent tool assertion
+#
+# Whether the session has an Agent/Task tool is a harness property no script
+# can see, so this is an ASSERTION the agent makes, not a probe. It is carried
+# as a fact anyway: every other Phase 0 finding reaches the dispatch manifest,
+# and one that does not is one a resumed session cannot re-read.
+head_ "Delegation"
+if [ "${BB_ASSUME_NO_AGENT:-0}" = 1 ]; then
+  NO_AGENT=yes
+  block "BB_ASSUME_NO_AGENT=1 — no Agent tool, so nothing can be delegated: not grooming, not planning, not the beads. Do not start a run. Use the \`run-bead\` skill per bead instead."
 else
-  say "no pull_request trigger found — do not ask about a draft PR."
+  NO_AGENT=no
+  say "assuming an Agent tool is available (set BB_ASSUME_NO_AGENT=1 if not)."
 fi
 
-# ======================================================== 8. gate baseline
+# ======================================================== 8. checks baseline
 
-head_ "Gate baseline"
-GATE_BASELINE=skipped
-GATE_KEYS=""
-GATE_EMIT=""
-if [ "$DO_GATES" = yes ] && [ -n "$GATE_LINES" ]; then
-  GATE_BASELINE=captured
-  # bash 3.2: no associative arrays. Loop the bullet lines, take the label
-  # before the colon and the first backticked span after it.
-  while IFS= read -r line; do
-    [ -n "$line" ] || continue
-    label="$(printf '%s' "$line" | sed -n 's/^- \*\*\([^:*]*\).*$/\1/p')"
-    cmd="$(printf '%s\n' "$line" | gate_cmd)"
-    [ -n "$label" ] || continue
-    key="BB_GATE_$(upper_key "$label")"
-    if [ -z "$cmd" ]; then
-      say "$label: unparsed (no command in backticks)"
-      GATE_EMIT="$GATE_EMIT
-$key=unparsed"
-      continue
+head_ "Checks baseline"
+CHECKS_BASELINE=skipped
+if [ -z "$EPIC" ]; then
+  say "not captured — no epic id was given, so there is nowhere to record it."
+  say "The baseline is per-run, not per-repo: capture it on the epic-scoped pass."
+elif [ -n "$CHECKS_IDS" ]; then
+  # The baseline is what the project's checks PRINT on the untouched tree, plus
+  # the status they exit with. Nothing is parsed: a bead compares its own run's
+  # output against this text, so a line present in both was already failing and
+  # a line only in the bead's is the bead's.
+  # Two scratch files, deleted before this script returns. They are the
+  # runner's report and the assembled text on its way into the manifest, not
+  # the run's record — the record is the epic.
+  _tsv="$(mktemp "${TMPDIR:-/tmp}/bb-baseline.XXXXXX")" || die "cannot create a temp file"
+  _raw="$(mktemp "${TMPDIR:-/tmp}/bb-baseline-md.XXXXXX")" || die "cannot create a temp file"
+  _out="$("$CHECKS_RUNNER" --report "$_tsv" 2>&1)"; _st=$?
+  CHECKS_BASELINE=captured
+  # One row per check, read from the runner's --report file rather than from
+  # its output. The `=== <id>` delimiters share a stream with bytes the runner
+  # does not control, so a tool that prints one forges a verdict — measured: a
+  # check echoing `=== other FAILED (exit 9)` made an in-band reader report a
+  # passing check as failed.
+  #
+  # A reading aid over the raw block below, never a substitute for it:
+  # attribution is still a bead comparing text against text.
+  _verdicts="$(awk -F'\t' '
+    { printf "| `%s` | %s |\n", $1, ($2 == 0 ? "passed" : "**FAILED** (exit " $2 ")") }
+  ' "$_tsv" 2>/dev/null)"
+  {
+    printf '# Checks baseline\n\n'
+    printf 'What the project'"'"'s declared checks printed on the untouched tree,\n'
+    printf 'before any bead ran, and the status they exited with.\n\n'
+    printf '| check | on the untouched tree |\n|---|---|\n%s\n\n' "$_verdicts"
+    if [ "$_st" -eq 0 ]; then
+      printf 'Exit status: **0 — everything passed.** Every bead is expected to leave it\n'
+      printf 'that way; any failure you see is yours.\n\n'
+    else
+      printf 'Exit status: **%s — something was ALREADY failing.** It is not yours to\n' "$_st"
+      printf 'fix. The bar for your bead is "no findings beyond what is below", not\n'
+      printf '"exit 0": run the checks, and compare your output against this text.\n\n'
     fi
-    if bash -c "$cmd" >/dev/null 2>&1; then verdict=pass; else verdict=fail; fi
-    say "$label: $verdict   ($cmd)"
-    GATE_EMIT="$GATE_EMIT
-$key=$verdict"
-    GATE_KEYS="$GATE_KEYS $key"
-  done <<EOF
-$GATE_LINES
-EOF
-  say "the bar for every bead is 'no findings beyond this baseline', not 'exit 0'."
-  say "a gate with no recorded baseline is expected to exit 0."
+    printf '```\n%s\n```\n' "$_out"
+  } > "$_raw" 2>/dev/null
+  if [ "$_st" -eq 0 ]; then
+    say "baseline: everything passed (exit 0)"
+  else
+    say "baseline: ALREADY FAILING (exit $_st) — a bead is not expected to fix it"
+  fi
+
+  # Onto the epic. `checks_ids` goes as an array, not the space-joined string:
+  # a consumer that has to re-split a string is one that will split it wrong
+  # the first time an id contains a space.
+  if manifest_merge "$EPIC" \
+       "checks_ids=%$CHECKS_IDS" \
+       "checks_baseline_status=#$_st" \
+       "checks_baseline=@$_raw"
+  then
+    say "written: manifest on $EPIC (\`bd show $EPIC --json | jq -r '.[0].metadata.checks_baseline'\`)"
+    say "INLINE it into every subagent prompt — a baseline that stops at the"
+    say "planner is one the agent running the checks never sees."
+  else
+    block "could not write the checks baseline into $EPIC's manifest"
+  fi
+  rm -f "$_tsv" "$_raw"
 else
-  say "not captured — re-run with --gate-baseline. Until then every gate is"
-  say "expected to exit 0, and a pre-existing failure will be misread as a regression."
+  say "not captured — no checks were declared, so every check is expected to"
+  say "pass and a pre-existing failure will be misread as a regression."
+fi
+
+# ================================================== 8b. concurrency cap
+
+# How many subagents the harness will run at once, and therefore how large a
+# dev pool a plan may size (N_dev <= cap - 1: the coordinator holds a slot).
+#
+# A RUN fact, not a container fact, even though its source is a session
+# environment variable: a run resumed on a differently-configured session has
+# to be able to read what the PLAN assumed, not what the current container
+# happens to allow. So it goes to the manifest as well as being emitted.
+head_ "Concurrency"
+CONCURRENCY_CAP="${CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS:-20}"
+case "$CONCURRENCY_CAP" in
+  ''|*[!0-9]*)
+    # A string in the manifest is worse than the default: the consumer is a
+    # count comparison, and it would compare a number against text.
+    say "CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS='${CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS:-}' is not a number — using 20"
+    CONCURRENCY_CAP=20 ;;
+esac
+say "concurrency_cap: $CONCURRENCY_CAP (a plan may size N_dev <= $((CONCURRENCY_CAP - 1)))"
+
+# Merged onto the epic on ANY epic-scoped pass. Deliberately NOT inside the
+# checks-baseline branch above: a project that declares no checks still plans
+# its dev pool against the cap, and a key written only on the baseline path would
+# be null for exactly those runs.
+if [ -n "$EPIC" ]; then
+  # A JSON number, matching the shape sprint-plan's run-record.md documents.
+  if manifest_merge "$EPIC" "concurrency_cap=#$CONCURRENCY_CAP"
+  then
+    say "written: concurrency_cap on $EPIC (\`bd show $EPIC --json | jq '.[0].metadata.concurrency_cap'\`)"
+  else
+    block "could not write concurrency_cap into $EPIC's manifest"
+  fi
+else
+  say "not written — no epic id was given, so there is no manifest to merge it into."
 fi
 
 # ==================================================== 9. tracker durability
@@ -491,7 +810,7 @@ else
   say "refs/dolt/data write: n/a — no Dolt remote configured"
 fi
 if [ "$DOLT_WRITE" = no ]; then
-  block "refs/dolt/data is not writable (probed: $DOLT_WRITE_PROBE — push failed). Every bead closure this run makes dies with the container when it is reclaimed; the tracker has no JSONL fallback. Fix write access (AGENT_PLUGINS_ACCESS_TOKEN and unproxied github.com egress — see docs/session-bootstrap.md), then re-run pre-flight-check.sh before Phase 1."
+  block "refs/dolt/data is not writable (probed: $DOLT_WRITE_PROBE — push failed). Every bead closure this run makes dies with the container when it is reclaimed; the tracker has no JSONL fallback. Fix write access — the credential and egress path are the project's to supply — then re-run pre-flight-check.sh before Phase 1."
 fi
 
 # ================================================================= 10. verdict
@@ -505,12 +824,17 @@ else
 fi
 
 # The evalable block. Values that can contain spaces are single-quoted.
-emitq RUN_DIR "$RUN_DIR"
 emitq SCRIPTS "$SCRIPTS"
-emit  BB_GATES_BLOCK "$GATES_BLOCK"
-emit  BB_LINEUP_BLOCK "$LINEUP_BLOCK"
+emitq BB_CHECKS_IDS "$CHECKS_IDS"
+emit  BB_CONCURRENCY_CAP "$CONCURRENCY_CAP"
+emit  BB_LINEUP "$LINEUP"
+emitq BB_MODEL_LIGHT "$MODEL_LIGHT"
+emitq BB_MODEL_STANDARD "$MODEL_STANDARD"
+emitq BB_MODEL_ADVANCED "$MODEL_ADVANCED"
+emitq BB_MODEL_FRONTIER "$MODEL_FRONTIER"
+emitq BB_PUSH_MODE_DEFAULT "$PUSH_MODE_DEFAULT"
 emitq BB_SUBAGENT_MODEL_OVERRIDE "$SUBAGENT_MODEL_OVERRIDE"
-emit  BB_PR_CI "$PR_CI"
+emit  BB_NO_AGENT "$NO_AGENT"
 emit  BB_TREE_CLEAN "$TREE_CLEAN"
 emit  BB_PUSH_NEEDS_REFSPEC "$PUSH_NEEDS_REFSPEC"
 emit  BB_GIT_CONFIG_WRITABLE "$GIT_CONFIG_WRITABLE"
@@ -527,7 +851,11 @@ emit  BB_DOLT_WRITE "$DOLT_WRITE"
 emit  BB_DENY_ENTRY "$DENY_ENTRY"
 emit  BB_SETTINGS_LOCAL_ALLOW "$SETTINGS_LOCAL_ALLOW"
 emitq BB_WORKTREE_BASEREF "$WORKTREE_BASEREF"
-emit  BB_GATE_BASELINE "$GATE_BASELINE"
-[ -n "$GATE_EMIT" ] && printf '%s\n' "$GATE_EMIT" | sed '/^$/d'
+emit  BB_CHECKS_BASELINE "$CHECKS_BASELINE"
+emitq BB_EPIC "$EPIC"
+emitq BB_EVENT_LOG "$EVENT_LOG"
+emitq BB_EPIC_QUEUE "$EPIC_QUEUE"
+
+_flush
 
 exit "$REPORT_FAIL"

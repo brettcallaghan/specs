@@ -113,7 +113,7 @@ the orchestrator/verifier confirms it.
 Real edges only, correct field (`depends_on` / `blocks`, `parent_slug`,
 `related`, `discovered_from`), each referencing another work order by slug.
 Ordering SHALL live in the graph, not in prose or priority. A missing real edge
-is a wave-time race; a fabricated edge over-serializes.
+is a dispatch-time race; a fabricated edge over-serializes.
 
 ### 7. Tier assigned (+ reason)
 `tier` from the closed, ordered set (`light | standard | advanced |
@@ -130,8 +130,13 @@ their C4 doc. Skip cleanly if the repo has no C4 docs.
 
 ### 9. No open decisions
 The work order SHALL carry no unresolved choice. It fails this check WHEN it
-carries a decision-required label, a "DECISION REQUIRED" / "TBD" / "open
-question" marker, or an options list with no option marked as selected.
+carries a "DECISION REQUIRED" / "TBD" / "open question" marker, or an options
+list with no option marked as selected.
+
+A work order that fails this check SHALL be labelled **`human`** — the label
+`bd human list`, `bd human respond`, `bd human dismiss` and `bd human stats`
+all read. One label with tooling behind it, rather than a second label
+carrying the same signal with none.
 
 WHERE an open choice would change the order's observable behavior, it is an
 acceptance-criteria gap and fails check 4 as well — pin the behavior in the AC,

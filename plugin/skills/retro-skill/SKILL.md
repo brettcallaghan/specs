@@ -32,6 +32,31 @@ that is a retro-skill finding.
 *documents*; `retro-skill` critiques the *skills, templates, and
 scripts*. A completed phase can warrant both.
 
+## Whose problem is it — apply the merge test
+
+**Findings here serve the repository that VENDS the skill**, not the project
+the skill ran in. Those are the same people only when a repository retros its
+own skills, and assuming they always are is what puts proposals a project
+cannot act on into that project's backlog.
+
+The words do not separate the cases — "the blueprint template has no rule for
+X" and "our blueprint has no rule for X" are the same sentence about different
+artifacts. One question does:
+
+> **Where would the fix land?**
+>
+> - In **this project's own repository** → it is not a `retro-skill` finding.
+>   It belongs to the project's own retro, as an issue in its tracker.
+> - In the **repository that vends the skill** → it is yours.
+
+A finding captured in-flight already carries the answer: `retro:tooling:<name>`
+is this skill's audience; the six work-order kinds are the project's.
+
+**A project SHALL NOT accumulate issues about skills it cannot change.** Where
+this skill runs in a project that did not author the skill, its output leaves
+through that project's `.sf/outbox/<skill>/` and is never filed in its
+backlog.
+
 ## When to run
 
 - After a skill runs **to completion** — while the session is fresh and
@@ -61,7 +86,7 @@ finding:
 1. **Misleading text** — an instruction that led the agent to the wrong
    action. Quote it **verbatim with `file:line`**, and state what the
    agent did because of it.
-   > e.g. `triage-rfc/SKILL.md:0` "normalize the item into a conforming
+   > e.g. `triage-issue/SKILL.md:0` "normalize the item into a conforming
    > RFC" — assumed one file = one RFC; the real input was three
    > concatenated RFCs, so the agent had to invent a split step.
 2. **Script / tool defect** — a command, script, or check the skill
@@ -106,6 +131,11 @@ triage side's call — never the retro's. Record:
   SKILL.md frontmatter version.
 - **model** and **effort** — exact model id and reasoning effort
   (e.g. `claude-opus-4-8[1m]`, effort high). Not "Claude".
+- **session** — the harness's session identifier, WHERE it exposes one.
+  Optional, and it is not a substitute for `model`: `model` says what
+  behaviour to reproduce, `session` says *which agent* produced the
+  finding, which is what lets triage disclose self-approval. Two
+  unrelated agents can share a model, so `model` cannot answer it.
 - **runs_observed** — how many runs stand behind this evidence. This is
   the denominator for any "every run" claim; never assert more
   recurrence than you observed.
@@ -194,21 +224,28 @@ Retro progress:
    Complete every section, then run the template's readiness gate. Fix what it reports and re-run; do not proceed while it fails. After two full failed cycles, stop and surface the blocker rather than continuing to retry.
    Set status `ready-for-review` only once the gate passes.
 6. **Route the output** into a directory named for the skill critiqued.
-   `<skill-name>` is the RFC's `skill` frontmatter value, so one
-   directory accumulates every RFC and note about one skill — and
-   recurrence, the strongest signal this pipeline has, becomes visible
-   by listing it.
-   - Retroing a skill **from a downstream project** →
-     `rfcs/outbox/<skill-name>/rfc-<origin-project>-<slug>.md` (no
-     number); the human copies it into the framework repo's
-     `rfcs/inbox/<skill-name>/` for triage.
-   - Retroing a skill **inside this framework repo** (dogfooding, or
-     this repo's own skills) → straight to `rfcs/inbox/<skill-name>/`
-     for triage. This closes the self-improvement loop: retro-skill →
-     inbox → `triage-rfc`.
-   - **Null result** → a `retro-note-<origin>-<YYYY-MM-DD>.md` in the
-     same `<skill-name>` directory, so the retro log stays complete; a
-     skill that retroed clean is information.
+   `<target>` is the issue's `target` frontmatter value, so one
+   directory accumulates every issue about one skill — and recurrence,
+   the strongest signal this pipeline has, becomes visible by listing
+   it.
+   - Retroing a skill **from a project that does not vend it** →
+     `.sf/outbox/<target>/<YYYY-MM-DD>-<slug>.md`, one file per issue.
+     The project's owner forwards them to the vending repository.
+     **They are NEVER filed in this project's own tracker**: a backlog
+     of proposals its owners cannot act on teaches them to ignore the
+     channel.
+   - Retroing a skill **inside the repository that vends it**
+     (dogfooding, or this repo's own skills) → the outbox is swept into
+     that repository's own tracker in the same run, since it is its own
+     downstream. This closes the self-improvement loop: retro-skill →
+     outbox → `triage-issue` → groomed beads → a sprint.
+   - **Null result** → say so in the report and log it; a skill that
+     retroed clean is information. Write no issue file — an empty
+     issue is not a null result, it is a file someone has to open to
+     discover it says nothing.
+
+   **The outbox belongs to the project, not to us.** Emptying it,
+   forwarding it, or ignoring it entirely are all its owners' call.
 7. **Hand off.** Report what was produced and where it routes.
 
    Every factual claim in that report SHALL cite what it derives from —
@@ -223,7 +260,7 @@ Retro progress:
    A sentence either names its source or it does not.
 
    Do NOT edit the skill yourself — retro-skill's authority ends at the
-   RFC; `triage-rfc` resolves it after human approval.
+   RFC; `triage-issue` resolves it after human approval.
 
 ## The bar, restated
 
@@ -246,7 +283,7 @@ about a skill belongs in Considered and Not Proposed at most.
 | Padding with polish while blockers exist | Dilutes the RFC; rank by severity and lead with blockers |
 | One RFC per finding, or one RFC spanning several skills | Bundle all findings for ONE skill into one RFC (its proposals are the units of decision); findings about a different skill get their own RFC. The exception is a finding that is a property of several skills at once — route it per step 5: a standards requirement plus ONE RFC against the skill that most exhibits it |
 | N near-identical RFCs for one cross-cutting finding | The workaround the rule above invites, and the worse failure: triage then decides the same proposal N times. Use step 5's cross-skill route instead |
-| Editing the skill during the retro | The retro's authority ends at the RFC; resolution belongs to `triage-rfc` |
+| Editing the skill during the retro | The retro's authority ends at the RFC; resolution belongs to `triage-issue` |
 
 ## Reference files
 

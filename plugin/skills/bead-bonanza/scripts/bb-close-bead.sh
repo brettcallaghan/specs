@@ -22,7 +22,9 @@
 #   replayed by hand during crash recovery. One script means one behavior.
 #
 # Usage
-#   bb-close-bead.sh [--trailers-file <path>] <bead-id> <priority> <title> [path ...]
+#   bb-close-bead.sh [--trailers-file <path>] [--trailers-from <epic>] \
+#                    <bead-id> <priority> <title> [path ...]
+#   bb-close-bead.sh --self-test
 #
 #   --trailers-file <path>  optional; must precede <bead-id>. Its contents
 #       are appended to the commit message body after a blank line (e.g.
@@ -47,8 +49,8 @@
 #
 #   The close does NOT touch the bead's description: grooming wrote it, and
 #   closing must not rewrite it. Findings belong in `retro:`-prefixed
-#   `bd comment`s on the bead; the run directory's <bead-id>.handoff.md is an
-#   artifact the orchestrator's acceptance check reads, not an input here.
+#   `bd comment`s on the bead.
+#
 #
 # Exit status
 #   0  bead closed, committed, tracker pushed (short sha on stdout)
@@ -65,7 +67,50 @@ set -uo pipefail
 die()  { echo "bb-close-bead: $*" >&2; exit 2; }
 fail() { echo "bb-close-bead: $*" >&2; exit 1; }
 
+# ---------------------------------------------------------------- self-test
+# The invocation surface ONLY. Every case below fails before the script
+# touches the tracker, git, or the filesystem, so the self-test needs no
+# database, no repository and no network — which is what makes it runnable
+# anywhere, including as a declared check.
+#
+# What it deliberately does not cover: the close ceremony itself. Steps 1-5
+# mutate a tracker and a git history, and a self-test that did so would either
+# need a scratch repo per run or leave litter in a real one. Those steps are
+# exercised by every bead that closes.
+self_test() {
+  fails=0
+  t() { # t <name> <expected-rc> <args...>
+    n="$1"; e="$2"; shift 2
+    "$0" "$@" >/dev/null 2>&1; r=$?
+    if [ "$r" = "$e" ]; then printf '  ok   %s\n' "$n"
+    else printf '  FAIL %s (expected %s, got %s)\n' "$n" "$e" "$r"; fails=$((fails+1)); fi
+  }
+  # 2 = invocation error. Each of these is a distinct branch in the parser or
+  # the validation block below it.
+  t "no arguments"                       2
+  t "too few positionals"                2 some-id 2
+  t "unknown option"                     2 --bogus some-id 2 title
+  t "--trailers-file with no value"      2 --trailers-file
+  t "--trailers-from with no value"      2 --trailers-from
+  t "both trailer sources at once"       2 --trailers-file /dev/null \
+                                           --trailers-from some-epic some-id 2 title
+  t "empty bead id"                      2 "" 2 title
+  t "empty title"                        2 some-id 2 ""
+  t "priority is not a digit"            2 some-id x title
+  t "priority out of range"              2 some-id 5 title
+  t "priority is multi-digit"            2 some-id 12 title
+  t "--trailers-file names nothing"      2 --trailers-file /nonexistent/trailers some-id 2 title
+  [ "$fails" = 0 ] || return 1
+  return 0
+}
+
+if [ "${1-}" = "--self-test" ]; then
+  [ $# -eq 1 ] || die "--self-test takes no other arguments"
+  echo "bb-close-bead --self-test"; self_test; exit $?
+fi
+
 trailers_file=""
+trailers_epic=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --trailers-file)
@@ -75,6 +120,13 @@ while [ $# -gt 0 ]; do
       ;;
     --trailers-file=*)
       trailers_file="${1#--trailers-file=}"
+      shift ;;
+    --trailers-from)
+      [ $# -ge 2 ] || die "--trailers-from requires an epic id"
+      trailers_epic="$2"
+      shift 2 ;;
+    --trailers-from=*)
+      trailers_epic="${1#--trailers-from=}"
       shift
       ;;
     --)
@@ -90,7 +142,36 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-[ $# -ge 3 ] || die "usage: bb-close-bead.sh [--trailers-file <path>] <bead-id> <priority> <title> [path ...]"
+[ $# -ge 3 ] || die "usage: bb-close-bead.sh [--trailers-file <path>] [--trailers-from <epic>] <bead-id> <priority> <title> [path ...]"
+[ -z "$trailers_file" ] || [ -z "$trailers_epic" ] || die "pass --trailers-file or --trailers-from, not both"
+
+# The run's trailers live in the run epic's manifest, so a bead can fetch them
+# from the tracker rather than from a directory that may not outlive the run.
+if [ -n "$trailers_epic" ]; then
+  trailers_file="$(mktemp "${TMPDIR:-/tmp}/bb-trailers.XXXXXX")" || die "cannot create a temp file for trailers"
+  # shellcheck disable=SC2064
+  trap "rm -f '$trailers_file'" EXIT
+  bd show "$trailers_epic" --json 2>/dev/null | python3 -c 'import json,sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    raise SystemExit(1)
+d = d[0] if isinstance(d, list) and d else d
+if not isinstance(d, dict) or d.get("error"):
+    raise SystemExit(1)
+md = d.get("metadata") or {}
+if isinstance(md, str):
+    try: md = json.loads(md)
+    except Exception: md = {}
+t = (md.get("trailers") or "").strip()
+if not t:
+    raise SystemExit(2)
+sys.stdout.write(t + "\n")' > "$trailers_file" || {
+    _st=$?
+    [ "$_st" = 2 ] && die "$trailers_epic carries no \`trailers\` in its manifest — omit --trailers-from when the run resolved none"
+    die "cannot read the manifest on $trailers_epic"
+  }
+fi
 id="$1"; priority="$2"; title="$3"; shift 3
 
 if [ -n "$trailers_file" ]; then
@@ -140,9 +221,10 @@ if [ "$observed" != "closed" ]; then
   Nothing staged, nothing committed. Fix the tracker write, then re-run this script."
 fi
 
-# 3. Stage code only. Inside the bead's own worktree everything present belongs
-#    to this bead, so no paths need naming; the Usage note above gives the two
-#    cases that still pass them.
+# 3. Stage code only. Everything uncommitted in the worktree belongs to this
+#    bead — inside a batch's shared tree too, since the previous bead committed
+#    before this one started — so no paths need naming; the Usage note above
+#    gives the two cases that still pass them.
 #
 #    The exclusion names the JSONL exports alone, not all of .beads/. Excluding
 #    the whole directory silently drops tracked tracker config — config.yaml,
@@ -176,9 +258,9 @@ else
 fi
 
 sha="$(git rev-parse --short HEAD)"
-# 5. Push the tracker. PER-CLOSE, not per-wave. A bead's closure is the unit of durable work, and
-#    deferring to a wave boundary loses every closure since the last push when
-#    a container is reclaimed mid-wave, which is the loss this epic exists to
+# 5. Push the tracker. PER-CLOSE, not per-batch. A bead's closure is the unit of durable work, and
+#    deferring to the end of a batch loses every closure since the last push when
+#    a container is reclaimed mid-batch, which is the loss this epic exists to
 #    prevent. The cost is one push per bead, seconds.
 #
 #    Skipped quietly where no Dolt remote is configured: this script ships with

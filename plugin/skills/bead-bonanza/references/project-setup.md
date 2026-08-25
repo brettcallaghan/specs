@@ -1,88 +1,181 @@
 # bead-bonanza Project Setup
 
-The two blocks bead-bonanza reads from the project's `AGENTS.md`, and the
-permissions a run needs. **Read this only when a block is missing** — once
-both exist, Phase 0 loads them and never comes back here.
+What a project must provide for bead-bonanza to run: declared checks, a model
+lineup and a code reviewer in `sf.toml`, and a few command permissions. **Read
+this only when one is missing** — once they exist, Phase 0 loads them and never
+comes back here.
 
 ## Contents
 
-- Gate profile — how this project validates a bead (`## bead-bonanza gates`)
-- Model lineup — how capability tiers resolve to models (`## model lineup`)
+- The declared checks — how this project validates a bead
+- Model lineup — how capability tiers resolve to models (`sf.toml` `[models]`)
+- Code reviewer — which reviewer the run dispatches (`sf.toml` `[review]`)
+- Issue outbox — where findings about someone else's skills go
+  (`.sf/outbox/`)
 - Command permissions a run needs
 
-Both blocks are written into `AGENTS.md` so the next run hits the fast path.
 Propose a draft, let the user confirm or correct it, then write it — never
-write either block silently.
+write any of it silently.
 
 ---
 
+1. **Resolve the declared checks.** bead-bonanza learns how to validate a bead
+   from `sf.toml`'s `[[checks]]`. **There is no `checks` script** — the project
+   declares the commands it already runs, and the bundled runner executes the
+   declaration.
 
-1. **Resolve the gate profile.** bead-bonanza learns how to validate a bead from
-   a **gate profile** the project keeps in `AGENTS.md` under a `## bead-bonanza
-   gates` heading. Read it first — every `<format>`, `<lint>`, `<build>`,
-   `<test>`, and `<regen>` reference below resolves to a command from that
-   block.
-   - **If the block exists**, load it. Fast path — no prompt.
-   - **If it's missing**, discover candidate commands from the rest of
-     `AGENTS.md`/`CLAUDE.md` (build/test/lint/format sections, CI config),
-     propose a draft profile to the user, let them confirm or correct it, then
-     **write it into `AGENTS.md`** under `## bead-bonanza gates` (create
-     `AGENTS.md` if neither doc exists) and offer to commit it. Future runs then
-     hit the fast path.
-   - The block is human-readable markdown: the core gate commands, an optional
-     pre-test `<regen>` step (codegen/snapshot regeneration — many projects have
-     none), a targeted-tests-by-surface list, and the environmental-failure
-     ledger. Template:
-     ```markdown
-     ## bead-bonanza gates
+   **They are the quality bar for a single commit, not the release bar.** Every
+   bead runs them before its own close, so what belongs here is what gives real
+   confidence in one bead's change and is cheap enough to pay every time. A
+   check that takes minutes, or that only means anything across the whole
+   repository at release time, belongs in CI — a declared check a bead cannot
+   afford to run is one agents will find reasons to skip.
 
-     - **Format:** `<cmd>`
-     - **Lint:** `<cmd>`
-     - **Build:** `<cmd>`
-     - **Test (full suite):** `<cmd>`
-     - **Regenerate before tests** (codegen/snapshots; omit if the project has none): `<cmd>`
+   `sf.toml` is a plugin-scoped config file at the repository root — an array of
+   tables, two keys each, and no others accepted:
 
-     ### Custom gates (optional)
-     Any extra checks to run as part of the gate suite — a plain command, or an inline script the user describes:
-     ```bash
-     # e.g. a project-specific check the standard gates don't cover
-     ./scripts/check-migrations.sh
-     ```
+   ```toml
+   [[checks]]
+   id = "test"
+   command = 'cargo test'
 
-     ### Targeted tests by surface
-     When only part of the tree changed, run the narrowest suite that covers it:
-     - `<path or surface>` → `<targeted test cmd>`
-
-     ### Environmental-failure ledger
-     Suites that fail — or falsely PASS — only in the local sandbox, diagnosed once and passed into every subagent prompt as fact — never re-diagnosed per wave. Admit an entry on evidence, not reasoning: name the command run and the result observed — this applies to a claim that a check is unnecessary or already-sufficient just as much as to a claim of failure. A claim not cheaply testable is recorded as `unverified` with what would settle it, rather than stated as settled.
-     - `<suite>`: fails in sandbox — `<symptom>`, proved by `<command>` → `<workaround / covered-by-CI note>`
-     - `<suite>`: falsely GREEN — e.g. runs a stale prebuilt binary a plain test command doesn't rebuild → force a clean `<build>` before trusting the result
-     ```
-   - If the project genuinely has no build/test step (e.g. a pure-docs repo),
-     record that: `<test>` is a no-op and the doc/chore fast lane is the only
-     dispatch mode. Don't invent gates.
-1a. **Resolve the model lineup.** Beads carry a capability `tier`, not a
-   model name. Read the project's `## model lineup` block in `AGENTS.md`
-   to resolve tier → model at dispatch:
-
-   ```markdown
-   ## model lineup
-
-   Least to most capable:
-
-   - **light:** `<model>`
-   - **standard:** `<model>`
-   - **advanced:** `<model>`
-   - **frontier:** `<model>`
+   [[checks]]
+   id = "lint"
+   command = 'cargo clippy -- -D warnings'
    ```
 
-   - **If the block exists**, load it. Fast path — no prompt.
+   `id` is a slug (`[a-z0-9][a-z0-9-]*`), unique. `command` runs through
+   `sh -c` with the repository root as its working directory. Prefer TOML
+   *literal* strings (single quotes) — they do no escape processing, so a shell
+   one-liner survives verbatim. `$BB_SF_TOML` moves the file; nothing else
+   overrides it, and Phase 0 blocks the run when the declaration is missing or
+   invalid.
+
+   **The runner ships with this skill**: `scripts/bb-checks.py`. No project
+   writes one.
+
+   ```
+   bb-checks.py                    every declared check
+   bb-checks.py <id>...            only these, still in declaration order
+   bb-checks.py --ids              what is declared
+   bb-checks.py --report <path>    also write `<id><TAB><exit>` per check there
+   ```
+
+   Exit 0 all passed, 1 something failed, 3 the declaration itself is broken —
+   and a 3 runs nothing, because a bad declaration must not half-execute.
+
+   **Two rules the runner enforces, so no project has to remember them:**
+   execution is serial in declaration order, so a step that must precede
+   another is sequenced by where it sits in the file; and every requested check
+   runs even after one fails. Chaining with `&&` breaks the second, which is
+   how a known-red check masks everything behind it.
+
+   Phase 0 captures what the checks print on the untouched tree as the
+   **checks baseline**, and a bead compares its own run against that text — a
+   line in both was already failing, a line only in the bead's is the bead's.
+
+   - **If `[[checks]]` exists**, Phase 0 runs it. Fast path — no prompt.
+   - **If it's missing**, discover candidate commands from `AGENTS.md` /
+     `CLAUDE.md` (build/test/lint/format sections, CI config), propose a draft
+     declaration to the user, let them confirm or correct it, then write it and
+     offer to commit it. **Propose the fast, broadly-applicable ones and say
+     which CI-only candidates you left out** — the user decides, but they
+     cannot correct an omission they were never shown. Future runs hit the
+     fast path.
+   - If the project genuinely has no build/test step (e.g. a pure-docs repo),
+     declare whatever it does have. Don't invent checks.
+   - A check whose verdict is its OUTPUT rather than its exit status — `gofmt
+     -l` prints filenames and exits 0 — needs a command that converts one to
+     the other, or a small script the `command` points at. Pointing at a script
+     is the escape hatch for anything a one-liner would mangle.
+
+   The **environmental-failure ledger** stays in `AGENTS.md` as prose: it is
+   read by agents, not executed, and it is the one part of the old block that
+   was never a command.
+
+1a. **Resolve the model lineup.** Beads carry a capability `tier`, not a
+   model name, so a backlog groomed months ago still routes correctly. The
+   lineup lives in `sf.toml` beside the checkpoint declaration:
+
+   ```toml
+   [models]
+   light = "<model>"
+   standard = "<model>"
+   advanced = "<model>"
+   frontier = "<model>"
+   ```
+
+   Pre-flight emits each as a `BB_MODEL_*` fact. Tiers resolve independently,
+   so a project may declare only the ones it uses.
+
+   - **If it exists**, Phase 0 reads it. Fast path — no prompt.
    - **If it's missing**, propose one from the models available in this
-     harness, let the user confirm, then write it into `AGENTS.md` (same
-     mechanics as the gate profile above).
+     harness, let the user confirm, then write it (same mechanics as the
+     checks declaration above).
    - **If the user declines**, dispatch without the `model` param — every
-     subagent inherits the session model. Say this once, at run start, so
-     the cost profile isn't a surprise.
+     subagent inherits the session model. Pre-flight reports
+     `BB_LINEUP=undeclared` and says so; state it once at run start so the
+     cost profile isn't a surprise. An undeclared tier is never guessed.
+
+   `[run]` in the same file carries project-level run defaults — `push_mode`,
+   and `run_root` when the default run root is wrong for this project. Omit a
+   key to leave that decision to the run.
+
+1b. **Resolve the code reviewer.** A sprint reviews its own diff before the
+   human does, and it runs whatever the project declares:
+
+   ```toml
+   [review]
+   skill = "code-review"     # dispatch a skill by name
+   # command = 'my-linter --diff'   # or run a command; stdout is the report
+   ```
+
+   Exactly one of `skill` or `command`. **We ship no reviewer** — harnesses
+   provide one and the ecosystem is full of them. What the sprint owns is what
+   happens to the findings: scoping them to this run's diff, filing each as a
+   bead, classifying in-scope against the authorization gate, and feeding the
+   review loop.
+
+   - **If it exists**, the review step runs it.
+   - **If it's missing**, the run **skips the review step and says so in its
+     report**. This is not an error and does not block the run. Do not prompt
+     for it mid-run; propose it at setup like the others, or leave it out.
+
+   A silently skipped review reads exactly like a clean one, which is why the
+   skip is reported rather than defaulted away.
+
+1c. **Agree the issue outbox — but do not create it yet.** A run reports
+   findings about the skills it used as well as about the project itself. The
+   second kind cannot be filed here — this project does not own those skills —
+   so they are written to a directory its owner forwards, at the repository
+   root:
+
+   ```
+   .sf/outbox/<skill>/<YYYY-MM-DD>-<slug>.md
+   ```
+
+   One file per issue, in the issue template's format.
+
+   **It is created lazily, by the first issue that needs it**, because git does
+   not track empty directories: a setup step that makes `.sf/outbox/` produces
+   nothing to commit, so the directory would vanish for everyone but the
+   session that made it. A run with no skill findings leaves no outbox, which
+   is the honest state.
+
+   **Nothing about a skill this project does not own is ever filed in this
+   project's own tracker**, under any label: a backlog of proposals its owners cannot
+   act on teaches them to ignore the channel, and that is the failure the
+   whole split exists to prevent.
+
+   - **Track it once it exists, do not gitignore it.** The issues are the
+     deliverable of a run and should survive a reclaimed container. An
+     ignored outbox loses them silently.
+   - **The outbox is the project's.** Emptying it, forwarding it, or
+     ignoring it entirely are all its owners' call. A run appends; it
+     never prunes.
+   - **Where this repository vends the skills it runs**, the outbox is
+     swept into its own tracker in the same run — it is its own
+     downstream.
 
 2. **Common command permissions.** Confirm these are in
    `.claude/settings.local.json` allow list. If any are missing, ask the user
@@ -91,15 +184,15 @@ write either block silently.
      other `bd` subcommand, so list it alone.
    - `Bash(wait)`, `Bash(wait %1)`, `Bash(jq:*)`
    - This skill's bundled scripts — one entry per script covers every
-     progress event, skip check, backup, and close ceremony in the run:
+     skip check and close ceremony in the run:
      `Bash(<skill-dir>/scripts/pre-flight-check.sh:*)`,
-     `Bash(<skill-dir>/scripts/bb-progress.sh:*)`,
+     `Bash(<skill-dir>/scripts/bb-status.sh:*)`,
      `Bash(<skill-dir>/scripts/bb-verify-skip.sh:*)`,
      `Bash(<skill-dir>/scripts/bb-close-bead.sh:*)`,
-     `Bash(<skill-dir>/scripts/bb-backup-run.sh:*)`
-   - The gate-profile commands — whatever
-     `<format>`/`<lint>`/`<build>`/`<test>`/`<regen>` resolve to for this
-     project (e.g. `Bash(cargo:*)`, `Bash(npm run test:*)`, `Bash(go build:*)`,
-     `Bash(pytest:*)`, or the regen script's path)
+     `Bash(<skill-dir>/scripts/bb-checks.py:*)`,
+     `Bash(<skill-dir>/scripts/sprint-cleanup.sh:*)`
+   - Whatever the declared `command`s invoke underneath (e.g. `Bash(cargo:*)`,
+     `Bash(npm run test:*)`, `Bash(go build:*)`, `Bash(pytest:*)`) — the runner
+     is one entry, but each check is its own subprocess
    - `Read(/tmp/claude/**)` — and `Read($TMPDIR/**)` too WHEN `TMPDIR` is set
      (macOS sets it to a per-user dir; most Linux hosts leave it unset)

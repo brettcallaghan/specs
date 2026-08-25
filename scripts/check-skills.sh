@@ -47,7 +47,7 @@ def err(w, m):  errors.append(f"{w}: {m}")
 def warn(w, m): warnings.append(f"{w}: {m}")
 
 def is_generated(p):
-    # .claude/skills/ holds hand-authored project skills (triage-rfc, strata)
+    # .claude/skills/ holds hand-authored project skills (triage-issue, strata)
     # and committed symlinks to the plugin/skills/ sources. A symlinked skill
     # is already checked via the plugin/skills glob, so skip it here — checking
     # it twice would double-report and could look like a duplicate skill.
@@ -147,7 +147,12 @@ for p in glob.glob('plugin/skills/**/*.md', recursive=True) + glob.glob('.claude
     d = os.path.dirname(p)
     for m in re.finditer(r'`((?:\.\./)*[A-Za-z0-9_./-]+\.(?:md|json|sh|py))`', open(p).read()):
         t = m.group(1)
-        if t in IGNORE or t.startswith(('http','docs/','rfcs/','plans/','word/','ooxml/','scripts/','.claude/')): continue
+        # `hooks/` and `monitors/` are plugin-ROOT components, not skill-bundled
+        # files: a skill names them so a reader knows what the plugin installs
+        # around it, and the path a reader actually uses is
+        # ${CLAUDE_PLUGIN_ROOT}-relative. Nothing resolves from a skill
+        # directory and nothing should — same reason `scripts/` is here.
+        if t in IGNORE or t.startswith(('http','docs/','rfcs/','plans/','word/','ooxml/','scripts/','.claude/','hooks/','monitors/')): continue
         if os.path.basename(p) in TEACHING and t == 'references/c4-guide.md': continue
         if not os.path.exists(os.path.join(d, t)):
             err(p, f"backticked path does not resolve from this file: {t}")
@@ -156,8 +161,18 @@ for p in glob.glob('plugin/skills/**/*.md', recursive=True) + glob.glob('.claude
 for p in glob.glob('plugin/skills/**/*.md', recursive=True):
     if '/references/shared/' in p: continue
     for m in re.finditer(r'\.\./[a-z-]+/references/', open(p).read()):
-        err(p, "cites a sibling skill's references directly; vendor it into "
-               "references/shared/ via scripts/sync-shared-references.sh")
+        err(p, "cites a sibling skill's references directly. Two remedies, and "
+               "which is right is a rule, not a preference: VENDOR when the "
+               "citing skill needs the WHOLE cited file and only APPLIES it — "
+               "a procedure, checklist, standard or template — by adding a MAP "
+               "line to scripts/sync-shared-references.sh and citing the "
+               "generated references/shared/ copy. CITE the owning skill BY "
+               "ROLE in prose, with no path, when you need one fact out of a "
+               "larger document (the generator vendors whole files, never "
+               "sections), or when the file is a REGISTRY that a second copy "
+               "would give a second place to extend. Both tests and the two "
+               "worked examples: AGENTS.md, \"Citing another skill's "
+               "reference\".")
 
 # ---- 4. long reference files carry a table of contents --------------------
 for p in glob.glob('plugin/skills/*/references/*.md'):

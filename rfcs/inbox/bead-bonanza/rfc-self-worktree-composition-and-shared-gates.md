@@ -453,3 +453,44 @@ them again, differently, and that the improvisations are only as good as
 whoever is holding the run.
 
 ## Resolution
+
+**Partial triage 2026-08-17. This RFC is NOT retired** — six of its seven
+proposals are recommended but not yet approved.
+
+| Proposal | Outcome |
+|---|---|
+| P1 — state which worktree model wins under harness isolation | **adopted** 2026-08-17. Harness-provisioned wins: one worktree for every bead in the batch, do not create more. Refinement: the preamble also states the coarser in-flight signal (a surviving worktree means the BATCH is unfinished) and requires the agent to report each bead's close as it lands, since that is the orchestrator's only per-bead signal until the batch returns. The acceptance-check half landed as a refinement to `rfc-self-acceptance-signals-and-gate-baseline` P3. |
+| P2 — give the harness worktree location a rule, and gitignore it | **adopted, trimmed to the rule.** The skill text now says the harness may place the worktree inside the repo and that the remedy is to gitignore its directory, and Phase 0 gained the check — create the first worktree, THEN confirm `git status --porcelain` is clean, because checking before it exists tests nothing. No repository change: `.claude/worktrees/` was already in this repo's `.gitignore:41`, and fixing our tree would have masked the defect for every install. |
+| P3 — define baseline ownership when two beads share a gate | **reopened at review; not adopted as written.** Triage's own summary conflated the Phase 0 baseline MEASUREMENT with the per-bead gate RUNS, and review caught it. Measured: `{GATE_BASELINE}` reaches only the grooming/planning prompt (`references/subagent-prompts.md:70`); the per-bead `Gates:` line carries no baseline field, and step 4 says only "On gate failure, fix the root cause and rerun". The "no findings beyond the baseline" bar is stated in `plan-sprint` and in this repo's `AGENTS.md`, and nowhere in `bead-bonanza`'s implementer-facing text. So the defect is wider than two siblings sharing a baseline: **no implementing subagent is ever told the baseline at all.** Pending a resized proposal. |
+| P4 — give the findings harvest a selector that matches an enumerated queue | **recommended adopt; not yet approved.** Confirmed live: `references/shared/findings-capture-protocol.md:93–94` still filters on a shared label, which a `bead-bonanza` queue does not have by construction. |
+| P5 — scope the base-ref ancestor check to every worktree subagent | **recommended adopt; not yet approved.** Confirmed live at `references/subagent-prompts.md:285` (cited as `:280`; the line moved, the text did not). |
+| P6 — reconcile a returned subagent against its terminal progress event | **adopted** as written, placed in Phase 3 step 4 after the no-return branch, with the Monitor's `committed\|blocked` filter cited as the reason the gap is invisible. |
+| P7 — say what to do when a draft PR already exists | **recommended adopt; not yet approved.** Confirmed live: the Draft PR bullet at `SKILL.md:346` assumes the PR does not exist. |
+
+**Dedupe — P6 and a sibling RFC.** P6 and
+`rfc-self-wave-chaining-and-lost-returns` P3 close **opposite directions** of
+one gap: P6 covers "returned, but no terminal event", P3 covers "never
+returned". Neither subsumes the other, as both RFCs independently state. Both
+were adopted in this pass and land adjacent to each other in the same block.
+
+**Dedupe — the batch template.** This RFC asks (correctly) to be triaged
+alongside `rfc-self-report-citations-and-batch-base`, whose P2 concerns the
+same text. That P2 is now closed as already-implemented — the chaining fix
+landed mid-run via bead `agent-plugins-61f.2` and is visible at
+`references/subagent-prompts.md:178–179`. P1 here is unaffected: it is about
+that block's *composition* with harness isolation, which is still live.
+
+**Provenance check.** `bead-bonanza` v1.4 cited; **v1.5 current at triage**, so
+every citation was re-verified. All seven anchors were still present. E2's
+observation that the harness places worktrees inside the repository was not
+re-measured — no run was in flight — but the gitignore entry corroborates that
+someone hit it.
+
+**Self-authorship, disclosed.** `origin: self`, `model: claude-opus-5`; this
+session is configured for `claude-opus-5`. **The RFC was authored and triaged
+by the same model.** P6's adoption ratifies an observation its own author made
+about a run it was orchestrating.
+
+**Files changed.** `plugin/skills/bead-bonanza/SKILL.md`.
+
+**Version bumps.** `bead-bonanza` 1.5 → 1.6 (shared). Plugin 0.18.0 → 0.19.0.

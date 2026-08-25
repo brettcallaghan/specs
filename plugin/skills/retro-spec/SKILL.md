@@ -35,6 +35,28 @@ retros: run this one for the document lens, `retro-skill` for the skill
 lens. When friction traces to the guidance rather than the project's
 documents, route it to `retro-skill` rather than filing it here.
 
+## Whose problem is it — apply the merge test
+
+**This skill's findings serve the project whose documents were exercised.**
+Its output is issues in that project's own tracker — the audience has a
+tracker and is the same people, so no proposal document is needed to tell them
+about their own repository.
+
+**The boundary with `retro-skill` is sharper than the words are.** A spec
+*template* this framework vends and a spec *document* in a project are
+described by identical sentences. One question separates them:
+
+> **Where would the fix land?**
+>
+> - In **this project's own repository** → yours. An issue in its tracker.
+> - In the **repository that vends the template or standard** → `retro-skill`'s.
+>   It leaves through `.sf/outbox/` and is never filed in this project's
+>   backlog.
+
+So: a gap in the FRD *template* this framework ships is `retro-skill`'s. A
+gap in this project's own FRD-014 is yours. Both would be reported in the same
+words by an agent that hit them.
+
 ## When to run
 
 | Phase just executed | Project documents to retro |

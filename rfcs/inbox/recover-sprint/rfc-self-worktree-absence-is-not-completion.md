@@ -190,3 +190,44 @@ Expected effect: the 20-minute silent stall this run suffered becomes a check
 that costs one fetch and reports the truth immediately.
 
 ## Resolution
+
+**Partial triage 2026-08-17. This RFC is NOT retired** — P3 is recommended
+for adoption but not yet approved.
+
+| Proposal | Outcome |
+|---|---|
+| P1 — add the remote comparison as a required step | **adopted** as written. Step 3's opening now reads "`git worktree list` answers 'is an agent still working', and nothing else", and a step 3b runs `git fetch` + `git log --oneline "$REMOTE/$BRANCH..HEAD"` before classification, with the unpushed-commit and workflow-scope guidance intact. |
+| P2 — extend step 4's per-phase distrust to `pushed` | **adopted** as written, placed directly after the `committed` entry. |
+| P3 — state the general rule the two proposals share | **recommended adopt; not yet approved.** |
+
+**Refinement applied to P1, and why.** This proposal and
+`rfcs/inbox/bead-bonanza/rfc-self-push-scope-and-discovered-work-channel` P2
+are **the same check written into two skills** — the same incident seen from
+the recovering side and the running side. Implemented independently they
+would drift into two rules, and a later triage would read the divergence as
+two mechanisms. Each now names the other as the same check in the same form:
+step 3b points at `bead-bonanza` Phase 3 step 7 and vice versa. The stronger
+fix — stating it once in `references/shared/` and vendoring it — was not taken
+in this pass because it widens the change beyond the approved set; it remains
+the better long-term shape and should be revisited if a third caller appears.
+
+**Provenance check.** `recover-sprint` v0.1 cited; v0.1 current at triage.
+`SKILL.md:112` and `:115` were re-read and both were present verbatim. The
+`pushed` phase was confirmed **absent** from step 4's phase list, exactly as
+E1 reports.
+
+**Dedupe.** No match in retired RFCs 0001–0023 — `recover-sprint` had no prior
+RFC. Overlaps `rfc-self-push-scope-and-discovered-work-channel` P2 at one
+point, handled above.
+
+**Self-authorship, disclosed.** `origin: self`, `model: claude-opus-5`; this
+session is configured for `claude-opus-5`. **The RFC was authored and triaged
+by the same model.** Read these adoptions as this repository approving its own
+proposal, not as independent corroboration. Both adopted proposals ratify a
+check their own author improvised during the recovery being described — the
+RFC says so itself ("The recovery this RFC argues from did reach the right
+answer, but only by running a check the skill does not list").
+
+**Files changed.** `plugin/skills/recover-sprint/SKILL.md`.
+
+**Version bumps.** `recover-sprint` 0.1 → 0.2. Plugin 0.18.0 → 0.19.0.
