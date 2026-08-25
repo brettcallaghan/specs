@@ -198,7 +198,7 @@ copies?). End with the expected overall effect on future runs.
 ## Resolution
 
 <!--
-FILLED BY triage-rfc — leave empty; keep the heading. Triage records,
+FILLED BY triage-issue — leave empty; keep the heading. Triage records,
 per proposal: adopted (as proposed / with refinement), queued/watch
 (bead id + theme), rejected (rationale), or returned. Plus date, files
 changed, and version bumps.

@@ -162,11 +162,15 @@ if command -v bd >/dev/null 2>&1; then
     # which GitHub rejects with a 403 "Write access to repository not granted",
     # a write-shaped message for a read that was never permitted.
     #
-    # Registered under both the suffixless and the `.git` form: git matches the
-    # config key's path component against the request's path, and the URL git
-    # uses on the wire may or may not carry the suffix. Registering both
-    # removes the guess. The bare key is unset, not merely shadowed — leaving
-    # it in place would keep answering for every host, which is the defect.
+    # Registered under both the suffixless and the `.git` form, because git
+    # matches the config key's path against the request's path EXACTLY and only
+    # the matching form answers — measured against a clone whose origin carries
+    # `.git`: with only the suffixless key registered the push died with "could
+    # not read Username for 'https://github.com'", and with only the `.git` key
+    # it succeeded. Whether origin carries the suffix varies by how the clone
+    # was made, so register both rather than guess. The bare key is unset, not
+    # merely shadowed — leaving it in place would keep answering for every
+    # host, which is the defect.
     _origin="$(git remote get-url origin 2>/dev/null || true)"
     _origin="${_origin%.git}"
     case "$_origin" in
@@ -198,23 +202,53 @@ if command -v bd >/dev/null 2>&1; then
     fi
   fi
 
-  # --- 2b. The database -------------------------------------------------------
+  # --- 2b. The database name --------------------------------------------------
+  #
+  # Must run BEFORE anything reads the tracker, because reading it is what
+  # destroys the evidence. If `dolt_database` names a database not on disk, bd
+  # CREATES an empty one under that name and reports a healthy, empty tracker:
+  # measured on bd 1.2.2 against a database holding 318 issues, `bd stats`
+  # printed "Total Issues: 0" and `bd ready` printed "No open issues", both
+  # exit 0, no error. Ordered after the count below, the sequence measured was
+  # worse than the bug: the count read 0, the hook moved the REAL database
+  # aside as stale, re-cloned under the wrong name, and the guard then found
+  # the directory present and stayed silent.
+  #
+  # Fatal rather than a warning — an empty tracker that reports itself healthy
+  # is the thing this hook exists to prevent. Skipped when there is no database
+  # yet, which is the ordinary fresh-clone case handled below.
+  if [ -z "$BB_DOLT_FATAL" ] && [ -d .beads/embeddeddolt ]; then
+    _want="$(python3 -c 'import json,io;print(json.load(io.open(".beads/metadata.json",encoding="utf-8")).get("dolt_database",""))' 2>/dev/null)" || _want=""
+    if [ -n "$_want" ] && [ ! -d ".beads/embeddeddolt/$_want" ]; then
+      BB_DOLT_FATAL="metadata.json names database '$_want' but it is absent from .beads/embeddeddolt/ (present: $(ls .beads/embeddeddolt/ 2>/dev/null | tr '\n' ' ')). bd would report an empty tracker rather than an error."
+    fi
+  fi
+
+  # --- 2c. The database -------------------------------------------------------
   # The database is gitignored, so a fresh clone has none and every bd command
   # fails with "no beads database found".
   #
   # Verify by ISSUE COUNT, never by directory existence, and never by exit code.
-  # Two independent failures make every weaker test lie:
-  #   1. `bd bootstrap`'s "database already exists" probe matches the .beads
-  #      DIRECTORY, which is git-tracked here (config.yaml, metadata.json,
-  #      hooks/). On a fresh clone with no database at all it prints
-  #      "Database already exists ... Nothing to do" and exits 0.
-  #   2. A stale, empty `.beads/embeddeddolt/` can survive into a new container.
-  #      A guard that skips bootstrap when that directory exists then skips it
-  #      exactly when it is needed.
-  # Both produce a session with an empty tracker that reports itself healthy,
-  # and a closed bead written into it is lost when the container is reclaimed.
+  # A stale but genuinely initialised `.beads/embeddeddolt/` can survive into a
+  # new container, and bootstrap cannot clone over one: measured on bd 1.2.2, it
+  # exits 1 with "can't create database beads; database exists". A guard that
+  # skips bootstrap because that directory exists therefore skips it exactly
+  # when it is needed, which is why the stale database is moved aside below
+  # rather than treated as proof of a tracker.
+  #
+  # The count is the outcome test. bd 1.2.2 fails loudly on the ways bootstrap
+  # can go wrong — including a workspace-identity check comparing metadata.json's
+  # project_id against the database's — so this is no longer catching a silent
+  # empty tracker at this step. It stays because it tests the thing that
+  # matters (issues are present) rather than a proxy for it, and because the
+  # database-name mismatch further down still is silent.
   if [ -z "$BB_DOLT_FATAL" ] && [ -d .beads ]; then
-    _count() { bd stats 2>/dev/null | sed -n 's/^[[:space:]]*Total Issues:[[:space:]]*\([0-9][0-9]*\).*/\1/p' | head -1; }
+    # `|| true` inside, not outside: `bd stats` EXITS NON-ZERO when there is no
+    # database, which under `set -euo pipefail` makes `_n="$(_count)"` kill the
+    # script — silently, with no message and exit 1, before bootstrap can run.
+    # That is precisely the fresh-clone case this block exists to handle, so
+    # without this the hook can only ever succeed where it was not needed.
+    _count() { { bd stats 2>/dev/null || true; } | sed -n 's/^[[:space:]]*Total Issues:[[:space:]]*\([0-9][0-9]*\).*/\1/p' | head -1; }
     _n="$(_count)"; [ -n "$_n" ] || _n=0
 
     if [ "$_n" -eq 0 ]; then
@@ -235,47 +269,15 @@ if command -v bd >/dev/null 2>&1; then
         BB_DOLT_FATAL="bootstrap left the tracker empty ($_n issues); it may have exited 0 anyway. Output: $(printf '%s' "$_bootstrap_out" | tr '\n' ' ' | cut -c1-300)"
       fi
     else
-      log "tracker present ($_n issues)"
-    fi
-  fi
-
-  # `sync.remote` in .beads/config.yaml must stay UNSET in git, and bd fights
-  # this: `bd bootstrap` WRITES the key back after a successful clone, with the
-  # exact value its own clone path refuses on the next fresh clone —
-  # "looks like a git code-repository URL, not a Dolt remote — skipping clone",
-  # after which it falls through to "database already exists" and leaves the
-  # tracker empty. The writer and the validator disagree; that is a bd bug, and
-  # until it is fixed the committed file is what breaks every clone at once.
-  #
-  # Strip it rather than warn. A dirty tracked config.yaml is not cosmetic here:
-  # bead-bonanza's close ceremony stages everything in the tree, so the key
-  # would ride into a bead's close commit and re-break future clones. Bootstrap
-  # derives the same remote from git origin's refs/dolt/data and wires it in the
-  # Dolt config, which is where it belongs and is not tracked.
-  if [ -z "$BB_DOLT_FATAL" ] && grep -q '^sync:' .beads/config.yaml 2>/dev/null; then
-    if python3 - <<'PYEOF' 2>/dev/null
-import io,re,sys
-p='.beads/config.yaml'
-s=io.open(p,encoding='utf-8').read()
-n=re.sub(r'(?m)^sync:\n(?:[ \t]+.*\n)*\n?','',s)
-if n==s: sys.exit(1)
-io.open(p,'w',encoding='utf-8').write(n)
-PYEOF
-    then
-      log "stripped sync.remote from .beads/config.yaml (bd re-adds it; committing it breaks the next clone)"
-    else
-      log "WARNING: .beads/config.yaml sets sync.remote and could not be stripped — do NOT commit it; it breaks bootstrap on a fresh clone"
-    fi
-  fi
-
-  # The database name must match the one on the remote, or bd silently creates
-  # an EMPTY database under the configured name and reports no issues. Measured:
-  # .beads/metadata.json said `spec_driven_dev` while the remote carries `beads`,
-  # and `bd stats` created the empty one rather than reporting the mismatch.
-  if [ -z "$BB_DOLT_FATAL" ] && [ -d .beads/embeddeddolt ] && command -v jq >/dev/null 2>&1; then
-    _want="$(jq -r '.dolt_database // empty' .beads/metadata.json 2>/dev/null)"
-    if [ -n "$_want" ] && [ ! -d ".beads/embeddeddolt/$_want" ]; then
-      log "WARNING: metadata.json names database '$_want' but it is absent from .beads/embeddeddolt/ — present: $(ls .beads/embeddeddolt/ 2>/dev/null | tr '\n' ' ')"
+      # A container can be reused across sessions, so a non-empty tracker is
+      # not necessarily a CURRENT one. Pull rather than assume; a no-op pull
+      # costs ~2s.
+      if timeout 300 bd dolt pull >/dev/null 2>&1; then
+        _n="$(_count)"; [ -n "$_n" ] || _n=0
+        log "tracker pulled from origin refs/dolt/data ($_n issues)"
+      else
+        log "WARNING: \`bd dolt pull\` failed — the tracker may be behind origin"
+      fi
     fi
   fi
 
@@ -540,14 +542,15 @@ fi
 
 if [ -n "${BB_DOLT_FATAL:-}" ]; then
   log ""
-  log "ERROR: no write access to the beads tracker — $BB_DOLT_FATAL"
+  log "ERROR: the beads tracker is not usable in this session — $BB_DOLT_FATAL"
   log ""
   log "  This repository's tracker is the Dolt remote (refs/dolt/data on"
   log "  origin). There is no JSONL fallback by design. Do not create or close"
   log "  beads in this session: the work would be lost when the container is"
   log "  reclaimed."
   log ""
-  log "  The environment must provide BOTH:"
+  log "  If the cause above is a credentials or push failure, the environment"
+  log "  must provide BOTH:"
   log "    1. AGENT_PLUGINS_ACCESS_TOKEN — a GitHub PAT with push access to"
   log "       this repository, set at container creation (claude.ai/code ->"
   log "       the environment's variables)."

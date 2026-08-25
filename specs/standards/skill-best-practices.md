@@ -6,8 +6,8 @@ description: Requirements for authoring agent skills in this repository —
 slug: skill-authoring-standards
 type: standards
 status: draft
-updated_at: 2026-08-05T00:00:00Z
-version: "0.2"
+updated_at: 2026-08-24T00:00:00Z
+version: "0.4"
 ---
 
 # Skill Authoring Standards
@@ -75,13 +75,26 @@ and humans see, and silently breaks any cross-skill reference to it.
 
 ---
 
-A skill's `name` SHALL use the verb-object form.
+A skill's `name` SHALL use the verb-object form, EXCEPT where it belongs to
+a named subsystem, in which case it SHALL carry that subsystem's prefix.
 
-**Rationale:** This collection settled on verb-object (`groom-beads`,
-`triage-rfc`, `retro-spec` as "retro the spec", `spec` as "spec out the
-thing"). A consistent pattern makes a skill's activity legible from its
-name alone and keeps the library coherent as it grows. Recorded so future
-skills do not each pick a different convention.
+**Rationale:** Verb-object (`groom-beads`, `triage-issue`, `retro-spec` as
+"retro the spec", `spec` as "spec out the thing") makes a skill's activity
+legible from its name alone. A consistent pattern keeps the library coherent
+as it grows, and is recorded so future skills do not each pick a different
+convention.
+
+**The subsystem exception, and its own rule.** A skill is prefixed WHEN it
+only makes sense inside that subsystem — `sprint-scope`, `sprint-plan`,
+`sprint-batch`, `sprint-review`, `sprint-report`,
+`sprint-retro`, `sprint-recovery`. A skill that is useful outside it keeps
+verb-object even when a sprint invokes it: `run-bead` works with no
+orchestrator at all, and `groom-beads` is useful with no sprint in sight.
+
+The trade is deliberate. **A skill is selected by its description, not its
+name**, so the prefix costs nothing at dispatch and buys grouping in a listing
+that now holds fourteen skills. Where a subsystem has one entry point, that
+entry point does NOT take the prefix — it is the way in, not a member.
 
 ---
 
@@ -441,6 +454,48 @@ collapsed "old patterns" section.
 
 **Rationale:** Keeps the deprecation available without diluting the current
 instruction.
+
+---
+
+A skill SHALL NOT assert what a command, tool or API does unless that
+behaviour was measured, and the assertion SHALL carry the measurement — the
+invocation and the observed output — with it.
+
+**Rationale:** *Observed.* A reference file asserted that `bd`'s
+`--set-metadata` "stores every value as a string." Measured on bd 1.2.2,
+`num=5` stores a number, `b=true` a boolean, `f=1.5` a number and `n=null`
+a null; only arrays, objects and non-numeric text are stored as strings. The
+false universal was installed by the same change that removed a *different*
+false claim about the neighbouring flag — the evidence standard was applied
+to the sentence being deleted and not to the sentence being installed. A
+reader can tell the two apart only if the measurement travels with the claim,
+because prose does not record whether anybody ran the command.
+
+---
+
+WHERE a behaviour cannot be measured cheaply, a skill SHALL mark the claim
+unverified and state what would settle it.
+
+**Rationale:** An unverified claim a reader can recognise as unverified is
+useful. One that reads as settled and is not is worse than absent: it is
+acted on with the confidence of the sentence rather than the confidence of
+the evidence.
+
+---
+
+WHEN an asserted tool behaviour is found false, the author SHALL sweep every
+surface that carries a copy of it before treating the correction as done, and
+SHALL record any copy that could not be reached.
+
+**Rationale:** *Observed.* A tool claim retracted in conversation had already
+been copied into an epic comment and into a durable trigger prompt, where a
+resuming session would have received it as a hard constraint with no way to
+learn of the retraction; it was removed only because a report happened to
+catch it. Correcting the document in front of you leaves every other copy
+authoritative, and the copies with the longest reach — prompts armed to fire
+later — are the ones no check and no reader ever revisits. Search for the
+claim's distinctive phrasing *before* editing the source; afterwards the
+search term no longer exists.
 
 ---
 

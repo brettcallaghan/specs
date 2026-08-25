@@ -270,6 +270,7 @@ correctly, and loading them together is one hop rather than a chain.
 | Documenting a shared/published or composite unit (a module) | `references/module-blueprint-template.md` + `references/shared/c4-guide.md` |
 | Designing how a specified feature will be built (deltas, AC coverage) | `references/feature-blueprint-template.md` + `references/shared/ac-traceability-standards.md` + `references/shared/c4-guide.md` |
 | Understanding, filling, or gating a work order | `references/work-order-template.md` + `references/shared/work-order-field-guide.md` + `references/shared/work-order-definition-of-ready.md` |
+| Reporting one actionable change, from a retro or from another project | `references/issue-template.md` |
 | Preflighting a feature blueprint before review handoff | `references/shared/blueprint-readiness-checklist.md` |
 | Specifying an interface's semantics, SLOs, and change policy | `references/contract-template.md` + `references/shared/c4-guide.md` |
 | Mapping any element to a C4 level; diagram conventions | `references/shared/c4-guide.md` |

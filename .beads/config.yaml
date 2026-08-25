@@ -1,109 +1,27 @@
 # Beads Configuration File
-# This file configures default behavior for all bd commands in this repository
-# All settings can also be set via environment variables (BD_* prefix)
-# or overridden with command-line flags
-
-# Issue prefix for this repository (used by bd init)
-# If not set, bd init will auto-detect from directory name
-# Example: issue-prefix: "myproject" creates issues like "myproject-1", "myproject-2", etc.
-# issue-prefix: ""
-
-# Use no-db mode: JSONL-only, no Dolt database
-# When true, .beads/issues.jsonl is the only local store
-# no-db: false
-
-# Enable JSON output by default
-# json: false
-
-# Feedback title formatting for mutating commands (create/update/close/dep/edit)
-# 0 = hide titles, N > 0 = truncate to N characters
-# output:
-#   title-length: 255
-
-# Default actor for audit trails (overridden by BEADS_ACTOR or --actor)
-# actor: ""
-
-# Export events (audit trail) to .beads/events.jsonl on each flush/sync
-# When enabled, new events are appended incrementally using a high-water mark.
-# Use 'bd export --events' to trigger manually regardless of this setting.
-# events-export: false
-
-# Multi-repo configuration (experimental - bd-307)
-# Allows hydrating from multiple repositories and routing writes to the correct database
-# repos:
-#   primary: "."  # Primary repo (where this database lives)
-#   additional:   # Additional repos to hydrate from (read-only)
-#     - ~/beads-planning  # Personal planning repo
-#     - ~/work-planning   # Work planning repo
-
-# Dolt-native backup (periodic backup for off-machine recovery)
-# This is full database backup only. Cross-machine sync uses Dolt remotes.
-# backup:
-#   enabled: false     # Disable auto-backup entirely
-#   interval: 15m      # Minimum time between auto-backups
-#   git-push: false    # Disable git push (backup locally only)
-#   git-repo: ""       # Separate git repo for backups (default: project repo)
+# Settings can also be set via BD_* environment variables or command flags.
+# See `bd config --help` for the full key list.
 
 # JSONL auto-export: OFF. `.beads/*.jsonl` is gitignored and is not how issues
-# travel — the Dolt remote is (see `sync:` below). Do not turn this back on:
-# JSONL-as-sync is an anti-pattern in beads' own docs, and the export is unstable
-# under diff — an import-then-export of an UNCHANGED tracker rewrites ~45% of
-# records, because dependencies re-serialize in a different order and comment ids
-# are re-minted, so tracking it buries real changes in ~1 MB of churn.
+# travel — the Dolt remote below is. Do not turn this back on: JSONL-as-sync is
+# an anti-pattern in beads' own docs, and the export is unstable under diff —
+# an import-then-export of an UNCHANGED tracker rewrites ~45% of records,
+# because dependencies re-serialize in a different order and comment ids are
+# re-minted, so tracking it buries real changes in ~1 MB of churn.
 #
-# `bd export > .beads/issues.jsonl` by hand gives a snapshot for a viewer or for
-# interchange. It is not a backup.
+# `bd export > .beads/issues.jsonl` by hand gives a snapshot for a viewer or
+# for interchange. It is not a backup.
 export:
     auto: false
-sync:
-    remote: "git+https://github.com/brettcallaghan/agent-plugins.git"
-
-# DO NOT ADD `sync.remote` HERE, and do not restore it if you see it removed.
+# The tracker: issues live in a Dolt database synced to `refs/dolt/data` on
+# this repository's git origin. There is no JSONL fallback by design.
 #
-# This file is git-tracked, so the key breaks every clone at once, and the
-# failure is silent. Measured on bd 1.2.1, on a fresh clone:
-#
-#   $ bd bootstrap --dry-run
-#   error: sync.remote "git+https://github.com/..." looks like a git
-#     code-repository URL, not a Dolt remote — skipping clone
-#   ✓ Database already exists: .../.beads    Nothing to do.
-#
-# bd refuses the value, aborts the clone, then matches the tracked `.beads`
-# DIRECTORY with its "already exists" probe and exits 0 having done nothing.
-# The session comes up with an empty tracker that reports itself healthy, and
-# every bead closed into it dies with the container.
-#
-# bd fights this: `bd bootstrap` WRITES the key back after a successful clone,
-# with the exact value its own clone path refuses next time — the writer and
-# the validator disagree. Until that is fixed, the SessionStart hook strips it
-# every session. Leaving it stripped is not cosmetic: bead-bonanza's close
-# ceremony stages everything dirty in the tree, so a re-added key rides into a
-# bead's close commit and re-breaks every future clone.
-#
-# The remote is not lost by omitting it. Bootstrap derives the same one from
-# git origin's refs/dolt/data and stores it in the Dolt config, which is where
-# `bd dolt remote list` reads it from and which is not tracked.
-# Integration settings (access with 'bd config get/set')
-# Non-secret keys (stored in the database):
-# - jira.url, jira.project
-# - linear.team_id
-# - github.org, github.repo
-#
-# Secret keys (stored in this file but prefer env vars to avoid git exposure):
-# - linear.api_key  → use LINEAR_API_KEY env var instead
-# - github.token    → use GITHUB_TOKEN env var instead
-
-# The Dolt remote IS the tracker: issues live in a Dolt database synced to
-# refs/dolt/data on this repository's git origin. There is no JSONL fallback by
-# design.
-#
-# `sync.remote` is deliberately NOT set. bd 1.2.1 rejects a `git+https://` value
-# with "looks like a git code-repository URL, not a Dolt remote — skipping
-# clone", and then reports "Database already exists" because its probe matches
-# the .beads DIRECTORY (committed here) rather than a database — exiting 0 with
-# no database cloned. Unset, bd discovers the same remote from git origin's
-# refs/dolt/data and clones correctly. Setting it is what breaks a fresh clone,
-# not what makes it work.
+# This is the value `bd bootstrap` derives and writes for itself, so leaving it
+# committed is idempotent rather than a fight. Setting it is also what makes
+# `bd prime` emit the Dolt sync commands and the push half of its session-close
+# protocol; unset, bd tells every agent "No git remote configured. Issues are
+# saved locally only." KEEP IT SET — unsetting it makes the tracker's own
+# guidance contradict the way this repository works, every session.
 #
 # Trap: a 403 from `bd dolt push` is NOT GitHub refusing refs/dolt/* writes. It
 # is an egress proxy substituting a brokered GitHub App token scoped to
@@ -111,3 +29,10 @@ sync:
 # SessionStart hook establishes and verifies that write path every session and
 # fails loudly when it cannot — see .claude/hooks/session-start.sh and
 # docs/session-bootstrap.md.
+sync:
+    remote: "git+https://github.com/brettcallaghan/agent-plugins.git"
+
+# Integration settings (access with 'bd config get/set')
+# Non-secret keys live in the database: jira.url, jira.project, linear.team_id,
+# github.org, github.repo. For secrets prefer env vars (LINEAR_API_KEY,
+# GITHUB_TOKEN) over storing them in this tracked file.

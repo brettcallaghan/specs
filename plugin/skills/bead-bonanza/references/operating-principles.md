@@ -6,36 +6,18 @@ statement.
 
 ## Contents
 
-- One commit per bead, always — where an interrupted bead's work lives, and how
-  to resume it or surrender it
+**Scoped to the coordinator.** A principle the per-bead ceremony enforces is
+stated where that ceremony lives, not here — one commit per bead, and where an
+interrupted bead's uncommitted work stays, both belong to the **`run-bead`**
+skill and are enforced by the close script.
+
 - Findings harvest — how to wire `retro:` capture; the harvest pipeline
   itself lives in the vendored findings-capture protocol, not here
-- Guard against foreign dirt — how the orchestrator and a subagent each stage a
-  commit, when a tracker write may happen, and whose claims an agent may reset
-
-## One commit per bead, always
-
-Every closed bead = exactly one commit on the branch. The handoff file is
-written BEFORE the close ceremony (crash recovery anchor); the close happens
-via a plain `bd update --status closed` BEFORE staging, so the close is
-folded into the implementation commit. Closing never rewrites the
-description — grooming owns it.
-
-### No exceptions: the worktree holds interrupted work
-
-An interrupted bead's changes stay **uncommitted in its own worktree**, on its
-own branch, where no other agent will ever look. The worktree's continued
-existence is precisely the signal that the bead is unfinished. There is no
-`WIP` commit to make and nothing to squash.
-
-**To resume an interrupted bead:** re-enter its worktree, finish the work, and
-run the close ceremony once.
-
-**WHEN the work must be surrendered rather than resumed** — the bead is
-genuinely blocked, not merely interrupted — leave the worktree in place, mark
-the bead `blocked` with a reason, and report it. Do not commit partial work to
-"save" it: the worktree already saves it, and a partial commit on the bead's
-branch would merge into the sprint branch as an incomplete bead.
+- Guard against foreign dirt — how the orchestrator stages a commit, when a
+  tracker write may happen, and whose claims it may reset
+- Principles the coordinator applies but does not carry — the ones SKILL.md
+  summarises only where they change a turn's routing
+- Incidents — the four kinds, and why nothing escalates mid-run
 
 ## Findings harvest
 
@@ -47,7 +29,7 @@ never got closed and silently drops nearly everything else.
 
 ### Wiring
 
-Every dispatch prompt — sequential, batch and fast-lane alike — instructs the
+Every dispatch prompt — batch and sequential alike — instructs the
 agent to record `retro:`-prefixed `bd comment`s on the bead it is working:
 one per friction point, 1-3 sentences, friction only, zero analysis.
 
@@ -70,15 +52,11 @@ here. This skill restates none of it.
 
 ## Guard against foreign dirt
 
-### Working-tree dirt: the orchestrator's hazard, not a subagent's
+### Working-tree dirt is the orchestrator's hazard
 
-**A subagent does not face this hazard.** It implements in its own worktree,
-which contains that bead's changes and nothing else. There is no foreign dirt
-to guard against, nothing to enumerate as untouchable, and no need to name the
-paths a bead touched so the close can stage them — inside a worktree,
-"everything here" is exactly this bead's work.
-
-**The orchestrator does face it.** It works in the shared checkout, where a
+A subagent does not face it — inside its own worktree, "everything here" is
+exactly its bead's work. **The orchestrator does face it.** It works in the
+shared checkout, where a
 diagnosis agent's uncommitted fixes, a regenerated fixture, or a half-applied
 edit can be sitting alongside its own work. It therefore commits by explicit
 pathspec (`git commit -- <files>`). The same applies on the main-loop fallback
@@ -91,7 +69,7 @@ The tracker is a database synced to `origin refs/dolt/data`, not a file in the
 working tree, and the close ceremony stages code only. No tracker write can
 ride into another agent's commit, so **the orchestrator may groom a discovered
 bead, bake a decision, or wire a dependency edge at any time, including
-mid-wave.**
+mid-run.**
 
 Worktrees are not what makes this safe, and must not be relied on for it: every
 worktree resolves the same database through git's common directory — precisely
@@ -100,7 +78,54 @@ why `bd` works inside one.
 ### The claim-reset rule
 
 The same "don't touch what another agent owns" principle applies to
-tracker *claims*: a subagent may only reset a claim it made itself — a
-bead found `in_progress` that this agent didn't claim belongs to a live
-sibling. The orchestrator, never a subagent, owns reconciling claims
-across waves.
+tracker *claims*. Claiming is atomic — `bd update <id> --claim` sets status
+and assignee in one write and is idempotent when the claim is already yours —
+so the rule no longer has to cover the race between reading a status and
+setting it. What it still covers is ownership: a bead claimed by a **different
+assignee** belongs to a live sibling, and a subagent may not take it. The
+orchestrator, never a subagent, owns reconciling claims across dispatches.
+
+## Principles the coordinator applies but does not carry
+
+Summarised in SKILL.md only where they change a turn's routing; stated here in
+full.
+
+- **Surface implicit decisions, don't bury them.** A bead with an open decision
+  is bounced at the readiness gate. A choice a subagent still makes silently —
+  one the bead's Design didn't pin — belongs in its `retro:` comment, not the
+  diff.
+- **Capture decisions in the bead, not in chat.** The bead description is the
+  durable record; a session is not.
+- **Fail loudly, recover quietly.** A blocked subagent is logged and the run
+  moves on; the circuit breaker is what stops it. A crashed one follows
+  `recovery.md` — the worktree and the bead are the anchors.
+- **Route by tier, and report every escalation.** A bead's tier is grooming's
+  *prediction* of the capability the work needs. Assign nothing below it;
+  escalate one tier on repeated failure; never downgrade to save cost mid-run.
+  Every escalation is a required row in the report — it is the only routing
+  evidence a run produces. Full rules: `dispatch-policy.md`.
+- **Project rules win over skill defaults.** `sf.toml` is the source of truth
+  for what runs per bead. Follow the project's commit conventions. The skill is
+  opinionated, not authoritative.
+- **Never re-diagnose an environmental failure per dispatch.** Pre-flight captured
+  the baseline once and every subagent prompt carries it as fact. The dangerous
+  case is a check that silently PASSES without exercising the change — a stale
+  prebuilt binary, a skipped suite, a cached result — so where a check *can*
+  pass without touching the change, force a clean rebuild before trusting it.
+- **Tracker writes are never deferred.** Groom a discovered bead, bake a
+  decision, or wire a dependency edge at any time, mid-dispatch included. Only the
+  working tree needs care; see "Guard against foreign dirt" above.
+
+## Incidents — why nothing escalates mid-run
+
+**Not an ambiguous acceptance criterion, not a contract change, not a silent
+spec.** Decide it, record it as an **incident** the way the capture protocol
+specifies, and the report names it first.
+
+A recorded decision is reviewed at the pull request and revised in a later run.
+That is cheaper than a night blocked on a question nobody is awake to answer —
+which is the actual alternative for an autonomous run, not "ask and continue".
+
+**This binds the coordinator as much as its subagents.** A coordinator that
+escalates has converted an autonomous run into a supervised one without saying
+so, and the human it is waiting for finds out in the morning.

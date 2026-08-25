@@ -6,6 +6,11 @@
 *.db
 .beads-credential-key
 .beads/proxieddb/
+# Per-run graph plans emitted by `sprint-plan` for `bd create --graph`.
+# Transient run scratch: loaded once, then the tracker holds the beads. The
+# run's report names the path; a stale copy in the tree would outlive the
+# graph it describes.
+.beads/plans/
 
 # git worktrees created for isolated work
 .worktrees/

@@ -146,7 +146,7 @@ if [ "$hard_fail" -ne 0 ]; then
   # Name the checks that actually failed. Asserting a fixed pair of faults
   # ("cycles/orphans") sends grooming looking for problems the run never found.
   echo "RESULT: hard problems found in: $failed_hard_labels"
-  echo "        Fix what those checks reported before dispatching waves."
+  echo "        Fix what those checks reported before dispatching anything."
   exit 1
 fi
 if [ "$ran_any" -eq 0 ]; then

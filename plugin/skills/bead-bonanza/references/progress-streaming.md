@@ -1,103 +1,164 @@
 # bead-bonanza Progress Streaming and Mid-Stream Visibility
 
-How the orchestrator sees a run while it is still in flight: the progress
-events subagents append, the rule bounding what those events prove, the
-in-session `Monitor` armed over them, and the durable out-of-session trigger
-that backs the Monitor up. Read this WHEN a subagent is expected to run past 5
-minutes — any non-trivial bead, given full test runs — and before the first
-dispatch of a run, which is when the durable trigger is armed.
+How the orchestrator sees a run while it is still in flight: the tracker-fed
+event log, the plugin's background monitor that reads it without being armed,
+and the durable out-of-session trigger that survives the session dying. Read
+this before the first dispatch of a run, which is when the log's writer is
+installed and the durable trigger set.
 
 Two neighbouring situations are elsewhere, so this file can be read on its own:
 WHEN a subagent dies mid-ceremony, read `recovery.md`; WHEN you are resuming a
-run whose state you do not hold, invoke the **`recover-sprint`** skill.
+run whose state you do not hold, invoke the **`sprint-recovery`** skill.
 
-`${TMPDIR:-/tmp}` below is the run root Phase 0's pre-flight script resolved.
+**Two views, and they are not interchangeable.** `bd swarm status <epic>` is
+the durable one — computed from the beads themselves, correct after any crash,
+and the right answer to "where is this run". The event log below is a live
+*stream*; it is ephemeral by design and its absence costs mid-flight
+visibility, not the run's record.
 
 ## Contents
 
-- The progress-event schema — the closed phase vocabulary, one JSONL line per
-  event, one file per bead
-- The ledger is a hint, never the authority — what a trail does and does not
-  prove, and the order a status question is resolved in
-- Writing events — the one script that appends them, and why never by hand
-- Monitor any subagent past 5 minutes — the tail pattern, and why it filters
-  to two phases
-- Back the Monitor with a durable trigger — the out-of-session check-in that
-  survives an interrupt killing the orchestrator, and when it is cancelled
+- The event source — one line per tracker write, written by `bd` rather than
+  by the agent whose progress it reports, and exactly which writes emit one
+- The monitor reads it without being armed — what the plugin declares, and
+  what a session sees
+- WHEN there is no monitor — arming one by hand, and its expiry trap
+- Back it with a durable trigger — the out-of-session check-in that survives
+  an interrupt killing the session, and when it is cancelled
 
 ---
 
-## The progress-event schema
+## The event source
 
-Each subagent appends progress events to `${TMPDIR:-/tmp}/claude/bead-bonanza/<run-id>/<bead-id>.progress.jsonl`. Required event phases (one line each):
+Progress comes from the tracker write itself. `bd` runs a hook in
+`.beads/hooks/` on every write, so a bead changing state emits a line without
+the subagent writing one — the signal is a consequence of the state change
+rather than a report about it, and an agent that dies between doing the work
+and describing it cannot desynchronize the two.
 
-```jsonl
-{"bead":"<id>","phase":"claimed"}
-{"bead":"<id>","phase":"implementing"}
-{"bead":"<id>","phase":"gates-running"}
-{"bead":"<id>","phase":"gates-passed"}
-{"bead":"<id>","phase":"retro-written"}
-{"bead":"<id>","phase":"committed","sha":"<short>"}
-{"bead":"<id>","phase":"pushed"}             # omitted in defer-push mode
-{"bead":"<id>","phase":"blocked","reason":"..."}  # only on failure
-```
-
-**The ledger is a hint, never the authority.** It is written by the agent
-doing the work, so it stops the instant that agent stops. Therefore:
-
-- A trail ending before `committed` does **not** mean the bead is unfinished —
-  only that nothing was appended after that point. A trail stopping at
-  `implementing` routinely belongs to a bead that commits hours later, several
-  beads on; read as a heartbeat it proves nothing but its own last write.
-- An absent progress file does **not** mean no agent ran.
-- A file's mtime bounds the last *write*, not the agent's liveness.
-
-Resolve any status question in this order, stopping at the first answer:
-`git worktree list` (present means unfinished — the one signal that is state
-rather than testimony), then `bd show <id>`, then
-`git log --oneline --grep=<id>`, then the ledger. **Name which one you used.** Never report a ledger fact you have not just read from
-disk, and never from a backup copy while the live directory exists.
-
-## Writing events
-
-Events are written by `../scripts/bb-progress.sh`, never by hand:
+Install the hooks once per run, before the first dispatch:
 
 ```bash
-../scripts/bb-progress.sh "$RUN_DIR" <bead-id> <phase> [key=value ...]
+mkdir -p .beads/hooks
+for h in on_create on_update on_close; do
+cat > ".beads/hooks/$h" <<'HOOK'
+#!/bin/sh
+# bd invokes this as: <hook> <issue-id> <event-type>, issue JSON on stdin.
+s=$(sed -n 's/.*"status":"\([^"]*\)".*/\1/p')
+printf '%s\t%s\t%s\t%s\n' "$(date -u +%FT%TZ)" "$1" "$2" "${s:-?}" >> "$BB_EVENT_LOG"
+HOOK
+chmod +x ".beads/hooks/$h"
+done
 ```
 
-It validates the phase against the closed vocabulary above, escapes values, and appends one well-formed line. **Never build the event JSON in the caller** — a runtime-substituted `printf` operand trips the permission system's injection heuristic and prompts the user on *every* event write.
+**Read the status off stdin, as above, rather than off `$2`.** The event-type
+argument is the hook's own name (`create`, `update`, `close`) and never says
+which status a bead reached, so a stream built from `$2` cannot tell a claim
+from a close — the one distinction the orchestrator acts on. The issue JSON on
+stdin carries `status`, which is why the line has four fields.
 
-Batch subagents (fast lane, shared-surface batch) write events for every bead they process to the same per-bead progress files (one file per bead-id, even from the same batch subagent).
+**Which writes emit a line, on bd 1.2.2:**
 
-## Monitor any subagent past 5 minutes
+| write | hook | `$2` |
+|---|---|---|
+| `bd create` | `on_create` | `create` |
+| `bd update <id> --status <s>` | `on_update` | `update` |
+| `bd close <id>` | `on_close` | `close` |
+| `bd update <id> --claim` | **none** | — |
 
-**Monitor any subagent past 5 minutes.** If a subagent is expected to (or actually does) run >5 min — true for any non-trivial bead given full test runs — the orchestrator must arm a `Monitor` on its progress JSONL so the user sees per-phase events live. Don't leave the user staring at silence for 30+ minutes. Pattern:
+**`--claim` emits nothing**, and it is the claiming primitive every worker
+uses. A bead being picked up is therefore invisible in this stream; the first
+line you see for a bead is usually its close. Do not read silence as a stalled
+worker — for that, use the three signals in `supervision.md`.
+
+`BB_EVENT_LOG` is emitted by the pre-flight script (as `BB_EVENT_LOG=`, in the
+block you eval) and points at a per-run file under `${TMPDIR:-/tmp}`. **Export
+it before installing the hooks** — they append to it, and with the variable
+unset every append fails. `bd` runs hooks fire-and-forget and ignores their
+exit status, so that failure is silent: the run reports nothing and nothing
+says why.
+
+The hooks must also be **executable** — `bd` skips a non-executable hook
+silently too, with the same presentation.
+
+WHEN pre-flight reports the event log as unwritable it emits `BB_EVENT_LOG=''`;
+skip the hooks entirely and use `bd swarm status <epic>` for visibility rather
+than installing one that cannot write.
+
+Three properties of the mechanism that decide how it is used:
+
+- **`on_close` does not fire on this project's close path.** The close ceremony
+  uses `bd update <id> --status closed` to avoid a second commit, and that
+  fires `on_update`. Installing `on_close` costs nothing and covers a
+  hand-rolled `bd close`; hang nothing on it.
+- **Hooks are fire-and-forget.** `bd` runs them asynchronously, bounded by a
+  timeout, and a hook that fails never blocks the write that triggered it. A
+  missing event means a missing line, never a lost close.
+- **`.beads/hooks/` is also `bd`'s git-hook directory**, and `bd init` rewrites
+  its contents. Treat these as files `bd` may overwrite: install them at run
+  start rather than assuming they survived from last time.
+
+## The monitor reads it without being armed
+
+The plugin declares a background monitor — `monitors/monitors.json` at its
+root, running `monitors/bb-events-monitor.sh` — and Claude Code starts it when
+the **`bead-bonanza`** skill is invoked. Each line it prints arrives as a
+session notification. **There is nothing to arm, and nothing to re-arm.**
+
+It watches the *directory* `${TMPDIR:-/tmp}` for `bb-events-*.log` rather than
+being handed a path, because it cannot be handed one: a monitor is spawned by
+the harness, not by your shell, so the `BB_EVENT_LOG` you `eval` never reaches
+it, and the run it will report may not be scoped yet when it starts. A log
+appearing an hour later is picked up with no restart.
+
+**A log already on disk when it starts is a backlog, not news**, so the monitor
+begins at the end of one and at byte one of any log that appears afterwards.
+That is what makes it safe to restart mid-run: it will not replay the run so
+far as fresh notifications.
+
+**Every line is a notification, so act on the ones that matter.** The
+orchestrator acts on a bead reaching `closed` — that is the fourth field.
+Intermediate transitions are there for reading a stalled run, not for waking
+on.
+
+## WHEN there is no monitor
+
+**The monitor is a convenience over a path that still works without it**, and
+several ordinary situations have none: the plugin is not installed, the session
+never invoked `bead-bonanza` (a solo `run-bead`, or a `sprint-recovery`
+resuming someone else's run), or the harness offers no Monitor tool at all — on
+those hosts a declared monitor is skipped silently.
+
+WHERE the harness has a `Monitor` tool, arm one by hand, once, before the first
+dispatch. One event log carries the whole run, so the run needs ONE Monitor
+however many subagents it dispatches:
 
 ```
-tail -n +1 -F <run-dir>/<bead-id>.progress.jsonl | grep -E --line-buffered '"phase":"(committed|blocked)"'
+tail -n +1 -F "$BB_EVENT_LOG"
 ```
 
-Arm it with `persistent: true` and stop it with `TaskStop` when the wave
-drains. The default `timeout_ms` is five minutes — the exact threshold at
-which this rule requires a Monitor — so a Monitor armed without it expires on
-precisely the runs that need it. The `tail -F` pattern above never exits on
-its own, so under a timeout it stays armed until it is killed rather than
-ending when the work does. WHEN a Monitor does expire while its subagent is
-still live, re-arm it; expiry is not information about the bead.
+Arm it with `persistent: true` and stop it with `TaskStop` when the ready front
+dries. **Set `timeout_ms` explicitly** — the default is five minutes, shorter
+than most runs, so a Monitor armed without it expires part-way through the work
+it exists to report. The `tail -F` pattern never exits on its own, so it stays
+armed until killed rather than ending when the work does. WHEN one does expire
+while the run is still live, re-arm it — expiry is not information about any
+bead.
 
-For batch subagents, tail multiple files in one Monitor. **Filter to `committed|blocked` only** — those are the events the orchestrator acts on. Relaying every phase (implementing, gates-running, …) wakes the orchestrator per event and adds a conversation turn each time for narration nobody needs; the per-bead progress files still hold the full phase history for crash recovery.
+WHERE the harness has neither, say so once and use `bd swarm status <epic>`
+between dispatches. No step in the ceremony depends on a monitor having
+reported anything.
 
-## Back the Monitor with a durable trigger
+## Back it with a durable trigger
 
-A Monitor is in-session: it dies with the turn that armed it, so it cannot
-report its own death. A user interrupt that kills the orchestrator kills the
-Monitor at the same instant — and it kills the mechanism that would have
-announced its children's deaths, so **nothing reports this to you**. A durable
-run needs a second mechanism that survives that.
+**A monitor is in-session, exactly as an armed `Monitor` is.** It dies with the
+session, so it cannot report its own death — and a user interrupt that kills
+the orchestrator kills the thing that would have announced its children's
+deaths at the same instant, so **nothing reports this to you**. A durable run
+needs a second mechanism that survives that.
 
 Before the first dispatch of a run, arm an out-of-session check-in **in
-addition to** the Monitor:
+addition to** the monitor:
 
 - **Prefer a recurring trigger over a one-shot** — a cron/recurring trigger
   where the harness offers one, otherwise a re-armed `send_later`, at
@@ -108,8 +169,8 @@ addition to** the Monitor:
   the only wake path for this run is in-session.
 - **The trigger's message must be self-contained, and it must name a skill
   rather than a file path.** It wakes a turn that may hold no run context and
-  no bundle: carry the `RUN_DIR` path, the epic id, and an instruction to
-  **invoke the `recover-sprint` skill**. A fresh session cannot resolve a
+  no bundle: carry the run epic id — the manifest is on it — and an instruction to
+  **invoke the `sprint-recovery` skill**. A fresh session cannot resolve a
   relative path into a bundle it never loaded, but it can resolve a skill
   name — and "check on the run" is not an instruction at all.
 - **Do not key its liveness check on `bd list --status in_progress`.** A

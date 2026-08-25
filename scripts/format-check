@@ -1,0 +1,20 @@
+#!/usr/bin/env sh
+#
+# format-check — the `format` check declared in sf.toml.
+#
+# `gofmt -l` exits 0 whether or not it found unformatted files, so the FILE
+# LIST is the verdict and the status is not. A check reading only the status
+# would always pass.
+#
+# This is expressible as a `command` one-liner. It is a script because the
+# one-liner is uglier than the thing it does, and because a declaration is
+# allowed to point at a script exactly for cases like this one.
+set -u
+
+cd "$(git rev-parse --show-toplevel)/cli" || exit 2
+
+out="$(gofmt -l . 2>&1)"
+[ -z "$out" ] && exit 0
+
+printf 'unformatted:\n%s\n' "$out" >&2
+exit 1

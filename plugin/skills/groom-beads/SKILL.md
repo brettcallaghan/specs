@@ -6,7 +6,7 @@ description: >-
   zero-context agent. Use this skill whenever the user wants to groom,
   refine, triage, prepare, clean up, or "get beads ready" — or mentions a
   backlog of beads, a `.beads/` directory, `bd ready`, running beads in
-  waves, assigning capability tiers to beads, or wiring bead dependencies
+  batches, assigning capability tiers to beads, or wiring bead dependencies
   before a long-running or orchestrated session. Trigger even if the user
   just says "groom these" or "make these beads ready" in a repo that uses
   beads.
@@ -22,15 +22,15 @@ backend**. A *work order* is this framework's portable, atomic unit of
 executable work — everything a fresh agent needs to complete one job, with no
 planning conversation to lean on. This skill materializes work orders as
 **beads** and drives each to the **Definition of Ready**, so an orchestrator can
-pull ready beads, group them into **waves**, and dispatch each to an **isolated
-sub-agent** with zero session context.
+pull ready beads, group them into **batches**, and dispatch each to an
+**isolated sub-agent** with zero session context.
 
 That execution model is the whole reason grooming matters. Every sub-agent is a
 *fresh agent with zero context*. So the job of grooming is not "fill in fields"
 — it is to **manufacture context-independence and correct ordering**, because
 those are the two things the orchestrator actually consumes. A bead that reads
 fine to someone who was in the planning session but is unworkable cold is the
-central failure mode, and it is invisible until it detonates three waves deep.
+central failure mode, and it is invisible until it detonates three beads deep.
 
 The north star, applied to every bead you touch:
 
@@ -54,7 +54,7 @@ copies live in the `spec` skill, so authoring and grooming can never disagree):
 
 What lives *here* is the beads-specific machinery: probing the `bd` CLI, mapping
 the work-order format onto bead fields and metadata, wiring the edge graph,
-validating the result, and previewing waves.
+validating the result, and previewing the partition.
 
 ## The work-order → bead mapping
 
@@ -86,22 +86,18 @@ field names, edge names, enums, required fields — is `references/bead.schema.j
 At the start of a grooming pass, spend a moment to ground yourself:
 
 - Confirm `bd` exists and find the beads dir (`bd --version`, look for `.beads/`).
-- Probe the flags you're about to use: `bd create --help`, `bd update --help`,
-  `bd dep --help` (or `bd link`/`--deps`), `bd lint --help`. Field and flag names
-  like `--design`, `--acceptance`, `--set-metadata`, `--append-notes`,
-  `--deps discovered-from:<id>` are what current Beads uses, but adapt to what
-  `--help` actually shows. If a capability is missing, degrade gracefully (e.g.
-  fold acceptance criteria into the description under an `## Acceptance` heading)
-  and note it in your report rather than failing.
-- **When `bd` is unavailable and you fall back to emitting bead files,** emit
-  JSONL that conforms to `references/bead.schema.json` — that schema is the
-  authoritative source for field and edge names, so don't improvise alternatives
-  (it's `dependencies` not `deps`, `id` not `slug`, and parentage is a dependency
-  of type `parent`, never a top-level `parent` field). Validate what you emit with
-  `scripts/validate_beads.py` and fix until it passes (phase 6).
-- Load durable project knowledge so grooming matches house style: `bd prime` if
-  available, and skim existing `bd remember` insights. Past retros are the memory
-  of what previous grooming got wrong — honor them.
+- Probe the flags you are about to use — `bd create/update/dep/lint --help`.
+  Names like `--design`, `--acceptance`, `--set-metadata`, `--append-notes` are
+  what current Beads uses; **adapt to what `--help` shows**. Where a capability
+  is missing, degrade gracefully (fold acceptance into the description under an
+  `## Acceptance` heading) and say so in the report rather than failing.
+- **Where `bd` is unavailable and you emit bead files instead**, conform to
+  `references/bead.schema.json` — it is authoritative for field and edge names,
+  so do not improvise: `dependencies` not `deps`, `id` not `slug`, and
+  parentage is a dependency of type `parent`, never a top-level field.
+- Load durable project knowledge so grooming matches house style: `bd prime`,
+  and skim existing `bd remember` insights. Past retros are the memory of what
+  previous grooming got wrong — honour them.
 
 Never invent bead IDs, component names, or dependencies. If you're unsure a
 dependency is real, say so in the report instead of wiring a guess.
@@ -121,6 +117,7 @@ Grooming progress:
 - [ ] 4. Tier + tier_reason on every bead (never null)
 - [ ] 5. C4 blast radius tagged (or explicitly skipped: no C4 docs)
 - [ ] 6. Validated — 0 errors, re-run after each fix
+  - [ ] 6a. WHEN grooming under an epic: the epic itself meets the epic-level DoR
 - [ ] 7. Reported: changes, still-not-ready + gaps, flags for the human
 ```
 
@@ -156,29 +153,33 @@ Prefer editing over rewriting: enrich a thin description, don't discard the
 author's intent. When a description leans on session context, the fix is to
 *inline the missing context*, not to delete the sentence.
 
-WHEN a bead cannot be brought to Ready, do not dispatch it. Parking it takes
-**two** writes, and the second is the one that actually works:
+### An epic has its own Definition of Ready
 
-1. Record WHY, for the human and the next grooming pass — set
-   `grooming_status` to `blocked-needs-info` (a specific fact is missing, or
-   the Design leaves a choice open — that is the human's call, never yours to
-   guess) or `blocked-ungroomable` (it needs redesign).
-2. Record THAT, for the orchestrator — change the bead's `status` so it
-   leaves the ready queue:
+The per-bead DoR says when a *bead* can be dispatched; it says nothing about
+when an *epic* is fit to scope a run. WHEN you groom under an epic, check the
+epic too against `references/epic-definition-of-ready.md` — has children, every
+child ready or explicitly out of scope, dependency edges wired rather than
+implied, nothing the run needs derivable only by you.
 
-   ```
-   bd update <id> --set-metadata grooming_status=blocked-needs-info
-   bd defer <id>          # status -> deferred; drops out of `bd ready`
-   ```
+**Flatness is preferred, not required**, and the reference says what a nested
+epic costs: the swarm preview and the progress count, both recomputable.
+Dispatch is unaffected. Report which shape the epic is in; requiring flatness
+would push the author to move beads out of the epics that own them.
 
-`bd ready` reads `status`, **not** `grooming_status`. A bead flagged only
-with `grooming_status` stays dispatchable and will be handed to a fresh
-subagent exactly as if it were ready — which is the failure the flag exists
-to prevent, made worse by looking handled. Verify the park took effect: the
-bead SHALL NOT appear in `bd ready` afterwards.
+**WHEN a bead cannot be brought to Ready, park it — which takes TWO writes,
+and only the second one works.** `bd ready` reads `status`, not
+`grooming_status`, so a bead flagged only with the metadata stays dispatchable
+and reaches a fresh subagent looking handled:
 
-Then flag it in the report rather than shipping a half-groomed bead
-downstream silently.
+```
+bd update <id> --set-metadata grooming_status=blocked-needs-info
+bd defer <id>          # status -> deferred; drops out of `bd ready`
+```
+
+Verify it took: the bead SHALL NOT appear in `bd ready` afterwards. Then flag
+it in the report rather than shipping a half-groomed bead downstream silently.
+Which `grooming_status` to use, and what each commits the next pass to:
+`references/parking-a-bead.md`.
 
 ### 3. Wire the dependency graph
 
@@ -187,53 +188,57 @@ numbers**. Encode real relationships with the right edge type (these realize the
 work order's `depends_on` / `blocks` / `parent_slug` / `related` /
 `discovered_from` fields):
 
-- `blocks` / `blocked-by` — genuine sequential dependencies. This is what defines
-  wave boundaries via `bd ready`.
+- `blocks` / `blocked-by` — genuine sequential dependencies. This is what the
+  ready front is computed from.
 - `parent` — the bead belongs to an epic.
 - `related` — relevant but non-blocking.
 - `discovered-from` — work surfaced while implementing another bead. Preserve
   these; they're how emergent work stays attached to its origin.
 
-Add only edges you can justify. A missing real edge is a wave-time race; a
+Add only edges you can justify. A missing real edge is a dispatch-time race; a
 fabricated edge needlessly serializes work the orchestrator could parallelize.
+
+**A sequencing constraint you discover here is an edge, not a note.** WHEN one
+bead consumes a contract another is changing — `c4_impacts` intersecting
+another bead's `c4_changes`, or a stated prerequisite — wire
+`bd dep add <consumer> <producer>`. An orchestrator dispatches from the
+re-queried ready front, so an edge is honoured automatically, at any depth and
+across epic boundaries; a line of prose in a preview is honoured only if
+someone reads it, and nothing re-reads it after the first dispatch.
+
+**`blocks` edges are type-segregated** — task↔task and epic↔epic are accepted,
+task↔epic is refused in both directions (`tasks can only block other tasks, not
+epics`). A constraint between a bead and an epic cannot be expressed this way;
+record it on the epic and say so rather than leaving a failed command behind.
 
 ### 4. Assign a capability tier
 
-Record the tier in **metadata** so it rides with the bead and the orchestrator
-can read it at dispatch:
+Beads carry a **tier** (`light | standard | advanced | frontier`, least to most
+capable), never a model name — the orchestrator resolves tier → model at
+dispatch from the project's `sf.toml` `[models]` lineup, so a bead groomed
+today still routes correctly after the lineup changes.
 
 ```
 bd update <id> --set-metadata tier=standard \
   --set-metadata tier_reason="localized CRUD + tests, low ambiguity" \
-  --set-metadata est_size=S
+  --set-metadata est_size=S \
+  --set-metadata execution_suggested_model=standard \
+  --set-metadata execution_reasoning_effort=medium \
+  --set-metadata execution_agent_type=worker
 ```
 
-Two flags write metadata and they are not interchangeable — probe both
-before a bulk pass:
-
-- `--set-metadata key=value` is **repeatable and additive**: it leaves
-  other keys intact, so it is what you want for touching one field on an
-  already-groomed bead. It stores every value as a **string**.
-- `--metadata '<json>'` takes real JSON types but **replaces the entire
-  metadata object**. Use it to write a bead's metadata in one shot (at
-  creation); do NOT reach for it to add a key, or you will silently drop
-  every key you did not restate.
-
-Beads carry a **tier** (`light | standard | advanced | frontier`, least to
-most capable), not a model name. The orchestrator resolves tier → model at
-dispatch from the project's `## model lineup` block, so a bead groomed today
-still routes correctly after the lineup changes. The routing rubric is owned
-by `references/shared/work-order-field-guide.md`. Apply it, and:
+**The rubric is `references/shared/work-order-field-guide.md`'s.** Two rules
+bind whatever it says:
 
 - **Assign the LOWEST tier that can do the work.** Over-routing is invisible
   and paid for on every run; under-routing announces itself as an escalation
   the orchestrator reports back. Bias toward the cheaper call.
-- **Always record `tier_reason`** — a bare tier can't be audited, and the
-  retro uses the reason to tell whether routing was calibrated.
-- **Assign a default, never null** — a mis-groomed bead must not stall a wave.
-  WHEN genuinely unsure, `standard` and say so.
-- Set a named `model` **only** as an override, when a specific model is
-  genuinely required. Normal beads carry `tier` and no `model`.
+- **Always record `tier_reason`.** A bare tier cannot be audited, and the
+  retro loop below needs it to recalibrate.
+
+**The keys, why the `execution_*` ones are `bd`'s own convention rather than
+ours, and how `--metadata` merges (shallowly) against `--set-metadata`'s
+add-only, string-only writes:** `references/capability-tier.md`.
 
 ### 5. Tag C4 blast radius
 
@@ -250,9 +255,9 @@ bd update <id> --metadata '{"tier":"standard","tier_reason":"...","est_size":"S"
 These three fields are **arrays**, which is why this phase uses
 `--metadata` and not `--set-metadata`: the latter would store
 `["auth-service"]` as the literal string `"[\"auth-service\"]"`, and
-anything reading `c4_changes` as a list — wave-collision packing above
-all — would not see a component name. Because `--metadata` replaces the
-whole object, restate the tier keys phase 4 already wrote, as shown.
+anything reading `c4_changes` as a list — collision packing above
+all — would not see a component name. `--metadata` merges at the top
+level, so phase 4's tier keys survive without restating them.
 
 - Distinguish **changes** (code this bead edits) from **impacts** (downstream
   components affected but not edited). Both matter; see below.
@@ -260,7 +265,7 @@ whole object, restate the tier keys phase 4 already wrote, as shown.
   names that exist. If a bead targets a component with no doc, flag it in the
   report — that mismatch is either a stale doc or a misunderstanding, and both are
   worth surfacing.
-- This pays off three ways: **wave isolation** (two beads that both *change*
+- This pays off three ways: **dispatch isolation** (two beads that both *change*
   `auth-service` are a collision even when both are `bd ready` — dependency-free ≠
   safe-to-parallelize), **tier routing** (blast radius is a risk signal), and
   **doc freshness** (a bead that changes a component should carry an acceptance
@@ -289,23 +294,17 @@ on whether `bd` is live:
   python3 scripts/validate_beads.py <emitted.jsonl> --c4-docs <path/to/c4/docs...>
   ```
 
-  Requires `python3`. It uses the `jsonschema` package for full structural
-  validation when installed and falls back to equivalent built-in checks
-  otherwise, so it never fails for a missing dependency.
+  It checks each bead against `references/bead.schema.json` **and** the things a
+  per-record schema cannot: IDs resolve, no cycles, C4 names are in the
+  vocabulary parsed from your docs, tier non-null on ready beads, ready
+  features and bugs carry acceptance criteria. **Iterate emit → validate → fix
+  until it reports 0 errors**; warnings are advisory. What each finding means:
+  the script's own `--help`.
 
-  It checks each bead against `references/bead.schema.json` (canonical field/edge
-  names, enums, required fields) **and** the things a per-record schema can't:
-  dependency/parent IDs resolve, no cycles in the blocks graph, C4 names are in
-  the vocabulary parsed from your docs, tier is non-null on ready beads, ready
-  features/bugs carry acceptance criteria, plus a session-phrase lint and a
-  wave-collision advisory. **Iterate emit → validate → fix until it reports 0
-  errors** (warnings are advisory — a greenfield C4 component or a deliberately
-  `blocked-ungroomable` bead will warn, and that's fine).
-
-Either way: cycles and orphans and dangling references are hard problems — fix
+Either way: cycles, orphans and dangling references are hard problems — fix
 them, don't report around them.
 
-### 7. Report — and optionally preview waves
+### 7. Report — and optionally preview the partition
 
 Close the pass with a concise report:
 - What you groomed and the notable changes per bead (especially descriptions you
@@ -315,12 +314,11 @@ Close the pass with a concise report:
 - Any flags for the human: invented-looking dependencies you declined to wire,
   C4 component mismatches, beads too ambiguous to size.
 
-**Optional wave preview** (default on, non-authoritative): group the ready beads
-into candidate waves under *two* constraints — dependencies **and** no two beads
-sharing a `c4_changes` component in the same wave — and present it as a
-suggestion for the orchestrator to accept or ignore. The orchestrator remains
-the source of truth on wave-packing; this just hands it the C4-collision insight
-for free. Say explicitly that it's a preview.
+**Optional partition preview** (default on, non-authoritative): name every pair
+of ready beads sharing a `c4_changes` component, and group each cluster into a
+candidate batch in dependency order. Those pairs become **collision edges** in
+the plan, so a pair never reaches the ready front together. The planner remains
+the source of truth on packing; say explicitly that this is a preview.
 
 ## The retro loop (closing the circle)
 
@@ -332,7 +330,7 @@ runs a retro (or asks you to help with one), the highest-value outputs are:
   are the run's only direct routing evidence. Note the asymmetry: escalations
   surface under-routing, but nothing surfaces over-routing — so a large run
   with zero escalations is worth examining, not celebrating.
-- **Grooming misses** — beads reopened or blocked mid-wave for missing context.
+- **Grooming misses** — beads reopened or blocked mid-run for missing context.
   Capture the *pattern* as `bd remember "<insight>"` so future grooming (via
   `bd prime`) inherits it, and ideally propose it as an RFC against the
   Definition of Ready (which the `spec` skill owns).
