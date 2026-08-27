@@ -16,8 +16,11 @@ user-invocable: false
 # sprint-plan
 
 Take a run epic's queue from wherever it is to **groomed and partitioned**, in
-one dispatch. Two returns: the readiness verdict per bead, and the collision
-edges.
+one dispatch. You are that dispatch: **one subagent, two jobs, one context** —
+you invoke `groom-beads` for the grooming and then do the dispatch planning
+yourself, with everything it read still in front of you.
+
+Two returns: the readiness verdict per bead, and the collision edges.
 
 **They are one step because they are one read.** Partitioning needs exactly the
 knowledge grooming just acquired — every bead's scope, surfaces and
@@ -80,21 +83,13 @@ the two cannot disagree.
 
 **Resolve by removing the label, never with `bd human respond`.** The answer
 goes on the bead as a `bd comment`, then `bd update <id> --remove-label human`
-once the gap is actually closed, and the bead re-enters the readiness gate on
-the next pass — no full re-run. Two independent
-reasons not to use `respond`: it is documented to add a comment **and close**
-the bead, and a bounced bead is not finished; and on bd 1.2.2 it fails outright
-— `bd human respond <id> -r "..."` errors with `cannot resolve issue ID
-"<id>": storage is nil`, reproduced in two separate embedded workspaces, while
-`list` and `stats` work in both.
+once the gap is closed, and the bead re-enters the gate on the next pass.
+`respond` is documented to comment **and close** — a bounced bead is not
+finished — and on bd 1.2.2 it fails outright with `storage is nil`.
 
-`bd gate --await human:<prompt>` is the other candidate and is **not** used
-here: gates are created by a formula step's `gate` field, and a sprint runs
-no formula. A human item stopping the chain is the behaviour that matters, and
-the label already delivers it. An ungroomed queue makes every one of them
-unreliable — and handing a fresh, zero-context subagent an under-specified
-bead is the single most expensive failure mode a run has: it detonates late,
-after other beads have built on it.
+Handing a fresh, zero-context subagent an under-specified bead is the single
+most expensive failure mode a run has: it detonates late, after other beads
+have built on it.
 
 So before dispatch, every bead in the queue carries a readiness **verdict** —
 and **you do not produce it.** The Definition of Ready is a checklist the
@@ -102,18 +97,28 @@ and **you do not produce it.** The Definition of Ready is a checklist the
 second place for it to be interpreted, and the one that would drift is this
 one, because grooming is the skill that gets fixed when the checklist changes.
 
-### 1. Ask grooming for the verdict
+### 1. Invoke `groom-beads` over the whole queue — in your own context
 
-**Send the whole queue, not a subset you pre-filtered.** Grooming triages what
-it is handed and answers per bead — `ready` for one it changed nothing on,
-`ready — <change>` for one it fixed, `NOT-READY — <the gap a human must close>`
-for one it cannot clear. A bead that needed nothing costs it a confirmation
-pass, which is cheaper than this skill holding a copy of the checklist to avoid.
+**You are one subagent doing two jobs in one context, and the order is fixed:
+groom first, plan second.** Invoke the `groom-beads` skill directly. Do not
+dispatch a second agent for it, and do not pre-filter the set you hand it —
+grooming triages what it is given and answers per bead: `ready` for one it
+changed nothing on, `ready — <change>` for one it fixed, `NOT-READY — <the gap
+a human must close>` for one it cannot clear.
+
+**Why one context, and it is not tidiness.** Collision detection prefers C4
+metadata, but **`c4_changes` / `c4_impacts` are optional** — a repo that
+documents no architecture has none, and then scanning each bead's *description*
+for fixture names and source paths is the whole signal. Grooming has just read
+every description. A second agent would read them all again to learn what this
+one already knows, and a metadata-only planner would silently under-detect
+collisions on exactly the repos that have no C4 docs.
 
 **What you own is the queue, not the criteria**: re-derive it from the epic
-(`bd ready --parent <epic> --exclude-type=epic`), hand grooming exactly that
-set, and account for every id in what comes back. A bead with no verdict is not
-ready — it is unexamined, and the two must never read alike.
+(`bd list --parent <target> --status open` — the target is flat, so its direct
+children are the work), and account for every id in what comes back. A bead
+with no verdict is not ready; it is unexamined, and the two must never read
+alike.
 
 **One signal grooming's checklist does not carry**, so check it yourself
 alongside: `bd lint` clean for each bead, WHERE the installed `bd` has it.
@@ -125,14 +130,19 @@ and wires graphs; a bead you repair here is one repaired against your reading
 of a checklist you do not hold, and nothing downstream can tell it apart from
 one grooming cleared.
 
-Grooming also returns a **partition preview** — its candidate grouping under
-dependencies and C4 collisions — which is the starting point for everything
-below. It has already read every bead, which is why the partition is computed
-in the same agent rather than by a second one that would re-derive it.
+Grooming also produces a **partition preview** — candidate collision pairs and
+batches, named while it still had every description in context. That is the
+payoff of the single read: it is signal captured at the one moment it is cheap,
+and it is the starting point for everything below. You remain the source of
+truth on packing.
 
-**Then re-run `bd ready`** with the run's filter: grooming may have wired new
-dependencies or split a boulder into an epic + children, changing both the
-ordering and the membership of the queue.
+**Then re-run the front** with the run's filter: grooming may have wired new
+dependencies or split a boulder, changing both the ordering and the membership
+of the queue. **A split must stay FLAT** — siblings under the target with edges
+between them, never a sub-epic. The target's flatness is what makes "the run's
+work" and "the target's children" the same query, and a nested child breaks
+every count that reads from it. Where a bead genuinely decomposes into an epic,
+bounce it for re-admission as a second target rather than nesting it here.
 
 ### 3. Bounce what grooming can't clear
 
@@ -173,8 +183,6 @@ of the run.
 blocker that is really a new epic, or more than a handful off a single bead —
 say so in your return rather than grooming them all. That means the original
 scope was mis-groomed, which is a human's call.
-
-The grooming subagent prompt template is in `references/grooming-prompt.md`.
 
 ## Bias toward batching
 

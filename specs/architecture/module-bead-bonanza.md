@@ -159,7 +159,7 @@ C4Component
         Component(env, "Environment Probe", "script", "Measures the environment and captures the checks baseline")
         Component(scope, "Scope", "skill", "Builds the run's epic shape and takes the authorization gate")
         Component(groom, "Grooming", "skill", "Owns the Definition of Ready and answers ready / NOT-READY per bead")
-        Component(plan, "Plan", "skill", "Partitions the queue, assigns agents, gates the epic for swarming")
+        Component(plan, "Plan", "skill", "Invokes Grooming, then partitions the queue, assigns agents and gates the epic")
         Component(dev, "Developer", "skill", "Works a batch bead by bead; one commit each")
         Component(checks, "Check Runner", "script", "Runs the project's declared checks in declaration order")
         Component(close, "Bead Close Ceremony", "script", "Closes the bead and commits its code as one act")
@@ -172,8 +172,8 @@ C4Component
     }
     Rel(coord, env, "runs, twice")
     Rel(coord, scope, "invokes once")
-    Rel(coord, plan, "invokes; re-enters per review loop")
-    Rel(plan, groom, "asks for the readiness verdict")
+    Rel(coord, plan, "dispatches ONE subagent; re-enters per review loop")
+    Rel(plan, groom, "invokes, in its own context, before planning")
     Rel(coord, dev, "dispatches, one per batch")
     Rel(dev, checks, "runs before every close")
     Rel(dev, close, "runs once per bead")
@@ -319,6 +319,9 @@ keeps the readiness boundary in one place.
   design, acceptance criteria, tier, dependency edges, C4 blast radius.
 - **Parks what it cannot clear** rather than guessing, and returns a
   partition preview for the component downstream.
+- Produces a **non-authoritative partition preview** while every description is
+  still in context — signal captured at the one moment it is cheap. Plan
+  remains the source of truth on packing.
 - **Does not assign agents** and does not decide what runs together.
 
 ### Plan
@@ -329,8 +332,15 @@ slug: component-bb-plan
 description: Partitions the queue into batches, assigns every bead an agent, and gates the epic for swarming
 ```
 
-(skill — `sprint-plan`)
+(skill — `sprint-plan`) — the coordinator dispatches **one** subagent here;
+it invokes Grooming itself and plans in the same context.
 
+- **Runs Grooming first, in its own context, and never as a second dispatch.**
+  `c4_changes` / `c4_impacts` are optional, so where a repo documents no
+  architecture the collision signal is each bead's description — which Grooming
+  has just read. Splitting the two agents would re-read every description, and
+  a metadata-only planner would under-detect collisions on precisely the repos
+  that have no C4 docs.
 - **Owns the queue** — re-derives it from the epic and accounts for every
   id in grooming's reply. A bead with no verdict is unexamined, not ready.
 - Classifies beads and computes collision and sequencing overlap from C4
@@ -597,34 +607,16 @@ This module SHALL comply with:
 
 ## Open Questions
 
+None.
+
 <!--
-Three questions from the first draft were decided by the owner and folded
-into the sections above rather than left here: the merge is a Coordinator
-responsibility (not a component); `groom-beads` is a component of this
-module (not a module of its own); and the `swarm` CLI is a CONTAINER that
-will carry its own blueprint once its FRD scopes it.
+Four questions from the first draft were decided by the owner and folded into
+the sections above: the merge is a Coordinator responsibility (not a
+component); `groom-beads` is a component of this module (not a module of its
+own); the `swarm` CLI is a CONTAINER that will carry its own blueprint once its
+FRD scopes it; and groom-and-plan is ONE subagent — the coordinator dispatches
+`sprint-plan`, which invokes `groom-beads` in its own context.
 -->
-
-- [ ] **Which agent is dispatched for groom-and-plan, and which invokes the
-      other?** Two components describe opposite orders and only one can be
-      built. Tracked as `agent-plugins-hg9t.11`; the owner decides. The four
-      concrete differences:
-
-      | | Reading A — `grooming-prompt.md` | Reading B — `sprint-plan/SKILL.md` |
-      |---|---|---|
-      | the coordinator dispatches | the **grooming** agent | the **plan** agent |
-      | who invokes whom | grooming → `sprint-plan`, as its last act | plan → `groom-beads`, as its first |
-      | who resolves the queue | the coordinator, into `{ID_1}…` and `{PLAN_IDS}` placeholders | `sprint-plan`, from the epic |
-      | `grooming-prompt.md` | live, and the run's real entry point | **dead** — nothing would send it |
-
-      Both readings satisfy "one subagent, never two", so the coordinator's
-      text does not settle it. **Reading B is the recommendation**: it puts the
-      queue with the component that owns it, and it is the only one under which
-      the dispatch-by-assignee treatment applies uniformly — Reading A keeps a
-      second placeholder-heavy prompt, which is the surface that carried a
-      false tool claim into three dispatches. Choosing B deletes
-      `grooming-prompt.md`; choosing A means rewriting `sprint-plan`'s gate to
-      run before grooming rather than ask it.
 
 ## References
 

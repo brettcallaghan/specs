@@ -132,9 +132,17 @@ is the one the original run wrote.
 `BB_TARGET`, the flat target; and the admission record, because **a run that
 narrowed its own scope says so in its record**.
 
-## Groom & plan — invoke `sprint-plan`
+## Groom & plan — dispatch ONE subagent running `sprint-plan`
 
-**One subagent, never two**, and it returns two things:
+**One subagent, two jobs, one context.** It invokes `groom-beads` for the
+grooming and then plans the dispatch itself. You dispatch it once and never
+dispatch grooming separately: `c4_changes` / `c4_impacts` are optional
+metadata, so on a repo with no C4 docs the collision signal is each bead's
+*description* — which grooming has just read. A second agent would read them
+all again, and a metadata-only planner would under-detect collisions on
+exactly the repos that have none.
+
+It returns two things:
 
 1. **The readiness verdict** per bead. Dispatch only the ready ones; the skill
    bounces the rest into `bd human` itself.
