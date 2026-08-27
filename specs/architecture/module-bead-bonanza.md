@@ -48,6 +48,11 @@ is true" from git and the tracker rather than from what an agent reported.
   *what* work exists.
 - **Composed into:** the `sf` plugin, loaded by a skill-capable agent harness.
   No host container has a blueprint of its own.
+- **Consumes (planned):** a `swarm` CLI, which is a **container** in its own
+  right and will carry its own container blueprint once the capability audit
+  and its FRD have scoped it. The command sequences these components prescribe
+  today are what it mechanizes; this module will call it rather than contain
+  it.
 - **Source & tests:** `plugin/skills/{bead-bonanza,sprint-*,run-batch}`,
   `plugin/hooks`, `plugin/monitors`. Scripts carry `--self-test` in-file;
   there is no separate test tree.
@@ -232,12 +237,15 @@ run and for resuming one alike.
   decision. It does not stop to ask.
 - **Owns the run manifest** (`--metadata` on the run epic) and the run's
   amendments (`amend:` comments). Neither is ever delegated.
-- **Merges**, one dispatch's branch at a time, as that dispatch returns —
-  and removes its worktree only behind an ancestry check.
+- **Executes the merges**, one dispatch's branch at a time, as that dispatch
+  completes its work — and removes its worktree only behind an ancestry check.
+  This is a coordinator responsibility, not a component: there is nothing to
+  serialize (it is one agent) and nothing to schedule.
 - Owns both loops: the dispatch loop (until the ready front is dry) and
   the review loop (until findings stop or the budget is spent).
-- Dispatches one agent to resolve a rebase conflict; never resolves one
-  itself, holding no bead's context.
+- **Spawns a subagent to fix a merge conflict** as one arises, and never
+  resolves one itself: it holds no bead's context, so a resolution it invented
+  would be an unreviewed edit landing under someone else's commit.
 - **Does not read source files.** Reading a file to decide something is a
   subagent's job.
 - **Does not escalate mid-run.** A decision that changes what "correct"
@@ -291,8 +299,16 @@ slug: component-bb-grooming
 description: The Definition of Ready engine; the sole holder of the per-bead readiness checklist
 ```
 
-(skill — `groom-beads`) — **also independently user-invocable**, and
-useful with no sprint in sight.
+(skill — `groom-beads`) — a component of this module, and **also
+independently user-invocable**, useful with no sprint in sight.
+
+Two consumers outside this module's dispatch path use it — a human directly,
+and `groom-feature-blueprint`, which hands it the finishing pass over a
+decomposed blueprint. **That does not make it a module of its own.** It is one
+skill with one responsibility and no internal components, and a second consumer
+is an inbound edge rather than a boundary of independent change: it ships,
+versions and breaks with the rest of the plugin. Documenting it here is what
+keeps the readiness boundary in one place.
 
 - **Sole owner of the per-bead Definition of Ready.** No other component
   holds a copy or applies it.
@@ -581,24 +597,38 @@ This module SHALL comply with:
 
 ## Open Questions
 
-- [ ] **The groom/plan dispatch topology.** `sprint-plan` and
-      `grooming-prompt.md` describe different agent topologies; only one
-      can be right, and it decides who triages readiness. Tracked as
-      `agent-plugins-hg9t.11`; the owner decides.
-- [ ] **Is the Coordinator's merge a component of its own?** It is the
-      one responsibility the Coordinator holds that is not routing, and
-      folding it in may be hiding a boundary rather than respecting one.
-- [ ] **Does `groom-beads` belong to this module at all?** It is
-      independently user-invocable and useful with no sprint, which is
-      the shape of a module in its own right rather than a component of
-      this one.
-- [ ] **Where do the swarm-CLI capabilities land?** `agent-plugins-offx`
-      proposes replacing prescribed command sequences with a tested
-      action surface; whether that becomes a component here or a module
-      this one consumes is undecided.
+<!--
+Three questions from the first draft were decided by the owner and folded
+into the sections above rather than left here: the merge is a Coordinator
+responsibility (not a component); `groom-beads` is a component of this
+module (not a module of its own); and the `swarm` CLI is a CONTAINER that
+will carry its own blueprint once its FRD scopes it.
+-->
+
+- [ ] **Which agent is dispatched for groom-and-plan, and which invokes the
+      other?** Two components describe opposite orders and only one can be
+      built. Tracked as `agent-plugins-hg9t.11`; the owner decides. The four
+      concrete differences:
+
+      | | Reading A — `grooming-prompt.md` | Reading B — `sprint-plan/SKILL.md` |
+      |---|---|---|
+      | the coordinator dispatches | the **grooming** agent | the **plan** agent |
+      | who invokes whom | grooming → `sprint-plan`, as its last act | plan → `groom-beads`, as its first |
+      | who resolves the queue | the coordinator, into `{ID_1}…` and `{PLAN_IDS}` placeholders | `sprint-plan`, from the epic |
+      | `grooming-prompt.md` | live, and the run's real entry point | **dead** — nothing would send it |
+
+      Both readings satisfy "one subagent, never two", so the coordinator's
+      text does not settle it. **Reading B is the recommendation**: it puts the
+      queue with the component that owns it, and it is the only one under which
+      the dispatch-by-assignee treatment applies uniformly — Reading A keeps a
+      second placeholder-heavy prompt, which is the surface that carried a
+      false tool claim into three dispatches. Choosing B deletes
+      `grooming-prompt.md`; choosing A means rewriting `sprint-plan`'s gate to
+      run before grooming rather than ask it.
 
 ## References
 
 - `shared/c4-guide.md` — C4 mapping rules and diagram conventions
 - `docs/research/swarm-cli/2026-08-25-capability-audit.md` — every action
-  these components perform, and the commands behind each
+  these components perform, and the commands behind each; the input to the
+  `swarm` CLI's FRD and, after it, that container's own blueprint
