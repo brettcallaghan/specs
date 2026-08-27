@@ -465,7 +465,7 @@ description: Resolves a reviewer, scopes it to the run's diff, files each findin
 ```component
 title: Retro
 slug: component-bb-retro
-description: Answers how the next run goes better — harvests every finding, routes each by kind, and writes the run's one human-facing record
+description: Answers how the next run goes better — harvests every finding, routes each by kind, and writes the run's one human-facing retro
 ```
 
 (skill — `sprint-retro`)
