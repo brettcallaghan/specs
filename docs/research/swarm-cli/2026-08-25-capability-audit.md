@@ -120,7 +120,7 @@ what the prose exists to prevent. **Verdict**.
 | A3 | Capture the checks baseline | coordinator | `bb-checks.py` on the untouched tree → manifest `checks_baseline` | No opt-out: the run where a baseline is most expensive to skip is the one somebody wants to skip it on **[read]** | MECHANIZE (already) |
 | A4 | Resolve commit trailers | coordinator | read `CLAUDE.md`/`AGENTS.md` → manifest `trailers` | A session URL varies per session, so it is per-run and never committed **[read]** | MECHANIZE (partly — reading conventions is PROSE) |
 | A5 | Assert an Agent tool exists | coordinator | none — a harness property | Invisible from a shell. Blocking, not degradable: with no delegation nothing of bead-bonanza survives except `run-bead` **[read]** | HARNESS |
-| A6 | Confirm the harness worktree dir is gitignored | coordinator | create the first worktree, then `git status --porcelain` | Checking *before* that worktree exists tests nothing **[corpus]**. The harness may place it inside the repo (`.claude/worktrees/`) | MECHANIZE |
+| A6 | Confirm the harness worktree dir is gitignored | coordinator | create the first worktree, then `git status --porcelain` | Checking *before* that worktree exists tests nothing **[corpus]**. The harness may place it inside the repo (`.claude/worktrees/`). **Exists ONLY under path 2 — see §2.5** | MECHANIZE, or DELETE |
 
 ### Phase 1 · Scope and admission
 
@@ -151,10 +151,43 @@ what the prose exists to prevent. **Verdict**.
 | # | Capability | Actor | Behind it | Trap | Verdict |
 |---|---|---|---|---|---|
 | D1 | Create or reuse the sprint branch | coordinator | read `manifest.branch`; else `git checkout -b`, record `branch` + `base_sha` | **The manifest read comes first** — creating a second branch forks a resumed run from the work it continues. `base_sha` is recorded at creation because that is the only unambiguous moment **[corpus]** | MECHANIZE |
-| D2 | Verify `worktree.baseRef` is `head` | coordinator | read global harness config | Global user state no repository owns, so it changes under you. Unset, every worktree branches from the *default* branch and silently drops everything the sprint branch carries **[corpus]** | MECHANIZE |
+| D2 | Verify `worktree.baseRef` is `head` | coordinator | read global harness config | Global user state no repository owns, so it changes under you. Unset, every worktree branches from the *default* branch and silently drops everything the sprint branch carries **[corpus]**. **Exists ONLY under path 2 — see §2.5** | MECHANIZE, or DELETE |
 | D3 | Create a worktree per dispatch | coordinator | `git worktree add -b <suffix> "$REPO/../.bb-worktrees/<id>" HEAD` | Sibling of the repo, never inside it — an inside worktree reads as dirt in every `git status` **[corpus]** | MECHANIZE |
-| D4 | Verify a worktree's base | coordinator | `git merge-base --is-ancestor <sprint-head> HEAD` inside it | **Currently done by asking the subagent to print two lines and report them verbatim** — a prose workaround standing in for a missing command **[read]** | MECHANIZE |
+| D4 | Verify a worktree's base | coordinator | `git merge-base --is-ancestor <sprint-head> HEAD` inside it | **Currently done by asking the subagent to print two lines and report them verbatim** — a prose workaround standing in for a missing command, and for not knowing what the harness branched from **[read]**. Under path 2 it is the only check available; under path 1 the base is an argument | MECHANIZE |
 | D5 | Remove a worktree and its branches | coordinator | `git worktree remove`, `git branch -d` | Must follow a *successful* merge; a chained command whose merge exited 128 removed the tree anyway (`y63n.20`). `bd worktree remove` is unusable here: it treats a branch with no upstream as unpushed, so every bead branch is refused **[corpus]** | MECHANIZE — with the ancestry guard |
+
+### 2.5 · Who creates the worktree — an unresolved fork, and three capabilities ride on it
+
+**[read]** `worktree-mechanics.md` describes **two** creation paths and never
+says which one runs:
+
+| | **Path 1 — coordinator creates it** | **Path 2 — harness creates it** |
+|---|---|---|
+| command | `git worktree add -b bb/<id> "$REPO/../.bb-worktrees/<id>" HEAD` | `Agent` with `isolation: "worktree"` |
+| who picks the path | the coordinator — sibling of the repo, by rule | the harness — observed at `.claude/worktrees/`, *inside* the repo |
+| what it branches from | `HEAD`, as an argument, read at creation | the global `worktree.baseRef` setting |
+| the agent's cwd at start | the main checkout — it must be told the path | the worktree itself |
+
+**Three capabilities exist only under path 2.** A6 (gitignore the harness's
+directory) is entirely path-2 — under path 1 the worktree is a sibling and
+cannot be dirt. D2 (verify `worktree.baseRef`) likewise: it is a **blocking**
+pre-flight condition today, gating the whole run on *global user state no
+repository owns*, and under path 1 the base is an argument in the command with
+nothing to verify. D4 shrinks: the "have the subagent print two lines and
+report them verbatim" dance is standing in for not knowing what the harness
+branched from.
+
+**Path 1 also interacts with §3's dispatch-by-assignee treatment**, and this
+was not stated when that change landed: `run-batch` derives its worktree from
+`git rev-parse --show-toplevel`, which is correct **only under path 2**, where
+the agent starts inside the tree. Under path 1 it starts in the main checkout,
+so `{WORKTREE}` returns to the prompt as a fourth value.
+
+**Recommendation: path 1.** One prompt value bought back in exchange for
+deleting a blocking pre-flight gate that depends on a setting the repository
+cannot see or fix, plus a deterministic worktree path the CLI can compute
+rather than discover. It also makes create/verify/remove one subcommand family
+with the base as an argument.
 
 ### Phase 4 · Dispatch
 
@@ -190,8 +223,8 @@ what the prose exists to prevent. **Verdict**.
 |---|---|---|---|---|---|
 | G1 | Hold the merge slot | coordinator-as-merge-agent | `bd merge-slot acquire/release/check` | `--wait` registers but does not block; release promotes nobody; acquire is not idempotent; **release does not check the holder, so the remedy for a dead agent's slot and the way to corrupt a live merge are the same command** **[corpus]** | **DELETE** — §4.1 |
 | G2 | Schedule a batch's merge | planner | a merge **bead**: a task labelled `merge`, assigned to `merge-<run-id>`, fanned in by sidecar edges | Its fan-in cannot live in the graph plan, because a graph edge naming an existing bead aborts the whole load **[corpus]** | **DELETE** — §4.1 |
-| G3 | Merge a dispatch's branch | coordinator | `git merge --ff-only <suffix>`; for the 2nd+ concurrent branch, `git rebase <sprint-head>` then ff | **A `--ff-only` refusal means opposite things in the serialized and concurrent cases, and reading it wrong stops a healthy run** **[corpus]**. Read the merge target at merge time, never earlier | MECHANIZE |
-| G4 | Handle a rebase conflict | coordinator | record a `sequencing` finding, mark the bead blocked, stop dispatching | Resolution is explicitly **not** the merging agent's — it holds no bead's context **[read]** | MECHANIZE (detect + record) + spawn an agent to resolve — §4.1 |
+| G3 | Merge a dispatch's branch, **conflict handling included** | coordinator | `git merge --ff-only <suffix>`; for the 2nd+ concurrent branch, `git rebase <sprint-head>` then ff; on conflict, record a `sequencing` finding, mark the bead blocked, stop dispatching | **A `--ff-only` refusal means opposite things in the serialized and concurrent cases, and reading it wrong stops a healthy run** **[corpus]**. Read the merge target at merge time, never earlier. **G4's mechanical half is joined here**: naming which refusal case you are in, detecting the conflict and recording it are the same act as attempting the merge, and splitting them is what let a removal run after a merge exited 128 | MECHANIZE |
+| G4 | **Resolve** a rebase conflict | a spawned agent | reconcile both changes in the conflicted worktree, run the declared checks, hand the branch back | Resolution is explicitly **not** the merging agent's — it holds no bead's context **[read]**. This is the judgment half only; the detection and the record are G3 | HARNESS + PROSE |
 
 ### Phase 7 · Supervision, health, liveness
 
@@ -456,11 +489,13 @@ heartbeat the owner's §4.2 comment asks for.
 
 ### 4.6 `bd swarm` registration (B5, K3)
 
-Three subcommands, three recorded traps: `swarm create` pointed at the run epic
-counts ceremony epics as work and never sees a bead; `swarm list` reports
-closed molecules under "Active Swarms"; `swarm validate` warns about an outside
-dependency and then computes readiness as if the edge were absent, and is one
-level deep so a nested epic hides its leaves. The corpus's own instruction is
+Three subcommands, three recorded traps. **`swarm create` takes the TARGET
+epic**, never the run epic — pointed at the run epic it counts the ceremony
+epics as the work and never sees a bead, which is a silent wrong answer rather
+than an error. `swarm list` reports closed molecules under "Active Swarms".
+`swarm validate` warns about an outside dependency and then computes readiness
+as if the edge were absent, and is one level deep so a nested epic hides its
+leaves. The corpus's own instruction is
 to **suppress** the preview in both cases where it would be consulted.
 
 Its only remaining value is discoverability to a session that has nothing —
@@ -649,29 +684,121 @@ for describing the coordination around it, which is exactly where the friction
 is. That is a finding about the taxonomy, not about the authors, and it is one
 more argument for the write path validating the kind (F4).
 
-## 7. Open questions for the owner
+## 7. What earns a CLI command
 
-1. **Where does the CLI live?** This repository already has a Go module at
+Five classes, and a test for what to leave alone. The first three are the
+owner's; the last two are what the trap taxonomy in §1 turns out to contain
+once the first three are subtracted.
+
+### The five classes
+
+**1. Composed workflows** — multiple commands, output parsing, and branching on
+what came back. *Examples:* B2 (build the run's epic shape: nine creates, seven
+edges, eight assignments, one gate, every step conditional on the last); F5 (the
+close ceremony's fixed order); G3 (merge, name the refusal case, rebase, merge
+again, record a conflict).
+
+**2. Bespoke conventions** — the graph is the substrate, and a convention layered
+on top of it has no meaning to `bd`. *Examples:* B4 (the run epic's `--metadata`
+IS the run record, and it must merge rather than replace); J1 (findings live as
+`retro:`-prefixed comments and must be harvested with `bd export | jq`, never
+`bd list`); E3 (dispatch ids derived from the run epic id); D1 (`base_sha`
+recorded at creation because that is the only unambiguous moment).
+
+**3. Commands agents commonly get wrong** — undocumented, or behaving against
+their documentation. *Examples:* `bd update --labels` exits 1; `bd human
+respond` errors with `storage is nil`; `bd worktree remove` treats a branch with
+no upstream as unpushed, making its one safety check unreachable here.
+
+**4. Silent-failure actions — where a PERFECT agent still gets a wrong answer.**
+This is class 3's harder half and deserves separating, because the remedy is
+different: class 3 is fixed by knowing better, class 4 cannot be. The test:
+*would an agent that did exactly the documented thing still lose?*
+
+- `bd epic close-eligible` ignores its positional argument and closes every
+  eligible epic in the database, exit 0.
+- `bd create --graph` drops an unknown node, edge or plan-object field as a
+  *warning*, exit 0 — a mistyped `assignee` is a bead nobody owns.
+- `bd ready --parent ""` is repo-wide rather than empty.
+- `bd update --claim` on an *unassigned* bead silently rewrites the assignee to
+  git `user.name`, exit 0.
+- `bd swarm create` pointed at the run epic counts ceremony epics as the work
+  and reports `Swarmable: YES`.
+
+**A wrapper here is not convenience — it is the only way to get a non-zero exit
+at all.** Highest value per line of code in the whole inventory.
+
+**5. Derivations — one answer that no single command gives.** Not a workflow
+(no writes, no branching on side effects) but a walk or a join. *Examples:* H8
+(`bb-status.sh run` walks the descendant tree itself, because `bd list
+--parent`, `bd ready --parent` and `bd epic status` each answer a *different*
+question and none answers "every bead in this run"); H2 (health = standing
+worktrees × last-commit age × ready-front depth, a join across git and `bd`);
+E10 (drained = two queries, both empty); F3 (this run's check output diffed
+against the baseline).
+
+**This is where token spend is worst.** An agent doing a derivation by hand
+issues N queries and then reasons over the results in context; the same answer
+as one command is a single line. It is the class that most directly serves the
+mechanization hypothesis.
+
+### Two prioritization axes, orthogonal to class
+
+**Frequency.** A wrapper's cost amortizes over how often the action runs.
+From §0's frequency count: `bd ready` 106 mentions, `bd show` 66, `bd list` 62,
+`bd update` 59, `git worktree list` 21, `git worktree prune` 13. An action
+performed once per run (B2, A1) is worth less than one performed per bead per
+re-query (E1, E10, F3) at equal class.
+
+**Blast radius.** Does failure *end* the run or *degrade* it? Health and the
+dispatch front are liveness — the five-hour stall was a derivation nobody ran.
+A missing `--explain` is an annoyance. Prefer the run-ending ones.
+
+**Suggested order:** class 4 ∩ high frequency → class 5 ∩ liveness → class 1 →
+class 2 → class 3.
+
+### The test for what NOT to wrap
+
+**A single command with no convention, no trap and no derivation stays a single
+command.** Wrapping `bd comment` as `swarm comment` adds a layer, a version and
+a thing to learn, and buys nothing. Two further exclusions, both already in the
+inventory: anything whose value **is** the agent's judgment (I4 classifying
+scope, J3 reasoning findings into candidates), and anything only the harness can
+do (E6 spawning, H4 monitors, H5 triggers).
+
+**A CLI that wraps everything is a second API to learn on top of the one it
+hides.** The 5 HARNESS and 4 PROSE rows in §1 are the floor; the honest target
+is well under the 55 MECHANIZE rows, because several collapse into one command
+family (D3/D4/D5 into `worktree`; G3/G4's mechanical half into `merge`).
+
+## 8. Open questions for the owner
+
+1. **Who creates the worktree — path 1 or path 2?** §2.5. It decides whether
+   A6 and D2 exist at all, whether a *blocking* pre-flight gate on global user
+   state survives, and whether `{WORKTREE}` returns to the dispatch prompt. The
+   recommendation is path 1; the audit has no evidence the harness path buys
+   anything the coordinator path does not.
+2. **Where does the CLI live?** This repository already has a Go module at
    `cli/` (`github.com/brettcallaghan/agent-plugins/cli`, Go 1.24, cobra) that
    builds the `spec` binary. A second binary in the same module shares the
    toolchain, the CI matrix and the check set; a separate module keeps the
    swarm CLI vendable on its own. The audit has no evidence either way.
-2. **Does the CLI carry the retro's *routing*, or only its harvest?** J2 is a
+3. **Does the CLI carry the retro's *routing*, or only its harvest?** J2 is a
    nine-row lookup — mechanically trivial — but routing is what decides who
    receives a finding, and mechanizing a decision is different from
    mechanizing a query.
-3. **§4.7's replacement, concretely.** Dropping "incident" removes the report's
+4. **§4.7's replacement, concretely.** Dropping "incident" removes the report's
    lead section. What replaces it: findings of certain kinds surfaced first, or
    nothing at all?
-4. **How far does `--explain` go?** Printing the `bd`/`git` invocations is
+5. **How far does `--explain` go?** Printing the `bd`/`git` invocations is
    cheap. Printing *why* a step exists — the trap it guards — is the thing that
    would let an agent troubleshoot without reading the corpus, and is a much
    larger surface to keep true.
-5. **`admit_review_findings`** (`agent-plugins-offx.8`). The owner's §4.7
+6. **`admit_review_findings`** (`agent-plugins-offx.8`). The owner's §4.7
    comment leans toward clear criteria plus the agent's call. That is a
    decision the FRD needs, not the audit.
 
-## 8. What this audit did not establish
+## 9. What this audit did not establish
 
 - **No `bd` behaviour was re-measured except §3.1.** Every trap marked
   **[corpus]** is what the family currently instructs an agent to believe. Run
