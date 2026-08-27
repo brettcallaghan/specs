@@ -125,9 +125,9 @@ on.
 ## WHEN there is no monitor
 
 **The monitor is a convenience over a path that still works without it**, and
-several ordinary situations have none: the plugin is not installed, the session
-never invoked `bead-bonanza` (a solo `run-batch`), or the harness offers no Monitor tool at all — on
-those hosts a declared monitor is skipped silently.
+several ordinary situations have none: the plugin is not installed, or the
+harness offers no Monitor tool at all — on those hosts a declared monitor is
+skipped silently.
 
 WHERE the harness has a `Monitor` tool, arm one by hand, once, before the first
 dispatch. One event log carries the whole run, so the run needs ONE Monitor

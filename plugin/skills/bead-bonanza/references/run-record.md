@@ -74,9 +74,7 @@ make unnecessary.
 
 **A decision that changes what "correct" means is a finding, not a third
 channel.** It carries its ordinary kind — `decision`, `scope`, `gap`,
-`sequencing` — and routes by that kind like every other. Marking it with an
-extra severity word instead routes it nowhere: the kind slot accepts only the
-nine, and a word anywhere else is found only by whoever greps for it.
+`sequencing` — and routes by that kind like every other.
 
 **A bead that genuinely needs a human's answer is BOUNCED, not deferred.**
 Grooming raises it with `bd create --add-label human` (`--labels` exits 1 with

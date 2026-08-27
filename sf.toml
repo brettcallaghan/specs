@@ -162,7 +162,7 @@ frontier = "fable"
 #           ${TMPDIR:-/tmp}/claude/bead-bonanza when unset. Not a gate row.
 # run_root = ""
 
-[reports]
+[retros]
 # Where a run's record goes. `sprint-retro` writes ONE document per run — the
 # results, every finding verbatim, and what the run could not verify — and
 # records its path on the run epic so a later session finds it from the epic id.

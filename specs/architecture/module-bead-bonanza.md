@@ -369,8 +369,8 @@ description: Works an assigned batch bead by bead in one worktree, landing each 
   findings, close-and-commit.
 - **Files what it finds** beyond scope rather than doing it or dropping
   it.
-- Accounts for **every** bead it was given, in exactly one of completed /
-  blocked / skipped.
+- Accounts for **every** bead its queue returned, in exactly one of
+  completed / blocked / skipped.
 - **Merges nothing and pushes nothing.** Leaves partial work uncommitted
   in the worktree, which is the durable record that a bead is unfinished.
 

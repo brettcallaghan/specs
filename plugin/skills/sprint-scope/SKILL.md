@@ -37,7 +37,7 @@ before grooming answers a question about beads that are about to change.
 
 - `BB_EPIC` — the run epic. Its id **is** the run id, and
   `bd ready --parent <epic> --exclude-type=epic` **is** the queue.
-- `BB_TARGET` — the flat target epic beneath it, whose task children are the
+- `BB_TARGET_EPIC` — the flat target epic beneath it, whose task children are the
   run's work.
 - The admission record: which beads were admitted, which were **excluded** and
   why, which were **moved** and from where.

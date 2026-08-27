@@ -4,8 +4,8 @@ description: Take a batch of beads — one or many — from claimed to committed
   The per-bead ceremony with its gate step, findings capture and
   close-and-commit script, plus the batch rules that keep several beads on one
   shared surface honest. Use when dispatched as a sprint's developer subagent
-  over the beads assigned to a dispatch id, or when working a bead solo with no
-  orchestrator at all. Covers resolving the assignment from the tracker,
+  over the beads assigned to a dispatch id. Covers resolving the assignment
+  from the tracker,
   claiming atomically, staying in scope while filing what you find, running the
   project's gates, recording findings as retro-prefixed comments, and closing so
   each bead's closure and its code land in one commit. Also carries the blocked
@@ -23,9 +23,8 @@ unclosed.
 
 **One bead or several, it is the same ceremony.** Dispatched with a batch you
 work the beads **in order, one commit each, and account for every one of
-them** — a batch returning fewer lines than it was given beads is the failure
-this tier exists to prevent. One bead is a batch of one. Working solo you
-resolve the inputs yourself.
+them** — a batch returning fewer lines than your queue held is the failure
+this tier exists to prevent. One bead is a batch of one.
 
 ## Inputs — three, and you resolve the rest
 
@@ -346,7 +345,7 @@ Then return **one message**: one line per bead, then
 batch-end: <n> completed, <n> blocked, <n> skipped @ <branch>
 ```
 
-**Every bead you were given appears in exactly one of those counts.** A bead
+**Every bead your queue returned appears in exactly one of those counts.** A bead
 you never reached is `blocked` with the reason, not omitted. **You hand the
 branch back; you do not merge it and you do not push it.**
 
@@ -370,13 +369,6 @@ Nothing in that is yours to write, which is why nothing in it can go stale.
 you work it, closed or `blocked` when you stop. A worktree is matched to you
 through its checked-out branch, which is your dispatch id.
 
-## Working solo
-
-`{EPIC}` and `{DISPATCH_ID}` are `none`; there is no manifest and no baseline
-unless you take one. Everything else is identical. Findings still go on the
-bead — a retrospective reads them, run or no run — and you push your own
-branch at the end, since no coordinator will.
-
 ## Constraints
 
 - Do not ask the user questions. Decisions are settled before you start —
@@ -393,7 +385,7 @@ branch at the end, since no coordinator will.
 
 ## Acceptance criteria
 
-Done when all of these hold for every bead you were given — the same signals an
+Done when all of these hold for every bead your queue returned — the same signals an
 orchestrator verifies with `bb-status.sh bead <id>`:
 
 - [ ] The bead reads `closed` in the tracker, or `blocked` with a reason.
@@ -405,5 +397,5 @@ orchestrator verifies with `bb-status.sh bead <id>`:
 - [ ] Gates passed.
 - [ ] Anything found beyond scope was filed as a bead, not implemented and not
       dropped.
-- [ ] Every bead you were given appears in exactly one count of the batch-end
+- [ ] Every bead your queue returned appears in exactly one count of the batch-end
       line.

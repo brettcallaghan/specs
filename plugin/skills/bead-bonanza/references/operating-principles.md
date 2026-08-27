@@ -135,12 +135,6 @@ pull request and revised in a later run. That is cheaper than a night blocked
 on a question nobody is awake to answer — which is the actual alternative for
 an autonomous run, not "ask and continue".
 
-**Do not mark these with an extra severity word.** The kind is what routes a
-finding, so a word in the kind slot that is not one of the nine routes the
-finding nowhere — and a word elsewhere in the text is found only by whoever
-thinks to grep for it. The nine kinds already carry the distinction: what makes
-a finding load-bearing is legible from its own text.
-
 **This binds the coordinator as much as its subagents.** A coordinator that
 escalates has converted an autonomous run into a supervised one without saying
 so, and the human it is waiting for finds out in the morning.

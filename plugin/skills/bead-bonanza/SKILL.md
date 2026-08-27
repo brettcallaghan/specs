@@ -49,7 +49,7 @@ run epic .................. its id is the run id
 │  └ supervise┘ │ front dry bb-status.sh
 ├ review ───────┘ ......... sprint-review → declared reviewer
 │   findings admitted AND passes < 3 ? — yes, re-enter at groom & plan
-├ retro ................... sprint-retro — and it writes the run's record
+├ retro ................... sprint-retro — and it writes the run's retro
 └ post-flight ............. sprint-cleanup.sh
 ```
 
@@ -88,7 +88,7 @@ run:
 - [ ] 3. Dispatch the ready front; merge each branch as it returns, then re-check
 - [ ] 3b. `sprint-review`; loop back to groom & plan if findings were admitted
         and the pass budget is not spent
-- [ ] 4. `sprint-retro` — it writes the run's record
+- [ ] 4. `sprint-retro` — it writes the run's retro
 - [ ] 5. Post-flight cleanup, then cancel the durable trigger
 ```
 
@@ -109,7 +109,7 @@ every dispatch is handed it because a subagent cannot infer it.
 ```bash
 SKILL=<this skill's directory>                     # e.g. .../plugin/skills/bead-bonanza
 eval "$("$SKILL"/scripts/pre-flight-check.sh)"     # 1. environment; sets SCRIPTS
-#   2. invoke `sprint-scope` — it returns BB_EPIC and BB_TARGET
+#   2. invoke `sprint-scope` — it returns BB_EPIC and BB_TARGET_EPIC
 eval "$("$SCRIPTS"/pre-flight-check.sh "$BB_EPIC")" # 3. + checks baseline
 ```
 
@@ -129,7 +129,7 @@ is the one the original run wrote.
 
 **2 is `sprint-scope`.** Read three things off its return and route on them:
 `BB_EPIC`, whose id is the run id and whose descendants are the queue;
-`BB_TARGET`, the flat target; and the admission record, because **a run that
+`BB_TARGET_EPIC`, the flat target; and the admission record, because **a run that
 narrowed its own scope says so in its record**.
 
 ## Groom & plan — dispatch ONE subagent running `sprint-plan`

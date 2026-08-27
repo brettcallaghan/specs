@@ -1,6 +1,6 @@
 ---
 name: sprint-retro
-description: Write a run's record and turn its friction into actions — harvest
+description: Write a run's retro and turn its friction into actions — harvest
   every finding the run recorded, report the results and what could not be
   verified, route each finding by kind, reason over them into candidate issues,
   put those to a human once, and file what they accept. Use when a sprint has
@@ -15,7 +15,7 @@ user-invocable: false
 
 # sprint-retro
 
-**Write the run's record, and convert the friction it captured into actions
+**Write the run's retro, and convert the friction it captured into actions
 that make the next run better.** One document, not two: the results and the
 findings are the same evidence read for two purposes, and a separate report
 buys a second thing to keep in agreement with the first.
@@ -39,7 +39,7 @@ not hold the run write its record.
 
 ## What you return
 
-- **The run's record** — one document, at the path the project configured.
+- **The run's retro** — one document, at the path the project configured.
 - **N candidate issues**, in the issue template's shape.
 - **The human's decision per candidate**, and what you filed for each yes.
 - **Counts**: harvested, routed per branch, unrouted, filed, declined.
@@ -68,8 +68,8 @@ run is a retro that gets skipped.
 **The project configures it; the skill only defaults.** Read `sf.toml`:
 
 ```toml
-[reports]
-# Where a run's record is written. Default: docs/retros/
+[retros]
+# Where a run's retro is written. Default: docs/retros/
 dir = "docs/retros"
 # Where issues against the SKILLS a run used go. UNSET means file them as beads
 # in this project's tracker instead — which is right where this repository is
@@ -78,7 +78,7 @@ skill_issues_dir = ".sf/outbox"
 ```
 
 ```sh
-path="<[reports].dir>/<YYYY-MM-DD>-<epic-slug>.md"
+path="<[retros].dir>/<YYYY-MM-DD>-<epic-slug>.md"
 bd update {EPIC} --set-metadata findings_path="$path"
 ```
 
@@ -193,7 +193,7 @@ candidates are decidable later from it.
 | audience | destination |
 |---|---|
 | **project** | a bead in this project's tracker |
-| **skill** | a file under `[reports].skill_issues_dir`, for delivery to the repository that vends the skill — or, where that key is UNSET, a bead here, because this project vends them |
+| **skill** | a file under `[retros].skill_issues_dir`, for delivery to the repository that vends the skill — or, where that key is UNSET, a bead here, because this project vends them |
 
 ```bash
 # project audience
@@ -236,7 +236,7 @@ leads back to its findings.
 
 ## Close the loop
 
-Append one row for the run to the **log.md** beside it in `[reports].dir`, so
+Append one row for the run to the **log.md** beside it in `[retros].dir`, so
 one index covers every run, and commit it with the record and anything filed.
 
 **Record the outcome on the epic:**
