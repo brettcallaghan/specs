@@ -1,14 +1,14 @@
 # Dispatching — send a batch out, verify what comes back
 
 **The orchestrator's own procedure.** No subagent reads it: a batch subagent is
-told its placeholders and runs `sprint-batch`. Read this when you are about to
+told three values and runs `run-batch`. Read this when you are about to
 dispatch, and again when a batch returns.
 
 ## Contents
 
 - Dispatch continuously — the ready front is re-queried, never walked from a
   stored list
-- Filling in the prompt — every placeholder, and where each is resolved from
+- The prompt — the three values it carries, and why it carries nothing else
 - Ceremony dispatches — the two writes that give a phase an identity
 - Verify against state, never against testimony — skip claims, the acceptance
   check, and what a standing worktree actually means
@@ -56,33 +56,33 @@ shared surface so a reader can tell them apart: `run-record.md`.
   the difference) and resolve any creep — admitted as an amendment, or deferred
   out — rather than dispatching an unexamined bead.
 
-## Fill in the prompt before you send it
+## The prompt is three values
 
-The prompt files are the prompt and nothing else — send one whole, with no
-block to extract. **You** resolve every `{PLACEHOLDER}` first; a subagent has no
-session context to infer one from, and an unsubstituted placeholder is the
-single most common dispatch defect.
+**A dispatch prompt carries what the subagent cannot look up, and nothing
+else.** Three values, because `run-batch` resolves the rest from the tracker
+and from the tree it is standing in:
 
-| resolved | placeholder | from |
-|---|---|---|
-| once per run | `{EPIC}` | the run epic (emitted as `BB_EPIC`); also the run id |
-| | `{BRANCH}` | the sprint branch, from the manifest |
-| | `{SCRIPTS}` | absolute path to the orchestrator's `scripts/` directory |
-| | `{CHECKS_IDS}` | the ids the project declared (`BB_CHECKS_IDS`) |
-| | `{CHECKS_BASELINE_TEXT}` | `bd show {EPIC} --json \| jq -r '.[0].metadata.checks_baseline'` |
-| per dispatch | `{DISPATCH_ID}` | the subagent's **agent id**, DERIVED from `{EPIC}` and never minted — one per subagent, shared by every bead it holds. It is also the bead's `assignee` and the subagent's `$BEADS_ACTOR`: one string, which is what makes "what is that agent holding" a query and lets a resumed session recompute it. The roster of agent kinds and the derivation rule are in `dispatch-policy.md`, their only copy — read the id off it, do not invent one |
-| | `{WORKTREE}` | the absolute path to the worktree you created for it |
-| | `{SURFACE}` | what the batch's beads have in common, or "documentation and chores; no shared code surface" |
-| | `{SURFACE_TARGETED_TESTS}` | the tests covering that surface |
-| per bead | `{ID}`, `{PRIORITY}`, `{TITLE}`, `{DECISION}`, `{IMPLICIT_NOTES}` | the bead itself; numbered (`{ID_1}`, …) in the batch prompt, one line per bead in processing order |
+| | resolved from |
+|---|---|
+| `{DISPATCH_ID}` | the roster — **derived** from `{EPIC}`, never minted (`dispatch-policy.md`) |
+| `{EPIC}` | the run epic (`BB_EPIC`); also the run id |
+| `{SCRIPTS}` | absolute path to the coordinator's `scripts/` directory |
+
+Everything a prompt used to carry — the branch, the checks baseline, the check
+ids, the trailers, the worktree path, and every bead's id, priority, title and
+decision — is one query away for the agent and was a hand-copied second copy
+here. **The assignee IS the batch**: `bd ready --assignee {DISPATCH_ID}` is the
+queue, in order, and `bd show <id>` is the bead.
+
+**So assign before you dispatch.** That write is now the whole handover; a bead
+you meant to include and did not assign is a bead the agent will never see, and
+an empty queue is the error it reports.
+
+`prompt-dispatch.md` **IS the prompt** — send it whole, with the three values
+filled in. There is no block to extract and nothing to summarise.
 
 **There is no run directory.** The run's record is the epic: the manifest in
 its metadata, the amendments in its comments.
-
-Batches go out with the batch prompt (`prompt-batch.md`), one
-subagent per batch; a bead with no batch peers goes out alone with
-`prompt-per-bead.md`. Each gets one worktree
-(`worktree-mechanics.md`).
 
 ## Ceremony dispatches carry an agent id too
 
@@ -102,7 +102,7 @@ Two writes, both yours, both before you invoke the phase:
   `bd` call.
 
 **Why the export and not just the assignment:** a ceremony agent claims. It
-comments on beads, holds the merge slot, closes what it finished. With
+comments on beads and closes what it finished. With
 `BEADS_ACTOR` unset those writes land under the harness default — `bd update
 --claim` on an unassigned bead silently rewrites the assignee to git
 `user.name` and exits 0 — and the phase's own queue stops answering for it.
@@ -168,15 +168,15 @@ After a subagent returns:
    among the closed.
 
    **A standing worktree is one of three things — read signal 4 against the
-   dispatch mode before calling it a failure.**
+   dispatch before calling it a failure.**
    1. *Removal still pending.* Removal is your own final act of accepting, so
-      between a batch's return and that act the worktree ALWAYS survives. Do
+      between a dispatch's return and that act the worktree ALWAYS survives. Do
       the removal, then re-run `git worktree prune && git worktree list`. This
       is the normal state, not a failure.
-   2. *A batch is still running.* A batch holds ONE worktree for every bead it
-      carries, so a bead already closed inside it has a surviving worktree by
-      construction. Once the batch returns and that one tree is removed, signal
-      4 becomes true for every bead in it at the same moment.
+   2. *A dispatch is still running.* A dispatch holds ONE worktree for every
+      bead it carries, so a bead already closed inside it has a surviving
+      worktree by construction. Once it returns and that one tree is removed,
+      signal 4 becomes true for every bead in it at the same moment.
    3. *A real signal-4 failure.* Removal itself failed, or a worktree you never
       created survives. Leave it standing and surface it.
 
@@ -194,8 +194,8 @@ After a subagent returns:
 
 ## The push, and proving it landed
 
-Push per the batch's push mode (`dispatch-policy.md`). **A push is
-not complete until it is verified landed:**
+**You push, after each merge; subagents never do.** A push is not complete
+until it is verified landed:
 
 ```sh
 git fetch <remote> <branch>
@@ -274,20 +274,25 @@ queue mid-run is in the answer immediately.
 ### A standing worktree
 
 Read it through its branch, not through a stored path. `git worktree list`
-prints each registration's checked-out branch; a batch's branches are named for
-their beads' hash suffixes, so the branch names the bead, the bead names the
-`assignee`, and the assignee's queue says whether it is still working:
+prints each registration's checked-out branch, and a dispatch's branch is
+**named for the dispatch id** — so the branch names the agent directly, and the
+agent's queue says whether it is still working:
 
-| the branch's bead | the agent's queue | reading |
-|---|---|---|
-| open or `in_progress` | not drained | live agent, working — leave it alone |
-| closed | drained | finished; the tree is orphaned, remove it |
-| open or `in_progress` | drained | the agent died holding it. Recover the bead |
-| closed | not drained | a batch mid-flight; its later beads are still to come |
+| the agent's queue | reading |
+|---|---|
+| not drained | live agent, working — leave it alone |
+| drained | finished; the tree is orphaned, remove it |
 
-`{SCRIPTS}/sprint-cleanup.sh` applies exactly this rule and removes only the
-unambiguous rows. A worktree whose branch no bead owns is left standing and
-named, never removed on a guess.
+An agent that is drained while a bead it holds is still `open` or
+`in_progress` died holding it — recover that bead (`recovery.md`).
+
+`{SCRIPTS}/sprint-cleanup.sh` decides the same question and **removes only the
+one unambiguous row** — a drained agent, belonging to this run, holding no
+blocked bead. It leaves five cases standing and names each: a branch that
+names no dispatch, a dispatch id belonging to another run, an agent still
+holding a queue, an agent holding a BLOCKED bead (its worktree is the partial
+work), and a tracker that could not answer. It never removes on a guess, and
+it never force-removes to tidy up.
 
 **A return line is a summary, not a signal.** A subagent's account of what it
 did is worth reading and is never what you record: every verdict above comes

@@ -534,7 +534,7 @@ else
   else
     EVENT_LOG=""
     say "event log: UNWRITABLE — progress streaming will be unavailable; use"
-    say "\`bd swarm status $EPIC\` instead."
+    say "\`bb-status.sh run $EPIC\` instead."
   fi
 fi
 say "scripts:  $SCRIPTS"
@@ -666,7 +666,7 @@ fi
 head_ "Delegation"
 if [ "${BB_ASSUME_NO_AGENT:-0}" = 1 ]; then
   NO_AGENT=yes
-  block "BB_ASSUME_NO_AGENT=1 — no Agent tool, so nothing can be delegated: not grooming, not planning, not the beads. Do not start a run. Use the \`run-bead\` skill per bead instead."
+  block "BB_ASSUME_NO_AGENT=1 — no Agent tool, so nothing can be delegated: not grooming, not planning, not the beads. Do not start a run."
 else
   NO_AGENT=no
   say "assuming an Agent tool is available (set BB_ASSUME_NO_AGENT=1 if not)."

@@ -6,7 +6,6 @@
 #   bb-status.sh bead <bead-id> [--worktree <path>] [--pre-merge]
 #   bb-status.sh branch [--branch <name>] [--remote <name>]
 #   bb-status.sh run <epic-id>
-#   bb-status.sh slot [<epic-id>]
 #   bb-status.sh harvest <bead-id> [<bead-id>...]
 #   bb-status.sh --self-test
 #
@@ -76,7 +75,7 @@ note() { # note <rc>
 #
 # So a run epic's work beads are invisible to one `bd list --parent` call, and
 # `bd ready` is no substitute where the question is about STATUS — it excludes
-# in_progress, which is the whole signal the merge-slot gate reads.
+# in_progress, which is the whole signal the in-flight gate reads.
 #
 # Every question this script asks about "the beads under an epic" therefore
 # goes through here. A second walk, or a bare `bd list --parent` loop, answers
@@ -115,8 +114,7 @@ PY
 }
 
 # The claimed-and-running beads under an epic, rendered `id(assignee)` — the
-# signal that withholds a merge-slot release, and the answer to "who is still
-# holding work". Read from the walk, so a nested run epic answers the same as
+# answer to "who is still holding work". Read from the walk, so a nested run epic answers the same as
 # a flat one.
 #
 # The read loop takes a heredoc rather than a pipe: a `while read` on the far
@@ -309,12 +307,6 @@ mode_branch() {
     line INFO "in flight: $n worktree(s)" "$c"
     git worktree list 2>/dev/null | tail -n +2 | sed 's/^/      /'
   fi
-
-  c="bd merge-slot check"
-  if out="$(bd merge-slot check 2>/dev/null)"; then
-    say "merge slot: $(printf '%s' "$out" | tr '\n' ' ' | sed 's/  */ /g')"
-    say "            ($c)"
-  fi
 }
 
 # ------------------------------------------------------------------ self-test
@@ -339,7 +331,7 @@ mode_self_test() {
   "$_self" >/dev/null 2>&1;            t "no mode exits 3"           "3" "$?"
 
   # The tree walk, against a stubbed `bd` on PATH — still no database and no
-  # network. Both the merge-slot release gate and "who holds work" read the
+  # network. The "who holds work" question reads the
   # claimed set through it, and a single `bd list --parent` reads that set
   # EMPTY on a nested run epic, which is indistinguishable from all clear.
   # `e` is the nested shape; `f` is the flat one, which must answer the same
@@ -379,100 +371,6 @@ STUB
   echo
   [ "$fails" -eq 0 ] && { echo "RESULT: PASS"; return 0; }
   echo "RESULT: FAIL"; return 1
-}
-
-# --------------------------------------------------------------- slot mode
-#
-# `bd merge-slot release` does not check the holder: any agent can release
-# anyone's slot, and releasing an unheld slot succeeds silently. So the
-# recovery path for a slot held by a dead agent and the way to corrupt a live
-# merge are the same command — and nothing distinguishes dead from live.
-#
-# This reports the holder ALONGSIDE the evidence for and against that holder
-# still being alive, and recommends a release only when every signal agrees.
-# It never releases anything: the script is read-only, so a wrong reading here
-# costs a second look rather than someone else's merge.
-mode_slot() {
-  [ $# -le 1 ] || die "usage: bb-status.sh slot [<epic-id>]"
-  _epic="${1:-}"
-  _slot="$(bd merge-slot check 2>&1)"
-  echo "merge slot"
-
-  case "$_slot" in
-    *"not found"*)
-      line OK "no slot bead — nothing holds a merge" "bd merge-slot check"
-      return ;;
-    *"available"*|*"Available"*)
-      line OK "slot is FREE" "bd merge-slot check"
-      return ;;
-  esac
-
-  _holder="$(printf '%s\n' "$_slot" | sed -n 's/.*Holder: *//p' | head -1)"
-  _id="$(printf '%s\n' "$_slot" | sed -n 's/.*held: *\([^ ]*\).*/\1/p' | head -1)"
-  [ -n "$_id" ] || _id="$(bd_prefix_slot)"
-  line OK "slot HELD by: ${_holder:-unknown}" "bd merge-slot check"
-
-  # Evidence 1 — how long. A slot acquired minutes ago is a merge in progress;
-  # one acquired hours ago is a question.
-  _held_since="$(bd show "$_id" --json 2>/dev/null | python3 -c 'import json,sys
-try: d=json.load(sys.stdin)
-except Exception: raise SystemExit
-d = d[0] if isinstance(d, list) and d else d
-print((d or {}).get("updated_at") or "")' 2>/dev/null)"
-  [ -n "$_held_since" ] && line OK "  held since: $_held_since" "bd show $_id --json | jq -r .updated_at"
-
-  # Evidence 2 — is any agent standing at all?
-  _wt="$(git worktree list 2>/dev/null | grep -c "bb-worktrees\|\.claude/worktrees" || true)"
-  line OK "  standing worktrees: ${_wt:-0}" "git worktree list"
-
-  # Evidence 3 — is work still landing?
-  _last="$(git log -1 --format=%cr 2>/dev/null)"
-  line OK "  last commit: ${_last:-unknown}" "git log -1 --format=%cr"
-
-  # Evidence 4 — the strongest, when a run epic is known: a bead an agent has
-  # claimed. This is the tracker's own status, not a bookkeeping key somebody
-  # had to remember to write.
-  #
-  # Walked, not `bd list --parent`: the run epic holds phase epics and the
-  # work beads hang off those, so a single call sees none of them and this
-  # gate recommends releasing a slot out from under a live merge.
-  _live=""
-  if [ -n "$_epic" ]; then
-    _live="$(bb_in_progress "$_epic")"
-    if [ -n "$_live" ]; then
-      line OK "  beads in progress: $_live" \
-           "bb-status.sh slot $_epic"
-    else
-      line OK "  beads in progress: none" \
-           "bb-status.sh slot $_epic"
-    fi
-  else
-    line OK "  claims: not checked (pass the run epic to include them)" \
-         "bb-status.sh slot <epic-id>"
-  fi
-
-  # The verdict. Release is recommended only when NOTHING argues for the
-  # holder. Any single signal in the holder's favour is enough to withhold it.
-  if [ "${_wt:-0}" -gt 0 ] 2>/dev/null; then
-    line FAIL "do NOT release — $_wt worktree(s) standing; an agent is holding work" \
-         "git worktree list"; note $RC_STOP
-  elif [ -n "$_live" ]; then
-    line FAIL "do NOT release — a bead is claimed and in progress: $_live" \
-         "bb-status.sh slot $_epic"; note $RC_STOP
-  else
-    line OK "no worktree and no claimed bead backs ${_holder:-the holder}" ""
-    line OK "RELEASE IS DEFENSIBLE: bd merge-slot release" "bd merge-slot release"
-    line OK "  (this script never releases it — read the evidence above first)" ""
-  fi
-}
-
-bd_prefix_slot() {
-  _p="$(bd show --json 2>/dev/null | head -0; bd list -n 1 --json 2>/dev/null | python3 -c 'import json,sys
-try: d=json.load(sys.stdin)
-except Exception: raise SystemExit
-i=(d[0] if isinstance(d,list) and d else {}).get("id","")
-print(i.rsplit("-",1)[0] if "-" in i else "")' 2>/dev/null)"
-  [ -n "$_p" ] && printf '%s-merge-slot' "$_p"
 }
 
 # ---------------------------------------------------------------- run mode
@@ -528,10 +426,11 @@ for ln in os.environ.get("BB_DESC", "").splitlines():
     if kind == "epic":
         nested = True
     elif kind in SYNTHETIC:
-        # `bd set-state` writes an `event` child on every health change and
-        # a run writes several, so counting them as leaves would report a
-        # run with no work as having beads in scope. Measured: an epic with
-        # two health events and zero beads read "2 leaf bead(s)".
+        # `bd set-state` writes an `event` child on every state change, and
+        # a run epic may carry several from earlier tooling, so counting them
+        # as leaves would report a run with no work as having beads in scope.
+        # Measured: an epic with two such events and zero beads read
+        # "2 leaf bead(s)".
         continue
     else:
         leaves.append({"id": cid, "status": (f[2] if len(f) > 2 else "")})
@@ -609,20 +508,45 @@ PY
   # that is stuck looks exactly like one that is slow. The label is the
   # orchestrator's claim; the worktree count and the last commit time are the
   # evidence for or against it, so a reader can disagree with a stale claim.
-  _health="$(bd show "$_epic" --json 2>/dev/null | python3 -c 'import json,sys
-try: d=json.load(sys.stdin)
-except Exception: raise SystemExit
-d = d[0] if isinstance(d, list) and d else d
-labs = (d or {}).get("labels") or []
-print(next((l.split(":",1)[1] for l in labs if l.startswith("health:")), ""))' 2>/dev/null)"
+  # --- health, DERIVED ---------------------------------------------------
+  #
+  # Never read off a label. A health label whose only writer is the
+  # coordinator is a signal produced by the thing it monitors, so "no failure"
+  # and "no monitor" are indistinguishable — measured on a real run, the label
+  # read `healthy` through a five-hour outage in which nothing was dispatched
+  # and nothing woke it.
+  #
+  # Three inputs, none of which needs the coordinator's cooperation: how many
+  # worktrees are standing, how long since the last commit, and how deep the
+  # ready front is. The interesting verdict is the one the label could never
+  # express: nothing in flight, work available, and nothing landing.
   _wt="$(git worktree list 2>/dev/null | grep -c "bb-worktrees\|\.claude/worktrees" || true)"
+  [ -n "$_wt" ] || _wt=0
   _last="$(git log -1 --format=%cr 2>/dev/null)"
-  if [ -n "$_health" ]; then
-    line OK "health: $_health (worktrees: ${_wt:-0}, last commit: ${_last:-unknown})" \
-         "bd show $_epic --json | jq -r '.labels[]|select(startswith(\"health:\"))'"
+  _lastts="$(git log -1 --format=%ct 2>/dev/null)"
+  _now="$(date +%s 2>/dev/null)"
+  _age=""
+  if [ -n "$_lastts" ] && [ -n "$_now" ]; then _age=$(( _now - _lastts )); fi
+  _front="$(bd ready --parent "$_epic" --exclude-type=epic --exclude-label human --json 2>/dev/null \
+            | python3 -c 'import json,sys
+try: d=json.load(sys.stdin)
+except Exception: print(""); raise SystemExit
+print(len(d) if isinstance(d, list) else "")' 2>/dev/null)"
+  _hc="git worktree list; git log -1 --format=%ct; bd ready --parent $_epic --exclude-type=epic"
+  # BB_STALL_SECONDS is the only tunable, and it is a threshold rather than a
+  # judgement: below it, a quiet front is a gap between dispatches.
+  _stall="${BB_STALL_SECONDS:-1800}"
+  if [ -z "$_front" ]; then
+    line FAIL "health: UNKNOWN — the ready front could not be read" "$_hc"; note $RC_REPAIR
+  elif [ "$_wt" -gt 0 ]; then
+    line OK "health: working ($_wt worktree(s), last commit ${_last:-unknown})" "$_hc"
+  elif [ "$_front" -eq 0 ]; then
+    line OK "health: drained (0 worktrees, ready front empty)" "$_hc"
+  elif [ -n "$_age" ] && [ "$_age" -gt "$_stall" ]; then
+    line FAIL "health: STALLED — 0 worktrees, $_front bead(s) ready, last commit ${_last:-unknown}" \
+         "$_hc"; note $RC_REPAIR
   else
-    line FAIL "health: UNSET — a watchdog cannot tell stalled from slow" \
-         "bd set-state $_epic health=healthy --reason '<why>'"; note $RC_REPAIR
+    line OK "health: between dispatches (0 worktrees, $_front ready, last commit ${_last:-unknown})" "$_hc"
   fi
 
   # --- readiness gate, as checks rather than as an assertion -------------
@@ -733,16 +657,15 @@ print(" ".join(out))' 2>/dev/null)"
   echo "      - decisions surfaced to the user before dispatch, not during"
   echo "      - implicit decisions recorded on the beads that made them"
   echo "      - tier escalations reported with their reason"
-  echo "      - the final report's prose: totals, follow-ups, stashes, pushes"
+  echo "      - the run record's prose: totals, follow-ups, exclusions, pushes"
 }
 
-[ $# -ge 1 ] || die "usage: bb-status.sh bead|branch|run|slot|harvest|--self-test"
+[ $# -ge 1 ] || die "usage: bb-status.sh bead|branch|run|harvest|--self-test"
 sub="$1"; shift
 case "$sub" in
   bead)        mode_bead "$@" ;;
   branch)      mode_branch "$@" ;;
   run)         mode_run "$@" ;;
-  slot)        mode_slot "$@" ;;
   harvest)     mode_harvest "$@" ;;
   --self-test) mode_self_test; exit $? ;;
   *)           die "unknown mode: $sub" ;;

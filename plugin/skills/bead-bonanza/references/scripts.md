@@ -4,9 +4,9 @@
 own — `scripts/pre-flight-check.sh`, `scripts/bb-status.sh`,
 `scripts/sprint-cleanup.sh` — plus `scripts/bb-close-bead.sh` on exactly one
 path, finishing a bead a crashed subagent left behind (`recovery.md`). The
-skip-verification script is the **`sprint-batch`** skill's, and the checks
-runner **`run-bead`**'s; each is documented where it is called, and the
-coordinator's own use of the skip check is in `dispatching.md`.
+skip-verification script and the checks runner are both the **`run-batch`**
+skill's; each is documented where it is called, and the coordinator's own use
+of the skip check is in `dispatching.md`.
 
 **The scripts are executed, not read.** Each encodes an ordering, quoting or
 portability rule that is easy to state and easy to get wrong under pressure.
@@ -41,13 +41,14 @@ The last one is the recovery path only — see its entry below.
   replacement, since a shell cannot eval JSON.
 - **`scripts/bb-status.sh`** — read-only; repairs nothing. `bead` verifies the
   five acceptance signals in order; `branch` reports tree cleanliness, the
-  landing check (unpushed commits against the upstream), surviving worktrees
-  and the merge slot's holder; `harvest` asserts a run's `retro:` total is
-  non-zero, since a zero total is a broken pipeline rather than a flawless run.
+  landing check (unpushed commits against the upstream) and surviving
+  worktrees; `run` reports scope, counts, derived health, readiness and the
+  Definition of Done; `harvest` asserts a run's `retro:` total is non-zero,
+  since a zero total is a broken pipeline rather than a flawless run.
   Exit 0 clear, 1 repairable, 2 stop, 3 invocation error. **Run-level:
   a subagent never runs it** — inside its own worktree signal 4 reads
   differently by construction.
-- **`scripts/bb-close-bead.sh`** — **`run-bead` owns this**; the coordinator runs
+- **`scripts/bb-close-bead.sh`** — **`run-batch` owns this**; the coordinator runs
   it on one path only, finishing a bead a crashed subagent left uncommitted.
   There, from inside that worktree: `--trailers-from <epic>` (optional, before
   `<bead-id>`) reads the manifest's `trailers` key, and passing **no paths**
@@ -83,11 +84,10 @@ These are the artifacts each script creates, writes, or repoints.
   untracked, and a close commit carries code only.
 
 - **`scripts/sprint-cleanup.sh`** — removes a worktree whose owning agent has
-  DRAINED, runs `git worktree prune`, releases the merge slot, closes the run's
-  swarm molecule, sets the epic's terminal health, and runs `bd dolt push`. It
-  finds the owner through the worktree's checked-out branch — a bead's hash
-  suffix, hence a bead, hence an `assignee` — and calls it drained when
-  `bd ready --assignee <id>` is empty and it holds nothing `in_progress`.
+  DRAINED, runs `git worktree prune`, and runs `bd dolt push`. It finds the
+  owner through the worktree's checked-out branch — named for the dispatch id,
+  which is the agent — and calls it drained when `bd ready --assignee <id>` is
+  empty and it holds nothing `in_progress`.
   **It leaves anything ambiguous standing** — an agent still holding a queue,
   or a branch no bead owns — and exits 1 naming each. `--dry-run` performs none
   of it and prints what it would do.

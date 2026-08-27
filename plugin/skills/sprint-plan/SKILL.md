@@ -2,22 +2,25 @@
 name: sprint-plan
 description: Groom a sprint's queue and partition it in one pass — bring every
   bead to Ready (invoking groom-beads for what fails, bouncing what grooming
-  cannot clear) and return the readiness verdict plus the two files that build
-  the run — a graph plan and its edge sidecar, collision edges and assignments
-  included. Use when a sprint orchestrator is preparing a run epic's queue for
-  dispatch, or when asked to gate beads for readiness, classify them as trivial
-  / isolated / shared-surface, compute C4 co-edit and sequencing overlap, group
-  beads into batches behind one agent, or emit a `bd create --graph` JSON plan
-  and the `bd dep add --file` sidecar beside it. Takes the run epic, resolves
-  its queue from the graph, and dispatches nothing.
-version: "0.2"
+  cannot clear) and return the readiness verdict plus the collision edges that
+  serialize the run, with every bead assigned. Use when a sprint orchestrator
+  is preparing a run epic's queue for dispatch, or when asked to gate beads for
+  readiness, classify them as trivial / isolated / shared-surface, compute C4
+  co-edit and sequencing overlap, group beads into batches behind one agent, or
+  emit the `bd dep add --file` edge document a run is built from. Takes the run
+  epic, resolves its queue from the graph, and dispatches nothing.
+version: "0.3"
 user-invocable: false
 ---
 
 # sprint-plan
 
 Take a run epic's queue from wherever it is to **groomed and partitioned**, in
-one dispatch. Two returns: the readiness verdict per bead, and the graph plan.
+one dispatch. You are that dispatch: **one subagent, two jobs, one context** —
+you invoke `groom-beads` for the grooming and then do the dispatch planning
+yourself, with everything it read still in front of you.
+
+Two returns: the readiness verdict per bead, and the collision edges.
 
 **They are one step because they are one read.** Partitioning needs exactly the
 knowledge grooming just acquired — every bead's scope, surfaces and
@@ -38,7 +41,7 @@ here creates a worktree, edits a bead's code, or merges anything.
 | The **bead id list** | Explicit ids, and the epic they came from. Re-derive with `bd ready --parent <epic> --exclude-type=epic` rather than from any filter — admission decided that membership and may have excluded beads deliberately |
 | Checks script and checks baseline | A gate recorded `fail` in the baseline sets "no findings beyond the baseline" as the bar, not exit 0 |
 | Model lineup | Resolves a bead's tier (`metadata.execution_suggested_model`, else `metadata.tier`) to a model; leave it unset where the project declares none |
-| Standing authorization | What the user authorized without further asking (push mode, PR, scope) |
+| Standing authorization | What the user authorized without further asking (PR, scope, review budget) |
 | The grooming partition preview | The candidate grouping, WHEN one was produced |
 
 WHEN an input is missing, say so in the return rather than substituting a
@@ -53,9 +56,9 @@ labels and assignees, and unset they land under the harness default.
 1. **The readiness verdict** — per bead: ready, or NOT-READY with the gap a
    human must close. Bounced beads carry the **`human`** label, so the verdict
    is queryable and not merely reported.
-2. **The plan — a graph document plus an edge sidecar**, both validated before
-   you return their paths: `references/run-record.md`. Plus **one line per
-   override** of the grooming partition preview saying what you changed and why.
+2. **The plan — one edge file**, validated before you return its path:
+   `references/partitioning.md`. Plus **one line per override** of the grooming
+   partition preview saying what you changed and why.
 
 **The partition is not a document — it is in the graph.** Which beads may not
 run at once is a **collision edge**; which agent holds a bead is its
@@ -80,56 +83,66 @@ the two cannot disagree.
 
 **Resolve by removing the label, never with `bd human respond`.** The answer
 goes on the bead as a `bd comment`, then `bd update <id> --remove-label human`
-once the gap is actually closed, and the bead re-enters the readiness gate on
-the next pass — no full re-run. Two independent
-reasons not to use `respond`: it is documented to add a comment **and close**
-the bead, and a bounced bead is not finished; and on bd 1.2.2 it fails outright
-— `bd human respond <id> -r "..."` errors with `cannot resolve issue ID
-"<id>": storage is nil`, reproduced in two separate embedded workspaces, while
-`list` and `stats` work in both.
+once the gap is closed, and the bead re-enters the gate on the next pass.
+`respond` is documented to comment **and close** — a bounced bead is not
+finished — and on bd 1.2.2 it fails outright with `storage is nil`.
 
-`bd gate --await human:<prompt>` is the other candidate and is **not** used
-here: gates are created by a formula step's `gate` field, and a sprint runs
-no formula. A human item stopping the chain is the behaviour that matters, and
-the label already delivers it. An ungroomed queue makes every one of them
-unreliable — and handing a fresh, zero-context subagent an under-specified
-bead is the single most expensive failure mode a run has: it detonates late,
-after other beads have built on it.
+Handing a fresh, zero-context subagent an under-specified bead is the single
+most expensive failure mode a run has: it detonates late, after other beads
+have built on it.
 
-So before dispatch, gate the queue against the **Definition of
-Ready** — the checklist owned by the `spec` skill
-(`references/shared/work-order-definition-of-ready.md`) and enforced by
-`groom-beads`, which materializes work orders as beads. Those skills are the
-authority; do not restate the checklist here.
+So before dispatch, every bead in the queue carries a readiness **verdict** —
+and **you do not produce it.** The Definition of Ready is a checklist the
+`spec` skill owns and `groom-beads` enforces; a second reader of it here is a
+second place for it to be interpreted, and the one that would drift is this
+one, because grooming is the skill that gets fixed when the checklist changes.
 
-### 1. Cheap check (read-only)
+### 1. Invoke `groom-beads` over the whole queue — in your own context
 
-Most runs pass in seconds because the user groomed first. Per bead, confirm the
-Definition of Ready's checks hold — read them from
-`references/shared/work-order-definition-of-ready.md`, not from memory — plus
-one signal it does not carry: `bd lint` is clean for the bead, WHERE the
-installed `bd` has it. Parallelize; this is read-only. A bead failing check 9
-(an open decision) is bounced, not questioned mid-run.
+**You are one subagent doing two jobs in one context, and the order is fixed:
+groom first, plan second.** Invoke the `groom-beads` skill directly. Do not
+dispatch a second agent for it, and do not pre-filter the set you hand it —
+grooming triages what it is given and answers per bead: `ready` for one it
+changed nothing on, `ready — <change>` for one it fixed, `NOT-READY — <the gap
+a human must close>` for one it cannot clear.
 
-A queue that is entirely ready makes this phase a one-line no-op for *grooming*:
-say so and hand back — the orchestrator still dispatches one subagent for
-planning alone.
+**Why one context, and it is not tidiness.** Collision detection prefers C4
+metadata, but **`c4_changes` / `c4_impacts` are optional** — a repo that
+documents no architecture has none, and then scanning each bead's *description*
+for fixture names and source paths is the whole signal. Grooming has just read
+every description. A second agent would read them all again to learn what this
+one already knows, and a metadata-only planner would silently under-detect
+collisions on exactly the repos that have no C4 docs.
 
-### 2. Groom what fails — invoke `groom-beads`
+**What you own is the queue, not the criteria**: re-derive it from the epic
+(`bd list --parent <target> --status open` — the target is flat, so its direct
+children are the work), and account for every id in what comes back. A bead
+with no verdict is not ready; it is unexamined, and the two must never read
+alike.
 
-If any bead fails the check, do NOT dispatch it and do NOT fix it inline —
-grooming reads source and wires graphs, which belongs in a subagent (see "don't
-read source files in the orchestrator"). Dispatch a **grooming subagent** over
-the ungroomed subset (template below); it runs `groom-beads` to the Definition
-of Ready and returns a per-bead readiness report plus a **partition preview** —
-its candidate grouping under dependencies and C4 collisions. **Its final act is
-to invoke `sprint-plan`**, which turns that preview into the run's graph plan:
-it has already read every bead, so a second agent would only re-derive the same
-partition and leave two to reconcile.
+**One signal grooming's checklist does not carry**, so check it yourself
+alongside: `bd lint` clean for each bead, WHERE the installed `bd` has it.
 
-When it returns, **re-run `bd ready`** with the run's filter: grooming may have
-wired new dependencies or split a boulder into an epic + children, changing both
-the ordering and the membership of the queue.
+### 2. Do not fix a bead yourself
+
+**Not one, not inline, not "it only needed a sentence".** Grooming reads source
+and wires graphs; a bead you repair here is one repaired against your reading
+of a checklist you do not hold, and nothing downstream can tell it apart from
+one grooming cleared.
+
+Grooming also produces a **partition preview** — candidate collision pairs and
+batches, named while it still had every description in context. That is the
+payoff of the single read: it is signal captured at the one moment it is cheap,
+and it is the starting point for everything below. You remain the source of
+truth on packing.
+
+**Then re-run the front** with the run's filter: grooming may have wired new
+dependencies or split a boulder, changing both the ordering and the membership
+of the queue. **A split must stay FLAT** — siblings under the target with edges
+between them, never a sub-epic. The target's flatness is what makes "the run's
+work" and "the target's children" the same query, and a nested child breaks
+every count that reads from it. Where a bead genuinely decomposes into an epic,
+bounce it for re-admission as a second target rather than nesting it here.
 
 ### 3. Bounce what grooming can't clear
 
@@ -147,53 +160,29 @@ mid-flight.
 
 ### 4. Admitting emergent work mid-run
 
-During execution (Phase 3) subagents discover work. Some of it belongs in this
-run; some is scope creep wearing a matching label. Telling them apart is the
-point — pulling in the wrong thing is as real a failure as leaving a blocker
-unaddressed. This is where the autonomy the run was launched for lives, and
-where it stops.
+Subagents discover work while the run executes. Some belongs in this run; some
+is scope creep wearing a matching label. **The discovering subagent only files
+it**; whether it is admitted is the coordinator's, and where it is admitted it
+comes back through this gate like any other bead.
 
 **The test is necessity, not resemblance:** emergent work is in-scope only when
 a bead *already in the run* cannot be correctly and completely finished without
-it. These shapes qualify:
+it — an unblocking prerequisite, a piece the assigned bead's own acceptance
+criteria cannot be satisfied without, or coverage the assigned scope already
+implied should exist. **Everything else is out of scope even if it matches the
+run's filter.** Adjacent cleanups, refactors "while I'm here", a new capability
+no assigned bead's AC demands: matching the label is necessary and not
+sufficient.
 
-- **an unblocking prerequisite** — the assigned bead genuinely cannot be
-  completed until this is done;
-- **an acceptance-criteria decomposition** — a piece the assigned bead's own AC
-  cannot be satisfied without (a sign the bead was under-groomed, larger than it
-  looked);
-- **an expected test-coverage gap** — coverage the assigned scope already
-  implied should exist and doesn't.
+Groom an admitted one to Ready like the rest, and wire the `blocks` edge so it
+orders ahead of the bead it unblocks. A groomed prerequisite that still fails
+the decisions check is bounced with the `human` label, exactly as at the front
+of the run.
 
-Everything else — adjacent cleanups, refactors "while I'm here", a new
-capability no assigned bead's AC demands — is **out of scope even if it matches
-the run's filter.** Matching the label is necessary but not sufficient;
-"required to finish a bead already in the run" is the bar.
-
-**Mechanics.** The discovering subagent only *files* the bead (`bd create`) with
-a `discovered-from` edge to its origin and a one-line note of which shape it is
-(or "out-of-scope"); it never implements it. If its own bead is truly blocked by
-it, it takes the Blocked path naming the new id. The **orchestrator** then
-decides:
-
-- **In-scope** → run it through this gate (groom → re-`bd ready`), wire the
-  `blocks` edge so it orders ahead of the bead it unblocks, and dispatch it
-  under the standing auto-chain authorization. No new prompt — this is the
-  intended autonomy. Grooming closes decisions along with the rest of the
-  Definition of Ready. (A groomed prerequisite that still fails DoR check 9
-  stops for the user, per the standing-authorization terms — and is raised into
-  the human queue with the `human` label.) Grooming and wiring the edge are
-  tracker writes, and the next `bd ready` picks them up.
-- **Out-of-scope** → leave it filed and linked, do NOT dispatch it, and surface
-  it in the final report for the user to triage. The standing authorization
-  finishes the launched scope; it never enlarges it.
-
-**Ballooning is a stop signal.** If "prerequisites" multiply — a discovered
-blocker that is really a new epic, or more than a handful of new in-scope beads
-off a single bead — stop and surface it. That means the original scope was
-mis-groomed, which is a human's call, not an autonomous expansion.
-
-The grooming subagent prompt template is in `references/grooming-prompt.md`.
+**Ballooning is a stop signal.** WHEN "prerequisites" multiply — a discovered
+blocker that is really a new epic, or more than a handful off a single bead —
+say so in your return rather than grooming them all. That means the original
+scope was mis-groomed, which is a human's call.
 
 ## Bias toward batching
 
@@ -209,7 +198,7 @@ who does the work and what runs alongside it, never what gets validated.
 
 **Worktrees do not make batching redundant, because the collision is at the
 merge, not between the agents.** Isolation is never grounds to relax the rules
-below — why, in `references/run-record.md`.
+below — why, in `references/partitioning.md`.
 
 ## Classify each bead
 
@@ -227,20 +216,20 @@ below — why, in `references/run-record.md`.
 computed the blast radius onto each bead — `c4_changes` (components it edits)
 and `c4_impacts` (downstream components affected but not edited). Read it; don't
 re-derive it from prose. The `jq` and a worked example are in
-`references/run-record.md`.
+`references/partitioning.md`.
 
 1. **C4 metadata — primary.** Read `.metadata.c4_changes` and
    `.metadata.c4_impacts` from `bd list --json` for every queued bead.
    - Two beads sharing a `c4_changes` component are **shared-surface** whatever
      their file paths say — the same component through different files still
-     collides. **Emit a collision edge between them, in the sidecar** so they
+     collides. **Emit a collision edge between them, in the edge file** so they
      cannot both be ready at once, and give the cluster one assignee so one
-     agent takes it in order. Shape and marking: `references/run-record.md`.
+     agent takes it in order. Shape and marking: `references/partitioning.md`.
    - Bead B whose `c4_impacts` intersects bead A's `c4_changes` consumes a
      contract A is changing. That is a **sequencing** constraint, not a batching
      one, and it holds with zero file overlap. It is a real `blocks` edge, not a
      collision edge, and the two are marked differently so a reader can tell
-     them apart. WHEN you find one grooming missed, wire it in the sidecar and
+     them apart. WHEN you find one grooming missed, wire it in the edge file and
      say so in your return — never as silent batch order.
    - Disjoint changes with no impact intersection is isolated *architecturally*
      only — layer 2 still runs.
@@ -266,7 +255,7 @@ means *unknown*, never "no collisions".
 
 **Say which class each edge you emit is.** A co-edit collision and a sequencing
 constraint have different consequences; the marking that distinguishes them is
-in `references/run-record.md`.
+in `references/partitioning.md`.
 
 ## Choose a grouping per cluster
 
@@ -308,9 +297,8 @@ never pack a batch in a way that assumes otherwise.
    Beads grouped this way need **no** collision edge and get their own
    assignee, so they reach the ready front together and dispatch concurrently.
 
-**Every batch gets a MERGE BEAD in the plan** — a task labelled `merge`,
-assigned to `merge-<run-id>`, waiting on every bead in the batch, so it becomes
-ready exactly when they are all closed. Shape: `references/run-record.md`.
+**No batch gets a merge bead.** The coordinator merges each dispatch's branch
+as that dispatch returns; nothing schedules that, and a plan creates no beads.
 
 Tier is not a batching decision of yours: carry each bead's tier
 (`metadata.execution_suggested_model`, else `metadata.tier`) into the plan's
@@ -326,8 +314,8 @@ reference carries that rule and the `jq` that implements it. Breadth beyond
 N_dev is more beads per dev, never more devs: a spawn past the cap is refused,
 and the unspawned devs' queues stay ready, correctly assigned and permanently
 undrained, with nothing reporting it. Read `concurrency_cap` off the manifest
-— source, default and the plan-time check are in `references/run-record.md`
-— rather than assuming a number.
+rather than assuming a number; its source, its default and the plan-time check
+are in `references/partitioning.md`.
 
 ## Assign every planned bead, then gate the epic
 
@@ -336,8 +324,8 @@ here and not at the readiness gate. Per batch: `bd update <id> --assignee
 dev-<run-id>-<batch-id>` on every bead it holds, the id derived in the
 coordinator's dispatch-policy reference and never minted. Ceremony beads take
 that same reference's roster ids. **The assignee is what groups a batch and
-the collision edges are what order it** — together they are the whole of what
-a table used to say.
+the collision edges are what order it.** There is no schedule to write down:
+both live in the graph, which is re-queried rather than remembered.
 
 Then run the epic's own gate, `references/shared/epic-definition-of-ready.md`
 — a bead nobody owns and a dev pool over the concurrency cap, neither visible
@@ -346,11 +334,11 @@ the assign step: nothing earlier in a run writes an assignee.
 
 ## Return the plan
 
-**Two artifacts, not one** — see **Out**. A graph-plan edge resolves only
-against keys INSIDE the plan, so every edge between beads that already exist —
-collision and sequencing alike — goes in the **edge sidecar**, loaded with
-`bd dep add --file` after the plan. Emit, diff and validate both; return both
-paths: `references/run-record.md`.
+**One artifact** — an edge file, loaded with `bd dep add --file`. **You create
+no beads**: the work beads were admitted before you were invoked, and
+`sprint-scope` already built the ceremony epics and the target, so edges
+between beads that already exist are the whole of what a plan contributes.
+Emit it, diff it, validate it, return its path: `references/partitioning.md`.
 
 Three rules that make the plan worth returning:
 
