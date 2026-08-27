@@ -149,6 +149,7 @@ what the prose exists to prevent. **Verdict**.
 | C6 | Emit and load the edge sidecar | `sprint-plan` → coordinator | `bd dep add --file <path>` | An edge naming a bead that already exists aborts the *whole* graph load, which is why the sidecar exists at all **[corpus]** | MECHANIZE (survives C5's deletion as the only plan artifact) |
 | C7 | Assign every planned bead | `sprint-plan` | `bd update <id> --assignee dev-<run-id>-<n>` | Assignment IS the record; ids are derived from the run epic id, never minted, so a resumed session recomputes them **[read]** | MECHANIZE |
 | C8 | Cap the dev pool | `sprint-plan` | manifest `concurrency_cap` | — | MECHANIZE |
+| C9 | **Gate the EPIC for swarming** (the epic-level Definition of Ready) | `sprint-plan` | has children; every child has a verdict; edges wired not implied; nothing derivable-only-by-the-planner; **every child carries an assignee**; dev pool ≤ cap − 1 | Two of the six checks are **undecidable before C7's assign step**, so running the gate early names every child of every epic on every run. Read `assignee` from `--json`, **never off `bd show`'s `Owner:` line — that prints `created_by`**: measured, a check written against `Owner` passes on an epic where not one bead is assigned. `--status all` is not optional; `bd list` defaults to open **[corpus]** | MECHANIZE (4 of 6 checks) + PROSE (2) |
 
 ### Phase 3 · Branch and worktree lifecycle
 
@@ -187,11 +188,19 @@ was not stated when that change landed: `run-batch` derives its worktree from
 the agent starts inside the tree. Under path 1 it starts in the main checkout,
 so `{WORKTREE}` returns to the prompt as a fourth value.
 
-**Recommendation: path 1.** One prompt value bought back in exchange for
-deleting a blocking pre-flight gate that depends on a setting the repository
-cannot see or fix, plus a deterministic worktree path the CLI can compute
-rather than discover. It also makes create/verify/remove one subcommand family
-with the base as an argument.
+**DECIDED: path 1** (owner, 2026-08-25). One prompt value bought back in
+exchange for deleting a blocking pre-flight gate that depends on a setting the
+repository cannot see or fix, plus a deterministic worktree path the CLI can
+compute rather than discover. It also makes create / verify / remove one
+subcommand family with the base as an argument.
+
+**What the decision retires, once implemented:** A6 and D2 leave the inventory
+entirely, D4's verbatim-report dance collapses to an argument check, and the
+`BB_WORKTREE_BASEREF` block in `pre-flight-check.sh` — currently a *blocking*
+condition — goes with them. **What it costs:** `{WORKTREE}` returns to the
+dispatch prompt as a fourth value, because a subagent spawned without harness
+isolation starts in the main checkout rather than inside its tree. Tracked as
+`agent-plugins-hg9t.12`; not yet implemented.
 
 ### Phase 4 · Dispatch
 
@@ -820,7 +829,7 @@ degrades, COS = cosmetic · then the three benefits the ranking optimizes —
 | 4 | **H2 + H8 + E10** Run status: health, done-ness, drained | 5 | C | END | ●●○ | ●●● | ●●● |
 | 5 | **F6** Push, and prove it landed | 5,4 | C | END | ●○○ | ●●● | ●○○ |
 | 6 | **B4** Read / merge / write the run manifest | 2,4 | C | END | ●●○ | ●●● | ●●○ |
-| 7 | **C6** Emit, load and assert the collision-edge file | 2,4 | C | END | ●●● | ●●● | ●○○ |
+| 7 | **C6 + C9** The collision-edge file, and the epic gate that checks its result | 2,4 | C | END | ●●● | ●●● | ●○○ |
 
 **Why these seven.** Every one is coordinator-side, run-ending, and not
 mechanized today. Five are class 4 — a *correct* agent still loses:
@@ -850,6 +859,39 @@ mechanized today. Five are class 4 — a *correct* agent still loses:
   *every other signal reading finished* — clean tree, no worktrees, beads
   closed — and one fetch is the only thing that distinguishes it.
 
+**What C6 actually is, since the row alone does not say.** A **collision edge**
+is a `blocks` edge the planner adds between two beads that must not run at the
+same time — because they edit the same component, or the same fixture. It is
+not a real dependency: neither bead needs the other's output. It exists so the
+two cannot both appear in `bd ready` at once, which is what lets the
+coordinator dispatch **the entire ready front** without consulting a schedule.
+
+That is the whole trick of this design. There is no plan document to keep in
+step with a moving graph, and a bead discovered mid-run just gets edges and
+joins the front. The price is that a policy edge and a real dependency look
+identical in the graph, so both ends carry `metadata.collision` naming the
+shared surface — a blocked bead with no mark has a genuine dependency, one
+whose mark matches its blocker's was separated by policy.
+
+**Three ways to get it wrong, all silent**, which is why the row is class 4:
+the edge orientation is `from` **waits for** `to`, and reversing it inverts the
+dependency at exit 0; the mark must be written **bare**, since a JSON-quoted
+value stores its quotes literally and then matches no other bead's mark while
+looking correct in every listing; and a cluster must be **chained**, N−1 edges
+in a line taking one assignee, not fanned — a fan leaves the rest of the
+cluster ready simultaneously and defeats the point entirely.
+
+**C9 rides here because it is the check on C6 and C7's result.** The
+epic-level Definition of Ready is what says this epic is safe to swarm, and
+four of its six checks are mechanical: it has children, every child has a
+verdict, **every child carries an assignee**, and the dev pool fits the
+concurrency cap. Two are judgment and stay prose — whether an unwired edge is
+real, and whether anything the run needs is derivable only by the planner. It
+carries a class-4 trap of its own: `assignee` must be read from `--json` and
+never off `bd show`'s `Owner:` line, **which prints `created_by`** — measured,
+a check written against `Owner` passes on an epic where not one bead is
+assigned, which is the exact condition it exists to catch.
+
 ### Tier A — high value, build next
 
 | # | Capability | class | who | blast | simplify | stabilize | optimize |
@@ -871,9 +913,15 @@ worktree question resolves to path 1. Under path 2 it cannot be mechanized at
 all: the harness picks the path and the base, and the CLI is reduced to
 checking a global setting after the fact.
 
-**C7 is newly load-bearing.** Under dispatch-by-assignee the assignment *is* the
-handover, so a bead the planner meant to include and did not assign is a bead
-no agent ever sees, and the only symptom is a short queue.
+**C7 is newly load-bearing, and mechanically it is trivial** — one
+`bd update <id> --assignee dev-<run-id>-<batch-id>` per bead, the id derived
+from the run epic id and never minted. Its value is not the write; it is that
+under dispatch-by-assignee **the assignment IS the handover**. The assignee
+groups a batch, the collision chain orders it, and
+`bd ready --assignee dev-<id>` returns its head. So a bead the planner meant to
+include and did not assign is a bead no agent ever sees, and the only symptom
+is a short queue. **The guard is C9's assignee check**, which is why the two
+are ranked as one piece of work rather than two.
 
 **F4 is the cheapest stabilize in the inventory** — validate the kind against
 the nine at write time, and the entire UNROUTED class stops existing. Two
@@ -929,28 +977,23 @@ wrap it** — the deletions cost days and would have cost weeks as Go.
 
 ## 9. Open questions for the owner
 
-1. **Who creates the worktree — path 1 or path 2?** §2.5. It decides whether
-   A6 and D2 exist at all, whether a *blocking* pre-flight gate on global user
-   state survives, and whether `{WORKTREE}` returns to the dispatch prompt. The
-   recommendation is path 1; the audit has no evidence the harness path buys
-   anything the coordinator path does not.
-2. **Where does the CLI live?** This repository already has a Go module at
+1. **Where does the CLI live?** This repository already has a Go module at
    `cli/` (`github.com/brettcallaghan/agent-plugins/cli`, Go 1.24, cobra) that
    builds the `spec` binary. A second binary in the same module shares the
    toolchain, the CI matrix and the check set; a separate module keeps the
    swarm CLI vendable on its own. The audit has no evidence either way.
-3. **Does the CLI carry the retro's *routing*, or only its harvest?** J2 is a
+2. **Does the CLI carry the retro's *routing*, or only its harvest?** J2 is a
    nine-row lookup — mechanically trivial — but routing is what decides who
    receives a finding, and mechanizing a decision is different from
    mechanizing a query.
-4. **§4.7's replacement, concretely.** Dropping "incident" removes the report's
+3. **§4.7's replacement, concretely.** Dropping "incident" removes the report's
    lead section. What replaces it: findings of certain kinds surfaced first, or
    nothing at all?
-5. **How far does `--explain` go?** Printing the `bd`/`git` invocations is
+4. **How far does `--explain` go?** Printing the `bd`/`git` invocations is
    cheap. Printing *why* a step exists — the trap it guards — is the thing that
    would let an agent troubleshoot without reading the corpus, and is a much
    larger surface to keep true.
-6. **`admit_review_findings`** (`agent-plugins-offx.8`). The owner's §4.7
+5. **`admit_review_findings`** (`agent-plugins-offx.8`). The owner's §4.7
    comment leans toward clear criteria plus the agent's call. That is a
    decision the FRD needs, not the audit.
 

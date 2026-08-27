@@ -59,20 +59,17 @@ consulting a plan. Beads discovered mid-run enter through the emergent-work
 scope test and are recorded as an amendment; the graph absorbs them without a
 re-plan, which a schedule could not.
 
-**Both ends of a collision edge ALREADY EXIST, so the edge goes in the SIDECAR
-and never as a new bead.** Admission created those beads and this skill
-assigns them; a graph-plan edge resolves only against keys inside the plan, so
-one naming an admitted bead aborts the whole load and creates nothing. "The
-edge file" below is the mechanism; this section is only what the edge means.
+**Both ends of a collision edge ALREADY EXIST.** Admission created those beads
+and this skill assigns them, so a plan contributes edges and nothing else.
+"The edge file" below is the mechanism; this section is only what the edge
+means.
 
 **A collision edge is a POLICY expressed as a dependency**, and that conflation
 is the price of putting it in the graph. Pay it explicitly: **both ends carry
 `metadata.collision` naming the shared surface**, so a reader can tell a policy
-edge from a real one. The mark cannot ride on the edge, in either artifact: a
-line carries only `from` / `to` / `type`, and an unknown field on a
-plan **edge** object — like one on a **node** or on the **plan** object itself
-— is dropped with a warning and exit 0, so a mark placed there reaches the
-tracker as nothing at all.
+edge from a real one. **The mark cannot ride on the edge** — a line in the edge
+file carries only `from` / `to` / `type`, and anything else on it is not
+stored. It goes on the bead.
 
 **Write the mark with `bd update`, on the bead itself**, in the same pass that
 writes assignees. Both are writes against a bead that already exists, and
@@ -89,15 +86,6 @@ measured, `--set-metadata collision='"c4_changes:auth-service"'` exits 0 and
 `bd show --json` then returns `{"collision":"\"c4_changes:auth-service\""}`.
 That matches no other bead's mark, so it defeats validator 3 while looking
 correct in every listing.
-
-Where a collision endpoint IS a node this plan creates, the mark rides in its
-`metadata` like any other key:
-
-```json
-{"key": "b", "title": "…", "type": "task", "parent_key": "target",
- "assignee": "dev-r7k-2", "metadata": {"c4_changes": "auth-service",
-                                       "collision": "c4_changes:auth-service"}}
-```
 
 Two beads blocked apart by an edge and carrying the same `collision` value were
 separated by policy. A blocked bead with no `collision` mark, or one whose mark
