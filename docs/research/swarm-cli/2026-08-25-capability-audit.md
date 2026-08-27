@@ -552,7 +552,7 @@ then it stays and shrinks.
   set — and §3.2 says it should be rendered by a command, not filled by hand.
 - **One branch per bead.** §5.
 
-## 5. One branch per bead is redundant with one commit per bead
+## 5. One branch per DEV SUBAGENT — never one per bead
 
 The owner's question, and the corpus answers it against itself.
 
@@ -567,12 +567,12 @@ in sequence off each other, so branch N contains every commit before it — whic
 is why **the merge is already one per dispatch**, fast-forwarding the last
 branch, and why every intermediate branch is deleted immediately afterwards.
 
-**What the per-bead branches actually buy** is one thing: the worktree→bead
+**What the per-bead branches actually bought** was one thing: the worktree→bead
 mapping. `git worktree list` prints a checked-out branch, the branch is a
 bead's hash suffix, so the branch names the bead and the bead's `assignee`
 names the agent. Four tables in three files are built on that chain.
 
-**One branch per dispatch, named for the dispatch id, makes that chain
+**One branch per dev subagent, named for its dispatch id, makes that chain
 shorter, not longer** — the branch names the agent directly, and the bead comes
 from the commit subject (`<id> P<n> <title>`) which is already the canonical
 format and already how recovery derives the completed set (L1).
@@ -792,7 +792,142 @@ hides.** The 5 HARNESS and 4 PROSE rows in §1 are the floor; the honest target
 is well under the 55 MECHANIZE rows, because several collapse into one command
 family (D3/D4/D5 into `worktree`; G3/G4's mechanical half into `merge`).
 
-## 8. Open questions for the owner
+## 8. The stack rank
+
+Every capability that survives §4's deletions, ordered by **marginal** value of
+mechanizing it. Scored on the five classes of §7, the two axes, and one more
+that turns out to dominate:
+
+**Already-mechanized capabilities rank LOW, however valuable they are.** A1,
+A3, E8, E9, F2, F5, H6, H7, H8, K1, K5, L4 and L5 are scripts today. Porting
+them to Go buys portability, one `--explain` convention and a test surface — it
+does not buy a capability the run lacks. **Marginal value is what a run gains
+that it does not have**, and that is what this ranks.
+
+Columns: **class** from §7 · **who** C = coordinator (scarce context), S =
+subagent (disposable) · **blast** END = the run stops or corrupts, DEG =
+degrades, COS = cosmetic · then the three benefits the ranking optimizes —
+**simplify** (prose deleted), **stabilize** (failure removed), **optimize**
+(tokens and latency saved). ●●● high, ●○○ low.
+
+### Tier S — build these first
+
+| # | Capability | class | who | blast | simplify | stabilize | optimize |
+|---|---|---|---|---|---|---|---|
+| 1 | **E2** Close eligible ceremony epics, scoped | 4,1 | C | END | ●●○ | ●●● | ●●○ |
+| 2 | **G3 + D5** Merge, name the refusal case, guard the removal | 1,3,4 | C | END | ●●● | ●●● | ●○○ |
+| 3 | **B2** Build the run's epic shape | 1,4 | C | END | ●●● | ●●● | ●●○ |
+| 4 | **H2 + H8 + E10** Run status: health, done-ness, drained | 5 | C | END | ●●○ | ●●● | ●●● |
+| 5 | **F6** Push, and prove it landed | 5,4 | C | END | ●○○ | ●●● | ●○○ |
+| 6 | **B4** Read / merge / write the run manifest | 2,4 | C | END | ●●○ | ●●● | ●●○ |
+| 7 | **C6** Emit, load and assert the collision-edge file | 2,4 | C | END | ●●● | ●●● | ●○○ |
+
+**Why these seven.** Every one is coordinator-side, run-ending, and not
+mechanized today. Five are class 4 — a *correct* agent still loses:
+
+- **E2** is the sharpest in the whole inventory. `bd epic close-eligible`
+  ignores its positional argument, so the scoped-looking command closes every
+  eligible epic in the database — and *omitting* it is a silent deadlock in
+  which a finished ceremony epic never closes, the beads it gates never enter
+  the front, and an empty front reads as "done" rather than "stalled". It runs
+  at every re-query. Wrong in one direction it destroys other runs' state;
+  skipped in the other it ends this one, quietly.
+- **G3 + D5** is where the corpus's worst measured incident lives: a merge
+  exited 128 and the removal ran anyway, leaving a removed worktree beside an
+  unmerged branch for ninety seconds — the one state the in-flight signal
+  asserts cannot occur. An `&&` is not a guard; a command that refuses step N
+  when N−1 failed is. It also carries the `--ff-only` trap, which means
+  opposite things serialized and concurrent, and reading it wrong stops a
+  healthy run.
+- **B2** is once per run and still top-3 on blast radius alone: task→epic and
+  epic→task are both refused, the target must be flat, the gate must be a task
+  child. Get the shape wrong and nothing dispatches, with no error anywhere.
+- **H2 + H8 + E10** is the liveness backbone and the answer to the five-hour
+  stall. It is the strongest **optimize** score in the table: a hand-rolled
+  drained check is two queries per agent per re-query, and a hand-rolled
+  done-ness check is a full descendant walk, both in coordinator context.
+- **F6** scores low on simplify and top on stabilize: a rejected push leaves
+  *every other signal reading finished* — clean tree, no worktrees, beads
+  closed — and one fetch is the only thing that distinguishes it.
+
+### Tier A — high value, build next
+
+| # | Capability | class | who | blast | simplify | stabilize | optimize |
+|---|---|---|---|---|---|---|---|
+| 8 | **D1 + D3 + D4** Sprint branch and worktree lifecycle | 1,2 | C | END | ●●● | ●●○ | ●○○ |
+| 9 | **L1 + L2 + L3** Reconstruct a run from branch, epic, worktrees | 5 | C | END | ●●● | ●●○ | ●●● |
+| 10 | **C7** Assign every planned bead | 2 | C | END | ●○○ | ●●● | ●○○ |
+| 11 | **E1** Re-query the ready front with the run's filter | 2,4 | C | END | ●○○ | ●●○ | ●●○ |
+| 12 | **F4** Record a finding, kind validated at write time | 2,4 | S | DEG | ●●○ | ●●● | ●○○ |
+| 13 | **J1 + J2** Harvest findings and route by kind | 2,3,5 | S | DEG | ●●○ | ●●○ | ●●● |
+| 14 | **C1 + C3** Readiness verdict and the bounce | 1,2 | S | END | ●●○ | ●●○ | ●○○ |
+| 15 | **F3** Diff this run's checks against the baseline | 5 | S | DEG | ●●○ | ●●○ | ●●○ |
+| 16 | **F1** Claim a bead atomically | 4 | S | DEG | ●○○ | ●●○ | ●○○ |
+| 17 | **E7** Circuit breaker | 5 | C | END | ●○○ | ●●○ | ●○○ |
+| 18 | **I5** Review pass counter, durable | 2 | C | DEG | ●○○ | ●●○ | ●○○ |
+
+**D1+D3+D4 is the biggest single simplify** in the table — but only if the §2.5
+worktree question resolves to path 1. Under path 2 it cannot be mechanized at
+all: the harness picks the path and the base, and the CLI is reduced to
+checking a global setting after the fact.
+
+**C7 is newly load-bearing.** Under dispatch-by-assignee the assignment *is* the
+handover, so a bead the planner meant to include and did not assign is a bead
+no agent ever sees, and the only symptom is a short queue.
+
+**F4 is the cheapest stabilize in the inventory** — validate the kind against
+the nine at write time, and the entire UNROUTED class stops existing. Two
+consecutive runs lost their most consequential finding to it.
+
+### Tier B — port, do not invent
+
+Already mechanized as shell or Python. Ranked by what a Go port adds:
+cross-platform behaviour, a uniform `--explain`, and real tests.
+
+| # | Capability | note |
+|---|---|---|
+| 19 | **H8, E9, E8** acceptance and skip verification | the five signals; already the strictest code here |
+| 20 | **A1** environment probe | 38KB of shell, and where Windows differences land first |
+| 21 | **F5** close-and-commit as one act | correct today; the port buys portability |
+| 22 | **K1** prune drained agents' worktrees | mutation-tested this session |
+| 23 | **F2** run the declared checks | thin over `sf.toml`; little to gain |
+| 24 | **H6 + H7** liveness hooks | must stay executable by the harness whatever else changes |
+| 25 | **A3, K5, L4, L5** baseline, tracker push, landing check, outstanding close | each already one call |
+
+### Tier C — low marginal value
+
+| # | Capability | why it ranks low |
+|---|---|---|
+| 26 | **E4** Resolve prompt placeholders | **simplification already beat mechanization** — 19 placeholders became 3, so there is almost nothing left to render |
+| 27 | **E3** Derive dispatch ids | a string function; a shared helper inside other commands, not a command |
+| 28 | **B1, B3, B6** selector, gate, admission delta | one query or one `bd gate` call each |
+| 29 | **C4** C4 overlap intersection | the set intersection is trivial; the *call* is judgment and stays |
+| 30 | **C8** dev-pool cap | one arithmetic check |
+| 31 | **A2, A4** read declarations, resolve trailers | parse `sf.toml`; already inside A1 |
+| 32 | **E5** tier → model | one map lookup |
+| 33 | **F7, F8** blocked / skipped paths, file discovered work | thin over `bd update` / `bd create` |
+| 34 | **I1, I2, I3** reviewer resolution, diff scope, finding anchors | I3's anchor refusal is worth a validator; the rest is one read of `sf.toml` and one `git diff` range |
+| 35 | **J5, J6** file accepted candidates, write the document path | `bd create` plus a metadata write |
+
+### What the ranking says
+
+**The value is concentrated and coordinator-side.** Seven capabilities carry
+most of it, all seven are things the coordinator does, and five are class 4 —
+where mechanization is not convenience but the only way to get a non-zero exit.
+
+**Simplify and stabilize mostly agree; optimize does not.** The biggest token
+wins are the derivations (#4, #9, #13) because a hand-rolled derivation costs N
+queries *in coordinator context* every time it runs. The biggest stability wins
+are the silent-failure guards (#1, #2, #5, #6), which cost almost no tokens at
+all. A CLI that only chased tokens would build the wrong seven.
+
+**Simplification is a cheaper substitute, and it moves things down this list.**
+E4 was a top-five candidate before the dispatch prompt went from 19 placeholders
+to 3; it is now #26. Ten capabilities were removed outright by §4 rather than
+mechanized. **Ask whether a capability should exist before asking whether to
+wrap it** — the deletions cost days and would have cost weeks as Go.
+
+## 9. Open questions for the owner
 
 1. **Who creates the worktree — path 1 or path 2?** §2.5. It decides whether
    A6 and D2 exist at all, whether a *blocking* pre-flight gate on global user
@@ -819,7 +954,7 @@ family (D3/D4/D5 into `worktree`; G3/G4's mechanical half into `merge`).
    comment leans toward clear criteria plus the agent's call. That is a
    decision the FRD needs, not the audit.
 
-## 9. What this audit did not establish
+## 10. What this audit did not establish
 
 - **No `bd` behaviour was re-measured except §3.1.** Every trap marked
   **[corpus]** is what the family currently instructs an agent to believe. Run
