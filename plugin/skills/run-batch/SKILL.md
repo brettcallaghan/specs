@@ -50,8 +50,8 @@ BRANCH=$(printf '%s' "$MANIFEST" | jq -r '.branch')
 BASELINE=$(printf '%s' "$MANIFEST" | jq -r '.checks_baseline // empty')
 TRAILERS=$(printf '%s' "$MANIFEST" | jq -r '.trailers // empty')
 CHECKS_IDS=$($SCRIPTS/bb-checks.py --ids)
-bd ready --assignee {DISPATCH_ID}                            # your queue, in priority order
-bd list  --assignee {DISPATCH_ID} --status blocked           # and anything already blocked
+bd ready --parent {EPIC} --assignee {DISPATCH_ID} --exclude-type=epic   # your queue
+bd list  --assignee {DISPATCH_ID} --status blocked                     # already blocked
 ```
 
 **Read each bead in full with `bd show <id>` when you reach it** — its Design,
@@ -351,11 +351,12 @@ branch back; you do not merge it and you do not push it.**
 
 ### How the orchestrator reads you
 
-Not from your return line — from your queue. **You have DRAINED when
-`bd ready --assignee {DISPATCH_ID}` is empty and you hold nothing
-`in_progress`.** Both halves are required: `bd ready` excludes `in_progress`,
-so a bead you are working right now empties the ready front, and the ready
-query alone would report you finished mid-bead.
+Not from your return line — from your queue. **You have DRAINED when no open,
+ready bead in `{EPIC}` is assigned to you and you hold nothing `in_progress`.**
+Both halves are required: `bd ready` excludes `in_progress`, so a bead you are
+working right now empties the ready front, and the ready query alone would
+report you finished mid-bead. **Scope the query to `{EPIC}`** — `--assignee`
+alone spans the whole tracker, so work outside this run would read as yours.
 
 | your queue | your worktree | reading |
 |---|---|---|
