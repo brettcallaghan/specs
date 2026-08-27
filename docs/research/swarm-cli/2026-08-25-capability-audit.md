@@ -25,8 +25,12 @@ sprint-cleanup.sh 27.4KB, bb-checks.py, bb-close-bead.sh, bb-verify-skip.sh)
 2 harness hooks · 1 monitor
 ```
 
-**Command frequency across that corpus**, which is the crude shape of the
-surface a CLI would cover:
+**Command frequency across that corpus** — how often each command is
+*mentioned in the documents*, which is a map of what the corpus talks about.
+**It is not invocation frequency and it is not a wrapping signal**: the two
+most-mentioned commands, `bd ready` and `bd show`, are single commands that do
+what they say and are among the least wrappable things here. Read it as a table
+of contents, nothing more:
 
 ```
 $ grep -rhoE '\b(bd|git) [a-z][a-z-]*( [a-z][a-z-]*)?' plugin/skills/{bead-bonanza,run-bead,sprint-*,groom-beads}/ plugin/hooks plugin/monitors | sort | uniq -c | sort -rn
@@ -744,24 +748,41 @@ mechanization hypothesis.
 
 ### Two prioritization axes, orthogonal to class
 
-**Frequency.** A wrapper's cost amortizes over how often the action runs.
-From §0's frequency count: `bd ready` 106 mentions, `bd show` 66, `bd list` 62,
-`bd update` 59, `git worktree list` 21, `git worktree prune` 13. An action
-performed once per run (B2, A1) is worth less than one performed per bead per
-re-query (E1, E10, F3) at equal class.
+**Frequency is NOT one of them**, and an earlier draft of this section wrongly
+made it one, citing §0's counts as evidence. Those counts measure how often the
+corpus *mentions* a command, not how often a capability runs — and the two
+commands at the top of that list, `bd ready` and `bd show`, are precisely the
+ones to leave alone. Where per-invocation cost genuinely matters it is already
+inside class 5: a derivation costs its N queries *every time it runs*, so
+frequency is subsumed by the class rather than orthogonal to it.
+
+**Whose context does it spend?** The coordinator's is the scarce resource and
+the skill says so outright — *"What you retain — the whole context budget: the
+run epic id, the review pass counter, the authorization set, where the dispatch
+loop is, and what the last subprocess returned."* It must survive the entire
+run. A subagent's context is disposable: it dies at return, and spending it is
+nearly free. So a capability the **coordinator** performs (E1 re-query, E2 epic
+closing, H2 health, H8 done-ness, G3 merge) is worth more per line than one a
+**subagent** performs (F2 checks, F3 baseline compare), at equal class.
+
+This is also why a raw query the coordinator acts on directly earns nothing
+from a wrapper: `bd ready` returns a list it routes on, and wrapping it does
+not reduce what it has to hold.
 
 **Blast radius.** Does failure *end* the run or *degrade* it? Health and the
 dispatch front are liveness — the five-hour stall was a derivation nobody ran.
 A missing `--explain` is an annoyance. Prefer the run-ending ones.
 
-**Suggested order:** class 4 ∩ high frequency → class 5 ∩ liveness → class 1 →
-class 2 → class 3.
+**Suggested order:** class 4 ∩ coordinator-side → class 5 ∩ liveness → class 1
+→ class 2 → class 3.
 
 ### The test for what NOT to wrap
 
 **A single command with no convention, no trap and no derivation stays a single
-command.** Wrapping `bd comment` as `swarm comment` adds a layer, a version and
-a thing to learn, and buys nothing. Two further exclusions, both already in the
+command.** `bd ready`, `bd show`, `bd comment`, `bd create`, `git log` — these
+do what they say, are well documented, and give an agent a lot for one call.
+Wrapping them adds a layer, a version and a thing to learn, and buys nothing;
+it also hides the tool the agent already knows behind one it does not. Two further exclusions, both already in the
 inventory: anything whose value **is** the agent's judgment (I4 classifying
 scope, J3 reasoning findings into candidates), and anything only the harness can
 do (E6 spawning, H4 monitors, H5 triggers).

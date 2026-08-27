@@ -175,16 +175,16 @@ stops the run here**, before any worktree exists. The exact sequence, and why
 ## Every dispatch runs in its own worktree
 
 **This is universal, not opt-in**, and it is **per dispatch, not per bead**: a
-batch is one agent working serially, so a second tree isolates it from nobody.
-Each dispatch gets one worktree named for its dispatch id, cut from the sprint
-branch; the agent cuts a branch per bead inside it, named for the bead's hash
-suffix (`jh6`, `92q.14`, not the full id). The branches keep the beads apart.
-Nothing is implemented in the shared checkout except by you.
+batch is one agent working serially, so a second tree isolates it from nobody
+and a branch per bead buys nothing either — **one commit per bead is what
+separates the beads.** Each dispatch gets one worktree and one branch, both
+named for its dispatch id, cut from the sprint branch. Nothing is implemented
+in the shared checkout except by you.
 
 **Presence is the in-flight signal.** A standing worktree means its dispatch is
-not yet accepted — removal is the final act of accepting, after the last of its
-branches merges. `git worktree list` says what is in flight; each tree's
-checked-out branch says which bead.
+not yet accepted — removal is the final act of accepting, after its branch
+merges. `git worktree list` says what is in flight; each tree's checked-out
+branch names the agent holding it.
 
 **Hard gate — `BB_WORKTREE_BASEREF` must read `head` before every worktree you
 create.** It is global user state no repository owns, so it can change under
