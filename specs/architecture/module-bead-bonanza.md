@@ -33,65 +33,116 @@ version: "0.23"
 
 ## Overview
 
-Bead Bonanza turns a queue of groomed work orders into merged commits
-without a human in the loop between authorization and hand-over. It is a
-**control plane expressed as skills**: a coordinator that only routes,
-single-purpose skills it invokes for each phase, and scripts that answer
-"what is true" from git and the tracker rather than from what an agent
-reported.
+Bead Bonanza autonomously completes **an epic's worth of well-defined work**.
+It is a **control plane expressed as skills**: a coordinator that only routes,
+single-purpose skills it invokes for each phase, and scripts that answer "what
+is true" from git and the tracker rather than from what an agent reported.
 
-Its components are agents and the artifacts they read, so the usual
-component boundary — a call across a module boundary — is replaced by a
-sharper one: **a component owns a question, and no other component may
-answer that question.** Two components that can both answer "is this bead
-ready" will eventually disagree, and the one that drifts is the one that
-does not get fixed when the answer changes.
-
-- **Role:** dispatch a run epic's beads to isolated subagents, merge what
-  they return, and produce the run's record.
+- **Role:** dispatch a run epic's beads to isolated subagents, merge what they
+  return, and produce the run's record.
 - **Scope:** in — run scoping and authorization, readiness gating,
-  partitioning, dispatch, worktree lifecycle, merging, review looping,
-  the retrospective, teardown and recovery. Out — authoring work orders
-  ([[work-order-definition-of-ready]] and its grooming skill),
-  reviewing code (the project declares a reviewer), and anything that
-  decides *what* work exists.
-- **Composed into:** the `sf` plugin, loaded by a skill-capable agent
-  harness. No host container has a blueprint of its own.
+  partitioning, dispatch, worktree lifecycle, merging, review looping, the
+  retrospective, teardown and recovery. Out — authoring work orders
+  ([[work-order-definition-of-ready]] and its grooming skill), reading the
+  diff at review (the project declares a reviewer), and anything that decides
+  *what* work exists.
+- **Composed into:** the `sf` plugin, loaded by a skill-capable agent harness.
+  No host container has a blueprint of its own.
 - **Source & tests:** `plugin/skills/{bead-bonanza,sprint-*,run-batch}`,
-  `plugin/hooks`, `plugin/monitors`. Scripts carry `--self-test`
-  in-file; there is no separate test tree.
+  `plugin/hooks`, `plugin/monitors`. Scripts carry `--self-test` in-file;
+  there is no separate test tree.
 
-### The one substrate
+### The deliberate non-goal
+
+**This module orchestrates within one session of an existing harness. It does
+not build a harness.** It is not an attempt to replicate or compete with a
+purpose-built agent runtime. The question it exists to answer is narrower and
+more useful: *how much autonomy is reachable with nothing but `bd`, `git`, an
+existing harness (Claude Code, Claude Desktop, Cursor) and a frontier model?*
+
+That constraint is why the module owns no scheduler, no daemon, no queue
+service and no state store — and why every design choice below prefers a fact
+already recorded in `bd` or `git` over a mechanism that would have to be built
+and then kept true.
+
+### Hypotheses
+
+Autonomy is enabled by four things, and the components below exist to supply
+them. Each is a claim this module is a test of, not a settled fact.
+
+- **Sandboxing.** A subagent that cannot see or damage another's tree removes
+  a whole class of failure from the run.
+- **Well-defined work, spec-first.** A bead that carries its own context is
+  what makes a zero-context agent viable at all.
+- **Delegating decisions to agents.** Better specs produce better decisions,
+  so the run records decisions rather than escalating them.
+- **Mechanization wherever possible.** A CLI or script produces a consistent,
+  deterministic outcome, spends fewer tokens, and does not have to be
+  remembered.
+
+### The graph is the substrate
 
 Every component reads and writes **one tracker** (`bd`) and **one git
-repository**. There is no run directory, no progress file and no second
-store: the run epic's metadata is the manifest, its comments are the
-amendments, a bead's `assignee` is its owner, and a worktree's existence
-is the in-flight signal. That is what lets a component be replaced, or a
-session be lost, without losing the run.
+repository**. There is no run directory, no progress file and no second store.
+Agents and subagents query and traverse the bead DAG, and it carries:
+
+- what work is done and what remains;
+- the decisions agents made, the issues they hit, and the findings that answer
+  *how do we do better on the next run?*;
+- the step-by-step workflow, as the phase chain;
+- sequencing, as dependency edges;
+- **who works what** — a bead's `assignee` is its owner, and therefore how
+  beads are batched;
+- enough to survive compaction, the end of a turn, and a session restart.
+
+The run epic's metadata is the manifest, its comments are the amendments, and
+a worktree's existence is the in-flight signal. That is what lets a component
+be replaced, or a session be lost, without losing the run.
+
+### One question per component
+
+The components are agents and the artifacts they read, so the usual component
+boundary — a call across a module boundary — is replaced by a sharper one: **a
+component owns a question, and no other component may answer that question.**
+Two components that can both answer "is this bead ready" will eventually
+disagree, and the one that drifts is the one that does not get fixed when the
+answer changes.
 
 ## Interface
 
-- **Surface:** the skill names a caller may invoke — `bead-bonanza`
-  (user-facing) and `sprint-recovery` (invoked by name from a session
-  holding no context). Every other skill in this module is
-  `user-invocable: false` and is reached only through the coordinator.
-  Project configuration is `sf.toml`; run state is the run epic's
-  `--metadata` manifest.
+- **Surface:** one skill a caller may invoke — **`bead-bonanza`**. Every other
+  skill in this module is `user-invocable: false` and is reached only through
+  it, recovery included: a run is resumed by re-invoking `bead-bonanza` on its
+  run epic, never by calling an internal skill. Project configuration is
+  `sf.toml`; run state is the run epic's `--metadata` manifest.
 - **Guarantees:**
-  - The module SHALL make every acceptance verdict from git or the
-    tracker, never from a subagent's report.
-  - The module SHALL land each bead as exactly one commit carrying both
-    the code and the closure.
-  - The module SHALL take at most one human interaction per run, at
-    authorization, and SHALL record every later decision rather than
-    escalating it.
-  - The module SHALL run the checks the project declares in `sf.toml`
-    before every close, and SHALL hard-code no build, test or lint
-    command of its own.
-  - The module SHALL NOT require a harness feature it cannot detect: it
-    blocks the run where delegation is unavailable and degrades where a
-    monitor or trigger is.
+  - **Resumability.** WHEN `bead-bonanza` is invoked on a run epic that
+    already exists, it SHALL recover that run's state and continue it —
+    reusing the manifest's sprint branch — rather than opening a second run.
+  - **Acceptance is read from state, never from a subagent's report.** A bead
+    is accepted only when all five of these hold, checked in order and
+    stopping at the first failure:
+    1. the bead's `status` reads `closed` in the tracker;
+    2. a commit exists whose subject carries the bead id;
+    3. that commit is an ancestor of the sprint branch's HEAD;
+    4. the dispatch's worktree has been removed;
+    5. at least one `retro:`-prefixed comment was recorded on the bead.
+
+    Signals 3 and 4 are false by construction before the coordinator merges,
+    so the pre-merge check defers them and the post-merge re-run is what
+    actually verifies them.
+  - **One commit per bead**, carrying both the code and **the closure — the
+    `bd` write that sets the bead's `status` to `closed`.** Neither lands
+    without the other, so a bead is never closed-but-uncommitted or
+    committed-but-open.
+  - **Validation is per bead.** The module SHALL run the checks the project
+    declares in `sf.toml` against each bead's change, before that bead's
+    commit, and SHALL hard-code no build, test or lint command of its own.
+  - **One human interaction per run**, at authorization. Every later decision
+    is recorded as a finding rather than escalated.
+  - The module SHALL NOT require a harness feature it cannot detect: it blocks
+    the run where delegation is unavailable and degrades where a monitor or
+    durable trigger is.
 
 ## Components
 
@@ -106,11 +157,11 @@ C4Component
         Component(plan, "Plan", "skill", "Partitions the queue, assigns agents, gates the epic for swarming")
         Component(dev, "Developer", "skill", "Works a batch bead by bead; one commit each")
         Component(checks, "Check Runner", "script", "Runs the project's declared checks in declaration order")
-        Component(close, "Close Ceremony", "script", "Closes the bead and commits its code as one act")
-        Component(status, "Status Probe", "script", "Answers where the run is, from state alone")
-        Component(review, "Review", "skill", "Resolves a reviewer, files findings, classifies scope")
-        Component(retro, "Retro", "skill", "Writes the run's record and routes its findings")
-        Component(recover, "Recovery", "skill", "Reconstructs a run nobody is holding")
+        Component(close, "Bead Close Ceremony", "script", "Closes the bead and commits its code as one act")
+        Component(status, "Swarm Status Probe", "script", "Answers what is true of the run, from state alone")
+        Component(review, "Review", "skill", "Resolves and runs a reviewer, files findings, classifies scope")
+        Component(retro, "Retro", "skill", "Answers how the next run goes better; writes the run's record")
+        Component(recover, "Recovery", "skill", "Reconstructs a run nobody is holding; internal to the Coordinator")
         Component(teardown, "Teardown", "script", "Removes what a drained agent left behind")
         Component(live, "Liveness Hooks", "hooks", "Hold the session to the ready loop and a worker to its queue")
     }
@@ -125,31 +176,39 @@ C4Component
     Rel(coord, review, "invokes when the front is dry")
     Rel(coord, retro, "invokes last")
     Rel(coord, teardown, "runs at post-flight")
+    Rel(coord, recover, "invokes on an existing run epic")
     Rel(recover, status, "reads first")
     Rel(live, coord, "refuses a premature stop")
 ```
 
 ### Boundaries at a glance
 
-The table is the point of this blueprint. Each row names the one question
-its component answers, and the question it is most often wrongly given.
+The table is the point of this blueprint. Each row names the one question its
+component answers, and the question it is most often wrongly given.
 
 | Component | Owns the question | Must NOT answer |
 |---|---|---|
-| **Coordinator** | what happens next? | anything requiring a source file to be read |
-| **Environment Probe** | can this run start here? | whether the queue is any good |
-| **Scope** | which beads are in this run, and who authorized it? | whether any of them is ready |
-| **Grooming** | is this bead dispatchable cold? | which agent gets it |
-| **Plan** | can this epic be swarmed, and by whom? | what "ready" means |
-| **Developer** | is this bead done and committed? | whether its branch may land |
-| **Check Runner** | do the project's checks pass? | what the bar is (the baseline decides) |
-| **Close Ceremony** | did the closure and the code land together? | whether the work is correct |
-| **Status Probe** | where is this run? | what to do about it |
-| **Review** | what is wrong with this run's diff? | whether to loop again |
-| **Retro** | what did this run cost, and what should change? | whether a finding becomes work (a human decides) |
+| **Coordinator** | what happens next, and when is there nothing left? | anything requiring a source file to be read |
+| **Environment Probe** | can a run start in this environment at all? | whether the queue is any good |
+| **Scope** | which beads are in this run, and who authorized it? | whether any of them is ready to dispatch |
+| **Grooming** | does this bead carry enough context for a subagent to complete it with no other input? | which agent gets it, or when it runs |
+| **Plan** | is this epic ready to swarm, who owns each bead, and what must not run at once? | what makes a bead ready to dispatch |
+| **Developer** | is this bead implemented, validated and committed? | whether its branch may land |
+| **Check Runner** | do the project's declared checks pass on this change? | what the bar is — the baseline decides |
+| **Bead Close Ceremony** | did this bead's closure and its code land as one commit? | whether the work is correct |
+| **Swarm Status Probe** | what is true of this run right now? | what to do about it |
+| **Review** | what is wrong with this run's own diff, and is fixing it in scope? | the reading of the diff (a declared reviewer does that), or whether to loop again |
+| **Retro** | how do we do better on the next run? | whether a finding becomes work — a human decides |
 | **Recovery** | what state is this run actually in? | how to finish it |
-| **Teardown** | what may safely be removed? | anything ambiguous — it leaves and names it |
-| **Liveness Hooks** | may this agent stop yet? | why it stopped |
+| **Teardown** | what may safely be removed now the run is over? | anything ambiguous — it leaves and names it |
+| **Liveness Hooks** | may this agent stop yet? | why it stopped, or what to do instead |
+
+**"Ready" is two different questions, and splitting them is what this exercise
+settled.** *Ready to dispatch* is Grooming's — a property of one bead, checked
+against [[work-order-definition-of-ready]], which Grooming alone holds. *Ready
+to swarm* is Plan's — a property of the epic, and two of its checks (every
+child assigned, dev pool within the concurrency cap) are undecidable before
+Plan's own assign step. A component that answers both will drift on the first.
 
 ### Coordinator
 
@@ -159,10 +218,18 @@ slug: component-bb-coordinator
 description: Routes every phase of a run; owns the manifest, the merge and the two loops
 ```
 
-(skill — `bead-bonanza`) — the only user-invocable entry point.
+(skill — `bead-bonanza`) — the **only** user-invocable entry point, for a new
+run and for resuming one alike.
 
+- **Queries the graph for ready work, coordinates its execution, and loops**
+  until there is nothing ready left.
 - Routes each phase: invokes a skill or runs a script, reads the verdict,
   decides what happens next.
+- **Spawns the subagents**, one per batch, each in its own worktree.
+- **Monitors them**, and recovers a dispatch that stopped, stalled or died
+  rather than waiting on it.
+- **When something goes wrong, works out a solution** and records the
+  decision. It does not stop to ask.
 - **Owns the run manifest** (`--metadata` on the run epic) and the run's
   amendments (`amend:` comments). Neither is ever delegated.
 - **Merges**, one dispatch's branch at a time, as that dispatch returns —
@@ -298,12 +365,12 @@ description: Runs the checks a project declares in sf.toml, in order, continuing
 - **Does not decide the bar** — the baseline does: "no findings beyond
   it", not "exit 0".
 
-### Close Ceremony
+### Bead Close Ceremony
 
 ```component
-title: Close Ceremony
+title: Bead Close Ceremony
 slug: component-bb-close
-description: Closes a bead in the tracker and commits its code as one act, in the required order
+description: Closes one bead in the tracker and commits its code as one act, in the required order
 ```
 
 (scripts — `scripts/bb-close-bead.sh`, `scripts/bb-verify-skip.sh`)
@@ -316,15 +383,23 @@ description: Closes a bead in the tracker and commits its code as one act, in th
   asserted over uncommitted work.
 - **Does not judge correctness.** Gates ran before it.
 
-### Status Probe
+### Swarm Status Probe
 
 ```component
-title: Status Probe
+title: Swarm Status Probe
 slug: component-bb-status
-description: Answers where a run is from git and the tracker, printing the command behind every line
+description: Answers what is true of a swarm run at three scopes — the run, its branch, and one bead — from git and the tracker
 ```
 
-(script — `scripts/bb-status.sh`) — read-only; repairs nothing.
+(script — `scripts/bb-status.sh`) — read-only; repairs nothing. **"Run" means
+the swarm run throughout.** One component, four modes, all about the same run:
+
+| mode | scope | answers |
+|---|---|---|
+| `run <epic>` | the whole swarm | counts, derived health, readiness, the Definition of Done |
+| `branch` | the run's branch | is the tree clean, and did the branch land? Needs no epic, so it runs before anything else is known |
+| `bead <id>` | one bead | the five acceptance signals, in order |
+| `harvest` | the run's findings | is the `retro:` total non-zero — a zero is a broken pipeline, not a flawless run |
 
 - Verifies a bead's acceptance signals in order and stops at the first
   failure.
@@ -347,22 +422,24 @@ description: Resolves a reviewer, scopes it to the run's diff, files each findin
 
 (skill — `sprint-review`)
 
-- Resolves the reviewer the project declared, else one in the session,
-  else a bare agent — and **names which ran**, because they are not the
+- **Resolves and runs a reviewer; it does not read the diff itself.** The
+  project declares one in `sf.toml`; failing that, one found in the session;
+  failing that, a bare agent. It **names which ran**, because those are not the
   same evidence.
 - Scopes the review to `base_sha`..head, read off the manifest.
 - Files every finding as a bead against its origin, citing a durable
   anchor rather than a line number.
 - Classifies each finding against three stated criteria; a defect the
   run's own diff introduced is in scope whatever the gate says.
-- **Does not review code itself** and **does not decide whether to loop**.
+- **Owns what happens to findings, not the reading that produced them** — and
+  **does not decide whether to loop**, which is the coordinator's counter.
 
 ### Retro
 
 ```component
 title: Retro
 slug: component-bb-retro
-description: Harvests every finding, routes each by kind, and writes the run's one human-facing record
+description: Answers how the next run goes better — harvests every finding, routes each by kind, and writes the run's one human-facing record
 ```
 
 (skill — `sprint-retro`)
@@ -385,8 +462,12 @@ slug: component-bb-recovery
 description: Reconstructs an in-flight run from the branch, the epic and the worktree list when no session holds it
 ```
 
-(skill — `sprint-recovery`) — invocable by name from a session with no
-context, which is why it is a skill rather than a reference.
+(skill — `sprint-recovery`) — **internal.** The coordinator invokes it as its
+first act whenever it is given a run epic that already exists; a user resumes a
+run by re-invoking `bead-bonanza`, and a durable trigger names the coordinator
+for the same reason. It is a skill rather than a reference file because a fresh
+session can resolve a skill name and cannot resolve a path into a bundle it
+never loaded.
 
 - Derives the run from **the branch**, its history from `git log`, its
   in-flight set from `git worktree list`, its manifest from the epic.

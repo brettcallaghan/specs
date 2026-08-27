@@ -2,13 +2,13 @@
 name: sprint-recovery
 description: Reconstruct the state of an in-flight sprint from durable sources
   when no session holds it — after the coordinator was interrupted, crashed,
-  compacted past usefulness, or was replaced by a fresh session. Use when a
-  durable check-in trigger fires carrying a run epic id, when asked to resume,
-  pick back up, or recover a sprint or bead run, or whenever a session must
-  re-derive which beads closed and which are still in flight from git and the
-  tracker rather than from a summary. Requires no prior context and takes no
-  required input.
-version: "0.4"
+  compacted past usefulness, or was replaced by a fresh session. Invoked by
+  `bead-bonanza` as its first act whenever it is given a run epic that already
+  exists; a user resumes a run by re-invoking `bead-bonanza`, never this skill
+  directly. Re-derives which beads closed and which are still in flight from
+  git and the tracker rather than from a summary, and hands the state back
+  without deciding what to do with it.
+version: "0.5"
 user-invocable: false
 ---
 
@@ -29,10 +29,10 @@ proof.
 
 ## Interface
 
-**In: nothing is required.** That is the point — it is invoked by name from a
-session that may hold no context at all. WHEN the caller supplies a run epic id
-or a branch name, take them as a starting point and still confirm each against
-the sources below.
+**In: nothing is required.** That is the point — the coordinator invoking you
+may hold no context at all, having just been handed a run epic id by a durable
+trigger. WHEN it supplies that id or a branch name, take them as a starting
+point and still confirm each against the sources below.
 
 **Out: the reconstructed run state, with a source named for every fact** — the
 run's branch and id; the **completed set** from `git log`; the **in-flight
@@ -145,11 +145,12 @@ copy.
    `bd list --status in_progress` as a liveness signal: a bead can be worked
    without being claimed.
 
-6. **Resume, and re-entering is cheap by design.** `sprint-plan` grooms only
+6. **Hand the state back; do not act on it.** The coordinator re-enters at
+   groom & plan, and re-entering is cheap by design: `sprint-plan` grooms only
    what is not already Ready and re-derives the partition from the **current**
-   ready front, and closed beads are not in that front — so re-running the
-   process against the same epic is a *narrower repeat*, not a duplicate run.
-   Scope resolution has nothing to resolve, because the epic already exists.
+   ready front, and closed beads are not in that front — so a resumed run is a
+   *narrower repeat*, not a duplicate. Scope has nothing to resolve, because
+   the epic already exists.
 
 **Verify anything surprising yourself.** A completion notification is not
 proof, and neither is a summary or an earlier report. The scripts name the

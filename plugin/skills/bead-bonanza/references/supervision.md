@@ -57,10 +57,13 @@ wastes a dispatch:
 |---|---|
 | nothing — you just want live progress | `progress-streaming.md` |
 | a subagent, mid-ceremony | `recovery.md` |
-| the orchestrator itself | invoke the **`sprint-recovery`** skill |
+| the coordinator itself | re-invoke **`bead-bonanza`** on the run epic; it resumes |
 
-The last is a skill rather than a file because the session that needs it may be
-fresh, with nothing loaded and no path it can resolve.
+The last enters by the same door as a new run: `bead-bonanza` recognises a run
+epic that already exists, recovers its state, and re-enters at groom & plan.
+That is why the durable trigger names the coordinator and never an internal
+skill — a fresh session can resolve a skill name and cannot resolve a path into
+a bundle it never loaded.
 
 ## When the run is done
 

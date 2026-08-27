@@ -7,9 +7,8 @@ otherwise stops before its summary line.
 Two neighbouring situations are elsewhere, so this file can be read on its own:
 the event stream, the background monitor over it, and the durable
 out-of-session trigger are in `progress-streaming.md`; resuming a run whose state you do not
-hold — the **orchestrator** was what died — is the **`sprint-recovery`** skill,
-invoked by name because a fresh session with no bundle loaded cannot resolve a
-path into one.
+hold — the **coordinator** was what died — is a re-invocation of
+**`bead-bonanza`** on the run epic, which recovers before it dispatches.
 
 `${TMPDIR:-/tmp}` below is the run root Phase 0's pre-flight script resolved.
 

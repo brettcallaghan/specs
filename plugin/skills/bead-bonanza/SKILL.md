@@ -118,6 +118,15 @@ report once. It names each blocker AND its remedy, so there is nothing to
 weigh. `references/pre-flight.md` only when it blocks, and **a blocking
 condition means the run does not start** — never work around it.
 
+**Given a run epic that already exists, you are RESUMING, not opening.** Skip
+step 2 — scope has nothing left to resolve — and invoke `sprint-recovery`
+instead, which reconstructs the run from its branch, its epic and the surviving
+worktrees and hands the state back. Then re-enter at groom & plan: it grooms
+only what is not already Ready and re-derives the partition from the current
+front, so a resumed run is a narrower repeat rather than a duplicate.
+**Never create a second sprint branch on a resume** — the manifest's `branch`
+is the one the original run wrote.
+
 **2 is `sprint-scope`.** Read three things off its return and route on them:
 `BB_EPIC`, whose id is the run id and whose descendants are the queue;
 `BB_TARGET`, the flat target; and the admission record, because **a run that
@@ -315,7 +324,7 @@ is a skill you invoke or a script you run, and its section says which.
 | A subagent that crashed or timed out mid-ceremony | `references/recovery.md` |
 | Where the run is; when it is done; which death you have | `references/supervision.md` |
 | A bead interrupted mid-implementation; all principles | `references/operating-principles.md` |
-| Resuming a run whose state you do not hold | the **`sprint-recovery`** skill |
+| Resuming a run whose state you do not hold | the **`sprint-recovery`** skill, then re-enter at groom & plan |
 
 **A prompt file IS the prompt** — send it whole, with no block to extract.
 You resolve the placeholders: `references/dispatching.md`.

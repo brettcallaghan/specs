@@ -8,7 +8,8 @@ installed and the durable trigger set.
 
 Two neighbouring situations are elsewhere, so this file can be read on its own:
 WHEN a subagent dies mid-ceremony, read `recovery.md`; WHEN you are resuming a
-run whose state you do not hold, invoke the **`sprint-recovery`** skill.
+run whose state you do not hold, re-invoke **`bead-bonanza`** against the run
+epic — it resumes rather than restarts.
 
 **Two views, and they are not interchangeable.** `bb-status.sh run <epic>` is
 the durable one — computed from the beads and from git, correct after any
@@ -125,8 +126,7 @@ on.
 
 **The monitor is a convenience over a path that still works without it**, and
 several ordinary situations have none: the plugin is not installed, the session
-never invoked `bead-bonanza` (a solo `run-batch`, or a `sprint-recovery`
-resuming someone else's run), or the harness offers no Monitor tool at all — on
+never invoked `bead-bonanza` (a solo `run-batch`), or the harness offers no Monitor tool at all — on
 those hosts a declared monitor is skipped silently.
 
 WHERE the harness has a `Monitor` tool, arm one by hand, once, before the first
@@ -169,10 +169,11 @@ addition to** the monitor:
   the only wake path for this run is in-session.
 - **The trigger's message must be self-contained, and it must name a skill
   rather than a file path.** It wakes a turn that may hold no run context and
-  no bundle: carry the run epic id — the manifest is on it — and an instruction to
-  **invoke the `sprint-recovery` skill**. A fresh session cannot resolve a
-  relative path into a bundle it never loaded, but it can resolve a skill
-  name — and "check on the run" is not an instruction at all.
+  no bundle: carry the run epic id — the manifest is on it — and an instruction
+  to **invoke `bead-bonanza` against that epic**, which recognises an existing
+  run epic and resumes it. Name the user-facing skill, never an internal one: a
+  fresh session cannot resolve a relative path into a bundle it never loaded,
+  and "check on the run" is not an instruction at all.
 - **Do not key its liveness check on `bd list --status in_progress`.** A
   bead can be worked without ever being claimed, so that query reads
   "nothing in flight" while an agent is actively editing. Use
