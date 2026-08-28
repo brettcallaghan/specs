@@ -48,11 +48,11 @@ is true" from git and the tracker rather than from what an agent reported.
   *what* work exists.
 - **Composed into:** the `sf` plugin, loaded by a skill-capable agent harness.
   No host container has a blueprint of its own.
-- **Consumes (planned):** a `swarm` CLI, which is a **container** in its own
-  right and will carry its own container blueprint once the capability audit
-  and its FRD have scoped it. The command sequences these components prescribe
-  today are what it mechanizes; this module will call it rather than contain
-  it.
+- **Consumes (planned):** the `swarm` CLI — [[container-swarm-cli]], a
+  **container** in its own right. The command sequences these components
+  prescribe today are what it mechanizes; this module will call it rather
+  than contain it. [[frd-swarm-core]] is the first of its features to be
+  specified.
 - **Source & tests:** `plugin/skills/{bead-bonanza,sprint-*,run-batch}`,
   `plugin/hooks`, `plugin/monitors`. Scripts carry `--self-test` in-file;
   there is no separate test tree.

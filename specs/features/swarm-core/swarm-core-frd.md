@@ -5,7 +5,7 @@ description: The foundation of the swarm CLI — how every command explains
   the first command that reads one
 slug: frd-swarm-core
 type: frd
-status: draft
+status: approved
 updated_at: 2026-08-28T00:00:00Z
 sources: []
 ---
