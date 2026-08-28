@@ -5,13 +5,13 @@ description: Go is chosen for the same measured reasons as the spec CLI, and
   remove; the binary ships from the existing cli module rather than its own
 slug: adr-023
 type: adr
-status: ready-for-review
+status: approved
 updated_at: 2026-08-28T00:00:00Z
 ---
 
 # ADR-023: Go for the Swarm CLI, in the Existing Module
 
-**Status:** ready-for-review  
+**Status:** approved  
 **Date:** 2026-08-28
 
 ## Context

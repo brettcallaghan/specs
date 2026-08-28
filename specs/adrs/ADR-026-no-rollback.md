@@ -5,13 +5,13 @@ description: A failed plan stops and reports where it stopped rather than
   partial undo is worse than none
 slug: adr-026
 type: adr
-status: ready-for-review
+status: approved
 updated_at: 2026-08-28T00:00:00Z
 ---
 
 # ADR-026: No Rollback — Validate, Order, Declare Idempotence
 
-**Status:** ready-for-review  
+**Status:** approved  
 **Date:** 2026-08-28
 
 ## Context

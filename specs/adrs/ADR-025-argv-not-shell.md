@@ -5,13 +5,13 @@ description: One component runs every `bd` and `git` invocation as an argv
   per-subcommand decoder, because a shell string loses all four
 slug: adr-025
 type: adr
-status: ready-for-review
-updated_at: 2026-08-28T00:00:00Z
+status: approved
+updated_at: 2026-08-28T12:00:00Z
 ---
 
 # ADR-025: Every External Invocation Is Argv Through One Gateway
 
-**Status:** ready-for-review  
+**Status:** approved  
 **Date:** 2026-08-28
 
 ## Context
@@ -94,6 +94,11 @@ forms to one empty value.
   the shapes it accepts, so a tracker that starts returning a *new* empty
   shape is absorbed silently unless the decoder asserts the shapes it
   knows.
+- Argv is not quite uniform across platforms. On Windows a tool installed
+  through npm is a `.cmd` shim rather than an executable, and Go applies
+  its own rules to running one; the gateway is where that has to be
+  handled, and where a platform difference in resolving an executable
+  will land. `container-swarm-cli` carries it as an open question.
 
 ## References
 

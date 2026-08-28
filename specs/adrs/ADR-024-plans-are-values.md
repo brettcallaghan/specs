@@ -5,13 +5,13 @@ description: Every swarm command produces an ordered plan of typed step
   sequence three times or deriving two modes from a third
 slug: adr-024
 type: adr
-status: ready-for-review
+status: approved
 updated_at: 2026-08-28T00:00:00Z
 ---
 
 # ADR-024: A Command Builds a Plan; Three Interpreters Read It
 
-**Status:** ready-for-review  
+**Status:** approved  
 **Date:** 2026-08-28
 
 ## Context
