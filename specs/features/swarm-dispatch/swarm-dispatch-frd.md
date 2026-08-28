@@ -418,6 +418,23 @@ agent loops on, and what a coordinator asks about an agent it is waiting
 for. They are the same query with one more filter, so the filter set and
 its four traps are implemented and tested once.
 
+**What the breaker counts, because the unit decides whether it fires at
+all.** The rule it mechanizes is stated in the skills as *three
+consecutive beads returning blocked or failing*, and counted that way it
+misfires on its own machinery: when a work item blocks with a dirty tree,
+the batch ends and every remaining item in that dispatch is returned
+`blocked — not reached`. One genuine block in a batch of six therefore
+produces six consecutive blocked items and trips a threshold of three,
+from a single fault — the opposite of the systemic signal the breaker
+exists to catch.
+
+So the unit here is **one dispatch return in which no work item
+completed**. A dispatch that completed four of six and blocked two is
+evidence the run is working; a dispatch that completed nothing is
+evidence the next one will meet the same fault. An item returned "not
+reached" never counts on its own, because it is a record that the batch
+stopped rather than that anything was attempted.
+
 **Four recorded traps, and none of them is the query being long.** An
 empty parent argument returns the whole repository rather than nothing. An
 assignee filter alone spans the whole tracker, so work outside this run
@@ -478,11 +495,23 @@ Feature: Answer what may be dispatched now, and what an agent still holds
     And no work items are returned
 
   @AC-SWARM-DISP-003.4
-  Scenario: Consecutive blocked or failed dispatches stop the run
-    Given the configured number of consecutive dispatches have returned blocked or failed
+  Scenario: Consecutive dispatches that completed nothing stop the run
+    Given the configured number of consecutive dispatches returned with no work item completed
     When the front is queried
     Then the command reports the run as stopped
     And exits non-zero
+
+  @AC-SWARM-DISP-003.16
+  Scenario: A dispatch that completed some of its work does not advance the breaker
+    Given a dispatch that completed four work items and blocked two
+    When the front is queried
+    Then the consecutive-failure count is reported as zero
+
+  @AC-SWARM-DISP-003.17 @negative
+  Scenario: Work items a batch never reached do not advance the breaker
+    Given one dispatch in which a work item blocked and five were returned as not reached
+    When the front is queried
+    Then the consecutive-failure count is reported as one rather than six
 
   @AC-SWARM-DISP-003.5 @negative
   Scenario: Epics are never in the dispatch front
@@ -510,7 +539,7 @@ Feature: Answer what may be dispatched now, and what an agent still holds
 
   @AC-SWARM-DISP-003.9
   Scenario: The consecutive-failure count survives a resumed run
-    Given a run that recorded two consecutive blocked dispatches before its session ended
+    Given a run that recorded two consecutive dispatches completing nothing before its session ended
     When a resumed session queries the front
     Then the count is reported as two rather than zero
 
