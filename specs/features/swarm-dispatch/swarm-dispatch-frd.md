@@ -1,7 +1,7 @@
 ---
 title: "FRD: Swarm CLI — the dispatch loop"
-description: The first wave of the swarm CLI — the commands a coordinator runs
-  in the loop that sends work out, takes it back, and reports where the run is
+description: The dispatch loop of the swarm CLI — the commands a coordinator
+  runs to send work out, take it back, and prove the result landed
 slug: frd-swarm-dispatch
 type: frd
 status: draft
@@ -20,23 +20,26 @@ matters. Measured across the ten sprint-family skills: 79 distinct
 capabilities, of which **73 carry a recorded trap** — a way the obvious
 invocation produces the wrong result.
 
-This document is the **first wave**: the seven commands that run inside the
-dispatch loop. It is deliberately the smaller half. The loop is where the
-run spends nearly all of its time, where every measured incident happened,
-and where a wrong answer ends a run rather than degrading one — so it is
-also the half that can be built, exercised against a real run, and
-corrected before anything else is written.
+This document is **the dispatch loop**: the five commands that send work
+out and take it back. The loop is where the run spends nearly all of its
+time, where every measured incident happened, and where a wrong answer
+ends a run rather than degrading one.
+
+**It is built on [[frd-swarm-core]]**, which specifies the command
+conventions every command here carries, the manifest component every
+command here reads a run through, and `swarm run status`. Nothing here is
+buildable before that.
 
 Its value is three things, in this order:
 
-- **Stabilize.** A silent wrong answer becomes a non-zero exit. In four of
-  these seven capabilities a *correct* agent still loses: the tracker's
-  epic-closing command ignores its positional argument and closes every
-  eligible epic in the database at exit 0; an empty parent argument means
-  the whole repository rather than nothing; a check written against the
-  tracker's owner display passes on an epic where nothing is assigned,
-  because that display shows the creator. No amount of care fixes these,
-  and **a wrapper is the only way to get a non-zero exit at all.**
+- **Stabilize.** A silent wrong answer becomes a non-zero exit. In three
+  of these five a *correct* agent still loses: the tracker's epic-closing
+  command ignores its positional argument and closes every eligible epic
+  in the database at exit 0; an empty parent argument returns the whole
+  repository rather than nothing; and a worktree removal chained after a
+  merge with a shell conjunction runs even when the merge exited 128. No
+  amount of care fixes these, and **a wrapper is the only way to get a
+  non-zero exit at all.**
 - **Simplify.** An invariant enforced by a command is prose that can be
   deleted. Each requirement names the prose it retires.
 - **Optimize.** A derived answer an agent assembles by hand costs N queries
@@ -44,49 +47,40 @@ Its value is three things, in this order:
   a run, since it must survive the whole of it. The same answer as one
   command is one line.
 
-**The order is the grouping, not a ranking.** Two commands manage the run's
-task state, four run the dispatch cycle in the order it happens, and the
-last is a property the other six carry rather than a capability of its own.
+**The order is the cycle, not a ranking.** Closing what a run has
+finished is what makes the front move; then the front, opening a
+dispatch, accepting one back, and proving the result landed.
 
-**The second wave** — building a run's shape, reading and validating the
-manifest, partitioning and assigning the queue, the readiness gate, claims,
-findings and the retro's harvest, and reconstructing a run nobody is
-holding — is [[frd-swarm-cli]]. Nothing here waits on it.
+**Two requirement numbers are gaps.** 002 and 007 named `swarm run
+status` and the `--explain` flag, both now in [[frd-swarm-core]]. Their
+identifiers are retired rather than reassigned, so a note referring to
+either still resolves to the thing it meant.
 
-### What this wave assumes rather than specifies
+**The run's own structure** — building its shape, partitioning and gating
+the queue, the readiness gate, claims, findings and reconstructing a run
+nobody is holding — is [[frd-swarm-cli]]. Nothing here waits on it.
 
-**The manifest object, but no second-wave command.** Nothing here calls
-`swarm run manifest`; these commands read and write the run epic's
-metadata directly, through the same tracker interface everything else
-uses. What they touch is small and fixed:
+### What this document assumes rather than specifies
+
+**The manifest, through the component [[frd-swarm-core]] specifies.**
+These commands do not read the run epic's metadata for themselves; they
+go through the one manifest reader, whose behaviour on an absent key, a
+wrong type and a concurrent write that document defines. What they touch
+is small and fixed:
 
 | key | read by | written by |
 |---|---|---|
 | `branch` | `dispatch open` | `dispatch open`, once |
 | `base_sha` | — | `dispatch open`, once |
-| `admitted` | `run status`, `queue front` | — |
-| `excluded` | `run status` | — |
+| `admitted` | `queue front` | — |
 | the consecutive-failure count | `queue front` | `queue front` |
-
-**So this wave is not blocked on the second one.** A run today already
-carries a manifest before its first dispatch — `sprint-scope` and the
-coordinator write it by hand — and these commands slot into that. The
-second wave adds the validated read and write surface and the logical
-rules around it (a write-once branch, a monotonic review counter, an
-append-only ledger); it does not create the object they read.
-
-Two rules this wave therefore carries on its own, because it cannot wait
-for them. A write **merges** rather than replaces, since other components
-own keys in the same object. And a key it needs and does not find is
-reported as **absent**, never as an empty answer — an absent `admitted`
-list is a run whose scope was never recorded, which is a different fact
-from a run that admitted nothing.
 
 **One key nothing writes today**: the consecutive-failure count that
 `queue front` needs in order to survive a resume. Absent, it reads as
-zero, which is correct for a fresh run and wrong for a resumed one. That
-is the single genuine dependency between the waves, and it is a key
-rather than a command.
+zero, which is correct for a fresh run and wrong for a resumed one. What
+that count should measure is settled in this document's FEAT-SWARM-DISP-003;
+where it is stored is the manifest's, and it is the one key this document
+adds to it.
 
 **Judgment.** Classifying a review finding's scope, resolving a rebase
 conflict, and deciding whether partial work is finishable stay with an
@@ -106,7 +100,8 @@ tool the agent already knows behind one it does not.
 
 The run's shape **is** the dependency graph, and every command below
 attaches to one place in it. The annotation is the requirement that
-specifies it; a step with no annotation belongs to the second wave.
+specifies it; a step with no annotation is specified elsewhere in the
+family.
 
 ```text
 run epic
@@ -119,7 +114,7 @@ run epic
 │  ├ merge    │ │  until the               swarm queue front           003
 │  └ supervise┘ │  front is dry            swarm dispatch open         004
 │               │                          swarm dispatch accept       005
-│               │                          swarm run status            002
+│               │                          swarm run status            core
 ├ review ───────┘
 ├ retro
 └ post-flight ............................ swarm branch verify-landed  006
@@ -127,12 +122,14 @@ run epic
 inside a dispatch, run by the dev agent .. swarm queue front --agent   003
 ```
 
+`core` marks the one step in this loop that [[frd-swarm-core]] specifies.
+
 Read as a table:
 
 | Lifecycle step | Caller | Commands | Frequency |
 |---|---|---|---|
 | the sprint branch | coordinator | `run branch ensure` (004) | once; reused on resume |
-| every re-query of the front | coordinator | `phase close` (001), `queue front` (003), `run status` (002) | many times per run |
+| every re-query of the front | coordinator | `phase close` (001), `queue front` (003), and `run status` from the core document | many times per run |
 | sending a dispatch out | coordinator | `dispatch open` (004) | once per dispatch |
 | inside a dispatch | dev agent | `queue front --agent` (003) | once per work item |
 | a dispatch's return | coordinator | `dispatch accept` (005), which ends in `branch verify-landed` (006) | once per dispatch |
@@ -140,31 +137,16 @@ Read as a table:
 
 ### The shape of a command
 
-**`swarm <noun> <verb>`.** The nouns are the things a run has — `run`,
-`phase`, `queue`, `dispatch`, `branch` — and the verb is the action.
+**`swarm <noun> <verb>`.** The nouns this document uses are `run`,
+`phase`, `queue`, `dispatch` and `branch`.
+
+**The conventions are [[frd-swarm-core]]'s** and are not restated here:
+the run scope that is an argument rather than a convention, `--explain`,
+`--json`, `--dry-run`, and the exit vocabulary. Every command below
+carries all of them.
 
 **The vocabulary is tracker-neutral on purpose.** A unit of work is a
-**work item**, not the name one tracker gives it. The tracker in use today
-is the only one implemented, and every command goes through one interface
-so a second is possible later; nothing in these requirements names a
-tracker's own vocabulary except where a measured behaviour is being pinned.
-
-Conventions that hold across every subcommand, each derived from a
-recorded trap rather than proposed on taste:
-
-| | |
-|---|---|
-| `--run <run-epic-id>` | required by every subcommand that reads or mutates run state. An absent or empty scope is refused, never treated as the whole repository |
-| `--explain` | print the resolved tracker and version-control invocations in order and run none of them (FEAT-SWARM-DISP-007) |
-| `--json` | machine-readable output; the same facts as the text form, never a subset |
-| `--dry-run` | on mutating subcommands: perform every read and no write |
-| exit `0` | the command's own verdict is clear |
-| exit `1` | repairable in place, and the output names the repair |
-| exit `2` | stop; not repairable by the caller |
-| exit `3` | invocation error — a missing scope, an unknown flag, a malformed argument |
-
-The exit vocabulary is the one the family's existing status script already
-uses, unchanged, because every skill in the family already routes on it.
+**work item**, not the name one tracker gives it.
 
 ## Terminology
 
@@ -289,120 +271,12 @@ Feature: Close this run's finished phase epics
     And it exits non-zero
 ```
 
-### FEAT-SWARM-DISP-002: Report a run's status from state
+### FEAT-SWARM-DISP-002 — moved
 
-**Command:**
-
-```text
-swarm run status --run <id> [--stall-after <duration>] [--json]
-```
-
-**Health is three measurements and a threshold, and the command reports
-all four.** There is no way from a shell to observe whether an agent is
-still thinking: a stalled agent never finishes, so no event fires and
-absence of an event is not an event. The three observable inputs are the
-number of standing worktrees, the age of the last commit on the sprint
-branch, and the depth of the ready front. The command states each with the
-value it had, states the threshold it applied, and names the thing it
-could not observe — so a reader who disagrees with the classification can
-still act on the facts.
-
-**Per-agent drain is reported here and defined in FEAT-SWARM-DISP-003.** Status
-says which agents still hold work; the queue command is where "drained"
-means something, because it is the command an agent runs about itself.
-
-**Replaces:** `references/supervision.md`, "Where is this run" and "When
-the run is done"; the "The run's health — derived, never asserted" section
-of `bead-bonanza/SKILL.md`.
-
-**Acceptance Criteria:**
-
-```gherkin
-@FEAT-SWARM-DISP-002
-Feature: Report a run's status from state
-
-  As a coordinator or a session resuming one
-  I want health, completion and per-agent drain answered from version
-  control and the tracker
-  So that a stalled run is distinguishable from a finished one without
-  the coordinator's cooperation
-
-  This is the liveness backbone and the largest token saving in the
-  wave, because every part of it is a derived answer. A run once read
-  healthy through a five-hour outage in which nothing was dispatched,
-  because health was a label written by the component that had stopped.
-  Completion needs a walk the tracker does not offer: three queries look
-  like they answer "every work item in this run" and each answers
-  something else.
-
-  @AC-SWARM-DISP-002.1
-  Scenario: A stall is reported as the measurements that produced it
-    Given no worktrees are standing
-    And the ready front is not empty
-    And the last commit is older than the stall threshold
-    Then the report states the standing worktree count, the timestamp and age of the last commit, and the depth of the ready front
-    And it states the threshold it compared the commit age against
-    And the run's health is reported as stalled
-    And the command exits non-zero
-
-  @AC-SWARM-DISP-002.2
-  Scenario: Health is never read from a stored value
-    Given a run epic carrying a health value in its metadata that contradicts its state
-    When health is reported
-    Then the reported value reflects the state, not the stored value
-
-  @AC-SWARM-DISP-002.3
-  Scenario: Completion counts every work item in the run, however nested
-    Given a run whose work items are not direct children of the run epic
-    When completion is reported
-    Then every work item in the run is counted
-
-  @AC-SWARM-DISP-002.4
-  Scenario: Each agent holding work is named
-    Given two dispatches, one of which has drained
-    When status is reported
-    Then the dispatch still holding work is named
-    And the drained one is reported as drained
-
-  @AC-SWARM-DISP-002.5
-  Scenario: A tracker that cannot answer is not reported as an empty answer
-    Given a tracker query that fails
-    When status is reported
-    Then the affected line is reported as unknown
-    And the command exits non-zero
-
-  @AC-SWARM-DISP-002.6
-  Scenario: What the report cannot observe is named
-    When health is reported
-    Then the report states that whether an agent is still working is not observable
-    And it names the three measurements the classification rests on instead
-
-  @AC-SWARM-DISP-002.7
-  Scenario: The live queue is compared against the admitted set
-    Given work items present in the run that the manifest's admitted list does not name
-    When status is reported
-    Then those work items are named as additions to the run's scope
-
-  @AC-SWARM-DISP-002.8
-  Scenario: Work items excluded at admission are reported beside the completion verdict
-    Given a run whose admitted work is all closed and whose admission excluded three items
-    When completion is reported
-    Then the run is reported as done over a narrowed scope naming those three
-
-  @AC-SWARM-DISP-002.10
-  Scenario: A manifest key that is absent is reported as absent, not as an empty answer
-    Given a run whose manifest records no admitted list
-    When the scope comparison is reported
-    Then it is reported as unestablished rather than as no additions
-    And the command exits non-zero
-
-  @AC-SWARM-DISP-002.9
-  Scenario: A blocked work item whose worktree still stands is reported as unresolved
-    Given a work item marked blocked whose dispatch's worktree still exists
-    When status is reported
-    Then that work item is reported as an unresolved conflict holding its evidence
-```
-
+`swarm run status` is specified in [[frd-swarm-core]] as
+FEAT-SWARM-CORE-003. It moved because it reads the run manifest and is
+the first command that does, so it belongs beside the component it reads
+through. This identifier is retired and is not reused.
 ### FEAT-SWARM-DISP-003: Answer what may be dispatched now, and what an agent still holds
 
 **Command:**
@@ -635,7 +509,7 @@ Feature: Open a dispatch — the sprint branch and its worktree
   base I name
   So that a worktree can never be cut from the wrong base
 
-  This is the largest single reduction in prose in the wave, and it
+  This is the largest single reduction in prose in this document, and it
   depends on the coordinator creating the worktree rather than the
   harness. Where the harness creates it, the base comes from a global
   setting no repository owns, the path is chosen for you, and the only
@@ -896,7 +770,7 @@ Feature: Prove a push landed
   I want the branch compared against its remote after every push
   So that a rejected push is not indistinguishable from a finished run
 
-  This scores lowest in the wave on prose deleted and highest on failure
+  This scores lowest in this document on prose deleted and highest on failure
   removed, because a rejected push leaves every other signal reading
   finished: the tree is clean, no worktrees stand, the work items are
   closed in the tracker. One fetch and one comparison is the only thing
@@ -948,93 +822,19 @@ Feature: Prove a push landed
     And the refused path is named
 ```
 
-### FEAT-SWARM-DISP-007: Show the commands behind every answer
+### FEAT-SWARM-DISP-007 — moved
 
-**Flag, carried by every subcommand in this document:**
-
-```text
-swarm <noun> <verb> ... --explain
-```
-
-**Foundational rather than ranked.** It is a property each of the six
-capabilities above carries, specified once here rather than repeated as a
-criterion in every one of them. The second wave's commands carry it too,
-and cite this requirement rather than restating it.
-
-An agent that can see the invocation behind a line can re-run it, argue
-with it, and work around it when the underlying tool changes. An agent
-that cannot has to trust a wrapper it did not write, which is the one
-thing this CLI must not require. This is also the direct remedy for the
-evidence rule in `AGENTS.md`: a claim that prints the command that
-established it does not need a paragraph telling an agent to measure it.
-
-**Replaces:** the "prints the command that established it" paragraphs in
-`references/scripts.md` and `references/dispatching.md`, by making the
-property universal instead of per-script.
-
-**Acceptance Criteria:**
-
-```gherkin
-@FEAT-SWARM-DISP-007
-Feature: Show the commands behind every answer
-
-  As an agent that has to troubleshoot a wrapper it did not write
-  I want every subcommand to print the tool invocations behind its answer
-  So that I can re-run any single step rather than trust the whole result
-
-  Two measured hazards shape how the invocations are run rather than how
-  they are printed. Reading an exit status through a pipe returns the
-  reader's status, so a failing step reads as a pass; and a reader that
-  closes a pipe early makes a successful writer report failure. The
-  tracker also writes warnings to its error stream while its data goes to
-  its output stream, so a wrapper that merges the two corrupts the answer
-  it is about to parse.
-
-  @AC-SWARM-DISP-007.1
-  Scenario: An explained invocation runs nothing
-    When a subcommand is invoked in explain mode
-    Then it prints the tool invocations it would run, in order, with every argument resolved
-    And no tool is executed
-
-  @AC-SWARM-DISP-007.2
-  Scenario: A normal run prints the invocations as it executes them
-    When a subcommand runs normally
-    Then each tool invocation is printed as it is executed
-
-  @AC-SWARM-DISP-007.3
-  Scenario: Every reported line carries the command that established it
-    When a subcommand reports a fact
-    Then the line names the command a reader can re-run to reproduce it
-
-  @AC-SWARM-DISP-007.4
-  Scenario: A step's exit status is read from the step itself
-    Given a step whose command fails while a reader consumes its output
-    When the step's result is reported
-    Then the step is reported as failed
-
-  @AC-SWARM-DISP-007.5
-  Scenario: A step that succeeds while its reader stops early is not reported as failed
-    Given a step whose reader stops consuming output before the command finishes
-    When the step's result is reported
-    Then the step is reported as succeeded
-
-  @AC-SWARM-DISP-007.6 @negative
-  Scenario: The output and error streams of a tool are never merged
-    Given a tool that writes a warning to its error stream and data to its output stream
-    When the subcommand parses the data
-    Then the warning is not part of what is parsed
-
-  @AC-SWARM-DISP-007.7
-  Scenario: Explain output is a runnable transcript
-    Given a subcommand invoked in explain mode
-    When its printed invocations are run by hand in order
-    Then they perform what the subcommand would have performed
-```
-
+The `--explain` flag is specified in [[frd-swarm-core]] as
+FEAT-SWARM-CORE-001. It moved because it is a property of every command
+in the family rather than of this document's five. This identifier is
+retired and is not reused.
 ## References
 
-- [[frd-swarm-cli]] — the second wave: the run's shape, its manifest, the
-  partition and readiness gate, claims, findings and recovery
+- [[frd-swarm-core]] — the command conventions every command here
+  carries, the manifest component each reads a run through, and
+  `swarm run status`
+- [[frd-swarm-cli]] — the run's shape, the partition and readiness gate,
+  claims, findings and recovery
 - `docs/research/swarm-cli/2026-08-25-capability-audit.md` — the audit
   these requirements are drawn from; §7 is the classification that decides
   what earns a command and §8 is the stack rank

@@ -1,7 +1,7 @@
 ---
 title: "FRD: Swarm CLI — the run's structure and record"
-description: The second wave of the swarm CLI — the commands that build a run,
-  keep its durable record, plan and gate its queue, and reconstruct it when
+description: The run's own structure and record — the commands that build a
+  run, plan and gate its queue, capture its findings, and reconstruct it when
   nobody is holding it
 slug: frd-swarm-cli
 type: frd
@@ -21,18 +21,23 @@ matters. Measured across the ten sprint-family skills: 79 distinct
 capabilities, of which **73 carry a recorded trap** — a way the obvious
 invocation produces the wrong result.
 
-**The first wave is [[frd-swarm-dispatch]]**: the seven commands inside
-the dispatch loop. This document is the second — everything the loop
-stands on and everything that happens once around it. Building the run's
-shape, keeping its manifest, partitioning and assigning its queue, gating
-readiness, claiming an item, recording a finding, harvesting the findings
-at the end, and reconstructing a run whose session is gone.
+**This is the run's own structure and record**: building its shape,
+partitioning and assigning its queue, gating readiness, claiming an item,
+recording a finding, harvesting the findings at the end, and
+reconstructing a run whose session is gone.
 
-**This wave is not less valuable; it is less urgent.** Four of these eight
-run exactly once per run, so a defect in them costs one careful reading
-rather than being met at every re-query. The exception is the manifest,
-which every phase writes part of — it is second in this document because
-almost everything else here reads or writes through it.
+**It is built on [[frd-swarm-core]]** — the command conventions, and the
+manifest component every command here reads a run through — and it sits
+beside [[frd-swarm-dispatch]], the loop that sends work out and takes it
+back. It waits on neither beyond the core.
+
+**This is the least urgent of the three, not the least valuable.** Five of
+these seven run exactly once per run, so a defect in them costs one
+careful reading rather than being met at every re-query.
+
+**One requirement number is a gap.** 002 named `swarm run manifest`, now
+FEAT-SWARM-CORE-002. Its identifier is retired rather than reassigned, so
+a note referring to it still resolves to the thing it meant.
 
 Its value is the same three things, in the same order:
 
@@ -48,13 +53,17 @@ Its value is the same three things, in the same order:
   queries and N results held in the caller's context. Reconstruction and
   the findings harvest are the two largest here.
 
-### What this wave assumes rather than specifies
+### What this document assumes rather than specifies
 
-**The command conventions and the explain flag** are the first wave's, and
-every command here carries them: a run scope that is an argument rather
-than a convention, `--explain`, `--json`, `--dry-run`, and the exit
-vocabulary. They are stated once in [[frd-swarm-dispatch]] and not
-restated here.
+**The command conventions and the explain flag** are [[frd-swarm-core]]'s,
+and every command here carries them: a run scope that is an argument
+rather than a convention, `--explain`, `--json`, `--dry-run`, and the exit
+vocabulary.
+
+**The manifest** is that document's too. Commands here read and write it
+through the one component it specifies — `run open` writes the admission
+record, the retro writes its counts — rather than reaching into the run
+epic's metadata for themselves.
 
 **Judgment.** Whether a work item is genuinely ready, whether an unwired
 edge is a real dependency, whether a review finding is in scope, whether a
@@ -72,11 +81,11 @@ layer and hides a tool the agent already knows behind one it does not.
 ### Where each command runs
 
 The annotation is the requirement that specifies it; a step annotated with
-a first-wave requirement is [[frd-swarm-dispatch]]'s.
+another document's requirement belongs to that document.
 
 ```text
 run epic ................................. swarm run open              001
-├ pre-flight ............................. swarm run manifest set      002
+├ pre-flight ............................. swarm run manifest set      core
 ├ scope
 │   └ AUTHORIZATION GATE ................. (human; taken by sprint-scope)
 ├ groom & plan ─┐ ........................ swarm queue reconcile       004
@@ -84,11 +93,11 @@ run epic ................................. swarm run open              001
 │               │                          swarm queue partition load  003
 │               │                          swarm queue assign          003
 │               │                          swarm queue gate            003
-├ TARGET ───────┤ FLAT: tasks only ....... (the dispatch loop — wave one)
+├ TARGET ───────┤ FLAT: tasks only ....... (the dispatch loop, its own doc)
 │  ├ dispatch ┐ │
 │  ├ merge    │ │
 │  └ supervise┘ │
-├ review ───────┘ ........................ swarm run manifest get      002
+├ review ───────┘ ........................ swarm run manifest get      core
 ├ retro .................................. swarm finding harvest       007
 │                                          swarm finding route         007
 └ post-flight
@@ -98,16 +107,19 @@ inside a dispatch, run by the dev agent .. swarm item claim            005
 at any point, holding no context ......... swarm run recover           008
 ```
 
+`core` marks the steps [[frd-swarm-core]] specifies rather than this
+document.
+
 Read as a table:
 
 | Lifecycle step | Caller | Commands | Frequency |
 |---|---|---|---|
-| pre-flight | coordinator | `run manifest set` (002) | twice per run |
-| scope | `sprint-scope` | `run open` (001), `run manifest set` (002) | once |
+| pre-flight | coordinator | `run manifest set` (core) | twice per run |
+| scope | `sprint-scope` | `run open` (001), `run manifest set` (core) | once |
 | groom & plan | `sprint-plan` | `queue reconcile`, `item bounce` (004); `queue partition load`, `queue assign`, `queue gate` (003) | once per pass |
 | inside a dispatch | dev agent | `item claim` (005), `finding record` (006) | once per item, plus one per finding |
-| review | `sprint-review` | `run manifest get` and `set` for the pass counter (002) | once per pass |
-| retro | `sprint-retro` | `finding harvest`, `finding route` (007), `run manifest set` (002) | once |
+| review | `sprint-review` | `run manifest get` and `set` for the pass counter (core) | once per pass |
+| retro | `sprint-retro` | `finding harvest`, `finding route` (007), `run manifest set` (core) | once |
 | resume | a fresh session | `run recover` (008) | on every resume |
 
 **The vocabulary is tracker-neutral on purpose.** A unit of work is a
@@ -164,7 +176,7 @@ Feature: Build a run's epic shape
   authorization gate created as one act
   So that a shape that cannot dispatch is refused rather than built
 
-  This runs once per run and still carries the wave's largest blast
+  This runs once per run and still carries this document's largest blast
   radius. The tracker refuses a task blocking an epic and an epic
   blocking a task, so a phase can only be gated by an epic and the
   authorization gate can only be a task child. Build the shape wrong and
@@ -260,150 +272,12 @@ Feature: Build a run's epic shape
     And it is recorded as excluded with that reason
 ```
 
-### FEAT-SWARM-RUN-002: Read and update the run manifest
+### FEAT-SWARM-RUN-002 — moved
 
-**Commands:**
-
-```text
-swarm run manifest get     --run <id> [--key <key>] [--json]
-swarm run manifest set     --run <id> --key <key> --value <value> [--if-absent] [--json]
-swarm run manifest require --run <id> --key <key>...
-```
-
-**The validation is logical as well as structural.** The manifest's key
-names are a contract, its types are a contract, and several of its keys
-carry rules that no single write can check on its own — a branch written
-twice, a review counter that went backwards, a ledger whose entries were
-reordered under citations that address them by position. Every such rule
-is a criterion below, because the alternative is prose in five skills.
-
-**Two measured constraints shape the implementation**, both re-measured on
-the tracker in use (bd 1.2.2) while this document was written:
-
-```text
-$ bd update <id> --set-metadata num=5 --set-metadata b=true --set-metadata f=1.5 \
-                 --set-metadata n=null --set-metadata arr='[1,2]' \
-                 --set-metadata obj='{"k":1}' --set-metadata txt=hello
-$ bd show <id> --json | jq -c '.[0].metadata'
-{"b":true,"f":1.5,"n":null,"arr":"[1,2]","num":5,"obj":"{\"k\":1}","txt":"hello"}
-
-$ printf '%s' '{"num":9,"obj2":{"a":1}}' > m.json && bd update <id> --metadata @m.json
-$ bd show <id> --json | jq -c '.[0].metadata'
-{"b":true,"f":1.5,"n":null,"arr":"[1,2]","num":9,"obj":"{\"k\":1}","txt":"hello","obj2":{"a":1}}
-
-$ printf '%s' '{"obj2":{"b":2}}' > m2.json && bd update <id> --metadata @m2.json
-$ bd show <id> --json | jq -c '.[0].metadata.obj2'
-{"b":2}
-```
-
-First: the per-key write parses JSON scalars — a number stays a number,
-`true` stays a boolean, `null` stays null — but stores arrays and objects
-as strings. So the list-valued and object-valued keys (`admitted`,
-`excluded`, `moved`, `checks_ids`, `ledger`, `models`, `standing_auth`)
-cannot be written that way at all.
-
-Second: the whole-object write merges at the **top level** and replaces a
-**nested** value wholesale — `obj2` went from `{"a":1}` to `{"b":2}` and
-lost `a`. So it is the write path for the list-valued keys, and a caller
-updating one field inside `standing_auth` or `models` must read that
-object, edit it, and write the whole of it back.
-
-**Replaces:** `references/run-record.md`, "The two things you own" item 1
-and the whole of "Run manifest"; the manifest-reading preambles in
-`run-batch/SKILL.md`, `sprint-review/SKILL.md` and `sprint-plan/SKILL.md`.
-
-**Acceptance Criteria:**
-
-```gherkin
-@FEAT-SWARM-RUN-002
-Feature: Read and update the run manifest
-
-  As any component recording or reading a run's durable state
-  I want manifest keys read and written without destroying keys another
-  component wrote
-  So that the run's only durable record survives being updated
-
-  The manifest is a bespoke convention layered on a generic metadata
-  field: the run epic's metadata IS the run record, and several
-  components write different keys into the same object at different
-  times. A whole-object write from any one of them destroys the others.
-  The key names are equally a contract, because dispatch reads them back
-  rather than being handed them, and a renamed key reads back as absent
-  while the run proceeds without it.
-
-  @AC-SWARM-RUN-002.1
-  Scenario: Writing one key preserves the others
-    Given a manifest carrying keys written by other components
-    When one key is updated
-    Then the other keys retain their values
-
-  @AC-SWARM-RUN-002.2 @negative
-  Scenario: An unknown key is refused rather than stored
-    When a key outside the manifest's declared set is written
-    Then the command exits non-zero
-    And the manifest is unchanged
-
-  @AC-SWARM-RUN-002.3
-  Scenario: A required key that is absent is reported as absent, not empty
-    Given a manifest with no checks baseline recorded
-    When the baseline is read
-    Then the result is reported as absent rather than as an empty baseline
-
-  @AC-SWARM-RUN-002.4
-  Scenario: The review pass counter survives a resumed run
-    Given a manifest recording spent review passes
-    When a resumed run reads the counter
-    Then it reports the spent count rather than zero
-
-  @AC-SWARM-RUN-002.5
-  Scenario: A list-valued key reads back as a list
-    Given a key whose declared type is a list of work item ids
-    When it is written and read back
-    Then the value is a list of the same ids rather than one string
-
-  @AC-SWARM-RUN-002.6 @negative
-  Scenario: The branch and its base are written once
-    Given a manifest already recording a branch and a base commit
-    When a different branch or base is written
-    Then the command exits non-zero
-    And the recorded values are unchanged
-
-  @AC-SWARM-RUN-002.7 @negative
-  Scenario: The review pass counter never decreases and never exceeds its budget
-    Given a manifest recording two spent passes against a budget of two
-    When a lower count or a third pass is written
-    Then the command exits non-zero
-
-  @AC-SWARM-RUN-002.8 @negative
-  Scenario: The environmental ledger is append-only
-    Given a ledger whose entries are cited elsewhere by position
-    When a write would remove or reorder an entry
-    Then the command exits non-zero
-
-  @AC-SWARM-RUN-002.9 @negative
-  Scenario: A value of the wrong type for its key is refused
-    When a key whose declared type is a number is written with text
-    Then the command exits non-zero
-    And the manifest is unchanged
-
-  @AC-SWARM-RUN-002.10 @negative
-  Scenario: A write that would clobber a concurrent change is refused
-    Given a key that changed after this caller read the manifest
-    When that caller writes the manifest back
-    Then the command exits non-zero naming the key that moved
-
-  @AC-SWARM-RUN-002.11
-  Scenario: A setting the harness does not expose is recorded as unrecorded
-    Given a run whose harness exposes no effort setting
-    When the manifest is written
-    Then the effort key is present with the value unrecorded rather than absent
-
-  @AC-SWARM-RUN-002.12 @negative
-  Scenario: The admission record's three lists do not overlap
-    When a work item appears in more than one of the admitted, excluded and moved lists
-    Then the command exits non-zero naming that item
-```
-
+`swarm run manifest` is specified in [[frd-swarm-core]] as
+FEAT-SWARM-CORE-002. It moved because every command in the family reads a
+run through that one component, so its behaviour cannot be defined by the
+last document to be written. This identifier is retired and is not reused.
 ### FEAT-SWARM-RUN-003: Partition the queue, assign it, and gate the epic
 
 **Commands:**
@@ -761,7 +635,7 @@ Feature: Record and read a finding
   I want a finding's kind validated when it is written
   So that a finding cannot be recorded in a form nothing will ever route
 
-  This is the cheapest stabilization in the wave. A finding routes by
+  This is the cheapest stabilization in the family. A finding routes by
   its kind, so a kind outside the nine routes nowhere and is invisible to
   every later sweep. Two consecutive runs lost their single most
   consequential finding that way, and the count of such findings was
@@ -1053,8 +927,10 @@ Feature: Reconstruct a run nobody is holding
 
 ## References
 
-- [[frd-swarm-dispatch]] — the first wave: the dispatch loop, and the
-  command conventions and explain flag every command here carries
+- [[frd-swarm-core]] — the command conventions every command here
+  carries, and the manifest component each reads a run through
+- [[frd-swarm-dispatch]] — the dispatch loop, which sends the work this
+  document plans
 - `docs/research/swarm-cli/2026-08-25-capability-audit.md` — the audit
   these requirements are drawn from; §7 is the classification that decides
   what earns a command and §8 is the stack rank
