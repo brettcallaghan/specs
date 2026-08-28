@@ -136,7 +136,7 @@ tracker's own vocabulary except where a measured behaviour is being pinned.
 
 ## Requirements
 
-### FEAT-RUN-001: Build a run's epic shape
+### FEAT-SWARM-RUN-001: Build a run's epic shape
 
 **Command:**
 
@@ -156,7 +156,7 @@ epic" and its "Assign every phase epic to its own agent id" paragraph;
 **Acceptance Criteria:**
 
 ```gherkin
-@FEAT-RUN-001
+@FEAT-SWARM-RUN-001
 Feature: Build a run's epic shape
 
   As a coordinator opening a run
@@ -175,18 +175,18 @@ Feature: Build a run's epic shape
   order, the work as flat task children of the target, and the gate as a
   task child of scope.
 
-  @AC-RUN-001.1
+  @AC-SWARM-RUN-001.1
   Scenario: The created shape dispatches exactly the target's open leaves
     When a run shape is created and the phases before the target are closed
     Then the run's ready front contains exactly the target epic's open task children
 
-  @AC-RUN-001.2
+  @AC-SWARM-RUN-001.2
   Scenario: A partially built shape is not left behind
     Given the creation fails partway
     When the command reports the failure
     Then the run epic and its phases are either all present or all absent
 
-  @AC-RUN-001.3
+  @AC-SWARM-RUN-001.3
   Scenario Outline: Every phase epic is assigned to its role identity
     Given a run whose epic id yields the run id "r7k"
     When a run shape is created
@@ -202,18 +202,18 @@ Feature: Build a run's epic shape
       | retro       | retro-r7k       |
       | post-flight | coordinator-r7k |
 
-  @AC-RUN-001.4
+  @AC-SWARM-RUN-001.4
   Scenario: The authorization gate holds the whole chain
     Given a run shape whose authorization gate is unresolved
     When the ready front is queried
     Then it is empty
 
-  @AC-RUN-001.5
+  @AC-SWARM-RUN-001.5
   Scenario: A non-flat target is refused
     When a run shape is created with a sub-epic beneath the target epic
     Then the command exits non-zero naming the offending child
 
-  @AC-RUN-001.6
+  @AC-SWARM-RUN-001.6
   Scenario Outline: Each phase blocks the phase after it
     When a run shape is created
     Then the "<earlier>" epic blocks the "<later>" epic
@@ -228,31 +228,31 @@ Feature: Build a run's epic shape
       | review     | retro       |
       | retro      | post-flight |
 
-  @AC-RUN-001.7
+  @AC-SWARM-RUN-001.7
   Scenario: The authorization gate is a task child of the scope epic
     When a run shape is created
     Then the gate is held against a task child of the scope epic rather than against a phase epic
 
-  @AC-RUN-001.8
+  @AC-SWARM-RUN-001.8
   Scenario: Work that decomposes becomes a second target beside the first
     Given an admitted epic whose own children are epics
     When a run shape is created
     Then that epic becomes a second target epic under the run epic
     And it is not nested beneath the first target epic
 
-  @AC-RUN-001.9 @negative
+  @AC-SWARM-RUN-001.9 @negative
   Scenario: A run epic that already exists is not rebuilt
     Given a run epic that already carries a phase chain
     When the command is asked to build a shape over it
     Then it exits non-zero
     And no epic is created, moved or reassigned
 
-  @AC-RUN-001.10
+  @AC-SWARM-RUN-001.10
   Scenario: The admission record is written as the shape is created
     When a run shape is created
     Then the manifest records which items were admitted, which were excluded with a reason, and which were moved and from where
 
-  @AC-RUN-001.11 @negative
+  @AC-SWARM-RUN-001.11 @negative
   Scenario: A work item is never moved out of an epic that already owns it
     Given an admitted work item that already belongs to another epic
     When a run shape is created without an explicit instruction to move it
@@ -260,7 +260,7 @@ Feature: Build a run's epic shape
     And it is recorded as excluded with that reason
 ```
 
-### FEAT-RUN-002: Read and update the run manifest
+### FEAT-SWARM-RUN-002: Read and update the run manifest
 
 **Commands:**
 
@@ -315,7 +315,7 @@ and the whole of "Run manifest"; the manifest-reading preambles in
 **Acceptance Criteria:**
 
 ```gherkin
-@FEAT-RUN-002
+@FEAT-SWARM-RUN-002
 Feature: Read and update the run manifest
 
   As any component recording or reading a run's durable state
@@ -331,80 +331,80 @@ Feature: Read and update the run manifest
   rather than being handed them, and a renamed key reads back as absent
   while the run proceeds without it.
 
-  @AC-RUN-002.1
+  @AC-SWARM-RUN-002.1
   Scenario: Writing one key preserves the others
     Given a manifest carrying keys written by other components
     When one key is updated
     Then the other keys retain their values
 
-  @AC-RUN-002.2 @negative
+  @AC-SWARM-RUN-002.2 @negative
   Scenario: An unknown key is refused rather than stored
     When a key outside the manifest's declared set is written
     Then the command exits non-zero
     And the manifest is unchanged
 
-  @AC-RUN-002.3
+  @AC-SWARM-RUN-002.3
   Scenario: A required key that is absent is reported as absent, not empty
     Given a manifest with no checks baseline recorded
     When the baseline is read
     Then the result is reported as absent rather than as an empty baseline
 
-  @AC-RUN-002.4
+  @AC-SWARM-RUN-002.4
   Scenario: The review pass counter survives a resumed run
     Given a manifest recording spent review passes
     When a resumed run reads the counter
     Then it reports the spent count rather than zero
 
-  @AC-RUN-002.5
+  @AC-SWARM-RUN-002.5
   Scenario: A list-valued key reads back as a list
     Given a key whose declared type is a list of work item ids
     When it is written and read back
     Then the value is a list of the same ids rather than one string
 
-  @AC-RUN-002.6 @negative
+  @AC-SWARM-RUN-002.6 @negative
   Scenario: The branch and its base are written once
     Given a manifest already recording a branch and a base commit
     When a different branch or base is written
     Then the command exits non-zero
     And the recorded values are unchanged
 
-  @AC-RUN-002.7 @negative
+  @AC-SWARM-RUN-002.7 @negative
   Scenario: The review pass counter never decreases and never exceeds its budget
     Given a manifest recording two spent passes against a budget of two
     When a lower count or a third pass is written
     Then the command exits non-zero
 
-  @AC-RUN-002.8 @negative
+  @AC-SWARM-RUN-002.8 @negative
   Scenario: The environmental ledger is append-only
     Given a ledger whose entries are cited elsewhere by position
     When a write would remove or reorder an entry
     Then the command exits non-zero
 
-  @AC-RUN-002.9 @negative
+  @AC-SWARM-RUN-002.9 @negative
   Scenario: A value of the wrong type for its key is refused
     When a key whose declared type is a number is written with text
     Then the command exits non-zero
     And the manifest is unchanged
 
-  @AC-RUN-002.10 @negative
+  @AC-SWARM-RUN-002.10 @negative
   Scenario: A write that would clobber a concurrent change is refused
     Given a key that changed after this caller read the manifest
     When that caller writes the manifest back
     Then the command exits non-zero naming the key that moved
 
-  @AC-RUN-002.11
+  @AC-SWARM-RUN-002.11
   Scenario: A setting the harness does not expose is recorded as unrecorded
     Given a run whose harness exposes no effort setting
     When the manifest is written
     Then the effort key is present with the value unrecorded rather than absent
 
-  @AC-RUN-002.12 @negative
+  @AC-SWARM-RUN-002.12 @negative
   Scenario: The admission record's three lists do not overlap
     When a work item appears in more than one of the admitted, excluded and moved lists
     Then the command exits non-zero naming that item
 ```
 
-### FEAT-RUN-003: Partition the queue, assign it, and gate the epic
+### FEAT-SWARM-RUN-003: Partition the queue, assign it, and gate the epic
 
 **Commands:**
 
@@ -436,7 +436,7 @@ then gate the epic"; the four mechanical checks of
 **Acceptance Criteria:**
 
 ```gherkin
-@FEAT-RUN-003
+@FEAT-SWARM-RUN-003
 Feature: Partition the queue, assign it, and gate the epic
 
   As a planner preparing a run for dispatch
@@ -462,107 +462,107 @@ Feature: Partition the queue, assign it, and gate the epic
   specified here: whether an unwired edge is a real dependency, and
   whether anything the run needs can be derived only by the planner.
 
-  @AC-RUN-003.1
+  @AC-SWARM-RUN-003.1
   Scenario: Two work items sharing a collision mark are never ready together
     Given two work items separated by a collision edge
     When the ready front is queried
     Then at most one of them appears in it
 
-  @AC-RUN-003.2
+  @AC-SWARM-RUN-003.2
   Scenario: An inverted edge is detected rather than loaded silently
     Given an edge file whose orientation would invert a dependency
     When the file is loaded and the front asserted
     Then the command exits non-zero naming the offending edge
 
-  @AC-RUN-003.3
+  @AC-SWARM-RUN-003.3
   Scenario: A collision mark is stored bare
     When a collision mark is written
     Then reading it back returns the value without added quoting
 
-  @AC-RUN-003.4
+  @AC-SWARM-RUN-003.4
   Scenario: A cluster is chained rather than fanned
     Given three work items sharing one surface
     When the partition is loaded
     Then exactly one of the three is in the ready front
 
-  @AC-RUN-003.5
+  @AC-SWARM-RUN-003.5
   Scenario: An unassigned child is named by the epic gate
     Given a target epic with one unassigned child
     When the epic is gated for swarming
     Then that child's id is named
     And the command exits non-zero
 
-  @AC-RUN-003.6
+  @AC-SWARM-RUN-003.6
   Scenario: The epic gate reads assignment from the tracker's data, not its display
     Given a work item whose creator is set and whose assignee is not
     When the epic is gated for swarming
     Then that item is reported as unassigned
 
-  @AC-RUN-003.7
+  @AC-SWARM-RUN-003.7
   Scenario: A dev pool larger than the concurrency cap is refused
     Given planned dev assignees exceeding the cap the manifest records
     When the epic is gated for swarming
     Then the count and the cap are both named
     And the command exits non-zero
 
-  @AC-RUN-003.8
+  @AC-SWARM-RUN-003.8
   Scenario: Both ends of a collision edge carry the same mark
     Given a loaded collision edge
     When the marks are read back from the tracker
     Then both endpoint items carry the same collision value
 
-  @AC-RUN-003.9
+  @AC-SWARM-RUN-003.9
   Scenario: A collision mark with no edge to justify it is named
     Given a work item carrying a collision mark that no loaded edge accounts for
     When the partition is validated
     Then that item is named
     And the command exits non-zero
 
-  @AC-RUN-003.10 @negative
+  @AC-SWARM-RUN-003.10 @negative
   Scenario: A sequencing edge carries no collision mark
     Given an edge recorded as a sequencing constraint
     When the marks are read back
     Then neither endpoint carries a collision mark
 
-  @AC-RUN-003.11
+  @AC-SWARM-RUN-003.11
   Scenario: A collision chain that contradicts a real dependency is refused
     Given two work items in one cluster already joined by a real dependency
     When a collision chain would order them the other way round
     Then the command exits non-zero naming both items
 
-  @AC-RUN-003.12
+  @AC-SWARM-RUN-003.12
   Scenario: A file that fails validation wires no edge at all
     Given an edge file whose second line names a work item that does not exist
     When the file is loaded
     Then no edge from that file is wired
     And the offending line is named
 
-  @AC-RUN-003.13
+  @AC-SWARM-RUN-003.13
   Scenario: Loading the same file twice changes nothing
     Given an edge file that has already loaded
     When it is loaded again
     Then the graph is unchanged
     And the command exits zero
 
-  @AC-RUN-003.14
+  @AC-SWARM-RUN-003.14
   Scenario: An edge that would strengthen an existing weaker edge is reported
     Given two work items already joined by a non-blocking edge
     When the file asks for a blocking edge between them
     Then the command exits non-zero naming both items and the existing edge type
 
-  @AC-RUN-003.15
+  @AC-SWARM-RUN-003.15
   Scenario: Assignees are derived from the run epic id and never minted
     Given a run whose epic id yields the run id "r7k" and a second batch
     When the batch is assigned
     Then every work item in it carries the assignee "dev-r7k-2"
 
-  @AC-RUN-003.16
+  @AC-SWARM-RUN-003.16
   Scenario: The epic gate counts closed and deferred children
     Given a target epic with one closed child carrying no assignee
     When the epic is gated for swarming
     Then that child is included in the check rather than skipped
 
-  @AC-RUN-003.17 @negative
+  @AC-SWARM-RUN-003.17 @negative
   Scenario: A missing concurrency cap is reported as unmeasurable
     Given a manifest recording no concurrency cap
     When the epic is gated for swarming
@@ -570,14 +570,14 @@ Feature: Partition the queue, assign it, and gate the epic
     And no default cap is substituted
     And the command exits non-zero
 
-  @AC-RUN-003.18
+  @AC-SWARM-RUN-003.18
   Scenario: The pool count includes dev assignees only
     Given a run carrying four dev assignees and four ceremony assignees
     When the epic is gated for swarming
     Then the reported pool count is four
 ```
 
-### FEAT-RUN-004: Return a readiness verdict for a queue
+### FEAT-SWARM-RUN-004: Return a readiness verdict for a queue
 
 **Commands:**
 
@@ -603,7 +603,7 @@ notes in `references/run-record.md`.
 **Acceptance Criteria:**
 
 ```gherkin
-@FEAT-RUN-004
+@FEAT-SWARM-RUN-004
 Feature: Return a readiness verdict for a queue
 
   As a planner gating a queue before dispatch
@@ -618,52 +618,52 @@ Feature: Return a readiness verdict for a queue
   a grooming annotation stays dispatchable, because the front reads
   status and not annotations.
 
-  @AC-RUN-004.1
+  @AC-SWARM-RUN-004.1
   Scenario: Every work item in the queue is accounted for
     Given a queue and a set of verdicts
     When the verdicts are reconciled against the queue
     Then any work item without a verdict is named
     And the command exits non-zero
 
-  @AC-RUN-004.2
+  @AC-SWARM-RUN-004.2
   Scenario: A bounced work item leaves the dispatch front
     Given a work item bounced as not ready
     When the dispatch front is queried
     Then that item is not in it
 
-  @AC-RUN-004.3
+  @AC-SWARM-RUN-004.3
   Scenario: A bounced work item is visible to a human
     Given a work item bounced as not ready
     When the human queue is listed
     Then that item appears in it
 
-  @AC-RUN-004.4
+  @AC-SWARM-RUN-004.4
   Scenario: A resolved bounce returns the work item to the gate
     Given a bounced work item whose gap has been closed
     When the bounce is resolved
     Then the item re-enters the readiness gate on the next pass
 
-  @AC-RUN-004.5 @negative
+  @AC-SWARM-RUN-004.5 @negative
   Scenario: A bounce neither closes nor defers the work item
     Given a work item bounced as not ready
     When its status is read
     Then it is open
     And it is neither closed nor deferred
 
-  @AC-RUN-004.6
+  @AC-SWARM-RUN-004.6
   Scenario: The human queue omits a work item that has closed
     Given a bounced work item that has since been closed
     When the human queue is listed
     Then that item does not appear in it
 
-  @AC-RUN-004.7
+  @AC-SWARM-RUN-004.7
   Scenario: Resolving a bounce records the answer on the work item
     Given a bounced work item
     When the bounce is resolved with an answer
     Then the answer is recorded on the item
     And the item is not closed
 
-  @AC-RUN-004.8
+  @AC-SWARM-RUN-004.8
   Scenario: A bounced work item is counted in the run's outstanding work
     Given a run whose only unfinished item is bounced
     When the run's outstanding work is counted
@@ -671,7 +671,7 @@ Feature: Return a readiness verdict for a queue
     And the run is not reported as drained
 ```
 
-### FEAT-RUN-005: Claim a work item as the acting agent
+### FEAT-SWARM-RUN-005: Claim a work item as the acting agent
 
 **Command:**
 
@@ -685,7 +685,7 @@ the "Why the export matters" table in `references/dispatch-policy.md`.
 **Acceptance Criteria:**
 
 ```gherkin
-@FEAT-RUN-005
+@FEAT-SWARM-RUN-005
 Feature: Claim a work item as the acting agent
 
   As a dev agent starting a work item
@@ -703,41 +703,41 @@ Feature: Claim a work item as the acting agent
   the status alone leaves an item that reads as in progress and is
   claimed by nobody, which is the state no query can attribute.
 
-  @AC-RUN-005.1
+  @AC-SWARM-RUN-005.1
   Scenario: A claim is refused when the work item belongs to another agent
     Given a work item assigned to a different agent
     When a claim is attempted
     Then the command exits non-zero
     And the item's assignee is unchanged
 
-  @AC-RUN-005.2
+  @AC-SWARM-RUN-005.2
   Scenario: A claim on an unassigned work item does not silently take ownership
     Given a work item with no assignee
     When a claim is attempted without an explicit actor
     Then the command exits non-zero
 
-  @AC-RUN-005.3
+  @AC-SWARM-RUN-005.3
   Scenario: A claim sets the status and the assignee in one write
     Given a work item assigned to the acting agent
     When it is claimed
     Then its status is in progress
     And its assignee is the acting agent
 
-  @AC-RUN-005.4
+  @AC-SWARM-RUN-005.4
   Scenario: Re-claiming a work item the actor already holds changes nothing
     Given a work item already claimed by the acting agent
     When it is claimed again
     Then the command exits zero
     And the item's status and assignee are unchanged
 
-  @AC-RUN-005.5 @negative
+  @AC-SWARM-RUN-005.5 @negative
   Scenario: The actor is never taken from version control configuration
     Given an environment whose version control tool has a configured user name
     When a claim is attempted without an explicit actor
     Then that name is not written to the work item
 ```
 
-### FEAT-RUN-006: Record and read a finding
+### FEAT-SWARM-RUN-006: Record and read a finding
 
 **Commands:**
 
@@ -754,7 +754,7 @@ rather than a rule an agent applies.
 **Acceptance Criteria:**
 
 ```gherkin
-@FEAT-RUN-006
+@FEAT-SWARM-RUN-006
 Feature: Record and read a finding
 
   As an agent capturing friction, or a retro reading it
@@ -771,35 +771,35 @@ Feature: Record and read a finding
   evidence is the right evidence, and whether the agent has drifted into
   analysis, are judgment and stay with the capturing agent and the retro.
 
-  @AC-RUN-006.1
+  @AC-SWARM-RUN-006.1
   Scenario: A finding with an unknown kind is refused
     When a finding is recorded with a kind outside the declared set
     Then the command exits non-zero
     And nothing is written
 
-  @AC-RUN-006.2
+  @AC-SWARM-RUN-006.2
   Scenario: A finding requiring a target is refused without one
     When a finding of a kind that requires a target is recorded without one
     Then the command exits non-zero
 
-  @AC-RUN-006.3
+  @AC-SWARM-RUN-006.3
   Scenario: A finding is readable back with its work item and its ordinal
     Given findings recorded across several work items
     When they are read back
     Then each carries the item it was recorded on and its position within that item
 
-  @AC-RUN-006.4 @negative
+  @AC-SWARM-RUN-006.4 @negative
   Scenario: A finding with no evidence is refused
     When a finding is recorded carrying no evidence
     Then the command exits non-zero
     And nothing is written
 
-  @AC-RUN-006.5 @negative
+  @AC-SWARM-RUN-006.5 @negative
   Scenario: A finding whose only anchor is a line number is refused
     When a finding's evidence cites a path and a line number and nothing else
     Then the command exits non-zero naming the durable anchors it would accept
 
-  @AC-RUN-006.6
+  @AC-SWARM-RUN-006.6
   Scenario Outline: A target is required of the kind that routes outside the project
     When a finding of kind "<kind>" is recorded without a target
     Then the command "<outcome>"
@@ -816,27 +816,27 @@ Feature: Record and read a finding
       | proof        | exits zero     |
       | environment  | exits zero     |
 
-  @AC-RUN-006.7 @negative
+  @AC-SWARM-RUN-006.7 @negative
   Scenario: A recorded finding is never edited or deleted
     Given a finding already recorded on a work item
     When a change to it is attempted
     Then the command exits non-zero
     And the recorded finding is unchanged
 
-  @AC-RUN-006.8
+  @AC-SWARM-RUN-006.8
   Scenario: A correction is a new finding naming the one it corrects
     Given a finding already recorded on a work item
     When a correcting finding is recorded against it
     Then both findings are readable
     And the second names the first
 
-  @AC-RUN-006.9 @negative
+  @AC-SWARM-RUN-006.9 @negative
   Scenario: An ordinal is derived and is not accepted as input
     When a finding is recorded with an ordinal supplied by the caller
     Then the command exits non-zero
 ```
 
-### FEAT-RUN-007: Harvest and route a run's findings
+### FEAT-SWARM-RUN-007: Harvest and route a run's findings
 
 **Commands:**
 
@@ -851,7 +851,7 @@ swarm finding route   --run <id> [--json]
 **Acceptance Criteria:**
 
 ```gherkin
-@FEAT-RUN-007
+@FEAT-SWARM-RUN-007
 Feature: Harvest and route a run's findings
 
   As a retro turning a run's friction into work
@@ -875,24 +875,24 @@ Feature: Harvest and route a run's findings
   belongs in the project's environmental-failure ledger where the next
   agent will look for it.
 
-  @AC-RUN-007.1
+  @AC-SWARM-RUN-007.1
   Scenario: Findings on closed work items are harvested
     Given a run whose work items are closed
     When findings are harvested
     Then findings recorded on those items are returned
 
-  @AC-RUN-007.2
+  @AC-SWARM-RUN-007.2
   Scenario: A zero harvest on a drained run is reported as a failure
     Given a run whose work items are closed and which recorded findings
     When the harvest returns nothing
     Then the command exits non-zero
 
-  @AC-RUN-007.3
+  @AC-SWARM-RUN-007.3
   Scenario: Each finding is routed by its kind alone
     When findings are routed
     Then each is assigned a destination determined solely by its kind
 
-  @AC-RUN-007.4
+  @AC-SWARM-RUN-007.4
   Scenario Outline: Each kind has one destination
     Given a finding of kind "<kind>"
     When routing runs
@@ -912,25 +912,25 @@ Feature: Harvest and route a run's findings
       | environment     | the environmental-failure ledger | not produced |
       | an unknown kind | the unrouted list                | not produced |
 
-  @AC-RUN-007.5
+  @AC-SWARM-RUN-007.5
   Scenario: The unrouted count is reported even when it is zero
     When routing runs
     Then the number of findings that matched no destination is reported
 
-  @AC-RUN-007.6
+  @AC-SWARM-RUN-007.6
   Scenario: The harvest reaches every work item in the run, however nested
     Given a run whose work items are children of the target epic rather than of the run epic
     When findings are harvested
     Then findings on those items are returned
 
-  @AC-RUN-007.7
+  @AC-SWARM-RUN-007.7
   Scenario: Filing a candidate records a back-link on the finding's work item
     Given a candidate filed from two findings
     When the filing is recorded
     Then each finding's work item carries a record naming the issue that was filed and the finding it came from
 ```
 
-### FEAT-RUN-008: Reconstruct a run nobody is holding
+### FEAT-SWARM-RUN-008: Reconstruct a run nobody is holding
 
 **Command:**
 
@@ -958,7 +958,7 @@ five-row classification table a human is currently asked to apply.
 **Acceptance Criteria:**
 
 ```gherkin
-@FEAT-RUN-008
+@FEAT-SWARM-RUN-008
 Feature: Reconstruct a run nobody is holding
 
   As a session resuming a run with no context
@@ -972,7 +972,7 @@ Feature: Reconstruct a run nobody is holding
   inputs — an item's status and whether its dispatch's worktree still
   exists — currently written as a table for a human to apply.
 
-  @AC-RUN-008.1
+  @AC-SWARM-RUN-008.1
   Scenario Outline: The run is identified from whichever durable source answers
     Given a checkout on a sprint branch and "<available>"
     When reconstruction runs
@@ -985,29 +985,29 @@ Feature: Reconstruct a run nobody is holding
       | a run epic whose manifest records this branch          | the manifest branch |
       | close commits carrying work item ids in their subjects | the branch history  |
 
-  @AC-RUN-008.2
+  @AC-SWARM-RUN-008.2
   Scenario: Completed work items are read from the branch history
     When reconstruction runs
     Then every work item whose close commit is on the branch is reported completed
 
-  @AC-RUN-008.3
+  @AC-SWARM-RUN-008.3
   Scenario: Stale worktree registrations are not reported as in flight
     Given a registered worktree whose directory no longer exists
     When reconstruction runs
     Then it is not counted as in flight
 
-  @AC-RUN-008.4
+  @AC-SWARM-RUN-008.4
   Scenario: Every unfinished work item is classified with the signal that settled it
     When reconstruction runs
     Then each unfinished item carries both its classification and the signal it was derived from
 
-  @AC-RUN-008.5
+  @AC-SWARM-RUN-008.5
   Scenario: What could not be established is named rather than omitted
     Given a source that cannot be read
     When reconstruction reports
     Then the affected facts are listed as unestablished
 
-  @AC-RUN-008.6
+  @AC-SWARM-RUN-008.6
   Scenario Outline: Each unfinished work item is classified from its status and its worktree
     Given a work item whose status is "<status>" and whose dispatch's worktree is "<worktree>"
     When reconstruction runs
@@ -1021,31 +1021,31 @@ Feature: Reconstruct a run nobody is holding
       | open        | absent   | never started                       |
       | blocked     | either   | stopped on purpose                  |
 
-  @AC-RUN-008.7
+  @AC-SWARM-RUN-008.7
   Scenario: Worktree registrations are cleared before the in-flight set is read
     When reconstruction runs
     Then stale registrations are cleared before the in-flight set is computed
 
-  @AC-RUN-008.8
+  @AC-SWARM-RUN-008.8
   Scenario: The review pass counter is carried forward
     Given a manifest recording spent review passes
     When reconstruction reports the run
     Then it reports the spent count rather than zero
 
-  @AC-RUN-008.9 @negative
+  @AC-SWARM-RUN-008.9 @negative
   Scenario: Reconstruction creates no branch
     Given a manifest recording a sprint branch
     When reconstruction runs
     Then no branch is created
 
-  @AC-RUN-008.10
+  @AC-SWARM-RUN-008.10
   Scenario: A history with no close-commit subjects yields no completed set
     Given a branch whose commits were squashed and carry no work item ids
     And no other source identifies the completed items
     When reconstruction reports
     Then the completed set is reported as unestablished rather than as empty
 
-  @AC-RUN-008.11
+  @AC-SWARM-RUN-008.11
   Scenario: The landing check is reported before anything else
     When reconstruction runs
     Then the branch's landing state is the first verdict in its output
@@ -1061,6 +1061,6 @@ Feature: Reconstruct a run nobody is holding
 - [[module-bead-bonanza]] — the module whose components call this CLI
 - [[adr-022]] — projects declare their checks in configuration, which is
   why no check command is hard-coded here
-- [[findings-capture-protocol]] — the nine kinds FEAT-RUN-006 validates
-  and FEAT-RUN-007 routes
+- [[findings-capture-protocol]] — the nine kinds FEAT-SWARM-RUN-006 validates
+  and FEAT-SWARM-RUN-007 routes
 - [[gherkin-guide]] — the notation these criteria are written in

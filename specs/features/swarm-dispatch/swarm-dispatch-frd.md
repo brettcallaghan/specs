@@ -55,13 +55,38 @@ holding — is [[frd-swarm-cli]]. Nothing here waits on it.
 
 ### What this wave assumes rather than specifies
 
-**The manifest.** Three of these commands read the run manifest and one
-writes to it: `branch` and `base_sha` are written by `dispatch open`, and
-`admitted` and the consecutive-failure count are read by `run status` and
-`queue front`. The manifest's key set, its types and its validation are
-the second wave's. Until that lands, the one rule this wave carries is
-that a write here **merges** rather than replaces, because other
-components own keys in the same object.
+**The manifest object, but no second-wave command.** Nothing here calls
+`swarm run manifest`; these commands read and write the run epic's
+metadata directly, through the same tracker interface everything else
+uses. What they touch is small and fixed:
+
+| key | read by | written by |
+|---|---|---|
+| `branch` | `dispatch open` | `dispatch open`, once |
+| `base_sha` | — | `dispatch open`, once |
+| `admitted` | `run status`, `queue front` | — |
+| `excluded` | `run status` | — |
+| the consecutive-failure count | `queue front` | `queue front` |
+
+**So this wave is not blocked on the second one.** A run today already
+carries a manifest before its first dispatch — `sprint-scope` and the
+coordinator write it by hand — and these commands slot into that. The
+second wave adds the validated read and write surface and the logical
+rules around it (a write-once branch, a monotonic review counter, an
+append-only ledger); it does not create the object they read.
+
+Two rules this wave therefore carries on its own, because it cannot wait
+for them. A write **merges** rather than replaces, since other components
+own keys in the same object. And a key it needs and does not find is
+reported as **absent**, never as an empty answer — an absent `admitted`
+list is a run whose scope was never recorded, which is a different fact
+from a run that admitted nothing.
+
+**One key nothing writes today**: the consecutive-failure count that
+`queue front` needs in order to survive a resume. Absent, it reads as
+zero, which is correct for a fresh run and wrong for a resumed one. That
+is the single genuine dependency between the waves, and it is a key
+rather than a command.
 
 **Judgment.** Classifying a review finding's scope, resolving a rebase
 conflict, and deciding whether partial work is finishable stay with an
@@ -130,7 +155,7 @@ recorded trap rather than proposed on taste:
 | | |
 |---|---|
 | `--run <run-epic-id>` | required by every subcommand that reads or mutates run state. An absent or empty scope is refused, never treated as the whole repository |
-| `--explain` | print the resolved tracker and version-control invocations in order and run none of them (FEAT-DISP-007) |
+| `--explain` | print the resolved tracker and version-control invocations in order and run none of them (FEAT-SWARM-DISP-007) |
 | `--json` | machine-readable output; the same facts as the text form, never a subset |
 | `--dry-run` | on mutating subcommands: perform every read and no write |
 | exit `0` | the command's own verdict is clear |
@@ -162,7 +187,7 @@ uses, unchanged, because every skill in the family already routes on it.
 
 ## Requirements
 
-### FEAT-DISP-001: Close this run's finished phase epics
+### FEAT-SWARM-DISP-001: Close this run's finished phase epics
 
 **Command:**
 
@@ -180,7 +205,7 @@ every dispatch".
 **Acceptance Criteria:**
 
 ```gherkin
-@FEAT-DISP-001
+@FEAT-SWARM-DISP-001
 Feature: Close this run's finished phase epics
 
   As a coordinator advancing a run
@@ -205,7 +230,7 @@ Feature: Close this run's finished phase epics
   closed nor reported, because a report naming them invites the next
   reader to act on them.
 
-  @AC-DISP-001.1
+  @AC-SWARM-DISP-001.1
   Scenario: Only epics belonging to the named run are touched
     Given eligible epics exist both inside and outside the named run
     When the command closes finished epics for that run
@@ -213,50 +238,50 @@ Feature: Close this run's finished phase epics
     And the epics outside it are left open
     And no epic outside the run appears in the output
 
-  @AC-DISP-001.2
+  @AC-SWARM-DISP-001.2
   Scenario: The command names every epic it closed
     When the command closes one or more epics
     Then each closed epic's id appears in the output
 
-  @AC-DISP-001.3
+  @AC-SWARM-DISP-001.3
   Scenario: A dry run closes nothing
     When the command runs in preview mode
     Then it reports the epics it would close
     And no epic's status changes
 
-  @AC-DISP-001.4
+  @AC-SWARM-DISP-001.4
   Scenario: A run with no eligible epic reports so and succeeds
     Given no epic in the run is eligible to close
     When the command runs
     Then it reports that nothing was eligible
     And it exits zero
 
-  @AC-DISP-001.5 @negative
+  @AC-SWARM-DISP-001.5 @negative
   Scenario: An unscoped invocation is refused
     When the command is invoked without a run scope
     Then it exits non-zero
     And no epic's status changes
 
-  @AC-DISP-001.6 @negative
+  @AC-SWARM-DISP-001.6 @negative
   Scenario: An epic with an open child is not closed
     Given an epic in the run carrying one open child
     When the command runs
     Then that epic is left open
     And the open child's id is named as the reason
 
-  @AC-DISP-001.7
+  @AC-SWARM-DISP-001.7
   Scenario: The target epic closes on the same rule as a ceremony phase
     Given every task child of the target epic is closed
     When the command runs
     Then the target epic is closed
 
-  @AC-DISP-001.8
+  @AC-SWARM-DISP-001.8
   Scenario: The work items a closure released are named
     Given closing an epic makes work items it gated ready
     When the command runs
     Then those work items' ids are reported as newly ready
 
-  @AC-DISP-001.9
+  @AC-SWARM-DISP-001.9
   Scenario: A tracker that cannot answer is not reported as nothing eligible
     Given the eligibility query fails
     When the command runs
@@ -264,7 +289,7 @@ Feature: Close this run's finished phase epics
     And it exits non-zero
 ```
 
-### FEAT-DISP-002: Report a run's status from state
+### FEAT-SWARM-DISP-002: Report a run's status from state
 
 **Command:**
 
@@ -282,7 +307,7 @@ value it had, states the threshold it applied, and names the thing it
 could not observe — so a reader who disagrees with the classification can
 still act on the facts.
 
-**Per-agent drain is reported here and defined in FEAT-DISP-003.** Status
+**Per-agent drain is reported here and defined in FEAT-SWARM-DISP-003.** Status
 says which agents still hold work; the queue command is where "drained"
 means something, because it is the command an agent runs about itself.
 
@@ -293,7 +318,7 @@ of `bead-bonanza/SKILL.md`.
 **Acceptance Criteria:**
 
 ```gherkin
-@FEAT-DISP-002
+@FEAT-SWARM-DISP-002
 Feature: Report a run's status from state
 
   As a coordinator or a session resuming one
@@ -310,7 +335,7 @@ Feature: Report a run's status from state
   like they answer "every work item in this run" and each answers
   something else.
 
-  @AC-DISP-002.1
+  @AC-SWARM-DISP-002.1
   Scenario: A stall is reported as the measurements that produced it
     Given no worktrees are standing
     And the ready front is not empty
@@ -320,58 +345,65 @@ Feature: Report a run's status from state
     And the run's health is reported as stalled
     And the command exits non-zero
 
-  @AC-DISP-002.2
+  @AC-SWARM-DISP-002.2
   Scenario: Health is never read from a stored value
     Given a run epic carrying a health value in its metadata that contradicts its state
     When health is reported
     Then the reported value reflects the state, not the stored value
 
-  @AC-DISP-002.3
+  @AC-SWARM-DISP-002.3
   Scenario: Completion counts every work item in the run, however nested
     Given a run whose work items are not direct children of the run epic
     When completion is reported
     Then every work item in the run is counted
 
-  @AC-DISP-002.4
+  @AC-SWARM-DISP-002.4
   Scenario: Each agent holding work is named
     Given two dispatches, one of which has drained
     When status is reported
     Then the dispatch still holding work is named
     And the drained one is reported as drained
 
-  @AC-DISP-002.5
+  @AC-SWARM-DISP-002.5
   Scenario: A tracker that cannot answer is not reported as an empty answer
     Given a tracker query that fails
     When status is reported
     Then the affected line is reported as unknown
     And the command exits non-zero
 
-  @AC-DISP-002.6
+  @AC-SWARM-DISP-002.6
   Scenario: What the report cannot observe is named
     When health is reported
     Then the report states that whether an agent is still working is not observable
     And it names the three measurements the classification rests on instead
 
-  @AC-DISP-002.7
+  @AC-SWARM-DISP-002.7
   Scenario: The live queue is compared against the admitted set
     Given work items present in the run that the manifest's admitted list does not name
     When status is reported
     Then those work items are named as additions to the run's scope
 
-  @AC-DISP-002.8
+  @AC-SWARM-DISP-002.8
   Scenario: Work items excluded at admission are reported beside the completion verdict
     Given a run whose admitted work is all closed and whose admission excluded three items
     When completion is reported
     Then the run is reported as done over a narrowed scope naming those three
 
-  @AC-DISP-002.9
+  @AC-SWARM-DISP-002.10
+  Scenario: A manifest key that is absent is reported as absent, not as an empty answer
+    Given a run whose manifest records no admitted list
+    When the scope comparison is reported
+    Then it is reported as unestablished rather than as no additions
+    And the command exits non-zero
+
+  @AC-SWARM-DISP-002.9
   Scenario: A blocked work item whose worktree still stands is reported as unresolved
     Given a work item marked blocked whose dispatch's worktree still exists
     When status is reported
     Then that work item is reported as an unresolved conflict holding its evidence
 ```
 
-### FEAT-DISP-003: Answer what may be dispatched now, and what an agent still holds
+### FEAT-SWARM-DISP-003: Answer what may be dispatched now, and what an agent still holds
 
 **Command:**
 
@@ -411,7 +443,7 @@ hooks".
 **Acceptance Criteria:**
 
 ```gherkin
-@FEAT-DISP-003
+@FEAT-SWARM-DISP-003
 Feature: Answer what may be dispatched now, and what an agent still holds
 
   As a coordinator deciding what to send out, or an agent asking what is
@@ -427,94 +459,94 @@ Feature: Answer what may be dispatched now, and what an agent still holds
   since a completion count that hides it reports a run as drained while a
   human still owes it an answer.
 
-  @AC-DISP-003.1
+  @AC-SWARM-DISP-003.1
   Scenario: A work item awaiting a human is excluded from the dispatch front
     Given a work item in the run labelled for human attention
     When the dispatch front is queried
     Then that work item is not in it
 
-  @AC-DISP-003.2
+  @AC-SWARM-DISP-003.2
   Scenario: The same work item is included in a completion count
     Given the same work item
     When the run's outstanding work is counted
     Then that work item is counted
 
-  @AC-DISP-003.3 @negative
+  @AC-SWARM-DISP-003.3 @negative
   Scenario: An empty or missing run scope is refused
     When the front is queried with no run scope
     Then the command exits non-zero
     And no work items are returned
 
-  @AC-DISP-003.4
+  @AC-SWARM-DISP-003.4
   Scenario: Consecutive blocked or failed dispatches stop the run
     Given the configured number of consecutive dispatches have returned blocked or failed
     When the front is queried
     Then the command reports the run as stopped
     And exits non-zero
 
-  @AC-DISP-003.5 @negative
+  @AC-SWARM-DISP-003.5 @negative
   Scenario: Epics are never in the dispatch front
     Given a run whose phase epics are open
     When the dispatch front is queried
     Then no epic is in it
 
-  @AC-DISP-003.6 @negative
+  @AC-SWARM-DISP-003.6 @negative
   Scenario: A closed or deferred work item is not in the dispatch front
     Given one closed and one deferred work item in the run
     When the dispatch front is queried
     Then neither is in it
 
-  @AC-DISP-003.7
+  @AC-SWARM-DISP-003.7
   Scenario: A work item a live dispatch is already holding is not offered again
     Given a work item assigned to a dispatch whose worktree is standing
     When the dispatch front is queried
     Then that work item is reported as held rather than as available
 
-  @AC-DISP-003.8
+  @AC-SWARM-DISP-003.8
   Scenario: The front reaches work items nested below the run epic
     Given a run whose work items are children of the target epic rather than of the run epic
     When the dispatch front is queried
     Then those work items are in it
 
-  @AC-DISP-003.9
+  @AC-SWARM-DISP-003.9
   Scenario: The consecutive-failure count survives a resumed run
     Given a run that recorded two consecutive blocked dispatches before its session ended
     When a resumed session queries the front
     Then the count is reported as two rather than zero
 
-  @AC-DISP-003.10
+  @AC-SWARM-DISP-003.10
   Scenario: The front is compared against the admitted set
     Given a work item in the front that the manifest's admitted list does not name
     When the front is queried
     Then that work item is named as an addition to the run's scope
 
-  @AC-DISP-003.11
+  @AC-SWARM-DISP-003.11
   Scenario: An agent's own queue is the same query narrowed to that agent
     Given a dispatch holding three work items in a collision chain
     When the front is queried for that dispatch
     Then only work items assigned to that dispatch are returned
     And they are returned in the order their dependencies allow
 
-  @AC-DISP-003.12
+  @AC-SWARM-DISP-003.12
   Scenario: An agent working an item is not reported as drained
     Given an agent holding one work item in progress and none ready
     When the front is queried for that agent
     Then it is reported as still holding work
 
-  @AC-DISP-003.13
+  @AC-SWARM-DISP-003.13
   Scenario: An agent's queue never reaches outside the run
     Given the same dispatch id assigned to a work item in another run
     When the front is queried for that agent
     Then that work item is not returned
 
-  @AC-DISP-003.14
+  @AC-SWARM-DISP-003.14
   Scenario: An agent that was never given a queue is not reported as drained
     Given a dispatch id with no work item assigned to it anywhere in the run
     When the front is queried for that agent
     Then it is reported as never assigned rather than as drained
     And the command exits non-zero
 
-  @AC-DISP-003.15
+  @AC-SWARM-DISP-003.15
   Scenario: A payload that is not a list is not counted as a queue
     Given a tracker response that is an error body rather than a list
     When the front is queried
@@ -522,7 +554,7 @@ Feature: Answer what may be dispatched now, and what an agent still holds
     And the command exits non-zero
 ```
 
-### FEAT-DISP-004: Open a dispatch — the sprint branch and its worktree
+### FEAT-SWARM-DISP-004: Open a dispatch — the sprint branch and its worktree
 
 **Commands:**
 
@@ -566,7 +598,7 @@ paragraph and the sprint-branch section of `bead-bonanza/SKILL.md`.
 **Acceptance Criteria:**
 
 ```gherkin
-@FEAT-DISP-004
+@FEAT-SWARM-DISP-004
 Feature: Open a dispatch — the sprint branch and its worktree
 
   As a coordinator isolating a dispatch
@@ -581,84 +613,84 @@ Feature: Open a dispatch — the sprint branch and its worktree
   available check is an assertion after the fact. Where the coordinator
   creates it, the base is an argument and there is nothing to verify.
 
-  @AC-DISP-004.1
+  @AC-SWARM-DISP-004.1
   Scenario: A worktree is created from the base the caller names
     When a worktree is created for a dispatch
     Then its head is the named base
 
-  @AC-DISP-004.2
+  @AC-SWARM-DISP-004.2
   Scenario: An existing sprint branch is reused rather than recreated
     Given a manifest already recording a sprint branch
     When the branch is ensured
     Then the recorded branch is checked out
     And no new branch is created
 
-  @AC-DISP-004.3
+  @AC-SWARM-DISP-004.3
   Scenario: A branch name already taken by unrelated work stops the run
     Given the intended sprint branch name exists and is unrelated
     When the branch is ensured
     Then the command exits non-zero
     And no branch is created or moved
 
-  @AC-DISP-004.4
+  @AC-SWARM-DISP-004.4
   Scenario: One worktree and one branch are created per dispatch
     When a worktree is created for a dispatch carrying several work items
     Then exactly one branch is created
     And it is named for the dispatch
 
-  @AC-DISP-004.5
+  @AC-SWARM-DISP-004.5
   Scenario: The base sha is recorded when the sprint branch is created
     When the sprint branch is created
     Then the manifest records the sha it was created from
 
-  @AC-DISP-004.6
+  @AC-SWARM-DISP-004.6
   Scenario: Opening the first dispatch of a run ensures the sprint branch
     Given a run whose manifest records no sprint branch
     When a dispatch is opened
     Then the sprint branch is created and recorded before the worktree is created
 
-  @AC-DISP-004.7
+  @AC-SWARM-DISP-004.7
   Scenario: A manifest write preserves the keys it did not set
     Given a manifest carrying keys written by other components
     When the branch and base sha are recorded
     Then the other keys retain their values
 
-  @AC-DISP-004.8 @negative
+  @AC-SWARM-DISP-004.8 @negative
   Scenario: A worktree is never created inside the repository's working tree
     When a worktree is created for a dispatch
     Then its path is outside the repository's working tree
 
-  @AC-DISP-004.9
+  @AC-SWARM-DISP-004.9
   Scenario: The worktree path and branch name follow from the dispatch id alone
     Given two sessions holding the same run epic id and the same dispatch id
     When each computes the worktree path and branch name
     Then both compute the same values
 
-  @AC-DISP-004.10
+  @AC-SWARM-DISP-004.10
   Scenario: Stale worktree registrations are cleared before the list is read
     Given a registered worktree whose directory no longer exists
     When a dispatch is opened
     Then the stale registration is cleared before any decision reads the list
 
-  @AC-DISP-004.11
+  @AC-SWARM-DISP-004.11
   Scenario: The base defaults to the sprint branch as it stands now
     Given no base is named
     When a worktree is created for a dispatch
     Then its head is the sprint branch's head read at that moment
 
-  @AC-DISP-004.12
+  @AC-SWARM-DISP-004.12
   Scenario: A dispatch whose worktree already exists is not recreated
     Given a dispatch whose worktree exists and holds uncommitted work
     When the dispatch is opened again
     Then the existing worktree is reported and left untouched
 
-  @AC-DISP-004.13 @negative
+  @AC-SWARM-DISP-004.13 @negative
   Scenario: No global setting decides the base
     When a worktree is created for a dispatch
     Then no configuration outside the repository is read to determine its base
 ```
 
-### FEAT-DISP-005: Accept a returned dispatch
+### FEAT-SWARM-DISP-005: Accept a returned dispatch
 
 **Command:**
 
@@ -678,7 +710,7 @@ other rather than a sequence a caller may reorder:
 5  ancestry guard       the branch is an ancestor of the target
 6  remove               the worktree, then the branch
 7  post-merge acceptance the same signals with none deferred
-8  land                 push the sprint branch and prove it landed (FEAT-DISP-006)
+8  land                 push the sprint branch and prove it landed (FEAT-SWARM-DISP-006)
 ```
 
 **Four things stop an acceptance, not one.** A rebase conflict is the one
@@ -697,7 +729,7 @@ check".
 **Acceptance Criteria:**
 
 ```gherkin
-@FEAT-DISP-005
+@FEAT-SWARM-DISP-005
 Feature: Accept a returned dispatch
 
   As a coordinator accepting a dispatch that has returned
@@ -718,7 +750,7 @@ Feature: Accept a returned dispatch
   blocks the work item and leaves the evidence standing so an agent
   holding that item's context can be dispatched into the worktree.
 
-  @AC-DISP-005.1
+  @AC-SWARM-DISP-005.1
   Scenario: A worktree is not removed unless its branch is an ancestor of the target
     Given a dispatch branch that is not an ancestor of the target after the merge step
     When the command is asked to accept that dispatch
@@ -726,20 +758,20 @@ Feature: Accept a returned dispatch
     And the branch is not deleted
     And the command exits non-zero
 
-  @AC-DISP-005.2
+  @AC-SWARM-DISP-005.2
   Scenario: The refusal case is named before the refusal is acted on
     Given a fast-forward is refused
     When the command reports the refusal
     Then it states whether the branch was cut from the current target or from an earlier one
 
-  @AC-DISP-005.3
+  @AC-SWARM-DISP-005.3
   Scenario: A concurrent branch is rebased onto the target read at merge time
     Given a dispatch branch cut from an earlier target than the current one
     When the command accepts that dispatch
     Then the branch is rebased onto the target as it stands at that moment
     And the resulting merge is a fast-forward
 
-  @AC-DISP-005.4
+  @AC-SWARM-DISP-005.4
   Scenario: A rebase conflict blocks the work item and preserves the evidence
     Given a rebase that conflicts
     When the command reports it
@@ -747,14 +779,14 @@ Feature: Accept a returned dispatch
     And the unmerged work item is marked blocked
     And its worktree is left standing
 
-  @AC-DISP-005.5
+  @AC-SWARM-DISP-005.5
   Scenario: A serialized branch that cannot fast-forward stops rather than retries
     Given dispatches were serialized and a fast-forward is refused
     When the command reports it
     Then it exits non-zero without retrying the merge
     And the merge is never re-attempted with fast-forward-only relaxed
 
-  @AC-DISP-005.6 @negative
+  @AC-SWARM-DISP-005.6 @negative
   Scenario: A step does not run when the step before it failed
     Given the merge step exits non-zero
     When the command reports the failure
@@ -762,53 +794,53 @@ Feature: Accept a returned dispatch
     And no branch is deleted
     And no push is attempted
 
-  @AC-DISP-005.7
+  @AC-SWARM-DISP-005.7
   Scenario: A conflict report names every conflicting path
     Given a rebase that conflicts across several files
     When the command reports it
     Then every conflicting path is named in the output
 
-  @AC-DISP-005.8
+  @AC-SWARM-DISP-005.8
   Scenario: A dispatch whose agent has not drained is not accepted
     Given the dispatch id still holds a work item that is ready or in progress
     When acceptance is attempted
     Then the command exits non-zero naming what the agent still holds
     And nothing is merged or removed
 
-  @AC-DISP-005.9 @negative
+  @AC-SWARM-DISP-005.9 @negative
   Scenario: The dispatch branch is not deleted before the fast-forward succeeds
     Given a rebase that completed and a fast-forward that has not yet run
     When the command is interrupted at that point
     Then the dispatch branch still exists
 
-  @AC-DISP-005.10 @negative
+  @AC-SWARM-DISP-005.10 @negative
   Scenario: A worktree is never force-removed
     Given a worktree whose removal is refused by the version control tool
     When the command reports it
     Then the removal is not retried with force
     And the command exits non-zero
 
-  @AC-DISP-005.11
+  @AC-SWARM-DISP-005.11
   Scenario: Every work item is re-checked after the merge and the removal
     Given a merge and a removal that both succeeded
     When acceptance completes
     Then each work item in the dispatch is checked again with no signal deferred
 
-  @AC-DISP-005.12
+  @AC-SWARM-DISP-005.12
   Scenario: The push runs only after every work item has passed its post-merge check
     Given one work item in the dispatch fails its post-merge check
     When the command reports it
     Then no push is attempted
     And the failing signal is named
 
-  @AC-DISP-005.13
+  @AC-SWARM-DISP-005.13
   Scenario: A dry run performs every read and no write
     When acceptance runs in preview mode
     Then it reports the ordered steps it would take
     And no merge, removal, deletion or push occurs
 ```
 
-### FEAT-DISP-006: Prove a push landed
+### FEAT-SWARM-DISP-006: Prove a push landed
 
 **Commands:**
 
@@ -828,7 +860,7 @@ landed"; step 1 of `sprint-recovery/SKILL.md`.
 **Acceptance Criteria:**
 
 ```gherkin
-@FEAT-DISP-006
+@FEAT-SWARM-DISP-006
 Feature: Prove a push landed
 
   As a coordinator finishing a dispatch or a run
@@ -842,44 +874,44 @@ Feature: Prove a push landed
   that separates work that landed from work that is stranded on a
   container about to be reclaimed.
 
-  @AC-DISP-006.1
+  @AC-SWARM-DISP-006.1
   Scenario: Unpushed commits are reported as unpushed
     Given the local branch is ahead of its remote
     When the landing check runs
     Then it names the number of unpushed commits
     And it exits non-zero
 
-  @AC-DISP-006.2
+  @AC-SWARM-DISP-006.2
   Scenario: A branch with no remote counterpart is not reported as landed
     Given the branch has no counterpart on the remote
     When the landing check runs
     Then it exits non-zero
 
-  @AC-DISP-006.3
+  @AC-SWARM-DISP-006.3
   Scenario: A rejected push is surfaced with its cause
     Given a push that the remote rejects
     When the command reports the result
     Then the rejection's cause is included in the output
 
-  @AC-DISP-006.4
+  @AC-SWARM-DISP-006.4
   Scenario: A landed branch reports clean
     Given every local commit is present on the remote
     When the landing check runs
     Then it exits zero
 
-  @AC-DISP-006.5
+  @AC-SWARM-DISP-006.5
   Scenario: The remote is read afresh before the comparison
     Given a stale local record of where the remote branch points
     When the landing check runs
     Then the remote is fetched before the comparison is made
 
-  @AC-DISP-006.6
+  @AC-SWARM-DISP-006.6
   Scenario: The landing check needs no run scope
     Given a checkout with no run epic known
     When the landing check runs
     Then it reports the branch's landing state
 
-  @AC-DISP-006.7
+  @AC-SWARM-DISP-006.7
   Scenario: A push refused for one path is reported as a whole rejected push
     Given a remote that refuses one of the paths in the push
     When the command reports the result
@@ -887,7 +919,7 @@ Feature: Prove a push landed
     And the refused path is named
 ```
 
-### FEAT-DISP-007: Show the commands behind every answer
+### FEAT-SWARM-DISP-007: Show the commands behind every answer
 
 **Flag, carried by every subcommand in this document:**
 
@@ -914,7 +946,7 @@ property universal instead of per-script.
 **Acceptance Criteria:**
 
 ```gherkin
-@FEAT-DISP-007
+@FEAT-SWARM-DISP-007
 Feature: Show the commands behind every answer
 
   As an agent that has to troubleshoot a wrapper it did not write
@@ -929,41 +961,41 @@ Feature: Show the commands behind every answer
   its output stream, so a wrapper that merges the two corrupts the answer
   it is about to parse.
 
-  @AC-DISP-007.1
+  @AC-SWARM-DISP-007.1
   Scenario: An explained invocation runs nothing
     When a subcommand is invoked in explain mode
     Then it prints the tool invocations it would run, in order, with every argument resolved
     And no tool is executed
 
-  @AC-DISP-007.2
+  @AC-SWARM-DISP-007.2
   Scenario: A normal run prints the invocations as it executes them
     When a subcommand runs normally
     Then each tool invocation is printed as it is executed
 
-  @AC-DISP-007.3
+  @AC-SWARM-DISP-007.3
   Scenario: Every reported line carries the command that established it
     When a subcommand reports a fact
     Then the line names the command a reader can re-run to reproduce it
 
-  @AC-DISP-007.4
+  @AC-SWARM-DISP-007.4
   Scenario: A step's exit status is read from the step itself
     Given a step whose command fails while a reader consumes its output
     When the step's result is reported
     Then the step is reported as failed
 
-  @AC-DISP-007.5
+  @AC-SWARM-DISP-007.5
   Scenario: A step that succeeds while its reader stops early is not reported as failed
     Given a step whose reader stops consuming output before the command finishes
     When the step's result is reported
     Then the step is reported as succeeded
 
-  @AC-DISP-007.6 @negative
+  @AC-SWARM-DISP-007.6 @negative
   Scenario: The output and error streams of a tool are never merged
     Given a tool that writes a warning to its error stream and data to its output stream
     When the subcommand parses the data
     Then the warning is not part of what is parsed
 
-  @AC-DISP-007.7
+  @AC-SWARM-DISP-007.7
   Scenario: Explain output is a runnable transcript
     Given a subcommand invoked in explain mode
     When its printed invocations are run by hand in order
