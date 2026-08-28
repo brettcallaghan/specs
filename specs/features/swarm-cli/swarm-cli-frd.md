@@ -22,7 +22,7 @@ capabilities, of which **73 carry a recorded trap** — a way the obvious
 invocation produces the wrong result.
 
 **This is the run's own structure and record**: building its shape,
-partitioning and assigning its queue, gating readiness, claiming an item,
+partitioning and assigning its queue, gating readiness, claiming a bead,
 recording a finding, harvesting the findings at the end, and
 reconstructing a run whose session is gone.
 
@@ -35,7 +35,7 @@ back. It waits on neither beyond the core.
 these seven run exactly once per run, so a defect in them costs one
 careful reading rather than being met at every re-query.
 
-**One requirement number is a gap.** 002 named `swarm run manifest`, now
+**One requirement number is a gap.** 002 named `swarm manifest`, now
 FEAT-SWARM-CORE-002. Its identifier is retired rather than reassigned, so
 a note referring to it still resolves to the thing it meant.
 
@@ -43,13 +43,13 @@ Its value is the same three things, in the same order:
 
 - **Stabilize.** A silent wrong answer becomes a non-zero exit. Three of
   these are cases where a *correct* agent still loses: a claim on an
-  unassigned item silently rewrites its owner at exit 0; a plan document
+  unassigned bead silently rewrites its owner at exit 0; a plan document
   whose edge orientation is reversed inverts every dependency at exit 0;
   an assignee read from the tracker's owner display passes on an epic
   where nothing is assigned, because that display shows the creator.
 - **Simplify.** An invariant enforced by a command is prose that can be
   deleted. Each requirement names the prose it retires.
-- **Optimize.** A derived answer an agent assembles by hand costs N
+- **Optimize.** A derivation an agent performs by hand costs N
   queries and N results held in the caller's context. Reconstruction and
   the findings harvest are the two largest here.
 
@@ -65,7 +65,7 @@ through the one component it specifies — `run open` writes the admission
 record, the retro writes its counts — rather than reaching into the run
 epic's metadata for themselves.
 
-**Judgment.** Whether a work item is genuinely ready, whether an unwired
+**Judgment.** Whether a bead is genuinely ready, whether an unwired
 edge is a real dependency, whether a review finding is in scope, whether a
 cluster of findings is one problem, and whether partial work is finishable
 all stay with an agent. A command that guessed at them would be worse than
@@ -74,7 +74,7 @@ the paragraph it replaced.
 **Orchestration.** The CLI spawns no agent, arms no monitor, schedules
 nothing, and holds no state outside the tracker.
 
-**Single commands that already work.** Reading one work item, adding a
+**Single commands that already work.** Reading one bead, adding a
 comment, creating one — these do what they say. Wrapping them adds a
 layer and hides a tool the agent already knows behind one it does not.
 
@@ -85,11 +85,11 @@ another document's requirement belongs to that document.
 
 ```text
 run epic ................................. swarm run open              001
-├ pre-flight ............................. swarm run manifest set      core
+├ pre-flight ............................. swarm manifest set      core
 ├ scope
 │   └ AUTHORIZATION GATE ................. (human; taken by sprint-scope)
 ├ groom & plan ─┐ ........................ swarm queue reconcile       004
-│               │                          swarm item bounce           004
+│               │                          swarm bead bounce           004
 │               │                          swarm queue partition load  003
 │               │                          swarm queue assign          003
 │               │                          swarm queue gate            003
@@ -97,14 +97,14 @@ run epic ................................. swarm run open              001
 │  ├ dispatch ┐ │
 │  ├ merge    │ │
 │  └ supervise┘ │
-├ review ───────┘ ........................ swarm run manifest get      core
+├ review ───────┘ ........................ swarm manifest get      core
 ├ retro .................................. swarm finding harvest       007
 │                                          swarm finding route         007
 └ post-flight
 
-inside a dispatch, run by the dev agent .. swarm item claim            005
+inside a dispatch, run by the dev agent .. swarm bead claim            005
                                            swarm finding record        006
-at any point, holding no context ......... swarm run recover           008
+at any point, holding no context ......... swarm recover           008
 ```
 
 `core` marks the steps [[frd-swarm-core]] specifies rather than this
@@ -114,16 +114,16 @@ Read as a table:
 
 | Lifecycle step | Caller | Commands | Frequency |
 |---|---|---|---|
-| pre-flight | coordinator | `run manifest set` (core) | twice per run |
-| scope | `sprint-scope` | `run open` (001), `run manifest set` (core) | once |
-| groom & plan | `sprint-plan` | `queue reconcile`, `item bounce` (004); `queue partition load`, `queue assign`, `queue gate` (003) | once per pass |
-| inside a dispatch | dev agent | `item claim` (005), `finding record` (006) | once per item, plus one per finding |
-| review | `sprint-review` | `run manifest get` and `set` for the pass counter (core) | once per pass |
-| retro | `sprint-retro` | `finding harvest`, `finding route` (007), `run manifest set` (core) | once |
-| resume | a fresh session | `run recover` (008) | on every resume |
+| pre-flight | coordinator | `manifest set` (core) | twice per run |
+| scope | `sprint-scope` | `run open` (001), `manifest set` (core) | once |
+| groom & plan | `sprint-plan` | `queue reconcile`, `bead bounce` (004); `queue partition load`, `queue assign`, `queue gate` (003) | once per pass |
+| inside a dispatch | dev agent | `bead claim` (005), `finding record` (006) | once per bead, plus one per finding |
+| review | `sprint-review` | `manifest get` and `set` for the pass counter (core) | once per pass |
+| retro | `sprint-retro` | `finding harvest`, `finding route` (007), `manifest set` (core) | once |
+| resume | a fresh session | `recover` (008) | on every resume |
 
 **The vocabulary is tracker-neutral on purpose.** A unit of work is a
-**work item**, not the name one tracker gives it. The tracker in use today
+**bead**, not the name one tracker gives it. The tracker in use today
 is the only one implemented, and every command goes through one interface
 so a second is possible later; nothing in these requirements names a
 tracker's own vocabulary except where a measured behaviour is being pinned.
@@ -133,17 +133,17 @@ tracker's own vocabulary except where a measured behaviour is being pinned.
 | Term | Meaning |
 |---|---|
 | **run** | one execution of `bead-bonanza` over one run epic |
-| **run epic** | the work item whose id is the run id and whose metadata is the run manifest |
-| **work item** | one unit of work in the tracker. The tracker-neutral name for what this project's tracker calls a bead and others call an issue, story or ticket |
+| **run epic** | the bead whose id is the run id and whose metadata is the run manifest |
+| **bead** | one unit of work in the tracker. The tracker-neutral name for what this project's tracker calls a bead and others call an issue, story or ticket |
 | **phase epic** | one of the epics chained beneath the run epic, in order: pre-flight, scope, plan, target, review, retro, post-flight |
 | **target epic** | the flat phase epic whose task children are the run's work |
 | **manifest** | the JSON object in the run epic's metadata; the run's only durable record |
 | **dispatch id** | one agent's whole identity — its assignee, its tracker actor, and its branch name. Derived from the run epic id, never minted |
-| **ready front** | the complete set of work items in the run that nothing is blocking right now |
-| **collision edge** | a blocking edge between two work items that must not run at once because they share a component or fixture. Not a real dependency; both ends carry a collision mark naming the surface |
-| **bounce** | move a work item out of the run's dispatchable set by labelling it for a human, leaving it open. Not a close and not a deferral |
+| **ready front** | the complete set of beads in the run that nothing is blocking right now |
+| **collision edge** | a blocking edge between two beads that must not run at once because they share a component or fixture. Not a real dependency; both ends carry a collision mark naming the surface |
+| **bounce** | move a bead out of the run's dispatchable set by labelling it for a human, leaving it open. Not a close and not a deferral |
 | **finding** | one record of friction captured at the moment it happened, carrying a kind that routes it |
-| **derived answer** | an answer requiring a tree walk or a join across the tracker and version control that no single command returns |
+| **derivation** | an answer requiring a tree walk or a join across the tracker and version control that no single command returns |
 | **silent failure** | a command that returns the wrong answer at exit 0 |
 
 ## Requirements
@@ -153,11 +153,11 @@ tracker's own vocabulary except where a measured behaviour is being pinned.
 **Command:**
 
 ```text
-swarm run open --title <title> --admit <work-item-or-epic-id>... [--second-target <epic-id>] [--dry-run] [--json]
+swarm run open --title <title> --admit <bead-or-epic-id>... [--second-target <epic-id>] [--dry-run] [--json]
 ```
 
 Returns the run epic id and the target epic id. **The judgment stays with
-`sprint-scope`** — which items to admit, which to exclude, and whether to
+`sprint-scope`** — which beads to admit, which to exclude, and whether to
 adopt an epic the user already owns are decided before this command is
 called, and it refuses rather than deciding.
 
@@ -262,19 +262,19 @@ Feature: Build a run's epic shape
   @AC-SWARM-RUN-001.10
   Scenario: The admission record is written as the shape is created
     When a run shape is created
-    Then the manifest records which items were admitted, which were excluded with a reason, and which were moved and from where
+    Then the manifest records which beads were admitted, which were excluded with a reason, and which were moved and from where
 
   @AC-SWARM-RUN-001.11 @negative
-  Scenario: A work item is never moved out of an epic that already owns it
-    Given an admitted work item that already belongs to another epic
+  Scenario: A bead is never moved out of an epic that already owns it
+    Given an admitted bead that already belongs to another epic
     When a run shape is created without an explicit instruction to move it
-    Then the work item keeps its existing parent
+    Then the bead keeps its existing parent
     And it is recorded as excluded with that reason
 ```
 
 ### FEAT-SWARM-RUN-002 — moved
 
-`swarm run manifest` is specified in [[frd-swarm-core]] as
+`swarm manifest` is specified in [[frd-swarm-core]] as
 FEAT-SWARM-CORE-002. It moved because every command in the family reads a
 run through that one component, so its behaviour cannot be defined by the
 last document to be written. This identifier is retired and is not reused.
@@ -289,7 +289,7 @@ swarm queue gate           --run <id> [--json]
 ```
 
 Three subcommands and one requirement, because **the gate is the check on
-the other two**: an unassigned work item and a mis-oriented edge are both
+the other two**: an unassigned bead and a mis-oriented edge are both
 invisible until something asserts the front and the ownership after the
 writes land.
 
@@ -314,7 +314,7 @@ then gate the epic"; the four mechanical checks of
 Feature: Partition the queue, assign it, and gate the epic
 
   As a planner preparing a run for dispatch
-  I want collision edges loaded, every work item assigned, and the epic
+  I want collision edges loaded, every bead assigned, and the epic
   checked for swarmability as one act
   So that the ready front is safe to dispatch whole
 
@@ -323,11 +323,11 @@ Feature: Partition the queue, assign it, and gate the epic
   ways of getting it wrong are silent: the orientation is that the first
   endpoint waits for the second, so reversing it inverts the dependency
   at exit zero; the collision mark must be stored bare, since a quoted
-  value stores its quotes and then matches no other item while looking
+  value stores its quotes and then matches no other bead while looking
   correct in every listing; and a cluster must be chained rather than
   fanned, since a fan leaves the rest of the cluster ready at once and
   defeats the point. Assignment is now the whole handover, so an
-  unassigned item is one no agent will ever see. The epic gate is what
+  unassigned bead is one no agent will ever see. The epic gate is what
   catches that, and it has a silent failure of its own: an assignee read
   from the tracker's owner display passes on an epic where nothing is
   assigned, because that display shows the creator.
@@ -337,8 +337,8 @@ Feature: Partition the queue, assign it, and gate the epic
   whether anything the run needs can be derived only by the planner.
 
   @AC-SWARM-RUN-003.1
-  Scenario: Two work items sharing a collision mark are never ready together
-    Given two work items separated by a collision edge
+  Scenario: Two beads sharing a collision mark are never ready together
+    Given two beads separated by a collision edge
     When the ready front is queried
     Then at most one of them appears in it
 
@@ -355,7 +355,7 @@ Feature: Partition the queue, assign it, and gate the epic
 
   @AC-SWARM-RUN-003.4
   Scenario: A cluster is chained rather than fanned
-    Given three work items sharing one surface
+    Given three beads sharing one surface
     When the partition is loaded
     Then exactly one of the three is in the ready front
 
@@ -368,9 +368,9 @@ Feature: Partition the queue, assign it, and gate the epic
 
   @AC-SWARM-RUN-003.6
   Scenario: The epic gate reads assignment from the tracker's data, not its display
-    Given a work item whose creator is set and whose assignee is not
+    Given a bead whose creator is set and whose assignee is not
     When the epic is gated for swarming
-    Then that item is reported as unassigned
+    Then that bead is reported as unassigned
 
   @AC-SWARM-RUN-003.7
   Scenario: A dev pool larger than the concurrency cap is refused
@@ -383,13 +383,13 @@ Feature: Partition the queue, assign it, and gate the epic
   Scenario: Both ends of a collision edge carry the same mark
     Given a loaded collision edge
     When the marks are read back from the tracker
-    Then both endpoint items carry the same collision value
+    Then both endpoint beads carry the same collision value
 
   @AC-SWARM-RUN-003.9
   Scenario: A collision mark with no edge to justify it is named
-    Given a work item carrying a collision mark that no loaded edge accounts for
+    Given a bead carrying a collision mark that no loaded edge accounts for
     When the partition is validated
-    Then that item is named
+    Then that bead is named
     And the command exits non-zero
 
   @AC-SWARM-RUN-003.10 @negative
@@ -400,13 +400,13 @@ Feature: Partition the queue, assign it, and gate the epic
 
   @AC-SWARM-RUN-003.11
   Scenario: A collision chain that contradicts a real dependency is refused
-    Given two work items in one cluster already joined by a real dependency
+    Given two beads in one cluster already joined by a real dependency
     When a collision chain would order them the other way round
-    Then the command exits non-zero naming both items
+    Then the command exits non-zero naming both beads
 
   @AC-SWARM-RUN-003.12
   Scenario: A file that fails validation wires no edge at all
-    Given an edge file whose second line names a work item that does not exist
+    Given an edge file whose second line names a bead that does not exist
     When the file is loaded
     Then no edge from that file is wired
     And the offending line is named
@@ -420,15 +420,15 @@ Feature: Partition the queue, assign it, and gate the epic
 
   @AC-SWARM-RUN-003.14
   Scenario: An edge that would strengthen an existing weaker edge is reported
-    Given two work items already joined by a non-blocking edge
+    Given two beads already joined by a non-blocking edge
     When the file asks for a blocking edge between them
-    Then the command exits non-zero naming both items and the existing edge type
+    Then the command exits non-zero naming both beads and the existing edge type
 
   @AC-SWARM-RUN-003.15
   Scenario: Assignees are derived from the run epic id and never minted
     Given a run whose epic id yields the run id "r7k" and a second batch
     When the batch is assigned
-    Then every work item in it carries the assignee "dev-r7k-2"
+    Then every bead in it carries the assignee "dev-r7k-2"
 
   @AC-SWARM-RUN-003.16
   Scenario: The epic gate counts closed and deferred children
@@ -457,18 +457,18 @@ Feature: Partition the queue, assign it, and gate the epic
 
 ```text
 swarm queue reconcile --run <id> --verdicts <file> [--json]
-swarm item bounce     <work-item-id> --run <id> --gap <text>
-swarm item unbounce   <work-item-id> --run <id> --answer <text>
+swarm bead bounce     <bead-id> --run <id> --gap <text>
+swarm bead unbounce   <bead-id> --run <id> --answer <text>
 swarm queue human     --run <id> [--json]
 ```
 
-**A bounce is not a close and not a deferral.** The item stays open, gains
+**A bounce is not a close and not a deferral.** The bead stays open, gains
 the label the human queue is read from, and is parented to a late phase so
 it surfaces at the end. Closing it would say the run did the work;
 deferring it would say the run chose not to and would take it out of the
-run's outstanding count, and it is precisely an item the run is still
+run's outstanding count, and it is precisely a bead the run is still
 waiting on. The resolution is the label's removal plus the answer recorded
-on the item, after which it re-enters the gate.
+on the bead, after which it re-enters the gate.
 
 **Replaces:** the readiness-gate and bounce sections of
 `sprint-plan/SKILL.md`; the human-channel row and its two measured tracker
@@ -481,134 +481,134 @@ notes in `references/run-record.md`.
 Feature: Return a readiness verdict for a queue
 
   As a planner gating a queue before dispatch
-  I want every work item in the queue to carry a verdict, and unready
-  items removed from the front
-  So that an item with no verdict is never mistaken for a ready one
+  I want every bead in the queue to carry a verdict, and unready
+  beads removed from the front
+  So that a bead with no verdict is never mistaken for a ready one
 
   The mechanical half of readiness is accounting rather than judgment:
-  whether every item in the queue came back with a verdict at all. The
+  whether every bead in the queue came back with a verdict at all. The
   judgment half stays with the grooming agent, which owns the checklist.
-  Bouncing has its own silent failure: an unready item marked only with
+  Bouncing has its own silent failure: an unready bead marked only with
   a grooming annotation stays dispatchable, because the front reads
   status and not annotations.
 
   @AC-SWARM-RUN-004.1
-  Scenario: Every work item in the queue is accounted for
+  Scenario: Every bead in the queue is accounted for
     Given a queue and a set of verdicts
     When the verdicts are reconciled against the queue
-    Then any work item without a verdict is named
+    Then any bead without a verdict is named
     And the command exits non-zero
 
   @AC-SWARM-RUN-004.2
-  Scenario: A bounced work item leaves the dispatch front
-    Given a work item bounced as not ready
+  Scenario: A bounced bead leaves the dispatch front
+    Given a bead bounced as not ready
     When the dispatch front is queried
-    Then that item is not in it
+    Then that bead is not in it
 
   @AC-SWARM-RUN-004.3
-  Scenario: A bounced work item is visible to a human
-    Given a work item bounced as not ready
+  Scenario: A bounced bead is visible to a human
+    Given a bead bounced as not ready
     When the human queue is listed
-    Then that item appears in it
+    Then that bead appears in it
 
   @AC-SWARM-RUN-004.4
-  Scenario: A resolved bounce returns the work item to the gate
-    Given a bounced work item whose gap has been closed
+  Scenario: A resolved bounce returns the bead to the gate
+    Given a bounced bead whose gap has been closed
     When the bounce is resolved
-    Then the item re-enters the readiness gate on the next pass
+    Then the bead re-enters the readiness gate on the next pass
 
   @AC-SWARM-RUN-004.5 @negative
-  Scenario: A bounce neither closes nor defers the work item
-    Given a work item bounced as not ready
+  Scenario: A bounce neither closes nor defers the bead
+    Given a bead bounced as not ready
     When its status is read
     Then it is open
     And it is neither closed nor deferred
 
   @AC-SWARM-RUN-004.6
-  Scenario: The human queue omits a work item that has closed
-    Given a bounced work item that has since been closed
+  Scenario: The human queue omits a bead that has closed
+    Given a bounced bead that has since been closed
     When the human queue is listed
-    Then that item does not appear in it
+    Then that bead does not appear in it
 
   @AC-SWARM-RUN-004.7
-  Scenario: Resolving a bounce records the answer on the work item
-    Given a bounced work item
+  Scenario: Resolving a bounce records the answer on the bead
+    Given a bounced bead
     When the bounce is resolved with an answer
-    Then the answer is recorded on the item
-    And the item is not closed
+    Then the answer is recorded on the bead
+    And the bead is not closed
 
   @AC-SWARM-RUN-004.8
-  Scenario: A bounced work item is counted in the run's outstanding work
-    Given a run whose only unfinished item is bounced
+  Scenario: A bounced bead is counted in the run's outstanding work
+    Given a run whose only unfinished bead is bounced
     When the run's outstanding work is counted
-    Then that item is counted
+    Then that bead is counted
     And the run is not reported as drained
 ```
 
-### FEAT-SWARM-RUN-005: Claim a work item as the acting agent
+### FEAT-SWARM-RUN-005: Claim a bead as the acting agent
 
 **Command:**
 
 ```text
-swarm item claim <work-item-id> --actor <dispatch-id> [--run <id>] [--json]
+swarm bead claim <bead-id> --actor <dispatch-id> [--run <id>] [--json]
 ```
 
-**Replaces:** step 1 of the per-item ceremony in `run-batch/SKILL.md`, and
+**Replaces:** step 1 of the per-bead ceremony in `run-batch/SKILL.md`, and
 the "Why the export matters" table in `references/dispatch-policy.md`.
 
 **Acceptance Criteria:**
 
 ```gherkin
 @FEAT-SWARM-RUN-005
-Feature: Claim a work item as the acting agent
+Feature: Claim a bead as the acting agent
 
-  As a dev agent starting a work item
-  I want the claim refused unless the item is mine and my identity is
+  As a dev agent starting a bead
+  I want the claim refused unless the bead is mine and my identity is
   explicit
-  So that a claim can never quietly move an item's ownership
+  So that a claim can never quietly move a bead's ownership
 
   The underlying claim is a silent failure in exactly one case, and it is
-  the common one: on an item with no assignee, with no actor in the
+  the common one: on a bead with no assignee, with no actor in the
   environment, the claim succeeds at exit zero and writes the version
   control tool's configured user name into the assignee. Nothing errors,
   and the run's ownership view decays from that point on.
 
   A claim also has to set the status and the assignee together. Setting
-  the status alone leaves an item that reads as in progress and is
+  the status alone leaves a bead that reads as in progress and is
   claimed by nobody, which is the state no query can attribute.
 
   @AC-SWARM-RUN-005.1
-  Scenario: A claim is refused when the work item belongs to another agent
-    Given a work item assigned to a different agent
+  Scenario: A claim is refused when the bead belongs to another agent
+    Given a bead assigned to a different agent
     When a claim is attempted
     Then the command exits non-zero
-    And the item's assignee is unchanged
+    And the bead's assignee is unchanged
 
   @AC-SWARM-RUN-005.2
-  Scenario: A claim on an unassigned work item does not silently take ownership
-    Given a work item with no assignee
+  Scenario: A claim on an unassigned bead does not silently take ownership
+    Given a bead with no assignee
     When a claim is attempted without an explicit actor
     Then the command exits non-zero
 
   @AC-SWARM-RUN-005.3
   Scenario: A claim sets the status and the assignee in one write
-    Given a work item assigned to the acting agent
+    Given a bead assigned to the acting agent
     When it is claimed
     Then its status is in progress
     And its assignee is the acting agent
 
   @AC-SWARM-RUN-005.4
-  Scenario: Re-claiming a work item the actor already holds changes nothing
-    Given a work item already claimed by the acting agent
+  Scenario: Re-claiming a bead the actor already holds changes nothing
+    Given a bead already claimed by the acting agent
     When it is claimed again
     Then the command exits zero
-    And the item's status and assignee are unchanged
+    And the bead's status and assignee are unchanged
 
   @AC-SWARM-RUN-005.5 @negative
   Scenario: The actor is never taken from version control configuration
     Given an environment whose version control tool has a configured user name
     When a claim is attempted without an explicit actor
-    Then that name is not written to the work item
+    Then that name is not written to the bead
 ```
 
 ### FEAT-SWARM-RUN-006: Record and read a finding
@@ -616,8 +616,8 @@ Feature: Claim a work item as the acting agent
 **Commands:**
 
 ```text
-swarm finding record <work-item-id> --kind <kind> [--target <target>] --evidence <text|@file> [--corrects <finding-id>]
-swarm finding list   --run <id> [--item <work-item-id>] [--json]
+swarm finding record <bead-id> --kind <kind> [--target <target>] --evidence <text|@file> [--corrects <finding-id>]
+swarm finding list   --run <id> [--bead <bead-id>] [--json]
 ```
 
 **Replaces:** step 6 of `run-batch/SKILL.md` and the kind table in it; the
@@ -657,10 +657,10 @@ Feature: Record and read a finding
     Then the command exits non-zero
 
   @AC-SWARM-RUN-006.3
-  Scenario: A finding is readable back with its work item and its ordinal
-    Given findings recorded across several work items
+  Scenario: A finding is readable back with its bead and its ordinal
+    Given findings recorded across several beads
     When they are read back
-    Then each carries the item it was recorded on and its position within that item
+    Then each carries the bead it was recorded on and its position within that bead
 
   @AC-SWARM-RUN-006.4 @negative
   Scenario: A finding with no evidence is refused
@@ -692,14 +692,14 @@ Feature: Record and read a finding
 
   @AC-SWARM-RUN-006.7 @negative
   Scenario: A recorded finding is never edited or deleted
-    Given a finding already recorded on a work item
+    Given a finding already recorded on a bead
     When a change to it is attempted
     Then the command exits non-zero
     And the recorded finding is unchanged
 
   @AC-SWARM-RUN-006.8
   Scenario: A correction is a new finding naming the one it corrects
-    Given a finding already recorded on a work item
+    Given a finding already recorded on a bead
     When a correcting finding is recorded against it
     Then both findings are readable
     And the second names the first
@@ -730,13 +730,13 @@ Feature: Harvest and route a run's findings
 
   As a retro turning a run's friction into work
   I want every finding in the run collected and routed by kind
-  So that the retro reads a complete set rather than whichever work items
+  So that the retro reads a complete set rather than whichever beads
   happened to still be open
 
   The harvest has a silent failure that produces a plausible answer: the
-  natural listing query defaults to open items, and a drained run is
+  natural listing query defaults to open beads, and a drained run is
   almost entirely closed, so a literal reading returns findings for the
-  handful of items that never closed and drops nearly everything else.
+  handful of beads that never closed and drops nearly everything else.
   A second query omits comments altogether while its text output prints
   them. Routing is a lookup applied without reading content, which is
   what keeps it viable on a run with seventy findings.
@@ -750,14 +750,14 @@ Feature: Harvest and route a run's findings
   agent will look for it.
 
   @AC-SWARM-RUN-007.1
-  Scenario: Findings on closed work items are harvested
-    Given a run whose work items are closed
+  Scenario: Findings on closed beads are harvested
+    Given a run whose beads are closed
     When findings are harvested
-    Then findings recorded on those items are returned
+    Then findings recorded on those beads are returned
 
   @AC-SWARM-RUN-007.2
   Scenario: A zero harvest on a drained run is reported as a failure
-    Given a run whose work items are closed and which recorded findings
+    Given a run whose beads are closed and which recorded findings
     When the harvest returns nothing
     Then the command exits non-zero
 
@@ -792,16 +792,16 @@ Feature: Harvest and route a run's findings
     Then the number of findings that matched no destination is reported
 
   @AC-SWARM-RUN-007.6
-  Scenario: The harvest reaches every work item in the run, however nested
-    Given a run whose work items are children of the target epic rather than of the run epic
+  Scenario: The harvest reaches every bead in the run, however nested
+    Given a run whose beads are children of the target epic rather than of the run epic
     When findings are harvested
-    Then findings on those items are returned
+    Then findings on those beads are returned
 
   @AC-SWARM-RUN-007.7
-  Scenario: Filing a candidate records a back-link on the finding's work item
+  Scenario: Filing a candidate records a back-link on the finding's bead
     Given a candidate filed from two findings
     When the filing is recorded
-    Then each finding's work item carries a record naming the issue that was filed and the finding it came from
+    Then each finding's bead carries a record naming the issue that was filed and the finding it came from
 ```
 
 ### FEAT-SWARM-RUN-008: Reconstruct a run nobody is holding
@@ -809,14 +809,14 @@ Feature: Harvest and route a run's findings
 **Command:**
 
 ```text
-swarm run recover [--run <id>] [--branch <name>] [--json]
+swarm recover [--run <id>] [--branch <name>] [--json]
 ```
 
 **Three ways to identify the run, tried in order, and each is reported.**
 An explicit `--run` is taken as a starting point and still confirmed
 against the branch. Otherwise the checked-out branch name is matched
 against the branch recorded in candidate run epics' manifests. Failing
-that, the close-commit subjects on the branch carry work item ids in the
+that, the close-commit subjects on the branch carry bead ids in the
 form `<id> P<n> <title>`, and any one of them resolves to its parent chain
 and so to the run epic.
 
@@ -840,10 +840,10 @@ Feature: Reconstruct a run nobody is holding
   worktrees
   So that a run survives the loss of the session that started it
 
-  Every input is durable and every output is a derived answer, which is
+  Every input is durable and every output is a derivation, which is
   why this is both a large token saving and the mechanism by which a run
-  survives at all. The per-item classification is a pure function of two
-  inputs — an item's status and whether its dispatch's worktree still
+  survives at all. The per-bead classification is a pure function of two
+  inputs — a bead's status and whether its dispatch's worktree still
   exists — currently written as a table for a human to apply.
 
   @AC-SWARM-RUN-008.1
@@ -857,12 +857,12 @@ Feature: Reconstruct a run nobody is holding
       | available                                              | source              |
       | a run epic id supplied by the caller                   | the supplied id     |
       | a run epic whose manifest records this branch          | the manifest branch |
-      | close commits carrying work item ids in their subjects | the branch history  |
+      | close commits carrying bead ids in their subjects | the branch history  |
 
   @AC-SWARM-RUN-008.2
-  Scenario: Completed work items are read from the branch history
+  Scenario: Completed beads are read from the branch history
     When reconstruction runs
-    Then every work item whose close commit is on the branch is reported completed
+    Then every bead whose close commit is on the branch is reported completed
 
   @AC-SWARM-RUN-008.3
   Scenario: Stale worktree registrations are not reported as in flight
@@ -871,9 +871,9 @@ Feature: Reconstruct a run nobody is holding
     Then it is not counted as in flight
 
   @AC-SWARM-RUN-008.4
-  Scenario: Every unfinished work item is classified with the signal that settled it
+  Scenario: Every unfinished bead is classified with the signal that settled it
     When reconstruction runs
-    Then each unfinished item carries both its classification and the signal it was derived from
+    Then each unfinished bead carries both its classification and the signal it was derived from
 
   @AC-SWARM-RUN-008.5
   Scenario: What could not be established is named rather than omitted
@@ -882,10 +882,10 @@ Feature: Reconstruct a run nobody is holding
     Then the affected facts are listed as unestablished
 
   @AC-SWARM-RUN-008.6
-  Scenario Outline: Each unfinished work item is classified from its status and its worktree
-    Given a work item whose status is "<status>" and whose dispatch's worktree is "<worktree>"
+  Scenario Outline: Each unfinished bead is classified from its status and its worktree
+    Given a bead whose status is "<status>" and whose dispatch's worktree is "<worktree>"
     When reconstruction runs
-    Then that item is reported as "<classification>"
+    Then that bead is reported as "<classification>"
 
     Examples:
       | status      | worktree | classification                      |
@@ -914,8 +914,8 @@ Feature: Reconstruct a run nobody is holding
 
   @AC-SWARM-RUN-008.10
   Scenario: A history with no close-commit subjects yields no completed set
-    Given a branch whose commits were squashed and carry no work item ids
-    And no other source identifies the completed items
+    Given a branch whose commits were squashed and carry no bead ids
+    And no other source identifies the completed beads
     When reconstruction reports
     Then the completed set is reported as unestablished rather than as empty
 
