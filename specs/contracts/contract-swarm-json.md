@@ -6,14 +6,14 @@ description: The machine-readable output every swarm command emits under
 slug: contract-swarm-json
 type: contract
 status: draft
-updated_at: 2026-08-28T00:00:00Z
+updated_at: 2026-08-29T00:00:00Z
 provider: container-swarm-cli
 visibility: internal
 consumers:
   - "module-bead-bonanza"
 specs:
-  - "schemas/swarm-manifest.strata"
-  - "schemas/swarm-output.strata"
+  - "schemas/swarm/manifest.strata"
+  - "schemas/swarm/output.strata"
 version: "1.0"
 ---
 
@@ -44,10 +44,36 @@ than kept in step by hand.
 
 | Artifact | Location | Normative for |
 |----------|----------|---------------|
-| Manifest schema | `schemas/swarm-manifest.strata` | Shape of the run manifest: every key, its type, and the stage at which it becomes required |
-| Output schema | `schemas/swarm-output.strata` | Shape of each command's `--json` result, and of the shared envelope every result carries |
-| Generated JSON Schema | `cli/core/schema/` via `scripts/generate-schemas.sh` | The validating artifact; regenerated, never hand-edited |
+| Manifest schema | `schemas/swarm/manifest.strata` | Shape of the run manifest: every key, its type, and the stage at which it becomes required |
+| Output schema | `schemas/swarm/output.strata` | Shape of each command's `--json` result, and of the shared envelope every result carries |
+| Generated JSON Schema | `cli/core/schema/swarm-model.schema.json` via `scripts/generate-schemas.sh` | The validating artifact; regenerated, never hand-edited |
+| Generated Go model | `cli/swarm/swarmmodel/` via the same script | The types the provider emits and reads; regenerated, never hand-edited |
 | This document | — | Semantics, guarantees, and change policy |
+
+`schemas/swarm/` is a Strata package of its own — it carries its own
+`strata.config.json`, which carves it out of the package the document
+corpus's schemas form. Without that its types would land in the spec
+model's bundle, in `cli/core/specmodel`, and in the spec skill's
+generated Markdown reference, none of which is a home for them.
+
+**Two things the shapes above express structurally, rather than as
+prose a reader has to remember:**
+
+- **A manifest key's stage is the struct that declares it.** The key
+  structs inherit in run order — `PreFlightKeys`, `ScopeKeys`,
+  `PlanKeys`, `DispatchKeys`, `RetroKeys` — and `RunManifest` is their
+  composition. A key's name, its type and the stage at which it becomes
+  required therefore come from one declaration, and the stage a key
+  becomes required at is the first struct in the chain carrying it.
+- **Every manifest key is optional on the wire.** The record grows as a
+  run proceeds, so a key's absence before its stage is a legitimate state
+  rather than a defect; what the closed shape refuses is a key outside
+  the declared set, and a value whose type is not its key's.
+
+**One rule the shapes cannot state**, and it is enforced where a value is
+built rather than where it is validated: a fact's value carries exactly
+the field its `kind` names. A schema can say which fields may appear; it
+cannot say which combination is coherent.
 
 ## Guarantees
 

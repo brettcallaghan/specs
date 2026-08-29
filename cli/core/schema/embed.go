@@ -17,3 +17,11 @@ var SpecModel []byte
 //
 //go:embed specs-config.schema.json
 var SpecsConfig []byte
+
+// SwarmModel is the schema for the swarm CLI's two JSON surfaces — the
+// run manifest and the envelope every command emits under --json:
+// swarm-model.schema.json. It is normative for
+// specs/contracts/contract-swarm-json.md.
+//
+//go:embed swarm-model.schema.json
+var SwarmModel []byte

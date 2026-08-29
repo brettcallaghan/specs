@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/plan"
+	"github.com/brettcallaghan/agent-plugins/cli/swarm/swarmmodel"
 )
 
 // contractVersion is the version of contract-swarm-json every result
@@ -23,12 +25,18 @@ const contractVersion = "1.0"
 // did not write. A fact with no invocation behind it cannot be rendered
 // — [Result.Validate] refuses it — because a fact nobody can reproduce is
 // the thing this CLI exists to stop producing.
+//
+// A fact's value is one of four shapes rather than anything at all. That
+// is what [contract-swarm-json]'s schema fixes, and it is why a fact is
+// built with one of the constructors below rather than by hand: a
+// consumer branches on the kind and reads the field that kind carries,
+// instead of guessing at the JSON type it was handed.
 type Fact struct {
 	// Name identifies the fact. It appears verbatim in both output
 	// forms, so a consumer keys on it.
 	Name string
 	// Value is what was established. Nil when the fact is unestablished.
-	Value any
+	Value *swarmmodel.FactValue
 	// Established is false when the fact could not be taken. Such a fact
 	// is still reported — as unestablished, with a reason — rather than
 	// omitted or emitted as an empty value of its type.
@@ -40,9 +48,59 @@ type Fact struct {
 	Invocations [][]string
 }
 
-// Established returns a fact that was taken.
-func Established(name string, value any, invocations ...[]string) Fact {
-	return Fact{Name: name, Value: value, Established: true, Invocations: invocations}
+// Text returns an established fact whose value is a word.
+func Text(name, value string, invocations ...[]string) Fact {
+	v := swarmmodel.FactValue{Kind: swarmmodel.FactKindText, Text: &value}
+	return Fact{Name: name, Value: &v, Established: true, Invocations: invocations}
+}
+
+// Count returns an established fact whose value is a count.
+func Count(name string, value int, invocations ...[]string) Fact {
+	n := int64(value)
+	v := swarmmodel.FactValue{Kind: swarmmodel.FactKindCount, Count: &n}
+	return Fact{Name: name, Value: &v, Established: true, Invocations: invocations}
+}
+
+// Flag returns an established fact whose value is yes or no.
+func Flag(name string, value bool, invocations ...[]string) Fact {
+	v := swarmmodel.FactValue{Kind: swarmmodel.FactKindFlag, Flag: &value}
+	return Fact{Name: name, Value: &v, Established: true, Invocations: invocations}
+}
+
+// List returns an established fact whose value is a list of words.
+func List(name string, values []string, invocations ...[]string) Fact {
+	if values == nil {
+		values = []string{}
+	}
+	v := swarmmodel.FactValue{Kind: swarmmodel.FactKindList, Items: &values}
+	return Fact{Name: name, Value: &v, Established: true, Invocations: invocations}
+}
+
+// coherent reports whether a value carries exactly the field its kind
+// names. The schema can say which fields may appear; which combination
+// is coherent is a rule only code can hold, so this is where it is held.
+func coherent(v swarmmodel.FactValue) bool {
+	present := 0
+	for _, carried := range []bool{v.Text != nil, v.Count != nil, v.Flag != nil, v.Items != nil} {
+		if carried {
+			present++
+		}
+	}
+	if present != 1 {
+		return false
+	}
+	switch v.Kind {
+	case swarmmodel.FactKindText:
+		return v.Text != nil
+	case swarmmodel.FactKindCount:
+		return v.Count != nil
+	case swarmmodel.FactKindFlag:
+		return v.Flag != nil
+	case swarmmodel.FactKindList:
+		return v.Items != nil
+	default:
+		return false
+	}
 }
 
 // Unestablished returns a fact that could not be taken, with the reason
@@ -52,8 +110,8 @@ func Unestablished(name, reason string, invocations ...[]string) Fact {
 }
 
 // Result is everything one invocation of a command reports: what it
-// concluded, the facts behind that, the invocations it ran, and — in
-// explain mode — the transcript it printed instead of running them.
+// concluded, the facts behind that, the invocations it ran, and the
+// transcript the plan runner printed.
 //
 // One value, two renderings. The machine-readable form carries every
 // fact the text form carries because both are rendered from this, not
@@ -89,10 +147,12 @@ func (r Result) Status() Status { return r.Outcome.Status() }
 
 // Validate reports a result this package refuses to render.
 //
-// Both rules are contract obligations rather than taste: an attention
+// Every rule is a contract obligation rather than taste: an attention
 // exit whose output does not name what would resolve it leaves a caller
-// with a status and nothing to act on, and a fact with no invocation
-// behind it cannot be reproduced.
+// with a status and nothing to act on; a fact with no invocation behind
+// it cannot be reproduced; and an established fact with no value, or an
+// unestablished one carrying a value, contradicts the flag a consumer
+// branches on.
 func (r Result) Validate() error {
 	if r.Outcome == OutcomeAttention && strings.TrimSpace(r.Resolution) == "" {
 		return fmt.Errorf("cli: %s reported the attention outcome without naming what would resolve it", r.Command)
@@ -106,81 +166,55 @@ func (r Result) Validate() error {
 				return fmt.Errorf("cli: fact %q names an empty invocation", f.Name)
 			}
 		}
+		if f.Established && f.Value == nil {
+			return fmt.Errorf("cli: fact %q is reported as established and carries no value", f.Name)
+		}
+		if !f.Established && f.Value != nil {
+			return fmt.Errorf("cli: fact %q is reported as unestablished and carries a value", f.Name)
+		}
+		if f.Value != nil && !coherent(*f.Value) {
+			return fmt.Errorf("cli: fact %q carries a %q value and not the field that kind names", f.Name, f.Value.Kind)
+		}
 	}
 	return nil
 }
 
-// --- the machine-readable envelope ---------------------------------
-
-type envelope struct {
-	ContractVersion string           `json:"contract_version"`
-	Command         string           `json:"command"`
-	Run             string           `json:"run"`
-	Mode            string           `json:"mode"`
-	Outcome         string           `json:"outcome"`
-	Status          int              `json:"status"`
-	Summary         string           `json:"summary"`
-	Resolution      string           `json:"resolution"`
-	Facts           []factJSON       `json:"facts"`
-	Invocations     []invocationJSON `json:"invocations"`
-	Transcript      []string         `json:"transcript"`
-}
-
-type factJSON struct {
-	Name        string     `json:"name"`
-	Value       any        `json:"value"`
-	Established bool       `json:"established"`
-	Reason      string     `json:"reason"`
-	Invocations [][]string `json:"invocations"`
-}
-
-type invocationJSON struct {
-	Step string   `json:"step"`
-	Argv []string `json:"argv"`
-	Dir  string   `json:"dir"`
-	// Status is the step's disposition: ran, refused or skipped.
-	Status string `json:"status"`
-	Reason string `json:"reason"`
-	// ExitStatus is meaningful only when Status is "ran".
-	ExitStatus int `json:"exit_status"`
-	// DurationMS is an integer count of milliseconds. Not a formatted
-	// duration: the contract forbids a field whose meaning depends on the
-	// locale of the process that produced it.
-	DurationMS   int64  `json:"duration_ms"`
-	StdoutDigest string `json:"stdout_digest"`
-	StderrDigest string `json:"stderr_digest"`
-	Error        string `json:"error"`
-}
-
-func (r Result) envelope() envelope {
-	env := envelope{
+// envelope builds the generated contract type this result is emitted as.
+//
+// The shape lives in schemas/swarm/output.strata and reaches this file as
+// generated Go, so there is one declaration of it rather than a schema
+// and a struct kept in agreement by hand ([[adr-016]]).
+func (r Result) envelope() swarmmodel.CommandResult {
+	env := swarmmodel.CommandResult{
 		ContractVersion: contractVersion,
 		Command:         r.Command,
 		Run:             r.Run,
-		Mode:            r.Mode.String(),
-		Outcome:         string(r.Outcome),
-		Status:          int(r.Status()),
+		Mode:            swarmmodel.CommandMode(r.Mode.String()),
+		Outcome:         swarmmodel.CommandOutcome(r.Outcome),
+		Status:          int64(r.Status()),
 		Summary:         r.Summary,
 		Resolution:      r.Resolution,
 		// Never null: a consumer iterating a result should not have to
 		// distinguish an absent list from an empty one.
-		Facts:       []factJSON{},
-		Invocations: []invocationJSON{},
+		Facts:       []swarmmodel.Fact{},
+		Invocations: []swarmmodel.Invocation{},
 		Transcript:  []string{},
 	}
+
 	for _, f := range r.Facts {
 		invocations := f.Invocations
 		if invocations == nil {
 			invocations = [][]string{}
 		}
-		env.Facts = append(env.Facts, factJSON{
+		env.Facts = append(env.Facts, swarmmodel.Fact{
 			Name:        f.Name,
-			Value:       f.Value,
 			Established: f.Established,
 			Reason:      f.Reason,
+			Value:       f.Value,
 			Invocations: invocations,
 		})
 	}
+
 	for _, rec := range r.Records {
 		argv := []string{}
 		if rec.Invocation.Name != "" {
@@ -190,19 +224,20 @@ func (r Result) envelope() envelope {
 		if rec.Err != nil {
 			errText = rec.Err.Error()
 		}
-		env.Invocations = append(env.Invocations, invocationJSON{
+		env.Invocations = append(env.Invocations, swarmmodel.Invocation{
 			Step:         rec.Step,
 			Argv:         argv,
 			Dir:          rec.Invocation.Dir,
-			Status:       string(rec.Status),
+			Status:       swarmmodel.StepStatus(rec.Status),
 			Reason:       rec.Reason,
-			ExitStatus:   rec.ExitStatus,
-			DurationMS:   rec.Duration.Milliseconds(),
+			ExitStatus:   int64(rec.ExitStatus),
+			DurationMs:   rec.Duration.Milliseconds(),
 			StdoutDigest: rec.StdoutDigest,
 			StderrDigest: rec.StderrDigest,
 			Error:        errText,
 		})
 	}
+
 	env.Transcript = append(env.Transcript, r.Transcript...)
 	return env
 }
@@ -246,12 +281,12 @@ func renderText(w io.Writer, r Result) error {
 		// re-run to reproduce it. No padding or alignment: a field whose
 		// rendering depends on the terminal's width is one the contract
 		// forbids.
-		value := renderValue(f)
 		commands := make([]string, 0, len(f.Invocations))
 		for _, argv := range f.Invocations {
 			commands = append(commands, plan.Argv(argv))
 		}
-		if _, err := fmt.Fprintf(w, "%s = %s    <- %s\n", f.Name, value, strings.Join(commands, " ; ")); err != nil {
+		if _, err := fmt.Fprintf(w, "%s = %s    <- %s\n",
+			f.Name, renderValue(f), strings.Join(commands, " ; ")); err != nil {
 			return err
 		}
 	}
@@ -290,19 +325,33 @@ func renderText(w io.Writer, r Result) error {
 	return err
 }
 
-// renderValue renders a fact's value for the text form, using the same
-// bytes the JSON form carries so the two cannot say different things
-// about the same value.
+// renderValue renders a fact's value for the text form.
+//
+// It branches on the same four shapes the machine-readable form carries,
+// so a value present in one is present in the other — which is what makes
+// "the same facts in both forms" a property of the code rather than a
+// claim about it.
 func renderValue(f Fact) string {
-	if !f.Established {
+	if !f.Established || f.Value == nil {
 		return "unestablished: " + f.Reason
 	}
-	if s, ok := f.Value.(string); ok {
-		return s
+	switch f.Value.Kind {
+	case swarmmodel.FactKindText:
+		if f.Value.Text != nil {
+			return *f.Value.Text
+		}
+	case swarmmodel.FactKindCount:
+		if f.Value.Count != nil {
+			return strconv.FormatInt(*f.Value.Count, 10)
+		}
+	case swarmmodel.FactKindFlag:
+		if f.Value.Flag != nil {
+			return strconv.FormatBool(*f.Value.Flag)
+		}
+	case swarmmodel.FactKindList:
+		if f.Value.Items != nil {
+			return strings.Join(*f.Value.Items, ", ")
+		}
 	}
-	data, err := json.Marshal(f.Value)
-	if err != nil {
-		return fmt.Sprintf("%v", f.Value)
-	}
-	return string(data)
+	return "unestablished: the value carries no field for its kind"
 }

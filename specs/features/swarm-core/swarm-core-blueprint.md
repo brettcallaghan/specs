@@ -192,7 +192,7 @@ branch, a dispatch's branch, a standing worktree — rather than in git's.
 **Anchors:** `cli/swarm/vcs/` for the interface, `cli/swarm/vcs/git/` for the
 implementation.
 
-### `schemas/swarm-manifest.strata` and `schemas/swarm-output.strata` (added)
+### `schemas/swarm/manifest.strata` and `schemas/swarm/output.strata` (added)
 
 **Intent:** the manifest's declared key set and the output envelope are
 **data**, generated into Go types and JSON Schema by the generator this

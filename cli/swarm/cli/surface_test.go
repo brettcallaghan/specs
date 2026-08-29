@@ -23,6 +23,7 @@ import (
 	swarmexec "github.com/brettcallaghan/agent-plugins/cli/swarm/exec"
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/exec/exectest"
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/plan"
+	"github.com/brettcallaghan/agent-plugins/cli/swarm/swarmmodel"
 )
 
 // runSurface drives the real command tree with one synthetic subcommand
@@ -69,7 +70,7 @@ func specReporting(outcome Outcome, resolution string) Spec {
 				Summary:    "the probe ran",
 				Resolution: resolution,
 				Facts: []Fact{
-					Established("branch", "claude/branch-x", []string{"bd", "show", "run-1", "--json"}),
+					Text("branch", "claude/branch-x", []string{"bd", "show", "run-1", "--json"}),
 					Unestablished("review_passes", "the key is absent", []string{"bd", "show", "run-1", "--json"}),
 				},
 			}, nil
@@ -240,7 +241,7 @@ func TestAFactNamingNoInvocationIsRefused(t *testing.T) {
 		Use: "probe", Short: "s", RunScoped: true,
 		Plan: func(Request) (plan.Plan, error) { return readPlan(), nil },
 		Interpret: func(Request, plan.Report) (Result, error) {
-			return Result{Outcome: OutcomeClear, Facts: []Fact{{Name: "branch", Value: "x", Established: true}}}, nil
+			return Result{Outcome: OutcomeClear, Facts: []Fact{stripInvocations(Text("branch", "x"))}}, nil
 		},
 	}
 
@@ -296,7 +297,7 @@ func TestTheMachineReadableFormCarriesTheSameFactsAsTheTextForm(t *testing.T) {
 		t.Errorf("the two forms exited differently: text %d, json %d", textCode, jsonCode)
 	}
 
-	var env envelope
+	var env swarmmodel.CommandResult
 	if err := json.Unmarshal([]byte(machine), &env); err != nil {
 		t.Fatalf("the machine-readable form does not parse: %v\n%s", err, machine)
 	}
@@ -304,7 +305,7 @@ func TestTheMachineReadableFormCarriesTheSameFactsAsTheTextForm(t *testing.T) {
 	if env.ContractVersion != contractVersion {
 		t.Errorf("contract_version = %q, want %q", env.ContractVersion, contractVersion)
 	}
-	if env.Status != jsonCode {
+	if int(env.Status) != jsonCode {
 		t.Errorf("the envelope's status (%d) is not the exit status (%d)", env.Status, jsonCode)
 	}
 
@@ -328,8 +329,8 @@ func TestTheMachineReadableFormCarriesTheSameFactsAsTheTextForm(t *testing.T) {
 	for name, value := range map[string]string{
 		"command":    env.Command,
 		"run":        env.Run,
-		"mode":       env.Mode,
-		"outcome":    env.Outcome,
+		"mode":       string(env.Mode),
+		"outcome":    string(env.Outcome),
 		"summary":    env.Summary,
 		"resolution": env.Resolution,
 	} {
@@ -375,12 +376,12 @@ func TestTheEnvelopeIsEmittedOnEveryExitStatus(t *testing.T) {
 		stdout, _, code := runSurface(t, spec, fakeForRead(), "probe", "--run", "run-1", "--json")
 		seen[code] = true
 
-		var env envelope
+		var env swarmmodel.CommandResult
 		if err := json.Unmarshal([]byte(stdout), &env); err != nil {
 			t.Errorf("exit %d: the result does not parse as the envelope: %v\n%s", code, err, stdout)
 			continue
 		}
-		if env.Status != code {
+		if int(env.Status) != code {
 			t.Errorf("exit %d: the envelope says status %d", code, env.Status)
 		}
 	}
@@ -418,7 +419,7 @@ func TestDryRunPerformsTheReadsAndRefusesTheWrites(t *testing.T) {
 	spec.Plan = func(Request) (plan.Plan, error) { return writePlan(), nil }
 	spec.Interpret = func(Request, plan.Report) (Result, error) {
 		return Result{Outcome: OutcomeClear,
-			Facts: []Fact{Established("done", true, []string{"bd", "update", "run-1", "--claim"})}}, nil
+			Facts: []Fact{Flag("done", true, []string{"bd", "update", "run-1", "--claim"})}}, nil
 	}
 
 	fake := exectest.NewFake(exectest.Recording{Argv: []string{"bd", "update", "run-1", "--claim"}})
@@ -517,4 +518,11 @@ func TestRegisterAddsWhateverTheTreeOffers(t *testing.T) {
 			t.Errorf("subcommand %q does not carry --json, so it was not built by newSubcommand", c.Name())
 		}
 	}
+}
+
+// stripInvocations returns a fact with no invocation behind it, for the
+// one test that needs a result the surface must refuse to render.
+func stripInvocations(f Fact) Fact {
+	f.Invocations = nil
+	return f
 }

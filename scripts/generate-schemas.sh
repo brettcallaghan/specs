@@ -20,6 +20,20 @@ SCHEMA_OUT="cli/core/schema"
 GO_OUT="cli/core/specmodel"
 MD_OUT="plugin/skills/spec/references/generated"
 
+# The swarm CLI's JSON surfaces are a second Strata package, not more
+# files in the first. schemas/swarm carries its own strata.config.json,
+# which makes it a package root and carves it out of the SpecModel
+# package: without that, its types would land in the spec model's bundle,
+# in cli/core/specmodel, and in the spec skill's generated Markdown
+# reference — three places none of them belongs.
+#
+# Its JSON Schema joins the others under cli/core/schema because
+# specs/contracts/contract-swarm-json.md names that directory as the
+# validating artifact's home. Its Go types do not: they are the swarm
+# binary's model, not the document corpus's.
+SWARM_SRC="schemas/swarm"
+SWARM_GO_OUT="cli/swarm/swarmmodel"
+
 if ! command -v strata >/dev/null 2>&1; then
   echo "error: strata not found on PATH." >&2
   echo "  The session-start hook installs it; see .claude/skills/strata/SKILL.md" >&2
@@ -158,6 +172,14 @@ var SpecModel []byte
 //
 //go:embed specs-config.schema.json
 var SpecsConfig []byte
+
+// SwarmModel is the schema for the swarm CLI's two JSON surfaces — the
+// run manifest and the envelope every command emits under --json:
+// swarm-model.schema.json. It is normative for
+// specs/contracts/contract-swarm-json.md.
+//
+//go:embed swarm-model.schema.json
+var SwarmModel []byte
 GOFILE
 
 # 4. Go structs for the CLI and its modules.
@@ -180,6 +202,55 @@ document author writes. The normative artifacts derived from the same
 sources are the JSON Schemas under `cli/core/schema/`.
 BANNER
 
+# 6. The swarm CLI's schemas, from the nested package. Validated the same
+#    way the first package is — --target ast runs every semantic check and
+#    writes nothing to the tree — before either artifact is emitted.
+strata build "$SWARM_SRC" --target ast --output "$WORK/swarm-ast" --error-format json
+
+strata build "$SWARM_SRC" --target json-schema --output "$WORK/swarm-schema"
+mv "$WORK/swarm-schema/SwarmModel.schema.json" "$WORK/schema/swarm-model.schema.json"
+
+strata build "$SWARM_SRC" --target go --output "$WORK/swarm-go"
+
+# 6.5. The same shape assertion the spec model gets, for the reason it
+#      gets it: the strata regression this guards against emits an
+#      inheriting struct with an empty properties map while exiting 0, and
+#      the manifest is a chain of five inheriting structs. An empty
+#      RunManifest would make every manifest key read as unknown.
+python3 - "$WORK/schema/swarm-model.schema.json" <<'PYEOF'
+import json
+import sys
+
+with open(sys.argv[1]) as f:
+    schema = json.load(f)
+
+defs = schema.get("definitions", {})
+manifest = defs.get("RunManifest")
+if manifest is None:
+    print("error: the swarm schema has no RunManifest definition", file=sys.stderr)
+    sys.exit(1)
+
+properties = manifest.get("properties") or {}
+# Every key the chain declares has to survive inheritance into the leaf.
+for stage in ("PreFlightKeys", "ScopeKeys", "PlanKeys", "DispatchKeys", "RetroKeys"):
+    stage_def = defs.get(stage)
+    if stage_def is None:
+        print(f"error: the swarm schema has no {stage} definition", file=sys.stderr)
+        sys.exit(1)
+    missing = sorted(set(stage_def.get("properties") or {}) - set(properties))
+    if missing:
+        print(
+            f"error: RunManifest is missing key(s) declared by {stage}: "
+            f"{', '.join(missing)}\n"
+            "  This is the shape of the strata regression the spec model's own "
+            "assertion guards against (strata-lang/strata 8997153): struct "
+            "inheritance silently drops inherited properties while strata still "
+            "exits 0. Check ~/.cache/strata-cli/built-commit.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+PYEOF
+
 sync_dir() {
   local src="$1" dest="$2"
   if [[ $CHECK -eq 1 ]]; then
@@ -199,6 +270,7 @@ rc=0
 sync_dir "$WORK/schema" "$SCHEMA_OUT" || rc=1
 sync_dir "$WORK/go" "$GO_OUT" || rc=1
 sync_dir "$WORK/md" "$MD_OUT" || rc=1
+sync_dir "$WORK/swarm-go" "$SWARM_GO_OUT" || rc=1
 
 if [[ $rc -ne 0 ]]; then
   exit 1
@@ -211,4 +283,5 @@ else
   echo "  $SCHEMA_OUT  (JSON Schema)"
   echo "  $GO_OUT  (Go)"
   echo "  $MD_OUT  (Markdown)"
+  echo "  $SWARM_GO_OUT  (Go, swarm)"
 fi

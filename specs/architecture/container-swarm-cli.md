@@ -536,7 +536,12 @@ behaviour follows from.
   write keys into the same object today, and will continue to during
   migration, which is why its shape is [[contract-swarm-json]] rather
   than a private schema. Schema source of truth:
-  `schemas/swarm-manifest.strata`.
+  `schemas/swarm/manifest.strata` — a Strata package of its own, which
+  generates `cli/core/schema/swarm-model.schema.json` and the Go model at
+  `cli/swarm/swarmmodel`. Every key is optional on the wire, because the
+  record grows as a run proceeds; the stage at which a key becomes
+  required is the struct in the inheritance chain that declares it, so a
+  key's name, its type and its stage come from one declaration.
   - WHEN the manifest is written, the container SHALL merge rather than
     replace, so keys written by another party survive.
   - IF a write names a key outside the declared set, THEN the container
@@ -615,7 +620,7 @@ This container SHALL comply with:
 - WHEN a decoder is added or changed, a unit case SHALL pin every result
   shape that subcommand is known to return, including its empty forms.
 - WHEN a manifest key is added, removed or retyped,
-  `schemas/swarm-manifest.strata`, the generated artifacts and the
+  `schemas/swarm/manifest.strata`, the generated artifacts and the
   validation rules SHALL be updated in the same change.
 - WHEN a manifest key is added, removed or retyped, the core end-to-end
   fixture SHALL be re-recorded in the same change, since a fixture
@@ -630,7 +635,7 @@ This container SHALL comply with:
   branch from the core fixture rather than authored separately, so a
   change to the core reaches every variant.
 - WHEN a field is added to a command's JSON result,
-  `schemas/swarm-output.strata` SHALL be updated in the same change.
+  `schemas/swarm/output.strata` SHALL be updated in the same change.
 - WHEN a change to either schema removes, renames or retypes anything,
   the major version in [[contract-swarm-json]] SHALL be raised in the
   same change.
