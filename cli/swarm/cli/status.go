@@ -181,7 +181,7 @@ func reportStatus(req Request, m status.Measurements, records []plan.Record, sta
 	if m.Worktrees.Established {
 		result.Facts = append(result.Facts,
 			Count("worktrees_standing", m.Worktrees.Standing, worktreeInv...),
-			Count("dispatch_worktrees_standing", dispatchWorktreeCount(m.Worktrees), worktreeInv...),
+			Count("dispatch_worktrees_standing", dispatchWorktreeCount(m.Dispatches), worktreeInv...),
 		)
 	} else {
 		result.Facts = append(result.Facts, Unestablished("worktrees_standing", m.Worktrees.Reason, fallback(nil)...))
@@ -263,7 +263,7 @@ func reportStatus(req Request, m status.Measurements, records []plan.Record, sta
 			len(unestablished), strings.Join(unestablished, "; "))
 		result.Resolution = "investigate why the named measurement failed, then re-run `swarm status`"
 
-	case m.ReadyFront.Depth > 0 && dispatchWorktreeCount(m.Worktrees) == 0 && m.LastCommit.Age > stallAfter:
+	case m.ReadyFront.Depth > 0 && dispatchWorktreeCount(m.Dispatches) == 0 && m.LastCommit.Age > stallAfter:
 		// AC-SWARM-CORE-003.1: measurements only, never a diagnosis —
 		// AC-SWARM-CORE-003.11 is why this says "no commit for Xs" and
 		// not "stalled".
@@ -281,19 +281,17 @@ func reportStatus(req Request, m status.Measurements, records []plan.Record, sta
 	return result
 }
 
-// dispatchWorktreeCount is how many standing worktrees belong to a
-// dispatch, as opposed to the main checkout or one detached at some
-// commit. A real repository always has at least one worktree — the main
-// checkout — so the raw [status.Worktrees.Standing] count the collector
-// reports is never the right measure of whether an agent is running; this
-// is.
-func dispatchWorktreeCount(w status.Worktrees) int {
-	if !w.Established {
-		return 0
-	}
+// dispatchWorktreeCount is how many standing worktrees the collector
+// attributed to a dispatch, as opposed to the main checkout or one it
+// could not attribute at all. A real repository always has at least one
+// worktree — the main checkout — so the raw [status.Worktrees.Standing]
+// count the collector reports is never the right measure of whether an
+// agent is running; the collector's own attribution, carried on each
+// [status.Dispatch.Worktree], is.
+func dispatchWorktreeCount(dispatches []status.Dispatch) int {
 	n := 0
-	for _, t := range w.Trees {
-		if !t.Detached && strings.HasPrefix(t.Branch, status.DispatchBranchPrefix) {
+	for _, d := range dispatches {
+		if d.Worktree != "" {
 			n++
 		}
 	}
@@ -301,13 +299,16 @@ func dispatchWorktreeCount(w status.Worktrees) int {
 }
 
 // dispatchLine renders one dispatch's drain state as a line a reader can
-// scan, and a machine can still split on ":".
+// scan, and a machine can still split on ":". The worktree the collector
+// attributed to it, if any, is named last — it is what
+// [dispatchWorktreeCount] counts, so a reader can see which dispatches
+// contributed to that count and where.
 func dispatchLine(d status.Dispatch) string {
 	if !d.Established {
 		return fmt.Sprintf("%s: unknown (%s)", d.Agent, d.Reason)
 	}
 	if d.Drained {
-		return fmt.Sprintf("%s: drained", d.Agent)
+		return fmt.Sprintf("%s: drained%s", d.Agent, worktreeSuffix(d))
 	}
 	var parts []string
 	if len(d.InProgress) > 0 {
@@ -319,7 +320,14 @@ func dispatchLine(d status.Dispatch) string {
 	if len(d.Blocked) > 0 {
 		parts = append(parts, "blocked: "+strings.Join(d.Blocked, ","))
 	}
-	return fmt.Sprintf("%s: %s", d.Agent, strings.Join(parts, "; "))
+	return fmt.Sprintf("%s: %s%s", d.Agent, strings.Join(parts, "; "), worktreeSuffix(d))
+}
+
+func worktreeSuffix(d status.Dispatch) string {
+	if d.Worktree == "" {
+		return ""
+	}
+	return " (worktree: " + d.Worktree + ")"
 }
 
 // argvsFor returns the resolved argv of every record named in names, in

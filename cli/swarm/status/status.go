@@ -40,14 +40,13 @@ import (
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/vcs"
 )
 
-// DispatchBranchPrefix is the prefix a dispatch's branch carries. A
-// worktree is matched to the agent holding it through its checked-out
-// branch, and this is the whole of that convention: `bb/<dispatch-id>`.
-//
-// Stated once here because two measurements depend on it — a dispatch's
-// standing worktree, and the unresolved-conflict check — and a second
-// copy is one rename away from silently matching nothing.
-const DispatchBranchPrefix = "bb/"
+// A worktree is matched to the dispatch holding it through the bead its
+// HEAD commit closed and that bead's assignee — see
+// [measureWorktreeOwners] — never through the tree's branch name: the
+// mechanism that creates a dispatch's worktree does not control that name
+// and does not carry the dispatch id in it. Measured against this
+// harness's own worktrees, whose branches read `worktree-agent-<hash>`,
+// not `bb/<dispatch-id>`.
 
 // KindEpic is the tracker's own type for an epic. An epic is not work, so
 // it is excluded from the counts and from the ready front.
@@ -272,9 +271,12 @@ func Collect(ctx context.Context, deps Deps, run string) (Measurements, []plan.R
 	m.Completion, recs = measureCompletion(ctx, deps, run)
 	records = append(records, recs...)
 
+	owners, recs := measureWorktreeOwners(ctx, deps, m.Worktrees, m.Branch, m.Completion)
+	records = append(records, recs...)
+
 	m.Scope = compareScope(m.Completion, doc, docTaken)
-	m.Dispatches = dispatches(m.Completion, m.ReadyFront, m.Worktrees)
-	m.Conflicts = conflicts(m.Completion, m.Worktrees)
+	m.Dispatches = dispatches(m.Completion, m.ReadyFront, owners)
+	m.Conflicts = conflicts(m.Completion, owners)
 
 	return m, records, nil
 }
@@ -472,7 +474,7 @@ func compareScope(c Completion, doc manifest.Document, docTaken Unestablished) S
 // claimed set says nothing about what is waiting. So an agent has drained
 // when both are empty, and a dispatch is listed for any agent either
 // query names.
-func dispatches(c Completion, front ReadyFront, trees Worktrees) []Dispatch {
+func dispatches(c Completion, front ReadyFront, owners map[string]string) []Dispatch {
 	byAgent := map[string]*Dispatch{}
 	get := func(agent string) *Dispatch {
 		d, ok := byAgent[agent]
@@ -524,7 +526,7 @@ func dispatches(c Completion, front ReadyFront, trees Worktrees) []Dispatch {
 			d.Unestablished = missing(
 				"drain takes both the ready front and the claimed set, and one of them could not be read")
 		}
-		d.Worktree = worktreeFor(trees, d.Agent)
+		d.Worktree = owners[d.Agent]
 		sort.Strings(d.Ready)
 		sort.Strings(d.InProgress)
 		sort.Strings(d.Blocked)
@@ -541,8 +543,8 @@ func dispatches(c Completion, front ReadyFront, trees Worktrees) []Dispatch {
 // bead leaves its partial work in the tree rather than stashing it, so a
 // standing tree beside a blocked bead is work somebody still has to
 // resolve. A blocked bead whose tree is gone was already dealt with.
-func conflicts(c Completion, trees Worktrees) []Conflict {
-	if !c.Established || !trees.Established {
+func conflicts(c Completion, owners map[string]string) []Conflict {
+	if !c.Established {
 		return nil
 	}
 	var out []Conflict
@@ -550,7 +552,7 @@ func conflicts(c Completion, trees Worktrees) []Conflict {
 		if b.State != tracker.StateBlocked || b.Assignee == "" {
 			continue
 		}
-		if path := worktreeFor(trees, b.Assignee); path != "" {
+		if path := owners[b.Assignee]; path != "" {
 			out = append(out, Conflict{Bead: b.ID, Agent: b.Assignee, Worktree: path})
 		}
 	}
@@ -558,20 +560,84 @@ func conflicts(c Completion, trees Worktrees) []Conflict {
 	return out
 }
 
-// worktreeFor finds the standing worktree checked out on an agent's
-// dispatch branch. A detached worktree matches nobody: it carries no
-// branch, and the branch is the whole of the matching rule.
-func worktreeFor(trees Worktrees, agent string) string {
-	if !trees.Established || agent == "" {
-		return ""
+// measureWorktreeOwners attributes each standing worktree, other than the
+// one checked out on the sprint branch, to the dispatch that holds it:
+// the assignee of the bead its HEAD commit closed.
+//
+// This reads one commit per worktree — [Deps.VCS.Commits] against its
+// [vcs.Worktree.Head] — which is why it runs after both [measureWorktrees]
+// and [measureCompletion]: it needs the standing trees to walk and the
+// bead-to-assignee map to resolve each one against. A worktree whose HEAD
+// is not a bead's own close commit, or whose bead this run's walk did not
+// find, is not attributed — the safe default a caller (this run's
+// coordinator, `sprint-cleanup.sh`) leaves standing rather than tearing
+// down.
+//
+// Detachment is not consulted: a detached worktree's HEAD is a commit like
+// any other, and the whole point of reading the commit instead of the
+// branch is that the branch's name and shape carry nothing this container
+// can rely on.
+func measureWorktreeOwners(ctx context.Context, deps Deps, trees Worktrees, sprintBranch string, c Completion) (map[string]string, []plan.Record) {
+	owners := map[string]string{}
+	if !trees.Established || !c.Established {
+		return owners, nil
 	}
-	want := DispatchBranchPrefix + agent
-	for _, w := range trees.Trees {
-		if !w.Detached && w.Branch == want {
-			return w.Path
+
+	byID := map[string]string{}
+	for _, b := range c.Beads {
+		if b.Assignee != "" {
+			byID[b.ID] = b.Assignee
 		}
 	}
-	return ""
+
+	var records []plan.Record
+	for i, t := range trees.Trees {
+		if t.Head == "" || (sprintBranch != "" && t.Branch == sprintBranch) {
+			continue
+		}
+		steps := deps.VCS.Commits(fmt.Sprintf("worktree-owner-%d", i), t.Head, 1)
+		report, recs := run1(ctx, deps, "the commit at "+t.Path, steps)
+		records = append(records, recs...)
+		value, err := steps.ValueFrom(report)
+		if err != nil {
+			continue
+		}
+		commits, ok := value.([]vcs.Commit)
+		if !ok || len(commits) == 0 {
+			continue
+		}
+		id := beadIDFromCloseSubject(commits[0].Subject)
+		if id == "" {
+			continue
+		}
+		if assignee, ok := byID[id]; ok && assignee != "" {
+			owners[assignee] = t.Path
+		}
+	}
+	return owners, records
+}
+
+// beadIDFromCloseSubject reads the bead id out of a commit subject shaped
+// like a bead's own close — `<id> P<priority> <title>`, per
+// `bb-close-bead.sh` — and returns empty for a subject that is not.
+func beadIDFromCloseSubject(subject string) string {
+	id, rest, found := strings.Cut(subject, " ")
+	if !found || id == "" {
+		return ""
+	}
+	if !priorityToken(rest) {
+		return ""
+	}
+	return id
+}
+
+// priorityToken reports whether s begins with a close commit's priority
+// token, "P" followed by a digit.
+func priorityToken(s string) bool {
+	if len(s) < 2 || s[0] != 'P' {
+		return false
+	}
+	return s[1] >= '0' && s[1] <= '9'
 }
 
 // run1 interprets one fragment and returns its report with the records it

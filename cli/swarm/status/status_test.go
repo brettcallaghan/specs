@@ -137,6 +137,21 @@ func commit(sha, subject string, ago time.Duration) exectest.Recording {
 	}
 }
 
+// ownerHead is the HEAD [worktrees] fabricates for the tree at index i —
+// the same `%040d` it writes into the porcelain output — so a test naming
+// the commit at that HEAD does not hand-transcribe it.
+func ownerHead(i int) string { return fmt.Sprintf("%040d", i) }
+
+// ownerCommit records the commit a worktree's HEAD sits at, for the
+// worktree-ownership lookup: the same invocation [commit] makes, keyed on
+// the commit itself rather than on the sprint branch.
+func ownerCommit(head, subject string) exectest.Recording {
+	return exectest.Recording{
+		Argv:   []string{"git", "log", "--format=%H%x00%ct%x00%s", "-n", "1", head},
+		Stdout: []byte(fmt.Sprintf("%s\x00%d\x00%s\n", head, now.Unix(), subject)),
+	}
+}
+
 // --- tests ----------------------------------------------------------
 
 // AC: AC-SWARM-CORE-003.2
@@ -148,7 +163,7 @@ func TestProgressIsNeverReadFromAStoredValue(t *testing.T) {
 	m := collect(t,
 		show(`{"branch":"`+branch+`","health":"healthy","progress":"on track","admitted":["demo-run1.1"]}`),
 		prune(),
-		worktrees("main"),
+		worktrees(branch),
 		commit("abc1234", "demo-run1.0 P1 something", 3*time.Hour+12*time.Minute),
 		ready(bead{id: "demo-run1.1", status: "open"}),
 		children(runEpic, bead{id: "demo-run1.1", status: "open"}),
@@ -185,7 +200,7 @@ func TestCompletionCountsEveryBeadHoweverNested(t *testing.T) {
 	m := collect(t,
 		show(manifestWith("demo-run1.1", "demo-run1.2", "demo-run1.3")),
 		prune(),
-		worktrees("main"),
+		worktrees(branch),
 		commit("abc1234", "demo-run1.2 P1 done", time.Minute),
 		ready(bead{id: "demo-run1.3", status: "open"}),
 		children(runEpic, bead{id: "demo-target", status: "open", kind: "epic"}),
@@ -226,8 +241,13 @@ func TestEachAgentHoldingWorkIsNamedAndTheDrainedOneIsReportedDrained(t *testing
 	m := collect(t,
 		show(manifestWith("demo-run1.1", "demo-run1.2")),
 		prune(),
-		worktrees("main", status.DispatchBranchPrefix+"dev-1"),
+		// The dispatch's own worktree carries no `bb/`-prefixed branch —
+		// nothing here does, matching the harness that actually creates
+		// one — and is still attributed, through the bead its HEAD commit
+		// closed.
+		worktrees(branch, "worktree-agent-notadispatchname"),
 		commit("abc1234", "demo-run1.2 P1 done", time.Minute),
+		ownerCommit(ownerHead(1), "demo-run1.1 P1 in progress"),
 		ready(),
 		children(runEpic,
 			bead{id: "demo-run1.1", status: "in_progress", assignee: "dev-1"},
@@ -276,7 +296,7 @@ func TestTheLiveQueueIsComparedAgainstTheAdmittedSet(t *testing.T) {
 	m := collect(t,
 		show(manifestWith("demo-run1.1", "demo-run1.9")),
 		prune(),
-		worktrees("main"),
+		worktrees(branch),
 		commit("abc1234", "demo-run1.1 P1 done", time.Minute),
 		ready(),
 		children(runEpic,
@@ -306,7 +326,7 @@ func TestAnAbsentAdmittedListIsUnestablishedRatherThanNoAdditions(t *testing.T) 
 	m := collect(t,
 		show(`{"branch":"`+branch+`"}`),
 		prune(),
-		worktrees("main"),
+		worktrees(branch),
 		commit("abc1234", "demo-run1.1 P1 done", time.Minute),
 		ready(),
 		children(runEpic, bead{id: "demo-run1.1", status: "open"}),
@@ -335,7 +355,7 @@ func TestBeadsExcludedAtAdmissionAreCarriedBesideTheVerdict(t *testing.T) {
 			`"excluded":[{"id":"demo-run1.7","reason":"declined move"},`+
 			`{"id":"demo-run1.8","reason":"declined move"}]}`),
 		prune(),
-		worktrees("main"),
+		worktrees(branch),
 		commit("abc1234", "demo-run1.1 P1 done", time.Minute),
 		ready(),
 		children(runEpic, bead{id: "demo-run1.1", status: "closed"}),
@@ -359,8 +379,9 @@ func TestABlockedBeadWhoseWorktreeStandsIsReportedUnresolved(t *testing.T) {
 	m := collect(t,
 		show(manifestWith("demo-run1.1", "demo-run1.2")),
 		prune(),
-		worktrees("main", status.DispatchBranchPrefix+"dev-1"),
+		worktrees(branch, "worktree-agent-notadispatchname"),
 		commit("abc1234", "demo-run1.2 P1 done", time.Minute),
+		ownerCommit(ownerHead(1), "demo-run1.1 P1 partial work"),
 		ready(),
 		children(runEpic,
 			bead{id: "demo-run1.1", status: "blocked", assignee: "dev-1"},
@@ -393,7 +414,7 @@ func TestATrackerQueryThatCannotAnswerCostsOnlyItsOwnLine(t *testing.T) {
 	m := collect(t,
 		show(manifestWith("demo-run1.1")),
 		prune(),
-		worktrees("main"),
+		worktrees(branch),
 		commit("abc1234", "demo-run1.1 P1 done", 90*time.Second),
 		failing,
 		children(runEpic, bead{id: "demo-run1.1", status: "open"}),
@@ -426,7 +447,7 @@ func TestDrainIsUnestablishedWhenEitherQueryCouldNotAnswer(t *testing.T) {
 	m := collect(t,
 		show(manifestWith("demo-run1.1")),
 		prune(),
-		worktrees("main"),
+		worktrees(branch),
 		commit("abc1234", "demo-run1.1 P1 done", time.Minute),
 		failing,
 		children(runEpic, bead{id: "demo-run1.1", status: "in_progress", assignee: "dev-1"}),
@@ -456,7 +477,7 @@ func TestAWalkThatCannotFinishIsUnestablishedRatherThanAPartialCount(t *testing.
 	m := collect(t,
 		show(manifestWith("demo-run1.1")),
 		prune(),
-		worktrees("main"),
+		worktrees(branch),
 		commit("abc1234", "demo-run1.1 P1 done", time.Minute),
 		ready(),
 		children(runEpic, bead{id: "demo-run1.1", status: "open"}),
@@ -478,15 +499,15 @@ func TestAWalkThatCannotFinishIsUnestablishedRatherThanAPartialCount(t *testing.
 // unestablished rather than measured against whatever the process happens
 // to have checked out.
 func TestWithNoBranchRecordedTheCommitAgeIsUnestablishedRatherThanTakenFromHEAD(t *testing.T) {
-	d, fake := deps(
+	d, _ := deps(
 		show(`{"admitted":["demo-run1.1"]}`),
 		prune(),
-		worktrees("main"),
+		worktrees(branch),
 		ready(),
 		children(runEpic, bead{id: "demo-run1.1", status: "open"}),
 		children("demo-run1.1"),
 	)
-	m, _, err := status.Collect(context.Background(), d, runEpic)
+	m, records, err := status.Collect(context.Background(), d, runEpic)
 	if err != nil {
 		t.Fatalf("Collect: %v", err)
 	}
@@ -497,9 +518,13 @@ func TestWithNoBranchRecordedTheCommitAgeIsUnestablishedRatherThanTakenFromHEAD(
 	if !strings.Contains(m.LastCommit.Reason, "branch") {
 		t.Errorf("reason = %q, want it to name the missing branch", m.LastCommit.Reason)
 	}
-	for _, argv := range fake.Argvs() {
-		if len(argv) > 1 && argv[0] == "git" && argv[1] == "log" {
-			t.Errorf("history was read anyway: %v", argv)
+	// The last-commit measurement specifically never ran — worktree
+	// ownership is a separate measurement that reads a commit for a
+	// different reason (attributing a standing tree) and is unaffected by
+	// the manifest recording no branch, so its own step is free to run.
+	for _, r := range records {
+		if r.Step == "last-commit" {
+			t.Errorf("the last-commit step ran anyway: %+v", r)
 		}
 	}
 }
@@ -522,7 +547,7 @@ func TestItReturnsTheRecordOfEveryInvocationItMade(t *testing.T) {
 	d, fake := deps(
 		show(manifestWith("demo-run1.1")),
 		prune(),
-		worktrees("main"),
+		worktrees(branch),
 		commit("abc1234", "demo-run1.1 P1 done", time.Minute),
 		ready(),
 		children(runEpic, bead{id: "demo-run1.1", status: "open"}),

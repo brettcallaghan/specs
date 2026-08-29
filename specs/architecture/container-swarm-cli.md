@@ -586,11 +586,18 @@ because each is a place the obvious implementation is wrong:
   would let the first failure erase five measurements that were
   perfectly takeable. A source that cannot answer costs exactly the line
   it was measuring.
-- **A dispatch is matched to its worktree through the branch that tree
-  has checked out**, `bb/<dispatch-id>`, which is also the assignee on
-  its beads. A detached worktree matches nobody, and that is the safe
-  direction: an unmatched tree is reported standing rather than
-  attributed to an agent that does not own it.
+- **A dispatch is matched to its worktree through the bead its HEAD
+  commit closed**, never through the tree's branch name: the mechanism
+  that creates a dispatch's worktree does not control that name — measured
+  against this harness's own worktrees, whose branches read
+  `worktree-agent-<hash>`, carrying no dispatch id at all. The commit's
+  subject names the bead (`<id> P<priority> <title>`, the `bb-close-bead.sh`
+  convention) and that bead's own `.assignee` names the dispatch.
+  Detachment plays no part either way — a detached worktree's HEAD is a
+  commit like any other. A worktree whose HEAD is not shaped like a
+  bead's own close, or whose bead this run's walk did not find, matches
+  nobody, and that is the safe direction: an unmatched tree is reported
+  standing rather than attributed to an agent that does not own it.
 - **It executes.** Explain and dry-run are the command surface's modes
   and belong to the command that renders the measurements; a collector
   asked to explain would return a set in which nothing was established,

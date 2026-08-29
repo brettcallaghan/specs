@@ -165,7 +165,7 @@ func TestTheReportNamesWhatItCannotObserveAndWhatItGivesInstead(t *testing.T) {
 func TestNoProgressIsReportedAsMeasurementsNeverAsAStall(t *testing.T) {
 	m := clearMeasurements()
 	m.Worktrees = status.Worktrees{Unestablished: established(), Standing: 1,
-		Trees: []vcs.Worktree{{Path: "/w/0", Branch: "main"}}} // no bb/ prefixed tree: no dispatch worktree stands
+		Trees: []vcs.Worktree{{Path: "/w/0", Branch: "main"}}} // no Dispatch was attributed this tree: no dispatch worktree stands
 	m.ReadyFront = status.ReadyFront{Unestablished: established(), Depth: 4}
 	m.LastCommit = status.LastCommit{Unestablished: established(),
 		SHA: "abc1234", Subject: "run-1.1 P1 done",
@@ -218,7 +218,9 @@ func TestProgressIsClearUnlessAllThreeConditionsHold(t *testing.T) {
 		{"a dispatch worktree stands", func(m *status.Measurements) {
 			m.ReadyFront.Depth = 4
 			m.LastCommit.Age = 3 * time.Hour
-			m.Worktrees.Trees = append(m.Worktrees.Trees, vcs.Worktree{Path: "/w/1", Branch: status.DispatchBranchPrefix + "dev-1"})
+			m.Dispatches = append(m.Dispatches, status.Dispatch{
+				Unestablished: established(), Agent: "dev-1", Drained: true, Worktree: "/w/1",
+			})
 		}},
 		{"the ready front is empty", func(m *status.Measurements) {
 			m.ReadyFront.Depth = 0
@@ -267,20 +269,21 @@ func TestAGivenThresholdIsTheOneStatedAndCompared(t *testing.T) {
 	}
 }
 
-// dispatchWorktreeCount, not the collector's raw worktree count, is what
-// the attention condition reads: a real repository's main checkout is
-// always a standing worktree, so the raw count is never zero.
+// dispatchWorktreeCount reads the collector's own attribution — each
+// dispatch's Worktree field — rather than the raw worktree count: a real
+// repository's main checkout is always a standing worktree that no
+// dispatch owns, so the raw count is never the right measure.
 func TestDispatchWorktreeCountExcludesTheMainCheckout(t *testing.T) {
-	w := status.Worktrees{Unestablished: established(), Standing: 2, Trees: []vcs.Worktree{
-		{Path: "/w/0", Branch: "main"},
-		{Path: "/w/1", Detached: true, Head: "abc123"},
-	}}
-	if n := dispatchWorktreeCount(w); n != 0 {
-		t.Errorf("dispatchWorktreeCount = %d, want 0 — neither tree is a dispatch's", n)
+	dispatches := []status.Dispatch{
+		{Agent: "dev-1", Worktree: ""},
+		{Agent: "dev-2", Worktree: ""},
+	}
+	if n := dispatchWorktreeCount(dispatches); n != 0 {
+		t.Errorf("dispatchWorktreeCount = %d, want 0 — neither dispatch was attributed a worktree", n)
 	}
 
-	w.Trees = append(w.Trees, vcs.Worktree{Path: "/w/2", Branch: status.DispatchBranchPrefix + "dev-1"})
-	if n := dispatchWorktreeCount(w); n != 1 {
+	dispatches = append(dispatches, status.Dispatch{Agent: "dev-3", Worktree: "/w/2"})
+	if n := dispatchWorktreeCount(dispatches); n != 1 {
 		t.Errorf("dispatchWorktreeCount = %d, want 1", n)
 	}
 }
