@@ -836,7 +836,15 @@ This container SHALL comply with:
 
 ## Open Questions
 
-None.
+**Windows executable resolution for npm-installed tools.** On Windows, a tool
+installed through npm is a `.cmd` shim rather than an executable. Go applies its
+own rules to resolving and running such shebangs (see [[adr-025]], Consequences,
+Negative). The Process Runner's current implementation invokes the resolved path
+directly through `os/exec` and relies on platform-native handling. An open
+question remains: what is the correct behaviour when the path resolves to a
+`.cmd` shim on Windows, and what fallback strategy should the Process Runner
+implement if the platform's native handling fails? This affects any invocation
+of a tool that may be installed through npm on a Windows deployment.
 
 ## References
 
