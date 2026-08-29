@@ -670,6 +670,13 @@ authoritative for its deployment.
 - **The tracker this container is tested against on Windows** is the
   CGO-free, server-mode `bd` install; [[adr-027]] carries the choice and
   what it leaves untested.
+- **`SWARM_E2E_REQUIRE_TRACKER` is how a platform declares the tracker
+  present.** The end-to-end tier restores its fixture through `git` and
+  `bd`, and where either is absent it skips with the reason; where that
+  variable is set, an absent tool fails the run instead. Skipping is the
+  right default on a developer machine and the wrong one on a runner that
+  was supposed to have a tracker, which is what the variable exists to
+  separate. No CI leg sets it while no CI leg installs `bd`.
 
 ## Cross-Cutting Standards
 
@@ -710,7 +717,14 @@ This container SHALL comply with:
   readable SHALL NOT be re-recorded, since re-recording it destroys the
   only evidence that reading an older shape works.
 - WHEN a fixture is recorded, the contract version it was recorded
-  against SHALL be recorded with it.
+  against SHALL be recorded with it, in the `fixture.toml` beside the
+  artifacts, alongside the kind that says how that version must compare
+  with the current one: `core` equal, `variant` equal, `legacy` older.
+- A fixture SHALL be one directory under `cli/testdata/swarm-fixtures/`
+  holding `repository.bundle`, `tracker.jsonl` and `fixture.toml`, and a
+  case SHALL be one directory under `cli/testdata/swarm-cases/` holding
+  `case.toml` and the `expected/` artifacts it names — so adding either
+  is data a reviewer reads rather than Go a reviewer runs.
 - WHEN a new world shape is needed for a case, it SHALL be derived as a
   branch from the core fixture rather than authored separately, so a
   change to the core reaches every variant.
@@ -733,12 +747,13 @@ This container SHALL comply with:
 - WHEN an end-to-end snapshot is re-recorded, the normalization list for
   that case SHALL be reviewed in the same change — a substitution added
   to make a case pass can remove the thing it was written to assert.
-- **Verification gates:** `cd cli && go test ./swarm/...` for the unit
-  tier; `cd cli && go test ./cmd/... -run TestSwarmSnapshotCases` for the
-  end-to-end cases against the committed fixture; `cd cli && go vet
-  ./...`, `scripts/format-check`, and `scripts/generate-schemas.sh
-  --check`. A change touching the Process Runner, either interface or
-  either implementation additionally runs
+- **Verification gates:** `cd cli && go test ./swarm/e2e/` for the
+  end-to-end cases against the committed fixture; `cd cli && go test
+  ./swarm/...` for both tiers, the unit tier being every package under
+  `cli/swarm` except `e2e`; `cd cli && go vet ./...`,
+  `scripts/format-check`, and `scripts/generate-schemas.sh --check`. A
+  change touching the Process Runner, either interface or either
+  implementation additionally runs
   `cd cli && go test ./cmd/... -run TestCRLFCheckoutProducesIdenticalOutput`.
   CI runs the whole suite on all three platforms and the cross-compile
   matrix; these are the targeted set an agent runs before handoff.

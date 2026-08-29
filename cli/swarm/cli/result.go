@@ -7,14 +7,17 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/brettcallaghan/agent-plugins/cli/swarm/contract"
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/plan"
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/swarmmodel"
 )
 
 // contractVersion is the version of contract-swarm-json every result
 // carries, so a consumer branches on the version it was handed rather
-// than on the binary's own version.
-const contractVersion = "1.0"
+// than on the binary's own version. Declared once, in the contract
+// package, because the end-to-end fixture's stamp is checked against the
+// same value.
+const contractVersion = contract.Version
 
 // Fact is one thing a command reports, together with the invocation or
 // invocations that established it.

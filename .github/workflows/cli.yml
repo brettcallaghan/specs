@@ -106,6 +106,18 @@ jobs:
       - name: Build
         run: go build ./...
 
+      # The swarm CLI's end-to-end tier restores a fixture through `git`
+      # and `bd`. Where those are absent it skips with the reason, which
+      # keeps the suite green on a machine that has no tracker — and
+      # would also keep it green on a runner that was SUPPOSED to have
+      # one, which is the failure mode that matters.
+      #
+      # SWARM_E2E_REQUIRE_TRACKER is how a platform declares "the tools
+      # are present here": where it is set, a missing tool fails instead
+      # of skipping. No leg sets it yet, because no leg installs `bd`.
+      # Until one does, the platform guarantee for the commands that need
+      # a tracker rests on the unit tier plus the cross-compile, exactly
+      # as ADR-027 says.
       - name: Test
         run: go test ./...
 

@@ -1,0 +1,44 @@
+# The core fixture: the canonical run the end-to-end cases read.
+#
+# Restored from the two artifacts beside this file, never generated — a
+# generator is code that can be wrong, and generated commits mint fresh
+# shas every snapshot would then have to normalize away.
+#
+#   repository.bundle  a git bundle carrying every ref: main, the sprint
+#                      branch cut from it, and one dispatch branch off
+#                      that. Its shas are fixed, because every commit was
+#                      made with a pinned author, committer and date.
+#   tracker.jsonl      a tracker export: the run epic whose metadata is
+#                      the run manifest, a flat target epic, one closed
+#                      bead and one still claimed. Hand-written rather
+#                      than exported from a live database, so every id and
+#                      timestamp is fixed and a change to it is a
+#                      reviewable diff.
+
+# core, variant or legacy. The kind is what says how this fixture may
+# change: the core tracks the current code and is re-recorded when the
+# shape it asserts changes; a variant is a branch derived from the core;
+# a legacy fixture is frozen at an older shape and is NEVER re-recorded,
+# because re-recording one destroys the only evidence that reading an
+# older shape works.
+kind = "core"
+
+# The version of contract-swarm-json this fixture was recorded against.
+#
+# The core's stamp must EQUAL the current version, and a test fails when
+# it does not — a core fixture whose stamp has fallen behind is a
+# re-record that was missed. A legacy fixture's must be older, and the
+# same test fails when its version has caught up.
+contract_version = "1.0"
+
+description = """A run partway through: its manifest is complete through the scope stage, \
+its branch and base are the bundle's own refs, one of its two beads is closed and the \
+other is still claimed."""
+
+# The prefix the restored tracker is initialised with. The imported beads
+# carry their own ids, so this only names what a bead created during a
+# case would be called.
+prefix = "fixture"
+
+# The run epic every case is scoped to.
+run = "fixture-run"

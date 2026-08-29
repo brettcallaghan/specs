@@ -115,8 +115,11 @@ it will be handled.
   silently removes a guarantee, and only the version stamp and a reviewer
   stand in its way.
 - The tracker half restores through the tracker's own import rather than
-  being copied byte for byte, so its internal timestamps are fresh on
-  every run and must be normalized even though the git shas need not be.
+  being copied byte for byte. The import preserves the export's own
+  `created_at` and `updated_at`, so the fixture's tracker timestamps are
+  as fixed as the git shas and neither needs normalizing. What does need
+  it is what the surface measures rather than what the fixture holds —
+  step durations and stream digests, which differ on every run.
 - Snapshot normalization remains a standing hazard in both directions:
   too little and every case fails, too much and the case stops asserting
   what it was written for. The substitution list is declared per case and

@@ -1,0 +1,6 @@
+swarm manifest get — run fixture-run (execute)
+bd show fixture-run --json
+review_passes = 0    <- bd show fixture-run --json
+read: ran exit 0 <duration> sha256:<digest> sha256:<digest>    <- bd show fixture-run --json
+summary: 1 key(s) written
+outcome: clear (exit 0)

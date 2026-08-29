@@ -1,0 +1,28 @@
+# A manifest whose keys are all present, correctly typed and mutually
+# consistent validates clean, against the real binary and a real tracker.
+#
+# The unit tier can only show that the rules hold over a document a test
+# built. This shows they hold over a record a tracker actually stored and
+# handed back, which is the guard the unit tier cannot provide.
+#
+# The keys of a later stage are reported as unestablished rather than as
+# failures — the run has not reached them — which is the same separation
+# the unit tier asserts, seen here through a real record.
+
+fixture = "core"
+args = ["manifest", "validate", "--run", "fixture-run", "--stage", "scope"]
+exit = 0
+ac = ["AC-SWARM-CORE-002.16"]
+
+# The read really happens, so its record carries an elapsed time and the
+# digests of what the tracker printed. Nothing else is substituted: the
+# fixture's ids and timestamps are fixed, so every other byte is asserted.
+[[normalize]]
+pattern = "[0-9]+ms"
+with = "<duration>"
+why = "a real invocation's elapsed time varies per run"
+
+[[normalize]]
+pattern = "sha256:[0-9a-f]{64}"
+with = "sha256:<digest>"
+why = "the digest covers the tracker's own output, which carries state this case does not pin"

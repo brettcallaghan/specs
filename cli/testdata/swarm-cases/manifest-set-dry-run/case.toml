@@ -1,0 +1,34 @@
+# A dry run reads live state and writes nothing.
+#
+# Both halves are asserted, and the second is what makes it worth having:
+# the `after` invocation reads the key back out of the real tracker, so a
+# dry run that wrote would be caught by the record itself rather than by
+# the report the same run produced.
+
+fixture = "core"
+args = [
+  "manifest", "set", "--run", "fixture-run", "--dry-run",
+  "--key", "review_passes", "--value", "1",
+]
+exit = 0
+ac = ["AC-SWARM-CORE-001.6"]
+
+# The read really happens, so its record carries a duration and the
+# digests of what the tracker printed. The duration varies per run, and
+# the digests cover output carrying the tracker's own state, so both are
+# normalized — and nothing else is.
+[[normalize]]
+pattern = "[0-9]+ms"
+with = "<duration>"
+why = "a real invocation's elapsed time varies per run"
+
+[[normalize]]
+pattern = "sha256:[0-9a-f]{64}"
+with = "sha256:<digest>"
+why = "the digest covers the tracker's own output, which carries state this case does not pin"
+
+# What the record says afterwards. review_passes is 0 in the fixture; a
+# dry run that wrote would leave 1 here.
+[[after]]
+args = ["manifest", "get", "--run", "fixture-run", "--key", "review_passes"]
+exit = 0

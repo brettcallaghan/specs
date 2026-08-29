@@ -344,8 +344,13 @@ they assert.
   rather than skip it.
 
 **Anchors:** `cli/testdata/swarm-fixtures/` for the bundle, the export
-and the stamp; `cli/cmd/` for the existing snapshot harness the case
-runner extends; `.github/workflows/cli.yml` for the platform declaration.
+and the stamp; `cli/testdata/swarm-cases/` for the cases; `cli/swarm/e2e`
+for the harness; `.github/workflows/cli.yml` for the platform
+declaration. The harness is its own package rather than an extension of
+`cli/cmd`'s snapshot harness: that one drives a corpus in place through
+the `spec` binary's own entry point, where this one restores a git bundle
+and a tracker export into a temporary world per case and runs a compiled
+binary as a subprocess, so the two share the idea and no code.
 
 ### `Status Collector` in [[container-swarm-cli]] (added)
 

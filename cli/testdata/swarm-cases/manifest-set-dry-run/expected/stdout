@@ -1,0 +1,8 @@
+swarm manifest set — run fixture-run (dry-run)
+bd show fixture-run --json
+# refused, dry run writes nothing: set-write
+review_passes = 0    <- bd show fixture-run --json
+set-guard: ran exit 0 <duration> sha256:<digest> sha256:<digest>    <- bd show fixture-run --json
+set-write: refused (dry run: the step writes)
+summary: would write review_passes as one merge; nothing was written
+outcome: clear (exit 0)

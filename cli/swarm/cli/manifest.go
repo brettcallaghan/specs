@@ -163,7 +163,38 @@ func manifestSet(store manifest.Store) Spec {
 			if refusal := stopped(report); refusal != nil {
 				return Result{}, refusal
 			}
-			doc, from, err := document(store.Write("set", req.Run, applied, nil), report)
+
+			steps := store.Write("set", req.Run, applied, nil)
+
+			// A dry run performs the guard and refuses the write, so the
+			// answer is what the guard READ — the record as it stands,
+			// which is what "its report reflects the state the reads
+			// returned" asks for. Reading the fragment's answer instead
+			// would report "the write produced no value", which is true
+			// and is not the question.
+			if refused(report, steps) {
+				doc, from, err := document(plan.Steps{steps[0]}, report)
+				if err != nil {
+					return Result{}, err
+				}
+				result := Result{
+					Outcome: OutcomeClear,
+					Summary: fmt.Sprintf("would write %s as one merge; nothing was written",
+						strings.Join(sorted(applied), ", ")),
+				}
+				for _, name := range sorted(applied) {
+					value, present := doc.Get(name)
+					if !present {
+						result.Facts = append(result.Facts,
+							Unestablished(name, "the key is not written yet", from))
+						continue
+					}
+					result.Facts = append(result.Facts, factFor(name, value, from))
+				}
+				return result, nil
+			}
+
+			doc, from, err := document(steps, report)
 			if err != nil {
 				return Result{}, err
 			}
@@ -328,6 +359,14 @@ func stopped(report plan.Report) *Refusal {
 	}
 	reason := record.Err.Error()
 	return RefuseRepairable(reason, "%s", reason)
+}
+
+// refused reports whether a fragment's answering step was declined by
+// the interpreter rather than run — which, for a write, is what a dry run
+// does to it.
+func refused(report plan.Report, steps plan.Steps) bool {
+	record, ok := report.Record(steps.Answer())
+	return ok && record.Status == plan.StepRefused
 }
 
 // document reads a fragment's answer as a manifest document, and returns

@@ -1,0 +1,10 @@
+swarm manifest validate — run fixture-run (execute)
+bd show fixture-run --json
+stage = scope    <- bd show fixture-run --json
+findings_path = unestablished: "findings_path" is not written yet; it becomes required at the retro stage    <- bd show fixture-run --json
+retro_filed = unestablished: "retro_filed" is not written yet; it becomes required at the retro stage    <- bd show fixture-run --json
+retro_declined = unestablished: "retro_declined" is not written yet; it becomes required at the retro stage    <- bd show fixture-run --json
+retro_routed = unestablished: "retro_routed" is not written yet; it becomes required at the retro stage    <- bd show fixture-run --json
+read: ran exit 0 <duration> sha256:<digest> sha256:<digest>    <- bd show fixture-run --json
+summary: every rule holds at the scope stage
+outcome: clear (exit 0)
