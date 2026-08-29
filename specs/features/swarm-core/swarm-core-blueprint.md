@@ -5,8 +5,8 @@ description: Build the swarm binary's command contract, its manifest
   and adopt each command into the skills whose prose it replaces
 slug: feature-swarm-core
 type: feature-blueprint
-status: in-progress
-updated_at: 2026-08-29T00:00:00Z
+status: retired
+updated_at: 2026-08-29T23:59:59Z
 delivery: staged
 frd: frd-swarm-core
 plan: agent-plugins-ih18
@@ -665,26 +665,70 @@ reviewer can see rather than a line inside another one.
 
 ## Definition of Done
 
-- [ ] Every delta above is folded into its owning blueprint:
-  - [ ] [[container-swarm-cli]] — the Components roster reflects what
-        was built, the diagram matches it, and Data names the fixture
-  - [ ] [[module-bead-bonanza]] — the components that now call the CLI
-        say so, and the "Consumes (planned)" note drops "planned"
-- [ ] [[contract-swarm-json]] status: draft → active
-- [ ] The Strata sources and their generated artifacts are in step, and
-      `scripts/generate-schemas.sh --check` is green
-- [ ] New ADRs are referenced from the owning blueprints' Key Decisions
-- [ ] Every AC in the coverage table is verified at its declared level
-      and cited from its tests per [[ac-traceability-standards]]
-- [ ] The prose each delta's "Anchors" names is deleted, not merely
+- [x] Every delta above is folded into its owning blueprint:
+  - [x] [[container-swarm-cli]] — the Components roster reflects what
+        was built, the diagram matches it, and Data names the fixture.
+        Twelve components in the roster, twelve `###` sections and twelve
+        `Component(...)` nodes in the diagram, one per built package
+        under `cli/swarm`. Data gained its third entry, the end-to-end
+        fixtures under `cli/testdata/swarm-fixtures/` — `core`,
+        `status-attention` and `status-narrowed-scope`
+  - [x] [[module-bead-bonanza]] — the components that now call the CLI
+        say so, and the "Consumes" note carries no "planned". **The
+        ADOPT-MAN adoption is incomplete by decision, and the module
+        blueprint records the exception rather than claiming a clean
+        sweep:** `scripts/pre-flight-check.sh` still merges into the run
+        epic's metadata itself, so the four keys it writes bypass the
+        command's validation. Every other reader and writer of the
+        manifest in the module goes through `swarm manifest` — measured:
+        the script's own `say` line is the last `bd show … .metadata.…`
+        anywhere under `plugin/`
+- [x] [[contract-swarm-json]] status: draft → active
+- [x] The Strata sources and their generated artifacts are in step, and
+      `scripts/generate-schemas.sh --check` is green — the `schemas`
+      check in the project's declared set
+- [x] New ADRs are referenced from the owning blueprints' Key Decisions
+      — [[adr-023]] through [[adr-027]], all `approved`, all five named
+      in [[container-swarm-cli]]'s Key Decisions
+- [x] Every AC in the coverage table is verified at its declared level
+      and cited from its tests per [[ac-traceability-standards]] — all
+      45 carry a citation, and the FRD's AC set and this table's are the
+      same 45. Thirty-nine are cited by a `// AC:` comment on a unit
+      test; six by a snapshot case manifest's `ac` key, which
+      [[testing-standards]] Acceptance-Criteria Traceability accepts
+      equally. Each of the six declared `e2e` is cited from an
+      end-to-end case. **One exception:** AC-SWARM-CORE-002.13 is
+      declared `integration`, a level [[testing-standards]] does not
+      define — it names two layers, unit tests and snapshot cases. The
+      criterion is verified (`cli/swarm/cli/manifest_test.go`'s
+      `TestSetAppliesSeveralKeysAsOneMerge` and
+      `cli/swarm/manifest/beads/store_test.go`'s
+      `TestSeveralKeysInOneInvocationAreOneReadAndOneWrite`, both across
+      the command surface and the store with a fake process runner);
+      what has no definition is the word this table declares it at
+- [x] The prose each delta's "Anchors" names is deleted, not merely
       superseded — a paragraph left beside the command that replaced it
       is the drift this feature exists to end
 - [ ] `agent-plugins-offx.6`, `agent-plugins-offx.4` and
       `agent-plugins-offx.14` are closed or re-scoped against the deltas
-      that subsume them
+      that subsume them — **partially.** `offx.14` is closed: its
+      boundaries are stated in [[frd-swarm-core]]'s "What this document
+      does not do" and in [[container-swarm-cli]]'s Overview. `offx.6`
+      and `offx.4` are re-scoped and stay open: the TRK delta shipped
+      the transitive walk `offx.6` asked for, but neither the test
+      pinning both measured `bd` behaviours nor the last run-scope
+      `bd list --parent` call site went with it, and no delta here
+      touches the guards `offx.4` is about
 - [ ] The Windows leg has run at least once against the tracker install
-      [[adr-027]] targets, and its result is recorded
-- [ ] This blueprint's status → retired
+      [[adr-027]] targets, and its result is recorded — **not met, by
+      circumstance rather than by omission.** The leg exists
+      (`.github/workflows/cli.yml`, the dolt and `bd` install steps
+      under `if: matrix.os == 'windows-latest'`) and its pieces were
+      measured individually, but no run has executed it: that workflow
+      triggers only on a push to `main`, a pull request, or manual
+      dispatch, and this feature's branch has neither merged nor opened
+      one. The first non-draft pull request settles it
+- [x] This blueprint's status → retired
 
 ## Open Questions
 

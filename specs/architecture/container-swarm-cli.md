@@ -689,6 +689,20 @@ behaviour follows from.
     never a value read earlier.
   - The container SHALL clear stale worktree registrations before any
     decision reads the registration list.
+- **The end-to-end fixtures** (`cli/testdata/swarm-fixtures/`) — the only
+  data this container owns outright, and the one store it both writes and
+  reads exclusively. Each fixture is a directory holding `repository.bundle`,
+  `tracker.jsonl` and `fixture.toml`; the upper test tier restores one
+  through `git` and `bd` rather than generating a world, so a case asserts
+  against a repository and a tracker that behave like the real ones. Three
+  are committed today — `core`, `status-attention` and
+  `status-narrowed-scope`. [[adr-027]] owns the decision; Change Guidance
+  below owns the rules for re-recording one.
+  - WHEN a fixture is recorded, the contract version it was recorded
+    against SHALL be recorded with it, so a case that starts failing names
+    a shape change rather than a mystery.
+  - A fixture SHALL be restored per case rather than shared across cases,
+    so no case depends on another having run.
 
 ## Infrastructure and Deployment
 
@@ -850,7 +864,7 @@ of a tool that may be installed through npm on a Windows deployment.
 
 - [[frd-swarm-core]] — the first feature this container serves
 - [[module-bead-bonanza]] — the module whose components call this
-  container, and which names it as a planned dependency
+  container, and which names it as a dependency it consumes today
 - `docs/research/swarm-cli/2026-08-25-capability-audit.md` — the
   inventory of actions and traps this container mechanizes
 - `.claude/skills/spec/references/shared/c4-guide.md` — C4 mapping rules

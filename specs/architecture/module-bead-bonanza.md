@@ -293,6 +293,17 @@ with the run epic.
   session is expected to have its own build.
 - **Captures the checks baseline** on the untouched tree, so a
   pre-existing failure is never charged to the first bead.
+- **The one component that still writes the manifest by hand.** Every
+  other component reaches the record through `swarm manifest`; this script
+  merges into the run epic's metadata itself, with its own
+  `manifest_merge` helper over `bd update --metadata`. Its writes are
+  therefore unvalidated — the key set, the declared types and the
+  conditional-write guard the command enforces do not apply to
+  `checks_baseline`, `checks_baseline_status`, `checks_ids` or
+  `concurrency_cap` on the way in. Stated here rather than left implicit
+  because a reader who has seen the adoption elsewhere will otherwise
+  assume it is uniform, and because the gap is what a later change closes:
+  the probe adopts `swarm manifest set` like everything else.
 - Blocks the run — exit non-zero — rather than degrading, and names the
   remedy for each blocker.
 - **Does not judge the queue.** Readiness is grooming's.
@@ -647,8 +658,8 @@ None.
 Four questions from the first draft were decided by the owner and folded into
 the sections above: the merge is a Coordinator responsibility (not a
 component); `groom-beads` is a component of this module (not a module of its
-own); the `swarm` CLI is a CONTAINER that will carry its own blueprint once its
-FRD scopes it; and groom-and-plan is ONE subagent — the coordinator dispatches
+own); the `swarm` CLI is a CONTAINER carrying its own blueprint,
+[[container-swarm-cli]]; and groom-and-plan is ONE subagent — the coordinator dispatches
 `sprint-plan`, which invokes `groom-beads` in its own context.
 -->
 
