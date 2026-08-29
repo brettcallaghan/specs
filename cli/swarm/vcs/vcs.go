@@ -12,50 +12,22 @@
 package vcs
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/plan"
 )
 
-// Steps is an ordered fragment of a plan whose LAST step's value is the
-// fragment's answer.
+// Steps is the plan fragment an operation here returns: an ordered slice
+// whose last step carries the answer.
 //
-// Every operation here returns one, because one of them genuinely needs
-// two invocations — reading the standing worktrees means clearing stale
-// registrations first — and an interface where one method returns a
-// fragment and the rest return single steps is one a caller has to
-// remember the shape of. The Tracker's operations are each a single
-// invocation and return a bare step; if one ever needs two, this is the
-// type it takes.
-type Steps []plan.Step
-
-// Answer is the name of the step carrying the fragment's answer.
-func (s Steps) Answer() string {
-	if len(s) == 0 {
-		return ""
-	}
-	return s[len(s)-1].Name
-}
-
-// ValueFrom reads the fragment's answer out of a report.
-func (s Steps) ValueFrom(report plan.Report) (any, error) {
-	name := s.Answer()
-	if name == "" {
-		return nil, fmt.Errorf("vcs: an empty fragment has no answer")
-	}
-	record, ok := report.Record(name)
-	if !ok {
-		return nil, fmt.Errorf("vcs: the report has no record for step %q", name)
-	}
-	if record.Err != nil {
-		return nil, fmt.Errorf("vcs: step %q: %w", name, record.Err)
-	}
-	if record.Value == nil {
-		return nil, fmt.Errorf("vcs: step %q produced no value (%s)", name, record.Status)
-	}
-	return record.Value, nil
-}
+// An alias rather than a type of its own, so a fragment built here and
+// one built anywhere else are the same value. Every operation in this
+// interface returns one, because one of them genuinely needs two
+// invocations — reading the standing worktrees means clearing stale
+// registrations first — and an interface where one method returned a
+// fragment and the rest returned single steps is one a caller has to
+// remember the shape of.
+type Steps = plan.Steps
 
 // Worktree is one working tree registered against the repository.
 type Worktree struct {

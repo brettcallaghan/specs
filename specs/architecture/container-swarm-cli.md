@@ -420,6 +420,26 @@ Manifest Store for the document and hands one back. That split is what
 makes moving the record somewhere else a change to one small component
 rather than to the validation this container is mostly made of.
 
+It lives at `cli/swarm/manifest`, and **it does not write the key set
+down**: it reads the declaration by reflection off the generated model,
+so a key's name, its type and its stage reach reading, requiring and
+validating from the one place they are declared. A key added to
+`schemas/swarm/manifest.strata` is known to all three at once, and this
+component cannot hold a fourth opinion about any of them.
+
+Three consequences worth stating, because each is a state a reader would
+otherwise have to guess at:
+
+- **A key that is absent reads as absent**, never as an empty value of
+  its declared type. "Not yet written" and "written as nothing" are
+  different states of a run.
+- **A key this version does not know is preserved.** The record is not
+  exclusively owned, and a reader that rewrote only what it understood
+  would delete the rest.
+- **A refused write reports every reason and stores none of them.** A
+  caller that fixed one refusal and re-ran to find the next would be
+  doing the work the check exists to do.
+
 ### Manifest Store
 
 ```component
@@ -462,7 +482,26 @@ is unestablished here and is that store's author's problem, which is the
 point of the seam.
 
 It reaches beads through the Beads Tracker rather than invoking `bd`
-itself, so the rule that only two components name a tool still holds.
+itself, so the rule that only two components name a tool still holds. The
+metadata write it needs is a method on the Beads Tracker's concrete type
+and not on the Tracker interface, which is what keeps the interface free
+of an operation only one tracker is known to offer.
+
+It lives at `cli/swarm/manifest/beads`. **A conditional write is a
+two-step fragment: a read whose decoder is the guard, then the write.**
+The comparison happens in the decoder, so a key that moved makes the
+guard fail and the plan's own ordering policy is what stops the write —
+there is no conjunction to write and none to forget. The payload is known
+when the fragment is built, because the record's store merges at the top
+level: writing only the covered keys leaves every other key exactly as
+another writer left it, and the whole fragment stays renderable before
+anything runs.
+
+A key that was **absent** when the caller read must still be absent, and
+a key another writer added since is as much a concurrent change as one
+they altered. Two values are compared by their decoded content, so a
+re-encoding that spaced an object differently is not mistaken for a
+change.
 
 ### Status Collector
 

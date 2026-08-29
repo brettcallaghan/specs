@@ -205,6 +205,43 @@ type Step struct {
 	Alternatives []Alternative
 }
 
+// Steps is an ordered fragment of a plan whose LAST step's value is the
+// fragment's answer.
+//
+// It is what a component returns when one of its operations needs more
+// than a single invocation — reading the standing worktrees means
+// clearing stale registrations first; writing the manifest conditionally
+// means guarding before writing. A component whose operations all take
+// one invocation returns a bare [Step].
+type Steps []Step
+
+// Answer is the name of the step carrying the fragment's answer.
+func (s Steps) Answer() string {
+	if len(s) == 0 {
+		return ""
+	}
+	return s[len(s)-1].Name
+}
+
+// ValueFrom reads the fragment's answer out of a report.
+func (s Steps) ValueFrom(report Report) (any, error) {
+	name := s.Answer()
+	if name == "" {
+		return nil, fmt.Errorf("plan: an empty fragment has no answer")
+	}
+	record, ok := report.Record(name)
+	if !ok {
+		return nil, fmt.Errorf("plan: the report has no record for step %q", name)
+	}
+	if record.Err != nil {
+		return nil, fmt.Errorf("plan: step %q: %w", name, record.Err)
+	}
+	if record.Value == nil {
+		return nil, fmt.Errorf("plan: step %q produced no value (%s)", name, record.Status)
+	}
+	return record.Value, nil
+}
+
 // Plan is an ordered sequence of steps: what a command would do,
 // as a value.
 type Plan struct {

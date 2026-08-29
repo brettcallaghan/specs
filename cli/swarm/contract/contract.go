@@ -5,16 +5,53 @@
 // The shapes themselves are generated from schemas/swarm/*.strata and
 // live in cli/swarm/swarmmodel; nothing here restates them. What lives
 // here is the small amount of structure a schema cannot express on its
-// own: which struct declares the keys that become required at a given
-// stage of a run, derived from the stage's own name rather than from a
-// table that could disagree with it.
+// own: the order of the run's stages, and which generated struct declares
+// the manifest keys that become required at each.
 package contract
 
 import (
+	"reflect"
 	"strings"
 
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/swarmmodel"
 )
+
+// StageDeclaration pairs a stage of a run with the generated struct
+// declaring the manifest keys that become required at it.
+type StageDeclaration struct {
+	Stage swarmmodel.RunStage
+	// Type is the generated struct. Because the structs inherit in run
+	// order, each carries every key an earlier stage declares as well as
+	// its own; the first stage carrying a key is the stage that key
+	// becomes required at.
+	Type reflect.Type
+}
+
+// StageDeclarations returns the chain, in the order a run reaches it.
+//
+// This slice is the only place the chain is written in Go. The schema
+// states it a second time, structurally, by which struct inherits which —
+// and cli/swarm/contract's own tests assert the two agree, so a stage
+// added to one and not the other fails rather than drifting.
+func StageDeclarations() []StageDeclaration {
+	return []StageDeclaration{
+		{swarmmodel.RunStagePreFlight, reflect.TypeOf(swarmmodel.PreFlightKeys{})},
+		{swarmmodel.RunStageScope, reflect.TypeOf(swarmmodel.ScopeKeys{})},
+		{swarmmodel.RunStagePlan, reflect.TypeOf(swarmmodel.PlanKeys{})},
+		{swarmmodel.RunStageDispatch, reflect.TypeOf(swarmmodel.DispatchKeys{})},
+		{swarmmodel.RunStageRetro, reflect.TypeOf(swarmmodel.RetroKeys{})},
+	}
+}
+
+// Stages returns the run's stages in the order a run reaches them.
+func Stages() []swarmmodel.RunStage {
+	declarations := StageDeclarations()
+	out := make([]swarmmodel.RunStage, 0, len(declarations))
+	for _, d := range declarations {
+		out = append(out, d.Stage)
+	}
+	return out
+}
 
 // StageStructName is the name of the schema definition declaring the
 // manifest keys that become required at stage.
@@ -34,16 +71,4 @@ func StageStructName(stage swarmmodel.RunStage) string {
 	}
 	name.WriteString("Keys")
 	return name.String()
-}
-
-// Stages returns the run's stages in the order a run reaches them, which
-// is the order the manifest's key structs inherit in.
-func Stages() []swarmmodel.RunStage {
-	return []swarmmodel.RunStage{
-		swarmmodel.RunStagePreFlight,
-		swarmmodel.RunStageScope,
-		swarmmodel.RunStagePlan,
-		swarmmodel.RunStageDispatch,
-		swarmmodel.RunStageRetro,
-	}
 }

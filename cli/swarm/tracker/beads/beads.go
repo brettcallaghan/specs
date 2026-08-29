@@ -189,6 +189,30 @@ func (t Tracker) DiscoveredFrom(name, bead, origin string) plan.Step {
 	return s
 }
 
+// WriteMetadata merges a JSON object into a bead's metadata.
+//
+// Deliberately NOT on [tracker.Tracker]. An arbitrary JSON object
+// attached to an issue is a beads feature, not a property of issue
+// trackers, and this project has not established which other trackers
+// offer one — so the interface carries no metadata operation and a
+// caller that needs this reaches the beads implementation by name. That
+// is what lets the Beads Manifest Store use it without a second component
+// learning the word bd.
+//
+// Measured on bd 1.2.2: `--metadata` takes the object as an inline JSON
+// argument (no file needed), merges at the TOP level so keys it does not
+// name survive, and REPLACES a nested value wholesale — writing
+// {"k":{"b":2}} over {"k":{"a":1}} leaves {"b":2}. So a caller updating
+// one field inside a nested object writes the whole of that object.
+//
+// Repeatable: writing the same object twice leaves the same record.
+func (t Tracker) WriteMetadata(name, id string, document []byte) plan.Step {
+	s := t.step(name, plan.Write, true, decodeUpdate,
+		"update", id, "--metadata", string(document), "--json")
+	s.Description = "merge into " + id + "'s metadata"
+	return s
+}
+
 // refusing builds a step that renders normally and whose decoder refuses,
 // for an operation this tracker cannot express. The plan stays
 // explainable, and the refusal names the reason at the point the step

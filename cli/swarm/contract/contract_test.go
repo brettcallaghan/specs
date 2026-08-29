@@ -150,3 +150,28 @@ func TestAStageNamesItsOwnStruct(t *testing.T) {
 		t.Errorf("Stages() has %d entries, want %d", len(contract.Stages()), len(want))
 	}
 }
+
+// The chain stated in Go and the chain stated structurally by the schema
+// are the same chain. Without this the Go slice could name a struct the
+// schema does not inherit in that position, and a key's stage would be
+// whatever the slice happened to say.
+func TestTheGoChainAndTheSchemaChainAgree(t *testing.T) {
+	defs := definitions(t)
+
+	for _, decl := range contract.StageDeclarations() {
+		name := contract.StageStructName(decl.Stage)
+		if decl.Type.Name() != name {
+			t.Errorf("stage %q pairs with Go type %q and schema definition %q",
+				decl.Stage, decl.Type.Name(), name)
+		}
+
+		def, ok := defs[name]
+		if !ok {
+			t.Fatalf("the schema has no %q definition", name)
+		}
+		if len(def.Properties) != decl.Type.NumField() {
+			t.Errorf("%s declares %d keys in the schema and %d fields in Go",
+				name, len(def.Properties), decl.Type.NumField())
+		}
+	}
+}
