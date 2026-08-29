@@ -14,6 +14,8 @@ import (
 	"bytes"
 	"strings"
 	"testing"
+
+	"github.com/brettcallaghan/agent-plugins/cli/swarm/exec/exectest"
 )
 
 // run executes the command tree in-process against args and returns
@@ -34,12 +36,19 @@ func run(t *testing.T, args ...string) (string, string, int) {
 func usageString(t *testing.T) string {
 	t.Helper()
 
-	root := newRootCmd(&ioStreams{out: &bytes.Buffer{}, err: &bytes.Buffer{}})
+	streams := &ioStreams{out: &bytes.Buffer{}, err: &bytes.Buffer{}}
+	root := newRootCmd(streams)
+	// The same tree the binary builds, subcommands included: what a bare
+	// invocation prints is the tree as it stands, not an empty one.
+	register(root, streams, exectest.NewFake())
 	// cobra registers --help during its own Execute, not at construction,
 	// so a root that has never been executed renders a usage block with no
 	// Flags section. Registering it here is what makes the two renderings
 	// comparable.
+	// Same for the `help` command, which cobra adds during Execute once
+	// the tree has subcommands.
 	root.InitDefaultHelpFlag()
+	root.InitDefaultHelpCmd()
 	return root.UsageString()
 }
 

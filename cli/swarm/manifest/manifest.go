@@ -240,14 +240,88 @@ type Store interface {
 	Read(prefix, run string) plan.Steps
 
 	// Write declares the steps that apply changes to the record,
-	// conditional on every key in expect still holding the value it
-	// names — an absent value in expect meaning the key must still be
-	// absent. A key that moved makes the write refuse and name it.
+	// conditional on guard accepting the record as it stands at the
+	// moment the write would happen. A guard that returns an error stops
+	// the write.
+	//
+	// A predicate rather than a set of expected values, because more than
+	// one condition needs the record as it stands: whether a key moved
+	// since the caller read it, and whether the change breaks a rule that
+	// can only be seen against what is already there. A store offering
+	// only the first could not carry the second.
 	//
 	// The changes are applied as one merge, so a key the caller did not
 	// set keeps whatever another writer gave it.
 	// Answer: [Document], as written.
-	Write(prefix, run string, changes map[string]json.RawMessage, expect Document) plan.Steps
+	Write(prefix, run string, changes map[string]json.RawMessage, guard Guard) plan.Steps
+}
+
+// Guard decides whether a write may proceed, given the record as it
+// stands at the moment the write would happen. A nil Guard permits the
+// write.
+type Guard func(current Document) error
+
+// Guards composes guards, running them in order and reporting the first
+// refusal. A caller wanting every refusal at once composes the reports
+// instead; this is for the write path, where the first reason to stop is
+// enough to stop.
+func Guards(guards ...Guard) Guard {
+	return func(current Document) error {
+		for _, g := range guards {
+			if g == nil {
+				continue
+			}
+			if err := g(current); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
+// Unchanged returns the guard that refuses a write whose covered keys
+// have moved since the caller read them.
+func Unchanged(base Document, changes map[string]json.RawMessage) Guard {
+	expect := Expect(base, changes)
+	return func(current Document) error {
+		if moved := Moved(expect, current, changes); len(moved) > 0 {
+			return fmt.Errorf(
+				"%s changed since it was read; re-read the manifest and try again",
+				strings.Join(moved, ", "))
+		}
+		return nil
+	}
+}
+
+// Absent returns the guard that refuses a write to a key already present.
+// It is what --if-absent asks for: write this only if nobody has.
+func Absent(changes map[string]json.RawMessage) Guard {
+	return func(current Document) error {
+		var present []string
+		for name := range changes {
+			if _, ok := current.Get(name); ok {
+				present = append(present, name)
+			}
+		}
+		sort.Strings(present)
+		if len(present) > 0 {
+			return fmt.Errorf("%s is already written, and this write asked to set it only if absent",
+				strings.Join(present, ", "))
+		}
+		return nil
+	}
+}
+
+// Rules returns the guard that refuses a write breaking a rule only
+// visible against the record as it stands — a branch written twice, a
+// counter that went backwards, a ledger entry removed.
+func Rules(changes map[string]json.RawMessage) Guard {
+	return func(current Document) error {
+		if report := CheckWrite(current, changes); report.Failed() {
+			return fmt.Errorf("%s", report.Error())
+		}
+		return nil
+	}
 }
 
 // Expect returns the guard for a conditional write: the values the named

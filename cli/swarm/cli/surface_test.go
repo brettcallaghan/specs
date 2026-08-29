@@ -20,6 +20,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/spf13/cobra"
+
 	swarmexec "github.com/brettcallaghan/agent-plugins/cli/swarm/exec"
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/exec/exectest"
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/plan"
@@ -501,21 +503,71 @@ func TestTheSubcommandHelpNamesTheContractFlags(t *testing.T) {
 	}
 }
 
-// A guard against the registration seam quietly acquiring a second wiring
-// path: whatever register adds must be reachable from the tree Execute
-// builds.
-func TestRegisterAddsWhateverTheTreeOffers(t *testing.T) {
+// Every command a caller can INVOKE carries the four contract flags.
+//
+// A noun in the tree — `manifest` — carries none of its own: it has no
+// RunE, so it cannot be invoked, and cobra prints its verbs instead.
+// What the rule is about is the leaves, which is what this walks.
+func TestEverySubcommandInTheTreeCarriesTheContractFlags(t *testing.T) {
 	streams := &ioStreams{out: &bytes.Buffer{}, err: &bytes.Buffer{}}
 	root := newRootCmd(streams)
-	before := len(root.Commands())
 	register(root, streams, exectest.NewFake())
 
-	if len(root.Commands()) < before {
-		t.Error("register removed a command from the tree")
+	var leaves int
+	var walk func(*cobra.Command)
+	walk = func(cmd *cobra.Command) {
+		for _, child := range cmd.Commands() {
+			walk(child)
+		}
+		if cmd == root {
+			// The root's RunE prints the tree and exits malformed; it is
+			// not a command a caller invokes for an answer.
+			return
+		}
+		if cmd.RunE == nil && cmd.Run == nil {
+			// A noun in the tree — it cannot be invoked, and cobra prints
+			// its verbs instead.
+			return
+		}
+		leaves++
+		for _, name := range []string{"explain", "dry-run", "json", "run"} {
+			if cmd.Flags().Lookup(name) == nil {
+				t.Errorf("%q does not carry --%s", cmd.CommandPath(), name)
+			}
+		}
 	}
+	walk(root)
+
+	// The walk has to have reached something, or the rule holds vacuously.
+	if leaves == 0 {
+		t.Fatal("the tree offers no invocable command")
+	}
+}
+
+// The commands this delta adds are in the tree, under the noun they
+// belong to.
+func TestTheManifestCommandsAreRegistered(t *testing.T) {
+	streams := &ioStreams{out: &bytes.Buffer{}, err: &bytes.Buffer{}}
+	root := newRootCmd(streams)
+	register(root, streams, exectest.NewFake())
+
+	var manifest *cobra.Command
 	for _, c := range root.Commands() {
-		if c.Flags().Lookup("json") == nil {
-			t.Errorf("subcommand %q does not carry --json, so it was not built by newSubcommand", c.Name())
+		if c.Name() == "manifest" {
+			manifest = c
+		}
+	}
+	if manifest == nil {
+		t.Fatal("the tree offers no `manifest` command")
+	}
+
+	offered := map[string]bool{}
+	for _, c := range manifest.Commands() {
+		offered[c.Name()] = true
+	}
+	for _, want := range []string{"get", "set", "require", "validate"} {
+		if !offered[want] {
+			t.Errorf("`swarm manifest` does not offer %q", want)
 		}
 	}
 }

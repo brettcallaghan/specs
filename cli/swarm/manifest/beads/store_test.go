@@ -103,7 +103,7 @@ func TestAWriteNamesOnlyTheKeysItCoversSoTheOthersCannotBeTouched(t *testing.T) 
 	}))
 	changes := raw(map[string]string{"review_passes": `2`})
 
-	steps := store().Write("write", runEpic, changes, manifest.Expect(base, changes))
+	steps := store().Write("write", runEpic, changes, manifest.Unchanged(base, changes))
 	report, err := (plan.Runner{Exec: fake}).Run(context.Background(),
 		plan.Plan{Steps: steps}, plan.ModeExecute)
 	if err != nil {
@@ -149,7 +149,7 @@ func TestAWriteThatWouldClobberAConcurrentChangeIsRefusedNamingTheKey(t *testing
 	base := manifest.NewDocument(raw(map[string]string{"review_passes": `1`}))
 	changes := raw(map[string]string{"review_passes": `3`})
 
-	steps := store().Write("write", runEpic, changes, manifest.Expect(base, changes))
+	steps := store().Write("write", runEpic, changes, manifest.Unchanged(base, changes))
 	report, err := (plan.Runner{Exec: fake}).Run(context.Background(),
 		plan.Plan{Steps: steps}, plan.ModeExecute)
 	if err != nil {
@@ -189,7 +189,7 @@ func TestAWriteAgainstAnUnchangedRecordGoesThrough(t *testing.T) {
 	base := manifest.NewDocument(raw(map[string]string{"review_passes": `1`}))
 	changes := raw(map[string]string{"review_passes": `2`})
 
-	steps := store().Write("write", runEpic, changes, manifest.Expect(base, changes))
+	steps := store().Write("write", runEpic, changes, manifest.Unchanged(base, changes))
 	report, err := (plan.Runner{Exec: fake}).Run(context.Background(),
 		plan.Plan{Steps: steps}, plan.ModeExecute)
 	if err != nil {
@@ -223,7 +223,7 @@ func TestAKeyThatAppearedAfterTheReadIsAConcurrentChange(t *testing.T) {
 	base := manifest.NewDocument(nil) // the caller saw no findings_path
 	changes := raw(map[string]string{"findings_path": `"docs/retros/ours.md"`})
 
-	steps := store().Write("write", runEpic, changes, manifest.Expect(base, changes))
+	steps := store().Write("write", runEpic, changes, manifest.Unchanged(base, changes))
 	report, err := (plan.Runner{Exec: fake}).Run(context.Background(),
 		plan.Plan{Steps: steps}, plan.ModeExecute)
 	if err != nil {
@@ -253,7 +253,7 @@ func TestSeveralKeysInOneInvocationAreOneReadAndOneWrite(t *testing.T) {
 		"target":        `"run-1.target"`,
 	})
 
-	steps := store().Write("write", runEpic, changes, manifest.Document{})
+	steps := store().Write("write", runEpic, changes, nil)
 	if len(steps) != 2 {
 		t.Fatalf("a four-key write declares %d steps, want 2", len(steps))
 	}
@@ -287,7 +287,7 @@ func TestADryRunPerformsTheGuardAndRefusesTheWrite(t *testing.T) {
 	base := manifest.NewDocument(raw(map[string]string{"review_passes": `1`}))
 	changes := raw(map[string]string{"review_passes": `2`})
 
-	steps := store().Write("write", runEpic, changes, manifest.Expect(base, changes))
+	steps := store().Write("write", runEpic, changes, manifest.Unchanged(base, changes))
 	report, err := (plan.Runner{Exec: fake}).Run(context.Background(),
 		plan.Plan{Steps: steps}, plan.ModeDryRun)
 	if err != nil {

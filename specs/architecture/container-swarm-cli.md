@@ -172,6 +172,28 @@ implements any of them a second time.
 - **The plan runner's output is captured rather than streamed**, so a
   `--json` envelope is never preceded on standard output by transcript
   lines that would corrupt it, and both forms carry the same transcript.
+- **A subcommand may declare flags of its own**, bound after the four
+  every subcommand carries — so a subcommand cannot redeclare one of them
+  without cobra saying so.
+- **When the plan's ordering guard stops a command, the stopping step's
+  reason is what the caller is told.** Reading the fragment's answer
+  instead would report "the last step produced no value", which is true
+  and useless.
+
+The tree so far is `swarm manifest get | set | require | validate`.
+`manifest` is a noun with no `RunE`: it cannot be invoked, and cobra
+prints its verbs instead — so the rule that every subcommand carries the
+contract flags is about the leaves, and that is what the surface's own
+test walks.
+
+Two renderings a caller should expect from `get`: a manifest value is
+reported with the fact kind its JSON has — text, count, flag or list —
+and **an object is reported as text carrying its JSON**, because the
+contract declares four kinds and inventing a fifth here would put a shape
+in the envelope the schema does not. `validate` without `--stage`
+validates against the stage the record has reached and reports both the
+stage and that it was derived, since a caller reading a clean result has
+to know what it was clean against.
 
 ### Plan Runner
 

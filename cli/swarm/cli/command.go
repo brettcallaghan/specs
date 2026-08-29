@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 
 	swarmexec "github.com/brettcallaghan/agent-plugins/cli/swarm/exec"
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/plan"
@@ -44,6 +45,12 @@ type Spec struct {
 	// report. It is never called in explain mode, which runs nothing and
 	// therefore has nothing to interpret.
 	Interpret func(Request, plan.Report) (Result, error)
+	// Flags declares the flags this subcommand carries beyond the four
+	// every subcommand carries. Optional.
+	//
+	// The contract flags are bound first and are not passed here, so a
+	// subcommand cannot redeclare one of them without cobra saying so.
+	Flags func(*pflag.FlagSet)
 }
 
 // newSubcommand builds the cobra command for spec.
@@ -137,6 +144,10 @@ func newSubcommand(spec Spec, streams *ioStreams, runner swarmexec.Runner) *cobr
 		"machine-readable output carrying the same facts as the text form")
 	cmd.Flags().StringVar(&runID, "run", "",
 		"the run epic this command is scoped to")
+
+	if spec.Flags != nil {
+		spec.Flags(cmd.Flags())
+	}
 
 	return cmd
 }

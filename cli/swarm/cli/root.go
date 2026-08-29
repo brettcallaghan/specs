@@ -26,6 +26,8 @@ import (
 	"github.com/spf13/cobra"
 
 	swarmexec "github.com/brettcallaghan/agent-plugins/cli/swarm/exec"
+	manifestbeads "github.com/brettcallaghan/agent-plugins/cli/swarm/manifest/beads"
+	beadstracker "github.com/brettcallaghan/agent-plugins/cli/swarm/tracker/beads"
 )
 
 // ioStreams carries the two output streams a run writes to and the exit
@@ -65,13 +67,9 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 // adding a command touches, and it takes the process runner every
 // subcommand's plan goes through so that a test can supply a fake in its
 // place without a second wiring path.
-//
-// It is empty because no delta has added a command yet: the surface
-// itself is what this delta delivers.
 func register(root *cobra.Command, streams *ioStreams, runner swarmexec.Runner) {
-	_ = root
-	_ = streams
-	_ = runner
+	store := manifestbeads.Store{Tracker: beadstracker.Tracker{}}
+	root.AddCommand(manifestCmd(streams, store, runner))
 }
 
 // dispatch runs the tree and turns what comes back into a process exit

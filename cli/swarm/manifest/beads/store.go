@@ -59,11 +59,11 @@ func (s Store) Read(prefix, run string) plan.Steps {
 // store merges at the top level: writing only the changed keys leaves
 // every other key exactly as another writer left it. That is what keeps
 // the whole fragment renderable before anything runs.
-func (s Store) Write(prefix, run string, changes map[string]json.RawMessage, expect manifest.Document) plan.Steps {
-	guard := s.Tracker.Bead(prefix+"-guard", run)
-	guard.Description = "check no key this write covers has moved"
-	guard.OnFailure = plan.Stop
-	guard.Decode = guarding(documentFrom(guard.Decode), expect, changes)
+func (s Store) Write(prefix, run string, changes map[string]json.RawMessage, guard manifest.Guard) plan.Steps {
+	step := s.Tracker.Bead(prefix+"-guard", run)
+	step.Description = "check the record still permits this write"
+	step.OnFailure = plan.Stop
+	step.Decode = guarding(documentFrom(step.Decode), guard)
 
 	payload, err := json.Marshal(changes)
 	if err != nil {
@@ -74,13 +74,13 @@ func (s Store) Write(prefix, run string, changes map[string]json.RawMessage, exp
 		refusal := fmt.Errorf("manifest/beads: encoding the write for %s: %w", run, err)
 		write := s.Tracker.WriteMetadata(prefix+"-write", run, payload)
 		write.Decode = func(swarmexec.Result) (any, error) { return nil, refusal }
-		return plan.Steps{guard, write}
+		return plan.Steps{step, write}
 	}
 
 	write := s.Tracker.WriteMetadata(prefix+"-write", run, payload)
 	write.Description = fmt.Sprintf("merge %s into %s's run manifest", keyList(changes), run)
 	write.Decode = documentFrom(write.Decode)
-	return plan.Steps{guard, write}
+	return plan.Steps{step, write}
 }
 
 // documentFrom wraps a bead decoder so the step's value is the manifest
@@ -99,8 +99,10 @@ func documentFrom(decode plan.Decoder) plan.Decoder {
 	}
 }
 
-// guarding wraps a document decoder with the concurrent-write check.
-func guarding(decode plan.Decoder, expect manifest.Document, changes map[string]json.RawMessage) plan.Decoder {
+// guarding wraps a document decoder with the write's condition, so the
+// check happens where the record is read and the plan's own ordering
+// policy is what stops the write.
+func guarding(decode plan.Decoder, guard manifest.Guard) plan.Decoder {
 	return func(res swarmexec.Result) (any, error) {
 		value, err := decode(res)
 		if err != nil {
@@ -110,10 +112,10 @@ func guarding(decode plan.Decoder, expect manifest.Document, changes map[string]
 		if !ok {
 			return nil, fmt.Errorf("manifest/beads: the guard read %T, not a manifest document", value)
 		}
-		if moved := manifest.Moved(expect, current, changes); len(moved) > 0 {
-			return nil, fmt.Errorf(
-				"manifest/beads: refusing the write — %s changed since it was read; re-read the manifest and try again",
-				strings.Join(moved, ", "))
+		if guard != nil {
+			if err := guard(current); err != nil {
+				return nil, fmt.Errorf("manifest/beads: refusing the write — %w", err)
+			}
 		}
 		return current, nil
 	}
