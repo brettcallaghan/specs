@@ -182,6 +182,16 @@ type Step struct {
 	// OnFailure is what the interpreter does when this step fails. The
 	// zero value is [Stop].
 	OnFailure Failure
+	// Answers are the exit statuses this step treats as having answered
+	// rather than failed, beyond 0 which always does. Empty means only 0.
+	//
+	// Some tools report an answer through the status rather than through
+	// the output: `git merge-base --is-ancestor` exits 0 for yes, 1 for
+	// no and 128 when a revision does not resolve. Without this, "no"
+	// would trip the ordering guard and publish no value — a legitimate
+	// answer read as a failure, which is the mirror image of the failure
+	// read as a pass that this container exists to remove.
+	Answers []int
 	// Effect declares whether the step reads or writes. Dry-run runs the
 	// reads and refuses the writes.
 	Effect Effect
@@ -243,9 +253,15 @@ type Record struct {
 	// separately, because the streams are separate.
 	StdoutDigest string
 	StderrDigest string
+	// Answered records whether the step's exit status is one it declared
+	// as an answer — 0, or one of its [Step.Answers]. It is on the record
+	// rather than recomputed because the record outlives the step value
+	// it came from.
+	Answered bool
 	// Value is what the step's decoder made of the result, nil when the
-	// step did not run, its decoder failed, or the process exited
-	// non-zero. It is here rather than only in the interpreter's internal
+	// step did not run, its decoder failed, or the process exited with a
+	// status the step does not answer with. It is here rather than only
+	// in the interpreter's internal
 	// state because a reference argument is not the only reader of a
 	// decoded result: a command turning a plan's outcome into facts reads
 	// them from the report, and a decoder whose output nothing can reach
@@ -264,7 +280,7 @@ type Record struct {
 
 // Failed reports whether the step is a failure for the purpose of the
 // ordering guard: it could not run, its decoder refused the result, or
-// the process exited non-zero.
+// the process exited with a status the step does not answer with.
 //
 // A refused or skipped step is not a failure — it is an outcome the
 // interpreter chose — so it never stops a plan on its own.
@@ -272,7 +288,20 @@ func (r Record) Failed() bool {
 	if r.Status != StepRan {
 		return false
 	}
-	return r.Err != nil || r.ExitStatus != 0
+	return r.Err != nil || !r.Answered
+}
+
+// answers reports whether status is one this step treats as an answer.
+func (s Step) answers(status int) bool {
+	if status == 0 {
+		return true
+	}
+	for _, a := range s.Answers {
+		if a == status {
+			return true
+		}
+	}
+	return false
 }
 
 // Report is what an interpreted plan produced.

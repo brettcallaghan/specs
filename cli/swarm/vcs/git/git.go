@@ -1,0 +1,175 @@
+// Package git implements [vcs.VersionControl] over the `git` command
+// line, with a decoder per subcommand — per the Git Version Control
+// component in specs/architecture/container-swarm-cli.md.
+//
+// This is the only component that knows the word `git`. Everything above
+// it asks in the run's vocabulary, so a git behaviour that changes
+// changes one decoder here.
+//
+// Every operation returns plan steps: argv vectors and the decoders for
+// what comes back. Nothing here starts a process.
+package git
+
+import (
+	"fmt"
+	"strconv"
+
+	swarmexec "github.com/brettcallaghan/agent-plugins/cli/swarm/exec"
+	"github.com/brettcallaghan/agent-plugins/cli/swarm/plan"
+	"github.com/brettcallaghan/agent-plugins/cli/swarm/vcs"
+)
+
+// executable is the tool this implementation is coupled to. It is the one
+// place the name appears, and a test asserts that no other non-test
+// source file under cli/swarm carries it.
+const executable = "git"
+
+// VersionControl is [vcs.VersionControl] over `git`.
+//
+// Git is the executable to invoke, empty meaning the default. Dir is the
+// repository or worktree to invoke it in, empty meaning the process's own
+// directory.
+type VersionControl struct {
+	Git string
+	Dir string
+}
+
+var _ vcs.VersionControl = VersionControl{}
+
+func (v VersionControl) tool() string {
+	if v.Git != "" {
+		return v.Git
+	}
+	return executable
+}
+
+func (v VersionControl) step(name string, effect plan.Effect, repeatable bool, decode plan.Decoder, args ...string) plan.Step {
+	as := make([]plan.Arg, len(args))
+	for i, a := range args {
+		as[i] = plan.Lit(a)
+	}
+	return plan.Step{
+		Name:       name,
+		Executable: v.tool(),
+		Args:       as,
+		Dir:        v.Dir,
+		Decode:     decode,
+		Effect:     effect,
+		Repeatable: repeatable,
+	}
+}
+
+// Worktrees clears stale registrations and then reads the standing ones.
+//
+// Two invocations, in that order, because a registration whose directory
+// has been deleted is still listed at exit 0 — measured, with a
+// `prunable gitdir file points to non-existent location` line — and reads
+// as a live worktree to everything above. The prune is a write, so a dry
+// run refuses it; the list's decoder drops prunable entries as well, which
+// is what keeps the answer right in that one mode.
+func (v VersionControl) Worktrees(prefix string) vcs.Steps {
+	prune := v.step(prefix+"-prune", plan.Write, true, discard,
+		"worktree", "prune")
+	prune.Description = "clear registrations whose working tree is gone"
+
+	list := v.step(prefix+"-list", plan.Read, true, decodeWorktreeList,
+		"worktree", "list", "--porcelain")
+	list.Description = "the standing working trees"
+
+	return vcs.Steps{prune, list}
+}
+
+// Commits reads the most recent commits on a revision, newest first.
+//
+// The format is asked for with NUL separators rather than parsed out of a
+// rendered log: a commit subject may contain anything, and this run's own
+// subjects carry a bead id, a priority and a title.
+func (v VersionControl) Commits(prefix, revision string, limit int) vcs.Steps {
+	args := []string{"log", "--format=%H%x00%ct%x00%s"}
+	if limit > 0 {
+		args = append(args, "-n", strconv.Itoa(limit))
+	}
+	args = append(args, revision)
+
+	s := v.step(prefix, plan.Read, true, decodeCommits, args...)
+	s.Description = "the most recent commits on " + revision
+	return vcs.Steps{s}
+}
+
+// Branches reads the local branches and where each points.
+func (v VersionControl) Branches(prefix string) vcs.Steps {
+	s := v.step(prefix, plan.Read, true, decodeBranches,
+		"for-each-ref", "--format=%(refname:short)%00%(objectname)%00%(upstream:short)", "refs/heads/")
+	s.Description = "the local branches"
+	return vcs.Steps{s}
+}
+
+// Descends reports whether ancestor is an ancestor of descendant.
+//
+// The answer is the exit status: 0 yes, 1 no, 128 when a revision does
+// not resolve. The step declares 1 as an answer so a legitimate "no" does
+// not trip the ordering guard, and leaves 128 a failure so an
+// unresolvable revision is not silently reported as "no" — which is the
+// answer that would let a dispatch branch cut from the wrong base pass
+// its own guard.
+func (v VersionControl) Descends(prefix, ancestor, descendant string) vcs.Steps {
+	s := v.step(prefix, plan.Read, true, decodeAncestry,
+		"merge-base", "--is-ancestor", ancestor, descendant)
+	s.Answers = []int{1}
+	s.Description = fmt.Sprintf("is %s an ancestor of %s", ancestor, descendant)
+	return vcs.Steps{s}
+}
+
+// Resolve turns a revision into the commit it names.
+func (v VersionControl) Resolve(prefix, revision string) vcs.Steps {
+	s := v.step(prefix, plan.Read, true, decodeRevision,
+		"rev-parse", "--verify", revision+"^{commit}")
+	s.Description = "resolve " + revision
+	return vcs.Steps{s}
+}
+
+// Divergence compares a local branch against its remote.
+//
+// A branch with no upstream makes this fail rather than answer zero:
+// measured, git exits 128 with "no upstream configured", and reporting
+// that as "in step with its remote" would be the silent wrong answer.
+func (v VersionControl) Divergence(prefix, branch string) vcs.Steps {
+	s := v.step(prefix, plan.Read, true, decodeDivergence,
+		"rev-list", "--count", "--left-right", branch+"..."+branch+"@{upstream}")
+	s.Description = "how far " + branch + " stands from its remote"
+	return vcs.Steps{s}
+}
+
+// Merge folds a branch into the current one and reads back the commit it
+// made.
+//
+// --no-ff so the merge is always a commit a run can find; a fast-forward
+// would leave nothing naming what was merged. The merge stops the plan on
+// failure, which is the ordering guard the whole container is built
+// around: a worktree removal chained after a merge that exited non-zero
+// is the incident this design exists to prevent.
+//
+// Re-running is not safe: a second merge of the same branch either
+// reports nothing to do or conflicts, and neither is what the caller
+// asked for.
+func (v VersionControl) Merge(prefix, branch, message string) vcs.Steps {
+	merge := v.step(prefix+"-merge", plan.Write, false, discard,
+		"merge", "--no-ff", "-m", message, branch)
+	merge.Description = "fold " + branch + " in"
+
+	read := v.step(prefix+"-commit", plan.Read, true, decodeMerged,
+		"log", "--format=%H%x00%ct%x00%s", "-n", "1", "HEAD")
+	read.Description = "the merge commit"
+
+	return vcs.Steps{merge, read}
+}
+
+// discard is the decoder for a step whose output carries nothing the run
+// reads. It still fails on a non-zero status, so the step is guarded like
+// any other.
+func discard(res swarmexec.Result) (any, error) {
+	if !res.Succeeded() {
+		return nil, failure("git", res)
+	}
+	return nil, nil
+}

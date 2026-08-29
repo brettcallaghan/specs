@@ -208,6 +208,13 @@ a caller has to know and cannot read off the roster:
 - **A failed step publishes no value**, so a later step referencing it is
   skipped with its reason recorded rather than being handed whatever the
   failing tool printed.
+- **A step may declare the exit statuses it answers with.** Some tools
+  report an answer through the status rather than the output —
+  `git merge-base --is-ancestor` exits 1 for "no" — and without the
+  declaration a legitimate "no" would trip the ordering guard and publish
+  no value, which is the mirror image of the failure-read-as-a-pass this
+  container exists to remove. A status the step did not declare is still
+  a failure.
 
 The per-step record carries a digest of each stream — `sha256:<hex>`,
 separately per stream — rather than the bytes: a record is an audit line,
@@ -347,6 +354,15 @@ worktree registrations, merges, and the comparison of a local branch
 against its remote. Stated in the run's vocabulary — a dispatch's branch,
 the sprint branch, a standing worktree — rather than in any one system's.
 
+It lives at `cli/swarm/vcs`. Its operations return a **fragment** — an
+ordered slice of steps whose last one carries the answer — rather than a
+single step, because one of them genuinely needs two invocations: reading
+the standing worktrees means clearing stale registrations first. An
+interface where one method returned a fragment and the rest returned
+single steps would be one a caller has to remember the shape of. The
+Tracker's operations are each a single invocation and return a bare step;
+if one ever needs two, this is the type it takes.
+
 ### Git Version Control
 
 ```component
@@ -359,7 +375,33 @@ description: Version Control implemented over the git command line, one decoder 
 decoder per subcommand as the tracker implementation has. Registration
 pruning belongs here, because a stale registration reads as a live
 worktree to everything above it. This is the only component that knows
-the word `git`.
+the word `git`, and that is enforced the same way the tracker's half is:
+a test parses every non-test source file under `cli/swarm` and fails if
+any outside `cli/swarm/vcs/git` carries the executable's name.
+
+Measured on git 2.43.0, in this repository and in a scratch repository
+for the case that needs a deliberately broken registration:
+
+| invocation | what it does |
+|---|---|
+| `git worktree list --porcelain` | exit 0. A registration whose directory was deleted is **still listed**, with a `prunable <reason>` line — so it reads as a live worktree |
+| `git worktree prune` | exit 0, and the stale entry is gone |
+| `git merge-base --is-ancestor A B` | **exit 0 yes, exit 1 no, exit 128 when a revision does not resolve** |
+| `git rev-parse <missing>` | exit 128 — **and it echoes the argument on stdout**, so a decoder reading stdout before the status takes a branch name for a commit id |
+| `git rev-list --count --left-right <b>...<b>@{upstream}` | exit 128 with "no upstream configured" when there is none, which is a condition rather than a crash |
+
+Three consequences the code carries:
+
+- **Worktrees prunes and then lists, and the list's decoder drops
+  prunable entries too.** The prune is a write, so a dry run refuses it;
+  the filter is what keeps the answer right in that one mode.
+- **Ancestry's answer is its exit status**, which is why the step
+  declares 1 as an answer beside 0 while leaving 128 a failure. Reporting
+  an unresolvable revision as "not an ancestor" is the answer that would
+  let a dispatch branch cut from the wrong base pass its own guard.
+- **A commit is read through a requested format with NUL separators**,
+  never out of a rendered log. A run's own commit subjects carry a bead
+  id, a priority and a title, and a subject may contain anything.
 
 ### Manifest
 

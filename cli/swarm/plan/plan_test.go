@@ -634,6 +634,69 @@ func TestTheRecordCarriesWhatTheDecoderMadeOfTheResult(t *testing.T) {
 	}
 }
 
+// A tool whose exit status IS the answer declares the statuses it answers
+// with, so a legitimate "no" does not trip the ordering guard. `git
+// merge-base --is-ancestor` is the case: measured on git 2.43.0, exit 0
+// for yes, exit 1 for no, exit 128 when a revision does not resolve.
+func TestAStepMayDeclareTheExitStatusesItAnswersWith(t *testing.T) {
+	decode := func(res swarmexec.Result) (any, error) { return res.ExitStatus == 0, nil }
+
+	ancestry := func(name string, status int) plan.Step {
+		return plan.Step{
+			Name: name, Executable: "git", Effect: plan.Read, Repeatable: true,
+			Answers: []int{1}, Decode: decode,
+			Args: []plan.Arg{plan.Lit("merge-base"), plan.Lit("--is-ancestor"), plan.Lit(name)},
+		}
+	}
+
+	fake := exectest.NewFake(
+		exectest.Recording{Argv: []string{"git", "merge-base", "--is-ancestor", "yes"}},
+		exectest.Recording{Argv: []string{"git", "merge-base", "--is-ancestor", "no"}, ExitStatus: 1},
+		exectest.Recording{Argv: []string{"git", "merge-base", "--is-ancestor", "bad"}, ExitStatus: 128,
+			Stderr: []byte("fatal: Not a valid object name deadbeef\n")},
+		exectest.Recording{Argv: []string{"git", "status"}},
+	)
+
+	p := plan.Plan{Steps: []plan.Step{
+		ancestry("yes", 0), ancestry("no", 1), ancestry("bad", 128),
+		{Name: "after", Executable: "git", Effect: plan.Read, Args: []plan.Arg{plan.Lit("status")}},
+	}}
+
+	report, err := (plan.Runner{Exec: fake}).Run(context.Background(), p, plan.ModeExecute)
+	if err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+
+	yes, _ := report.Record("yes")
+	if yes.Failed() || yes.Value != true {
+		t.Errorf("exit 0: Failed=%v Value=%v, want false/true", yes.Failed(), yes.Value)
+	}
+
+	// The point of the field: exit 1 is an answer, so the step did not
+	// fail and its value was published.
+	no, _ := report.Record("no")
+	if no.Failed() {
+		t.Error("exit 1: the step is reported as failed though it declared 1 as an answer")
+	}
+	if no.Value != false {
+		t.Errorf("exit 1: Value = %v, want false", no.Value)
+	}
+
+	// A status it did NOT declare is still a failure, and the plan stops.
+	bad, _ := report.Record("bad")
+	if !bad.Failed() {
+		t.Error("exit 128: the step is not reported as failed though it declared only 1 as an answer")
+	}
+	if report.Stopped != "bad" {
+		t.Errorf("Report.Stopped = %q, want %q", report.Stopped, "bad")
+	}
+	for _, argv := range fake.Argvs() {
+		if strings.Join(argv, " ") == "git status" {
+			t.Error("the step after an undeclared status ran")
+		}
+	}
+}
+
 func TestAnUnselectedAlternativeIsNotRun(t *testing.T) {
 	fake := exectest.NewFake(
 		exectest.Recording{Argv: []string{"git", "merge", "dev-1"}},

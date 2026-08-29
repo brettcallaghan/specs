@@ -203,6 +203,7 @@ func (r Runner) interpret(
 		record.Duration = res.Duration
 		record.StdoutDigest = digest(res.Stdout)
 		record.StderrDigest = digest(res.Stderr)
+		record.Answered = runErr == nil && s.answers(res.ExitStatus)
 
 		if runErr != nil {
 			record.Err = runErr
@@ -210,7 +211,7 @@ func (r Runner) interpret(
 			value, decodeErr := decode(s, res)
 			if decodeErr != nil {
 				record.Err = fmt.Errorf("plan: step %q: %w", s.Name, decodeErr)
-			} else if res.Succeeded() {
+			} else if record.Answered {
 				// A failed step's value is not published: a later step
 				// referencing it would otherwise be handed whatever a
 				// failing tool happened to print.
