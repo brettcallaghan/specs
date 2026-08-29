@@ -48,11 +48,11 @@ is true" from git and the tracker rather than from what an agent reported.
   *what* work exists.
 - **Composed into:** the `sf` plugin, loaded by a skill-capable agent harness.
   No host container has a blueprint of its own.
-- **Consumes (planned):** the `swarm` CLI — [[container-swarm-cli]], a
-  **container** in its own right. The command sequences these components
-  prescribe today are what it mechanizes; this module will call it rather
-  than contain it. [[frd-swarm-core]] is the first of its features to be
-  specified.
+- **Consumes:** the `swarm` CLI — [[container-swarm-cli]], a **container** in
+  its own right. The command sequences these components prescribed by hand are
+  what it mechanizes; this module calls it rather than containing it. The run
+  manifest is reached through `swarm manifest`, and a run's progress,
+  completion and per-dispatch drain through `swarm status`.
 - **Source & tests:** `plugin/skills/{bead-bonanza,sprint-*,run-batch}`,
   `plugin/hooks`, `plugin/monitors`. Scripts carry `--self-test` in-file;
   there is no separate test tree.
@@ -165,7 +165,7 @@ C4Component
         Component(dev, "Developer", "skill", "Works a batch bead by bead; one commit each")
         Component(checks, "Check Runner", "script", "Runs the project's declared checks in declaration order")
         Component(close, "Bead Close Ceremony", "script", "Closes the bead and commits its code as one act")
-        Component(status, "Swarm Status Probe", "script", "Answers what is true of the run, from state alone")
+        Component(status, "Swarm Status Probe", "script", "Answers what is true of the branch and of one bead, from state alone")
         Component(review, "Review", "skill", "Resolves and runs a reviewer, files findings, classifies scope")
         Component(retro, "Retro", "skill", "Answers how the next run goes better; writes the run's record")
         Component(recover, "Recovery", "skill", "Reconstructs a run nobody is holding; internal to the Coordinator")
@@ -203,7 +203,7 @@ component answers, and the question it is most often wrongly given.
 | **Developer** | is this bead implemented, validated and committed? | whether its branch may land |
 | **Check Runner** | do the project's declared checks pass on this change? | what the bar is — the baseline decides |
 | **Bead Close Ceremony** | did this bead's closure and its code land as one commit? | whether the work is correct |
-| **Swarm Status Probe** | what is true of this run right now? | what to do about it |
+| **Swarm Status Probe** | what is true of this branch, and of this bead? | what is true of the run as a whole — `swarm status` measures that |
 | **Review** | what is wrong with this run's own diff, and is fixing it in scope? | the reading of the diff (a declared reviewer does that), or whether to loop again |
 | **Retro** | how do we do better on the next run? | whether a finding becomes work — a human decides |
 | **Recovery** | what state is this run actually in? | how to finish it |
@@ -235,6 +235,10 @@ run and for resuming one alike.
 - **Spawns the subagents**, one per batch, each in its own worktree.
 - **Monitors them**, and recovers a dispatch that stopped, stalled or died
   rather than waiting on it.
+- **Asks where the run is with `swarm status`, and routes on its exit
+  status** — progress, completion and each dispatch's drain state are
+  measured there rather than derived here, and it never writes a health label
+  of its own.
 - **When something goes wrong, works out a solution** and records the
   decision. It does not stop to ask.
 - **Owns the run manifest** and the run's amendments (`amend:` comments).
@@ -424,25 +428,26 @@ description: Closes one bead in the tracker and commits its code as one act, in 
 ```component
 title: Swarm Status Probe
 slug: component-bb-status
-description: Answers what is true of a swarm run at three scopes — the run, its branch, and one bead — from git and the tracker
+description: Answers what is true of a swarm run's branch, its beads and its findings — from git and the tracker
 ```
 
 (script — `scripts/bb-status.sh`) — read-only; repairs nothing. **"Run" means
-the swarm run throughout.** One component, four modes, all about the same run:
+the swarm run throughout.** One component, three modes, all about the same run:
 
 | mode | scope | answers |
 |---|---|---|
-| `run <epic>` | the whole swarm | counts, derived health, readiness, the Definition of Done |
 | `branch` | the run's branch | is the tree clean, and did the branch land? Needs no epic, so it runs before anything else is known |
 | `bead <id>` | one bead | the five acceptance signals, in order |
 | `harvest` | the run's findings | is the `retro:` total non-zero — a zero is a broken pipeline, not a flawless run |
+
+**The run as a whole is not its scope.** `swarm status --run <epic>` measures
+progress, completion and per-dispatch drain; a `run` mode here would be a
+second answer to a question the CLI already owns.
 
 - Verifies a bead's acceptance signals in order and stops at the first
   failure.
 - Reports the branch's cleanliness and whether it **landed**, which is
   the only signal separating a pushed run from a stranded one.
-- **Derives run health** from standing worktrees, the age of the last
-  commit and the depth of the ready front.
 - Names what it **cannot** verify, so a clean report never implies a
   clean run.
 - Prints the command behind each line, so any single check is re-runnable

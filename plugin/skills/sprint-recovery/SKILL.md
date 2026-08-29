@@ -111,13 +111,12 @@ copy.
 4. **Run the scripts; do not derive by hand.**
 
    ```sh
-   git worktree prune                      # stale registrations read as in-flight forever
-   "$SCRIPTS/bb-status.sh" run <epic>      # scope, counts, derived health, readiness, DoD
+   swarm status --run <epic>      # worktrees, last commit, ready front, drain, completion
    ```
 
-   `git worktree prune` first is not optional: a reclaimed container leaves
-   directories deleted but still registered, and a stale entry reads as
-   in-flight forever.
+   It prunes stale worktree registrations before it counts them, which is not
+   optional: a reclaimed container leaves directories deleted but still
+   registered, and a stale entry reads as in-flight forever.
 
 5. **Classify what the scripts flagged — this is the judgment, and it is what
    remains yours.** Each surviving worktree's checked-out branch is **named for

@@ -24,7 +24,7 @@ disagreement is a finding worth recording.
 
 ```
 pre-flight-check.sh [<epic-id>] [--json] [--self-test]          # sandbox ON
-bb-status.sh bead <id> [--worktree <path>] [--pre-merge] | branch | run <epic> | harvest
+bb-status.sh bead <id> [--worktree <path>] [--pre-merge] | branch | harvest
 sprint-cleanup.sh <epic-id> [--dry-run]
 bb-close-bead.sh [--trailers-from <epic>] <bead-id> <priority> <title>
 ```
@@ -50,8 +50,7 @@ The last one is the recovery path only — see its entry below.
 - **`scripts/bb-status.sh`** — read-only; repairs nothing. `bead` verifies the
   five acceptance signals in order; `branch` reports tree cleanliness, the
   landing check (unpushed commits against the upstream) and surviving
-  worktrees; `run` reports scope, counts, derived health, readiness and the
-  Definition of Done; `harvest` asserts a run's `retro:` total is non-zero,
+  worktrees; `harvest` asserts a run's `retro:` total is non-zero,
   since a zero total is a broken pipeline rather than a flawless run.
   Its exit status and output format follow [[frd-swarm-core]]'s command contract
   (FEAT-SWARM-CORE-001). **Run-level: a subagent never runs it** — inside its own

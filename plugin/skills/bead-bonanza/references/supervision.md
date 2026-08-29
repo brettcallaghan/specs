@@ -1,14 +1,14 @@
 # Supervising a run, and deciding it is done
 
 Two questions the orchestrator asks repeatedly and must not answer from
-recollection: *where is this run right now*, and *is it finished*. Both are
-computed from state.
+recollection: *where is this run right now*, and *is it finished*. One command
+measures both.
 
 ## Contents
 
-- Where is this run — the durable view, and what it cannot see
+- Where is this run — the command that measures it, and what nothing can measure
 - When something dies — which of three situations you are in
-- When the run is done — the completion rule, and why the obvious query is wrong
+- When the run is done — the completion rule, and what drained means
 - The `Stop` hook — the loop enforced by the harness, its bound, and how to
   stop anyway
 - The `SubagentStop` hook — a worker held to its own queue, and why a BLOCKED
@@ -18,11 +18,37 @@ computed from state.
 
 ## Where is this run
 
-**`bb-status.sh run <epic>`** is the durable answer, computed from the beads
-and from git, so it survives any crash and any lost session. It walks the run's
-descendants itself rather than asking `bd` for them, for the reason in "When
-the run is done" below, and prints the command behind every line so any of them
-can be re-derived.
+**`swarm status --run <epic>`** answers it, measured from git and the tracker
+on every call and never read from a value the run stored about itself — so it
+survives any crash and any lost session. It prints the invocation behind every
+fact, so any single one can be re-derived without reconstructing it.
+
+```sh
+swarm status --run <epic> [--stall-after <duration>] [--json]
+```
+
+**The command owns what it measures and how; this document does not restate
+it.** `swarm status --help` names the flags and `--explain` prints the
+measurements it would take without taking any. What it reports: the standing
+worktree count and how many of those belong to a dispatch, the sprint branch's
+last commit with its age, the ready front's depth, each dispatch's drain state,
+the run's completion tally, the beads admission added, missed or excluded, and
+any bead two agents hold at once. Its exit status and output format follow
+[[frd-swarm-core]]'s command contract (FEAT-SWARM-CORE-001) — **route on the
+exit status**, and a measurement it could not take is reported as unknown and
+exits non-zero, so an unreadable tracker never reads as a quiet run.
+
+**It reports measurements; it does not diagnose, and neither do you.** Whether
+a subagent is still working cannot be observed from outside the harness — a
+stalled one never finishes, so no event fires, and absence of an event is not
+an event. The command names the three observable things in its place and the
+threshold it compared the last commit's age against. **Do not call a run
+stalled on the strength of an elapsed time.** Report what was measured and the
+threshold in force, and leave the reading to whoever can see the harness.
+
+**Health is measured, never written.** A label the coordinator sets instead is
+a signal whose only writer is the thing it monitors, so it reports "no failure"
+and "no monitor" identically.
 
 **Re-querying the ready front is two steps, in order.** First, close eligible
 epics — scoped by hand, never with the bare command: `bd epic close-eligible`
@@ -41,12 +67,6 @@ stalled.
 Live progress — the event stream, the plugin's background monitor that reads
 it without being armed, and the durable out-of-session trigger — is
 `progress-streaming.md`.
-
-**Health is read off `bb-status.sh run`, never written.** It is derived from
-surviving worktrees, the age of the last commit and the depth of the ready
-front. A label the coordinator sets instead is a signal whose only writer is
-the thing it monitors, so it reports "no failure" and "no monitor"
-identically.
 
 ## When something dies
 
@@ -67,28 +87,22 @@ a bundle it never loaded.
 
 ## When the run is done
 
-**`bb-status.sh run <epic>`** decides — computed from state, not from your
-recollection of what you dispatched. Exit 0 clear, 1 repairable (no admitted
-set recorded), 2 stop.
+**`swarm status --run <epic>`** decides, from the same measurement set — the
+completion tally against the manifest's admission record, not your recollection
+of what you dispatched.
 
 A run is done when every bead the manifest's `admitted` list names is closed or
 accounted for as blocked-with-a-reason.
 
-**Beads excluded at admission are reported alongside.** A run that finished its
-admitted set while three sat out is done over a *narrowed* scope, and a report
-that does not say so reads as complete coverage.
+**Beads excluded at admission are reported alongside**, on every report rather
+than behind a condition. A run that finished its admitted set while three sat
+out is done over a *narrowed* scope, and a report that does not say so reads as
+complete coverage.
 
-**Why it walks descendants rather than asking `bd`.** Three queries look like
-they answer "what is in this epic" and two of them lie:
-
-| query | what it actually returns |
-|---|---|
-| `bd epic status` | direct children only — on a nested epic, an answer about sub-epics |
-| `bd list --parent` | direct children only, same trap |
-| `bd ready --parent` | transitive, but omits closed beads — so it shrinks as the run succeeds |
-
-None of the three is "every bead in this run", which is why the script walks
-the descendants itself.
+**A dispatch has drained when it holds nothing ready AND nothing in progress**,
+and the command reports both together per dispatch. The ready query alone
+excludes in-progress work, so on its own it reports a subagent mid-bead as
+finished.
 
 ## The `Stop` hook
 

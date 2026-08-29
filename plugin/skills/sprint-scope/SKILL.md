@@ -108,8 +108,8 @@ builds, never a licence to restructure what it was given.
 
 **What a nested run epic costs, stated once at run start:** every count has to
 come from a tree walk rather than from one `--parent` query, since `bd list
---parent` and `bd epic status` are both direct-children-only. `bb-status.sh run
-<epic>` does that walk. Dispatch is unaffected — the re-queried ready front is
+--parent` and `bd epic status` are both direct-children-only. `swarm status
+--run <epic>` does that walk. Dispatch is unaffected — the re-queried ready front is
 transitive and honours dependency edges that cross between the adopted epics,
 which is the reason several epics are being run together at all.
 

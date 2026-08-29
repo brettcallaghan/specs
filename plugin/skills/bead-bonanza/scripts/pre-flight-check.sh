@@ -524,8 +524,8 @@ else
   say "run record: metadata on $EPIC (no run directory — the tracker IS the record)"
 
   # The event log is the opposite kind of thing: a live STREAM for the
-  # Monitor to tail, not a record. It is ephemeral by design — `bd swarm
-  # status` is the durable view, computed from the beads themselves.
+  # Monitor to tail, not a record. It is ephemeral by design — `swarm status`
+  # is the durable view, measured from the beads and from git.
   EVENT_LOG="${TMPDIR:-/tmp}/bb-events-$EPIC.log"
   if : >> "$EVENT_LOG" 2>/dev/null; then
     say "event log: $EVENT_LOG"
@@ -534,7 +534,7 @@ else
   else
     EVENT_LOG=""
     say "event log: UNWRITABLE — progress streaming will be unavailable; use"
-    say "\`bb-status.sh run $EPIC\` instead."
+    say "\`swarm status --run $EPIC\` instead."
   fi
 fi
 say "scripts:  $SCRIPTS"

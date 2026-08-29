@@ -46,7 +46,7 @@ run epic .................. its id is the run id
 ├ TARGET ───────┤ FLAT: tasks only
 │  ├ dispatch ┐ │ repeat    run-batch, one subagent per dispatch
 │  ├ merge    │ │ until the coordinator, as each dispatch returns
-│  └ supervise┘ │ front dry bb-status.sh
+│  └ supervise┘ │ front dry swarm status
 ├ review ───────┘ ......... sprint-review → declared reviewer
 │   findings admitted AND passes < 3 ? — yes, re-enter at groom & plan
 ├ retro ................... sprint-retro — and it writes the run's retro
@@ -92,11 +92,12 @@ run:
 - [ ] 5. Post-flight cleanup, then cancel the durable trigger
 ```
 
-**Most of it is checkable rather than assertable.** `bb-status.sh run <epic>`
-verifies the mechanical half — counts, health set, lint clean *within this
-run's queue*, no open human item, every ready bead tiered, every admitted bead
-closed — then **names what it cannot verify**, so a clean report never implies
-the whole checklist passed. Run it at every re-query and at the end.
+**Most of it is checkable rather than assertable.** `swarm status --run <epic>`
+measures the mechanical half — the standing worktrees, the last commit and its
+age, the ready front's depth, each dispatch's drain state, and completion
+against the admission record. A measurement it could not take is reported as
+unknown and exits non-zero rather than reading as clear, and the rest of the
+checklist it does not see at all. Run it at every re-query and at the end.
 
 
 ## Opening a run — pre-flight, then `sprint-scope`
@@ -242,19 +243,9 @@ so a finished ceremony phase stays open, the beads it gates never enter the
 front, and an empty front reads as the run being done when it has stalled.
 **That query is the order** — and a bead added mid-run is in scope by
 construction, so before dispatching it diff the front against
-`manifest.admitted` (`bb-status.sh run <epic>` names the difference) and
+`manifest.admitted` (`swarm status --run <epic>` names the difference) and
 resolve any creep, admitted as an amendment or deferred out.
 
-### The run's health — derived, never asserted
-
-**`bb-status.sh run <epic>` computes it** from surviving worktrees, the age of
-the last commit and the depth of the ready front. Read it; do not write it.
-
-**Do not set one instead.** A health label the coordinator writes is a signal
-whose only writer is the thing it monitors, so it reports "no failure" and "no
-monitor" identically. *Worktrees: 0, plus a stale last commit, plus a non-empty
-ready front* is a stall computable by anyone, needing no cooperation from the
-coordinator — which is the whole reason it is derived.
 ### Watching it, and knowing when it is done
 
 **Arm a `Monitor`** over the dispatches in flight — `persistent`, an explicit
@@ -262,13 +253,20 @@ coordinator — which is the whole reason it is derived.
 first dispatch, the durable out-of-session trigger, cancelled at post-flight.
 
 **A run is done when every bead the manifest's `admitted` list names is closed
-or accounted for as blocked-with-a-reason** — `bb-status.sh run <epic>` decides
-it, exit 0 clear / 1 repairable / 2 stop. Beads excluded at admission are
-reported alongside, because a run that finished its admitted set while three
-sat out is done over a *narrowed* scope.
+or accounted for as blocked-with-a-reason** — `swarm status --run <epic>`
+measures it and you route on the exit status, per [[frd-swarm-core]]'s command
+contract. Beads excluded at admission are reported alongside, because a run
+that finished its admitted set while three sat out is done over a *narrowed*
+scope.
 
-Where the run is, which of three deaths you are looking at, and why the obvious
-`bd` queries answer the wrong question: `references/supervision.md`.
+**Never write a health label of your own.** A signal whose only writer is the
+thing it monitors reports "no failure" and "no monitor" identically. And the
+command reports measurements, not a diagnosis: **do not call the run stalled**
+on the strength of an elapsed time — say what was measured and the threshold
+in force.
+
+Where the run is, which of three deaths you are looking at, and what nothing
+can measure from outside the harness: `references/supervision.md`.
 
 ## Review the run's own diff — invoke `sprint-review`
 
