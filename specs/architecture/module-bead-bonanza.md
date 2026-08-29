@@ -6,7 +6,7 @@ description: The autonomous sprint orchestrator vended in the sf plugin —
 slug: module-bead-bonanza
 type: module-blueprint
 status: draft
-updated_at: 2026-08-25T00:00:00Z
+updated_at: 2026-08-29T00:00:00Z
 kind: standard
 visibility: public
 contracts_provided: []
@@ -26,7 +26,7 @@ test_paths:
   - "plugin/skills/bead-bonanza/scripts"
   - "plugin/hooks"
   - "plugin/monitors"
-version: "0.23"
+version: "0.24"
 ---
 
 # Bead Bonanza
@@ -239,6 +239,12 @@ run and for resuming one alike.
   status** — progress, completion and each dispatch's drain state are
   measured there rather than derived here, and it never writes a health label
   of its own.
+- **Re-checks three readiness signals itself, at every re-query, that
+  `swarm status` does not carry**: `bd lint`'s findings intersected with the
+  run's own ready queue (`bd lint` exits 0 even while it warns, and has no
+  scope flag); the open human-decision queue
+  (`bd list --label human --status open`); and whether every ready bead
+  carries `metadata.tier`, without which dispatch cannot resolve a model.
 - **When something goes wrong, works out a solution** and records the
   decision. It does not stop to ask.
 - **Owns the run manifest** and the run's amendments (`amend:` comments).

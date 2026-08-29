@@ -15,6 +15,8 @@ measures both.
   bead is accepted where an unfinished one is not
 - Running without the hooks — the fallback every step is written against
 - The review loop's budget — what the counter bounds, and what it does not
+- Re-checking readiness at every re-query — three signals `swarm status`
+  does not carry
 
 ## Where is this run
 
@@ -67,6 +69,59 @@ stalled.
 Live progress — the event stream, the plugin's background monitor that reads
 it without being armed, and the durable out-of-session trigger — is
 `progress-streaming.md`.
+
+## Re-checking readiness at every re-query
+
+`swarm status` measures the run as a whole; it does not carry three signals
+that a bead can trip **after** planning already gated the front once. Run
+these by hand at every re-query, not only at plan time — a `discovered-from`
+addition, an undeferred bead, or a bead a human adds mid-run all enter the
+dispatchable set after planning, and each of these three exists to catch one
+of them before it is dispatched.
+
+**1. `bd lint` intersected with this run's own ready queue.** `bd lint` exits
+0 even when it prints warnings — the findings are the verdict, the exit
+status is not — and it has no scope flag, so it always reports on the whole
+tracker. Blaming this run for another run's beads is a false signal, so
+intersect its findings with the run's own queue before reading them:
+
+```sh
+bd lint 2>&1 | awk '/^[^[:space:]]+ \[/{id=$1} /⚠/{print id}' | sort -u >/tmp/bb-lint-flagged
+bd ready --parent <epic> --exclude-type=epic --json | jq -r '.[].id' | sort >/tmp/bb-ready
+comm -12 /tmp/bb-lint-flagged /tmp/bb-ready
+```
+
+A non-empty result names a ready bead missing a section `bd lint` requires
+for its type — most often Acceptance Criteria — dispatched to a subagent
+with nothing to build against unless it is caught here. **`bd lint`'s check
+is a substring match on the description text, not a check that the section
+is actually filled in** — a description that only discusses "acceptance
+criteria" as a topic, without supplying any, reads as satisfied. This
+intersection narrows the false-positive rate (another run's beads); it does
+not close that false-negative gap, which is `bd`'s to fix.
+
+**2. The open human-decision queue.**
+
+```sh
+bd list --label human --status open --json
+```
+
+Not `bd human list`: measured, it keeps listing a bead after it has been
+closed, so that query would go red on the first question a run ever asked
+and stay red forever after it was answered. A non-empty result here means a
+human still owes this run an answer even though a bounced bead is excluded
+from the dispatch front and from most completion counts — so the run's
+progress can otherwise read as further along than it is.
+
+**3. Every ready bead carries `metadata.tier`.**
+
+```sh
+bd ready --parent <epic> --exclude-type=epic --json \
+  | jq -r '.[] | select((.metadata.tier // "") == "") | .id'
+```
+
+A bead with no tier is one dispatch cannot resolve a model for. Any id this
+prints needs a tier before it is dispatched.
 
 ## When something dies
 

@@ -246,6 +246,11 @@ construction, so before dispatching it diff the front against
 `manifest.admitted` (`swarm status --run <epic>` names the difference) and
 resolve any creep, admitted as an amendment or deferred out.
 
+**Also re-check, at this same re-query, three readiness signals `swarm
+status` does not carry**: `bd lint` intersected with the run's own ready
+queue, the open human-decision queue, and tier coverage across the ready
+front. Exact commands: `references/supervision.md`.
+
 ### Watching it, and knowing when it is done
 
 **Arm a `Monitor`** over the dispatches in flight — `persistent`, an explicit
