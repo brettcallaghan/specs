@@ -6,7 +6,7 @@ description: The command-line binary that performs a swarm run's
 slug: container-swarm-cli
 type: container-blueprint
 status: ready-for-review
-updated_at: 2026-08-28T00:00:00Z
+updated_at: 2026-08-29T00:00:00Z
 contracts_provided:
   - "contract-swarm-json"
 contracts_consumed: []
@@ -399,6 +399,14 @@ authoritative for its deployment.
 
 - **Exclusive infrastructure:** none. It has no database, no queue, no
   cache and no network listener.
+- **Artifact:** one binary named `swarm`, built from the main package at
+  `cli/swarm` in the `github.com/brettcallaghan/agent-plugins/cli`
+  module. The directory name is the binary name, so `go install
+  github.com/brettcallaghan/agent-plugins/cli/swarm@<tag>` is the
+  toolchain install channel. `.github/workflows/cli.yml` builds it for
+  every platform below on every pull request and executes it in an image
+  holding only a shell; `.github/workflows/release.yml` publishes one
+  archive per binary per platform from a `cli/vX.Y.Z` tag.
 - **Deployment:** a single statically linked binary per platform,
   cross-compiled with cgo disabled and shipped as a release artifact,
   alongside the `spec` binary from the same module ([[adr-023]]). It is

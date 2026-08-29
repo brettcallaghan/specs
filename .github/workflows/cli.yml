@@ -1,7 +1,15 @@
 name: cli
 
-# The Go gates for the Spec CLI, and the portability evidence for
-# REQ-SPEC-009 that only a real matrix can produce.
+# The Go gates for the binaries the `cli` module ships — `spec` and
+# `swarm` — and the portability evidence for REQ-SPEC-009 that only a
+# real matrix can produce.
+#
+# Both binaries live in one module on purpose (ADR-023), so every job
+# below covers both: `go test ./...` and `go build ./...` reach them
+# without naming either, and the two jobs that DO name a package build
+# each one explicitly. A leg that silently kept compiling only `./spec`
+# would leave the platform guarantee unproven for `swarm` while this
+# workflow stayed green.
 #
 # Why this is a second workflow rather than more jobs in checks.yml: that
 # one is a single ubuntu runner over the docs corpus and needs no
@@ -135,15 +143,27 @@ jobs:
           do
             goos="${target%/*}"
             goarch="${target#*/}"
-            echo "==> $goos/$goarch"
-            GOOS="$goos" GOARCH="$goarch" \
-              go build -trimpath -ldflags="-s -w" -o /dev/null ./spec
+            # Every binary the module ships, not just the first one: the
+            # release workflow builds this same set, and a target that
+            # stops cross-compiling for either has to fail here rather
+            # than on the release tag.
+            for pkg in ./spec ./swarm
+            do
+              echo "==> $goos/$goarch $pkg"
+              GOOS="$goos" GOARCH="$goarch" \
+                go build -trimpath -ldflags="-s -w" -o /dev/null "$pkg"
+            done
           done
 
-  # AC-SPEC-009.4's worked example, run rather than asserted: the binary
+  # AC-SPEC-009.4's worked example, run rather than asserted: each binary
   # is executed in an image holding a shell, busybox's coreutils and
   # nothing else — no Go toolchain, no libc beyond musl, no package
   # manager. A binary that acquired a dynamic dependency fails here.
+  #
+  # `swarm` is held to the same bar because specs/architecture/
+  # container-swarm-cli.md states it as a property of that container:
+  # "its only runtime requirements are bd and git on PATH; it needs no
+  # runtime, interpreter or package manager of its own".
   no-runtime:
     name: runs with no language runtime installed
     runs-on: ubuntu-latest
@@ -156,32 +176,38 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: cli/go.sum
 
-      - name: Build the static linux/amd64 binary
+      - name: Build the static linux/amd64 binaries
         working-directory: cli
         env:
           CGO_ENABLED: "0"
           GOOS: linux
           GOARCH: amd64
-        run: go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/spec" ./spec
-
-      - name: The binary is statically linked
         run: |
           set -euo pipefail
-          description="$(file -b spec)"
-          echo "$description"
-          # `file` rather than `ldd`: ldd's wording for a static binary
-          # varies by distribution ("not a dynamic executable" against
-          # "statically linked") and its exit status is not a reliable
-          # signal either way.
-          case "$description" in
-            *"statically linked"*) ;;
-            *)
-              echo "spec is not statically linked; it will not run in a bare image"
-              exit 1
-              ;;
-          esac
+          go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/spec" ./spec
+          go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/swarm" ./swarm
 
-      - name: Run it in an image containing only a shell and the binary
+      - name: The binaries are statically linked
+        run: |
+          set -euo pipefail
+          for binary in spec swarm
+          do
+            description="$(file -b "$binary")"
+            echo "$binary: $description"
+            # `file` rather than `ldd`: ldd's wording for a static binary
+            # varies by distribution ("not a dynamic executable" against
+            # "statically linked") and its exit status is not a reliable
+            # signal either way.
+            case "$description" in
+              *"statically linked"*) ;;
+              *)
+                echo "$binary is not statically linked; it will not run in a bare image"
+                exit 1
+                ;;
+            esac
+          done
+
+      - name: Run spec in an image containing only a shell and the binary
         run: |
           set -euo pipefail
           # busybox is a shell plus coreutils. The corpus is one of the
@@ -193,3 +219,25 @@ jobs:
             -w /corpus \
             busybox:latest \
             /spec check --json
+
+      - name: Run swarm in an image containing only a shell and the binary
+        run: |
+          set -euo pipefail
+          # swarm has no corpus to read and no subcommand yet; what is
+          # being proved here is that it executes at all with no language
+          # runtime present. A bare invocation is its one specified
+          # behaviour — print the command tree, exit with the
+          # malformed-invocation status — so the status is the assertion.
+          #
+          # `|| status=$?` rather than a bare invocation: the expected
+          # status is non-zero, and `set -e` would abort the step on it.
+          status=0
+          docker run --rm \
+            -v "$PWD/swarm:/swarm:ro" \
+            busybox:latest \
+            /swarm || status=$?
+          echo "swarm exited $status"
+          if [ "$status" -ne 3 ]; then
+            echo "expected the malformed-invocation status (3) from a bare invocation"
+            exit 1
+          fi
