@@ -100,8 +100,9 @@ Agents and subagents query and traverse the bead DAG, and it carries:
   beads are batched;
 - enough to survive compaction, the end of a turn, and a session restart.
 
-The run epic's metadata is the manifest, its comments are the amendments, and
-a worktree's existence is the in-flight signal. That is what lets a component
+The run epic's metadata is the manifest — reached through `swarm manifest`,
+which owns its key set, its types and its merge semantics — its comments are
+the amendments, and a worktree's existence is the in-flight signal. That is what lets a component
 be replaced, or a session be lost, without losing the run.
 
 ### One question per component
@@ -119,7 +120,8 @@ answer changes.
   skill in this module is `user-invocable: false` and is reached only through
   it, recovery included: a run is resumed by re-invoking `bead-bonanza` on its
   run epic, never by calling an internal skill. Project configuration is
-  `sf.toml`; run state is the run epic's `--metadata` manifest.
+  `sf.toml`; run state is the run epic's manifest, read and written through
+  `swarm manifest`.
 - **Guarantees:**
   - **Resumability.** WHEN `bead-bonanza` is invoked on a run epic that
     already exists, it SHALL recover that run's state and continue it —
@@ -235,8 +237,12 @@ run and for resuming one alike.
   rather than waiting on it.
 - **When something goes wrong, works out a solution** and records the
   decision. It does not stop to ask.
-- **Owns the run manifest** (`--metadata` on the run epic) and the run's
-  amendments (`amend:` comments). Neither is ever delegated.
+- **Owns the run manifest** and the run's amendments (`amend:` comments).
+  Neither is ever delegated. It reaches the manifest through `swarm manifest`
+  — `get` to read, `set` once for a whole write, `require` where a key is a
+  precondition — and **validates the record with `swarm manifest validate`
+  when it resumes a run it did not hold**, so a half-written record is a status
+  it routes on rather than a key it discovers missing mid-dispatch.
 - **Executes the merges**, one dispatch's branch at a time, as that dispatch
   completes its work — and removes its worktree only behind an ancestry check.
   This is a coordinator responsibility, not a component: there is nothing to
@@ -343,6 +349,9 @@ it invokes Grooming itself and plans in the same context.
   that have no C4 docs.
 - **Owns the queue** — re-derives it from the epic and accounts for every
   id in grooming's reply. A bead with no verdict is unexamined, not ready.
+- **Reads the manifest and never writes it** — `swarm manifest get` for the
+  concurrency cap the dev pool is checked against; an unwritten key is
+  reported, never supplied.
 - Classifies beads and computes collision and sequencing overlap from C4
   metadata, not from file paths.
 - **Assigns every bead** a dispatch id, which is the whole of the
@@ -364,7 +373,8 @@ description: Works an assigned batch bead by bead in one worktree, landing each 
 (skill — `run-batch`) — the only component that writes product code.
 
 - Resolves its own assignment from three given values: dispatch id, run
-  epic, scripts path. Everything else it queries.
+  epic, scripts path. Everything else it queries — the tracker for its queue,
+  `swarm manifest` for the run's branch and checks baseline.
 - Per bead: claim, read, implement **strictly in scope**, gate, record
   findings, close-and-commit.
 - **Files what it finds** beyond scope rather than doing it or dropping
@@ -452,7 +462,9 @@ description: Resolves a reviewer, scopes it to the run's diff, files each findin
   project declares one in `sf.toml`; failing that, one found in the session;
   failing that, a bare agent. It **names which ran**, because those are not the
   same evidence.
-- Scopes the review to `base_sha`..head, read off the manifest.
+- Scopes the review to `base_sha`..head, read off the manifest with
+  `swarm manifest get`; `swarm manifest require` is what turns an unwritten
+  `base_sha` into a status rather than an empty string.
 - Files every finding as a bead against its origin, citing a durable
   anchor rather than a line number.
 - Classifies each finding against three stated criteria; a defect the

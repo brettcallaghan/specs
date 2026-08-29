@@ -127,6 +127,13 @@ front, so a resumed run is a narrower repeat rather than a duplicate.
 **Never create a second sprint branch on a resume** — the manifest's `branch`
 is the one the original run wrote.
 
+**Run `swarm manifest validate --run <epic>` before you continue a run you did
+not hold.** It checks the record against every rule at the stage it has
+reached, so a run left half-written by an interrupted session is a status you
+route on rather than a key you discover missing three dispatches later. A clear
+status means the record is coherent; an attention status names the keys and the
+rule each breaks, and those are yours to repair before dispatching.
+
 **2 is `sprint-scope`.** Read three things off its return and route on them:
 `BB_EPIC`, whose id is the run id and whose descendants are the queue;
 `BB_TARGET_EPIC`, the flat target; and the admission record, because **a run that
@@ -166,12 +173,13 @@ the run's amendments. Both: `references/run-record.md`.
 every bead has nothing to branch for, and a branch cut before grooming records
 a `base_sha` predating the grooming commits.
 
-**Read the manifest before you create anything.** A run whose manifest already
-carries `branch` reuses it and creates nothing, which is what makes a resumed
-run land where the original did; **a name already taken by an unrelated branch
-stops the run here**, before any worktree exists. The exact sequence, and why
-`base_sha` is recorded at creation rather than derived:
-`references/worktree-mechanics.md`.
+**Read the manifest before you create anything** — `swarm manifest get --run
+<epic> --key branch`. A run whose manifest already carries `branch` reuses it
+and creates nothing, which is what makes a resumed run land where the original
+did; **a name already taken by an unrelated branch stops the run here**, before
+any worktree exists. The exact sequence, the one `swarm manifest set` that
+records `branch` and `base_sha` together, and why `base_sha` is recorded at
+creation rather than derived: `references/worktree-mechanics.md`.
 ## Every dispatch runs in its own worktree
 
 **This is universal, not opt-in**, and it is **per dispatch, not per bead**: a

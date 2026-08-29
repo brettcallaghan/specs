@@ -83,11 +83,17 @@ copy.
    out and adds to it. Creating one forks the run's history from the work it is
    meant to continue.
 
-3. **Read the run epic in full** — `bd show <epic> --json`. Its metadata is the
-   manifest: standing authorization, declared check ids, the checks baseline,
-   the model lineup, the environmental ledger, the **admission record**
-   (`admitted`, `excluded`, `moved`) and the review counter (`review_passes`,
-   `review_budget`). Its `amend:` comments are how the run diverged.
+3. **Read the run epic in full** — `swarm manifest get --run <epic>` for the
+   manifest, `bd show <epic>` for its `amend:` comments. The manifest carries
+   standing authorization, declared check ids, the checks baseline, the model
+   lineup, the environmental ledger, the **admission record** (`admitted`,
+   `excluded`, `moved`) and the review counter (`review_passes`,
+   `review_budget`); the comments are how the run diverged.
+
+   **Then `swarm manifest validate --run <epic>`.** You are reconstructing a
+   run no session held, so the record may have been left half-written: validate
+   reports every rule it breaks at the stage it has reached, and an attention
+   status names the keys. That is a fact to hand back, not one to repair.
 
    **Carry `review_passes` forward — do not restart it.** It is durable for
    exactly this moment: a resumed run that reset the counter re-enters the

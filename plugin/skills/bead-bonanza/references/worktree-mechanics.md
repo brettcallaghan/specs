@@ -23,14 +23,17 @@ it is standing in (`dispatching.md`).
 The coordinator's, and only its. Run it immediately before the first dispatch:
 
 ```bash
-br="$(bd show "$BB_EPIC" --json | jq -r '.[0].metadata.branch // empty')"
-if [ -n "$br" ]; then git checkout "$br"          # RESUME — create nothing
+out="$(swarm manifest get --run "$BB_EPIC" --key branch --json)"; st=$?
+if [ "$st" = 0 ]; then                            # RESUME — create nothing
+  br="$(printf '%s' "$out" | jq -r '.facts[0].value.text')"
+  git checkout "$br"
 else
   br="sprint/<epic-suffix>"
   git rev-parse --verify "$br" >/dev/null 2>&1 && { echo "branch $br taken"; exit 1; }
   git checkout -b "$br"
-  bd update "$BB_EPIC" --set-metadata branch="$br" \
-                       --set-metadata base_sha="$(git rev-parse HEAD)"
+  swarm manifest set --run "$BB_EPIC" \
+    --key branch   --value "\"$br\"" \
+    --key base_sha --value "\"$(git rev-parse HEAD)\""
 fi
 ```
 
@@ -38,6 +41,14 @@ fi
 same branch as the original; creating a second one forks the run's history from
 the work it is meant to continue. A name already taken by an unrelated branch
 stops the run here, before any worktree exists.
+
+**Both keys go in ONE `swarm manifest set`.** The command applies a whole
+invocation as a single merge, so a run that wrote them one at a time could
+leave a branch recorded with no base against it. It also refuses to change
+either once written — which is what makes re-running this block on a resume
+safe rather than a second fork. Capture the status before you pipe: an
+`attention` status from `get` is how "not written" reaches you, and a pipeline
+would hand you `jq`'s status instead.
 
 **`base_sha` is recorded at creation** because that is the only moment it is
 unambiguous — deriving it later from a merge-base assumes the base branch has

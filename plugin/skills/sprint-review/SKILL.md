@@ -30,7 +30,7 @@ So: run whatever the project declared, and route what comes back.
 
 | | |
 |---|---|
-| `{EPIC}` | the run epic. Its manifest carries `base_sha` and `branch` |
+| `{EPIC}` | the run epic. `swarm manifest --run {EPIC}` reads its manifest, which carries `base_sha` and `branch` |
 | the authorization set | what the run was authorized to take on, from the gate |
 | the pass number | which review pass this is. You do not decide whether there is another |
 | `{DISPATCH_ID}` | your agent id — `review-<run-id>`, handed to you, never minted |
@@ -86,7 +86,8 @@ condition, not a nicety.
 ## 2 · Scope it to this run's diff
 
 ```sh
-base="$(bd show {EPIC} --json | jq -r '.[0].metadata.base_sha')"
+swarm manifest require --run {EPIC} --key base_sha        # route on the status
+base="$(swarm manifest get --run {EPIC} --key base_sha --json | jq -r '.facts[0].value.text')"
 git diff "$base"...HEAD
 ```
 
@@ -95,9 +96,12 @@ records what the run branched from at the moment it branched; a merge-base
 recomputed now assumes the base branch has not moved, and on a long run it
 will have — which silently widens the review to include other people's work.
 
-Where the manifest carries no `base_sha`, say so and review nothing. A review
-of an unknown range is worse than no review, because it reports with the same
-confidence.
+**Ask `swarm manifest`, not the tracker.** The command owns the key set and
+its types, so a `bd show | jq '.metadata'` of your own is a second reader that
+will disagree with it. `require` is what turns "no `base_sha`" into a status
+you route on rather than an empty string you have to notice: where it reports
+the key unwritten, say so and review nothing. A review of an unknown range is
+worse than no review, because it reports with the same confidence.
 
 ## 3 · File every finding as a bead
 

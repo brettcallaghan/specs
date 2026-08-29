@@ -79,7 +79,7 @@ skill_issues_dir = ".sf/outbox"
 
 ```sh
 path="<[retros].dir>/<YYYY-MM-DD>-<epic-slug>.md"
-bd update {EPIC} --set-metadata findings_path="$path"
+swarm manifest set --run {EPIC} --key findings_path --value "\"$path\""
 ```
 
 **Recording the path is what makes the document findable from the epic id
@@ -242,13 +242,21 @@ one index covers every run, and commit it with the record and anything filed.
 **Record the outcome on the epic:**
 
 ```sh
-bd update {EPIC} --set-metadata retro_filed=<n> \
-  --set-metadata retro_declined=<n> --set-metadata retro_routed=<n>
+swarm manifest set --run {EPIC} \
+  --key retro_filed --value <n> \
+  --key retro_declined --value <n> \
+  --key retro_routed --value <n>
 ```
 
+**One invocation, all three.** The command applies a whole invocation as a
+single merge, so the counters cannot land one at a time and leave a run
+reporting a total nobody wrote. Values are JSON: a count goes in bare, a path
+goes in quoted.
+
 **Every issue carries the run's model lineup and effort from the manifest into
-its provenance.** The manifest records them precisely so this step can, and an
-issue without them ships with an unfillable field.
+its provenance** — `swarm manifest get --run {EPIC} --key models --key effort`.
+The manifest records them precisely so this step can, and an issue without them
+ships with an unfillable field.
 
 **Read the document before you hand it back.** You own that it is true, not
 that it is written.
