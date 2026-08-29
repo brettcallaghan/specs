@@ -5,10 +5,11 @@ description: Build the swarm binary's command contract, its manifest
   and adopt each command into the skills whose prose it replaces
 slug: feature-swarm-core
 type: feature-blueprint
-status: ready-for-review
-updated_at: 2026-08-28T00:00:00Z
+status: in-progress
+updated_at: 2026-08-29T00:00:00Z
 delivery: staged
 frd: frd-swarm-core
+plan: agent-plugins-ih18
 ---
 
 # Swarm Core
@@ -31,8 +32,14 @@ command, so a command that exists but nobody calls is never mistaken for
 a command that landed.
 
 In dependency order: **SKEL**, **PROC**, **PLAN**, **SURF**, **TRK**,
-**VCS**, **SCHEMA**, **MAN**, **MANV**, **MANCMD**, **FIX**, **COLL**,
-**REP**, **ADOPT-CONV**, **ADOPT-MAN**, **ADOPT-STAT**.
+**VCS**, **SCHEMA**, **MAN**, **MANV**, **MANCMD**, **FIX**,
+**ADOPT-CONV**, **ADOPT-MAN**, **COLL**, **REP**, **ADOPT-STAT**.
+
+**The manifest command is adopted before the status command is built.**
+That ordering is deliberate rather than incidental: adopting `swarm
+manifest` into the skills puts it under real use while `swarm status` is
+still being written, so whatever the contract gets wrong surfaces on the
+first command rather than on both at once.
 
 ## Element Deltas
 
@@ -543,14 +550,18 @@ verification gates pass before the next stage begins.
   end-to-end case in any other delta. WHILE the FIX delta is
   outstanding, a command delta's acceptance rests on its unit tests, and
   its end-to-end case is added when the fixture exists.
-- **Stage 5 — status.** The COLL delta SHALL land after the TRK, VCS and
+- **Stage 5 — manifest adoption.** The ADOPT-CONV delta SHALL land after
+  the SURF delta. The ADOPT-MAN delta SHALL land after the MANCMD and
+  FIX deltas. The ADOPT-MAN delta SHALL land before the COLL delta, so
+  the manifest command is under real use while the status command is
+  built.
+- **Stage 6 — status.** The COLL delta SHALL land after the TRK, VCS and
   MAN deltas, all of which it reads through. The REP delta SHALL land
   after the COLL delta.
-- **Stage 6 — adoption.** The ADOPT-CONV delta SHALL land after the SURF
-  delta. The ADOPT-MAN delta SHALL land after the MANCMD delta. The
-  ADOPT-STAT delta SHALL land after the REP delta. No adoption delta
-  SHALL land before the command it adopts is verified at the level its
-  AC coverage declares.
+- **Stage 7 — status adoption.** The ADOPT-STAT delta SHALL land after
+  the REP delta.
+- No adoption delta SHALL land before the command it adopts is verified
+  at the level its AC coverage declares.
 - The SCHEMA delta's generated artifacts and its `.strata` sources SHALL
   be updated in the same change, per [[container-swarm-cli]]'s lockstep
   rule; both are in that one delta, so no cross-delta coordination is
