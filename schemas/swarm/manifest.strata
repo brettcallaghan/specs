@@ -5,11 +5,11 @@ and the value here names that stage. The correspondence is structural:
 the struct declaring a key IS the statement of its stage, so a key cannot
 be given a type in one place and a stage in another."""
 enum RunStage {
-  PRE_FLIGHT: "pre-flight"
-  SCOPE: "scope"
-  PLAN: "plan"
-  DISPATCH: "dispatch"
-  RETRO: "retro"
+  PreFlight: "pre-flight"
+  Scope: "scope"
+  Plan: "plan"
+  Dispatch: "dispatch"
+  Retro: "retro"
 }
 
 """How much reasoning effort the harness was set to for this run.
@@ -18,11 +18,11 @@ A harness that exposes no such setting records it as unrecorded rather
 than leaving the key absent, so a reader can tell "not offered" from
 "not yet written"."""
 enum RunEffort {
-  LOW: "low"
-  MEDIUM: "medium"
-  HIGH: "high"
-  XHIGH: "xhigh"
-  UNRECORDED: "unrecorded"
+  Low: "low"
+  Medium: "medium"
+  High: "high"
+  Xhigh: "xhigh"
+  Unrecorded: "unrecorded"
 }
 
 """Where an authorization row's value came from.
@@ -31,8 +31,8 @@ A row resolved from the project's own configuration and a row that took
 the skill's default are different facts, and the record exists to stop a
 decision being re-litigated mid-run."""
 enum AuthSource {
-  PROJECT: "sf.toml"
-  DEFAULT: "default"
+  Project: "sf.toml"
+  Default: "default"
 }
 
 """An authorization row whose resolved value is a word."""
@@ -63,14 +63,19 @@ lets the wire form stay exactly what the skills write today."""
 struct StandingAuth {
   """draft, ready, or none — what the run opens at the end."""
   pull_request: TextAuthRow
+
   """Whether a bead belonging to another epic is moved into this run."""
   move_foreign_beads: FlagAuthRow
+
   """Whether review findings are worked in this run or only filed."""
   admit_review_findings: FlagAuthRow
+
   """once or never — whether a repeated failure escalates a tier."""
   tier_escalation: TextAuthRow
+
   """How many review loops the run may spend."""
   review_budget: CountAuthRow
+
   """Whether the run may merge to the default branch."""
   merge_to_default: FlagAuthRow
 }
@@ -105,20 +110,26 @@ reads."""
 struct PreFlightKeys {
   """The ids of the checks the project declares, in declaration order."""
   checks_ids: [String]?
+
   """What the declared checks printed on the untouched tree, verbatim.
 
   Recorded whole rather than summarized: the bar for every bead in the
   run is "no findings beyond this", which a summary cannot express."""
   checks_baseline: String?
+
   """The status the baseline run exited with. Zero means every check is
   expected to pass, so any failure a bead sees is its own."""
   checks_baseline_status: Int?
+
   """The most dispatches the run may have in flight at once."""
   concurrency_cap: Int?
+
   """The model behind each capability tier."""
   models: TierModels?
+
   """The reasoning effort the harness was set to."""
   effort: RunEffort?
+
   """Facts established this run that no dispatch should re-diagnose,
   each naming the command that proved it and the result observed.
 
@@ -131,14 +142,19 @@ struct PreFlightKeys {
 struct ScopeKeys: PreFlightKeys {
   """The flat target epic whose task children are the run's work."""
   target: String?
+
   """Every bead admitted to the run."""
   admitted: [String]?
+
   """Every bead considered and not admitted, with why."""
   excluded: [Exclusion]?
+
   """Every bead moved into the run's epic, and where it came from."""
   moved: [Move]?
+
   """The authorization gate's resolved rows."""
   standing_auth: StandingAuth?
+
   """How many review loops the run may spend."""
   review_budget: Int?
 }
@@ -147,6 +163,7 @@ struct ScopeKeys: PreFlightKeys {
 struct PlanKeys: ScopeKeys {
   """Where the edge document the run was built from was written."""
   collision_edges: String?
+
   """What became of the partition the planner proposed."""
   partition_preview: String?
 }
@@ -158,10 +175,12 @@ struct DispatchKeys: PlanKeys {
   carries it reuses the branch and creates nothing, which is what makes
   a resumed run land where the original did."""
   branch: String?
+
   """The commit the sprint branch was cut from, recorded at creation and
   never derived later — a merge-base taken afterwards assumes the base
   has not moved, and on a long run it will have."""
   base_sha: String?
+
   """How many review loops the run has spent. Durable because a resumed
   run that restarted the counter would loop forever."""
   review_passes: Int?
@@ -174,10 +193,13 @@ result from a retro that found nothing."""
 struct RetroKeys: DispatchKeys {
   """Where the run's one human-facing document was written."""
   findings_path: String?
+
   """How many findings became issues."""
   retro_filed: Int?
+
   """How many findings a human declined."""
   retro_declined: Int?
+
   """How many findings were routed elsewhere."""
   retro_routed: Int?
 }

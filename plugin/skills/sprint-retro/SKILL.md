@@ -248,10 +248,9 @@ swarm manifest set --run {EPIC} \
   --key retro_routed --value <n>
 ```
 
-**One invocation, all three.** The command applies a whole invocation as a
-single merge, so the counters cannot land one at a time and leave a run
-reporting a total nobody wrote. Values are JSON: a count goes in bare, a path
-goes in quoted.
+**It lands as one merge.** The counters cannot arrive one at a time and leave
+a run reporting a total nobody wrote. Values are JSON: a count bare, a path
+quoted.
 
 **Every issue carries the run's model lineup and effort from the manifest into
 its provenance** — `swarm manifest get --run {EPIC} --key models --key effort`.

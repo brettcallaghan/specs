@@ -110,10 +110,9 @@ comments on beads and closes what it finished. With
 ## Verify against state, never against testimony
 
 **A subagent saying a bead is closed is not evidence that it is.** Every signal
-below is read from the tracker or from git. Each command that reads or writes
-follows [[frd-swarm-core]]'s command contract (FEAT-SWARM-CORE-001), which
-requires it to print the invocation that established each finding. Where a step
-and this rule disagree, this rule wins.
+below is read from the tracker or from git, and each command prints the
+invocation that established each finding, so any single line can be re-run.
+Where a step and this rule disagree, this rule wins.
 
 After a subagent returns:
 
@@ -146,9 +145,7 @@ After a subagent returns:
    contract's requirement to print the state and the command that established
    it, so any single check can be re-run without reconstructing it.
 
-   **Read the exit code — it is the decision:** [[frd-swarm-core]]'s
-   command contract (FEAT-SWARM-CORE-001) specifies the four exit statuses
-   every command uses. For this check, `0` is clear, `1` is repairable
+   **Read the exit code — it is the decision.** For this check, `0` is clear, `1` is repairable
    (signals 1, 2, 5: close the bead, or add the missing `retro:` comment
    from the returned summary; state the repair in the report), and `2` is stop
    (not yours to repair inline — leave the worktree standing, since it is the

@@ -34,7 +34,8 @@ The last one is the recovery path only — see its entry below.
 
 - **`scripts/pre-flight-check.sh`** — the environment probe. Human report on
   stderr, an evalable `SCRIPTS=`/`BB_*=` block on stdout. Its exit status and
-  output format follow [[frd-swarm-core]]'s command contract (FEAT-SWARM-CORE-001).
+  output format follow this family's command contract: route on the exit
+  status, and every finding prints the command that established it.
   **Run it with the sandbox ON** — the
   one write the sandbox refuses is the global Dolt telemetry config, which the
   script detects, skips, and reports as the single command to re-run with the
@@ -52,8 +53,8 @@ The last one is the recovery path only — see its entry below.
   landing check (unpushed commits against the upstream) and surviving
   worktrees; `harvest` asserts a run's `retro:` total is non-zero,
   since a zero total is a broken pipeline rather than a flawless run.
-  Its exit status and output format follow [[frd-swarm-core]]'s command contract
-  (FEAT-SWARM-CORE-001). **Run-level: a subagent never runs it** — inside its own
+  Its exit status is the verdict, and each line prints the command that
+  established it. **Run-level: a subagent never runs it** — inside its own
   worktree signal 4 reads differently by construction.
 - **`scripts/bb-close-bead.sh`** — **`run-batch` owns this**; the coordinator runs
   it on one path only, finishing a bead a crashed subagent left uncommitted.

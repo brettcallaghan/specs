@@ -44,9 +44,9 @@ run epic .................. its id is the run id
 │   └ AUTHORIZATION GATE .. a TASK child, gated; HUMAN, once
 ├ groom & plan ─┐ ......... sprint-plan → groom-beads
 ├ TARGET ───────┤ FLAT: tasks only
-│  ├ dispatch ┐ │ repeat    run-batch, one subagent per dispatch
-│  ├ merge    │ │ until the coordinator, as each dispatch returns
-│  └ supervise┘ │ front dry swarm status
+│  ├ dispatch ┐ ......... run-batch, one subagent per dispatch
+│  ├ merge    │ ......... the coordinator, as each dispatch returns
+│  └ supervise┘ ......... swarm status — repeat until the front is dry
 ├ review ───────┘ ......... sprint-review → declared reviewer
 │   findings admitted AND passes < 3 ? — yes, re-enter at groom & plan
 ├ retro ................... sprint-retro — and it writes the run's retro
@@ -259,8 +259,7 @@ first dispatch, the durable out-of-session trigger, cancelled at post-flight.
 
 **A run is done when every bead the manifest's `admitted` list names is closed
 or accounted for as blocked-with-a-reason** — `swarm status --run <epic>`
-measures it and you route on the exit status, per [[frd-swarm-core]]'s command
-contract. Beads excluded at admission are reported alongside, because a run
+measures it and you route on the exit status. Beads excluded at admission are reported alongside, because a run
 that finished its admitted set while three sat out is done over a *narrowed*
 scope.
 

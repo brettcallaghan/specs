@@ -35,9 +35,7 @@ measurements it would take without taking any. What it reports: the standing
 worktree count and how many of those belong to a dispatch, the sprint branch's
 last commit with its age, the ready front's depth, each dispatch's drain state,
 the run's completion tally, the beads admission added, missed or excluded, and
-any bead two agents hold at once. Its exit status and output format follow
-[[frd-swarm-core]]'s command contract (FEAT-SWARM-CORE-001) — **route on the
-exit status**, and a measurement it could not take is reported as unknown and
+any bead two agents hold at once. **Route on the exit status**, and a measurement it could not take is reported as unknown and
 exits non-zero, so an unreadable tracker never reads as a quiet run.
 
 **It reports measurements; it does not diagnose, and neither do you.** Whether
