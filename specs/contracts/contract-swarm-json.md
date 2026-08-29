@@ -155,6 +155,9 @@ cannot say which combination is coherent.
 ## References
 
 - [[container-swarm-cli]] — the provider
+- [[swarm-output-layout-standards]] — the layout of both renderings, and
+  the correspondence between this envelope's containers and the text
+  form's line kinds
 - [[frd-swarm-core]] — the requirements the emitted facts come from
 - [[module-bead-bonanza]] — the consumer whose components parse this
   output and write this manifest

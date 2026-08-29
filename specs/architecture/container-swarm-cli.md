@@ -227,6 +227,13 @@ not. `validate` without `--stage` validates against the stage the record
 has reached and reports both the stage and that it was derived, since a
 caller reading a clean result has to know what it was clean against.
 
+**The layout of both renderings is
+[[swarm-output-layout-standards]]'s** — which kinds of line exist, how a
+reader tells them apart, what may be assumed from each, and which stream
+carries which. It is a standard over every subcommand rather than a
+property of any one of them, which is why it is stated there and
+enforced here.
+
 ### Plan Runner
 
 ```component
