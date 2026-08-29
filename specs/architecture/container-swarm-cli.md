@@ -440,6 +440,25 @@ otherwise have to guess at:
   caller that fixed one refusal and re-ran to find the next would be
   doing the work the check exists to do.
 
+**A key whose absence is legitimate at every stage has no stage**, and
+that is said by where it is declared: on `RunManifest` itself rather than
+in a stage struct. Such a key is not reported at all — a reader told
+"pending" would wait for something that is never coming. `trailers` is
+the one today.
+
+**The logical rules are the ones no single write can check on its own**,
+and each is a rule identifier a caller can act on rather than a message
+it has to read:
+
+| rule | what it refuses, and why |
+|---|---|
+| write-once | a different `branch` or `base_sha`. Three things read them — the review scopes its diff from the base, every worktree branches from the branch, the pull request opens against it — so a run that repointed either mid-flight would leave the three describing different trees. Re-writing the SAME value is not a change, which is what lets a resumed run reuse its branch |
+| counter backwards | a lower `review_passes`, because a resumed run that restarted the counter would loop forever |
+| counter over budget | a `review_passes` past the `review_budget` beside it |
+| ledger rewritten | an entry removed, reordered or altered. Dispatch prompts cite entries by position, so a rewrite retargets every citation that addressed one — and nothing downstream can tell |
+| admission overlap | a bead in more than one of `admitted`, `excluded` and `moved`. The finding names the BEAD rather than the lists, because the bead is what somebody has to decide about |
+| effort unrecorded | an absent `effort` past its stage. A harness exposing no such setting records `unrecorded`, so a reader can tell "not offered" from "not yet written" |
+
 ### Manifest Store
 
 ```component

@@ -292,13 +292,6 @@
             "string",
             "null"
           ]
-        },
-        "trailers": {
-          "description": "The commit trailers the run resolved.\n\nOptional at every stage, not merely until its own: a run that resolved\nno trailer convention legitimately carries none, and an absent value\nhere means that rather than \"not yet written\".",
-          "type": [
-            "string",
-            "null"
-          ]
         }
       },
       "type": "object"
@@ -668,13 +661,6 @@
             "string",
             "null"
           ]
-        },
-        "trailers": {
-          "description": "The commit trailers the run resolved.\n\nOptional at every stage, not merely until its own: a run that resolved\nno trailer convention legitimately carries none, and an absent value\nhere means that rather than \"not yet written\".",
-          "type": [
-            "string",
-            "null"
-          ]
         }
       },
       "type": "object"
@@ -969,13 +955,6 @@
             "string",
             "null"
           ]
-        },
-        "trailers": {
-          "description": "The commit trailers the run resolved.\n\nOptional at every stage, not merely until its own: a run that resolved\nno trailer convention legitimately carries none, and an absent value\nhere means that rather than \"not yet written\".",
-          "type": [
-            "string",
-            "null"
-          ]
         }
       },
       "type": "object"
@@ -1205,7 +1184,7 @@
           ]
         },
         "trailers": {
-          "description": "The commit trailers the run resolved.\n\nOptional at every stage, not merely until its own: a run that resolved\nno trailer convention legitimately carries none, and an absent value\nhere means that rather than \"not yet written\".",
+          "description": "The commit trailers the run resolved.\n\nDeclared here rather than in a stage struct, and that placement is what\nsays it is never required: a run that resolved no trailer convention\nlegitimately carries none at every stage, so an absent value means that\nrather than \"not yet written\". A key whose absence is always legitimate\nhas no stage, and having no stage is expressed by having no stage\nstruct.",
           "type": [
             "string",
             "null"
@@ -1354,13 +1333,6 @@
         },
         "target": {
           "description": "The flat target epic whose task children are the run's work.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "trailers": {
-          "description": "The commit trailers the run resolved.\n\nOptional at every stage, not merely until its own: a run that resolved\nno trailer convention legitimately carries none, and an absent value\nhere means that rather than \"not yet written\".",
           "type": [
             "string",
             "null"

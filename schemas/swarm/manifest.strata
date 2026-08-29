@@ -141,12 +141,6 @@ struct ScopeKeys: PreFlightKeys {
   standing_auth: StandingAuth?
   """How many review loops the run may spend."""
   review_budget: Int?
-  """The commit trailers the run resolved.
-
-  Optional at every stage, not merely until its own: a run that resolved
-  no trailer convention legitimately carries none, and an absent value
-  here means that rather than "not yet written"."""
-  trailers: String?
 }
 
 """Keys the run's planning establishes."""
@@ -200,4 +194,13 @@ chain that declares it — PreFlightKeys, then ScopeKeys, PlanKeys,
 DispatchKeys, RetroKeys — so a key's name, its type and its stage all
 come from one declaration."""
 struct RunManifest: RetroKeys {
+  """The commit trailers the run resolved.
+
+  Declared here rather than in a stage struct, and that placement is what
+  says it is never required: a run that resolved no trailer convention
+  legitimately carries none at every stage, so an absent value means that
+  rather than "not yet written". A key whose absence is always legitimate
+  has no stage, and having no stage is expressed by having no stage
+  struct."""
+  trailers: String?
 }

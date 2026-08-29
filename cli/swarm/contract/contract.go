@@ -43,6 +43,50 @@ func StageDeclarations() []StageDeclaration {
 	}
 }
 
+// ManifestType is the generated struct carrying the whole declared key
+// set: the last stage struct's keys, plus the keys that belong to no
+// stage.
+func ManifestType() reflect.Type { return reflect.TypeOf(swarmmodel.RunManifest{}) }
+
+// AlwaysOptional returns the manifest keys whose absence is legitimate at
+// every stage.
+//
+// Derived rather than listed: a key declared directly on RunManifest and
+// in no stage struct is a key with no stage, and having no stage is what
+// "never required" means. So the placement of a declaration says it, and
+// there is no second list to keep in step.
+func AlwaysOptional() []string {
+	staged := map[string]bool{}
+	for _, decl := range StageDeclarations() {
+		for i := 0; i < decl.Type.NumField(); i++ {
+			staged[wireName(decl.Type.Field(i))] = true
+		}
+	}
+
+	manifest := ManifestType()
+	var out []string
+	for i := 0; i < manifest.NumField(); i++ {
+		if name := wireName(manifest.Field(i)); name != "" && !staged[name] {
+			out = append(out, name)
+		}
+	}
+	return out
+}
+
+// wireName is the JSON key a generated field carries, empty when the
+// field is not serialized.
+func wireName(field reflect.StructField) string {
+	tag, ok := field.Tag.Lookup("json")
+	if !ok {
+		return ""
+	}
+	name, _, _ := strings.Cut(tag, ",")
+	if name == "-" {
+		return ""
+	}
+	return name
+}
+
 // Stages returns the run's stages in the order a run reaches them.
 func Stages() []swarmmodel.RunStage {
 	declarations := StageDeclarations()

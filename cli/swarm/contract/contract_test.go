@@ -104,15 +104,36 @@ func TestEveryManifestKeyIsDeclaredExactlyOnceWithItsStage(t *testing.T) {
 		}
 	}
 
-	// And nothing is in the manifest that no stage declares — which is
-	// what a key added straight to RunManifest would look like.
-	for _, key := range keysOf(manifest) {
-		if _, ok := stageOf[key]; !ok {
-			t.Errorf("key %q is in RunManifest and belongs to no stage", key)
+	// Every key in the manifest either has a stage or is declared
+	// directly on RunManifest, and that placement is what says its
+	// absence is always legitimate. A key in neither place would be one
+	// nothing declares.
+	optional := map[string]bool{}
+	for _, key := range contract.AlwaysOptional() {
+		optional[key] = true
+		if _, staged := stageOf[key]; staged {
+			t.Errorf("key %q is reported as always-optional and also has a stage", key)
 		}
 	}
-	if len(stageOf) != len(manifest.Properties) {
-		t.Errorf("the stages declare %d keys and RunManifest carries %d", len(stageOf), len(manifest.Properties))
+	for _, key := range keysOf(manifest) {
+		_, staged := stageOf[key]
+		if !staged && !optional[key] {
+			t.Errorf("key %q is in RunManifest, has no stage, and is not always-optional", key)
+		}
+	}
+	if len(stageOf)+len(optional) != len(manifest.Properties) {
+		t.Errorf("the stages declare %d keys, %d are always-optional, and RunManifest carries %d",
+			len(stageOf), len(optional), len(manifest.Properties))
+	}
+
+	// The always-optional set is derived, so this is the check that the
+	// derivation found the key the schema puts there rather than an empty
+	// answer that would pass vacuously.
+	if len(optional) == 0 {
+		t.Error("no key is always-optional, though the schema declares one on RunManifest directly")
+	}
+	if !optional["trailers"] {
+		t.Errorf("trailers is not always-optional; the always-optional set is %v", contract.AlwaysOptional())
 	}
 
 	// A spot check that the chain is really carrying the run's own keys,
@@ -173,5 +194,16 @@ func TestTheGoChainAndTheSchemaChainAgree(t *testing.T) {
 			t.Errorf("%s declares %d keys in the schema and %d fields in Go",
 				name, len(def.Properties), decl.Type.NumField())
 		}
+	}
+
+	// And the manifest type itself, which carries the chain plus the keys
+	// that belong to no stage.
+	manifest, ok := defs["RunManifest"]
+	if !ok {
+		t.Fatal("the schema has no RunManifest definition")
+	}
+	if len(manifest.Properties) != contract.ManifestType().NumField() {
+		t.Errorf("RunManifest declares %d keys in the schema and %d fields in Go",
+			len(manifest.Properties), contract.ManifestType().NumField())
 	}
 }

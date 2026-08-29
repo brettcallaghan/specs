@@ -212,8 +212,7 @@ func Check(changes map[string]json.RawMessage) error {
 			refusals = append(refusals, fmt.Sprintf("%q is not a declared manifest key", name))
 			continue
 		}
-		value := reflect.New(key.Type).Interface()
-		if err := json.Unmarshal(changes[name], value); err != nil {
+		if err := json.Unmarshal(changes[name], newValue(key)); err != nil {
 			refusals = append(refusals, fmt.Sprintf(
 				"%q takes %s, and the value given is not one: %v", name, key.Type, err))
 		}
@@ -224,6 +223,10 @@ func Check(changes map[string]json.RawMessage) error {
 	return fmt.Errorf("manifest: refusing the write, and storing none of it — %s",
 		strings.Join(refusals, "; "))
 }
+
+// newValue returns a fresh addressable zero value of a key's declared
+// type, for unmarshalling a candidate value into.
+func newValue(key Key) any { return reflect.New(key.Type).Interface() }
 
 // Store reads and writes the manifest document, wherever it is kept.
 //

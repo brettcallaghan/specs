@@ -410,12 +410,6 @@ type ScopeKeys struct {
 	StandingAuth *StandingAuth `json:"standing_auth,omitempty"`
 	// How many review loops the run may spend.
 	ReviewBudget *int64 `json:"review_budget,omitempty"`
-	// The commit trailers the run resolved.
-	//
-	// Optional at every stage, not merely until its own: a run that resolved
-	// no trailer convention legitimately carries none, and an absent value
-	// here means that rather than "not yet written".
-	Trailers *string `json:"trailers,omitempty"`
 }
 
 // Keys the run's planning establishes.
@@ -454,12 +448,6 @@ type PlanKeys struct {
 	StandingAuth *StandingAuth `json:"standing_auth,omitempty"`
 	// How many review loops the run may spend.
 	ReviewBudget *int64 `json:"review_budget,omitempty"`
-	// The commit trailers the run resolved.
-	//
-	// Optional at every stage, not merely until its own: a run that resolved
-	// no trailer convention legitimately carries none, and an absent value
-	// here means that rather than "not yet written".
-	Trailers *string `json:"trailers,omitempty"`
 	// Where the edge document the run was built from was written.
 	CollisionEdges *string `json:"collision_edges,omitempty"`
 	// What became of the partition the planner proposed.
@@ -503,12 +491,6 @@ type DispatchKeys struct {
 	StandingAuth *StandingAuth `json:"standing_auth,omitempty"`
 	// How many review loops the run may spend.
 	ReviewBudget *int64 `json:"review_budget,omitempty"`
-	// The commit trailers the run resolved.
-	//
-	// Optional at every stage, not merely until its own: a run that resolved
-	// no trailer convention legitimately carries none, and an absent value
-	// here means that rather than "not yet written".
-	Trailers *string `json:"trailers,omitempty"`
 	// Where the edge document the run was built from was written.
 	CollisionEdges *string `json:"collision_edges,omitempty"`
 	// What became of the partition the planner proposed.
@@ -565,12 +547,6 @@ type RetroKeys struct {
 	StandingAuth *StandingAuth `json:"standing_auth,omitempty"`
 	// How many review loops the run may spend.
 	ReviewBudget *int64 `json:"review_budget,omitempty"`
-	// The commit trailers the run resolved.
-	//
-	// Optional at every stage, not merely until its own: a run that resolved
-	// no trailer convention legitimately carries none, and an absent value
-	// here means that rather than "not yet written".
-	Trailers *string `json:"trailers,omitempty"`
 	// Where the edge document the run was built from was written.
 	CollisionEdges *string `json:"collision_edges,omitempty"`
 	// What became of the partition the planner proposed.
@@ -642,12 +618,6 @@ type RunManifest struct {
 	StandingAuth *StandingAuth `json:"standing_auth,omitempty"`
 	// How many review loops the run may spend.
 	ReviewBudget *int64 `json:"review_budget,omitempty"`
-	// The commit trailers the run resolved.
-	//
-	// Optional at every stage, not merely until its own: a run that resolved
-	// no trailer convention legitimately carries none, and an absent value
-	// here means that rather than "not yet written".
-	Trailers *string `json:"trailers,omitempty"`
 	// Where the edge document the run was built from was written.
 	CollisionEdges *string `json:"collision_edges,omitempty"`
 	// What became of the partition the planner proposed.
@@ -671,6 +641,15 @@ type RunManifest struct {
 	RetroDeclined *int64 `json:"retro_declined,omitempty"`
 	// How many findings were routed elsewhere.
 	RetroRouted *int64 `json:"retro_routed,omitempty"`
+	// The commit trailers the run resolved.
+	//
+	// Declared here rather than in a stage struct, and that placement is what
+	// says it is never required: a run that resolved no trailer convention
+	// legitimately carries none at every stage, so an absent value means that
+	// rather than "not yet written". A key whose absence is always legitimate
+	// has no stage, and having no stage is expressed by having no stage
+	// struct.
+	Trailers *string `json:"trailers,omitempty"`
 }
 
 // Which of the three interpreters produced a result.
