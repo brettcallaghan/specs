@@ -6,8 +6,8 @@
   target, and the gate as a task
 - The two human channels — authorization at the start, findings at the end
 - The two things the coordinator owns: the manifest and the run's amendments
-- The run manifest — the four `swarm manifest` verbs, and what the keys mean
-  where the meaning is the module's
+- The run manifest — the four `swarm manifest` verbs, and where the key set
+  and its meaning are generated to
 - The environmental ledger — admitted on evidence, ordered, never reordered
 - Amendments — `amend:` comments on the epic, append-only by construction
 - `base_sha` — why it is recorded at creation and never derived
@@ -111,6 +111,9 @@ after `sprint-scope` returns the epic and before you dispatch grooming.
    the record, `--help` on any verb names the flags, and `swarm manifest
    validate --run <epic>` reports every rule the record breaks at the stage it
    has reached. A key nothing here mentions is still enforced there.
+   `generated/manifest.md` is the same key set and meaning as a
+   document, generated from the CLI's own model, for reading without a run in
+   flight to point a command at.
 
    **`collision_edges` is yours to write and the planner's to produce.** The
    plan returns the path of one `bd dep add --file` document: `blocks` edges
@@ -203,39 +206,27 @@ state you would otherwise have to guess at:
   worktree branches from that branch's HEAD, and the pull request opens against
   it.
 
-**What the keys MEAN is this document's**, and only where the meaning is the
-module's rather than the record's:
+**What the keys MEAN is `generated/manifest.md`'s, not this
+document's.** It is generated from `schemas/swarm/manifest.strata` by
+`scripts/generate-schemas.sh`, kept current by that script's `--check`
+(declared check `schemas`), and lists every key, its type, and the stage its
+struct declares it at, alongside the same docstring the CLI's model carries.
+It is vendored rather than left as "run the command": the key set is read
+while deciding whether a run is worth inspecting at all, before any epic
+exists to point a command at.
+
+Three facts about how a key is USED are not the schema's to carry, because
+they describe this skill's own machinery rather than the manifest:
 
 - **`checks_baseline` is inlined verbatim into every subagent prompt.** A gate
   recorded failing there is the bar for the run — "no findings beyond the
   baseline", not "exit 0".
-- **The four retro keys are `sprint-retro`'s, written at the end of the run.**
-  They are what lets a session that did not hold the run find its record from
-  the epic id alone. **An absent `findings_path` means the retro did not run** —
-  a different result from a retro that found nothing, and one a reader must not
-  have to guess at.
-- **`review_passes` is durable for one reason:** a resumed run that restarted
-  the counter would loop forever. `review_budget` records what the
-  authorization gate decided, so a run resumed by a session that never met the
-  human still honours it.
-- **`standing_auth` records each gate row's SOURCE as well as its value.** A
-  row resolved from `sf.toml`'s `[run]` and a row that took the skill default
-  are different facts, and the record exists to stop a decision being
-  re-litigated mid-run — a project-level default is one more place one can hide
-  from whoever reads the report.
-- **`effort` is the run's reasoning-effort setting.** WHERE the harness exposes
-  none, record `unrecorded` rather than omitting the key or guessing a value:
-  an omitted key is indistinguishable from a forgotten one, and a guess is
-  worse.
-- **`admitted` / `excluded` / `moved` are the admission record.** A run that
-  finished its admitted set while beads sat out is done, and must say so rather
-  than reading as complete over a scope nobody remembers narrowing.
-- **`trailers` is declared with no stage.** Its absence is legitimate at every
-  stage, so `validate` never reports it pending; `get`, `require` and `set`
-  serve it like any other key, and its declared type is still enforced.
-  `bb-close-bead.sh --trailers-from <epic>` reads it from the manifest itself,
-  before it closes or commits anything, and exits 2 saying so when the run
-  resolved none.
+- **`review_passes` is what a resumed run reads to avoid restarting the review
+  counter**, honouring `review_budget` even in a session that never met the
+  human at the authorization gate.
+- **`bb-close-bead.sh --trailers-from <epic>` reads `trailers` from the
+  manifest itself**, before it closes or commits anything, and exits 2 saying
+  so when the run resolved none.
 
 ## Environmental ledger
 

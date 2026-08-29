@@ -33,6 +33,7 @@ MD_OUT="plugin/skills/spec/references/generated"
 # binary's model, not the document corpus's.
 SWARM_SRC="schemas/swarm"
 SWARM_GO_OUT="cli/swarm/swarmmodel"
+SWARM_MD_OUT="plugin/skills/bead-bonanza/references/generated"
 
 if ! command -v strata >/dev/null 2>&1; then
   echo "error: strata not found on PATH." >&2
@@ -212,6 +213,32 @@ mv "$WORK/swarm-schema/SwarmModel.schema.json" "$WORK/schema/swarm-model.schema.
 
 strata build "$SWARM_SRC" --target go --output "$WORK/swarm-go"
 
+# 6.6. Markdown reference for the swarm CLI's own model — the run
+#      manifest's key set and the command-result envelope — describing
+#      what a `swarm manifest` or `--json` reader will find, from the
+#      same docstrings the Go and JSON Schema targets draw on. Vendored
+#      into bead-bonanza rather than left as a command to run: the key
+#      set is read while deciding whether to run a command at all, and a
+#      run-record document that pointed at nothing but `swarm manifest
+#      get --run <epic>` would need a live run in flight to be useful.
+strata build "$SWARM_SRC" --target markdown --output "$WORK/swarm-md"
+
+cat >"$WORK/swarm-md/README.md" <<'BANNER'
+# Generated swarm model reference
+
+**Generated — do not edit.** Every file in this directory is produced by
+`scripts/generate-schemas.sh` from the `.strata` sources in
+`schemas/swarm/`. Edit those and re-run the script; a change made here is
+lost on the next regeneration.
+
+`manifest.md` describes the run manifest's key set: which keys exist,
+their types, the stage each becomes required at (the struct that first
+declares it), and what each key means. `output.md` describes the
+envelope every `swarm` command emits under `--json`. The normative
+artifact derived from the same sources is the JSON Schema under
+`cli/core/schema/`.
+BANNER
+
 # 6.5. The same shape assertion the spec model gets, for the reason it
 #      gets it: the strata regression this guards against emits an
 #      inheriting struct with an empty properties map while exiting 0, and
@@ -271,6 +298,7 @@ sync_dir "$WORK/schema" "$SCHEMA_OUT" || rc=1
 sync_dir "$WORK/go" "$GO_OUT" || rc=1
 sync_dir "$WORK/md" "$MD_OUT" || rc=1
 sync_dir "$WORK/swarm-go" "$SWARM_GO_OUT" || rc=1
+sync_dir "$WORK/swarm-md" "$SWARM_MD_OUT" || rc=1
 
 if [[ $rc -ne 0 ]]; then
   exit 1
@@ -284,4 +312,5 @@ else
   echo "  $GO_OUT  (Go)"
   echo "  $MD_OUT  (Markdown)"
   echo "  $SWARM_GO_OUT  (Go, swarm)"
+  echo "  $SWARM_MD_OUT  (Markdown, swarm)"
 fi
