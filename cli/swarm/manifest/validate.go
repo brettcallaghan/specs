@@ -116,16 +116,6 @@ func (r *Report) add(rule Rule, severity Severity, keys []string, format string,
 	})
 }
 
-// alwaysOptional is the set of keys whose absence is legitimate at every
-// stage, derived from where they are declared.
-var alwaysOptional = func() map[string]bool {
-	out := map[string]bool{}
-	for _, key := range contract.AlwaysOptional() {
-		out[key] = true
-	}
-	return out
-}()
-
 // stageOrder is each stage's position in a run.
 var stageOrder = func() map[swarmmodel.RunStage]int {
 	out := map[swarmmodel.RunStage]int{}
@@ -160,10 +150,10 @@ func Validate(doc Document, stage swarmmodel.RunStage) Report {
 			if err := checkType(key, value); err != nil {
 				report.add(RuleType, SeverityFailure, []string{key.Name}, "%s", err)
 			}
-		case alwaysOptional[key.Name]:
-			// Absent by design at every stage. Not reported at all: a
-			// reader told "pending" would wait for something that is
-			// never coming.
+		case key.Stage == "":
+			// A key that becomes required at no stage. Absent by design
+			// at every one of them, so not reported at all: a reader told
+			// "pending" would wait for something that is never coming.
 		case stageOrder[key.Stage] <= reached:
 			report.add(RuleAbsent, SeverityFailure, []string{key.Name},
 				"%q is required by the %s stage and is not written", key.Name, stage)

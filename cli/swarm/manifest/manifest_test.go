@@ -4,6 +4,7 @@ package manifest_test
 
 import (
 	"encoding/json"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -334,5 +335,66 @@ func TestAMetadataObjectBecomesADocument(t *testing.T) {
 	}
 	if len(empty.Names()) != 0 {
 		t.Errorf("an empty metadata object read as %v", empty.Names())
+	}
+}
+
+// AC: AC-SWARM-CORE-002.19
+//
+// A key declared on RunManifest itself and in no stage struct is still a
+// declared key. Having no stage says its absence is legitimate at every
+// stage; it does not say the key is unknown, and reading, requiring and
+// writing it all have to resolve it. `trailers` is the one such key
+// today, and this test names it so a derivation that quietly returned an
+// empty set could not pass.
+func TestAKeyWithNoStageIsStillDeclared(t *testing.T) {
+	key, ok := manifest.Lookup("trailers")
+	if !ok {
+		t.Fatal(`"trailers" is not in the declared set, though RunManifest declares it`)
+	}
+	if key.Stage != "" {
+		t.Errorf(`"trailers" reports the %q stage; a key declared in no stage struct has no stage`, key.Stage)
+	}
+	if key.Type == nil || key.Type.Kind() != reflect.String {
+		t.Errorf(`"trailers" has type %v, want string`, key.Type)
+	}
+
+	appearances := 0
+	for _, k := range manifest.Keys() {
+		if k.Name == "trailers" {
+			appearances++
+		}
+	}
+	if appearances != 1 {
+		t.Errorf(`"trailers" appears %d times in the declared set, want once`, appearances)
+	}
+
+	// A write of it is accepted rather than refused as undeclared, and
+	// its declared type is still enforced.
+	if err := manifest.Check(raw(t, map[string]string{"trailers": `"Co-Authored-By: Someone"`})); err != nil {
+		t.Errorf("a write of trailers was refused: %v", err)
+	}
+	if err := manifest.Check(raw(t, map[string]string{"trailers": `3`})); err == nil {
+		t.Error("a numeric value for trailers was accepted, though the key takes a string")
+	}
+}
+
+// AC: AC-SWARM-CORE-002.18
+// AC: AC-SWARM-CORE-002.19
+//
+// Requiring a stageless key reports it as absent when it is not written
+// and clean when it is — never as a key nothing declares, which would
+// tell a caller to stop asking rather than to write it.
+func TestRequiringAStagelessKeyReportsAbsenceRatherThanAnUnknownKey(t *testing.T) {
+	absent := manifest.Require(doc(t, map[string]string{}), "trailers")
+	if !hasRule(absent, manifest.RuleAbsent) {
+		t.Errorf("requiring an unwritten trailers gave %v, want %s", rules(absent), manifest.RuleAbsent)
+	}
+	if hasRule(absent, manifest.RuleUndeclared) {
+		t.Error("requiring trailers reported it as a key nothing declares")
+	}
+
+	written := manifest.Require(doc(t, map[string]string{"trailers": `"Co-Authored-By: Someone"`}), "trailers")
+	if written.Failed() {
+		t.Errorf("requiring a written trailers failed: %s", written.Error())
 	}
 }

@@ -338,6 +338,64 @@ func TestRequireNamesEveryAbsentKey(t *testing.T) {
 	}
 }
 
+// AC: AC-SWARM-CORE-002.19
+//
+// A key with no stage is served by get, require and set like any other.
+// Having no stage says its absence is legitimate at every stage; refusing
+// it as undeclared would leave the run unable to ask the record for
+// something the record is declared to carry. `trailers` is the one such
+// key today, and it is named here so an empty derivation could not pass.
+func TestTheVerbsServeAKeyThatHasNoStage(t *testing.T) {
+	written := exectest.NewFake(reading(`{"trailers":"Co-Authored-By: Someone"}`))
+	stdout, code := runManifest(t, written,
+		"manifest", "get", "--run", testRun, "--json", "--key", "trailers")
+	if code != int(StatusClear) {
+		t.Fatalf("get --key trailers exited %d, want %d\n%s", code, StatusClear, stdout)
+	}
+	fact, ok := factNamed(envelopeOf(t, stdout), "trailers")
+	if !ok || fact.Value == nil || fact.Value.Text == nil || *fact.Value.Text != "Co-Authored-By: Someone" {
+		t.Errorf("get did not report the trailers it read: %v", fact)
+	}
+
+	// Required and written: clear. Required and unwritten: attention that
+	// says how to write it — not "not a declared manifest key".
+	if _, code := runManifest(t, exectest.NewFake(reading(`{"trailers":"x"}`)),
+		"manifest", "require", "--run", testRun, "--key", "trailers"); code != int(StatusClear) {
+		t.Errorf("require --key trailers exited %d with the key written, want %d", code, StatusClear)
+	}
+	stdout, code = runManifest(t, exectest.NewFake(reading(`{}`)),
+		"manifest", "require", "--run", testRun, "--json", "--key", "trailers")
+	if code != int(StatusAttention) {
+		t.Fatalf("require --key trailers exited %d with the key absent, want %d\n%s",
+			code, StatusAttention, stdout)
+	}
+	if strings.Contains(stdout, "not a declared manifest key") {
+		t.Errorf("require reported trailers as undeclared: %s", stdout)
+	}
+
+	setting := exectest.NewFake(
+		reading(`{}`),
+		exectest.Recording{
+			Argv: []string{"bd", "update", testRun, "--metadata",
+				`{"trailers":"Co-Authored-By: Someone"}`, "--json"},
+			Stdout: epic(`{"trailers":"Co-Authored-By: Someone"}`),
+		},
+	)
+	stdout, code = runManifest(t, setting, "manifest", "set", "--run", testRun, "--json",
+		"--key", "trailers", "--value", `"Co-Authored-By: Someone"`)
+	if code != int(StatusClear) {
+		t.Fatalf("set --key trailers exited %d, want %d\n%s", code, StatusClear, stdout)
+	}
+
+	// The declared type is still enforced, so serving the key is not the
+	// same as accepting anything for it.
+	stdout, code = runManifest(t, exectest.NewFake(reading(`{}`)),
+		"manifest", "set", "--run", testRun, "--key", "trailers", "--value", `3`)
+	if code != int(StatusMalformed) {
+		t.Errorf("a numeric trailers value exited %d, want %d\n%s", code, StatusMalformed, stdout)
+	}
+}
+
 // AC: AC-SWARM-CORE-002.16
 //
 // A manifest whose keys are all present, correctly typed and mutually

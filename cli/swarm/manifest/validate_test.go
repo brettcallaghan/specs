@@ -318,6 +318,20 @@ func TestValidationSeparatesAKeyNotYetWrittenFromOneThatIsWrong(t *testing.T) {
 			t.Errorf("trailers is reported as %s, though its absence is always legitimate", f.Severity)
 		}
 	}
+
+	// And having no stage does not make the key undeclared: a record that
+	// carries it validates clean, and a wrong value for it still fails.
+	withTrailers := doc(t, map[string]string{"trailers": `"Co-Authored-By: Someone"`})
+	report = manifest.Validate(withTrailers, swarmmodel.RunStagePreFlight)
+	for _, f := range report.Failures() {
+		if f.Rule == manifest.RuleUndeclared && len(f.Keys) == 1 && f.Keys[0] == "trailers" {
+			t.Error("a record carrying trailers reports it as a key nothing declares")
+		}
+	}
+	wrongType := doc(t, map[string]string{"trailers": `3`})
+	if !hasRule(manifest.Validate(wrongType, swarmmodel.RunStagePreFlight), manifest.RuleType) {
+		t.Error("a numeric trailers value was accepted, though the key takes a string")
+	}
 }
 
 // AC: AC-SWARM-CORE-002.15

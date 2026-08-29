@@ -220,11 +220,12 @@ module's rather than the record's:
 - **`admitted` / `excluded` / `moved` are the admission record.** A run that
   finished its admitted set while beads sat out is done, and must say so rather
   than reading as complete over a scope nobody remembers narrowing.
-- **`trailers` is the one key the command does not serve.** It is declared with
-  no stage — its absence is legitimate at every stage — and `get`, `require`
-  and `set` all refuse it as undeclared. `bb-close-bead.sh --trailers-from
-  <epic>` reads it from the manifest itself, before it closes or commits
-  anything, and exits 2 saying so when the run resolved none.
+- **`trailers` is declared with no stage.** Its absence is legitimate at every
+  stage, so `validate` never reports it pending; `get`, `require` and `set`
+  serve it like any other key, and its declared type is still enforced.
+  `bb-close-bead.sh --trailers-from <epic>` reads it from the manifest itself,
+  before it closes or commits anything, and exits 2 saying so when the run
+  resolved none.
 
 ## Environmental ledger
 

@@ -265,10 +265,10 @@ Write no progress file.
    $SCRIPTS/bb-close-bead.sh --trailers-from {EPIC} <id> <priority> "<title>"
    ```
 
-   **`trailers` is the one key `swarm manifest` does not serve**, so do not ask
-   it. The script reads it itself, before it closes or commits anything: pass
-   `--trailers-from`, and where the run resolved none it exits 2 saying so with
-   nothing done — re-run without the flag. **Pass no paths** —
+   **The trailers live in the run's manifest and the script fetches them**
+   before it closes or commits anything: pass `--trailers-from`; where the run
+   resolved none it exits 2 with nothing done, so re-run without the flag.
+   **Pass no paths** —
    everything modified in the worktree is this bead's work, and a path list can
    only be too narrow. That holds inside a batch's shared tree too: the previous
    bead committed before this one started, so nothing uncommitted is anyone

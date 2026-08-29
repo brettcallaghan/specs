@@ -33,7 +33,10 @@ type Key struct {
 	// Name is the key as it appears in the record.
 	Name string
 	// Stage is when it becomes required: the stage whose struct declares
-	// it.
+	// it. It is EMPTY for a key declared on the manifest itself and in no
+	// stage struct — such a key becomes required at no stage, which is
+	// what makes its absence legitimate at every one of them. Empty means
+	// "never required", never "unknown": the key is declared either way.
 	Stage swarmmodel.RunStage
 	// Type is the Go type of the key's value, with the optionality
 	// stripped — the type a value has to unmarshal into.
@@ -61,6 +64,29 @@ func buildKeys() []Key {
 			seen[name] = true
 			keys = append(keys, Key{Name: name, Stage: decl.Stage, Type: valueType(field.Type)})
 		}
+	}
+
+	// Then the keys with no stage. They are declared on the manifest
+	// itself and in no stage struct, and that placement says only that
+	// they are never REQUIRED — a key nothing requires is still a key the
+	// record carries, so reading, requiring and writing it all resolve it
+	// here. Leaving them out is what would make the command answer "not a
+	// declared manifest key" to a key the schema declares.
+	fields := map[string]reflect.StructField{}
+	manifestType := contract.ManifestType()
+	for i := 0; i < manifestType.NumField(); i++ {
+		field := manifestType.Field(i)
+		if name := wireName(field); name != "" {
+			fields[name] = field
+		}
+	}
+	for _, name := range contract.AlwaysOptional() {
+		field, declaredOnManifest := fields[name]
+		if !declaredOnManifest || seen[name] {
+			continue
+		}
+		seen[name] = true
+		keys = append(keys, Key{Name: name, Type: valueType(field.Type)})
 	}
 	return keys
 }
@@ -90,7 +116,7 @@ func valueType(t reflect.Type) reflect.Type {
 }
 
 // Keys returns the declared key set, in stage order and then declaration
-// order.
+// order, with the keys that belong to no stage last.
 func Keys() []Key {
 	out := make([]Key, len(declared))
 	copy(out, declared)

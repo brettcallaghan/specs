@@ -464,9 +464,11 @@ otherwise have to guess at:
 
 **A key whose absence is legitimate at every stage has no stage**, and
 that is said by where it is declared: on `RunManifest` itself rather than
-in a stage struct. Such a key is not reported at all — a reader told
-"pending" would wait for something that is never coming. `trailers` is
-the one today.
+in a stage struct. Validation does not report such a key at all — a reader
+told "pending" would wait for something that is never coming. That is the
+whole of what having no stage means: the key is declared, so reading,
+requiring and writing it all resolve it, and its declared type is still
+enforced. `trailers` is the one today.
 
 **The logical rules are the ones no single write can check on its own**,
 and each is a rule identifier a caller can act on rather than a message
