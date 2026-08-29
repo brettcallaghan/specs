@@ -1,0 +1,9 @@
+swarm manifest set — run fixture-run (execute)
+bd show fixture-run --json
+bd update fixture-run --metadata '{"findings_path":"docs/two  spaces\n  --leading-dash\tafter-a-tab "}' --json
+findings_path = docs/two  spaces
+  --leading-dash	after-a-tab     <- bd update fixture-run --metadata '{"findings_path":"docs/two  spaces\n  --leading-dash\tafter-a-tab "}' --json
+set-guard: ran exit 0 <duration> sha256:<digest> sha256:<digest>    <- bd show fixture-run --json
+set-write: ran exit 0 <duration> sha256:<digest> sha256:<digest>    <- bd update fixture-run --metadata '{"findings_path":"docs/two  spaces\n  --leading-dash\tafter-a-tab "}' --json
+summary: wrote findings_path as one merge
+outcome: clear (exit 0)

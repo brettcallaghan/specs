@@ -296,10 +296,20 @@ Feature: The contract every command keeps
 **Commands:**
 
 ```text
-swarm manifest get     --run <id> [--key <key>] [--json]
+swarm manifest get     --run <id> [--key <key>] [--json] [--full-result]
 swarm manifest set     --run <id> --key <key> --value <value> [--if-absent] [--json]
 swarm manifest require --run <id> --key <key>...
 ```
+
+**`get` is a lookup, and answers with the value.** Every other command
+here answers with a report, because a report is the answer: what was
+written, what was refused, which rules held. A key lookup is not — its
+caller wants the value, and an envelope it has to walk to reach one puts
+a parser between an agent and a string. So `get --key <k>` prints the
+value alone, `get` with no key prints the record as one object, and
+`--full-result` is how a caller asks for the report instead. The exit
+status carries the same three answers either way, which is what makes the
+bare form a rendering rather than a loss.
 
 **This is the component every other command reads a run through**, so
 its behaviour on an absent key, a wrong type and a concurrent write is
@@ -483,6 +493,38 @@ Feature: Read and update the run manifest
     Given a key added to the manifest's declared set
     When it is written, required and validated
     Then each reads that key's name, type and stage from the same declaration
+
+  @AC-SWARM-CORE-002.20
+  Scenario Outline: Reading one key answers with the value and nothing else
+    Given a manifest carrying a key whose value is "<value>"
+    When that one key is read
+    Then the whole of the output is that value
+    And a caller substituting the command receives "<value>"
+
+    Examples:
+      | value                        |
+      | claude/branch-x              |
+      | two  words, doubly spaced    |
+      | a line,\nand a second line   |
+      | --not-a-flag                 |
+
+  @AC-SWARM-CORE-002.21
+  Scenario: Reading with no key answers with the whole record
+    Given a manifest carrying several keys
+    When it is read with no key named
+    Then the output is one object carrying every key the record holds
+
+  @AC-SWARM-CORE-002.22
+  Scenario Outline: A key read answers with its status whichever form was asked for
+    Given a key that is "<state>"
+    When it is read, with and without the full result
+    Then both exit with "<status>"
+
+    Examples:
+      | state                       | status |
+      | written                     | 0      |
+      | declared and not written    | 1      |
+      | outside the declared set    | 3      |
 ```
 
 

@@ -143,6 +143,33 @@ type Result struct {
 	// Transcript is what the plan runner printed — the explained
 	// invocations in explain mode, and the executed ones otherwise.
 	Transcript []string
+	// Bare is the answer on its own, for a command whose caller asked a
+	// question smaller than the report — a key/value lookup. Nil when the
+	// command has no such answer, which includes every command declaring
+	// no bare form and every invocation whose verdict is not clear.
+	//
+	// It carries no provenance. The provenance is still there, one flag
+	// away in the --full-result a [Spec.Bare] command declares, and the
+	// caller that wants a value does not have to walk an envelope to
+	// reach it.
+	Bare *Answer
+}
+
+// Answer is a command's answer with no envelope around it, in the two
+// forms the surface renders.
+//
+// Two fields rather than one because the useful rendering differs: a
+// caller substituting the command into a shell wants a stored string
+// unquoted, and a caller passing --json wants something that parses.
+// Both carry the same value, which is what keeps them from being two
+// answers.
+type Answer struct {
+	// Text is the answer in the form a shell substitutes: a stored string
+	// verbatim, anything else as compact JSON.
+	Text string
+	// JSON is the same answer as JSON — so a string arrives quoted and an
+	// object arrives as an object.
+	JSON string
 }
 
 // Status is the exit status this result implies.
@@ -261,6 +288,21 @@ func Render(w io.Writer, r Result, asJSON bool) error {
 		return err
 	}
 	return renderText(w, r)
+}
+
+// renderBare writes an answer with nothing around it.
+//
+// One trailing newline and no other framing: it is what `jq -r` writes,
+// and what a shell's command substitution is defined against. A value
+// whose own last character is a newline therefore reads back one
+// character shorter, exactly as it does through `jq -r`.
+func renderBare(w io.Writer, a Answer, asJSON bool) error {
+	body := a.Text
+	if asJSON {
+		body = a.JSON
+	}
+	_, err := fmt.Fprintln(w, body)
+	return err
 }
 
 func renderText(w io.Writer, r Result) error {

@@ -46,8 +46,8 @@ SCRIPTS={SCRIPTS}
 
 WORKTREE=$(git rev-parse --show-toplevel)                    # you are standing in it
 swarm manifest require --run {EPIC} --key branch --key checks_baseline   # route on the status
-BRANCH=$(swarm manifest get --run {EPIC} --key branch --json | jq -r '.facts[0].value.text')
-BASELINE=$(swarm manifest get --run {EPIC} --key checks_baseline --json | jq -r '.facts[0].value.text')
+BRANCH=$(swarm manifest get --run {EPIC} --key branch)          # the value itself
+BASELINE=$(swarm manifest get --run {EPIC} --key checks_baseline)
 CHECKS_IDS=$($SCRIPTS/bb-checks.py --ids)
 bd ready --parent {EPIC} --assignee {DISPATCH_ID} --exclude-type=epic   # your queue
 bd list  --assignee {DISPATCH_ID} --status blocked                     # already blocked

@@ -176,6 +176,15 @@ implements any of them a second time.
 - **A subcommand may declare flags of its own**, bound after the four
   every subcommand carries — so a subcommand cannot redeclare one of them
   without cobra saying so.
+- **A subcommand whose answer is smaller than its report may declare a
+  bare form.** It then carries `--full-result`, prints the answer alone
+  on standard output when its verdict is clear, and puts the report on
+  standard error when it is not — so a caller substituting the command
+  captures the answer and nothing else, and still reads why when there is
+  no answer. The status is unchanged by the form, which is what keeps the
+  bare form a rendering rather than a loss of the exit vocabulary. It is
+  a declaration and not a default: a command whose report IS its answer
+  keeps the report.
 - **When the plan's ordering guard stops a command, the stopping step's
   reason is what the caller is told.** Reading the fragment's answer
   instead would report "the last step produced no value", which is true
@@ -199,14 +208,24 @@ invoked, and cobra prints its verbs instead — so the rule that every
 subcommand carries the contract flags is about the leaves, and that is
 what the surface's own test walks.
 
-Two renderings a caller should expect from `get`: a manifest value is
-reported with the fact kind its JSON has — text, count, flag or list —
-and **an object is reported as text carrying its JSON**, because the
-contract declares four kinds and inventing a fifth here would put a shape
-in the envelope the schema does not. `validate` without `--stage`
-validates against the stage the record has reached and reports both the
-stage and that it was derived, since a caller reading a clean result has
-to know what it was clean against.
+**`get` is the one command with a bare form**, because it is the one
+lookup: `--key <k>` answers with that key's value, no key answers with
+the record as one object, and several keys answer with an object of just
+those keys — never one value per line, which no reader could split back
+apart once a value carries a newline. A stored string is printed without
+its JSON quoting, which is what makes a value carrying whitespace, a
+newline or a leading dash survive command substitution; everything else
+is printed as its compact JSON. `--full-result` is the way back to the
+report, and under `--full-result` `get` behaves exactly as every other
+command does.
+
+In that report, a manifest value is reported with the fact kind its JSON
+has — text, count, flag or list — and **an object is reported as text
+carrying its JSON**, because the contract declares four kinds and
+inventing a fifth here would put a shape in the envelope the schema does
+not. `validate` without `--stage` validates against the stage the record
+has reached and reports both the stage and that it was derived, since a
+caller reading a clean result has to know what it was clean against.
 
 ### Plan Runner
 

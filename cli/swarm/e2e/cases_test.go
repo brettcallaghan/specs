@@ -180,29 +180,26 @@ func runnableLines(transcript string) []string {
 }
 
 // readKey reads one manifest key out of a world, through the binary
-// itself, and returns the value the report gives for it.
+// itself, and returns the value.
 //
 // The value alone, not the whole report: the report also carries the
 // elapsed time of the read and a digest of what the tracker printed, and
 // two worlds that agree about the key will differ in both. Comparing the
-// value is what the claim is about.
+// value is what the claim is about — which is what `get --key` answers
+// with, so there is nothing here to parse.
+//
+// A key nobody has written exits 1 with an empty answer, and that is
+// returned as the empty string rather than failing: the negative control
+// below reads a key it expects to be absent.
 func readKey(t *testing.T, w world, key string) string {
 	t.Helper()
 
 	stdout, stderr, code := w.swarm(t, "manifest", "get", "--run", "fixture-run", "--key", key)
-	for _, line := range strings.Split(stdout, "\n") {
-		name, rest, found := strings.Cut(line, " = ")
-		if !found || strings.TrimSpace(name) != key {
-			continue
-		}
-		// The line names the invocation that established it, after the
-		// value; the value is what this returns.
-		value, _, _ := strings.Cut(rest, "    <- ")
-		return value
+	if code != 0 && stdout != "" {
+		t.Fatalf("`manifest get --key %s` exited %d and still printed an answer\n%s\n%s",
+			key, code, stdout, stderr)
 	}
-	t.Fatalf("`manifest get --key %s` reported no value for it (exit %d)\n%s\n%s",
-		key, code, stdout, stderr)
-	return ""
+	return strings.TrimSuffix(stdout, "\n")
 }
 
 // Every fixture records the version of the contract it was recorded

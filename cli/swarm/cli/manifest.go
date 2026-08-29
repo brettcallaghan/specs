@@ -40,6 +40,14 @@ func manifestCmd(streams *ioStreams, store manifest.Store, runner swarmexec.Runn
 }
 
 // manifestGet reads the record, or one key of it.
+//
+// It is a lookup, so its answer is the value and not a report about the
+// value: [Spec.Bare] makes `get --key branch` print the branch and
+// nothing else, and --full-result is there for a caller that wants the
+// summary and the provenance. The exit status says which of the three
+// answers it gave — the value (0), a declared key nobody has written
+// (1), or a key the manifest does not declare (3) — so the bare form
+// loses no distinction the report carries.
 func manifestGet(store manifest.Store) Spec {
 	var keys []string
 
@@ -47,6 +55,7 @@ func manifestGet(store manifest.Store) Spec {
 		Use:       "get",
 		Short:     "Read a run's manifest, or one key of it",
 		RunScoped: true,
+		Bare:      true,
 		Flags: func(f *pflag.FlagSet) {
 			f.StringArrayVar(&keys, "key", nil,
 				"read only this key (repeatable); every key when omitted")
@@ -90,11 +99,20 @@ func manifestGet(store manifest.Store) Spec {
 				result.Summary = fmt.Sprintf("%s: not written", strings.Join(absent, ", "))
 				result.Resolution = fmt.Sprintf("write it with: swarm manifest set --run %s --key %s --value <value>",
 					req.Run, absent[0])
+				// No bare answer: there is no value to print, and the
+				// status plus the reason on stderr is the whole answer.
+				return result, nil
 			case len(result.Facts) == 0:
 				result.Summary = "the manifest is empty"
 			default:
 				result.Summary = fmt.Sprintf("%d key(s) written", len(result.Facts))
 			}
+
+			answer, err := lookupAnswer(doc, keys)
+			if err != nil {
+				return Result{}, err
+			}
+			result.Bare = answer
 			return result, nil
 		},
 	}
@@ -392,6 +410,80 @@ func document(steps plan.Steps, report plan.Report) (manifest.Document, []string
 		return manifest.Document{}, nil, RefuseUnrepairable("the manifest read recorded no invocation")
 	}
 	return doc, from, nil
+}
+
+// lookupAnswer is what `manifest get` answers when the caller wants the
+// value rather than the report.
+//
+// Three shapes, because the question has three shapes. One key asks for a
+// value and gets the value. No key asks for the record and gets the whole
+// object. Several keys ask for part of the record and get an object of
+// exactly those keys — not one value per line, which no reader could
+// split back apart once a value carries a newline, and every manifest
+// value may.
+func lookupAnswer(doc manifest.Document, keys []string) (*Answer, error) {
+	if len(keys) == 1 {
+		value, present := doc.Get(keys[0])
+		if !present {
+			// Unreachable: an absent requested key took the attention
+			// branch above. Refusing rather than printing nothing keeps a
+			// future edit from turning "not written" into an empty answer
+			// with a clear status.
+			return nil, RefuseUnrepairable("the manifest read reported %q as present and then as absent", keys[0])
+		}
+		return valueAnswer(value)
+	}
+
+	wanted := doc.Raw()
+	if len(keys) > 1 {
+		wanted = map[string]json.RawMessage{}
+		for _, name := range keys {
+			if value, present := doc.Get(name); present {
+				wanted[name] = value
+			}
+		}
+	}
+	return objectAnswer(wanted)
+}
+
+// valueAnswer renders one stored value.
+//
+// A stored string is printed as itself, without its JSON quoting: that is
+// the whole point of the bare form, and it is what makes a value carrying
+// whitespace, a newline or a leading dash arrive intact through command
+// substitution. Everything else — a number, a boolean, a list, an object
+// — is printed as compact JSON, which is both its own text rendering and
+// a parseable one.
+func valueAnswer(value json.RawMessage) (*Answer, error) {
+	var decoded any
+	if err := json.Unmarshal(value, &decoded); err != nil {
+		return nil, RefuseUnrepairable("the stored value is not JSON: %s", value)
+	}
+	encoded, err := json.Marshal(decoded)
+	if err != nil {
+		return nil, RefuseUnrepairable("the stored value cannot be re-encoded: %s", err)
+	}
+	if text, ok := decoded.(string); ok {
+		return &Answer{Text: text, JSON: string(encoded)}, nil
+	}
+	return &Answer{Text: string(encoded), JSON: string(encoded)}, nil
+}
+
+// objectAnswer renders a set of keys as one JSON object, indented, with
+// its keys in sorted order.
+//
+// The two forms are the same string: an object has no shell-friendlier
+// rendering than JSON, so inventing one would give a reader two shapes to
+// learn for one answer.
+func objectAnswer(values map[string]json.RawMessage) (*Answer, error) {
+	if values == nil {
+		values = map[string]json.RawMessage{}
+	}
+	encoded, err := json.MarshalIndent(values, "", "  ")
+	if err != nil {
+		return nil, RefuseUnrepairable("the manifest cannot be re-encoded: %s", err)
+	}
+	return &Answer{Text: string(encoded), JSON: string(encoded)}, nil
 }
 
 // factFor renders a manifest value as the fact kind matching its JSON.

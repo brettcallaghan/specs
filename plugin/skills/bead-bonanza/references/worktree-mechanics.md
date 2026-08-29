@@ -23,9 +23,8 @@ it is standing in (`dispatching.md`).
 The coordinator's, and only its. Run it immediately before the first dispatch:
 
 ```bash
-out="$(swarm manifest get --run "$BB_EPIC" --key branch --json)"; st=$?
+br="$(swarm manifest get --run "$BB_EPIC" --key branch)"; st=$?
 if [ "$st" = 0 ]; then                            # RESUME — create nothing
-  br="$(printf '%s' "$out" | jq -r '.facts[0].value.text')"
   git checkout "$br"
 else
   br="sprint/<epic-suffix>"
@@ -46,9 +45,11 @@ stops the run here, before any worktree exists.
 invocation as a single merge, so a run that wrote them one at a time could
 leave a branch recorded with no base against it. It also refuses to change
 either once written — which is what makes re-running this block on a resume
-safe rather than a second fork. Capture the status before you pipe: an
-`attention` status from `get` is how "not written" reaches you, and a pipeline
-would hand you `jq`'s status instead.
+safe rather than a second fork. `get --key` prints the value alone, so the
+assignment above is the whole read; an `attention` status (exit 1) is how "not
+written" reaches you, with the reason on stderr and the branch variable empty.
+Do not put a pipe between the command and `$?` — that would hand you the last
+stage's status instead.
 
 **`base_sha` is recorded at creation** because that is the only moment it is
 unambiguous — deriving it later from a merge-base assumes the base branch has

@@ -23,6 +23,10 @@ type Request struct {
 	Mode plan.Mode
 	// JSON is whether the machine-readable form was asked for.
 	JSON bool
+	// Bare is whether the answer is to be printed on its own, without
+	// the [Result] envelope around it. It is true only for a subcommand
+	// that declares a bare form and was not asked for the full result.
+	Bare bool
 }
 
 // Spec is what a subcommand supplies to the surface. Everything else —
@@ -51,6 +55,16 @@ type Spec struct {
 	// The contract flags are bound first and are not passed here, so a
 	// subcommand cannot redeclare one of them without cobra saying so.
 	Flags func(*pflag.FlagSet)
+	// Bare declares that this subcommand has an answer smaller than its
+	// report — a lookup, whose caller wants the value and not the
+	// provenance around it. Such a subcommand carries --full-result,
+	// prints [Result.Bare] on stdout when its verdict is clear, and puts
+	// the report on stderr when it is not, so a caller can capture the
+	// answer without a parser and still route on the status.
+	//
+	// It is a declaration and not a default: the report is what a command
+	// with no smaller answer owes, and every other subcommand keeps it.
+	Bare bool
 }
 
 // newSubcommand builds the cobra command for spec.
@@ -60,10 +74,11 @@ type Spec struct {
 // property of the surface instead of a checklist.
 func newSubcommand(spec Spec, streams *ioStreams, runner swarmexec.Runner) *cobra.Command {
 	var (
-		explain bool
-		dryRun  bool
-		asJSON  bool
-		runID   string
+		explain    bool
+		dryRun     bool
+		asJSON     bool
+		fullResult bool
+		runID      string
 	)
 
 	cmd := &cobra.Command{
@@ -73,7 +88,12 @@ func newSubcommand(spec Spec, streams *ioStreams, runner swarmexec.Runner) *cobr
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			req := Request{Command: cmd.CommandPath(), Run: runID, JSON: asJSON}
+			req := Request{
+				Command: cmd.CommandPath(),
+				Run:     runID,
+				JSON:    asJSON,
+				Bare:    spec.Bare && !fullResult,
+			}
 
 			// The scope check comes first, before the mode is even
 			// resolved: AC-SWARM-CORE-001.14 requires that nothing is
@@ -145,6 +165,11 @@ func newSubcommand(spec Spec, streams *ioStreams, runner swarmexec.Runner) *cobr
 	cmd.Flags().StringVar(&runID, "run", "",
 		"the run epic this command is scoped to")
 
+	if spec.Bare {
+		cmd.Flags().BoolVar(&fullResult, "full-result", false,
+			"print the full command result — the summary, the facts and the invocations behind them — instead of the answer alone")
+	}
+
 	if spec.Flags != nil {
 		spec.Flags(cmd.Flags())
 	}
@@ -161,11 +186,20 @@ func finish(streams *ioStreams, req Request, result Result) error {
 		// repair in place.
 		result = refusal(req, RefuseUnrepairable("%s", err.Error()))
 	}
-	if err := Render(streams.out, result, req.JSON); err != nil {
-		return err
-	}
 	streams.exitCode = int(result.Status())
-	return nil
+
+	// The bare form splits the streams, which is the whole point of it: a
+	// caller substituting the command captures the answer and nothing
+	// else, and still reads why on stderr when there is no answer. The
+	// status carries the distinction either way, so nothing is lost by
+	// the report moving off stdout.
+	switch {
+	case req.Bare && result.Bare != nil:
+		return renderBare(streams.out, *result.Bare, req.JSON)
+	case req.Bare && result.Status() != StatusClear:
+		return Render(streams.err, result, req.JSON)
+	}
+	return Render(streams.out, result, req.JSON)
 }
 
 // refusal turns a refusal into a renderable result.

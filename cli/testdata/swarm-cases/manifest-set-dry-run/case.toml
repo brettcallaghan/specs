@@ -29,6 +29,10 @@ why = "the digest covers the tracker's own output, which carries state this case
 
 # What the record says afterwards. review_passes is 0 in the fixture; a
 # dry run that wrote would leave 1 here.
+#
+# `get --key` answers with the value alone, so the expected artifact is
+# the counter itself — nothing to read past, and nothing that moves when
+# the report's wording does.
 [[after]]
 args = ["manifest", "get", "--run", "fixture-run", "--key", "review_passes"]
 exit = 0

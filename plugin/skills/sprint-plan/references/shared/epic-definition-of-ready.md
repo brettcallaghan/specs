@@ -57,8 +57,7 @@ Check it whenever you groom under an epic.
       cap and their queues never drain; the run looks alive and makes no progress.
 
       ```sh
-      cap=$(swarm manifest get --run <epic> --key concurrency_cap --json \
-              | jq '.facts[0].value.count')
+      cap=$(swarm manifest get --run <epic> --key concurrency_cap)
       n=$(bd list --parent <epic> --status all --json \
             | jq '[.[].assignee | select(. != null) | select(startswith("dev-"))]
                   | unique | length')

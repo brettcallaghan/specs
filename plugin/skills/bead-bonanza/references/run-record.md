@@ -163,11 +163,21 @@ to the `run-batch` skill.
 output plus what admission decided, and read and written through one command:
 
 ```sh
-swarm manifest get      --run <epic>                       # the record, or --key one of it
+swarm manifest get      --run <epic>                       # the whole record, as one JSON object
+swarm manifest get      --run <epic> --key <key>           # that key's VALUE, alone — no jq
 swarm manifest require  --run <epic> --key <key> …         # are these written? routes on the status
 swarm manifest set      --run <epic> --key <k> --value <json> …   # one merge, however many keys
 swarm manifest validate --run <epic>                       # every rule, at the stage reached
 ```
+
+**`get --key` is a lookup, so `x=$(swarm manifest get --run <epic> --key
+branch)` is the whole read.** A stored string comes out unquoted, anything else
+as its JSON; several `--key`s come out as an object of just those keys. The
+status still carries the three answers apart — the value (0), a declared key
+nobody has written (1), a key the manifest does not declare (3) — and on the
+two non-zero ones stdout is empty and the reason is on stderr. `--full-result`
+brings back the summary, the facts and the invocation behind each, for a caller
+that wants the provenance rather than the value.
 
 **The key set, the types, the stage each key becomes required at, and the
 rules across keys are the command's, not this document's.** They are declared
