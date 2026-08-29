@@ -723,7 +723,20 @@ authoritative for its deployment.
   variable is set, an absent tool fails the run instead. Skipping is the
   right default on a developer machine and the wrong one on a runner that
   was supposed to have a tracker, which is what the variable exists to
-  separate. No CI leg sets it while no CI leg installs `bd`.
+  separate. The Windows leg of `.github/workflows/cli.yml`'s `test` job
+  sets it, because it is the one leg that installs `bd` (the CGO-free,
+  server-mode build above) and `dolt`; the other two legs do not install
+  either yet, so their platform guarantee for the commands that need a
+  tracker still rests on the unit tier plus the cross-compile.
+- **Whether the server-mode install needs a `dolt sql-server` started by
+  hand before a fixture restores is answered: no.** `bd init --server`
+  auto-starts and manages its own server when it finds none already
+  listening on the port it tries — measured (Linux, dolt 2.3.1): two such
+  calls made back to back, neither given `--server-port`, came up on two
+  different auto-selected ports with no conflict, which is what lets the
+  end-to-end suite's cases, restored in parallel, avoid colliding on one
+  server between them. [[adr-027]] marked this unmeasured; nothing in
+  `cli/testdata/swarm-fixtures/` or the harness needs to start one.
 
 ## Cross-Cutting Standards
 

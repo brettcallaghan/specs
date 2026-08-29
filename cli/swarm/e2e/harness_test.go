@@ -165,7 +165,24 @@ func restore(t *testing.T, binary, fixture string) world {
 	// checks it out; naming it anyway makes the case independent of what
 	// the bundle happened to record as HEAD.
 	w.mustRun(t, w.repo, "git", "checkout", "--quiet", "claude/bead-bonanza-fixture")
-	w.mustRun(t, w.repo, "bd", "init", "--prefix", stamp.Prefix)
+
+	initArgs := []string{"init", "--prefix", stamp.Prefix}
+	if runtime.GOOS == "windows" {
+		// ADR-027: Windows runs against the CGO-free, server-mode `bd`
+		// install, which carries no embedded Dolt engine — `--server` is
+		// required or the restore fails outright. Nothing else is
+		// needed: `bd init --server` auto-starts and manages its own
+		// `dolt sql-server` when it finds none already listening on the
+		// port it tries, which ADR-027 marked unmeasured. Measured here
+		// (Linux, dolt 2.3.1, no --server-port given): two `bd init
+		// --server` calls made back to back came up on two different
+		// auto-selected ports (36331, then 37165) with no conflict and
+		// no server started by hand — which is what lets this suite's
+		// cases, run with t.Parallel(), each restore its own fixture
+		// without colliding on one.
+		initArgs = append(initArgs, "--server")
+	}
+	w.mustRun(t, w.repo, "bd", initArgs...)
 	w.mustRun(t, w.repo, "bd", "import", export)
 
 	return w
