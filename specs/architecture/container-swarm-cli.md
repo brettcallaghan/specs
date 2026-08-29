@@ -177,6 +177,18 @@ conventional, and it is the seam the unit tier replaces with a fake that
 replays recorded output. It knows nothing about what it is running: the
 argv and the decoder both arrive from the step.
 
+A non-zero exit is data on the result rather than an error — a tool
+answering no is a successful invocation of it — and the error return is
+reserved for an invocation that produced no status at all, which is what
+keeps a missing executable distinguishable from a tool that answered no.
+
+It lives at `cli/swarm/exec`, and its fake at `cli/swarm/exec/exectest`.
+The fake being test-only is enforced rather than asserted: a test in the
+runner's own package parses every non-test source file in the module and
+fails if any of them imports the fake, because a fake reachable from
+production code is a way for a command to report an answer it never
+obtained.
+
 ### Tracker
 
 ```component
