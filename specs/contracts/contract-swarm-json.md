@@ -5,8 +5,8 @@ description: The machine-readable output every swarm command emits under
   Strata schemas that fix their shape
 slug: contract-swarm-json
 type: contract
-status: draft
-updated_at: 2026-08-29T00:00:00Z
+status: active
+updated_at: 2026-08-29T23:59:59Z
 provider: container-swarm-cli
 visibility: internal
 consumers:
