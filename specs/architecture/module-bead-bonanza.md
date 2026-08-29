@@ -274,6 +274,17 @@ with the run epic.
 
 - Measures git, `bd`, tracker write access, worktree base-ref and event-log
   writability; emits evalable facts and a human report.
+- **Probes the `swarm` binary's capability, not its presence or a version
+  string.** `swarm manifest` and `swarm status` are required steps a run
+  invokes directly, and `swarm` carries no version string — a binary built
+  before `swarm status` existed still exits 0 for a version check and would
+  pass one. The probe is behavioural: `swarm status --help` exiting non-zero
+  with "unknown command" is the measured failure a version check cannot
+  catch, and either a missing or a stale binary blocks the run.
+  **Provisioning is a cloud session's `.claude/hooks/session-start.sh`**,
+  which builds `swarm` from this repository's own `cli/swarm` — no clone,
+  no network — the same place that provisions `bd` and `strata`. A local
+  session is expected to have its own build.
 - **Captures the checks baseline** on the untouched tree, so a
   pre-existing failure is never charged to the first bead.
 - Blocks the run — exit non-zero — rather than degrading, and names the
