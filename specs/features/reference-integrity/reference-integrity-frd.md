@@ -218,7 +218,7 @@ to cite a standard" contributes no reference, because the link is an
 illustration (AC-SPECREF-001.2). `adr-004`'s entry lists `adr-005`,
 `adr-006` and `adr-007` as inbound, without any of them declaring the
 relationship in frontmatter (AC-SPECREF-001.3).
-`specs/adrs/ADR-012-reference-conventions.md` line 3 carries
+`specs/adrs/adr-012-reference-conventions.md` line 3 carries
 `description: References use [[slug]] wikilinks …`, which names the
 notation rather than a document (AC-SPECREF-001.4). An FRD citing
 `` `[[adr-021]]` `` in its Requirements and again in its References
@@ -333,7 +333,7 @@ Feature: Reference Integrity Checks
 ```
 
 *Examples:* `reference/unresolved  error
-specs/adrs/ADR-004-module-blueprint-and-atomic-component.md:88:12`
+specs/adrs/adr-004-module-blueprint-and-atomic-component.md:88:12`
 "`[[adr-011]]` matches no document's slug" (AC-SPECREF-002.1).
 `` `[[container-spec-cli#Element Registry]]` `` resolves iff a corpus
 member declares `slug: container-spec-cli`; whether that document has an

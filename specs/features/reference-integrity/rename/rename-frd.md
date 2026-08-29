@@ -166,7 +166,7 @@ become `` `[[adr-012]]` `` when renamed to `adr-012` — resolution is
 case-insensitive per AC-SPEC-003.4, so both were valid before, and
 leaving them divergent preserves a difference that means nothing and
 greps badly (AC-SPECREN-001.5). Renaming the slug of
-`specs/adrs/ADR-011-targeted-verification-gates.md` leaves the path
+`specs/adrs/adr-011-targeted-verification-gates.md` leaves the path
 untouched (AC-SPECREN-001.6).
 
 *Rationale:* AC-SPECREN-001.2 is the criterion this whole feature turns

@@ -140,7 +140,7 @@ func TestOnlyAdrIsNumbered(t *testing.T) {
 var realSlugs = []struct {
 	documentType, slug, source string
 }{
-	{"adr", "adr-013", "specs/adrs/ADR-013-work-order-terminology.md"},
+	{"adr", "adr-013", "specs/adrs/adr-013-work-order-terminology.md"},
 	// The descriptive form no longer appears in this repository — the
 	// slugs were migrated to the number-only form [[adr-012]] decided —
 	// but the pattern still accepts it, because an adopting repository

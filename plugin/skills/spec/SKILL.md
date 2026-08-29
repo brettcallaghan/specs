@@ -148,13 +148,48 @@ specs.
    project's spec root**, which `specs.toml` declares as
    `[workspace].root` — read it rather than assuming. Where a project
    has no `specs.toml`, its `AGENTS.md` or `CLAUDE.md` names the root,
-   and `docs/` is the fallback. Within the root, use a subdirectory
-   named for the type — `adrs/`, `frds/`, `standards/`, `contracts/` —
-   except for the four architecture blueprint types (system, container,
-   component, module) plus feature blueprints, which share
-   `blueprints/` because they are read together. WHEN the project has an
-   established location for that type, follow it; the index does not
-   depend on location, but humans do.
+   and `docs/` is the fallback. Within the root, the default structure
+   is:
+
+   ```
+   specs/
+     adrs/  standards/  guides/  contracts/
+     systems/<system-name>/system-<system-name>.md
+     containers/<container-name>/
+       container-<container-name>.md
+       components/component-<component-name>.md
+     modules/<module-name>/
+       module-<module-name>.md
+       components/component-<component-name>.md
+     features/<feature-name>/
+       frd-<feature-name>.md
+       feature-<feature-name>.md
+       <subfeature-name>/
+   ```
+
+   The tree mirrors containment only where the child declares no
+   parent. A component blueprint carries no parent property, so its
+   directory is the only thing naming its owner — nest it. A module
+   declares `contained_by`, a LIST, because it may be composed into
+   several containers; no tree can hold that, so `modules/` stays at
+   the top level. A container declares `system`, so it nests only when
+   nesting earns its keep:
+
+   | Systems documented | Where container directories live |
+   |---|---|
+   | None | `containers/<container-name>/` |
+   | One | `containers/<container-name>/` |
+   | Two or more | `systems/<system-name>/containers/<container-name>/` |
+
+   ADRs, standards, guides and contracts get one flat top-level home
+   each, never a copy under the level they govern — two directories
+   that could each correctly receive a new standard destroy its claim
+   to be the single place a rule is recorded. A contract is never
+   filed under a provider: it outlives, and may precede, the
+   implementations that realize it.
+
+   WHEN the project has an established location for a type, follow it;
+   the index does not depend on location, but humans do.
 2. **Follow the embedded instructions.** Each template carries its own
    guidance in HTML comment blocks — when to use it, how to complete each
    section, ID and slug conventions. Read them, complete the section, then
