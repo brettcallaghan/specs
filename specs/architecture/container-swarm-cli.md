@@ -562,6 +562,31 @@ different questions and none of them is "every bead in this run". It
 formats nothing and decides nothing; a measurement it could not take is
 recorded as unestablished.
 
+It lives at `cli/swarm/status`. Three properties are worth stating,
+because each is a place the obvious implementation is wrong:
+
+- **Each measurement is its own plan.** A plan stops at its first failed
+  step — that ordering guard is what stops a command chaining a removal
+  after a failed merge — so folding six independent reads into one plan
+  would let the first failure erase five measurements that were
+  perfectly takeable. A source that cannot answer costs exactly the line
+  it was measuring.
+- **A dispatch is matched to its worktree through the branch that tree
+  has checked out**, `bb/<dispatch-id>`, which is also the assignee on
+  its beads. A detached worktree matches nobody, and that is the safe
+  direction: an unmatched tree is reported standing rather than
+  attributed to an agent that does not own it.
+- **It executes.** Explain and dry-run are the command surface's modes
+  and belong to the command that renders the measurements; a collector
+  asked to explain would return a set in which nothing was established,
+  which is not what a reader of `--explain` is asking for.
+
+A run with no `branch` in its manifest has no history to measure, and
+that is reported as unestablished rather than measured against `HEAD`:
+`HEAD` in the process's own directory is whatever the caller happens to
+have checked out, so an age taken from it would be a real number about
+the wrong tree.
+
 ### Status Reporter
 
 ```component
