@@ -108,7 +108,7 @@ C4Component
         Component(git, "Git Version Control", "Go", "Version Control implemented over the git command line")
         Component(manifest, "Manifest", "Go", "The run record's model, key set and validation")
         Component(store, "Manifest Store", "Go interface", "Reading and writing the manifest document")
-        Component(tstore, "Tracker Manifest Store", "Go", "Manifest Store over the run epic's tracker metadata")
+        Component(tstore, "Beads Manifest Store", "Go", "Manifest Store over a beads run epic's metadata object")
         Component(collect, "Status Collector", "Go", "Takes a run's measurements from the tracker and version control")
         Component(report, "Status Reporter", "Go", "Turns measurements into a report and the status it implies")
     }
@@ -119,7 +119,7 @@ C4Component
     Rel(beads, tracker, "implements")
     Rel(git, vcs, "implements")
     Rel(tstore, store, "implements")
-    Rel(tstore, tracker, "Reads and writes the run epic through")
+    Rel(tstore, beads, "Reads and writes the run epic's metadata through")
     Rel(manifest, store, "Reads and writes the document through")
     Rel(collect, manifest, "Reads the admission record from")
     Rel(collect, tracker, "Counts and walks through")
@@ -269,20 +269,34 @@ rather than in the model because it is a property of the store, and the
 concurrent-write refusal cannot be implemented above a store that does
 not offer it.
 
-### Tracker Manifest Store
+### Beads Manifest Store
 
 ```component
-title: Tracker Manifest Store
-slug: component-tracker-manifest-store
-description: Manifest Store over the run epic's tracker metadata, the one place the record lives today
+title: Beads Manifest Store
+slug: component-beads-manifest-store
+description: Manifest Store over a beads run epic's metadata object, the one place the record lives today
 ```
 
-(Go) — Manifest Store implemented over the run epic's tracker metadata,
-which is where the record lives today. It is the component that carries
-the two measured constraints of writing there: the per-key write parses
-JSON scalars but stores arrays and objects as strings, and the
-whole-object write merges at the top level while replacing a nested value
-wholesale.
+(Go) — Manifest Store implemented over the run epic's **beads** metadata
+object, which is where the record lives today. It carries the two
+measured constraints of writing there: the per-key write parses JSON
+scalars but stores arrays and objects as strings, and the whole-object
+write merges at the top level while replacing a nested value wholesale.
+
+**Named for beads rather than for trackers in general, deliberately.** An
+arbitrary JSON object attached to an issue is a beads feature, not a
+property of issue trackers; this project has not established which other
+trackers offer one, and the attempt to check from this environment was
+blocked by the egress proxy. So the Tracker interface does not carry a
+metadata-blob operation, and a store for a tracker without one would keep
+the record somewhere that tracker does have — a fenced block in the
+epic's body, a pinned comment, a per-issue property API — and satisfy the
+same Manifest Store interface. Which of those any given tracker supports
+is unestablished here and is that store's author's problem, which is the
+point of the seam.
+
+It reaches beads through the Beads Tracker rather than invoking `bd`
+itself, so the rule that only two components name a tool still holds.
 
 ### Status Collector
 
@@ -321,7 +335,8 @@ subprocess anywhere in the test.
 ## Provided Contracts
 
 **Internal** (this repository's skills only — SHALL NOT be consumed
-outside it while the CLI and its consumers ship together):
+outside it). The `bead-bonanza` skill family is its whole audience, and
+no consumer outside this repository is anticipated:
 
 - [[contract-swarm-json]] — the JSON every command emits under `--json`,
   and the run manifest this container reads, validates and writes. Shape
@@ -393,6 +408,9 @@ authoritative for its deployment.
 - **Platforms:** `linux/amd64`, `linux/arm64`, `darwin/amd64`,
   `darwin/arm64`, `windows/amd64`, `windows/arm64` — the targets the
   existing cross-compile leg already builds.
+- **The tracker this container is tested against on Windows** is the
+  CGO-free, server-mode `bd` install; [[adr-027]] carries the choice and
+  what it leaves untested.
 
 ## Cross-Cutting Standards
 
@@ -425,10 +443,18 @@ This container SHALL comply with:
 - WHEN a manifest key is added, removed or retyped,
   `schemas/swarm-manifest.strata`, the generated artifacts and the
   validation rules SHALL be updated in the same change.
-- WHEN a manifest key is added, removed or retyped, the committed
-  end-to-end fixture SHALL be re-recorded in the same change, since a
-  fixture asserting a shape the code no longer writes passes while
-  meaning nothing.
+- WHEN a manifest key is added, removed or retyped, the core end-to-end
+  fixture SHALL be re-recorded in the same change, since a fixture
+  asserting a shape the code no longer writes passes while meaning
+  nothing.
+- A fixture recorded to prove that an older manifest shape is still
+  readable SHALL NOT be re-recorded, since re-recording it destroys the
+  only evidence that reading an older shape works.
+- WHEN a fixture is recorded, the contract version it was recorded
+  against SHALL be recorded with it.
+- WHEN a new world shape is needed for a case, it SHALL be derived as a
+  branch from the core fixture rather than authored separately, so a
+  change to the core reaches every variant.
 - WHEN a field is added to a command's JSON result,
   `schemas/swarm-output.strata` SHALL be updated in the same change.
 - WHEN a change to either schema removes, renames or retypes anything,
@@ -476,17 +502,7 @@ This container SHALL comply with:
 
 ## Open Questions
 
-- [ ] Does [[contract-swarm-json]] become public when the CLI is
-      distributed outside this repository? It is internal while the CLI
-      and its consumers ship together; the first consumer that upgrades
-      independently makes it public, and its change policy tightens then.
-- [ ] Which tracker install do the Windows end-to-end cases run against?
-      `bd` documents a Windows install, but its CGO-free path is
-      server-mode — a Dolt server on a loopback endpoint — rather than
-      the embedded database a Linux run uses, and an npm install leaves
-      `bd` as a `.cmd` shim, which Go's process execution treats
-      differently from an executable. Unmeasured here; settled by running
-      a Windows leg.
+None.
 
 ## References
 
