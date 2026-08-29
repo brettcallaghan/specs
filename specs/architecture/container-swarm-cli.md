@@ -143,6 +143,36 @@ statuses. It contains no knowledge of the tracker or of git; it resolves
 arguments, asks a command to build a plan, hands the plan to the mode the
 flags selected, and turns what comes back into text or JSON and a status.
 
+It lives at `cli/swarm/cli`. A subcommand supplies two functions — build
+the plan, and turn the plan's report into facts and an outcome — and
+nothing else: the four flags, the scope refusal, the mode selection, both
+renderings and the exit status are the surface's, so no command
+implements any of them a second time.
+
+- **A command reports an outcome; the status is derived from it**, so the
+  two cannot disagree. An outcome the surface does not recognise is
+  treated as a condition the caller cannot repair in place rather than as
+  a success, because defaulting to success is the silent failure this
+  container exists to remove.
+- **The scope is checked before the mode is resolved**, so a command
+  refusing an empty run scope has read and written nothing — that is the
+  guarantee, not just the status.
+- **Two renderings of one value.** The machine-readable form carries
+  every fact the text form carries because both are rendered from the
+  same result, not because two renderers are kept in agreement. The
+  envelope is emitted on every exit status, carries the contract version,
+  and reports a duration as an integer count of milliseconds rather than
+  a formatted one, since the contract forbids a field whose meaning
+  depends on the producing process's locale.
+- **A fact with no invocation behind it cannot be rendered.** The surface
+  refuses such a result rather than printing it, and refuses an attention
+  outcome that names no resolution — both are contract obligations, and
+  enforcing them here is what makes them true of every command rather
+  than of the ones that remembered.
+- **The plan runner's output is captured rather than streamed**, so a
+  `--json` envelope is never preceded on standard output by transcript
+  lines that would corrupt it, and both forms carry the same transcript.
+
 ### Plan Runner
 
 ```component

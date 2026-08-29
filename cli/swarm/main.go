@@ -1,9 +1,9 @@
 // Command swarm is the Swarm CLI's entry point: it hands the process's
-// arguments and standard streams to the command tree cli/swarm/cmd
+// arguments and standard streams to the command tree cli/swarm/cli
 // builds, and exits with the status that tree decided on.
 //
 // This file holds nothing else. Argument parsing, plan rendering, output
-// format and the exit vocabulary live in cli/swarm/cmd and the packages
+// format and the exit vocabulary live in cli/swarm/cli and the packages
 // it composes, per the Swarm Command Surface component in
 // specs/architecture/container-swarm-cli.md.
 //
@@ -20,9 +20,9 @@ package main
 import (
 	"os"
 
-	"github.com/brettcallaghan/agent-plugins/cli/swarm/cmd"
+	swarmcli "github.com/brettcallaghan/agent-plugins/cli/swarm/cli"
 )
 
 func main() {
-	os.Exit(cmd.Execute(os.Args[1:], os.Stdout, os.Stderr))
+	os.Exit(swarmcli.Execute(os.Args[1:], os.Stdout, os.Stderr))
 }

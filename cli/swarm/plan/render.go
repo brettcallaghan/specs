@@ -70,6 +70,20 @@ func renderResolved(name string, args []string) string {
 	return strings.Join(parts, " ")
 }
 
+// Argv renders an argv vector — executable first, then each argument — as
+// one POSIX sh command line, quoted so a reader can paste it.
+//
+// It is exported because every fact this CLI reports names the
+// invocation that established it, and the surface rendering those facts
+// must render an invocation exactly as the transcript does. Two
+// renderings of the same argv would be two conventions to keep in step.
+func Argv(argv []string) string {
+	if len(argv) == 0 {
+		return ""
+	}
+	return renderResolved(argv[0], argv[1:])
+}
+
 // annotation is the bracketed summary of a step's declarations, printed
 // as a comment beside it. The three facts are the ones a reader cannot
 // infer from the invocation and that change what the interpreters do.

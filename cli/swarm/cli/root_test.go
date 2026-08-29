@@ -8,7 +8,7 @@
 // status" — and these are the tests for it. The four-status mapping as a
 // whole belongs to the Swarm Command Surface delta and its acceptance
 // criteria; nothing here claims to verify that.
-package cmd
+package cli
 
 import (
 	"bytes"
@@ -46,8 +46,8 @@ func usageString(t *testing.T) string {
 func TestBareInvocationPrintsTheCommandTreeAndExitsMalformed(t *testing.T) {
 	stdout, stderr, code := run(t)
 
-	if code != exitMalformed {
-		t.Errorf("exit status = %d, want %d (the malformed-invocation status)", code, exitMalformed)
+	if code != int(StatusMalformed) {
+		t.Errorf("exit status = %d, want %d (the malformed-invocation status)", code, int(StatusMalformed))
 	}
 	if want := usageString(t); stderr != want {
 		t.Errorf("a bare invocation did not print the command tree.\n--- got (stderr) ---\n%s\n--- want ---\n%s", stderr, want)
@@ -63,8 +63,8 @@ func TestBareInvocationPrintsTheCommandTreeAndExitsMalformed(t *testing.T) {
 func TestAnUnknownFlagExitsMalformed(t *testing.T) {
 	stdout, stderr, code := run(t, "--no-such-flag")
 
-	if code != exitMalformed {
-		t.Errorf("exit status = %d, want %d for an unknown flag", code, exitMalformed)
+	if code != int(StatusMalformed) {
+		t.Errorf("exit status = %d, want %d for an unknown flag", code, int(StatusMalformed))
 	}
 	if stdout != "" {
 		t.Errorf("an argument error wrote to stdout:\n%s", stdout)
@@ -80,8 +80,8 @@ func TestAnUnknownFlagExitsMalformed(t *testing.T) {
 func TestHelpExitsClear(t *testing.T) {
 	stdout, _, code := run(t, "--help")
 
-	if code != exitClear {
-		t.Errorf("`swarm --help` exit status = %d, want %d", code, exitClear)
+	if code != int(StatusClear) {
+		t.Errorf("`swarm --help` exit status = %d, want %d", code, int(StatusClear))
 	}
 	if !strings.Contains(stdout, "Usage:") {
 		t.Errorf("`swarm --help` did not write help to stdout, where a requested answer belongs:\n%s", stdout)
