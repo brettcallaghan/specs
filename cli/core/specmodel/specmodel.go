@@ -136,6 +136,11 @@ type ConventionsConfig struct {
 // `SPEC` covers eleven requirements of the spec-index feature, and that is
 // what makes it a grouping rather than an identity. A feature is identified
 // by its code together with its number.
+//
+// A code may be several hyphen-joined segments — `SWARM-DISP`, `SWARM-RUN` —
+// which is how one capability split across several documents keeps a common
+// first segment. Every segment begins with a letter, so the trailing number
+// can never be read as one and the split back into segments is unambiguous.
 type FeatureCode string
 
 // The identifier of one feature — its prefix, its group code and its number.
