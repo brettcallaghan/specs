@@ -27,7 +27,10 @@ import (
 
 	swarmexec "github.com/brettcallaghan/agent-plugins/cli/swarm/exec"
 	manifestbeads "github.com/brettcallaghan/agent-plugins/cli/swarm/manifest/beads"
+	"github.com/brettcallaghan/agent-plugins/cli/swarm/plan"
+	"github.com/brettcallaghan/agent-plugins/cli/swarm/status"
 	beadstracker "github.com/brettcallaghan/agent-plugins/cli/swarm/tracker/beads"
+	gitvcs "github.com/brettcallaghan/agent-plugins/cli/swarm/vcs/git"
 )
 
 // ioStreams carries the two output streams a run writes to and the exit
@@ -68,8 +71,15 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 // subcommand's plan goes through so that a test can supply a fake in its
 // place without a second wiring path.
 func register(root *cobra.Command, streams *ioStreams, runner swarmexec.Runner) {
-	store := manifestbeads.Store{Tracker: beadstracker.Tracker{}}
+	tr := beadstracker.Tracker{}
+	store := manifestbeads.Store{Tracker: tr}
 	root.AddCommand(manifestCmd(streams, store, runner))
+	root.AddCommand(statusCmd(streams, status.Deps{
+		Tracker: tr,
+		VCS:     gitvcs.VersionControl{},
+		Store:   store,
+		Runner:  plan.Runner{Exec: runner},
+	}))
 }
 
 // dispatch runs the tree and turns what comes back into a process exit

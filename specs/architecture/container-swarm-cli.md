@@ -113,6 +113,7 @@ C4Component
         Component(report, "Status Reporter", "Go", "Turns measurements into a report and the status it implies")
     }
     Rel(surface, plan, "Builds a plan and asks for a mode")
+    Rel(surface, report, "Builds swarm status's report from")
     Rel(plan, proc, "Runs each step through")
     Rel(beads, proc, "Declares invocations and decoders for")
     Rel(git, proc, "Declares invocations and decoders for")
@@ -179,12 +180,24 @@ implements any of them a second time.
   reason is what the caller is told.** Reading the fragment's answer
   instead would report "the last step produced no value", which is true
   and useless.
+- **`swarm status` is the one command that does not supply a plan and an
+  interpretation.** The Status Collector's completion walk queries one
+  level of the run's tree at a time, with the next query depending on
+  what the last one answered, so there is no fixed sequence to render
+  before running it — a plan has to be a value a test can compare without
+  starting a process, and a walk of unknown depth is not one. It declares
+  the four contract flags itself instead, and reuses the surface's own
+  exit-status mapping and both renderings, so those two stay properties of
+  the surface rather than a second copy of them. Explain still measures
+  nothing: it describes what the collector would query rather than
+  printing a plan it cannot know the shape of, per the Status Collector's
+  own note on this.
 
-The tree so far is `swarm manifest get | set | require | validate`.
-`manifest` is a noun with no `RunE`: it cannot be invoked, and cobra
-prints its verbs instead — so the rule that every subcommand carries the
-contract flags is about the leaves, and that is what the surface's own
-test walks.
+The tree so far is `swarm manifest get | set | require | validate` and
+`swarm status`. `manifest` is a noun with no `RunE`: it cannot be
+invoked, and cobra prints its verbs instead — so the rule that every
+subcommand carries the contract flags is about the leaves, and that is
+what the surface's own test walks.
 
 Two renderings a caller should expect from `get`: a manifest value is
 reported with the fact kind its JSON has — text, count, flag or list —

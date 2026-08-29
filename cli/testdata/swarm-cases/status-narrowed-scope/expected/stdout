@@ -1,0 +1,24 @@
+swarm status — run fixture-run (execute)
+stall_after = 30m0s    <- git log --format=%H%x00%ct%x00%s -n 1 claude/bead-bonanza-fixture
+observability = whether a subagent is still working cannot be observed from outside the harness; this reports the standing worktree count, the last commit's age and the ready front's depth in its place    <- git worktree prune ; git worktree list --porcelain ; git log --format=%H%x00%ct%x00%s -n 1 claude/bead-bonanza-fixture ; bd ready --parent fixture-run --exclude-type epic --json
+worktrees_standing = 1    <- git worktree prune ; git worktree list --porcelain
+dispatch_worktrees_standing = 0    <- git worktree prune ; git worktree list --porcelain
+last_commit_sha = ac4a37c7aadfbc9a0f7af911b4b95558e3989eda    <- git log --format=%H%x00%ct%x00%s -n 1 claude/bead-bonanza-fixture
+last_commit_subject = fixture-run.1 P1 the first bead of the run    <- git log --format=%H%x00%ct%x00%s -n 1 claude/bead-bonanza-fixture
+last_commit_at = 2026-01-01T01:00:00Z    <- git log --format=%H%x00%ct%x00%s -n 1 claude/bead-bonanza-fixture
+last_commit_age_seconds = <age-seconds>    <- git log --format=%H%x00%ct%x00%s -n 1 claude/bead-bonanza-fixture
+ready_front_depth = 0    <- bd ready --parent fixture-run --exclude-type epic --json
+completion_total = 1    <- bd list --parent fixture-run --all --limit 0 --json ; bd list --parent fixture-run.target --all --limit 0 --json ; bd list --parent fixture-run.1 --all --limit 0 --json
+completion_done = 1    <- bd list --parent fixture-run --all --limit 0 --json ; bd list --parent fixture-run.target --all --limit 0 --json ; bd list --parent fixture-run.1 --all --limit 0 --json
+completion_blocked = 0    <- bd list --parent fixture-run --all --limit 0 --json ; bd list --parent fixture-run.target --all --limit 0 --json ; bd list --parent fixture-run.1 --all --limit 0 --json
+completion_claimed = 0    <- bd list --parent fixture-run --all --limit 0 --json ; bd list --parent fixture-run.target --all --limit 0 --json ; bd list --parent fixture-run.1 --all --limit 0 --json
+completion_open = 0    <- bd list --parent fixture-run --all --limit 0 --json ; bd list --parent fixture-run.target --all --limit 0 --json ; bd list --parent fixture-run.1 --all --limit 0 --json
+completion_deferred = 0    <- bd list --parent fixture-run --all --limit 0 --json ; bd list --parent fixture-run.target --all --limit 0 --json ; bd list --parent fixture-run.1 --all --limit 0 --json
+completion_unknown = 0    <- bd list --parent fixture-run --all --limit 0 --json ; bd list --parent fixture-run.target --all --limit 0 --json ; bd list --parent fixture-run.1 --all --limit 0 --json
+scope_additions =     <- bd show fixture-run --json
+scope_missing =     <- bd show fixture-run --json
+scope_excluded = fixture-run.7, fixture-run.8    <- bd show fixture-run --json
+dispatches =     <- bd ready --parent fixture-run --exclude-type epic --json ; bd list --parent fixture-run --all --limit 0 --json ; bd list --parent fixture-run.target --all --limit 0 --json ; bd list --parent fixture-run.1 --all --limit 0 --json
+conflicts =     <- git worktree prune ; git worktree list --porcelain ; bd list --parent fixture-run --all --limit 0 --json ; bd list --parent fixture-run.target --all --limit 0 --json ; bd list --parent fixture-run.1 --all --limit 0 --json
+summary: 1/1 bead(s) done; 0 ready; last commit <age> ago
+outcome: clear (exit 0)
