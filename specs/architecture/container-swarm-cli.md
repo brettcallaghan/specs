@@ -161,6 +161,30 @@ interpreter, so no command can chain a removal after a failed merge.
 Per-step timing and the audit line each command prints are derived from
 the step value. See [[adr-024]].
 
+It lives at `cli/swarm/plan`. Three facts about the built component that
+a caller has to know and cannot read off the roster:
+
+- **A plan is validated before anything is printed or run** — a duplicate
+  step name, or an argument taken from a step that is not strictly
+  earlier, is refused up front rather than partway through. That check is
+  what makes "produced by an earlier step" a property of the plan rather
+  than a convention.
+- **The explain transcript is POSIX `sh`.** Comments carry the step's
+  name, its declarations and each branch's condition; the invocations are
+  quoted so a reader can paste one. A reference argument renders as
+  `'<from step: NAME>'`, which is one shell word and visibly a
+  placeholder. On a Windows shell a reader adapts the transcript, which is
+  a cost of the transcript being text rather than an argv vector.
+- **A failed step publishes no value**, so a later step referencing it is
+  skipped with its reason recorded rather than being handed whatever the
+  failing tool printed.
+
+The per-step record carries a digest of each stream — `sha256:<hex>`,
+separately per stream — rather than the bytes: a record is an audit line,
+and carrying every byte of every tool's output would put tracker contents
+into a report meant to be shareable while making it unreadable. The digest
+still detects a step whose output changed between two runs.
+
 ### Process Runner
 
 ```component
