@@ -216,6 +216,7 @@ func (r Runner) interpret(
 				// failing tool happened to print.
 				st.values[s.Name] = value
 				st.produced[s.Name] = true
+				record.Value = value
 			}
 		}
 

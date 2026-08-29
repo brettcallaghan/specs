@@ -258,6 +258,33 @@ edge. It names operations in the run's vocabulary rather than any
 tracker's, which is what makes a second implementation a matter of
 satisfying it rather than of rewriting the callers.
 
+It lives at `cli/swarm/tracker`. Three things about the built interface
+that the roster line does not carry:
+
+- **Every operation returns a plan step, not a result.** An
+  implementation declares an invocation and how to decode it; the Plan
+  Runner is what runs it. That is what keeps a tracker read visible to
+  explain mode and under the plan's ordering guard.
+- **An edge operation names its direction.** `BlockedBy(bead, blocker)`
+  and `DiscoveredFrom(bead, origin)` rather than one `Link(from, to)`,
+  because a generic pair is one argument order away from inverting every
+  dependency it writes, at exit 0.
+- **A bead's state is the run's word, and the tracker's own string is
+  kept beside it.** A status the vocabulary does not cover becomes
+  `unknown` rather than any of the others, so a tracker release that adds
+  one is visible instead of making every bead carrying it read as open.
+
+**`Descendants` is a walk, and lives here rather than in an
+implementation.** "Every bead in this run" is not a query any tracker
+answers: measured on bd 1.2.2 against this repository's own database,
+`bd list --parent <run>` returns the run's direct children only, while
+`bd ready --parent <run>` is transitive but returns only what is ready.
+So the set is derived level by level, one plan per level, with each
+invocation still a recorded step. A cycle terminates, an empty scope is
+refused, and a level that failed is an error rather than a shorter
+answer — an incomplete set reported as whole is the failure this
+container exists to remove.
+
 ### Beads Tracker
 
 ```component
@@ -274,6 +301,37 @@ several and an object from others, all at exit 0, so each decoder
 normalizes its own subcommand's empty forms rather than a shared guard
 doing it for all of them. This is the only component that knows the word
 `bd`.
+
+It lives at `cli/swarm/tracker/beads`, and "only this component names the
+tool" is enforced rather than asserted: a test parses every non-test
+source file under `cli/swarm` and fails if any outside that package
+carries the executable's name as a string literal.
+
+The shapes each decoder pins, measured on bd 1.2.2 against this
+repository's own database, are why there is a decoder per subcommand
+rather than one guard:
+
+| invocation | at exit 0 | on failure |
+|---|---|---|
+| `bd show <id> --json` | an array of one issue | exit 1, an **object** carrying `error` on **stdout** |
+| `bd list --parent <id> --json` | an array; empty is `[]` | — |
+| `bd ready --parent <id> --json` | an array; empty is `[]` | — |
+| `bd update <id> … --json` | an array of the updated issue | exit 1, **stdout empty**, message on **stderr** |
+| `bd comment <id> <text> --json` | an **object** | — |
+| `bd dep add <a> <b> --json` | an **object**, `status:"added"` even when the edge already existed | exit 1, an object carrying `error` on stdout |
+| `bd gate list --json` | an array; empty is a bare **`null`** | — |
+
+Two failure shapes and four container shapes, all but the failures at
+exit 0. The two rules that a shared guard gets wrong are both in that
+table: "treat any non-array as empty" reports a written comment as one
+that was not written, and "read stderr on failure" reports `bd show`'s
+message as absent. Absent, `null` and `[]` normalize to one empty value
+per subcommand; any other shape is an error, because a shape a decoder
+does not know is not evidence of emptiness.
+
+`bd` also writes standing warnings to stderr while its JSON goes to
+stdout, which is why nothing here reads a merged stream and why a
+decoder reporting a failure takes the last line rather than the first.
 
 ### Version Control
 

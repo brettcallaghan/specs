@@ -14,6 +14,7 @@ package plan_test
 
 import (
 	"context"
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -586,6 +587,50 @@ func TestASelectedAlternativeRunsAndThenTheOuterPlanContinues(t *testing.T) {
 	}
 	if abort.Branch != "the merge did not apply cleanly" {
 		t.Errorf("the arm's record does not name its condition: %q", abort.Branch)
+	}
+}
+
+// A decoder whose output nothing can reach is not a decoder, so the
+// decoded value is on the record a command reads and not only in the
+// interpreter's internal state.
+func TestTheRecordCarriesWhatTheDecoderMadeOfTheResult(t *testing.T) {
+	fake := exectest.NewFake(
+		exectest.Recording{Argv: []string{"bd", "ready"}, Stdout: []byte(`{"count":3}`)},
+		exectest.Recording{Argv: []string{"bd", "blocked"}, Stdout: []byte("boom"), ExitStatus: 1},
+	)
+
+	decode := func(res swarmexec.Result) (any, error) {
+		var v struct {
+			Count int `json:"count"`
+		}
+		if err := json.Unmarshal(res.Stdout, &v); err != nil {
+			return nil, err
+		}
+		return v.Count, nil
+	}
+
+	p := plan.Plan{Steps: []plan.Step{
+		{Name: "ready", Executable: "bd", Effect: plan.Read, Decode: decode,
+			Args: []plan.Arg{plan.Lit("ready")}},
+		{Name: "blocked", Executable: "bd", Effect: plan.Read, OnFailure: plan.Continue, Decode: decode,
+			Args: []plan.Arg{plan.Lit("blocked")}},
+	}}
+
+	report, err := (plan.Runner{Exec: fake}).Run(context.Background(), p, plan.ModeExecute)
+	if err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+
+	ready, _ := report.Record("ready")
+	if ready.Value != 3 {
+		t.Errorf("the record's Value = %v, want 3", ready.Value)
+	}
+
+	// A failed step publishes nothing, for the same reason a later step
+	// referencing it is not resolved.
+	blocked, _ := report.Record("blocked")
+	if blocked.Value != nil {
+		t.Errorf("a failed step published %v, want nil", blocked.Value)
 	}
 }
 

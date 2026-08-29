@@ -243,6 +243,14 @@ type Record struct {
 	// separately, because the streams are separate.
 	StdoutDigest string
 	StderrDigest string
+	// Value is what the step's decoder made of the result, nil when the
+	// step did not run, its decoder failed, or the process exited
+	// non-zero. It is here rather than only in the interpreter's internal
+	// state because a reference argument is not the only reader of a
+	// decoded result: a command turning a plan's outcome into facts reads
+	// them from the report, and a decoder whose output nothing can reach
+	// is not a decoder.
+	Value any
 	// Err is why the step failed, when it did: the process could not be
 	// started, the decoder refused the result, or an argument could not be
 	// resolved. A non-zero exit alone is not an error.
