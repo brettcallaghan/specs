@@ -1006,10 +1006,11 @@ func (v *Invocation) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// The envelope every swarm command emits under --json.
+// The whole result every swarm command emits under --full-result.
 //
 // Emitted on every exit status, including a non-zero one, so a consumer
-// parsing the result never has to fall back to reading text to learn why.
+// parsing the result never has to fall back to reading prose to learn
+// why.
 type CommandResult struct {
 	// The version of the JSON contract this result was produced against,
 	// so a consumer branches on the version it was handed rather than on the

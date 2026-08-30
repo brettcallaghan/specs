@@ -127,10 +127,11 @@ One step of the plan a command ran, as the audit line for it.
 
 ## CommandResult
 
-The envelope every swarm command emits under --json.
+The whole result every swarm command emits under --full-result.
 
 Emitted on every exit status, including a non-zero one, so a consumer
-parsing the result never has to fall back to reading text to learn why.
+parsing the result never has to fall back to reading prose to learn
+why.
 
 | Property | Type | Documentation |
 |----------|------|---------------|

@@ -217,21 +217,33 @@ func TestARefusalTakesTheStatusMatchingWhatTheCallerCanDoAboutIt(t *testing.T) {
 // with it, and work around it when the underlying tool changes.
 func TestEveryReportedFactNamesTheCommandThatEstablishedIt(t *testing.T) {
 	stdout, _, _ := runSurface(t, specReporting(OutcomeClear, ""), fakeForRead(),
-		"probe", "--run", "run-1")
+		"probe", "--run", "run-1", "--full-result", "--json")
 
-	want := plan.Argv([]string{"bd", "show", "run-1", "--json"})
+	var env swarmmodel.CommandResult
+	if err := json.Unmarshal([]byte(stdout), &env); err != nil {
+		t.Fatalf("the full result does not parse: %v\n%s", err, stdout)
+	}
+
+	want := []string{"bd", "show", "run-1", "--json"}
 	for _, name := range []string{"branch", "review_passes"} {
 		var found bool
-		for _, line := range strings.Split(stdout, "\n") {
-			if strings.HasPrefix(line, name+" =") {
-				found = true
-				if !strings.Contains(line, want) {
-					t.Errorf("the line reporting %q does not name the command that established it:\n%s", name, line)
+		for _, f := range env.Facts {
+			if f.Name != name {
+				continue
+			}
+			found = true
+			var named bool
+			for _, argv := range f.Invocations {
+				if plan.Argv(argv) == plan.Argv(want) {
+					named = true
 				}
+			}
+			if !named {
+				t.Errorf("the fact %q does not name the command that established it: %v", name, f.Invocations)
 			}
 		}
 		if !found {
-			t.Errorf("no line reports the fact %q:\n%s", name, stdout)
+			t.Errorf("the full result does not report the fact %q:\n%s", name, stdout)
 		}
 	}
 }
@@ -286,17 +298,17 @@ func TestAnAttentionOutcomeNamesWhatWouldResolveIt(t *testing.T) {
 
 // AC: AC-SWARM-CORE-001.9
 //
-// One value, two renderings — so the assertion is that nothing the text
-// form says is missing from the machine-readable one, field by field
-// rather than by spot check.
-func TestTheMachineReadableFormCarriesTheSameFactsAsTheTextForm(t *testing.T) {
+// One value, two renderings — so the assertion is that nothing the YAML
+// form says is missing from the JSON one, field by field rather than by
+// spot check.
+func TestTheJSONFormCarriesTheSameFactsAsTheYAMLForm(t *testing.T) {
 	text, _, textCode := runSurface(t, specReporting(OutcomeAttention, "close the bead"), fakeForRead(),
-		"probe", "--run", "run-1")
+		"probe", "--run", "run-1", "--full-result")
 	machine, _, jsonCode := runSurface(t, specReporting(OutcomeAttention, "close the bead"), fakeForRead(),
-		"probe", "--run", "run-1", "--json")
+		"probe", "--run", "run-1", "--full-result", "--json")
 
 	if textCode != jsonCode {
-		t.Errorf("the two forms exited differently: text %d, json %d", textCode, jsonCode)
+		t.Errorf("the two forms exited differently: yaml %d, json %d", textCode, jsonCode)
 	}
 
 	var env swarmmodel.CommandResult
@@ -311,18 +323,20 @@ func TestTheMachineReadableFormCarriesTheSameFactsAsTheTextForm(t *testing.T) {
 		t.Errorf("the envelope's status (%d) is not the exit status (%d)", env.Status, jsonCode)
 	}
 
-	// Every fact the text form prints is in the envelope, with the same
+	// Every fact the JSON form carries is in the YAML one, with the same
 	// name, the same rendered value and the same invocations.
 	if len(env.Facts) != 2 {
 		t.Fatalf("the envelope carries %d facts, want 2:\n%s", len(env.Facts), machine)
 	}
 	for _, f := range env.Facts {
 		if !strings.Contains(text, f.Name) {
-			t.Errorf("fact %q is in the envelope and not in the text form:\n%s", f.Name, text)
+			t.Errorf("fact %q is in the JSON form and not in the YAML one:\n%s", f.Name, text)
 		}
 		for _, argv := range f.Invocations {
-			if !strings.Contains(text, plan.Argv(argv)) {
-				t.Errorf("fact %q names %v in the envelope and not in the text form:\n%s", f.Name, argv, text)
+			for _, word := range argv {
+				if !strings.Contains(text, word) {
+					t.Errorf("fact %q names %v in the JSON form and not in the YAML one:\n%s", f.Name, argv, text)
+				}
 			}
 		}
 	}
@@ -340,13 +354,12 @@ func TestTheMachineReadableFormCarriesTheSameFactsAsTheTextForm(t *testing.T) {
 			t.Errorf("the envelope's %s is empty", name)
 		}
 		if !strings.Contains(text, value) {
-			t.Errorf("the envelope's %s (%q) is not in the text form:\n%s", name, value, text)
+			t.Errorf("the envelope's %s (%q) is not in the YAML form:\n%s", name, value, text)
 		}
 	}
 
 	// The invocations the command ran, with each one's status and
-	// duration, are in the envelope whatever the text form does with
-	// them.
+	// duration, are in the result in both syntaxes.
 	if len(env.Invocations) != 1 {
 		t.Fatalf("the envelope carries %d invocations, want 1", len(env.Invocations))
 	}
@@ -375,7 +388,7 @@ func TestTheEnvelopeIsEmittedOnEveryExitStatus(t *testing.T) {
 	}
 
 	for _, spec := range specs {
-		stdout, _, code := runSurface(t, spec, fakeForRead(), "probe", "--run", "run-1", "--json")
+		stdout, _, code := runSurface(t, spec, fakeForRead(), "probe", "--run", "run-1", "--json", "--full-result")
 		seen[code] = true
 
 		var env swarmmodel.CommandResult
@@ -453,14 +466,14 @@ func TestExplainAndDryRunTogetherAreMalformed(t *testing.T) {
 	}
 }
 
-// The four flags are declared by the surface rather than by each
+// The five flags are declared by the surface rather than by each
 // subcommand, which is what makes "carried by every subcommand" a
 // property of the code rather than a checklist.
 func TestEverySubcommandCarriesTheContractFlags(t *testing.T) {
 	streams := &ioStreams{out: &bytes.Buffer{}, err: &bytes.Buffer{}}
 	cmd := newSubcommand(Spec{Use: "probe", Short: "s"}, streams, exectest.NewFake())
 
-	for _, name := range []string{"explain", "dry-run", "json", "run"} {
+	for _, name := range []string{"explain", "dry-run", "json", "run", "full-result"} {
 		if cmd.Flags().Lookup(name) == nil {
 			t.Errorf("--%s is not declared on the subcommand", name)
 		}
@@ -496,14 +509,14 @@ func TestTheSubcommandHelpNamesTheContractFlags(t *testing.T) {
 	cmd.InitDefaultHelpFlag()
 
 	usage := cmd.UsageString()
-	for _, want := range []string{"--explain", "--dry-run", "--json", "--run"} {
+	for _, want := range []string{"--explain", "--dry-run", "--json", "--run", "--full-result"} {
 		if !strings.Contains(usage, want) {
 			t.Errorf("the usage does not mention %s:\n%s", want, usage)
 		}
 	}
 }
 
-// Every command a caller can INVOKE carries the four contract flags.
+// Every command a caller can INVOKE carries the five contract flags.
 //
 // A noun in the tree — `manifest` — carries none of its own: it has no
 // RunE, so it cannot be invoked, and cobra prints its verbs instead.
@@ -530,7 +543,7 @@ func TestEverySubcommandInTheTreeCarriesTheContractFlags(t *testing.T) {
 			return
 		}
 		leaves++
-		for _, name := range []string{"explain", "dry-run", "json", "run"} {
+		for _, name := range []string{"explain", "dry-run", "json", "run", "full-result"} {
 			if cmd.Flags().Lookup(name) == nil {
 				t.Errorf("%q does not carry --%s", cmd.CommandPath(), name)
 			}

@@ -8,6 +8,6 @@ lost on the next regeneration.
 `manifest.md` describes the run manifest's key set: which keys exist,
 their types, the stage each becomes required at (the struct that first
 declares it), and what each key means. `output.md` describes the
-envelope every `swarm` command emits under `--json`. The normative
+result every `swarm` command emits under `--full-result`. The normative
 artifact derived from the same sources is the JSON Schema under
 `cli/core/schema/`.

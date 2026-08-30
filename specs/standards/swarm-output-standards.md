@@ -5,9 +5,9 @@ description: What every swarm command prints — YAML by default and JSON
   the style rules that make both readable without a grammar to decode
 slug: swarm-output-standards
 type: standards
-status: draft
-updated_at: 2026-08-30T00:00:00Z
-version: "0.1"
+status: active
+updated_at: 2026-08-30T12:00:00Z
+version: "1.0"
 ---
 
 # Swarm Command Output
@@ -30,9 +30,10 @@ reserved keyword set, no punctuation to reverse-engineer. Every
 requirement below either says which YAML to emit or removes something a
 reader would otherwise have to be told.
 
-**Status.** Draft. These are the target; the renderer at the time of
-writing meets some of them and not others, and [Conformance](#conformance)
-says which, with the measurement behind each.
+**Status.** Active, and met. [Conformance](#conformance) lists every
+requirement with the invocation that measures it, and the
+[worked examples](#worked-examples) below are what a built binary prints,
+copied out of its output rather than composed.
 
 ---
 
@@ -67,14 +68,14 @@ A command SHALL print its answer, and SHALL print the full result only
 when `--full-result` is passed.
 
 **Rationale:** this is the requirement the rest of the document serves.
-The default output today is the whole report — the header, the plan
+The rejected default was the whole report — a header, the plan
 transcript, one line per fact with the invocation that established it
 appended, one line per executed step with its digests and duration, the
 summary, the resolution, and the outcome. Measured on `swarm status
---run fixture-run`: 24 lines and 3,914 bytes to report a run that has
-two beads in it. The same invocation's answer under these standards is
-22 lines and 765 bytes — an 80% reduction, and every byte removed is a
-byte about how the command worked rather than about what it found.
+--run fixture-run`, that form was 24 lines and 3,914 bytes to report a
+run that has two beads in it; the same invocation's answer is 22 lines
+and 765 bytes — an 80% reduction, and every byte removed is a byte about
+how the command worked rather than about what it found.
 
 The provenance is not lost. It is one flag away, and the flag is named
 for what it returns.
@@ -112,14 +113,14 @@ A property's value SHALL be what the property holds. A command SHALL NOT
 report a verdict about a property in the position where its value
 belongs.
 
-**Rationale:** the current text form of `swarm manifest require` prints
-`trailers = false`, which does not mean the manifest key `trailers`
-holds `false` — it means the key is not written. The name is the subject
-and the value is a different quantity about it, and nothing on the line
-says so. Under this requirement `require` reports the same values `get`
-reports; whether they were all present is the exit status, which is
-where a verdict belongs. It costs `require` nothing, because it already
-reads the whole document in one invocation and the values are in hand.
+**Rationale:** the rejected form was `swarm manifest require` printing
+`trailers = false`, which did not mean the manifest key `trailers` holds
+`false` — it meant the key is not written. The name is the subject and
+the value was a different quantity about it, with nothing on the line to
+say so. `require` reports the same values `get` reports; whether they
+were all present is the exit status, which is where a verdict belongs. It
+costs `require` nothing, because it already reads the whole document in
+one invocation and the values are in hand.
 
 ---
 
@@ -242,12 +243,13 @@ The full result SHALL be rendered as YAML by default and as JSON under
 
 Every subcommand SHALL carry `--full-result`.
 
-**Rationale:** every subcommand now has an answer smaller than its
-report, so every one of them has a use for the flag. Today the flag is
-declared only by a subcommand that opts into a bare form — measured,
-`swarm manifest require --run fixture-run --key branch --full-result`
-exits 3 with `Error: unknown flag: --full-result` — which would leave a
-caller of any other subcommand with no way back to the provenance.
+**Rationale:** every subcommand has an answer smaller than its report, so
+every one of them has a use for the flag. A flag declared only by the
+subcommands that happened to want it would leave a caller of any other
+one with no way back to the provenance. It is declared by the surface
+rather than by each subcommand, which is what makes "carried by every
+subcommand" a property of the code; the surface's own test walks the
+command tree and fails on a leaf that does not carry it.
 
 ---
 
@@ -324,8 +326,8 @@ An empty sequence SHALL be rendered `[]` and an empty mapping `{}`.
 
 **Rationale:** the single exception to block style, and it is forced.
 There is no block rendering of an empty collection: it would be a key
-with nothing after it, which is a key whose value is null. The current
-text form has exactly this defect — `scope_missing = ` is
+with nothing after it, which is a key whose value is null. The rejected
+text form had exactly this defect — `scope_missing = ` was
 indistinguishable from an empty string and from an unset key.
 
 ---
@@ -340,6 +342,23 @@ the value appears as itself, on its own lines, instead of as `\n` inside
 a quoted string. The indicator is not decoration: plain `|` clips to
 exactly one trailing newline, so using it on a value that has none adds
 a byte and the rendering no longer round-trips.
+
+---
+
+A multi-line string that a block scalar cannot carry exactly SHALL be
+double-quoted instead. It cannot when the value carries a control
+character other than a line break, or when its last content line ends in
+white space.
+
+**Rationale:** readability is the reason for the block scalar and
+correctness outranks it. A block's only structure is the line break, so a
+carriage return is folded into the break beside it and the value comes
+back shorter. Trailing white space on the last content line is the
+sharper case, because the specification permits it and readers disagree:
+measured, `v: |-` over `a` then `b ` reads back `a\nb ` through PyYAML and
+`a\nb` through goccy/go-yaml, which is the parser this repository's own
+tests use. A renderer that cannot know which reader it is writing for does
+not write the document they disagree about.
 
 ---
 
@@ -399,20 +418,26 @@ not written, whatever the stage and whatever the key's optionality. It
 is how a caller says "I need this one, now" about a key the record does
 not owe it.
 
-Measured on the run epic `agent-plugins-bd97`, whose `trailers` key is
-not written and belongs to no stage:
+Measured against the restored `core` fixture, whose `findings_path` key
+is not written and belongs to no stage the run has reached:
 
 ```console
-$ swarm manifest validate --run agent-plugins-bd97
-...
-summary: every rule holds at the retro stage
-outcome: clear (exit 0)
-# exit 0 — trailers is never mentioned
+$ swarm manifest validate --run fixture-run
+stage: dispatch
+stage_source: derived from the keys the record carries
+# exit 0 — findings_path is never mentioned
 
-$ swarm manifest require --run agent-plugins-bd97 --key trailers
-...
-summary: trailers: not written
-outcome: attention (exit 1)
+$ swarm manifest require --run fixture-run --key branch --key findings_path
+branch:
+  ok: true
+  value: claude/bead-bonanza-fixture
+  issues: []
+findings_path:
+  ok: false
+  value: null
+  issues:
+    - the key is not written
+    - "write each with: swarm manifest set --run fixture-run --key <key> --value <value>"
 # exit 1
 ```
 
@@ -427,6 +452,11 @@ tests per key — that the key is declared, and that `doc.Get(name)`
 reports it present — and nothing else. `grep -c checkType
 cli/swarm/manifest/validate.go` returns 3, and none of the three is
 inside `Require`.
+
+A property whose value is present but ill-typed therefore reports
+`ok: true` today. Were the second reading adopted, that property would
+report `ok: false` with the type error among its `issues`, and nothing
+about the shape would change.
 
 ---
 
@@ -519,11 +549,11 @@ cleanly.**
 
 ## Worked Examples
 
-Every example below comes from a real invocation of a binary built from
-this repository's source (`cd cli && go build ./swarm`), run against the
-restored `core` end-to-end fixture, whose run epic is `fixture-run`. The
-YAML renderings are produced mechanically from the measured `--json`
-envelopes by applying the style rules above; none is hand-written.
+Every example below is what a binary built from this repository's source
+(`cd cli && go build ./swarm`) printed, run against the restored `core`
+end-to-end fixture, whose run epic is `fixture-run`. Each is copied out of
+that output rather than composed, and the byte counts are `len(stdout)`
+for the same invocation.
 
 ### 1. A value with newlines in it
 
@@ -533,18 +563,8 @@ The value was written through the real tracker:
 $ swarm manifest set --run fixture-run --key trailers --value '"Do re me\nfa so la ti\ndo"'
 ```
 
-Today, `swarm manifest get --run fixture-run --key branch --key
-trailers` answers with a JSON object, because more than one key was
-asked for:
-
-```json
-{
-  "branch": "claude/bead-bonanza-fixture",
-  "trailers": "Do re me\nfa so la ti\ndo"
-}
-```
-
-Under these standards:
+`swarm manifest get --run fixture-run --key branch --key trailers` — 79
+bytes, exit 0:
 
 ```yaml
 branch: claude/bead-bonanza-fixture
@@ -554,29 +574,17 @@ trailers: |-
   do
 ```
 
+The block scalar is the whole reason for choosing YAML: the value appears
+as itself, on its own lines, rather than as `\n` inside a quoted string.
+`|-` and not `|` because the value ends with no newline, and `|` would
+clip to exactly one — adding a byte the value does not carry.
+
 ---
 
 ### 2. The same command, one key missing
 
-`swarm manifest get --run fixture-run --key trailers --key
-findings_path` exits 1. Today:
-
-```console
-swarm manifest get — run fixture-run (execute)
-bd show fixture-run --json
-findings_path = unestablished: the key is not written    <- bd show fixture-run --json
-trailers = Do re me
-fa so la ti
-do    <- bd show fixture-run --json
-read: ran exit 0 200ms sha256:c29c62da…f2ff75e6 sha256:e3b0c442…7852b855    <- bd show fixture-run --json
-summary: findings_path: not written
-what would resolve this: write it with: swarm manifest set --run fixture-run --key findings_path --value <value>
-outcome: attention (exit 1)
-```
-
-The value's second and third lines carry no marker of any kind, and the
-provenance annotation arrives at the end of the third one. Under these
-standards:
+`swarm manifest get --run fixture-run --key trailers --key findings_path`
+— 258 bytes, exit 1:
 
 ```yaml
 findings_path:
@@ -594,12 +602,15 @@ trailers:
   issues: []
 ```
 
+The property that succeeded stays in the document with `ok: true`, so the
+reader sees the whole set rather than a filtered one. The resolution is
+inside the property it would resolve.
+
 ---
 
 ### 3. The whole manifest
 
-`swarm manifest get --run fixture-run` — 29 lines and 2,077 bytes today,
-32 lines and 1,218 bytes as its answer:
+`swarm manifest get --run fixture-run` — 32 lines and 1,218 bytes, exit 0:
 
 ```yaml
 admitted:
@@ -636,19 +647,20 @@ trailers: |-
   do
 ```
 
-Three things are visible here that were not before: `checks_baseline` is
-a multi-line document and reads as one; `excluded` and `moved` are
-empty *lists* rather than possibly-empty strings; and `models` and
-`standing_auth` are objects the four fact kinds cannot carry, so they
-arrive as escaped JSON. The third is the shape gap the
-[Shape](#shape) section measures.
+Three things are visible here: `checks_baseline` is a multi-line document
+and reads as one, with `|` because it ends in exactly one newline;
+`excluded` and `moved` are empty *lists* rather than possibly-empty
+strings; and `models` and `standing_auth` are objects the four fact kinds
+cannot carry, so they arrive as escaped JSON. The third is the shape gap
+the [Shape](#shape) section measures, and the only requirement here that
+is met by a workaround rather than outright.
 
 ---
 
 ### 4. A command whose report is its answer
 
-`swarm status --run fixture-run` — 24 lines and 3,914 bytes today, 22
-lines and 765 bytes as its answer:
+`swarm status --run fixture-run` — 22 lines and 765 bytes, exit 0. The
+rejected text form was 24 lines and 3,914 bytes for the same run:
 
 ```yaml
 stall_after: 30m0s
@@ -658,7 +670,7 @@ dispatch_worktrees_standing: 0
 last_commit_sha: ac4a37c7aadfbc9a0f7af911b4b95558e3989eda
 last_commit_subject: fixture-run.1 P1 the first bead of the run
 last_commit_at: 2026-01-01T01:00:00Z
-last_commit_age_seconds: 20884914
+last_commit_age_seconds: <age-seconds>
 ready_front_depth: 0
 completion_total: 2
 completion_done: 1
@@ -675,22 +687,25 @@ dispatches:
 conflicts: []
 ```
 
-The saving is larger than the line count suggests: today each of those
-lines carries the argv of every invocation behind it, appended after
-`    <- `, and the same commands repeat across lines. On the fixture the
-text form is 3,914 bytes for 24 lines; on the real run epic `agent-plugins-bd97` the same
-command measured 35,856 bytes for 25 lines. Not one of those bytes is
-part of the answer.
+The saving is larger than the line count suggests: in the text form each
+of those lines carried the argv of every invocation behind it, appended
+after `    <- `, and the same commands repeated across lines. On the real
+run epic `agent-plugins-bd97` that form measured 35,856 bytes for 25
+lines. Not one of those bytes was part of the answer.
+
+`last_commit_age_seconds` is measured against the real clock, so it is
+the one value here that moves between runs and the one shown as a
+placeholder.
 
 ---
 
 ### 5. The full result
 
 `swarm manifest get --run fixture-run --key branch --key trailers
---full-result`:
+--full-result` — 1,018 bytes, exit 0:
 
 ```yaml
-contract_version: "1.0"
+contract_version: "2.0"
 command: swarm manifest get
 run: fixture-run
 mode: execute
@@ -735,27 +750,36 @@ invocations:
     status: ran
     reason: ""
     exit_status: 0
-    duration_ms: 197
-    stdout_digest: sha256:c29c62dafd9aeea66451a43da51bb04c21ce39f103d160da880fcc43f2ff75e6
-    stderr_digest: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+    duration_ms: <duration>
+    stdout_digest: sha256:<digest>
+    stderr_digest: sha256:<digest>
     error: ""
 transcript:
   - bd show fixture-run --json
 ```
 
-That is the existing `CommandResult`, field for field, with nothing
-added. It is verbose, and that is correct: the caller asked for it.
+Three values move between runs and are shown as placeholders rather than
+as the figures one run happened to produce: the elapsed time, and the two
+stream digests, which cover the tracker's own output. The committed
+end-to-end artifacts normalize the same three and assert every other
+byte.
+
+That is the `CommandResult` [[contract-swarm-json]] declares, field for
+field, with nothing added. It is verbose, and that is correct: the caller
+asked for it. `"--json"` is quoted because a plain scalar may not begin
+with an indicator character, and `-` is one.
 
 ---
 
 ### 6. An explained plan
 
-`--explain` implies `--full-result`, which is what makes the plan
-visible — in explain mode nothing runs, so `facts` is empty and the
-answer alone would be `{}`. Measured:
+`swarm manifest get --run fixture-run --key branch --explain` — 361
+bytes, exit 0. `--explain` implies `--full-result`, which is what makes
+the plan visible: in explain mode nothing runs, so `facts` is empty and
+the answer alone would be `{}`.
 
 ```yaml
-contract_version: "1.0"
+contract_version: "2.0"
 command: swarm manifest get
 run: fixture-run
 mode: explain
@@ -775,8 +799,8 @@ transcript:
 
 ### 7. A refusal about the invocation
 
-`swarm manifest get --key branch`, with no `--run`, exits 3 having
-established nothing:
+`swarm manifest get --key branch`, with no `--run` — 78 bytes, exit 3,
+having established nothing:
 
 ```yaml
 issues:
@@ -788,30 +812,37 @@ issues:
 ## Conformance
 
 Each row was measured against a binary built from this repository's
-source at `6fb18cd` (`cd cli && go build ./swarm`), run against the
-restored `core` end-to-end fixture.
+source (`cd cli && go build ./swarm`), run against the restored `core`
+end-to-end fixture. The "enforced by" column names the check that fails
+when the row stops holding, because a table nobody runs is a list of
+properties enforced by nobody.
 
-| requirement | today | measurement |
+| requirement | measurement | enforced by |
 |---|---|---|
-| YAML by default | **no** | every command renders the bespoke text form; `--json` renders JSON |
-| the answer is the default | **partly** | only a subcommand declaring a bare form prints an answer, and only for a clear outcome; every other command prints the whole report |
-| a clear answer is properties and values | **no** | `swarm manifest get --run fixture-run --key branch --key trailers` answers with a JSON object |
-| a property is never a verdict | **no** | `swarm manifest require … --key trailers` reports `trailers = false` for an unwritten key |
-| a failing answer is per-property `ok`/`value`/`issues` | **no** | no such shape exists |
-| `--full-result` renders `CommandResult` | **yes** | `swarm manifest get --run fixture-run --key branch --full-result --json` emits the envelope field for field |
-| every subcommand carries `--full-result` | **no** | `swarm manifest require --run fixture-run --key branch --full-result` → `Error: unknown flag: --full-result`, exit 3 |
-| `--explain` and `--dry-run` imply `--full-result` | **no** | `swarm manifest get --run fixture-run --key branch --dry-run` prints the bare answer `claude/bead-bonanza-fixture` and nothing else. `--explain` prints the report, but only because explain sets no bare answer — the implication is accidental, not declared |
-| nothing is truncated or elided | **yes** | no elision exists in the renderer today |
-| bulk surfaces as `*_path` | **partly** | `findings_path` follows it; `collision_edges` is a path not named for one, and `checks_baseline` is inlined bulk — 18,715 bytes over 339 lines on `agent-plugins-bd97` |
-| empty collections are distinguishable | **no** | `scope_missing = ` renders identically for an empty list, an empty string and an unset key |
-| multi-line values are block scalars | **no** | a multi-line value's continuation lines carry no marker, and the provenance annotation lands at the end of the last one |
+| YAML by default | every invocation in [Worked Examples](#worked-examples) | `TestSwarmCases`, over the committed artifacts |
+| JSON under `--json` | `manifest get --run fixture-run --key branch --json` → `{\n  "branch": "claude/bead-bonanza-fixture"\n}` | `TestTheAnswerAsJSONCarriesTheSameValue` |
+| the answer is the default | example 1: the answer, not the report | `TestAClearAnswerIsThePropertiesAndTheirValues` |
+| a clear answer is properties and values | example 1 | `TestAClearAnswerCarriesTheEstablishedPropertiesInReportOrder` |
+| a property is never a verdict | `manifest require … --key branch --key findings_path` reports `claude/bead-bonanza-fixture`, not `true` | `TestRequireNamesEveryAbsentKey` |
+| a failing answer is per-property `ok`/`value`/`issues` | example 2 | `TestAFailingAnswerCarriesAVerdictPerProperty` |
+| a refusal that names no property carries `issues` alone | example 7 | `TestARefusalThatNamesNoPropertyCarriesIssuesAlone` |
+| properties appear in report order | example 4 — `stall_after` first, `conflicts` last | `TestAClearAnswerCarriesTheEstablishedPropertiesInReportOrder` |
+| `--full-result` renders `CommandResult` | example 5 | `TestFullResultRestoresTheReport`, `TestWhatTheSurfaceEmitsConformsToTheEnvelopeSchema` |
+| every subcommand carries `--full-result` | `manifest require --run fixture-run --key branch --full-result` → exit 1 with the answer, no flag error | `TestEverySubcommandInTheTreeCarriesTheContractFlags` |
+| `--explain` and `--dry-run` imply `--full-result` | example 6; `manifest set --dry-run` in `manifest-set-dry-run` | `TestExplainAndDryRunImplyTheFullResult` |
+| nothing is truncated, elided or wrapped | example 4's `observability`, one line of 185 characters | `TestALongValueIsRenderedWhole` |
+| bulk surfaces as a `*_path` property | `findings_path` follows it | not enforced — see [Open Questions](#open-questions) |
+| empty collections are distinguishable | example 3's `excluded: []` and `moved: []` | `TestAnEmptyCollectionIsDistinguishableFromNothing` |
+| multi-line values are block scalars that round-trip | examples 1 and 3 | `TestAMultiLineValueIsABlockScalarThatRoundTrips` |
+| a string is quoted exactly where it has to be | example 5's `"--json"`, example 3's `models` | `TestAStringIsQuotedExactlyWhereItHasToBe` |
+| block style throughout, two spaces per level | example 5's nested argv sequences | `TestTheOutputIsBlockStyleThroughout` |
+| no comments, anchors, aliases, tags or document markers | every example | `TestTheDocumentCarriesNothingToResolve` |
+| values render as their own types | example 3: `review_passes: 2`, `excluded: []` | `TestAValueIsRenderedAsItsOwnType` |
+| both syntaxes carry the same values in the same order | — | `TestTheJSONRenderingKeepsTheOrderTheCommandReported`, `TestTheJSONFormCarriesTheSameFactsAsTheYAMLForm` |
 
-**No row here is enforced by a check.** The structural obligations that
-*are* enforced — a fact names an invocation, an attention outcome names
-a resolution — hold everywhere precisely because `Result.Validate`
-refuses a result that breaks them. The table above is a list of
-properties enforced by nobody, which is why implementing these standards
-should land assertions and not only a renderer.
+Every named test lives in `cli/swarm/cli` except `TestSwarmCases`, which
+is in `cli/swarm/e2e` and replays the committed artifacts under
+`cli/testdata/swarm-cases` against a real tracker and real git.
 
 ---
 
@@ -819,12 +850,12 @@ should land assertions and not only a renderer.
 
 - [ ] **Does `require` mean "is set" or "is set to a valid value"?**
       The command was described as requiring "a valid value is set",
-      which is not what it does. Today it means the first: `Require`
-      tests declaredness and presence and calls no type check. If the
-      second is wanted, the answer's `issues` gains a second
-      population — a key written with a value of the wrong type — and
-      `require` starts overlapping `validate` in a way that needs
-      saying. Not decided here.
+      which is not what it does. It means the first: `Require` tests
+      declaredness and presence and calls no type check. If the second is
+      wanted, the answer's `issues` gains a second population — a key
+      written with a value of the wrong type — and `require` starts
+      overlapping `validate` in a way that needs saying. Not decided
+      here; the shape would not change either way.
 
 - [ ] **Should an object-valued property render as nested YAML?**
       It cannot today: the four fact kinds carry no object, so
@@ -833,12 +864,23 @@ should land assertions and not only a renderer.
       not compile correctly under this repository's schema
       configuration. See [Shape](#shape).
 
-- [ ] **Which stream carries a failing answer?** Today a subcommand
-      with a bare form puts its report on the error stream when the
-      outcome is not clear, so a caller capturing stdout captures
-      nothing. Whether the per-property failing answer stays on the
-      output stream — which would let one redirect capture both cases —
-      is not settled here.
+- [ ] **What enforces "bulk surfaces as a `*_path` property"?**
+      Nothing does. It binds a command at the point where it decides to
+      produce bulk, and no check can tell a value that should have been a
+      file from one that should not. `collision_edges` is a path not
+      named for one, and `checks_baseline` is inlined bulk — 18,715 bytes
+      over 339 lines on the run epic `agent-plugins-bd97`. Both predate
+      this standard and neither is renamed here, because a manifest key
+      rename is a breaking change to [[contract-swarm-json]].
+
+**Settled here, and recorded because the answer is not obvious:**
+**which stream carries a failing answer.** Both shapes go to standard
+output. A caller redirecting stdout captures the answer whether the
+command succeeded or failed, and routes on the exit status to know which
+shape they are holding — which is exactly what a failing answer put on
+the error stream would take away from them. Standard error carries what
+the process itself could not do: an unparseable invocation cobra refuses
+before any command runs.
 
 ---
 

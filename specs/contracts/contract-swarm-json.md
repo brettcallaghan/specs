@@ -1,12 +1,12 @@
 ---
 title: "Contract: Swarm CLI JSON Surfaces"
-description: The machine-readable output every swarm command emits under
-  --json, and the run manifest it reads and writes — one document over the
-  Strata schemas that fix their shape
+description: The machine-readable output every swarm command emits, and
+  the run manifest it reads and writes — one document over the Strata
+  schemas that fix their shape
 slug: contract-swarm-json
 type: contract
 status: active
-updated_at: 2026-08-29T23:59:59Z
+updated_at: 2026-08-30T00:00:00Z
 provider: container-swarm-cli
 visibility: internal
 consumers:
@@ -14,7 +14,7 @@ consumers:
 specs:
   - "schemas/swarm/manifest.strata"
   - "schemas/swarm/output.strata"
-version: "1.0"
+version: "2.0"
 ---
 
 # Swarm CLI JSON Surfaces
@@ -22,7 +22,8 @@ version: "1.0"
 ## Overview
 
 This contract covers the two machine-readable surfaces of the swarm CLI:
-the JSON every command emits under `--json`, and the **run manifest** —
+the **command result** every command emits under `--full-result`, and the
+**run manifest** —
 the JSON object in a run epic's tracker metadata that the CLI reads,
 validates and writes. Both are consumed by the `bead-bonanza` skill
 family, which parses the first and, during migration, still writes the
@@ -45,7 +46,7 @@ than kept in step by hand.
 | Artifact | Location | Normative for |
 |----------|----------|---------------|
 | Manifest schema | `schemas/swarm/manifest.strata` | Shape of the run manifest: every key, its type, and the stage at which it becomes required |
-| Output schema | `schemas/swarm/output.strata` | Shape of each command's `--json` result, and of the shared envelope every result carries |
+| Output schema | `schemas/swarm/output.strata` | Shape of the command result `--full-result` renders, in either syntax |
 | Generated JSON Schema | `cli/core/schema/swarm-model.schema.json` via `scripts/generate-schemas.sh` | The validating artifact; regenerated, never hand-edited |
 | Generated Go model | `cli/swarm/swarmmodel/` via the same script | The types the provider emits and reads; regenerated, never hand-edited |
 | This document | — | Semantics, guarantees, and change policy |
@@ -77,11 +78,12 @@ cannot say which combination is coherent.
 
 ## Guarantees
 
-- The provider SHALL emit, under `--json`, every fact its text form
-  reports for the same invocation.
-- The provider SHALL emit a result conforming to the output schema on
-  every exit status, including a non-zero one, so a consumer parsing the
-  result never has to fall back to reading text to learn why.
+- The provider SHALL carry the same values, in the same order, in the
+  YAML rendering and the JSON one, for the same invocation.
+- The provider SHALL emit, under `--full-result`, a result conforming to
+  the output schema on every exit status, including a non-zero one, so a
+  consumer parsing the result never has to fall back to reading prose to
+  learn why.
 - Every result SHALL carry the invocations the command ran, in order,
   with each one's exit status and duration.
 - WHEN a fact could not be established, the provider SHALL emit it as
@@ -116,8 +118,9 @@ cannot say which combination is coherent.
   - Consumers SHALL route on the exit status rather than on the presence
     or absence of a field.
   - Consumers SHALL tolerate unknown fields.
-  - Consumers SHALL NOT parse the text form of any command that offers
-    `--json`.
+  - Consumers SHALL read a command's answer, or pass `--full-result` for
+    the result this contract shapes; what an answer contains is
+    [[swarm-output-standards]]'s, not this contract's.
 
 ## Versioning and Change Policy
 
@@ -130,7 +133,15 @@ cannot say which combination is coherent.
   renamed or retyped, the provider SHALL raise the major version. A
   renamed manifest key is the sharpest case in this contract: a reader
   gets absent rather than an error, and a run then proceeds without the
-  value.
+  value. WHEN the document a flag selects changes, the provider SHALL
+  raise the major version for the same reason a removed field would: a
+  consumer parsing the old document gets a different one, and no field
+  moved to tell it so.
+- **What 2.0 changed:** no shape did. `--json` selects a syntax rather
+  than a depth, so a command's answer — not this contract's envelope — is
+  what `--json` alone renders, and `--full-result` is what renders the
+  envelope. A 1.0 consumer parsing `--json` receives a document with no
+  `contract_version` in it, which is the signal to add `--full-result`.
 - **Deprecation:**
   - WHEN a field or key is deprecated, it SHALL continue to be emitted
     and accepted for one major version.

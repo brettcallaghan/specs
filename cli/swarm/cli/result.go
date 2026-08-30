@@ -1,10 +1,9 @@
 package cli
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
-	"strconv"
+	"reflect"
 	"strings"
 
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/contract"
@@ -35,8 +34,8 @@ const contractVersion = contract.Version
 // consumer branches on the kind and reads the field that kind carries,
 // instead of guessing at the JSON type it was handed.
 type Fact struct {
-	// Name identifies the fact. It appears verbatim in both output
-	// forms, so a consumer keys on it.
+	// Name identifies the fact. It is the property name an answer keys
+	// on and the name the full result reports, so a consumer keys on it.
 	Name string
 	// Value is what was established. Nil when the fact is unestablished.
 	Value *swarmmodel.FactValue
@@ -116,9 +115,9 @@ func Unestablished(name, reason string, invocations ...[]string) Fact {
 // concluded, the facts behind that, the invocations it ran, and the
 // transcript the plan runner printed.
 //
-// One value, two renderings. The machine-readable form carries every
-// fact the text form carries because both are rendered from this, not
-// because two renderers were kept in agreement.
+// One value, two renderings. YAML and JSON carry the same values in the
+// same order because both are rendered from this, through one node tree,
+// not because two renderers were kept in agreement.
 type Result struct {
 	// Command is the invocation path, e.g. "swarm manifest get".
 	Command string
@@ -143,33 +142,6 @@ type Result struct {
 	// Transcript is what the plan runner printed — the explained
 	// invocations in explain mode, and the executed ones otherwise.
 	Transcript []string
-	// Bare is the answer on its own, for a command whose caller asked a
-	// question smaller than the report — a key/value lookup. Nil when the
-	// command has no such answer, which includes every command declaring
-	// no bare form and every invocation whose verdict is not clear.
-	//
-	// It carries no provenance. The provenance is still there, one flag
-	// away in the --full-result a [Spec.Bare] command declares, and the
-	// caller that wants a value does not have to walk an envelope to
-	// reach it.
-	Bare *Answer
-}
-
-// Answer is a command's answer with no envelope around it, in the two
-// forms the surface renders.
-//
-// Two fields rather than one because the useful rendering differs: a
-// caller substituting the command into a shell wants a stored string
-// unquoted, and a caller passing --json wants something that parses.
-// Both carry the same value, which is what keeps them from being two
-// answers.
-type Answer struct {
-	// Text is the answer in the form a shell substitutes: a stored string
-	// verbatim, anything else as compact JSON.
-	Text string
-	// JSON is the same answer as JSON — so a string arrives quoted and an
-	// object arrives as an object.
-	JSON string
 }
 
 // Status is the exit status this result implies.
@@ -272,131 +244,18 @@ func (r Result) envelope() swarmmodel.CommandResult {
 	return env
 }
 
-// Render writes the result to w, as JSON when asJSON is set and as text
-// otherwise.
+// Render writes the full result to w, as JSON when asJSON is set and as
+// YAML otherwise.
 //
-// The envelope is emitted on every exit status, including a non-zero one,
-// so a consumer parsing the result never has to fall back to reading text
-// to learn why.
+// It renders the [swarmmodel.CommandResult] the contract declares, field
+// for field, from the one node tree both renderings are built over. The
+// result is emitted on every exit status, including a non-zero one, so a
+// consumer parsing it never has to fall back to reading prose to learn
+// why.
 func Render(w io.Writer, r Result, asJSON bool) error {
+	node := nodeOf(reflect.ValueOf(r.envelope()))
 	if asJSON {
-		data, err := json.MarshalIndent(r.envelope(), "", "  ")
-		if err != nil {
-			return fmt.Errorf("cli: rendering the result as JSON: %w", err)
-		}
-		_, err = fmt.Fprintf(w, "%s\n", data)
-		return err
+		return writeJSON(w, node)
 	}
-	return renderText(w, r)
-}
-
-// renderBare writes an answer with nothing around it.
-//
-// One trailing newline and no other framing: it is what `jq -r` writes,
-// and what a shell's command substitution is defined against. A value
-// whose own last character is a newline therefore reads back one
-// character shorter, exactly as it does through `jq -r`.
-func renderBare(w io.Writer, a Answer, asJSON bool) error {
-	body := a.Text
-	if asJSON {
-		body = a.JSON
-	}
-	_, err := fmt.Fprintln(w, body)
-	return err
-}
-
-func renderText(w io.Writer, r Result) error {
-	head := r.Command
-	if r.Run != "" {
-		head += " — run " + r.Run
-	}
-	head += " (" + r.Mode.String() + ")"
-	if _, err := fmt.Fprintln(w, head); err != nil {
-		return err
-	}
-
-	for _, line := range r.Transcript {
-		if _, err := fmt.Fprintln(w, line); err != nil {
-			return err
-		}
-	}
-
-	for _, f := range r.Facts {
-		// One line per fact, and the line names the command a reader can
-		// re-run to reproduce it. No padding or alignment: a field whose
-		// rendering depends on the terminal's width is one the contract
-		// forbids.
-		commands := make([]string, 0, len(f.Invocations))
-		for _, argv := range f.Invocations {
-			commands = append(commands, plan.Argv(argv))
-		}
-		if _, err := fmt.Fprintf(w, "%s = %s    <- %s\n",
-			f.Name, renderValue(f), strings.Join(commands, " ; ")); err != nil {
-			return err
-		}
-	}
-
-	for _, rec := range r.Records {
-		line := fmt.Sprintf("%s: %s", rec.Step, rec.Status)
-		if rec.Status == plan.StepRan {
-			line += fmt.Sprintf(" exit %d %dms %s %s", rec.ExitStatus, rec.Duration.Milliseconds(),
-				rec.StdoutDigest, rec.StderrDigest)
-		}
-		if rec.Reason != "" {
-			line += " (" + rec.Reason + ")"
-		}
-		if rec.Err != nil {
-			line += " error: " + rec.Err.Error()
-		}
-		if len(rec.Invocation.Name) > 0 {
-			line += "    <- " + plan.Argv(append([]string{rec.Invocation.Name}, rec.Invocation.Args...))
-		}
-		if _, err := fmt.Fprintln(w, line); err != nil {
-			return err
-		}
-	}
-
-	if r.Summary != "" {
-		if _, err := fmt.Fprintf(w, "summary: %s\n", r.Summary); err != nil {
-			return err
-		}
-	}
-	if r.Resolution != "" {
-		if _, err := fmt.Fprintf(w, "what would resolve this: %s\n", r.Resolution); err != nil {
-			return err
-		}
-	}
-	_, err := fmt.Fprintf(w, "outcome: %s (exit %d)\n", r.Outcome, int(r.Status()))
-	return err
-}
-
-// renderValue renders a fact's value for the text form.
-//
-// It branches on the same four shapes the machine-readable form carries,
-// so a value present in one is present in the other — which is what makes
-// "the same facts in both forms" a property of the code rather than a
-// claim about it.
-func renderValue(f Fact) string {
-	if !f.Established || f.Value == nil {
-		return "unestablished: " + f.Reason
-	}
-	switch f.Value.Kind {
-	case swarmmodel.FactKindText:
-		if f.Value.Text != nil {
-			return *f.Value.Text
-		}
-	case swarmmodel.FactKindCount:
-		if f.Value.Count != nil {
-			return strconv.FormatInt(*f.Value.Count, 10)
-		}
-	case swarmmodel.FactKindFlag:
-		if f.Value.Flag != nil {
-			return strconv.FormatBool(*f.Value.Flag)
-		}
-	case swarmmodel.FactKindList:
-		if f.Value.Items != nil {
-			return strings.Join(*f.Value.Items, ", ")
-		}
-	}
-	return "unestablished: the value carries no field for its kind"
+	return writeYAML(w, node)
 }

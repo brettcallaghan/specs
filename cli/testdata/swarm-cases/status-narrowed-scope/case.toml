@@ -10,21 +10,6 @@ exit = 0
 ac = ["AC-SWARM-CORE-003.8"]
 
 [[normalize]]
-pattern = "[0-9]+ms"
-with = "<duration>"
-why = "a real invocation's elapsed time varies per run"
-
-[[normalize]]
-pattern = "sha256:[0-9a-f]{64}"
-with = "sha256:<digest>"
-why = "the digest covers the tracker's own output, which carries state this case does not pin"
-
-[[normalize]]
-pattern = "[0-9]+h[0-9]+m[0-9.]+s"
-with = "<age>"
+pattern = "last_commit_age_seconds: [0-9]+"
+with = "last_commit_age_seconds: <age-seconds>"
 why = "the last commit's age is measured against the real clock, not fixed by the fixture"
-
-[[normalize]]
-pattern = "last_commit_age_seconds = [0-9]+"
-with = "last_commit_age_seconds = <age-seconds>"
-why = "the same age, as the raw count this reporter also states"

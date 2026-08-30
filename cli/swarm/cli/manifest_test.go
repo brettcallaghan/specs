@@ -17,6 +17,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/goccy/go-yaml"
+
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/exec/exectest"
 	manifestbeads "github.com/brettcallaghan/agent-plugins/cli/swarm/manifest/beads"
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/swarmmodel"
@@ -39,9 +41,9 @@ func runManifest(t *testing.T, fake *exectest.Fake, args ...string) (stdout stri
 	return out.String(), code
 }
 
-// runManifestStreams is runManifest with the two streams kept apart,
-// which the bare form needs: its whole point is that the answer is on
-// stdout and everything else is not.
+// runManifestStreams is runManifest with the two streams kept apart, so
+// a test can assert that the answer is on stdout and that nothing else
+// reached the caller.
 func runManifestStreams(t *testing.T, fake *exectest.Fake, args ...string) (stdout, stderr string, code int) {
 	t.Helper()
 
@@ -171,20 +173,20 @@ func TestGetReportsAnAbsentKeyAsUnestablished(t *testing.T) {
 
 // AC: AC-SWARM-CORE-002.20
 //
-// The bare form is what an agent invoking `get` for one key gets: the
-// value, on stdout, with nothing to parse off it.
-func TestGetPrintsTheValueAloneForOneKey(t *testing.T) {
+// A clear answer is the properties and their values and nothing else: no
+// header, no transcript, no summary, no outcome line.
+func TestAClearAnswerIsThePropertiesAndTheirValues(t *testing.T) {
 	fake := exectest.NewFake(reading(`{"branch":"claude/branch-x"}`))
 
 	stdout, stderr, code := runManifestStreams(t, fake, "manifest", "get", "--run", testRun, "--key", "branch")
 	if code != int(StatusClear) {
 		t.Fatalf("exit status = %d, want %d\n%s\n%s", code, StatusClear, stdout, stderr)
 	}
-	if stdout != "claude/branch-x\n" {
-		t.Errorf("stdout = %q, want the value and a newline", stdout)
+	if stdout != "branch: claude/branch-x\n" {
+		t.Errorf("stdout = %q, want the property and its value alone", stdout)
 	}
 	if stderr != "" {
-		t.Errorf("the bare form wrote to stderr: %q", stderr)
+		t.Errorf("the answer wrote to stderr: %q", stderr)
 	}
 }
 
@@ -193,20 +195,33 @@ func TestGetPrintsTheValueAloneForOneKey(t *testing.T) {
 // A value that a shell would mangle has to arrive intact: whitespace kept,
 // an embedded newline kept, a leading dash neither eaten nor escaped.
 //
-// Each case is asserted against the exact bytes on stdout, which is what
-// command substitution reads — not against a rendering of them.
-func TestGetRoundTripsAValueAShellWouldMangle(t *testing.T) {
+// Each case asserts the exact bytes AND parses them back with a YAML
+// reader, so the rendering is checked against what it means rather than
+// only against what it looks like.
+func TestAValueAShellWouldMangleSurvivesTheAnswer(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
 		stored string // as JSON, the way the tracker holds it
+		value  string // what it holds
 		want   string // the exact stdout, newline included
 	}{
-		{"inner and outer whitespace", `"  two  words\t "`, "  two  words\t \n"},
-		{"an embedded newline", `"first\nsecond"`, "first\nsecond\n"},
-		{"a leading dash", `"--not-a-flag"`, "--not-a-flag\n"},
-		{"a trailing newline of its own", `"trailing\n"`, "trailing\n\n"},
-		{"a lone dash", `"-"`, "-\n"},
-		{"quotes and a backslash", `"say \"hi\" \\ bye"`, "say \"hi\" \\ bye\n"},
+		{"inner and outer whitespace", `"  two  words\t "`, "  two  words\t ",
+			"findings_path: \"  two  words\\t \"\n"},
+		{"an embedded newline", `"first\nsecond"`, "first\nsecond",
+			"findings_path: |-\n  first\n  second\n"},
+		{"a leading dash", `"--not-a-flag"`, "--not-a-flag",
+			"findings_path: \"--not-a-flag\"\n"},
+		{"a trailing newline of its own", `"trailing\n"`, "trailing\n",
+			"findings_path: |\n  trailing\n"},
+		{"two trailing newlines", `"trailing\n\n"`, "trailing\n\n",
+			"findings_path: |+\n  trailing\n\n"},
+		{"a lone dash", `"-"`, "-", "findings_path: \"-\"\n"},
+		{"quotes and a backslash", `"say \"hi\" \\ bye"`, `say "hi" \ bye`,
+			"findings_path: say \"hi\" \\ bye\n"},
+		{"a word that reads as a number", `"1.0"`, "1.0", "findings_path: \"1.0\"\n"},
+		{"a word that reads as a boolean", `"no"`, "no", "findings_path: \"no\"\n"},
+		{"a line whose first character is a space", `"  indented\nplain"`, "  indented\nplain",
+			"findings_path: |2-\n    indented\n  plain\n"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			fake := exectest.NewFake(reading(`{"findings_path":` + tc.stored + `}`))
@@ -219,14 +234,21 @@ func TestGetRoundTripsAValueAShellWouldMangle(t *testing.T) {
 			if stdout != tc.want {
 				t.Errorf("stdout = %q, want %q", stdout, tc.want)
 			}
+
+			var got map[string]any
+			if err := yaml.Unmarshal([]byte(stdout), &got); err != nil {
+				t.Fatalf("the answer does not parse as YAML: %v\n%s", err, stdout)
+			}
+			if got["findings_path"] != tc.value {
+				t.Errorf("the value read back as %q, want %q", got["findings_path"], tc.value)
+			}
 		})
 	}
 }
 
-// --json in the bare form is the same value, parseable: a stored string
-// comes back quoted, so a consumer that wants the JSON type has it
-// without the envelope around it.
-func TestGetPrintsTheValueAsJSONWhenAskedFor(t *testing.T) {
+// --json is a syntax and not a depth: the same answer, parseable, with no
+// envelope around it.
+func TestTheAnswerAsJSONCarriesTheSameValue(t *testing.T) {
 	fake := exectest.NewFake(reading(`{"findings_path":"a b\nc"}`))
 
 	stdout, _, code := runManifestStreams(t, fake,
@@ -235,23 +257,22 @@ func TestGetPrintsTheValueAsJSONWhenAskedFor(t *testing.T) {
 		t.Fatalf("exit status = %d, want %d\n%s", code, StatusClear, stdout)
 	}
 
-	var got string
+	var got map[string]string
 	if err := json.Unmarshal([]byte(stdout), &got); err != nil {
-		t.Fatalf("the bare JSON form does not parse as the value: %v\n%s", err, stdout)
+		t.Fatalf("the answer does not parse as JSON: %v\n%s", err, stdout)
 	}
-	if got != "a b\nc" {
-		t.Errorf("the value round-tripped as %q", got)
+	if got["findings_path"] != "a b\nc" {
+		t.Errorf("the value round-tripped as %q", got["findings_path"])
 	}
 }
 
-// A value that is not text is printed as the JSON it is stored as, in
-// both forms — there is no shell-friendlier rendering of a number, a
-// list or an object than its own JSON.
-func TestGetPrintsANonTextValueAsItsJSON(t *testing.T) {
+// A value is rendered as its own type: a number unquoted, a list as a
+// sequence, a boolean as true or false.
+func TestAValueRendersAsItsOwnType(t *testing.T) {
 	for _, tc := range []struct{ key, stored, want string }{
-		{"review_passes", `2`, "2"},
-		{"admitted", `["run-1.1","run-1.2"]`, `["run-1.1","run-1.2"]`},
-		{"models", `{"light":"haiku"}`, `{"light":"haiku"}`},
+		{"review_passes", `2`, "review_passes: 2\n"},
+		{"admitted", `["run-1.1","run-1.2"]`, "admitted:\n  - run-1.1\n  - run-1.2\n"},
+		{"excluded", `[]`, "excluded: []\n"},
 	} {
 		t.Run(tc.key, func(t *testing.T) {
 			fake := exectest.NewFake(reading(`{"` + tc.key + `":` + tc.stored + `}`))
@@ -261,8 +282,8 @@ func TestGetPrintsANonTextValueAsItsJSON(t *testing.T) {
 			if code != int(StatusClear) {
 				t.Fatalf("exit status = %d, want %d\n%s", code, StatusClear, stdout)
 			}
-			if stdout != tc.want+"\n" {
-				t.Errorf("stdout = %q, want %q", stdout, tc.want+"\n")
+			if stdout != tc.want {
+				t.Errorf("stdout = %q, want %q", stdout, tc.want)
 			}
 		})
 	}
@@ -270,8 +291,8 @@ func TestGetPrintsANonTextValueAsItsJSON(t *testing.T) {
 
 // AC: AC-SWARM-CORE-002.21
 //
-// No key asks for the record, so the answer is the whole object.
-func TestGetPrintsTheWholeManifestWhenNoKeyIsGiven(t *testing.T) {
+// No key asks for the record, so the answer is every key it carries.
+func TestGetAnswersWithTheWholeRecordWhenNoKeyIsGiven(t *testing.T) {
 	fake := exectest.NewFake(reading(`{"branch":"claude/branch-x","review_passes":2}`))
 
 	stdout, stderr, code := runManifestStreams(t, fake, "manifest", "get", "--run", testRun)
@@ -280,18 +301,17 @@ func TestGetPrintsTheWholeManifestWhenNoKeyIsGiven(t *testing.T) {
 	}
 
 	var got map[string]any
-	if err := json.Unmarshal([]byte(stdout), &got); err != nil {
-		t.Fatalf("the whole-manifest form does not parse as an object: %v\n%s", err, stdout)
+	if err := yaml.Unmarshal([]byte(stdout), &got); err != nil {
+		t.Fatalf("the answer does not parse as YAML: %v\n%s", err, stdout)
 	}
-	if len(got) != 2 || got["branch"] != "claude/branch-x" || got["review_passes"] != float64(2) {
-		t.Errorf("the object is not the record: %v", got)
+	if len(got) != 2 || got["branch"] != "claude/branch-x" || got["review_passes"] != uint64(2) {
+		t.Errorf("the answer is not the record: %#v", got)
 	}
 }
 
-// Several keys ask for part of the record, so the answer is an object of
-// exactly those keys. One value per line would be unsplittable the moment
-// a value carried a newline, and manifest values do.
-func TestGetPrintsAnObjectOfJustTheKeysAskedFor(t *testing.T) {
+// Several keys ask for part of the record, so the answer carries exactly
+// those keys.
+func TestGetAnswersWithJustTheKeysAskedFor(t *testing.T) {
 	fake := exectest.NewFake(reading(`{"branch":"claude/branch-x","review_passes":2,"target":"t.target"}`))
 
 	stdout, _, code := runManifestStreams(t, fake,
@@ -301,11 +321,11 @@ func TestGetPrintsAnObjectOfJustTheKeysAskedFor(t *testing.T) {
 	}
 
 	var got map[string]any
-	if err := json.Unmarshal([]byte(stdout), &got); err != nil {
-		t.Fatalf("the multi-key form does not parse as an object: %v\n%s", err, stdout)
+	if err := yaml.Unmarshal([]byte(stdout), &got); err != nil {
+		t.Fatalf("the answer does not parse as YAML: %v\n%s", err, stdout)
 	}
 	if len(got) != 2 {
-		t.Fatalf("the object carries %d keys, want the 2 that were asked for: %v", len(got), got)
+		t.Fatalf("the answer carries %d keys, want the 2 that were asked for: %v", len(got), got)
 	}
 	if _, unwanted := got["target"]; unwanted {
 		t.Errorf("a key nobody asked for is in the answer: %v", got)
@@ -314,20 +334,26 @@ func TestGetPrintsAnObjectOfJustTheKeysAskedFor(t *testing.T) {
 
 // AC: AC-SWARM-CORE-002.22
 //
-// The three answers the bare form can give stay distinguishable by exit
-// status, and nothing but a value ever reaches stdout — which is what
-// makes `x=$(swarm manifest get ...)` safe to route on.
-func TestTheBareFormKeepsTheThreeAnswersApart(t *testing.T) {
+// The three answers stay distinguishable by exit status, and the shape
+// follows the status: clear renders the properties, anything else renders
+// a verdict per property, and a refusal that named no property renders
+// `issues` alone. All three on stdout, so one redirect captures whichever
+// arrives.
+func TestTheThreeAnswersStayApart(t *testing.T) {
 	for _, tc := range []struct {
-		name     string
-		key      string
-		want     Status
-		wantOut  string
-		inStderr string
+		name    string
+		key     string
+		want    Status
+		wantOut string
 	}{
-		{"established", "branch", StatusClear, "claude/branch-x\n", ""},
-		{"declared and not written", "checks_baseline", StatusAttention, "", "swarm manifest set"},
-		{"not declared at all", "circuit_breaker", StatusMalformed, "", "not a declared manifest key"},
+		{"established", "branch", StatusClear, "branch: claude/branch-x\n"},
+		{"declared and not written", "checks_baseline", StatusAttention,
+			"checks_baseline:\n  ok: false\n  value: null\n  issues:\n" +
+				"    - the key is not written\n" +
+				"    - \"write it with: swarm manifest set --run agent-plugins-run1" +
+				" --key checks_baseline --value <value>\"\n"},
+		{"not declared at all", "circuit_breaker", StatusMalformed,
+			"issues:\n  - \"circuit_breaker: not a declared manifest key\"\n"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			fake := exectest.NewFake(reading(`{"branch":"claude/branch-x"}`))
@@ -340,8 +366,8 @@ func TestTheBareFormKeepsTheThreeAnswersApart(t *testing.T) {
 			if stdout != tc.wantOut {
 				t.Errorf("stdout = %q, want %q", stdout, tc.wantOut)
 			}
-			if tc.inStderr != "" && !strings.Contains(stderr, tc.inStderr) {
-				t.Errorf("stderr does not say why: %q", stderr)
+			if stderr != "" {
+				t.Errorf("the answer wrote to stderr: %q", stderr)
 			}
 		})
 	}
@@ -349,9 +375,9 @@ func TestTheBareFormKeepsTheThreeAnswersApart(t *testing.T) {
 
 // AC: AC-SWARM-CORE-002.22
 //
-// --full-result is the way back to the report, and it is the SAME report
-// the command produced before the bare form existed: the summary, the
-// fact and the invocation behind it.
+// --full-result is the way back to the provenance, and it renders the
+// CommandResult the contract declares: the summary, the fact and the
+// invocation behind it.
 func TestFullResultRestoresTheReport(t *testing.T) {
 	fake := exectest.NewFake(reading(`{"branch":"claude/branch-x"}`))
 
@@ -374,15 +400,54 @@ func TestFullResultRestoresTheReport(t *testing.T) {
 	}
 }
 
-// --full-result belongs to the command that has a bare form and to no
-// other: passing it to a command whose answer IS its report is a
-// malformed invocation, not a silently ignored flag.
-func TestOnlyGetCarriesFullResult(t *testing.T) {
-	fake := exectest.NewFake(reading(`{}`))
+// Every subcommand carries --full-result. Each now has an answer smaller
+// than its report, so each has a use for the flag, and a caller of any of
+// them has a way back to the provenance.
+func TestEverySubcommandCarriesFullResult(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		args []string
+	}{
+		{"get", []string{"manifest", "get", "--run", testRun, "--key", "branch"}},
+		{"require", []string{"manifest", "require", "--run", testRun, "--key", "branch"}},
+		{"validate", []string{"manifest", "validate", "--run", testRun, "--stage", "pre-flight"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			fake := exectest.NewFake(reading(`{"branch":"claude/branch-x"}`))
 
-	if _, _, code := runManifestStreams(t, fake,
-		"manifest", "require", "--run", testRun, "--key", "branch", "--full-result"); code != int(StatusMalformed) {
-		t.Errorf("`require --full-result` exited %d, want %d", code, StatusMalformed)
+			stdout, stderr, code := runManifestStreams(t, fake, append(tc.args, "--full-result", "--json")...)
+			if code == int(StatusMalformed) {
+				t.Fatalf("`%s --full-result` was refused as malformed\n%s\n%s", tc.name, stdout, stderr)
+			}
+			if env := envelopeOf(t, stdout); env.ContractVersion == "" {
+				t.Errorf("`%s --full-result` did not render the command result", tc.name)
+			}
+		})
+	}
+}
+
+// --explain and --dry-run imply --full-result. Both ask what the command
+// would do, and what it would do is the plan — which lives in the full
+// result. In explain mode nothing runs, so the answer alone would be an
+// empty mapping.
+func TestExplainAndDryRunImplyTheFullResult(t *testing.T) {
+	for _, mode := range []string{"--explain", "--dry-run"} {
+		t.Run(mode, func(t *testing.T) {
+			fake := exectest.NewFake(reading(`{"branch":"claude/branch-x"}`))
+
+			stdout, stderr, code := runManifestStreams(t, fake,
+				"manifest", "get", "--run", testRun, "--key", "branch", mode, "--json")
+			if code != int(StatusClear) {
+				t.Fatalf("exit status = %d, want %d\n%s\n%s", code, StatusClear, stdout, stderr)
+			}
+			env := envelopeOf(t, stdout)
+			if env.ContractVersion == "" {
+				t.Fatalf("%s did not render the command result:\n%s", mode, stdout)
+			}
+			if len(env.Transcript) == 0 {
+				t.Errorf("%s rendered no transcript, which is the only thing it produces", mode)
+			}
+		})
 	}
 }
 
@@ -399,11 +464,11 @@ func TestGetRefusesAnUndeclaredKeyWithoutReadingAnything(t *testing.T) {
 	if len(fake.Argvs()) != 0 {
 		t.Errorf("an undeclared key still read the tracker: %v", fake.Argvs())
 	}
-	if stdout != "" {
-		t.Errorf("a refused lookup still wrote to stdout: %q", stdout)
+	if !strings.Contains(stdout, "circuit_breaker") {
+		t.Errorf("the refusal does not name the key: %s", stdout)
 	}
-	if !strings.Contains(stderr, "circuit_breaker") {
-		t.Errorf("the refusal does not name the key: %s", stderr)
+	if stderr != "" {
+		t.Errorf("the refusal wrote to stderr: %q", stderr)
 	}
 }
 
@@ -422,7 +487,7 @@ func TestSetAppliesSeveralKeysAsOneMerge(t *testing.T) {
 	)
 
 	stdout, code := runManifest(t, fake,
-		"manifest", "set", "--run", testRun, "--json",
+		"manifest", "set", "--run", testRun, "--json", "--full-result",
 		"--key", "branch", "--value", `"claude/branch-x"`,
 		"--key", "base_sha", "--value", `"3a57dc7"`,
 		"--key", "review_passes", "--value", `0`)
@@ -542,7 +607,7 @@ func TestSetIfAbsentRefusesAKeyAlreadyWritten(t *testing.T) {
 func TestRequireNamesEveryAbsentKey(t *testing.T) {
 	fake := exectest.NewFake(reading(`{"branch":"claude/branch-x"}`))
 
-	stdout, code := runManifest(t, fake, "manifest", "require", "--run", testRun, "--json",
+	stdout, code := runManifest(t, fake, "manifest", "require", "--run", testRun, "--json", "--full-result",
 		"--key", "branch", "--key", "base_sha", "--key", "target")
 
 	if code != int(StatusAttention) {
@@ -555,13 +620,16 @@ func TestRequireNamesEveryAbsentKey(t *testing.T) {
 			t.Errorf("the summary does not name %q: %q", missing, env.Summary)
 		}
 		fact, ok := factNamed(env, missing)
-		if !ok || fact.Value == nil || fact.Value.Flag == nil || *fact.Value.Flag {
+		if !ok || fact.Established || fact.Value != nil {
 			t.Errorf("%q is not reported as not written: %v", missing, fact)
 		}
 	}
+	// A property is the thing itself and never a verdict about it: the
+	// key that IS written reports its VALUE, which is what `get` would
+	// report, and whether every key is written is the exit status.
 	present, ok := factNamed(env, "branch")
-	if !ok || present.Value == nil || present.Value.Flag == nil || !*present.Value.Flag {
-		t.Errorf("the key that IS written is not reported as written: %v", present)
+	if !ok || present.Value == nil || present.Value.Text == nil || *present.Value.Text != "claude/branch-x" {
+		t.Errorf("the key that IS written does not report its value: %v", present)
 	}
 
 	// Every key present is a clear answer, so the command is not simply
@@ -641,7 +709,7 @@ func TestValidateIsCleanForARecordThatSatisfiesEveryRule(t *testing.T) {
 	fake := exectest.NewFake(reading(wholeRecord))
 
 	stdout, code := runManifest(t, fake, "manifest", "validate", "--run", testRun,
-		"--json", "--stage", "scope")
+		"--json", "--full-result", "--stage", "scope")
 	if code != int(StatusClear) {
 		t.Fatalf("exit status = %d, want %d\n%s", code, StatusClear, stdout)
 	}
@@ -665,7 +733,7 @@ func TestValidateReportsEveryFailingRule(t *testing.T) {
 	}`))
 
 	stdout, code := runManifest(t, fake, "manifest", "validate", "--run", testRun,
-		"--json", "--stage", "scope")
+		"--json", "--full-result", "--stage", "scope")
 	if code != int(StatusAttention) {
 		t.Fatalf("exit status = %d, want %d\n%s", code, StatusAttention, stdout)
 	}
@@ -687,7 +755,7 @@ func TestValidateReportsEveryFailingRule(t *testing.T) {
 func TestValidateDerivesTheStageAndSaysThatItDid(t *testing.T) {
 	fake := exectest.NewFake(reading(wholeRecord))
 
-	stdout, code := runManifest(t, fake, "manifest", "validate", "--run", testRun, "--json")
+	stdout, code := runManifest(t, fake, "manifest", "validate", "--run", testRun, "--json", "--full-result")
 	if code != int(StatusClear) {
 		t.Fatalf("exit status = %d, want %d\n%s", code, StatusClear, stdout)
 	}

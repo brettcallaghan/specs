@@ -23,10 +23,12 @@ type Request struct {
 	Mode plan.Mode
 	// JSON is whether the machine-readable form was asked for.
 	JSON bool
-	// Bare is whether the answer is to be printed on its own, without
-	// the [Result] envelope around it. It is true only for a subcommand
-	// that declares a bare form and was not asked for the full result.
-	Bare bool
+	// FullResult is whether the whole [swarmmodel.CommandResult] was
+	// asked for, rather than the answer alone. --explain and --dry-run
+	// set it whether or not the flag was passed: both ask what the
+	// command would do, and what it would do is the plan, which lives in
+	// the full result.
+	FullResult bool
 }
 
 // Spec is what a subcommand supplies to the surface. Everything else —
@@ -55,23 +57,13 @@ type Spec struct {
 	// The contract flags are bound first and are not passed here, so a
 	// subcommand cannot redeclare one of them without cobra saying so.
 	Flags func(*pflag.FlagSet)
-	// Bare declares that this subcommand has an answer smaller than its
-	// report — a lookup, whose caller wants the value and not the
-	// provenance around it. Such a subcommand carries --full-result,
-	// prints [Result.Bare] on stdout when its verdict is clear, and puts
-	// the report on stderr when it is not, so a caller can capture the
-	// answer without a parser and still route on the status.
-	//
-	// It is a declaration and not a default: the report is what a command
-	// with no smaller answer owes, and every other subcommand keeps it.
-	Bare bool
 }
 
 // newSubcommand builds the cobra command for spec.
 //
-// The three mode flags and --run are declared here rather than by each
-// subcommand, which is what makes "carried by every subcommand" a
-// property of the surface instead of a checklist.
+// The mode flags, --run, --json and --full-result are declared here
+// rather than by each subcommand, which is what makes "carried by every
+// subcommand" a property of the surface instead of a checklist.
 func newSubcommand(spec Spec, streams *ioStreams, runner swarmexec.Runner) *cobra.Command {
 	var (
 		explain    bool
@@ -89,10 +81,10 @@ func newSubcommand(spec Spec, streams *ioStreams, runner swarmexec.Runner) *cobr
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			req := Request{
-				Command: cmd.CommandPath(),
-				Run:     runID,
-				JSON:    asJSON,
-				Bare:    spec.Bare && !fullResult,
+				Command:    cmd.CommandPath(),
+				Run:        runID,
+				JSON:       asJSON,
+				FullResult: fullResult || explain || dryRun,
 			}
 
 			// The scope check comes first, before the mode is even
@@ -161,14 +153,11 @@ func newSubcommand(spec Spec, streams *ioStreams, runner swarmexec.Runner) *cobr
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false,
 		"perform every read this command would perform, and no write")
 	cmd.Flags().BoolVar(&asJSON, "json", false,
-		"machine-readable output carrying the same facts as the text form")
+		"machine-readable output carrying the same facts as the default form")
 	cmd.Flags().StringVar(&runID, "run", "",
 		"the run epic this command is scoped to")
-
-	if spec.Bare {
-		cmd.Flags().BoolVar(&fullResult, "full-result", false,
-			"print the full command result — the summary, the facts and the invocations behind them — instead of the answer alone")
-	}
+	cmd.Flags().BoolVar(&fullResult, "full-result", false,
+		"print the whole command result — the mode, the outcome, the facts and the invocations behind them — instead of the answer alone")
 
 	if spec.Flags != nil {
 		spec.Flags(cmd.Flags())
@@ -188,18 +177,14 @@ func finish(streams *ioStreams, req Request, result Result) error {
 	}
 	streams.exitCode = int(result.Status())
 
-	// The bare form splits the streams, which is the whole point of it: a
-	// caller substituting the command captures the answer and nothing
-	// else, and still reads why on stderr when there is no answer. The
-	// status carries the distinction either way, so nothing is lost by
-	// the report moving off stdout.
-	switch {
-	case req.Bare && result.Bare != nil:
-		return renderBare(streams.out, *result.Bare, req.JSON)
-	case req.Bare && result.Status() != StatusClear:
-		return Render(streams.err, result, req.JSON)
+	// One stream for both shapes. A caller redirecting stdout captures
+	// the answer whether the command succeeded or failed, and routes on
+	// the status to know which shape they are holding — which is what a
+	// failing answer put on the error stream would take away from them.
+	if req.FullResult {
+		return Render(streams.out, result, req.JSON)
 	}
-	return Render(streams.out, result, req.JSON)
+	return renderAnswer(streams.out, result, req.JSON)
 }
 
 // refusal turns a refusal into a renderable result.

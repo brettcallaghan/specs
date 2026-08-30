@@ -17,15 +17,15 @@ import (
 )
 
 // Version is the version of contract-swarm-json this binary produces
-// and reads. It is carried in every result's envelope, so a consumer
-// branches on the version it was handed rather than on the binary's own.
+// and reads. It is carried in every result, so a consumer branches on the
+// version it was handed rather than on the binary's own.
 //
 // It is stated here rather than beside the renderer because more than one
-// thing has to agree with it: the envelope carries it, and the core
-// end-to-end fixture records the version it was recorded against and is
-// checked against this. The contract document's own frontmatter is the
-// other copy, and a test asserts the two agree.
-const Version = "1.0"
+// thing has to agree with it: the result carries it, and every end-to-end
+// fixture records the version it was recorded against and is checked
+// against this. The contract document's own frontmatter is a third copy,
+// and nothing checks that it agrees — keep the two in step by hand.
+const Version = "2.0"
 
 // StageDeclaration pairs a stage of a run with the generated struct
 // declaring the manifest keys that become required at it.

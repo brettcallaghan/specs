@@ -5,24 +5,16 @@
 # built. This shows they hold over a record a tracker actually stored and
 # handed back, which is the guard the unit tier cannot provide.
 #
-# The keys of a later stage are reported as unestablished rather than as
-# failures — the run has not reached them — which is the same separation
-# the unit tier asserts, seen here through a real record.
+# The keys of a later stage are not established — the run has not reached
+# them — so a clear answer does not carry them at all. What they are
+# waiting on is in the full result, which is where a caller who asked how
+# the verdict was reached looks.
 
 fixture = "core"
 args = ["manifest", "validate", "--run", "fixture-run", "--stage", "scope"]
 exit = 0
 ac = ["AC-SWARM-CORE-002.16"]
 
-# The read really happens, so its record carries an elapsed time and the
-# digests of what the tracker printed. Nothing else is substituted: the
-# fixture's ids and timestamps are fixed, so every other byte is asserted.
-[[normalize]]
-pattern = "[0-9]+ms"
-with = "<duration>"
-why = "a real invocation's elapsed time varies per run"
-
-[[normalize]]
-pattern = "sha256:[0-9a-f]{64}"
-with = "sha256:<digest>"
-why = "the digest covers the tracker's own output, which carries state this case does not pin"
+# Nothing is normalized. A clear answer carries the properties the
+# command established and nothing else, so it holds no duration and no
+# digest, and every byte below is asserted.

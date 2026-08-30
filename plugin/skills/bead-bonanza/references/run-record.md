@@ -166,21 +166,27 @@ to the `run-batch` skill.
 output plus what admission decided, and read and written through one command:
 
 ```sh
-swarm manifest get      --run <epic>                       # the whole record, as one JSON object
-swarm manifest get      --run <epic> --key <key>           # that key's VALUE, alone — no jq
+swarm manifest get      --run <epic>                       # every key the record carries
+swarm manifest get      --run <epic> --key <key>           # that key and its value
 swarm manifest require  --run <epic> --key <key> …         # are these written? routes on the status
 swarm manifest set      --run <epic> --key <k> --value <json> …   # one merge, however many keys
 swarm manifest validate --run <epic>                       # every rule, at the stage reached
 ```
 
-**`get --key` is a lookup, so `x=$(swarm manifest get --run <epic> --key
-branch)` is the whole read.** A stored string comes out unquoted, anything else
-as its JSON; several `--key`s come out as an object of just those keys. The
-status still carries the three answers apart — the value (0), a declared key
-nobody has written (1), a key the manifest does not declare (3) — and on the
-two non-zero ones stdout is empty and the reason is on stderr. `--full-result`
-brings back the summary, the facts and the invocation behind each, for a caller
-that wants the provenance rather than the value.
+**Every command answers in YAML, or in JSON under `--json`.** A clear answer is
+the keys and their values and nothing else; a multi-line value comes back as a
+block scalar, so it reads as itself rather than as `\n` inside a string. The
+status carries the three answers apart — the values (0), a declared key nobody
+has written (1), a key the manifest does not declare (3) — and a non-zero one
+answers with `ok`, `value` and `issues` per key, on stdout like any other
+answer. `--full-result` brings back the summary, the facts and the invocation
+behind each, for a caller that wants the provenance rather than the values.
+
+**To capture one value in a shell**, ask for JSON and read the key:
+
+```sh
+br="$(swarm manifest get --run <epic> --key branch --json | jq -r .branch)"
+```
 
 **The key set, the types, the stage each key becomes required at, and the
 rules across keys are the command's, not this document's.** They are declared

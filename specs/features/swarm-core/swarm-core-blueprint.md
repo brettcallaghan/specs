@@ -142,10 +142,10 @@ nothing of the tracker or of git.
   with the malformed-invocation status.
 - WHEN a command exits with the attention status, its output SHALL name
   what would resolve the condition.
-- The machine-readable form SHALL carry every fact the text form carries
-  for the same invocation.
-- The machine-readable form SHALL conform to the envelope
-  [[contract-swarm-json]] declares, on every exit status.
+- The two syntaxes SHALL carry the same values, in the same order, for
+  the same invocation.
+- The full result SHALL conform to the shape [[contract-swarm-json]]
+  declares, on every exit status.
 - Each reported fact SHALL name the invocation that established it.
 
 **Anchors:** `cli/swarm/main.go` and `cli/swarm/cli/`; `github.com/spf13/cobra`,

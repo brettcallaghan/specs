@@ -47,7 +47,8 @@ as more devs. Check it at plan time, counting dev assignees only:
 ```sh
 bd list --parent <run-epic> --json \
   | jq -r '[.[].assignee] | map(select(. != null and . != "")) | unique | length'
-# must be <= (swarm manifest get --run <epic> --key concurrency_cap) - 1
+# must be <= (swarm manifest get --run <epic> --key concurrency_cap --json
+#              | jq -r .concurrency_cap) - 1
 ```
 
 ## Collision edges

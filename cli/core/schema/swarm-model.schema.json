@@ -30,7 +30,7 @@
     },
     "CommandResult": {
       "additionalProperties": false,
-      "description": "The envelope every swarm command emits under --json.\n\nEmitted on every exit status, including a non-zero one, so a consumer\nparsing the result never has to fall back to reading text to learn why.",
+      "description": "The whole result every swarm command emits under --full-result.\n\nEmitted on every exit status, including a non-zero one, so a consumer\nparsing the result never has to fall back to reading prose to learn\nwhy.",
       "properties": {
         "command": {
           "description": "The invocation path, for example \"swarm manifest get\".",

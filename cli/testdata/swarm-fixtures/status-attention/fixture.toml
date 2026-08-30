@@ -10,7 +10,7 @@
 #                      to attribute it to.
 
 kind = "variant"
-contract_version = "1.0"
+contract_version = "2.0"
 
 description = """A run whose one bead is open and unassigned: the ready front is not \
 empty, no dispatch worktree stands, and the sprint branch's last commit is the core \

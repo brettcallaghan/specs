@@ -9,10 +9,11 @@
 // the run's tree at a time, and the next query depends on what the last
 // one answered, so there is no fixed sequence to print ahead of running
 // it (see [tracker.Descendants]'s own doc comment). This file declares
-// the same four contract flags by hand instead, and reuses [finish],
+// the same five contract flags by hand instead, and reuses [finish],
 // [refusal] and the [Refuse*] constructors so the exit-status mapping and
 // the two output forms are still the surface's, not a second copy of
-// them.
+// them. The five contract flags it declares by hand are the five
+// [newSubcommand] declares, --full-result included.
 //
 // Explain and dry-run still mean what the contract says: explain prints
 // what this command would measure and measures nothing; dry-run measures
@@ -46,6 +47,7 @@ func statusCmd(streams *ioStreams, deps status.Deps) *cobra.Command {
 		explain    bool
 		dryRun     bool
 		asJSON     bool
+		fullResult bool
 		runID      string
 		stallAfter time.Duration
 	)
@@ -62,7 +64,12 @@ func statusCmd(streams *ioStreams, deps status.Deps) *cobra.Command {
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			req := Request{Command: cmd.CommandPath(), Run: runID, JSON: asJSON}
+			req := Request{
+				Command:    cmd.CommandPath(),
+				Run:        runID,
+				JSON:       asJSON,
+				FullResult: fullResult || explain || dryRun,
+			}
 
 			if strings.TrimSpace(runID) == "" {
 				return finish(streams, req, refusal(req, RefuseArguments(
@@ -98,9 +105,11 @@ func statusCmd(streams *ioStreams, deps status.Deps) *cobra.Command {
 	cmd.Flags().BoolVar(&dryRun, "dry-run", false,
 		"measure live state; status performs no write, so this matches execute")
 	cmd.Flags().BoolVar(&asJSON, "json", false,
-		"machine-readable output carrying the same facts as the text form")
+		"machine-readable output carrying the same facts as the default form")
 	cmd.Flags().StringVar(&runID, "run", "",
 		"the run epic this command is scoped to")
+	cmd.Flags().BoolVar(&fullResult, "full-result", false,
+		"print the whole command result — the mode, the outcome, the facts and the invocations behind them — instead of the answer alone")
 	cmd.Flags().DurationVar(&stallAfter, "stall-after", defaultStallAfter,
 		"the last-commit age, with the ready front non-empty and no dispatch worktree "+
 			"standing, that raises the attention status")

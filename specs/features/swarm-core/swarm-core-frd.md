@@ -102,7 +102,8 @@ FEAT-SWARM-CORE-001 and carried by every command in the CLI:
 | `--run <run-epic-id>` | required by every subcommand that reads or mutates run state. An absent or empty scope is refused, never treated as the whole repository |
 | `--explain` | print the invocations the command would run, in order, and execute none of them. It reads nothing, so an argument only a prior step could supply is printed as that step rather than as a value |
 | `--dry-run` | perform every read and no write. Unlike `--explain` it runs, so its report reflects the run's live state |
-| `--json` | machine-readable output carrying the same facts as the text form, never a subset |
+| `--json` | the same output as JSON rather than YAML. It selects a syntax, never a depth, and carries the same values in the same order |
+| `--full-result` | print the whole command result — the mode, the outcome, the facts and the invocations behind them — instead of the answer alone. `--explain` and `--dry-run` imply it |
 | exit `0` | the command answered, and its verdict is clear |
 | exit `1` | the command answered, and what it found needs attention; the output names what would resolve it |
 | exit `2` | stop — not the caller's to repair in place |
@@ -244,9 +245,9 @@ Feature: The contract every command keeps
     Then the line names the command a reader can re-run to reproduce it
 
   @AC-SWARM-CORE-001.9
-  Scenario: The machine-readable form carries the same facts as the text form
-    When a command is invoked in both forms against the same state
-    Then every fact in the text form is present in the machine-readable one
+  Scenario: The two syntaxes carry the same facts
+    When a command is invoked in both syntaxes against the same state
+    Then every fact in the YAML form is present in the JSON one
 
   @AC-SWARM-CORE-001.10
   Scenario: A step's exit status is read from the step itself
@@ -302,14 +303,13 @@ swarm manifest require --run <id> --key <key>...
 ```
 
 **`get` is a lookup, and answers with the value.** Every other command
-here answers with a report, because a report is the answer: what was
-written, what was refused, which rules held. A key lookup is not — its
-caller wants the value, and an envelope it has to walk to reach one puts
-a parser between an agent and a string. So `get --key <k>` prints the
-value alone, `get` with no key prints the record as one object, and
-`--full-result` is how a caller asks for the report instead. The exit
-status carries the same three answers either way, which is what makes the
-bare form a rendering rather than a loss.
+here answers with what it established and nothing about how: `get --key
+<k>` answers with that key and its value, `get` with no key answers with
+every key the record carries, and `--full-result` is how a caller asks
+for the provenance instead. The exit status carries the same three
+answers either way, which is what makes the answer a rendering rather
+than a loss. What both renderings contain is
+[[swarm-output-standards]]'s.
 
 **This is the component every other command reads a run through**, so
 its behaviour on an absent key, a wrong type and a concurrent write is

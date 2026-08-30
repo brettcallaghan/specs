@@ -1,6 +1,8 @@
 package e2e
 
 import (
+	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,6 +11,7 @@ import (
 	"github.com/BurntSushi/toml"
 
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/contract"
+	"github.com/brettcallaghan/agent-plugins/cli/swarm/swarmmodel"
 )
 
 // AC: AC-SWARM-CORE-001.6
@@ -119,12 +122,12 @@ func TestExplainOutputIsARunnableTranscript(t *testing.T) {
 
 	// One world, explained and then run by hand.
 	byHand := restore(t, binary, "core")
-	transcript, stderr, code := byHand.swarm(t, append(args, "--explain")...)
+	transcript, stderr, code := byHand.swarm(t, append(args, "--explain", "--json")...)
 	if code != 0 {
 		t.Fatalf("explain exited %d\n%s\n%s", code, transcript, stderr)
 	}
 
-	invocations := runnableLines(transcript)
+	invocations := runnableLines(t, transcript)
 	if len(invocations) < 2 {
 		t.Fatalf("the transcript prints %d invocations, want the read and the write:\n%s",
 			len(invocations), transcript)
@@ -160,18 +163,23 @@ func TestExplainOutputIsARunnableTranscript(t *testing.T) {
 }
 
 // runnableLines is the transcript with its comments and blank lines
-// dropped — what a reader would actually paste.
-func runnableLines(transcript string) []string {
+// removed, read out of the command result --explain renders.
+//
+// The result rather than the printed lines: --explain implies
+// --full-result, so the transcript arrives as a field of a document
+// rather than as the whole of stdout, and reading the field is what makes
+// this independent of how that document is laid out.
+func runnableLines(t *testing.T, result string) []string {
+	t.Helper()
+
+	var env swarmmodel.CommandResult
+	if err := json.Unmarshal([]byte(result), &env); err != nil {
+		t.Fatalf("the explained result does not parse: %v\n%s", err, result)
+	}
 	var out []string
-	for _, line := range strings.Split(transcript, "\n") {
+	for _, line := range env.Transcript {
 		trimmed := strings.TrimSpace(line)
-		switch {
-		case trimmed == "", strings.HasPrefix(trimmed, "#"):
-			continue
-		case strings.HasPrefix(trimmed, "swarm manifest set"),
-			strings.HasPrefix(trimmed, "summary:"),
-			strings.HasPrefix(trimmed, "outcome:"):
-			// The surface's own header and footer, not invocations.
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
 			continue
 		}
 		out = append(out, trimmed)
@@ -182,24 +190,35 @@ func runnableLines(transcript string) []string {
 // readKey reads one manifest key out of a world, through the binary
 // itself, and returns the value.
 //
-// The value alone, not the whole report: the report also carries the
+// The value alone, not the whole result: the result also carries the
 // elapsed time of the read and a digest of what the tracker printed, and
 // two worlds that agree about the key will differ in both. Comparing the
-// value is what the claim is about — which is what `get --key` answers
-// with, so there is nothing here to parse.
+// value is what the claim is about.
 //
-// A key nobody has written exits 1 with an empty answer, and that is
-// returned as the empty string rather than failing: the negative control
-// below reads a key it expects to be absent.
+// A key nobody has written exits 1 and its answer carries no value, which
+// is returned as the empty string rather than failing: the negative
+// control below reads a key it expects to be absent.
 func readKey(t *testing.T, w world, key string) string {
 	t.Helper()
 
-	stdout, stderr, code := w.swarm(t, "manifest", "get", "--run", "fixture-run", "--key", key)
-	if code != 0 && stdout != "" {
-		t.Fatalf("`manifest get --key %s` exited %d and still printed an answer\n%s\n%s",
-			key, code, stdout, stderr)
+	stdout, stderr, code := w.swarm(t, "manifest", "get", "--run", "fixture-run", "--key", key, "--json")
+	switch code {
+	case 0:
+	case 1:
+		return ""
+	default:
+		t.Fatalf("`manifest get --key %s` exited %d\n%s\n%s", key, code, stdout, stderr)
 	}
-	return strings.TrimSuffix(stdout, "\n")
+
+	var answer map[string]any
+	if err := json.Unmarshal([]byte(stdout), &answer); err != nil {
+		t.Fatalf("the answer does not parse: %v\n%s", err, stdout)
+	}
+	value, present := answer[key]
+	if !present {
+		return ""
+	}
+	return fmt.Sprint(value)
 }
 
 // Every fixture records the version of the contract it was recorded

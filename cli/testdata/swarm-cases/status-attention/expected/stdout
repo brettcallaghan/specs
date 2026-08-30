@@ -1,25 +1,87 @@
-swarm status — run fixture-run (execute)
-stall_after = 1ns    <- git log --format=%H%x00%ct%x00%s -n 1 claude/bead-bonanza-fixture
-observability = whether a subagent is still working cannot be observed from outside the harness; this reports the standing worktree count, the last commit's age and the ready front's depth in its place    <- git worktree prune ; git worktree list --porcelain ; git log --format=%H%x00%ct%x00%s -n 1 claude/bead-bonanza-fixture ; bd ready --parent fixture-run --exclude-type epic --json
-worktrees_standing = 1    <- git worktree prune ; git worktree list --porcelain
-dispatch_worktrees_standing = 0    <- git worktree prune ; git worktree list --porcelain
-last_commit_sha = ac4a37c7aadfbc9a0f7af911b4b95558e3989eda    <- git log --format=%H%x00%ct%x00%s -n 1 claude/bead-bonanza-fixture
-last_commit_subject = fixture-run.1 P1 the first bead of the run    <- git log --format=%H%x00%ct%x00%s -n 1 claude/bead-bonanza-fixture
-last_commit_at = 2026-01-01T01:00:00Z    <- git log --format=%H%x00%ct%x00%s -n 1 claude/bead-bonanza-fixture
-last_commit_age_seconds = <age-seconds>    <- git log --format=%H%x00%ct%x00%s -n 1 claude/bead-bonanza-fixture
-ready_front_depth = 1    <- bd ready --parent fixture-run --exclude-type epic --json
-completion_total = 1    <- bd list --parent fixture-run --all --limit 0 --json ; bd list --parent fixture-run.target --all --limit 0 --json ; bd list --parent fixture-run.1 --all --limit 0 --json
-completion_done = 0    <- bd list --parent fixture-run --all --limit 0 --json ; bd list --parent fixture-run.target --all --limit 0 --json ; bd list --parent fixture-run.1 --all --limit 0 --json
-completion_blocked = 0    <- bd list --parent fixture-run --all --limit 0 --json ; bd list --parent fixture-run.target --all --limit 0 --json ; bd list --parent fixture-run.1 --all --limit 0 --json
-completion_claimed = 0    <- bd list --parent fixture-run --all --limit 0 --json ; bd list --parent fixture-run.target --all --limit 0 --json ; bd list --parent fixture-run.1 --all --limit 0 --json
-completion_open = 1    <- bd list --parent fixture-run --all --limit 0 --json ; bd list --parent fixture-run.target --all --limit 0 --json ; bd list --parent fixture-run.1 --all --limit 0 --json
-completion_deferred = 0    <- bd list --parent fixture-run --all --limit 0 --json ; bd list --parent fixture-run.target --all --limit 0 --json ; bd list --parent fixture-run.1 --all --limit 0 --json
-completion_unknown = 0    <- bd list --parent fixture-run --all --limit 0 --json ; bd list --parent fixture-run.target --all --limit 0 --json ; bd list --parent fixture-run.1 --all --limit 0 --json
-scope_additions =     <- bd show fixture-run --json
-scope_missing =     <- bd show fixture-run --json
-scope_excluded =     <- bd show fixture-run --json
-dispatches =     <- bd ready --parent fixture-run --exclude-type epic --json ; bd list --parent fixture-run --all --limit 0 --json ; bd list --parent fixture-run.target --all --limit 0 --json ; bd list --parent fixture-run.1 --all --limit 0 --json
-conflicts =     <- git worktree prune ; git worktree list --porcelain ; bd list --parent fixture-run --all --limit 0 --json ; bd list --parent fixture-run.target --all --limit 0 --json ; bd list --parent fixture-run.1 --all --limit 0 --json
-summary: no dispatch worktree stands; 1 bead(s) ready; no commit for <age>, over the 1ns threshold
-what would resolve this: dispatch a new batch, or check why none is running
-outcome: attention (exit 1)
+issues:
+  - no dispatch worktree stands; 1 bead(s) ready; no commit for <age>, over the 1ns threshold
+  - dispatch a new batch, or check why none is running
+stall_after:
+  ok: true
+  value: 1ns
+  issues: []
+observability:
+  ok: true
+  value: whether a subagent is still working cannot be observed from outside the harness; this reports the standing worktree count, the last commit's age and the ready front's depth in its place
+  issues: []
+worktrees_standing:
+  ok: true
+  value: 1
+  issues: []
+dispatch_worktrees_standing:
+  ok: true
+  value: 0
+  issues: []
+last_commit_sha:
+  ok: true
+  value: ac4a37c7aadfbc9a0f7af911b4b95558e3989eda
+  issues: []
+last_commit_subject:
+  ok: true
+  value: fixture-run.1 P1 the first bead of the run
+  issues: []
+last_commit_at:
+  ok: true
+  value: 2026-01-01T01:00:00Z
+  issues: []
+last_commit_age_seconds:
+  ok: true
+  value: <age-seconds>
+  issues: []
+ready_front_depth:
+  ok: true
+  value: 1
+  issues: []
+completion_total:
+  ok: true
+  value: 1
+  issues: []
+completion_done:
+  ok: true
+  value: 0
+  issues: []
+completion_blocked:
+  ok: true
+  value: 0
+  issues: []
+completion_claimed:
+  ok: true
+  value: 0
+  issues: []
+completion_open:
+  ok: true
+  value: 1
+  issues: []
+completion_deferred:
+  ok: true
+  value: 0
+  issues: []
+completion_unknown:
+  ok: true
+  value: 0
+  issues: []
+scope_additions:
+  ok: true
+  value: []
+  issues: []
+scope_missing:
+  ok: true
+  value: []
+  issues: []
+scope_excluded:
+  ok: true
+  value: []
+  issues: []
+dispatches:
+  ok: true
+  value: []
+  issues: []
+conflicts:
+  ok: true
+  value: []
+  issues: []

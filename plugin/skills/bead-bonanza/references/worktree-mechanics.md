@@ -23,7 +23,8 @@ it is standing in (`dispatching.md`).
 The coordinator's, and only its. Run it immediately before the first dispatch:
 
 ```bash
-br="$(swarm manifest get --run "$BB_EPIC" --key branch)"; st=$?
+out="$(swarm manifest get --run "$BB_EPIC" --key branch --json)"; st=$?
+br="$(printf '%s' "$out" | jq -r '.branch // empty')"
 if [ "$st" = 0 ]; then                            # RESUME — create nothing
   git checkout "$br"
 else
@@ -45,11 +46,12 @@ stops the run here, before any worktree exists.
 invocation as a single merge, so a run that wrote them one at a time could
 leave a branch recorded with no base against it. It also refuses to change
 either once written — which is what makes re-running this block on a resume
-safe rather than a second fork. `get --key` prints the value alone, so the
-assignment above is the whole read; an `attention` status (exit 1) is how "not
-written" reaches you, with the reason on stderr and the branch variable empty.
-Do not put a pipe between the command and `$?` — that would hand you the last
-stage's status instead.
+safe rather than a second fork. The read above captures the command's output
+first and takes `$?` from that, then reads the key out of it: an `attention`
+status (exit 1) is how "not written" reaches you, and its answer carries
+`branch.ok: false` rather than a value, so `jq -r '.branch // empty'` leaves the
+variable empty. Do not put a pipe between the command and `$?` — that would
+hand you the last stage's status instead.
 
 **`base_sha` is recorded at creation** because that is the only moment it is
 unambiguous — deriving it later from a merge-base assumes the base branch has

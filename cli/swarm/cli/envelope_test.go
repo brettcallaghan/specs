@@ -69,15 +69,16 @@ func specWithEveryFactKind() Spec {
 //
 // The contract's guarantee is that the envelope holds on every exit
 // status and in every mode, so every mode and a refusal are all put
-// through the validator rather than one happy path.
+// through the validator rather than one happy path. --explain and
+// --dry-run pass no --full-result because they imply it.
 func TestWhatTheSurfaceEmitsConformsToTheEnvelopeSchema(t *testing.T) {
 	compiled := validatorFor(t, "CommandResult")
 
 	for _, args := range [][]string{
-		{"probe", "--run", "run-1", "--json"},
+		{"probe", "--run", "run-1", "--json", "--full-result"},
 		{"probe", "--run", "run-1", "--json", "--explain"},
 		{"probe", "--run", "run-1", "--json", "--dry-run"},
-		{"probe", "--json"}, // refused: no run scope
+		{"probe", "--json", "--full-result"}, // refused: no run scope
 	} {
 		stdout, _, code := runSurface(t, specWithEveryFactKind(), fakeForRead(), args...)
 

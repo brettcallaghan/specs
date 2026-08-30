@@ -139,14 +139,15 @@ description: Command tree, flag parsing, output rendering and the exit status a 
 (Go, `cobra`) — Command tree, flag parsing, output rendering and the exit
 status a caller routes on. It owns the conventions [[frd-swarm-core]]
 specifies for every command: the required run scope, `--explain`,
-`--dry-run`, `--json`, and the mapping from an outcome to one of four
-statuses. It contains no knowledge of the tracker or of git; it resolves
-arguments, asks a command to build a plan, hands the plan to the mode the
-flags selected, and turns what comes back into text or JSON and a status.
+`--dry-run`, `--json`, `--full-result`, and the mapping from an outcome to
+one of four statuses. It contains no knowledge of the tracker or of git;
+it resolves arguments, asks a command to build a plan, hands the plan to
+the mode the flags selected, and turns what comes back into YAML or JSON
+and a status.
 
 It lives at `cli/swarm/cli`. A subcommand supplies two functions — build
 the plan, and turn the plan's report into facts and an outcome — and
-nothing else: the four flags, the scope refusal, the mode selection, both
+nothing else: the five flags, the scope refusal, the mode selection, both
 renderings and the exit status are the surface's, so no command
 implements any of them a second time.
 
@@ -158,13 +159,15 @@ implements any of them a second time.
 - **The scope is checked before the mode is resolved**, so a command
   refusing an empty run scope has read and written nothing — that is the
   guarantee, not just the status.
-- **Two renderings of one value.** The machine-readable form carries
-  every fact the text form carries because both are rendered from the
-  same result, not because two renderers are kept in agreement. The
-  envelope is emitted on every exit status, carries the contract version,
-  and reports a duration as an integer count of milliseconds rather than
-  a formatted one, since the contract forbids a field whose meaning
-  depends on the producing process's locale.
+- **Two renderings of one value.** YAML and JSON come from one node
+  tree, so they carry the same values in the same order rather than being
+  two renderers kept in agreement. `--json` selects a syntax and
+  `--full-result` selects a depth: two independent choices, four
+  combinations, all four defined. The full result is emitted on every
+  exit status, carries the contract version, and reports a duration as an
+  integer count of milliseconds rather than a formatted one, since the
+  contract forbids a field whose meaning depends on the producing
+  process's locale.
 - **A fact with no invocation behind it cannot be rendered.** The surface
   refuses such a result rather than printing it, and refuses an attention
   outcome that names no resolution — both are contract obligations, and
@@ -173,18 +176,16 @@ implements any of them a second time.
 - **The plan runner's output is captured rather than streamed**, so a
   `--json` envelope is never preceded on standard output by transcript
   lines that would corrupt it, and both forms carry the same transcript.
-- **A subcommand may declare flags of its own**, bound after the four
+- **A subcommand may declare flags of its own**, bound after the five
   every subcommand carries — so a subcommand cannot redeclare one of them
   without cobra saying so.
-- **A subcommand whose answer is smaller than its report may declare a
-  bare form.** It then carries `--full-result`, prints the answer alone
-  on standard output when its verdict is clear, and puts the report on
-  standard error when it is not — so a caller substituting the command
-  captures the answer and nothing else, and still reads why when there is
-  no answer. The status is unchanged by the form, which is what keeps the
-  bare form a rendering rather than a loss of the exit vocabulary. It is
-  a declaration and not a default: a command whose report IS its answer
-  keeps the report.
+- **Every command prints its answer, and the full result is asked for.**
+  The answer is the properties the command established and their values;
+  `--full-result` renders the whole result instead, and `--explain` and
+  `--dry-run` imply it, because what they produce is the plan and nothing
+  else. Both shapes go to standard output, so one redirect captures
+  whichever arrives and the caller routes on the status to know which
+  they are holding.
 - **When the plan's ordering guard stops a command, the stopping step's
   reason is what the caller is told.** Reading the fragment's answer
   instead would report "the last step produced no value", which is true
@@ -195,7 +196,7 @@ implements any of them a second time.
   what the last one answered, so there is no fixed sequence to render
   before running it — a plan has to be a value a test can compare without
   starting a process, and a walk of unknown depth is not one. It declares
-  the four contract flags itself instead, and reuses the surface's own
+  the five contract flags itself instead, and reuses the surface's own
   exit-status mapping and both renderings, so those two stay properties of
   the surface rather than a second copy of them. Explain still measures
   nothing: it describes what the collector would query rather than
@@ -208,24 +209,25 @@ invoked, and cobra prints its verbs instead — so the rule that every
 subcommand carries the contract flags is about the leaves, and that is
 what the surface's own test walks.
 
-**`get` is the one command with a bare form**, because it is the one
-lookup: `--key <k>` answers with that key's value, no key answers with
-the record as one object, and several keys answer with an object of just
-those keys — never one value per line, which no reader could split back
-apart once a value carries a newline. A stored string is printed without
-its JSON quoting, which is what makes a value carrying whitespace, a
-newline or a leading dash survive command substitution; everything else
-is printed as its compact JSON. `--full-result` is the way back to the
-report, and under `--full-result` `get` behaves exactly as every other
-command does.
+**`get` is the lookup**: `--key <k>` answers with that key and its value,
+no key answers with every key the record carries, and several keys answer
+with just those. A value carrying whitespace, a newline or a leading dash
+arrives intact because a multi-line value is rendered as a block scalar
+and a hazardous one-line value is quoted — the style rules the standard
+below fixes, rather than a form of this command's own.
 
-In that report, a manifest value is reported with the fact kind its JSON
-has — text, count, flag or list — and **an object is reported as text
-carrying its JSON**, because the contract declares four kinds and
-inventing a fifth here would put a shape in the envelope the schema does
-not. `validate` without `--stage` validates against the stage the record
-has reached and reports both the stage and that it was derived, since a
-caller reading a clean result has to know what it was clean against.
+A manifest value is reported with the fact kind its JSON has — text,
+count, flag or list — and **an object is reported as text carrying its
+JSON**, because the contract declares four kinds and inventing a fifth
+here would put a shape in the result the schema does not.
+
+**`require` reports the same values `get` reports.** It is the caller
+saying "I need these keys, now", so whether every one is written is the
+exit status; reporting a verdict where a value belongs would put a
+different quantity under the key's own name. `validate` without `--stage`
+validates against the stage the record has reached and reports both the
+stage and that it was derived, since a caller reading a clean result has
+to know what it was clean against.
 
 **What both renderings contain is
 [[swarm-output-standards]]'s** — YAML by default and JSON under

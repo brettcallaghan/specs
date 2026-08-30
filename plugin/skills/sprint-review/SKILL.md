@@ -87,7 +87,7 @@ condition, not a nicety.
 
 ```sh
 swarm manifest require --run {EPIC} --key base_sha        # route on the status
-base="$(swarm manifest get --run {EPIC} --key base_sha)"
+base="$(swarm manifest get --run {EPIC} --key base_sha --json | jq -r .base_sha)"
 git diff "$base"...HEAD
 ```
 

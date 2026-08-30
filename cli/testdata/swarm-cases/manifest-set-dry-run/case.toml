@@ -13,13 +13,15 @@ args = [
 exit = 0
 ac = ["AC-SWARM-CORE-001.6"]
 
-# The read really happens, so its record carries a duration and the
-# digests of what the tracker printed. The duration varies per run, and
-# the digests cover output carrying the tracker's own state, so both are
-# normalized — and nothing else is.
+# --dry-run implies --full-result — it asks what the command would do,
+# and what it would do is the plan — so the whole result is asserted here,
+# invocation records included. The read really happens, so its record
+# carries a duration and the digests of what the tracker printed. The
+# duration varies per run, and the digests cover output carrying the
+# tracker's own state, so both are normalized — and nothing else is.
 [[normalize]]
-pattern = "[0-9]+ms"
-with = "<duration>"
+pattern = "duration_ms: [0-9]+"
+with = "duration_ms: <duration>"
 why = "a real invocation's elapsed time varies per run"
 
 [[normalize]]
@@ -30,9 +32,9 @@ why = "the digest covers the tracker's own output, which carries state this case
 # What the record says afterwards. review_passes is 0 in the fixture; a
 # dry run that wrote would leave 1 here.
 #
-# `get --key` answers with the value alone, so the expected artifact is
-# the counter itself — nothing to read past, and nothing that moves when
-# the report's wording does.
+# `get --key` answers with the property and its value, so the expected
+# artifact is the counter itself — nothing to read past, and nothing that
+# moves when a report's wording does.
 [[after]]
 args = ["manifest", "get", "--run", "fixture-run", "--key", "review_passes"]
 exit = 0
