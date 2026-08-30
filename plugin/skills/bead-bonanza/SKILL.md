@@ -93,11 +93,10 @@ run:
 ```
 
 **Most of it is checkable rather than assertable.** `swarm status --run <epic>`
-measures the mechanical half — the standing worktrees, the last commit and its
-age, the ready front's depth, each dispatch's drain state, and completion
-against the admission record. A measurement it could not take is reported as
-unknown and exits non-zero rather than reading as clear, and the rest of the
-checklist it does not see at all. Run it at every re-query and at the end.
+measures the mechanical half; run it at every re-query and at the end, and
+read what it prints. Two things reading it will not tell you: a measurement it
+could not take is reported as unknown and exits non-zero rather than reading as
+clear, and the rest of the checklist it does not see at all.
 
 
 ## Opening a run — pre-flight, then `sprint-scope`
@@ -129,11 +128,10 @@ front, so a resumed run is a narrower repeat rather than a duplicate.
 is the one the original run wrote.
 
 **Run `swarm manifest validate --run <epic>` before you continue a run you did
-not hold.** It checks the record against every rule at the stage it has
-reached, so a run left half-written by an interrupted session is a status you
-route on rather than a key you discover missing three dispatches later. A clear
-status means the record is coherent; an attention status names the keys and the
-rule each breaks, and those are yours to repair before dispatching.
+not hold**, and read what it prints. It checks the record against every rule at
+the stage it has reached, so a run left half-written by an interrupted session
+is a status you route on rather than a key you discover missing three
+dispatches later. **What it reports is yours to repair before dispatching.**
 
 **2 is `sprint-scope`.** Read three things off its return and route on them:
 `BB_EPIC`, whose id is the run id and whose descendants are the queue;
@@ -259,9 +257,9 @@ first dispatch, the durable out-of-session trigger, cancelled at post-flight.
 
 **A run is done when every bead the manifest's `admitted` list names is closed
 or accounted for as blocked-with-a-reason** — `swarm status --run <epic>`
-measures it and you route on the exit status. Beads excluded at admission are reported alongside, because a run
-that finished its admitted set while three sat out is done over a *narrowed*
-scope.
+measures it and you route on the exit status. Read the excluded beads it
+reports beside that: a run that finished its admitted set while three sat out
+is done over a *narrowed* scope, and saying so is yours.
 
 **Never write a health label of your own.** A signal whose only writer is the
 thing it monitors reports "no failure" and "no monitor" identically. And the

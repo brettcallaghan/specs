@@ -84,16 +84,13 @@ copy.
    meant to continue.
 
 3. **Read the run epic in full** — `swarm manifest get --run <epic>` for the
-   manifest, `bd show <epic>` for its `amend:` comments. The manifest carries
-   standing authorization, declared check ids, the checks baseline, the model
-   lineup, the environmental ledger, the **admission record** (`admitted`,
-   `excluded`, `moved`) and the review counter (`review_passes`,
-   `review_budget`); the comments are how the run diverged.
+   manifest, `bd show <epic>` for its `amend:` comments. Run both and read what
+   they print: the manifest is what the original run recorded about itself, and
+   the comments are how it diverged.
 
    **Then `swarm manifest validate --run <epic>`.** You are reconstructing a
-   run no session held, so the record may have been left half-written: validate
-   reports every rule it breaks at the stage it has reached, and an attention
-   status names the keys. That is a fact to hand back, not one to repair.
+   run no session held, so the record may have been left half-written. **That
+   is a fact to hand back, not one to repair.**
 
    **Carry `review_passes` forward — do not restart it.** It is durable for
    exactly this moment: a resumed run that reset the counter re-enters the
@@ -111,7 +108,7 @@ copy.
 4. **Run the scripts; do not derive by hand.**
 
    ```sh
-   swarm status --run <epic>      # worktrees, last commit, ready front, drain, completion
+   swarm status --run <epic>      # run it, read it, route on the status
    ```
 
    It prunes stale worktree registrations before it counts them, which is not

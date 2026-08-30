@@ -99,21 +99,18 @@ line belongs to this run.
 **Two things the coordinator owns and never delegates.** Read this once,
 after `sprint-scope` returns the epic and before you dispatch grooming.
 
-1. **The run manifest — the record `swarm manifest` reads and writes.** The
-   declared check ids, the checks baseline, the model lineup, the run's effort
-   setting, standing authorization, the environmental ledger, the base sha, any
-   commit trailers, and the **admission record** — which beads were admitted,
-   which were excluded and why, and which were moved and from where. Written
-   **before** you dispatch grooming.
+1. **The run manifest — the record `swarm manifest` reads and writes.**
+   Written **before** you dispatch grooming, and it carries what pre-flight
+   measured plus what admission decided.
 
    **The command owns the key set, the types and the merge semantics**, and
-   this document does not restate them: `swarm manifest get --run <epic>` lists
-   the record, `--help` on any verb names the flags, and `swarm manifest
-   validate --run <epic>` reports every rule the record breaks at the stage it
-   has reached. A key nothing here mentions is still enforced there.
-   `generated/manifest.md` is the same key set and meaning as a
-   document, generated from the CLI's own model, for reading without a run in
-   flight to point a command at.
+   this document does not restate them: run `swarm manifest get --run <epic>`
+   and read what it prints, `--help` on any verb names the flags, and `swarm
+   manifest validate --run <epic>` reports every rule the record breaks at the
+   stage it has reached. A key nothing here mentions is still enforced there.
+   `generated/manifest.md` is the same key set and meaning as a document,
+   generated from the CLI's own model, for reading without a run in flight to
+   point a command at.
 
    **`collision_edges` is yours to write and the planner's to produce.** The
    plan returns the path of one `bd dep add --file` document: `blocks` edges
@@ -173,27 +170,19 @@ swarm manifest set      --run <epic> --key <k> --value <json> …   # one merge,
 swarm manifest validate --run <epic>                       # every rule, at the stage reached
 ```
 
-**Every command answers in YAML, or in JSON under `--json`.** A clear answer is
-the keys and their values and nothing else; a multi-line value comes back as a
-block scalar, so it reads as itself rather than as `\n` inside a string. The
-status carries the three answers apart — the values (0), a declared key nobody
-has written (1), a key the manifest does not declare (3) — and a non-zero one
-answers with `ok`, `value` and `issues` per key, on stdout like any other
-answer. `--full-result` brings back the summary, the facts and the invocation
-behind each, for a caller that wants the provenance rather than the values.
+**Run one and read it.** The output is YAML, or JSON under `--json`, and it
+needs no key to decode. Three things it cannot tell you by being read:
 
-**To capture one value in a shell**, ask for JSON and read the key:
+- **Route on the exit status, which separates the three answers** — the values
+  (0), a declared key nobody has written (1), a key the manifest does not
+  declare (3). One invocation shows you one of them.
+- **`--full-result` is the way back to the provenance** — the summary, the
+  facts and the invocation behind each — when the values are not enough.
+- **To capture one value in a shell**, ask for JSON and read the key:
 
-```sh
-br="$(swarm manifest get --run <epic> --key branch --json | jq -r .branch)"
-```
-
-**The key set, the types, the stage each key becomes required at, and the
-rules across keys are the command's, not this document's.** They are declared
-once in the CLI's model and reach reading, requiring and validating from there,
-so a key added to the model is known to all three at once. Ask the command
-rather than a copy: `swarm manifest get --run <epic>` lists what the record
-carries, and `--help` on any verb names its flags.
+  ```sh
+  br="$(swarm manifest get --run <epic> --key branch --json | jq -r .branch)"
+  ```
 
 **Four consequences worth knowing before you write one**, because each is a
 state you would otherwise have to guess at:

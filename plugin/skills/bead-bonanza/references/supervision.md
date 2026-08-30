@@ -22,29 +22,27 @@ measures both.
 
 **`swarm status --run <epic>`** answers it, measured from git and the tracker
 on every call and never read from a value the run stored about itself — so it
-survives any crash and any lost session. It prints the invocation behind every
-fact, so any single one can be re-derived without reconstructing it.
+survives any crash and any lost session. `--full-result` adds the invocation
+behind every fact, so any single one can be re-derived without reconstructing
+it.
 
 ```sh
-swarm status --run <epic> [--stall-after <duration>] [--json]
+swarm status --run <epic> [--stall-after <duration>] [--json] [--full-result]
 ```
 
-**The command owns what it measures and how; this document does not restate
-it.** `swarm status --help` names the flags and `--explain` prints the
-measurements it would take without taking any. What it reports: the standing
-worktree count and how many of those belong to a dispatch, the sprint branch's
-last commit with its age, the ready front's depth, each dispatch's drain state,
-the run's completion tally, the beads admission added, missed or excluded, and
-any bead two agents hold at once. **Route on the exit status**, and a measurement it could not take is reported as unknown and
-exits non-zero, so an unreadable tracker never reads as a quiet run.
+**Run it and read what it prints.** The command owns what it measures and
+how, and this document does not restate it: `swarm status --help` names the
+flags and `--explain` prints the measurements it would take without taking
+any. **Route on the exit status**, and know that a measurement it could not
+take is reported as unknown and exits non-zero — so an unreadable tracker
+never reads as a quiet run.
 
 **It reports measurements; it does not diagnose, and neither do you.** Whether
 a subagent is still working cannot be observed from outside the harness — a
 stalled one never finishes, so no event fires, and absence of an event is not
-an event. The command names the three observable things in its place and the
-threshold it compared the last commit's age against. **Do not call a run
-stalled on the strength of an elapsed time.** Report what was measured and the
-threshold in force, and leave the reading to whoever can see the harness.
+an event. **Do not call a run stalled on the strength of an elapsed time.**
+Report what the command measured and the threshold it names, and leave the
+reading to whoever can see the harness.
 
 **Health is measured, never written.** A label the coordinator sets instead is
 a signal whose only writer is the thing it monitors, so it reports "no failure"
@@ -147,15 +145,15 @@ of what you dispatched.
 A run is done when every bead the manifest's `admitted` list names is closed or
 accounted for as blocked-with-a-reason.
 
-**Beads excluded at admission are reported alongside**, on every report rather
-than behind a condition. A run that finished its admitted set while three sat
-out is done over a *narrowed* scope, and a report that does not say so reads as
-complete coverage.
+**Carry the excluded beads into your own report**, unconditionally rather than
+when they seem worth mentioning. A run that finished its admitted set while
+three sat out is done over a *narrowed* scope, and a report that does not say
+so reads as complete coverage.
 
-**A dispatch has drained when it holds nothing ready AND nothing in progress**,
-and the command reports both together per dispatch. The ready query alone
-excludes in-progress work, so on its own it reports a subagent mid-bead as
-finished.
+**A dispatch has drained when it holds nothing ready AND nothing in progress.**
+The ready query alone excludes in-progress work, so on its own it reports a
+subagent mid-bead as finished — which is why the drain state is the command's
+to measure and not yours to derive.
 
 ## The `Stop` hook
 
