@@ -36,6 +36,7 @@ enum FactKind {
   Count: "count"
   Flag: "flag"
   List: "list"
+  Structured: "structured"
 }
 
 """The value of an established fact.
@@ -64,6 +65,17 @@ struct FactValue {
 
   """Present when the kind is list."""
   items: [String]?
+
+  """Present when the kind is structured: a JSON document, carried as
+  text.
+
+  A structured value is an object, or a list of them, and this schema
+  language offers no type for one — there is no Any, and a discriminated
+  union over the concrete types does not compile under this repository's
+  configuration. Carrying the JSON is what lets the value survive
+  intact; a renderer parses it and emits it as real structure, and a
+  consumer parses the string."""
+  structured: String?
 }
 
 """One thing a command reports, with the invocations that established it.
@@ -76,23 +88,35 @@ struct Fact {
   """What the fact is. A consumer keys on this, so it is a contract."""
   name: String
 
-  """Whether the fact could be taken at all.
+  """Whether the value could be read at all.
 
   A fact that could not be taken is still reported — as unestablished,
   with a reason — rather than omitted or emitted as an empty value of its
   type. When this is false the value is absent and the reason says why;
-  when it is true the value is present."""
+  when it is true the value is present.
+
+  Established is not the same as satisfactory: a value that was read and
+  is wrong is established AND carries a reason."""
   established: Bool
 
-  """Why an unestablished fact could not be taken. Empty when it was."""
+  """What is wrong with this fact: why it could not be taken, or what is
+  wrong with the value it carries. Empty when nothing is."""
   reason: String
+
+  """What would put THIS fact right, when anything would. Empty
+  otherwise.
+
+  Separate from the result's own resolution because a command reporting
+  several unsatisfied properties resolves each differently — naming the
+  key to write, not the shape of the command that writes one."""
+  resolution: String
 
   """What was established. Absent when the fact was not."""
   value: FactValue?
 
-  """The argv vectors a reader can re-run to reproduce the fact, each
+  """The commands a reader can re-run to reproduce the fact, each
   with its executable first. At least one."""
-  invocations: [[String]]
+  invocations: [String]
 }
 
 """One step of the plan a command ran, as the audit line for it."""
@@ -100,9 +124,9 @@ struct Invocation {
   """The step's name within its plan."""
   step: String
 
-  """The resolved argv vector, executable first. Empty when the step did
-  not run."""
-  argv: [String]
+  """The resolved command, quoted so it can be pasted into a shell.
+  Empty when the step did not run."""
+  command: String
 
   """The working directory it ran in. Empty means the caller's own."""
   dir: String

@@ -8,7 +8,7 @@
 #                      excluded beads, and the one admitted bead, closed.
 
 kind = "variant"
-contract_version = "2.0"
+contract_version = "1.0"
 
 description = """A run whose admitted work is all closed and whose admission excluded \
 two beads: the completion verdict and the excluded list are reported side by side, so \

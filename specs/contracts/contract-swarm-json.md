@@ -14,7 +14,7 @@ consumers:
 specs:
   - "schemas/swarm/manifest.strata"
   - "schemas/swarm/output.strata"
-version: "2.0"
+version: "1.0"
 ---
 
 # Swarm CLI JSON Surfaces
@@ -80,6 +80,12 @@ cannot say which combination is coherent.
 
 - The provider SHALL carry the same values, in the same order, in the
   YAML rendering and the JSON one, for the same invocation.
+- Every command and invocation the provider reports SHALL be a complete
+  command, quoted so it can be pasted into a shell, rather than an argv
+  vector a consumer has to reassemble.
+- WHEN a value is an object, or a list of them, the provider SHALL carry
+  it as a structured value — the JSON itself — so that a renderer can
+  emit it as real structure rather than as an escaped string.
 - The provider SHALL emit, under `--full-result`, a result conforming to
   the output schema on every exit status, including a non-zero one, so a
   consumer parsing the result never has to fall back to reading prose to
@@ -137,11 +143,6 @@ cannot say which combination is coherent.
   raise the major version for the same reason a removed field would: a
   consumer parsing the old document gets a different one, and no field
   moved to tell it so.
-- **What 2.0 changed:** no shape did. `--json` selects a syntax rather
-  than a depth, so a command's answer — not this contract's envelope — is
-  what `--json` alone renders, and `--full-result` is what renders the
-  envelope. A 1.0 consumer parsing `--json` receives a document with no
-  `contract_version` in it, which is the signal to add `--full-result`.
 - **Deprecation:**
   - WHEN a field or key is deprecated, it SHALL continue to be emitted
     and accepted for one major version.

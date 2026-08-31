@@ -24,6 +24,7 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -248,19 +249,12 @@ func reportStatus(req Request, m status.Measurements, records []plan.Record, sta
 	}
 
 	dispatchInv := fallback(append(append([][]string{}, readyInv...), completionInv...))
-	var dispatchLines []string
-	for _, d := range m.Dispatches {
-		dispatchLines = append(dispatchLines, dispatchLine(d))
-	}
-	sort.Strings(dispatchLines)
-	result.Facts = append(result.Facts, List("dispatches", dispatchLines, dispatchInv...))
+	result.Facts = append(result.Facts,
+		Structured("dispatches", dispatchDocument(m.Dispatches), dispatchInv...))
 
 	conflictInv := fallback(append(append([][]string{}, worktreeInv...), completionInv...))
-	var conflictLines []string
-	for _, c := range m.Conflicts {
-		conflictLines = append(conflictLines, fmt.Sprintf("%s held by %s at %s", c.Bead, c.Agent, c.Worktree))
-	}
-	result.Facts = append(result.Facts, List("conflicts", conflictLines, conflictInv...))
+	result.Facts = append(result.Facts,
+		Structured("conflicts", conflictDocument(m.Conflicts), conflictInv...))
 
 	switch {
 	case len(unestablished) > 0:
@@ -307,36 +301,66 @@ func dispatchWorktreeCount(dispatches []status.Dispatch) int {
 	return n
 }
 
-// dispatchLine renders one dispatch's drain state as a line a reader can
-// scan, and a machine can still split on ":". The worktree the collector
-// attributed to it, if any, is named last — it is what
-// [dispatchWorktreeCount] counts, so a reader can see which dispatches
-// contributed to that count and where.
-func dispatchLine(d status.Dispatch) string {
-	if !d.Established {
-		return fmt.Sprintf("%s: unknown (%s)", d.Agent, d.Reason)
+// dispatchDocument renders every dispatch as a JSON document the surface
+// emits as real structure.
+//
+// One field per thing a reader asks about, rather than one formatted line
+// carrying several. A line reading "dev-1: in progress: run.2 (worktree:
+// /tmp/x)" states the agent, its drain state, the beads it holds and
+// where its worktree stands — four facts a reader has to parse back out,
+// and a machine has to split on a punctuation convention nothing
+// enforces.
+func dispatchDocument(dispatches []status.Dispatch) string {
+	type entry struct {
+		Agent       string   `json:"agent"`
+		Established bool     `json:"established"`
+		Reason      string   `json:"reason,omitempty"`
+		Drained     *bool    `json:"drained,omitempty"`
+		Ready       []string `json:"ready,omitempty"`
+		InProgress  []string `json:"in_progress,omitempty"`
+		Blocked     []string `json:"blocked,omitempty"`
+		Worktree    string   `json:"worktree,omitempty"`
 	}
-	if d.Drained {
-		return fmt.Sprintf("%s: drained%s", d.Agent, worktreeSuffix(d))
+
+	entries := []entry{}
+	for _, d := range dispatches {
+		e := entry{Agent: d.Agent, Established: d.Established, Reason: d.Reason, Worktree: d.Worktree}
+		if d.Established {
+			drained := d.Drained
+			e.Drained = &drained
+			e.Ready, e.InProgress, e.Blocked = d.Ready, d.InProgress, d.Blocked
+		}
+		entries = append(entries, e)
 	}
-	var parts []string
-	if len(d.InProgress) > 0 {
-		parts = append(parts, "in progress: "+strings.Join(d.InProgress, ","))
-	}
-	if len(d.Ready) > 0 {
-		parts = append(parts, "ready: "+strings.Join(d.Ready, ","))
-	}
-	if len(d.Blocked) > 0 {
-		parts = append(parts, "blocked: "+strings.Join(d.Blocked, ","))
-	}
-	return fmt.Sprintf("%s: %s%s", d.Agent, strings.Join(parts, "; "), worktreeSuffix(d))
+	sort.Slice(entries, func(i, j int) bool { return entries[i].Agent < entries[j].Agent })
+	return marshal(entries)
 }
 
-func worktreeSuffix(d status.Dispatch) string {
-	if d.Worktree == "" {
-		return ""
+// conflictDocument renders every bead two agents hold at once.
+func conflictDocument(conflicts []status.Conflict) string {
+	type entry struct {
+		Bead     string `json:"bead"`
+		Agent    string `json:"agent"`
+		Worktree string `json:"worktree"`
 	}
-	return " (worktree: " + d.Worktree + ")"
+
+	entries := []entry{}
+	for _, c := range conflicts {
+		entries = append(entries, entry{Bead: c.Bead, Agent: c.Agent, Worktree: c.Worktree})
+	}
+	return marshal(entries)
+}
+
+// marshal encodes a document for a structured fact. A value this package
+// built cannot fail to encode, and a fact carrying invalid JSON is
+// refused by [Result.Validate] rather than rendered, so the error has
+// nowhere useful to go and an empty list is the safe residue.
+func marshal(v any) string {
+	encoded, err := json.Marshal(v)
+	if err != nil {
+		return "[]"
+	}
+	return string(encoded)
 }
 
 // argvsFor returns the resolved argv of every record named in names, in

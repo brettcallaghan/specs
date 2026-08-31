@@ -769,15 +769,16 @@ func (e StepStatus) String() string {
 type FactKind string
 
 const (
-	FactKindText  FactKind = "text"
-	FactKindCount FactKind = "count"
-	FactKindFlag  FactKind = "flag"
-	FactKindList  FactKind = "list"
+	FactKindText       FactKind = "text"
+	FactKindCount      FactKind = "count"
+	FactKindFlag       FactKind = "flag"
+	FactKindList       FactKind = "list"
+	FactKindStructured FactKind = "structured"
 )
 
 func (e FactKind) MarshalJSON() ([]byte, error) {
 	switch e {
-	case FactKindText, FactKindCount, FactKindFlag, FactKindList:
+	case FactKindText, FactKindCount, FactKindFlag, FactKindList, FactKindStructured:
 		return json.Marshal(string(e))
 	}
 	return nil, fmt.Errorf("FactKind: unknown value %q", string(e))
@@ -789,7 +790,7 @@ func (e *FactKind) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	switch FactKind(s) {
-	case FactKindText, FactKindCount, FactKindFlag, FactKindList:
+	case FactKindText, FactKindCount, FactKindFlag, FactKindList, FactKindStructured:
 		*e = FactKind(s)
 		return nil
 	}
@@ -822,6 +823,16 @@ type FactValue struct {
 	Flag *bool `json:"flag,omitempty"`
 	// Present when the kind is list.
 	Items *[]string `json:"items,omitempty"`
+	// Present when the kind is structured: a JSON document, carried as
+	// text.
+	//
+	// A structured value is an object, or a list of them, and this schema
+	// language offers no type for one — there is no Any, and a discriminated
+	// union over the concrete types does not compile under this repository's
+	// configuration. Carrying the JSON is what lets the value survive
+	// intact; a renderer parses it and emits it as real structure, and a
+	// consumer parses the string.
+	Structured *string `json:"structured,omitempty"`
 }
 
 func (v *FactValue) UnmarshalJSON(data []byte) error {
@@ -854,6 +865,11 @@ func (v *FactValue) UnmarshalJSON(data []byte) error {
 			return prefixField("items", err)
 		}
 	}
+	if m, ok := raw["structured"]; ok {
+		if err := json.Unmarshal(m, &v.Structured); err != nil {
+			return prefixField("structured", err)
+		}
+	}
 	return nil
 }
 
@@ -866,20 +882,31 @@ func (v *FactValue) UnmarshalJSON(data []byte) error {
 type Fact struct {
 	// What the fact is. A consumer keys on this, so it is a contract.
 	Name string `json:"name"`
-	// Whether the fact could be taken at all.
+	// Whether the value could be read at all.
 	//
 	// A fact that could not be taken is still reported — as unestablished,
 	// with a reason — rather than omitted or emitted as an empty value of its
 	// type. When this is false the value is absent and the reason says why;
 	// when it is true the value is present.
+	//
+	// Established is not the same as satisfactory: a value that was read and
+	// is wrong is established AND carries a reason.
 	Established bool `json:"established"`
-	// Why an unestablished fact could not be taken. Empty when it was.
+	// What is wrong with this fact: why it could not be taken, or what is
+	// wrong with the value it carries. Empty when nothing is.
 	Reason string `json:"reason"`
+	// What would put THIS fact right, when anything would. Empty
+	// otherwise.
+	//
+	// Separate from the result's own resolution because a command reporting
+	// several unsatisfied properties resolves each differently — naming the
+	// key to write, not the shape of the command that writes one.
+	Resolution string `json:"resolution"`
 	// What was established. Absent when the fact was not.
 	Value *FactValue `json:"value,omitempty"`
-	// The argv vectors a reader can re-run to reproduce the fact, each
+	// The commands a reader can re-run to reproduce the fact, each
 	// with its executable first. At least one.
-	Invocations [][]string `json:"invocations"`
+	Invocations []string `json:"invocations"`
 }
 
 func (v *Fact) UnmarshalJSON(data []byte) error {
@@ -902,6 +929,11 @@ func (v *Fact) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Reason); err != nil {
 		return prefixField("reason", err)
 	}
+	if m, ok := raw["resolution"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Fact: required field \"resolution\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Resolution); err != nil {
+		return prefixField("resolution", err)
+	}
 	if m, ok := raw["value"]; ok {
 		if err := json.Unmarshal(m, &v.Value); err != nil {
 			return prefixField("value", err)
@@ -919,9 +951,9 @@ func (v *Fact) UnmarshalJSON(data []byte) error {
 type Invocation struct {
 	// The step's name within its plan.
 	Step string `json:"step"`
-	// The resolved argv vector, executable first. Empty when the step did
-	// not run.
-	Argv []string `json:"argv"`
+	// The resolved command, quoted so it can be pasted into a shell.
+	// Empty when the step did not run.
+	Command string `json:"command"`
 	// The working directory it ran in. Empty means the caller's own.
 	Dir string `json:"dir"`
 	// What became of the step.
@@ -958,10 +990,10 @@ func (v *Invocation) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Step); err != nil {
 		return prefixField("step", err)
 	}
-	if m, ok := raw["argv"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Invocation: required field \"argv\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Argv); err != nil {
-		return prefixField("argv", err)
+	if m, ok := raw["command"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Invocation: required field \"command\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Command); err != nil {
+		return prefixField("command", err)
 	}
 	if m, ok := raw["dir"]; !ok || string(m) == "null" {
 		return fmt.Errorf("Invocation: required field \"dir\" is missing or null")

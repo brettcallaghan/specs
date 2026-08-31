@@ -224,7 +224,7 @@ func TestEveryReportedFactNamesTheCommandThatEstablishedIt(t *testing.T) {
 		t.Fatalf("the full result does not parse: %v\n%s", err, stdout)
 	}
 
-	want := []string{"bd", "show", "run-1", "--json"}
+	want := plan.Argv([]string{"bd", "show", "run-1", "--json"})
 	for _, name := range []string{"branch", "review_passes"} {
 		var found bool
 		for _, f := range env.Facts {
@@ -233,8 +233,8 @@ func TestEveryReportedFactNamesTheCommandThatEstablishedIt(t *testing.T) {
 			}
 			found = true
 			var named bool
-			for _, argv := range f.Invocations {
-				if plan.Argv(argv) == plan.Argv(want) {
+			for _, command := range f.Invocations {
+				if command == want {
 					named = true
 				}
 			}
@@ -332,11 +332,9 @@ func TestTheJSONFormCarriesTheSameFactsAsTheYAMLForm(t *testing.T) {
 		if !strings.Contains(text, f.Name) {
 			t.Errorf("fact %q is in the JSON form and not in the YAML one:\n%s", f.Name, text)
 		}
-		for _, argv := range f.Invocations {
-			for _, word := range argv {
-				if !strings.Contains(text, word) {
-					t.Errorf("fact %q names %v in the JSON form and not in the YAML one:\n%s", f.Name, argv, text)
-				}
+		for _, command := range f.Invocations {
+			if !strings.Contains(text, command) {
+				t.Errorf("fact %q names %q in the JSON form and not in the YAML one:\n%s", f.Name, command, text)
 			}
 		}
 	}
@@ -363,7 +361,7 @@ func TestTheJSONFormCarriesTheSameFactsAsTheYAMLForm(t *testing.T) {
 	if len(env.Invocations) != 1 {
 		t.Fatalf("the envelope carries %d invocations, want 1", len(env.Invocations))
 	}
-	if got := strings.Join(env.Invocations[0].Argv, " "); got != "bd show run-1 --json" {
+	if got := env.Invocations[0].Command; got != "bd show run-1 --json" {
 		t.Errorf("the recorded invocation = %q", got)
 	}
 	if env.Invocations[0].StdoutDigest == "" || env.Invocations[0].StderrDigest == "" {

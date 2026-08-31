@@ -64,6 +64,7 @@ Which of four shapes a fact's value takes.
 | Count | "count" |  |
 | Flag | "flag" |  |
 | List | "list" |  |
+| Structured | "structured" |  |
 
 
 ## FactValue
@@ -87,6 +88,7 @@ for its kind is refused rather than rendered.
 | count | Int? | Present when the kind is count. |
 | flag | Bool? | Present when the kind is flag. |
 | items | Array<String>? | Present when the kind is list. |
+| structured | String? | Present when the kind is structured: a JSON document, carried as text.<br><br>A structured value is an object, or a list of them, and this schema language offers no type for one — there is no Any, and a discriminated union over the concrete types does not compile under this repository's configuration. Carrying the JSON is what lets the value survive intact; a renderer parses it and emits it as real structure, and a consumer parses the string. |
 
 
 ## Fact
@@ -101,10 +103,11 @@ part of the fact rather than a separate section.
 | Property | Type | Documentation |
 |----------|------|---------------|
 | name | String | What the fact is. A consumer keys on this, so it is a contract. |
-| established | Bool | Whether the fact could be taken at all.<br><br>A fact that could not be taken is still reported — as unestablished, with a reason — rather than omitted or emitted as an empty value of its type. When this is false the value is absent and the reason says why; when it is true the value is present. |
-| reason | String | Why an unestablished fact could not be taken. Empty when it was. |
+| established | Bool | Whether the value could be read at all.<br><br>A fact that could not be taken is still reported — as unestablished, with a reason — rather than omitted or emitted as an empty value of its type. When this is false the value is absent and the reason says why; when it is true the value is present.<br><br>Established is not the same as satisfactory: a value that was read and is wrong is established AND carries a reason. |
+| reason | String | What is wrong with this fact: why it could not be taken, or what is wrong with the value it carries. Empty when nothing is. |
+| resolution | String | What would put THIS fact right, when anything would. Empty otherwise.<br><br>Separate from the result's own resolution because a command reporting several unsatisfied properties resolves each differently — naming the key to write, not the shape of the command that writes one. |
 | value | [FactValue](#factvalue)? | What was established. Absent when the fact was not. |
-| invocations | Array<Array<String>> | The argv vectors a reader can re-run to reproduce the fact, each with its executable first. At least one. |
+| invocations | Array<String> | The commands a reader can re-run to reproduce the fact, each with its executable first. At least one. |
 
 
 ## Invocation
@@ -114,7 +117,7 @@ One step of the plan a command ran, as the audit line for it.
 | Property | Type | Documentation |
 |----------|------|---------------|
 | step | String | The step's name within its plan. |
-| argv | Array<String> | The resolved argv vector, executable first. Empty when the step did not run. |
+| command | String | The resolved command, quoted so it can be pasted into a shell. Empty when the step did not run. |
 | dir | String | The working directory it ran in. Empty means the caller's own. |
 | status | [StepStatus](#stepstatus) | What became of the step. |
 | reason | String | Why a refused or skipped step did not run. Empty otherwise. |

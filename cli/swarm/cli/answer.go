@@ -1,7 +1,12 @@
 package cli
 
 import (
+	"encoding/json"
 	"io"
+	"math"
+	"sort"
+	"strconv"
+	"strings"
 
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/swarmmodel"
 )
@@ -26,7 +31,7 @@ func answer(r Result) yamlNode {
 	if r.Status() == StatusClear {
 		established := yMap{}
 		for _, f := range r.Facts {
-			if !f.Established {
+			if !satisfied(f) {
 				continue
 			}
 			established = append(established, yPair{f.Name, factNode(f)})
@@ -38,22 +43,27 @@ func answer(r Result) yamlNode {
 	failing := 0
 	for _, f := range r.Facts {
 		issues := ySeq{}
-		if !f.Established {
+		if !satisfied(f) {
 			failing++
-			if f.Reason != "" {
-				issues = append(issues, yStr(f.Reason))
+			// One element per issue, each a WHOLE issue: what is wrong
+			// and, where there is one, what would put it right — in one
+			// string. Split across two elements, a reader has to join
+			// them back up, and a second issue is indistinguishable from
+			// the second half of the first. The fact carries the joined
+			// sentence because only the command knows the resolution
+			// for THIS property.
+			resolution := f.Resolution
+			if resolution == "" {
+				resolution = r.Resolution
 			}
-			// The resolution is the actionable half and it has to reach
-			// the caller. It goes inside the property rather than beside
-			// the mapping, because the answer is a mapping of properties
-			// and a sibling key would collide with the first command
-			// that reports a property by that name.
-			if r.Resolution != "" {
-				issues = append(issues, yStr(r.Resolution))
-			}
+			issues = append(issues, yStr(issueOf(f.Reason, resolution)))
 		}
 		verdicts = append(verdicts, yPair{f.Name, yMap{
-			{"ok", yBool(f.Established)},
+			{"ok", yBool(satisfied(f))},
+			// The value is whatever the property holds, which is null
+			// when nothing could be read and is the offending value when
+			// something could be read and is wrong. A null in the second
+			// case would hide which of the two the reader is looking at.
 			{"value", factNode(f)},
 			{"issues", issues},
 		}})
@@ -70,20 +80,37 @@ func answer(r Result) yamlNode {
 	// stays decodable because `issues` maps to a sequence where a
 	// property maps to a mapping.
 	issues := ySeq{}
-	if r.Summary != "" {
-		issues = append(issues, yStr(r.Summary))
-	}
-	if r.Resolution != "" {
-		issues = append(issues, yStr(r.Resolution))
+	if condition := issueOf(r.Summary, r.Resolution); condition != "" {
+		issues = append(issues, yStr(condition))
 	}
 	return append(yMap{{"issues", issues}}, verdicts...)
+}
+
+// satisfied reports whether a property is both readable and right.
+// Established is not the same as satisfactory: a value that was read and
+// is wrong is established and carries a reason.
+func satisfied(f Fact) bool { return f.Established && f.Reason == "" }
+
+// issueOf joins what is wrong with what would put it right, as the one
+// sentence a reader acts on.
+func issueOf(reason, resolution string) string {
+	switch {
+	case reason == "":
+		return resolution
+	case resolution == "":
+		return reason
+	}
+	if !strings.HasSuffix(reason, ".") {
+		reason += "."
+	}
+	return reason + " " + resolution
 }
 
 // factNode renders a property's value as its own type: a number
 // unquoted, a boolean as true or false, an absent value as null, a list
 // as a sequence.
 func factNode(f Fact) yamlNode {
-	if !f.Established || f.Value == nil {
+	if f.Value == nil {
 		return yNull()
 	}
 	switch f.Value.Kind {
@@ -107,6 +134,62 @@ func factNode(f Fact) yamlNode {
 			}
 			return items
 		}
+	case swarmmodel.FactKindStructured:
+		if f.Value.Structured != nil {
+			return structuredNode(*f.Value.Structured)
+		}
+	}
+	return yNull()
+}
+
+// structuredNode parses a structured value's JSON and renders it as real
+// structure, so an object arrives as a mapping rather than as an escaped
+// string in the middle of otherwise readable YAML.
+//
+// An object's keys are sorted, because encoding/json hands back a map
+// and the source order is already gone by the time this sees it. Every
+// other ordering in this package is the command's own.
+func structuredNode(document string) yamlNode {
+	var decoded any
+	if err := json.Unmarshal([]byte(document), &decoded); err != nil {
+		// Unreachable: [Result.Validate] refuses a structured value that
+		// is not valid JSON. Rendering the text is the honest fallback —
+		// it loses the structure and loses nothing else.
+		return yStr(document)
+	}
+	return jsonNode(decoded)
+}
+
+func jsonNode(value any) yamlNode {
+	switch v := value.(type) {
+	case nil:
+		return yNull()
+	case bool:
+		return yBool(v)
+	case float64:
+		if v == math.Trunc(v) && math.Abs(v) < 1<<53 {
+			return yInt(int64(v))
+		}
+		return yScalar{lit: strconv.FormatFloat(v, 'g', -1, 64)}
+	case string:
+		return yStr(v)
+	case []any:
+		items := ySeq{}
+		for _, item := range v {
+			items = append(items, jsonNode(item))
+		}
+		return items
+	case map[string]any:
+		keys := make([]string, 0, len(v))
+		for key := range v {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		fields := yMap{}
+		for _, key := range keys {
+			fields = append(fields, yPair{key, jsonNode(v[key])})
+		}
+		return fields
 	}
 	return yNull()
 }

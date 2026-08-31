@@ -3,7 +3,6 @@ package e2e
 import (
 	"encoding/json"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/swarmmodel"
@@ -42,28 +41,13 @@ func TestAWorktreeIsAttributedByItsCommitNotItsBranchName(t *testing.T) {
 		t.Fatalf("status --json did not parse: %v\n%s", err, stdout)
 	}
 
-	var dispatchLines []string
-	for _, f := range env.Facts {
-		if f.Name == "dispatches" && f.Value != nil && f.Value.Items != nil {
-			dispatchLines = *f.Value.Items
-		}
+	found, ok := dispatchNamed(t, env, "dev-fixture-1")
+	if !ok {
+		t.Fatalf("dev-fixture-1 was not named among the dispatches:\n%s", stdout)
 	}
-	if len(dispatchLines) == 0 {
-		t.Fatalf("no dispatches were reported at all:\n%s", stdout)
-	}
-
-	var found string
-	for _, line := range dispatchLines {
-		if strings.HasPrefix(line, "dev-fixture-1:") {
-			found = line
-		}
-	}
-	if found == "" {
-		t.Fatalf("dev-fixture-1 was not named among the dispatches:\n%v", dispatchLines)
-	}
-	if !strings.Contains(found, extra) {
-		t.Errorf("dev-fixture-1's worktree was not attributed by its commit, though the branch carries "+
-			"no dispatch id at all:\n%s", found)
+	if found.Worktree != extra {
+		t.Errorf("dev-fixture-1's worktree was attributed as %q, want %q — though the branch carries "+
+			"no dispatch id at all", found.Worktree, extra)
 	}
 
 	// The negative control: the SAME commit, on a branch shaped like the
@@ -82,19 +66,42 @@ func TestAWorktreeIsAttributedByItsCommitNotItsBranchName(t *testing.T) {
 	if err := json.Unmarshal([]byte(stdout2), &env2); err != nil {
 		t.Fatalf("status --json did not parse: %v\n%s", err, stdout2)
 	}
-	var dispatchLines2 []string
-	for _, f := range env2.Facts {
-		if f.Name == "dispatches" && f.Value != nil && f.Value.Items != nil {
-			dispatchLines2 = *f.Value.Items
+	found2, ok2 := dispatchNamed(t, env2, "dev-fixture-1")
+	if !ok2 {
+		t.Fatalf("dev-fixture-1 was not named among the dispatches:\n%s", stdout2)
+	}
+	if found2.Worktree != otherExtra {
+		t.Errorf("dev-fixture-1's worktree was attributed as %q on a bb/-shaped branch, want %q",
+			found2.Worktree, otherExtra)
+	}
+}
+
+// dispatch is the shape the `dispatches` fact carries, which is a
+// structured value: one field per thing a reader asks about rather than
+// one formatted line carrying several.
+type dispatch struct {
+	Agent    string `json:"agent"`
+	Drained  *bool  `json:"drained,omitempty"`
+	Worktree string `json:"worktree,omitempty"`
+}
+
+// dispatchNamed reads one dispatch out of a result by its agent id.
+func dispatchNamed(t *testing.T, env swarmmodel.CommandResult, agent string) (dispatch, bool) {
+	t.Helper()
+
+	for _, f := range env.Facts {
+		if f.Name != "dispatches" || f.Value == nil || f.Value.Structured == nil {
+			continue
+		}
+		var dispatches []dispatch
+		if err := json.Unmarshal([]byte(*f.Value.Structured), &dispatches); err != nil {
+			t.Fatalf("the dispatches document does not parse: %v\n%s", err, *f.Value.Structured)
+		}
+		for _, d := range dispatches {
+			if d.Agent == agent {
+				return d, true
+			}
 		}
 	}
-	var found2 string
-	for _, line := range dispatchLines2 {
-		if strings.HasPrefix(line, "dev-fixture-1:") {
-			found2 = line
-		}
-	}
-	if !strings.Contains(found2, otherExtra) {
-		t.Errorf("dev-fixture-1's worktree was not attributed on a bb/-shaped branch either:\n%s", found2)
-	}
+	return dispatch{}, false
 }

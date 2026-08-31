@@ -495,11 +495,11 @@ Feature: Read and update the run manifest
     Then each reads that key's name, type and stage from the same declaration
 
   @AC-SWARM-CORE-002.20
-  Scenario Outline: Reading one key answers with the value and nothing else
+  Scenario Outline: Reading one key answers with that key and its value
     Given a manifest carrying a key whose value is "<value>"
     When that one key is read
-    Then the whole of the output is that value
-    And a caller substituting the command receives "<value>"
+    Then the answer carries that key and "<value>" and nothing else
+    And parsing the answer yields "<value>" unchanged
 
     Examples:
       | value                        |
@@ -512,7 +512,7 @@ Feature: Read and update the run manifest
   Scenario: Reading with no key answers with the whole record
     Given a manifest carrying several keys
     When it is read with no key named
-    Then the output is one object carrying every key the record holds
+    Then the answer carries every key the record holds
 
   @AC-SWARM-CORE-002.22
   Scenario Outline: A key read answers with its status whichever form was asked for
@@ -525,6 +525,26 @@ Feature: Read and update the run manifest
       | written                     | 0      |
       | declared and not written    | 1      |
       | outside the declared set    | 3      |
+
+  @AC-SWARM-CORE-002.23
+  Scenario: A precondition check means "set to a valid value"
+    Given a manifest carrying a required key whose value is not of its declared type
+    When the requirement is checked
+    Then that key is reported as unsatisfied
+    And the command exits non-zero
+
+  @AC-SWARM-CORE-002.24
+  Scenario: An unsatisfied key reports what it holds and what is wrong with it
+    Given a required key written with a value of the wrong type
+    When the requirement is checked
+    Then the value the key holds is reported
+    And one issue names what is wrong with it and what would put it right
+
+  @AC-SWARM-CORE-002.25
+  Scenario: A key whose value is an object is reported as an object
+    Given a manifest carrying a key whose value is a JSON object
+    When that key is read
+    Then the answer carries it as nested structure rather than as a string
 ```
 
 

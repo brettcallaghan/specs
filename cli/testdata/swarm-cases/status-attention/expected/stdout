@@ -1,6 +1,5 @@
 issues:
-  - no dispatch worktree stands; 1 bead(s) ready; no commit for <age>, over the 1ns threshold
-  - dispatch a new batch, or check why none is running
+  - no dispatch worktree stands; 1 bead(s) ready; no commit for <age>, over the 1ns threshold. dispatch a new batch, or check why none is running
 stall_after:
   ok: true
   value: 1ns

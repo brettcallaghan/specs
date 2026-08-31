@@ -108,6 +108,10 @@ func factNamed(env swarmmodel.CommandResult, name string) (swarmmodel.Fact, bool
 	return swarmmodel.Fact{}, false
 }
 
+// AC: AC-SWARM-CORE-002.25
+//
+// Every fact kind a manifest value can have, including the structured
+// one an object takes.
 func TestGetReportsAKeyWithTheKindItsValueHas(t *testing.T) {
 	fake := exectest.NewFake(reading(`{"branch":"claude/branch-x","review_passes":2,
 	  "admitted":["run-1.1","run-1.2"],"models":{"light":"haiku","standard":"sonnet",
@@ -125,10 +129,10 @@ func TestGetReportsAKeyWithTheKindItsValueHas(t *testing.T) {
 		"branch":        swarmmodel.FactKindText,
 		"review_passes": swarmmodel.FactKindCount,
 		"admitted":      swarmmodel.FactKindList,
-		// An object has no fact kind of its own, so it is reported as text
-		// carrying its JSON rather than as a fifth kind the schema does
-		// not declare.
-		"models": swarmmodel.FactKindText,
+		// An object is reported as structured — the JSON itself, which the
+		// renderer emits as real structure rather than as an escaped
+		// string.
+		"models": swarmmodel.FactKindStructured,
 	} {
 		fact, ok := factNamed(env, name)
 		if !ok {
@@ -197,7 +201,9 @@ func TestAClearAnswerIsThePropertiesAndTheirValues(t *testing.T) {
 //
 // Each case asserts the exact bytes AND parses them back with a YAML
 // reader, so the rendering is checked against what it means rather than
-// only against what it looks like.
+// only against what it looks like. A multi-line value is trimmed of
+// leading and trailing whitespace before it is rendered, so `value` is
+// what the value becomes rather than always what was stored.
 func TestAValueAShellWouldMangleSurvivesTheAnswer(t *testing.T) {
 	for _, tc := range []struct {
 		name   string
@@ -211,17 +217,15 @@ func TestAValueAShellWouldMangleSurvivesTheAnswer(t *testing.T) {
 			"findings_path: |-\n  first\n  second\n"},
 		{"a leading dash", `"--not-a-flag"`, "--not-a-flag",
 			"findings_path: \"--not-a-flag\"\n"},
-		{"a trailing newline of its own", `"trailing\n"`, "trailing\n",
-			"findings_path: |\n  trailing\n"},
-		{"two trailing newlines", `"trailing\n\n"`, "trailing\n\n",
-			"findings_path: |+\n  trailing\n\n"},
+		{"a trailing newline of its own", `"trailing\nvalue\n"`, "trailing\nvalue",
+			"findings_path: |-\n  trailing\n  value\n"},
 		{"a lone dash", `"-"`, "-", "findings_path: \"-\"\n"},
 		{"quotes and a backslash", `"say \"hi\" \\ bye"`, `say "hi" \ bye`,
 			"findings_path: say \"hi\" \\ bye\n"},
 		{"a word that reads as a number", `"1.0"`, "1.0", "findings_path: \"1.0\"\n"},
 		{"a word that reads as a boolean", `"no"`, "no", "findings_path: \"no\"\n"},
-		{"a line whose first character is a space", `"  indented\nplain"`, "  indented\nplain",
-			"findings_path: |2-\n    indented\n  plain\n"},
+		{"whitespace around a multi-line value", `"  \nindented\nplain\n  "`, "indented\nplain",
+			"findings_path: |-\n  indented\n  plain\n"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			fake := exectest.NewFake(reading(`{"findings_path":` + tc.stored + `}`))
@@ -349,9 +353,8 @@ func TestTheThreeAnswersStayApart(t *testing.T) {
 		{"established", "branch", StatusClear, "branch: claude/branch-x\n"},
 		{"declared and not written", "checks_baseline", StatusAttention,
 			"checks_baseline:\n  ok: false\n  value: null\n  issues:\n" +
-				"    - the key is not written\n" +
-				"    - \"write it with: swarm manifest set --run agent-plugins-run1" +
-				" --key checks_baseline --value <value>\"\n"},
+				"    - \"checks_baseline is not set. Set it with: swarm manifest set" +
+				" --run agent-plugins-run1 --key checks_baseline --value <value>\"\n"},
 		{"not declared at all", "circuit_breaker", StatusMalformed,
 			"issues:\n  - \"circuit_breaker: not a declared manifest key\"\n"},
 	} {
@@ -602,8 +605,11 @@ func TestSetIfAbsentRefusesAKeyAlreadyWritten(t *testing.T) {
 }
 
 // AC: AC-SWARM-CORE-002.18
+// AC: AC-SWARM-CORE-002.23
 //
-// A precondition check names every absent key, not the first.
+// A precondition check names every unsatisfied key, not the first, and
+// "unsatisfied" means "not set to a valid value" rather than merely
+// "not set".
 func TestRequireNamesEveryAbsentKey(t *testing.T) {
 	fake := exectest.NewFake(reading(`{"branch":"claude/branch-x"}`))
 

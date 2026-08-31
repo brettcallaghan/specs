@@ -82,8 +82,8 @@ func manifestGet(store manifest.Store) Spec {
 				if !present {
 					if len(keys) > 0 {
 						absent = append(absent, name)
-						result.Facts = append(result.Facts,
-							Unestablished(name, "the key is not written", from))
+						result.Facts = append(result.Facts, resolvedBy(
+							Unestablished(name, name+" is not set", from), setCommand(req.Run, name)))
 					}
 					continue
 				}
@@ -94,8 +94,8 @@ func manifestGet(store manifest.Store) Spec {
 			case len(absent) > 0:
 				result.Outcome = OutcomeAttention
 				result.Summary = fmt.Sprintf("%s: not written", strings.Join(absent, ", "))
-				result.Resolution = fmt.Sprintf("write it with: swarm manifest set --run %s --key %s --value <value>",
-					req.Run, absent[0])
+				result.Resolution = fmt.Sprintf("Set each with: swarm manifest set --run %s --key <key> --value <value>",
+					req.Run)
 				return result, nil
 			case len(result.Facts) == 0:
 				result.Summary = "the manifest is empty"
@@ -226,14 +226,14 @@ func manifestSet(store manifest.Store) Spec {
 	}
 }
 
-// manifestRequire reports whether the named keys are written, and nothing
-// about the rest of the record.
+// manifestRequire reports whether the named keys are set to valid
+// values, and nothing about the rest of the record.
 func manifestRequire(store manifest.Store) Spec {
 	var keys []string
 
 	return Spec{
 		Use:       "require",
-		Short:     "Report whether a run's manifest carries the named keys",
+		Short:     "Report whether a run's manifest sets the named keys to valid values",
 		RunScoped: true,
 		Flags: func(f *pflag.FlagSet) {
 			f.StringArrayVar(&keys, "key", nil, "a key the caller requires (repeatable)")
@@ -254,6 +254,13 @@ func manifestRequire(store manifest.Store) Spec {
 			}
 
 			required := manifest.Require(doc, keys...)
+			broken := map[string]string{}
+			for _, f := range required.Failures() {
+				for _, key := range f.Keys {
+					broken[key] = f.Message
+				}
+			}
+
 			result := Result{Outcome: OutcomeClear}
 			for _, name := range sortedCopy(keys) {
 				value, present := doc.Get(name)
@@ -261,23 +268,32 @@ func manifestRequire(store manifest.Store) Spec {
 					// A property is the thing itself and never a verdict
 					// about it: reporting `false` here would put a
 					// different quantity where the key's value belongs.
-					// Whether every key is written is the exit status.
-					result.Facts = append(result.Facts,
-						Unestablished(name, "the key is not written", from))
+					// Whether every key is satisfied is the exit status.
+					result.Facts = append(result.Facts, resolvedBy(
+						Unestablished(name, name+" is not set", from), setCommand(req.Run, name)))
 					continue
 				}
-				result.Facts = append(result.Facts, factFor(name, value, from))
+				fact := factFor(name, value, from)
+				// A key written with a value of the wrong type reports
+				// the value it holds AND what is wrong with it. Reporting
+				// null instead would hide which of "unwritten" and
+				// "written badly" the caller is looking at, and they are
+				// repaired differently.
+				if message, invalid := broken[name]; invalid && fact.Established {
+					fact = resolvedBy(Invalid(name, *fact.Value, message, from), setCommand(req.Run, name))
+				}
+				result.Facts = append(result.Facts, fact)
 			}
 
 			if required.Failed() {
-				missing := namesOf(required.Failures())
+				unsatisfied := namesOf(required.Failures())
 				result.Outcome = OutcomeAttention
-				result.Summary = fmt.Sprintf("%s: not written", strings.Join(missing, ", "))
+				result.Summary = fmt.Sprintf("%s: not set to a valid value", strings.Join(unsatisfied, ", "))
 				result.Resolution = fmt.Sprintf(
-					"write each with: swarm manifest set --run %s --key <key> --value <value>", req.Run)
+					"Set each with: swarm manifest set --run %s --key <key> --value <value>", req.Run)
 				return result, nil
 			}
-			result.Summary = fmt.Sprintf("every required key is written (%s)", strings.Join(sortedCopy(keys), ", "))
+			result.Summary = fmt.Sprintf("every required key is set to a valid value (%s)", strings.Join(sortedCopy(keys), ", "))
 			return result, nil
 		},
 	}
@@ -416,12 +432,24 @@ func document(steps plan.Steps, report plan.Report) (manifest.Document, []string
 	return doc, from, nil
 }
 
+// setCommand is what puts an unset or invalid key right.
+func setCommand(run, key string) string {
+	return fmt.Sprintf("Set it with: swarm manifest set --run %s --key %s --value <value>", run, key)
+}
+
+// resolvedBy attaches the resolution for one fact.
+func resolvedBy(f Fact, resolution string) Fact {
+	f.Resolution = resolution
+	return f
+}
+
 // factFor renders a manifest value as the fact kind matching its JSON.
 //
-// An object has no fact kind of its own, so it is reported as text
-// carrying its JSON. That is the honest rendering: the contract's four
-// kinds are what a consumer can branch on, and inventing a fifth here
-// would put a shape in the envelope the schema does not declare.
+// An object, and a list carrying anything but words, are reported as
+// structured — the JSON itself, which the renderer emits as real
+// structure. A manifest value is arbitrary JSON, so a kind that can
+// carry one is what keeps `models` and `standing_auth` readable instead
+// of arriving as an escaped string.
 func factFor(name string, value json.RawMessage, from []string) Fact {
 	var decoded any
 	if err := json.Unmarshal(value, &decoded); err != nil {
@@ -454,7 +482,7 @@ func factFor(name string, value json.RawMessage, from []string) Fact {
 	case nil:
 		return Unestablished(name, "the key is written as null", from)
 	}
-	return Text(name, compact(value), from)
+	return Structured(name, compact(value), from)
 }
 
 func compact(value json.RawMessage) string {

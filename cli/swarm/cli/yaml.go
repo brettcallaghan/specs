@@ -66,8 +66,19 @@ func (s yScalar) yamlLines() []string {
 		return []string{s.lit}
 	}
 	v := *s.str
-	if strings.Contains(v, "\n") && blockScalarRoundTrips(v) {
-		return blockScalar(v)
+	if strings.Contains(v, "\n") {
+		// A multi-line value is trimmed of leading and trailing
+		// whitespace and rendered as a block scalar. Trimming is what
+		// makes the block form always available: it removes the two
+		// cases a block cannot carry faithfully — a first line indented
+		// past the block's own indentation, and a last line ending in
+		// white space, which readers disagree about (measured, `v: |-`
+		// over `a` then `b ` reads back `a\nb ` through PyYAML and
+		// `a\nb` through goccy/go-yaml).
+		trimmed := strings.TrimSpace(v)
+		if blockScalarCanCarry(trimmed) {
+			return blockScalar(trimmed)
+		}
 	}
 	if plainRoundTrips(v) {
 		return []string{v}
@@ -128,20 +139,15 @@ func indentLine(line string) string {
 	return "  " + line
 }
 
-// blockScalarRoundTrips reports whether a literal block can carry the
-// value exactly. A value it cannot is double-quoted instead: less
-// readable, and the only rendering that survives.
+// blockScalarCanCarry reports whether a literal block can carry the value
+// exactly. A value it cannot is double-quoted instead: less readable, and
+// the only rendering that survives.
 //
-// Two cases, and the second is the trap. A block's only structure is the
-// line break, so any OTHER control character in it is lost or
-// reinterpreted — a carriage return most of all, which a reader folds
-// into the line break beside it. And a block's last content line may end
-// in white space by the specification, but a reader may drop it: measured
-// on goccy/go-yaml, `v: |-` over `a` then `b ` reads back `a\nb`, while
-// the same document through PyYAML reads back `a\nb `. The renderer
-// cannot know which reader it is writing for, so it does not write the
-// document they disagree about.
-func blockScalarRoundTrips(v string) bool {
+// After trimming, one case remains. A block's only structure is the line
+// break, so any OTHER control character is lost or reinterpreted — a
+// carriage return most of all, which a reader folds into the line break
+// beside it.
+func blockScalarCanCarry(v string) bool {
 	for _, r := range v {
 		if r == '\n' || r == '\t' {
 			continue
@@ -150,9 +156,7 @@ func blockScalarRoundTrips(v string) bool {
 			return false
 		}
 	}
-	lines := strings.Split(strings.TrimRight(v, "\n"), "\n")
-	last := lines[len(lines)-1]
-	return !strings.HasSuffix(last, " ") && !strings.HasSuffix(last, "\t")
+	return true
 }
 
 // blockScalar renders a multi-line string as a literal block, with the
@@ -160,9 +164,8 @@ func blockScalarRoundTrips(v string) bool {
 // with no newline, `|` when it ends with exactly one, `|+` when it ends
 // with more.
 //
-// The explicit indentation indicator is not decoration either. A block's
-// indentation is otherwise detected from its first non-empty line, so a
-// value whose first line begins with a space would silently lose it.
+// Its caller trims first, so the value never begins with white space and
+// no explicit indentation indicator is needed.
 func blockScalar(v string) []string {
 	trailing := len(v) - len(strings.TrimRight(v, "\n"))
 	header := "|-"
@@ -177,9 +180,6 @@ func blockScalar(v string) []string {
 	// The element after the final newline is not a line of the value.
 	if len(body) > 0 && body[len(body)-1] == "" {
 		body = body[:len(body)-1]
-	}
-	if len(body) > 0 && strings.HasPrefix(body[0], " ") {
-		header = "|2" + strings.TrimPrefix(header, "|")
 	}
 
 	out := make([]string, 0, len(body)+1)

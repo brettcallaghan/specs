@@ -396,10 +396,21 @@ func touchesAdmission(changes map[string]json.RawMessage) bool {
 	return false
 }
 
-// Require reports every one of the named keys that is not written.
+// Require reports every one of the named keys that is not set to a valid
+// value.
 //
-// Every one, not the first: a caller told about one missing precondition
-// at a time discovers the rest one invocation at a time.
+// "Valid", not merely "present": a caller saying "I need this key now" is
+// asking whether it can USE the value, and a key written with a value of
+// the wrong type fails that as surely as an unwritten one. The two are
+// still distinguishable — they carry different rules — so a caller that
+// cares which can tell.
+//
+// Every failing key, not the first: a caller told about one missing
+// precondition at a time discovers the rest one invocation at a time.
+//
+// It overrides optionality, which is what separates it from [Validate]:
+// a key belonging to no stage the record has reached is never required by
+// Validate and is always required here.
 func Require(doc Document, keys ...string) Report {
 	var report Report
 
@@ -407,14 +418,20 @@ func Require(doc Document, keys ...string) Report {
 	sort.Strings(sorted)
 
 	for _, name := range sorted {
-		if _, ok := Lookup(name); !ok {
+		key, ok := Lookup(name)
+		if !ok {
 			report.add(RuleUndeclared, SeverityFailure, []string{name},
 				"%q is not a declared manifest key", name)
 			continue
 		}
-		if _, present := doc.Get(name); !present {
+		value, present := doc.Get(name)
+		if !present {
 			report.add(RuleAbsent, SeverityFailure, []string{name},
 				"%q is required and is not written", name)
+			continue
+		}
+		if err := checkType(key, value); err != nil {
+			report.add(RuleType, SeverityFailure, []string{name}, "%s", err)
 		}
 	}
 	return report

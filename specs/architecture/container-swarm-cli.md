@@ -217,14 +217,17 @@ and a hazardous one-line value is quoted — the style rules the standard
 below fixes, rather than a form of this command's own.
 
 A manifest value is reported with the fact kind its JSON has — text,
-count, flag or list — and **an object is reported as text carrying its
-JSON**, because the contract declares four kinds and inventing a fifth
-here would put a shape in the result the schema does not.
+count, flag, list, or **structured** for an object or a list of them,
+which the renderer emits as nested YAML rather than as an escaped
+string.
 
 **`require` reports the same values `get` reports.** It is the caller
-saying "I need these keys, now", so whether every one is written is the
-exit status; reporting a verdict where a value belongs would put a
-different quantity under the key's own name. `validate` without `--stage`
+saying "I need these keys, now, and I am about to use them", so it means
+"set to a VALID value" and not merely "set": a key written with a value
+of the wrong type fails it, and reports the value it holds beside what is
+wrong with it. Whether every key is satisfied is the exit status;
+reporting a verdict where a value belongs would put a different quantity
+under the key's own name. `validate` without `--stage`
 validates against the stage the record has reached and reports both the
 stage and that it was derived, since a caller reading a clean result has
 to know what it was clean against.

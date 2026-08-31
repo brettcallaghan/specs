@@ -1,1 +1,3 @@
-findings_path: "docs/two  spaces\n  --leading-dash\tafter-a-tab "
+findings_path: |-
+  docs/two  spaces
+    --leading-dash	after-a-tab

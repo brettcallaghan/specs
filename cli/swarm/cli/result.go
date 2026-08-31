@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"reflect"
@@ -43,8 +44,14 @@ type Fact struct {
 	// is still reported — as unestablished, with a reason — rather than
 	// omitted or emitted as an empty value of its type.
 	Established bool
-	// Reason says why an unestablished fact could not be taken.
+	// Reason says what is wrong with this fact: why it could not be
+	// taken, or what is wrong with the value it carries.
 	Reason string
+	// Resolution names what would put this fact right, when anything
+	// would. A command reporting several unsatisfied properties resolves
+	// each differently, so the resolution that reaches a reader is the
+	// property's own before the result's.
+	Resolution string
 	// Invocations are the argv vectors a reader can re-run to reproduce
 	// the fact, each with its executable first. At least one is required.
 	Invocations [][]string
@@ -78,12 +85,36 @@ func List(name string, values []string, invocations ...[]string) Fact {
 	return Fact{Name: name, Value: &v, Established: true, Invocations: invocations}
 }
 
+// Structured returns an established fact whose value is a JSON document
+// — an object, or a list of them.
+//
+// It is carried as text because the contract's schema language offers no
+// type for an arbitrary structure. The renderer parses it back and emits
+// it as real structure, so a reader sees a mapping and not an escaped
+// string; a value that is not valid JSON is a defect in the caller, and
+// [Result.Validate] refuses it rather than emitting text that claims to
+// be a document.
+func Structured(name, document string, invocations ...[]string) Fact {
+	v := swarmmodel.FactValue{Kind: swarmmodel.FactKindStructured, Structured: &document}
+	return Fact{Name: name, Value: &v, Established: true, Invocations: invocations}
+}
+
+// Invalid returns a fact whose value was read and is wrong.
+//
+// Established and unsatisfactory at once, which is a state the four
+// constructors above cannot express: the caller gets the value that is
+// there AND what is wrong with it, rather than a null that hides which
+// of "unwritten" and "written badly" it is looking at.
+func Invalid(name string, value swarmmodel.FactValue, reason string, invocations ...[]string) Fact {
+	return Fact{Name: name, Value: &value, Established: true, Reason: reason, Invocations: invocations}
+}
+
 // coherent reports whether a value carries exactly the field its kind
 // names. The schema can say which fields may appear; which combination
 // is coherent is a rule only code can hold, so this is where it is held.
 func coherent(v swarmmodel.FactValue) bool {
 	present := 0
-	for _, carried := range []bool{v.Text != nil, v.Count != nil, v.Flag != nil, v.Items != nil} {
+	for _, carried := range []bool{v.Text != nil, v.Count != nil, v.Flag != nil, v.Items != nil, v.Structured != nil} {
 		if carried {
 			present++
 		}
@@ -100,6 +131,8 @@ func coherent(v swarmmodel.FactValue) bool {
 		return v.Flag != nil
 	case swarmmodel.FactKindList:
 		return v.Items != nil
+	case swarmmodel.FactKindStructured:
+		return v.Structured != nil && json.Valid([]byte(*v.Structured))
 	default:
 		return false
 	}
@@ -204,23 +237,28 @@ func (r Result) envelope() swarmmodel.CommandResult {
 	}
 
 	for _, f := range r.Facts {
-		invocations := f.Invocations
-		if invocations == nil {
-			invocations = [][]string{}
+		// One complete command per invocation, quoted so it can be
+		// pasted into a shell — which is what a reader does with it. An
+		// argv vector would make them reassemble it first, and get the
+		// quoting wrong on any argument carrying a space.
+		invocations := []string{}
+		for _, argv := range f.Invocations {
+			invocations = append(invocations, plan.Argv(argv))
 		}
 		env.Facts = append(env.Facts, swarmmodel.Fact{
 			Name:        f.Name,
 			Established: f.Established,
 			Reason:      f.Reason,
+			Resolution:  f.Resolution,
 			Value:       f.Value,
 			Invocations: invocations,
 		})
 	}
 
 	for _, rec := range r.Records {
-		argv := []string{}
+		command := ""
 		if rec.Invocation.Name != "" {
-			argv = append([]string{rec.Invocation.Name}, rec.Invocation.Args...)
+			command = plan.Argv(append([]string{rec.Invocation.Name}, rec.Invocation.Args...))
 		}
 		errText := ""
 		if rec.Err != nil {
@@ -228,7 +266,7 @@ func (r Result) envelope() swarmmodel.CommandResult {
 		}
 		env.Invocations = append(env.Invocations, swarmmodel.Invocation{
 			Step:         rec.Step,
-			Argv:         argv,
+			Command:      command,
 			Dir:          rec.Invocation.Dir,
 			Status:       swarmmodel.StepStatus(rec.Status),
 			Reason:       rec.Reason,

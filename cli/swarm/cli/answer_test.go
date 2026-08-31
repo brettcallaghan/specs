@@ -58,7 +58,8 @@ func TestAFailingAnswerCarriesAVerdictPerProperty(t *testing.T) {
 		Summary:    "findings_path: not written",
 		Resolution: "write it with: swarm manifest set --run run-1 --key findings_path --value <value>",
 		Facts: []Fact{
-			Unestablished("findings_path", "the key is not written", probeInvocation),
+			resolvedBy(Unestablished("findings_path", "findings_path is not set", probeInvocation),
+				"Set it with: swarm manifest set --run run-1 --key findings_path --value <value>"),
 			Text("trailers", "do re me", probeInvocation),
 		},
 	})
@@ -66,8 +67,8 @@ func TestAFailingAnswerCarriesAVerdictPerProperty(t *testing.T) {
 		"  ok: false\n" +
 		"  value: null\n" +
 		"  issues:\n" +
-		"    - the key is not written\n" +
-		"    - \"write it with: swarm manifest set --run run-1 --key findings_path --value <value>\"\n" +
+		"    - \"findings_path is not set. Set it with: swarm manifest set" +
+		" --run run-1 --key findings_path --value <value>\"\n" +
 		"trailers:\n" +
 		"  ok: true\n" +
 		"  value: do re me\n" +
@@ -77,9 +78,40 @@ func TestAFailingAnswerCarriesAVerdictPerProperty(t *testing.T) {
 	}
 }
 
+// AC: AC-SWARM-CORE-002.24
+//
+// A value that was read and is wrong reports BOTH: the value that is
+// there, and what is wrong with it. A null in its place would hide which
+// of "unset" and "set badly" the reader is looking at, and the two are
+// repaired differently.
+func TestAnInvalidValueIsReportedWithTheValueItHolds(t *testing.T) {
+	got := answerOf(t, Result{
+		Outcome:    OutcomeAttention,
+		Summary:    "concurrency_cap: not set to a valid value",
+		Resolution: "Set each with: swarm manifest set --run run-1 --key <key> --value <value>",
+		Facts: []Fact{
+			resolvedBy(Invalid("concurrency_cap", *Text("x", "twenty").Value,
+				`"concurrency_cap" takes Int, and the value stored is not one`, probeInvocation),
+				"Set it with: swarm manifest set --run run-1 --key concurrency_cap --value <value>"),
+		},
+	})
+	want := "concurrency_cap:\n" +
+		"  ok: false\n" +
+		"  value: twenty\n" +
+		"  issues:\n" +
+		"    - \"\\\"concurrency_cap\\\" takes Int, and the value stored is not one." +
+		" Set it with: swarm manifest set --run run-1 --key concurrency_cap --value <value>\"\n"
+	if got != want {
+		t.Errorf("rendered:\n%s\nwant:\n%s", got, want)
+	}
+}
+
 // A refusal that named no property answers with `issues` alone. The
 // document stays decodable because `issues` maps to a sequence where a
 // property maps to a mapping.
+//
+// One element, and it is the whole issue: what is wrong, and where there
+// is one, what would put it right.
 func TestARefusalThatNamesNoPropertyCarriesIssuesAlone(t *testing.T) {
 	got := answerOf(t, Result{
 		Outcome: OutcomeMalformed,
@@ -102,8 +134,8 @@ func TestAConditionNoPropertyCarriesIsReportedAsIssues(t *testing.T) {
 		Facts:      []Fact{Count("ready_front_depth", 1, probeInvocation)},
 	})
 	want := "issues:\n" +
-		"  - no dispatch worktree stands; 1 bead(s) ready\n" +
-		"  - dispatch a new batch, or check why none is running\n" +
+		"  - no dispatch worktree stands; 1 bead(s) ready. dispatch a new batch," +
+		" or check why none is running\n" +
 		"ready_front_depth:\n" +
 		"  ok: true\n" +
 		"  value: 1\n" +

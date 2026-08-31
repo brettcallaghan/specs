@@ -318,16 +318,13 @@
       "description": "One thing a command reports, with the invocations that established it.\n\nAn agent that can see the command behind a line can re-run it, argue with\nit, and work around it when the underlying tool changes; an agent that\ncannot has to trust a wrapper it did not write. So the invocations are\npart of the fact rather than a separate section.",
       "properties": {
         "established": {
-          "description": "Whether the fact could be taken at all.\n\nA fact that could not be taken is still reported — as unestablished,\nwith a reason — rather than omitted or emitted as an empty value of its\ntype. When this is false the value is absent and the reason says why;\nwhen it is true the value is present.",
+          "description": "Whether the value could be read at all.\n\nA fact that could not be taken is still reported — as unestablished,\nwith a reason — rather than omitted or emitted as an empty value of its\ntype. When this is false the value is absent and the reason says why;\nwhen it is true the value is present.\n\nEstablished is not the same as satisfactory: a value that was read and\nis wrong is established AND carries a reason.",
           "type": "boolean"
         },
         "invocations": {
-          "description": "The argv vectors a reader can re-run to reproduce the fact, each\nwith its executable first. At least one.",
+          "description": "The commands a reader can re-run to reproduce the fact, each\nwith its executable first. At least one.",
           "items": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array"
+            "type": "string"
           },
           "type": "array"
         },
@@ -336,7 +333,11 @@
           "type": "string"
         },
         "reason": {
-          "description": "Why an unestablished fact could not be taken. Empty when it was.",
+          "description": "What is wrong with this fact: why it could not be taken, or what is\nwrong with the value it carries. Empty when nothing is.",
+          "type": "string"
+        },
+        "resolution": {
+          "description": "What would put THIS fact right, when anything would. Empty\notherwise.\n\nSeparate from the result's own resolution because a command reporting\nseveral unsatisfied properties resolves each differently — naming the\nkey to write, not the shape of the command that writes one.",
           "type": "string"
         },
         "value": {
@@ -355,6 +356,7 @@
         "name",
         "established",
         "reason",
+        "resolution",
         "invocations"
       ],
       "type": "object"
@@ -365,7 +367,8 @@
         "text",
         "count",
         "flag",
-        "list"
+        "list",
+        "structured"
       ],
       "type": "string"
     },
@@ -405,6 +408,13 @@
           "$ref": "#/definitions/FactKind",
           "description": "Which field carries the value."
         },
+        "structured": {
+          "description": "Present when the kind is structured: a JSON document, carried as\ntext.\n\nA structured value is an object, or a list of them, and this schema\nlanguage offers no type for one — there is no Any, and a discriminated\nunion over the concrete types does not compile under this repository's\nconfiguration. Carrying the JSON is what lets the value survive\nintact; a renderer parses it and emits it as real structure, and a\nconsumer parses the string.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "text": {
           "description": "Present when the kind is text.",
           "type": [
@@ -439,12 +449,9 @@
       "additionalProperties": false,
       "description": "One step of the plan a command ran, as the audit line for it.",
       "properties": {
-        "argv": {
-          "description": "The resolved argv vector, executable first. Empty when the step did\nnot run.",
-          "items": {
-            "type": "string"
-          },
-          "type": "array"
+        "command": {
+          "description": "The resolved command, quoted so it can be pasted into a shell.\nEmpty when the step did not run.",
+          "type": "string"
         },
         "dir": {
           "description": "The working directory it ran in. Empty means the caller's own.",
@@ -485,7 +492,7 @@
       },
       "required": [
         "step",
-        "argv",
+        "command",
         "dir",
         "status",
         "reason",

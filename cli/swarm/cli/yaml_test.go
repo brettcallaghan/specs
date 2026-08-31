@@ -25,20 +25,23 @@ func rendered(t *testing.T, n yamlNode) string {
 	return out.String()
 }
 
-// A multi-line string is a block scalar, with the chomping indicator that
-// reproduces the value exactly. Plain `|` clips to one trailing newline,
-// so using it on a value that has none adds a byte.
+// A multi-line string is a block scalar. It is trimmed of leading and
+// trailing whitespace first, which is what makes the block form always
+// available: trimming removes the two shapes a block cannot carry
+// faithfully — a first line indented past the block's own indentation,
+// and a last content line ending in whitespace, which readers disagree
+// about. Whitespace INSIDE the value is untouched, so only the edges
+// move, and `reads` is what the rendering parses back to.
 func TestAMultiLineValueIsABlockScalarThatRoundTrips(t *testing.T) {
-	for _, tc := range []struct{ name, value, want string }{
-		{"no trailing newline", "a\nb", "v: |-\n  a\n  b\n"},
-		{"exactly one", "a\nb\n", "v: |\n  a\n  b\n"},
-		{"two", "a\nb\n\n", "v: |+\n  a\n  b\n\n"},
-		{"three", "a\n\n\n", "v: |+\n  a\n\n\n"},
-		{"a blank line inside", "a\n\nb", "v: |-\n  a\n\n  b\n"},
-		{"a first line that begins with a space", " a\nb", "v: |2-\n   a\n  b\n"},
-		{"a line with trailing whitespace", "a \nb", "v: |-\n  a \n  b\n"},
-		{"a line of only whitespace", "a\n   \nb", "v: |-\n  a\n     \n  b\n"},
-		{"a tab inside", "a\n\tb", "v: |-\n  a\n  \tb\n"},
+	for _, tc := range []struct{ name, value, want, reads string }{
+		{"no trailing newline", "a\nb", "v: |-\n  a\n  b\n", "a\nb"},
+		{"a trailing newline", "a\nb\n", "v: |-\n  a\n  b\n", "a\nb"},
+		{"several trailing newlines", "a\nb\n\n", "v: |-\n  a\n  b\n", "a\nb"},
+		{"leading whitespace", "  a\nb", "v: |-\n  a\n  b\n", "a\nb"},
+		{"a blank line inside", "a\n\nb", "v: |-\n  a\n\n  b\n", "a\n\nb"},
+		{"a line with trailing whitespace inside", "a \nb", "v: |-\n  a \n  b\n", "a \nb"},
+		{"a line of only whitespace inside", "a\n   \nb", "v: |-\n  a\n     \n  b\n", "a\n   \nb"},
+		{"a tab inside", "a\n\tb", "v: |-\n  a\n  \tb\n", "a\n\tb"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			got := rendered(t, yMap{{"v", yStr(tc.value)}})
@@ -50,20 +53,20 @@ func TestAMultiLineValueIsABlockScalarThatRoundTrips(t *testing.T) {
 			if err := yaml.Unmarshal([]byte(got), &back); err != nil {
 				t.Fatalf("the rendering does not parse: %v\n%s", err, got)
 			}
-			if back["v"] != tc.value {
-				t.Errorf("the value read back as %q, want %q", back["v"], tc.value)
+			if back["v"] != tc.reads {
+				t.Errorf("the value read back as %q, want %q", back["v"], tc.reads)
 			}
 		})
 	}
 }
 
-// A block scalar carries the line break and nothing else, so a value
-// with any other control character in it — or with white space at the end
-// of its last content line, which readers disagree about — is
-// double-quoted instead. The rendering a reader would hand back changed
-// is not one this renderer writes.
+// A block scalar carries the line break and nothing else, so a value with
+// any other control character in it is double-quoted instead. A carriage
+// return is the case that matters: a reader folds it into the line break
+// beside it and hands back a value one character shorter. The rendering a
+// reader would change is not one this renderer writes.
 func TestAValueABlockScalarCannotCarryIsQuoted(t *testing.T) {
-	for _, value := range []string{"a\r\nb", "a\nb\r", "a\n\x00b", "a\nb ", "a\nb\t"} {
+	for _, value := range []string{"a\r\nb", "a\n\x00b", "a\x0bb\nc"} {
 		got := rendered(t, yMap{{"v", yStr(value)}})
 		if strings.Contains(got, "|") {
 			t.Errorf("%q was rendered as a block scalar: %q", value, got)
