@@ -1,7 +1,7 @@
 # `sf` — Spec-First Development
 
 <!-- coverage:badge:start -->
-[![coverage](https://img.shields.io/badge/cli%20coverage-89.5%25-green)](#test-coverage)
+[![coverage](https://img.shields.io/badge/cli%20coverage-88.7%25-green)](#test-coverage)
 <!-- coverage:badge:end -->
 
 **Agency for the agents.**
@@ -284,10 +284,10 @@ alone is visible rather than averaged away.
 <!-- coverage:table:start -->
 | Test layer | Statements covered | Coverage |
 |:---|---:|---:|
-| Unit tests | 2,179 / 2,775 | 78.5% |
-| Snapshot cases | 2,066 / 2,775 | 74.5% |
-| End-to-end (built binary) | 984 / 2,775 | 35.5% |
-| **All layers combined** | **2,483 / 2,775** | **89.5%** |
+| Unit tests | 3,886 / 4,726 | 82.2% |
+| Snapshot cases | 2,066 / 4,726 | 43.7% |
+| End-to-end (built binary) | 984 / 4,726 | 20.8% |
+| **All layers combined** | **4,190 / 4,726** | **88.7%** |
 
 | Package | Statements | Covered | Coverage |
 |:---|---:|---:|---:|
@@ -305,9 +305,21 @@ alone is visible rather than averaged away.
 | `cli/core/specindex` | 1 | 1 | 100.0% |
 | `cli/profile` | 60 | 56 | 93.3% |
 | `cli/spec` | 1 | 1 | 100.0% |
-| **Total** | **2,775** | **2,483** | **89.5%** |
+| `cli/swarm` | 1 | 0 | 0.0% |
+| `cli/swarm/cli` | 754 | 638 | 84.6% |
+| `cli/swarm/contract` | 32 | 29 | 90.6% |
+| `cli/swarm/exec` | 24 | 24 | 100.0% |
+| `cli/swarm/exec/exectest` | 64 | 63 | 98.4% |
+| `cli/swarm/manifest` | 289 | 268 | 92.7% |
+| `cli/swarm/manifest/beads` | 49 | 39 | 79.6% |
+| `cli/swarm/plan` | 219 | 191 | 87.2% |
+| `cli/swarm/status` | 224 | 199 | 88.8% |
+| `cli/swarm/tracker` | 41 | 37 | 90.2% |
+| `cli/swarm/tracker/beads` | 126 | 114 | 90.5% |
+| `cli/swarm/vcs/git` | 128 | 105 | 82.0% |
+| **Total** | **4,726** | **4,190** | **88.7%** |
 
-Generated code is excluded from these figures: 1,758 statements in 1 file (`specmodel.go`) carrying the `// Code generated … DO NOT EDIT.` marker. It is excluded from the coverage profile too, so every report derived from it agrees with this table.
+Generated code is excluded from these figures: 2,091 statements in 2 files (`specmodel.go`, `swarmmodel.go`) carrying the `// Code generated … DO NOT EDIT.` marker. It is excluded from the coverage profile too, so every report derived from it agrees with this table.
 <!-- coverage:table:end -->
 
 CI regenerates this and fails if it is stale
