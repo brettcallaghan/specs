@@ -66,12 +66,12 @@ func TestReadyReportsANonListPayloadAsUnanswered(t *testing.T) {
 		Argv:   []string{"bd", "ready", "--parent", "run-1", "--exclude-type", "epic", "--exclude-label", "human", "--limit", "0", "--json"},
 		Stdout: []byte(`{"error":"database is locked"}`),
 	})
-	streams := &ioStreams{out: &bytes.Buffer{}, err: &bytes.Buffer{}}
+	var out, errOut bytes.Buffer
+	streams := &ioStreams{out: &out, err: &errOut}
 	root := newRootCmd(streams)
 	root.AddCommand(readyCmd(streams, readyDeps(fake)))
 
-	var out bytes.Buffer
-	code := dispatch(root, streams, []string{"ready", "--run", "run-1", "--json"}, &out, &bytes.Buffer{})
+	code := dispatch(root, streams, []string{"ready", "--run", "run-1", "--json"}, &out, &errOut)
 	if code != int(StatusStop) {
 		t.Errorf("exit status = %d, want %d for a payload that is not a queue's shape", code, StatusStop)
 	}
