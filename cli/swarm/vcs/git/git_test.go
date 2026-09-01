@@ -74,6 +74,10 @@ func TestTheInvocationsItDeclares(t *testing.T) {
 			"git for-each-ref --format=%(refname:short)%00%(objectname)%00%(upstream:short) refs/heads/",
 		}},
 
+		{"the repository root", v.Root("root"), []string{
+			"git rev-parse --show-toplevel",
+		}},
+
 		{"ancestry", v.Descends("anc", "main", "HEAD"), []string{
 			"git merge-base --is-ancestor main HEAD",
 		}},
@@ -179,6 +183,7 @@ func TestEachStepDeclaresItsEffectAndWhetherReRunningIsSafe(t *testing.T) {
 	for _, steps := range []vcs.Steps{
 		v.Commits("c", "HEAD", 1), v.Branches("b"),
 		v.Descends("a", "x", "y"), v.Resolve("r", "x"), v.Divergence("d", "b"),
+		v.Root("root"),
 	} {
 		for _, s := range steps {
 			if s.Effect != plan.Read {

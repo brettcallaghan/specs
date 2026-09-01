@@ -79,6 +79,14 @@ func (v VersionControl) Worktrees(prefix string) vcs.Steps {
 	return vcs.Steps{prune, list}
 }
 
+// Root reads the repository's working-tree root.
+func (v VersionControl) Root(prefix string) vcs.Steps {
+	s := v.step(prefix, plan.Read, true, decodeRoot,
+		"rev-parse", "--show-toplevel")
+	s.Description = "the repository's working-tree root"
+	return vcs.Steps{s}
+}
+
 // Commits reads the most recent commits on a revision, newest first.
 //
 // The format is asked for with NUL separators rather than parsed out of a

@@ -39,6 +39,10 @@ import (
 //	    none, which is a condition rather than a crash.
 //	git for-each-ref --format=... refs/heads/
 //	    -> exit 0; a branch with no upstream yields an empty field.
+//	git rev-parse --show-toplevel
+//	    -> exit 0, one absolute path with no trailing slash (measured on
+//	    git 2.43.0, run from the repository root, which is where this
+//	    container is always invoked).
 //
 // The dispatch loop's writes, measured the same way:
 //
@@ -246,6 +250,18 @@ func decodeRevision(res swarmexec.Result) (any, error) {
 	lines := nonEmptyLines(res.Stdout)
 	if len(lines) != 1 {
 		return nil, fmt.Errorf("git: rev-parse printed %d lines, want one commit id", len(lines))
+	}
+	return strings.TrimSpace(lines[0]), nil
+}
+
+// decodeRoot decodes `git rev-parse --show-toplevel`.
+func decodeRoot(res swarmexec.Result) (any, error) {
+	if !res.Succeeded() {
+		return nil, failure("git rev-parse --show-toplevel", res)
+	}
+	lines := nonEmptyLines(res.Stdout)
+	if len(lines) != 1 {
+		return nil, fmt.Errorf("git: rev-parse --show-toplevel printed %d lines, want one path", len(lines))
 	}
 	return strings.TrimSpace(lines[0]), nil
 }

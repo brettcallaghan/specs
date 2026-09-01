@@ -129,6 +129,11 @@ type VersionControl interface {
 	// everything above. Answer: []Worktree.
 	Worktrees(prefix string) Steps
 
+	// Root reads the repository's working-tree root — the coordinator's
+	// own checkout, from which a dispatch's worktree path is derived as
+	// a sibling. Answer: string, the absolute path.
+	Root(prefix string) Steps
+
 	// Commits reads the most recent commits on a revision, newest first.
 	// Answer: []Commit.
 	Commits(prefix, revision string, limit int) Steps
