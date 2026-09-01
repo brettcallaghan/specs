@@ -23,7 +23,6 @@
 #   Emitted only:        SCRIPTS, BB_NO_AGENT, BB_TREE_CLEAN,
 #                        BB_PUSH_NEEDS_REFSPEC, BB_GIT_CONFIG_WRITABLE,
 #                        BB_DOLT_*, BB_BRANCH / REMOTE / UPSTREAM,
-#                        BB_WORKTREE_BASEREF, BB_WORKTREE_BASEREF_SRC,
 #                        BB_EVENT_LOG
 #   Audited against this rule when it was written; every fact is on the side
 #   the rule puts it.
@@ -691,64 +690,6 @@ else
   say "$SETTINGS_LOCAL: absent — expect a permission prompt per distinct command"
 fi
 
-# worktree.baseRef — hard gate, blocking. Every dispatch runs in its own worktree
-# (universal, not opt-in — see SKILL.md, "Every bead runs in its own
-# worktree"), so a baseRef that is not 'head' silently branches EVERY worktree
-# from the DEFAULT branch instead of session HEAD.
-#
-# Resolved across Claude Code's documented settings precedence, HIGHEST level
-# first, taking the first file that DEFINES the key:
-#   1. .claude/settings.local.json  (project local)
-#   2. .claude/settings.json        (shared project)
-#   3. $HOME/.claude/settings.json  (user)
-# A higher level OVERRIDES a lower one, so "any file says head" is the wrong
-# test — a project-local 'fresh' beats a user-scope 'head' and must still block.
-#
-# A project-scope value IS honoured: a subagent dispatched with
-# isolation:"worktree", from a session whose HEAD carried two commits absent
-# from the default branch, came up on session HEAD carrying both, with
-# worktree.baseRef set only in the repository's own .claude/settings.json and
-# no user-scope file present at all.
-USER_SETTINGS="$HOME/.claude/settings.json"
-PROJECT_SETTINGS="$REPO/.claude/settings.json"
-PROJECT_SETTINGS_LOCAL="$REPO/.claude/settings.local.json"
-
-# Echo the key's value from one settings file, or nothing when that file does
-# not define it. An absent file, an unreadable one and malformed JSON all read
-# as "does not define it", so that level simply does not participate.
-_baseref_in() {
-  [ -f "$1" ] || return 0
-  jq -r 'if (.worktree|type) == "object" and (.worktree|has("baseRef"))
-         then (.worktree.baseRef|tostring) else empty end' "$1" 2>/dev/null
-}
-
-WORKTREE_BASEREF=unset
-WORKTREE_BASEREF_SRC=none
-if [ "$JQ" != ok ]; then
-  WORKTREE_BASEREF=unknown
-  WORKTREE_BASEREF_SRC='jq missing'
-else
-  for _s in "$PROJECT_SETTINGS_LOCAL" "$PROJECT_SETTINGS" "$USER_SETTINGS"; do
-    _v="$(_baseref_in "$_s")"
-    if [ -n "$_v" ]; then
-      WORKTREE_BASEREF="$_v"
-      WORKTREE_BASEREF_SRC="$_s"
-      break
-    fi
-  done
-fi
-if [ "$WORKTREE_BASEREF_SRC" = none ]; then
-  say "worktree.baseRef: $WORKTREE_BASEREF (no settings file on the precedence chain defines it)"
-else
-  say "worktree.baseRef: $WORKTREE_BASEREF (from $WORKTREE_BASEREF_SRC)"
-fi
-if [ "$WORKTREE_BASEREF" != head ]; then
-  say "  ^ NOT 'head'. isolation:\"worktree\" will branch from the default branch,"
-  say "    not session HEAD, and every worktree loses the sprint branch's commits."
-  block "worktree.baseRef is '$WORKTREE_BASEREF', not 'head' — every worktree dispatched this run will branch from the default branch instead of session HEAD, silently dropping every commit the sprint branch carries, isolated beads included. Fix: set .worktree.baseRef = \"head\" in $PROJECT_SETTINGS (committed, so every clone and every fresh container inherits it) or in $USER_SETTINGS (this machine only). Either takes effect immediately, no restart. A value at a HIGHER precedence level overrides a lower one, so also clear any baseRef in $PROJECT_SETTINGS_LOCAL. Then re-run pre-flight-check.sh before dispatching."
-fi
-
-
 # =============================================================== 7. PR CI
 
 # ============================================== 7b. the Agent tool assertion
@@ -945,8 +886,6 @@ emit  BB_DOLT_TELEMETRY "$DOLT_TELEMETRY"
 emit  BB_DOLT_WRITE "$DOLT_WRITE"
 emit  BB_DENY_ENTRY "$DENY_ENTRY"
 emit  BB_SETTINGS_LOCAL_ALLOW "$SETTINGS_LOCAL_ALLOW"
-emitq BB_WORKTREE_BASEREF "$WORKTREE_BASEREF"
-emitq BB_WORKTREE_BASEREF_SRC "$WORKTREE_BASEREF_SRC"
 emit  BB_CHECKS_BASELINE "$CHECKS_BASELINE"
 emitq BB_EPIC "$EPIC"
 emitq BB_EVENT_LOG "$EVENT_LOG"

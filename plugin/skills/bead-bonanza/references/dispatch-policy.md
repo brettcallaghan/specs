@@ -113,17 +113,18 @@ owner, which is why assigning every bead before dispatch and exporting
 at once, each in its own worktree, merged as each returns.
 
 **The ready set IS what may run concurrently.** Re-query
-`bd ready --parent <epic> --exclude-type=epic` before every dispatch; what
-comes back is what dependencies and collision edges now allow. Never advance by
-walking a stored list — a bead that closed early, a bead blocked by something
-discovered mid-run, and a bead admitted since the plan was made all make a
-stored position wrong, and the graph is right about all three.
+`swarm ready --run <epic>` before every dispatch; what comes back is what
+dependencies and collision edges now allow. Never advance by walking a stored
+list — a bead that closed early, a bead blocked by something discovered
+mid-run, and a bead admitted since the plan was made all make a stored position
+wrong, and the graph is right about all three.
 
-Entry conditions, both required and both about **safety**: **no shared
-`c4_changes` component** between any two beads dispatched at once — the
-collision edges should already guarantee it, and you check rather than assume —
-and the base-ref check re-verified. Both are yours at dispatch, whatever the
-plan says.
+One entry condition, required and about **safety**: **no shared `c4_changes`
+component** between any two beads dispatched at once — the collision edges
+should already guarantee it, and you check rather than assume. It is yours at
+dispatch, whatever the plan says. The base each worktree is cut from is not a
+second condition: it is an argument `swarm dispatch open` is given, so there is
+nothing left to verify.
 
 **There is no minimum bead count, and do not reintroduce one** — a count in a
 list of safety conditions reads as one, and nothing about two concurrent beads

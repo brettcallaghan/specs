@@ -48,19 +48,17 @@ reading to whoever can see the harness.
 a signal whose only writer is the thing it monitors, so it reports "no failure"
 and "no monitor" identically.
 
-**Re-querying the ready set is two steps, in order.** First, close eligible
-epics — scoped by hand, never with the bare command: `bd epic close-eligible`
-takes NO epic argument (bd 1.2.2, `--help`) and a passed id is silently
-ignored, so `bd epic close-eligible <epic>` reads as scoped and is not. Run
-`bd epic close-eligible --dry-run`, intersect what it names with the epics
-under this run, and close only those explicitly — the bare command (no
-`--dry-run`) closes every eligible epic in the database, including epics
-belonging to other runs and other humans. Then `bd ready --parent <epic>
---exclude-type=epic`. An epic does not close on its own when its children do
-(measured), so skipping the first step is a silent deadlock, not a slowdown —
-a finished ceremony phase stays open, the beads it gates never reach the
-ready set, and an empty ready set reads as the run being done when it has only
-stalled.
+**Re-querying the ready set is two commands, in that order:**
+
+```sh
+swarm phase close --run <epic>   # close the epics this run's own progress released
+swarm ready       --run <epic>   # what may be dispatched now
+```
+
+**Route on each exit status**, and run the first one every time. An epic does
+not close on its own when its children do, so a finished ceremony phase that
+stays open holds the beads it gates out of the ready set — and an empty ready
+set then reads as the run being done when it has only stalled.
 
 Live progress — the event stream, the plugin's background monitor that reads
 it without being armed, and the durable out-of-session trigger — is

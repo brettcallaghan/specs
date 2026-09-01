@@ -84,8 +84,8 @@ run:
 - [ ] 1. `sprint-scope`: run epic, admission record, authorization gate
 - [ ] 1b. pre-flight re-run with the epic: checks baseline on the manifest
 - [ ] 2. `sprint-plan`: readiness verdict; collision edges validated & loaded
-- [ ] 2b. Sprint branch created (or reused), `branch` + `base_sha` in manifest
-- [ ] 3. Dispatch the ready set; merge each branch as it returns, then re-check
+- [ ] 2b. `swarm dispatch open`: sprint branch created or reused, recorded
+- [ ] 3. Dispatch the ready set; accept each dispatch as it returns
 - [ ] 3b. `sprint-review`; loop back to groom & plan if findings were admitted
         and the pass budget is not spent
 - [ ] 4. `sprint-retro` — it writes the run's retro
@@ -166,19 +166,6 @@ the ready set is safe to dispatch whole and there is nothing to re-derive.
 **Two things stay yours**, and neither is ever delegated: the run manifest and
 the run's amendments. Both: `references/run-record.md`.
 
-## The sprint branch — you create it, once, before the first worktree
-
-**Immediately before the first dispatch**, not earlier: a run that bounced
-every bead has nothing to branch for, and a branch cut before grooming records
-a `base_sha` predating the grooming commits.
-
-**Read the manifest before you create anything** — `swarm manifest get --run
-<epic> --key branch`. A run whose manifest already carries `branch` reuses it
-and creates nothing, which is what makes a resumed run land where the original
-did; **a name already taken by an unrelated branch stops the run here**, before
-any worktree exists. The exact sequence, the one `swarm manifest set` that
-records `branch` and `base_sha` together, and why `base_sha` is recorded at
-creation rather than derived: `references/worktree-mechanics.md`.
 ## Every dispatch runs in its own worktree
 
 **This is universal, not opt-in**, and it is **per dispatch, not per bead**: a
@@ -193,57 +180,42 @@ not yet accepted — removal is the final act of accepting, after its branch
 merges. `git worktree list` says what is in flight; each tree's checked-out
 branch names the agent holding it.
 
-**Hard gate — `BB_WORKTREE_BASEREF` must read `head` before every worktree you
-create.** A worktree cut from the default branch cannot see what the sprint
-branch already carries. Commit it to the repository's own
-`.claude/settings.json` so no container starts without it; a higher-precedence
-`.claude/settings.local.json` still overrides that.
+**`swarm dispatch open` creates both** — the sprint branch on the run's first
+dispatch, then that dispatch's worktree, each cut from a base the command is
+given rather than from a setting no repository owns. **`swarm dispatch accept`
+takes it back**: the drain check, the merge, the worktree removal behind its
+ancestry guard, the per-bead re-check and the push are one command, in the
+order its guards require. Route on each exit status. Both, and the two things
+the acceptance leaves you: `references/worktree-mechanics.md`.
 
-**YOU merge, as each dispatch returns.** There is no merge queue, no merge bead
-and no lock: you are one agent, so one-merge-at-a-time holds by construction
-and a mechanism to enforce it buys nothing. One merge and one removal per
-dispatch, then the acceptance check per bead.
-
-**Removal goes behind an ancestry check, not behind an `&&`** — a chained
-command whose merge exited 128 removed a worktree anyway. **A `--ff-only`
-refusal means one thing where dispatches were serialized and another where they
-went out concurrently, and reading it wrong stops a healthy run.** Both rules,
-the base-ref remedy, the create/merge/remove lifecycle, and who resolves a
-rebase conflict: `references/worktree-mechanics.md`.
 ## Dispatch the ready set — continuously
 
-**`bd ready --parent <epic> --exclude-type=epic --exclude-label human` IS the
-dispatch list.** The collision edges make it safe to dispatch whole — nothing
-to freeze, wait on, or intersect. Dispatch what is in it and not already held, then re-query as
-each batch returns, so a bead that became ready behind a slow one goes out at
-once rather than waiting for its neighbours.
+**`swarm ready --run <epic>` IS the dispatch list.** It applies the run's own
+filter, names each bead's dispatch id, and reports a bead whose dispatch is
+still at work as held rather than available. Dispatch what it reports
+available, then re-query as each dispatch returns, so a bead that became ready
+behind a slow one goes out at once rather than waiting for its neighbours.
 
 Each dispatch is one subagent running `run-batch` in one worktree, on one
 branch named for the dispatch. **The procedure — filling in the prompt,
-verifying skip claims, the per-bead acceptance check, the push, the circuit
-breaker and reading a live agent — is `references/dispatching.md`.** Read it
-before the first dispatch.
+verifying skip claims, the pre-merge check, the acceptance, the circuit breaker
+and reading a live agent — is `references/dispatching.md`.** Read it before the
+first dispatch.
 
-**Then you merge**, one branch at a time, removing each worktree as you accept
-its dispatch. Subagents merge nothing and push nothing.
+**Then `swarm dispatch accept --run <epic> --dispatch <id>`**, one dispatch at
+a time, as each returns. Subagents merge nothing and push nothing. **One thing
+it does not do is yours**: the per-bead pre-merge acceptance check,
+`"$SCRIPTS"/bb-status.sh bead <id> --worktree <path> --pre-merge`, run before
+you accept.
 
-**Then re-run the acceptance check without `--pre-merge`** —
-`"$SCRIPTS"/bb-status.sh bead <id> --worktree <path>`. The pre-merge run
-deferred signals 3 and 4, which fail by construction before a merge, so this
-run is the only thing that checks the merge and the removal happened. Exit 2
-stops the run.
-
-**Re-query before every dispatch, and run `bd epic close-eligible` first.** It
-takes NO epic argument — a passed id is silently ignored, so the bare command
-closes every eligible epic in the database, not just this run's. Scope it by
-hand: `references/supervision.md`. **Omitting it is a silent deadlock, not a
-slowdown**: an epic does not close on its own when its children do (measured),
-so a finished ceremony phase stays open, the beads it gates never enter the
-ready set, and an empty ready set reads as the run being done when it has stalled.
-**That query is the order** — and a bead added mid-run is in scope by
-construction, so before dispatching it diff the ready set against
-`manifest.admitted` (`swarm status --run <epic>` names the difference) and
-resolve any creep, admitted as an amendment or deferred out.
+**Re-query with `swarm phase close --run <epic>` first, every time.** An epic
+does not close on its own when its children do, so a finished ceremony phase
+that stays open holds the beads it gates out of the ready set — and an empty
+ready set then reads as the run being done when it has only stalled. **That
+pair is the order** — and a bead added mid-run is in scope by construction, so
+before dispatching it diff the ready set against `manifest.admitted`
+(`swarm status --run <epic>` names the difference) and resolve any creep,
+admitted as an amendment or deferred out.
 
 **Readiness is not re-checked here.** `bd lint` and capability tier are
 settled while the queue is groomed; the open human-decision queue by the end

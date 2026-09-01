@@ -6,56 +6,36 @@ dispatch, and again when a batch returns.
 
 ## Contents
 
-- Dispatch continuously — the ready set is re-queried, never walked from a
-  stored list
+- Dispatch continuously — `swarm ready` is the dispatch set
 - The prompt — the three values it carries, and why it carries nothing else
 - Ceremony dispatches — the two writes that give a phase an identity
-- Verify against state, never against testimony — skip claims, the acceptance
-  check, and what a standing worktree actually means
-- The push, and proving it landed
-- The circuit breaker
-- What an agent is holding, and when it is done — as a query
+- Verify against state, never against testimony — skip claims, the pre-merge
+  check, and accepting the dispatch
+- Observing CI on a pull request
+- The circuit breaker, and one dispatch's queue — both are `swarm ready`
 
 ## Dispatch continuously
 
-**Do not freeze a cohort and wait for it.** `bd ready --parent <epic>
---exclude-type=epic --exclude-label human` already returns the complete set of
-beads nothing is blocking, so a freeze-dispatch-wait-requery cycle adds only
-the wait: the slowest bead in the cohort holds up every bead that became ready
-behind it. Re-query the ready set, dispatch what is in it and not already held, and
-re-query again as each batch returns.
+**Do not freeze a cohort and wait for it.** Re-query as each dispatch returns,
+so a bead that became ready behind a slow one goes out at once rather than
+waiting for its neighbours:
 
-**`--exclude-label human` is on the DISPATCH query and nowhere else.** A
-`human`-labelled bead is the deferred-review channel — a question the run put
-to a human, parented to a late ceremony phase so it surfaces at the end. The
-label does **not** hold it out of `bd ready` (measured; only the parent phase
-does), so once that phase opens it is ordinary-looking ready work and an
-agent gets handed a question meant for a person. Do not copy the flag onto a
-completion or queue count: a count that hides `human` beads reports a run as
-drained while a human still owes it an answer. The channel, and the `bd`
-behaviour behind it, are in `run-record.md`.
+```sh
+swarm phase close --run <epic>   # first, every time (`supervision.md`)
+swarm ready       --run <epic>   # the dispatch set
+```
 
-**Concurrency policy is in the graph, not in a schedule.** Two beads that
-share a `c4_changes` component must not run at once; the plan expresses that as
-a `blocks` edge between them, so they cannot both be in the ready set. That
-is why nothing here needs to remember which beads may run together — the ready set
-is already safe by construction. Those **collision edges** are policy rather
-than real dependencies, and both ends carry `metadata.collision` naming the
-shared surface so a reader can tell them apart: `run-record.md`.
+**`swarm ready` IS the dispatch set.** It applies the run's own filter, names
+each bead with the dispatch id it is assigned to, and reports a bead whose
+dispatch's worktree is still standing as **held** rather than available — so
+you cannot send a second agent after one already at work. **Route on the exit
+status**, and read what it prints; `swarm ready --help` names the flags and
+`--explain` prints the queries it would run without running them.
 
-**Re-verify at every re-query**, whatever the plan said:
-
-- `bd epic close-eligible` first, scoped by hand — it takes **no** positional
-  epic, so the bare command closes every eligible epic in the database.
-  Omitting it is a silent deadlock: a finished ceremony epic that never closes
-  keeps the beads it gates out of the ready set forever
-  (`supervision.md`).
-- `BB_WORKTREE_BASEREF` is `head` before the next worktree is created. It is
-  settings state that can change between dispatches, at any of the three
-  precedence levels pre-flight reads.
-- Diff the ready set against `manifest.admitted` (`swarm status --run <epic>` names
-  the difference) and resolve any creep — admitted as an amendment, or deferred
-  out — rather than dispatching an unexamined bead.
+**One thing it does not measure, and you still do:** diff the ready set
+against `manifest.admitted` (`swarm status --run <epic>` names the difference)
+and resolve any creep — admitted as an amendment, or deferred out — rather
+than dispatching an unexamined bead.
 
 ## The prompt is three values
 
@@ -132,82 +112,55 @@ After a subagent returns:
      `skipped` with a fresh CLEAN run.
    - Do not proceed to the merge, the push, or the next batch until it is
      reconciled.
-3. **Acceptance check — every bead, every dispatch mode.** Run it, do not
-   perform it:
+3. **The pre-merge acceptance check — per bead, before you accept anything.**
 
    ```sh
    {SCRIPTS}/bb-status.sh bead <bead-id> --worktree <path> --pre-merge
    ```
 
-   It verifies the five signals in the required order and stops at the first
-   that fails: the bead reads closed in the tracker; a commit carrying the id
-   exists; that commit is an ancestor of HEAD; the worktree is gone; and at
-   least one `retro:` comment was recorded. Each line follows the command
-   contract's requirement to print the state and the command that established
-   it, so any single check can be re-run without reconstructing it.
-
-   **Read the exit code — it is the decision.** For this check, `0` is clear, `1` is repairable
-   (signals 1, 2, 5: close the bead, or add the missing `retro:` comment
-   from the returned summary; state the repair in the report), and `2` is stop
-   (not yours to repair inline — leave the worktree standing, since it is the
-   in-flight signal, and surface it).
-
-   **`--pre-merge` is not optional on this run.** You have not merged yet, so
-   signals 3 (merged into HEAD) and 4 (worktree gone) would fail on **every
-   bead, by construction**. The flag defers both. **Re-run the check without it
-   after merging and removing the worktree** — that second run is what actually
-   verifies them, and skipping it leaves nothing checking that either happened.
+   It defers the two signals a merge decides and checks the other three: the
+   bead reads closed in the tracker, a commit carrying its id exists, and at
+   least one `retro:` comment was recorded. **Read the exit code — it is the
+   decision.** `0` is clear, `1` is repairable (close the bead, or add the
+   missing `retro:` comment from the returned summary, and state the repair in
+   the report), and `2` is stop.
 
    Applies **per bead, not per subagent**. A batch subagent that processed six
    beads is checked six times — that is exactly where a silent omission hides.
 
+   **No `swarm` command performs this half yet**, which is why it is still
+   here. The post-merge half — the same signals with none deferred — belongs
+   to the acceptance below and is not yours to run.
+
    **A bead failing any signal is reported, not recorded closed.** Return it
-   with the failing signal named (`acceptance-failed: worktree survives`) in
+   with the failing signal named (`acceptance-failed: bead not closed`) in
    place of a commit sha, and say so in the run totals rather than counting it
    among the closed.
 
-   **A standing worktree is one of three things — read signal 4 against the
-   dispatch before calling it a failure.**
-   1. *Removal still pending.* Removal is your own final act of accepting, so
-      between a dispatch's return and that act the worktree ALWAYS survives. Do
-      the removal, then re-run `git worktree prune && git worktree list`. This
-      is the normal state, not a failure.
-   2. *A dispatch is still running.* A dispatch holds ONE worktree for every
-      bead it carries, so a bead already closed inside it has a surviving
-      worktree by construction. Once it returns and that one tree is removed,
-      signal 4 becomes true for every bead in it at the same moment.
-   3. *A real signal-4 failure.* Removal itself failed, or a worktree you never
-      created survives. Leave it standing and surface it.
+   **A subagent that never returns is checked by these same signals.** A lost
+   completion notification is not evidence of an unfinished bead, and it is
+   common enough to plan for. The signals read state, not testimony, so run
+   them unchanged. **Never re-dispatch on a missing return alone.**
+4. **Accept the dispatch** — run it, do not perform it:
 
-   **A subagent that never returns is checked by these same five signals.** A
-   lost completion notification is not evidence of an unfinished bead, and it
-   is common enough to plan for. The signals read state, not testimony, so they
-   hold with or without a return — run them unchanged. To decide whether a bead
-   is still *working* rather than finished, read `bd show <id>` together with
-   whether its worktree still exists: a closed tracker record and a removed
-   worktree is conclusive. Not `bd list --status in_progress` — it is a query
-   over a moving set and has disagreed with both durable signals. **Never
-   re-dispatch on a missing return alone.**
-4. **Verify the working tree is clean** — `git status --porcelain`. If dirty,
+   ```sh
+   swarm dispatch accept --run <epic> --dispatch <dispatch-id>
+   ```
+
+   The drain check, the serialized/concurrent case, the merge, the worktree
+   removal, the per-bead re-check with no signal deferred and the push are all
+   inside it, in the order its guards require. **The command owns them and
+   this document does not restate them**: `--help` names the flags,
+   `--explain` prints every invocation without running one, and `--no-push`
+   stops in front of the push. **Route on the exit status.**
+5. **Verify the working tree is clean** — `git status --porcelain`. If dirty,
    fall through to `recovery.md`.
 
-## The push, and proving it landed
+## Observing CI on a pull request
 
-**You push, after each merge; subagents never do.** A push is not complete
-until it is verified landed:
-
-```sh
-git fetch <remote> <branch>
-git log --oneline <remote>/<branch>..HEAD    # must be empty
-```
-
-A push can be rejected for reasons that leave the tree clean, the worktrees
-removed and the beads closed — every other signal reads "finished". This is the
-only one that distinguishes a landed push from a rejected one, and it costs one
-fetch. A credential refused for `.github/workflows/**` rejects the WHOLE push,
-so one workflow file strands every commit behind it. `sprint-recovery` runs the
-same check from the other side; keep the two in the same form.
-(`{SCRIPTS}/bb-status.sh branch` runs this comparison too.)
+**The push and its landing proof are `swarm dispatch accept`'s** (above), or
+`swarm branch push --branch <branch>` on its own. You run neither by hand and
+subagents run neither at all.
 
 **WHERE a PR is open, OBSERVE its CI rather than assuming it.** "CI is the
 backstop" is otherwise an assertion the run never checks, and a run that
@@ -231,67 +184,44 @@ installed in every environment this skill runs in, and fails TLS inside the
 sandbox where it is. So create `gh:run` gates only after confirming `gh` runs;
 otherwise keep full local gates and say once that CI is unobserved.
 
-## Circuit breaker
+## The circuit breaker, and one dispatch's queue — both are `swarm ready`
 
-**Three consecutive beads returning `blocked` or failing stops the RUN, not
-just the batch.** That is systemic — a broken base, a wrong assumption in the
-plan, an environment fault — and the next dispatch meets it too. Stopping one
-batch alone hands the same failure to a fresh set of agents.
-
-## What an agent is holding, and when it is done — as a query
-
-**Assignment IS the record.** One string is an agent's whole identity — the
-bead's `assignee`, the agent's `$BEADS_ACTOR`, its `{DISPATCH_ID}` — so the
-tracker already answers every question a separate bookkeeping record would,
-and answers it for a bead nobody remembered to annotate:
+**Report every dispatch's return to the breaker as you accept it:**
 
 ```sh
-bd ready --assignee <id>                       # what it may start next
-bd list --assignee <id> --status in_progress   # what it is working on now
-bd list --assignee <id> --status blocked       # what it gave up on
+swarm ready --run <epic> --completed <n> [--threshold <n>]
 ```
 
-**An agent has DRAINED when the first two are empty.** Both are required and
-this is measured: `bd ready` excludes `in_progress`, so a bead being worked
-right now makes the ready set empty and the ready query ALONE reports a live
-agent as finished. `bd ready --json` prints `[]` when the ready set is empty —
-measured on bd 1.2.2 in every configuration tried (empty tracker; issues
-present with a filter matching none; every issue closed; `--parent`,
-`--assignee` and `--exclude-type` filters), and `null` in none of them. Read
-the emptiness test defensively all the same: count only a JSON array and treat
-any other payload as empty. A bare `length` answers for whatever it is handed
-— on a string it returns the character count — so an error body read back
-unguarded reports a queue as long as its own text.
+`--completed 0` counts as a failure and `--completed <n>` clears the count. The
+breaker's count lives in the manifest as `consecutive_dispatch_failures`, so a
+resumed session does not restart it, and the command reports the run stopped
+once the count reaches the threshold — **the threshold is a run-level
+authorization row** (`sf.toml`'s `[run] dispatch_failure_threshold`, else 3),
+resolved by `sprint-scope` and passed here. Omit `--completed` and the
+invocation only reads the count.
 
-Then read the third: drained with nothing `blocked` is finished; drained with a
-`blocked` bead is finished-with-a-block, and the two must not be reported alike.
+**Tripping it stops the RUN, not just the batch.** Whatever it caught — a
+broken base, a wrong assumption in the plan, an environment fault — the next
+dispatch meets it too.
 
-**Nothing is written at dispatch time to make this work**, which is the point —
-there is no key to forget, none to go stale, and a bead added to an agent's
-queue mid-run is in the answer immediately.
+**One dispatch's own queue and its drain verdict:**
 
-### A standing worktree
+```sh
+swarm ready --run <epic> --agent <dispatch-id>
+```
 
-Read it through its branch, not through a stored path. `git worktree list`
-prints each registration's checked-out branch, and a dispatch's branch is
-**named for the dispatch id** — so the branch names the agent directly, and the
-agent's queue says whether it is still working:
+It reports the dispatch's ready and in-progress beads in dependency order and
+whether it has **drained**, and a dispatch id no bead in the run names is
+reported as *not an established dispatch* rather than as a drained one — so a
+mistyped id cannot read as completion. **Assignment IS the record**: one string is an agent's
+whole identity — the bead's `assignee`, the agent's `$BEADS_ACTOR`, its
+`{DISPATCH_ID}` — so nothing is written at dispatch time to make this work.
 
-| the agent's queue | reading |
-|---|---|
-| not drained | live agent, working — leave it alone |
-| drained | finished; the tree is orphaned, remove it |
-
-An agent that is drained while a bead it holds is still `open` or
-`in_progress` died holding it — recover that bead (`recovery.md`).
-
-`{SCRIPTS}/sprint-cleanup.sh` decides the same question and **removes only the
-one unambiguous row** — a drained agent, belonging to this run, holding no
-blocked bead. It leaves five cases standing and names each: a branch that
-names no dispatch, a dispatch id belonging to another run, an agent still
-holding a queue, an agent holding a BLOCKED bead (its worktree is the partial
-work), and a tracker that could not answer. It never removes on a guess, and
-it never force-removes to tidy up.
+Read `bd list --assignee <id> --status blocked` beside it: drained with nothing
+blocked is finished, drained with a blocked bead is finished-with-a-block, and
+the two must not be reported alike. An agent drained while a bead it holds is
+still `open` or `in_progress` died holding it — recover that bead
+(`recovery.md`).
 
 **A return line is a summary, not a signal.** A subagent's account of what it
 did is worth reading and is never what you record: every verdict above comes

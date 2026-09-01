@@ -84,15 +84,9 @@ to build a wait-until-the-end channel on top of `bd human`: `bd human respond`
 and `bd human dismiss` **both** fail with `storage is nil`, and `bd human list`
 keeps listing a bead after it closes — so anything asking "does a human still
 owe this run an answer" must read `bd list --label human --status open`
-instead. The dispatch set carries `--exclude-label human` so a bounced bead
-is never handed to an agent; no completion count carries it, or the run reports
-itself drained while a human still owes it an answer.
-
-**Closing a ceremony epic is `bd epic close-eligible`, scoped BY HAND.** It
-takes no positional epic. Measured: with one run's pre-flight child closed, the
-bare command printed `✓ Closed 2 epic(s)` — pre-flight **and an unrelated epic
-from another run in the same database**. Read what it names and confirm every
-line belongs to this run.
+instead. `swarm ready` holds a bounced bead out of the dispatch set itself, so
+one is never handed to an agent; no completion count may carry it either, or
+the run reports itself drained while a human still owes it an answer.
 
 ## The two things you own
 

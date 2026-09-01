@@ -84,7 +84,7 @@ the script cannot measure it and cannot warn you about it.
 
   **Say so and stop.** There is no degraded mode to hand over to.
 
-**Every other blocker is the script's to explain.** `BB_DOLT_WRITE=no` and
-`BB_WORKTREE_BASEREF` not `head` each exit non-zero with the cause and the
-remedy in the message. Restating them here would give a reader two texts to
-reconcile and one of them a chance to go stale — read the report.
+**Every other blocker is the script's to explain.** `BB_DOLT_WRITE=no` exits
+non-zero with the cause and the remedy in the message. Restating them here
+would give a reader two texts to reconcile and one of them a chance to go
+stale — read the report.
