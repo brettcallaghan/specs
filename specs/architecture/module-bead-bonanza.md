@@ -26,7 +26,7 @@ test_paths:
   - "plugin/skills/bead-bonanza/scripts"
   - "plugin/hooks"
   - "plugin/monitors"
-version: "0.25"
+version: "0.26"
 ---
 
 # Bead Bonanza
@@ -52,7 +52,10 @@ is true" from git and the tracker rather than from what an agent reported.
   its own right. The command sequences these components prescribed by hand are
   what it mechanizes; this module calls it rather than containing it. The run
   manifest is reached through `swarm manifest`, and a run's progress,
-  completion and per-dispatch drain through `swarm status`.
+  completion and per-dispatch drain through `swarm status`. The dispatch loop
+  itself runs on `swarm phase close`, `swarm ready`, `swarm dispatch open` and
+  `swarm dispatch accept`; recovery opens on `swarm branch verify-landed` and
+  lands unpushed commits with `swarm branch push`.
 - **Source & tests:** `plugin/skills/{bead-bonanza,sprint-*,run-batch}`,
   `plugin/hooks`, `plugin/monitors`. Scripts carry `--self-test` in-file;
   there is no separate test tree.
@@ -195,7 +198,7 @@ component answers, and the question it is most often wrongly given.
 
 | Component | Owns the question | Must NOT answer |
 |---|---|---|
-| **Coordinator** | what happens next, and when is there nothing left? | anything requiring a source file to be read |
+| **Coordinator** | what happens next, and when is there nothing left? — routed through `swarm phase close`, `swarm ready`, `swarm dispatch open` and `swarm dispatch accept` | anything requiring a source file to be read |
 | **Environment Probe** | can a run start in this environment at all? | whether the queue is any good |
 | **Scope** | which beads are in this run, and who authorized it? | whether any of them is ready to dispatch |
 | **Grooming** | does this bead carry enough context for a subagent to complete it with no other input? | which agent gets it, or when it runs |
@@ -228,8 +231,15 @@ description: Routes every phase of a run; owns the manifest, the merge and the t
 (skill — `bead-bonanza`) — the **only** user-invocable entry point, for a new
 run and for resuming one alike.
 
-- **Queries the graph for ready work, coordinates its execution, and loops**
-  until there is nothing ready left.
+- **Queries the graph for ready work with `swarm ready --run <epic>`,
+  coordinates its execution, and loops** until there is nothing ready left.
+  **`swarm phase close --run <epic>` runs first at every re-query** — an epic
+  does not close on its own when its children do, and a finished ceremony
+  phase that stays open holds the beads it gates out of the ready set, where
+  an empty ready set reads as the run being done when it has only stalled.
+  The authorization gate's resolved `dispatch_failure_threshold` is passed to
+  `swarm ready`, so the circuit breaker is that command's verdict rather than
+  a count kept here.
 - Routes each phase: invokes a skill or runs a script, reads the verdict,
   decides what happens next.
 - **Spawns the subagents**, one per batch, each in its own worktree.
@@ -256,10 +266,19 @@ run and for resuming one alike.
   precondition — and **validates the record with `swarm manifest validate`
   when it resumes a run it did not hold**, so a half-written record is a status
   it routes on rather than a key it discovers missing mid-dispatch.
-- **Executes the merges**, one dispatch's branch at a time, as that dispatch
-  completes its work — and removes its worktree only behind an ancestry check.
-  This is a coordinator responsibility, not a component: there is nothing to
+- **Opens every dispatch with `swarm dispatch open`** — the sprint branch on
+  the run's first dispatch, then that dispatch's worktree, each cut from a
+  base the command is given rather than from a setting no repository owns.
+- **Accepts each dispatch with `swarm dispatch accept`**, one at a time, as
+  that dispatch completes its work: the drain check, the merge, the worktree
+  removal behind its ancestry guard, the per-bead re-check and the push are
+  one command, in the order its guards require. The per-bead **pre-merge**
+  acceptance check is the one half it does not perform, and stays here. This
+  is a coordinator responsibility, not a component: there is nothing to
   serialize (it is one agent) and nothing to schedule.
+- **Routes on each command's exit status, never on its text.** Every `swarm`
+  command this component calls answers as a status; scraping the message
+  would re-derive a verdict the command already gave.
 - Owns both loops: the dispatch loop (until the ready set is dry) and
   the review loop (until findings stop or the budget is spent).
 - **Spawns a subagent to fix a merge conflict** as one arises, and never
@@ -329,6 +348,11 @@ description: Turns a user's selector into one run epic with its phase chain, and
 - **Takes the run's one human interaction** — the authorization gate,
   opened before it asks so a session that dies mid-question leaves the
   run held rather than authorized.
+- **Resolves seven gate rows**, the seventh being the circuit breaker's
+  threshold — `sf.toml`'s `[run] dispatch_failure_threshold` where the key is
+  present, else 3 — and records every row's value **and its source** in the
+  manifest's `standing_auth`, as it does for the other six. The Coordinator
+  passes that resolved value to `swarm ready`.
 - **Does not groom and does not dispatch.** A bead it admits may still be
   bounced by the next component.
 
@@ -408,8 +432,12 @@ description: Works an assigned batch bead by bead in one worktree, landing each 
 (skill — `run-batch`) — the only component that writes product code.
 
 - Resolves its own assignment from three given values: dispatch id, run
-  epic, scripts path. Everything else it queries — the tracker for its queue,
-  `swarm manifest` for the run's branch and checks baseline.
+  epic, scripts path. Everything else it queries — **`swarm ready --run
+  <epic> --agent <dispatch-id>` for its queue**, in dependency order and
+  carrying its own drain verdict, and `swarm manifest` for the run's branch
+  and checks baseline. A dispatch id no bead names answers *not an
+  established dispatch* rather than drained, so a mistyped id cannot read as
+  a finished batch.
 - Per bead: claim, read, implement **strictly in scope**, gate, record
   findings, close-and-commit.
 - **Files what it finds** beyond scope rather than doing it or dropping
@@ -543,6 +571,11 @@ for the same reason. It is a skill rather than a reference file because a fresh
 session can resolve a skill name and cannot resolve a path into a bundle it
 never loaded.
 
+- **Takes `swarm branch verify-landed` as its first act**, before it knows
+  which run it is in, and routes on its exit status: the command fetches the
+  remote before comparing, so a stale local record of where the remote points
+  cannot report a branch as landed. `swarm branch push` lands and re-proves
+  commits found unpushed.
 - Derives the run from **the branch**, its history from `git log`, its
   in-flight set from `git worktree list`, its manifest from the epic.
 - Classifies every unfinished bead by status against worktree presence.
@@ -622,6 +655,15 @@ This module SHALL comply with:
 - WHEN a component's returned verdict changes shape, the component that
   reads it SHALL be updated in the same change — a verdict nobody parses
   is indistinguishable from a phase that did not run.
+- **The Coordinator, Scope, Developer and Recovery components depend on the
+  `swarm` CLI**, whose container owns their contracts
+  ([[container-swarm-cli]]): `swarm phase close`, `swarm ready` (with
+  `--agent` and the breaker's threshold), `swarm dispatch open`,
+  `swarm dispatch accept`, `swarm branch verify-landed`, `swarm branch push`,
+  `swarm manifest` and `swarm status`. WHEN one of them changes its exit
+  statuses, its flags or its name, every component record naming it SHALL be
+  updated in the same change, and the skills SHALL route on the new statuses
+  rather than on message text.
 - WHEN a shared reference under `references/shared/` needs to change, the
   **source** named in its header SHALL be edited and
   `scripts/sync-shared-references.sh` re-run; a generated copy SHALL NOT
