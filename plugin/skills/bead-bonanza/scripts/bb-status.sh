@@ -31,7 +31,7 @@
 #
 # WHO RUNS IT
 #   The ORCHESTRATOR, after each bead's acceptance check and at every re-query
-#   of the ready front; a recovering session, as its first act; a woken
+#   of the ready set; a recovering session, as its first act; a woken
 #   durable trigger.
 #
 #   **A subagent never runs it.** Inside its own worktree the signals read

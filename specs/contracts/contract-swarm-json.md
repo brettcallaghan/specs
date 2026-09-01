@@ -6,7 +6,7 @@ description: The machine-readable output every swarm command emits, and
 slug: contract-swarm-json
 type: contract
 status: active
-updated_at: 2026-08-30T00:00:00Z
+updated_at: 2026-09-01T00:00:00Z
 provider: container-swarm-cli
 visibility: internal
 consumers:
@@ -14,7 +14,7 @@ consumers:
 specs:
   - "schemas/swarm/manifest.strata"
   - "schemas/swarm/output.strata"
-version: "1.0"
+version: "2.0"
 ---
 
 # Swarm CLI JSON Surfaces
@@ -135,11 +135,13 @@ cannot say which combination is coherent.
   version it was handed rather than on the binary's own version.
 - **Compatible changes:** the provider MAY add a field, add a manifest
   key, or widen an enumeration without a major version change.
-- **Breaking changes:** WHEN a field or a manifest key is removed,
-  renamed or retyped, the provider SHALL raise the major version. A
-  renamed manifest key is the sharpest case in this contract: a reader
-  gets absent rather than an error, and a run then proceeds without the
-  value. WHEN the document a flag selects changes, the provider SHALL
+- **Breaking changes:** WHEN a field, a manifest key, or the name of a
+  property a command reports is removed, renamed or retyped, the provider
+  SHALL raise the major version. A renamed manifest key is the sharpest
+  case in this contract: a reader gets absent rather than an error, and a
+  run then proceeds without the value. A reported property's name breaks a
+  consumer the same way and is covered for the same reason, even though
+  the schema field carrying it — a fact's `name` — has not changed. WHEN the document a flag selects changes, the provider SHALL
   raise the major version for the same reason a removed field would: a
   consumer parsing the old document gets a different one, and no field
   moved to tell it so.

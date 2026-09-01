@@ -20,13 +20,13 @@ func established() status.Unestablished { return status.Unestablished{Establishe
 
 // clearMeasurements is a run reading clear: one worktree standing (the
 // main checkout), no dispatch worktree, a fresh commit, an empty ready
-// front and a fully closed, unnarrowed scope.
+// ready set and a fully closed, unnarrowed scope.
 func clearMeasurements() status.Measurements {
 	return status.Measurements{
 		Run:        "run-1",
 		Worktrees:  status.Worktrees{Unestablished: established(), Standing: 1, Trees: []vcs.Worktree{{Path: "/w/0", Branch: "main"}}},
 		LastCommit: status.LastCommit{Unestablished: established(), SHA: "abc1234", Subject: "run-1.1 P1 done", When: time.Now().Add(-time.Minute), Age: time.Minute},
-		ReadyFront: status.ReadyFront{Unestablished: established(), Depth: 0},
+		Ready:      status.ReadySet{Unestablished: established(), Count: 0},
 		Completion: status.Completion{Unestablished: established(), Total: 1, Done: 1},
 		Scope:      status.Scope{Unestablished: established()},
 	}
@@ -60,7 +60,7 @@ func sampleRecords() []plan.Record {
 // run's live state would otherwise report.
 func TestATrackerQueryThatCannotAnswerReportsUnknownAndExitsNonZero(t *testing.T) {
 	m := clearMeasurements()
-	m.ReadyFront = status.ReadyFront{Unestablished: status.Unestablished{Reason: "bd: database is locked"}}
+	m.Ready = status.ReadySet{Unestablished: status.Unestablished{Reason: "bd: database is locked"}}
 
 	result := reportStatus(req(), m, nil, 30*time.Minute)
 
@@ -70,19 +70,19 @@ func TestATrackerQueryThatCannotAnswerReportsUnknownAndExitsNonZero(t *testing.T
 
 	var found bool
 	for _, f := range result.Facts {
-		if f.Name != "ready_front_depth" {
+		if f.Name != "ready_count" {
 			continue
 		}
 		found = true
 		if f.Established {
-			t.Errorf("ready_front_depth reads established though its query failed")
+			t.Errorf("ready_count reads established though its query failed")
 		}
 		if !strings.Contains(f.Reason, "database is locked") {
 			t.Errorf("reason = %q, want it to carry the query's own failure", f.Reason)
 		}
 	}
 	if !found {
-		t.Fatal("no fact named ready_front_depth was reported")
+		t.Fatal("no fact named ready_count was reported")
 	}
 
 	// A completion line the query did not touch is unaffected.
@@ -157,7 +157,7 @@ func TestTheReportNamesWhatItCannotObserveAndWhatItGivesInstead(t *testing.T) {
 
 // AC: AC-SWARM-CORE-003.1, AC-SWARM-CORE-003.11
 //
-// No dispatch worktree stands, the ready front is not empty, and the last
+// No dispatch worktree stands, the ready set is not empty, and the last
 // commit is older than the threshold in force: the report states the
 // measurements and the threshold, exits with the attention status, and
 // never says the run has stalled — the word appears nowhere in what it
@@ -166,7 +166,7 @@ func TestNoProgressIsReportedAsMeasurementsNeverAsAStall(t *testing.T) {
 	m := clearMeasurements()
 	m.Worktrees = status.Worktrees{Unestablished: established(), Standing: 1,
 		Trees: []vcs.Worktree{{Path: "/w/0", Branch: "main"}}} // no Dispatch was attributed this tree: no dispatch worktree stands
-	m.ReadyFront = status.ReadyFront{Unestablished: established(), Depth: 4}
+	m.Ready = status.ReadySet{Unestablished: established(), Count: 4}
 	m.LastCommit = status.LastCommit{Unestablished: established(),
 		SHA: "abc1234", Subject: "run-1.1 P1 done",
 		When: time.Now().Add(-3*time.Hour - 12*time.Minute), Age: 3*time.Hour + 12*time.Minute}
@@ -207,7 +207,7 @@ func TestNoProgressIsReportedAsMeasurementsNeverAsAStall(t *testing.T) {
 	}
 }
 
-// A run whose last commit is recent, or whose ready front is empty, or
+// A run whose last commit is recent, or whose ready set is empty, or
 // which still has a dispatch worktree standing, reads clear: the attention
 // condition needs all three at once.
 func TestProgressIsClearUnlessAllThreeConditionsHold(t *testing.T) {
@@ -216,18 +216,18 @@ func TestProgressIsClearUnlessAllThreeConditionsHold(t *testing.T) {
 		edit func(*status.Measurements)
 	}{
 		{"a dispatch worktree stands", func(m *status.Measurements) {
-			m.ReadyFront.Depth = 4
+			m.Ready.Count = 4
 			m.LastCommit.Age = 3 * time.Hour
 			m.Dispatches = append(m.Dispatches, status.Dispatch{
 				Unestablished: established(), Agent: "dev-1", Drained: true, Worktree: "/w/1",
 			})
 		}},
-		{"the ready front is empty", func(m *status.Measurements) {
-			m.ReadyFront.Depth = 0
+		{"the ready set is empty", func(m *status.Measurements) {
+			m.Ready.Count = 0
 			m.LastCommit.Age = 3 * time.Hour
 		}},
 		{"the commit is recent", func(m *status.Measurements) {
-			m.ReadyFront.Depth = 4
+			m.Ready.Count = 4
 			m.LastCommit.Age = time.Minute
 		}},
 	}
@@ -246,7 +246,7 @@ func TestProgressIsClearUnlessAllThreeConditionsHold(t *testing.T) {
 // compares against, not the default.
 func TestAGivenThresholdIsTheOneStatedAndCompared(t *testing.T) {
 	m := clearMeasurements()
-	m.ReadyFront.Depth = 1
+	m.Ready.Count = 1
 	m.LastCommit.Age = 2 * time.Hour
 
 	clear := reportStatus(req(), m, nil, 3*time.Hour)

@@ -143,7 +143,7 @@ they were made, keep that from becoming a slow corruption:
   a phase chain, a flat target, beads beneath it. It tracks the current
   code and is re-recorded whenever the shape it asserts changes.
 - **A variant** is a world the core does not express — a conflicted merge,
-  a resumed run, a second target, a run whose front is empty. It is
+  a resumed run, a second target, a run whose ready set is empty. It is
   **derived from the core as a branch** rather than authored beside it, so
   a change to the core reaches it. A `git bundle` carries every ref, so a
   variant is a branch in the same bundle and shares the core's objects and

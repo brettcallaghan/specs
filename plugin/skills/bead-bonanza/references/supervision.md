@@ -15,8 +15,8 @@ measures both.
   bead is accepted where an unfinished one is not
 - Running without the hooks — the fallback every step is written against
 - The review loop's budget — what the counter bounds, and what it does not
-- Re-checking readiness at every re-query — three signals `swarm status`
-  does not carry
+- Where readiness is settled — grooming's, scope's, and the one default
+  that keeps the ready set moving
 
 ## Where is this run
 
@@ -48,7 +48,7 @@ reading to whoever can see the harness.
 a signal whose only writer is the thing it monitors, so it reports "no failure"
 and "no monitor" identically.
 
-**Re-querying the ready front is two steps, in order.** First, close eligible
+**Re-querying the ready set is two steps, in order.** First, close eligible
 epics — scoped by hand, never with the bare command: `bd epic close-eligible`
 takes NO epic argument (bd 1.2.2, `--help`) and a passed id is silently
 ignored, so `bd epic close-eligible <epic>` reads as scoped and is not. Run
@@ -59,65 +59,40 @@ belonging to other runs and other humans. Then `bd ready --parent <epic>
 --exclude-type=epic`. An epic does not close on its own when its children do
 (measured), so skipping the first step is a silent deadlock, not a slowdown —
 a finished ceremony phase stays open, the beads it gates never reach the
-front, and an empty front reads as the run being done when it has only
+ready set, and an empty ready set reads as the run being done when it has only
 stalled.
 
 Live progress — the event stream, the plugin's background monitor that reads
 it without being armed, and the durable out-of-session trigger — is
 `progress-streaming.md`.
 
-## Re-checking readiness at every re-query
+## Where readiness is settled — not here
 
-`swarm status` measures the run as a whole; it does not carry three signals
-that a bead can trip **after** planning already gated the front once. Run
-these by hand at every re-query, not only at plan time — a `discovered-from`
-addition, an undeferred bead, or a bead a human adds mid-run all enter the
-dispatchable set after planning, and each of these three exists to catch one
-of them before it is dispatched.
+Three signals gate a bead before it may be dispatched. None of the three is
+re-run at a re-query, because each has an owner earlier in the run and
+discovering a failure here means it already passed the gate that owns it.
 
-**1. `bd lint` intersected with this run's own ready queue.** `bd lint` exits
-0 even when it prints warnings — the findings are the verdict, the exit
-status is not — and it has no scope flag, so it always reports on the whole
-tracker. Blaming this run for another run's beads is a false signal, so
-intersect its findings with the run's own queue before reading them:
+- **`bd lint`'s findings and a bead's capability tier are grooming's.** A
+  bead reaching the ready set with no acceptance criterion, or with no tier, is
+  a grooming defect. `groom-beads` assigns a tier to every bead it grooms
+  and `sprint-plan` gates the queue on readiness before the target epic
+  carries it.
+- **The open human-decision queue is scope's**, resolved by the end of the
+  scope phase. A decision nobody made is **explicitly deferred**, and a
+  deferred bead is out of the run — so a run that reaches its first
+  dispatch owes no human an answer, and there is no queue to re-count.
+- **A ready bead carrying no `metadata.tier` is dispatched at the ADVANCED
+  tier.** The absence resolves to a value rather than withholding the bead,
+  so a bead that slipped grooming cannot stop the ready set from moving. Fix
+  the bead's tier when you notice it; do not hold the run for it.
 
-```sh
-bd lint 2>&1 | awk '/^[^[:space:]]+ \[/{id=$1} /⚠/{print id}' | sort -u >/tmp/bb-lint-flagged
-bd ready --parent <epic> --exclude-type=epic --json | jq -r '.[].id' | sort >/tmp/bb-ready
-comm -12 /tmp/bb-lint-flagged /tmp/bb-ready
-```
-
-A non-empty result names a ready bead missing a section `bd lint` requires
-for its type — most often Acceptance Criteria — dispatched to a subagent
-with nothing to build against unless it is caught here. **`bd lint`'s check
-is a substring match on the description text, not a check that the section
-is actually filled in** — a description that only discusses "acceptance
-criteria" as a topic, without supplying any, reads as satisfied. This
-intersection narrows the false-positive rate (another run's beads); it does
-not close that false-negative gap, which is `bd`'s to fix.
-
-**2. The open human-decision queue.**
-
-```sh
-bd list --label human --status open --json
-```
-
-Not `bd human list`: measured, it keeps listing a bead after it has been
-closed, so that query would go red on the first question a run ever asked
-and stay red forever after it was answered. A non-empty result here means a
-human still owes this run an answer even though a bounced bead is excluded
-from the dispatch front and from most completion counts — so the run's
-progress can otherwise read as further along than it is.
-
-**3. Every ready bead carries `metadata.tier`.**
-
-```sh
-bd ready --parent <epic> --exclude-type=epic --json \
-  | jq -r '.[] | select((.metadata.tier // "") == "") | .id'
-```
-
-A bead with no tier is one dispatch cannot resolve a model for. Any id this
-prints needs a tier before it is dispatched.
+**What does still move after planning is SCOPE**, and that is the diff
+above rather than a readiness check: a `discovered-from` addition, an
+undeferred bead, or a bead a human adds mid-run enters the run after the
+queue was gated. `swarm status` names beads the manifest's `admitted` list
+does not; each is admitted as an amendment or deferred out before it is
+dispatched, and one admitted that way is groomed on the way in — which is
+where its tier and its lint findings are settled, exactly as at plan time.
 
 ## When something dies
 
@@ -261,7 +236,7 @@ not Claude Code, or on one whose hook surface differs. Nothing in this
 ceremony may depend on a hook having fired.
 
 WHEN no hook is installed, the loop is yours to run: after every batch returns, re-query
-the ready front by the two steps above and stop only when it is empty. That is
+the ready set by the two steps above and stop only when it is empty. That is
 the identical check, made by you instead of by the harness. `--status`, or the
 absence of the script, says which of the two you are in.
 

@@ -25,7 +25,7 @@ import (
 // fixture records the version it was recorded against and is checked
 // against this. The contract document's own frontmatter is a third copy,
 // and nothing checks that it agrees — keep the two in step by hand.
-const Version = "1.0"
+const Version = "2.0"
 
 // StageDeclaration pairs a stage of a run with the generated struct
 // declaring the manifest keys that become required at it.

@@ -55,7 +55,7 @@ func specWithEveryFactKind() Spec {
 				Resolution: "close the bead or mark it blocked",
 				Facts: []Fact{
 					Text("branch", "claude/branch-x", from),
-					Count("ready_front", 3, from),
+					Count("ready_count", 3, from),
 					Flag("drained", false, from),
 					List("admitted", []string{"run-1.1", "run-1.2"}, from),
 					Unestablished("review_passes", "the key is absent", from),

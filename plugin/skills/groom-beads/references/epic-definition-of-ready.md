@@ -79,7 +79,7 @@ Check it whenever you groom under an epic.
 An epic whose children are all beads gets exact answers from
 `bd swarm validate`, `bd epic status` and `bd list --parent`.
 
-An epic containing **sub-epics** still dispatches correctly: the ready front
+An epic containing **sub-epics** still dispatches correctly: the ready set
 (`bd ready --parent <epic> --exclude-type=epic`) is transitive and honours
 dependency edges that cross between sub-epics. But those three commands are
 **one level deep** — they report the sub-epics as work items and never see

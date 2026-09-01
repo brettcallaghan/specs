@@ -150,7 +150,7 @@ copy.
 6. **Hand the state back; do not act on it.** The coordinator re-enters at
    groom & plan, and re-entering is cheap by design: `sprint-plan` grooms only
    what is not already Ready and re-derives the partition from the **current**
-   ready front, and closed beads are not in that front — so a resumed run is a
+   ready set, and closed beads are not in that ready set — so a resumed run is a
    *narrower repeat*, not a duplicate. Scope has nothing to resolve, because
    the epic already exists.
 

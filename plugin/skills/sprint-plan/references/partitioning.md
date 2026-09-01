@@ -55,7 +55,7 @@ bd list --parent <run-epic> --json \
 
 **The partition is edges in the graph, not a schedule.** Two beads that must
 not run at once get a `blocks` edge between them, so they cannot both be in
-`bd ready` and the coordinator can dispatch the front continuously without
+`bd ready` and the coordinator can dispatch the ready set continuously without
 consulting a plan. Beads discovered mid-run enter through the emergent-work
 scope test and are recorded as an amendment; the graph absorbs them without a
 re-plan, which a schedule could not.
@@ -194,7 +194,7 @@ One newline-delimited JSON object per line:
 ```
 
 **`from` is the WAITER**, and getting it backwards inverts a dependency at exit
-0 with no warning — which is why the front is asserted after loading rather
+0 with no warning — which is why the ready set is asserted after loading rather
 than the file being trusted. Measured on bd 1.2.2: after
 `{"from":"scr3-x88","to":"scr3-9c4","type":"blocks"}` loaded, `bd ready`
 returned `scr3-9c4`, and `bd blocked` reported `scr3-x88: Blocked by 1 open
@@ -241,10 +241,10 @@ written with `bd update --set-metadata` and does not appear in it. Unmarked, a
 policy edge is indistinguishable from a real dependency the moment the file is
 out of view — which is every reader after the run starts.
 
-### Then assert the front
+### Then assert the ready set
 
 After the coordinator loads the file, `bd ready --parent <epic>
 --exclude-type=epic` must contain neither end of any collision pair together.
 Assert that rather than trusting the orientation: an inverted edge produces a
-plausible-looking front and no error anywhere.
+plausible-looking ready set and no error anywhere.
 

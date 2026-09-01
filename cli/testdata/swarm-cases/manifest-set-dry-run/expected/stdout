@@ -1,4 +1,4 @@
-contract_version: "1.0"
+contract_version: "2.0"
 command: swarm manifest set
 run: fixture-run
 mode: dry-run

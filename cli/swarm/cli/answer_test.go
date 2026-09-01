@@ -131,12 +131,12 @@ func TestAConditionNoPropertyCarriesIsReportedAsIssues(t *testing.T) {
 		Outcome:    OutcomeAttention,
 		Summary:    "no dispatch worktree stands; 1 bead(s) ready",
 		Resolution: "dispatch a new batch, or check why none is running",
-		Facts:      []Fact{Count("ready_front_depth", 1, probeInvocation)},
+		Facts:      []Fact{Count("ready_count", 1, probeInvocation)},
 	})
 	want := "issues:\n" +
 		"  - no dispatch worktree stands; 1 bead(s) ready. dispatch a new batch," +
 		" or check why none is running\n" +
-		"ready_front_depth:\n" +
+		"ready_count:\n" +
 		"  ok: true\n" +
 		"  value: 1\n" +
 		"  issues: []\n"

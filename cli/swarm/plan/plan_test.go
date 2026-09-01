@@ -68,7 +68,7 @@ func TestExplainPrintsEveryInvocationInOrderAndExecutesNone(t *testing.T) {
 
 	p := plan.Plan{Name: "accept a dispatch", Steps: []plan.Step{
 		readStep("read-epic", "show", "run-1", "--json"),
-		readStep("read-front", "ready", "--parent", "run-1"),
+		readStep("read-ready", "ready", "--parent", "run-1"),
 		{Name: "claim", Executable: "bd", Effect: plan.Write,
 			Args: []plan.Arg{plan.Lit("update"), plan.Lit("run-1.4"), plan.Lit("--claim")}},
 	}}
@@ -139,7 +139,7 @@ func TestExecutePrintsEachInvocationAsItRunsIt(t *testing.T) {
 
 	p := plan.Plan{Steps: []plan.Step{
 		readStep("read-epic", "show", "run-1", "--json"),
-		readStep("read-front", "ready", "--parent", "run-1"),
+		readStep("read-ready", "ready", "--parent", "run-1"),
 	}}
 
 	report, err := (plan.Runner{Exec: fake, Out: &out}).Run(context.Background(), p, plan.ModeExecute)

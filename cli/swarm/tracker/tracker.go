@@ -81,8 +81,8 @@ type Bead struct {
 	Metadata map[string]any
 }
 
-// ReadyFilter narrows a ready-front query. Every field is optional; the
-// zero value asks for the whole front under the scope.
+// ReadyFilter narrows a ready query. Every field is optional; the
+// zero value asks for the whole ready set under the scope.
 type ReadyFilter struct {
 	// Assignee narrows to one agent's queue.
 	Assignee string
@@ -113,9 +113,9 @@ type Tracker interface {
 	// it.
 	Children(name, parent string) plan.Step
 
-	// ReadyFront declares a step reading the beads under a scope that
+	// Ready declares a step reading the beads under a scope that
 	// nothing is blocking right now. Its decoded value is a []Bead.
-	ReadyFront(name, scope string, filter ReadyFilter) plan.Step
+	Ready(name, scope string, filter ReadyFilter) plan.Step
 
 	// Claim declares a step taking a bead for an agent: it sets the state
 	// and the assignee together, because a bead claimed by nobody is

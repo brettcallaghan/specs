@@ -16,9 +16,10 @@ sources: []
 A `bead-bonanza` run is a distributed system whose control plane is
 documentation. Its invariants are prose, its state transitions are prose,
 and its guards are paragraphs an agent has to remember at the moment it
-matters. Measured across the ten sprint-family skills: 79 distinct
-capabilities, of which **73 carry a recorded trap** — a way the obvious
-invocation produces the wrong result.
+matters. Nearly every capability that prose describes carries a **trap** —
+a way the obvious invocation produces the wrong result. The inventory
+behind that claim, and the counts at the time it was taken, are in the
+capability audit this document's References name.
 
 This document is **the dispatch loop**: the five commands that send work
 out and take it back. The loop is where the run spends nearly all of its
@@ -48,17 +49,8 @@ Its value is three things, in this order:
   command is one line.
 
 **The order is the cycle, not a ranking.** Closing what a run has
-finished is what makes the front move; then the front, opening a
+finished is what refills the ready set; then reading it, opening a
 dispatch, accepting one back, and proving the result landed.
-
-**Two requirement numbers are gaps.** 002 and 007 named `swarm run
-status` and the `--explain` flag, both now in [[frd-swarm-core]]. Their
-identifiers are retired rather than reassigned, so a note referring to
-either still resolves to the thing it meant.
-
-**The run's own structure** — building its shape, partitioning and gating
-the queue, the readiness gate, claims, findings and reconstructing a run
-nobody is holding — is [[frd-swarm-cli]]. Nothing here waits on it.
 
 ### What this document assumes rather than specifies
 
@@ -72,15 +64,29 @@ is small and fixed:
 |---|---|---|
 | `branch` | `dispatch open` | `dispatch open`, once |
 | `base_sha` | — | `dispatch open`, once |
-| `admitted` | `queue front` | — |
-| the consecutive-failure count | `queue front` | `queue front` |
+| `admitted` | `ready` | — |
+| `consecutive_dispatch_failures` | `ready` | `ready` |
 
-**One key nothing writes today**: the consecutive-failure count that
-`queue front` needs in order to survive a resume. Absent, it reads as
-zero, which is correct for a fresh run and wrong for a resumed one. What
-that count should measure is settled in this document's FEAT-SWARM-DISP-003;
-where it is stored is the manifest's, and it is the one key this document
-adds to it.
+**`consecutive_dispatch_failures` is the one key this document adds**, and
+adding it is a schema change rather than a convention: the manifest's key
+set is closed, an undeclared key is refused rather than stored, and a
+key's name, type and stage all come from one declaration. So the key is
+declared in `schemas/swarm/manifest.strata`'s `DispatchKeys` struct — an
+optional `Int` alongside `branch` and `base_sha`, because it first has a
+value when the run first dispatches. What it counts is settled in
+FEAT-SWARM-DISP-002; the record it lives in is [[frd-swarm-core]]'s.
+
+**Absent is not zero, and `ready` is what reconciles them.** The
+manifest reader reports an unwritten key as absent rather than as an empty
+value, which is what makes a resumed run's count recoverable at all. A
+ready set query treats an absent count as zero — correct for a run that has
+dispatched nothing — and it is the write, not the read, that makes the
+count survive.
+
+**The run's own structure**, which is [[frd-swarm-cli]]'s: building the
+run's shape, partitioning and gating the queue, the readiness gate,
+claims, findings, and reconstructing a run nobody is holding. Nothing
+here waits on any of it.
 
 **Judgment.** Classifying a review finding's scope, resolving a rebase
 conflict, and deciding whether partial work is finishable stay with an
@@ -109,17 +115,17 @@ run epic
 ├ scope
 │   └ AUTHORIZATION GATE
 ├ groom & plan ─┐
-├ TARGET ───────┤ FLAT: tasks only ....... swarm branch ensure     004
+├ TARGET ───────┤ FLAT: tasks only
 │  ├ dispatch ┐ │  repeat                  swarm phase close           001
-│  ├ merge    │ │  until the               swarm queue front           003
-│  └ supervise┘ │  front is dry            swarm dispatch open         004
-│               │                          swarm dispatch accept       005
+│  ├ merge    │ │  until the               swarm ready                 002
+│  └ supervise┘ │  ready set empties       swarm dispatch open         003
+│               │                          swarm dispatch accept       004
 │               │                          swarm status            core
 ├ review ───────┘
 ├ retro
-└ post-flight ............................ swarm branch verify-landed  006
+└ post-flight ............................ swarm branch verify-landed  005
 
-inside a dispatch, run by the dev agent .. swarm queue front --agent   003
+inside a dispatch, run by the dev agent .. swarm ready --agent   002
 ```
 
 `core` marks the one step in this loop that [[frd-swarm-core]] specifies.
@@ -128,25 +134,43 @@ Read as a table:
 
 | Lifecycle step | Caller | Commands | Frequency |
 |---|---|---|---|
-| the sprint branch | coordinator | `branch ensure` (004) | once; reused on resume |
-| every re-query of the front | coordinator | `phase close` (001), `queue front` (003), and `status` from the core document | many times per run |
-| sending a dispatch out | coordinator | `dispatch open` (004) | once per dispatch |
-| inside a dispatch | dev agent | `queue front --agent` (003) | once per bead |
-| a dispatch's return | coordinator | `dispatch accept` (005), which ends in `branch verify-landed` (006) | once per dispatch |
-| post-flight | coordinator | `branch verify-landed` (006) | once |
+| the sprint branch | coordinator | the first `dispatch open` (003) creates it | once; reused on resume |
+| every re-query of the ready set | coordinator | `phase close` (001), `ready` (002), and `status` from the core document | many times per run |
+| sending a dispatch out | coordinator | `dispatch open` (003) | once per dispatch |
+| inside a dispatch | dev agent | `ready --agent` (002) | once per bead |
+| a dispatch's return | coordinator | `dispatch accept` (004), which ends in `branch verify-landed` (005) | once per dispatch |
+| post-flight | coordinator | `branch verify-landed` (005) | once |
 
 ### The shape of a command
 
-**`swarm <noun> <verb>`.** The nouns this document uses are `run`,
-`phase`, `queue`, `dispatch` and `branch`.
+**`swarm <noun> <verb>`, with one bare verb.** The nouns this document
+uses are `phase`, `dispatch` and `branch`. `swarm ready` carries none,
+for the reason [[frd-swarm-core]] gives for `swarm status`: a segment
+before the verb has to carry information, and every command here concerns
+one run's graph, so naming that graph would say nothing. The word is the
+tracker's own — `bd ready` answers the same question over the whole
+repository that this answers over one run.
 
-**The conventions are [[frd-swarm-core]]'s** and are not restated here:
-the run scope that is an argument rather than a convention, `--explain`,
-`--json`, `--dry-run`, and the exit vocabulary. Every command below
-carries all of them.
+**The conventions are [[frd-swarm-core]]'s** and are not restated here.
+`--explain`, `--dry-run`, `--json` and `--full-result` are carried by
+every command in the CLI, so no signature below repeats them; `--run` is
+shown, because whether a command needs a run scope at all is this
+document's business and one command here does not. The four exit statuses
+are core's too, and the criteria below name the one each condition takes
+rather than saying only that it is non-zero.
 
-**The vocabulary is tracker-neutral on purpose.** A unit of work is a
-**bead**, not the name one tracker gives it.
+**What these commands print is [[swarm-output-standards]]'s.** The answer
+is a mapping of the properties the command established, rendered as YAML
+and as JSON under `--json`, with the provenance behind `--full-result`;
+a failing invocation renders a verdict per property instead. So a
+criterion below saying a command *reports* something is saying that thing
+is a property of the answer — not that it appears in prose the caller has
+to parse.
+
+**The vocabulary is the graph's, not the tracker's**, as core's is: a
+unit of work is a **bead**, one vertex in the dependency graph a run
+dispatches from. Another tracker's issue, story or ticket maps onto a
+bead.
 
 ## Terminology
 
@@ -154,14 +178,14 @@ carries all of them.
 |---|---|
 | **run** | one execution of `bead-bonanza` over one run epic |
 | **run epic** | the bead whose id is the run id and whose metadata is the run manifest |
-| **bead** | one unit of work in the tracker. The tracker-neutral name for what this project's tracker calls a bead and others call an issue, story or ticket |
+| **bead** | one unit of work, and one vertex in the graph a run dispatches from. The graph is the model; another tracker's issue, story or ticket maps onto a bead |
 | **phase epic** | one of the epics chained beneath the run epic, in order: pre-flight, scope, plan, target, review, retro, post-flight |
 | **target epic** | the flat phase epic whose task children are the run's work |
 | **manifest** | the JSON object in the run epic's metadata; the run's only durable record |
-| **dispatch** | one agent working one queue in one worktree on one branch. A dispatch carries one or many beads |
-| **dispatch id** | one agent's whole identity — its assignee, its tracker actor, and its branch name. Derived from the run epic id, never minted |
-| **ready front** | the complete set of beads in the run that nothing is blocking right now |
-| **dispatch front** | the ready front with the run's dispatch filter applied, which is the set that may be handed to agents |
+| **dispatch** | the act of handing a batch of beads to a subagent, which works them in its own worktree on its own branch and hands the branch back. A dispatch carries one or many beads |
+| **dispatch id** | one string that is at once the subagent's identity, the assignee on every bead in its batch, its tracker actor, and its branch name. Derived from the run epic id, never minted |
+| **ready set** | the complete set of beads in the run that nothing is blocking right now |
+| **dispatch set** | the ready set with the run's dispatch filter applied, which is the set that may be handed to agents |
 | **drained** | an agent holding nothing ready and nothing in progress. Two queries, because the ready query alone excludes in-progress work |
 | **landing check** | one fetch plus one comparison of a local branch against its remote counterpart |
 | **derivation** | an answer requiring a tree walk or a join across the tracker and version control that no single command returns |
@@ -174,11 +198,11 @@ carries all of them.
 **Command:**
 
 ```text
-swarm phase close --run <run-epic-id> [--dry-run] [--json]
+swarm phase close --run <run-epic-id>
 ```
 
 **Replaces:** `bead-bonanza/references/supervision.md`, "Re-querying the
-ready front is two steps, in order"; `references/dispatching.md`, the
+ready set is two steps, in order"; `references/dispatching.md`, the
 first bullet of "Re-verify at every re-query"; `references/run-record.md`,
 "Closing a ceremony epic is `bd epic close-eligible`, scoped BY HAND";
 and the paragraph in `bead-bonanza/SKILL.md` beginning "Re-query before
@@ -192,15 +216,15 @@ Feature: Close this run's finished phase epics
 
   As a coordinator advancing a run
   I want to close the phase epics this run has finished and only those
-  So that the beads they gate enter the ready front without my
+  So that the beads they gate enter the ready set without my
   touching another run's epics to do it
 
   This is the sharpest capability in the inventory because it fails
   destructively in one direction and silently in the other. Wrong one
   way, it closes every eligible epic in the database. Skipped the other
   way, a finished phase never closes, the beads it gates never
-  become ready, and an empty front reads as "the run is done" rather than
-  "the run has stalled". It runs at every re-query of the front, so both
+  become ready, and an empty ready set reads as "the run is done" rather than
+  "the run has stalled". It runs at every re-query of the ready set, so both
   failures are reachable many times per run.
 
   The target epic closes on the same rule as the ceremony phases and is
@@ -241,7 +265,7 @@ Feature: Close this run's finished phase epics
   @AC-SWARM-DISP-001.5 @negative
   Scenario: An unscoped invocation is refused
     When the command is invoked without a run scope
-    Then it exits non-zero
+    Then it exits with the malformed-invocation status
     And no epic's status changes
 
   @AC-SWARM-DISP-001.6 @negative
@@ -268,29 +292,30 @@ Feature: Close this run's finished phase epics
     Given the eligibility query fails
     When the command runs
     Then it reports the query as unanswered
-    And it exits non-zero
+    And it exits with the stop status
 ```
 
-### FEAT-SWARM-DISP-002 — moved
-
-`swarm status` is specified in [[frd-swarm-core]] as
-FEAT-SWARM-CORE-003. It moved because it reads the run manifest and is
-the first command that does, so it belongs beside the component it reads
-through. This identifier is retired and is not reused.
-### FEAT-SWARM-DISP-003: Answer what may be dispatched now, and what an agent still holds
+### FEAT-SWARM-DISP-002: Answer what may be dispatched now, and what an agent still holds
 
 **Command:**
 
 ```text
-swarm queue front --run <id> [--agent <dispatch-id>] [--json]
+swarm ready --run <id> [--agent <dispatch-id>]
 ```
 
-**One command, two callers.** Without `--agent` it is the coordinator's
-dispatch front: what may go out now. With `--agent` it is one dispatch's
-own queue in order, plus that agent's drain verdict — which is what a dev
-agent loops on, and what a coordinator asks about an agent it is waiting
-for. They are the same query with one more filter, so the filter set and
-its four traps are implemented and tested once.
+**One command, two callers.** Without `--agent` it is the **whole run's**
+dispatchable set — every bead any agent could work right now, across every
+dispatch. It is not the coordinator's own work, and the breadth is the
+point: planning has already assigned each bead a dispatch id, so an answer
+that names them is what tells a coordinator which dispatch ids have work
+waiting and no agent standing over it — which is how it decides what to
+spawn next. Narrow it and the coordinator can see only what it already
+started.
+
+With `--agent` it is one dispatch's own queue in order, plus that agent's
+drain verdict — what a dev agent loops on, and what a coordinator asks
+about an agent it is waiting for. They are the same query with one more
+filter, so the filter set and its traps are implemented and tested once.
 
 **What the breaker counts, because the unit decides whether it fires at
 all.** The rule it mechanizes is stated in the skills as *three
@@ -318,6 +343,26 @@ And a payload that is not a list, counted with a naive length, answers for
 whatever it is handed — an error body read back unguarded reports a queue
 as long as its own text.
 
+**The scope comparison is not this command's either.** A bead present in
+the run that the manifest's `admitted` list does not name is a scope
+addition, and `swarm status` already reports one — the coordinator asks
+that question once per re-query, of the command that measures the whole
+run, rather than twice.
+
+**Three readiness signals are deliberately NOT this command's**, and
+naming them is what stops the next reader assuming the ready set gates them.
+`bd lint`'s findings and a bead's capability tier are settled while the
+queue is groomed, not while it is dispatched — a bead reaching the ready set
+without an acceptance criterion is a grooming defect, and the ready set is
+the wrong place to discover it. **A ready bead carrying no tier is
+dispatched at the advanced tier**, which is the resolution rule rather
+than a reason to withhold the bead. And the open human-decision queue is
+resolved by the end of the run's scope phase: a decision nobody made is
+explicitly deferred, and a deferred bead is out of the run. What survives
+into this command is the one filter that must hold at dispatch time — a
+bead awaiting a human answer is not offered — because a bead can be
+labelled for a human after planning gated the queue.
+
 **"Drained" and "never given anything" are different answers**, and the
 command separates them. An agent with nothing ready and nothing in
 progress has finished; an agent with nothing assigned to it in this run at
@@ -334,12 +379,12 @@ hooks".
 **Acceptance Criteria:**
 
 ```gherkin
-@FEAT-SWARM-DISP-003
+@FEAT-SWARM-DISP-002
 Feature: Answer what may be dispatched now, and what an agent still holds
 
   As a coordinator deciding what to send out, or an agent asking what is
   left in its own queue
-  I want the front returned with the run's filter applied, narrowable to
+  I want the ready set returned with the run's filter applied, narrowable to
   one dispatch, and systemic failure detected
   So that I never hand an agent work meant for a human, work already
   finished, or work somebody else is holding, and I stop when the next
@@ -350,135 +395,149 @@ Feature: Answer what may be dispatched now, and what an agent still holds
   since a completion count that hides it reports a run as drained while a
   human still owes it an answer.
 
-  @AC-SWARM-DISP-003.1
-  Scenario: A bead awaiting a human is excluded from the dispatch front
+  @AC-SWARM-DISP-002.1
+  Scenario: A bead awaiting a human is excluded from the dispatch set
     Given a bead in the run labelled for human attention
-    When the dispatch front is queried
+    When the dispatch set is queried
     Then that bead is not in it
 
-  @AC-SWARM-DISP-003.2
+  @AC-SWARM-DISP-002.2
   Scenario: The same bead is included in a completion count
     Given the same bead
     When the run's outstanding work is counted
     Then that bead is counted
 
-  @AC-SWARM-DISP-003.3 @negative
+  @AC-SWARM-DISP-002.3 @negative
   Scenario: An empty or missing run scope is refused
-    When the front is queried with no run scope
-    Then the command exits non-zero
+    When the ready set is queried with no run scope
+    Then the command exits with the malformed-invocation status
     And no beads are returned
 
-  @AC-SWARM-DISP-003.4
+  @AC-SWARM-DISP-002.4
   Scenario: Consecutive dispatches that completed nothing stop the run
     Given the configured number of consecutive dispatches returned with no bead completed
-    When the front is queried
+    When the ready set is queried
     Then the command reports the run as stopped
-    And exits non-zero
+    And it exits with the stop status
 
-  @AC-SWARM-DISP-003.16
+  @AC-SWARM-DISP-002.5
   Scenario: A dispatch that completed some of its work does not advance the breaker
     Given a dispatch that completed four beads and blocked two
-    When the front is queried
-    Then the consecutive-failure count is reported as zero
+    When the ready set is queried
+    Then the failure count is reported as zero
 
-  @AC-SWARM-DISP-003.17 @negative
+  @AC-SWARM-DISP-002.6 @negative
   Scenario: Beads a batch never reached do not advance the breaker
     Given one dispatch in which a bead blocked and five were returned as not reached
-    When the front is queried
-    Then the consecutive-failure count is reported as one rather than six
+    When the ready set is queried
+    Then the failure count is reported as one rather than six
 
-  @AC-SWARM-DISP-003.5 @negative
-  Scenario: Epics are never in the dispatch front
+  @AC-SWARM-DISP-002.7 @negative
+  Scenario: Epics are never in the dispatch set
     Given a run whose phase epics are open
-    When the dispatch front is queried
+    When the dispatch set is queried
     Then no epic is in it
 
-  @AC-SWARM-DISP-003.6 @negative
-  Scenario: A closed or deferred bead is not in the dispatch front
+  @AC-SWARM-DISP-002.8 @negative
+  Scenario: A closed or deferred bead is not in the dispatch set
     Given one closed and one deferred bead in the run
-    When the dispatch front is queried
+    When the dispatch set is queried
     Then neither is in it
 
-  @AC-SWARM-DISP-003.7
+  @AC-SWARM-DISP-002.9
   Scenario: A bead a live dispatch is already holding is not offered again
     Given a bead assigned to a dispatch whose worktree is standing
-    When the dispatch front is queried
+    When the dispatch set is queried
     Then that bead is reported as held rather than as available
 
-  @AC-SWARM-DISP-003.8
-  Scenario: The front reaches beads nested below the run epic
+  @AC-SWARM-DISP-002.10
+  Scenario: The ready set reaches beads nested below the run epic
     Given a run whose beads are children of the target epic rather than of the run epic
-    When the dispatch front is queried
+    When the dispatch set is queried
     Then those beads are in it
 
-  @AC-SWARM-DISP-003.9
-  Scenario: The consecutive-failure count survives a resumed run
+  @AC-SWARM-DISP-002.11
+  Scenario: The failure count survives a resumed run
     Given a run that recorded two consecutive dispatches completing nothing before its session ended
-    When a resumed session queries the front
+    When a resumed session queries the ready set
     Then the count is reported as two rather than zero
 
-  @AC-SWARM-DISP-003.10
-  Scenario: The front is compared against the admitted set
-    Given a bead in the front that the manifest's admitted list does not name
-    When the front is queried
-    Then that bead is named as an addition to the run's scope
-
-  @AC-SWARM-DISP-003.11
+  @AC-SWARM-DISP-002.12
   Scenario: An agent's own queue is the same query narrowed to that agent
     Given a dispatch holding three beads in a collision chain
-    When the front is queried for that dispatch
+    When the ready set is queried for that dispatch
     Then only beads assigned to that dispatch are returned
     And they are returned in the order their dependencies allow
 
-  @AC-SWARM-DISP-003.12
+  @AC-SWARM-DISP-002.13
   Scenario: An agent working a bead is not reported as drained
     Given an agent holding one bead in progress and none ready
-    When the front is queried for that agent
+    When the ready set is queried for that agent
     Then it is reported as still holding work
 
-  @AC-SWARM-DISP-003.13
+  @AC-SWARM-DISP-002.14
   Scenario: An agent's queue never reaches outside the run
     Given the same dispatch id assigned to a bead in another run
-    When the front is queried for that agent
+    When the ready set is queried for that agent
     Then that bead is not returned
 
-  @AC-SWARM-DISP-003.14
+  @AC-SWARM-DISP-002.15
   Scenario: An agent that was never given a queue is not reported as drained
     Given a dispatch id with no bead assigned to it anywhere in the run
-    When the front is queried for that agent
-    Then it is reported as never assigned rather than as drained
-    And the command exits non-zero
+    When the ready set is queried for that agent
+    Then that dispatch is reported as not established rather than as drained
+    And the command exits with the attention status
 
-  @AC-SWARM-DISP-003.15
+  @AC-SWARM-DISP-002.16
   Scenario: A payload that is not a list is not counted as a queue
     Given a tracker response that is an error body rather than a list
-    When the front is queried
+    When the ready set is queried
     Then the queue is not reported as having that response's length
-    And the command exits non-zero
+    And the command exits with the stop status
+
+  @AC-SWARM-DISP-002.17
+  Scenario: The ready set spans every dispatch and names each bead's own
+    Given a run whose ready beads are assigned across three dispatch ids
+    When the dispatch set is queried with no agent named
+    Then beads assigned to all three dispatches are returned
+    And each is reported with the dispatch id it is assigned to
+    And a bead assigned to no dispatch is reported as unassigned rather than omitted
 ```
 
-### FEAT-SWARM-DISP-004: Open a dispatch — the sprint branch and its worktree
+### FEAT-SWARM-DISP-003: Open a dispatch — the sprint branch and its worktree
 
-**Commands:**
+**Command:**
 
 ```text
-swarm dispatch open     --run <id> --dispatch <dispatch-id> [--base <ref>] [--json]
-swarm branch ensure --run <id> [--name <branch>] [--json]
+swarm dispatch open --run <id> --dispatch <dispatch-id> [--base <ref>] [--branch <name>]
 ```
 
-**One step with two entry points, not two mechanisms.** Ensuring the
-sprint branch is the first thing `dispatch open` does, and it is
-idempotent: the first dispatch of a run creates the branch and records it,
-every dispatch after that reuses what the manifest holds, and a resumed
-run lands on the branch the original wrote. Folding it in is what makes
-the timing rule structural — the branch cannot be cut before grooming has
-committed, because nothing calls for it until the first dispatch does.
+**The sprint branch has one caller, and it is this command.**
+Establishing it is the first thing `dispatch open` does, and the step is
+idempotent: the first dispatch of a run creates the branch and records it
+in the manifest, every dispatch after that is cut from what the manifest
+holds, and a resumed run lands on the branch the original wrote. There is
+no second entry point, which is what makes the timing rule structural —
+the branch cannot be cut before grooming has committed, because nothing
+asks for it until the first dispatch does. `--branch` names it on the
+invocation that creates it; absent, the name derives from the run epic id,
+and once the manifest records a branch the flag is ignored in favour of
+the recorded one.
 
-`branch ensure` is that same step invoked alone. It earns its own
-entry point for two callers: a run whose authorization set says to open
-the pull request as a draft **at the start** needs the branch before any
-dispatch exists, and a coordinator that wants to fail fast on a branch
-name already taken would rather learn it before spawning anything.
+**The manifest is what makes a branch this run's.** A branch carrying the
+intended name that the manifest does not record was put there by something
+other than this run — an earlier run, a human, a stale checkout — and
+nothing in the repository distinguishes which. So the command refuses it
+rather than committing a run's work onto it, and the coordinator decides
+what to do. The converse is the same rule read forwards: a name the
+manifest already records **is** this run's branch, and is reused without a
+check.
+
+**A run needing a branch before its first dispatch is not served here.**
+Opening the pull request as a draft at the start of the run is that case,
+and it wants a branch at a point where the run has nothing to put on one.
+No command in this document creates one that early, and one that did would
+be cutting from a base the run's own grooming has not yet reached.
 
 **This requirement is the open side only.** Removing a worktree and
 deleting its branch belong to `swarm dispatch accept`, because removal is
@@ -487,11 +546,25 @@ Splitting that pair across two requirements is what let a removal run
 after a merge exited 128.
 
 **The base is an argument, which is what retires a blocking pre-flight
-gate.** Under the harness's own worktree isolation the base came from a
-global setting no repository owns, the path was chosen for you, and the
-only available check was an assertion after the fact. With the coordinator
+gate.** Under the harness's own worktree isolation the base comes from a
+global setting no repository owns, the path is chosen for you, and the
+only available check is an assertion after the fact. With `dispatch open`
 creating the worktree the base is named in the command and there is
 nothing to verify.
+
+**Three things the harness path costs, and this command takes back.** The
+base, above. The path: the harness has been observed placing the worktree
+INSIDE the repository, where it reads as uncommitted work in every
+`git status` the run takes, so the run has to gitignore a directory it
+does not control. And the branch name: the harness names it for its own
+agent id, carrying no dispatch id, so `git worktree list` cannot say which
+dispatch a tree belongs to and attribution has to go the long way round —
+through the bead each tree's HEAD commit closed, and that bead's assignee.
+Both are measured, and `bead-bonanza`'s worktree-mechanics reference is
+where the measurements are recorded. Naming the branch for the dispatch id
+makes the short way sound again; attribution through the commit stays
+correct and stays the fallback, and stops being the only thing that
+works.
 
 **Replaces:** `references/worktree-mechanics.md`, "The sprint branch" and
 "The base-ref trap" in full, and step 1 of "The worktree lifecycle"; the
@@ -501,7 +574,7 @@ paragraph and the sprint-branch section of `bead-bonanza/SKILL.md`.
 **Acceptance Criteria:**
 
 ```gherkin
-@FEAT-SWARM-DISP-004
+@FEAT-SWARM-DISP-003
 Feature: Open a dispatch — the sprint branch and its worktree
 
   As a coordinator isolating a dispatch
@@ -516,89 +589,85 @@ Feature: Open a dispatch — the sprint branch and its worktree
   available check is an assertion after the fact. Where the coordinator
   creates it, the base is an argument and there is nothing to verify.
 
-  @AC-SWARM-DISP-004.1
+  @AC-SWARM-DISP-003.1
   Scenario: A worktree is created from the base the caller names
     When a worktree is created for a dispatch
     Then its head is the named base
 
-  @AC-SWARM-DISP-004.2
+  @AC-SWARM-DISP-003.2
   Scenario: An existing sprint branch is reused rather than recreated
     Given a manifest already recording a sprint branch
-    When the branch is ensured
-    Then the recorded branch is checked out
-    And no new branch is created
+    When a dispatch is opened
+    Then the recorded branch is the one the dispatch is cut from
+    And no new sprint branch is created
 
-  @AC-SWARM-DISP-004.3
-  Scenario: A branch name already taken by unrelated work stops the run
-    Given the intended sprint branch name exists and is unrelated
-    When the branch is ensured
-    Then the command exits non-zero
+  @AC-SWARM-DISP-003.3
+  Scenario: A branch the manifest does not record stops the run
+    Given a branch already exists carrying the name this run would use
+    And the manifest records no sprint branch
+    When a dispatch is opened
+    Then the command exits with the attention status naming the existing branch
+    And the output names passing an explicit branch name as what would resolve it
     And no branch is created or moved
 
-  @AC-SWARM-DISP-004.4
+  @AC-SWARM-DISP-003.4
   Scenario: One worktree and one branch are created per dispatch
     When a worktree is created for a dispatch carrying several beads
     Then exactly one branch is created
     And it is named for the dispatch
 
-  @AC-SWARM-DISP-004.5
+  @AC-SWARM-DISP-003.5
   Scenario: The base sha is recorded when the sprint branch is created
     When the sprint branch is created
     Then the manifest records the sha it was created from
 
-  @AC-SWARM-DISP-004.6
-  Scenario: Opening the first dispatch of a run ensures the sprint branch
+  @AC-SWARM-DISP-003.6
+  Scenario: Opening the first dispatch of a run creates the sprint branch
     Given a run whose manifest records no sprint branch
     When a dispatch is opened
     Then the sprint branch is created and recorded before the worktree is created
 
-  @AC-SWARM-DISP-004.7
-  Scenario: A manifest write preserves the keys it did not set
-    Given a manifest carrying keys written by other components
-    When the branch and base sha are recorded
-    Then the other keys retain their values
-
-  @AC-SWARM-DISP-004.8 @negative
+  @AC-SWARM-DISP-003.7 @negative
   Scenario: A worktree is never created inside the repository's working tree
     When a worktree is created for a dispatch
     Then its path is outside the repository's working tree
 
-  @AC-SWARM-DISP-004.9
+  @AC-SWARM-DISP-003.8
   Scenario: The worktree path and branch name follow from the dispatch id alone
     Given two sessions holding the same run epic id and the same dispatch id
     When each computes the worktree path and branch name
     Then both compute the same values
 
-  @AC-SWARM-DISP-004.10
+  @AC-SWARM-DISP-003.9
   Scenario: Stale worktree registrations are cleared before the list is read
     Given a registered worktree whose directory no longer exists
     When a dispatch is opened
     Then the stale registration is cleared before any decision reads the list
 
-  @AC-SWARM-DISP-004.11
+  @AC-SWARM-DISP-003.10
   Scenario: The base defaults to the sprint branch as it stands now
     Given no base is named
     When a worktree is created for a dispatch
     Then its head is the sprint branch's head read at that moment
 
-  @AC-SWARM-DISP-004.12
+  @AC-SWARM-DISP-003.11
   Scenario: A dispatch whose worktree already exists is not recreated
     Given a dispatch whose worktree exists and holds uncommitted work
     When the dispatch is opened again
     Then the existing worktree is reported and left untouched
 
-  @AC-SWARM-DISP-004.13 @negative
+  @AC-SWARM-DISP-003.12 @negative
   Scenario: No global setting decides the base
     When a worktree is created for a dispatch
     Then no configuration outside the repository is read to determine its base
 ```
 
-### FEAT-SWARM-DISP-005: Accept a returned dispatch
+### FEAT-SWARM-DISP-004: Accept a returned dispatch
 
 **Command:**
 
 ```text
-swarm dispatch accept --run <id> --dispatch <dispatch-id> [--no-push] [--dry-run] [--json]
+swarm dispatch accept --run <id> --dispatch <dispatch-id> [--no-push]
 ```
 
 `accept` is the close ceremony the coordinator performs on a dispatch's
@@ -613,7 +682,7 @@ other rather than a sequence a caller may reorder:
 5  ancestry guard       the branch is an ancestor of the target
 6  remove               the worktree, then the branch
 7  post-merge acceptance the same signals with none deferred
-8  land                 push the sprint branch and prove it landed (FEAT-SWARM-DISP-006)
+8  land                 push the sprint branch and prove it landed (FEAT-SWARM-DISP-005)
 ```
 
 **Four things stop an acceptance, not one.** A rebase conflict is the one
@@ -632,7 +701,7 @@ check".
 **Acceptance Criteria:**
 
 ```gherkin
-@FEAT-SWARM-DISP-005
+@FEAT-SWARM-DISP-004
 Feature: Accept a returned dispatch
 
   As a coordinator accepting a dispatch that has returned
@@ -653,28 +722,28 @@ Feature: Accept a returned dispatch
   blocks the bead and leaves the evidence standing so an agent
   holding that bead's context can be dispatched into the worktree.
 
-  @AC-SWARM-DISP-005.1
+  @AC-SWARM-DISP-004.1
   Scenario: A worktree is not removed unless its branch is an ancestor of the target
     Given a dispatch branch that is not an ancestor of the target after the merge step
     When the command is asked to accept that dispatch
     Then the worktree is left in place
     And the branch is not deleted
-    And the command exits non-zero
+    And the command exits with the stop status
 
-  @AC-SWARM-DISP-005.2
+  @AC-SWARM-DISP-004.2
   Scenario: The refusal case is named before the refusal is acted on
     Given a fast-forward is refused
     When the command reports the refusal
     Then it states whether the branch was cut from the current target or from an earlier one
 
-  @AC-SWARM-DISP-005.3
+  @AC-SWARM-DISP-004.3
   Scenario: A concurrent branch is rebased onto the target read at merge time
     Given a dispatch branch cut from an earlier target than the current one
     When the command accepts that dispatch
     Then the branch is rebased onto the target as it stands at that moment
     And the resulting merge is a fast-forward
 
-  @AC-SWARM-DISP-005.4
+  @AC-SWARM-DISP-004.4
   Scenario: A rebase conflict blocks the bead and preserves the evidence
     Given a rebase that conflicts
     When the command reports it
@@ -682,14 +751,14 @@ Feature: Accept a returned dispatch
     And the unmerged bead is marked blocked
     And its worktree is left standing
 
-  @AC-SWARM-DISP-005.5
+  @AC-SWARM-DISP-004.5
   Scenario: A serialized branch that cannot fast-forward stops rather than retries
     Given dispatches were serialized and a fast-forward is refused
     When the command reports it
-    Then it exits non-zero without retrying the merge
+    Then it exits with the stop status without retrying the merge
     And the merge is never re-attempted with fast-forward-only relaxed
 
-  @AC-SWARM-DISP-005.6 @negative
+  @AC-SWARM-DISP-004.6 @negative
   Scenario: A step does not run when the step before it failed
     Given the merge step exits non-zero
     When the command reports the failure
@@ -697,65 +766,73 @@ Feature: Accept a returned dispatch
     And no branch is deleted
     And no push is attempted
 
-  @AC-SWARM-DISP-005.7
+  @AC-SWARM-DISP-004.7
   Scenario: A conflict report names every conflicting path
     Given a rebase that conflicts across several files
     When the command reports it
     Then every conflicting path is named in the output
 
-  @AC-SWARM-DISP-005.8
+  @AC-SWARM-DISP-004.8
   Scenario: A dispatch whose agent has not drained is not accepted
     Given the dispatch id still holds a bead that is ready or in progress
     When acceptance is attempted
-    Then the command exits non-zero naming what the agent still holds
+    Then the command exits with the attention status naming what the agent still holds
     And nothing is merged or removed
 
-  @AC-SWARM-DISP-005.9 @negative
+  @AC-SWARM-DISP-004.9 @negative
   Scenario: The dispatch branch is not deleted before the fast-forward succeeds
     Given a rebase that completed and a fast-forward that has not yet run
     When the command is interrupted at that point
     Then the dispatch branch still exists
 
-  @AC-SWARM-DISP-005.10 @negative
+  @AC-SWARM-DISP-004.10 @negative
   Scenario: A worktree is never force-removed
     Given a worktree whose removal is refused by the version control tool
     When the command reports it
     Then the removal is not retried with force
-    And the command exits non-zero
+    And the command exits with the attention status naming what the tool refused over
 
-  @AC-SWARM-DISP-005.11
+  @AC-SWARM-DISP-004.11
   Scenario: Every bead is re-checked after the merge and the removal
     Given a merge and a removal that both succeeded
     When acceptance completes
     Then each bead in the dispatch is checked again with no signal deferred
 
-  @AC-SWARM-DISP-005.12
+  @AC-SWARM-DISP-004.12
   Scenario: The push runs only after every bead has passed its post-merge check
     Given one bead in the dispatch fails its post-merge check
     When the command reports it
     Then no push is attempted
     And the failing signal is named
 
-  @AC-SWARM-DISP-005.13
+  @AC-SWARM-DISP-004.13
   Scenario: A dry run performs every read and no write
     When acceptance runs in preview mode
     Then it reports the ordered steps it would take
     And no merge, removal, deletion or push occurs
 ```
 
-### FEAT-SWARM-DISP-006: Prove a push landed
+### FEAT-SWARM-DISP-005: Prove a push landed
 
 **Commands:**
 
 ```text
-swarm branch verify-landed [--branch <name>] [--remote <name>] [--json]
-swarm branch push          [--branch <name>] [--remote <name>] [--json]
+swarm branch verify-landed [--branch <name>] [--remote <name>]
+swarm branch push          [--branch <name>] [--remote <name>]
 ```
 
-`push` is `verify-landed` with the push in front of it. Both are usable
-with **no run scope**, which is what lets a recovering session run the
-landing check as its first act, before it knows which run it is in.
-`swarm dispatch accept` ends by calling `push`.
+`push` is `verify-landed` with the push in front of it, and
+`swarm dispatch accept` ends by calling `push`. A coordinator working the
+dispatch loop therefore never invokes either by hand — accepting a
+dispatch lands it.
+
+**Three callers reach them directly, and none of the three has a dispatch
+to accept.** Post-flight, where the loop is over and the last thing to
+establish is that what the run produced is on the remote. A recovering
+session, whose first act is the landing check and which does not yet know
+which run it is in — which is why both are usable with **no run scope**.
+And an acceptance taken with `--no-push`, where the push was deliberately
+deferred and something has to perform it afterwards.
 
 **Replaces:** `references/dispatching.md`, "The push, and proving it
 landed"; step 1 of `sprint-recovery/SKILL.md`.
@@ -763,7 +840,7 @@ landed"; step 1 of `sprint-recovery/SKILL.md`.
 **Acceptance Criteria:**
 
 ```gherkin
-@FEAT-SWARM-DISP-006
+@FEAT-SWARM-DISP-005
 Feature: Prove a push landed
 
   As a coordinator finishing a dispatch or a run
@@ -777,44 +854,44 @@ Feature: Prove a push landed
   that separates work that landed from work that is stranded on a
   container about to be reclaimed.
 
-  @AC-SWARM-DISP-006.1
+  @AC-SWARM-DISP-005.1
   Scenario: Unpushed commits are reported as unpushed
     Given the local branch is ahead of its remote
     When the landing check runs
     Then it names the number of unpushed commits
-    And it exits non-zero
+    And it exits with the attention status
 
-  @AC-SWARM-DISP-006.2
+  @AC-SWARM-DISP-005.2
   Scenario: A branch with no remote counterpart is not reported as landed
     Given the branch has no counterpart on the remote
     When the landing check runs
-    Then it exits non-zero
+    Then it exits with the attention status
 
-  @AC-SWARM-DISP-006.3
+  @AC-SWARM-DISP-005.3
   Scenario: A rejected push is surfaced with its cause
     Given a push that the remote rejects
     When the command reports the result
     Then the rejection's cause is included in the output
 
-  @AC-SWARM-DISP-006.4
+  @AC-SWARM-DISP-005.4
   Scenario: A landed branch reports clean
     Given every local commit is present on the remote
     When the landing check runs
     Then it exits zero
 
-  @AC-SWARM-DISP-006.5
+  @AC-SWARM-DISP-005.5
   Scenario: The remote is read afresh before the comparison
     Given a stale local record of where the remote branch points
     When the landing check runs
     Then the remote is fetched before the comparison is made
 
-  @AC-SWARM-DISP-006.6
+  @AC-SWARM-DISP-005.6
   Scenario: The landing check needs no run scope
     Given a checkout with no run epic known
     When the landing check runs
     Then it reports the branch's landing state
 
-  @AC-SWARM-DISP-006.7
+  @AC-SWARM-DISP-005.7
   Scenario: A push refused for one path is reported as a whole rejected push
     Given a remote that refuses one of the paths in the push
     When the command reports the result
@@ -822,17 +899,13 @@ Feature: Prove a push landed
     And the refused path is named
 ```
 
-### FEAT-SWARM-DISP-007 — moved
-
-The `--explain` flag is specified in [[frd-swarm-core]] as
-FEAT-SWARM-CORE-001. It moved because it is a property of every command
-in the family rather than of this document's five. This identifier is
-retired and is not reused.
 ## References
 
 - [[frd-swarm-core]] — the command conventions every command here
   carries, the manifest component each reads a run through, and
   `swarm status`
+- [[swarm-output-standards]] — what every command here prints: the
+  answer, the full result, and the style rules both are rendered under
 - [[frd-swarm-cli]] — the run's shape, the partition and readiness gate,
   claims, findings and recovery
 - `docs/research/swarm-cli/2026-08-25-capability-audit.md` — the audit

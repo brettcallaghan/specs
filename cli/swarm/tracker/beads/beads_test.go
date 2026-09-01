@@ -57,10 +57,10 @@ func TestTheInvocationsItDeclares(t *testing.T) {
 		{"the beads directly under one", tr.Children("s", "run-1"),
 			"bd list --parent run-1 --all --limit 0 --json"},
 
-		{"the whole ready front", tr.ReadyFront("s", "run-1", tracker.ReadyFilter{}),
+		{"the whole ready set", tr.Ready("s", "run-1", tracker.ReadyFilter{}),
 			"bd ready --parent run-1 --json"},
 
-		{"a filtered ready front", tr.ReadyFront("s", "run-1", tracker.ReadyFilter{
+		{"a filtered ready set", tr.Ready("s", "run-1", tracker.ReadyFilter{
 			Assignee: "dev-1", ExcludeKinds: []string{"epic"}, ExcludeLabels: []string{"human"},
 		}),
 			"bd ready --parent run-1 --assignee dev-1 --exclude-type epic --exclude-label human --json"},
@@ -123,7 +123,7 @@ func TestEachStepDeclaresItsEffectAndWhetherReRunningIsSafe(t *testing.T) {
 	reads := []plan.Step{
 		tr.Bead("s", "run-1"),
 		tr.Children("s", "run-1"),
-		tr.ReadyFront("s", "run-1", tracker.ReadyFilter{}),
+		tr.Ready("s", "run-1", tracker.ReadyFilter{}),
 	}
 	for _, s := range reads {
 		if s.Effect != plan.Read {

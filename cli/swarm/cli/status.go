@@ -57,7 +57,7 @@ func statusCmd(streams *ioStreams, deps status.Deps) *cobra.Command {
 		Use:   "status",
 		Short: "Report a run's status from state",
 		Long: "Reports the standing worktree count, the sprint branch's last commit " +
-			"and its age, the ready front's depth, each dispatch's drain state and the " +
+			"and its age, the ready set's size, each dispatch's drain state and the " +
 			"run's completion — measured from git and the tracker on every call, never " +
 			"read from a value the run stored about itself. It never asserts that a run " +
 			"has stalled: it names what it measured and the threshold it compared " +
@@ -112,7 +112,7 @@ func statusCmd(streams *ioStreams, deps status.Deps) *cobra.Command {
 	cmd.Flags().BoolVar(&fullResult, "full-result", false,
 		"print the whole command result — the mode, the outcome, the facts and the invocations behind them — instead of the answer alone")
 	cmd.Flags().DurationVar(&stallAfter, "stall-after", defaultStallAfter,
-		"the last-commit age, with the ready front non-empty and no dispatch worktree "+
+		"the last-commit age, with the ready set non-empty and no dispatch worktree "+
 			"standing, that raises the attention status")
 
 	return cmd
@@ -132,7 +132,7 @@ func explainStatus(req Request, stallAfter time.Duration) Result {
 		"  git worktree prune                                  (clear stale registrations)",
 		"  git worktree list --porcelain                       (the standing worktrees)",
 		"  git log --format=... -n 1 <branch>                  (<branch> is the manifest read's answer)",
-		"  bd ready --parent <run> --exclude-type epic --json  (the ready front)",
+		"  bd ready --parent <run> --exclude-type epic --json  (the ready set)",
 		"  bd list --parent <run> --all --limit 0 --json       (one query per level of the run's tree; " +
 			"the depth is not known until each level answers)",
 		fmt.Sprintf("the attention threshold in force is %s (--stall-after)", stallAfter),
@@ -184,7 +184,7 @@ func reportStatus(req Request, m status.Measurements, records []plan.Record, sta
 		Text("observability",
 			"whether a subagent is still working cannot be observed from outside the harness; "+
 				"this reports the standing worktree count, the last commit's age and the ready "+
-				"front's depth in its place",
+				"set's size in its place",
 			fallback(observed)...),
 	)
 
@@ -210,11 +210,11 @@ func reportStatus(req Request, m status.Measurements, records []plan.Record, sta
 		note("last_commit", m.LastCommit.Reason)
 	}
 
-	if m.ReadyFront.Established {
-		result.Facts = append(result.Facts, Count("ready_front_depth", m.ReadyFront.Depth, readyInv...))
+	if m.Ready.Established {
+		result.Facts = append(result.Facts, Count("ready_count", m.Ready.Count, readyInv...))
 	} else {
-		result.Facts = append(result.Facts, Unestablished("ready_front_depth", m.ReadyFront.Reason, fallback(nil)...))
-		note("ready_front_depth", m.ReadyFront.Reason)
+		result.Facts = append(result.Facts, Unestablished("ready_count", m.Ready.Reason, fallback(nil)...))
+		note("ready_count", m.Ready.Reason)
 	}
 
 	if m.Completion.Established {
@@ -266,19 +266,19 @@ func reportStatus(req Request, m status.Measurements, records []plan.Record, sta
 			len(unestablished), strings.Join(unestablished, "; "))
 		result.Resolution = "investigate why the named measurement failed, then re-run `swarm status`"
 
-	case m.ReadyFront.Depth > 0 && dispatchWorktreeCount(m.Dispatches) == 0 && m.LastCommit.Age > stallAfter:
+	case m.Ready.Count > 0 && dispatchWorktreeCount(m.Dispatches) == 0 && m.LastCommit.Age > stallAfter:
 		// AC-SWARM-CORE-003.1: measurements only, never a diagnosis —
 		// AC-SWARM-CORE-003.11 is why this says "no commit for Xs" and
 		// not "stalled".
 		result.Outcome = OutcomeAttention
 		result.Summary = fmt.Sprintf(
 			"no dispatch worktree stands; %d bead(s) ready; no commit for %s, over the %s threshold",
-			m.ReadyFront.Depth, m.LastCommit.Age.Round(time.Second), stallAfter)
+			m.Ready.Count, m.LastCommit.Age.Round(time.Second), stallAfter)
 		result.Resolution = "dispatch a new batch, or check why none is running"
 
 	default:
 		result.Summary = fmt.Sprintf("%d/%d bead(s) done; %d ready; last commit %s ago",
-			m.Completion.Done, m.Completion.Total, m.ReadyFront.Depth, m.LastCommit.Age.Round(time.Second))
+			m.Completion.Done, m.Completion.Total, m.Ready.Count, m.LastCommit.Age.Round(time.Second))
 	}
 
 	return result

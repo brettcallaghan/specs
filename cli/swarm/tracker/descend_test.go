@@ -51,7 +51,7 @@ func (treeTracker) Children(name, parent string) plan.Step {
 }
 
 func (treeTracker) Bead(name, id string) plan.Step { return plan.Step{Name: name, Executable: "tree"} }
-func (treeTracker) ReadyFront(name, scope string, _ tracker.ReadyFilter) plan.Step {
+func (treeTracker) Ready(name, scope string, _ tracker.ReadyFilter) plan.Step {
 	return plan.Step{Name: name, Executable: "tree"}
 }
 func (treeTracker) Claim(name, id, agent string) plan.Step {

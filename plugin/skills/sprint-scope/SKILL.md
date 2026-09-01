@@ -109,7 +109,7 @@ builds, never a licence to restructure what it was given.
 **What a nested run epic costs, stated once at run start:** every count has to
 come from a tree walk rather than from one `--parent` query, since `bd list
 --parent` and `bd epic status` are both direct-children-only. `swarm status
---run <epic>` does that walk. Dispatch is unaffected — the re-queried ready front is
+--run <epic>` does that walk. Dispatch is unaffected — the re-queried ready set is
 transitive and honours dependency edges that cross between the adopted epics,
 which is the reason several epics are being run together at all.
 
@@ -191,7 +191,7 @@ bd gate resolve <gate-id>          # the id the create printed
 Measured: with the gate open, `bd ready --parent <run-epic> --exclude-type=epic`
 returns nothing at all — the gate task holds the scope epic, which blocks every
 phase after it — and `bd gate list` shows it. `bd gate resolve` puts the gate
-task into the ready front, and closing that task lets the chain advance. So an
+task into the ready set, and closing that task lets the chain advance. So an
 unanswered gate cannot be stepped over, and nothing downstream has to check for
 one.
 

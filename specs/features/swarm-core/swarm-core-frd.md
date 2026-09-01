@@ -6,7 +6,7 @@ description: The foundation of the swarm CLI — how every command explains
 slug: frd-swarm-core
 type: frd
 status: approved
-updated_at: 2026-08-28T00:00:00Z
+updated_at: 2026-09-01T00:00:00Z
 sources: []
 ---
 
@@ -132,7 +132,7 @@ on it.
 | **target epic** | the flat phase epic whose task children are the run's work |
 | **dispatch** | the act of handing a batch of beads to a subagent, which works them in its own worktree on its own branch and hands the branch back |
 | **dispatch id** | one string that is at once the subagent's identity, the assignee on every bead in its batch, its tracker actor, and its branch name. Derived from the run epic id, never minted |
-| **ready front** | the complete set of beads in the run that nothing is blocking right now |
+| **ready set** | the complete set of beads in the run that nothing is blocking right now |
 | **drained** | a subagent holding nothing ready and nothing in progress. Two queries, because the ready query alone excludes in-progress work |
 | **derivation** | an answer requiring a tree walk or a join across the tracker and version control that no single command returns |
 | **silent failure** | a command that returns the wrong answer at exit 0 |
@@ -297,10 +297,15 @@ Feature: The contract every command keeps
 **Commands:**
 
 ```text
-swarm manifest get     --run <id> [--key <key>] [--json] [--full-result]
-swarm manifest set     --run <id> --key <key> --value <value> [--if-absent] [--json]
-swarm manifest require --run <id> --key <key>...
+swarm manifest get      --run <id> [--key <key>]...
+swarm manifest set      --run <id> --key <key> --value <value>... [--if-absent]
+swarm manifest require  --run <id> --key <key>...
+swarm manifest validate --run <id> [--stage <stage>]
 ```
+
+The four flags every command in the CLI carries — `--explain`, `--dry-run`,
+`--json` and `--full-result` — are FEAT-SWARM-CORE-001's and are not
+repeated here.
 
 **`get` is a lookup, and answers with the value.** Every other command
 here answers with what it established and nothing about how: `get --key
@@ -310,6 +315,19 @@ for the provenance instead. The exit status carries the same three
 answers either way, which is what makes the answer a rendering rather
 than a loss. What both renderings contain is
 [[swarm-output-standards]]'s.
+
+**`require` and `validate` ask different questions, and both are
+needed.** `validate` is stage-relative: it checks the record against the
+rules in force at the stage the record has reached, or at the stage
+`--stage` names, and a key belonging to no stage is never required and
+never mentioned. `require` overrides optionality and means **set to a
+VALID value** — it fails on a named key that is not written and on one
+written with a value of the wrong type, whatever the stage and whatever
+the key's optionality, because it is a caller saying "I need this one,
+now, and I am about to use it" about a key the record does not owe it.
+The two failures carry different rules and different issues, so a caller
+that cares which can tell and one that does not routes on the status.
+[[swarm-output-standards]] fixes what each prints.
 
 **This is the component every other command reads a run through**, so
 its behaviour on an absent key, a wrong type and a concurrent write is
@@ -561,7 +579,7 @@ subagent is still thinking cannot be observed from a shell — a stalled
 one never finishes, so no event fires, and absence of an event is not an
 event. Three things *are* observable: the number of standing worktrees,
 the age of the last commit on the sprint branch, and the depth of the
-ready front. So the report gives each with the value it had, gives the
+ready set. So the report gives each with the value it had, gives the
 threshold it compared against, and stops there.
 
 **Which means it never says a run is stalled**, because it does not know
@@ -606,9 +624,9 @@ Feature: Report a run's status from state
   @AC-SWARM-CORE-003.1
   Scenario: A run making no progress is reported as the measurements that show it
     Given no worktrees are standing
-    And the ready front is not empty
+    And the ready set is not empty
     And the last commit is older than the threshold in force
-    Then the report states the standing worktree count, the timestamp and age of the last commit, and the depth of the ready front
+    Then the report states the standing worktree count, the timestamp and age of the last commit, and the size of the ready set
     And it states the threshold it compared the commit age against
     And the command exits with the attention status
 
@@ -684,5 +702,7 @@ Feature: Report a run's status from state
   these requirements are drawn from, including the inventory of traps the
   Overview refers to; §7 is the classification that decides what earns a
   command
+- [[swarm-output-standards]] — what every command here prints: the
+  answer, the full result, and the style rules both are rendered under
 - [[module-bead-bonanza]] — the module whose components call this CLI
 - [[gherkin-guide]] — the notation these criteria are written in

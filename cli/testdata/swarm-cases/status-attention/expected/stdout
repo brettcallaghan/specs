@@ -6,7 +6,7 @@ stall_after:
   issues: []
 observability:
   ok: true
-  value: whether a subagent is still working cannot be observed from outside the harness; this reports the standing worktree count, the last commit's age and the ready front's depth in its place
+  value: whether a subagent is still working cannot be observed from outside the harness; this reports the standing worktree count, the last commit's age and the ready set's size in its place
   issues: []
 worktrees_standing:
   ok: true
@@ -32,7 +32,7 @@ last_commit_age_seconds:
   ok: true
   value: <age-seconds>
   issues: []
-ready_front_depth:
+ready_count:
   ok: true
   value: 1
   issues: []
