@@ -198,10 +198,10 @@ func explainDispatchAccept(req Request, dispatchID string, noPush bool) Result {
 			"  git rev-parse --verify "+defaultRemote+"/<target>^{commit}",
 			"  git rev-list --count --left-right <target>..."+defaultRemote+"/<target>")
 	}
-	return Result{
-		Command: req.Command, Run: req.Run, Mode: req.Mode, Outcome: OutcomeClear,
+	return req.stamp(Result{
+		Outcome: OutcomeClear,
 		Summary: "explained; nothing was measured, merged or recorded", Transcript: lines,
-	}
+	})
 }
 
 // acceptDispatch is the impure half. Every write goes through pr.Run with
@@ -248,7 +248,7 @@ func acceptDispatch(
 		return Result{}, err
 	}
 
-	result := Result{Outcome: OutcomeClear, Records: records}
+	result := req.stamp(Result{Outcome: OutcomeClear, Records: records})
 	result.Facts = append(result.Facts,
 		Flag("drained", true, queueInv...),
 		Text("target", target, targetInv),
@@ -320,7 +320,7 @@ func notDrained(req Request, dispatchID string, queue tracker.Queue, records []p
 	}
 	sort.Strings(held)
 
-	return Result{
+	return req.stamp(Result{
 		Outcome: OutcomeAttention,
 		Records: records,
 		Facts: []Fact{
@@ -333,7 +333,7 @@ func notDrained(req Request, dispatchID string, queue tracker.Queue, records []p
 		Resolution: fmt.Sprintf(
 			"let %s finish or mark what it holds blocked, then accept it again: swarm ready --run %s --agent %s",
 			dispatchID, req.Run, dispatchID),
-	}
+	})
 }
 
 // acceptTarget reads the sprint branch the run records — the branch this

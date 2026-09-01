@@ -138,10 +138,10 @@ func explainPhaseClose(req Request) Result {
 		"  bd update <epic> --status closed --json              (one per epic found eligible, in the order the walk found them)",
 		"  bd ready --parent " + req.Run + " --exclude-type epic --json  (the ready set again, to name what a closure released)",
 	}
-	return Result{
-		Command: req.Command, Run: req.Run, Mode: req.Mode, Outcome: OutcomeClear,
+	return req.stamp(Result{
+		Outcome: OutcomeClear,
 		Summary: "explained; nothing was measured or closed", Transcript: lines,
-	}
+	})
 }
 
 // closePhases is the impure half: it runs the walk, the eligibility
@@ -220,7 +220,7 @@ func closePhases(ctx context.Context, tr tracker.Tracker, runner swarmexec.Runne
 	}
 	sort.Strings(closedIDs)
 
-	result := Result{Outcome: OutcomeClear, Records: records}
+	result := req.stamp(Result{Outcome: OutcomeClear, Records: records})
 	result.Facts = append(result.Facts,
 		List("closed_epics", closedIDs, append([][]string{closableInv}, closeInvs...)...))
 

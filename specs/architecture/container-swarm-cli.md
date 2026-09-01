@@ -173,6 +173,13 @@ implements any of them a second time.
   outcome that names no resolution — both are contract obligations, and
   enforcing them here is what makes them true of every command rather
   than of the ones that remembered.
+- **Every result names the invocation that produced it** — the command
+  path, the run it was scoped to, and the interpreter that actually ran —
+  and the surface stamps all three rather than each command setting them.
+  A result built without them does not merely omit them: `explain` is the
+  mode's zero value, so a run that merged a branch and deleted a ref
+  reports `mode: explain` and a consumer routing on the mode reads it as
+  a no-op. `run` is empty only for a command that takes no `--run`.
 - **The plan runner's output is captured rather than streamed**, so a
   `--json` envelope is never preceded on standard output by transcript
   lines that would corrupt it, and both forms carry the same transcript.

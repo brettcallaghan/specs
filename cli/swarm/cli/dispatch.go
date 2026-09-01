@@ -162,10 +162,10 @@ func explainDispatchOpen(req Request, dispatchID string) Result {
 			"  git worktree add -b bb/"+dispatchID+" <path> <sha>   (<path> is <parent>/.bb-worktrees/"+dispatchID+")",
 		)
 	}
-	return Result{
-		Command: req.Command, Run: req.Run, Mode: req.Mode, Outcome: OutcomeClear,
+	return req.stamp(Result{
+		Outcome: OutcomeClear,
 		Summary: "explained; nothing was measured or written", Transcript: lines,
-	}
+	})
 }
 
 // defaultBranchName is the form the skills already create and resume
@@ -202,7 +202,7 @@ func openSprintBranch(
 	if present, decErr := doc.Decode("branch", &recordedBranch); decErr != nil {
 		return Result{}, RefuseUnrepairable("the recorded branch does not decode: %s", decErr)
 	} else if present {
-		result := Result{Outcome: OutcomeClear, Records: records}
+		result := req.stamp(Result{Outcome: OutcomeClear, Records: records})
 		result.Summary = fmt.Sprintf("reusing the sprint branch already recorded for %s: %s", req.Run, recordedBranch)
 		result.Facts = append(result.Facts, Text("branch", recordedBranch, from))
 		var recordedBase string
@@ -303,7 +303,7 @@ func openSprintBranch(
 		return Result{}, err
 	}
 
-	result := Result{Outcome: OutcomeClear, Records: records}
+	result := req.stamp(Result{Outcome: OutcomeClear, Records: records})
 	result.Summary = fmt.Sprintf("created the sprint branch %s at %s", branchName, sha)
 	writeInv := argvOf(mustRecord(writeReport, writeSteps.Answer()))
 	result.Facts = append(result.Facts,

@@ -190,10 +190,10 @@ func explainBranchLanding(req Request, branch, remote string, pushFirst bool) Re
 		"  git fetch "+remote+"                                 (before the comparison, so a stale record cannot report a branch as landed)",
 		"  git rev-parse --verify "+remote+"/"+named+"^{commit}   (does the branch have a counterpart on "+remote+" at all)",
 		"  git rev-list --count --left-right "+named+"..."+remote+"/"+named+"  (how far the branch stands from it)")
-	return Result{
-		Command: req.Command, Run: req.Run, Mode: req.Mode, Outcome: OutcomeClear,
+	return req.stamp(Result{
+		Outcome: OutcomeClear,
 		Summary: "explained; nothing was pushed, fetched or compared", Transcript: lines,
-	}
+	})
 }
 
 // verifyLanded is the impure half, and the whole of both verbs.
@@ -254,7 +254,7 @@ func verifyLanded(
 		inv = append(inv, branchInv)
 	}
 
-	result := Result{Outcome: OutcomeClear, Records: records}
+	result := req.stamp(Result{Outcome: OutcomeClear, Records: records})
 	result.Facts = append(result.Facts,
 		Text("branch", branch, inv...),
 		Text("remote", remote, inv...))

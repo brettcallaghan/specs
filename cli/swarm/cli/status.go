@@ -137,14 +137,11 @@ func explainStatus(req Request, stallAfter time.Duration) Result {
 			"the depth is not known until each level answers)",
 		fmt.Sprintf("the attention threshold in force is %s (--stall-after)", stallAfter),
 	}
-	return Result{
-		Command:    req.Command,
-		Run:        req.Run,
-		Mode:       req.Mode,
+	return req.stamp(Result{
 		Outcome:    OutcomeClear,
 		Summary:    "explained; nothing was measured",
 		Transcript: lines,
-	}
+	})
 }
 
 // reportStatus turns one measurement set into the report a caller reads
@@ -171,7 +168,7 @@ func reportStatus(req Request, m status.Measurements, records []plan.Record, sta
 		return manifestInv
 	}
 
-	result := Result{Command: req.Command, Run: req.Run, Mode: req.Mode, Outcome: OutcomeClear}
+	result := req.stamp(Result{Outcome: OutcomeClear})
 	var unestablished []string
 	note := func(name, reason string) { unestablished = append(unestablished, name+": "+reason) }
 

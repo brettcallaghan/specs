@@ -157,10 +157,10 @@ func explainReady(req Request, agent string) Result {
 			"  bd list --assignee " + agent + " --status in_progress --limit 0 --json  (this dispatch's held half, narrowed to " + req.Run + ")",
 		}
 	}
-	return Result{
-		Command: req.Command, Run: req.Run, Mode: req.Mode, Outcome: OutcomeClear,
+	return req.stamp(Result{
+		Outcome: OutcomeClear,
 		Summary: "explained; nothing was measured", Transcript: lines,
-	}
+	})
 }
 
 // readyEntry is one bead in the dispatch set, rendered as [Structured]
@@ -226,7 +226,7 @@ func reportReady(ctx context.Context, deps status.Deps, req Request, breaker bre
 	}
 	sort.Slice(entries, func(i, j int) bool { return entries[i].ID < entries[j].ID })
 
-	result := Result{Outcome: OutcomeClear}
+	result := req.stamp(Result{Outcome: OutcomeClear})
 	result.Records = append(result.Records, report.Records...)
 	result.Records = append(result.Records, records...)
 	result.Facts = append(result.Facts,
@@ -401,7 +401,7 @@ func reportAgentQueue(ctx context.Context, deps status.Deps, req Request, agent 
 		return Result{}, RefuseUnrepairable("%s", err)
 	}
 
-	result := Result{Outcome: OutcomeClear}
+	result := req.stamp(Result{Outcome: OutcomeClear})
 	result.Records = append(result.Records, dRecords...)
 	result.Records = append(result.Records, qRecords...)
 
