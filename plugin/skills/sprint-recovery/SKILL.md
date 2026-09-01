@@ -53,18 +53,22 @@ copy.
 
 ## Work these steps in order
 
-1. **Vital signs first — `bb-status.sh branch`.** It needs no epic and no
-   context, so it runs before you know anything: tree cleanliness, and whether
-   the branch has **landed**. Its exit code is the first thing worth reporting;
-   `2` means the run is stopped, not merely paused.
+1. **Vital signs first — `swarm branch verify-landed`.** It needs no run scope,
+   so it runs before you know which run you are in. Route on its exit status
+   and report it: it fetches the remote before comparing, so a stale local
+   record of where the remote points cannot report a branch as landed, and a
+   branch with no counterpart there is reported unlanded rather than clean.
+   Add `git status --porcelain` beside it — the working tree is the one vital
+   sign the command does not read.
 
    **This is the step that catches the invisible failure.** A coordinator that
    died between committing and pushing leaves every other signal reading
    "finished" — no worktrees, clean tree, beads closed. Only the comparison
    against the remote separates a landed branch from an unlanded one. WHEN
-   commits are unpushed, push them before concluding anything, and record why
-   they were not: a rejection has a cause that will recur, and a credential
-   refused for `.github/workflows/**` rejects the WHOLE push.
+   commits are unpushed, `swarm branch push` pushes and re-proves them before
+   you conclude anything, and record why they were not pushed: a rejection has
+   a cause that will recur, and a credential refused for
+   `.github/workflows/**` rejects the WHOLE push.
 
 2. **Find the run — derive it from the branch.** A run happens on its own
    dedicated sprint branch, so the branch identifies the run and `git log` on

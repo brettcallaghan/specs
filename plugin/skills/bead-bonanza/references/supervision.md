@@ -233,23 +233,22 @@ without it.** An adopter may run with the plugin disabled, on a harness that is
 not Claude Code, or on one whose hook surface differs. Nothing in this
 ceremony may depend on a hook having fired.
 
-WHEN no hook is installed, the loop is yours to run: after every batch returns, re-query
-the ready set by the two steps above and stop only when it is empty. That is
-the identical check, made by you instead of by the harness. `--status`, or the
-absence of the script, says which of the two you are in.
+WHEN no hook is installed, the loop is yours to run: after every batch returns,
+re-query the ready set by the two commands above and stop only when it is
+empty. That is the identical check, made by you instead of by the harness.
+`--status`, or the absence of the script, says which of the two you are in.
 
-**Same for the `SubagentStop` check.** With no hook, run its two queries
-yourself as each batch returns, before you accept anything it reported:
+**Same for the `SubagentStop` check.** With no hook, ask the command that
+answers it as each batch returns, before you accept anything it reported:
 
 ```sh
-bd ready --assignee <dispatch-id> --json                        # must be empty
-bd list  --assignee <dispatch-id> --status in_progress --json   # must be empty
+swarm ready --run <epic> --agent <dispatch-id>   # its own queue, and its drain verdict
 ```
 
-Both empty is the DRAINED test the dispatch procedure already states, so this
+`drained` is the DRAINED test the dispatch procedure already states, so this
 adds no new rule — the hook only makes it non-optional. **A bead the worker set
-`blocked` satisfies both**, which is why "drained" and "every bead closed" are
-different questions and only the first one gates acceptance.
+`blocked` counts as drained**, which is why "drained" and "every bead closed"
+are different questions and only the first one gates acceptance.
 
 ## The review loop's budget
 
