@@ -6,8 +6,8 @@ is how each edge is chosen, marked and validated.
 
 **The run's record is not here.** The manifest, the environmental ledger and
 the run's amendments all live on the run epic and belong to the coordinator;
-its own run-record reference specifies them. Read the manifest
-(`bd show <epic> --json | jq '.[0].metadata'`); never rewrite it.
+its own run-record reference specifies them. Read the manifest with
+`swarm manifest get --run <epic>`; never write it.
 
 ## Contents
 
@@ -47,7 +47,8 @@ as more devs. Check it at plan time, counting dev assignees only:
 ```sh
 bd list --parent <run-epic> --json \
   | jq -r '[.[].assignee] | map(select(. != null and . != "")) | unique | length'
-# must be <= manifest.concurrency_cap - 1
+# must be <= (swarm manifest get --run <epic> --key concurrency_cap --json
+#              | jq -r .concurrency_cap) - 1
 ```
 
 ## Collision edges

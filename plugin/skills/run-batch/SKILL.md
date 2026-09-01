@@ -33,7 +33,7 @@ this tier exists to prevent. One bead is a batch of one.
 | | |
 |---|---|
 | `{DISPATCH_ID}` | your agent id. It is the `assignee` on every bead in this batch, and your `$BEADS_ACTOR` |
-| `{EPIC}` | the run epic. Its metadata is the run manifest |
+| `{EPIC}` | the run epic; `swarm manifest --run {EPIC}` reads its manifest |
 | `{SCRIPTS}` | absolute path to the coordinator's `scripts/` directory |
 
 **Everything else you resolve, in this order, before touching a bead.** A
@@ -45,14 +45,18 @@ export BEADS_ACTOR={DISPATCH_ID}          # FIRST, in every shell you run bd fro
 SCRIPTS={SCRIPTS}
 
 WORKTREE=$(git rev-parse --show-toplevel)                    # you are standing in it
-MANIFEST=$(bd show {EPIC} --json | jq -r '.[0].metadata')
-BRANCH=$(printf '%s' "$MANIFEST" | jq -r '.branch')
-BASELINE=$(printf '%s' "$MANIFEST" | jq -r '.checks_baseline // empty')
-TRAILERS=$(printf '%s' "$MANIFEST" | jq -r '.trailers // empty')
+swarm manifest require --run {EPIC} --key branch --key checks_baseline   # route on the status
+RECORD=$(swarm manifest get --run {EPIC} --key branch --key checks_baseline --json)
+BRANCH=$(printf '%s' "$RECORD" | jq -r .branch)              # the values themselves
+BASELINE=$(printf '%s' "$RECORD" | jq -r .checks_baseline)
 CHECKS_IDS=$($SCRIPTS/bb-checks.py --ids)
 bd ready --parent {EPIC} --assignee {DISPATCH_ID} --exclude-type=epic   # your queue
 bd list  --assignee {DISPATCH_ID} --status blocked                     # already blocked
 ```
+
+**The manifest is `swarm manifest`'s, never the tracker's** — the command owns
+the key set and the types, and your own `bd show | jq` is a second reader that
+will disagree with it.
 
 **Read each bead in full with `bd show <id>` when you reach it** — its Design,
 its acceptance criteria and any decision it pins are there, and a summary
@@ -61,8 +65,9 @@ handed to you would be a lossy copy of what you are about to read anyway.
 **An empty queue is a dispatch error, not an empty batch.** Report it and stop;
 do not go looking for work to do.
 
-**A missing manifest key is reported, never guessed.** An absent
-`checks_baseline` in particular is not the same as one that passed — see the
+**A missing manifest key is reported, never guessed** — `require` answers that
+as a status, so route on it rather than testing for an empty string. An absent
+`checks_baseline` in particular is not the same as one that passed; see the
 checks step.
 
 **Never work in the main checkout**, and never on the default branch.
@@ -177,17 +182,16 @@ Write no progress file.
    take the Blocked path** — do not keep retrying.
 
    **A check that was already failing before you started is not yours to fix.**
-   Your prompt carries a `Checks baseline:` block — what the checks printed on
-   the untouched tree, and the status they exited with. The bar is **"no
-   findings beyond that", not "exit 0"**.
+   `$BASELINE` is what the checks printed on the untouched tree. The bar is
+   **"no findings beyond that", not "exit 0"**.
 
    Compare, do not parse: run the checks, and read your output against the
    baseline's. A line in both was already there; a line only in yours is yours.
 
    A baseline that exited 0 means every check is expected to pass, so any
-   failure is yours. A **missing** block is different — no baseline was taken,
-   so you cannot tell a pre-existing failure from one you caused. Say so rather
-   than guessing.
+   failure is yours. An **unwritten** `checks_baseline` is different — none was
+   taken, so you cannot tell a pre-existing failure from one you caused. Say so
+   rather than guessing.
 
    **Being in a batch is not a reason to run less.** Because every bead runs
    the checks there is nothing to bisect: the bead whose run first shows a line
@@ -262,9 +266,10 @@ Write no progress file.
    $SCRIPTS/bb-close-bead.sh --trailers-from {EPIC} <id> <priority> "<title>"
    ```
 
-   **Omit `--trailers-from` entirely when `$TRAILERS` came back empty** — the
-   run resolved no trailer convention, and the flag would name a key that is
-   not there. **Pass no paths** —
+   **The trailers live in the run's manifest and the script fetches them**
+   before it closes or commits anything: pass `--trailers-from`; where the run
+   resolved none it exits 2 with nothing done, so re-run without the flag.
+   **Pass no paths** —
    everything modified in the worktree is this bead's work, and a path list can
    only be too narrow. That holds inside a batch's shared tree too: the previous
    bead committed before this one started, so nothing uncommitted is anyone

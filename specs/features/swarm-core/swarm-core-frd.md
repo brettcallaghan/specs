@@ -102,7 +102,8 @@ FEAT-SWARM-CORE-001 and carried by every command in the CLI:
 | `--run <run-epic-id>` | required by every subcommand that reads or mutates run state. An absent or empty scope is refused, never treated as the whole repository |
 | `--explain` | print the invocations the command would run, in order, and execute none of them. It reads nothing, so an argument only a prior step could supply is printed as that step rather than as a value |
 | `--dry-run` | perform every read and no write. Unlike `--explain` it runs, so its report reflects the run's live state |
-| `--json` | machine-readable output carrying the same facts as the text form, never a subset |
+| `--json` | the same output as JSON rather than YAML. It selects a syntax, never a depth, and carries the same values in the same order |
+| `--full-result` | print the whole command result — the mode, the outcome, the facts and the invocations behind them — instead of the answer alone. `--explain` and `--dry-run` imply it |
 | exit `0` | the command answered, and its verdict is clear |
 | exit `1` | the command answered, and what it found needs attention; the output names what would resolve it |
 | exit `2` | stop — not the caller's to repair in place |
@@ -244,9 +245,9 @@ Feature: The contract every command keeps
     Then the line names the command a reader can re-run to reproduce it
 
   @AC-SWARM-CORE-001.9
-  Scenario: The machine-readable form carries the same facts as the text form
-    When a command is invoked in both forms against the same state
-    Then every fact in the text form is present in the machine-readable one
+  Scenario: The two syntaxes carry the same facts
+    When a command is invoked in both syntaxes against the same state
+    Then every fact in the YAML form is present in the JSON one
 
   @AC-SWARM-CORE-001.10
   Scenario: A step's exit status is read from the step itself
@@ -296,10 +297,19 @@ Feature: The contract every command keeps
 **Commands:**
 
 ```text
-swarm manifest get     --run <id> [--key <key>] [--json]
+swarm manifest get     --run <id> [--key <key>] [--json] [--full-result]
 swarm manifest set     --run <id> --key <key> --value <value> [--if-absent] [--json]
 swarm manifest require --run <id> --key <key>...
 ```
+
+**`get` is a lookup, and answers with the value.** Every other command
+here answers with what it established and nothing about how: `get --key
+<k>` answers with that key and its value, `get` with no key answers with
+every key the record carries, and `--full-result` is how a caller asks
+for the provenance instead. The exit status carries the same three
+answers either way, which is what makes the answer a rendering rather
+than a loss. What both renderings contain is
+[[swarm-output-standards]]'s.
 
 **This is the component every other command reads a run through**, so
 its behaviour on an absent key, a wrong type and a concurrent write is
@@ -483,6 +493,58 @@ Feature: Read and update the run manifest
     Given a key added to the manifest's declared set
     When it is written, required and validated
     Then each reads that key's name, type and stage from the same declaration
+
+  @AC-SWARM-CORE-002.20
+  Scenario Outline: Reading one key answers with that key and its value
+    Given a manifest carrying a key whose value is "<value>"
+    When that one key is read
+    Then the answer carries that key and "<value>" and nothing else
+    And parsing the answer yields "<value>" unchanged
+
+    Examples:
+      | value                        |
+      | claude/branch-x              |
+      | two  words, doubly spaced    |
+      | a line,\nand a second line   |
+      | --not-a-flag                 |
+
+  @AC-SWARM-CORE-002.21
+  Scenario: Reading with no key answers with the whole record
+    Given a manifest carrying several keys
+    When it is read with no key named
+    Then the answer carries every key the record holds
+
+  @AC-SWARM-CORE-002.22
+  Scenario Outline: A key read answers with its status whichever form was asked for
+    Given a key that is "<state>"
+    When it is read, with and without the full result
+    Then both exit with "<status>"
+
+    Examples:
+      | state                       | status |
+      | written                     | 0      |
+      | declared and not written    | 1      |
+      | outside the declared set    | 3      |
+
+  @AC-SWARM-CORE-002.23
+  Scenario: A precondition check means "set to a valid value"
+    Given a manifest carrying a required key whose value is not of its declared type
+    When the requirement is checked
+    Then that key is reported as unsatisfied
+    And the command exits non-zero
+
+  @AC-SWARM-CORE-002.24
+  Scenario: An unsatisfied key reports what it holds and what is wrong with it
+    Given a required key written with a value of the wrong type
+    When the requirement is checked
+    Then the value the key holds is reported
+    And one issue names what is wrong with it and what would put it right
+
+  @AC-SWARM-CORE-002.25
+  Scenario: A key whose value is an object is reported as an object
+    Given a manifest carrying a key whose value is a JSON object
+    When that key is read
+    Then the answer carries it as nested structure rather than as a string
 ```
 
 

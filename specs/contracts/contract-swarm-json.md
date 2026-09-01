@@ -1,19 +1,19 @@
 ---
 title: "Contract: Swarm CLI JSON Surfaces"
-description: The machine-readable output every swarm command emits under
-  --json, and the run manifest it reads and writes — one document over the
-  Strata schemas that fix their shape
+description: The machine-readable output every swarm command emits, and
+  the run manifest it reads and writes — one document over the Strata
+  schemas that fix their shape
 slug: contract-swarm-json
 type: contract
-status: draft
-updated_at: 2026-08-28T00:00:00Z
+status: active
+updated_at: 2026-08-30T00:00:00Z
 provider: container-swarm-cli
 visibility: internal
 consumers:
   - "module-bead-bonanza"
 specs:
-  - "schemas/swarm-manifest.strata"
-  - "schemas/swarm-output.strata"
+  - "schemas/swarm/manifest.strata"
+  - "schemas/swarm/output.strata"
 version: "1.0"
 ---
 
@@ -22,7 +22,8 @@ version: "1.0"
 ## Overview
 
 This contract covers the two machine-readable surfaces of the swarm CLI:
-the JSON every command emits under `--json`, and the **run manifest** —
+the **command result** every command emits under `--full-result`, and the
+**run manifest** —
 the JSON object in a run epic's tracker metadata that the CLI reads,
 validates and writes. Both are consumed by the `bead-bonanza` skill
 family, which parses the first and, during migration, still writes the
@@ -44,18 +45,51 @@ than kept in step by hand.
 
 | Artifact | Location | Normative for |
 |----------|----------|---------------|
-| Manifest schema | `schemas/swarm-manifest.strata` | Shape of the run manifest: every key, its type, and the stage at which it becomes required |
-| Output schema | `schemas/swarm-output.strata` | Shape of each command's `--json` result, and of the shared envelope every result carries |
-| Generated JSON Schema | `cli/core/schema/` via `scripts/generate-schemas.sh` | The validating artifact; regenerated, never hand-edited |
+| Manifest schema | `schemas/swarm/manifest.strata` | Shape of the run manifest: every key, its type, and the stage at which it becomes required |
+| Output schema | `schemas/swarm/output.strata` | Shape of the command result `--full-result` renders, in either syntax |
+| Generated JSON Schema | `cli/core/schema/swarm-model.schema.json` via `scripts/generate-schemas.sh` | The validating artifact; regenerated, never hand-edited |
+| Generated Go model | `cli/swarm/swarmmodel/` via the same script | The types the provider emits and reads; regenerated, never hand-edited |
 | This document | — | Semantics, guarantees, and change policy |
+
+`schemas/swarm/` is a Strata package of its own — it carries its own
+`strata.config.json`, which carves it out of the package the document
+corpus's schemas form. Without that its types would land in the spec
+model's bundle, in `cli/core/specmodel`, and in the spec skill's
+generated Markdown reference, none of which is a home for them.
+
+**Two things the shapes above express structurally, rather than as
+prose a reader has to remember:**
+
+- **A manifest key's stage is the struct that declares it.** The key
+  structs inherit in run order — `PreFlightKeys`, `ScopeKeys`,
+  `PlanKeys`, `DispatchKeys`, `RetroKeys` — and `RunManifest` is their
+  composition. A key's name, its type and the stage at which it becomes
+  required therefore come from one declaration, and the stage a key
+  becomes required at is the first struct in the chain carrying it.
+- **Every manifest key is optional on the wire.** The record grows as a
+  run proceeds, so a key's absence before its stage is a legitimate state
+  rather than a defect; what the closed shape refuses is a key outside
+  the declared set, and a value whose type is not its key's.
+
+**One rule the shapes cannot state**, and it is enforced where a value is
+built rather than where it is validated: a fact's value carries exactly
+the field its `kind` names. A schema can say which fields may appear; it
+cannot say which combination is coherent.
 
 ## Guarantees
 
-- The provider SHALL emit, under `--json`, every fact its text form
-  reports for the same invocation.
-- The provider SHALL emit a result conforming to the output schema on
-  every exit status, including a non-zero one, so a consumer parsing the
-  result never has to fall back to reading text to learn why.
+- The provider SHALL carry the same values, in the same order, in the
+  YAML rendering and the JSON one, for the same invocation.
+- Every command and invocation the provider reports SHALL be a complete
+  command, quoted so it can be pasted into a shell, rather than an argv
+  vector a consumer has to reassemble.
+- WHEN a value is an object, or a list of them, the provider SHALL carry
+  it as a structured value — the JSON itself — so that a renderer can
+  emit it as real structure rather than as an escaped string.
+- The provider SHALL emit, under `--full-result`, a result conforming to
+  the output schema on every exit status, including a non-zero one, so a
+  consumer parsing the result never has to fall back to reading prose to
+  learn why.
 - Every result SHALL carry the invocations the command ran, in order,
   with each one's exit status and duration.
 - WHEN a fact could not be established, the provider SHALL emit it as
@@ -90,8 +124,9 @@ than kept in step by hand.
   - Consumers SHALL route on the exit status rather than on the presence
     or absence of a field.
   - Consumers SHALL tolerate unknown fields.
-  - Consumers SHALL NOT parse the text form of any command that offers
-    `--json`.
+  - Consumers SHALL read a command's answer, or pass `--full-result` for
+    the result this contract shapes; what an answer contains is
+    [[swarm-output-standards]]'s, not this contract's.
 
 ## Versioning and Change Policy
 
@@ -104,7 +139,10 @@ than kept in step by hand.
   renamed or retyped, the provider SHALL raise the major version. A
   renamed manifest key is the sharpest case in this contract: a reader
   gets absent rather than an error, and a run then proceeds without the
-  value.
+  value. WHEN the document a flag selects changes, the provider SHALL
+  raise the major version for the same reason a removed field would: a
+  consumer parsing the old document gets a different one, and no field
+  moved to tell it so.
 - **Deprecation:**
   - WHEN a field or key is deprecated, it SHALL continue to be emitted
     and accepted for one major version.
@@ -129,6 +167,8 @@ than kept in step by hand.
 ## References
 
 - [[container-swarm-cli]] — the provider
+- [[swarm-output-standards]] — what both renderings contain, and how
+  `--full-result` renders this envelope
 - [[frd-swarm-core]] — the requirements the emitted facts come from
 - [[module-bead-bonanza]] — the consumer whose components parse this
   output and write this manifest

@@ -1,0 +1,86 @@
+issues:
+  - no dispatch worktree stands; 1 bead(s) ready; no commit for <age>, over the 1ns threshold. dispatch a new batch, or check why none is running
+stall_after:
+  ok: true
+  value: 1ns
+  issues: []
+observability:
+  ok: true
+  value: whether a subagent is still working cannot be observed from outside the harness; this reports the standing worktree count, the last commit's age and the ready front's depth in its place
+  issues: []
+worktrees_standing:
+  ok: true
+  value: 1
+  issues: []
+dispatch_worktrees_standing:
+  ok: true
+  value: 0
+  issues: []
+last_commit_sha:
+  ok: true
+  value: ac4a37c7aadfbc9a0f7af911b4b95558e3989eda
+  issues: []
+last_commit_subject:
+  ok: true
+  value: fixture-run.1 P1 the first bead of the run
+  issues: []
+last_commit_at:
+  ok: true
+  value: 2026-01-01T01:00:00Z
+  issues: []
+last_commit_age_seconds:
+  ok: true
+  value: <age-seconds>
+  issues: []
+ready_front_depth:
+  ok: true
+  value: 1
+  issues: []
+completion_total:
+  ok: true
+  value: 1
+  issues: []
+completion_done:
+  ok: true
+  value: 0
+  issues: []
+completion_blocked:
+  ok: true
+  value: 0
+  issues: []
+completion_claimed:
+  ok: true
+  value: 0
+  issues: []
+completion_open:
+  ok: true
+  value: 1
+  issues: []
+completion_deferred:
+  ok: true
+  value: 0
+  issues: []
+completion_unknown:
+  ok: true
+  value: 0
+  issues: []
+scope_additions:
+  ok: true
+  value: []
+  issues: []
+scope_missing:
+  ok: true
+  value: []
+  issues: []
+scope_excluded:
+  ok: true
+  value: []
+  issues: []
+dispatches:
+  ok: true
+  value: []
+  issues: []
+conflicts:
+  ok: true
+  value: []
+  issues: []

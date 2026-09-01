@@ -44,9 +44,9 @@ run epic .................. its id is the run id
 │   └ AUTHORIZATION GATE .. a TASK child, gated; HUMAN, once
 ├ groom & plan ─┐ ......... sprint-plan → groom-beads
 ├ TARGET ───────┤ FLAT: tasks only
-│  ├ dispatch ┐ │ repeat    run-batch, one subagent per dispatch
-│  ├ merge    │ │ until the coordinator, as each dispatch returns
-│  └ supervise┘ │ front dry bb-status.sh
+│  ├ dispatch ┐ ......... run-batch, one subagent per dispatch
+│  ├ merge    │ ......... the coordinator, as each dispatch returns
+│  └ supervise┘ ......... swarm status — repeat until the front is dry
 ├ review ───────┘ ......... sprint-review → declared reviewer
 │   findings admitted AND passes < 3 ? — yes, re-enter at groom & plan
 ├ retro ................... sprint-retro — and it writes the run's retro
@@ -92,11 +92,11 @@ run:
 - [ ] 5. Post-flight cleanup, then cancel the durable trigger
 ```
 
-**Most of it is checkable rather than assertable.** `bb-status.sh run <epic>`
-verifies the mechanical half — counts, health set, lint clean *within this
-run's queue*, no open human item, every ready bead tiered, every admitted bead
-closed — then **names what it cannot verify**, so a clean report never implies
-the whole checklist passed. Run it at every re-query and at the end.
+**Most of it is checkable rather than assertable.** `swarm status --run <epic>`
+measures the mechanical half; run it at every re-query and at the end, and
+read what it prints. Two things reading it will not tell you: a measurement it
+could not take is reported as unknown and exits non-zero rather than reading as
+clear, and the rest of the checklist it does not see at all.
 
 
 ## Opening a run — pre-flight, then `sprint-scope`
@@ -126,6 +126,12 @@ only what is not already Ready and re-derives the partition from the current
 front, so a resumed run is a narrower repeat rather than a duplicate.
 **Never create a second sprint branch on a resume** — the manifest's `branch`
 is the one the original run wrote.
+
+**Run `swarm manifest validate --run <epic>` before you continue a run you did
+not hold**, and read what it prints. It checks the record against every rule at
+the stage it has reached, so a run left half-written by an interrupted session
+is a status you route on rather than a key you discover missing three
+dispatches later. **What it reports is yours to repair before dispatching.**
 
 **2 is `sprint-scope`.** Read three things off its return and route on them:
 `BB_EPIC`, whose id is the run id and whose descendants are the queue;
@@ -166,12 +172,13 @@ the run's amendments. Both: `references/run-record.md`.
 every bead has nothing to branch for, and a branch cut before grooming records
 a `base_sha` predating the grooming commits.
 
-**Read the manifest before you create anything.** A run whose manifest already
-carries `branch` reuses it and creates nothing, which is what makes a resumed
-run land where the original did; **a name already taken by an unrelated branch
-stops the run here**, before any worktree exists. The exact sequence, and why
-`base_sha` is recorded at creation rather than derived:
-`references/worktree-mechanics.md`.
+**Read the manifest before you create anything** — `swarm manifest get --run
+<epic> --key branch`. A run whose manifest already carries `branch` reuses it
+and creates nothing, which is what makes a resumed run land where the original
+did; **a name already taken by an unrelated branch stops the run here**, before
+any worktree exists. The exact sequence, the one `swarm manifest set` that
+records `branch` and `base_sha` together, and why `base_sha` is recorded at
+creation rather than derived: `references/worktree-mechanics.md`.
 ## Every dispatch runs in its own worktree
 
 **This is universal, not opt-in**, and it is **per dispatch, not per bead**: a
@@ -234,19 +241,14 @@ so a finished ceremony phase stays open, the beads it gates never enter the
 front, and an empty front reads as the run being done when it has stalled.
 **That query is the order** — and a bead added mid-run is in scope by
 construction, so before dispatching it diff the front against
-`manifest.admitted` (`bb-status.sh run <epic>` names the difference) and
+`manifest.admitted` (`swarm status --run <epic>` names the difference) and
 resolve any creep, admitted as an amendment or deferred out.
 
-### The run's health — derived, never asserted
+**Also re-check, at this same re-query, three readiness signals `swarm
+status` does not carry**: `bd lint` intersected with the run's own ready
+queue, the open human-decision queue, and tier coverage across the ready
+front. Exact commands: `references/supervision.md`.
 
-**`bb-status.sh run <epic>` computes it** from surviving worktrees, the age of
-the last commit and the depth of the ready front. Read it; do not write it.
-
-**Do not set one instead.** A health label the coordinator writes is a signal
-whose only writer is the thing it monitors, so it reports "no failure" and "no
-monitor" identically. *Worktrees: 0, plus a stale last commit, plus a non-empty
-ready front* is a stall computable by anyone, needing no cooperation from the
-coordinator — which is the whole reason it is derived.
 ### Watching it, and knowing when it is done
 
 **Arm a `Monitor`** over the dispatches in flight — `persistent`, an explicit
@@ -254,13 +256,19 @@ coordinator — which is the whole reason it is derived.
 first dispatch, the durable out-of-session trigger, cancelled at post-flight.
 
 **A run is done when every bead the manifest's `admitted` list names is closed
-or accounted for as blocked-with-a-reason** — `bb-status.sh run <epic>` decides
-it, exit 0 clear / 1 repairable / 2 stop. Beads excluded at admission are
-reported alongside, because a run that finished its admitted set while three
-sat out is done over a *narrowed* scope.
+or accounted for as blocked-with-a-reason** — `swarm status --run <epic>`
+measures it and you route on the exit status. Read the excluded beads it
+reports beside that: a run that finished its admitted set while three sat out
+is done over a *narrowed* scope, and saying so is yours.
 
-Where the run is, which of three deaths you are looking at, and why the obvious
-`bd` queries answer the wrong question: `references/supervision.md`.
+**Never write a health label of your own.** A signal whose only writer is the
+thing it monitors reports "no failure" and "no monitor" identically. And the
+command reports measurements, not a diagnosis: **do not call the run stalled**
+on the strength of an elapsed time — say what was measured and the threshold
+in force.
+
+Where the run is, which of three deaths you are looking at, and what nothing
+can measure from outside the harness: `references/supervision.md`.
 
 ## Review the run's own diff — invoke `sprint-review`
 
