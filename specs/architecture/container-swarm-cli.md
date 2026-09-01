@@ -327,10 +327,12 @@ description: The interface stating what a run needs from an issue tracker, indep
 
 (Go interface) — The interface stating what a run needs from an issue
 tracker: reading a bead, its children and its metadata; the ready set
-under a scope; writing a status, an assignee, a label, a comment and an
-edge. It names operations in the run's vocabulary rather than any
-tracker's, which is what makes a second implementation a matter of
-satisfying it rather than of rewriting the callers.
+under a scope; the beads one agent is holding; which epics beneath a
+scope are eligible to close; the findings recorded on a bead; writing a
+status, an assignee, a label, a comment and an edge. It names operations
+in the run's vocabulary rather than any tracker's, which is what makes a
+second implementation a matter of satisfying it rather than of rewriting
+the callers.
 
 It lives at `cli/swarm/tracker`. Three things about the built interface
 that the roster line does not carry:
@@ -347,6 +349,20 @@ that the roster line does not carry:
   kept beside it.** A status the vocabulary does not cover becomes
   `unknown` rather than any of the others, so a tracker release that adds
   one is visible instead of making every bead carrying it read as open.
+
+**`Holding` and `ClosableEpics` answer wider than the scope asked for, and
+the caller narrows it.** Neither has a transitive, run-scoped tracker
+query behind it — the Beads Tracker section below measures why — so each
+declares the widest query that is correct and returns a
+[tracker.Held]/[tracker.Closable] carrying the scope beside the wide
+answer. `Held.Within` and `Closable.Within` are the only way to reach the
+run's own answer, which is what stops a caller mistaking one run's held
+beads or closable epics for another's.
+
+**A dispatch's queue is two reads, not one.** `Ready` filtered to an
+agent excludes work already claimed, so on its own it reports an agent
+mid-bead as finished; [tracker.Queue] pairs it with `Holding` and is
+`Drained` only when both halves are empty.
 
 **`Descendants` is a walk, and lives here rather than in an
 implementation.** "Every bead in this run" is not a query any tracker
@@ -389,11 +405,14 @@ rather than one guard:
 |---|---|---|
 | `bd show <id> --json` | an array of one issue | exit 1, an **object** carrying `error` on **stdout** |
 | `bd list --parent <id> --json` | an array; empty is `[]` | — |
-| `bd ready --parent <id> --json` | an array; empty is `[]` | — |
+| `bd ready --parent <id> --limit 0 --json` | an array; empty is `[]` | — |
+| `bd list --assignee <agent> --status in_progress --limit 0 --json` | an array; empty is `[]` | — |
 | `bd update <id> … --json` | an array of the updated issue | exit 1, **stdout empty**, message on **stderr** |
 | `bd comment <id> <text> --json` | an **object** | — |
+| `bd comments <id> --json` | an array of the same objects `bd comment` returns one of; empty is `[]` | exit 1, an object carrying `error` on stdout |
 | `bd dep add <a> <b> --json` | an **object**, `status:"added"` even when the edge already existed | exit 1, an object carrying `error` on stdout |
 | `bd gate list --json` | an array; empty is a bare **`null`** | — |
+| `bd epic status --eligible-only --json` | an array of `{epic, total_children, closed_children, eligible_for_close}`; empty is `[]` | — |
 
 Two failure shapes and four container shapes, all but the failures at
 exit 0. The two rules that a shared guard gets wrong are both in that
@@ -401,7 +420,24 @@ table: "treat any non-array as empty" reports a written comment as one
 that was not written, and "read stderr on failure" reports `bd show`'s
 message as absent. Absent, `null` and `[]` normalize to one empty value
 per subcommand; any other shape is an error, because a shape a decoder
-does not know is not evidence of emptiness.
+does not know is not evidence of emptiness. `bd comment` and `bd
+comments` differ by one letter and by their container — the write
+returns the object, the read returns an array of them — which is why
+each keeps its own decoder rather than sharing one.
+
+Two further traps, both silent at exit 0:
+
+- **`bd ready`'s own default truncates at 100.** Measured on bd 1.2.2
+  against this repository's database: `bd ready --json | jq length` → 100,
+  the same query with `--limit 0` → 106. Every `Ready` and `Holding`
+  invocation therefore carries `--limit 0`, since a truncated ready or
+  held set is a run reporting less work than it has, at exit 0.
+- **`bd epic status`'s positional scope argument is ignored.** Measured:
+  `bd epic status --json | jq length` and `bd epic status <run> --json |
+  jq length` both return every epic in the database, exit 0, nothing on
+  stderr. That is why `ClosableEpics` is scoped through
+  `tracker.Closable.Within` rather than through the invocation — the same
+  reason `Holding`'s scope is.
 
 `bd` also writes standing warnings to stderr while its JSON goes to
 stdout, which is why nothing here reads a merged stream and why a
@@ -418,8 +454,11 @@ description: The interface stating what a run needs from version control, indepe
 (Go interface) — The interface stating what a run needs from version
 control: history and commit subjects, branches and their ancestry,
 worktree registrations, merges, and the comparison of a local branch
-against its remote. Stated in the run's vocabulary — a dispatch's branch,
-the sprint branch, a standing worktree — rather than in any one system's.
+against its remote; and the dispatch loop's writes — creating and
+removing a worktree, creating and deleting a branch, rebasing onto a
+named commit, fast-forwarding, fetching and pushing. Stated in the run's
+vocabulary — a dispatch's branch, the sprint branch, a standing worktree —
+rather than in any one system's.
 
 It lives at `cli/swarm/vcs`. Its operations return a **fragment** — an
 ordered slice of steps whose last one carries the answer — rather than a
@@ -429,6 +468,18 @@ interface where one method returned a fragment and the rest returned
 single steps would be one a caller has to remember the shape of. The
 Tracker's operations are each a single invocation and return a bare step;
 if one ever needs two, this is the type it takes.
+
+**A refusal — a merge or a rebase version control declines to perform —
+decodes to a [vcs.Refusal] rather than being left in the tool's prose.**
+Which paths conflict, or whether the refusal was a non-fast-forward, is
+what a caller branches on: a dispatch whose rebase conflicts is handed
+back to its agent with the paths, one whose fast-forward is refused is
+rebased and retried, and re-deriving either from text at every call site
+is the decoding this container exists to do once. `RemoveWorktree` takes
+no force parameter, and none can be added: the forcing form discards
+uncommitted work, which is exactly what a dispatch's still-working
+worktree holds, so a tree with work in it refusing removal is how an
+orchestrator learns the dispatch is unfinished.
 
 ### Git Version Control
 
@@ -456,8 +507,16 @@ for the case that needs a deliberately broken registration:
 | `git merge-base --is-ancestor A B` | **exit 0 yes, exit 1 no, exit 128 when a revision does not resolve** |
 | `git rev-parse <missing>` | exit 128 — **and it echoes the argument on stdout**, so a decoder reading stdout before the status takes a branch name for a commit id |
 | `git rev-list --count --left-right <b>...<b>@{upstream}` | exit 128 with "no upstream configured" when there is none, which is a condition rather than a crash |
+| `git worktree add -b <branch> <path> <base>` | exit 0; a second `add` of the same branch exits 255, `fatal: a branch named '<branch>' already exists` |
+| `git worktree remove <path>` | exit 0; removing it again exits 128, `fatal: '<path>' is not a working tree` |
+| `git branch <name> <base>` | exit 0; again exit 128, `fatal: a branch named '<name>' already exists` |
+| `git branch -d <name>` | exit 0, `Deleted branch <name> (was <sha>).`; again exit 1, `error: branch '<name>' not found` |
+| `git merge --no-ff -m <msg> <branch>` | a conflict exits 1 with the `CONFLICT (…)` lines **on stdout** and nothing on stderr |
+| `git merge --ff-only <branch>` | diverged exits 128, `fatal: Not possible to fast-forward, aborting.` on stderr, and leaves nothing behind — clean tree, HEAD unmoved, no `MERGE_HEAD`; already merged exits 0, `Already up to date.` |
+| `git rebase <onto> <branch>` | a conflict exits 1 with the `CONFLICT (…)` lines **on stdout** and `error: could not apply …` on stderr; the repository is left mid-rebase. Nothing to do exits 0 |
+| `git fetch <remote>` / `git push <remote> <branch>` | both exit 0 and are re-runnable — a no-op push reports `Everything up-to-date`; a refused push exits 1 with ` ! [rejected] … (non-fast-forward)` on stderr |
 
-Three consequences the code carries:
+Four consequences the code carries:
 
 - **Worktrees prunes and then lists, and the list's decoder drops
   prunable entries too.** The prune is a write, so a dry run refuses it;
@@ -469,6 +528,16 @@ Three consequences the code carries:
 - **A commit is read through a requested format with NUL separators**,
   never out of a rendered log. A run's own commit subjects carry a bead
   id, a priority and a title, and a subject may contain anything.
+- **A conflict's lines are on stdout, not stderr, for both `merge` and
+  `rebase`** — the trap a decoder reading stderr for the reason falls
+  into, since that stream is empty on a conflict. A path is read out of
+  `Merge conflict in <path>` and the `deleted in` / `renamed to` forms
+  unquoted to the end of the line, spaces included, never out of a
+  whitespace split. Re-running is safe only for `Fetch`, `Push` and a
+  `MergeFastForward` that succeeds; `CreateWorktree`, `RemoveWorktree`,
+  `CreateBranch`, `DeleteBranch` and `Rebase` are not — each either names
+  something a second call collides with, or leaves the repository
+  mid-rebase, which a second call does not resolve.
 
 ### Manifest
 
@@ -524,6 +593,7 @@ it has to read:
 | write-once | a different `branch` or `base_sha`. Three things read them — the review scopes its diff from the base, every worktree branches from the branch, the pull request opens against it — so a run that repointed either mid-flight would leave the three describing different trees. Re-writing the SAME value is not a change, which is what lets a resumed run reuse its branch |
 | counter backwards | a lower `review_passes`, because a resumed run that restarted the counter would loop forever |
 | counter over budget | a `review_passes` past the `review_budget` beside it |
+| failure count backwards | a `consecutive_dispatch_failures` lower than what is recorded, unless it resets to 0. Only a dispatch that completed something earns the reset, so a partial decrease is forgiveness nothing is entitled to grant |
 | ledger rewritten | an entry removed, reordered or altered. Dispatch prompts cite entries by position, so a rewrite retargets every citation that addressed one — and nothing downstream can tell |
 | admission overlap | a bead in more than one of `admitted`, `excluded` and `moved`. The finding names the BEAD rather than the lists, because the bead is what somebody has to decide about |
 | effort unrecorded | an absent `effort` past its stage. A harness exposing no such setting records `unrecorded`, so a reader can tell "not offered" from "not yet written" |
@@ -713,6 +783,11 @@ behaviour follows from.
     apply them as one merge.
   - IF any key in a multi-key write is refused, THEN the container SHALL
     store none of them.
+  - WHEN a dispatch completes nothing, the container SHALL increase
+    `consecutive_dispatch_failures`; a write lowering it to anything other
+    than zero SHALL be refused, since only a dispatch that completed
+    something earns the reset. Its stage is dispatch, so its absence
+    before the run's first dispatch is legitimate.
 - **The repository and its worktrees** (git) — read for history,
   branches, ancestry and worktree registrations; written by the commands
   that create a branch or a worktree, merge, or push. Not exclusively
@@ -726,15 +801,23 @@ behaviour follows from.
   reads exclusively. Each fixture is a directory holding `repository.bundle`,
   `tracker.jsonl` and `fixture.toml`; the upper test tier restores one
   through `git` and `bd` rather than generating a world, so a case asserts
-  against a repository and a tracker that behave like the real ones. Three
-  are committed today — `core`, `status-attention` and
-  `status-narrowed-scope`. [[adr-027]] owns the decision; Change Guidance
-  below owns the rules for re-recording one.
+  against a repository and a tracker that behave like the real ones. Eight
+  are committed today — `core`, `status-attention`,
+  `status-narrowed-scope`, `dispatch-rebase-conflict`,
+  `dispatch-stale-base`, `dispatch-worktree`, `phase-epics` and
+  `push-refused`. [[adr-027]] owns the decision; Change Guidance below owns
+  the rules for re-recording one.
   - WHEN a fixture is recorded, the contract version it was recorded
     against SHALL be recorded with it, so a case that starts failing names
     a shape change rather than a mystery.
   - A fixture SHALL be restored per case rather than shared across cases,
     so no case depends on another having run.
+  - `fixture.toml` MAY declare `[[worktree]]` entries (a branch and a
+    path) and a `[refusing_remote]` (a name, the ref pattern it refuses,
+    and a message) for a world a bundle cannot carry on its own — a
+    worktree is a registration under `.git`, and a remote with a
+    pre-receive hook is neither refs nor objects. The harness stands both
+    up at restore, from the declaration, never from a case.
 
 ## Infrastructure and Deployment
 
@@ -831,6 +914,12 @@ This container SHALL comply with:
   case SHALL be one directory under `cli/testdata/swarm-cases/` holding
   `case.toml` and the `expected/` artifacts it names — so adding either
   is data a reviewer reads rather than Go a reviewer runs.
+- WHEN a world needs a standing worktree or a remote that refuses a push,
+  it SHALL be declared in that fixture's `fixture.toml`
+  (`[[worktree]]`, `[refusing_remote]`) rather than created by a case,
+  since a bundle cannot carry either and a case that built half the world
+  itself would make two cases reading the same world agree by hand about
+  what it contains.
 - WHEN a new world shape is needed for a case, it SHALL be derived as a
   branch from the core fixture rather than authored separately, so a
   change to the core reaches every variant.
