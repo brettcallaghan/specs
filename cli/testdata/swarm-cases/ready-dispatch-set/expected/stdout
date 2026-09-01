@@ -6,3 +6,4 @@ ready:
     held: false
     id: fixture-run.4
 ready_count: 2
+consecutive_dispatch_failures: 0

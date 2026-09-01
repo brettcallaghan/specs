@@ -288,3 +288,83 @@ func TestReadyAgentNeverGivenAnythingIsNotReportedAsDrained(t *testing.T) {
 		t.Errorf("the answer does not explain that the dispatch was never given anything:\n%s", stdout)
 	}
 }
+
+// AC: AC-SWARM-DISP-002.11
+//
+// A resumed run's recorded failure count survives a bare re-query: two
+// consecutive dispatches completing nothing were recorded before this
+// session started, and querying the ready set with no --completed reads
+// that count back rather than resetting it to zero.
+func TestReadyBreakerCountSurvivesAResumedRun(t *testing.T) {
+	requireTools(t)
+	binary := buildBinary(t)
+
+	w := restore(t, binary, "core")
+
+	setOut, setErr, setCode := w.swarm(t, "manifest", "set", "--run", "fixture-run",
+		"--key", "consecutive_dispatch_failures", "--value", "2", "--json")
+	if setCode != 0 {
+		t.Fatalf("manifest set exited %d\n--- stdout ---\n%s\n--- stderr ---\n%s", setCode, setOut, setErr)
+	}
+
+	stdout, stderr, code := w.swarm(t, "ready", "--run", "fixture-run", "--json")
+	if code != 0 {
+		t.Fatalf("ready exited %d, want 0 (a count of 2 does not yet meet the default threshold of 3)\n"+
+			"--- stdout ---\n%s\n--- stderr ---\n%s", code, stdout, stderr)
+	}
+
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(stdout), &fields); err != nil {
+		t.Fatalf("the ready answer does not parse: %v\n%s", err, stdout)
+	}
+	raw, ok := fields["consecutive_dispatch_failures"]
+	if !ok {
+		t.Fatalf("the answer carries no consecutive_dispatch_failures:\n%s", stdout)
+	}
+	var count int
+	if err := json.Unmarshal(raw, &count); err != nil {
+		t.Fatalf("consecutive_dispatch_failures does not parse as a number: %v\n%s", err, stdout)
+	}
+	if count != 2 {
+		t.Errorf("consecutive_dispatch_failures = %d, want 2 (the resumed run's own recorded count)", count)
+	}
+}
+
+// The full CLI wiring: --completed 0 reports a dispatch return that
+// completed nothing, against a run already two returns into the default
+// threshold of three — the third return trips the breaker, the command
+// exits with the stop status, and the write lands in the tracker rather
+// than only in this invocation's own answer.
+func TestReadyBreakerStopsTheRunThroughTheRealCommand(t *testing.T) {
+	requireTools(t)
+	binary := buildBinary(t)
+
+	w := restore(t, binary, "core")
+
+	setOut, setErr, setCode := w.swarm(t, "manifest", "set", "--run", "fixture-run",
+		"--key", "consecutive_dispatch_failures", "--value", "2", "--json")
+	if setCode != 0 {
+		t.Fatalf("manifest set exited %d\n--- stdout ---\n%s\n--- stderr ---\n%s", setCode, setOut, setErr)
+	}
+
+	stdout, stderr, code := w.swarm(t, "ready", "--run", "fixture-run", "--completed", "0", "--json")
+	if code != 2 {
+		t.Fatalf("ready --completed 0 exited %d, want 2 (stop)\n--- stdout ---\n%s\n--- stderr ---\n%s",
+			code, stdout, stderr)
+	}
+
+	shown := w.mustCapture(t, w.repo, "bd", "show", "fixture-run", "--json")
+	var issues []struct {
+		Metadata map[string]any `json:"metadata"`
+	}
+	if err := json.Unmarshal([]byte(shown), &issues); err != nil || len(issues) != 1 {
+		t.Fatalf("bd show fixture-run did not answer one issue: %v\n%s", err, shown)
+	}
+	got, ok := issues[0].Metadata["consecutive_dispatch_failures"]
+	if !ok {
+		t.Fatalf("the tracker records no consecutive_dispatch_failures after the write: %v", issues[0].Metadata)
+	}
+	if n, ok := got.(float64); !ok || n != 3 {
+		t.Errorf("consecutive_dispatch_failures = %v, want 3 (2 already recorded, advanced by this return)", got)
+	}
+}

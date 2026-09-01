@@ -17,12 +17,14 @@ package cli
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/spf13/cobra"
 
+	"github.com/brettcallaghan/agent-plugins/cli/swarm/manifest"
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/plan"
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/status"
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/tracker"
@@ -43,6 +45,8 @@ func readyCmd(streams *ioStreams, deps status.Deps) *cobra.Command {
 		fullResult bool
 		runID      string
 		agentID    string
+		threshold  int
+		completed  int
 	)
 
 	cmd := &cobra.Command{
@@ -95,7 +99,8 @@ func readyCmd(streams *ioStreams, deps status.Deps) *cobra.Command {
 			if agent != "" {
 				result, err = reportAgentQueue(context.Background(), deps, req, agent)
 			} else {
-				result, err = reportReady(context.Background(), deps, req)
+				report := breakerReport{Given: cmd.Flags().Changed("completed"), Completed: completed}
+				result, err = reportReady(context.Background(), deps, req, report, threshold)
 			}
 			if err != nil {
 				return finish(streams, req, refusal(req, asRefusal(err)))
@@ -116,6 +121,10 @@ func readyCmd(streams *ioStreams, deps status.Deps) *cobra.Command {
 		"print the whole command result — the mode, the outcome, the facts and the invocations behind them — instead of the answer alone")
 	cmd.Flags().StringVar(&agentID, "agent", "",
 		"narrow to one dispatch's own queue, in dependency order, with its drain verdict")
+	cmd.Flags().IntVar(&threshold, "threshold", breakerDefaultThreshold,
+		"the circuit breaker's threshold: the number of consecutive dispatch returns that completed no bead which stops the run")
+	cmd.Flags().IntVar(&completed, "completed", 0,
+		"report that a dispatch just returned having completed this many beads (0 counts as a failure); omitted, this invocation only reads the breaker's count")
 
 	return cmd
 }
@@ -128,12 +137,13 @@ func explainReady(req Request, agent string) Result {
 	var lines []string
 	if agent == "" {
 		lines = []string{
-			"swarm ready reads two things and joins them, so its steps are described here rather " +
-				"than printed as a plan:",
+			"swarm ready reads two things and joins them, then reads the circuit breaker's count, " +
+				"so its steps are described here rather than printed as a plan:",
 			"  bd ready --parent " + req.Run + " --exclude-type epic --exclude-label human --limit 0 --json  (the dispatch set)",
 			"  the same worktree-to-dispatch attribution `swarm status` performs — the standing " +
 				"worktrees, the run's completion walk, and which bead's assignee closed each worktree's " +
 				"HEAD commit — to tell a bead already held from one nothing is working",
+			"  bd show " + req.Run + " --json                              (the failure count; --completed also writes it back)",
 		}
 	} else {
 		lines = []string{
@@ -168,7 +178,12 @@ type readyEntry struct {
 // matches a standing worktree to its dispatch — by branch, falling back
 // to the bead its HEAD commit closed — is the one implementation
 // [[container-swarm-cli]] declares, not a second copy of it living here.
-func reportReady(ctx context.Context, deps status.Deps, req Request) (Result, error) {
+//
+// breaker and threshold are the CB delta's: whether this invocation is
+// reporting a dispatch return, and the count that stops the run. They
+// apply only here — --agent narrows to one dispatch's own queue and
+// carries no circuit-breaker semantics of its own.
+func reportReady(ctx context.Context, deps status.Deps, req Request, breaker breakerReport, threshold int) (Result, error) {
 	step := deps.Tracker.Ready("ready", req.Run, tracker.ReadyFilter{
 		ExcludeKinds:  []string{epicKind},
 		ExcludeLabels: []string{humanLabel},
@@ -231,7 +246,116 @@ func reportReady(ctx context.Context, deps status.Deps, req Request) (Result, er
 		result.Summary = fmt.Sprintf("%d bead(s) ready under %s, %d already held by a standing dispatch",
 			len(entries), req.Run, heldCount)
 	}
+
+	breakerFacts, stopped, stopSummary, err := applyBreaker(ctx, deps, req, breaker, threshold)
+	if err != nil {
+		return Result{}, err
+	}
+	result.Facts = append(result.Facts, breakerFacts...)
+	if stopped {
+		// The breaker overrides whatever the dispatch set itself
+		// concluded: a stopped run has nothing left to dispatch, whether
+		// or not beads remain in the ready set.
+		result.Outcome = OutcomeStop
+		result.Summary = stopSummary
+	}
 	return result, nil
+}
+
+// breakerDefaultThreshold is used WHERE --threshold is absent from the
+// invocation, per the CB delta's own behavior line.
+const breakerDefaultThreshold = 3
+
+// breakerReport is what one invocation told the circuit breaker about the
+// dispatch that just returned.
+//
+// Given is whether --completed was passed at all, and it is not the same
+// question as whether Completed is zero: an invocation that omits
+// --completed is a bare re-query between dispatches and must not
+// silently advance or reset the count nobody reported a return for, while
+// --completed 0 is a dispatch that returned having completed nothing and
+// SHALL advance it.
+type breakerReport struct {
+	Given     bool
+	Completed int
+}
+
+// applyBreaker reads consecutive_dispatch_failures, advances it by one or
+// resets it to zero per report, and compares the result against
+// threshold — the CB delta. The read always happens, so a bare `swarm
+// ready` still reports the count and still stops a run already at
+// threshold; the write happens only WHEN report.Given, since a query that
+// is not reporting a dispatch return has nothing to record.
+//
+// It reaches the manifest only through [status.Deps.Store], per
+// [[container-swarm-cli]]'s Manifest Store component — never the run
+// epic's metadata directly.
+func applyBreaker(ctx context.Context, deps status.Deps, req Request, report breakerReport, threshold int) ([]Fact, bool, string, error) {
+	if deps.Store == nil {
+		return nil, false, "", RefuseUnrepairable("no manifest store is configured")
+	}
+
+	readSteps := deps.Store.Read("failure-count", req.Run)
+	readReport, err := deps.Runner.Run(ctx, plan.Plan{
+		Name:  "read " + req.Run + "'s failure count",
+		Steps: readSteps,
+	}, plan.ModeExecute)
+	if err != nil {
+		return nil, false, "", RefuseUnrepairable("the manifest could not be read: %s", err)
+	}
+	doc, from, err := document(readSteps, readReport)
+	if err != nil {
+		return nil, false, "", err
+	}
+
+	var recorded int
+	if present, decErr := doc.Decode("consecutive_dispatch_failures", &recorded); decErr != nil {
+		return nil, false, "", RefuseUnrepairable("consecutive_dispatch_failures does not decode: %s", decErr)
+	} else if !present {
+		// MFK's rule that an absent count is absent, not zero, is the
+		// record's own reading. Treating it as zero here is this
+		// command's decision, per the delta's own behavior line, so a
+		// fresh run starts at zero rather than being reported
+		// unestablished.
+		recorded = 0
+	}
+
+	next := recorded
+	invocation := from
+	if report.Given {
+		if report.Completed > 0 {
+			next = 0
+		} else {
+			next = recorded + 1
+		}
+		if next != recorded {
+			nextJSON, merr := json.Marshal(next)
+			if merr != nil {
+				return nil, false, "", RefuseUnrepairable("%d does not encode as JSON: %s", next, merr)
+			}
+			changes := map[string]json.RawMessage{"consecutive_dispatch_failures": json.RawMessage(nextJSON)}
+			writeSteps := deps.Store.Write("advance-failure-count", req.Run, changes, manifest.Rules(changes))
+			writeReport, werr := deps.Runner.Run(ctx, plan.Plan{
+				Name:  "record " + req.Run + "'s failure count",
+				Steps: writeSteps,
+			}, plan.ModeExecute)
+			if werr != nil {
+				return nil, false, "", RefuseUnrepairable("%s", werr)
+			}
+			if _, _, derr := document(writeSteps, writeReport); derr != nil {
+				return nil, false, "", derr
+			}
+			invocation = argvOf(mustRecord(writeReport, writeSteps.Answer()))
+		}
+	}
+
+	fact := Count("consecutive_dispatch_failures", next, invocation)
+	if next >= threshold {
+		return []Fact{fact}, true, fmt.Sprintf(
+			"the run is stopped: %d consecutive dispatch(es) returned with no bead completed (threshold %d)",
+			next, threshold), nil
+	}
+	return []Fact{fact}, false, "", nil
 }
 
 // queueEntry is one bead in an agent's own queue, rendered as
