@@ -5,9 +5,10 @@ description: Extend the swarm binary's tracker and version-control
   them, and adopt each into the skills whose prose it replaces
 slug: feature-swarm-dispatch
 type: feature-blueprint
-status: draft
+status: in-progress
 updated_at: 2026-09-01T00:00:00Z
 delivery: staged
+plan: agent-plugins-o63s
 frd: frd-swarm-dispatch
 ---
 
@@ -236,6 +237,12 @@ one dispatch return in which no bead completed.
   and a resumed run continues from what it recorded.
 - WHEN the count reaches the configured threshold, the command SHALL
   report the run as stopped and take the stop status.
+- The threshold SHALL arrive as an argument to the command, and WHERE it is
+  absent the command SHALL use 3.
+- The command SHALL NOT read `sf.toml`, or any other configuration file, to
+  resolve the threshold. Resolving it is the coordinator's, at the
+  authorization gate where every other run policy is resolved, so the
+  container gains no configuration-reading surface.
 
 **Anchors:** `cli/swarm/cli`, `cli/swarm/manifest`.
 
@@ -401,9 +408,15 @@ the retirement on the coordinator's own documents and script.
   assert.
 - The Coordinator's roster line and Change Guidance SHALL name the commands
   it now depends on.
+- The Scope component SHALL resolve the breaker's threshold as a seventh
+  authorization-gate row — `sf.toml`'s `[run]` `breaker_threshold` when the
+  key is present, else 3 — and SHALL record that row's value and its source
+  in `standing_auth` as every other row is. The Coordinator SHALL pass the
+  resolved value to `swarm ready`.
 
 **Anchors:** `plugin/skills/bead-bonanza/`,
 `plugin/skills/bead-bonanza/scripts/pre-flight-check.sh`,
+`plugin/skills/sprint-scope/SKILL.md`, `sf.toml`,
 `specs/architecture/module-bead-bonanza.md`.
 
 ### [[module-bead-bonanza]] (modified — dispatch-side adoption)
@@ -514,6 +527,18 @@ Delivery is `staged`, in three stages.
 - The **ADP-C** delta SHALL delete the prose each adopted command replaces
   in the same change that adopts the command; documentation travels with
   the change it describes.
+- The fold of a delta into [[container-swarm-cli]] SHALL land **per stage**
+  rather than per delta: each delta delivers its code and its tests, and one
+  work order per stage folds that stage's deltas into the container blueprint,
+  depending on every delta in that stage. This is the statement the grooming
+  skill's lockstep rule requires in place of per-item delivery, and it exists
+  so the container blueprint — one file every delta would otherwise edit —
+  does not serialize the whole feature behind a single work order. The stage
+  boundary is the fold boundary because it is a seam this blueprint already
+  draws, and it bounds code-to-blueprint drift to one stage.
+- The prose deletions in **ADP-C** and **ADP-D** SHALL NOT be deferred to a
+  fold work order. They are this feature's deliverable rather than a
+  description of it, and travel with the change that adopts each command.
 
 ## AC Coverage
 
@@ -620,6 +645,10 @@ here, and what each binds:
 
 ## Definition of Done
 
+- [ ] Each stage's fold work order has landed, so [[container-swarm-cli]]'s
+      component records match the code at every stage boundary
+- [ ] `sf.toml`'s `[run]` documents `breaker_threshold` and `sprint-scope`'s
+      authorization-gate table carries it as a seventh row
 - [ ] Every delta above is folded into its owning blueprint:
   - [ ] [[container-swarm-cli]] — the `Tracker`, `Version Control` and
         their implementations' component records updated with the
@@ -646,18 +675,7 @@ here, and what each binds:
 
 ## Open Questions
 
-- [ ] **Where does the circuit breaker's threshold come from?**
-      AC-SWARM-DISP-002.4 says "the configured number of consecutive
-      dispatches" without saying what configures it, and the **CB** delta
-      cannot be implemented without an answer. Three candidates: a flag on
-      `swarm ready` with a default of 3, which adds no durable state
-      and lets a coordinator vary it per query; a `[run]` key in `sf.toml`,
-      which puts it beside the other per-project run policy the
-      authorization gate resolves; or a second manifest key, which would
-      make it durable per run but contradicts the FRD's statement that
-      `consecutive_dispatch_failures` is the one key it adds. Recommended: the
-      `sf.toml` `[run]` key, resolved at the authorization gate like every
-      other run policy, with 3 as the skill default. The human decides.
+None.
 
 ## References
 
