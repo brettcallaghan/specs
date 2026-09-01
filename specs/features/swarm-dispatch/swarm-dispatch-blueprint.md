@@ -5,7 +5,7 @@ description: Extend the swarm binary's tracker and version-control
   them, and adopt each into the skills whose prose it replaces
 slug: feature-swarm-dispatch
 type: feature-blueprint
-status: in-progress
+status: retired
 updated_at: 2026-09-01T00:00:00Z
 delivery: staged
 plan: agent-plugins-o63s
@@ -645,33 +645,60 @@ here, and what each binds:
 
 ## Definition of Done
 
-- [ ] Each stage's fold work order has landed, so [[container-swarm-cli]]'s
+**Verified, and two entries are not met.** The feature ships with both
+recorded rather than closed as satisfied; each names the issue that carries
+it.
+
+- [x] Each stage's fold work order has landed, so [[container-swarm-cli]]'s
       component records match the code at every stage boundary
-- [ ] `sf.toml`'s `[run]` documents `dispatch_failure_threshold` and `sprint-scope`'s
+- [x] `sf.toml`'s `[run]` documents `dispatch_failure_threshold` and `sprint-scope`'s
       authorization-gate table carries it as a seventh row
-- [ ] Every delta above is folded into its owning blueprint:
-  - [ ] [[container-swarm-cli]] — the `Tracker`, `Version Control` and
+- [x] Every delta above is folded into its owning blueprint:
+  - [x] [[container-swarm-cli]] — the `Tracker`, `Version Control` and
         their implementations' component records updated with the
         operations added; the command tree in the `Swarm Command Surface`
         record extended to the five commands; Data and Change Guidance
         updated for the new manifest key and the fixture variants
-  - [ ] [[module-bead-bonanza]] — the Coordinator, Developer and Recovery
+  - [x] [[module-bead-bonanza]] — the Coordinator, Developer and Recovery
         component records updated to name the commands they now call, and
         the module's version raised
-- [ ] `schemas/swarm/manifest.strata` carries
+- [x] `schemas/swarm/manifest.strata` carries
       `consecutive_dispatch_failures`, the generated artifacts are
       regenerated, and the `core` fixture is re-recorded against them
-- [ ] [[contract-swarm-json]] is unchanged, or its version is raised in the
+- [x] [[contract-swarm-json]] is unchanged, or its version is raised in the
       same change as any schema change that removed, renamed or retyped
-      anything
-- [ ] Every AC in the coverage table is verified at its declared level and
-      cited from its tests per [[ac-traceability-standards]]
-- [ ] Every prose section named in the **ADP-C** and **ADP-D** deltas is
-      deleted, and `scripts/check-skills.sh` passes over the result
-- [ ] `agent-plugins-offx.4`, `agent-plugins-y63n.7` and
+      anything — the schema change was purely additive (one optional
+      field), so no version raise was owed and none was made
+- [ ] **NOT MET.** Every AC in the coverage table is verified at its declared
+      level and cited from its tests per [[ac-traceability-standards]].
+      All 58 carry a test citation; 57 are cited at their declared level.
+      `AC-SWARM-DISP-004.1` is declared `e2e` and proved at `unit`
+      (`TestAWorktreeIsNotRemovedUnlessItsBranchIsAnAncestorOfTheTarget`,
+      `cli/swarm/cli/accept_settle_test.go`), because a successful
+      `merge --ff-only` implies ancestry and a failed one stops earlier
+      — the world the criterion describes needs a second actor. Carried
+      by `agent-plugins-oyvf`, which names the route: a repository-local
+      `post-merge` hook fixture, the technique the `push-refused` fixture
+      already uses for a rejection.
+- [ ] **NOT MET, by one deliberate exception.** Every prose section named in
+      the **ADP-C** and **ADP-D** deltas is deleted, and
+      `scripts/check-skills.sh` passes over the result. The gate passes and
+      every named section is gone except step 3 of `dispatching.md`'s
+      "Verify against state", the per-bead **pre-merge** acceptance check:
+      no command performs that half, so deleting the prose would have
+      deleted the step. Carried by `agent-plugins-bhaj`.
+- [x] `agent-plugins-offx.4`, `agent-plugins-y63n.7` and
       `agent-plugins-y63n.4` are closed or re-scoped against the deltas
       that subsume them
-- [ ] This blueprint's status → retired
+- [x] This blueprint's status → retired
+
+**Also open against this feature, filed during the run and admitted to no
+delta:** `agent-plugins-2ekn` (`swarm dispatch open --dry-run` errors where
+the sprint branch does not exist), `agent-plugins-1vya` (`swarm dispatch
+accept` cannot rebase while the dispatch worktree stands, reachable in every
+real concurrent acceptance), `agent-plugins-5w5l` (`pre-flight.md` still
+names a worktree directory `swarm dispatch open` no longer chooses), and
+`agent-plugins-o63s.20` (deferred as scope creep).
 
 ## Open Questions
 
