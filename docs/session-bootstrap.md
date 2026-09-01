@@ -72,18 +72,25 @@ A cloud environment must supply two things:
    time, so the token is never written to disk. If an environment blocks direct egress,
    the hook will fail its probe and say so.
 
-### Also user-scope: `worktree.baseRef`
+### Not needed here any more: `worktree.baseRef`
 
-`~/.claude/settings.json` must carry `{ "worktree": { "baseRef": "head" } }`.
-Unset, a git worktree branches from the repository's **default branch** rather
-than session HEAD, so every bead in a run silently loses the commits the sprint
-branch already carries. Every bead runs in a worktree, so this affects every
-run, not just parallel ones.
+`{ "worktree": { "baseRef": "head" } }` must be in effect. Unset, a git
+worktree branches from the repository's **default branch** rather than session
+HEAD, so every bead in a run silently loses the commits the sprint branch
+already carries. Every bead runs in a worktree, so this affects every run, not
+just parallel ones.
 
-It is user-scope global state that no repository owns, and **a fresh container
-does not have it**. Set it in the environment setup script below, or expect to
-set it by hand at the start of each session. Pre-flight reports it, and the
-`bead-bonanza` skill treats a wrong value as stop-and-fix at worktree dispatch.
+**This repository commits it to `.claude/settings.json`**, which every clone and
+every fresh container inherits, so the setup script below no longer has to write
+it and a session that skips the script is not exposed. Claude Code resolves the
+key highest-precedence-first — `.claude/settings.local.json`, then
+`.claude/settings.json`, then `~/.claude/settings.json` — so the committed value
+holds unless someone sets the local file. Pre-flight reads all three and reports
+which one answered; the `bead-bonanza` skill treats a wrong value as
+stop-and-fix at worktree dispatch.
+
+The `$HOME/.claude/settings.json` step in the script below is now belt-and-braces
+rather than the only source, and is safe to drop.
 
 ## The fix: an environment setup script
 

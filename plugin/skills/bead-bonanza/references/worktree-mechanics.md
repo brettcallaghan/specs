@@ -70,11 +70,19 @@ session HEAD. This is not conditional on whether the run's beads build on
 each other: an unset `baseRef` silently drops every commit the sprint
 branch carries from every worktree, isolated beads included — it is a hard
 gate for `isolation: "worktree"` full stop, not a special case for beads
-with a dependency edge. Fix (set it in user scope; project scope is untested):
+with a dependency edge. Fix — commit it to the repository, so every clone and
+every fresh container inherits it:
 
 ```json
+// .claude/settings.json
 { "worktree": { "baseRef": "head" } }
 ```
+
+The same key in `~/.claude/settings.json` works for one machine. Claude Code
+resolves it highest-precedence-first — `.claude/settings.local.json`, then
+`.claude/settings.json`, then `~/.claude/settings.json` — so a higher level
+overrides a lower one, and a stray `"fresh"` in the local file defeats a
+committed `"head"`.
 
 Takes effect immediately, no restart — a failed check is stop-and-fix, not
 stop-and-abandon.

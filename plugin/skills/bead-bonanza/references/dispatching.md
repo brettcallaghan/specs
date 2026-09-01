@@ -51,7 +51,8 @@ shared surface so a reader can tell them apart: `run-record.md`.
   keeps the beads it gates out of the ready set forever
   (`supervision.md`).
 - `BB_WORKTREE_BASEREF` is `head` before the next worktree is created. It is
-  global user state no repository owns, so it can change between dispatches.
+  settings state that can change between dispatches, at any of the three
+  precedence levels pre-flight reads.
 - Diff the ready set against `manifest.admitted` (`swarm status --run <epic>` names
   the difference) and resolve any creep — admitted as an amendment, or deferred
   out — rather than dispatching an unexamined bead.

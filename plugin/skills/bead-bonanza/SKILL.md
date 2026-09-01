@@ -194,9 +194,10 @@ merges. `git worktree list` says what is in flight; each tree's checked-out
 branch names the agent holding it.
 
 **Hard gate — `BB_WORKTREE_BASEREF` must read `head` before every worktree you
-create.** It is global user state no repository owns, so it can change under
-you, and a worktree cut from the default branch cannot see what the sprint
-branch already carries.
+create.** A worktree cut from the default branch cannot see what the sprint
+branch already carries. Commit it to the repository's own
+`.claude/settings.json` so no container starts without it; a higher-precedence
+`.claude/settings.local.json` still overrides that.
 
 **YOU merge, as each dispatch returns.** There is no merge queue, no merge bead
 and no lock: you are one agent, so one-merge-at-a-time holds by construction
