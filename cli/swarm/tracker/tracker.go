@@ -93,6 +93,136 @@ type ReadyFilter struct {
 	ExcludeLabels []string
 }
 
+// Finding is one note recorded on a bead — the channel a run's findings
+// travel on, read back.
+//
+// It is stated here rather than in an implementation because a caller
+// re-checking a bead's acceptance signals reads findings, and a caller
+// above the Beads Tracker may not learn any tracker's spelling for a
+// comment.
+type Finding struct {
+	// ID is the note's own identifier in the tracker.
+	ID string
+	// Bead is the bead it was recorded on.
+	Bead string
+	// Author is who recorded it.
+	Author string
+	// Text is the note itself, unaltered — a run's finding convention
+	// lives in this text, and reading it is the caller's.
+	Text string
+}
+
+// EpicClosure is one epic's closure eligibility, as the TRACKER judges
+// it.
+//
+// Eligible is the tracker's own verdict and is never re-derived here: a
+// second eligibility rule living in this container would be a second
+// answer to disagree with the first.
+type EpicClosure struct {
+	// Epic is the epic itself.
+	Epic Bead
+	// Children is how many beads hang under it.
+	Children int
+	// Finished is how many of those the tracker counts as complete.
+	Finished int
+	// Eligible is the tracker's verdict on whether it may close.
+	Eligible bool
+}
+
+// Closable is what a closure-eligibility query answered, together with
+// the scope the caller asked about.
+//
+// The two are carried together because they are not the same set, and a
+// caller that read one for the other would close epics outside its run.
+// [Closable.Within] is the only way to get the scoped answer, so the wide
+// one cannot be mistaken for it.
+type Closable struct {
+	// Scope is the run the caller asked about.
+	Scope string
+	// Judged is every epic the query reported on, which is as narrow as
+	// the tracker was able to answer and may be wider than Scope.
+	Judged []EpicClosure
+}
+
+// Within returns the epics eligible to close that are among beneath —
+// the descendant set the caller walked, which is what makes the answer
+// the run's rather than the database's.
+//
+// Only eligible epics come back, so a tracker whose own filter stopped
+// filtering still cannot get an ineligible epic past this.
+func (c Closable) Within(beneath []Bead) []EpicClosure {
+	inside := make(map[string]bool, len(beneath))
+	for _, b := range beneath {
+		inside[b.ID] = true
+	}
+	out := make([]EpicClosure, 0, len(c.Judged))
+	for _, e := range c.Judged {
+		if e.Eligible && inside[e.Epic.ID] {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
+// Held is what an assignee query answered: the beads one agent has taken
+// and not finished, together with the scope the caller asked about.
+//
+// Same shape and same reason as [Closable]. A dispatch id is reused
+// across runs, so the wide answer read as the narrow one reports an agent
+// as holding work that belongs to another run entirely.
+type Held struct {
+	// Scope is the run the caller asked about.
+	Scope string
+	// Agent is the dispatch id the query named.
+	Agent string
+	// Beads is every bead the query reported, which may reach outside
+	// Scope.
+	Beads []Bead
+}
+
+// Within returns the held beads that are among beneath.
+func (h Held) Within(beneath []Bead) []Bead {
+	inside := make(map[string]bool, len(beneath))
+	for _, b := range beneath {
+		inside[b.ID] = true
+	}
+	out := make([]Bead, 0, len(h.Beads))
+	for _, b := range h.Beads {
+		if inside[b.ID] {
+			out = append(out, b)
+		}
+	}
+	return out
+}
+
+// Queue is one dispatch's queue beneath a scope, partitioned by whether
+// each bead is ready to start or already in progress.
+//
+// **Both halves are required and neither is sufficient.** A ready query
+// excludes work in progress, so on its own it reports an agent mid-bead
+// as finished; the in-progress half says nothing about what is waiting.
+// So [Queue.Drained] is true only when both are empty, and a queue built
+// from one half is not a queue.
+type Queue struct {
+	// Scope is the run the queue was taken within.
+	Scope string
+	// Agent is the dispatch id.
+	Agent string
+	// Ready are the beads assigned to it that nothing is blocking.
+	Ready []Bead
+	// InProgress are the beads it has claimed.
+	InProgress []Bead
+}
+
+// Drained is true when the agent holds neither ready nor in-progress
+// work.
+//
+// It says nothing about whether the agent was ever given a queue: a
+// dispatch nobody assigned anything to also holds nothing, and telling
+// those two apart is the caller's, from whether any bead in the run names
+// the agent at all.
+func (q Queue) Drained() bool { return len(q.Ready) == 0 && len(q.InProgress) == 0 }
+
 // Tracker states what a run needs from an issue tracker.
 //
 // Every method takes a step name first. A plan's steps are named so that
@@ -115,7 +245,41 @@ type Tracker interface {
 
 	// Ready declares a step reading the beads under a scope that
 	// nothing is blocking right now. Its decoded value is a []Bead.
+	//
+	// The scope is required and is never defaulted: an empty one asks
+	// for the whole tracker, and a dispatch set taken over the whole
+	// tracker is a run offering work that is not its own.
 	Ready(name, scope string, filter ReadyFilter) plan.Step
+
+	// Holding declares a step reading the beads one agent has taken and
+	// not finished, beneath a scope. Its decoded value is a [Held],
+	// which must be narrowed with [Held.Within] before it is the run's
+	// answer.
+	//
+	// Paired with [Tracker.Ready] filtered to the same agent, this is
+	// the partition a [Queue] is built from — the ready half and the
+	// in-progress half. Two queries rather than one because a ready
+	// query excludes work in progress by construction, so an agent
+	// mid-bead has an empty ready set and reads as finished.
+	Holding(name, scope, agent string) plan.Step
+
+	// ClosableEpics declares a step reading which epics beneath a scope
+	// the tracker judges eligible to close. Its decoded value is a
+	// [Closable], which must be narrowed with [Closable.Within] before
+	// it is the run's answer.
+	//
+	// The scope is an argument rather than a default because closing
+	// "every eligible epic" is a whole-database act, and a run may only
+	// close its own.
+	ClosableEpics(name, scope string) plan.Step
+
+	// Findings declares a step reading the notes recorded on a bead.
+	// Its decoded value is a []Finding.
+	//
+	// The read counterpart of [Tracker.Note], and the tracker's half of
+	// a bead's acceptance signals: whether the work was recorded, beside
+	// the bead's own state.
+	Findings(name, id string) plan.Step
 
 	// Claim declares a step taking a bead for an agent: it sets the state
 	// and the assignee together, because a bead claimed by nobody is
@@ -175,4 +339,59 @@ func BeadFrom(value any) (Bead, error) {
 		return Bead{}, fmt.Errorf("tracker: the step produced %T, not a bead", value)
 	}
 	return bead, nil
+}
+
+// HeldFrom reads a step's decoded value as one agent's held set.
+func HeldFrom(value any) (Held, error) {
+	if value == nil {
+		return Held{}, fmt.Errorf("tracker: the step produced no value")
+	}
+	held, ok := value.(Held)
+	if !ok {
+		return Held{}, fmt.Errorf("tracker: the step produced %T, not a held set", value)
+	}
+	return held, nil
+}
+
+// ClosableFrom reads a step's decoded value as a closure-eligibility
+// answer.
+func ClosableFrom(value any) (Closable, error) {
+	if value == nil {
+		return Closable{}, fmt.Errorf("tracker: the step produced no value")
+	}
+	closable, ok := value.(Closable)
+	if !ok {
+		return Closable{}, fmt.Errorf("tracker: the step produced %T, not a closure-eligibility answer", value)
+	}
+	return closable, nil
+}
+
+// FindingsFrom reads a step's decoded value as a bead's findings.
+//
+// A value of the wrong type is an error rather than an empty set, for the
+// same reason [BeadsFrom] refuses one: "the bead recorded nothing" and
+// "the read returned something else" are the two conditions an acceptance
+// check may not conflate.
+func FindingsFrom(value any) ([]Finding, error) {
+	if value == nil {
+		return nil, fmt.Errorf("tracker: the step produced no value")
+	}
+	findings, ok := value.([]Finding)
+	if !ok {
+		return nil, fmt.Errorf("tracker: the step produced %T, not a finding set", value)
+	}
+	return findings, nil
+}
+
+// FindingFrom reads a step's decoded value as one finding — what
+// [Tracker.Note] records.
+func FindingFrom(value any) (Finding, error) {
+	if value == nil {
+		return Finding{}, fmt.Errorf("tracker: the step produced no value")
+	}
+	finding, ok := value.(Finding)
+	if !ok {
+		return Finding{}, fmt.Errorf("tracker: the step produced %T, not a finding", value)
+	}
+	return finding, nil
 }

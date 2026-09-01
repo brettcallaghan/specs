@@ -57,13 +57,30 @@ func TestTheInvocationsItDeclares(t *testing.T) {
 		{"the beads directly under one", tr.Children("s", "run-1"),
 			"bd list --parent run-1 --all --limit 0 --json"},
 
+		// --limit 0 is load-bearing: `bd ready`'s own default is 100 and
+		// it applies to JSON output. See Ready's doc for the measurement.
 		{"the whole ready set", tr.Ready("s", "run-1", tracker.ReadyFilter{}),
-			"bd ready --parent run-1 --json"},
+			"bd ready --parent run-1 --limit 0 --json"},
 
 		{"a filtered ready set", tr.Ready("s", "run-1", tracker.ReadyFilter{
 			Assignee: "dev-1", ExcludeKinds: []string{"epic"}, ExcludeLabels: []string{"human"},
 		}),
-			"bd ready --parent run-1 --assignee dev-1 --exclude-type epic --exclude-label human --json"},
+			"bd ready --parent run-1 --assignee dev-1 --exclude-type epic --exclude-label human --limit 0 --json"},
+
+		// The scope reaches these two through the decoded value, not the
+		// argv: bd has no transitive parent filter for the first and
+		// ignores the positional argument on the second. Both
+		// measurements are on the methods.
+		{"what an agent holds", tr.Holding("s", "run-1", "dev-1"),
+			"bd list --assignee dev-1 --status in_progress --limit 0 --json"},
+
+		{"the epics eligible to close", tr.ClosableEpics("s", "run-1"),
+			"bd epic status --eligible-only --json"},
+
+		// `bd comments` (read), not `bd comment` (write): one letter
+		// apart, different containers, different decoders.
+		{"the findings on a bead", tr.Findings("s", "run-1.4"),
+			"bd comments run-1.4 --json"},
 
 		// Status and assignee in one invocation: two would leave a bead
 		// claimed by nobody in between.
@@ -124,6 +141,9 @@ func TestEachStepDeclaresItsEffectAndWhetherReRunningIsSafe(t *testing.T) {
 		tr.Bead("s", "run-1"),
 		tr.Children("s", "run-1"),
 		tr.Ready("s", "run-1", tracker.ReadyFilter{}),
+		tr.Holding("s", "run-1", "dev-1"),
+		tr.ClosableEpics("s", "run-1"),
+		tr.Findings("s", "run-1.4"),
 	}
 	for _, s := range reads {
 		if s.Effect != plan.Read {
@@ -257,3 +277,95 @@ func TestOnlyThisPackageNamesTheTool(t *testing.T) {
 // swarmResultOK is a successful, empty result — enough to drive a
 // decoder that refuses before looking at anything.
 func swarmResultOK() swarmexec.Result { return swarmexec.Result{} }
+
+// TestNoOperationReachesTheProcessRunner enforces "every operation
+// returns a plan step and does not reach the Process Runner itself". A
+// step that ran its own subprocess would be invisible to explain mode and
+// unguarded by the plan's ordering, which is what makes a dry run a lie.
+//
+// Two halves, because neither alone is enough. The textual half catches a
+// call site naming the runner; the behavioural half catches one reaching
+// it through a variable, by building every operation with a context that
+// has no runner in it and asserting each produced a step and nothing
+// else.
+func TestNoOperationReachesTheProcessRunner(t *testing.T) {
+	fset := token.NewFileSet()
+	scanned := 0
+
+	entries, err := filepath.Glob("*.go")
+	if err != nil {
+		t.Fatalf("globbing this package: %v", err)
+	}
+	for _, path := range entries {
+		if strings.HasSuffix(path, "_test.go") {
+			continue
+		}
+		scanned++
+		file, err := parser.ParseFile(fset, path, nil, 0)
+		if err != nil {
+			t.Fatalf("parsing %s: %v", path, err)
+		}
+		ast.Inspect(file, func(n ast.Node) bool {
+			sel, ok := n.(*ast.SelectorExpr)
+			if !ok {
+				return true
+			}
+			if sel.Sel.Name == "ProcessRunner" || sel.Sel.Name == "Run" {
+				t.Errorf("%s reaches %s; a tracker operation declares a step and runs nothing",
+					path, sel.Sel.Name)
+			}
+			return true
+		})
+	}
+	if scanned == 0 {
+		t.Fatal("scanned no source in this package, so the guard is vacuous")
+	}
+
+	// Every operation, built and inspected. A constructor that ran
+	// anything would need a runner; none of them takes one.
+	tr := Tracker{}
+	steps := []plan.Step{
+		tr.Bead("s", "run-1"),
+		tr.Children("s", "run-1"),
+		tr.Ready("s", "run-1", tracker.ReadyFilter{}),
+		tr.Holding("s", "run-1", "dev-1"),
+		tr.ClosableEpics("s", "run-1"),
+		tr.Findings("s", "run-1.4"),
+		tr.Claim("s", "run-1.4", "dev-1"),
+		tr.SetState("s", "run-1.4", tracker.StateDone),
+		tr.AddLabel("s", "run-1.4", "x"),
+		tr.Note("s", "run-1.4", "retro:proof x"),
+		tr.BlockedBy("s", "run-1.4", "run-1.2"),
+		tr.DiscoveredFrom("s", "run-1.4", "run-1.2"),
+		tr.WriteMetadata("s", "run-1", []byte(`{"k":1}`)),
+	}
+	for _, s := range steps {
+		if s.Executable == "" {
+			t.Errorf("step %q declares no executable, so nothing can run it as a step", s.Name)
+		}
+		if s.Decode == nil {
+			t.Errorf("step %q declares no decoder, so its result would be read by whoever ran it", s.Name)
+		}
+		if s.Description == "" {
+			t.Errorf("step %q describes nothing, so explain mode prints an unnamed invocation", s.Name)
+		}
+	}
+}
+
+// The scope reaches these two answers through the decoded value rather
+// than through the invocation, so the invocation must NOT carry it — a
+// scope in the argv would read as a filter bd does not apply. See
+// Holding's and ClosableEpics' docs for the measurements.
+func TestTheTwoWideQueriesDoNotPretendToBeScoped(t *testing.T) {
+	for _, s := range []plan.Step{
+		Tracker{}.Holding("s", "run-1", "dev-1"),
+		Tracker{}.ClosableEpics("s", "run-1"),
+	} {
+		for _, arg := range argv(t, s) {
+			if arg == "run-1" {
+				t.Errorf("%q carries the scope in its argv; bd applies no such filter here, so the "+
+					"invocation would read as narrowed when it is not: %s", s.Name, joined(t, s))
+			}
+		}
+	}
+}

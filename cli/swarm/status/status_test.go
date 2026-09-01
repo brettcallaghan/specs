@@ -105,7 +105,7 @@ func children(parent string, beads ...bead) exectest.Recording {
 // ready records the ready set under the run epic.
 func ready(beads ...bead) exectest.Recording {
 	return exectest.Recording{
-		Argv:   []string{"bd", "ready", "--parent", runEpic, "--exclude-type", "epic", "--json"},
+		Argv:   []string{"bd", "ready", "--parent", runEpic, "--exclude-type", "epic", "--limit", "0", "--json"},
 		Stdout: issues(beads...),
 	}
 }
