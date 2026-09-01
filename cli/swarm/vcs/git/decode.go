@@ -7,6 +7,7 @@ import (
 	"time"
 
 	swarmexec "github.com/brettcallaghan/agent-plugins/cli/swarm/exec"
+	"github.com/brettcallaghan/agent-plugins/cli/swarm/plan"
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/vcs"
 )
 
@@ -292,6 +293,95 @@ func decodeDivergence(res swarmexec.Result) (any, error) {
 // conflictMarker introduces every conflict line git prints, on both the
 // merge and the rebase paths.
 const conflictMarker = "CONFLICT ("
+
+// The two markers a rejected push is read from, both measured on git
+// 2.43.0 against a bare repository whose pre-receive hook declines a ref
+// namespace:
+//
+//	remote: refusing refs/heads/claude/*: this remote does not accept sprint branches
+//	To ../remote.git
+//	 ! [remote rejected] claude/sprint -> claude/sprint (pre-receive hook declined)
+//	error: failed to push some refs to '../remote.git'
+//
+// The `!` line is the only one that names the ref, and the `remote:`
+// lines are the only ones carrying the server's own reason — so a
+// decoder reading just the last line of stderr (`error: failed to push
+// some refs…`) gets neither.
+const (
+	rejectedMarker = "! ["
+	remoteMarker   = "remote: "
+)
+
+// pushDecoder decodes `git push` for one remote. A rejection comes back
+// as a [*vcs.Rejection] so a caller branches on which refs the remote
+// refused rather than on git's prose; anything else is an ordinary
+// failure.
+func pushDecoder(remote string) plan.Decoder {
+	return func(res swarmexec.Result) (any, error) {
+		if res.Succeeded() {
+			return nil, nil
+		}
+		return nil, rejection(remote, res)
+	}
+}
+
+// rejection reads a failed push as a [vcs.Rejection], or reports an
+// ordinary failure when the remote named no ref and said nothing.
+func rejection(remote string, res swarmexec.Result) error {
+	lines := append(nonEmptyLines(res.Stdout), nonEmptyLines(res.Stderr)...)
+
+	var refused, reasons, detail []string
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		switch {
+		case strings.HasPrefix(trimmed, rejectedMarker):
+			detail = append(detail, trimmed)
+			if ref := rejectedRef(trimmed); ref != "" {
+				refused = append(refused, ref)
+			}
+		case strings.HasPrefix(trimmed, remoteMarker):
+			said := strings.TrimSpace(strings.TrimPrefix(trimmed, remoteMarker))
+			if said != "" {
+				reasons = append(reasons, said)
+				detail = append(detail, trimmed)
+			}
+		}
+	}
+
+	if len(refused) == 0 && len(reasons) == 0 {
+		// Not a rejection — git could not run the push at all, which is
+		// an ordinary failure and reads better as one.
+		return failure("git push", res)
+	}
+	return &vcs.Rejection{
+		Remote:  remote,
+		Refused: refused,
+		Reason:  strings.Join(reasons, "; "),
+		Detail:  strings.Join(detail, "\n"),
+	}
+}
+
+// rejectedRef pulls the refused ref out of one rejection line, empty when
+// the line's form does not name one.
+//
+// The form is `! [<kind>] <src> -> <dst> (<why>)`, and <dst> is the ref
+// the REMOTE refused, which is the one worth naming: a push whose local
+// and remote names differ is refused on the remote's.
+func rejectedRef(line string) string {
+	_, rest, ok := strings.Cut(line, "] ")
+	if !ok {
+		return ""
+	}
+	_, dst, ok := strings.Cut(rest, " -> ")
+	if !ok {
+		return ""
+	}
+	ref, _, ok := strings.Cut(dst, " (")
+	if !ok {
+		return strings.TrimSpace(dst)
+	}
+	return strings.TrimSpace(ref)
+}
 
 // mergeConflictIn is the form that names a path unambiguously: whatever
 // follows it, to the end of the line, IS the path — spaces included,

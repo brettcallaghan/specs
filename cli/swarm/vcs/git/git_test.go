@@ -88,8 +88,15 @@ func TestTheInvocationsItDeclares(t *testing.T) {
 			"git rev-parse --verify main^{commit}",
 		}},
 
-		{"divergence", v.Divergence("div", "dev-1"), []string{
-			"git rev-list --count --left-right dev-1...dev-1@{upstream}",
+		// Against the named remote's own ref rather than the branch's
+		// configured upstream: a caller that named a remote is asking
+		// about that remote, and the two are not always the same ref.
+		{"divergence", v.Divergence("div", "dev-1", "origin"), []string{
+			"git rev-list --count --left-right dev-1...origin/dev-1",
+		}},
+
+		{"current-branch", v.CurrentBranch("cur"), []string{
+			"git rev-parse --abbrev-ref HEAD",
 		}},
 
 		{"merge", v.Merge("m", "dev-1", "merge dev-1"), []string{
@@ -182,8 +189,8 @@ func TestEachStepDeclaresItsEffectAndWhetherReRunningIsSafe(t *testing.T) {
 
 	for _, steps := range []vcs.Steps{
 		v.Commits("c", "HEAD", 1), v.Branches("b"),
-		v.Descends("a", "x", "y"), v.Resolve("r", "x"), v.Divergence("d", "b"),
-		v.Root("root"),
+		v.Descends("a", "x", "y"), v.Resolve("r", "x"), v.Divergence("d", "b", "origin"),
+		v.Root("root"), v.CurrentBranch("cur"),
 	} {
 		for _, s := range steps {
 			if s.Effect != plan.Read {

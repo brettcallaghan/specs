@@ -84,6 +84,7 @@ func register(root *cobra.Command, streams *ioStreams, runner swarmexec.Runner) 
 	root.AddCommand(phaseCmd(streams, tr, runner))
 	root.AddCommand(readyCmd(streams, statusDeps))
 	root.AddCommand(dispatchCmd(streams, store, tr, gitvcs.VersionControl{}, runner))
+	root.AddCommand(branchCmd(streams, gitvcs.VersionControl{}, runner))
 }
 
 // dispatch runs the tree and turns what comes back into a process exit

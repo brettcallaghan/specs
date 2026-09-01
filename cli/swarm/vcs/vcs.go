@@ -117,6 +117,45 @@ func (r *Refusal) Error() string {
 	}
 }
 
+// Rejection is a remote declining a push, decoded into the run's
+// vocabulary.
+//
+// A type rather than a message for the same reason [Refusal] is one: a
+// run branches on it. A push the remote refused landed NOTHING — not the
+// refs it accepted alongside the refused one, since git reports the whole
+// push as failed — so a caller has to be able to name the refused ref
+// rather than match on prose to decide whether its work is on the remote.
+type Rejection struct {
+	// Remote is the remote that refused.
+	Remote string
+	// Refused are the refs the remote reported refusing, in the order it
+	// reported them, as the remote names them. Empty when the push
+	// failed without the remote naming a ref — it could not be reached,
+	// say — which is the case a caller must not read as "nothing was
+	// refused".
+	Refused []string
+	// Reason is what the remote itself said, its own lines joined. It is
+	// the cause a report shows a human.
+	Reason string
+	// Detail is git's whole account of the rejection, kept for a report.
+	Detail string
+}
+
+func (r *Rejection) Error() string {
+	switch {
+	case len(r.Refused) > 0 && r.Reason != "":
+		return fmt.Sprintf("the push to %s was rejected: %s refused %s: %s",
+			r.Remote, r.Remote, strings.Join(r.Refused, ", "), r.Reason)
+	case len(r.Refused) > 0:
+		return fmt.Sprintf("the push to %s was rejected: %s refused %s",
+			r.Remote, r.Remote, strings.Join(r.Refused, ", "))
+	case r.Reason != "":
+		return fmt.Sprintf("the push to %s was rejected: %s", r.Remote, r.Reason)
+	default:
+		return fmt.Sprintf("the push to %s was rejected: %s", r.Remote, r.Detail)
+	}
+}
+
 // VersionControl states what a run needs from version control.
 //
 // Each method takes a step-name prefix rather than a name: a fragment may
@@ -152,9 +191,23 @@ type VersionControl interface {
 	// Answer: string, the full object name.
 	Resolve(prefix, revision string) Steps
 
-	// Divergence compares a local branch against its remote.
-	// Answer: Divergence.
-	Divergence(prefix, branch string) Steps
+	// CurrentBranch reads the branch the repository is on — the default
+	// a command takes when the caller names none, read from the
+	// repository rather than from any configuration outside it.
+	// Answer: string, the short name, or "HEAD" when the repository is
+	// on no branch at all.
+	CurrentBranch(prefix string) Steps
+
+	// Divergence compares a local branch against its counterpart on a
+	// named remote. Answer: Divergence.
+	//
+	// The remote is an argument rather than the branch's configured
+	// upstream, because the two are not the same question: a caller that
+	// named a remote is asking about THAT remote, and a branch whose
+	// counterpart exists there may still have no upstream configured —
+	// in which case an upstream-based comparison fails where the answer
+	// is plainly available.
+	Divergence(prefix, branch, remote string) Steps
 
 	// Merge folds one branch into the current one, without fast
 	// forwarding, so the merge is a commit a run can find.
@@ -231,7 +284,10 @@ type VersionControl interface {
 
 	// Push publishes a branch to a remote. It does not force: a rejected
 	// push means the remote holds something this branch is not built on,
-	// which is a condition to report rather than to overwrite.
-	// Answer: none.
+	// or refuses the ref outright, which is a condition to report rather
+	// than to overwrite. Answer: none.
+	//
+	// A rejection is a [*Rejection] on the step's error, not the tool's
+	// text.
 	Push(prefix, remote, branch string) Steps
 }

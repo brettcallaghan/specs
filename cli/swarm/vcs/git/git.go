@@ -136,15 +136,39 @@ func (v VersionControl) Resolve(prefix, revision string) vcs.Steps {
 	return vcs.Steps{s}
 }
 
-// Divergence compares a local branch against its remote.
+// CurrentBranch reads the branch the repository is on.
 //
-// A branch with no upstream makes this fail rather than answer zero:
-// measured, git exits 128 with "no upstream configured", and reporting
-// that as "in step with its remote" would be the silent wrong answer.
-func (v VersionControl) Divergence(prefix, branch string) vcs.Steps {
+// `--abbrev-ref` answers the short name, and answers the literal string
+// `HEAD` when the repository is on no branch — measured on git 2.43.0:
+// `git rev-parse --abbrev-ref HEAD` prints `main` on a branch and `HEAD`
+// after `git checkout --detach`, exit 0 both times. A caller has to read
+// that literal as "no branch" rather than as a branch called HEAD, which
+// is why the answer is documented on the interface.
+func (v VersionControl) CurrentBranch(prefix string) vcs.Steps {
+	s := v.step(prefix, plan.Read, true, decodeRoot,
+		"rev-parse", "--abbrev-ref", "HEAD")
+	s.Description = "the branch the repository is on"
+	return vcs.Steps{s}
+}
+
+// Divergence compares a local branch against its counterpart on a named
+// remote.
+//
+// Against `<remote>/<branch>` rather than `<branch>@{upstream}`, because
+// the caller named the remote and the two can differ: measured, a branch
+// with no upstream configured makes the upstream form exit 128, while
+// `rev-list --count --left-right main...origin/main` answers `0\t0` for
+// the same repository.
+//
+// A counterpart that does not exist makes this fail rather than answer
+// zero: measured, `git rev-list --count --left-right
+// claude/sprint...origin/claude/sprint` with no such remote-tracking ref
+// exits 128 with `fatal: ambiguous argument`, and reporting that as "in
+// step with its remote" would be the silent wrong answer.
+func (v VersionControl) Divergence(prefix, branch, remote string) vcs.Steps {
 	s := v.step(prefix, plan.Read, true, decodeDivergence,
-		"rev-list", "--count", "--left-right", branch+"..."+branch+"@{upstream}")
-	s.Description = "how far " + branch + " stands from its remote"
+		"rev-list", "--count", "--left-right", branch+"..."+remote+"/"+branch)
+	s.Description = "how far " + branch + " stands from " + remote + "/" + branch
 	return vcs.Steps{s}
 }
 
@@ -301,12 +325,18 @@ func (v VersionControl) Fetch(prefix, remote string) vcs.Steps {
 // No --force: measured, a push the remote refuses exits 1 with
 // ` ! [rejected]        main -> main (non-fast-forward)`, which is a
 // condition to report rather than to overwrite — the remote holds
-// something this branch is not built on.
+// something this branch is not built on. A server refusing the ref
+// outright reads the same way: measured against a bare repository whose
+// pre-receive hook declines `refs/heads/claude/*`, exit 1 with
+// `remote: refusing refs/heads/claude/*: …`,
+// ` ! [remote rejected] claude/sprint -> claude/sprint (pre-receive hook declined)`
+// and `error: failed to push some refs to '../remote.git'` — all on
+// STDERR, with stdout empty.
 //
 // Re-running is safe. Measured: a second `git push origin main` with
 // nothing new exits 0 with `Everything up-to-date`.
 func (v VersionControl) Push(prefix, remote, branch string) vcs.Steps {
-	s := v.step(prefix, plan.Write, true, discard,
+	s := v.step(prefix, plan.Write, true, pushDecoder(remote),
 		"push", remote, branch)
 	s.Description = "push " + branch + " to " + remote
 	return vcs.Steps{s}
