@@ -55,6 +55,7 @@ func dispatchAcceptCmd(
 		fullResult bool
 		runID      string
 		dispatchID string
+		noPush     bool
 	)
 
 	cmd := &cobra.Command{
@@ -69,7 +70,12 @@ func dispatchAcceptCmd(
 			"moment and then fast-forwarded; a serialized one whose fast-forward is refused " +
 			"stops, and the merge is never re-attempted. A rebase that conflicts records a " +
 			"sequencing finding naming both beads and every conflicting path, marks the " +
-			"unmerged bead blocked, and resolves nothing itself.",
+			"unmerged bead blocked, and resolves nothing itself. " +
+			"The worktree is removed only when the dispatch branch is an ancestor of the target, " +
+			"and its branch is deleted only after the removal succeeded; a removal the tool refuses " +
+			"is never retried and never forced. Every bead is then re-checked with no signal " +
+			"deferred, and the sprint branch is pushed and proved landed only once every one of " +
+			"them has passed.",
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
@@ -103,10 +109,10 @@ func dispatchAcceptCmd(
 			}
 
 			if req.Mode == plan.ModeExplain {
-				return finish(streams, req, explainDispatchAccept(req, dispatch))
+				return finish(streams, req, explainDispatchAccept(req, dispatch, noPush))
 			}
 
-			result, err := acceptDispatch(context.Background(), store, tr, vc, runner, req, dispatch)
+			result, err := acceptDispatch(context.Background(), store, tr, vc, runner, req, dispatch, noPush)
 			if err != nil {
 				return finish(streams, req, refusal(req, asRefusal(err)))
 			}
@@ -126,6 +132,8 @@ func dispatchAcceptCmd(
 		"print the whole command result — the mode, the outcome, the facts and the invocations behind them — instead of the answer alone")
 	cmd.Flags().StringVar(&dispatchID, "dispatch", "",
 		"the dispatch this invocation is accepting")
+	cmd.Flags().BoolVar(&noPush, "no-push", false,
+		"take every step before the push and report the branch as unlanded instead of pushing it")
 
 	return cmd
 }
@@ -138,7 +146,7 @@ func dispatchAcceptCmd(
 // whether a rebase is in the sequence, so what is printed is a
 // description with both arms named rather than a plan explain cannot
 // render truthfully — the same reasoning [explainDispatchOpen] gives.
-func explainDispatchAccept(req Request, dispatchID string) Result {
+func explainDispatchAccept(req Request, dispatchID string, noPush bool) Result {
 	branch := dispatchBranchName(dispatchID)
 	lines := []string{
 		"swarm dispatch accept derives whether the dispatch has drained, and then which case " +
@@ -166,6 +174,29 @@ func explainDispatchAccept(req Request, dispatchID string) Result {
 		"  git log --format=... -n 1 <target>                  (the bead on the target it conflicts with)",
 		"  bd update <bead> --status blocked --json            (the unmerged bead)",
 		"  bd comment <bead> '<the sequencing finding>' --json",
+		"  # once the fold has succeeded:",
+		"  git merge-base --is-ancestor " + branch + " <target>   (the guard the removal sits behind)",
+		"  # if it answers no: the worktree is left standing, no branch is deleted, and the command stops",
+		"  git worktree prune && git worktree list --porcelain  (the dispatch's worktree, and whether it is locked)",
+		"  git worktree remove <path>                          (never --force; a refusal stops the plan here)",
+		"  git branch -d " + branch + "                           (only after the removal succeeded)",
+		"  # the post-merge re-check, with no signal deferred:",
+		"  one bd list --parent <bead> --all --limit 0 --json per level below " + req.Run,
+		"  git log --format=... -n " + fmt.Sprint(acceptanceScan) + " <target>" +
+			"   (the beads whose close commits are on the target)",
+		"  git worktree prune && git worktree list --porcelain  (nothing stands on " + branch + " any more)",
+		"  bd comments <bead> --json                           (one per bead the dispatch holds)",
+	}
+	if noPush {
+		lines = append(lines,
+			"  # --no-push: every step above runs and the branch is reported unlanded rather than pushed")
+	} else {
+		lines = append(lines,
+			"  # only once every bead has passed, swarm branch push's own steps:",
+			"  git push "+defaultRemote+" <target>",
+			"  git fetch "+defaultRemote,
+			"  git rev-parse --verify "+defaultRemote+"/<target>^{commit}",
+			"  git rev-list --count --left-right <target>..."+defaultRemote+"/<target>")
 	}
 	return Result{
 		Command: req.Command, Run: req.Run, Mode: req.Mode, Outcome: OutcomeClear,
@@ -178,7 +209,7 @@ func explainDispatchAccept(req Request, dispatchID string) Result {
 // [plan.Runner]'s own guarantee rather than a second one built by hand.
 func acceptDispatch(
 	ctx context.Context, store manifest.Store, tr tracker.Tracker,
-	vc vcs.VersionControl, runner swarmexec.Runner, req Request, dispatchID string,
+	vc vcs.VersionControl, runner swarmexec.Runner, req Request, dispatchID string, noPush bool,
 ) (Result, error) {
 	pr := plan.Runner{Exec: runner}
 	var records []plan.Record
@@ -231,18 +262,50 @@ func acceptDispatch(
 		// among them, which is what AC-SWARM-DISP-004.2 asks for.
 		var stopped *acceptStop
 		if errors.As(err, &stopped) {
-			result.Outcome = stopped.refusal.Outcome
-			result.Summary = stopped.refusal.Reason
-			result.Resolution = stopped.refusal.Resolution
-			result.Facts = append(result.Facts, stopped.facts...)
-			return result, nil
+			return acceptStopped(result, stopped), nil
 		}
 		return Result{}, err
 	}
 
 	result.Facts = append(result.Facts, merged.facts...)
 	result.Summary = merged.summary
+
+	// The second half. It is reached only because the fold above did NOT
+	// return an error, which is what puts the removal behind the merge's
+	// result rather than beside it.
+	settled, recs, err := settleDispatch(
+		ctx, tr, vc, pr, runner, req, target, dispatchID, merged.ran, noPush)
+	result.Records = append(result.Records, recs...)
+	if err != nil {
+		var stopped *acceptStop
+		if errors.As(err, &stopped) {
+			return acceptStopped(result, stopped), nil
+		}
+		return Result{}, err
+	}
+	result.Facts = append(result.Facts, settled.facts...)
+	if settled.summary != "" {
+		result.Summary = result.Summary + "; " + settled.summary
+	}
+	if settled.outcome != OutcomeClear {
+		result.Outcome = settled.outcome
+		result.Resolution = settled.resolution
+	}
 	return result, nil
+}
+
+// acceptStopped folds a refusal that carries facts of its own into the
+// result so far, rather than discarding what was already established.
+func acceptStopped(result Result, stopped *acceptStop) Result {
+	result.Outcome = stopped.refusal.Outcome
+	result.Resolution = stopped.refusal.Resolution
+	result.Facts = append(result.Facts, stopped.facts...)
+	if result.Summary == "" {
+		result.Summary = stopped.refusal.Reason
+	} else {
+		result.Summary = result.Summary + "; " + stopped.refusal.Reason
+	}
+	return result
 }
 
 // notDrained is the answer for a dispatch that still holds work:
@@ -421,6 +484,10 @@ func (a *acceptStop) Error() string { return a.refusal.Reason }
 type mergeOutcome struct {
 	facts   []Fact
 	summary string
+	// ran is whether the fold was actually performed. It is false only
+	// when an interpreter REFUSED it — the dry run — since a fold that
+	// failed returns an error instead of an outcome.
+	ran bool
 }
 
 // foldIn performs the merge for the case that was read.
@@ -502,6 +569,7 @@ func foldIn(
 
 	facts := []Fact{}
 	summary := ""
+	ran := ffRec.Status == plan.StepRan
 	switch {
 	case ffRec.Status != plan.StepRan:
 		// A dry run refused the fold. Every read above still happened, so
@@ -520,7 +588,7 @@ func foldIn(
 				dispatchBranch, m.name(), target, m.targetSHA)
 		}
 	}
-	return mergeOutcome{facts: facts, summary: summary}, records, nil
+	return mergeOutcome{facts: facts, summary: summary, ran: ran}, records, nil
 }
 
 // refusedFastForward reads a refused fold against the case that was

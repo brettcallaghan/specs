@@ -132,6 +132,105 @@ func caseReads(ancestorStatus int) []exectest.Recording {
 	}
 }
 
+// settleReads records everything the second half runs once the fold has
+// succeeded, in a world where the removal, the deletion and every
+// post-merge signal all pass: the ancestry guard, the worktree read, the
+// removal and deletion, the re-check's own reads, and nothing else.
+//
+// worktree, when non-empty, is the path a worktree stands at on the
+// dispatch branch; empty means none stands and none is removed. The
+// remaining options tune the world each signal reads.
+type settleWorld struct {
+	// worktree is where the dispatch's tree stands, empty for none.
+	worktree string
+	// locked marks that tree locked, with the reason git reports.
+	locked string
+	// removalStatus is what `git worktree remove` exits with.
+	removalStatus int
+	// survives keeps the tree in the SECOND worktree read, so the
+	// post-merge signal sees it still standing.
+	survives bool
+	// ancestorStatus is `git merge-base --is-ancestor <branch> <target>`'s
+	// own answer: 0 yes, 1 no.
+	ancestorStatus int
+	// closedOn are the bead ids whose close commits are on the branch.
+	closedOn []string
+	// findings maps a bead id to the comment text recorded on it.
+	findings map[string]string
+}
+
+// worktreeList renders `git worktree list --porcelain` for a world.
+func (w settleWorld) worktreeList(include bool) []byte {
+	out := "worktree /repo\nHEAD " + acceptTargetSH + "\nbranch refs/heads/" + acceptTargetBr + "\n\n"
+	if include && w.worktree != "" {
+		out += "worktree " + w.worktree + "\nHEAD " + acceptBranchSH +
+			"\nbranch refs/heads/" + acceptBranch + "\n"
+		if w.locked != "" {
+			out += "locked " + w.locked + "\n"
+		}
+		out += "\n"
+	}
+	return []byte(out)
+}
+
+func settleReads(w settleWorld) []exectest.Recording {
+	recs := []exectest.Recording{
+		{
+			Argv:       []string{"git", "merge-base", "--is-ancestor", acceptBranch, acceptTargetBr},
+			ExitStatus: w.ancestorStatus,
+		},
+		{Argv: []string{"git", "worktree", "prune"}},
+		{Argv: []string{"git", "worktree", "list", "--porcelain"}, Stdout: w.worktreeList(true)},
+	}
+	if w.worktree != "" {
+		recs = append(recs, exectest.Recording{
+			Argv:       []string{"git", "worktree", "remove", w.worktree},
+			ExitStatus: w.removalStatus,
+		})
+	}
+	recs = append(recs, exectest.Recording{Argv: []string{"git", "branch", "-d", acceptBranch}})
+
+	// The re-check's second worktree read. A recording repeats only when
+	// no LATER one matches, so this pair is what the second read gets.
+	recs = append(recs,
+		exectest.Recording{Argv: []string{"git", "worktree", "prune"}},
+		exectest.Recording{
+			Argv:   []string{"git", "worktree", "list", "--porcelain"},
+			Stdout: w.worktreeList(w.survives),
+		})
+
+	log := ""
+	for _, id := range w.closedOn {
+		log += id + "\x0011000000\x00" + id + " P1 a bead of the run\n"
+	}
+	recs = append(recs, exectest.Recording{
+		Argv: []string{"git", "log", "--format=%H%x00%ct%x00%s", "-n",
+			fmt.Sprint(acceptanceScan), acceptTargetBr},
+		Stdout: []byte(log),
+	})
+
+	for _, id := range []string{"run-1.1"} {
+		body := "[]"
+		if text, ok := w.findings[id]; ok {
+			body = fmt.Sprintf(`[{"id":"c1","issue_id":%q,"author":"dev-1","text":%q}]`, id, text)
+		}
+		recs = append(recs, exectest.Recording{
+			Argv:   []string{"bd", "comments", id, "--json"},
+			Stdout: []byte(body),
+		})
+	}
+	return recs
+}
+
+// cleanSettle is the world in which every post-merge signal passes and no
+// worktree ever stood — the fixtures' own shape.
+func cleanSettle() settleWorld {
+	return settleWorld{
+		closedOn: []string{"run-1.1"},
+		findings: map[string]string{"run-1.1": "retro:proof measured it"},
+	}
+}
+
 // acceptAnswer parses the command's default (answer-only) JSON output.
 func acceptAnswer(t *testing.T, stdout string) map[string]any {
 	t.Helper()
@@ -377,10 +476,11 @@ func TestAConcurrentDispatchIsRebasedOntoTheShaTheCaseWasReadAgainst(t *testing.
 		exectest.Recording{Argv: []string{"git", "checkout", acceptTargetBr}},
 		exectest.Recording{Argv: []string{"git", "merge", "--ff-only", acceptBranch}},
 	)
+	recs = append(recs, settleReads(cleanSettle())...)
 
 	fake := exectest.NewFake(recs...)
 	stdout, _, code := runAccept(t, fake,
-		"dispatch", "accept", "--run", acceptRun, "--dispatch", acceptAgent, "--json")
+		"dispatch", "accept", "--run", acceptRun, "--dispatch", acceptAgent, "--no-push", "--json")
 	if code != int(StatusClear) {
 		t.Fatalf("exit status = %d, want %d\n%s", code, StatusClear, stdout)
 	}
@@ -417,21 +517,38 @@ func TestAConcurrentDispatchIsRebasedOntoTheShaTheCaseWasReadAgainst(t *testing.
 }
 
 // The case is never inferred from how many worktrees are standing: the
-// command reads no worktree list at all, so a world with none standing
-// and a world with several produce the same reading.
+// case reading consults no worktree list at all.
+//
+// Asserted as an ORDERING rather than as an absence, because the second
+// half does read the list — to find the tree it is about to remove and
+// to check afterwards that it is gone. What the delta forbids is the
+// case being READ from it, so the assertion is that no worktree list is
+// consulted before the fold.
 func TestTheCaseIsNotInferredFromTheStandingWorktrees(t *testing.T) {
 	recs := append(drainedQueue(), acceptManifest())
 	recs = append(recs, caseReads(0)...)
 	recs = append(recs, exectest.Recording{Argv: []string{"git", "merge", "--ff-only", acceptBranch}})
+	recs = append(recs, settleReads(cleanSettle())...)
 
 	fake := exectest.NewFake(recs...)
 	if _, _, code := runAccept(t, fake,
-		"dispatch", "accept", "--run", acceptRun, "--dispatch", acceptAgent, "--json"); code != int(StatusClear) {
+		"dispatch", "accept", "--run", acceptRun, "--dispatch", acceptAgent,
+		"--no-push", "--json"); code != int(StatusClear) {
 		t.Fatalf("exit status = %d, want %d", code, StatusClear)
 	}
-	for _, argv := range fake.Argvs() {
-		if len(argv) >= 2 && argv[0] == "git" && argv[1] == "worktree" {
-			t.Errorf("the case reading consulted the worktree list: %v", argv)
+
+	foldIdx := -1
+	for i, argv := range fake.Argvs() {
+		if len(argv) >= 2 && argv[0] == "git" && argv[1] == "merge" {
+			foldIdx = i
+		}
+	}
+	if foldIdx < 0 {
+		t.Fatalf("the fold never ran: %v", fake.Argvs())
+	}
+	for i, argv := range fake.Argvs() {
+		if i < foldIdx && len(argv) >= 2 && argv[0] == "git" && argv[1] == "worktree" {
+			t.Errorf("the case reading consulted the worktree list at call %d: %v", i, argv)
 		}
 	}
 }

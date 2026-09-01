@@ -2,6 +2,8 @@ package e2e
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -14,9 +16,33 @@ import (
 // In a real run `swarm dispatch open --dispatch` created the local
 // branch; here the world carries the commits and this puts the ref where
 // that command would have left it.
+//
+// `--no-track` is what makes it the same ref that command leaves.
+// `dispatch open` cuts the branch at a COMMIT (`git worktree add -b
+// <branch> <path> <sha>`), which sets no upstream; starting one from a
+// remote-tracking ref sets one by default, and that difference is not
+// cosmetic. Measured against this fixture: with the upstream set,
+// `git branch -d bb/dev-fixture-2` after a rebase exits 1 — the rebased
+// head is not in `origin/bb/dev-fixture-2` — where `git branch -d`
+// checks HEAD when there is no upstream, and the fold has just put the
+// branch there.
 func standDispatchBranch(t *testing.T, w world, branch string) {
 	t.Helper()
-	w.mustRun(t, w.repo, "git", "branch", branch, "origin/"+branch)
+	w.mustRun(t, w.repo, "git", "branch", "--no-track", branch, "origin/"+branch)
+}
+
+// recordFinding puts a `retro:` comment on a bead, which is what the
+// dispatch's own close ceremony leaves and what the post-merge
+// acceptance re-check reads back.
+//
+// Written by the case rather than carried by the fixture because a
+// tracker export does not carry comments: `bd import` restores issues,
+// and a world declaring a finding would have to declare it somewhere
+// `bd` never reads.
+func recordFinding(t *testing.T, w world, bead string) {
+	t.Helper()
+	w.mustRun(t, w.repo, "bd", "comment", bead,
+		"retro:proof the world was measured before it was accepted")
 }
 
 // AC: AC-SWARM-DISP-004.8
@@ -76,8 +102,14 @@ func TestDispatchAcceptRebasesAConcurrentBranchAndFastForwards(t *testing.T) {
 		t.Fatalf("the fixture's merge-base (%s) IS the target's head; this case needs them to differ", base)
 	}
 
+	// What the dispatch's own close ceremony would have left behind, and
+	// what the acceptance re-check reads: the finding recorded on the
+	// bead it closed. The fixture carries the commits and the closed
+	// bead; a comment is not something a tracker export puts in a world.
+	recordFinding(t, w, "fixture-run.3")
+
 	stdout, stderr, code := w.swarm(t, "dispatch", "accept",
-		"--run", "fixture-run", "--dispatch", "dev-fixture-2", "--json")
+		"--run", "fixture-run", "--dispatch", "dev-fixture-2", "--no-push", "--json")
 	if code != 0 {
 		t.Fatalf("dispatch accept exited %d\n--- stdout ---\n%s\n--- stderr ---\n%s", code, stdout, stderr)
 	}
@@ -96,14 +128,19 @@ func TestDispatchAcceptRebasesAConcurrentBranchAndFastForwards(t *testing.T) {
 		t.Errorf("merged = false after a clear exit:\n%s", stdout)
 	}
 
-	branchAfter := w.mustCapture(t, w.repo, "git", "rev-parse", "bb/dev-fixture-2")
-	if branchAfter == branchBefore {
-		t.Errorf("bb/dev-fixture-2 is still at %s; a concurrent dispatch is rebased", branchBefore)
-	}
+	// The branch is gone by now — the acceptance deletes it once the fold
+	// has landed — so the rebase is proved from the TARGET: it carries
+	// the dispatch's commit, at a sha the rebase minted rather than the
+	// one the branch arrived with.
 	targetAfter := w.mustCapture(t, w.repo, "git", "rev-parse", "claude/bead-bonanza-fixture")
-	if targetAfter != branchAfter {
-		t.Errorf("the target is at %s and the branch at %s; the fold is a fast-forward onto the branch",
-			targetAfter, branchAfter)
+	if targetAfter == targetBefore {
+		t.Errorf("the target is still at %s; the dispatch was not folded in", targetBefore)
+	}
+	if targetAfter == branchBefore {
+		t.Errorf("the target is at the branch's original sha %s; a concurrent dispatch is rebased first", branchBefore)
+	}
+	if subject := w.mustCapture(t, w.repo, "git", "log", "-1", "--format=%s", targetAfter); subject != "fixture-run.3 P1 the third bead of the run" {
+		t.Errorf("the target's head is %q; the dispatch's own commit is what landed", subject)
 	}
 
 	// A fast-forward and not a merge commit: the new head has one parent.
@@ -177,5 +214,87 @@ func TestDispatchAcceptBlocksTheBeadAndRecordsAFindingOnAConflict(t *testing.T) 
 	unmerged := w.mustCapture(t, w.repo, "git", "diff", "--name-only", "--diff-filter=U")
 	if !strings.Contains(unmerged, "work.txt") {
 		t.Errorf("the conflict was not left standing for an agent to resolve; unmerged paths: %q", unmerged)
+	}
+}
+
+// AC: AC-SWARM-DISP-004.11
+//
+// Every bead in the dispatch is re-checked after the merge and the
+// removal, with no signal deferred — and the two a merge decides are the
+// reason the check runs THERE. Proved against a world with a worktree
+// really standing, so "the worktree is gone" is read from git's own
+// registration and from the directory rather than from the removal
+// having exited zero.
+//
+// The dispatch's bead is closed and its finding recorded here, which is
+// what its own close ceremony would have left; the fixture carries the
+// commit, the branch and the standing worktree, which a case cannot
+// build.
+func TestDispatchAcceptRechecksEveryBeadAfterTheMergeAndTheRemoval(t *testing.T) {
+	requireTools(t)
+	binary := buildBinary(t)
+
+	w := restore(t, binary, "dispatch-worktree")
+	worktree := filepath.Join(w.dir, ".bb-worktrees", "dev-fixture-2")
+	if _, err := os.Stat(worktree); err != nil {
+		t.Fatalf("the fixture's worktree is not standing at %s: %v", worktree, err)
+	}
+
+	w.mustRun(t, w.repo, "bd", "update", "fixture-run.3", "--status", "closed")
+	recordFinding(t, w, "fixture-run.3")
+
+	stdout, stderr, code := w.swarm(t, "dispatch", "accept",
+		"--run", "fixture-run", "--dispatch", "dev-fixture-2", "--no-push", "--json")
+	if code != 0 {
+		t.Fatalf("dispatch accept exited %d\n--- stdout ---\n%s\n--- stderr ---\n%s", code, stdout, stderr)
+	}
+
+	var answer struct {
+		Merged             bool     `json:"merged"`
+		Ancestor           bool     `json:"ancestor"`
+		WorktreeRemoved    bool     `json:"worktree_removed"`
+		BranchDeleted      bool     `json:"branch_deleted"`
+		BeadsChecked       int      `json:"beads_checked"`
+		AcceptanceFailures []string `json:"acceptance_failures"`
+		Landed             bool     `json:"landed"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &answer); err != nil {
+		t.Fatalf("the answer does not parse: %v\n%s", err, stdout)
+	}
+	switch {
+	case !answer.Merged:
+		t.Errorf("merged = false after a clear exit:\n%s", stdout)
+	case !answer.Ancestor:
+		t.Errorf("ancestor = false after a clear exit:\n%s", stdout)
+	case !answer.WorktreeRemoved:
+		t.Errorf("worktree_removed = false, but one was standing:\n%s", stdout)
+	case !answer.BranchDeleted:
+		t.Errorf("branch_deleted = false after a clear exit:\n%s", stdout)
+	}
+	if answer.BeadsChecked != 1 {
+		t.Errorf("beads_checked = %d, want 1 (fixture-run.3 is dev-fixture-2's only bead):\n%s",
+			answer.BeadsChecked, stdout)
+	}
+	if len(answer.AcceptanceFailures) != 0 {
+		t.Errorf("acceptance_failures = %v, want none:\n%s", answer.AcceptanceFailures, stdout)
+	}
+	if answer.Landed {
+		t.Errorf("landed = true under --no-push:\n%s", stdout)
+	}
+
+	// The signals the re-check read, re-read here from the world itself.
+	if _, err := os.Stat(worktree); !os.IsNotExist(err) {
+		t.Errorf("the worktree at %s is still on disk (%v)", worktree, err)
+	}
+	list := w.mustCapture(t, w.repo, "git", "worktree", "list", "--porcelain")
+	if strings.Contains(list, "refs/heads/bb/dev-fixture-2") {
+		t.Errorf("a worktree is still registered on the dispatch branch:\n%s", list)
+	}
+	if _, _, code := w.run(t, w.repo, "git", "rev-parse", "--verify", "bb/dev-fixture-2"); code == 0 {
+		t.Errorf("bb/dev-fixture-2 still exists after a clear acceptance")
+	}
+	head := w.mustCapture(t, w.repo, "git", "log", "-1", "--format=%s", "claude/bead-bonanza-fixture")
+	if head != "fixture-run.3 P1 the third bead of the run" {
+		t.Errorf("the target's head is %q; the dispatch's own commit is what landed", head)
 	}
 }
