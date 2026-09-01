@@ -506,6 +506,16 @@ type DispatchKeys struct {
 	// How many review loops the run has spent. Durable because a resumed
 	// run that restarted the counter would loop forever.
 	ReviewPasses *int64 `json:"review_passes,omitempty"`
+	// How many dispatches in a row have completed nothing. Durable because
+	// the circuit breaker it feeds has to survive a resumed session, and a
+	// count held only in an orchestrator's head is lost the moment that
+	// session ends.
+	//
+	// Its stage is dispatch, so its absence before the run's first dispatch
+	// is legitimate — and an absent count is reported as absent rather than
+	// as zero, because reading absence as zero is the caller's decision to
+	// make and not the record's.
+	ConsecutiveDispatchFailures *int64 `json:"consecutive_dispatch_failures,omitempty"`
 }
 
 // Keys the run's retrospective establishes.
@@ -562,6 +572,16 @@ type RetroKeys struct {
 	// How many review loops the run has spent. Durable because a resumed
 	// run that restarted the counter would loop forever.
 	ReviewPasses *int64 `json:"review_passes,omitempty"`
+	// How many dispatches in a row have completed nothing. Durable because
+	// the circuit breaker it feeds has to survive a resumed session, and a
+	// count held only in an orchestrator's head is lost the moment that
+	// session ends.
+	//
+	// Its stage is dispatch, so its absence before the run's first dispatch
+	// is legitimate — and an absent count is reported as absent rather than
+	// as zero, because reading absence as zero is the caller's decision to
+	// make and not the record's.
+	ConsecutiveDispatchFailures *int64 `json:"consecutive_dispatch_failures,omitempty"`
 	// Where the run's one human-facing document was written.
 	FindingsPath *string `json:"findings_path,omitempty"`
 	// How many findings became issues.
@@ -633,6 +653,16 @@ type RunManifest struct {
 	// How many review loops the run has spent. Durable because a resumed
 	// run that restarted the counter would loop forever.
 	ReviewPasses *int64 `json:"review_passes,omitempty"`
+	// How many dispatches in a row have completed nothing. Durable because
+	// the circuit breaker it feeds has to survive a resumed session, and a
+	// count held only in an orchestrator's head is lost the moment that
+	// session ends.
+	//
+	// Its stage is dispatch, so its absence before the run's first dispatch
+	// is legitimate — and an absent count is reported as absent rather than
+	// as zero, because reading absence as zero is the caller's decision to
+	// make and not the record's.
+	ConsecutiveDispatchFailures *int64 `json:"consecutive_dispatch_failures,omitempty"`
 	// Where the run's one human-facing document was written.
 	FindingsPath *string `json:"findings_path,omitempty"`
 	// How many findings became issues.

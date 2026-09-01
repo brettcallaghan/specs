@@ -184,6 +184,17 @@ struct DispatchKeys: PlanKeys {
   """How many review loops the run has spent. Durable because a resumed
   run that restarted the counter would loop forever."""
   review_passes: Int?
+
+  """How many dispatches in a row have completed nothing. Durable because
+  the circuit breaker it feeds has to survive a resumed session, and a
+  count held only in an orchestrator's head is lost the moment that
+  session ends.
+
+  Its stage is dispatch, so its absence before the run's first dispatch
+  is legitimate — and an absent count is reported as absent rather than
+  as zero, because reading absence as zero is the caller's decision to
+  make and not the record's."""
+  consecutive_dispatch_failures: Int?
 }
 
 """Keys the run's retrospective establishes.

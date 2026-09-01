@@ -36,11 +36,12 @@ func TestTheDeclaredKeySetIsReadFromTheGeneratedDeclaration(t *testing.T) {
 	}
 
 	for name, want := range map[string]swarmmodel.RunStage{
-		"checks_baseline": swarmmodel.RunStagePreFlight,
-		"admitted":        swarmmodel.RunStageScope,
-		"collision_edges": swarmmodel.RunStagePlan,
-		"base_sha":        swarmmodel.RunStageDispatch,
-		"findings_path":   swarmmodel.RunStageRetro,
+		"checks_baseline":               swarmmodel.RunStagePreFlight,
+		"admitted":                      swarmmodel.RunStageScope,
+		"collision_edges":               swarmmodel.RunStagePlan,
+		"base_sha":                      swarmmodel.RunStageDispatch,
+		"consecutive_dispatch_failures": swarmmodel.RunStageDispatch,
+		"findings_path":                 swarmmodel.RunStageRetro,
 	} {
 		key, ok := manifest.Lookup(name)
 		if !ok {
