@@ -298,3 +298,84 @@ func TestDispatchAcceptRechecksEveryBeadAfterTheMergeAndTheRemoval(t *testing.T)
 		t.Errorf("the target's head is %q; the dispatch's own commit is what landed", head)
 	}
 }
+
+// `merged_sha` names a commit that is ON the target, on both arms.
+//
+// The concurrent arm is where this can go wrong and did: the rebase
+// rewrites the dispatch's commits, so the branch sha read before the fold
+// names a commit that is not reachable from the target afterwards, and a
+// coordinator verifying the merge by that sha finds nothing. The
+// serialized arm is checked beside it because the two must not disagree
+// about what the fact means.
+//
+// The property asserted is ancestry rather than equality with the
+// target's head, because it is the property a caller actually uses — the
+// commit is on the target — and it holds whatever else lands afterwards.
+func TestDispatchAcceptReportsAMergedShaThatIsOnTheTarget(t *testing.T) {
+	requireTools(t)
+	binary := buildBinary(t)
+
+	const target = "claude/bead-bonanza-fixture"
+
+	for _, c := range []struct {
+		name    string
+		fixture string
+		arrange func(t *testing.T, w world)
+	}{
+		{
+			name:    "concurrent",
+			fixture: "dispatch-stale-base",
+			arrange: func(t *testing.T, w world) {
+				standDispatchBranch(t, w, "bb/dev-fixture-2")
+				recordFinding(t, w, "fixture-run.3")
+			},
+		},
+		{
+			name:    "serialized",
+			fixture: "dispatch-worktree",
+			arrange: func(t *testing.T, w world) {
+				w.mustRun(t, w.repo, "bd", "update", "fixture-run.3", "--status", "closed")
+				recordFinding(t, w, "fixture-run.3")
+			},
+		},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			w := restore(t, binary, c.fixture)
+			c.arrange(t, w)
+
+			stdout, stderr, code := w.swarm(t, "dispatch", "accept",
+				"--run", "fixture-run", "--dispatch", "dev-fixture-2", "--no-push", "--json")
+			if code != 0 {
+				t.Fatalf("dispatch accept exited %d\n--- stdout ---\n%s\n--- stderr ---\n%s",
+					code, stdout, stderr)
+			}
+
+			var answer struct {
+				Case      string `json:"case"`
+				Merged    bool   `json:"merged"`
+				MergedSHA string `json:"merged_sha"`
+			}
+			if err := json.Unmarshal([]byte(stdout), &answer); err != nil {
+				t.Fatalf("the answer does not parse: %v\n%s", err, stdout)
+			}
+			if answer.Case != c.name {
+				t.Fatalf("case = %q, want %q — this fixture is not the arm it is here to cover",
+					answer.Case, c.name)
+			}
+			if !answer.Merged {
+				t.Fatalf("merged = false after a clear exit:\n%s", stdout)
+			}
+			if answer.MergedSHA == "" {
+				t.Fatalf("no merged_sha was reported:\n%s", stdout)
+			}
+
+			if _, _, code := w.run(t, w.repo,
+				"git", "merge-base", "--is-ancestor", answer.MergedSHA, target); code != 0 {
+				targetHead := w.mustCapture(t, w.repo, "git", "rev-parse", target)
+				t.Errorf("merged_sha %s is not on %s (which is at %s); "+
+					"the fact names a commit that did not land",
+					answer.MergedSHA, target, targetHead)
+			}
+		})
+	}
+}

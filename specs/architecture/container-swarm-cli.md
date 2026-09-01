@@ -349,6 +349,15 @@ commit's subject — see the Status Collector component below) and every
 conflicting path, marks the unmerged bead blocked, and resolves nothing
 itself.
 
+**What landed is read from the target, after the fold, on both arms.**
+The `merged_sha` the command reports is the target's own head once the
+fast-forward has been made — never the dispatch branch's sha, which is
+read before any write and which the concurrent arm's rebase then
+rewrites into commits the target does not carry. It is the same reason
+the post-merge re-check reads the target rather than the branch, and the
+same reason the branch is not consulted at all by then: it has been
+deleted.
+
 After a successful fold, the dispatch branch's ancestry of the target is
 read as its own plan — the answer decides whether a removal plan is
 built at all, so the guard cannot be a step of the plan it guards — and

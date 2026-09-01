@@ -518,6 +518,14 @@ func foldIn(
 	ffSteps := vc.MergeFastForward("fast-forward", dispatchBranch)
 	steps = append(steps, ffSteps...)
 
+	// What landed is read from the TARGET, after the fold, and never from
+	// the dispatch branch: a concurrent dispatch's commits are rewritten
+	// by the rebase above, so the branch sha [readCase] resolved before
+	// any write names a commit that is not reachable from the target at
+	// all. [recheckDispatchBeads] reads the target for the same reason.
+	landedSteps := vc.Resolve("merged-head", target)
+	steps = append(steps, landedSteps...)
+
 	report, err := pr.Run(ctx, plan.Plan{
 		Name:  "fold " + dispatchBranch + " into " + target + " (" + m.name() + ")",
 		Steps: steps,
@@ -578,9 +586,16 @@ func foldIn(
 		summary = fmt.Sprintf("%s is %s against %s; nothing was merged (%s)",
 			dispatchBranch, m.name(), target, req.Mode)
 	default:
+		landed, lerr := revision(report, landedSteps, target+" after the fold")
+		if lerr != nil {
+			return mergeOutcome{}, records, lerr
+		}
 		facts = append(facts,
 			Flag("merged", true, argvOf(ffRec)),
-			Text("merged_sha", m.branchSHA, m.branchInv))
+			// The invocation cited is the one that ESTABLISHED this
+			// value — the post-fold resolve — not the pre-fold read of
+			// the branch, which established a different sha.
+			Text("merged_sha", landed, argvOf(mustRecord(report, landedSteps.Answer()))))
 		summary = fmt.Sprintf("%s was %s against %s and fast-forwarded into it",
 			dispatchBranch, m.name(), target)
 		if !m.serialized {
