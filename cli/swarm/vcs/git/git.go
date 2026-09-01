@@ -245,6 +245,30 @@ func (v VersionControl) Rebase(prefix, branch, onto string) vcs.Steps {
 	return vcs.Steps{s}
 }
 
+// Checkout puts the repository on a branch.
+//
+// The operation the concurrent case needs between the rebase and the
+// fold: `git rebase <onto> <branch>` leaves the repository on <branch>
+// — measured on git 2.43.0, HEAD reads `bb/dev-1` after
+// `git rebase main bb/dev-1` run from `main` — so a `merge --ff-only`
+// issued from there would advance the dispatch's own branch onto itself
+// and leave the target where it was.
+//
+// No forcing form, and no parameter that could add one. Measured: a
+// checkout whose target differs in a file the working tree has modified
+// exits 1 with `error: Your local changes to the following files would
+// be overwritten by checkout`, which is the refusal a run needs to see
+// rather than to override.
+//
+// Re-running IS safe. Measured: checking out the branch already checked
+// out exits 0 with `Already on 'main'`.
+func (v VersionControl) Checkout(prefix, branch string) vcs.Steps {
+	s := v.step(prefix, plan.Write, true, discard,
+		"checkout", branch)
+	s.Description = "put the repository on " + branch
+	return vcs.Steps{s}
+}
+
 // MergeFastForward advances the current branch to branch, refusing
 // anything that is not a fast forward.
 //

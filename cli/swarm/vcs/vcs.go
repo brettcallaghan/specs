@@ -199,7 +199,22 @@ type VersionControl interface {
 	// Rebase replays branch onto a named commit.
 	//
 	// A conflict is a [*Refusal] carrying the paths. Answer: none.
+	//
+	// It MOVES the repository: a rebase leaves the working tree on
+	// branch, so a fold run straight afterwards would advance branch
+	// onto itself rather than the target. [Checkout] is what puts the
+	// repository back before the fold.
 	Rebase(prefix, branch, onto string) Steps
+
+	// Checkout puts the repository on a branch, so that the next fold
+	// advances THAT branch and no other. Answer: none.
+	//
+	// It exists because [Rebase] moves the repository, and the fold that
+	// follows a rebase has to land on the target. Nothing here forces:
+	// a checkout that would overwrite uncommitted work refuses, and that
+	// refusal is how a run learns the tree is not in the state it
+	// assumed.
+	Checkout(prefix, branch string) Steps
 
 	// MergeFastForward advances the current branch to branch, and refuses
 	// when that would not be a fast forward — the check a run makes

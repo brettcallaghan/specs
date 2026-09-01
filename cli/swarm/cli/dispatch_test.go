@@ -41,7 +41,7 @@ func TestDispatchOpenRefusesAnEmptyScope(t *testing.T) {
 		tr := beadstracker.Tracker{}
 		streams := &ioStreams{out: &bytes.Buffer{}, err: &bytes.Buffer{}}
 		root := newRootCmd(streams)
-		root.AddCommand(dispatchCmd(streams, manifestbeads.Store{Tracker: tr}, gitvcs.VersionControl{}, fake))
+		root.AddCommand(dispatchCmd(streams, manifestbeads.Store{Tracker: tr}, tr, gitvcs.VersionControl{}, fake))
 
 		code := dispatch(root, streams, args, &bytes.Buffer{}, &bytes.Buffer{})
 		if code != int(StatusMalformed) {
@@ -88,7 +88,7 @@ func TestDispatchOpenCreatesTheBranchBeforeRecordingIt(t *testing.T) {
 	var out, errOut bytes.Buffer
 	streams := &ioStreams{out: &out, err: &errOut}
 	root := newRootCmd(streams)
-	root.AddCommand(dispatchCmd(streams, manifestbeads.Store{Tracker: tr}, gitvcs.VersionControl{}, fake))
+	root.AddCommand(dispatchCmd(streams, manifestbeads.Store{Tracker: tr}, tr, gitvcs.VersionControl{}, fake))
 
 	code := dispatch(root, streams, []string{"dispatch", "open", "--run", "run-1", "--json"}, &out, &errOut)
 	if code != int(StatusClear) {
@@ -213,7 +213,7 @@ func TestDispatchOpenDefaultsTheWorktreeBaseToTheSprintBranch(t *testing.T) {
 	var out, errOut bytes.Buffer
 	streams := &ioStreams{out: &out, err: &errOut}
 	root := newRootCmd(streams)
-	root.AddCommand(dispatchCmd(streams, manifestbeads.Store{Tracker: tr}, gitvcs.VersionControl{}, fake))
+	root.AddCommand(dispatchCmd(streams, manifestbeads.Store{Tracker: tr}, tr, gitvcs.VersionControl{}, fake))
 
 	code := dispatch(root, streams,
 		[]string{"dispatch", "open", "--run", "run-1", "--dispatch", "dev-1", "--json"}, &out, &errOut)
@@ -270,7 +270,7 @@ func TestDispatchOpenWithNoDispatchIDTouchesNoWorktree(t *testing.T) {
 	var out, errOut bytes.Buffer
 	streams := &ioStreams{out: &out, err: &errOut}
 	root := newRootCmd(streams)
-	root.AddCommand(dispatchCmd(streams, manifestbeads.Store{Tracker: tr}, gitvcs.VersionControl{}, fake))
+	root.AddCommand(dispatchCmd(streams, manifestbeads.Store{Tracker: tr}, tr, gitvcs.VersionControl{}, fake))
 
 	code := dispatch(root, streams, []string{"dispatch", "open", "--run", "run-1", "--json"}, &out, &errOut)
 	if code != int(StatusClear) {

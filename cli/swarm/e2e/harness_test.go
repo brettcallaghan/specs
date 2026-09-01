@@ -216,8 +216,29 @@ func restore(t *testing.T, binary, fixture string) world {
 		// without colliding on one.
 		initArgs = append(initArgs, "--server")
 	}
+	// The sprint branch's own head, read BEFORE the tracker is
+	// initialised, because initialising it moves the branch.
+	head := w.mustCapture(t, w.repo, "git", "rev-parse", "HEAD")
+
 	w.mustRun(t, w.repo, "bd", initArgs...)
 	w.mustRun(t, w.repo, "bd", "import", export)
+
+	// `bd init` COMMITS its own scaffolding onto whatever branch is
+	// checked out. Measured on bd 1.2.2 against this suite's own
+	// fixtures: the sprint branch's head reads `fixture-run.4 P1 the
+	// fourth bead of the run` after the clone and `bd init: initialize
+	// beads issue tracking` after `bd init`. Two things break in a world
+	// left that way — the branch is no longer at the sha the fixture's
+	// stamp documents, and the index carries the same files, which makes
+	// `git rebase` exit 1 with `error: cannot rebase: Your index contains
+	// uncommitted changes.`
+	//
+	// A mixed reset back to the recorded head fixes both at once: the
+	// branch returns to the bundle's own commit and the scaffolding stays
+	// on disk untracked, which is where the tracker reads it from —
+	// measured, `bd show` still answers afterwards. Never `--hard`, which
+	// would delete the tracker the case is about to query.
+	w.mustRun(t, w.repo, "git", "reset", "--quiet", head)
 
 	w.standWorktrees(t)
 	w.standRefusingRemote(t)
@@ -373,6 +394,16 @@ func (w world) env() []string {
 	return append(os.Environ(),
 		"HOME="+w.home,
 		"BEADS_ACTOR=fixture-e2e",
+		// A pinned identity, because HOME is pinned into the world and
+		// carries no git configuration: a case that writes a commit —
+		// a rebase replaying one — otherwise fails with `fatal: unable to
+		// auto-detect email address`, which is the world's fault rather
+		// than the command's. Pinned rather than inherited so a rebased
+		// commit says the same thing on every machine.
+		"GIT_AUTHOR_NAME=fixture",
+		"GIT_AUTHOR_EMAIL=fixture@example.invalid",
+		"GIT_COMMITTER_NAME=fixture",
+		"GIT_COMMITTER_EMAIL=fixture@example.invalid",
 		// Locale-independent output from every tool the run shells out
 		// to; the contract forbids a field whose meaning depends on the
 		// producing process's locale, and this is the other half of that.

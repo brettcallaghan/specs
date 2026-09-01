@@ -606,7 +606,7 @@ func measureWorktreeOwners(ctx context.Context, deps Deps, trees Worktrees, spri
 		if !ok || len(commits) == 0 {
 			continue
 		}
-		id := beadIDFromCloseSubject(commits[0].Subject)
+		id := BeadIDFromCloseSubject(commits[0].Subject)
 		if id == "" {
 			continue
 		}
@@ -617,10 +617,16 @@ func measureWorktreeOwners(ctx context.Context, deps Deps, trees Worktrees, spri
 	return owners, records
 }
 
-// beadIDFromCloseSubject reads the bead id out of a commit subject shaped
+// BeadIDFromCloseSubject reads the bead id out of a commit subject shaped
 // like a bead's own close — `<id> P<priority> <title>`, per
 // `bb-close-bead.sh` — and returns empty for a subject that is not.
-func beadIDFromCloseSubject(subject string) string {
+//
+// Exported because it is the run's ONE reading of that subject form, and
+// a second one would be a second answer to disagree with this: the
+// worktree attribution below asks it who a standing tree belongs to, and
+// `swarm dispatch accept` asks it which beads a conflicting rebase is
+// between.
+func BeadIDFromCloseSubject(subject string) string {
 	id, rest, found := strings.Cut(subject, " ")
 	if !found || id == "" {
 		return ""

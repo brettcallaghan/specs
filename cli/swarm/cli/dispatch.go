@@ -29,17 +29,22 @@ import (
 	swarmexec "github.com/brettcallaghan/agent-plugins/cli/swarm/exec"
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/manifest"
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/plan"
+	"github.com/brettcallaghan/agent-plugins/cli/swarm/tracker"
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/vcs"
 )
 
 // dispatchCmd builds the `dispatch` noun.
-func dispatchCmd(streams *ioStreams, store manifest.Store, vc vcs.VersionControl, runner swarmexec.Runner) *cobra.Command {
+func dispatchCmd(
+	streams *ioStreams, store manifest.Store, tr tracker.Tracker,
+	vc vcs.VersionControl, runner swarmexec.Runner,
+) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:          "dispatch",
 		Short:        "Open and accept a run's dispatches",
 		SilenceUsage: true,
 	}
 	cmd.AddCommand(dispatchOpenCmd(streams, store, vc, runner))
+	cmd.AddCommand(dispatchAcceptCmd(streams, store, tr, vc, runner))
 	return cmd
 }
 
