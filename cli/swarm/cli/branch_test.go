@@ -267,3 +267,95 @@ func TestBranchExplainRunsNothing(t *testing.T) {
 		}
 	}
 }
+
+// A dry run refuses the fetch — it is a write — while the two reads that
+// compare still run, against whatever the local tracking ref happens to
+// hold. So the comparison a dry run can make is exactly the one this
+// command exists to prevent: a stale local record reporting a branch as
+// landed.
+//
+// The reads below answer as they would for a branch in step with its
+// counterpart, which is what a STALE ref looks like from inside the
+// process — indistinguishable from a fresh one, which is why the verdict
+// has to come from whether the fetch ran rather than from what the reads
+// said.
+func TestADryRunDoesNotReportLandedFromAnUnfetchedComparison(t *testing.T) {
+	for _, verb := range []string{"verify-landed", "push"} {
+		fake := exectest.NewFake(landedReads("0", "0")...)
+
+		stdout, _, code := runBranch(t, fake,
+			"branch", verb, "--branch", landBranch, "--dry-run", "--full-result", "--json")
+		if code != int(StatusAttention) {
+			t.Fatalf("%s --dry-run exited %d, want %d (attention)\n%s",
+				verb, code, StatusAttention, stdout)
+		}
+		for _, argv := range fake.Argvs() {
+			if len(argv) >= 2 && (argv[1] == "fetch" || argv[1] == "push") {
+				t.Errorf("%s --dry-run ran a write: %v", verb, argv)
+			}
+		}
+
+		env := envelopeOf(t, stdout)
+		landed, ok := factNamed(env, "landed")
+		if !ok {
+			t.Fatalf("%s --dry-run reports no landing verdict at all:\n%s", verb, stdout)
+		}
+		if landed.Established {
+			t.Errorf("%s --dry-run reports landed as established (%v) from a comparison made "+
+				"without fetching; a stale tracking ref is exactly what that cannot distinguish",
+				verb, landed.Value)
+		}
+		if !strings.Contains(landed.Reason, "fetch") {
+			t.Errorf("%s --dry-run does not say the fetch is what is missing: %q", verb, landed.Reason)
+		}
+		if !strings.Contains(env.Resolution, "--dry-run") {
+			t.Errorf("%s --dry-run does not name what would settle the question: %q",
+				verb, env.Resolution)
+		}
+	}
+}
+
+// A fetch that really ran and failed leaves the tracking ref exactly as
+// stale as a refused one does, and the two reads still compare against
+// it. The guarantee is that the remote was consulted, not that a fetch
+// step was present in the plan.
+func TestAFailedFetchDoesNotReportLandedEither(t *testing.T) {
+	recs := landedReads("0", "0")
+	recs[0] = exectest.Recording{
+		Argv:       []string{"git", "fetch", landRemote},
+		ExitStatus: 128,
+		Stderr:     []byte("fatal: unable to access 'origin': Could not resolve host"),
+	}
+	fake := exectest.NewFake(recs...)
+
+	stdout, _, code := runBranch(t, fake,
+		"branch", "verify-landed", "--branch", landBranch, "--full-result", "--json")
+	if code != int(StatusAttention) {
+		t.Fatalf("exit status = %d, want %d (attention)\n%s", code, StatusAttention, stdout)
+	}
+	landed, ok := factNamed(envelopeOf(t, stdout), "landed")
+	if !ok {
+		t.Fatalf("no landing verdict at all:\n%s", stdout)
+	}
+	if landed.Established {
+		t.Errorf("a failed fetch still produced an established verdict (%v); the comparison "+
+			"rests on the same stale ref a refused fetch would leave", landed.Value)
+	}
+}
+
+// The negative control: with the fetch actually run, the same reads
+// produce the ordinary verdict. So the tests above assert that the fetch
+// ran, and not that the command stopped reporting.
+func TestAFetchThatRanStillProducesTheOrdinaryVerdict(t *testing.T) {
+	fake := exectest.NewFake(landedReads("0", "0")...)
+
+	stdout, _, code := runBranch(t, fake,
+		"branch", "verify-landed", "--branch", landBranch, "--full-result", "--json")
+	if code != int(StatusClear) {
+		t.Fatalf("exit status = %d, want %d\n%s", code, StatusClear, stdout)
+	}
+	landed, ok := factNamed(envelopeOf(t, stdout), "landed")
+	if !ok || !landed.Established || landed.Value == nil || landed.Value.Flag == nil || !*landed.Value.Flag {
+		t.Errorf("a fetched comparison does not report landed: %v\n%s", landed, stdout)
+	}
+}

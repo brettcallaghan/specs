@@ -370,6 +370,17 @@ implementation, not two commands that resemble each other. Where
 where `--remote` is absent the remote is `origin`; both are read from
 the repository rather than from configuration outside it.
 
+The fetch is a write, so a dry run refuses it while the two reads that
+compare still run — against whatever the local tracking ref happens to
+hold. A stale ref is indistinguishable from a fresh one from inside the
+process: it resolves, it compares, and it would report a branch as
+landed. **The verdict is therefore taken from whether the remote was
+actually fetched, before either read's answer is consulted at all**: a
+fetch that was refused or failed reports `landed` unestablished with the
+attention status, never `true` and never `false`. Guarding on either
+read instead is the mistake that looks right — both are reads, so both
+always run, and a guard on them never fires.
+
 **Neither command refuses an absent run scope** — the one exception, in
 this whole surface, to "the scope is checked before the mode is
 resolved" above. Both are the recovery path: a session whose first act

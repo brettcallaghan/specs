@@ -268,7 +268,7 @@ func verifyLanded(
 		}
 	}
 
-	landed, err := landingVerdict(report, counterpartSteps, divergeSteps, branch, remote)
+	landed, err := landingVerdict(report, fetchSteps, counterpartSteps, divergeSteps, branch, remote)
 	if err != nil {
 		return Result{}, err
 	}
@@ -330,13 +330,40 @@ type verdict struct {
 // landingVerdict reads the counterpart probe and the divergence count
 // into the command's answer.
 func landingVerdict(
-	report plan.Report, counterpartSteps, divergeSteps vcs.Steps, branch, remote string,
+	report plan.Report, fetchSteps, counterpartSteps, divergeSteps vcs.Steps, branch, remote string,
 ) (verdict, error) {
+	tracking := remote + "/" + branch
+
+	// The fetch is what makes the two reads below mean anything, and it
+	// is the FIRST thing tested for that reason. It is a write, so a dry
+	// run refuses it while the reads — both plain reads — still run,
+	// against whatever the local tracking ref happens to hold. A stale
+	// ref is indistinguishable from a fresh one from in here: it resolves,
+	// it compares, and it reports a branch as landed. So the verdict rests
+	// on whether the remote was actually consulted, never on what the
+	// reads answered when it was not.
+	fetchRec, ok := report.Record(fetchSteps.Answer())
+	if !ok || fetchRec.Status != plan.StepRan || fetchRec.Failed() {
+		return verdict{
+			facts: []Fact{
+				Unestablished("landed",
+					remote+" was not fetched, so the comparison against "+tracking+
+						" would rest on a possibly stale local record of where "+remote+" points",
+					invocationOf(fetchSteps[len(fetchSteps)-1], fetchRec)),
+			},
+			outcome: OutcomeAttention,
+			summary: fmt.Sprintf("whether %s has landed on %s was not established: %s was not fetched",
+				branch, remote, remote),
+			resolution: fmt.Sprintf(
+				"run it again without --dry-run, or fetch first: swarm branch verify-landed --branch %s --remote %s",
+				branch, remote),
+		}, nil
+	}
+
 	counterpartRec, ok := report.Record(counterpartSteps.Answer())
 	if !ok {
 		return verdict{}, RefuseUnrepairable("the counterpart probe produced no record")
 	}
-	tracking := remote + "/" + branch
 
 	if counterpartRec.Failed() {
 		// AC-SWARM-DISP-005.2: no counterpart is not "landed".
@@ -353,8 +380,8 @@ func landingVerdict(
 
 	divergeRec, ok := report.Record(divergeSteps.Answer())
 	if !ok || divergeRec.Status != plan.StepRan {
-		// A dry run refused the fetch, but the reads still ran; a plan
-		// that stopped before this is reported rather than guessed at.
+		// The fetch ran, so this is a plan that stopped before the
+		// comparison — reported rather than guessed at.
 		return verdict{
 			facts: []Fact{
 				Unestablished("landed",
