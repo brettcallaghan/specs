@@ -42,6 +42,7 @@ func readyCmd(streams *ioStreams, deps status.Deps) *cobra.Command {
 		asJSON     bool
 		fullResult bool
 		runID      string
+		agentID    string
 	)
 
 	cmd := &cobra.Command{
@@ -51,7 +52,9 @@ func readyCmd(streams *ioStreams, deps status.Deps) *cobra.Command {
 			"filter applied — no epic, no bead closed or deferred, none awaiting a human answer " +
 			"— each named with the dispatch id it is assigned to, or unassigned when none is. A " +
 			"bead assigned to a dispatch whose worktree is standing is reported held rather than " +
-			"available, so a caller does not send a second agent after one already at work.",
+			"available, so a caller does not send a second agent after one already at work. With " +
+			"--agent, the same query narrows to one dispatch's own queue, in dependency order, " +
+			"together with its drain verdict.",
 		Args:         cobra.NoArgs,
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
@@ -79,11 +82,21 @@ func readyCmd(streams *ioStreams, deps status.Deps) *cobra.Command {
 				req.Mode = plan.ModeExecute
 			}
 
+			agent := strings.TrimSpace(agentID)
+
 			if req.Mode == plan.ModeExplain {
-				return finish(streams, req, explainReady(req))
+				return finish(streams, req, explainReady(req, agent))
 			}
 
-			result, err := reportReady(context.Background(), deps, req)
+			var (
+				result Result
+				err    error
+			)
+			if agent != "" {
+				result, err = reportAgentQueue(context.Background(), deps, req, agent)
+			} else {
+				result, err = reportReady(context.Background(), deps, req)
+			}
 			if err != nil {
 				return finish(streams, req, refusal(req, asRefusal(err)))
 			}
@@ -101,6 +114,8 @@ func readyCmd(streams *ioStreams, deps status.Deps) *cobra.Command {
 		"the run epic this command is scoped to")
 	cmd.Flags().BoolVar(&fullResult, "full-result", false,
 		"print the whole command result — the mode, the outcome, the facts and the invocations behind them — instead of the answer alone")
+	cmd.Flags().StringVar(&agentID, "agent", "",
+		"narrow to one dispatch's own queue, in dependency order, with its drain verdict")
 
 	return cmd
 }
@@ -109,14 +124,28 @@ func readyCmd(streams *ioStreams, deps status.Deps) *cobra.Command {
 // without taking any — the ready query is one invocation, but "held"
 // requires the same worktree attribution `swarm status` performs, which
 // is not a plan this package renders a second time.
-func explainReady(req Request) Result {
-	lines := []string{
-		"swarm ready reads two things and joins them, so its steps are described here rather " +
-			"than printed as a plan:",
-		"  bd ready --parent " + req.Run + " --exclude-type epic --exclude-label human --limit 0 --json  (the dispatch set)",
-		"  the same worktree-to-dispatch attribution `swarm status` performs — the standing " +
-			"worktrees, the run's completion walk, and which bead's assignee closed each worktree's " +
-			"HEAD commit — to tell a bead already held from one nothing is working",
+func explainReady(req Request, agent string) Result {
+	var lines []string
+	if agent == "" {
+		lines = []string{
+			"swarm ready reads two things and joins them, so its steps are described here rather " +
+				"than printed as a plan:",
+			"  bd ready --parent " + req.Run + " --exclude-type epic --exclude-label human --limit 0 --json  (the dispatch set)",
+			"  the same worktree-to-dispatch attribution `swarm status` performs — the standing " +
+				"worktrees, the run's completion walk, and which bead's assignee closed each worktree's " +
+				"HEAD commit — to tell a bead already held from one nothing is working",
+		}
+	} else {
+		lines = []string{
+			"swarm ready --agent " + agent + " reads the run's whole descendant set, then joins " +
+				"two more queries against it, so its steps are described here rather than printed as " +
+				"a plan:",
+			"  one bd list --parent <bead> --all --limit 0 --json per level below " + req.Run +
+				"  (every bead in the run, so a dispatch never given anything can be told from one that finished)",
+			"  bd ready --parent " + req.Run + " --assignee " + agent +
+				" --exclude-type epic --exclude-label human --limit 0 --json  (this dispatch's ready half)",
+			"  bd list --assignee " + agent + " --status in_progress --limit 0 --json  (this dispatch's held half, narrowed to " + req.Run + ")",
+		}
 	}
 	return Result{
 		Command: req.Command, Run: req.Run, Mode: req.Mode, Outcome: OutcomeClear,
@@ -203,4 +232,107 @@ func reportReady(ctx context.Context, deps status.Deps, req Request) (Result, er
 			len(entries), req.Run, heldCount)
 	}
 	return result, nil
+}
+
+// queueEntry is one bead in an agent's own queue, rendered as
+// [Structured] JSON: the id and whether it is ready to start or already
+// claimed.
+type queueEntry struct {
+	ID    string `json:"id"`
+	State string `json:"state"`
+}
+
+const (
+	queueStateReady      = "ready"
+	queueStateInProgress = "in_progress"
+)
+
+// reportAgentQueue narrows the dispatch set to one agent's own queue —
+// the AQ delta. It reuses [tracker.AgentQueue] for the drain derivation
+// rather than restating the two-query join it performs, and separately
+// walks the run's whole descendant set to tell a dispatch nobody ever
+// gave a bead to from one that finished everything it was given.
+// [tracker.AgentQueue] deliberately leaves that distinction to its
+// caller — its own doc says telling the two apart "needs the run's whole
+// assignment set", which is not either half a queue is built from.
+func reportAgentQueue(ctx context.Context, deps status.Deps, req Request, agent string) (Result, error) {
+	beneath, dRecords, err := tracker.Descendants(ctx, deps.Tracker, deps.Runner, req.Run)
+	if err != nil {
+		return Result{}, RefuseUnrepairable("%s", err)
+	}
+
+	established := false
+	for _, b := range beneath {
+		if b.Assignee == agent {
+			established = true
+			break
+		}
+	}
+
+	queue, qRecords, err := tracker.AgentQueue(ctx, deps.Tracker, deps.Runner, req.Run, agent, tracker.ReadyFilter{
+		ExcludeKinds:  []string{epicKind},
+		ExcludeLabels: []string{humanLabel},
+	})
+	if err != nil {
+		return Result{}, RefuseUnrepairable("%s", err)
+	}
+
+	result := Result{Outcome: OutcomeClear}
+	result.Records = append(result.Records, dRecords...)
+	result.Records = append(result.Records, qRecords...)
+
+	queueInv := invocationsOf(qRecords)
+	establishedInv := invocationsOf(dRecords)
+
+	// AC-SWARM-DISP-002.12: the ready half keeps the order the tracker
+	// answered it in — its own dependency-satisfiability order — rather
+	// than the alphabetical sort the whole-run set uses; re-sorting here
+	// would throw that order away.
+	entries := make([]queueEntry, 0, len(queue.Ready)+len(queue.InProgress))
+	for _, b := range queue.Ready {
+		entries = append(entries, queueEntry{ID: b.ID, State: queueStateReady})
+	}
+	for _, b := range queue.InProgress {
+		entries = append(entries, queueEntry{ID: b.ID, State: queueStateInProgress})
+	}
+
+	result.Facts = append(result.Facts,
+		Flag("established", established, establishedInv...),
+		Structured("queue", marshal(entries), queueInv...),
+		Count("queue_count", len(entries), queueInv...),
+		Flag("drained", queue.Drained(), queueInv...))
+
+	switch {
+	case !established:
+		// AC-SWARM-DISP-002.15: never given anything is a dispatch error,
+		// not a completion — reported distinctly from drained so a
+		// coordinator does not read a mistyped dispatch id as a finished
+		// agent.
+		result.Outcome = OutcomeAttention
+		result.Resolution = fmt.Sprintf(
+			"assign a bead in %s to %s, or dispatch a different agent id", req.Run, agent)
+		result.Summary = fmt.Sprintf(
+			"%s is not an established dispatch in %s: no bead anywhere in the run names it as assignee",
+			agent, req.Run)
+	case queue.Drained():
+		result.Summary = fmt.Sprintf("%s has drained: nothing ready and nothing in progress in %s", agent, req.Run)
+	default:
+		result.Summary = fmt.Sprintf("%s holds %d bead(s) under %s: %d ready, %d in progress",
+			agent, len(entries), req.Run, len(queue.Ready), len(queue.InProgress))
+	}
+	return result, nil
+}
+
+// invocationsOf reads every record's resolved invocation, skipping a step
+// that never ran — so a fact cites every query that reached its answer
+// rather than just the fragment's last one, and a reader can re-run any
+// of them.
+func invocationsOf(records []plan.Record) [][]string {
+	out := make([][]string, 0, len(records))
+	for _, r := range records {
+		if argv := argvOf(r); argv != nil {
+			out = append(out, argv)
+		}
+	}
+	return out
 }
