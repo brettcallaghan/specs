@@ -92,14 +92,20 @@ func readyCmd(streams *ioStreams, deps status.Deps) *cobra.Command {
 				return finish(streams, req, explainReady(req, agent))
 			}
 
+			// Built once, ahead of the fork: --agent narrows WHICH beads
+			// are reported, and a narrower answer is no reason to discard
+			// the dispatch return the same invocation carried. The
+			// blueprint states the breaker on the command and calls
+			// --agent "the same query with one more filter".
+			report := breakerReport{Given: cmd.Flags().Changed("completed"), Completed: completed}
+
 			var (
 				result Result
 				err    error
 			)
 			if agent != "" {
-				result, err = reportAgentQueue(context.Background(), deps, req, agent)
+				result, err = reportAgentQueue(context.Background(), deps, req, agent, report, threshold)
 			} else {
-				report := breakerReport{Given: cmd.Flags().Changed("completed"), Completed: completed}
 				result, err = reportReady(context.Background(), deps, req, report, threshold)
 			}
 			if err != nil {
@@ -148,13 +154,14 @@ func explainReady(req Request, agent string) Result {
 	} else {
 		lines = []string{
 			"swarm ready --agent " + agent + " reads the run's whole descendant set, then joins " +
-				"two more queries against it, so its steps are described here rather than printed as " +
-				"a plan:",
+				"two more queries against it and reads the circuit breaker's count, so its steps are " +
+				"described here rather than printed as a plan:",
 			"  one bd list --parent <bead> --all --limit 0 --json per level below " + req.Run +
 				"  (every bead in the run, so a dispatch never given anything can be told from one that finished)",
 			"  bd ready --parent " + req.Run + " --assignee " + agent +
 				" --exclude-type epic --exclude-label human --limit 0 --json  (this dispatch's ready half)",
 			"  bd list --assignee " + agent + " --status in_progress --limit 0 --json  (this dispatch's held half, narrowed to " + req.Run + ")",
+			"  bd show " + req.Run + " --json                              (the failure count; --completed also writes it back)",
 		}
 	}
 	return req.stamp(Result{
@@ -447,7 +454,13 @@ const (
 // [tracker.AgentQueue] deliberately leaves that distinction to its
 // caller — its own doc says telling the two apart "needs the run's whole
 // assignment set", which is not either half a queue is built from.
-func reportAgentQueue(ctx context.Context, deps status.Deps, req Request, agent string) (Result, error) {
+// It carries the circuit breaker exactly as the whole-run arm does: the
+// filter narrows which beads are reported and changes nothing about the
+// dispatch return the same invocation reported.
+func reportAgentQueue(
+	ctx context.Context, deps status.Deps, req Request, agent string,
+	breaker breakerReport, threshold int,
+) (Result, error) {
 	beneath, dRecords, err := tracker.Descendants(ctx, deps.Tracker, deps.Runner, req.Run)
 	if err != nil {
 		return Result{}, RefuseUnrepairable("%s", err)
@@ -511,6 +524,21 @@ func reportAgentQueue(ctx context.Context, deps status.Deps, req Request, agent 
 	default:
 		result.Summary = fmt.Sprintf("%s holds %d bead(s) under %s: %d ready, %d in progress",
 			agent, len(entries), req.Run, len(queue.Ready), len(queue.InProgress))
+	}
+
+	breaking, err := applyBreaker(ctx, deps, req, breaker, threshold)
+	result.Records = append(result.Records, breaking.Records...)
+	if err != nil {
+		return Result{}, err
+	}
+	result.Facts = append(result.Facts, breaking.Facts...)
+	if breaking.Stopped {
+		// Same override as the whole-run arm: a stopped run has nothing
+		// left to dispatch, and a coordinator reading only this
+		// dispatch's queue is the one most likely to send more work into
+		// it. The queue's own facts are still reported beside it.
+		result.Outcome = OutcomeStop
+		result.Summary = breaking.Summary
 	}
 	return result, nil
 }

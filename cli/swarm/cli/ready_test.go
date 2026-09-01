@@ -260,6 +260,127 @@ func TestBreakerSkipsAWriteThatWouldNotChangeTheCount(t *testing.T) {
 	}
 }
 
+// runReadyAgent drives `swarm ready --agent` through the real command
+// tree against the fake, with the queue reads accept_test.go's own helper
+// declares for the same run and dispatch id.
+func runReadyAgent(t *testing.T, extra []exectest.Recording, args ...string) (*exectest.Fake, string, int) {
+	t.Helper()
+
+	fake := exectest.NewFake(append(drainedQueue(), extra...)...)
+	var out, errOut bytes.Buffer
+	streams := &ioStreams{out: &out, err: &errOut}
+	root := newRootCmd(streams)
+	root.AddCommand(readyCmd(streams, readyDeps(fake)))
+
+	code := dispatch(root, streams, args, &out, &errOut)
+	return fake, out.String(), code
+}
+
+// --agent narrows the answer; it does not discard the dispatch return.
+// Reporting a return with --completed advances the breaker whether or not
+// the same invocation also asked for one dispatch's queue — which is the
+// invocation a coordinator most wants at the moment a dispatch comes
+// back.
+func TestTheAgentArmAppliesTheBreaker(t *testing.T) {
+	fake, stdout, code := runReadyAgent(t, []exectest.Recording{
+		showRecording(acceptRun, `{"consecutive_dispatch_failures":1}`),
+		updateRecording(acceptRun, `{"consecutive_dispatch_failures":2}`),
+	}, "ready", "--run", acceptRun, "--agent", acceptAgent, "--completed", "0",
+		"--full-result", "--json")
+	if code != int(StatusClear) {
+		t.Fatalf("exit status = %d, want %d\n%s", code, StatusClear, stdout)
+	}
+
+	wrote := false
+	for _, argv := range fake.Argvs() {
+		if len(argv) >= 2 && argv[0] == "bd" && argv[1] == "update" {
+			wrote = true
+		}
+	}
+	if !wrote {
+		t.Errorf("--agent --completed 0 never advanced the count: %v", fake.Argvs())
+	}
+
+	env := envelopeOf(t, stdout)
+	count, ok := factNamed(env, "consecutive_dispatch_failures")
+	if !ok {
+		t.Fatalf("the --agent arm reports no breaker count at all:\n%s", stdout)
+	}
+	if !count.Established || count.Value == nil || count.Value.Count == nil || *count.Value.Count != 2 {
+		t.Errorf("consecutive_dispatch_failures = %v, want an established 2", count.Value)
+	}
+
+	// The queue answer is still the --agent arm's own.
+	if _, ok := factNamed(env, "drained"); !ok {
+		t.Errorf("the breaker displaced the dispatch's own queue answer:\n%s", stdout)
+	}
+}
+
+// A return that completed something resets the count, on this arm as on
+// the other.
+func TestTheAgentArmResetsTheBreakerOnACompletedReturn(t *testing.T) {
+	fake, stdout, code := runReadyAgent(t, []exectest.Recording{
+		showRecording(acceptRun, `{"consecutive_dispatch_failures":2}`),
+		updateRecording(acceptRun, `{"consecutive_dispatch_failures":0}`),
+	}, "ready", "--run", acceptRun, "--agent", acceptAgent, "--completed", "3",
+		"--full-result", "--json")
+	if code != int(StatusClear) {
+		t.Fatalf("exit status = %d, want %d\n%s", code, StatusClear, stdout)
+	}
+
+	reset := false
+	for _, argv := range fake.Argvs() {
+		if len(argv) >= 4 && argv[1] == "update" && strings.Contains(argv[4], `"consecutive_dispatch_failures":0`) {
+			reset = true
+		}
+	}
+	if !reset {
+		t.Errorf("--agent --completed 3 did not reset the count: %v", fake.Argvs())
+	}
+}
+
+// The breaker's write obeys the request's mode on this arm too, so a dry
+// run of it writes nothing.
+func TestTheAgentArmsBreakerWritesNothingInADryRun(t *testing.T) {
+	fake, stdout, _ := runReadyAgent(t, []exectest.Recording{
+		showRecording(acceptRun, `{"consecutive_dispatch_failures":1}`),
+		updateRecording(acceptRun, `{"consecutive_dispatch_failures":2}`),
+	}, "ready", "--run", acceptRun, "--agent", acceptAgent, "--completed", "0",
+		"--dry-run", "--full-result", "--json")
+
+	for _, argv := range fake.Argvs() {
+		if len(argv) >= 2 && argv[0] == "bd" && argv[1] == "update" {
+			t.Errorf("a dry run of the --agent arm wrote: %v\n%s", argv, stdout)
+		}
+	}
+}
+
+// Explain names what the invocation would do, so an --agent invocation
+// carrying --completed says that the breaker is read and written back —
+// otherwise the transcript itself would document the flag being dropped.
+func TestExplainOfTheAgentArmNamesTheBreaker(t *testing.T) {
+	fake := exectest.NewFake() // no recordings: explain runs nothing
+	var out, errOut bytes.Buffer
+	streams := &ioStreams{out: &out, err: &errOut}
+	root := newRootCmd(streams)
+	root.AddCommand(readyCmd(streams, readyDeps(fake)))
+
+	code := dispatch(root, streams, []string{"ready", "--run", acceptRun, "--agent", acceptAgent,
+		"--completed", "0", "--explain"}, &out, &errOut)
+	if code != int(StatusClear) {
+		t.Fatalf("exit status = %d, want %d\n%s", code, StatusClear, out.String())
+	}
+	if calls := fake.Argvs(); len(calls) != 0 {
+		t.Errorf("explain ran %d invocation(s): %v", len(calls), calls)
+	}
+	if !strings.Contains(out.String(), "bd show "+acceptRun) {
+		t.Errorf("the --agent transcript does not name the breaker's read:\n%s", out.String())
+	}
+	if !strings.Contains(out.String(), "--completed") {
+		t.Errorf("the --agent transcript does not say --completed writes the count back:\n%s", out.String())
+	}
+}
+
 // The breaker's write is this command's only write, and `swarm ready`'s
 // own --dry-run help promises "it writes nothing either way". A dry run
 // therefore refuses the write rather than performing it — [plan.Runner]'s

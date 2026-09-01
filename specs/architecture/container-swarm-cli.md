@@ -286,7 +286,11 @@ reads `tracker.AgentQueue` pairs, per the Tracker component above.
 rather than re-deriving the two queries, so "drained" has one
 implementation for every command to agree with.
 
-`swarm ready` also carries the run's circuit breaker: it reads
+`swarm ready` also carries the run's circuit breaker, **on both arms**:
+`--agent` narrows which beads are reported and changes nothing about the
+dispatch return the same invocation carried, so reporting a return and
+asking for that dispatch's remaining queue is one invocation rather than
+two. It reads
 `consecutive_dispatch_failures` from the manifest on every invocation, so
 a bare query still reports the count and still stops a run already at
 threshold, and — only where `--completed <n>` is given — advances it

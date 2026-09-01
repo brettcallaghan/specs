@@ -87,7 +87,11 @@ func stampCases() []stampCase {
 			path: "swarm ready",
 			args: []string{"ready", "--run", acceptRun, "--agent", acceptAgent, "--dry-run"},
 			run:  acceptRun, mode: plan.ModeDryRun, status: StatusClear,
-			recordings: drainedQueue(),
+			// The breaker is read on this arm too, so the manifest read
+			// belongs to the queue reads rather than only to the
+			// whole-run arm.
+			recordings: append(drainedQueue(),
+				showRecording(acceptRun, `{"consecutive_dispatch_failures":0}`)),
 		},
 		{
 			name: "dispatch open, the sprint branch created and recorded",
