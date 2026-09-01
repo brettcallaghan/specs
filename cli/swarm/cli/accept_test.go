@@ -85,7 +85,11 @@ func drainedQueue(held ...string) []exectest.Recording {
 			Stdout: []byte("[]"),
 		},
 		{
-			Argv:   []string{"bd", "list", "--assignee", acceptAgent, "--status", "in_progress", "--limit", "0", "--json"},
+			// The held half carries the same exclusions as the ready half
+			// above: one filter builds both, so a bead one drops and the
+			// other returns cannot leave a dispatch undrained.
+			Argv: []string{"bd", "list", "--assignee", acceptAgent, "--status", "in_progress",
+				"--exclude-type", "epic", "--exclude-label", "human", "--limit", "0", "--json"},
 			Stdout: []byte(inProgress),
 		},
 	}

@@ -54,9 +54,14 @@ func AgentQueue(
 		return Queue{}, records, fmt.Errorf("tracker: %s's queue under %s: %w", agent, scope, err)
 	}
 
+	// ONE filter, both halves. The drain verdict is taken from the two
+	// together, so an exclusion applied to one of them makes them
+	// disagree about which beads are this dispatch's — and a bead the
+	// ready half drops while the held half returns leaves the dispatch
+	// undrained for as long as it stays in progress.
 	filter.Assignee = agent
 	readyStep := t.Ready("ready", scope, filter)
-	heldStep := t.Holding("held", scope, agent)
+	heldStep := t.Holding("held", scope, filter)
 
 	report, err := runner.Run(ctx, plan.Plan{
 		Name:  fmt.Sprintf("%s's queue under %s", agent, scope),

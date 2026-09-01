@@ -81,8 +81,14 @@ type Bead struct {
 	Metadata map[string]any
 }
 
-// ReadyFilter narrows a ready query. Every field is optional; the
-// zero value asks for the whole ready set under the scope.
+// ReadyFilter narrows a query for a run's work. Every field is
+// optional; the zero value asks for the whole set under the scope.
+//
+// It is named for the ready query it was introduced for, and it is not
+// that query's alone: [Tracker.Ready] and [Tracker.Holding] both take
+// it, and one value is passed to both so that the two halves of a
+// dispatch's queue cannot disagree about which beads are that
+// dispatch's.
 type ReadyFilter struct {
 	// Assignee narrows to one agent's queue.
 	Assignee string
@@ -256,12 +262,21 @@ type Tracker interface {
 	// which must be narrowed with [Held.Within] before it is the run's
 	// answer.
 	//
-	// Paired with [Tracker.Ready] filtered to the same agent, this is
-	// the partition a [Queue] is built from — the ready half and the
-	// in-progress half. Two queries rather than one because a ready
-	// query excludes work in progress by construction, so an agent
-	// mid-bead has an empty ready set and reads as finished.
-	Holding(name, scope, agent string) plan.Step
+	// Paired with [Tracker.Ready], this is the partition a [Queue] is
+	// built from — the ready half and the in-progress half. Two queries
+	// rather than one because a ready query excludes work in progress by
+	// construction, so an agent mid-bead has an empty ready set and
+	// reads as finished.
+	//
+	// It takes the SAME [ReadyFilter] as [Tracker.Ready], and applies
+	// every exclusion in it, because the drain verdict is taken from the
+	// two halves together: a bead one half drops and the other returns
+	// leaves the dispatch undrained for as long as it stays in progress,
+	// while the post-merge re-check — which applies the run's filters —
+	// settles a set that never contained it. filter.Assignee is the
+	// agent, and is required for the same reason the scope is: an empty
+	// one answers for every dispatch at once.
+	Holding(name, scope string, filter ReadyFilter) plan.Step
 
 	// ClosableEpics declares a step reading which epics beneath a scope
 	// the tracker judges eligible to close. Its decoded value is a

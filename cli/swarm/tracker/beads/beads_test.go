@@ -71,8 +71,17 @@ func TestTheInvocationsItDeclares(t *testing.T) {
 		// argv: bd has no transitive parent filter for the first and
 		// ignores the positional argument on the second. Both
 		// measurements are on the methods.
-		{"what an agent holds", tr.Holding("s", "run-1", "dev-1"),
+		{"what an agent holds", tr.Holding("s", "run-1", tracker.ReadyFilter{Assignee: "dev-1"}),
 			"bd list --assignee dev-1 --status in_progress --limit 0 --json"},
+
+		// The held half carries the SAME exclusions as the ready half
+		// above. A drain verdict is taken from the two together, so a
+		// bead one half excludes and the other returns is a dispatch
+		// that can never drain.
+		{"what an agent holds, filtered", tr.Holding("s", "run-1", tracker.ReadyFilter{
+			Assignee: "dev-1", ExcludeKinds: []string{"epic"}, ExcludeLabels: []string{"human"},
+		}),
+			"bd list --assignee dev-1 --status in_progress --exclude-type epic --exclude-label human --limit 0 --json"},
 
 		{"the epics eligible to close", tr.ClosableEpics("s", "run-1"),
 			"bd epic status --eligible-only --json"},
@@ -141,7 +150,7 @@ func TestEachStepDeclaresItsEffectAndWhetherReRunningIsSafe(t *testing.T) {
 		tr.Bead("s", "run-1"),
 		tr.Children("s", "run-1"),
 		tr.Ready("s", "run-1", tracker.ReadyFilter{}),
-		tr.Holding("s", "run-1", "dev-1"),
+		tr.Holding("s", "run-1", tracker.ReadyFilter{Assignee: "dev-1"}),
 		tr.ClosableEpics("s", "run-1"),
 		tr.Findings("s", "run-1.4"),
 	}
@@ -328,7 +337,7 @@ func TestNoOperationReachesTheProcessRunner(t *testing.T) {
 		tr.Bead("s", "run-1"),
 		tr.Children("s", "run-1"),
 		tr.Ready("s", "run-1", tracker.ReadyFilter{}),
-		tr.Holding("s", "run-1", "dev-1"),
+		tr.Holding("s", "run-1", tracker.ReadyFilter{Assignee: "dev-1"}),
 		tr.ClosableEpics("s", "run-1"),
 		tr.Findings("s", "run-1.4"),
 		tr.Claim("s", "run-1.4", "dev-1"),
@@ -352,13 +361,62 @@ func TestNoOperationReachesTheProcessRunner(t *testing.T) {
 	}
 }
 
+// Both halves of a dispatch's queue are rendered from ONE filter, and
+// each carries every exclusion in it.
+//
+// A drain verdict is taken from the two together, so an exclusion only
+// one half applies is not a cosmetic asymmetry: a bead the ready half
+// drops and the held half returns leaves [tracker.Queue.Drained] false
+// for as long as it stays in progress, while the post-merge re-check —
+// which applies the run's filters — settles a set that never contained
+// it. The dispatch is then refused permanently by an acceptance that has
+// nothing left to do.
+func TestBothHalvesOfADispatchQueueCarryTheSameExclusions(t *testing.T) {
+	filter := tracker.ReadyFilter{
+		Assignee:      "dev-1",
+		ExcludeKinds:  []string{"epic"},
+		ExcludeLabels: []string{"human"},
+	}
+	tr := Tracker{}
+
+	halves := map[string][]string{
+		"ready": argv(t, tr.Ready("ready", "run-1", filter)),
+		"held":  argv(t, tr.Holding("held", "run-1", filter)),
+	}
+
+	for _, want := range [][2]string{
+		{"--assignee", "dev-1"},
+		{"--exclude-type", "epic"},
+		{"--exclude-label", "human"},
+	} {
+		for half, got := range halves {
+			if !carriesFlag(got, want[0], want[1]) {
+				t.Errorf("the %s half does not carry %s %s, which the other half applies; "+
+					"a drain verdict is taken from both:\n  %s",
+					half, want[0], want[1], strings.Join(got, " "))
+			}
+		}
+	}
+}
+
+// carriesFlag reports whether argv carries flag immediately followed by
+// value.
+func carriesFlag(argv []string, flag, value string) bool {
+	for i := 0; i < len(argv)-1; i++ {
+		if argv[i] == flag && argv[i+1] == value {
+			return true
+		}
+	}
+	return false
+}
+
 // The scope reaches these two answers through the decoded value rather
 // than through the invocation, so the invocation must NOT carry it — a
 // scope in the argv would read as a filter bd does not apply. See
 // Holding's and ClosableEpics' docs for the measurements.
 func TestTheTwoWideQueriesDoNotPretendToBeScoped(t *testing.T) {
 	for _, s := range []plan.Step{
-		Tracker{}.Holding("s", "run-1", "dev-1"),
+		Tracker{}.Holding("s", "run-1", tracker.ReadyFilter{Assignee: "dev-1"}),
 		Tracker{}.ClosableEpics("s", "run-1"),
 	} {
 		for _, arg := range argv(t, s) {

@@ -514,6 +514,13 @@ func recheckDispatchBeads(
 // The same filters the drain check applies, because the set that had to
 // drain is the set that is re-checked: an epic is not work, and a bead
 // awaiting a human answer was never this agent's to finish.
+//
+// The drain check applies them to BOTH of its halves — one
+// [tracker.ReadyFilter] reaches [tracker.Tracker.Ready] and
+// [tracker.Tracker.Holding] alike — which is what makes the sentence
+// above true rather than a convention. A held half that dropped the
+// exclusions would leave a dispatch undrained on a bead this function
+// never settles.
 func dispatchBeads(beneath []tracker.Bead, dispatchID string) []tracker.Bead {
 	var out []tracker.Bead
 	for _, b := range beneath {

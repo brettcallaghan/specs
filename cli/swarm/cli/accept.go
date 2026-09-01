@@ -156,7 +156,8 @@ func explainDispatchAccept(req Request, dispatchID string, noPush bool) Result {
 			"   (the run's descendant set, which narrows the held half)",
 		"  bd ready --parent " + req.Run + " --assignee " + dispatchID +
 			" --exclude-type epic --exclude-label human --limit 0 --json  (the ready half)",
-		"  bd list --assignee " + dispatchID + " --status in_progress --limit 0 --json  (the held half)",
+		"  bd list --assignee " + dispatchID + " --status in_progress --exclude-type " + epicKind +
+			" --exclude-label " + humanLabel + " --limit 0 --json  (the held half, under the same exclusions)",
 		"  # if either half is non-empty: the dispatch has not drained, and nothing below runs",
 		"  bd show " + req.Run + " --json                              (the manifest, for the target branch)",
 		"  git rev-parse --verify <target>^{commit}            (the target's head, read now)",

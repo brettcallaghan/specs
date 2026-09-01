@@ -526,6 +526,18 @@ agent excludes work already claimed, so on its own it reports an agent
 mid-bead as finished; [tracker.Queue] pairs it with `Holding` and is
 `Drained` only when both halves are empty.
 
+**Both halves take the SAME filter, and one value is passed to both.**
+`Ready` and `Holding` each accept a `tracker.ReadyFilter`, and
+`AgentQueue` builds one and hands it to each, so the two cannot disagree
+about which beads are this dispatch's. An exclusion applied to only one
+half is not cosmetic: a bead the ready half drops and the held half
+returns leaves `Drained` false for as long as it stays in progress, so
+`swarm dispatch accept` refuses that dispatch permanently — while the
+post-merge re-check, which applies the run's filters, settles a set that
+never contained it. The narrowing is applied to the HELD half rather
+than relaxed on the ready half, because the ready set's exclusions are
+fixed by the feature's own requirements.
+
 **`Descendants` is a walk, and lives here rather than in an
 implementation.** "Every bead in this run" is not a query any tracker
 answers: measured on bd 1.2.2 against this repository's own database,
@@ -594,6 +606,13 @@ Two further traps, both silent at exit 0:
   the same query with `--limit 0` → 106. Every `Ready` and `Holding`
   invocation therefore carries `--limit 0`, since a truncated ready or
   held set is a run reporting less work than it has, at exit 0.
+- **`bd list` carries the same two exclusions `bd ready` does**, which is
+  what lets the held half of a dispatch's queue apply the run's filters
+  rather than only its ready half. Measured on bd 1.2.2 against this
+  repository's database: `bd list --limit 0 --all --json | jq length` →
+  602 with 40 of `issue_type == "epic"`; the same query with
+  `--exclude-type epic` → 562 with none. `--exclude-label human` → 601,
+  dropping the one bead carrying that label and leaving none behind.
 - **`bd epic status`'s positional scope argument is ignored.** Measured:
   `bd epic status --json | jq length` and `bd epic status <run> --json |
   jq length` both return every epic in the database, exit 0, nothing on

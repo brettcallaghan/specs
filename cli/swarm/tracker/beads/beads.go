@@ -141,9 +141,25 @@ func (t Tracker) Ready(name, scope string, filter tracker.ReadyFilter) plan.Step
 // `--limit 0` is still passed: `bd list`'s default did not truncate JSON
 // output when measured, and a query whose completeness rests on that
 // staying true is one release away from reporting an agent as drained.
-func (t Tracker) Holding(name, scope, agent string) plan.Step {
-	s := t.step(name, plan.Read, true, holdingDecoder(scope, agent),
-		"list", "--assignee", agent, "--status", "in_progress", "--limit", "0", "--json")
+// The kind and label exclusions come from the same [tracker.ReadyFilter]
+// the ready half is built from, and are rendered here as `bd list`'s own
+// `--exclude-type` and `--exclude-label` (measured on bd 1.2.2:
+// `bd list --help` declares both, and
+// `bd list --assignee <a> --status in_progress --limit 0 --exclude-type
+// epic --exclude-label human --json` exits 0). Without them the drain
+// verdict is taken from two sets with different membership rules.
+func (t Tracker) Holding(name, scope string, filter tracker.ReadyFilter) plan.Step {
+	agent := filter.Assignee
+	args := []string{"list", "--assignee", agent, "--status", "in_progress"}
+	if len(filter.ExcludeKinds) > 0 {
+		args = append(args, "--exclude-type", strings.Join(filter.ExcludeKinds, ","))
+	}
+	if len(filter.ExcludeLabels) > 0 {
+		args = append(args, "--exclude-label", strings.Join(filter.ExcludeLabels, ","))
+	}
+	args = append(args, "--limit", "0", "--json")
+
+	s := t.step(name, plan.Read, true, holdingDecoder(scope, agent), args...)
 	s.Description = "the beads " + agent + " holds"
 	return s
 }

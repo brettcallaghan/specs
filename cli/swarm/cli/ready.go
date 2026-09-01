@@ -160,7 +160,9 @@ func explainReady(req Request, agent string) Result {
 				"  (every bead in the run, so a dispatch never given anything can be told from one that finished)",
 			"  bd ready --parent " + req.Run + " --assignee " + agent +
 				" --exclude-type epic --exclude-label human --limit 0 --json  (this dispatch's ready half)",
-			"  bd list --assignee " + agent + " --status in_progress --limit 0 --json  (this dispatch's held half, narrowed to " + req.Run + ")",
+			"  bd list --assignee " + agent + " --status in_progress --exclude-type " + epicKind +
+				" --exclude-label " + humanLabel + " --limit 0 --json  (this dispatch's held half, " +
+				"under the same exclusions as the ready half, narrowed to " + req.Run + ")",
 			"  bd show " + req.Run + " --json                              (the failure count; --completed also writes it back)",
 		}
 	}

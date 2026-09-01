@@ -65,7 +65,8 @@ func (treeTracker) Ready(name, scope string, filter tracker.ReadyFilter) plan.St
 		},
 	}
 }
-func (treeTracker) Holding(name, scope, agent string) plan.Step {
+func (treeTracker) Holding(name, scope string, filter tracker.ReadyFilter) plan.Step {
+	agent := filter.Assignee
 	return plan.Step{
 		Name: name, Executable: "tree",
 		Args:   []plan.Arg{plan.Lit("holding"), plan.Lit(agent)},
