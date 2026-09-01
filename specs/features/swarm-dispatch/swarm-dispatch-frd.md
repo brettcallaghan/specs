@@ -298,12 +298,19 @@ Feature: Close this run's finished phase epics
 swarm queue front --run <id> [--agent <dispatch-id>]
 ```
 
-**One command, two callers.** Without `--agent` it is the coordinator's
-dispatch front: what may go out now. With `--agent` it is one dispatch's
-own queue in order, plus that agent's drain verdict — which is what a dev
-agent loops on, and what a coordinator asks about an agent it is waiting
-for. They are the same query with one more filter, so the filter set and
-its four traps are implemented and tested once.
+**One command, two callers.** Without `--agent` it is the **whole run's**
+dispatchable set — every bead any agent could work right now, across every
+dispatch. It is not the coordinator's own work, and the breadth is the
+point: planning has already assigned each bead a dispatch id, so an answer
+that names them is what tells a coordinator which dispatch ids have work
+waiting and no agent standing over it — which is how it decides what to
+spawn next. Narrow it and the coordinator can see only what it already
+started.
+
+With `--agent` it is one dispatch's own queue in order, plus that agent's
+drain verdict — what a dev agent loops on, and what a coordinator asks
+about an agent it is waiting for. They are the same query with one more
+filter, so the filter set and its traps are implemented and tested once.
 
 **What the breaker counts, because the unit decides whether it fires at
 all.** The rule it mechanizes is stated in the skills as *three
@@ -482,6 +489,14 @@ Feature: Answer what may be dispatched now, and what an agent still holds
     When the front is queried
     Then the queue is not reported as having that response's length
     And the command exits with the stop status
+
+  @AC-SWARM-DISP-002.17
+  Scenario: The front spans every dispatch and names each bead's own
+    Given a run whose ready beads are assigned across three dispatch ids
+    When the dispatch front is queried with no agent named
+    Then beads assigned to all three dispatches are returned
+    And each is reported with the dispatch id it is assigned to
+    And a bead assigned to no dispatch is reported as unassigned rather than omitted
 ```
 
 ### FEAT-SWARM-DISP-003: Open a dispatch — the sprint branch and its worktree

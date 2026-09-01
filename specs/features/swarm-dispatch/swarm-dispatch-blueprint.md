@@ -180,7 +180,13 @@ filter or a guard rather than a longer query.
 - The front SHALL exclude epics, closed beads, deferred beads, and beads
   labelled for human attention.
 - The front SHALL reach beads at any depth beneath the run epic, through
-  the `Tracker`'s descendant walk rather than a single-level query.
+  the `Tracker`'s descendant walk rather than a single-level query, and
+  SHALL span every dispatch in the run rather than any one of them —
+  narrowing to a dispatch is `--agent`'s and nothing else's.
+- Each bead in the front SHALL be reported with the dispatch id it is
+  assigned to, since that is what tells a coordinator which dispatches
+  have work waiting; a bead assigned to none SHALL be reported as
+  unassigned rather than omitted.
 - WHEN a bead is assigned to a dispatch whose worktree is standing, the
   command SHALL report it as held rather than as available.
 - A dispatch's standing worktree SHALL be matched to its dispatch by the
@@ -556,6 +562,7 @@ all three are held by the Definition of Done rather than by an AC.
 | AC-SWARM-DISP-002.14 | AQ | e2e |
 | AC-SWARM-DISP-002.15 | AQ | e2e |
 | AC-SWARM-DISP-002.16 | TRK, **QF (proves)** | unit |
+| AC-SWARM-DISP-002.17 | TRK, **QF (proves)** | e2e |
 | AC-SWARM-DISP-003.1 | VCS, **WT (proves)** | e2e |
 | AC-SWARM-DISP-003.2 | BR | e2e |
 | AC-SWARM-DISP-003.3 | BR | e2e |
