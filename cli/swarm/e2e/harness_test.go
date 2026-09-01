@@ -3,6 +3,7 @@
 package e2e
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -339,6 +340,28 @@ func (w world) mustCapture(t *testing.T, dir, name string, args ...string) strin
 		t.Fatalf("%s %s: exit %d\n%s\n%s", name, strings.Join(args, " "), code, stdout, stderr)
 	}
 	return strings.TrimSpace(stdout)
+}
+
+// createID runs a command in the world's repository that must succeed
+// and answer a single JSON object carrying an "id" field — `bd create`'s
+// own shape — and returns that id.
+//
+// A test that needs a bead outside the ones a fixture already commits
+// (a foreign epic to prove one scoped command never reaches it, say)
+// creates one this way rather than hand-naming an id: `bd create` mints
+// a hash-based id, so the only way to know it is to read what bd
+// answered.
+func (w world) createID(t *testing.T, name string, args ...string) string {
+	t.Helper()
+
+	stdout := w.mustCapture(t, w.repo, name, args...)
+	var created struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &created); err != nil || created.ID == "" {
+		t.Fatalf("%s %s did not answer an id:\n%s", name, strings.Join(args, " "), stdout)
+	}
+	return created.ID
 }
 
 // env is the environment a run against this world needs.

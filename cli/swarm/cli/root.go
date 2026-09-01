@@ -80,6 +80,7 @@ func register(root *cobra.Command, streams *ioStreams, runner swarmexec.Runner) 
 		Store:   store,
 		Runner:  plan.Runner{Exec: runner},
 	}))
+	root.AddCommand(phaseCmd(streams, tr, runner))
 }
 
 // dispatch runs the tree and turns what comes back into a process exit
