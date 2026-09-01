@@ -65,15 +65,15 @@ is small and fixed:
 | `branch` | `dispatch open` | `dispatch open`, once |
 | `base_sha` | — | `dispatch open`, once |
 | `admitted` | `ready` | — |
-| `consecutive_failures` | `ready` | `ready` |
+| `consecutive_dispatch_failures` | `ready` | `ready` |
 
-**`consecutive_failures` is the one key this document adds**, and adding
-it is a schema change rather than a convention: the manifest's key set is
-closed, an undeclared key is refused rather than stored, and a key's name,
-type and stage all come from one declaration. So the key is declared in
-`schemas/swarm/manifest.strata`'s `DispatchKeys` struct — an optional
-`Int`, alongside `branch` and `base_sha`, because it first has a value
-when the run first dispatches. What it counts is settled in
+**`consecutive_dispatch_failures` is the one key this document adds**, and
+adding it is a schema change rather than a convention: the manifest's key
+set is closed, an undeclared key is refused rather than stored, and a
+key's name, type and stage all come from one declaration. So the key is
+declared in `schemas/swarm/manifest.strata`'s `DispatchKeys` struct — an
+optional `Int` alongside `branch` and `base_sha`, because it first has a
+value when the run first dispatches. What it counts is settled in
 FEAT-SWARM-DISP-002; the record it lives in is [[frd-swarm-core]]'s.
 
 **Absent is not zero, and `ready` is what reconciles them.** The

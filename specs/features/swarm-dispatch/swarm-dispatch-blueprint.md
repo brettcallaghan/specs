@@ -99,13 +99,13 @@ count is durable. The manifest's key set is closed, so the key is
 declared before anything writes it.
 
 **Behavior:**
-- `RunManifest` SHALL carry `consecutive_failures`, an optional `Int`
+- `RunManifest` SHALL carry `consecutive_dispatch_failures`, an optional `Int`
   declared on `DispatchKeys`, so its stage is dispatch and its absence
   before the run's first dispatch is legitimate.
 - The `Manifest` component SHALL refuse a write that decreases
-  `consecutive_failures` by more than a reset to zero, since the only
+  `consecutive_dispatch_failures` by more than a reset to zero, since the only
   legitimate decrease is a dispatch that completed something.
-- WHEN `consecutive_failures` is absent, the `Manifest` component SHALL
+- WHEN `consecutive_dispatch_failures` is absent, the `Manifest` component SHALL
   report it as absent rather than as zero; reading an absent count as
   zero is the caller's, not the record's.
 
@@ -227,13 +227,13 @@ consecutive blocked beads it misfires on its own machinery, so the unit is
 one dispatch return in which no bead completed.
 
 **Behavior:**
-- The command SHALL advance `consecutive_failures` by one WHEN a dispatch
-  returns having completed no bead, and SHALL reset it to zero WHEN a
-  dispatch returns having completed at least one.
+- The command SHALL advance `consecutive_dispatch_failures` by one WHEN a
+  dispatch returns having completed no bead, and SHALL reset it to zero
+  WHEN a dispatch returns having completed at least one.
 - A bead returned as not reached SHALL NOT advance the count on its own.
-- The command SHALL read `consecutive_failures` from the manifest and
-  SHALL treat an absent value as zero, so a fresh run starts at zero and
-  a resumed run continues from what it recorded.
+- The command SHALL read `consecutive_dispatch_failures` from the manifest
+  and SHALL treat an absent value as zero, so a fresh run starts at zero
+  and a resumed run continues from what it recorded.
 - WHEN the count reaches the configured threshold, the command SHALL
   report the run as stopped and take the stop status.
 
@@ -629,9 +629,9 @@ here, and what each binds:
   - [ ] [[module-bead-bonanza]] — the Coordinator, Developer and Recovery
         component records updated to name the commands they now call, and
         the module's version raised
-- [ ] `schemas/swarm/manifest.strata` carries `consecutive_failures`, the
-      generated artifacts are regenerated, and the `core` fixture is
-      re-recorded against them
+- [ ] `schemas/swarm/manifest.strata` carries
+      `consecutive_dispatch_failures`, the generated artifacts are
+      regenerated, and the `core` fixture is re-recorded against them
 - [ ] [[contract-swarm-json]] is unchanged, or its version is raised in the
       same change as any schema change that removed, renamed or retyped
       anything
@@ -655,7 +655,7 @@ here, and what each binds:
       which puts it beside the other per-project run policy the
       authorization gate resolves; or a second manifest key, which would
       make it durable per run but contradicts the FRD's statement that
-      `consecutive_failures` is the one key it adds. Recommended: the
+      `consecutive_dispatch_failures` is the one key it adds. Recommended: the
       `sf.toml` `[run]` key, resolved at the authorization gate like every
       other run policy, with 3 as the skill default. The human decides.
 
