@@ -5,6 +5,7 @@ package vcs_test
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -120,6 +121,83 @@ func TestAFragmentWhoseAnswerStepDidNotRunSaysSo(t *testing.T) {
 	}
 	if _, err := steps.ValueFrom(report); err == nil {
 		t.Error("ValueFrom returned an answer for a fragment whose last step never ran")
+	}
+}
+
+// A refusal has to survive the trip through the Plan Runner: the decoder
+// builds it, the record carries it, and the caller branches on it. An
+// error that arrived as a *Refusal and left as prose would put the
+// caller back to matching on git's text.
+func TestARefusalReachesTheCallerThroughTheReport(t *testing.T) {
+	steps := git.VersionControl{}.MergeFastForward("ff", "dev-1")
+
+	fake := exectest.NewFake(exectest.Recording{
+		Argv:       []string{"git", "merge", "--ff-only", "dev-1"},
+		ExitStatus: 128,
+		Stderr:     []byte("fatal: Not possible to fast-forward, aborting.\n"),
+	})
+
+	report, err := (plan.Runner{Exec: fake}).Run(context.Background(),
+		plan.Plan{Steps: steps}, plan.ModeExecute)
+	if err != nil {
+		t.Fatalf("execute: %v", err)
+	}
+
+	record, ok := report.Record("ff")
+	if !ok {
+		t.Fatal("the report holds no record for the fast-forward")
+	}
+	var refused *vcs.Refusal
+	if !errors.As(record.Err, &refused) {
+		t.Fatalf("the record's error is %T, not a refusal: %v", record.Err, record.Err)
+	}
+	if !refused.NonFastForward {
+		t.Error("the caller cannot tell a non-fast-forward from a conflict")
+	}
+}
+
+// Every write the dispatch loop makes is declared as one, so a dry run
+// performs none of them. A write mis-declared as a read is a worktree a
+// preview removes.
+func TestADryRunPerformsNoneOfTheDispatchLoopsWrites(t *testing.T) {
+	v := git.VersionControl{}
+	writes := map[string]vcs.Steps{
+		"create-worktree": v.CreateWorktree("create-worktree", "/w/dev-1", "dev-1", "sprint"),
+		"remove-worktree": v.RemoveWorktree("remove-worktree", "/w/dev-1"),
+		"create-branch":   v.CreateBranch("create-branch", "dev-1", "sprint"),
+		"delete-branch":   v.DeleteBranch("delete-branch", "dev-1"),
+		"rebase":          v.Rebase("rebase", "dev-1", "sprint"),
+		"fast-forward":    v.MergeFastForward("fast-forward", "dev-1"),
+		"fetch":           v.Fetch("fetch", "origin"),
+		"push":            v.Push("push", "origin", "sprint"),
+	}
+
+	var all []plan.Step
+	for _, steps := range writes {
+		all = append(all, steps...)
+	}
+
+	// An empty fake: any invocation at all is a dry run that wrote.
+	fake := exectest.NewFake()
+	report, err := (plan.Runner{Exec: fake}).Run(context.Background(),
+		plan.Plan{Steps: all}, plan.ModeDryRun)
+	if err != nil {
+		t.Fatalf("dry run: %v", err)
+	}
+
+	if got := fake.Argvs(); len(got) != 0 {
+		t.Errorf("a dry run ran %v", got)
+	}
+	for name := range writes {
+		record, ok := report.Record(name)
+		if !ok {
+			t.Errorf("the report holds no record for %q", name)
+			continue
+		}
+		if record.Status != plan.StepRefused {
+			t.Errorf("%q was %q in a dry run, want %q; it is not declared a write",
+				name, record.Status, plan.StepRefused)
+		}
 	}
 }
 

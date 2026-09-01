@@ -153,7 +153,7 @@ func (v VersionControl) Divergence(prefix, branch string) vcs.Steps {
 // reports nothing to do or conflicts, and neither is what the caller
 // asked for.
 func (v VersionControl) Merge(prefix, branch, message string) vcs.Steps {
-	merge := v.step(prefix+"-merge", plan.Write, false, discard,
+	merge := v.step(prefix+"-merge", plan.Write, false, decodeMerge,
 		"merge", "--no-ff", "-m", message, branch)
 	merge.Description = "fold " + branch + " in"
 
@@ -162,6 +162,122 @@ func (v VersionControl) Merge(prefix, branch, message string) vcs.Steps {
 	read.Description = "the merge commit"
 
 	return vcs.Steps{merge, read}
+}
+
+// CreateWorktree stands a working tree up at path, on a new branch cut
+// from base.
+//
+// Re-running is not safe. Measured on git 2.43.0: a second
+// `git worktree add -b dev-1 <other-path> main` exits 255 with
+// `fatal: a branch named 'dev-1' already exists` — the branch creation is
+// what makes it single-shot, and that is the property worth keeping,
+// since it is also what stops two dispatches sharing a branch.
+func (v VersionControl) CreateWorktree(prefix, path, branch, base string) vcs.Steps {
+	s := v.step(prefix, plan.Write, false, discard,
+		"worktree", "add", "-b", branch, path, base)
+	s.Description = "stand a worktree up at " + path + " on " + branch + ", cut from " + base
+	return vcs.Steps{s}
+}
+
+// RemoveWorktree removes the working tree standing at path.
+//
+// No --force, and no parameter that could add one. The forcing form
+// discards uncommitted work, and a dispatch's worktree is where an
+// unfinished agent's work lives; a tree with work in it refusing removal
+// is how an orchestrator learns the dispatch is unfinished.
+//
+// Re-running is not safe. Measured: removing an already-removed worktree
+// exits 128 with `fatal: '<path>' is not a working tree`.
+func (v VersionControl) RemoveWorktree(prefix, path string) vcs.Steps {
+	s := v.step(prefix, plan.Write, false, discard,
+		"worktree", "remove", path)
+	s.Description = "remove the worktree at " + path
+	return vcs.Steps{s}
+}
+
+// CreateBranch creates a branch at base without checking it out.
+//
+// Re-running is not safe. Measured: a second `git branch br-1 main`
+// exits 128 with `fatal: a branch named 'br-1' already exists`.
+func (v VersionControl) CreateBranch(prefix, name, base string) vcs.Steps {
+	s := v.step(prefix, plan.Write, false, discard,
+		"branch", name, base)
+	s.Description = "create " + name + " at " + base
+	return vcs.Steps{s}
+}
+
+// DeleteBranch deletes a merged branch.
+//
+// -d rather than -D: -D would take unmerged commits with it, and a
+// dispatch branch that is not merged is one whose work has not landed.
+//
+// Re-running is not safe. Measured: `git branch -d br-1` exits 0 the
+// first time (`Deleted branch br-1 (was 863ebb2).`) and 1 the second
+// (`error: branch 'br-1' not found`).
+func (v VersionControl) DeleteBranch(prefix, name string) vcs.Steps {
+	s := v.step(prefix, plan.Write, false, discard,
+		"branch", "-d", name)
+	s.Description = "delete " + name
+	return vcs.Steps{s}
+}
+
+// Rebase replays branch onto a named commit.
+//
+// Re-running is not safe, and the reason is the failure rather than the
+// success: a rebase that conflicts leaves the repository mid-rebase, and
+// a second invocation there does not start over. Recovery is resolving or
+// aborting, which is a decision this container does not make for its
+// caller. (A rebase that SUCCEEDED is a no-op on re-run — measured, exit
+// 0, `Current branch clean is up to date.` — but Repeatable is a claim
+// about the step, and the step's failure mode is the one recovery meets.)
+func (v VersionControl) Rebase(prefix, branch, onto string) vcs.Steps {
+	s := v.step(prefix, plan.Write, false, decodeRebase,
+		"rebase", onto, branch)
+	s.Description = "replay " + branch + " onto " + onto
+	return vcs.Steps{s}
+}
+
+// MergeFastForward advances the current branch to branch, refusing
+// anything that is not a fast forward.
+//
+// Re-running IS safe. Measured: a second `git merge --ff-only <branch>`
+// after a successful one exits 0 with `Already up to date.`, and a
+// REFUSED one leaves nothing behind — after
+// `fatal: Not possible to fast-forward, aborting.` the working tree is
+// clean, HEAD is unmoved and no MERGE_HEAD or rebase directory exists.
+// That is what makes this the fold a recovery can simply re-run.
+func (v VersionControl) MergeFastForward(prefix, branch string) vcs.Steps {
+	s := v.step(prefix, plan.Write, true, decodeFastForward,
+		"merge", "--ff-only", branch)
+	s.Description = "fast-forward onto " + branch
+	return vcs.Steps{s}
+}
+
+// Fetch updates the remote-tracking refs for a remote.
+//
+// A write: refs move, so a dry run refuses it. Re-running is safe —
+// measured, two consecutive `git fetch origin` both exit 0.
+func (v VersionControl) Fetch(prefix, remote string) vcs.Steps {
+	s := v.step(prefix, plan.Write, true, discard,
+		"fetch", remote)
+	s.Description = "fetch " + remote
+	return vcs.Steps{s}
+}
+
+// Push publishes a branch to a remote.
+//
+// No --force: measured, a push the remote refuses exits 1 with
+// ` ! [rejected]        main -> main (non-fast-forward)`, which is a
+// condition to report rather than to overwrite — the remote holds
+// something this branch is not built on.
+//
+// Re-running is safe. Measured: a second `git push origin main` with
+// nothing new exits 0 with `Everything up-to-date`.
+func (v VersionControl) Push(prefix, remote, branch string) vcs.Steps {
+	s := v.step(prefix, plan.Write, true, discard,
+		"push", remote, branch)
+	s.Description = "push " + branch + " to " + remote
+	return vcs.Steps{s}
 }
 
 // discard is the decoder for a step whose output carries nothing the run

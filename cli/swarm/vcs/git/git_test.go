@@ -9,11 +9,13 @@
 package git
 
 import (
+	"errors"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"io/fs"
 	"path/filepath"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -90,6 +92,36 @@ func TestTheInvocationsItDeclares(t *testing.T) {
 			"git merge --no-ff -m merge dev-1 dev-1",
 			"git log --format=%H%x00%ct%x00%s -n 1 HEAD",
 		}},
+
+		// The dispatch loop's writes.
+		{"create a worktree", v.CreateWorktree("wt", "/w/dev-1", "dev-1", "sprint"), []string{
+			"git worktree add -b dev-1 /w/dev-1 sprint",
+		}},
+		// No flag at all, which is the point: see
+		// TestTheWorktreeRemovalHasNoForcingForm.
+		{"remove a worktree", v.RemoveWorktree("wt", "/w/dev-1"), []string{
+			"git worktree remove /w/dev-1",
+		}},
+		{"create a branch", v.CreateBranch("br", "dev-1", "sprint"), []string{
+			"git branch dev-1 sprint",
+		}},
+		// -d, never -D: a branch carrying unmerged commits is one whose
+		// work has not landed.
+		{"delete a branch", v.DeleteBranch("br", "dev-1"), []string{
+			"git branch -d dev-1",
+		}},
+		{"rebase", v.Rebase("rb", "dev-1", "sprint"), []string{
+			"git rebase sprint dev-1",
+		}},
+		{"fast-forward", v.MergeFastForward("ff", "dev-1"), []string{
+			"git merge --ff-only dev-1",
+		}},
+		{"fetch", v.Fetch("f", "origin"), []string{
+			"git fetch origin",
+		}},
+		{"push", v.Push("p", "origin", "sprint"), []string{
+			"git push origin sprint",
+		}},
 	}
 
 	for _, c := range cases {
@@ -157,6 +189,104 @@ func TestEachStepDeclaresItsEffectAndWhetherReRunningIsSafe(t *testing.T) {
 			}
 		}
 	}
+}
+
+// Every one of the loop's writes declares whether re-running it is safe,
+// and each declaration is a measured claim rather than a guess (ADR-026:
+// recovery from a partial plan is re-running it). The measurement behind
+// each is recorded on the operation in git.go.
+func TestEveryWriteDeclaresWhetherReRunningItIsSafe(t *testing.T) {
+	v := VersionControl{}
+
+	cases := []struct {
+		what       string
+		steps      vcs.Steps
+		repeatable bool
+		why        string
+	}{
+		{"create a worktree", v.CreateWorktree("wt", "/w/d", "d", "s"), false,
+			"a second add of the same branch exits 255, `a branch named 'd' already exists`"},
+		{"remove a worktree", v.RemoveWorktree("wt", "/w/d"), false,
+			"removing it again exits 128, `is not a working tree`"},
+		{"create a branch", v.CreateBranch("br", "d", "s"), false,
+			"a second create exits 128, `already exists`"},
+		{"delete a branch", v.DeleteBranch("br", "d"), false,
+			"a second delete exits 1, `branch 'd' not found`"},
+		{"rebase", v.Rebase("rb", "d", "s"), false,
+			"a conflicting rebase leaves the repository mid-rebase, where re-running does not start over"},
+		{"fast-forward", v.MergeFastForward("ff", "d"), true,
+			"a second --ff-only exits 0 with `Already up to date.`, and a refused one leaves nothing behind"},
+		{"fetch", v.Fetch("f", "origin"), true,
+			"two consecutive fetches both exit 0"},
+		{"push", v.Push("p", "origin", "s"), true,
+			"a second push with nothing new exits 0 with `Everything up-to-date`"},
+	}
+
+	for _, c := range cases {
+		if len(c.steps) != 1 {
+			t.Errorf("%s is %d steps, want one invocation", c.what, len(c.steps))
+			continue
+		}
+		s := c.steps[0]
+		if s.Effect != plan.Write {
+			t.Errorf("%s is declared %s, want write; a dry run would perform it", c.what, s.Effect)
+		}
+		if s.Repeatable != c.repeatable {
+			t.Errorf("%s declares Repeatable=%v, want %v: %s", c.what, s.Repeatable, c.repeatable, c.why)
+		}
+		// None of these carries its answer in its exit status, so none
+		// may declare a status other than 0 as an answer — a rejected
+		// push read as an answer is a push that silently did not happen.
+		if len(s.Answers) != 0 {
+			t.Errorf("%s declares Answers %v; its answer is not carried by its exit status", c.what, s.Answers)
+		}
+		if s.OnFailure != plan.Stop {
+			t.Errorf("%s does not stop the plan on failure", c.what)
+		}
+	}
+}
+
+// "The worktree-removal operation SHALL NOT accept a force argument, so
+// no caller can reach the forcing form." That is a shape obligation, not
+// a runtime check, so it is tested as a shape: the interface method takes
+// two strings and nothing else, the invocation carries no flag, and no
+// source in this package names the forcing option at all.
+func TestTheWorktreeRemovalHasNoForcingForm(t *testing.T) {
+	method, ok := reflect.TypeOf((*vcs.VersionControl)(nil)).Elem().MethodByName("RemoveWorktree")
+	if !ok {
+		t.Fatal("the interface declares no RemoveWorktree")
+	}
+	signature := method.Type
+	if got := signature.NumIn(); got != 2 {
+		t.Errorf("RemoveWorktree takes %d arguments, want exactly two (the step prefix and the path); anything more is where a force flag would live", got)
+	}
+	for i := 0; i < signature.NumIn(); i++ {
+		if signature.In(i).Kind() != reflect.String {
+			t.Errorf("RemoveWorktree's argument %d is %s, want string; a bool here is a forcing form", i, signature.In(i).Kind())
+		}
+	}
+
+	steps := VersionControl{}.RemoveWorktree("wt", "/w/dev-1")
+	for _, s := range steps {
+		for _, a := range s.Args {
+			if strings.HasPrefix(a.Literal(), "-") {
+				t.Errorf("the removal invocation carries the option %q; it is meant to carry none", a.Literal())
+			}
+		}
+	}
+
+	// And the option is absent from the package outright, so it cannot be
+	// reintroduced by a helper the shape tests above do not reach.
+	forbidden := map[string]string{
+		"--force": "the forcing form of a removal or a push",
+		"-f":      "the short forcing form",
+		"-D":      "the forcing form of a branch deletion",
+	}
+	forEachStringLiteral(t, ".", func(path, value string) {
+		if why, bad := forbidden[value]; bad {
+			t.Errorf("%s names %q — %s; a run's worktree is where an unfinished agent's work lives", path, value, why)
+		}
+	})
 }
 
 // The measured output of `git worktree list --porcelain`, including the
@@ -391,6 +521,204 @@ func TestOnlyThisPackageNamesTheTool(t *testing.T) {
 	}
 	if hereToo == 0 {
 		t.Fatal("the walk did not reach this package, so its exemption is untested")
+	}
+}
+
+// forEachStringLiteral calls visit for every string literal in every
+// non-test Go source file under root. Test files are skipped: a test
+// naming a forbidden option in order to forbid it is not a use of it.
+func forEachStringLiteral(t *testing.T, root string, visit func(path, value string)) {
+	t.Helper()
+
+	fset := token.NewFileSet()
+	var scanned int
+	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() || !strings.HasSuffix(path, ".go") || strings.HasSuffix(path, "_test.go") {
+			return nil
+		}
+		scanned++
+		file, parseErr := parser.ParseFile(fset, path, nil, 0)
+		if parseErr != nil {
+			t.Fatalf("parsing %s: %v", path, parseErr)
+		}
+		ast.Inspect(file, func(n ast.Node) bool {
+			lit, ok := n.(*ast.BasicLit)
+			if !ok || lit.Kind != token.STRING {
+				return true
+			}
+			if value, err := strconv.Unquote(lit.Value); err == nil {
+				visit(path, value)
+			}
+			return true
+		})
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("walking %s: %v", root, err)
+	}
+	if scanned == 0 {
+		t.Fatalf("scanned no source under %s, so the scan proves nothing", root)
+	}
+}
+
+// A conflicting merge is decoded into the paths that conflict, not handed
+// back as git's text for a caller to match on.
+//
+// The bytes are measured on git 2.43.0: the CONFLICT lines arrive on
+// STDOUT and stderr is EMPTY, which is the trap a decoder reading stderr
+// for the reason falls into.
+func TestAConflictingMergeIsDecodedIntoThePathsThatConflict(t *testing.T) {
+	const stdout = `Auto-merging added.txt
+CONFLICT (add/add): Merge conflict in added.txt
+CONFLICT (modify/delete): del.txt deleted in dev and modified in HEAD.  Version HEAD of del.txt left in tree.
+Auto-merging sp ace.txt
+CONFLICT (add/add): Merge conflict in sp ace.txt
+Automatic merge failed; fix conflicts and then commit the result.
+`
+
+	_, err := decodeMerge(result(stdout, "", 1))
+	if err == nil {
+		t.Fatal("decodeMerge accepted a conflicting merge")
+	}
+
+	var refused *vcs.Refusal
+	if !errors.As(err, &refused) {
+		t.Fatalf("the error is %T, not a refusal a caller can branch on: %v", err, err)
+	}
+	if refused.Operation != "merge" {
+		t.Errorf("Operation = %q, want merge", refused.Operation)
+	}
+	// A path is printed unquoted, so one containing a space is one path
+	// and not two.
+	want := []string{"added.txt", "del.txt", "sp ace.txt"}
+	if strings.Join(refused.Conflicts, "|") != strings.Join(want, "|") {
+		t.Errorf("Conflicts = %q, want %q", refused.Conflicts, want)
+	}
+	if refused.NonFastForward {
+		t.Error("a conflict was reported as a non-fast-forward")
+	}
+}
+
+// A refused fast-forward is the other refusal the run branches on: the
+// dispatch was not rebased onto the current target. Measured — exit 128,
+// the reason on stderr behind several hint lines.
+func TestARefusedFastForwardIsDecodedAsSuch(t *testing.T) {
+	const stderr = `hint: Diverging branches can't be fast-forwarded, you need to either:
+hint:
+hint: 	git merge --no-ff
+hint:
+hint: or:
+hint:
+hint: 	git rebase
+hint:
+hint: Disable this message with "git config advice.diverging false"
+fatal: Not possible to fast-forward, aborting.
+`
+
+	_, err := decodeFastForward(result("", stderr, 128))
+	if err == nil {
+		t.Fatal("decodeFastForward accepted a refused fast-forward")
+	}
+
+	var refused *vcs.Refusal
+	if !errors.As(err, &refused) {
+		t.Fatalf("the error is %T, not a refusal a caller can branch on: %v", err, err)
+	}
+	if !refused.NonFastForward {
+		t.Error("NonFastForward is false; the caller cannot tell this from a conflict")
+	}
+	if len(refused.Conflicts) != 0 {
+		t.Errorf("Conflicts = %q, want none: nothing was merged", refused.Conflicts)
+	}
+	if !strings.Contains(refused.Error(), "fast forward") {
+		t.Errorf("the message does not say what was refused: %v", refused)
+	}
+
+	// And a fast-forward that succeeds is not a refusal.
+	if _, err := decodeFastForward(result("Already up to date.\n", "", 0)); err != nil {
+		t.Errorf("an up-to-date fast-forward was read as a failure: %v", err)
+	}
+}
+
+// A conflicting rebase is decoded the same way, from the same stream —
+// and the run needs to know it is a rebase rather than a merge, because
+// the repository is left mid-rebase.
+func TestAConflictingRebaseIsDecodedIntoThePathsThatConflict(t *testing.T) {
+	const stdout = `Auto-merging f.txt
+CONFLICT (content): Merge conflict in f.txt
+Auto-merging g.txt
+CONFLICT (content): Merge conflict in g.txt
+`
+	const stderr = `Rebasing (1/1)error: could not apply 8a198f8... dev
+hint: Resolve all conflicts manually, mark them as resolved with
+hint: "git add/rm <conflicted_files>", then run "git rebase --continue".
+Could not apply 8a198f8... dev
+`
+
+	_, err := decodeRebase(result(stdout, stderr, 1))
+	var refused *vcs.Refusal
+	if !errors.As(err, &refused) {
+		t.Fatalf("the error is %T, not a refusal: %v", err, err)
+	}
+	if refused.Operation != "rebase" {
+		t.Errorf("Operation = %q, want rebase; the caller has to know the repository is mid-rebase", refused.Operation)
+	}
+	want := []string{"f.txt", "g.txt"}
+	if strings.Join(refused.Conflicts, "|") != strings.Join(want, "|") {
+		t.Errorf("Conflicts = %q, want %q", refused.Conflicts, want)
+	}
+}
+
+// A conflict form whose path this decoder cannot pull out still reaches
+// the caller: the line is kept verbatim, so a conflict is never silently
+// absent from the refusal.
+func TestAConflictLineIsKeptEvenWhenItsPathCannotBeParsed(t *testing.T) {
+	// Measured on git 2.43.0 from a rename/rename merge.
+	const measured = "CONFLICT (rename/rename): a.txt renamed to c.txt in HEAD and to b.txt in dev.\n"
+
+	_, err := decodeMerge(result(measured, "", 1))
+	var refused *vcs.Refusal
+	if !errors.As(err, &refused) {
+		t.Fatalf("the error is %T, not a refusal: %v", err, err)
+	}
+	if len(refused.Conflicts) != 1 || refused.Conflicts[0] != "a.txt" {
+		t.Errorf("Conflicts = %q, want the renamed path", refused.Conflicts)
+	}
+
+	// And a form this decoder does not know — illustrative, not a
+	// measured git output — is still visible rather than dropped.
+	const unknown = "CONFLICT (submodule): something this decoder has no rule for\n"
+	_, err = decodeMerge(result(unknown, "", 1))
+	if !errors.As(err, &refused) {
+		t.Fatalf("an unparsed conflict form produced %T rather than a refusal: %v", err, err)
+	}
+	if len(refused.Conflicts) != 0 {
+		t.Errorf("Conflicts = %q; a path was invented for a form with no rule", refused.Conflicts)
+	}
+	if !strings.Contains(refused.Detail, "no rule for") {
+		t.Errorf("Detail = %q; the conflict line was dropped", refused.Detail)
+	}
+}
+
+// A merge that could not run at all is an ordinary failure, not a
+// refusal: "git could not do this" and "git declined this" are two
+// different answers and a caller branches on them differently.
+func TestAFailureThatIsNotARefusalStaysAnOrdinaryFailure(t *testing.T) {
+	const stderr = "merge: no-such-branch - not something we can merge\n"
+
+	_, err := decodeMerge(result("", stderr, 1))
+	if err == nil {
+		t.Fatal("decodeMerge accepted a merge that did not run")
+	}
+	var refused *vcs.Refusal
+	if errors.As(err, &refused) {
+		t.Errorf("an unmergeable ref was reported as a refusal: %+v", refused)
+	}
+	if !strings.Contains(err.Error(), "not something we can merge") {
+		t.Errorf("the error does not carry what git said: %v", err)
 	}
 }
 
