@@ -86,10 +86,9 @@ convention.
 
 **The subsystem exception, and its own rule.** A skill is prefixed WHEN it
 only makes sense inside that subsystem — `sprint-scope`, `sprint-plan`,
-`sprint-batch`, `sprint-review`, `sprint-report`,
-`sprint-retro`, `sprint-recovery`. A skill that is useful outside it keeps
-verb-object even when a sprint invokes it: `run-bead` works with no
-orchestrator at all, and `groom-beads` is useful with no sprint in sight.
+`sprint-review`, `sprint-retro`, `sprint-recovery`. A skill that is useful
+outside it keeps verb-object even when a sprint invokes it — `groom-beads` is
+useful with no sprint in sight.
 
 The trade is deliberate. **A skill is selected by its description, not its
 name**, so the prefix costs nothing at dispatch and buys grouping in a listing
@@ -454,6 +453,41 @@ collapsed "old patterns" section.
 
 **Rationale:** Keeps the deprecation available without diluting the current
 instruction.
+
+---
+
+A skill SHALL NOT describe the output of a command it also instructs the
+reader to run. It SHALL instruct the reader to run the command and read what
+it prints.
+
+**Rationale:** the description is a second copy of the command's behaviour,
+kept in agreement with it by nobody. It competes for the body budget with
+instructions that cannot be obtained any other way, and it goes stale on the
+next change to the command — silently, because no check compares prose against
+a program. *Observed.* One reference paragraph opened "the command owns what it
+measures and how; this document does not restate it" and then restated it, in
+the same paragraph, as a nine-item list of what the command reports. Another
+asserted that a command "prints the invocation behind every fact"; a later
+change moved the provenance behind a flag and the sentence became false with
+nothing to catch it.
+
+---
+
+The test is whether a reader who ran the command and read its output would
+still need the sentence. WHERE the answer is yes, the sentence is a RULE about
+the output rather than a description of it, and it stays.
+
+**Rationale:** the distinction is the whole of the judgement, and it is not
+obvious from the sentence's grammar. Four kinds pass the test and are kept:
+what to do with the output ("route on the exit status"); what one invocation
+cannot show ("a status of 1 means the key is declared and unwritten, 3 that it
+is not declared at all" — the reader saw one of the three); an affordance the
+output does not advertise ("`--full-result` is the way back to the
+provenance"); and a meaning the output states without explaining ("a dispatch
+has drained when it holds nothing ready AND nothing in progress"). What fails
+the test is the inventory: the list of fields, the enumeration of keys, the
+table of every exit code beside a command whose own output names the one it
+took.
 
 ---
 

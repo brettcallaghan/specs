@@ -1,7 +1,7 @@
 {
   "name": "spec-driven-dev",
   "metadata": {
-    "description": "Marketplace for the sf (spec-first) plugin: spec authoring and grooming (spec, groom-beads, groom-feature-blueprint), autonomous sprint orchestration (bead-bonanza and its sprint-* subprocesses, run-bead), and retrospectives (sprint-retro, retro-spec, retro-skill)"
+    "description": "Marketplace for the sf (spec-first) plugin: spec authoring and grooming (spec, groom-beads, groom-feature-blueprint), autonomous sprint orchestration (bead-bonanza and its sprint-* subprocesses, run-batch), and retrospectives (sprint-retro, retro-spec, retro-skill)"
   },
   "owner": {
     "name": "Brett Callaghan",

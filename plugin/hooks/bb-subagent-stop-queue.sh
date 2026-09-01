@@ -17,7 +17,7 @@
 #   REFUSE iff ready > 0 or in_progress > 0.
 #
 #   BLOCKED IS NOT INCOMPLETE, and this is the failure mode that would trap a
-#   worker forever. A worker that took `run-bead`'s Blocked path leaves its
+#   worker forever. A worker that took `run-batch`'s Blocked path leaves its
 #   bead at status `blocked`. `bd ready` excludes blocked beads and
 #   `--status in_progress` does not match them, so both counts read 0 and the
 #   worker is ALLOWED to stop. Measured, one bead, four states:

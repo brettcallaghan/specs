@@ -8,12 +8,13 @@ installed and the durable trigger set.
 
 Two neighbouring situations are elsewhere, so this file can be read on its own:
 WHEN a subagent dies mid-ceremony, read `recovery.md`; WHEN you are resuming a
-run whose state you do not hold, invoke the **`sprint-recovery`** skill.
+run whose state you do not hold, re-invoke **`bead-bonanza`** against the run
+epic — it resumes rather than restarts.
 
-**Two views, and they are not interchangeable.** `bd swarm status <epic>` is
-the durable one — computed from the beads themselves, correct after any crash,
-and the right answer to "where is this run". The event log below is a live
-*stream*; it is ephemeral by design and its absence costs mid-flight
+**Two views, and they are not interchangeable.** `swarm status --run <epic>` is
+the durable one — measured from the beads and from git on every call, correct
+after any crash, and the right answer to "where is this run". The event log below is a
+live *stream*; it is ephemeral by design and its absence costs mid-flight
 visibility, not the run's record.
 
 ## Contents
@@ -82,7 +83,7 @@ The hooks must also be **executable** — `bd` skips a non-executable hook
 silently too, with the same presentation.
 
 WHEN pre-flight reports the event log as unwritable it emits `BB_EVENT_LOG=''`;
-skip the hooks entirely and use `bd swarm status <epic>` for visibility rather
+skip the hooks entirely and use `swarm status --run <epic>` for visibility rather
 than installing one that cannot write.
 
 Three properties of the mechanism that decide how it is used:
@@ -124,10 +125,9 @@ on.
 ## WHEN there is no monitor
 
 **The monitor is a convenience over a path that still works without it**, and
-several ordinary situations have none: the plugin is not installed, the session
-never invoked `bead-bonanza` (a solo `run-bead`, or a `sprint-recovery`
-resuming someone else's run), or the harness offers no Monitor tool at all — on
-those hosts a declared monitor is skipped silently.
+several ordinary situations have none: the plugin is not installed, or the
+harness offers no Monitor tool at all — on those hosts a declared monitor is
+skipped silently.
 
 WHERE the harness has a `Monitor` tool, arm one by hand, once, before the first
 dispatch. One event log carries the whole run, so the run needs ONE Monitor
@@ -137,7 +137,7 @@ however many subagents it dispatches:
 tail -n +1 -F "$BB_EVENT_LOG"
 ```
 
-Arm it with `persistent: true` and stop it with `TaskStop` when the ready front
+Arm it with `persistent: true` and stop it with `TaskStop` when the ready set
 dries. **Set `timeout_ms` explicitly** — the default is five minutes, shorter
 than most runs, so a Monitor armed without it expires part-way through the work
 it exists to report. The `tail -F` pattern never exits on its own, so it stays
@@ -145,7 +145,7 @@ armed until killed rather than ending when the work does. WHEN one does expire
 while the run is still live, re-arm it — expiry is not information about any
 bead.
 
-WHERE the harness has neither, say so once and use `bd swarm status <epic>`
+WHERE the harness has neither, say so once and use `swarm status --run <epic>`
 between dispatches. No step in the ceremony depends on a monitor having
 reported anything.
 
@@ -169,10 +169,11 @@ addition to** the monitor:
   the only wake path for this run is in-session.
 - **The trigger's message must be self-contained, and it must name a skill
   rather than a file path.** It wakes a turn that may hold no run context and
-  no bundle: carry the run epic id — the manifest is on it — and an instruction to
-  **invoke the `sprint-recovery` skill**. A fresh session cannot resolve a
-  relative path into a bundle it never loaded, but it can resolve a skill
-  name — and "check on the run" is not an instruction at all.
+  no bundle: carry the run epic id — the manifest is on it — and an instruction
+  to **invoke `bead-bonanza` against that epic**, which recognises an existing
+  run epic and resumes it. Name the user-facing skill, never an internal one: a
+  fresh session cannot resolve a relative path into a bundle it never loaded,
+  and "check on the run" is not an instruction at all.
 - **Do not key its liveness check on `bd list --status in_progress`.** A
   bead can be worked without ever being claimed, so that query reads
   "nothing in flight" while an agent is actively editing. Use

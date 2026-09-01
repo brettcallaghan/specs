@@ -1,32 +1,54 @@
 # Supervising a run, and deciding it is done
 
 Two questions the orchestrator asks repeatedly and must not answer from
-recollection: *where is this run right now*, and *is it finished*. Both are
-computed from state.
+recollection: *where is this run right now*, and *is it finished*. One command
+measures both.
 
 ## Contents
 
-- Where is this run — the durable view, and what it cannot see
+- Where is this run — the command that measures it, and what nothing can measure
 - When something dies — which of three situations you are in
-- When the run is done — the completion rule, and why the obvious query is wrong
+- When the run is done — the completion rule, and what drained means
 - The `Stop` hook — the loop enforced by the harness, its bound, and how to
   stop anyway
 - The `SubagentStop` hook — a worker held to its own queue, and why a BLOCKED
   bead is accepted where an unfinished one is not
 - Running without the hooks — the fallback every step is written against
 - The review loop's budget — what the counter bounds, and what it does not
+- Where readiness is settled — grooming's, scope's, and the one default
+  that keeps the ready set moving
 
 ## Where is this run
 
-**`bd swarm status <epic>`** is the durable answer, computed from the beads, so
-it survives any crash and any lost session.
+**`swarm status --run <epic>`** answers it, measured from git and the tracker
+on every call and never read from a value the run stored about itself — so it
+survives any crash and any lost session. `--full-result` adds the invocation
+behind every fact, so any single one can be re-derived without reconstructing
+it.
 
-**On a NESTED epic it is one level deep** and reports sub-epics rather than the
-leaves under them. Where the run epic is nested, fall back to the re-queried
-ready front plus a walked descendant count — and say which of the two you used,
-because the numbers differ and a reader cannot tell them apart.
+```sh
+swarm status --run <epic> [--stall-after <duration>] [--json] [--full-result]
+```
 
-**Re-querying the ready front is two steps, in order.** First, close eligible
+**Run it and read what it prints.** The command owns what it measures and
+how, and this document does not restate it: `swarm status --help` names the
+flags and `--explain` prints the measurements it would take without taking
+any. **Route on the exit status**, and know that a measurement it could not
+take is reported as unknown and exits non-zero — so an unreadable tracker
+never reads as a quiet run.
+
+**It reports measurements; it does not diagnose, and neither do you.** Whether
+a subagent is still working cannot be observed from outside the harness — a
+stalled one never finishes, so no event fires, and absence of an event is not
+an event. **Do not call a run stalled on the strength of an elapsed time.**
+Report what the command measured and the threshold it names, and leave the
+reading to whoever can see the harness.
+
+**Health is measured, never written.** A label the coordinator sets instead is
+a signal whose only writer is the thing it monitors, so it reports "no failure"
+and "no monitor" identically.
+
+**Re-querying the ready set is two steps, in order.** First, close eligible
 epics — scoped by hand, never with the bare command: `bd epic close-eligible`
 takes NO epic argument (bd 1.2.2, `--help`) and a passed id is silently
 ignored, so `bd epic close-eligible <epic>` reads as scoped and is not. Run
@@ -37,12 +59,40 @@ belonging to other runs and other humans. Then `bd ready --parent <epic>
 --exclude-type=epic`. An epic does not close on its own when its children do
 (measured), so skipping the first step is a silent deadlock, not a slowdown —
 a finished ceremony phase stays open, the beads it gates never reach the
-front, and an empty front reads as the run being done when it has only
+ready set, and an empty ready set reads as the run being done when it has only
 stalled.
 
 Live progress — the event stream, the plugin's background monitor that reads
 it without being armed, and the durable out-of-session trigger — is
 `progress-streaming.md`.
+
+## Where readiness is settled — not here
+
+Three signals gate a bead before it may be dispatched. None of the three is
+re-run at a re-query, because each has an owner earlier in the run and
+discovering a failure here means it already passed the gate that owns it.
+
+- **`bd lint`'s findings and a bead's capability tier are grooming's.** A
+  bead reaching the ready set with no acceptance criterion, or with no tier, is
+  a grooming defect. `groom-beads` assigns a tier to every bead it grooms
+  and `sprint-plan` gates the queue on readiness before the target epic
+  carries it.
+- **The open human-decision queue is scope's**, resolved by the end of the
+  scope phase. A decision nobody made is **explicitly deferred**, and a
+  deferred bead is out of the run — so a run that reaches its first
+  dispatch owes no human an answer, and there is no queue to re-count.
+- **A ready bead carrying no `metadata.tier` is dispatched at the ADVANCED
+  tier.** The absence resolves to a value rather than withholding the bead,
+  so a bead that slipped grooming cannot stop the ready set from moving. Fix
+  the bead's tier when you notice it; do not hold the run for it.
+
+**What does still move after planning is SCOPE**, and that is the diff
+above rather than a readiness check: a `discovered-from` addition, an
+undeferred bead, or a bead a human adds mid-run enters the run after the
+queue was gated. `swarm status` names beads the manifest's `admitted` list
+does not; each is admitted as an amendment or deferred out before it is
+dispatched, and one admitted that way is groomed on the way in — which is
+where its tier and its lint findings are settled, exactly as at plan time.
 
 ## When something dies
 
@@ -53,35 +103,32 @@ wastes a dispatch:
 |---|---|
 | nothing — you just want live progress | `progress-streaming.md` |
 | a subagent, mid-ceremony | `recovery.md` |
-| the orchestrator itself | invoke the **`sprint-recovery`** skill |
+| the coordinator itself | re-invoke **`bead-bonanza`** on the run epic; it resumes |
 
-The last is a skill rather than a file because the session that needs it may be
-fresh, with nothing loaded and no path it can resolve.
+The last enters by the same door as a new run: `bead-bonanza` recognises a run
+epic that already exists, recovers its state, and re-enters at groom & plan.
+That is why the durable trigger names the coordinator and never an internal
+skill — a fresh session can resolve a skill name and cannot resolve a path into
+a bundle it never loaded.
 
 ## When the run is done
 
-**`bb-status.sh run <epic>`** decides — computed from state, not from your
-recollection of what you dispatched. Exit 0 clear, 1 repairable (no admitted
-set recorded), 2 stop.
+**`swarm status --run <epic>`** decides, from the same measurement set — the
+completion tally against the manifest's admission record, not your recollection
+of what you dispatched.
 
 A run is done when every bead the manifest's `admitted` list names is closed or
 accounted for as blocked-with-a-reason.
 
-**Beads excluded at admission are reported alongside.** A run that finished its
-admitted set while three sat out is done over a *narrowed* scope, and a report
-that does not say so reads as complete coverage.
+**Carry the excluded beads into your own report**, unconditionally rather than
+when they seem worth mentioning. A run that finished its admitted set while
+three sat out is done over a *narrowed* scope, and a report that does not say
+so reads as complete coverage.
 
-**Why it walks descendants rather than asking `bd`.** Three queries look like
-they answer "what is in this epic" and two of them lie:
-
-| query | what it actually returns |
-|---|---|
-| `bd epic status` | direct children only — on a nested epic, an answer about sub-epics |
-| `bd list --parent` | direct children only, same trap |
-| `bd ready --parent` | transitive, but omits closed beads — so it shrinks as the run succeeds |
-
-None of the three is "every bead in this run", which is why the script walks
-the descendants itself.
+**A dispatch has drained when it holds nothing ready AND nothing in progress.**
+The ready query alone excludes in-progress work, so on its own it reports a
+subagent mid-bead as finished — which is why the drain state is the command's
+to measure and not yours to derive.
 
 ## The `Stop` hook
 
@@ -157,7 +204,7 @@ two queries rather than a special case, measured on one bead in four states:
 |---|---|---|---|
 | `open`, never started | 1 | 0 | **refused** |
 | `in_progress` | 0 | 1 | **refused** |
-| `blocked` (the `run-bead` Blocked path) | 0 | 0 | allowed |
+| `blocked` (the `run-batch` Blocked path) | 0 | 0 | allowed |
 | `closed` | 0 | 0 | allowed |
 
 `bd ready` excludes blocked beads and `--status in_progress` does not match
@@ -189,7 +236,7 @@ not Claude Code, or on one whose hook surface differs. Nothing in this
 ceremony may depend on a hook having fired.
 
 WHEN no hook is installed, the loop is yours to run: after every batch returns, re-query
-the ready front by the two steps above and stop only when it is empty. That is
+the ready set by the two steps above and stop only when it is empty. That is
 the identical check, made by you instead of by the harness. `--status`, or the
 absence of the script, says which of the two you are in.
 

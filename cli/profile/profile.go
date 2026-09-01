@@ -84,7 +84,8 @@ const defaultLineWidth = 80
 //
 // Each is the pattern schemas/feature.strata fixes for the generated
 // FeatureId and CriterionId aliases —
-// `^[A-Z]+-[A-Z0-9]+-[0-9]{3}$` and `^AC-[A-Z0-9]+-[0-9]{3}\.[0-9]+$` —
+// `^[A-Z]+-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-[0-9]{3}$` and
+// `^AC-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-[0-9]{3}\.[0-9]+$` —
 // widened with two named capture groups, code and number, so the
 // SharedCaptures in [featureTags] can state the derivation rule that a
 // criterion identifier's code and number are its feature's (AC-GHK-003.6)
@@ -94,8 +95,8 @@ const defaultLineWidth = 80
 // TestFeatureTagPatternsMatchTheGeneratedIdentifiers in registration_test.go
 // checks the two against each other directly.
 const (
-	featureIDPattern   = `^[A-Z]+-(?P<code>[A-Z0-9]+)-(?P<number>[0-9]{3})$`
-	criterionIDPattern = `^AC-(?P<code>[A-Z0-9]+)-(?P<number>[0-9]{3})\.[0-9]+$`
+	featureIDPattern   = `^[A-Z]+-(?P<code>[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*)-(?P<number>[0-9]{3})$`
+	criterionIDPattern = `^AC-(?P<code>[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*)-(?P<number>[0-9]{3})\.[0-9]+$`
 )
 
 // featureTags is this profile's tag vocabulary: the whole of

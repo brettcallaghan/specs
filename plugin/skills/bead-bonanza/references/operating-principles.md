@@ -8,7 +8,7 @@ statement.
 
 **Scoped to the coordinator.** A principle the per-bead ceremony enforces is
 stated where that ceremony lives, not here — one commit per bead, and where an
-interrupted bead's uncommitted work stays, both belong to the **`run-bead`**
+interrupted bead's uncommitted work stays, both belong to the **`run-batch`**
 skill and are enforced by the close script.
 
 - Findings harvest — how to wire `retro:` capture; the harvest pipeline
@@ -17,7 +17,7 @@ skill and are enforced by the close script.
   tracker write may happen, and whose claims it may reset
 - Principles the coordinator applies but does not carry — the ones SKILL.md
   summarises only where they change a turn's routing
-- Incidents — the four kinds, and why nothing escalates mid-run
+- Why nothing escalates mid-run
 
 ## Findings harvest
 
@@ -80,9 +80,9 @@ why `bd` works inside one.
 The same "don't touch what another agent owns" principle applies to
 tracker *claims*. Claiming is atomic — `bd update <id> --claim` sets status
 and assignee in one write and is idempotent when the claim is already yours —
-so the rule no longer has to cover the race between reading a status and
-setting it. What it still covers is ownership: a bead claimed by a **different
-assignee** belongs to a live sibling, and a subagent may not take it. The
+so there is no read-then-set race to guard. What the rule covers is ownership:
+a bead claimed by a **different assignee** belongs to a live sibling, and a
+subagent may not take it. The
 orchestrator, never a subagent, owns reconciling claims across dispatches.
 
 ## Principles the coordinator applies but does not carry
@@ -116,15 +116,24 @@ full.
   decision, or wire a dependency edge at any time, mid-dispatch included. Only the
   working tree needs care; see "Guard against foreign dirt" above.
 
-## Incidents — why nothing escalates mid-run
+## Why nothing escalates mid-run
 
 **Not an ambiguous acceptance criterion, not a contract change, not a silent
-spec.** Decide it, record it as an **incident** the way the capture protocol
-specifies, and the report names it first.
+spec.** Four kinds of decision change what "correct" means rather than how the
+work is done, and they are the ones an agent is most tempted to stop for:
 
-A recorded decision is reviewed at the pull request and revised in a later run.
-That is cheaper than a night blocked on a question nobody is awake to answer —
-which is the actual alternative for an autonomous run, not "ask and continue".
+| | kind to record it under |
+|---|---|
+| an **acceptance criterion needs amending** | `decision` |
+| a standard, requirement and AC in **tension**, with no conservative option | `decision`, one per target |
+| a **contract or interface** change | `scope` |
+| a spec **silent** where the bead requires it to speak | `gap` |
+
+Decide it, record it as a finding of that kind naming the alternative you
+rejected, and the retro surfaces it. A recorded decision is reviewed at the
+pull request and revised in a later run. That is cheaper than a night blocked
+on a question nobody is awake to answer — which is the actual alternative for
+an autonomous run, not "ask and continue".
 
 **This binds the coordinator as much as its subagents.** A coordinator that
 escalates has converted an autonomous run into a supervised one without saying

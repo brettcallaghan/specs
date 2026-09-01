@@ -23,10 +23,15 @@ Uppercase and terse — `GHK`, `SPEC`, `CHK`. **Features share a code**:
 what makes it a grouping rather than an identity. A feature is identified
 by its code together with its number.
 
+A code may be several hyphen-joined segments — `SWARM-DISP`, `SWARM-RUN` —
+which is how one capability split across several documents keeps a common
+first segment. Every segment begins with a letter, so the trailing number
+can never be read as one and the split back into segments is unambiguous.
+
 **Definition:**
 
 ```strata
-alias FeatureCode: String ~= `/^[A-Z][A-Z0-9]*$/`
+alias FeatureCode: String ~= `/^[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*$/`
 ```
 
 
@@ -45,7 +50,7 @@ a project adopting the framework can carry its own.
 **Definition:**
 
 ```strata
-alias FeatureId: String ~= `/^[A-Z]+-[A-Z0-9]+-[0-9]{3}$/`
+alias FeatureId: String ~= `/^[A-Z]+-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-[0-9]{3}$/`
 ```
 
 
@@ -70,7 +75,7 @@ property: `AC-GHK-001.1` belongs to the feature coded `GHK` numbered
 **Definition:**
 
 ```strata
-alias CriterionId: String ~= `/^AC-[A-Z0-9]+-[0-9]{3}\.[0-9]+$/`
+alias CriterionId: String ~= `/^AC-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-[0-9]{3}\.[0-9]+$/`
 ```
 
 

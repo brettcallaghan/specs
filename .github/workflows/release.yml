@@ -1,16 +1,21 @@
 name: release
 
-# Publishes the Spec CLI's per-platform binaries for one tag.
+# Publishes the per-platform binaries the `cli` module ships — `spec`
+# and `swarm` — for one tag.
+#
+# Both binaries come from one module (ADR-023), so one tag releases both:
+# a swarm-only fix ships a new `spec` binary with an unchanged tree, and
+# that shared cadence is a consequence that decision names and accepts.
 #
 # Distribution has two channels, and this workflow is only the second of
 # them:
 #
 #  1. `go install github.com/brettcallaghan/agent-plugins/cli/spec@<tag>`
-#     — the Go module proxy is a package registry that supports
-#     on-premises mirroring (GOPROXY, Athens, Artifactory and the rest),
-#     which is what AC-SPEC-009.6 asks for. It needs nothing from this
-#     workflow beyond the tag, because the proxy serves source from the
-#     tag itself.
+#     (and `.../cli/swarm@<tag>`) — the Go module proxy is a package
+#     registry that supports on-premises mirroring (GOPROXY, Athens,
+#     Artifactory and the rest), which is what AC-SPEC-009.6 asks for. It
+#     needs nothing from this workflow beyond the tag, because the proxy
+#     serves source from the tag itself.
 #  2. The archives built below, for a machine with no Go toolchain at
 #     all. Downloading one retrieves an already-built artifact and runs
 #     no install-time code — no build script, no post-install hook, no
@@ -108,25 +113,33 @@ jobs:
           do
             goos="${target%/*}"
             goarch="${target#*/}"
-            stage="$(mktemp -d)"
-            binary="spec"
-            if [ "$goos" = "windows" ]; then binary="spec.exe"; fi
 
-            echo "==> $goos/$goarch"
-            GOOS="$goos" GOARCH="$goarch" \
-              go build -trimpath -ldflags="-s -w" -o "$stage/$binary" ./spec
+            # One archive per binary per platform, rather than one archive
+            # holding both: the two are installed independently, and a
+            # user who wants only `spec` should not have to unpack
+            # something else to get it.
+            for tool in spec swarm
+            do
+              stage="$(mktemp -d)"
+              binary="$tool"
+              if [ "$goos" = "windows" ]; then binary="$tool.exe"; fi
 
-            name="spec_${version}_${goos}_${goarch}"
-            if [ "$goos" = "windows" ]; then
-              ( cd "$stage" && zip -q "$out/$name.zip" "$binary" )
-            else
-              # --sort=name and the pinned mtime/owner keep the archive
-              # itself reproducible, not just the binary inside it.
-              tar --sort=name --owner=0 --group=0 --numeric-owner \
-                  --mtime='UTC 2020-01-01' \
-                  -czf "$out/$name.tar.gz" -C "$stage" "$binary"
-            fi
-            rm -rf "$stage"
+              echo "==> $goos/$goarch $tool"
+              GOOS="$goos" GOARCH="$goarch" \
+                go build -trimpath -ldflags="-s -w" -o "$stage/$binary" "./$tool"
+
+              name="${tool}_${version}_${goos}_${goarch}"
+              if [ "$goos" = "windows" ]; then
+                ( cd "$stage" && zip -q "$out/$name.zip" "$binary" )
+              else
+                # --sort=name and the pinned mtime/owner keep the archive
+                # itself reproducible, not just the binary inside it.
+                tar --sort=name --owner=0 --group=0 --numeric-owner \
+                    --mtime='UTC 2020-01-01' \
+                    -czf "$out/$name.tar.gz" -C "$stage" "$binary"
+              fi
+              rm -rf "$stage"
+            done
           done
 
       - name: Checksums
@@ -148,13 +161,16 @@ jobs:
           # scalar carries the block's own indentation into every line of
           # the release notes.
           notes=$(printf '%s\n' \
-            "Spec CLI $version." \
+            "Spec CLI and Swarm CLI $version. Both binaries are built from the same module and released together." \
             "" \
             "**Install from the Go module proxy** (needs a Go toolchain, and works against an on-premises proxy):" \
             "" \
             "    go install github.com/brettcallaghan/agent-plugins/cli/spec@$tag" \
+            "    go install github.com/brettcallaghan/agent-plugins/cli/swarm@$tag" \
             "" \
-            "**Or download a binary.** Each archive holds one statically linked executable and nothing else: unpack it and put \`spec\` on your PATH. Nothing further is fetched or executed at install time. Verify against \`SHA256SUMS\` first.")
+            "**Or download a binary.** Each archive holds one statically linked executable and nothing else: unpack it and put \`spec\` or \`swarm\` on your PATH. Nothing further is fetched or executed at install time. Verify against \`SHA256SUMS\` first." \
+            "" \
+            "\`swarm\` additionally needs \`bd\` and \`git\` on PATH at run time; it has no runtime of its own.")
 
           # --clobber so a re-run against the same tag replaces the assets
           # instead of failing on the ones already uploaded.
@@ -162,6 +178,6 @@ jobs:
             gh release upload "$tag" dist/* --clobber
           else
             gh release create "$tag" dist/* \
-              --title "Spec CLI $version" \
+              --title "CLI $version — spec and swarm" \
               --notes "$notes"
           fi

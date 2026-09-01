@@ -45,13 +45,9 @@ the orchestrator performs after every push.
 **Commit trailers.** WHEN `CLAUDE.md`/`AGENTS.md` states a commit-trailer
 convention (`Co-Authored-By`, a session URL, etc.), resolve it once here and
 put it in the manifest's `trailers` key on the run epic — a session URL varies
-per session, so it is per-run and never committed. Every dispatch prompt then
-passes `--trailers-from {EPIC}`, and the close ceremony fetches the text from
-the tracker and appends it to the commit body, so no subagent needs
-`git commit --amend` to add them. Omit the flag entirely when the run resolved
-no trailers.
-WHEN the project states no trailer convention, leave `{TRAILERS_FILE}` unset
-and omit the flag; the close ceremony then appends no trailers.
+per session, so it is per-run and never committed. **WHEN the project states
+no convention, write no `trailers` key**: an absent key is what tells a dispatch to omit the
+flag, and an empty one is not the same thing.
 
 ## What no script can settle
 
@@ -86,10 +82,7 @@ the script cannot measure it and cannot warn you about it.
   routing, concurrency, `sprint-plan` and the grooming subagent. What survives
   is the per-bead ceremony — genuinely valuable, and a different product.
 
-  **Say so and hand over**: the **`run-bead`** skill takes one bead from
-  claimed to committed with no orchestrator at all. Working a queue is then
-  `bd ready`, then `run-bead` per bead, which is an honest description of what
-  a no-Agent session can do.
+  **Say so and stop.** There is no degraded mode to hand over to.
 
 **Every other blocker is the script's to explain.** `BB_DOLT_WRITE=no` and
 `BB_WORKTREE_BASEREF` not `head` each exit non-zero with the cause and the

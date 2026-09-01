@@ -80,6 +80,19 @@ fi
 SELF="$(abs_dir "$0")/$(basename "$0")"
 SCRIPTS="$(abs_dir "$0")"
 
+# swarm_capability <exit-status> <stderr>  ->  ok | stale:unknown-command | stale:other
+#
+# A pure classifier so the self-test can drive it with synthetic (status,
+# stderr) pairs and needs no `swarm` binary at all — old, missing, or built
+# with `status` all read the same to a caller that never runs this.
+swarm_capability() {
+  case "$1:$2" in
+    0:*) printf 'ok' ;;
+    *:*[Uu]nknown*[Cc]ommand*) printf 'stale:unknown-command' ;;
+    *) printf 'stale:other' ;;
+  esac
+}
+
 # ------------------------------------------------------------------ reporting
 
 REPORT_FAIL=0
@@ -263,6 +276,15 @@ self_test() {
 
   printf '%s\n' '# x' > "$fixture/EMPTY.md"
 
+  # 7. swarm_capability — the classifier, driven with synthetic (status,
+  #    stderr) pairs so this needs no `swarm` binary at all.
+  st "swarm capability, a working binary" "ok" "$(swarm_capability 0 '')"
+  st "swarm capability, a binary predating status" "stale:unknown-command" \
+     "$(swarm_capability 3 'Error: unknown command "status" for "swarm"')"
+  st "swarm capability, an unrelated failure" "stale:other" \
+     "$(swarm_capability 1 'panic: something else entirely')"
+  st "swarm capability, exit 0 wins even with matching text" "ok" \
+     "$(swarm_capability 0 'unknown command mentioned in passing')"
 
   # 9. Portability lint over this script's own source. Every GNU-only or
   #    bash-4-only construct must carry the `portability-lint-ok` marker,
@@ -524,8 +546,8 @@ else
   say "run record: metadata on $EPIC (no run directory — the tracker IS the record)"
 
   # The event log is the opposite kind of thing: a live STREAM for the
-  # Monitor to tail, not a record. It is ephemeral by design — `bd swarm
-  # status` is the durable view, computed from the beads themselves.
+  # Monitor to tail, not a record. It is ephemeral by design — `swarm status`
+  # is the durable view, measured from the beads and from git.
   EVENT_LOG="${TMPDIR:-/tmp}/bb-events-$EPIC.log"
   if : >> "$EVENT_LOG" 2>/dev/null; then
     say "event log: $EVENT_LOG"
@@ -534,7 +556,7 @@ else
   else
     EVENT_LOG=""
     say "event log: UNWRITABLE — progress streaming will be unavailable; use"
-    say "\`bd swarm status $EPIC\` instead."
+    say "\`swarm status --run $EPIC\` instead."
   fi
 fi
 say "scripts:  $SCRIPTS"
@@ -596,6 +618,39 @@ fi
 if command -v jq >/dev/null 2>&1; then JQ=ok; say "jq:  $(command -v jq)"
 else JQ=missing; say "jq:  MISSING"
      block "jq is not on PATH — the close script, the retro dump and the batching need it"; fi
+
+# `swarm manifest` and `swarm status` are required steps, not optional ones,
+# so absence and staleness are both blocking. The probe is behavioural
+# rather than a version string: `swarm` carries no version string yet, and
+# even if it did, a binary built before `swarm status` existed would still
+# report SOME version and pass a version check while still lacking the
+# subcommand this run is about to invoke. Measured: a binary predating that
+# command exits 3 ("unknown command") on `swarm status --help`, which is
+# exactly the failure a version number would not catch.
+if command -v swarm >/dev/null 2>&1; then
+  # Captured into a variable and matched with `case`, never piped through
+  # `grep -q`: a small writer can still lose the SIGPIPE race against a
+  # reader that closes early, which makes a piped check intermittent (see
+  # AGENTS.md, "Pipes hide exit statuses").
+  SWARM_HELP_ERR="$(swarm status --help 2>&1 >/dev/null)"; SWARM_HELP_RC=$?
+  SWARM_CAP="$(swarm_capability "$SWARM_HELP_RC" "$SWARM_HELP_ERR")"
+  case "$SWARM_CAP" in
+    ok)
+      SWARM=ok; say "swarm: $(command -v swarm)" ;;
+    stale:unknown-command)
+      SWARM=stale
+      say "swarm: $(command -v swarm) (STALE — no 'status' subcommand)"
+      block "swarm on PATH predates 'swarm status' — rebuild it: (cd cli && go build -o /usr/local/bin/swarm ./swarm)" ;;
+    *)
+      SWARM=stale
+      say "swarm: $(command -v swarm) (STALE — 'swarm status --help' failed: $SWARM_HELP_ERR)"
+      block "swarm on PATH does not run 'swarm status --help' — rebuild it: (cd cli && go build -o /usr/local/bin/swarm ./swarm)" ;;
+  esac
+else
+  SWARM=missing
+  say "swarm: MISSING"
+  block "swarm is not on PATH — swarm manifest and swarm status are required steps: (cd cli && go build -o /usr/local/bin/swarm ./swarm)"
+fi
 
 # `tomllib` is stdlib from 3.11, so probing the import settles both the
 # interpreter and the version in one call.
@@ -666,7 +721,7 @@ fi
 head_ "Delegation"
 if [ "${BB_ASSUME_NO_AGENT:-0}" = 1 ]; then
   NO_AGENT=yes
-  block "BB_ASSUME_NO_AGENT=1 — no Agent tool, so nothing can be delegated: not grooming, not planning, not the beads. Do not start a run. Use the \`run-bead\` skill per bead instead."
+  block "BB_ASSUME_NO_AGENT=1 — no Agent tool, so nothing can be delegated: not grooming, not planning, not the beads. Do not start a run."
 else
   NO_AGENT=no
   say "assuming an Agent tool is available (set BB_ASSUME_NO_AGENT=1 if not)."
@@ -845,6 +900,7 @@ emitq BB_DEFAULT_BRANCH "$DEFAULT_BRANCH"
 emit  BB_BD "$BD"
 emitq BB_BD_DB "$BD_DB"
 emit  BB_JQ "$JQ"
+emit  BB_SWARM "$SWARM"
 emit  BB_DOLT "$DOLT"
 emit  BB_DOLT_TELEMETRY "$DOLT_TELEMETRY"
 emit  BB_DOLT_WRITE "$DOLT_WRITE"

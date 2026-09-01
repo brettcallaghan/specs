@@ -57,7 +57,8 @@ Check it whenever you groom under an epic.
       cap and their queues never drain; the run looks alive and makes no progress.
 
       ```sh
-      cap=$(bd show <epic> --json | jq '.[0].metadata.concurrency_cap')
+      cap=$(swarm manifest get --run <epic> --key concurrency_cap --json \
+              | jq -r .concurrency_cap)
       n=$(bd list --parent <epic> --status all --json \
             | jq '[.[].assignee | select(. != null) | select(startswith("dev-"))]
                   | unique | length')
@@ -71,24 +72,26 @@ Check it whenever you groom under an epic.
       Counting all distinct assignees under-subscribes the dev pool by the
       number of ceremony roles the run happens to have used.
 
-      WHERE the epic's manifest carries no `concurrency_cap`, report the check
-      as **unmeasurable** and say so. An epic that was never pre-flighted has
+      WHERE the epic's manifest carries no `concurrency_cap` — `swarm manifest
+      require --run <epic> --key concurrency_cap` answers that as a status —
+      report the check as **unmeasurable** and say so. An epic that was never
+      pre-flighted has
       no cap to plan against, and a default substituted here is a number
       nobody measured reading as one somebody did.
 
 ## Flatness is preferred, not required
 
 An epic whose children are all beads gets exact answers from
-`bd swarm validate`, `bd swarm status` and `bd epic status`.
+`bd swarm validate`, `bd epic status` and `bd list --parent`.
 
-An epic containing **sub-epics** still dispatches correctly: the ready front
+An epic containing **sub-epics** still dispatches correctly: the ready set
 (`bd ready --parent <epic> --exclude-type=epic`) is transitive and honours
 dependency edges that cross between sub-epics. But those three commands are
 **one level deep** — they report the sub-epics as work items and never see
 their leaves, and `bd epic status` counts sub-epics rather than beads.
 
-So a nested epic costs the swarm preview and the progress count, both of which
-the orchestrator can recompute, and costs nothing else.
+So a nested epic costs the progress count and the graph preview, both of which
+an orchestrator can recompute by walking the tree, and costs nothing else.
 
 **Report which shape the epic is in; do not require flatness.** Requiring it
 would push an author to move beads out of the epics that own them — and a bead

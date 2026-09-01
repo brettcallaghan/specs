@@ -1,4 +1,4 @@
-# Dispatch policy — identity, concurrency, tier, push
+# Dispatch policy — identity, concurrency, tier
 
 **The circuit breaker stops the RUN, not just the batch.** Three consecutive
 blocked or failed beads is systemic — a broken base, a wrong assumption in the
@@ -16,7 +16,6 @@ the policy it runs under.
   beads go out at once, and what to do when one does not
 - Tier selection per bead — resolving a bead's tier to a model, the escalation
   rule, and why a downgrade never happens mid-run
-- Push policy — `defer_push` versus `push_per_bead`, and who pushes
 
 ### Agent identity — the roster, and `BEADS_ACTOR`
 
@@ -34,7 +33,7 @@ reconciles two spellings of the same agent, and one string is what makes
 
 **Every agent and subagent exports `BEADS_ACTOR=<its id>` before its first
 `bd` call.** Not because it intends to claim, but because a claim may happen:
-`run-bead` claims, a recovery path claims, a retry claims.
+`run-batch` claims, a recovery path claims, a retry claims.
 
 One kind per agent the coordinator spawns:
 
@@ -44,10 +43,8 @@ One kind per agent the coordinator spawns:
 | groom | `groom-<run-id>` | 1 | no |
 | plan | `plan-<run-id>` | 1 | no |
 | dev | `dev-<run-id>-<batch-id>` | N | **yes** |
-| merge | `merge-<run-id>` | 1 | no |
 | review | `review-<run-id>` | 1 | no |
 | retro | `retro-<run-id>` | 1 | no |
-| report | `report-<run-id>` | 1 | no |
 
 **Only the `dev` pool is concurrent.** Every other kind runs alone, in a chain
 the dependency graph already serializes, so they cost one slot between them
@@ -61,13 +58,14 @@ dispatch mechanism for the whole run. Each ceremony EPIC is assigned to its
 phase's id at creation, and the phase's agent exports that same id before its
 first `bd` call.
 
-**Three phases have no row of their own, and it is not an omission.**
-Pre-flight, scope and post-flight are the coordinator's own steps — the first
-and last are scripts it runs, and scope MINTS the run epic, so no `<run-id>`
-exists to derive an id from until it returns. All three act as
-`coordinator-<run-id>`, which is also what makes a resumed coordinator able to
-recompute the authorization gate's holder: scope takes that gate, and a hold
-under an id the coordinator cannot recompute is a hold nobody can release.
+**Four phases have no row of their own, and it is not an omission.**
+Pre-flight, scope, merging and post-flight are the coordinator's own steps —
+the first and last are scripts it runs, merging is something it does directly,
+and scope MINTS the run epic, so no `<run-id>` exists to derive an id from
+until it returns. All four act as `coordinator-<run-id>`, which is also what
+makes a resumed coordinator able to recompute the authorization gate's holder:
+scope takes that gate, and a hold under an id the coordinator cannot recompute
+is a hold nobody can release.
 `sprint-scope` therefore exports its actor **after** it creates the run epic
 and before any write that records a holder.
 
@@ -83,9 +81,8 @@ planned later continue from n+1.
 returns an ambiguous answer.
 
 Both follow from the epic id and the partition, so a **resumed session
-recomputes the same string** and finds its own queue and its own merge-slot
-hold. A randomly minted id cannot be recomputed, and a resumed session loses
-both.
+recomputes the same string** and finds its own queue. A randomly minted id
+cannot be recomputed, and a resumed session loses it.
 
 **The `<run-id>` segment is not optional.** Batch ids restart every run while
 the tracker is shared, so a bare `dev-3` collides across runs with nothing
@@ -103,7 +100,7 @@ Measured on `bd` 1.2.2, claiming with `bd update <id> --claim`:
 
 The last row is the failure the export prevents: nothing errors, and the
 coordinator's ownership view decays. `bd ready --claim` writes the actor into
-`assignee` the same way, and on an already-assigned ready front it claims
+`assignee` the same way, and on an already-assigned ready set it claims
 nothing at all and returns `[]`.
 
 An unassigned bead is therefore the only bead a claim can move to the wrong
@@ -112,10 +109,10 @@ owner, which is why assigning every bead before dispatch and exporting
 
 ### Concurrent dispatch
 
-**Concurrent dispatch is ENABLED.** Several beads may go out of the ready front
+**Concurrent dispatch is ENABLED.** Several beads may go out of the ready set
 at once, each in its own worktree, merged as each returns.
 
-**The ready front IS what may run concurrently.** Re-query
+**The ready set IS what may run concurrently.** Re-query
 `bd ready --parent <epic> --exclude-type=epic` before every dispatch; what
 comes back is what dependencies and collision edges now allow. Never advance by
 walking a stored list — a bead that closed early, a bead blocked by something
@@ -191,16 +188,5 @@ lineup` block in `sf.toml`, echoed by pre-flight. Honor these:
   direct evidence about whether grooming's routing is calibrated. WHEN
   `CLAUDE_CODE_SUBAGENT_MODEL` is set, report it as Phase 4's "Tier
   escalations" section directs.
-- **Record the routing** — every bead in the graph plan carries its tier in
-  node metadata.
-
-### Push policy
-
-- **`push-per-bead`** — subagent pushes after each commit. Best for sequential
-  mode (recovery is easier on a per-bead failure).
-- **`defer-push`** — subagent commits per bead, orchestrator pushes once at
-  batch end. Default for a batch (one process;
-  failures are observable).
-
-For a batch of one, `push-per-bead` and `defer-push` are equivalent — don't
-bother labeling. Just push when the subagent returns.
+- **Record the routing** — every planned bead keeps the tier grooming assigned
+  it, in its own metadata; nothing re-writes it at dispatch.

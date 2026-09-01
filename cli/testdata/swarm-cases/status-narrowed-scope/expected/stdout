@@ -1,0 +1,23 @@
+stall_after: 30m0s
+observability: whether a subagent is still working cannot be observed from outside the harness; this reports the standing worktree count, the last commit's age and the ready set's size in its place
+worktrees_standing: 1
+dispatch_worktrees_standing: 0
+last_commit_sha: ac4a37c7aadfbc9a0f7af911b4b95558e3989eda
+last_commit_subject: fixture-run.1 P1 the first bead of the run
+last_commit_at: 2026-01-01T01:00:00Z
+last_commit_age_seconds: <age-seconds>
+ready_count: 0
+completion_total: 1
+completion_done: 1
+completion_blocked: 0
+completion_claimed: 0
+completion_open: 0
+completion_deferred: 0
+completion_unknown: 0
+scope_additions: []
+scope_missing: []
+scope_excluded:
+  - fixture-run.7
+  - fixture-run.8
+dispatches: []
+conflicts: []

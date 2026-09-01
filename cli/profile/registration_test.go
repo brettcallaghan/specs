@@ -320,20 +320,51 @@ func generatedIdentifierPattern(t *testing.T, definition string) string {
 	return pattern
 }
 
-// namedCapture matches one Go regexp named capture group — `(?P<code>`,
-// its content, and its closing paren — provided that content nests no
-// further group. Neither of this profile's identifier patterns nests
-// one, so that is the whole of what [stripNamedCaptures] needs to
-// handle.
-var namedCapture = regexp.MustCompile(`\(\?P<[A-Za-z0-9_]+>([^()]*)\)`)
+// namedCaptureOpen matches the opening of one Go regexp named capture
+// group — `(?P<code>` — and nothing of its content. The content is found
+// by matching parens instead, because a code spanning hyphen-joined
+// segments nests a non-capturing group for the repeated segment. It
+// assumes no character class in either pattern holds an unescaped paren,
+// which would need a class-aware scan rather than a paren count.
+var namedCaptureOpen = regexp.MustCompile(`\(\?P<[A-Za-z0-9_]+>`)
 
 // stripNamedCaptures removes named-capture-group wrapping from a
 // pattern, recovering the plain expression underneath. Naming a capture
 // group changes nothing a pattern matches, so this is the whole of what
 // may distinguish a registered pattern from the generated one it
-// mirrors.
+// mirrors. A pattern whose parens do not balance is returned unchanged,
+// so the comparison fails on the pattern rather than here.
 func stripNamedCaptures(pattern string) string {
-	return namedCapture.ReplaceAllString(pattern, "$1")
+	for {
+		open := namedCaptureOpen.FindStringIndex(pattern)
+		if open == nil {
+			return pattern
+		}
+		close, ok := matchingParen(pattern, open[1])
+		if !ok {
+			return pattern
+		}
+		pattern = pattern[:open[0]] + pattern[open[1]:close] + pattern[close+1:]
+	}
+}
+
+// matchingParen returns the index of the paren closing the group opened
+// before start, counting nested parens and skipping escaped ones.
+func matchingParen(pattern string, start int) (int, bool) {
+	depth := 1
+	for i := start; i < len(pattern); i++ {
+		switch pattern[i] {
+		case '\\':
+			i++
+		case '(':
+			depth++
+		case ')':
+			if depth--; depth == 0 {
+				return i, true
+			}
+		}
+	}
+	return 0, false
 }
 
 // slugTypedPropertiesOf returns the properties the generated schema types
