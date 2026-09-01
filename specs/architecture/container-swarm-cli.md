@@ -298,6 +298,15 @@ of the run's record. At or past the threshold the command reports the
 run stopped, naming the count and the threshold, rather than failing
 silently or leaving a caller to compare the two itself.
 
+That write is the command's only write, and it goes through the plan
+runner under the invocation's own mode like every other. A dry run
+therefore refuses it — the step is reported refused, with the runner's
+own reason — and the count it would have set is not a measurement, so the
+count is reported **unestablished** with the projection in its reason
+rather than as the value nothing wrote. A dry run does not report the run
+stopped for the same reason: a run is not stopped by a number that was
+never recorded.
+
 **`swarm dispatch open`** establishes the sprint branch and, with
 `--dispatch <id>`, that dispatch's own worktree — in that order, and the
 order is structural rather than incidental: the worktree half runs only

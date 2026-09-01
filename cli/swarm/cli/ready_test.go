@@ -101,6 +101,18 @@ func showRecording(run string, metadata string) exectest.Recording {
 	return exectest.Recording{Argv: []string{"bd", "show", run, "--json"}, Stdout: []byte(stdout)}
 }
 
+// breakerPass runs one pass of the breaker and unpacks the three values
+// these tests assert on, so each one states its scenario and its
+// expectation and nothing about the shape of the return. The records the
+// pass produced are asserted through the command instead, since it is the
+// rendered result a consumer reads a refused write from.
+func breakerPass(ctx context.Context, deps status.Deps, req Request, report breakerReport, threshold int) (
+	[]Fact, bool, string, error,
+) {
+	outcome, err := applyBreaker(ctx, deps, req, report, threshold)
+	return outcome.Facts, outcome.Stopped, outcome.Summary, err
+}
+
 func updateRecording(run, payload string) exectest.Recording {
 	return exectest.Recording{
 		Argv:   []string{"bd", "update", run, "--metadata", payload, "--json"},
@@ -119,8 +131,8 @@ func TestBreakerStopsTheRunAtItsThreshold(t *testing.T) {
 		updateRecording("run-1", `{"consecutive_dispatch_failures":3}`),
 	)
 
-	facts, stopped, summary, err := applyBreaker(context.Background(), breakerDeps(fake),
-		Request{Run: "run-1"}, breakerReport{Given: true, Completed: 0}, 3)
+	facts, stopped, summary, err := breakerPass(context.Background(), breakerDeps(fake),
+		Request{Run: "run-1", Mode: plan.ModeExecute}, breakerReport{Given: true, Completed: 0}, 3)
 	if err != nil {
 		t.Fatalf("applyBreaker: %v", err)
 	}
@@ -145,8 +157,8 @@ func TestBreakerResetsToZeroWhenSomethingCompleted(t *testing.T) {
 		updateRecording("run-1", `{"consecutive_dispatch_failures":0}`),
 	)
 
-	facts, stopped, _, err := applyBreaker(context.Background(), breakerDeps(fake),
-		Request{Run: "run-1"}, breakerReport{Given: true, Completed: 4}, 3)
+	facts, stopped, _, err := breakerPass(context.Background(), breakerDeps(fake),
+		Request{Run: "run-1", Mode: plan.ModeExecute}, breakerReport{Given: true, Completed: 4}, 3)
 	if err != nil {
 		t.Fatalf("applyBreaker: %v", err)
 	}
@@ -171,8 +183,8 @@ func TestBreakerCountsOneDispatchReturnNotItsBeads(t *testing.T) {
 		updateRecording("run-1", `{"consecutive_dispatch_failures":1}`),
 	)
 
-	facts, stopped, _, err := applyBreaker(context.Background(), breakerDeps(fake),
-		Request{Run: "run-1"}, breakerReport{Given: true, Completed: 0}, 3)
+	facts, stopped, _, err := breakerPass(context.Background(), breakerDeps(fake),
+		Request{Run: "run-1", Mode: plan.ModeExecute}, breakerReport{Given: true, Completed: 0}, 3)
 	if err != nil {
 		t.Fatalf("applyBreaker: %v", err)
 	}
@@ -190,8 +202,8 @@ func TestBreakerCountsOneDispatchReturnNotItsBeads(t *testing.T) {
 func TestBreakerBareQueryReadsWithoutWriting(t *testing.T) {
 	fake := exectest.NewFake(showRecording("run-1", `{"consecutive_dispatch_failures":3}`))
 
-	facts, stopped, summary, err := applyBreaker(context.Background(), breakerDeps(fake),
-		Request{Run: "run-1"}, breakerReport{Given: false}, 3)
+	facts, stopped, summary, err := breakerPass(context.Background(), breakerDeps(fake),
+		Request{Run: "run-1", Mode: plan.ModeExecute}, breakerReport{Given: false}, 3)
 	if err != nil {
 		t.Fatalf("applyBreaker: %v", err)
 	}
@@ -212,8 +224,8 @@ func TestBreakerBareQueryReadsWithoutWriting(t *testing.T) {
 func TestBreakerAbsentCountReadsAsZero(t *testing.T) {
 	fake := exectest.NewFake(showRecording("run-1", ""))
 
-	facts, stopped, _, err := applyBreaker(context.Background(), breakerDeps(fake),
-		Request{Run: "run-1"}, breakerReport{Given: false}, 3)
+	facts, stopped, _, err := breakerPass(context.Background(), breakerDeps(fake),
+		Request{Run: "run-1", Mode: plan.ModeExecute}, breakerReport{Given: false}, 3)
 	if err != nil {
 		t.Fatalf("applyBreaker: %v", err)
 	}
@@ -232,8 +244,8 @@ func TestBreakerAbsentCountReadsAsZero(t *testing.T) {
 func TestBreakerSkipsAWriteThatWouldNotChangeTheCount(t *testing.T) {
 	fake := exectest.NewFake(showRecording("run-1", `{"consecutive_dispatch_failures":0}`))
 
-	facts, stopped, _, err := applyBreaker(context.Background(), breakerDeps(fake),
-		Request{Run: "run-1"}, breakerReport{Given: true, Completed: 5}, 3)
+	facts, stopped, _, err := breakerPass(context.Background(), breakerDeps(fake),
+		Request{Run: "run-1", Mode: plan.ModeExecute}, breakerReport{Given: true, Completed: 5}, 3)
 	if err != nil {
 		t.Fatalf("applyBreaker: %v", err)
 	}
@@ -245,5 +257,113 @@ func TestBreakerSkipsAWriteThatWouldNotChangeTheCount(t *testing.T) {
 	}
 	if calls := fake.Argvs(); len(calls) != 1 {
 		t.Errorf("a no-op reset wrote something: %v", calls)
+	}
+}
+
+// The breaker's write is this command's only write, and `swarm ready`'s
+// own --dry-run help promises "it writes nothing either way". A dry run
+// therefore refuses the write rather than performing it — [plan.Runner]'s
+// own guarantee, once the mode reaches it.
+//
+// Asserted from the fake's own record, so a command that returned a
+// clean-looking result while writing would still fail here.
+func TestTheBreakerWritesNothingInADryRun(t *testing.T) {
+	fake := exectest.NewFake(
+		showRecording("run-1", `{"consecutive_dispatch_failures":1}`),
+		// Declared deliberately, and succeeding if it is reached: an
+		// undeclared write would fail as a missing recording instead,
+		// which would pass this test for the wrong reason.
+		updateRecording("run-1", `{"consecutive_dispatch_failures":2}`),
+	)
+
+	facts, stopped, _, err := breakerPass(context.Background(), breakerDeps(fake),
+		Request{Run: "run-1", Mode: plan.ModeDryRun}, breakerReport{Given: true, Completed: 0}, 3)
+	if err != nil {
+		t.Fatalf("applyBreaker: %v", err)
+	}
+
+	for _, argv := range fake.Argvs() {
+		if len(argv) >= 2 && argv[0] == "bd" && argv[1] == "update" {
+			t.Errorf("a dry run wrote: %v", argv)
+		}
+	}
+
+	if len(facts) != 1 {
+		t.Fatalf("applyBreaker reported %d fact(s), want 1", len(facts))
+	}
+	if facts[0].Established {
+		t.Errorf("the count is reported as established at %v; a refused write leaves it unknown, "+
+			"not at the value the write would have set", facts[0].Value)
+	}
+	if stopped {
+		t.Error("a dry run stopped the run on the strength of a write it refused to make")
+	}
+}
+
+// The negative control for the test above: the same invocation in execute
+// mode does write and does report the new count, so what that test
+// asserts is the mode reaching the runner rather than the breaker having
+// been disabled.
+func TestTheBreakerStillWritesWhenItReallyRuns(t *testing.T) {
+	fake := exectest.NewFake(
+		showRecording("run-1", `{"consecutive_dispatch_failures":1}`),
+		updateRecording("run-1", `{"consecutive_dispatch_failures":2}`),
+	)
+
+	facts, _, _, err := breakerPass(context.Background(), breakerDeps(fake),
+		Request{Run: "run-1", Mode: plan.ModeExecute}, breakerReport{Given: true, Completed: 0}, 3)
+	if err != nil {
+		t.Fatalf("applyBreaker: %v", err)
+	}
+
+	wrote := false
+	for _, argv := range fake.Argvs() {
+		if len(argv) >= 2 && argv[0] == "bd" && argv[1] == "update" {
+			wrote = true
+		}
+	}
+	if !wrote {
+		t.Fatalf("execute mode issued no write: %v", fake.Argvs())
+	}
+	if !facts[0].Established || facts[0].Value == nil || *facts[0].Value.Count != 2 {
+		t.Errorf("consecutive_dispatch_failures = %v (established %v), want an established 2",
+			facts[0].Value, facts[0].Established)
+	}
+}
+
+// The refused write reaches a --full-result consumer as a refused STEP
+// record, which is what tells it the write was declined rather than never
+// attempted. An early return guarded on the mode would skip the write and
+// leave no record of it at all, which is why the mode is threaded into
+// the runner instead.
+func TestADryRunOfReadyRecordsTheBreakerWriteAsRefused(t *testing.T) {
+	fake := exectest.NewFake(
+		exectest.Recording{
+			Argv: []string{"bd", "ready", "--parent", "run-1", "--exclude-type", "epic",
+				"--exclude-label", "human", "--limit", "0", "--json"},
+			Stdout: []byte("[]"),
+		},
+		showRecording("run-1", `{"consecutive_dispatch_failures":1}`),
+		updateRecording("run-1", `{"consecutive_dispatch_failures":2}`),
+	)
+
+	var out, errOut bytes.Buffer
+	streams := &ioStreams{out: &out, err: &errOut}
+	root := newRootCmd(streams)
+	root.AddCommand(readyCmd(streams, readyDeps(fake)))
+
+	dispatch(root, streams, []string{"ready", "--run", "run-1", "--dry-run",
+		"--completed", "0", "--full-result", "--json"}, &out, &errOut)
+
+	for _, argv := range fake.Argvs() {
+		if len(argv) >= 2 && argv[0] == "bd" && argv[1] == "update" {
+			t.Errorf("a dry run of the command wrote: %v", argv)
+		}
+	}
+	if !strings.Contains(out.String(), "advance-failure-count") {
+		t.Errorf("the refused write is not among the invocations the result reports:\n%s", out.String())
+	}
+	if !strings.Contains(out.String(), "refused") {
+		t.Errorf("the result does not report the write as refused:\n%s", out.String())
 	}
 }

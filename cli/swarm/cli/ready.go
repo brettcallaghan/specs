@@ -247,17 +247,18 @@ func reportReady(ctx context.Context, deps status.Deps, req Request, breaker bre
 			len(entries), req.Run, heldCount)
 	}
 
-	breakerFacts, stopped, stopSummary, err := applyBreaker(ctx, deps, req, breaker, threshold)
+	breaking, err := applyBreaker(ctx, deps, req, breaker, threshold)
+	result.Records = append(result.Records, breaking.Records...)
 	if err != nil {
 		return Result{}, err
 	}
-	result.Facts = append(result.Facts, breakerFacts...)
-	if stopped {
+	result.Facts = append(result.Facts, breaking.Facts...)
+	if breaking.Stopped {
 		// The breaker overrides whatever the dispatch set itself
 		// concluded: a stopped run has nothing left to dispatch, whether
 		// or not beads remain in the ready set.
 		result.Outcome = OutcomeStop
-		result.Summary = stopSummary
+		result.Summary = breaking.Summary
 	}
 	return result, nil
 }
@@ -290,27 +291,38 @@ type breakerReport struct {
 // It reaches the manifest only through [status.Deps.Store], per
 // [[container-swarm-cli]]'s Manifest Store component — never the run
 // epic's metadata directly.
-func applyBreaker(ctx context.Context, deps status.Deps, req Request, report breakerReport, threshold int) ([]Fact, bool, string, error) {
+//
+// Both plans run under req.Mode, so the write this command's only write
+// is refused in a dry run rather than performed — which is what makes
+// --dry-run's own help, "it writes nothing either way", true. The mode is
+// threaded rather than the write being skipped behind a guard, because a
+// refused STEP is what a --full-result consumer reads to see that the
+// write was declined; a skipped one leaves no record at all.
+func applyBreaker(ctx context.Context, deps status.Deps, req Request, report breakerReport, threshold int) (breakerOutcome, error) {
 	if deps.Store == nil {
-		return nil, false, "", RefuseUnrepairable("no manifest store is configured")
+		return breakerOutcome{}, RefuseUnrepairable("no manifest store is configured")
 	}
+
+	var records []plan.Record
 
 	readSteps := deps.Store.Read("failure-count", req.Run)
 	readReport, err := deps.Runner.Run(ctx, plan.Plan{
 		Name:  "read " + req.Run + "'s failure count",
 		Steps: readSteps,
-	}, plan.ModeExecute)
+	}, req.Mode)
+	records = append(records, readReport.Records...)
 	if err != nil {
-		return nil, false, "", RefuseUnrepairable("the manifest could not be read: %s", err)
+		return breakerOutcome{Records: records}, RefuseUnrepairable("the manifest could not be read: %s", err)
 	}
 	doc, from, err := document(readSteps, readReport)
 	if err != nil {
-		return nil, false, "", err
+		return breakerOutcome{Records: records}, err
 	}
 
 	var recorded int
 	if present, decErr := doc.Decode("consecutive_dispatch_failures", &recorded); decErr != nil {
-		return nil, false, "", RefuseUnrepairable("consecutive_dispatch_failures does not decode: %s", decErr)
+		return breakerOutcome{Records: records},
+			RefuseUnrepairable("consecutive_dispatch_failures does not decode: %s", decErr)
 	} else if !present {
 		// MFK's rule that an absent count is absent, not zero, is the
 		// record's own reading. Treating it as zero here is this
@@ -331,31 +343,87 @@ func applyBreaker(ctx context.Context, deps status.Deps, req Request, report bre
 		if next != recorded {
 			nextJSON, merr := json.Marshal(next)
 			if merr != nil {
-				return nil, false, "", RefuseUnrepairable("%d does not encode as JSON: %s", next, merr)
+				return breakerOutcome{Records: records},
+					RefuseUnrepairable("%d does not encode as JSON: %s", next, merr)
 			}
 			changes := map[string]json.RawMessage{"consecutive_dispatch_failures": json.RawMessage(nextJSON)}
 			writeSteps := deps.Store.Write("advance-failure-count", req.Run, changes, manifest.Rules(changes))
 			writeReport, werr := deps.Runner.Run(ctx, plan.Plan{
 				Name:  "record " + req.Run + "'s failure count",
 				Steps: writeSteps,
-			}, plan.ModeExecute)
+			}, req.Mode)
+			records = append(records, writeReport.Records...)
 			if werr != nil {
-				return nil, false, "", RefuseUnrepairable("%s", werr)
+				return breakerOutcome{Records: records}, RefuseUnrepairable("%s", werr)
 			}
+
+			// A dry run performs the guard read and refuses the write, so
+			// there is no post-write count: the value the write WOULD have
+			// set is a projection, and reporting it as the count would be
+			// the same class of untruth as the write itself. The fact is
+			// reported unestablished, citing the read that established
+			// what the count stands at, and the projection goes in the
+			// reason where nothing can mistake it for a measurement.
+			if refused(writeReport, writeSteps) {
+				return breakerOutcome{
+					Facts: []Fact{Unestablished("consecutive_dispatch_failures", fmt.Sprintf(
+						"the write was refused: %s. The count stands at %d and would have become %d "+
+							"(threshold %d)", refusalReason(writeReport, writeSteps), recorded, next, threshold),
+						from)},
+					Records: records,
+				}, nil
+			}
+
 			if _, _, derr := document(writeSteps, writeReport); derr != nil {
-				return nil, false, "", derr
+				return breakerOutcome{Records: records}, derr
 			}
 			invocation = argvOf(mustRecord(writeReport, writeSteps.Answer()))
 		}
 	}
 
-	fact := Count("consecutive_dispatch_failures", next, invocation)
-	if next >= threshold {
-		return []Fact{fact}, true, fmt.Sprintf(
-			"the run is stopped: %d consecutive dispatch(es) returned with no bead completed (threshold %d)",
-			next, threshold), nil
+	outcome := breakerOutcome{
+		Facts:   []Fact{Count("consecutive_dispatch_failures", next, invocation)},
+		Records: records,
 	}
-	return []Fact{fact}, false, "", nil
+	if next >= threshold {
+		outcome.Stopped = true
+		outcome.Summary = fmt.Sprintf(
+			"the run is stopped: %d consecutive dispatch(es) returned with no bead completed (threshold %d)",
+			next, threshold)
+	}
+	return outcome, nil
+}
+
+// breakerOutcome is what one pass of the circuit breaker established: the
+// count it reports, the steps it ran or refused, and whether the run is
+// stopped.
+//
+// A struct rather than a tuple because the records are only reportable if
+// they reach the result, and a fifth positional return is how a caller
+// drops them without noticing.
+type breakerOutcome struct {
+	// Facts is the count, established from the read or from the write
+	// that advanced it — or unestablished when the write was refused.
+	Facts []Fact
+	// Records are the breaker's own steps, so a refused write is visible
+	// to a --full-result consumer rather than only to this function.
+	Records []plan.Record
+	// Stopped is whether the run is stopped, which is a statement about
+	// the count that WAS recorded. A refused write leaves it false: a run
+	// is not stopped by a number nothing wrote.
+	Stopped bool
+	// Summary is what to say when Stopped, and empty otherwise.
+	Summary string
+}
+
+// refusalReason is the reason the plan runner gave for refusing a
+// fragment's answer step, for a caller that has already established the
+// step was refused.
+func refusalReason(report plan.Report, steps plan.Steps) string {
+	if record, ok := report.Record(steps.Answer()); ok && record.Reason != "" {
+		return record.Reason
+	}
+	return "the step writes"
 }
 
 // queueEntry is one bead in an agent's own queue, rendered as
