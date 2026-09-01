@@ -6,7 +6,7 @@ description: The foundation of the swarm CLI — how every command explains
 slug: frd-swarm-core
 type: frd
 status: approved
-updated_at: 2026-08-28T00:00:00Z
+updated_at: 2026-09-01T00:00:00Z
 sources: []
 ---
 
@@ -297,10 +297,15 @@ Feature: The contract every command keeps
 **Commands:**
 
 ```text
-swarm manifest get     --run <id> [--key <key>] [--json] [--full-result]
-swarm manifest set     --run <id> --key <key> --value <value> [--if-absent] [--json]
-swarm manifest require --run <id> --key <key>...
+swarm manifest get      --run <id> [--key <key>]...
+swarm manifest set      --run <id> --key <key> --value <value>... [--if-absent]
+swarm manifest require  --run <id> --key <key>...
+swarm manifest validate --run <id> [--stage <stage>]
 ```
+
+The four flags every command in the CLI carries — `--explain`, `--dry-run`,
+`--json` and `--full-result` — are FEAT-SWARM-CORE-001's and are not
+repeated here.
 
 **`get` is a lookup, and answers with the value.** Every other command
 here answers with what it established and nothing about how: `get --key
@@ -310,6 +315,19 @@ for the provenance instead. The exit status carries the same three
 answers either way, which is what makes the answer a rendering rather
 than a loss. What both renderings contain is
 [[swarm-output-standards]]'s.
+
+**`require` and `validate` ask different questions, and both are
+needed.** `validate` is stage-relative: it checks the record against the
+rules in force at the stage the record has reached, or at the stage
+`--stage` names, and a key belonging to no stage is never required and
+never mentioned. `require` overrides optionality and means **set to a
+VALID value** — it fails on a named key that is not written and on one
+written with a value of the wrong type, whatever the stage and whatever
+the key's optionality, because it is a caller saying "I need this one,
+now, and I am about to use it" about a key the record does not owe it.
+The two failures carry different rules and different issues, so a caller
+that cares which can tell and one that does not routes on the status.
+[[swarm-output-standards]] fixes what each prints.
 
 **This is the component every other command reads a run through**, so
 its behaviour on an absent key, a wrong type and a concurrent write is
@@ -684,5 +702,7 @@ Feature: Report a run's status from state
   these requirements are drawn from, including the inventory of traps the
   Overview refers to; §7 is the classification that decides what earns a
   command
+- [[swarm-output-standards]] — what every command here prints: the
+  answer, the full result, and the style rules both are rendered under
 - [[module-bead-bonanza]] — the module whose components call this CLI
 - [[gherkin-guide]] — the notation these criteria are written in

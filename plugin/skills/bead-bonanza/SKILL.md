@@ -244,10 +244,12 @@ construction, so before dispatching it diff the front against
 `manifest.admitted` (`swarm status --run <epic>` names the difference) and
 resolve any creep, admitted as an amendment or deferred out.
 
-**Also re-check, at this same re-query, three readiness signals `swarm
-status` does not carry**: `bd lint` intersected with the run's own ready
-queue, the open human-decision queue, and tier coverage across the ready
-front. Exact commands: `references/supervision.md`.
+**Readiness is not re-checked here.** `bd lint` and capability tier are
+settled while the queue is groomed; the open human-decision queue by the end
+of scope, where a decision nobody made is deferred and a deferred bead is out
+of the run. **A ready bead carrying no tier is dispatched at the `advanced`
+tier** rather than withheld, so a bead that slipped grooming cannot stop the
+front. Where each is settled: `references/supervision.md`.
 
 ### Watching it, and knowing when it is done
 
