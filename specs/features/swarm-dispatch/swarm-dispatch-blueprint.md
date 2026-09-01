@@ -409,7 +409,7 @@ the retirement on the coordinator's own documents and script.
 - The Coordinator's roster line and Change Guidance SHALL name the commands
   it now depends on.
 - The Scope component SHALL resolve the breaker's threshold as a seventh
-  authorization-gate row — `sf.toml`'s `[run]` `breaker_threshold` when the
+  authorization-gate row — `sf.toml`'s `[run]` `dispatch_failure_threshold` when the
   key is present, else 3 — and SHALL record that row's value and its source
   in `standing_auth` as every other row is. The Coordinator SHALL pass the
   resolved value to `swarm ready`.
@@ -647,7 +647,7 @@ here, and what each binds:
 
 - [ ] Each stage's fold work order has landed, so [[container-swarm-cli]]'s
       component records match the code at every stage boundary
-- [ ] `sf.toml`'s `[run]` documents `breaker_threshold` and `sprint-scope`'s
+- [ ] `sf.toml`'s `[run]` documents `dispatch_failure_threshold` and `sprint-scope`'s
       authorization-gate table carries it as a seventh row
 - [ ] Every delta above is folded into its owning blueprint:
   - [ ] [[container-swarm-cli]] — the `Tracker`, `Version Control` and
