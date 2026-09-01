@@ -1,0 +1,1447 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "definitions": {
+    "AuthSource": {
+      "description": "Where an authorization row's value came from.\n\nA row resolved from the project's own configuration and a row that took\nthe skill's default are different facts, and the record exists to stop a\ndecision being re-litigated mid-run.",
+      "enum": [
+        "sf.toml",
+        "default"
+      ],
+      "type": "string"
+    },
+    "CommandMode": {
+      "description": "Which of the three interpreters produced a result.",
+      "enum": [
+        "explain",
+        "dry-run",
+        "execute"
+      ],
+      "type": "string"
+    },
+    "CommandOutcome": {
+      "description": "What a command concluded. The exit status is derived from this rather\nthan chosen beside it, so the two cannot disagree.",
+      "enum": [
+        "clear",
+        "attention",
+        "stop",
+        "malformed"
+      ],
+      "type": "string"
+    },
+    "CommandResult": {
+      "additionalProperties": false,
+      "description": "The whole result every swarm command emits under --full-result.\n\nEmitted on every exit status, including a non-zero one, so a consumer\nparsing the result never has to fall back to reading prose to learn\nwhy.",
+      "properties": {
+        "command": {
+          "description": "The invocation path, for example \"swarm manifest get\".",
+          "type": "string"
+        },
+        "contract_version": {
+          "description": "The version of the JSON contract this result was produced against,\nso a consumer branches on the version it was handed rather than on the\nbinary's own version.",
+          "type": "string"
+        },
+        "facts": {
+          "description": "What the command established, in report order.",
+          "items": {
+            "$ref": "#/definitions/Fact"
+          },
+          "type": "array"
+        },
+        "invocations": {
+          "description": "Every step the plan considered, in the order it considered them.",
+          "items": {
+            "$ref": "#/definitions/Invocation"
+          },
+          "type": "array"
+        },
+        "mode": {
+          "$ref": "#/definitions/CommandMode",
+          "description": "Which interpreter ran."
+        },
+        "outcome": {
+          "$ref": "#/definitions/CommandOutcome",
+          "description": "What the command concluded."
+        },
+        "resolution": {
+          "description": "What would resolve the condition. Present whenever the outcome is\nattention; empty otherwise.",
+          "type": "string"
+        },
+        "run": {
+          "description": "The run epic this invocation was scoped to. Empty for a command\nthat is not run-scoped.",
+          "type": "string"
+        },
+        "status": {
+          "description": "The exit status the outcome implies.",
+          "maximum": 3,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "summary": {
+          "description": "One line saying what the command found. Empty when there is none.",
+          "type": "string"
+        },
+        "transcript": {
+          "description": "What the plan runner printed — the explained invocations in explain\nmode, and the executed ones otherwise.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "contract_version",
+        "command",
+        "run",
+        "mode",
+        "outcome",
+        "status",
+        "summary",
+        "resolution",
+        "facts",
+        "invocations",
+        "transcript"
+      ],
+      "type": "object"
+    },
+    "CountAuthRow": {
+      "additionalProperties": false,
+      "description": "An authorization row whose resolved value is a count.",
+      "properties": {
+        "source": {
+          "$ref": "#/definitions/AuthSource"
+        },
+        "value": {
+          "$ref": "#/definitions/__Int"
+        }
+      },
+      "required": [
+        "value",
+        "source"
+      ],
+      "type": "object"
+    },
+    "DispatchKeys": {
+      "additionalProperties": false,
+      "description": "Keys the run establishes when it creates its branch, immediately\nbefore its first dispatch.",
+      "properties": {
+        "admitted": {
+          "description": "Every bead admitted to the run.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "base_sha": {
+          "description": "The commit the sprint branch was cut from, recorded at creation and\nnever derived later — a merge-base taken afterwards assumes the base\nhas not moved, and on a long run it will have.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branch": {
+          "description": "The sprint branch. Written once: a run whose manifest already\ncarries it reuses the branch and creates nothing, which is what makes\na resumed run land where the original did.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "checks_baseline": {
+          "description": "What the declared checks printed on the untouched tree, verbatim.\n\nRecorded whole rather than summarized: the bar for every bead in the\nrun is \"no findings beyond this\", which a summary cannot express.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "checks_baseline_status": {
+          "description": "The status the baseline run exited with. Zero means every check is\nexpected to pass, so any failure a bead sees is its own.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "checks_ids": {
+          "description": "The ids of the checks the project declares, in declaration order.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "collision_edges": {
+          "description": "Where the edge document the run was built from was written.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "concurrency_cap": {
+          "description": "The most dispatches the run may have in flight at once.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "effort": {
+          "description": "The reasoning effort the harness was set to.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/RunEffort"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "excluded": {
+          "description": "Every bead considered and not admitted, with why.",
+          "items": {
+            "$ref": "#/definitions/Exclusion"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "ledger": {
+          "description": "Facts established this run that no dispatch should re-diagnose,\neach naming the command that proved it and the result observed.\n\nAppend-only: dispatch prompts cite entries by position, so an entry\nremoved or reordered retargets every citation that addressed it.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "models": {
+          "description": "The model behind each capability tier.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/TierModels"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "moved": {
+          "description": "Every bead moved into the run's epic, and where it came from.",
+          "items": {
+            "$ref": "#/definitions/Move"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "partition_preview": {
+          "description": "What became of the partition the planner proposed.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "review_budget": {
+          "description": "How many review loops the run may spend.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "review_passes": {
+          "description": "How many review loops the run has spent. Durable because a resumed\nrun that restarted the counter would loop forever.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "standing_auth": {
+          "description": "The authorization gate's resolved rows.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/StandingAuth"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target": {
+          "description": "The flat target epic whose task children are the run's work.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "Exclusion": {
+      "additionalProperties": false,
+      "description": "A bead the run considered and did not admit.",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "reason"
+      ],
+      "type": "object"
+    },
+    "Fact": {
+      "additionalProperties": false,
+      "description": "One thing a command reports, with the invocations that established it.\n\nAn agent that can see the command behind a line can re-run it, argue with\nit, and work around it when the underlying tool changes; an agent that\ncannot has to trust a wrapper it did not write. So the invocations are\npart of the fact rather than a separate section.",
+      "properties": {
+        "established": {
+          "description": "Whether the value could be read at all.\n\nA fact that could not be taken is still reported — as unestablished,\nwith a reason — rather than omitted or emitted as an empty value of its\ntype. When this is false the value is absent and the reason says why;\nwhen it is true the value is present.\n\nEstablished is not the same as satisfactory: a value that was read and\nis wrong is established AND carries a reason.",
+          "type": "boolean"
+        },
+        "invocations": {
+          "description": "The commands a reader can re-run to reproduce the fact, each\nwith its executable first. At least one.",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "name": {
+          "description": "What the fact is. A consumer keys on this, so it is a contract.",
+          "type": "string"
+        },
+        "reason": {
+          "description": "What is wrong with this fact: why it could not be taken, or what is\nwrong with the value it carries. Empty when nothing is.",
+          "type": "string"
+        },
+        "resolution": {
+          "description": "What would put THIS fact right, when anything would. Empty\notherwise.\n\nSeparate from the result's own resolution because a command reporting\nseveral unsatisfied properties resolves each differently — naming the\nkey to write, not the shape of the command that writes one.",
+          "type": "string"
+        },
+        "value": {
+          "description": "What was established. Absent when the fact was not.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/FactValue"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "established",
+        "reason",
+        "resolution",
+        "invocations"
+      ],
+      "type": "object"
+    },
+    "FactKind": {
+      "description": "Which of four shapes a fact's value takes.",
+      "enum": [
+        "text",
+        "count",
+        "flag",
+        "list",
+        "structured"
+      ],
+      "type": "string"
+    },
+    "FactValue": {
+      "additionalProperties": false,
+      "description": "The value of an established fact.\n\nA closed set of shapes rather than an open one: a consumer branches on\nthe kind and reads the field that kind carries, instead of guessing at\nthe JSON type it was handed.\n\nExactly one of the four value fields is present, and it is the one the\nkind names. That is a rule the shape cannot state — a schema can say\nwhich fields may appear, not which combination is coherent — so it is\nenforced where the value is built, and a value carrying the wrong field\nfor its kind is refused rather than rendered.",
+      "properties": {
+        "count": {
+          "description": "Present when the kind is count.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "flag": {
+          "description": "Present when the kind is flag.",
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "items": {
+          "description": "Present when the kind is list.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "kind": {
+          "$ref": "#/definitions/FactKind",
+          "description": "Which field carries the value."
+        },
+        "structured": {
+          "description": "Present when the kind is structured: a JSON document, carried as\ntext.\n\nA structured value is an object, or a list of them, and this schema\nlanguage offers no type for one — there is no Any, and a discriminated\nunion over the concrete types does not compile under this repository's\nconfiguration. Carrying the JSON is what lets the value survive\nintact; a renderer parses it and emits it as real structure, and a\nconsumer parses the string.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "text": {
+          "description": "Present when the kind is text.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "type": "object"
+    },
+    "FlagAuthRow": {
+      "additionalProperties": false,
+      "description": "An authorization row whose resolved value is yes or no.",
+      "properties": {
+        "source": {
+          "$ref": "#/definitions/AuthSource"
+        },
+        "value": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "value",
+        "source"
+      ],
+      "type": "object"
+    },
+    "Invocation": {
+      "additionalProperties": false,
+      "description": "One step of the plan a command ran, as the audit line for it.",
+      "properties": {
+        "command": {
+          "description": "The resolved command, quoted so it can be pasted into a shell.\nEmpty when the step did not run.",
+          "type": "string"
+        },
+        "dir": {
+          "description": "The working directory it ran in. Empty means the caller's own.",
+          "type": "string"
+        },
+        "duration_ms": {
+          "$ref": "#/definitions/__Int",
+          "description": "How long the invocation took, in whole milliseconds.\n\nA count rather than a formatted duration: a field whose meaning depends\non the locale of the process that produced it is one this contract\nforbids."
+        },
+        "error": {
+          "description": "Why the step failed, when it did: the process could not be started,\nits decoder refused the result, or an argument could not be resolved.\nA non-zero exit alone is not an error. Empty when there was none.",
+          "type": "string"
+        },
+        "exit_status": {
+          "$ref": "#/definitions/__Int",
+          "description": "The status the finished process reported. Meaningful only when the\nstep ran; -1 when the process was terminated by a signal."
+        },
+        "reason": {
+          "description": "Why a refused or skipped step did not run. Empty otherwise.",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/StepStatus",
+          "description": "What became of the step."
+        },
+        "stderr_digest": {
+          "description": "A digest of the whole standard error stream, separately, because the\nstreams are separate.",
+          "type": "string"
+        },
+        "stdout_digest": {
+          "description": "A digest of the whole standard output stream, as sha256:<hex>.",
+          "type": "string"
+        },
+        "step": {
+          "description": "The step's name within its plan.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "step",
+        "command",
+        "dir",
+        "status",
+        "reason",
+        "exit_status",
+        "duration_ms",
+        "stdout_digest",
+        "stderr_digest",
+        "error"
+      ],
+      "type": "object"
+    },
+    "Move": {
+      "additionalProperties": false,
+      "description": "A bead the run moved into its own epic, and where it came from.",
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "from"
+      ],
+      "type": "object"
+    },
+    "PlanKeys": {
+      "additionalProperties": false,
+      "description": "Keys the run's planning establishes.",
+      "properties": {
+        "admitted": {
+          "description": "Every bead admitted to the run.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "checks_baseline": {
+          "description": "What the declared checks printed on the untouched tree, verbatim.\n\nRecorded whole rather than summarized: the bar for every bead in the\nrun is \"no findings beyond this\", which a summary cannot express.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "checks_baseline_status": {
+          "description": "The status the baseline run exited with. Zero means every check is\nexpected to pass, so any failure a bead sees is its own.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "checks_ids": {
+          "description": "The ids of the checks the project declares, in declaration order.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "collision_edges": {
+          "description": "Where the edge document the run was built from was written.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "concurrency_cap": {
+          "description": "The most dispatches the run may have in flight at once.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "effort": {
+          "description": "The reasoning effort the harness was set to.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/RunEffort"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "excluded": {
+          "description": "Every bead considered and not admitted, with why.",
+          "items": {
+            "$ref": "#/definitions/Exclusion"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "ledger": {
+          "description": "Facts established this run that no dispatch should re-diagnose,\neach naming the command that proved it and the result observed.\n\nAppend-only: dispatch prompts cite entries by position, so an entry\nremoved or reordered retargets every citation that addressed it.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "models": {
+          "description": "The model behind each capability tier.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/TierModels"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "moved": {
+          "description": "Every bead moved into the run's epic, and where it came from.",
+          "items": {
+            "$ref": "#/definitions/Move"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "partition_preview": {
+          "description": "What became of the partition the planner proposed.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "review_budget": {
+          "description": "How many review loops the run may spend.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "standing_auth": {
+          "description": "The authorization gate's resolved rows.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/StandingAuth"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target": {
+          "description": "The flat target epic whose task children are the run's work.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "PreFlightKeys": {
+      "additionalProperties": false,
+      "description": "Keys the run's pre-flight establishes.\n\nEvery key here is optional on the wire: the manifest is a partial record\nthat grows as a run proceeds, and a key's absence before its stage is a\nlegitimate state rather than a defect. What this struct asserts is the\nstage at which each key becomes required, which is the fact validation\nreads.",
+      "properties": {
+        "checks_baseline": {
+          "description": "What the declared checks printed on the untouched tree, verbatim.\n\nRecorded whole rather than summarized: the bar for every bead in the\nrun is \"no findings beyond this\", which a summary cannot express.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "checks_baseline_status": {
+          "description": "The status the baseline run exited with. Zero means every check is\nexpected to pass, so any failure a bead sees is its own.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "checks_ids": {
+          "description": "The ids of the checks the project declares, in declaration order.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "concurrency_cap": {
+          "description": "The most dispatches the run may have in flight at once.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "effort": {
+          "description": "The reasoning effort the harness was set to.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/RunEffort"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ledger": {
+          "description": "Facts established this run that no dispatch should re-diagnose,\neach naming the command that proved it and the result observed.\n\nAppend-only: dispatch prompts cite entries by position, so an entry\nremoved or reordered retargets every citation that addressed it.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "models": {
+          "description": "The model behind each capability tier.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/TierModels"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "RetroKeys": {
+      "additionalProperties": false,
+      "description": "Keys the run's retrospective establishes.\n\nAn absent findings_path means the retro did not run, which is a different\nresult from a retro that found nothing.",
+      "properties": {
+        "admitted": {
+          "description": "Every bead admitted to the run.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "base_sha": {
+          "description": "The commit the sprint branch was cut from, recorded at creation and\nnever derived later — a merge-base taken afterwards assumes the base\nhas not moved, and on a long run it will have.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branch": {
+          "description": "The sprint branch. Written once: a run whose manifest already\ncarries it reuses the branch and creates nothing, which is what makes\na resumed run land where the original did.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "checks_baseline": {
+          "description": "What the declared checks printed on the untouched tree, verbatim.\n\nRecorded whole rather than summarized: the bar for every bead in the\nrun is \"no findings beyond this\", which a summary cannot express.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "checks_baseline_status": {
+          "description": "The status the baseline run exited with. Zero means every check is\nexpected to pass, so any failure a bead sees is its own.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "checks_ids": {
+          "description": "The ids of the checks the project declares, in declaration order.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "collision_edges": {
+          "description": "Where the edge document the run was built from was written.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "concurrency_cap": {
+          "description": "The most dispatches the run may have in flight at once.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "effort": {
+          "description": "The reasoning effort the harness was set to.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/RunEffort"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "excluded": {
+          "description": "Every bead considered and not admitted, with why.",
+          "items": {
+            "$ref": "#/definitions/Exclusion"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "findings_path": {
+          "description": "Where the run's one human-facing document was written.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ledger": {
+          "description": "Facts established this run that no dispatch should re-diagnose,\neach naming the command that proved it and the result observed.\n\nAppend-only: dispatch prompts cite entries by position, so an entry\nremoved or reordered retargets every citation that addressed it.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "models": {
+          "description": "The model behind each capability tier.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/TierModels"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "moved": {
+          "description": "Every bead moved into the run's epic, and where it came from.",
+          "items": {
+            "$ref": "#/definitions/Move"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "partition_preview": {
+          "description": "What became of the partition the planner proposed.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "retro_declined": {
+          "description": "How many findings a human declined.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retro_filed": {
+          "description": "How many findings became issues.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retro_routed": {
+          "description": "How many findings were routed elsewhere.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "review_budget": {
+          "description": "How many review loops the run may spend.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "review_passes": {
+          "description": "How many review loops the run has spent. Durable because a resumed\nrun that restarted the counter would loop forever.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "standing_auth": {
+          "description": "The authorization gate's resolved rows.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/StandingAuth"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target": {
+          "description": "The flat target epic whose task children are the run's work.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "RunEffort": {
+      "description": "How much reasoning effort the harness was set to for this run.\n\nA harness that exposes no such setting records it as unrecorded rather\nthan leaving the key absent, so a reader can tell \"not offered\" from\n\"not yet written\".",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "unrecorded"
+      ],
+      "type": "string"
+    },
+    "RunManifest": {
+      "additionalProperties": false,
+      "description": "The run manifest: the JSON object in a run epic's tracker metadata,\nand the run's only durable record.\n\nThis is the whole declared key set. A key outside it is refused rather\nthan stored, and a value whose type is not its key's declared type is\nrefused, which is what the closed shape above expresses.\n\nThe stage at which a key becomes required is the first struct in the\nchain that declares it — PreFlightKeys, then ScopeKeys, PlanKeys,\nDispatchKeys, RetroKeys — so a key's name, its type and its stage all\ncome from one declaration.",
+      "properties": {
+        "admitted": {
+          "description": "Every bead admitted to the run.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "base_sha": {
+          "description": "The commit the sprint branch was cut from, recorded at creation and\nnever derived later — a merge-base taken afterwards assumes the base\nhas not moved, and on a long run it will have.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branch": {
+          "description": "The sprint branch. Written once: a run whose manifest already\ncarries it reuses the branch and creates nothing, which is what makes\na resumed run land where the original did.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "checks_baseline": {
+          "description": "What the declared checks printed on the untouched tree, verbatim.\n\nRecorded whole rather than summarized: the bar for every bead in the\nrun is \"no findings beyond this\", which a summary cannot express.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "checks_baseline_status": {
+          "description": "The status the baseline run exited with. Zero means every check is\nexpected to pass, so any failure a bead sees is its own.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "checks_ids": {
+          "description": "The ids of the checks the project declares, in declaration order.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "collision_edges": {
+          "description": "Where the edge document the run was built from was written.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "concurrency_cap": {
+          "description": "The most dispatches the run may have in flight at once.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "effort": {
+          "description": "The reasoning effort the harness was set to.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/RunEffort"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "excluded": {
+          "description": "Every bead considered and not admitted, with why.",
+          "items": {
+            "$ref": "#/definitions/Exclusion"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "findings_path": {
+          "description": "Where the run's one human-facing document was written.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ledger": {
+          "description": "Facts established this run that no dispatch should re-diagnose,\neach naming the command that proved it and the result observed.\n\nAppend-only: dispatch prompts cite entries by position, so an entry\nremoved or reordered retargets every citation that addressed it.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "models": {
+          "description": "The model behind each capability tier.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/TierModels"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "moved": {
+          "description": "Every bead moved into the run's epic, and where it came from.",
+          "items": {
+            "$ref": "#/definitions/Move"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "partition_preview": {
+          "description": "What became of the partition the planner proposed.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "retro_declined": {
+          "description": "How many findings a human declined.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retro_filed": {
+          "description": "How many findings became issues.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "retro_routed": {
+          "description": "How many findings were routed elsewhere.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "review_budget": {
+          "description": "How many review loops the run may spend.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "review_passes": {
+          "description": "How many review loops the run has spent. Durable because a resumed\nrun that restarted the counter would loop forever.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "standing_auth": {
+          "description": "The authorization gate's resolved rows.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/StandingAuth"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target": {
+          "description": "The flat target epic whose task children are the run's work.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "trailers": {
+          "description": "The commit trailers the run resolved.\n\nDeclared here rather than in a stage struct, and that placement is what\nsays it is never required: a run that resolved no trailer convention\nlegitimately carries none at every stage, so an absent value means that\nrather than \"not yet written\". A key whose absence is always legitimate\nhas no stage, and having no stage is expressed by having no stage\nstruct.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "RunStage": {
+      "description": "The stages of a run, in the order a run reaches them.\n\nA manifest key becomes required at the stage whose key struct declares it,\nand the value here names that stage. The correspondence is structural:\nthe struct declaring a key IS the statement of its stage, so a key cannot\nbe given a type in one place and a stage in another.",
+      "enum": [
+        "pre-flight",
+        "scope",
+        "plan",
+        "dispatch",
+        "retro"
+      ],
+      "type": "string"
+    },
+    "ScopeKeys": {
+      "additionalProperties": false,
+      "description": "Keys the run's scope and admission establish.",
+      "properties": {
+        "admitted": {
+          "description": "Every bead admitted to the run.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "checks_baseline": {
+          "description": "What the declared checks printed on the untouched tree, verbatim.\n\nRecorded whole rather than summarized: the bar for every bead in the\nrun is \"no findings beyond this\", which a summary cannot express.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "checks_baseline_status": {
+          "description": "The status the baseline run exited with. Zero means every check is\nexpected to pass, so any failure a bead sees is its own.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "checks_ids": {
+          "description": "The ids of the checks the project declares, in declaration order.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "concurrency_cap": {
+          "description": "The most dispatches the run may have in flight at once.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "effort": {
+          "description": "The reasoning effort the harness was set to.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/RunEffort"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "excluded": {
+          "description": "Every bead considered and not admitted, with why.",
+          "items": {
+            "$ref": "#/definitions/Exclusion"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "ledger": {
+          "description": "Facts established this run that no dispatch should re-diagnose,\neach naming the command that proved it and the result observed.\n\nAppend-only: dispatch prompts cite entries by position, so an entry\nremoved or reordered retargets every citation that addressed it.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "models": {
+          "description": "The model behind each capability tier.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/TierModels"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "moved": {
+          "description": "Every bead moved into the run's epic, and where it came from.",
+          "items": {
+            "$ref": "#/definitions/Move"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "review_budget": {
+          "description": "How many review loops the run may spend.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "standing_auth": {
+          "description": "The authorization gate's resolved rows.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/StandingAuth"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "target": {
+          "description": "The flat target epic whose task children are the run's work.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "type": "object"
+    },
+    "StandingAuth": {
+      "additionalProperties": false,
+      "description": "The authorization gate's rows, each with its resolved value and where\nthat value came from.\n\nNamed fields rather than a map, because the rows are a fixed set and each\none's value has a fixed type: a map would have to carry a value of mixed\ntype, and there is no such thing in a closed schema. This is also what\nlets the wire form stay exactly what the skills write today.",
+      "properties": {
+        "admit_review_findings": {
+          "$ref": "#/definitions/FlagAuthRow",
+          "description": "Whether review findings are worked in this run or only filed."
+        },
+        "merge_to_default": {
+          "$ref": "#/definitions/FlagAuthRow",
+          "description": "Whether the run may merge to the default branch."
+        },
+        "move_foreign_beads": {
+          "$ref": "#/definitions/FlagAuthRow",
+          "description": "Whether a bead belonging to another epic is moved into this run."
+        },
+        "pull_request": {
+          "$ref": "#/definitions/TextAuthRow",
+          "description": "draft, ready, or none — what the run opens at the end."
+        },
+        "review_budget": {
+          "$ref": "#/definitions/CountAuthRow",
+          "description": "How many review loops the run may spend."
+        },
+        "tier_escalation": {
+          "$ref": "#/definitions/TextAuthRow",
+          "description": "once or never — whether a repeated failure escalates a tier."
+        }
+      },
+      "required": [
+        "pull_request",
+        "move_foreign_beads",
+        "admit_review_findings",
+        "tier_escalation",
+        "review_budget",
+        "merge_to_default"
+      ],
+      "type": "object"
+    },
+    "StepStatus": {
+      "description": "What became of one step of a command's plan.",
+      "enum": [
+        "ran",
+        "refused",
+        "skipped"
+      ],
+      "type": "string"
+    },
+    "TextAuthRow": {
+      "additionalProperties": false,
+      "description": "An authorization row whose resolved value is a word.",
+      "properties": {
+        "source": {
+          "$ref": "#/definitions/AuthSource"
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "source"
+      ],
+      "type": "object"
+    },
+    "TierModels": {
+      "additionalProperties": false,
+      "description": "The model behind each capability tier, least to most capable.",
+      "properties": {
+        "advanced": {
+          "type": "string"
+        },
+        "frontier": {
+          "type": "string"
+        },
+        "light": {
+          "type": "string"
+        },
+        "standard": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "light",
+        "standard",
+        "advanced",
+        "frontier"
+      ],
+      "type": "object"
+    },
+    "__Int": {
+      "maximum": 9007199254740991,
+      "minimum": -9007199254740991,
+      "type": "integer"
+    }
+  }
+}

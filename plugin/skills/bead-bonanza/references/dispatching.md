@@ -52,7 +52,7 @@ shared surface so a reader can tell them apart: `run-record.md`.
   (`supervision.md`).
 - `BB_WORKTREE_BASEREF` is `head` before the next worktree is created. It is
   global user state no repository owns, so it can change between dispatches.
-- Diff the front against `manifest.admitted` (`bb-status.sh run <epic>` names
+- Diff the front against `manifest.admitted` (`swarm status --run <epic>` names
   the difference) and resolve any creep — admitted as an amendment, or deferred
   out — rather than dispatching an unexamined bead.
 
@@ -110,9 +110,9 @@ comments on beads and closes what it finished. With
 ## Verify against state, never against testimony
 
 **A subagent saying a bead is closed is not evidence that it is.** Every signal
-below is read from the tracker or from git, and each script prints the command
-that established it so any single line can be re-run. Where a step and this
-rule disagree, this rule wins.
+below is read from the tracker or from git, and each command prints the
+invocation that established each finding, so any single line can be re-run.
+Where a step and this rule disagree, this rule wins.
 
 After a subagent returns:
 
@@ -141,17 +141,15 @@ After a subagent returns:
    It verifies the five signals in the required order and stops at the first
    that fails: the bead reads closed in the tracker; a commit carrying the id
    exists; that commit is an ancestor of HEAD; the worktree is gone; and at
-   least one `retro:` comment was recorded. Each line prints the state **and
-   the command that established it**, so any single check can be re-run without
-   reconstructing it.
+   least one `retro:` comment was recorded. Each line follows the command
+   contract's requirement to print the state and the command that established
+   it, so any single check can be re-run without reconstructing it.
 
-   **Read the exit code — it is the decision:**
-
-   | | |
-   |---|---|
-   | `0` | all clear — record the bead closed |
-   | `1` | **repairable in place.** Signals 1, 2, 5: close the bead, or add the missing `retro:` comment from the returned summary. State the repair in the report. |
-   | `2` | **stop.** Not yours to repair inline — leave the worktree standing, since it is the in-flight signal, and surface it. |
+   **Read the exit code — it is the decision.** For this check, `0` is clear, `1` is repairable
+   (signals 1, 2, 5: close the bead, or add the missing `retro:` comment
+   from the returned summary; state the repair in the report), and `2` is stop
+   (not yours to repair inline — leave the worktree standing, since it is the
+   in-flight signal, and surface it).
 
    **`--pre-merge` is not optional on this run.** You have not merged yet, so
    signals 3 (merged into HEAD) and 4 (worktree gone) would fail on **every

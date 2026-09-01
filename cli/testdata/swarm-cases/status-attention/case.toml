@@ -1,0 +1,20 @@
+# A run with an open, unassigned bead and no dispatch worktree, against
+# real git and a real tracker: the ready front is not empty, no dispatch
+# worktree stands, and the sprint branch's last commit is far older than
+# even a 1-nanosecond threshold. AC-SWARM-CORE-003.1's attention exit, and
+# AC-SWARM-CORE-001.3's requirement that it names what would resolve it.
+
+fixture = "status-attention"
+args = ["status", "--run", "fixture-run", "--stall-after", "1ns"]
+exit = 1
+ac = ["AC-SWARM-CORE-003.1", "AC-SWARM-CORE-001.3", "AC-SWARM-CORE-003.11"]
+
+[[normalize]]
+pattern = "[0-9]+h[0-9]+m[0-9.]+s"
+with = "<age>"
+why = "the last commit's age is measured against the real clock, not fixed by the fixture"
+
+[[normalize]]
+pattern = "last_commit_age_seconds:\n  ok: true\n  value: [0-9]+"
+with = "last_commit_age_seconds:\n  ok: true\n  value: <age-seconds>"
+why = "the same age, as the raw count this reporter also states"

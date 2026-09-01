@@ -57,7 +57,8 @@ Check it whenever you groom under an epic.
       cap and their queues never drain; the run looks alive and makes no progress.
 
       ```sh
-      cap=$(bd show <epic> --json | jq '.[0].metadata.concurrency_cap')
+      cap=$(swarm manifest get --run <epic> --key concurrency_cap --json \
+              | jq -r .concurrency_cap)
       n=$(bd list --parent <epic> --status all --json \
             | jq '[.[].assignee | select(. != null) | select(startswith("dev-"))]
                   | unique | length')
@@ -71,8 +72,10 @@ Check it whenever you groom under an epic.
       Counting all distinct assignees under-subscribes the dev pool by the
       number of ceremony roles the run happens to have used.
 
-      WHERE the epic's manifest carries no `concurrency_cap`, report the check
-      as **unmeasurable** and say so. An epic that was never pre-flighted has
+      WHERE the epic's manifest carries no `concurrency_cap` — `swarm manifest
+      require --run <epic> --key concurrency_cap` answers that as a status —
+      report the check as **unmeasurable** and say so. An epic that was never
+      pre-flighted has
       no cap to plan against, and a default substituted here is a number
       nobody measured reading as one somebody did.
 

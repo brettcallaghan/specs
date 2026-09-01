@@ -83,11 +83,14 @@ copy.
    out and adds to it. Creating one forks the run's history from the work it is
    meant to continue.
 
-3. **Read the run epic in full** — `bd show <epic> --json`. Its metadata is the
-   manifest: standing authorization, declared check ids, the checks baseline,
-   the model lineup, the environmental ledger, the **admission record**
-   (`admitted`, `excluded`, `moved`) and the review counter (`review_passes`,
-   `review_budget`). Its `amend:` comments are how the run diverged.
+3. **Read the run epic in full** — `swarm manifest get --run <epic>` for the
+   manifest, `bd show <epic>` for its `amend:` comments. Run both and read what
+   they print: the manifest is what the original run recorded about itself, and
+   the comments are how it diverged.
+
+   **Then `swarm manifest validate --run <epic>`.** You are reconstructing a
+   run no session held, so the record may have been left half-written. **That
+   is a fact to hand back, not one to repair.**
 
    **Carry `review_passes` forward — do not restart it.** It is durable for
    exactly this moment: a resumed run that reset the counter re-enters the
@@ -105,13 +108,12 @@ copy.
 4. **Run the scripts; do not derive by hand.**
 
    ```sh
-   git worktree prune                      # stale registrations read as in-flight forever
-   "$SCRIPTS/bb-status.sh" run <epic>      # scope, counts, derived health, readiness, DoD
+   swarm status --run <epic>      # run it, read it, route on the status
    ```
 
-   `git worktree prune` first is not optional: a reclaimed container leaves
-   directories deleted but still registered, and a stale entry reads as
-   in-flight forever.
+   It prunes stale worktree registrations before it counts them, which is not
+   optional: a reclaimed container leaves directories deleted but still
+   registered, and a stale entry reads as in-flight forever.
 
 5. **Classify what the scripts flagged — this is the judgment, and it is what
    remains yours.** Each surviving worktree's checked-out branch is **named for

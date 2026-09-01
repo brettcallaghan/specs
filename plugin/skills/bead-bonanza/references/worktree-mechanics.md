@@ -23,14 +23,17 @@ it is standing in (`dispatching.md`).
 The coordinator's, and only its. Run it immediately before the first dispatch:
 
 ```bash
-br="$(bd show "$BB_EPIC" --json | jq -r '.[0].metadata.branch // empty')"
-if [ -n "$br" ]; then git checkout "$br"          # RESUME — create nothing
+out="$(swarm manifest get --run "$BB_EPIC" --key branch --json)"; st=$?
+br="$(printf '%s' "$out" | jq -r '.branch // empty')"
+if [ "$st" = 0 ]; then                            # RESUME — create nothing
+  git checkout "$br"
 else
   br="sprint/<epic-suffix>"
   git rev-parse --verify "$br" >/dev/null 2>&1 && { echo "branch $br taken"; exit 1; }
   git checkout -b "$br"
-  bd update "$BB_EPIC" --set-metadata branch="$br" \
-                       --set-metadata base_sha="$(git rev-parse HEAD)"
+  swarm manifest set --run "$BB_EPIC" \
+    --key branch   --value "\"$br\"" \
+    --key base_sha --value "\"$(git rev-parse HEAD)\""
 fi
 ```
 
@@ -38,6 +41,17 @@ fi
 same branch as the original; creating a second one forks the run's history from
 the work it is meant to continue. A name already taken by an unrelated branch
 stops the run here, before any worktree exists.
+
+**Both keys go in ONE `swarm manifest set`.** The command applies a whole
+invocation as a single merge, so a run that wrote them one at a time could
+leave a branch recorded with no base against it. It also refuses to change
+either once written — which is what makes re-running this block on a resume
+safe rather than a second fork. The read above captures the command's output
+first and takes `$?` from that, then reads the key out of it: an `attention`
+status (exit 1) is how "not written" reaches you, and its answer carries
+`branch.ok: false` rather than a value, so `jq -r '.branch // empty'` leaves the
+variable empty. Do not put a pipe between the command and `$?` — that would
+hand you the last stage's status instead.
 
 **`base_sha` is recorded at creation** because that is the only moment it is
 unambiguous — deriving it later from a merge-base assumes the base branch has
@@ -100,10 +114,16 @@ happens inside.
 **One worktree and ONE BRANCH per DISPATCH.** A batch is one agent working its
 beads serially, so a second worktree isolates it from nobody — and a branch per
 bead buys nothing either, because **one commit per bead is what separates the
-beads**, and the ceremony already guarantees it. The branch is named for the
-dispatch id, so `git worktree list` names the agent directly and each bead
-comes from its commit subject (`<id> P<n> <title>`), which is the same handle
-recovery reads.
+beads**, and the ceremony already guarantees it.
+
+**Attribution reads the commits, never the branch name.** Coordinator-created
+trees below name the branch for the dispatch id, but nothing downstream —
+`swarm status`, `../scripts/sprint-cleanup.sh` — relies on that convention: each worktree
+is matched to its dispatch through the bead its HEAD commit closed
+(`<id> P<n> <title>`, the same handle recovery reads) and that bead's own
+`.assignee`. This is what lets the SAME mechanism attribute a worktree the
+harness itself created — see below — whose branch carries no dispatch id at
+all.
 
 ```sh
 REPO="$(git rev-parse --show-toplevel)"
@@ -112,7 +132,9 @@ git -C "$REPO" worktree add -b "bb/<dispatch-id>" "$WT" HEAD
 ```
 
 A worktree inside the repository would read as dirt in every `git status` the
-run takes, which is why it is a sibling.
+run takes, which is why it is a sibling — when this creation path runs at all.
+It is the manual fallback; the path a dispatch actually takes today is the one
+below, and its worktree is not a sibling.
 
 Branching from `HEAD` — the sprint branch as it stands *now*, after the
 previous dispatch merged — is what makes each dispatch build on the last. Where
@@ -124,6 +146,13 @@ is not yours to choose, so neutralise it: ensure the harness's worktree
 directory is gitignored before the first dispatch.** Untracked worktrees inside
 the repo are reported as uncommitted work by anything reading `git status`, and
 committing them lands in-flight bead state on the sprint branch.
+
+**The branch it checks out is also not yours to choose, and that is fine.**
+Measured against this harness: it names the branch `worktree-agent-<hash>` —
+the harness's own agent id, carrying no dispatch id at all, nothing like
+`bb/<dispatch-id>`. Nothing downstream cares: attribution reads the HEAD
+commit, not the branch, as stated above. Do not "fix" this by trying to rename
+or re-point the branch after the fact.
 
 1. **Dispatch** one subagent into `$WT`. It implements, gates, records findings,
    and closes each bead with `../scripts/bb-close-bead.sh` — passing **no

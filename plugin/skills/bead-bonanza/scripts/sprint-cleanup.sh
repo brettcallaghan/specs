@@ -21,11 +21,14 @@
 #   A worktree whose agent still has a queue is a live worker or a corpse, and
 #   this script cannot tell which. It leaves it alone and says so.
 #
-#   It asks the tracker rather than a bookkeeping key: the worktree's checked-
-#   out branch is `bb/<dispatch-id>`, the dispatch id IS the agent, and the
-#   agent has DRAINED when `bd ready --assignee <id>` is empty and it holds
-#   nothing `in_progress`. Nothing has to be written at dispatch time for that
-#   to work, so nothing can be forgotten or go stale.
+#   It asks the tracker rather than a bookkeeping key: a worktree's owner is
+#   the assignee of the bead its HEAD commit closed, not the branch it has
+#   checked out — a dispatch's own worktree-creation mechanism can name that
+#   branch however it likes and does not carry the dispatch id in it (the
+#   Agent tool's own `isolation:"worktree"` checks out `worktree-agent-<hash>`,
+#   for one). The agent has DRAINED when `bd ready --assignee <id>` is empty
+#   and it holds nothing `in_progress`. Nothing has to be written at dispatch
+#   time for that to work, so nothing can be forgotten or go stale.
 #
 # Every removal prints WHAT was removed and the command that did it, so a
 # reader can tell a teardown from a claim of one.
@@ -64,15 +67,14 @@ prune_worktrees() { # prune_worktrees <epic>
   # checkout. The first entry is the main worktree by definition.
   main="$(git worktree list --porcelain 2>/dev/null | main_worktree)"
   here="$(git rev-parse --show-toplevel 2>/dev/null)"
-  pairs="$(git worktree list --porcelain 2>/dev/null | parse_worktree_branches)"
-  [ -n "$pairs" ] || { say "no worktrees registered"; return 0; }
+  paths="$(git worktree list --porcelain 2>/dev/null | parse_worktrees)"
+  [ -n "$paths" ] || { say "no worktrees registered"; return 0; }
 
   seen=0
   # A pipe would put this loop in a subshell, where note_left cannot reach
   # $left and a LEFT worktree would print while the script still exited 0.
-  while IFS= read -r pair; do
-    [ -n "$pair" ] || continue
-    wt="${pair%%	*}"; br="${pair#*	}"
+  while IFS= read -r wt; do
+    [ -n "$wt" ] || continue
     [ "$wt" = "$main" ] && continue
     seen=$((seen+1))
     # A worktree cannot remove itself — `git worktree remove` refuses the one
@@ -80,9 +82,9 @@ prune_worktrees() { # prune_worktrees <epic>
     if [ -n "$here" ] && [ "$wt" = "$here" ]; then
       line "LEFT" "worktree, this cleanup is standing in it" "$wt"; note_left; continue
     fi
-    handle_worktree "$wt" "$br" "$run_id"
+    handle_worktree "$wt" "$run_id"
   done <<WTLIST
-$pairs
+$paths
 WTLIST
   [ "$seen" = 0 ] && say "no run worktrees registered"
   return 0
@@ -95,11 +97,11 @@ WTLIST
 # still lets the script exit 0 has torn nothing down but has also warned nobody.
 # Callers must NOT capture its stdout — a command substitution runs it in a
 # subshell, where note_left cannot reach $left.
-handle_worktree() { # handle_worktree <path> <branch> <run-id>
-  _hw_who="$(owner_for_branch "$2")"
+handle_worktree() { # handle_worktree <path> <run-id>
+  _hw_who="$(owner_for_worktree "$1")"
   if [ -z "$_hw_who" ]; then
-    line "LEFT" "worktree, its branch names no dispatch" "$1"; note_left
-  elif ! in_run "$_hw_who" "$3"; then
+    line "LEFT" "worktree, its HEAD commit names no dispatch" "$1"; note_left
+  elif ! in_run "$_hw_who" "$2"; then
     # SCOPE. A dispatch id carries its run id by construction, so a worktree
     # belonging to a CONCURRENT sprint is recognised without reading the
     # tracker at all — and is left standing rather than force-removed with its
@@ -125,8 +127,8 @@ handle_worktree() { # handle_worktree <path> <branch> <run-id>
 }
 
 # ----------------------------------------------------------------- parsers
-# Both read stdin and are pure text transforms, so the self-test can drive
-# them with synthetic input and needs neither a repository nor a tracker.
+# A pure text transform, so the self-test can drive it with synthetic input
+# and needs neither a repository nor a tracker.
 
 # sed, not `awk '{print $2}'`: a worktree path containing a space is truncated
 # at the space by field splitting, and the truncated path then matches no bead
@@ -136,28 +138,27 @@ parse_worktrees() { sed -n 's/^worktree //p'; }
 # The MAIN checkout, which `git worktree list --porcelain` always lists first.
 main_worktree() { sed -n 's/^worktree //p' | sed -n '1p'; }
 
-# path<TAB>branch, one line per registration, from `git worktree list
-# --porcelain`. A detached worktree has no `branch` line, so it emits an empty
-# branch and is reported LEFT rather than silently removed. Substring
-# assignment, not field splitting, for the same space-in-path reason.
-parse_worktree_branches() {
-  awk '
-    /^worktree /  { if (p != "") { print p "\t" b } ; p = substr($0, 10); b = "" ; next }
-    /^branch /    { b = substr($0, 8); sub(/^refs\/heads\//, "", b); next }
-    END           { if (p != "") { print p "\t" b } }
-  '
-}
-
-# A dispatch's branch is `bb/<dispatch-id>` and the dispatch id IS the agent,
-# so ownership is a string strip rather than a tracker lookup. A branch that
-# does not carry the prefix belongs to something this run did not create — a
-# detached worktree emits an empty branch and lands here too — and is reported
-# LEFT rather than removed.
-owner_for_branch() { # owner_for_branch <branch>  ->  dispatch-id|""
-  case "$1" in
-    bb/?*) printf '%s' "${1#bb/}" ;;
-    *)     : ;;
-  esac
+# A worktree's owner is the assignee of the bead its HEAD commit closed — not
+# its branch, which this run does not control and cannot rely on being named
+# `bb/<dispatch-id>` (measured: the Agent tool's own `isolation:"worktree"`
+# checks out `worktree-agent-<hash>`, carrying no dispatch id at all).
+#
+# `bb-close-bead.sh` commits as "<id> P<n> <title>", so the bead id is the
+# HEAD commit's subject up to its first space, and only when a second token
+# starting with "P" follows it — a subject not shaped that way (a merge, an
+# unrelated commit, one with no space at all) names no bead and this returns
+# empty, same as a bead `bd` cannot answer for or one with no assignee. A
+# detached worktree still has a HEAD commit, so it is attributed exactly like
+# a branched one; nothing here reads the branch at all.
+owner_for_worktree() { # owner_for_worktree <path>  ->  dispatch-id|""
+  _ofw_subject="$(git -C "$1" log -1 --format=%s 2>/dev/null)" || return 0
+  _ofw_id="${_ofw_subject%% *}"
+  _ofw_rest="${_ofw_subject#* }"
+  [ "$_ofw_id" != "$_ofw_subject" ] || return 0
+  case "$_ofw_rest" in P[0-9]*) : ;; *) return 0 ;; esac
+  _ofw_bead="$(bd show "$_ofw_id" --json 2>/dev/null)" || return 0
+  printf '%s' "$_ofw_bead" | jq -r \
+    'if type == "array" then .[0].assignee else .assignee end // empty' 2>/dev/null
 }
 
 # SCOPE, without reading the tracker. Every dispatch id derives from the run
@@ -239,22 +240,40 @@ self_test() {
   t "no argument is a usage error"        "$RC_USAGE" "$0"
   t "unknown flag is a usage error"       "$RC_USAGE" "$0" some-epic --bogus
   t "--self-test takes no epic"           "$RC_USAGE" "$0" --self-test extra
-  # The two parsers, driven with synthetic input. Each replaces a form that
-  # was measured wrong: `awk '{print $2}'` truncated a path at its first
-  # space, and a molecule lookup keyed on `.metadata.epic` matched nothing
-  # because molecules carry no metadata at all.
-  # Branch -> owning agent, driven through the real function. A branch is
-  # `bb/<dispatch-id>`; anything else names no dispatch this run created.
-  for _c in "dev branch:dev-r7k-1:bb/dev-r7k-1" \
-            "ceremony branch:retro-r7k:bb/retro-r7k" \
-            "a bare branch name owns nothing::main" \
-            "the prefix alone owns nothing::bb/" \
-            "detached worktree::"; do
-    _n="${_c%%:*}"; _r="${_c#*:}"; _e="${_r%%:*}"; _b="${_r#*:}"
-    _g="$(owner_for_branch "$_b")"
-    if [ "$_g" = "$_e" ]; then printf '  ok   branch owner, %s\n' "$_n"
-    else printf '  FAIL branch owner, %s (expected [%s], got [%s])\n' "$_n" "$_e" "$_g"; fails=$((fails+1)); fi
+  # The path parser, driven with synthetic input. It replaces a form that was
+  # measured wrong: `awk '{print $2}'` truncated a path at its first space.
+  #
+  # Worktree -> owning agent, driven through the REAL function with `git` and
+  # `bd` stubbed, so this needs neither a repository nor a tracker. The close
+  # convention (`bb-close-bead.sh`) commits as "<id> P<n> <title>"; anything
+  # else, or a bead `bd` cannot answer for, names no dispatch.
+  git() {
+    case "$_owf_mode" in
+      close|tracker-fail|no-assignee) [ "$3" = log ] && { printf 'demo-r7k.1 P1 the title'; return 0; }; return 1 ;;
+      not-a-close)                    [ "$3" = log ] && { printf "Merge branch 'x'"; return 0; }; return 1 ;;
+      no-space)                       [ "$3" = log ] && { printf 'onlyoneword'; return 0; }; return 1 ;;
+      no-commits)                     return 1 ;;
+    esac
+  }
+  bd() {
+    case "$_owf_mode" in
+      close)       [ "$1" = show ] && { printf '{"assignee":"dev-r7k-1"}'; return 0; }; return 1 ;;
+      no-assignee) [ "$1" = show ] && { printf '{"assignee":""}'; return 0; }; return 1 ;;
+      *)           return 1 ;;
+    esac
+  }
+  for _c in "a bead's own close commit:dev-r7k-1:close" \
+            "a commit not shaped like a close::not-a-close" \
+            "a subject with no space at all::no-space" \
+            "a bead bd cannot answer for::tracker-fail" \
+            "a bead with no assignee::no-assignee" \
+            "no commits at all::no-commits"; do
+    _n="${_c%%:*}"; _r="${_c#*:}"; _e="${_r%%:*}"; _owf_mode="${_r#*:}"
+    _g="$(owner_for_worktree /wt/probe)"
+    if [ "$_g" = "$_e" ]; then printf '  ok   worktree owner, %s\n' "$_n"
+    else printf '  FAIL worktree owner, %s (expected [%s], got [%s])\n' "$_n" "$_e" "$_g"; fails=$((fails+1)); fi
   done
+  unset -f git bd
   # RUN SCOPING, driven through the real function. This is what keeps a
   # CONCURRENT sprint's worktree standing, and it replaces a tracker walk — so
   # every way a foreign id could sneak through is asserted, not just the
@@ -319,25 +338,37 @@ self_test() {
   # tracker says its owner has drained AND the owner belongs to this run; every
   # other answer leaves it standing AND raises the flag that makes the script
   # exit RC_LEFT.
-  # `agent_drained`, `holds_blocked` and `run` are stubbed, so nothing here
-  # reads a tracker or a repository. Not captured in a `$( )`: that subshell
-  # would swallow $left.
+  # `owner_for_worktree`, `agent_drained`, `holds_blocked` and `run` are
+  # stubbed, so nothing here reads a tracker, git or a repository. Not
+  # captured in a `$( )`: that subshell would swallow $left.
   run() { _hw_ran="yes"; }
+  owner_for_worktree() {
+    case "$1" in
+      /wt/dev-r7k-1) printf 'dev-r7k-1' ;;
+      /wt/dev-r7k-2) printf 'dev-r7k-2' ;;
+      /wt/dev-r7k-3) printf 'dev-r7k-3' ;;
+      /wt/dev-abc-9) printf 'dev-abc-9' ;;
+      *) : ;;
+    esac
+  }
   agent_drained() { [ "$1" = "dev-r7k-2" ] || [ "$1" = "dev-r7k-3" ] || [ "$1" = "dev-abc-9" ]; }
   holds_blocked() { [ "$1" = "dev-r7k-3" ]; }
   # The blocked case and the foreign case both name agents `agent_drained`
   # reports DRAINED, which is the only arrangement that actually exercises the
-  # ordering: a guard consulting agent_drained first would remove both.
-  for _c in "guard, a still-claimed agent keeps its worktree:1:no:bb/dev-r7k-1" \
-            "guard, a drained agent's worktree is removed:0:yes:bb/dev-r7k-2" \
-            "guard, a BLOCKED bead's worktree is left despite a drained agent:1:no:bb/dev-r7k-3" \
-            "guard, a CONCURRENT run's worktree is left despite a drained agent:1:no:bb/dev-abc-9" \
-            "guard, a branch naming no dispatch keeps it:1:no:main" \
-            "guard, a detached worktree is kept:1:no:"; do
+  # ordering: a guard consulting agent_drained first would remove both. The
+  # last two both stub `owner_for_worktree` to attribute nothing, which is
+  # what a commit not shaped like a bead's own close and one `bd` cannot
+  # answer for both reduce to.
+  for _c in "guard, a still-claimed agent keeps its worktree:1:no:dev-r7k-1" \
+            "guard, a drained agent's worktree is removed:0:yes:dev-r7k-2" \
+            "guard, a BLOCKED bead's worktree is left despite a drained agent:1:no:dev-r7k-3" \
+            "guard, a CONCURRENT run's worktree is left despite a drained agent:1:no:dev-abc-9" \
+            "guard, an unattributable worktree's HEAD keeps it:1:no:no-owner" \
+            "guard, a worktree bd cannot answer for is kept:1:no:no-answer"; do
     _n="${_c%%:*}"; _r="${_c#*:}"; _e="${_r%%:*}"; _r="${_r#*:}"
     _x="${_r%%:*}"; _b="${_r#*:}"
     left=0; _hw_ran=no
-    handle_worktree "/wt/$_b" "$_b" "r7k" >/dev/null 2>&1
+    handle_worktree "/wt/$_b" "r7k" >/dev/null 2>&1
     if [ "$left" = "$_e" ] && [ "$_hw_ran" = "$_x" ]; then printf '  ok   %s\n' "$_n"
     else printf '  FAIL %s (expected left=%s removal-attempted=%s, got left=%s removal-attempted=%s)\n' "$_n" "$_e" "$_x" "$left" "$_hw_ran"; fails=$((fails+1)); fi
   done
@@ -346,21 +377,16 @@ self_test() {
   # pass for the wrong reason.
   in_run() { return 0; }
   left=0; _hw_ran=no
-  handle_worktree "/wt/foreign" "bb/dev-abc-9" "r7k" >/dev/null 2>&1
+  handle_worktree "/wt/dev-abc-9" "r7k" >/dev/null 2>&1
   if [ "$left" = 0 ] && [ "$_hw_ran" = yes ]; then
     printf '  ok   %s\n' "UNSCOPED (the bug), the same foreign worktree IS removed"
   else
     printf '  FAIL %s (expected left=0 removal-attempted=yes, got left=%s removal-attempted=%s)\n' \
       "UNSCOPED (the bug), the same foreign worktree IS removed" "$left" "$_hw_ran"; fails=$((fails+1))
   fi
-  unset -f in_run agent_drained holds_blocked
+  unset -f in_run agent_drained holds_blocked owner_for_worktree
   left=0
 
-  # Pairing a worktree with its branch, spaces and detachment included.
-  _g="$(printf 'worktree /a/b c\nHEAD deadbeef\nbranch refs/heads/qozp.8\n\nworktree /d/e\nHEAD cafe\n' | parse_worktree_branches)"
-  _e="$(printf '/a/b c\tqozp.8\n/d/e\t')"
-  if [ "$_g" = "$_e" ]; then printf '  ok   %s\n' "worktree pairs keep spaces; a detached tree has no branch"
-  else printf '  FAIL %s (got [%s])\n' "worktree pairs keep spaces; a detached tree has no branch" "$_g"; fails=$((fails+1)); fi
   # The main checkout is the FIRST entry, never `git rev-parse --show-toplevel`
   # — inside a worktree that returns the worktree, so a cleanup run from one
   # would treat it as main and never tear it down.

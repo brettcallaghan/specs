@@ -2,14 +2,17 @@
 # SessionStart hook — provision this repo's dependencies so a session can
 # actually run the workflows the skills prescribe.
 #
-# Two jobs:
+# Three jobs:
 #   1. Install `bd` (Beads), which every grooming and orchestration skill in
 #      this repo assumes is on PATH. Without it those skills cannot be
 #      exercised at all, which is the definition of not dogfooding.
-#   2. Keep the vendored shared references current and build the `strata`
-#      CLI. The skills themselves are committed symlinks under .claude/skills/
+#   2. Keep the vendored shared references current and build `swarm` — the
+#      bead-bonanza skills invoke `swarm manifest` and `swarm status` as
+#      required steps, and this is the one place that provisions it. The
+#      skills themselves are committed symlinks under .claude/skills/
 #      (each -> plugin/skills/<name>), so the session runs the working tree
 #      directly — no materialization step, and no global copy can shadow it.
+#   3. Build the `strata` CLI.
 #
 # Idempotent and non-interactive. Safe to re-run — and sometimes it must be
 # re-run by hand, because this hook is not always invoked:
@@ -314,7 +317,36 @@ if [ -x scripts/sync-shared-references.sh ]; then
   scripts/sync-shared-references.sh >/dev/null 2>&1 || log "WARNING: reference sync failed"
 fi
 
-# --- 4. strata CLI -----------------------------------------------------------
+# --- 4. swarm CLI --------------------------------------------------------------
+# `swarm manifest` and `swarm status` are required steps the bead-bonanza
+# skills invoke directly, not an optional capability like strata — so THIS is
+# who provisions it in a cloud session (module-bead-bonanza.md's Environment
+# Probe boundary names the decision; pre-flight-check.sh's capability probe
+# is what enforces it at the point a run actually starts).
+#
+# Built from cli/swarm in THIS checkout: no clone, no network, and the
+# capability probe below — not a version string, since the binary carries
+# none — is what makes it idempotent, so a warm session with a binary that
+# already runs `swarm status --help` skips the build entirely.
+if [ "${SWARM_CLI_SKIP:-}" != "1" ] && command -v go >/dev/null 2>&1 && [ -d cli/swarm ]; then
+  SWARM_BIN=/usr/local/bin/swarm
+  NEED_SWARM_BUILD=yes
+  if [ -x "$SWARM_BIN" ] && "$SWARM_BIN" status --help >/dev/null 2>&1; then
+    NEED_SWARM_BUILD=no
+  fi
+  if [ "$NEED_SWARM_BUILD" = yes ]; then
+    mkdir -p "$HOME/.cache"
+    if (cd cli && go build -o "$SWARM_BIN" ./swarm) >"$HOME/.cache/swarm-build.log" 2>&1; then
+      log "built swarm -> $SWARM_BIN"
+    else
+      log "WARNING: building swarm failed — see $HOME/.cache/swarm-build.log"
+    fi
+  fi
+elif [ "${SWARM_CLI_SKIP:-}" != "1" ]; then
+  log "WARNING: no go toolchain, or no cli/swarm in this checkout — swarm was not built"
+fi
+
+# --- 5. strata CLI -----------------------------------------------------------
 # The `strata` skill teaches an agent to write .strata schemas, and its entire
 # method is `strata build --target ast` — the compiler is the only reliable
 # validator of the language. Without the binary that skill degrades to
@@ -512,7 +544,7 @@ if [ "${STRATA_CLI_SKIP:-}" != "1" ]; then
   fi
 fi
 
-# --- 5. Fail loudly if the tracker is unreachable ----------------------------
+# --- 6. Fail loudly if the tracker is unreachable ----------------------------
 # Deliberately last: everything else still gets provisioned, so the failure is
 # reported against a fully set-up session rather than aborting halfway. But it
 # IS a failure — this repository's issue tracker lives on the Dolt remote, and

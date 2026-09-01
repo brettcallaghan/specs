@@ -6,7 +6,8 @@
   target, and the gate as a task
 - The two human channels — authorization at the start, findings at the end
 - The two things the coordinator owns: the manifest and the run's amendments
-- The run manifest — every key, and why the key names are a contract
+- The run manifest — the four `swarm manifest` verbs, and where the key set
+  and its meaning are generated to
 - The environmental ledger — admitted on evidence, ordered, never reordered
 - Amendments — `amend:` comments on the epic, append-only by construction
 - `base_sha` — why it is recorded at creation and never derived
@@ -98,22 +99,18 @@ line belongs to this run.
 **Two things the coordinator owns and never delegates.** Read this once,
 after `sprint-scope` returns the epic and before you dispatch grooming.
 
-1. **The run manifest — `--metadata` JSON on the run epic.** The declared
-   check ids, the checks baseline, the model lineup, the run's effort setting
-   (`metadata.execution_reasoning_effort` per bead, on the convention's
-   `low`/`medium`/`high`/`xhigh` scale), standing authorization, the
-   environmental ledger, the base sha, any commit trailers, and the
-   **admission record** — which beads were admitted, which were excluded and
-   why, and which were moved and from where. Written **before** you dispatch
-   grooming. WHERE the harness exposes no effort setting, write `unrecorded` —
-   never omit the field and never guess a value; an omitted field is
-   indistinguishable from a forgotten one, and a guessed value is worse.
+1. **The run manifest — the record `swarm manifest` reads and writes.**
+   Written **before** you dispatch grooming, and it carries what pre-flight
+   measured plus what admission decided.
 
-   **The key names are the contract**, because dispatch reads them back rather
-   than being handed them — `branch`, `checks_ids` and `checks_baseline` come
-   off the manifest to build each dispatch prompt. A renamed key is a silent
-   break: the reader gets `null` and dispatches without it. Every key is
-   specified under "Run manifest" below.
+   **The command owns the key set, the types and the merge semantics**, and
+   this document does not restate them: run `swarm manifest get --run <epic>`
+   and read what it prints, `--help` on any verb names the flags, and `swarm
+   manifest validate --run <epic>` reports every rule the record breaks at the
+   stage it has reached. A key nothing here mentions is still enforced there.
+   `generated/manifest.md` is the same key set and meaning as a document,
+   generated from the CLI's own model, for reading without a run in flight to
+   point a command at.
 
    **`collision_edges` is yours to write and the planner's to produce.** The
    plan returns the path of one `bd dep add --file` document: `blocks` edges
@@ -130,10 +127,11 @@ after `sprint-scope` returns the epic and before you dispatch grooming.
    after loading** rather than trusting the file: an edge written the wrong way
    round inverts a dependency at exit 0.
 
-   **Merge, never replace.** Pre-flight writes the baseline into the same
-   object, and the epic already carries grooming's own keys. Read it, update
-   your keys, write it back:
-   `bd show <epic> --json | jq '.[0].metadata'` → edit → `bd update <epic> --metadata @file.json`.
+   **One `swarm manifest set` per write, however many keys it carries.** The
+   command merges rather than replaces, so pre-flight's baseline and grooming's
+   own keys survive a write of yours — and keys it does not know are preserved
+   rather than dropped. Splitting one logical write across several invocations
+   is what leaves a run half-recorded.
 
    Recovery reads the epic rather than re-deriving the run, and the epic
    outlives a reclaimed container where a `/tmp` path does not.
@@ -161,71 +159,69 @@ to the `run-batch` skill.
 
 ## Run manifest
 
-`--metadata` JSON on the run epic, **written by the orchestrator itself** from
-`scripts/pre-flight-check.sh`'s output plus what admission decided. Retrieve it
-whole with `bd show <epic-id> --json | jq '.[0].metadata'`.
+**Written by the orchestrator itself** from `scripts/pre-flight-check.sh`'s
+output plus what admission decided, and read and written through one command:
 
-**`branch` and `base_sha` are the orchestrator's, written once.** It creates
-the sprint branch immediately before its first dispatch — after grooming, so
-`base_sha` includes the grooming commits — and writes both keys then. A run
-whose manifest already carries them **reuses** the branch and creates nothing;
-that is what makes a resumed run land where the original did. Three things read
-them and none may write them: the review scopes its diff `base_sha`..sprint
-head, every worktree branches from that branch's HEAD, and the pull request
-opens against it.
-
-```json
-{
-  "target": "<the flat target epic; its task children are the work>",
-  "branch": "<branch>",
-  "base_sha": "<sha at branch creation, after grooming>",
-  "checks_ids": ["format", "vet", "build", "test-go", "…"],
-  "checks_baseline": "<verbatim text — inline this into EVERY subagent prompt>",
-  "checks_baseline_status": 1,
-  "concurrency_cap": 20,
-  "models": {"light": "…", "standard": "…", "advanced": "…", "frontier": "…"},
-  "effort": "low|medium|high|xhigh|unrecorded",
-  "standing_auth": {"<row>": {"value": "<resolved>", "source": "sf.toml|default"}},
-  "trailers": "<commit trailers, or absent when the run resolved none>",
-  "admitted": ["<bead-id>", "…"],
-  "excluded": [{"id": "<bead-id>", "reason": "declined move out of <epic-id>"}],
-  "moved": [{"id": "<bead-id>", "from": "<previous parent>"}],
-  "partition_preview": "accepted | overridden — <why> | none (no C4 docs) | not returned",
-  "review_passes": 0,
-  "review_budget": 2,
-  "collision_edges": "<path to the edge file this skill emitted>",
-  "findings_path": "<sprint-retro's run record — the run's one document>",
-  "retro_filed": 0,
-  "retro_declined": 0,
-  "retro_routed": 0,
-  "ledger": ["<claim> — proved by <command>, observed <result>"]
-}
+```sh
+swarm manifest get      --run <epic>                       # every key the record carries
+swarm manifest get      --run <epic> --key <key>           # that key and its value
+swarm manifest require  --run <epic> --key <key> …         # are these written? routes on the status
+swarm manifest set      --run <epic> --key <k> --value <json> …   # one merge, however many keys
+swarm manifest validate --run <epic>                       # every rule, at the stage reached
 ```
 
-**The four retro keys are `sprint-retro`'s, written at the end of the run.**
-They are what lets a session that did not hold the run find its record from the
-epic id alone. **An absent `findings_path` means the retro did not run** — a
-different result from a retro that found nothing, and one a reader must not
-have to guess at.
+**Run one and read it.** The output is YAML, or JSON under `--json`, and it
+needs no key to decode. Three things it cannot tell you by being read:
 
-**Merge, never replace.** The epic already carries grooming's keys and
-pre-flight writes the baseline into the same object: read it, update your keys,
-write it back.
+- **Route on the exit status, which separates the three answers** — the values
+  (0), a declared key nobody has written (1), a key the manifest does not
+  declare (3). One invocation shows you one of them.
+- **`--full-result` is the way back to the provenance** — the summary, the
+  facts and the invocation behind each — when the values are not enough.
+- **To capture one value in a shell**, ask for JSON and read the key:
 
-**`review_passes` is durable for one reason:** a resumed run that restarted the
-counter would loop forever. `review_budget` records what the authorization gate
-decided, so a run resumed by a session that never met the human still honours
-it.
+  ```sh
+  br="$(swarm manifest get --run <epic> --key branch --json | jq -r .branch)"
+  ```
 
-**`standing_auth` records each gate row's SOURCE as well as its value.** A row
-resolved from `sf.toml`'s `[run]` and a row that took the skill default are
-different facts, and the record exists to stop a decision being re-litigated
-mid-run — a project-level default is one more place one can hide from whoever
-reads the report.
+**Four consequences worth knowing before you write one**, because each is a
+state you would otherwise have to guess at:
 
-`admitted` / `excluded` / `moved` are the admission record. A run that finished
-its admitted set while beads sat out is done, and must say so rather than
-reading as complete over a scope nobody remembers narrowing.
+- **A key that is absent reads as absent**, never as an empty value. "Not yet
+  written" and "written as nothing" are different states of a run, and
+  `require` is what turns the difference into a status you route on.
+- **A key the command does not know is preserved**, so a write of yours never
+  deletes what another component recorded.
+- **A refused write reports every reason and stores none of them** — so fix
+  them together rather than re-running to find the next.
+- **`branch` and `base_sha` are written once**, and re-writing the same value
+  is not a change. That is what lets a resumed run reuse its branch: it writes
+  the pair it read and the guard passes. Three things read them and none may
+  change them — the review scopes its diff `base_sha`..sprint head, every
+  worktree branches from that branch's HEAD, and the pull request opens against
+  it.
+
+**What the keys MEAN is `generated/manifest.md`'s, not this
+document's.** It is generated from `schemas/swarm/manifest.strata` by
+`scripts/generate-schemas.sh`, kept current by that script's `--check`
+(declared check `schemas`), and lists every key, its type, and the stage its
+struct declares it at, alongside the same docstring the CLI's model carries.
+It is vendored rather than left as "run the command": the key set is read
+while deciding whether a run is worth inspecting at all, before any epic
+exists to point a command at.
+
+Three facts about how a key is USED are not the schema's to carry, because
+they describe this skill's own machinery rather than the manifest:
+
+- **`checks_baseline` is inlined verbatim into every subagent prompt.** A gate
+  recorded failing there is the bar for the run — "no findings beyond the
+  baseline", not "exit 0".
+- **`review_passes` is what a resumed run reads to avoid restarting the review
+  counter**, honouring `review_budget` even in a session that never met the
+  human at the authorization gate.
+- **`bb-close-bead.sh --trailers-from <epic>` reads `trailers` from the
+  manifest itself**, before it closes or commits anything, and exits 2 saying
+  so when the run resolved none.
 
 ## Environmental ledger
 
@@ -238,7 +234,9 @@ result (attached repos, credentials, cache warmth, toolchain version). A
 claim that cannot be tested cheaply is recorded as `unverified` with what
 would settle it, not omitted. Keep the ORDER — dispatch prompts cite entries
 by position ("ledger entry 1", "ledger entry 2"), so append rather than
-reorder.
+reorder; `swarm manifest set` refuses a ledger write that removes, reorders or
+alters an entry, because a rewrite retargets every citation that addressed one
+and nothing downstream can tell.
 
 1. `<claim>` — proved by `<command>`, observed `<result>`
 1. `<claim>` — unverified; would be settled by `<command>`

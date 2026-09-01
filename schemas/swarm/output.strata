@@ -1,0 +1,207 @@
+"""Which of the three interpreters produced a result."""
+enum CommandMode {
+  Explain: "explain"
+  DryRun: "dry-run"
+  Execute: "execute"
+}
+
+"""What a command concluded. The exit status is derived from this rather
+than chosen beside it, so the two cannot disagree."""
+enum CommandOutcome {
+  """It answered and its verdict is clear. Exit 0."""
+  Clear: "clear"
+  """It answered and what it found needs attention. Exit 1, and the
+  resolution names what would resolve the condition."""
+  Attention: "attention"
+  """It found a condition the caller cannot repair in place. Exit 2."""
+  Stop: "stop"
+  """Its own invocation was malformed. Exit 3."""
+  Malformed: "malformed"
+}
+
+"""What became of one step of a command's plan."""
+enum StepStatus {
+  """The interpreter attempted the invocation."""
+  Ran: "ran"
+  """A dry run declined to execute it, because it is not a read."""
+  Refused: "refused"
+  """It never ran: an earlier step stopped the plan, or an argument it
+  needed came from a step that did not run."""
+  Skipped: "skipped"
+}
+
+"""Which of four shapes a fact's value takes."""
+enum FactKind {
+  Text: "text"
+  Count: "count"
+  Flag: "flag"
+  List: "list"
+  Structured: "structured"
+}
+
+"""The value of an established fact.
+
+A closed set of shapes rather than an open one: a consumer branches on
+the kind and reads the field that kind carries, instead of guessing at
+the JSON type it was handed.
+
+Exactly one of the four value fields is present, and it is the one the
+kind names. That is a rule the shape cannot state — a schema can say
+which fields may appear, not which combination is coherent — so it is
+enforced where the value is built, and a value carrying the wrong field
+for its kind is refused rather than rendered."""
+struct FactValue {
+  """Which field carries the value."""
+  kind: FactKind
+
+  """Present when the kind is text."""
+  text: String?
+
+  """Present when the kind is count."""
+  count: Int?
+
+  """Present when the kind is flag."""
+  flag: Bool?
+
+  """Present when the kind is list."""
+  items: [String]?
+
+  """Present when the kind is structured: a JSON document, carried as
+  text.
+
+  A structured value is an object, or a list of them, and this schema
+  language offers no type for one — there is no Any, and a discriminated
+  union over the concrete types does not compile under this repository's
+  configuration. Carrying the JSON is what lets the value survive
+  intact; a renderer parses it and emits it as real structure, and a
+  consumer parses the string."""
+  structured: String?
+}
+
+"""One thing a command reports, with the invocations that established it.
+
+An agent that can see the command behind a line can re-run it, argue with
+it, and work around it when the underlying tool changes; an agent that
+cannot has to trust a wrapper it did not write. So the invocations are
+part of the fact rather than a separate section."""
+struct Fact {
+  """What the fact is. A consumer keys on this, so it is a contract."""
+  name: String
+
+  """Whether the value could be read at all.
+
+  A fact that could not be taken is still reported — as unestablished,
+  with a reason — rather than omitted or emitted as an empty value of its
+  type. When this is false the value is absent and the reason says why;
+  when it is true the value is present.
+
+  Established is not the same as satisfactory: a value that was read and
+  is wrong is established AND carries a reason."""
+  established: Bool
+
+  """What is wrong with this fact: why it could not be taken, or what is
+  wrong with the value it carries. Empty when nothing is."""
+  reason: String
+
+  """What would put THIS fact right, when anything would. Empty
+  otherwise.
+
+  Separate from the result's own resolution because a command reporting
+  several unsatisfied properties resolves each differently — naming the
+  key to write, not the shape of the command that writes one."""
+  resolution: String
+
+  """What was established. Absent when the fact was not."""
+  value: FactValue?
+
+  """The commands a reader can re-run to reproduce the fact, each
+  with its executable first. At least one."""
+  invocations: [String]
+}
+
+"""One step of the plan a command ran, as the audit line for it."""
+struct Invocation {
+  """The step's name within its plan."""
+  step: String
+
+  """The resolved command, quoted so it can be pasted into a shell.
+  Empty when the step did not run."""
+  command: String
+
+  """The working directory it ran in. Empty means the caller's own."""
+  dir: String
+
+  """What became of the step."""
+  status: StepStatus
+
+  """Why a refused or skipped step did not run. Empty otherwise."""
+  reason: String
+
+  """The status the finished process reported. Meaningful only when the
+  step ran; -1 when the process was terminated by a signal."""
+  exit_status: Int
+
+  """How long the invocation took, in whole milliseconds.
+
+  A count rather than a formatted duration: a field whose meaning depends
+  on the locale of the process that produced it is one this contract
+  forbids."""
+  duration_ms: Int
+
+  """A digest of the whole standard output stream, as sha256:<hex>."""
+  stdout_digest: String
+
+  """A digest of the whole standard error stream, separately, because the
+  streams are separate."""
+  stderr_digest: String
+
+  """Why the step failed, when it did: the process could not be started,
+  its decoder refused the result, or an argument could not be resolved.
+  A non-zero exit alone is not an error. Empty when there was none."""
+  error: String
+}
+
+"""The whole result every swarm command emits under --full-result.
+
+Emitted on every exit status, including a non-zero one, so a consumer
+parsing the result never has to fall back to reading prose to learn
+why."""
+struct CommandResult {
+  """The version of the JSON contract this result was produced against,
+  so a consumer branches on the version it was handed rather than on the
+  binary's own version."""
+  contract_version: String
+
+  """The invocation path, for example "swarm manifest get"."""
+  command: String
+
+  """The run epic this invocation was scoped to. Empty for a command
+  that is not run-scoped."""
+  run: String
+
+  """Which interpreter ran."""
+  mode: CommandMode
+
+  """What the command concluded."""
+  outcome: CommandOutcome
+
+  """The exit status the outcome implies."""
+  status: Int in 0 .. 3
+
+  """One line saying what the command found. Empty when there is none."""
+  summary: String
+
+  """What would resolve the condition. Present whenever the outcome is
+  attention; empty otherwise."""
+  resolution: String
+
+  """What the command established, in report order."""
+  facts: [Fact]
+
+  """Every step the plan considered, in the order it considered them."""
+  invocations: [Invocation]
+
+  """What the plan runner printed — the explained invocations in explain
+  mode, and the executed ones otherwise."""
+  transcript: [String]
+}

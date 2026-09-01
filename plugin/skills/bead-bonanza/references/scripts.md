@@ -1,5 +1,10 @@
 # Scripts — interfaces and side effects
 
+## Contents
+
+- The coordinator's bundled scripts: usage and behavior
+- Side effects — what each script leaves behind
+
 **Scoped to what the COORDINATOR runs.** Three of the bundled scripts are its
 own — `scripts/pre-flight-check.sh`, `scripts/bb-status.sh`,
 `scripts/sprint-cleanup.sh` — plus `scripts/bb-close-bead.sh` on exactly one
@@ -19,15 +24,19 @@ disagreement is a finding worth recording.
 
 ```
 pre-flight-check.sh [<epic-id>] [--json] [--self-test]          # sandbox ON
-bb-status.sh bead <id> [--worktree <path>] [--pre-merge] | branch | run <epic> | harvest
+bb-status.sh bead <id> [--worktree <path>] [--pre-merge] | branch | harvest
 sprint-cleanup.sh <epic-id> [--dry-run]
 bb-close-bead.sh [--trailers-from <epic>] <bead-id> <priority> <title>
 ```
 The last one is the recovery path only — see its entry below.
 
+## The coordinator's bundled scripts: usage and behavior
+
 - **`scripts/pre-flight-check.sh`** — the environment probe. Human report on
-  stderr, an evalable `SCRIPTS=`/`BB_*=` block on stdout. Exit 0
-  proceed / 1 blocking / 2 bad invocation. **Run it with the sandbox ON** — the
+  stderr, an evalable `SCRIPTS=`/`BB_*=` block on stdout. Its exit status and
+  output format follow this family's command contract: route on the exit
+  status, and every finding prints the command that established it.
+  **Run it with the sandbox ON** — the
   one write the sandbox refuses is the global Dolt telemetry config, which the
   script detects, skips, and reports as the single command to re-run with the
   sandbox off. It always runs the project's declared checks on the untouched
@@ -42,12 +51,11 @@ The last one is the recovery path only — see its entry below.
 - **`scripts/bb-status.sh`** — read-only; repairs nothing. `bead` verifies the
   five acceptance signals in order; `branch` reports tree cleanliness, the
   landing check (unpushed commits against the upstream) and surviving
-  worktrees; `run` reports scope, counts, derived health, readiness and the
-  Definition of Done; `harvest` asserts a run's `retro:` total is non-zero,
+  worktrees; `harvest` asserts a run's `retro:` total is non-zero,
   since a zero total is a broken pipeline rather than a flawless run.
-  Exit 0 clear, 1 repairable, 2 stop, 3 invocation error. **Run-level:
-  a subagent never runs it** — inside its own worktree signal 4 reads
-  differently by construction.
+  Its exit status is the verdict, and each line prints the command that
+  established it. **Run-level: a subagent never runs it** — inside its own
+  worktree signal 4 reads differently by construction.
 - **`scripts/bb-close-bead.sh`** — **`run-batch` owns this**; the coordinator runs
   it on one path only, finishing a bead a crashed subagent left uncommitted.
   There, from inside that worktree: `--trailers-from <epic>` (optional, before

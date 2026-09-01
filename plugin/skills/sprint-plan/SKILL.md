@@ -37,7 +37,7 @@ here creates a worktree, edits a bead's code, or merges anything.
 
 | Input | Notes |
 |-------|-------|
-| The run epic | Its id is the run id, and its `--metadata` is the manifest the orchestrator already wrote |
+| The run epic | Its id is the run id, and `swarm manifest get --run <epic>` reads the manifest the orchestrator already wrote |
 | The **bead id list** | Explicit ids, and the epic they came from. Re-derive with `bd ready --parent <epic> --exclude-type=epic` rather than from any filter — admission decided that membership and may have excluded beads deliberately |
 | Checks script and checks baseline | A gate recorded `fail` in the baseline sets "no findings beyond the baseline" as the bar, not exit 0 |
 | Model lineup | Resolves a bead's tier (`metadata.execution_suggested_model`, else `metadata.tier`) to a model; leave it unset where the project declares none |
@@ -313,9 +313,10 @@ and share ONE slot between them, so count dev assignees only — the epic gate's
 reference carries that rule and the `jq` that implements it. Breadth beyond
 N_dev is more beads per dev, never more devs: a spawn past the cap is refused,
 and the unspawned devs' queues stay ready, correctly assigned and permanently
-undrained, with nothing reporting it. Read `concurrency_cap` off the manifest
-rather than assuming a number; its source, its default and the plan-time check
-are in `references/partitioning.md`.
+undrained, with nothing reporting it. Read `concurrency_cap` with `swarm
+manifest get --run <epic> --key concurrency_cap` rather than assuming a number;
+its source, its default and the plan-time check are in
+`references/partitioning.md`.
 
 ## Assign every planned bead, then gate the epic
 
@@ -345,9 +346,10 @@ Three rules that make the plan worth returning:
 - **The plan names beads, and says which epic they came from.** The queue is
   `bd ready --parent <epic> --exclude-type=epic`, re-derivable from one durable
   id rather than from a filter nobody recorded.
-- **The manifest is not yours.** It is `--metadata` on the run epic, holding
-  the orchestrator's measurements. Read it; never rewrite it. If it is missing
-  or malformed, say so in the return instead of supplying one.
+- **The manifest is not yours.** It holds the orchestrator's measurements.
+  Read it with `swarm manifest get --run <epic>`; never write it. WHERE a key
+  you need is unwritten, `swarm manifest require` says so as a status — report
+  that in the return instead of supplying a value.
 - **Add an environmental-ledger entry only on evidence.** An entry goes to the
   orchestrator, which records it in the manifest. Every one names the command
   that proved it and the result observed; an untested claim is recorded as

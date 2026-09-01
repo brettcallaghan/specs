@@ -108,8 +108,8 @@ builds, never a licence to restructure what it was given.
 
 **What a nested run epic costs, stated once at run start:** every count has to
 come from a tree walk rather than from one `--parent` query, since `bd list
---parent` and `bd epic status` are both direct-children-only. `bb-status.sh run
-<epic>` does that walk. Dispatch is unaffected — the re-queried ready front is
+--parent` and `bd epic status` are both direct-children-only. `swarm status
+--run <epic>` does that walk. Dispatch is unaffected — the re-queried ready front is
 transitive and honours dependency edges that cross between the adopted epics,
 which is the reason several epics are being run together at all.
 
@@ -226,12 +226,16 @@ asking is a run that authorized itself.**
 Record the outcome in the manifest's `standing_auth` — every row's value **and
 where it came from**, `sf.toml` or the skill:
 
-```json
-"standing_auth": {
+```sh
+swarm manifest set --run <epic> --key standing_auth --value '{
   "pull_request":  {"value": "draft", "source": "sf.toml"},
   "review_budget": {"value": 2,       "source": "default"}
-}
+}'
 ```
+
+**Every row in one value.** The merge is per key, not per nested field, so a
+second write of `standing_auth` replaces the whole object rather than adding to
+it — a gate recorded row by row keeps only the last row it wrote.
 
 The source matters because the record exists to stop a row being re-litigated
 mid-run, and a project-level default is one more place a decision can hide from

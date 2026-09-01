@@ -6,7 +6,7 @@ description: The autonomous sprint orchestrator vended in the sf plugin —
 slug: module-bead-bonanza
 type: module-blueprint
 status: draft
-updated_at: 2026-08-25T00:00:00Z
+updated_at: 2026-08-29T00:00:00Z
 kind: standard
 visibility: public
 contracts_provided: []
@@ -26,7 +26,7 @@ test_paths:
   - "plugin/skills/bead-bonanza/scripts"
   - "plugin/hooks"
   - "plugin/monitors"
-version: "0.23"
+version: "0.24"
 ---
 
 # Bead Bonanza
@@ -48,11 +48,11 @@ is true" from git and the tracker rather than from what an agent reported.
   *what* work exists.
 - **Composed into:** the `sf` plugin, loaded by a skill-capable agent harness.
   No host container has a blueprint of its own.
-- **Consumes (planned):** the `swarm` CLI — [[container-swarm-cli]], a
-  **container** in its own right. The command sequences these components
-  prescribe today are what it mechanizes; this module will call it rather
-  than contain it. [[frd-swarm-core]] is the first of its features to be
-  specified.
+- **Consumes:** the `swarm` CLI — [[container-swarm-cli]], a **container** in
+  its own right. The command sequences these components prescribed by hand are
+  what it mechanizes; this module calls it rather than containing it. The run
+  manifest is reached through `swarm manifest`, and a run's progress,
+  completion and per-dispatch drain through `swarm status`.
 - **Source & tests:** `plugin/skills/{bead-bonanza,sprint-*,run-batch}`,
   `plugin/hooks`, `plugin/monitors`. Scripts carry `--self-test` in-file;
   there is no separate test tree.
@@ -100,8 +100,9 @@ Agents and subagents query and traverse the bead DAG, and it carries:
   beads are batched;
 - enough to survive compaction, the end of a turn, and a session restart.
 
-The run epic's metadata is the manifest, its comments are the amendments, and
-a worktree's existence is the in-flight signal. That is what lets a component
+The run epic's metadata is the manifest — reached through `swarm manifest`,
+which owns its key set, its types and its merge semantics — its comments are
+the amendments, and a worktree's existence is the in-flight signal. That is what lets a component
 be replaced, or a session be lost, without losing the run.
 
 ### One question per component
@@ -119,7 +120,8 @@ answer changes.
   skill in this module is `user-invocable: false` and is reached only through
   it, recovery included: a run is resumed by re-invoking `bead-bonanza` on its
   run epic, never by calling an internal skill. Project configuration is
-  `sf.toml`; run state is the run epic's `--metadata` manifest.
+  `sf.toml`; run state is the run epic's manifest, read and written through
+  `swarm manifest`.
 - **Guarantees:**
   - **Resumability.** WHEN `bead-bonanza` is invoked on a run epic that
     already exists, it SHALL recover that run's state and continue it —
@@ -163,7 +165,7 @@ C4Component
         Component(dev, "Developer", "skill", "Works a batch bead by bead; one commit each")
         Component(checks, "Check Runner", "script", "Runs the project's declared checks in declaration order")
         Component(close, "Bead Close Ceremony", "script", "Closes the bead and commits its code as one act")
-        Component(status, "Swarm Status Probe", "script", "Answers what is true of the run, from state alone")
+        Component(status, "Swarm Status Probe", "script", "Answers what is true of the branch and of one bead, from state alone")
         Component(review, "Review", "skill", "Resolves and runs a reviewer, files findings, classifies scope")
         Component(retro, "Retro", "skill", "Answers how the next run goes better; writes the run's record")
         Component(recover, "Recovery", "skill", "Reconstructs a run nobody is holding; internal to the Coordinator")
@@ -201,7 +203,7 @@ component answers, and the question it is most often wrongly given.
 | **Developer** | is this bead implemented, validated and committed? | whether its branch may land |
 | **Check Runner** | do the project's declared checks pass on this change? | what the bar is — the baseline decides |
 | **Bead Close Ceremony** | did this bead's closure and its code land as one commit? | whether the work is correct |
-| **Swarm Status Probe** | what is true of this run right now? | what to do about it |
+| **Swarm Status Probe** | what is true of this branch, and of this bead? | what is true of the run as a whole — `swarm status` measures that |
 | **Review** | what is wrong with this run's own diff, and is fixing it in scope? | the reading of the diff (a declared reviewer does that), or whether to loop again |
 | **Retro** | how do we do better on the next run? | whether a finding becomes work — a human decides |
 | **Recovery** | what state is this run actually in? | how to finish it |
@@ -233,10 +235,24 @@ run and for resuming one alike.
 - **Spawns the subagents**, one per batch, each in its own worktree.
 - **Monitors them**, and recovers a dispatch that stopped, stalled or died
   rather than waiting on it.
+- **Asks where the run is with `swarm status`, and routes on its exit
+  status** — progress, completion and each dispatch's drain state are
+  measured there rather than derived here, and it never writes a health label
+  of its own.
+- **Re-checks three readiness signals itself, at every re-query, that
+  `swarm status` does not carry**: `bd lint`'s findings intersected with the
+  run's own ready queue (`bd lint` exits 0 even while it warns, and has no
+  scope flag); the open human-decision queue
+  (`bd list --label human --status open`); and whether every ready bead
+  carries `metadata.tier`, without which dispatch cannot resolve a model.
 - **When something goes wrong, works out a solution** and records the
   decision. It does not stop to ask.
-- **Owns the run manifest** (`--metadata` on the run epic) and the run's
-  amendments (`amend:` comments). Neither is ever delegated.
+- **Owns the run manifest** and the run's amendments (`amend:` comments).
+  Neither is ever delegated. It reaches the manifest through `swarm manifest`
+  — `get` to read, `set` once for a whole write, `require` where a key is a
+  precondition — and **validates the record with `swarm manifest validate`
+  when it resumes a run it did not hold**, so a half-written record is a status
+  it routes on rather than a key it discovers missing mid-dispatch.
 - **Executes the merges**, one dispatch's branch at a time, as that dispatch
   completes its work — and removes its worktree only behind an ancestry check.
   This is a coordinator responsibility, not a component: there is nothing to
@@ -264,8 +280,30 @@ with the run epic.
 
 - Measures git, `bd`, tracker write access, worktree base-ref and event-log
   writability; emits evalable facts and a human report.
+- **Probes the `swarm` binary's capability, not its presence or a version
+  string.** `swarm manifest` and `swarm status` are required steps a run
+  invokes directly, and `swarm` carries no version string — a binary built
+  before `swarm status` existed still exits 0 for a version check and would
+  pass one. The probe is behavioural: `swarm status --help` exiting non-zero
+  with "unknown command" is the measured failure a version check cannot
+  catch, and either a missing or a stale binary blocks the run.
+  **Provisioning is a cloud session's `.claude/hooks/session-start.sh`**,
+  which builds `swarm` from this repository's own `cli/swarm` — no clone,
+  no network — the same place that provisions `bd` and `strata`. A local
+  session is expected to have its own build.
 - **Captures the checks baseline** on the untouched tree, so a
   pre-existing failure is never charged to the first bead.
+- **The one component that still writes the manifest by hand.** Every
+  other component reaches the record through `swarm manifest`; this script
+  merges into the run epic's metadata itself, with its own
+  `manifest_merge` helper over `bd update --metadata`. Its writes are
+  therefore unvalidated — the key set, the declared types and the
+  conditional-write guard the command enforces do not apply to
+  `checks_baseline`, `checks_baseline_status`, `checks_ids` or
+  `concurrency_cap` on the way in. Stated here rather than left implicit
+  because a reader who has seen the adoption elsewhere will otherwise
+  assume it is uniform, and because the gap is what a later change closes:
+  the probe adopts `swarm manifest set` like everything else.
 - Blocks the run — exit non-zero — rather than degrading, and names the
   remedy for each blocker.
 - **Does not judge the queue.** Readiness is grooming's.
@@ -343,6 +381,9 @@ it invokes Grooming itself and plans in the same context.
   that have no C4 docs.
 - **Owns the queue** — re-derives it from the epic and accounts for every
   id in grooming's reply. A bead with no verdict is unexamined, not ready.
+- **Reads the manifest and never writes it** — `swarm manifest get` for the
+  concurrency cap the dev pool is checked against; an unwritten key is
+  reported, never supplied.
 - Classifies beads and computes collision and sequencing overlap from C4
   metadata, not from file paths.
 - **Assigns every bead** a dispatch id, which is the whole of the
@@ -364,7 +405,8 @@ description: Works an assigned batch bead by bead in one worktree, landing each 
 (skill — `run-batch`) — the only component that writes product code.
 
 - Resolves its own assignment from three given values: dispatch id, run
-  epic, scripts path. Everything else it queries.
+  epic, scripts path. Everything else it queries — the tracker for its queue,
+  `swarm manifest` for the run's branch and checks baseline.
 - Per bead: claim, read, implement **strictly in scope**, gate, record
   findings, close-and-commit.
 - **Files what it finds** beyond scope rather than doing it or dropping
@@ -414,25 +456,26 @@ description: Closes one bead in the tracker and commits its code as one act, in 
 ```component
 title: Swarm Status Probe
 slug: component-bb-status
-description: Answers what is true of a swarm run at three scopes — the run, its branch, and one bead — from git and the tracker
+description: Answers what is true of a swarm run's branch, its beads and its findings — from git and the tracker
 ```
 
 (script — `scripts/bb-status.sh`) — read-only; repairs nothing. **"Run" means
-the swarm run throughout.** One component, four modes, all about the same run:
+the swarm run throughout.** One component, three modes, all about the same run:
 
 | mode | scope | answers |
 |---|---|---|
-| `run <epic>` | the whole swarm | counts, derived health, readiness, the Definition of Done |
 | `branch` | the run's branch | is the tree clean, and did the branch land? Needs no epic, so it runs before anything else is known |
 | `bead <id>` | one bead | the five acceptance signals, in order |
 | `harvest` | the run's findings | is the `retro:` total non-zero — a zero is a broken pipeline, not a flawless run |
+
+**The run as a whole is not its scope.** `swarm status --run <epic>` measures
+progress, completion and per-dispatch drain; a `run` mode here would be a
+second answer to a question the CLI already owns.
 
 - Verifies a bead's acceptance signals in order and stops at the first
   failure.
 - Reports the branch's cleanliness and whether it **landed**, which is
   the only signal separating a pushed run from a stranded one.
-- **Derives run health** from standing worktrees, the age of the last
-  commit and the depth of the ready front.
 - Names what it **cannot** verify, so a clean report never implies a
   clean run.
 - Prints the command behind each line, so any single check is re-runnable
@@ -452,7 +495,9 @@ description: Resolves a reviewer, scopes it to the run's diff, files each findin
   project declares one in `sf.toml`; failing that, one found in the session;
   failing that, a bare agent. It **names which ran**, because those are not the
   same evidence.
-- Scopes the review to `base_sha`..head, read off the manifest.
+- Scopes the review to `base_sha`..head, read off the manifest with
+  `swarm manifest get`; `swarm manifest require` is what turns an unwritten
+  `base_sha` into a status rather than an empty string.
 - Files every finding as a bead against its origin, citing a durable
   anchor rather than a line number.
 - Classifies each finding against three stated criteria; a defect the
@@ -613,8 +658,8 @@ None.
 Four questions from the first draft were decided by the owner and folded into
 the sections above: the merge is a Coordinator responsibility (not a
 component); `groom-beads` is a component of this module (not a module of its
-own); the `swarm` CLI is a CONTAINER that will carry its own blueprint once its
-FRD scopes it; and groom-and-plan is ONE subagent — the coordinator dispatches
+own); the `swarm` CLI is a CONTAINER carrying its own blueprint,
+[[container-swarm-cli]]; and groom-and-plan is ONE subagent — the coordinator dispatches
 `sprint-plan`, which invokes `groom-beads` in its own context.
 -->
 
