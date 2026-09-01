@@ -73,14 +73,16 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 func register(root *cobra.Command, streams *ioStreams, runner swarmexec.Runner) {
 	tr := beadstracker.Tracker{}
 	store := manifestbeads.Store{Tracker: tr}
-	root.AddCommand(manifestCmd(streams, store, runner))
-	root.AddCommand(statusCmd(streams, status.Deps{
+	statusDeps := status.Deps{
 		Tracker: tr,
 		VCS:     gitvcs.VersionControl{},
 		Store:   store,
 		Runner:  plan.Runner{Exec: runner},
-	}))
+	}
+	root.AddCommand(manifestCmd(streams, store, runner))
+	root.AddCommand(statusCmd(streams, statusDeps))
 	root.AddCommand(phaseCmd(streams, tr, runner))
+	root.AddCommand(readyCmd(streams, statusDeps))
 }
 
 // dispatch runs the tree and turns what comes back into a process exit

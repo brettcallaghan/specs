@@ -1,0 +1,15 @@
+# dispatch-worktree's world: fixture-run.3 is assigned to dev-fixture-2,
+# whose worktree stands, and fixture-run.4 to dev-fixture-3, whose does
+# not — "held" and "available" told apart by the worktree and nothing
+# else. Both epics (the run and the target) and the closed and
+# in-progress beads under it are absent.
+
+fixture = "dispatch-worktree"
+args = ["ready", "--run", "fixture-run"]
+exit = 0
+ac = [
+  "AC-SWARM-DISP-002.7",
+  "AC-SWARM-DISP-002.9",
+  "AC-SWARM-DISP-002.10",
+  "AC-SWARM-DISP-002.17",
+]
