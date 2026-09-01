@@ -49,7 +49,7 @@ import (
 // not `bb/<dispatch-id>`.
 
 // KindEpic is the tracker's own type for an epic. An epic is not work, so
-// it is excluded from the counts and from the ready front.
+// it is excluded from the counts and from the ready set.
 const KindEpic = "epic"
 
 // Unestablished is what a measurement carries when it could not be taken:
@@ -95,12 +95,12 @@ type LastCommit struct {
 	Age     time.Duration
 }
 
-// ReadyFront is the depth of the run's ready front — how many beads
+// ReadySet is the size of the run's ready set — how many beads
 // nothing is blocking right now.
-type ReadyFront struct {
+type ReadySet struct {
 	Unestablished
 	// Depth is how many beads are ready.
-	Depth int
+	Count int
 	// Beads are the ready beads, kept because per-agent drain is read
 	// from the same query.
 	Beads []tracker.Bead
@@ -192,7 +192,7 @@ type Measurements struct {
 
 	Worktrees  Worktrees
 	LastCommit LastCommit
-	ReadyFront ReadyFront
+	Ready      ReadySet
 	Completion Completion
 	Scope      Scope
 
@@ -265,7 +265,7 @@ func Collect(ctx context.Context, deps Deps, run string) (Measurements, []plan.R
 	m.LastCommit, recs = measureLastCommit(ctx, deps, m.Branch, m.At)
 	records = append(records, recs...)
 
-	m.ReadyFront, recs = measureReadyFront(ctx, deps, run)
+	m.Ready, recs = measureReadySet(ctx, deps, run)
 	records = append(records, recs...)
 
 	m.Completion, recs = measureCompletion(ctx, deps, run)
@@ -275,7 +275,7 @@ func Collect(ctx context.Context, deps Deps, run string) (Measurements, []plan.R
 	records = append(records, recs...)
 
 	m.Scope = compareScope(m.Completion, doc, docTaken)
-	m.Dispatches = dispatches(m.Completion, m.ReadyFront, owners)
+	m.Dispatches = dispatches(m.Completion, m.Ready, owners)
 	m.Conflicts = conflicts(m.Completion, owners)
 
 	return m, records, nil
@@ -357,22 +357,22 @@ func measureLastCommit(ctx context.Context, deps Deps, branch string, at time.Ti
 	}, records
 }
 
-func measureReadyFront(ctx context.Context, deps Deps, run string) (ReadyFront, []plan.Record) {
+func measureReadySet(ctx context.Context, deps Deps, run string) (ReadySet, []plan.Record) {
 	if deps.Tracker == nil {
-		return ReadyFront{Unestablished: missing("no tracker is configured")}, nil
+		return ReadySet{Unestablished: missing("no tracker is configured")}, nil
 	}
-	step := deps.Tracker.ReadyFront("ready", run, tracker.ReadyFilter{ExcludeKinds: []string{KindEpic}})
+	step := deps.Tracker.Ready("ready", run, tracker.ReadyFilter{ExcludeKinds: []string{KindEpic}})
 	steps := plan.Steps{step}
-	report, records := run1(ctx, deps, "the ready front under "+run, steps)
+	report, records := run1(ctx, deps, "the ready set under "+run, steps)
 	value, err := steps.ValueFrom(report)
 	if err != nil {
-		return ReadyFront{Unestablished: missing("the ready front could not be read: %s", err)}, records
+		return ReadySet{Unestablished: missing("the ready set could not be read: %s", err)}, records
 	}
 	beads, err := tracker.BeadsFrom(value)
 	if err != nil {
-		return ReadyFront{Unestablished: missing("%s", err)}, records
+		return ReadySet{Unestablished: missing("%s", err)}, records
 	}
-	return ReadyFront{Unestablished: taken(), Depth: len(beads), Beads: beads}, records
+	return ReadySet{Unestablished: taken(), Count: len(beads), Beads: beads}, records
 }
 
 // measureCompletion walks the run's descendants and counts them by state.
@@ -467,14 +467,14 @@ func compareScope(c Completion, doc manifest.Document, docTaken Unestablished) S
 }
 
 // dispatches derives each agent's drain state from the two queries it
-// takes: the ready front, and the beads the walk found claimed.
+// takes: the ready set, and the beads the walk found claimed.
 //
 // Neither alone is right. `bd ready` excludes in-progress work, so an
 // agent mid-bead has an empty ready queue and would read as finished; the
 // claimed set says nothing about what is waiting. So an agent has drained
 // when both are empty, and a dispatch is listed for any agent either
 // query names.
-func dispatches(c Completion, front ReadyFront, owners map[string]string) []Dispatch {
+func dispatches(c Completion, ready ReadySet, owners map[string]string) []Dispatch {
 	byAgent := map[string]*Dispatch{}
 	get := func(agent string) *Dispatch {
 		d, ok := byAgent[agent]
@@ -504,8 +504,8 @@ func dispatches(c Completion, front ReadyFront, owners map[string]string) []Disp
 			}
 		}
 	}
-	if front.Established {
-		for _, b := range front.Beads {
+	if ready.Established {
+		for _, b := range ready.Beads {
 			if b.Assignee == "" {
 				continue
 			}
@@ -519,12 +519,12 @@ func dispatches(c Completion, front ReadyFront, owners map[string]string) []Disp
 		// Both queries have to have answered for a drain verdict to mean
 		// anything: with either missing, an agent holding work through
 		// the query that failed would be reported drained.
-		if c.Established && front.Established {
+		if c.Established && ready.Established {
 			d.Unestablished = taken()
 			d.Drained = len(d.Ready) == 0 && len(d.InProgress) == 0
 		} else {
 			d.Unestablished = missing(
-				"drain takes both the ready front and the claimed set, and one of them could not be read")
+				"drain takes both the ready set and the claimed set, and one of them could not be read")
 		}
 		d.Worktree = owners[d.Agent]
 		sort.Strings(d.Ready)

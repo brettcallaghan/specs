@@ -5,7 +5,7 @@ description: Process many beads autonomously by orchestrating subagents. Use
   beads with label X", "address all P1 beads", "clear the bead backlog". Triages
   the queue, gates every bead for readiness (grooming under-specified beads via a
   subagent, or bouncing what can't be made ready), surfaces both explicit and
-  implicit decisions up front, dispatches the ready front continuously, runs
+  implicit decisions up front, dispatches the ready set continuously, runs
   every dispatch in its own git worktree, merges each branch as it returns, and
   lands each bead in a single commit.
 version: "2.1"
@@ -46,7 +46,7 @@ run epic .................. its id is the run id
 ├ TARGET ───────┤ FLAT: tasks only
 │  ├ dispatch ┐ ......... run-batch, one subagent per dispatch
 │  ├ merge    │ ......... the coordinator, as each dispatch returns
-│  └ supervise┘ ......... swarm status — repeat until the front is dry
+│  └ supervise┘ ......... swarm status — repeat until the ready set is empty
 ├ review ───────┘ ......... sprint-review → declared reviewer
 │   findings admitted AND passes < 3 ? — yes, re-enter at groom & plan
 ├ retro ................... sprint-retro — and it writes the run's retro
@@ -63,7 +63,7 @@ mid-run inherits the block with nothing wired.
 sub-epics becomes a SECOND target under the run epic, never a sub-epic under
 the first: `references/run-record.md`.
 
-**Two nested loops, both bounded**: the dispatch loop ends when the ready front
+**Two nested loops, both bounded**: the dispatch loop ends when the ready set
 is dry, the review loop at 3 passes or no admitted findings. Neither exhausting
 is a failure — what is left is filed and named. **The retro writes the run's
 one human-facing document**, so there is no separate report phase to keep in
@@ -85,7 +85,7 @@ run:
 - [ ] 1b. pre-flight re-run with the epic: checks baseline on the manifest
 - [ ] 2. `sprint-plan`: readiness verdict; collision edges validated & loaded
 - [ ] 2b. Sprint branch created (or reused), `branch` + `base_sha` in manifest
-- [ ] 3. Dispatch the ready front; merge each branch as it returns, then re-check
+- [ ] 3. Dispatch the ready set; merge each branch as it returns, then re-check
 - [ ] 3b. `sprint-review`; loop back to groom & plan if findings were admitted
         and the pass budget is not spent
 - [ ] 4. `sprint-retro` — it writes the run's retro
@@ -123,7 +123,7 @@ step 2 — scope has nothing left to resolve — and invoke `sprint-recovery`
 instead, which reconstructs the run from its branch, its epic and the surviving
 worktrees and hands the state back. Then re-enter at groom & plan: it grooms
 only what is not already Ready and re-derives the partition from the current
-front, so a resumed run is a narrower repeat rather than a duplicate.
+ready set, so a resumed run is a narrower repeat rather than a duplicate.
 **Never create a second sprint branch on a resume** — the manifest's `branch`
 is the one the original run wrote.
 
@@ -157,11 +157,11 @@ It returns two things:
    `collision_edges` on the manifest. **It creates no beads** — the work beads
    already exist, so edges are all a plan contributes.
 
-**Then assert the front rather than trusting the file**: an edge written the
+**Then assert the ready set rather than trusting the file**: an edge written the
 wrong way round inverts a dependency at exit 0.
 
 **The partition lives in the graph, not in a schedule you keep** — which is why
-the ready front is safe to dispatch whole and there is nothing to re-derive.
+the ready set is safe to dispatch whole and there is nothing to re-derive.
 
 **Two things stay yours**, and neither is ever delegated: the run manifest and
 the run's amendments. Both: `references/run-record.md`.
@@ -209,7 +209,7 @@ refusal means one thing where dispatches were serialized and another where they
 went out concurrently, and reading it wrong stops a healthy run.** Both rules,
 the base-ref remedy, the create/merge/remove lifecycle, and who resolves a
 rebase conflict: `references/worktree-mechanics.md`.
-## Dispatch the ready front — continuously
+## Dispatch the ready set — continuously
 
 **`bd ready --parent <epic> --exclude-type=epic --exclude-label human` IS the
 dispatch list.** The collision edges make it safe to dispatch whole — nothing
@@ -238,9 +238,9 @@ closes every eligible epic in the database, not just this run's. Scope it by
 hand: `references/supervision.md`. **Omitting it is a silent deadlock, not a
 slowdown**: an epic does not close on its own when its children do (measured),
 so a finished ceremony phase stays open, the beads it gates never enter the
-front, and an empty front reads as the run being done when it has stalled.
+ready set, and an empty ready set reads as the run being done when it has stalled.
 **That query is the order** — and a bead added mid-run is in scope by
-construction, so before dispatching it diff the front against
+construction, so before dispatching it diff the ready set against
 `manifest.admitted` (`swarm status --run <epic>` names the difference) and
 resolve any creep, admitted as an amendment or deferred out.
 
@@ -249,12 +249,12 @@ settled while the queue is groomed; the open human-decision queue by the end
 of scope, where a decision nobody made is deferred and a deferred bead is out
 of the run. **A ready bead carrying no tier is dispatched at the `advanced`
 tier** rather than withheld, so a bead that slipped grooming cannot stop the
-front. Where each is settled: `references/supervision.md`.
+ready set. Where each is settled: `references/supervision.md`.
 
 ### Watching it, and knowing when it is done
 
 **Arm a `Monitor`** over the dispatches in flight — `persistent`, an explicit
-`timeout_ms`, stopped with `TaskStop` when the front dries — and, before the
+`timeout_ms`, stopped with `TaskStop` when the ready set empties — and, before the
 first dispatch, the durable out-of-session trigger, cancelled at post-flight.
 
 **A run is done when every bead the manifest's `admitted` list names is closed
@@ -274,7 +274,7 @@ can measure from outside the harness: `references/supervision.md`.
 
 ## Review the run's own diff — invoke `sprint-review`
 
-When the ready front is dry, **before the retro**. It files what it finds and
+When the ready set is dry, **before the retro**. It files what it finds and
 classifies each finding in or out of scope; it does not decide whether to loop.
 
 **The loop is yours, and only the loop** — findings admitted **and** passes
@@ -367,9 +367,9 @@ full list is in `references/operating-principles.md`.
   channel.
 - **Auto-chain dispatches.** The gate already asked, so emit the progress
   report and **dispatch what is ready in the same turn** — the report is a
-  notice, not a checkpoint. The turn ends when the front is dry, a bead
+  notice, not a checkpoint. The turn ends when the ready set is empty, a bead
   carrying `human` is reached, or the circuit breaker trips. **Ending a turn
-  with a non-empty front and none of those is a defect, not a pause**: nobody
+  with a non-empty ready set and none of those is a defect, not a pause**: nobody
   is waiting to restart it.
 
 ## Retro this skill

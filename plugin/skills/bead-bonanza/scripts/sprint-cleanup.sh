@@ -190,8 +190,8 @@ holds_blocked() { # holds_blocked <assignee>  ->  0 holds one / 1 none / 2 could
 
 # Drained = nothing ready and nothing in progress. BOTH are required: `bd
 # ready` excludes in_progress, so a bead being worked right now makes the ready
-# front empty, and the ready query alone reports a live agent as finished.
-# `bd ready --json` prints [] when the front is empty -- measured on bd 1.2.2
+# ready set empty, and the ready query alone reports a live agent as finished.
+# `bd ready --json` prints [] when the ready set is empty -- measured on bd 1.2.2
 # in every configuration tried, and null in none of them. json_empty accepts
 # null and the empty string as well: it is a shape guard rather than a
 # restatement of what bd emits, and what separates "nothing there" from
@@ -309,7 +309,7 @@ self_test() {
   for _c in "both queries fail:2:fail-all" \
             "the in_progress query alone fails:2:fail-prog" \
             "both answer empty:0:empty" \
-            "the ready front is non-empty:1:busy"; do
+            "the ready set is non-empty:1:busy"; do
     _n="${_c%%:*}"; _r="${_c#*:}"; _e="${_r%%:*}"; _adq_mode="${_r#*:}"
     bd() {
       case "$_adq_mode" in

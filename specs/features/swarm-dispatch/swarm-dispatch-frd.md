@@ -49,7 +49,7 @@ Its value is three things, in this order:
   command is one line.
 
 **The order is the cycle, not a ranking.** Closing what a run has
-finished is what makes the front move; then the front, opening a
+finished is what refills the ready set; then reading it, opening a
 dispatch, accepting one back, and proving the result landed.
 
 ### What this document assumes rather than specifies
@@ -64,8 +64,8 @@ is small and fixed:
 |---|---|---|
 | `branch` | `dispatch open` | `dispatch open`, once |
 | `base_sha` | — | `dispatch open`, once |
-| `admitted` | `queue front` | — |
-| `consecutive_failures` | `queue front` | `queue front` |
+| `admitted` | `ready` | — |
+| `consecutive_failures` | `ready` | `ready` |
 
 **`consecutive_failures` is the one key this document adds**, and adding
 it is a schema change rather than a convention: the manifest's key set is
@@ -76,10 +76,10 @@ type and stage all come from one declaration. So the key is declared in
 when the run first dispatches. What it counts is settled in
 FEAT-SWARM-DISP-002; the record it lives in is [[frd-swarm-core]]'s.
 
-**Absent is not zero, and `queue front` is what reconciles them.** The
+**Absent is not zero, and `ready` is what reconciles them.** The
 manifest reader reports an unwritten key as absent rather than as an empty
 value, which is what makes a resumed run's count recoverable at all. A
-front query treats an absent count as zero — correct for a run that has
+ready set query treats an absent count as zero — correct for a run that has
 dispatched nothing — and it is the write, not the read, that makes the
 count survive.
 
@@ -117,15 +117,15 @@ run epic
 ├ groom & plan ─┐
 ├ TARGET ───────┤ FLAT: tasks only
 │  ├ dispatch ┐ │  repeat                  swarm phase close           001
-│  ├ merge    │ │  until the               swarm queue front           002
-│  └ supervise┘ │  front is dry            swarm dispatch open         003
+│  ├ merge    │ │  until the               swarm ready                 002
+│  └ supervise┘ │  ready set empties       swarm dispatch open         003
 │               │                          swarm dispatch accept       004
 │               │                          swarm status            core
 ├ review ───────┘
 ├ retro
 └ post-flight ............................ swarm branch verify-landed  005
 
-inside a dispatch, run by the dev agent .. swarm queue front --agent   002
+inside a dispatch, run by the dev agent .. swarm ready --agent   002
 ```
 
 `core` marks the one step in this loop that [[frd-swarm-core]] specifies.
@@ -135,16 +135,21 @@ Read as a table:
 | Lifecycle step | Caller | Commands | Frequency |
 |---|---|---|---|
 | the sprint branch | coordinator | the first `dispatch open` (003) creates it | once; reused on resume |
-| every re-query of the front | coordinator | `phase close` (001), `queue front` (002), and `status` from the core document | many times per run |
+| every re-query of the ready set | coordinator | `phase close` (001), `ready` (002), and `status` from the core document | many times per run |
 | sending a dispatch out | coordinator | `dispatch open` (003) | once per dispatch |
-| inside a dispatch | dev agent | `queue front --agent` (002) | once per bead |
+| inside a dispatch | dev agent | `ready --agent` (002) | once per bead |
 | a dispatch's return | coordinator | `dispatch accept` (004), which ends in `branch verify-landed` (005) | once per dispatch |
 | post-flight | coordinator | `branch verify-landed` (005) | once |
 
 ### The shape of a command
 
-**`swarm <noun> <verb>`.** The nouns this document uses are `phase`,
-`queue`, `dispatch` and `branch`.
+**`swarm <noun> <verb>`, with one bare verb.** The nouns this document
+uses are `phase`, `dispatch` and `branch`. `swarm ready` carries none,
+for the reason [[frd-swarm-core]] gives for `swarm status`: a segment
+before the verb has to carry information, and every command here concerns
+one run's graph, so naming that graph would say nothing. The word is the
+tracker's own — `bd ready` answers the same question over the whole
+repository that this answers over one run.
 
 **The conventions are [[frd-swarm-core]]'s** and are not restated here.
 `--explain`, `--dry-run`, `--json` and `--full-result` are carried by
@@ -179,8 +184,8 @@ bead.
 | **manifest** | the JSON object in the run epic's metadata; the run's only durable record |
 | **dispatch** | the act of handing a batch of beads to a subagent, which works them in its own worktree on its own branch and hands the branch back. A dispatch carries one or many beads |
 | **dispatch id** | one string that is at once the subagent's identity, the assignee on every bead in its batch, its tracker actor, and its branch name. Derived from the run epic id, never minted |
-| **ready front** | the complete set of beads in the run that nothing is blocking right now |
-| **dispatch front** | the ready front with the run's dispatch filter applied, which is the set that may be handed to agents |
+| **ready set** | the complete set of beads in the run that nothing is blocking right now |
+| **dispatch set** | the ready set with the run's dispatch filter applied, which is the set that may be handed to agents |
 | **drained** | an agent holding nothing ready and nothing in progress. Two queries, because the ready query alone excludes in-progress work |
 | **landing check** | one fetch plus one comparison of a local branch against its remote counterpart |
 | **derivation** | an answer requiring a tree walk or a join across the tracker and version control that no single command returns |
@@ -197,7 +202,7 @@ swarm phase close --run <run-epic-id>
 ```
 
 **Replaces:** `bead-bonanza/references/supervision.md`, "Re-querying the
-ready front is two steps, in order"; `references/dispatching.md`, the
+ready set is two steps, in order"; `references/dispatching.md`, the
 first bullet of "Re-verify at every re-query"; `references/run-record.md`,
 "Closing a ceremony epic is `bd epic close-eligible`, scoped BY HAND";
 and the paragraph in `bead-bonanza/SKILL.md` beginning "Re-query before
@@ -211,15 +216,15 @@ Feature: Close this run's finished phase epics
 
   As a coordinator advancing a run
   I want to close the phase epics this run has finished and only those
-  So that the beads they gate enter the ready front without my
+  So that the beads they gate enter the ready set without my
   touching another run's epics to do it
 
   This is the sharpest capability in the inventory because it fails
   destructively in one direction and silently in the other. Wrong one
   way, it closes every eligible epic in the database. Skipped the other
   way, a finished phase never closes, the beads it gates never
-  become ready, and an empty front reads as "the run is done" rather than
-  "the run has stalled". It runs at every re-query of the front, so both
+  become ready, and an empty ready set reads as "the run is done" rather than
+  "the run has stalled". It runs at every re-query of the ready set, so both
   failures are reachable many times per run.
 
   The target epic closes on the same rule as the ceremony phases and is
@@ -295,7 +300,7 @@ Feature: Close this run's finished phase epics
 **Command:**
 
 ```text
-swarm queue front --run <id> [--agent <dispatch-id>]
+swarm ready --run <id> [--agent <dispatch-id>]
 ```
 
 **One command, two callers.** Without `--agent` it is the **whole run's**
@@ -345,10 +350,10 @@ that question once per re-query, of the command that measures the whole
 run, rather than twice.
 
 **Three readiness signals are deliberately NOT this command's**, and
-naming them is what stops the next reader assuming the front gates them.
+naming them is what stops the next reader assuming the ready set gates them.
 `bd lint`'s findings and a bead's capability tier are settled while the
-queue is groomed, not while it is dispatched — a bead reaching the front
-without an acceptance criterion is a grooming defect, and the front is
+queue is groomed, not while it is dispatched — a bead reaching the ready set
+without an acceptance criterion is a grooming defect, and the ready set is
 the wrong place to discover it. **A ready bead carrying no tier is
 dispatched at the advanced tier**, which is the resolution rule rather
 than a reason to withhold the bead. And the open human-decision queue is
@@ -379,7 +384,7 @@ Feature: Answer what may be dispatched now, and what an agent still holds
 
   As a coordinator deciding what to send out, or an agent asking what is
   left in its own queue
-  I want the front returned with the run's filter applied, narrowable to
+  I want the ready set returned with the run's filter applied, narrowable to
   one dispatch, and systemic failure detected
   So that I never hand an agent work meant for a human, work already
   finished, or work somebody else is holding, and I stop when the next
@@ -391,9 +396,9 @@ Feature: Answer what may be dispatched now, and what an agent still holds
   human still owes it an answer.
 
   @AC-SWARM-DISP-002.1
-  Scenario: A bead awaiting a human is excluded from the dispatch front
+  Scenario: A bead awaiting a human is excluded from the dispatch set
     Given a bead in the run labelled for human attention
-    When the dispatch front is queried
+    When the dispatch set is queried
     Then that bead is not in it
 
   @AC-SWARM-DISP-002.2
@@ -404,96 +409,96 @@ Feature: Answer what may be dispatched now, and what an agent still holds
 
   @AC-SWARM-DISP-002.3 @negative
   Scenario: An empty or missing run scope is refused
-    When the front is queried with no run scope
+    When the ready set is queried with no run scope
     Then the command exits with the malformed-invocation status
     And no beads are returned
 
   @AC-SWARM-DISP-002.4
   Scenario: Consecutive dispatches that completed nothing stop the run
     Given the configured number of consecutive dispatches returned with no bead completed
-    When the front is queried
+    When the ready set is queried
     Then the command reports the run as stopped
     And it exits with the stop status
 
   @AC-SWARM-DISP-002.5
   Scenario: A dispatch that completed some of its work does not advance the breaker
     Given a dispatch that completed four beads and blocked two
-    When the front is queried
+    When the ready set is queried
     Then the failure count is reported as zero
 
   @AC-SWARM-DISP-002.6 @negative
   Scenario: Beads a batch never reached do not advance the breaker
     Given one dispatch in which a bead blocked and five were returned as not reached
-    When the front is queried
+    When the ready set is queried
     Then the failure count is reported as one rather than six
 
   @AC-SWARM-DISP-002.7 @negative
-  Scenario: Epics are never in the dispatch front
+  Scenario: Epics are never in the dispatch set
     Given a run whose phase epics are open
-    When the dispatch front is queried
+    When the dispatch set is queried
     Then no epic is in it
 
   @AC-SWARM-DISP-002.8 @negative
-  Scenario: A closed or deferred bead is not in the dispatch front
+  Scenario: A closed or deferred bead is not in the dispatch set
     Given one closed and one deferred bead in the run
-    When the dispatch front is queried
+    When the dispatch set is queried
     Then neither is in it
 
   @AC-SWARM-DISP-002.9
   Scenario: A bead a live dispatch is already holding is not offered again
     Given a bead assigned to a dispatch whose worktree is standing
-    When the dispatch front is queried
+    When the dispatch set is queried
     Then that bead is reported as held rather than as available
 
   @AC-SWARM-DISP-002.10
-  Scenario: The front reaches beads nested below the run epic
+  Scenario: The ready set reaches beads nested below the run epic
     Given a run whose beads are children of the target epic rather than of the run epic
-    When the dispatch front is queried
+    When the dispatch set is queried
     Then those beads are in it
 
   @AC-SWARM-DISP-002.11
   Scenario: The failure count survives a resumed run
     Given a run that recorded two consecutive dispatches completing nothing before its session ended
-    When a resumed session queries the front
+    When a resumed session queries the ready set
     Then the count is reported as two rather than zero
 
   @AC-SWARM-DISP-002.12
   Scenario: An agent's own queue is the same query narrowed to that agent
     Given a dispatch holding three beads in a collision chain
-    When the front is queried for that dispatch
+    When the ready set is queried for that dispatch
     Then only beads assigned to that dispatch are returned
     And they are returned in the order their dependencies allow
 
   @AC-SWARM-DISP-002.13
   Scenario: An agent working a bead is not reported as drained
     Given an agent holding one bead in progress and none ready
-    When the front is queried for that agent
+    When the ready set is queried for that agent
     Then it is reported as still holding work
 
   @AC-SWARM-DISP-002.14
   Scenario: An agent's queue never reaches outside the run
     Given the same dispatch id assigned to a bead in another run
-    When the front is queried for that agent
+    When the ready set is queried for that agent
     Then that bead is not returned
 
   @AC-SWARM-DISP-002.15
   Scenario: An agent that was never given a queue is not reported as drained
     Given a dispatch id with no bead assigned to it anywhere in the run
-    When the front is queried for that agent
+    When the ready set is queried for that agent
     Then that dispatch is reported as not established rather than as drained
     And the command exits with the attention status
 
   @AC-SWARM-DISP-002.16
   Scenario: A payload that is not a list is not counted as a queue
     Given a tracker response that is an error body rather than a list
-    When the front is queried
+    When the ready set is queried
     Then the queue is not reported as having that response's length
     And the command exits with the stop status
 
   @AC-SWARM-DISP-002.17
-  Scenario: The front spans every dispatch and names each bead's own
+  Scenario: The ready set spans every dispatch and names each bead's own
     Given a run whose ready beads are assigned across three dispatch ids
-    When the dispatch front is queried with no agent named
+    When the dispatch set is queried with no agent named
     Then beads assigned to all three dispatches are returned
     And each is reported with the dispatch id it is assigned to
     And a bead assigned to no dispatch is reported as unassigned rather than omitted

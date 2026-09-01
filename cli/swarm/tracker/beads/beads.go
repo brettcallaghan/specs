@@ -90,8 +90,8 @@ func (t Tracker) Children(name, parent string) plan.Step {
 	return s
 }
 
-// ReadyFront reads the beads under a scope that nothing is blocking.
-func (t Tracker) ReadyFront(name, scope string, filter tracker.ReadyFilter) plan.Step {
+// Ready reads the beads under a scope that nothing is blocking.
+func (t Tracker) Ready(name, scope string, filter tracker.ReadyFilter) plan.Step {
 	args := []string{"ready", "--parent", scope}
 	if filter.Assignee != "" {
 		args = append(args, "--assignee", filter.Assignee)
@@ -105,7 +105,7 @@ func (t Tracker) ReadyFront(name, scope string, filter tracker.ReadyFilter) plan
 	args = append(args, "--json")
 
 	s := t.step(name, plan.Read, true, decodeReady, args...)
-	s.Description = "the ready front under " + scope
+	s.Description = "the ready set under " + scope
 	return s
 }
 

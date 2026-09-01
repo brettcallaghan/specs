@@ -100,7 +100,7 @@ Measured on `bd` 1.2.2, claiming with `bd update <id> --claim`:
 
 The last row is the failure the export prevents: nothing errors, and the
 coordinator's ownership view decays. `bd ready --claim` writes the actor into
-`assignee` the same way, and on an already-assigned ready front it claims
+`assignee` the same way, and on an already-assigned ready set it claims
 nothing at all and returns `[]`.
 
 An unassigned bead is therefore the only bead a claim can move to the wrong
@@ -109,10 +109,10 @@ owner, which is why assigning every bead before dispatch and exporting
 
 ### Concurrent dispatch
 
-**Concurrent dispatch is ENABLED.** Several beads may go out of the ready front
+**Concurrent dispatch is ENABLED.** Several beads may go out of the ready set
 at once, each in its own worktree, merged as each returns.
 
-**The ready front IS what may run concurrently.** Re-query
+**The ready set IS what may run concurrently.** Re-query
 `bd ready --parent <epic> --exclude-type=epic` before every dispatch; what
 comes back is what dependencies and collision edges now allow. Never advance by
 walking a stored list — a bead that closed early, a bead blocked by something

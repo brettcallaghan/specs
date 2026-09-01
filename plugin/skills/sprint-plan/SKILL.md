@@ -63,13 +63,13 @@ labels and assignees, and unset they land under the harness default.
 **The partition is not a document — it is in the graph.** Which beads may not
 run at once is a **collision edge**; which agent holds a bead is its
 `assignee`; what runs next is `bd ready` re-queried. The orchestrator
-dispatches from that front continuously, so there is no schedule to keep in
+dispatches from that ready set continuously, so there is no schedule to keep in
 step with a graph that moves under it.
 
 ## The readiness gate — run it before you classify anything
 
 A sprint dispatches **only groomed beads.** Every later phase already
-assumes grooming's outputs: the ready front's ordering comes from the
+assumes grooming's outputs: the ready set's ordering comes from the
 dependency graph grooming wires; this gate's own cheap check reads the
 open-decision verdict grooming reaches (DoR check 9); the classification below
 reads the tier assignment grooming makes.
@@ -136,7 +136,7 @@ payoff of the single read: it is signal captured at the one moment it is cheap,
 and it is the starting point for everything below. You remain the source of
 truth on packing.
 
-**Then re-run the front** with the run's filter: grooming may have wired new
+**Then re-run the ready set** with the run's filter: grooming may have wired new
 dependencies or split a boulder, changing both the ordering and the membership
 of the queue. **A split must stay FLAT** — siblings under the target with edges
 between them, never a sub-epic. The target's flatness is what makes "the run's
@@ -176,7 +176,7 @@ sufficient.
 
 Groom an admitted one to Ready like the rest, and wire the `blocks` edge so it
 orders ahead of the bead it unblocks. A groomed prerequisite that still fails
-the decisions check is bounced with the `human` label, exactly as at the front
+the decisions check is bounced with the `human` label, exactly as at the ready set
 of the run.
 
 **Ballooning is a stop signal.** WHEN "prerequisites" multiply — a discovered
@@ -247,7 +247,7 @@ re-derive it from prose. The `jq` and a worked example are in
 the orchestrator reads it by re-querying `bd ready --parent <epic>
 --exclude-type=epic`. What you decide is **packing** — which beads would
 collide, so that a collision edge chains them behind one agent instead of
-letting them reach the ready front together.
+letting them reach the ready set together.
 
 Where the repo documents no C4 architecture, grooming skips the tagging and
 `c4_*` is absent — file scanning is then the whole signal, and absent metadata
@@ -295,7 +295,7 @@ never pack a batch in a way that assumes otherwise.
    reconsider — they probably belong in a shared batch.
 
    Beads grouped this way need **no** collision edge and get their own
-   assignee, so they reach the ready front together and dispatch concurrently.
+   assignee, so they reach the ready set together and dispatch concurrently.
 
 **No batch gets a merge bead.** The coordinator merges each dispatch's branch
 as that dispatch returns; nothing schedules that, and a plan creates no beads.

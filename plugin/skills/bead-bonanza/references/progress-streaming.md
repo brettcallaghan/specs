@@ -137,7 +137,7 @@ however many subagents it dispatches:
 tail -n +1 -F "$BB_EVENT_LOG"
 ```
 
-Arm it with `persistent: true` and stop it with `TaskStop` when the ready front
+Arm it with `persistent: true` and stop it with `TaskStop` when the ready set
 dries. **Set `timeout_ms` explicitly** — the default is five minutes, shorter
 than most runs, so a Monitor armed without it expires part-way through the work
 it exists to report. The `tail -F` pattern never exits on its own, so it stays

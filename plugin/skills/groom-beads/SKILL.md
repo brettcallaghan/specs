@@ -197,7 +197,7 @@ work order's `depends_on` / `blocks` / `parent_slug` / `related` /
 `discovered_from` fields):
 
 - `blocks` / `blocked-by` — genuine sequential dependencies. This is what the
-  ready front is computed from.
+  ready set is computed from.
 - `parent` — the bead belongs to an epic.
 - `related` — relevant but non-blocking.
 - `discovered-from` — work surfaced while implementing another bead. Preserve
@@ -210,7 +210,7 @@ fabricated edge needlessly serializes work the orchestrator could parallelize.
 bead consumes a contract another is changing — `c4_impacts` intersecting
 another bead's `c4_changes`, or a stated prerequisite — wire
 `bd dep add <consumer> <producer>`. An orchestrator dispatches from the
-re-queried ready front, so an edge is honoured automatically, at any depth and
+re-queried ready set, so an edge is honoured automatically, at any depth and
 across epic boundaries; a line of prose in a preview is honoured only if
 someone reads it, and nothing re-reads it after the first dispatch.
 
@@ -325,7 +325,7 @@ Close the pass with a concise report:
 **Optional partition preview** (default on, non-authoritative): name every pair
 of ready beads sharing a `c4_changes` component, and group each cluster into a
 candidate batch in dependency order. Those pairs become **collision edges** in
-the plan, so a pair never reaches the ready front together. The planner remains
+the plan, so a pair never reaches the ready set together. The planner remains
 the source of truth on packing; say explicitly that this is a preview.
 
 ## The retro loop (closing the circle)

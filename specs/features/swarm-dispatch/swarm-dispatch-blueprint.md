@@ -25,7 +25,7 @@ into widening those interfaces, building five commands on the widened
 surface, and retiring the skill prose each command replaces.
 
 The widening is where the risk is. The Tracker gains scoped epic
-eligibility and the queries the front is derived from; Version Control
+eligibility and the queries the ready set is derived from; Version Control
 gains worktree creation, branch creation and deletion, rebase, merge and
 push. Both are the components whose implementations are the only ones
 allowed to name `bd` and `git`, so every decoder they gain is a place a
@@ -167,7 +167,7 @@ that closing nothing is a reported outcome rather than a silence.
 **Anchors:** `cli/swarm/cli`, `cli/cmd`-style command registration under
 `cli/swarm`.
 
-### `swarm queue front` in [[container-swarm-cli]] (added — the dispatch front)
+### `swarm ready` in [[container-swarm-cli]] (added — the dispatch set)
 
 **Intent:** what may be dispatched now, with the run's filters applied
 inside the run's scope. Four measured traps live here, and each is a
@@ -177,13 +177,13 @@ filter or a guard rather than a longer query.
 - The command SHALL refuse an empty or absent run scope with the
   malformed-invocation status, and SHALL NOT treat an absent scope as the
   whole repository.
-- The front SHALL exclude epics, closed beads, deferred beads, and beads
+- The ready set SHALL exclude epics, closed beads, deferred beads, and beads
   labelled for human attention.
-- The front SHALL reach beads at any depth beneath the run epic, through
+- The ready set SHALL reach beads at any depth beneath the run epic, through
   the `Tracker`'s descendant walk rather than a single-level query, and
   SHALL span every dispatch in the run rather than any one of them —
   narrowing to a dispatch is `--agent`'s and nothing else's.
-- Each bead in the front SHALL be reported with the dispatch id it is
+- Each bead in the ready set SHALL be reported with the dispatch id it is
   assigned to, since that is what tells a coordinator which dispatches
   have work waiting; a bead assigned to none SHALL be reported as
   unassigned rather than omitted.
@@ -198,7 +198,7 @@ filter or a guard rather than a longer query.
 
 **Anchors:** `cli/swarm/cli`, `cli/swarm/tracker`, `cli/swarm/vcs`.
 
-### `swarm queue front --agent` in [[container-swarm-cli]] (added — one dispatch's queue)
+### `swarm ready --agent` in [[container-swarm-cli]] (added — one dispatch's queue)
 
 **Intent:** the same query with one more filter, so the filter set is
 implemented once. It answers what one dispatch still holds, and separates
@@ -220,7 +220,7 @@ an agent that has finished from one that was never handed anything.
 
 **Anchors:** `cli/swarm/cli`, `cli/swarm/tracker`.
 
-### `swarm queue front` in [[container-swarm-cli]] (added — the circuit breaker)
+### `swarm ready` in [[container-swarm-cli]] (added — the circuit breaker)
 
 **Intent:** the breaker's unit decides whether it fires at all. Counted as
 consecutive blocked beads it misfires on its own machinery, so the unit is
@@ -386,7 +386,7 @@ the retirement on the coordinator's own documents and script.
 
 **Behavior:**
 - The Coordinator SHALL reach the loop through `swarm phase close`,
-  `swarm queue front`, `swarm dispatch open` and `swarm dispatch accept`,
+  `swarm ready`, `swarm dispatch open` and `swarm dispatch accept`,
   and SHALL route on each command's exit status rather than on its text.
 - The prose each command replaces SHALL be deleted in the same change that
   adopts it, not summarized beside it: `supervision.md`'s re-query ordering;
@@ -413,7 +413,7 @@ same commands the coordinator does, so a dev agent and a recovering session
 stop carrying their own queries.
 
 **Behavior:**
-- The Developer SHALL resolve its queue with `swarm queue front --agent`,
+- The Developer SHALL resolve its queue with `swarm ready --agent`,
   and `run-batch/SKILL.md`'s queue-resolution preamble SHALL be deleted.
 - Recovery SHALL take `swarm branch verify-landed` as its first act, and
   `sprint-recovery/SKILL.md`'s step 1 SHALL be replaced by it.
@@ -463,7 +463,7 @@ and that is a change to an existing contract rather than a new one.
   defeating the removal guard is answered by the behavior line naming the
   unlock invocation as the resolution and refusing the forcing form.
 - `agent-plugins-y63n.4` — subsumed by the **QF** delta: a repo-wide
-  human-queue check is run-scoped by construction once the front refuses an
+  human-queue check is run-scoped by construction once the ready set refuses an
   absent scope and derives its set from the run's own descendants.
 - `agent-plugins-bhl` — out-of-scope: this feature specifies how a
   concurrent dispatch's branch is merged, not whether or how widely a run
@@ -520,9 +520,9 @@ Delivery is `staged`, in three stages.
 Legend: **TRK** = `Tracker` and `Beads Tracker` delta; **VCS** =
 `Version Control` and `Git Version Control` delta; **MFK** = manifest
 failure-count delta; **FIX** = fixture-variants delta; **PC** =
-`swarm phase close` delta; **QF** = `swarm queue front` delta (— the
-dispatch front); **AQ** = `swarm queue front --agent` delta; **CB** =
-`swarm queue front` delta (— the circuit breaker); **BR** =
+`swarm phase close` delta; **QF** = `swarm ready` delta (— the
+dispatch set); **AQ** = `swarm ready --agent` delta; **CB** =
+`swarm ready` delta (— the circuit breaker); **BR** =
 `swarm dispatch open` delta (— the sprint branch); **WT** =
 `swarm dispatch open` delta (— the worktree); **MG** =
 `swarm dispatch accept` delta (— drain, case and merge); **RM** =
@@ -650,7 +650,7 @@ here, and what each binds:
       AC-SWARM-DISP-002.4 says "the configured number of consecutive
       dispatches" without saying what configures it, and the **CB** delta
       cannot be implemented without an answer. Three candidates: a flag on
-      `swarm queue front` with a default of 3, which adds no durable state
+      `swarm ready` with a default of 3, which adds no durable state
       and lets a coordinator vary it per query; a `[run]` key in `sf.toml`,
       which puts it beside the other per-project run policy the
       authorization gate resolves; or a second manifest key, which would

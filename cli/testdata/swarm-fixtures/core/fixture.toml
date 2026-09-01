@@ -29,7 +29,7 @@ kind = "core"
 # it does not — a core fixture whose stamp has fallen behind is a
 # re-record that was missed. A legacy fixture's must be older, and the
 # same test fails when its version has caught up.
-contract_version = "1.0"
+contract_version = "2.0"
 
 description = """A run partway through: its manifest is complete through the scope stage, \
 its branch and base are the bundle's own refs, one of its two beads is closed and the \

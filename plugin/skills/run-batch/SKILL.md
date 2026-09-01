@@ -359,7 +359,7 @@ branch back; you do not merge it and you do not push it.**
 Not from your return line — from your queue. **You have DRAINED when no open,
 ready bead in `{EPIC}` is assigned to you and you hold nothing `in_progress`.**
 Both halves are required: `bd ready` excludes `in_progress`, so a bead you are
-working right now empties the ready front, and the ready query alone would
+working right now empties the ready set, and the ready query alone would
 report you finished mid-bead. **Scope the query to `{EPIC}`** — `--assignee`
 alone spans the whole tracker, so work outside this run would read as yours.
 

@@ -180,7 +180,7 @@ C4Component
     Rel(dev, checks, "runs before every close")
     Rel(dev, close, "runs once per bead")
     Rel(coord, status, "reads at every re-query")
-    Rel(coord, review, "invokes when the front is dry")
+    Rel(coord, review, "invokes when the ready set is empty")
     Rel(coord, retro, "invokes last")
     Rel(coord, teardown, "runs at post-flight")
     Rel(coord, recover, "invokes on an existing run epic")
@@ -247,7 +247,7 @@ run and for resuming one alike.
   the end of the scope phase, where an unmade decision is deferred out of the
   run. **A ready bead carrying no `metadata.tier` is dispatched at the
   advanced tier** rather than withheld, so a bead that slipped grooming
-  cannot stop the front from moving.
+  cannot stop the ready set from moving.
 - **When something goes wrong, works out a solution** and records the
   decision. It does not stop to ask.
 - **Owns the run manifest** and the run's amendments (`amend:` comments).
@@ -260,7 +260,7 @@ run and for resuming one alike.
   completes its work — and removes its worktree only behind an ancestry check.
   This is a coordinator responsibility, not a component: there is nothing to
   serialize (it is one agent) and nothing to schedule.
-- Owns both loops: the dispatch loop (until the ready front is dry) and
+- Owns both loops: the dispatch loop (until the ready set is dry) and
   the review loop (until findings stop or the budget is spent).
 - **Spawns a subagent to fix a merge conflict** as one arises, and never
   resolves one itself: it holds no bead's context, so a resolution it invented
@@ -392,7 +392,7 @@ it invokes Grooming itself and plans in the same context.
 - **Assigns every bead** a dispatch id, which is the whole of the
   handover: the assignee *is* the batch.
 - Emits one **collision-edge file**, loaded with `bd dep add --file`, so
-  the ready front is safe to dispatch whole.
+  the ready set is safe to dispatch whole.
 - **Gates the epic for swarming** — the epic-level Definition of Ready,
   two of whose checks are undecidable before assignment.
 - **Does not hold the per-bead checklist** and creates no beads.
@@ -577,7 +577,7 @@ description: Harness hooks that hold the session to its ready loop and a worker 
 
 (hooks — `plugin/hooks/*.sh`, `plugin/monitors/*.sh`)
 
-- Refuse a stop while the armed run's ready front is non-empty, or while
+- Refuse a stop while the armed run's ready set is non-empty, or while
   a worker's assigned beads are still ready or in progress.
 - Bounded: a fixed number of consecutive blocks, then they stand down —
   a queue that will not drain needs a human, and holding a session

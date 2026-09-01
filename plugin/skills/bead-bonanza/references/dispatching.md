@@ -6,7 +6,7 @@ dispatch, and again when a batch returns.
 
 ## Contents
 
-- Dispatch continuously — the ready front is re-queried, never walked from a
+- Dispatch continuously — the ready set is re-queried, never walked from a
   stored list
 - The prompt — the three values it carries, and why it carries nothing else
 - Ceremony dispatches — the two writes that give a phase an identity
@@ -22,7 +22,7 @@ dispatch, and again when a batch returns.
 --exclude-type=epic --exclude-label human` already returns the complete set of
 beads nothing is blocking, so a freeze-dispatch-wait-requery cycle adds only
 the wait: the slowest bead in the cohort holds up every bead that became ready
-behind it. Re-query the front, dispatch what is in it and not already held, and
+behind it. Re-query the ready set, dispatch what is in it and not already held, and
 re-query again as each batch returns.
 
 **`--exclude-label human` is on the DISPATCH query and nowhere else.** A
@@ -37,8 +37,8 @@ behaviour behind it, are in `run-record.md`.
 
 **Concurrency policy is in the graph, not in a schedule.** Two beads that
 share a `c4_changes` component must not run at once; the plan expresses that as
-a `blocks` edge between them, so they cannot both be in the ready front. That
-is why nothing here needs to remember which beads may run together — the front
+a `blocks` edge between them, so they cannot both be in the ready set. That
+is why nothing here needs to remember which beads may run together — the ready set
 is already safe by construction. Those **collision edges** are policy rather
 than real dependencies, and both ends carry `metadata.collision` naming the
 shared surface so a reader can tell them apart: `run-record.md`.
@@ -48,11 +48,11 @@ shared surface so a reader can tell them apart: `run-record.md`.
 - `bd epic close-eligible` first, scoped by hand — it takes **no** positional
   epic, so the bare command closes every eligible epic in the database.
   Omitting it is a silent deadlock: a finished ceremony epic that never closes
-  keeps the beads it gates out of the front forever
+  keeps the beads it gates out of the ready set forever
   (`supervision.md`).
 - `BB_WORKTREE_BASEREF` is `head` before the next worktree is created. It is
   global user state no repository owns, so it can change between dispatches.
-- Diff the front against `manifest.admitted` (`swarm status --run <epic>` names
+- Diff the ready set against `manifest.admitted` (`swarm status --run <epic>` names
   the difference) and resolve any creep — admitted as an amendment, or deferred
   out — rather than dispatching an unexamined bead.
 
@@ -252,8 +252,8 @@ bd list --assignee <id> --status blocked       # what it gave up on
 
 **An agent has DRAINED when the first two are empty.** Both are required and
 this is measured: `bd ready` excludes `in_progress`, so a bead being worked
-right now makes the ready front empty and the ready query ALONE reports a live
-agent as finished. `bd ready --json` prints `[]` when the front is empty —
+right now makes the ready set empty and the ready query ALONE reports a live
+agent as finished. `bd ready --json` prints `[]` when the ready set is empty —
 measured on bd 1.2.2 in every configuration tried (empty tracker; issues
 present with a filter matching none; every issue closed; `--parent`,
 `--assignee` and `--exclude-type` filters), and `null` in none of them. Read

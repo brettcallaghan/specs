@@ -51,7 +51,7 @@ attach to a ceremony epic — gating one would need the refused task→epic edge
 and it does not need to: the scope epic already blocks the plan epic, so
 holding its task child holds the whole chain. Verified end to end: with
 `bd gate create -t human --blocks <gate-task>` open, `bd ready --parent <scope>`
-returned nothing; the gate task had entered the ready front the moment
+returned nothing; the gate task had entered the ready set the moment
 pre-flight's own epic closed.
 
 ## The two human channels
@@ -84,7 +84,7 @@ to build a wait-until-the-end channel on top of `bd human`: `bd human respond`
 and `bd human dismiss` **both** fail with `storage is nil`, and `bd human list`
 keeps listing a bead after it closes — so anything asking "does a human still
 owe this run an answer" must read `bd list --label human --status open`
-instead. The dispatch front carries `--exclude-label human` so a bounced bead
+instead. The dispatch set carries `--exclude-label human` so a bounced bead
 is never handed to an agent; no completion count carries it, or the run reports
 itself drained while a human still owes it an answer.
 
@@ -123,7 +123,7 @@ after `sprint-scope` returns the epic and before you dispatch grooming.
 
    **Diff it and re-run the plan's validators before loading**, because a load
    that fails partway leaves the graph half-wired and being reviewable
-   pre-load is most of what the document is for. Then **assert the ready front
+   pre-load is most of what the document is for. Then **assert the ready set
    after loading** rather than trusting the file: an edge written the wrong way
    round inverts a dependency at exit 0.
 

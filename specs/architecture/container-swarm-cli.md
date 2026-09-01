@@ -601,7 +601,7 @@ description: Takes a run's measurements from the tracker and version control, an
 
 (Go) — Takes a run's measurements and returns them as a value: the
 standing worktree count, the timestamp and age of the last commit, the
-depth of the ready front, each dispatch's drain state from its two
+depth of the ready set, each dispatch's drain state from its two
 queries, the completion walk, and the delta between the live queue and
 the admitted set. It walks the run's descendants itself rather than
 asking for them, because the tracker's parent-scoped queries answer three

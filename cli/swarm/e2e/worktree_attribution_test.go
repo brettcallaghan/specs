@@ -31,7 +31,7 @@ func TestAWorktreeIsAttributedByItsCommitNotItsBranchName(t *testing.T) {
 
 	stdout, stderr, code := w.swarm(t, "status", "--run", "fixture-run", "--json", "--full-result")
 	// Either exit is fine here — this test is about attribution, not
-	// about the verdict a particular fixture's ready front implies.
+	// about the verdict a particular fixture's ready set implies.
 	if code != 0 && code != 1 {
 		t.Fatalf("status exited %d\n--- stdout ---\n%s\n--- stderr ---\n%s", code, stdout, stderr)
 	}

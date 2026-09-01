@@ -16,7 +16,7 @@ it is standing in (`dispatching.md`).
 - Merging — one branch per dispatch, the two meanings of a `--ff-only` refusal,
   and the ordering guard removal sits behind
 - A rebase conflict is a re-planning problem, and who resolves it
-- Concurrent dispatch out of one ready front
+- Concurrent dispatch out of one ready set
 
 ## The sprint branch — created once, before the first worktree
 
@@ -236,7 +236,7 @@ git merge-base --is-ancestor "$(git rev-parse HEAD@{1})" "bb/<dispatch-id>"
   is guaranteed and a refusal means an invariant broke: the worktree branched
   from the wrong base. **Stop and report it; do not resolve it inline** and do
   not retry without `--ff-only`.
-- **Concurrent** — every branch dispatched off one front shares its base by
+- **Concurrent** — every branch dispatched off one ready set shares its base by
   construction, so only the first can fast-forward and the second onward
   necessarily diverge. That is **not a fault**; applying the serialized rule
   literally would stop every concurrent dispatch of two or more beads and
@@ -292,11 +292,11 @@ changes, mark the unmerged bead `blocked`, leave its worktree standing, and
 report — two beads that genuinely collided belong in ONE dispatch, sequential,
 which is what a collision edge between them expresses.
 
-## Concurrent dispatch out of one ready front (enabled)
+## Concurrent dispatch out of one ready set (enabled)
 
 Spawn several dispatches at once — one `Agent` call each with
 `isolation: "worktree"`, all in a single message. What may go out together is
-whatever the front holds: collision edges keep anything that would conflict out
+whatever the ready set holds: collision edges keep anything that would conflict out
 of it.
 
 The lifecycle above is unchanged per dispatch. Two additions when running

@@ -139,7 +139,7 @@ tracker's own vocabulary except where a measured behaviour is being pinned.
 | **target epic** | the flat phase epic whose task children are the run's work |
 | **manifest** | the JSON object in the run epic's metadata; the run's only durable record |
 | **dispatch id** | one agent's whole identity — its assignee, its tracker actor, and its branch name. Derived from the run epic id, never minted |
-| **ready front** | the complete set of beads in the run that nothing is blocking right now |
+| **ready set** | the complete set of beads in the run that nothing is blocking right now |
 | **collision edge** | a blocking edge between two beads that must not run at once because they share a component or fixture. Not a real dependency; both ends carry a collision mark naming the surface |
 | **bounce** | move a bead out of the run's dispatchable set by labelling it for a human, leaving it open. Not a close and not a deferral |
 | **finding** | one record of friction captured at the moment it happened, carrying a kind that routes it |
@@ -190,7 +190,7 @@ Feature: Build a run's epic shape
   @AC-SWARM-RUN-001.1
   Scenario: The created shape dispatches exactly the target's open leaves
     When a run shape is created and the phases before the target are closed
-    Then the run's ready front contains exactly the target epic's open task children
+    Then the run's ready set contains exactly the target epic's open task children
 
   @AC-SWARM-RUN-001.2
   Scenario: A partially built shape is not left behind
@@ -217,7 +217,7 @@ Feature: Build a run's epic shape
   @AC-SWARM-RUN-001.4
   Scenario: The authorization gate holds the whole chain
     Given a run shape whose authorization gate is unresolved
-    When the ready front is queried
+    When the ready set is queried
     Then it is empty
 
   @AC-SWARM-RUN-001.5
@@ -290,7 +290,7 @@ swarm queue gate           --run <id> [--json]
 
 Three subcommands and one requirement, because **the gate is the check on
 the other two**: an unassigned bead and a mis-oriented edge are both
-invisible until something asserts the front and the ownership after the
+invisible until something asserts the ready set and the ownership after the
 writes land.
 
 **On a missing concurrency cap the gate refuses rather than defaulting.**
@@ -316,7 +316,7 @@ Feature: Partition the queue, assign it, and gate the epic
   As a planner preparing a run for dispatch
   I want collision edges loaded, every bead assigned, and the epic
   checked for swarmability as one act
-  So that the ready front is safe to dispatch whole
+  So that the ready set is safe to dispatch whole
 
   These three are one piece of work because the third checks the first
   two. A collision edge is a policy expressed as a dependency, and three
@@ -339,13 +339,13 @@ Feature: Partition the queue, assign it, and gate the epic
   @AC-SWARM-RUN-003.1
   Scenario: Two beads sharing a collision mark are never ready together
     Given two beads separated by a collision edge
-    When the ready front is queried
+    When the ready set is queried
     Then at most one of them appears in it
 
   @AC-SWARM-RUN-003.2
   Scenario: An inverted edge is detected rather than loaded silently
     Given an edge file whose orientation would invert a dependency
-    When the file is loaded and the front asserted
+    When the file is loaded and the ready set asserted
     Then the command exits non-zero naming the offending edge
 
   @AC-SWARM-RUN-003.3
@@ -357,7 +357,7 @@ Feature: Partition the queue, assign it, and gate the epic
   Scenario: A cluster is chained rather than fanned
     Given three beads sharing one surface
     When the partition is loaded
-    Then exactly one of the three is in the ready front
+    Then exactly one of the three is in the ready set
 
   @AC-SWARM-RUN-003.5
   Scenario: An unassigned child is named by the epic gate
@@ -482,14 +482,14 @@ Feature: Return a readiness verdict for a queue
 
   As a planner gating a queue before dispatch
   I want every bead in the queue to carry a verdict, and unready
-  beads removed from the front
+  beads removed from the ready set
   So that a bead with no verdict is never mistaken for a ready one
 
   The mechanical half of readiness is accounting rather than judgment:
   whether every bead in the queue came back with a verdict at all. The
   judgment half stays with the grooming agent, which owns the checklist.
   Bouncing has its own silent failure: an unready bead marked only with
-  a grooming annotation stays dispatchable, because the front reads
+  a grooming annotation stays dispatchable, because the ready set reads
   status and not annotations.
 
   @AC-SWARM-RUN-004.1
@@ -500,9 +500,9 @@ Feature: Return a readiness verdict for a queue
     And the command exits non-zero
 
   @AC-SWARM-RUN-004.2
-  Scenario: A bounced bead leaves the dispatch front
+  Scenario: A bounced bead leaves the dispatch set
     Given a bead bounced as not ready
-    When the dispatch front is queried
+    When the dispatch set is queried
     Then that bead is not in it
 
   @AC-SWARM-RUN-004.3

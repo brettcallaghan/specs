@@ -368,7 +368,7 @@ tested without a subprocess.
 - The Status Collector SHALL report a dispatch holding a bead in progress
   as still holding work.
 - The Status Collector SHALL measure the standing worktree count, the
-  last commit's timestamp and age, and the depth of the ready front.
+  last commit's timestamp and age, and the size of the ready set.
 - The Status Collector SHALL compare the live queue against the
   manifest's admitted list.
 - The Status Collector SHALL name the beads present in one of those two
@@ -398,7 +398,7 @@ that proves the manifest component against a real run.
 - The Status Reporter SHALL name the measurements it gives in place of
   that observation.
 - The Status Reporter SHALL NOT state that a run has stalled.
-- WHEN the ready front is non-empty, no worktree stands, and the last
+- WHEN the ready set is non-empty, no worktree stands, and the last
   commit is older than the threshold in force, `swarm status` SHALL exit
   with the attention status.
 - WHEN a measurement is unestablished, `swarm status` SHALL report it as

@@ -102,7 +102,7 @@ func children(parent string, beads ...bead) exectest.Recording {
 	}
 }
 
-// ready records the ready front under the run epic.
+// ready records the ready set under the run epic.
 func ready(beads ...bead) exectest.Recording {
 	return exectest.Recording{
 		Argv:   []string{"bd", "ready", "--parent", runEpic, "--exclude-type", "epic", "--json"},
@@ -178,9 +178,9 @@ func TestProgressIsNeverReadFromAStoredValue(t *testing.T) {
 		t.Errorf("last commit age = %v (established %v), want 3h12m",
 			m.LastCommit.Age, m.LastCommit.Established)
 	}
-	if !m.ReadyFront.Established || m.ReadyFront.Depth != 1 {
+	if !m.Ready.Established || m.Ready.Count != 1 {
 		t.Errorf("ready depth = %d (established %v), want 1",
-			m.ReadyFront.Depth, m.ReadyFront.Established)
+			m.Ready.Count, m.Ready.Established)
 	}
 
 	// The stored keys reach no field. The measurement set has nowhere to
@@ -421,11 +421,11 @@ func TestATrackerQueryThatCannotAnswerCostsOnlyItsOwnLine(t *testing.T) {
 		children("demo-run1.1"),
 	)
 
-	if m.ReadyFront.Established {
-		t.Fatal("the ready front reads established though its query failed")
+	if m.Ready.Established {
+		t.Fatal("the ready set reads established though its query failed")
 	}
-	if m.ReadyFront.Depth != 0 || m.ReadyFront.Reason == "" {
-		t.Errorf("ready front = %+v, want depth unreported and a reason given", m.ReadyFront)
+	if m.Ready.Count != 0 || m.Ready.Reason == "" {
+		t.Errorf("ready set = %+v, want depth unreported and a reason given", m.Ready)
 	}
 	if !m.Worktrees.Established || !m.LastCommit.Established || !m.Completion.Established {
 		t.Errorf("a failed ready query disturbed other measurements: worktrees %v, commit %v, completion %v",

@@ -132,7 +132,7 @@ on it.
 | **target epic** | the flat phase epic whose task children are the run's work |
 | **dispatch** | the act of handing a batch of beads to a subagent, which works them in its own worktree on its own branch and hands the branch back |
 | **dispatch id** | one string that is at once the subagent's identity, the assignee on every bead in its batch, its tracker actor, and its branch name. Derived from the run epic id, never minted |
-| **ready front** | the complete set of beads in the run that nothing is blocking right now |
+| **ready set** | the complete set of beads in the run that nothing is blocking right now |
 | **drained** | a subagent holding nothing ready and nothing in progress. Two queries, because the ready query alone excludes in-progress work |
 | **derivation** | an answer requiring a tree walk or a join across the tracker and version control that no single command returns |
 | **silent failure** | a command that returns the wrong answer at exit 0 |
@@ -579,7 +579,7 @@ subagent is still thinking cannot be observed from a shell — a stalled
 one never finishes, so no event fires, and absence of an event is not an
 event. Three things *are* observable: the number of standing worktrees,
 the age of the last commit on the sprint branch, and the depth of the
-ready front. So the report gives each with the value it had, gives the
+ready set. So the report gives each with the value it had, gives the
 threshold it compared against, and stops there.
 
 **Which means it never says a run is stalled**, because it does not know
@@ -624,9 +624,9 @@ Feature: Report a run's status from state
   @AC-SWARM-CORE-003.1
   Scenario: A run making no progress is reported as the measurements that show it
     Given no worktrees are standing
-    And the ready front is not empty
+    And the ready set is not empty
     And the last commit is older than the threshold in force
-    Then the report states the standing worktree count, the timestamp and age of the last commit, and the depth of the ready front
+    Then the report states the standing worktree count, the timestamp and age of the last commit, and the size of the ready set
     And it states the threshold it compared the commit age against
     And the command exits with the attention status
 

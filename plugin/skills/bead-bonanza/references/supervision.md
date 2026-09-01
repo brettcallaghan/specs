@@ -16,7 +16,7 @@ measures both.
 - Running without the hooks — the fallback every step is written against
 - The review loop's budget — what the counter bounds, and what it does not
 - Where readiness is settled — grooming's, scope's, and the one default
-  that keeps the front moving
+  that keeps the ready set moving
 
 ## Where is this run
 
@@ -48,7 +48,7 @@ reading to whoever can see the harness.
 a signal whose only writer is the thing it monitors, so it reports "no failure"
 and "no monitor" identically.
 
-**Re-querying the ready front is two steps, in order.** First, close eligible
+**Re-querying the ready set is two steps, in order.** First, close eligible
 epics — scoped by hand, never with the bare command: `bd epic close-eligible`
 takes NO epic argument (bd 1.2.2, `--help`) and a passed id is silently
 ignored, so `bd epic close-eligible <epic>` reads as scoped and is not. Run
@@ -59,7 +59,7 @@ belonging to other runs and other humans. Then `bd ready --parent <epic>
 --exclude-type=epic`. An epic does not close on its own when its children do
 (measured), so skipping the first step is a silent deadlock, not a slowdown —
 a finished ceremony phase stays open, the beads it gates never reach the
-front, and an empty front reads as the run being done when it has only
+ready set, and an empty ready set reads as the run being done when it has only
 stalled.
 
 Live progress — the event stream, the plugin's background monitor that reads
@@ -73,7 +73,7 @@ re-run at a re-query, because each has an owner earlier in the run and
 discovering a failure here means it already passed the gate that owns it.
 
 - **`bd lint`'s findings and a bead's capability tier are grooming's.** A
-  bead reaching the front with no acceptance criterion, or with no tier, is
+  bead reaching the ready set with no acceptance criterion, or with no tier, is
   a grooming defect. `groom-beads` assigns a tier to every bead it grooms
   and `sprint-plan` gates the queue on readiness before the target epic
   carries it.
@@ -83,7 +83,7 @@ discovering a failure here means it already passed the gate that owns it.
   dispatch owes no human an answer, and there is no queue to re-count.
 - **A ready bead carrying no `metadata.tier` is dispatched at the ADVANCED
   tier.** The absence resolves to a value rather than withholding the bead,
-  so a bead that slipped grooming cannot stop the front from moving. Fix
+  so a bead that slipped grooming cannot stop the ready set from moving. Fix
   the bead's tier when you notice it; do not hold the run for it.
 
 **What does still move after planning is SCOPE**, and that is the diff
@@ -236,7 +236,7 @@ not Claude Code, or on one whose hook surface differs. Nothing in this
 ceremony may depend on a hook having fired.
 
 WHEN no hook is installed, the loop is yours to run: after every batch returns, re-query
-the ready front by the two steps above and stop only when it is empty. That is
+the ready set by the two steps above and stop only when it is empty. That is
 the identical check, made by you instead of by the harness. `--status`, or the
 absence of the script, says which of the two you are in.
 
