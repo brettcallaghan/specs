@@ -231,7 +231,14 @@ func acceptDispatch(
 	if err != nil {
 		return Result{}, RefuseUnrepairable("%s", err)
 	}
-	queueInv := invocationsOf(qRecords)
+	// The drain verdict below, and the three facts [notDrained] builds
+	// beside it, are all cited from these records — so an unciteable
+	// read is refused here rather than reported as a drain nobody can
+	// reproduce.
+	queueInv, err := invocationsRequired(dispatchID+"'s queue under "+req.Run, qRecords)
+	if err != nil {
+		return Result{}, err
+	}
 	if !queue.Drained() {
 		return notDrained(req, dispatchID, queue, records, queueInv), nil
 	}

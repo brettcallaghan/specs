@@ -589,8 +589,14 @@ func reportAgentQueue(
 	result.Records = append(result.Records, dRecords...)
 	result.Records = append(result.Records, qRecords...)
 
-	queueInv := invocationsOf(qRecords)
-	establishedInv := invocationsOf(dRecords)
+	establishedInv, err := invocationsRequired("the beads under "+req.Run, dRecords)
+	if err != nil {
+		return Result{}, err
+	}
+	queueInv, err := invocationsRequired(agent+"'s queue under "+req.Run, qRecords)
+	if err != nil {
+		return Result{}, err
+	}
 
 	// AC-SWARM-DISP-002.12: the ready half keeps the order the tracker
 	// answered it in — its own dependency-satisfiability order — rather
@@ -665,6 +671,29 @@ func reportAgentQueue(
 // that never ran — so a fact cites every query that reached its answer
 // rather than just the fragment's last one, and a reader can re-run any
 // of them.
+// invocationsRequired is [invocationsOf] with the guarantee every fact
+// built from the answer needs: at least one non-empty invocation, or a
+// refusal naming what could not be cited.
+//
+// The three call sites take their records from [tracker.AgentQueue] and
+// [tracker.Descendants], which answer with records but not with the steps
+// that produced them — so where no record ran there is nothing to cite
+// and nothing to invent, and the read never reached its answer. Reporting
+// a fact from it would be the silent success this container exists to
+// remove; the alternative, widening the two tracker helpers to also
+// return their steps, puts a change into three packages for a path
+// nothing reaches today.
+//
+// what names the read, and becomes the subject of the refusal.
+func invocationsRequired(what string, records []plan.Record) ([][]string, error) {
+	inv := invocationsOf(records)
+	if len(inv) == 0 {
+		return nil, RefuseUnrepairable(
+			"%s names no invocation a reader could re-run, so its answer is not reported", what)
+	}
+	return inv, nil
+}
+
 func invocationsOf(records []plan.Record) [][]string {
 	out := make([][]string, 0, len(records))
 	for _, r := range records {

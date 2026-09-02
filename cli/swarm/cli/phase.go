@@ -186,7 +186,22 @@ func closePhases(ctx context.Context, tr tracker.Tracker, runner swarmexec.Runne
 	if err != nil {
 		return Result{}, RefuseUnrepairable("%s", err)
 	}
-	closableInv := argvOf(closableRec)
+	// invocationOf, not argvOf: a record the runner refused or skipped
+	// carries no invocation of its own, and argvOf answers nil for it —
+	// which reaches [Result.Validate] as a fact citing an empty argv and
+	// costs every other fact in the result. The step is in scope here, so
+	// the argv it WOULD have run with is available and is a citation a
+	// reader can re-run.
+	closableInv := invocationOf(closableStep, closableRec)
+	if len(closableInv) == 0 {
+		// Only a step carrying a reference argument reaches this, and
+		// such a step cannot be cited before it runs. Refusing names
+		// what could not be cited rather than reporting eligibility
+		// from a query nobody can reproduce.
+		return Result{}, RefuseUnrepairable(
+			"the eligibility query under %s names no invocation a reader could re-run, so its answer is not reported",
+			req.Run)
+	}
 
 	epics := epicsOf(descendants)
 	eligible := closableAnswer.Within(descendants)
@@ -304,7 +319,10 @@ func reasonsFor(ctx context.Context, pr plan.Runner, tr tracker.Tracker, mode pl
 			return nil, nil, report.Records, fmt.Errorf(
 				"could not read %s's children to name why it stays open: %s", b.ID, describeFailure(rec))
 		}
-		if argv := argvOf(rec); argv != nil {
+		// invocationOf, not argvOf: a record that never ran carries no
+		// invocation of its own, and the step that would have produced
+		// it is in scope here — steps[i] pairs with "reason-%d".
+		if argv := invocationOf(steps[i], rec); len(argv) > 0 {
 			invs = append(invs, argv)
 		}
 		children, err := tracker.BeadsFrom(rec.Value)
@@ -358,14 +376,17 @@ func closeEligible(ctx context.Context, pr plan.Runner, tr tracker.Tracker, mode
 	var invs [][]string
 	for i, e := range eligible {
 		rec, ok := report.Record(fmt.Sprintf("close-%d", i))
-		if !ok || rec.Status != plan.StepRan {
-			// Refused (dry run) or skipped: nothing closed, nothing to cite.
+		if !ok {
 			continue
 		}
 		if rec.Failed() {
 			return nil, report.Records, fmt.Errorf("closing %s failed: %s", e.Epic.ID, describeFailure(rec))
 		}
-		if argv := argvOf(rec); argv != nil {
+		// Refused (dry run) or skipped: nothing closed — but still
+		// citable. invocationOf answers with the argv the step WOULD
+		// have run with, so a fact naming it stays re-runnable instead
+		// of reaching [Result.Validate] as an empty argv.
+		if argv := invocationOf(steps[i], rec); len(argv) > 0 {
 			invs = append(invs, argv)
 		}
 	}

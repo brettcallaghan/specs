@@ -431,7 +431,12 @@ func recheckDispatchBeads(
 		return s, records, RefuseUnrepairable("%s", err)
 	}
 	beads := dispatchBeads(beneath, dispatchID)
-	beadsInv := invocationsOf(recs)
+	// The three other contributors to inv below are each appended under a
+	// nil guard, so none of them rescues an empty beadsInv.
+	beadsInv, err := invocationsRequired("the beads under "+req.Run, recs)
+	if err != nil {
+		return s, records, err
+	}
 
 	// The worktree signal, taken from state rather than from the removal
 	// having reported success: "the removal exited 0" and "no worktree
