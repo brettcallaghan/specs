@@ -595,3 +595,109 @@ func TestAcceptExplainRunsNothing(t *testing.T) {
 		}
 	}
 }
+
+// The merged-head resolve is taken AFTER the fast-forward, so a failure
+// of it is a failure of a read that follows an irreversible write. It
+// must not erase the record of the write: the fold happened, merged is
+// true, and the whole removal half — the ancestry guard, the post-merge
+// bead re-check, the worktree removal, the branch deletion — still runs.
+// Only the sha is unknown, and it is reported unestablished.
+//
+// The fake fails `git rev-parse --verify <target>^{commit}` only on its
+// SECOND invocation: the case reading takes the first and the post-fold
+// resolve takes this one, so the fold is reached with everything before
+// it succeeding.
+func TestAFailedPostFoldResolveStillReportsTheMergeAndStillSettles(t *testing.T) {
+	recs := append(drainedQueue(), acceptManifest())
+	recs = append(recs, caseReads(0)...) // serialized
+	recs = append(recs, exectest.Recording{Argv: []string{"git", "merge", "--ff-only", acceptBranch}})
+	recs = append(recs, exectest.Recording{
+		Argv:       []string{"git", "rev-parse", "--verify", acceptTargetBr + "^{commit}"},
+		Stderr:     []byte("fatal: unable to read the repository\n"),
+		ExitStatus: 128,
+	})
+	recs = append(recs, settleReads(cleanSettle())...)
+
+	fake := exectest.NewFake(recs...)
+	stdout, _, code := runAccept(t, fake,
+		"dispatch", "accept", "--run", acceptRun, "--dispatch", acceptAgent,
+		"--no-push", "--json", "--full-result")
+
+	// The fold landed, so the accept is not abandoned.
+	if code == int(StatusStop) {
+		t.Fatalf("exit status = %d: the accept was abandoned after the fast-forward had already landed\n%s",
+			code, stdout)
+	}
+
+	env := envelopeOf(t, stdout)
+	merged, ok := factNamed(env, "merged")
+	if !ok {
+		t.Fatalf("the result carries no merged fact at all, so a caller cannot tell the merge happened:\n%s", stdout)
+	}
+	if !merged.Established || merged.Value == nil || merged.Value.Flag == nil || !*merged.Value.Flag {
+		t.Errorf("merged = %v, want an established true — the fast-forward succeeded", merged.Value)
+	}
+
+	sha, ok := factNamed(env, "merged_sha")
+	if !ok {
+		t.Fatalf("merged_sha is omitted; an unknown value is reported unestablished, not dropped:\n%s", stdout)
+	}
+	if sha.Established {
+		t.Errorf("merged_sha = %v is reported established, but the resolve that would have taken it failed",
+			sha.Value)
+	}
+	if !strings.Contains(sha.Reason, "after the fold") {
+		t.Errorf("merged_sha's reason does not name the resolve that could not answer: %q", sha.Reason)
+	}
+
+	// settleDispatch was reached: the ancestry guard, the worktree reads
+	// and the branch deletion all ran.
+	guard, deleted := false, false
+	for _, argv := range fake.Argvs() {
+		switch {
+		case len(argv) >= 4 && argv[0] == "git" && argv[1] == "merge-base" &&
+			argv[3] == acceptBranch && argv[4] == acceptTargetBr:
+			guard = true
+		case len(argv) >= 3 && argv[0] == "git" && argv[1] == "branch" && argv[2] == "-d":
+			deleted = true
+		}
+	}
+	if !guard {
+		t.Errorf("the post-merge ancestry guard never ran, so settleDispatch was not reached: %v", fake.Argvs())
+	}
+	if !deleted {
+		t.Errorf("the dispatch branch was never deleted, so the removal half was skipped: %v", fake.Argvs())
+	}
+}
+
+// The negative control for the test above: with the same world and a
+// resolve that ANSWERS, merged_sha is established from it. So what that
+// test asserts is the degraded report on a failed read, not merged_sha
+// having stopped being reported at all.
+func TestAPostFoldResolveThatAnswersStillEstablishesTheMergedSHA(t *testing.T) {
+	recs := append(drainedQueue(), acceptManifest())
+	recs = append(recs, caseReads(0)...)
+	recs = append(recs, exectest.Recording{Argv: []string{"git", "merge", "--ff-only", acceptBranch}})
+	recs = append(recs, exectest.Recording{
+		Argv:   []string{"git", "rev-parse", "--verify", acceptTargetBr + "^{commit}"},
+		Stdout: []byte(acceptBranchSH + "\n"),
+	})
+	recs = append(recs, settleReads(cleanSettle())...)
+
+	fake := exectest.NewFake(recs...)
+	stdout, _, code := runAccept(t, fake,
+		"dispatch", "accept", "--run", acceptRun, "--dispatch", acceptAgent,
+		"--no-push", "--json", "--full-result")
+	if code != int(StatusClear) {
+		t.Fatalf("exit status = %d, want %d\n%s", code, StatusClear, stdout)
+	}
+
+	sha, ok := factNamed(envelopeOf(t, stdout), "merged_sha")
+	if !ok {
+		t.Fatalf("merged_sha is missing from a clean accept:\n%s", stdout)
+	}
+	if !sha.Established || sha.Value == nil || sha.Value.Text == nil || *sha.Value.Text != acceptBranchSH {
+		t.Errorf("merged_sha = %v (established %v), want an established %s",
+			sha.Value, sha.Established, acceptBranchSH)
+	}
+}

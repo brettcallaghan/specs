@@ -587,16 +587,38 @@ func foldIn(
 		summary = fmt.Sprintf("%s is %s against %s; nothing was merged (%s)",
 			dispatchBranch, m.name(), target, req.Mode)
 	default:
+		facts = append(facts, Flag("merged", true, argvOf(ffRec)))
+
+		// The invocation cited for the sha is the one that ESTABLISHED
+		// it — the post-fold resolve — not the pre-fold read of the
+		// branch, which established a different sha. It is read through
+		// [plan.Report.Record] rather than [mustRecord] because this is
+		// the one site where the record may legitimately be absent: an
+		// absent record is among the ways the resolve below fails, and
+		// citing a zero record would attribute the fact to an empty
+		// invocation.
+		var landedInv [][]string
+		if rec, ok := report.Record(landedSteps.Answer()); ok {
+			if argv := argvOf(rec); argv != nil {
+				landedInv = append(landedInv, argv)
+			}
+		}
+
+		// This read is taken AFTER the fast-forward, which is
+		// irreversible. A failure of it therefore degrades the report and
+		// never abandons the accept: returning an error here would skip
+		// [settleDispatch] entirely — no ancestry guard, no post-merge
+		// bead re-check, no worktree removal, no branch deletion, no push
+		// — and, being a bare refusal, would carry no merged fact, so a
+		// caller could not tell that the fold had landed. The fold DID
+		// happen; only the sha is unknown, and an unknown value is
+		// reported unestablished rather than dropped.
 		landed, lerr := revision(report, landedSteps, target+" after the fold")
 		if lerr != nil {
-			return mergeOutcome{}, records, lerr
+			facts = append(facts, Unestablished("merged_sha", lerr.Error(), landedInv...))
+		} else {
+			facts = append(facts, Text("merged_sha", landed, landedInv...))
 		}
-		facts = append(facts,
-			Flag("merged", true, argvOf(ffRec)),
-			// The invocation cited is the one that ESTABLISHED this
-			// value — the post-fold resolve — not the pre-fold read of
-			// the branch, which established a different sha.
-			Text("merged_sha", landed, argvOf(mustRecord(report, landedSteps.Answer()))))
 		summary = fmt.Sprintf("%s was %s against %s and fast-forwarded into it",
 			dispatchBranch, m.name(), target)
 		if !m.serialized {
