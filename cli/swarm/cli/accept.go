@@ -361,11 +361,17 @@ func acceptTarget(ctx context.Context, store manifest.Store, pr plan.Runner, req
 	return target, from, report.Records, nil
 }
 
-// mergeCase is what the case comparison read: the two heads, whether the
-// dispatch was serialized, and the invocations behind each.
+// mergeCase is what the case comparison read: the target's head, whether
+// the dispatch was serialized, and the invocations behind each.
+//
+// It deliberately carries no branch sha. The dispatch branch's head IS
+// resolved, as an early validity check, but a concurrent dispatch's
+// commits are rewritten by the rebase, so the sha read before the fold
+// names a commit that need not be reachable from the target at all —
+// which is why [foldIn] resolves what landed from the TARGET afterwards.
+// A populated field here would be the value the next reader reaches for.
 type mergeCase struct {
 	targetSHA  string
-	branchSHA  string
 	serialized bool
 	targetInv  []string
 	branchInv  []string
@@ -423,8 +429,10 @@ func readCase(
 	if err != nil {
 		return mergeCase{}, report.Records, err
 	}
-	branchSHA, err := revision(report, branchStep, dispatchBranch)
-	if err != nil {
+	// Resolved for the check and not for the value: this refuses early
+	// when the dispatch branch does not resolve at all, rather than
+	// letting that failure surface later inside the fold.
+	if _, err := revision(report, branchStep, dispatchBranch); err != nil {
 		return mergeCase{}, report.Records, err
 	}
 
@@ -449,7 +457,6 @@ func readCase(
 
 	return mergeCase{
 		targetSHA:  targetSHA,
-		branchSHA:  branchSHA,
 		serialized: serialized,
 		targetInv:  argvOf(mustRecord(report, targetStep.Answer())),
 		branchInv:  argvOf(mustRecord(report, branchStep.Answer())),
