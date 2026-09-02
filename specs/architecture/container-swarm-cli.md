@@ -1031,12 +1031,12 @@ behaviour follows from.
   reads exclusively. Each fixture is a directory holding `repository.bundle`,
   `tracker.jsonl` and `fixture.toml`; the upper test tier restores one
   through `git` and `bd` rather than generating a world, so a case asserts
-  against a repository and a tracker that behave like the real ones. Eight
+  against a repository and a tracker that behave like the real ones. Nine
   are committed today — `core`, `status-attention`,
-  `status-narrowed-scope`, `dispatch-rebase-conflict`,
-  `dispatch-stale-base`, `dispatch-worktree`, `phase-epics` and
-  `push-refused`. [[adr-027]] owns the decision; Change Guidance below owns
-  the rules for re-recording one.
+  `status-narrowed-scope`, `dispatch-concurrent-worktree`,
+  `dispatch-rebase-conflict`, `dispatch-stale-base`, `dispatch-worktree`,
+  `phase-epics` and `push-refused`. [[adr-027]] owns the decision; Change
+  Guidance below owns the rules for re-recording one.
   - WHEN a fixture is recorded, the contract version it was recorded
     against SHALL be recorded with it, so a case that starts failing names
     a shape change rather than a mystery.
@@ -1172,6 +1172,11 @@ This container SHALL comply with:
 - WHEN a new world shape is needed for a case, it SHALL be derived as a
   branch from the core fixture rather than authored separately, so a
   change to the core reaches every variant.
+- A fixture SHALL model the world the code runs in today, and WHERE it
+  models a world that would hold only after an adoption, its
+  `fixture.toml` SHALL say so and name the adoption it presumes — a
+  fixture asserting against a world nobody runs in is green about
+  nothing, and the reader has no other way to tell the two apart.
 - WHEN a field is added to a command's JSON result,
   `schemas/swarm/output.strata` SHALL be updated in the same change.
 - WHEN a change to either schema removes, renames or retypes anything,
