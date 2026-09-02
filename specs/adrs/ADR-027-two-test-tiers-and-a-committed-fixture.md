@@ -80,13 +80,28 @@ had wrong or unmeasured:
 - **The runner already carries the toolchain this ADR assumed it lacked.**
   `windows-latest` has MinGW-w64 gcc 15.2.0 at `C:\mingw64\bin\gcc.exe`,
   on PATH, and `go env CC` resolves to it. No toolchain setup step is
-  needed.
+  needed — and, as it turns out, no compiler either: the published
+  `beads_<version>_windows_amd64.zip` is built `-tags=gms_pure_go` with
+  `CGO_ENABLED=1`, so CI downloads that binary at a pinned version rather
+  than spending nine uncacheable minutes rebuilding it. The toolchain
+  finding still matters, because it is what makes a source build a
+  workable fallback if the release ever stops carrying those settings.
 
-The server mode also cost more than topology divergence: `bd init
---server` starts a `dolt sql-server` whose working directory is the
-world the case built, and Windows will not remove a directory that is a
-live process's working directory, so teardown failed. Embedded starts no
-process, so the failure cannot occur.
+**A Windows-only teardown failure remains, and embedded mode did not fix
+it.** `t.TempDir`'s cleanup reports "The process cannot access the file
+because it is being used by another process" on the world's `repo`
+directory — 18 tests in the run that timed out, 14 in the run that
+completed. Server mode was blamed for it on the theory that the
+`dolt sql-server` it starts pins the world as its working directory. That
+theory predicted the failure would disappear with the server. It did not,
+so the theory is wrong or incomplete, and **what holds the handle is
+currently unknown.** Do not re-assert the server explanation; it has been
+tested and failed.
+
+Two things this does establish: the failure is not caused by the tracker
+topology, since it survives the switch; and it is a cleanup failure
+rather than an assertion failure, so it says nothing about whether the
+commands under test behave correctly on Windows.
 
 ## Alternatives Considered
 

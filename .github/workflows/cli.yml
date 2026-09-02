@@ -139,34 +139,43 @@ jobs:
           Expand-Archive -Path dolt.zip -DestinationPath .
           Add-Content -Path $env:GITHUB_PATH -Value "$PWD\dolt-windows-amd64\bin"
 
-      # CGO-enabled, so `bd` carries the embedded Dolt engine and the e2e
-      # harness needs no `--server`. Measured on bd built CGO-free:
-      # `bd init` exits 1 with "embedded Dolt requires a CGO build, but
-      # this bd binary was built with CGO_ENABLED=0" — the engine mode is
-      # chosen by CGO_ENABLED and by nothing else.
+      # Downloaded, not compiled. The published Windows binary is built
+      # with the exact configuration this step used to spend nine minutes
+      # reproducing — verified with `go version -m bd.exe` on the asset:
       #
-      # `-tags gms_pure_go` selects a pure-Go REGEX, not a pure-Go storage
-      # engine, and the two are orthogonal: with the tag set, `go version
-      # -m bd` lists github.com/dlclark/regexp2 and no go-icu-regex, under
-      # CGO_ENABLED=1 and CGO_ENABLED=0 alike. Keeping it is what lets this
-      # step compile at all. Without it, CGO pulls in
-      # github.com/dolthub/go-icu-regex, whose cgo preamble includes
-      # <unicode/uregex.h>; the runner carries gcc but no ICU development
-      # headers, so the build dies there after nine minutes. The Linux
-      # install this repository's session hook performs uses the same
-      # combination — tag set, CGO on — and runs embedded.
+      #   mod    github.com/steveyegge/beads  v1.2.2
+      #   build  -tags=gms_pure_go
+      #   build  CGO_ENABLED=1
+      #   build  GOOS=windows  GOARCH=amd64
+      #   dep    github.com/dlclark/regexp2   (and no go-icu-regex)
       #
-      # A toolchain step is NOT needed: windows-latest carries MinGW-w64
-      # gcc 15.2.0 at C:\mingw64\bin\gcc.exe, already on PATH, and
-      # `go env CC` resolves to it.
-      - name: Install bd, CGO-enabled (Windows)
+      # Both properties the e2e tier needs therefore hold: CGO_ENABLED=1
+      # gives the embedded Dolt engine, so no `--server` and no `dolt
+      # sql-server` pinning a world's directory open; and `gms_pure_go`
+      # keeps go-icu-regex out, which is what a source build needs the ICU
+      # headers for. `go install` produced the same binary in 8m32s and
+      # 9m12s on two runs, uncached both times — setup-go's cache is keyed
+      # on cli/go.sum, which does not carry beads' dependencies, so it can
+      # never hit for this build.
+      #
+      # BD_VERSION is pinned rather than tracking @latest: a beads release
+      # would otherwise change what CI runs on a pull request that touched
+      # nothing, and 1.2.2 is the version this repository's own sessions
+      # run. Bump it deliberately, here.
+      #
+      # Releases are reached by direct asset URL, the same way the dolt
+      # step above works. The archive holds bd.exe at its root.
+      - name: Install bd (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
         env:
-          CGO_ENABLED: "1"
+          BD_VERSION: "1.2.2"
         run: |
-          go install -tags gms_pure_go github.com/steveyegge/beads/cmd/bd@latest
-          Add-Content -Path $env:GITHUB_PATH -Value "$(go env GOPATH)\bin"
+          $url = "https://github.com/gastownhall/beads/releases/download/v$env:BD_VERSION/beads_${env:BD_VERSION}_windows_amd64.zip"
+          Invoke-WebRequest -Uri $url -OutFile bd.zip
+          Expand-Archive -Path bd.zip -DestinationPath bd-dist
+          Add-Content -Path $env:GITHUB_PATH -Value "$PWD\bd-dist"
+          & "$PWD\bd-dist\bd.exe" version
 
       # The swarm CLI's end-to-end tier restores a fixture through `git`
       # and `bd`. Where those are absent it skips with the reason, which
