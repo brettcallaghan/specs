@@ -176,6 +176,7 @@ func restore(t *testing.T, binary, fixture string) world {
 	}
 
 	dir := t.TempDir()
+	t.Cleanup(func() { releaseWorld(t, dir) })
 	w := world{
 		dir:    dir,
 		repo:   filepath.Join(dir, "repo"),
@@ -312,6 +313,64 @@ exit 0
 		w.mustRun(t, w.repo, "git", "remote", "remove", decl.Name)
 	}
 	w.mustRun(t, w.repo, "git", "remote", "add", decl.Name, remote)
+}
+
+// releaseWorld removes a world's tree before t.TempDir's own cleanup
+// reaches it, retrying while Windows still reports the directory held.
+//
+// Windows refuses to unlink a file another process has open, and this
+// tier spawns `git`, `bd` and `swarm` against every world. A handle
+// outliving its process by a few hundred milliseconds is enough for
+// t.TempDir's single RemoveAll to fail the test during cleanup.
+//
+// The hold is a race, not a design fault in any one case. Measured over
+// three CI runs on windows-latest: 18, 14 and 14 cleanup failures, and
+// the FAILING SET MOVED — only 6 of 14 overlapped between the last two.
+// A process that genuinely owned a world would fail the same cases every
+// run.
+//
+// This does not paper over a failing test. Every command under test has
+// run and been asserted by the time this fires; the only retried
+// operation is deleting a scratch directory. A world that never releases
+// still fails the test, because t.TempDir's cleanup runs immediately
+// after this one and reports what is left — so the outcome is unchanged
+// for a genuine holder, and the line written to stderr says how long the
+// wait was, which is what separates the two cases.
+//
+// It writes to stderr rather than t.Logf on purpose: `go test` prints a
+// passing test's log output only under -v, and the measurement is wanted
+// precisely on the runs that now pass. Nothing is written when the first
+// removal succeeds, which is every world on Linux and macOS.
+func releaseWorld(t *testing.T, dir string) {
+	t.Helper()
+
+	const (
+		budget       = 20 * time.Second
+		firstBackoff = 50 * time.Millisecond
+		maxBackoff   = 2 * time.Second
+	)
+
+	started := time.Now()
+	backoff := firstBackoff
+	for attempt := 1; ; attempt++ {
+		err := os.RemoveAll(dir)
+		if err == nil {
+			if attempt > 1 {
+				fmt.Fprintf(os.Stderr, "e2e: %s released after %s (%d attempts)\n",
+					dir, time.Since(started).Round(time.Millisecond), attempt)
+			}
+			return
+		}
+		if time.Since(started) >= budget {
+			fmt.Fprintf(os.Stderr, "e2e: %s STILL HELD after %s (%d attempts): %v\n",
+				dir, time.Since(started).Round(time.Millisecond), attempt, err)
+			return
+		}
+		time.Sleep(backoff)
+		if backoff *= 2; backoff > maxBackoff {
+			backoff = maxBackoff
+		}
+	}
 }
 
 // restoreStepTimeout bounds a single restore step. The slowest genuine
