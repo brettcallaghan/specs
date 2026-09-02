@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -43,7 +42,7 @@ func TestDispatchOpenStandsAWorktreeUpForAFreshDispatch(t *testing.T) {
 	}
 	// AC-SWARM-DISP-003.7: a sibling of the repository, never inside it.
 	want := filepath.Join(filepath.Dir(w.repo), ".bb-worktrees", "dev-fixture-9")
-	if answer.WorktreePath != want {
+	if !samePath(answer.WorktreePath, want) {
 		t.Errorf("worktree_path = %q, want %q", answer.WorktreePath, want)
 	}
 	// AC-SWARM-DISP-003.1, .10: cut from the sprint branch's own head,
@@ -62,7 +61,7 @@ func TestDispatchOpenStandsAWorktreeUpForAFreshDispatch(t *testing.T) {
 	}
 
 	registered := w.mustCapture(t, w.repo, "git", "worktree", "list", "--porcelain")
-	if !strings.Contains(registered, answer.WorktreePath) {
+	if !worktreeListed(registered, answer.WorktreePath) {
 		t.Errorf("git worktree list does not carry %s:\n%s", answer.WorktreePath, registered)
 	}
 }
@@ -135,7 +134,7 @@ func TestDispatchOpenLeavesAnExistingWorktreeUntouched(t *testing.T) {
 	if err := json.Unmarshal([]byte(stdout), &answer); err != nil {
 		t.Fatalf("the answer does not parse: %v\n%s", err, stdout)
 	}
-	if answer.WorktreePath != standingPath {
+	if !samePath(answer.WorktreePath, standingPath) {
 		t.Errorf("worktree_path = %q, want the standing worktree's own path %q", answer.WorktreePath, standingPath)
 	}
 	if answer.DispatchBranch != "bb/dev-fixture-2" {

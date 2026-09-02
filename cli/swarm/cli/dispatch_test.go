@@ -16,6 +16,7 @@ package cli
 
 import (
 	"bytes"
+	"encoding/json"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -185,6 +186,14 @@ func TestDispatchOpenDefaultsTheWorktreeBaseToTheSprintBranch(t *testing.T) {
 	worktreeSHA := strings.Repeat("c", 40)
 	mainHead := strings.Repeat("a", 40)
 
+	// The repository root the fake git reports, and the worktree path the
+	// command derives from it. Both are computed rather than written out:
+	// dispatchWorktreePath joins with the OS separator, so a hardcoded
+	// "/work/.bb-worktrees/dev-1" matches on Linux and never on Windows,
+	// where the same call yields "\\work\\.bb-worktrees\\dev-1".
+	repoRoot := "/work/repo"
+	wantWorktree := dispatchWorktreePath(repoRoot, "dev-1")
+
 	fake := exectest.NewFake(
 		exectest.Recording{
 			Argv: []string{"bd", "show", "run-1", "--json"},
@@ -194,11 +203,11 @@ func TestDispatchOpenDefaultsTheWorktreeBaseToTheSprintBranch(t *testing.T) {
 		exectest.Recording{Argv: []string{"git", "worktree", "prune"}},
 		exectest.Recording{
 			Argv:   []string{"git", "worktree", "list", "--porcelain"},
-			Stdout: []byte("worktree /work/repo\nHEAD " + mainHead + "\nbranch refs/heads/main\n\n"),
+			Stdout: []byte("worktree " + repoRoot + "\nHEAD " + mainHead + "\nbranch refs/heads/main\n\n"),
 		},
 		exectest.Recording{
 			Argv:   []string{"git", "rev-parse", "--show-toplevel"},
-			Stdout: []byte("/work/repo\n"),
+			Stdout: []byte(repoRoot + "\n"),
 		},
 		exectest.Recording{
 			Argv:   []string{"git", "rev-parse", "--verify", "sprint/run-1^{commit}"},
@@ -206,7 +215,7 @@ func TestDispatchOpenDefaultsTheWorktreeBaseToTheSprintBranch(t *testing.T) {
 		},
 		exectest.Recording{
 			Argv: []string{"git", "worktree", "add", "-b", "bb/dev-1",
-				"/work/.bb-worktrees/dev-1", worktreeSHA},
+				wantWorktree, worktreeSHA},
 		},
 	)
 
@@ -246,8 +255,15 @@ func TestDispatchOpenDefaultsTheWorktreeBaseToTheSprintBranch(t *testing.T) {
 	if !strings.Contains(out.String(), "bb/dev-1") {
 		t.Errorf("the answer does not name the dispatch branch:\n%s", out.String())
 	}
-	if !strings.Contains(out.String(), "/work/.bb-worktrees/dev-1") {
-		t.Errorf("the answer does not name the worktree path:\n%s", out.String())
+	// The answer carries the path JSON-encoded, and on Windows that means
+	// escaped separators — so compare against the encoded form rather than
+	// the raw one.
+	encoded, err := json.Marshal(wantWorktree)
+	if err != nil {
+		t.Fatalf("encoding the wanted worktree path: %v", err)
+	}
+	if !strings.Contains(out.String(), string(encoded[1:len(encoded)-1])) {
+		t.Errorf("the answer does not name the worktree path %s:\n%s", encoded, out.String())
 	}
 }
 

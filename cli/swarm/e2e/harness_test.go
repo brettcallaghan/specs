@@ -238,12 +238,18 @@ func restore(t *testing.T, binary, fixture string) world {
 	// Registered AFTER t.TempDir() so LIFO runs this FIRST, and run on
 	// every platform rather than under a GOOS test, so the path Windows
 	// depends on is the path Linux exercises too. Best-effort: a world
-	// whose server already exited is not a test failure.
+	// whose server already exited is not a test failure, so the stop's
+	// outcome is logged rather than asserted — a run that still leaks
+	// handles needs to tell "the stop failed" apart from "the stop
+	// succeeded and something else holds the directory", and only the CI
+	// log can settle that.
 	t.Cleanup(func() {
 		stop := exec.Command("bd", "dolt", "stop")
 		stop.Dir = w.repo
 		stop.Env = w.env()
-		_ = stop.Run()
+		if out, err := stop.CombinedOutput(); err != nil {
+			t.Logf("bd dolt stop in %s: %v\n%s", w.repo, err, out)
+		}
 	})
 
 	w.mustRun(t, w.repo, "bd", "import", export)
@@ -472,4 +478,44 @@ func normalized(t *testing.T, text string, subs []substitution) string {
 		text = re.ReplaceAllString(text, sub.With)
 	}
 	return text
+}
+
+// samePath reports whether two paths name the same location. The two
+// sides routinely differ on Windows without disagreeing: t.TempDir()
+// hands back an 8.3 short path (".../RUNNER~1/...") where git resolves
+// the long one (".../runneradmin/..."), and git reports forward slashes
+// where filepath.Join builds backslashes. Neither difference means the
+// paths differ, so compare a canonical form rather than the bytes.
+//
+// A path that does not exist cannot be resolved; canonicalPath falls
+// back to cleaning it, which still settles the separator half.
+func samePath(a, b string) bool { return canonicalPath(a) == canonicalPath(b) }
+
+func canonicalPath(p string) string {
+	if p == "" {
+		return ""
+	}
+	// EvalSymlinks resolves 8.3 short names to their long form on
+	// Windows, which is the half Clean cannot reach.
+	if resolved, err := filepath.EvalSymlinks(p); err == nil {
+		p = resolved
+	}
+	if abs, err := filepath.Abs(p); err == nil {
+		p = abs
+	}
+	return filepath.ToSlash(filepath.Clean(p))
+}
+
+// worktreeListed reports whether `git worktree list --porcelain` output
+// registers the given path, comparing per entry with samePath rather
+// than substring-matching the whole blob — on Windows the separators in
+// git's output and in the answer's path do not match textually.
+func worktreeListed(porcelain, path string) bool {
+	for _, line := range strings.Split(porcelain, "\n") {
+		entry, ok := strings.CutPrefix(strings.TrimSpace(line), "worktree ")
+		if ok && samePath(entry, path) {
+			return true
+		}
+	}
+	return false
 }
