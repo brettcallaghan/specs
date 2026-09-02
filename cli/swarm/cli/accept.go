@@ -601,15 +601,19 @@ func foldIn(
 		// branch, which established a different sha. It is read through
 		// [plan.Report.Record] rather than [mustRecord] because this is
 		// the one site where the record may legitimately be absent: an
-		// absent record is among the ways the resolve below fails, and
-		// citing a zero record would attribute the fact to an empty
-		// invocation.
-		var landedInv [][]string
-		if rec, ok := report.Record(landedSteps.Answer()); ok {
-			if argv := argvOf(rec); argv != nil {
-				landedInv = append(landedInv, argv)
-			}
-		}
+		// absent record is among the ways the resolve below fails.
+		//
+		// [invocationOf] rather than [argvOf], because the fact must
+		// carry an invocation on EVERY path through this branch. A
+		// record that is absent, refused or skipped carries none of its
+		// own, and a fact naming no invocation is one [Result.Validate]
+		// refuses — which would replace the whole result with a bare
+		// refusal, losing the merged fact below after a fast-forward
+		// that cannot be undone. The step's own declaration names the
+		// argv it would have run with, and every argument the resolve
+		// builds is a literal, so it always answers here.
+		rec, _ := report.Record(landedSteps.Answer())
+		landedInv := [][]string{invocationOf(landedSteps[len(landedSteps)-1], rec)}
 
 		// This read is taken AFTER the fast-forward, which is
 		// irreversible. A failure of it therefore degrades the report and

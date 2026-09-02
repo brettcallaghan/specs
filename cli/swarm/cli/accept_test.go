@@ -12,6 +12,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -19,6 +20,7 @@ import (
 
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/exec/exectest"
 	manifestbeads "github.com/brettcallaghan/agent-plugins/cli/swarm/manifest/beads"
+	"github.com/brettcallaghan/agent-plugins/cli/swarm/plan"
 	beadstracker "github.com/brettcallaghan/agent-plugins/cli/swarm/tracker/beads"
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/vcs"
 	gitvcs "github.com/brettcallaghan/agent-plugins/cli/swarm/vcs/git"
@@ -699,5 +701,126 @@ func TestAPostFoldResolveThatAnswersStillEstablishesTheMergedSHA(t *testing.T) {
 	if !sha.Established || sha.Value == nil || sha.Value.Text == nil || *sha.Value.Text != acceptBranchSH {
 		t.Errorf("merged_sha = %v (established %v), want an established %s",
 			sha.Value, sha.Established, acceptBranchSH)
+	}
+}
+
+// skippedMergedHeadVC is the real Git Version Control with one
+// substitution: the post-fold `merged-head` resolve is preceded by a
+// guard step that stops the plan, so the resolve itself is recorded
+// [plan.StepSkipped] with an empty invocation.
+//
+// That is the state [foldIn]'s own comment anticipates — "an absent
+// record is among the ways the resolve below fails" — and the one the
+// real fragment cannot be driven into from outside, because every step
+// that could stop the plan ahead of it is one [foldIn] already returns
+// on. The substitution keeps every argument a literal, exactly as the
+// real fragment's are, so the invocation the fact cites is the one the
+// step declares.
+type skippedMergedHeadVC struct{ vcs.VersionControl }
+
+// mergedHeadGuardRef is a revision nothing resolves, so the guard fails.
+const mergedHeadGuardRef = "refs/heads/nothing-resolves-this"
+
+func (v skippedMergedHeadVC) Resolve(prefix, revision string) vcs.Steps {
+	steps := v.VersionControl.Resolve(prefix, revision)
+	if prefix != "merged-head" {
+		return steps
+	}
+	guard := plan.Step{
+		Name:        prefix + "-guard",
+		Description: "stop the plan before the resolve",
+		Executable:  "git",
+		Args: []plan.Arg{
+			plan.Lit("rev-parse"), plan.Lit("--verify"), plan.Lit(mergedHeadGuardRef),
+		},
+		Effect:    plan.Read,
+		OnFailure: plan.Stop,
+	}
+	return append(vcs.Steps{guard}, steps...)
+}
+
+// A merged-head record that never ran carries no invocation of its own.
+// The fold still happened, so the merged flag and the unestablished
+// merged_sha both have to survive it — and a fact naming no invocation
+// does not survive [Result.Validate], which is what turns the whole
+// result into a bare refusal after a fast-forward that cannot be undone.
+func TestASkippedMergedHeadResolveStillCitesAnInvocation(t *testing.T) {
+	fake := exectest.NewFake(
+		exectest.Recording{Argv: []string{"git", "merge", "--ff-only", acceptBranch}},
+		exectest.Recording{
+			Argv:       []string{"git", "rev-parse", "--verify", mergedHeadGuardRef},
+			Stderr:     []byte("fatal: Needed a single revision\n"),
+			ExitStatus: 128,
+		},
+	)
+	req := Request{Command: "swarm dispatch accept", Run: acceptRun, Mode: plan.ModeExecute}
+	m := mergeCase{
+		targetSHA:  acceptTargetSH,
+		serialized: true,
+		caseInv:    []string{"git", "merge-base", "--is-ancestor", acceptTargetBr, acceptBranch},
+	}
+
+	out, records, err := foldIn(context.Background(), nil,
+		skippedMergedHeadVC{gitvcs.VersionControl{}}, plan.Runner{Exec: fake},
+		req, acceptTargetBr, acceptBranch, m)
+	if err != nil {
+		t.Fatalf("foldIn = %v: the fast-forward landed, so the fold is not abandoned", err)
+	}
+
+	// The world the assertions below are about: the fold ran and the
+	// resolve after it was skipped without an invocation of its own.
+	var landed plan.Record
+	for _, rec := range records {
+		if rec.Step == "merged-head" {
+			landed = rec
+		}
+	}
+	if landed.Status != plan.StepSkipped {
+		t.Fatalf("merged-head is %q, want %q — the scenario did not arise",
+			landed.Status, plan.StepSkipped)
+	}
+	if landed.Invocation.Name != "" {
+		t.Fatalf("merged-head carries invocation %q; the scenario needs a record that never ran",
+			landed.Invocation.Name)
+	}
+
+	var merged, sha Fact
+	var haveMerged, haveSHA bool
+	for _, f := range out.facts {
+		switch f.Name {
+		case "merged":
+			merged, haveMerged = f, true
+		case "merged_sha":
+			sha, haveSHA = f, true
+		}
+	}
+	if !haveMerged {
+		t.Fatalf("the fold reports no merged fact, so a caller cannot tell the merge happened: %+v", out.facts)
+	}
+	if !merged.Established || merged.Value == nil || merged.Value.Flag == nil || !*merged.Value.Flag {
+		t.Errorf("merged = %v, want an established true — the fast-forward succeeded", merged.Value)
+	}
+	if !haveSHA {
+		t.Fatalf("merged_sha is omitted; an unknown value is reported unestablished, not dropped: %+v", out.facts)
+	}
+	if sha.Established {
+		t.Errorf("merged_sha is established, but the resolve that would have taken it never ran")
+	}
+	if len(sha.Invocations) == 0 {
+		t.Errorf("merged_sha names no invocation that established it")
+	}
+	for i, argv := range sha.Invocations {
+		if len(argv) == 0 {
+			t.Errorf("merged_sha's invocation %d is empty", i)
+		}
+	}
+
+	// The defect this guards is not the fact in isolation: a fact naming
+	// no invocation makes the WHOLE result unrenderable, and finish
+	// substitutes a bare refusal for it — losing merged: true after an
+	// irreversible fast-forward.
+	result := req.stamp(Result{Outcome: OutcomeClear, Facts: out.facts, Records: records})
+	if err := result.Validate(); err != nil {
+		t.Errorf("the result does not validate, so it degrades to a bare refusal: %v", err)
 	}
 }
