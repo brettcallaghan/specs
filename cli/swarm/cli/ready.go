@@ -384,15 +384,37 @@ func applyBreaker(ctx context.Context, deps status.Deps, req Request, report bre
 						from)},
 					Records: records,
 				}
-				// The stop verdict rests on recorded, which the read
-				// above established, and never on next, which nothing
-				// wrote. A dry run may not INVENT a stop from a
-				// projection; it must not HIDE one the manifest already
-				// carries — that is the breaker failing open in the mode
-				// meant to be safe to rehearse.
-				if recorded >= threshold {
+				// A dry run may not INVENT a stop from a projection; it
+				// must not HIDE one the manifest already carries — that
+				// is the breaker failing open in the mode meant to be
+				// safe to rehearse. Which of the two applies is decided
+				// by the DIRECTION the report goes, not by the refused
+				// write:
+				//
+				//   --completed 0 ADVANCES the count. The advance is a
+				//   projection nothing wrote, so the verdict rests on
+				//   recorded — a run the manifest already has at the
+				//   threshold is still reported stopped, and one below it
+				//   stays clear.
+				//
+				//   --completed N>0 RESETS it to zero. The reset is not a
+				//   projection: it is fixed by the report itself, which
+				//   the caller supplied and which execute mode applies
+				//   unconditionally. Holding the verdict on recorded here
+				//   reports a stop execute would never produce, and puts
+				//   "would have become 0" in one result beside a stop
+				//   summary.
+				//
+				// So the verdict follows the same value execute would
+				// compare, whenever that value is one the report settles
+				// rather than one the write would have invented.
+				verdict := recorded
+				if report.Completed > 0 {
+					verdict = next
+				}
+				if verdict >= threshold {
 					refusal.Stopped = true
-					refusal.Summary = stoppedSummary(recorded, threshold)
+					refusal.Summary = stoppedSummary(verdict, threshold)
 				}
 				return refusal, nil
 			}

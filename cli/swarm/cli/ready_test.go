@@ -11,6 +11,7 @@ package cli
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -898,5 +899,78 @@ func TestAnUnestablishedDispatchOnAClearRunKeepsItsOwnResolution(t *testing.T) {
 	}
 	if !strings.Contains(env.Summary, "not an established dispatch") {
 		t.Errorf("summary = %q, want the !established case's own", env.Summary)
+	}
+}
+
+// --completed N>0 RESETS the count, so a positive report cannot leave the
+// run stopped — in either mode. The dry run refuses the write, but what
+// it refuses is a write to ZERO: the reset is the direction the report
+// itself fixes, not a projection the write would have invented, so
+// withholding it reports a stop execute mode would never produce.
+//
+// Both AT the threshold and ABOVE it, because a recorded count above the
+// threshold is the case where "the manifest already carries a stop" is
+// most tempting to read as settling the verdict on its own.
+func TestAPositiveCompletedNeverStopsTheRunInEitherMode(t *testing.T) {
+	const threshold = 3
+	for _, recorded := range []int{threshold, threshold + 2} {
+		for _, mode := range []plan.Mode{plan.ModeDryRun, plan.ModeExecute} {
+			name := fmt.Sprintf("recorded-%d-%s", recorded, mode)
+			t.Run(name, func(t *testing.T) {
+				fake := exectest.NewFake(
+					showRecording("run-1", fmt.Sprintf(`{"consecutive_dispatch_failures":%d}`, recorded)),
+					// Declared so a write that IS attempted succeeds
+					// rather than failing as a missing recording, which
+					// would fail the dry-run case for the wrong reason.
+					updateRecording("run-1", `{"consecutive_dispatch_failures":0}`),
+				)
+
+				facts, stopped, summary, err := breakerPass(context.Background(), breakerDeps(fake),
+					Request{Run: "run-1", Mode: mode}, breakerReport{Given: true, Completed: 2}, threshold)
+				if err != nil {
+					t.Fatalf("applyBreaker: %v", err)
+				}
+				if stopped {
+					t.Errorf("stopped = true after a dispatch that completed 2 bead(s): "+
+						"the count resets to 0, and 0 is below the threshold of %d (summary %q)",
+						threshold, summary)
+				}
+				if summary != "" {
+					t.Errorf("summary = %q, want none — nothing about this pass stops the run", summary)
+				}
+				if len(facts) != 1 {
+					t.Fatalf("applyBreaker reported %d fact(s), want 1", len(facts))
+				}
+				// No single result may state a reset beside a stop.
+				if summary != "" && strings.Contains(facts[0].Reason, "become 0") {
+					t.Errorf("the result says the count resets to 0 AND that the run is stopped: %q / %q",
+						facts[0].Reason, summary)
+				}
+			})
+		}
+	}
+}
+
+// The negative control for the test above, and the half of the rule that
+// must survive it: with --completed 0 the report does NOT reset, so a
+// recorded count at or above the threshold still stops the run in a dry
+// run — the stop the manifest already carries is not hidden.
+func TestCompletedZeroStillReportsTheRecordedStopInADryRun(t *testing.T) {
+	fake := exectest.NewFake(
+		showRecording("run-1", `{"consecutive_dispatch_failures":3}`),
+		updateRecording("run-1", `{"consecutive_dispatch_failures":4}`),
+	)
+
+	_, stopped, summary, err := breakerPass(context.Background(), breakerDeps(fake),
+		Request{Run: "run-1", Mode: plan.ModeDryRun}, breakerReport{Given: true, Completed: 0}, 3)
+	if err != nil {
+		t.Fatalf("applyBreaker: %v", err)
+	}
+	if !stopped {
+		t.Errorf("a recorded 3 against a threshold of 3 with --completed 0 no longer stops the run; "+
+			"the reset applies to a POSITIVE report only (summary %q)", summary)
+	}
+	if !strings.Contains(summary, "3 consecutive") {
+		t.Errorf("summary = %q, want it phrased from the recorded 3", summary)
 	}
 }
