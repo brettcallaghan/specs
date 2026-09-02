@@ -14,7 +14,10 @@ import (
 	"strings"
 	"testing"
 
+	swarmexec "github.com/brettcallaghan/agent-plugins/cli/swarm/exec"
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/exec/exectest"
+	"github.com/brettcallaghan/agent-plugins/cli/swarm/plan"
+	"github.com/brettcallaghan/agent-plugins/cli/swarm/vcs"
 	gitvcs "github.com/brettcallaghan/agent-plugins/cli/swarm/vcs/git"
 )
 
@@ -376,5 +379,122 @@ func TestAFetchThatRanStillProducesTheOrdinaryVerdict(t *testing.T) {
 	landed, ok := factNamed(envelopeOf(t, stdout), "landed")
 	if !ok || !landed.Established || landed.Value == nil || landed.Value.Flag == nil || !*landed.Value.Flag {
 		t.Errorf("a fetched comparison does not report landed: %v\n%s", landed, stdout)
+	}
+}
+
+// landingFragments are the three plan fragments landingVerdict reads,
+// built from the real Git Version Control so the step names and argv the
+// verdict cites are the ones the command would produce.
+func landingFragments() (fetch, counterpart, diverge vcs.Steps) {
+	vc := gitvcs.VersionControl{}
+	return vc.Fetch("fetch", landRemote),
+		vc.Resolve("counterpart", landRemote+"/"+landBranch),
+		vc.Divergence("divergence", landBranch, landRemote)
+}
+
+// ranRecord is a step that ran and answered.
+func ranRecord(name string, argv ...string) plan.Record {
+	return plan.Record{
+		Step: name, Status: plan.StepRan, Answered: true,
+		Invocation: swarmexec.Invocation{Name: argv[0], Args: argv[1:]},
+	}
+}
+
+// The "comparison did not run" branch is reachable only AFTER the fetch
+// has run, and a dry run refuses the fetch — it is a write — so it
+// returns at the fetch guard above and never arrives here. Telling a
+// caller who did get here to "run it again without --dry-run" therefore
+// describes a mode they were not in; for `push` it additionally proposes
+// a WRITE as the remedy for a READ that did not execute.
+//
+// landingVerdict is called directly because no invocation from outside
+// drives a report into this shape: the divergence read is a plain read
+// with literal arguments, so nothing but a plan that stopped ahead of it
+// leaves it unrun, and every such stop is a branch landingVerdict returns
+// on earlier.
+func TestTheComparisonDidNotRunResolutionProposesNoWrite(t *testing.T) {
+	fetch, counterpart, diverge := landingFragments()
+
+	for _, pushFirst := range []bool{true, false} {
+		verb := "verify-landed"
+		if pushFirst {
+			verb = "push"
+		}
+		t.Run(verb, func(t *testing.T) {
+			report := plan.Report{Records: []plan.Record{
+				ranRecord("fetch", "git", "fetch", landRemote),
+				ranRecord("counterpart", "git", "rev-parse", "--verify",
+					landRemote+"/"+landBranch+"^{commit}"),
+				// The comparison never ran.
+				{Step: "divergence", Status: plan.StepSkipped, Reason: "the plan stopped"},
+			}}
+
+			got, err := landingVerdict(report, fetch, counterpart, diverge,
+				landBranch, landRemote, pushFirst)
+			if err != nil {
+				t.Fatalf("landingVerdict: %v", err)
+			}
+
+			if strings.Contains(got.resolution, "--dry-run") {
+				t.Errorf("the resolution sends the caller out of a mode a dry run cannot reach "+
+					"this branch in: %q", got.resolution)
+			}
+			if strings.Contains(got.resolution, "swarm branch push") {
+				t.Errorf("the resolution proposes a WRITE as the remedy for a read that did not "+
+					"execute: %q", got.resolution)
+			}
+			// It names the read that did not complete, and the ref it
+			// would have compared against.
+			if !strings.Contains(got.resolution, landRemote+"/"+landBranch) {
+				t.Errorf("the resolution does not name the tracking ref the comparison was "+
+					"against: %q", got.resolution)
+			}
+			if !strings.Contains(got.resolution, "git rev-list") {
+				t.Errorf("the resolution names nothing the caller can run to obtain the "+
+					"comparison: %q", got.resolution)
+			}
+
+			if got.outcome != OutcomeAttention {
+				t.Errorf("outcome = %q, want %q", got.outcome, OutcomeAttention)
+			}
+			if len(got.facts) != 1 || got.facts[0].Name != "landed" || got.facts[0].Established {
+				t.Errorf("facts = %+v, want one unestablished landed fact", got.facts)
+			}
+		})
+	}
+}
+
+// The other half, and the reason the branch above must not borrow its
+// words: the FETCH guard IS what a dry run reaches, so the advice to
+// re-run without --dry-run belongs there and stays there.
+func TestTheFetchGuardKeepsTheDryRunWording(t *testing.T) {
+	fetch, counterpart, diverge := landingFragments()
+
+	for _, pushFirst := range []bool{true, false} {
+		verb := "verify-landed"
+		if pushFirst {
+			verb = "push"
+		}
+		t.Run(verb, func(t *testing.T) {
+			report := plan.Report{Records: []plan.Record{
+				// What a dry run leaves: the fetch is a write, so it is
+				// refused rather than run.
+				{Step: "fetch", Status: plan.StepRefused, Reason: "dry run: the step writes"},
+			}}
+
+			got, err := landingVerdict(report, fetch, counterpart, diverge,
+				landBranch, landRemote, pushFirst)
+			if err != nil {
+				t.Fatalf("landingVerdict: %v", err)
+			}
+			if !strings.Contains(got.resolution, "without --dry-run") {
+				t.Errorf("the fetch guard lost the dry-run advice a dry run does reach: %q",
+					got.resolution)
+			}
+			// It names the verb the caller actually ran.
+			if !strings.Contains(got.resolution, "swarm branch "+verb) {
+				t.Errorf("the resolution does not name the command the caller ran: %q", got.resolution)
+			}
+		})
 	}
 }

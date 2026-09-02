@@ -395,6 +395,15 @@ func landingVerdict(
 	if !ok || divergeRec.Status != plan.StepRan {
 		// The fetch ran, so this is a plan that stopped before the
 		// comparison — reported rather than guessed at.
+		//
+		// It gets its own resolution rather than the fetch guard's. A dry
+		// run cannot be here: the fetch is a write, a dry run refuses it,
+		// and the guard above returns on exactly that — so "run it again
+		// without --dry-run" would describe a mode the caller was not in,
+		// and for `push` it would propose a WRITE as the remedy for a
+		// read that did not execute. What is missing is one comparison,
+		// so the resolution names that comparison and how to take it, for
+		// both verbs alike.
 		return verdict{
 			facts: []Fact{
 				Unestablished("landed",
@@ -403,8 +412,10 @@ func landingVerdict(
 			},
 			outcome: OutcomeAttention,
 			summary: fmt.Sprintf("whether %s has landed on %s was not established", branch, remote),
-			resolution: fmt.Sprintf("run it again without --dry-run: swarm branch %s --branch %s --remote %s",
-				verb, branch, remote),
+			resolution: fmt.Sprintf(
+				"the divergence comparison against %s did not run, so how far %s stands from it "+
+					"is unknown; take it directly: git rev-list --count --left-right %s...%s",
+				tracking, branch, branch, tracking),
 		}, nil
 	}
 	if divergeRec.Failed() {
