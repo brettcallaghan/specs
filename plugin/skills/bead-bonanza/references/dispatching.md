@@ -200,6 +200,14 @@ authorization row** (`sf.toml`'s `[run] dispatch_failure_threshold`, else 3),
 resolved by `sprint-scope` and passed here. Omit `--completed` and the
 invocation only reads the count.
 
+**A threshold below 1 is refused, not honoured.** `swarm ready` rejects it in
+every mode before reading anything, because 0 would stop the run on every
+dispatch return rather than disabling the breaker — unlike `review_budget`,
+where 0 does mean off. Nothing turns the breaker off. The default 3 is
+currently written in two places, `breakerDefaultThreshold` in the command and
+this row's default in `sprint-scope`; they must not drift, and collapsing them
+is tracked separately.
+
 **Tripping it stops the RUN, not just the batch.** Whatever it caught — a
 broken base, a wrong assumption in the plan, an environment fault — the next
 dispatch meets it too.

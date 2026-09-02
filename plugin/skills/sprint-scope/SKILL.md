@@ -217,7 +217,7 @@ that, and gets to.
 | **Tier escalation** on repeated failure | `tier_escalation` | escalate one tier, once, and report it |
 | **Review loop budget** | `review_budget` | 2 loops (three passes total) |
 | **Merge to the default branch** | `merge_to_default` | never — that is the pull request's, not the run's |
-| **Circuit-breaker threshold** — consecutive dispatch returns completing no bead that stop the run | `dispatch_failure_threshold` | 3 |
+| **Circuit-breaker threshold** — consecutive dispatch returns completing no bead that stop the run; **must be 1 or greater, and there is no value that disables the breaker** | `dispatch_failure_threshold` | 3 |
 
 **Configuring a row changes what is confirmed, never whether it is.** A project
 that sets all seven still gets the gate — as one confirmation of seven resolved
