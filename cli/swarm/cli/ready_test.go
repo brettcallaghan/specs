@@ -605,3 +605,162 @@ func TestTheAgentArmReportsAStopTheRecordedCountEstablishesInADryRun(t *testing.
 		t.Errorf("the --agent arm does not say the run is stopped:\n%s", stdout)
 	}
 }
+
+// failingManifestRead is a manifest read that fails, so the breaker
+// refuses through RefuseUnrepairable after the arm's own queries have
+// already answered.
+func failingManifestRead(run string) exectest.Recording {
+	return exectest.Recording{
+		Argv:       []string{"bd", "show", run, "--json"},
+		Stderr:     []byte("bd: the tracker is unavailable\n"),
+		ExitStatus: 1,
+	}
+}
+
+// A breaker that cannot read the manifest must not throw away the queue
+// answer the invocation already measured. run-batch has a dispatched
+// worker run `swarm ready --agent` as its first act; a manifest fault is
+// not that worker's concern and must not cost it the queue it asked for.
+func TestABreakerFailureKeepsTheAgentArmsQueueAnswer(t *testing.T) {
+	fake, stdout, code := runReadyAgent(t, []exectest.Recording{failingManifestRead(acceptRun)},
+		"ready", "--run", acceptRun, "--agent", acceptAgent, "--completed", "0",
+		"--full-result", "--json")
+	if code != int(StatusAttention) {
+		t.Fatalf("exit status = %d, want %d (an answer with something unmeasured in it)\n%s",
+			code, StatusAttention, stdout)
+	}
+
+	env := envelopeOf(t, stdout)
+	for _, name := range []string{"established", "queue", "queue_count", "drained"} {
+		f, ok := factNamed(env, name)
+		if !ok {
+			t.Errorf("%s was discarded, though the query that established it succeeded:\n%s", name, stdout)
+			continue
+		}
+		if !f.Established {
+			t.Errorf("%s is reported unestablished; the breaker's fault is not this fact's", name)
+		}
+	}
+
+	// The breaker's own condition is reported rather than being the
+	// silent reason a whole answer vanished.
+	cb, ok := factNamed(env, "consecutive_dispatch_failures")
+	if !ok {
+		t.Fatalf("the breaker's condition is not reported at all:\n%s", stdout)
+	}
+	if cb.Established {
+		t.Errorf("consecutive_dispatch_failures = %v is established, but the read that would "+
+			"have taken it failed", cb.Value)
+	}
+	if len(cb.Invocations) == 0 {
+		t.Errorf("the unestablished count names no invocation a reader could re-run")
+	}
+	if env.Resolution == "" {
+		t.Errorf("the attention outcome names nothing that would resolve it:\n%s", stdout)
+	}
+
+	// breakerOutcome.Records says the records exist "so a refused write
+	// is visible to a --full-result consumer rather than only to this
+	// function". That is asserted here so it stays true on the FAILURE
+	// path, which is where it was false.
+	if !strings.Contains(stdout, "failure-count") {
+		t.Errorf("the breaker's own step never reached the --full-result consumer:\n%s", stdout)
+	}
+
+	// And the arm still ran its own queries, so what is asserted above is
+	// a preserved answer rather than an empty one that happens to parse.
+	read := false
+	for _, argv := range fake.Argvs() {
+		if len(argv) >= 2 && argv[0] == "bd" && argv[1] == "ready" {
+			read = true
+		}
+	}
+	if !read {
+		t.Errorf("the queue was never read: %v", fake.Argvs())
+	}
+}
+
+// The whole-run arm discards identically and always has. Fixing one arm
+// alone would manufacture an asymmetry between them that nothing
+// asserts, so the same guarantee is asserted here.
+func TestABreakerFailureKeepsTheWholeRunArmsReadySet(t *testing.T) {
+	fake := exectest.NewFake(
+		exectest.Recording{
+			Argv: []string{"bd", "ready", "--parent", "run-1", "--exclude-type", "epic",
+				"--exclude-label", "human", "--limit", "0", "--json"},
+			Stdout: []byte(`[{"id":"run-1.2","title":"a bead","status":"open","issue_type":"task","assignee":"dev-1"}]`),
+		},
+		exectest.Recording{Argv: []string{"git", "worktree", "prune"}},
+		exectest.Recording{Argv: []string{"git", "worktree", "list", "--porcelain"}},
+		failingManifestRead("run-1"),
+	)
+
+	var out, errOut bytes.Buffer
+	streams := &ioStreams{out: &out, err: &errOut}
+	root := newRootCmd(streams)
+	root.AddCommand(readyCmd(streams, readyDeps(fake)))
+
+	code := dispatch(root, streams, []string{"ready", "--run", "run-1",
+		"--completed", "0", "--full-result", "--json"}, &out, &errOut)
+	if code != int(StatusAttention) {
+		t.Fatalf("exit status = %d, want %d\n%s", code, StatusAttention, out.String())
+	}
+
+	env := envelopeOf(t, out.String())
+	for _, name := range []string{"ready", "ready_count"} {
+		f, ok := factNamed(env, name)
+		if !ok {
+			t.Errorf("%s was discarded, though the query that established it succeeded:\n%s", name, out.String())
+			continue
+		}
+		if !f.Established {
+			t.Errorf("%s is reported unestablished; the breaker's fault is not this fact's", name)
+		}
+	}
+	if cb, ok := factNamed(env, "consecutive_dispatch_failures"); !ok {
+		t.Errorf("the breaker's condition is not reported at all:\n%s", out.String())
+	} else if cb.Established {
+		t.Errorf("consecutive_dispatch_failures = %v is established after a failed read", cb.Value)
+	}
+	if env.Resolution == "" {
+		t.Errorf("the attention outcome names nothing that would resolve it:\n%s", out.String())
+	}
+	if !strings.Contains(out.String(), "failure-count") {
+		t.Errorf("the breaker's own step never reached the --full-result consumer:\n%s", out.String())
+	}
+}
+
+// A value that does not decode is applyBreaker's third refusal, and it is
+// kept a refusal — what changes is only that the caller no longer
+// discards the answer around it.
+func TestABreakerValueThatDoesNotDecodeKeepsTheQueueAnswer(t *testing.T) {
+	_, stdout, code := runReadyAgent(t, []exectest.Recording{
+		showRecording(acceptRun, `{"consecutive_dispatch_failures":"not a number"}`),
+	}, "ready", "--run", acceptRun, "--agent", acceptAgent, "--completed", "0",
+		"--full-result", "--json")
+	if code != int(StatusAttention) {
+		t.Fatalf("exit status = %d, want %d\n%s", code, StatusAttention, stdout)
+	}
+	if _, ok := factNamed(envelopeOf(t, stdout), "queue"); !ok {
+		t.Errorf("the queue answer was discarded over a value that does not decode:\n%s", stdout)
+	}
+}
+
+// The negative control for the three above: with a manifest that reads
+// and decodes, both arms still answer clear and still establish the
+// count — so what those tests assert is the preserved answer on a
+// failure, not the breaker having been removed from the path.
+func TestABreakerThatReadsCleanlyStillAnswersClear(t *testing.T) {
+	_, stdout, code := runReadyAgent(t, []exectest.Recording{
+		showRecording(acceptRun, `{"consecutive_dispatch_failures":1}`),
+		updateRecording(acceptRun, `{"consecutive_dispatch_failures":2}`),
+	}, "ready", "--run", acceptRun, "--agent", acceptAgent, "--completed", "0",
+		"--full-result", "--json")
+	if code != int(StatusClear) {
+		t.Fatalf("exit status = %d, want %d\n%s", code, StatusClear, stdout)
+	}
+	cb, ok := factNamed(envelopeOf(t, stdout), "consecutive_dispatch_failures")
+	if !ok || !cb.Established {
+		t.Errorf("the count is not established on a clean read:\n%s", stdout)
+	}
+}

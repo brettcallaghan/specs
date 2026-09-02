@@ -259,7 +259,7 @@ func reportReady(ctx context.Context, deps status.Deps, req Request, breaker bre
 	breaking, err := applyBreaker(ctx, deps, req, breaker, threshold)
 	result.Records = append(result.Records, breaking.Records...)
 	if err != nil {
-		return Result{}, err
+		return breakerUnread(result, breaking, err), nil
 	}
 	result.Facts = append(result.Facts, breaking.Facts...)
 	if breaking.Stopped {
@@ -447,6 +447,50 @@ type breakerOutcome struct {
 	Summary string
 }
 
+// breakerUnread folds a breaker refusal into the answer the invocation
+// had ALREADY established, instead of discarding it.
+//
+// [applyBreaker] refuses three ways — no manifest store is configured,
+// the manifest read failed, and consecutive_dispatch_failures does not
+// decode — and it is right to refuse each. What must not happen is the
+// CALLER throwing away a queue or ready set that its own queries already
+// answered: a dispatched worker runs `swarm ready --agent` to learn what
+// it holds, and a manifest fault is not that worker's concern.
+//
+// The outcome becomes attention: not clear, which would assert the run is
+// dispatchable when the breaker's verdict is unknown, and not stop, which
+// nothing established.
+//
+// The count is reported unestablished, citing the breaker's own steps —
+// which is also what makes [breakerOutcome.Records]' promise, that a
+// refused step reaches a --full-result consumer, true on this path. It is
+// omitted only when there are no steps to cite, since a store that was
+// never configured ran nothing and [Result.Validate] refuses a fact
+// naming no invocation; the reason still reaches the reader through the
+// resolution, which every path sets.
+//
+// An existing resolution is kept and appended to rather than replaced: a
+// dispatch id no bead names and a breaker that could not be read are two
+// unsatisfied properties, and answering one of them erases the other.
+func breakerUnread(result Result, breaking breakerOutcome, err error) Result {
+	if inv := invocationsOf(breaking.Records); len(inv) > 0 {
+		result.Facts = append(result.Facts,
+			Unestablished("consecutive_dispatch_failures", err.Error(), inv...))
+	}
+	result.Outcome = OutcomeAttention
+
+	resolution := fmt.Sprintf(
+		"the circuit breaker could not be read (%s), so the run's stop verdict is unknown; "+
+			"repair the run epic's manifest and re-run — the answer above stands, it is the "+
+			"count and the stop verdict that are missing", err)
+	if result.Resolution == "" {
+		result.Resolution = resolution
+	} else {
+		result.Resolution += "; " + resolution
+	}
+	return result
+}
+
 // refusalReason is the reason the plan runner gave for refusing a
 // fragment's answer step, for a caller that has already established the
 // step was refused.
@@ -553,7 +597,7 @@ func reportAgentQueue(
 	breaking, err := applyBreaker(ctx, deps, req, breaker, threshold)
 	result.Records = append(result.Records, breaking.Records...)
 	if err != nil {
-		return Result{}, err
+		return breakerUnread(result, breaking, err), nil
 	}
 	result.Facts = append(result.Facts, breaking.Facts...)
 	if breaking.Stopped {
