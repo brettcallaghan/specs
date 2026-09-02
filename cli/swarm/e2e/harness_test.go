@@ -202,57 +202,21 @@ func restore(t *testing.T, binary, fixture string) world {
 	// the bundle happened to record as HEAD.
 	w.mustRun(t, w.repo, "git", "checkout", "--quiet", "claude/bead-bonanza-fixture")
 
+	// Every platform takes the same path: `bd` is installed CGO-enabled
+	// on all three, so it carries the embedded Dolt engine and needs no
+	// `--server`. ADR-027 accepted a CGO-free, server-mode install on
+	// Windows "for the first leg" and named the escape taken here —
+	// adding the CGO toolchain to the runner — for when a Windows-only
+	// failure could not be attributed to the platform rather than to the
+	// mode. One topology across three platforms is the point: a failure
+	// here is now the platform's or the code's, and never the mode's.
 	initArgs := []string{"init", "--prefix", stamp.Prefix}
-	if runtime.GOOS == "windows" {
-		// ADR-027: Windows runs against the CGO-free, server-mode `bd`
-		// install, which carries no embedded Dolt engine — `--server` is
-		// required or the restore fails outright. Nothing else is
-		// needed: `bd init --server` auto-starts and manages its own
-		// `dolt sql-server` when it finds none already listening on the
-		// port it tries, which ADR-027 marked unmeasured. Measured here
-		// (Linux, dolt 2.3.1, no --server-port given): two `bd init
-		// --server` calls made back to back came up on two different
-		// auto-selected ports (36331, then 37165) with no conflict and
-		// no server started by hand — which is what lets this suite's
-		// cases, run with t.Parallel(), each restore its own fixture
-		// without colliding on one.
-		initArgs = append(initArgs, "--server")
-	}
+
 	// The sprint branch's own head, read BEFORE the tracker is
 	// initialised, because initialising it moves the branch.
 	head := w.mustCapture(t, w.repo, "git", "rev-parse", "HEAD")
 
 	w.mustRun(t, w.repo, "bd", initArgs...)
-
-	// Stop the tracker's server before the world's directory is removed.
-	// `bd init --server` (ADR-027's Windows path) auto-starts a `dolt
-	// sql-server` that outlives the command, and nothing else stops it.
-	// Windows cannot unlink a file a live process holds open, so the
-	// server keeps `.beads/dolt/.dolt/noms/journal.idx` open, t.TempDir()'s
-	// removal fails, and one orphan server per case accumulates until the
-	// suite passes its own 10m timeout. Measured on windows-latest: "The
-	// process cannot access the file because it is being used by another
-	// process" on four cases, then `panic: test timed out after 10m0s`,
-	// with 40 orphan `dolt` processes terminated at job cleanup. Linux and
-	// macOS unlink an open file happily, which is the whole reason only
-	// Windows failed and one Linux container could not have caught it.
-	//
-	// Registered AFTER t.TempDir() so LIFO runs this FIRST, and run on
-	// every platform rather than under a GOOS test, so the path Windows
-	// depends on is the path Linux exercises too. Best-effort: a world
-	// whose server already exited is not a test failure, so the stop's
-	// outcome is logged rather than asserted — a run that still leaks
-	// handles needs to tell "the stop failed" apart from "the stop
-	// succeeded and something else holds the directory", and only the CI
-	// log can settle that.
-	t.Cleanup(func() {
-		stop := exec.Command("bd", "dolt", "stop")
-		stop.Dir = w.repo
-		stop.Env = w.env()
-		if out, err := stop.CombinedOutput(); err != nil {
-			t.Logf("bd dolt stop in %s: %v\n%s", w.repo, err, out)
-		}
-	})
 
 	w.mustRun(t, w.repo, "bd", "import", export)
 

@@ -106,10 +106,23 @@ jobs:
       - name: Build
         run: go build ./...
 
-      # ADR-027: Windows runs the tracker-dependent end-to-end cases
-      # against the CGO-free, server-mode `bd` install rather than the
-      # embedded engine the other two legs use — it needs no MinGW-w64
-      # toolchain on the runner, which windows-latest does not carry.
+      # ADR-027's remedy, taken: Windows now runs the tracker-dependent
+      # end-to-end cases against the SAME embedded engine as the other two
+      # legs, rather than the CGO-free server-mode install.
+      #
+      # The ADR accepted server mode "for the first leg" and named this
+      # exact escape: "the remedy, if attribution becomes the problem, is
+      # adding the CGO toolchain to the runner". Attribution became the
+      # problem — a Windows-only teardown failure could not be attributed
+      # to the platform rather than to the mode, and seven CI rounds went
+      # into establishing it was neither. The cause was the mode: the
+      # server-mode install starts a `dolt sql-server` whose working
+      # directory is the test's own world, and Windows will not remove a
+      # directory that is a live process's cwd.
+      #
+      # Embedded means no server process, so no pinned cwd, so the
+      # teardown failure cannot occur — and the topology divergence that
+      # made attribution expensive goes with it.
       #
       # `dolt` is downloaded directly rather than through a package
       # manager: neither winget nor chocolatey publish it on this runner
@@ -126,18 +139,47 @@ jobs:
           Expand-Archive -Path dolt.zip -DestinationPath .
           Add-Content -Path $env:GITHUB_PATH -Value "$PWD\dolt-windows-amd64\bin"
 
-      # `-tags gms_pure_go` is what both of beads' own installers
-      # (install.sh's CGO_ENABLED=0 fallback, and install.ps1's only
-      # path) pass; CGO_ENABLED=0 is set explicitly here rather than left
-      # to "no compiler found", so the build does not depend on exactly
-      # which toolchains this runner image happens to carry.
-      - name: Install bd, CGO-free (Windows)
+      # Diagnostic, and deliberately non-fatal. cli.yml previously asserted
+      # that windows-latest "does not carry" a MinGW-w64 toolchain, and
+      # nobody had measured it. This step settles it in the run's own log
+      # whether or not the install below succeeds, so one CI round answers
+      # the question rather than two. Delete it once the answer is
+      # recorded in ADR-027.
+      - name: Report the C toolchain (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          Write-Host "--- gcc on PATH? ---"
+          $gcc = Get-Command gcc -ErrorAction SilentlyContinue
+          if ($gcc) { Write-Host "FOUND: $($gcc.Source)"; & gcc --version }
+          else       { Write-Host "NOT FOUND on PATH" }
+          Write-Host "--- known MinGW locations ---"
+          foreach ($p in @("C:\mingw64\bin\gcc.exe",
+                           "C:\ProgramData\chocolatey\bin\gcc.exe",
+                           "C:\msys64\mingw64\bin\gcc.exe",
+                           "C:\Strawberry\c\bin\gcc.exe")) {
+            if (Test-Path $p) { Write-Host "EXISTS: $p" } else { Write-Host "absent: $p" }
+          }
+          Write-Host "--- go env ---"
+          go env CGO_ENABLED CC
+
+      # CGO-enabled, so `bd` carries the embedded Dolt engine and the e2e
+      # harness needs no `--server`. The `-tags gms_pure_go` build tag is
+      # deliberately NOT passed: it selects beads' pure-Go engine, which is
+      # the thing being moved away from.
+      #
+      # If this step fails with "cgo: C compiler not found", the runner
+      # carries no usable toolchain and the step above says which paths
+      # were checked — add a toolchain setup step (msys2/setup-msys2 or
+      # equivalent) before this one rather than reverting to server mode.
+      - name: Install bd, CGO-enabled (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
         env:
-          CGO_ENABLED: "0"
+          CGO_ENABLED: "1"
         run: |
-          go install -tags gms_pure_go github.com/steveyegge/beads/cmd/bd@latest
+          go install github.com/steveyegge/beads/cmd/bd@latest
           Add-Content -Path $env:GITHUB_PATH -Value "$(go env GOPATH)\bin"
 
       # The swarm CLI's end-to-end tier restores a fixture through `git`
