@@ -525,6 +525,16 @@ const (
 // It carries the circuit breaker exactly as the whole-run arm does: the
 // filter narrows which beads are reported and changes nothing about the
 // dispatch return the same invocation reported.
+//
+// The breaker's OVERRIDE is where the two arms differ, and the difference
+// is in this arm's own answer rather than in the breaker. This one can
+// already have concluded the attention outcome before the breaker runs —
+// a dispatch id no bead in the run names — and that conclusion carries a
+// resolution. A stop supersedes it, so the override both carries the
+// unestablished id forward into the summary it replaces and clears the
+// resolution, which would otherwise name a repair that does not lift the
+// stop. [reportReady] sets no resolution at all before its own override,
+// so it has none to supersede and needs no counterpart.
 func reportAgentQueue(
 	ctx context.Context, deps status.Deps, req Request, agent string,
 	breaker breakerReport, threshold int,
@@ -607,6 +617,21 @@ func reportAgentQueue(
 		// it. The queue's own facts are still reported beside it.
 		result.Outcome = OutcomeStop
 		result.Summary = breaking.Summary
+		if !established {
+			// The stop replaces the summary, and the mistyped-dispatch
+			// signal must survive that replacement: a dispatch id no
+			// bead names may never read as anything else, and the
+			// established fact alone is not what a caller reads first.
+			result.Summary = fmt.Sprintf("%s; %s is not an established dispatch in %s",
+				breaking.Summary, agent, req.Run)
+		}
+		// No resolution un-stops a run, so the one belonging to the
+		// condition this stop replaced is cleared rather than left
+		// pointing at a repair that would not lift the stop. This is the
+		// half [reportReady] needs no counterpart for: the whole-run arm
+		// sets no resolution before its own override, so it has none to
+		// supersede.
+		result.Resolution = ""
 	}
 	return result, nil
 }

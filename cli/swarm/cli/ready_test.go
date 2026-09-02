@@ -764,3 +764,139 @@ func TestABreakerThatReadsCleanlyStillAnswersClear(t *testing.T) {
 		t.Errorf("the count is not established on a clean read:\n%s", stdout)
 	}
 }
+
+// unestablishedQueue is the four reads that answer "typo-1 is not an
+// established dispatch in run-1": the run's walk names only dev-1, and
+// both halves of typo-1's own queue are empty. The two are the same
+// shape as a DRAINED answer, which is precisely why the walk is what
+// tells them apart.
+func unestablishedQueue(agent string) []exectest.Recording {
+	return []exectest.Recording{
+		{
+			Argv: []string{"bd", "list", "--parent", acceptRun, "--all", "--limit", "0", "--json"},
+			Stdout: []byte(`[{"id":"run-1.1","title":"a","status":"closed","issue_type":"task",` +
+				`"assignee":"` + acceptAgent + `"}]`),
+		},
+		{
+			Argv:   []string{"bd", "list", "--parent", "run-1.1", "--all", "--limit", "0", "--json"},
+			Stdout: []byte("[]"),
+		},
+		{
+			Argv: []string{"bd", "ready", "--parent", acceptRun, "--assignee", agent,
+				"--exclude-type", "epic", "--exclude-label", "human", "--limit", "0", "--json"},
+			Stdout: []byte("[]"),
+		},
+		{
+			Argv: []string{"bd", "list", "--assignee", agent, "--status", "in_progress",
+				"--exclude-type", "epic", "--exclude-label", "human", "--limit", "0", "--json"},
+			Stdout: []byte("[]"),
+		},
+	}
+}
+
+// The combination the acceptance names and nothing covered: a dispatch id
+// no bead establishes, on a run the breaker already stops.
+//
+// The stop replaces the summary. It must not leave behind the resolution
+// belonging to the condition it replaced — assigning a bead to typo-1
+// will not un-stop the run — and it must not take the mistyped-id signal
+// down with the summary, which is what a caller reads first.
+func TestAStoppedRunDoesNotKeepTheSupersededCasesResolution(t *testing.T) {
+	recs := unestablishedQueue("typo-1")
+	recs = append(recs, showRecording(acceptRun, `{"consecutive_dispatch_failures":3}`))
+
+	fake := exectest.NewFake(recs...)
+	var out, errOut bytes.Buffer
+	streams := &ioStreams{out: &out, err: &errOut}
+	root := newRootCmd(streams)
+	root.AddCommand(readyCmd(streams, readyDeps(fake)))
+
+	code := dispatch(root, streams, []string{"ready", "--run", acceptRun, "--agent", "typo-1",
+		"--full-result", "--json"}, &out, &errOut)
+	stdout := out.String()
+	if code != int(StatusStop) {
+		t.Fatalf("exit status = %d, want %d (the run is stopped)\n%s", code, StatusStop, stdout)
+	}
+
+	env := envelopeOf(t, stdout)
+	if !strings.Contains(env.Summary, "the run is stopped") {
+		t.Errorf("summary = %q, want the breaker's stop verdict", env.Summary)
+	}
+	if strings.Contains(env.Resolution, "assign a bead") {
+		t.Errorf("resolution = %q belongs to the !established case the stop replaced; "+
+			"no resolution un-stops a run", env.Resolution)
+	}
+	if env.Resolution != "" {
+		t.Errorf("resolution = %q; a stopped run carries none", env.Resolution)
+	}
+
+	// And the mistyped id is still distinguishable from a drained one in
+	// what a caller reads first, not only through the established fact.
+	if !strings.Contains(env.Summary, "not an established dispatch") {
+		t.Errorf("summary = %q drops the mistyped-dispatch signal entirely", env.Summary)
+	}
+	if !strings.Contains(env.Summary, "typo-1") {
+		t.Errorf("summary = %q does not name the dispatch id", env.Summary)
+	}
+
+	// The fact is still reported beside it.
+	f, ok := factNamed(env, "established")
+	if !ok {
+		t.Fatalf("the established fact is missing:\n%s", stdout)
+	}
+	if f.Value == nil || f.Value.Flag == nil || *f.Value.Flag {
+		t.Errorf("established = %v, want false", f.Value)
+	}
+}
+
+// The control that keeps the test above honest: an ESTABLISHED dispatch
+// on the same stopped run reports the breaker's summary with no clause
+// appended, so what that test asserts is the superseded case being
+// carried forward rather than the clause being appended unconditionally.
+func TestAStoppedRunOnAnEstablishedDispatchSaysOnlyThatItIsStopped(t *testing.T) {
+	_, stdout, code := runReadyAgent(t, []exectest.Recording{
+		showRecording(acceptRun, `{"consecutive_dispatch_failures":3}`),
+	}, "ready", "--run", acceptRun, "--agent", acceptAgent, "--full-result", "--json")
+	if code != int(StatusStop) {
+		t.Fatalf("exit status = %d, want %d\n%s", code, StatusStop, stdout)
+	}
+
+	env := envelopeOf(t, stdout)
+	if !strings.Contains(env.Summary, "the run is stopped") {
+		t.Errorf("summary = %q, want the breaker's stop verdict", env.Summary)
+	}
+	if strings.Contains(env.Summary, "not an established dispatch") {
+		t.Errorf("summary = %q names an unestablished dispatch, but %s holds beads in the run",
+			env.Summary, acceptAgent)
+	}
+	if env.Resolution != "" {
+		t.Errorf("resolution = %q; a stopped run carries none", env.Resolution)
+	}
+}
+
+// An unestablished dispatch on a run the breaker does NOT stop keeps its
+// own attention outcome and its own resolution untouched — the second
+// control, so the change above is scoped to the override.
+func TestAnUnestablishedDispatchOnAClearRunKeepsItsOwnResolution(t *testing.T) {
+	recs := unestablishedQueue("typo-1")
+	recs = append(recs, showRecording(acceptRun, `{"consecutive_dispatch_failures":0}`))
+
+	fake := exectest.NewFake(recs...)
+	var out, errOut bytes.Buffer
+	streams := &ioStreams{out: &out, err: &errOut}
+	root := newRootCmd(streams)
+	root.AddCommand(readyCmd(streams, readyDeps(fake)))
+
+	code := dispatch(root, streams, []string{"ready", "--run", acceptRun, "--agent", "typo-1",
+		"--full-result", "--json"}, &out, &errOut)
+	if code != int(StatusAttention) {
+		t.Fatalf("exit status = %d, want %d\n%s", code, StatusAttention, out.String())
+	}
+	env := envelopeOf(t, out.String())
+	if !strings.Contains(env.Resolution, "assign a bead") {
+		t.Errorf("resolution = %q, want the !established case's own", env.Resolution)
+	}
+	if !strings.Contains(env.Summary, "not an established dispatch") {
+		t.Errorf("summary = %q, want the !established case's own", env.Summary)
+	}
+}
