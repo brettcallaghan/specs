@@ -270,6 +270,10 @@ func acceptDispatch(
 
 	result.Facts = append(result.Facts, merged.facts...)
 	result.Summary = merged.summary
+	if merged.outcome != OutcomeClear {
+		result.Outcome = merged.outcome
+		result.Resolution = merged.resolution
+	}
 
 	// The second half. It is reached only because the fold above did NOT
 	// return an error, which is what puts the removal behind the merge's
@@ -289,8 +293,18 @@ func acceptDispatch(
 		result.Summary = result.Summary + "; " + settled.summary
 	}
 	if settled.outcome != OutcomeClear {
+		// The removal half's verdict is the later and the more severe of
+		// the two — attention over the fold's attention, stop over
+		// anything — so it takes the outcome. Its resolution is APPENDED
+		// rather than substituted: both halves may have something the
+		// caller must act on, and the fold's is the one describing a
+		// write that already happened.
 		result.Outcome = settled.outcome
-		result.Resolution = settled.resolution
+		if result.Resolution == "" {
+			result.Resolution = settled.resolution
+		} else {
+			result.Resolution += "; " + settled.resolution
+		}
 	}
 	return result, nil
 }
@@ -496,6 +510,17 @@ type mergeOutcome struct {
 	// when an interpreter REFUSED it — the dry run — since a fold that
 	// failed returns an error instead of an outcome.
 	ran bool
+	// outcome is the fold's own verdict, and resolution names what would
+	// resolve it. [OutcomeClear] with an empty resolution is the ordinary
+	// fold; a fold that landed but could not report everything about
+	// itself takes [OutcomeAttention], which the caller composes with the
+	// removal half's verdict rather than replacing.
+	//
+	// They are separate from an error return on purpose: an error here
+	// skips [settleDispatch], and this is the one condition that must be
+	// reported WITHOUT skipping it.
+	outcome    Outcome
+	resolution string
 }
 
 // foldIn performs the merge for the case that was read.
@@ -585,6 +610,8 @@ func foldIn(
 
 	facts := []Fact{}
 	summary := ""
+	outcome := OutcomeClear
+	resolution := ""
 	ran := ffRec.Status == plan.StepRan
 	switch {
 	case ffRec.Status != plan.StepRan:
@@ -624,9 +651,21 @@ func foldIn(
 		// caller could not tell that the fold had landed. The fold DID
 		// happen; only the sha is unknown, and an unknown value is
 		// reported unestablished rather than dropped.
+		//
+		// Unestablished and CLEAR would be a third thing: an unestablished
+		// fact takes the attention outcome everywhere else in this package
+		// — [breakerUnread] and [landingVerdict] both — and exit 0 beside a
+		// null merged_sha gives a scripted caller success with nothing
+		// naming a remedy.
 		landed, lerr := revision(report, landedSteps, target+" after the fold")
 		if lerr != nil {
 			facts = append(facts, Unestablished("merged_sha", lerr.Error(), landedInv...))
+			outcome = OutcomeAttention
+			resolution = fmt.Sprintf(
+				"merged_sha is unestablished: %s was folded into %s, but %s could not be resolved "+
+					"afterwards (%s), so what landed is unknown; read it directly: "+
+					"git rev-parse --verify %s^{commit}",
+				dispatchBranch, target, target, lerr, target)
 		} else {
 			facts = append(facts, Text("merged_sha", landed, landedInv...))
 		}
@@ -637,7 +676,10 @@ func foldIn(
 				dispatchBranch, m.name(), target, m.targetSHA)
 		}
 	}
-	return mergeOutcome{facts: facts, summary: summary, ran: ran}, records, nil
+	return mergeOutcome{
+		facts: facts, summary: summary, ran: ran,
+		outcome: outcome, resolution: resolution,
+	}, records, nil
 }
 
 // refusedFastForward reads a refused fold against the case that was

@@ -21,6 +21,7 @@ import (
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/exec/exectest"
 	manifestbeads "github.com/brettcallaghan/agent-plugins/cli/swarm/manifest/beads"
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/plan"
+	"github.com/brettcallaghan/agent-plugins/cli/swarm/swarmmodel"
 	beadstracker "github.com/brettcallaghan/agent-plugins/cli/swarm/tracker/beads"
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/vcs"
 	gitvcs "github.com/brettcallaghan/agent-plugins/cli/swarm/vcs/git"
@@ -822,5 +823,107 @@ func TestASkippedMergedHeadResolveStillCitesAnInvocation(t *testing.T) {
 	result := req.stamp(Result{Outcome: OutcomeClear, Facts: out.facts, Records: records})
 	if err := result.Validate(); err != nil {
 		t.Errorf("the result does not validate, so it degrades to a bare refusal: %v", err)
+	}
+}
+
+// The fold is reported, and so is the fact that its sha is unknown. An
+// unestablished fact takes the attention outcome everywhere else in this
+// package — breakerUnread in ready.go, landingVerdict in branch.go — and
+// this path is no different: a scripted caller reading exit 0 beside a
+// null merged_sha has success and nothing naming a remedy.
+//
+// Same world as
+// TestAFailedPostFoldResolveStillReportsTheMergeAndStillSettles, which
+// asserts what must NOT change: the merge is still reported and the
+// removal half still runs.
+func TestAFailedPostFoldResolveTakesTheAttentionOutcome(t *testing.T) {
+	recs := append(drainedQueue(), acceptManifest())
+	recs = append(recs, caseReads(0)...) // serialized
+	recs = append(recs, exectest.Recording{Argv: []string{"git", "merge", "--ff-only", acceptBranch}})
+	recs = append(recs, exectest.Recording{
+		Argv:       []string{"git", "rev-parse", "--verify", acceptTargetBr + "^{commit}"},
+		Stderr:     []byte("fatal: unable to read the repository\n"),
+		ExitStatus: 128,
+	})
+	recs = append(recs, settleReads(cleanSettle())...)
+
+	fake := exectest.NewFake(recs...)
+	stdout, _, code := runAccept(t, fake,
+		"dispatch", "accept", "--run", acceptRun, "--dispatch", acceptAgent,
+		"--no-push", "--json", "--full-result")
+
+	if code != int(StatusAttention) {
+		t.Errorf("exit status = %d, want %d: an unestablished merged_sha is a condition to act on\n%s",
+			code, StatusAttention, stdout)
+	}
+
+	env := envelopeOf(t, stdout)
+	if env.Outcome != swarmmodel.CommandOutcome(OutcomeAttention) {
+		t.Errorf("outcome = %q, want %q", env.Outcome, OutcomeAttention)
+	}
+	if strings.TrimSpace(env.Resolution) == "" {
+		t.Fatalf("the resolution is empty, so a caller has a status and nothing to act on:\n%s", stdout)
+	}
+	// The resolution names the fact that is missing and something to run.
+	if !strings.Contains(env.Resolution, "merged_sha") {
+		t.Errorf("the resolution does not name merged_sha: %q", env.Resolution)
+	}
+	if !strings.Contains(env.Resolution, "git rev-parse") {
+		t.Errorf("the resolution names nothing the caller can run: %q", env.Resolution)
+	}
+
+	// What must survive the change: the fold is still reported.
+	merged, ok := factNamed(env, "merged")
+	if !ok {
+		t.Fatalf("the result carries no merged fact at all:\n%s", stdout)
+	}
+	if !merged.Established || merged.Value == nil || merged.Value.Flag == nil || !*merged.Value.Flag {
+		t.Errorf("merged = %v, want an established true — the fast-forward succeeded", merged.Value)
+	}
+	if !strings.Contains(env.Summary, "fast-forwarded into it") {
+		t.Errorf("the fold's summary was dropped: %q", env.Summary)
+	}
+}
+
+// Both halves can have something the caller must act on at once: the
+// fold landed without establishing what landed, AND the removal half
+// found the worktree still standing. The removal half's verdict is the
+// later and more severe, so it takes the outcome — but its resolution is
+// appended to the fold's rather than substituted for it, because the
+// fold's describes a write that already happened and cannot be re-read
+// from the result once it is dropped.
+func TestBothHalvesNeedingAttentionKeepBothResolutions(t *testing.T) {
+	w := cleanSettle()
+	w.worktree = "/wt/dev-1"
+	w.survives = true // still standing on the post-merge read
+
+	recs := append(drainedQueue(), acceptManifest())
+	recs = append(recs, caseReads(0)...) // serialized
+	recs = append(recs, exectest.Recording{Argv: []string{"git", "merge", "--ff-only", acceptBranch}})
+	recs = append(recs, exectest.Recording{
+		Argv:       []string{"git", "rev-parse", "--verify", acceptTargetBr + "^{commit}"},
+		Stderr:     []byte("fatal: unable to read the repository\n"),
+		ExitStatus: 128,
+	})
+	recs = append(recs, settleReads(w)...)
+
+	stdout, _, code := runAccept(t, exectest.NewFake(recs...),
+		"dispatch", "accept", "--run", acceptRun, "--dispatch", acceptAgent,
+		"--no-push", "--json", "--full-result")
+
+	env := envelopeOf(t, stdout)
+	if env.Outcome == swarmmodel.CommandOutcome(OutcomeClear) {
+		t.Fatalf("outcome = %q: neither half's verdict reached the result\n%s", env.Outcome, stdout)
+	}
+	if code == int(StatusClear) {
+		t.Errorf("exit status = %d: two conditions to act on and the caller is told nothing", code)
+	}
+	if !strings.Contains(env.Resolution, "merged_sha") {
+		t.Errorf("the fold's resolution was dropped when the removal half added its own: %q", env.Resolution)
+	}
+	// The removal half's own words, and not a string the fold's
+	// resolution also happens to carry.
+	if !strings.Contains(env.Resolution, "accept the dispatch again") {
+		t.Errorf("the removal half's resolution is missing: %q", env.Resolution)
 	}
 }
