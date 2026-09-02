@@ -268,7 +268,7 @@ func verifyLanded(
 		}
 	}
 
-	landed, err := landingVerdict(report, fetchSteps, counterpartSteps, divergeSteps, branch, remote)
+	landed, err := landingVerdict(report, fetchSteps, counterpartSteps, divergeSteps, branch, remote, pushFirst)
 	if err != nil {
 		return Result{}, err
 	}
@@ -329,10 +329,23 @@ type verdict struct {
 
 // landingVerdict reads the counterpart probe and the divergence count
 // into the command's answer.
+//
+// pushFirst is which of the two verbs the caller invoked. `push` and
+// `verify-landed` are one implementation rather than two commands that
+// resemble each other, so a resolution telling the caller to run the
+// command again has to name the one they ran: sending a caller of `push`
+// to `verify-landed` has them rehearse a push and then perform only the
+// check.
 func landingVerdict(
 	report plan.Report, fetchSteps, counterpartSteps, divergeSteps vcs.Steps, branch, remote string,
+	pushFirst bool,
 ) (verdict, error) {
 	tracking := remote + "/" + branch
+
+	verb := "verify-landed"
+	if pushFirst {
+		verb = "push"
+	}
 
 	// The fetch is what makes the two reads below mean anything, and it
 	// is the FIRST thing tested for that reason. It is a write, so a dry
@@ -355,8 +368,8 @@ func landingVerdict(
 			summary: fmt.Sprintf("whether %s has landed on %s was not established: %s was not fetched",
 				branch, remote, remote),
 			resolution: fmt.Sprintf(
-				"run it again without --dry-run, or fetch first: swarm branch verify-landed --branch %s --remote %s",
-				branch, remote),
+				"run it again without --dry-run, or fetch first: swarm branch %s --branch %s --remote %s",
+				verb, branch, remote),
 		}, nil
 	}
 
@@ -388,9 +401,10 @@ func landingVerdict(
 					"the comparison against "+tracking+" did not run",
 					invocationOf(divergeSteps[len(divergeSteps)-1], divergeRec)),
 			},
-			outcome:    OutcomeAttention,
-			summary:    fmt.Sprintf("whether %s has landed on %s was not established", branch, remote),
-			resolution: fmt.Sprintf("run it again without --dry-run: swarm branch verify-landed --branch %s --remote %s", branch, remote),
+			outcome: OutcomeAttention,
+			summary: fmt.Sprintf("whether %s has landed on %s was not established", branch, remote),
+			resolution: fmt.Sprintf("run it again without --dry-run: swarm branch %s --branch %s --remote %s",
+				verb, branch, remote),
 		}, nil
 	}
 	if divergeRec.Failed() {

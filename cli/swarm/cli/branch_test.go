@@ -312,6 +312,25 @@ func TestADryRunDoesNotReportLandedFromAnUnfetchedComparison(t *testing.T) {
 			t.Errorf("%s --dry-run does not name what would settle the question: %q",
 				verb, env.Resolution)
 		}
+
+		// The resolution has to name the verb the caller INVOKED. A
+		// contains-check on a substring both verbs share — "--dry-run"
+		// above — passes whichever one the string names, which is how a
+		// resolution pointing at the wrong command shipped under a test
+		// that loops over both. Both halves are needed: naming the right
+		// verb is not enough if the wrong one is named too.
+		other := "push"
+		if verb == "push" {
+			other = "verify-landed"
+		}
+		if !strings.Contains(env.Resolution, "swarm branch "+verb) {
+			t.Errorf("%s --dry-run's resolution does not name the command the caller ran: %q",
+				verb, env.Resolution)
+		}
+		if strings.Contains(env.Resolution, "swarm branch "+other) {
+			t.Errorf("%s --dry-run's resolution sends the caller to `swarm branch %s`, "+
+				"which is a different command: %q", verb, other, env.Resolution)
+		}
 	}
 }
 
