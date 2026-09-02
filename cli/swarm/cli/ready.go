@@ -189,9 +189,12 @@ type readyEntry struct {
 // [[container-swarm-cli]] declares, not a second copy of it living here.
 //
 // breaker and threshold are the CB delta's: whether this invocation is
-// reporting a dispatch return, and the count that stops the run. They
-// apply only here — --agent narrows to one dispatch's own queue and
-// carries no circuit-breaker semantics of its own.
+// reporting a dispatch return, and the count that stops the run. Both
+// arms carry them, through the one [applyBreaker] — --agent narrows
+// which beads are reported and changes nothing about the dispatch return
+// the same invocation reported. Where the two arms differ is in what a
+// stop supersedes, and that is stated on [reportAgentQueue], which is
+// the arm it is a property of.
 func reportReady(ctx context.Context, deps status.Deps, req Request, breaker breakerReport, threshold int) (Result, error) {
 	step := deps.Tracker.Ready("ready", req.Run, tracker.ReadyFilter{
 		ExcludeKinds:  []string{epicKind},
