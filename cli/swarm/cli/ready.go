@@ -86,6 +86,35 @@ func readyCmd(streams *ioStreams, deps status.Deps) *cobra.Command {
 				req.Mode = plan.ModeExecute
 			}
 
+			// Both guards sit ahead of every mode, explain included: a
+			// malformed argument is not made well-formed by asking the
+			// command to only describe itself. They are also ahead of
+			// applyBreaker on either path, so a refused invocation has
+			// read nothing and written nothing — the guarantee this
+			// surface already states for its empty-scope refusal.
+			if threshold < 1 {
+				// The breaker compares a count that is never negative
+				// against this, so a non-positive threshold stops every
+				// run unconditionally — including one whose dispatch
+				// just completed work and whose count therefore reset to
+				// zero. Zero has no coherent reading either: zero
+				// returns completing no bead is the state every run
+				// starts in.
+				return finish(streams, req, refusal(req, RefuseArguments(
+					"--threshold counts consecutive dispatch returns that completed no bead, so it must be 1 or greater; got %d",
+					threshold)))
+			}
+			if cmd.Flags().Changed("completed") && completed < 0 {
+				// Read by `report.Completed > 0` as false, a negative
+				// value is silently treated as --completed 0 and
+				// ADVANCES the failure count: an operator reporting a
+				// malformed value would get a breaker advance rather
+				// than a refusal.
+				return finish(streams, req, refusal(req, RefuseArguments(
+					"--completed reports how many beads a dispatch completed, so it must be 0 or greater; got %d",
+					completed)))
+			}
+
 			agent := strings.TrimSpace(agentID)
 
 			if req.Mode == plan.ModeExplain {
