@@ -182,16 +182,27 @@ jobs:
       # the cross-compile, exactly as ADR-027 says for the legs that
       # have not installed one.
       #
-      # `bd init --server` (cli/swarm/e2e/harness_test.go's restore(),
-      # which the server-mode install needs on Windows) auto-starts and
-      # manages its own `dolt sql-server` when it finds none already
-      # listening on the port it tries — ADR-027 marked this unmeasured;
-      # see restore()'s own comment for what settled it. No server is
-      # started by this workflow, and none needs to be.
+      # `-timeout` is raised on every platform, not on Windows alone. Go's
+      # default is 10m per test binary, and cli/swarm/e2e exceeded it on
+      # Windows: `FAIL ... 600.073s`, panicking inside world.run's
+      # exec.Cmd.Run while a `bd` subprocess was working — slow, not hung,
+      # and nothing to do with the teardown failure that server mode
+      # caused. Linux runs the same tier in 144.547s.
+      #
+      # The tier is ~27 largely serial worlds, each a git clone plus an
+      # embedded `bd init` plus a run of subprocesses, so Windows's much
+      # higher process-spawn cost lands on it multiplied. 30m is set to be
+      # comfortably clear of that ceiling rather than as a measured
+      # budget: a third truncated run would tell us no more than the first
+      # two did, and the real Windows duration is still unknown. Once a
+      # run reports it, bring this down to something with a reason.
+      #
+      # Raising the ceiling is not the fix for a slow suite. Making the
+      # tier parallel is, and it is deliberately not bundled here.
       - name: Test
         env:
           SWARM_E2E_REQUIRE_TRACKER: ${{ matrix.os == 'windows-latest' && '1' || '' }}
-        run: go test ./...
+        run: go test -timeout 30m ./...
 
   # AC-SPEC-009.7's "produced by cross-compilation from a single source":
   # every platform in the release matrix is built here, on one Linux
