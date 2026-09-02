@@ -102,17 +102,17 @@ is what `FEAT-SWARM-RUN-007` specifies (`swarm finding harvest`), and no
 | branch | `claude/swarm-dispatch-blueprint-5gob2e`, PR #33 (open, not draft, head `36598cd`) |
 | range | `e9e36fa..36598cd` — 7 commits, 14 files, +1117/−35 |
 | queue | 7 admitted: 5 at scope, 2 admitted mid-run by explicit human instruction |
-| dispatches | 3 (`dev-bguq-1`, `dev-bguq-2`, `dev-bguq-3`), max parallelism 1 |
+| dispatches | 3 — `dev-bguq-1` (4 beads), `dev-bguq-2` (1), `dev-bguq-3` (2). Planned max parallelism 1; the seven commits land strictly in sequence, 15:47→16:47 |
 | circuit breaker | `consecutive_dispatch_failures: 0` — never advanced |
 | review | 1 pass of a budget of 2, by the DECLARED reviewer (`sf.toml` `[review] skill = "code-review"`) |
 | declared checks | 13: `format vet build test-go skills shared-refs strata-docs schemas corpus ref-links template-drift script-self-tests skills-strict` |
 | checks baseline | exit 0, everything passed |
-| collision edges | `.beads/plans/bguq.edges.jsonl` — 8 edges, one serial chain plus two tails |
+| collision edges | `.beads/plans/bguq.edges.jsonl` — 8 edges: a four-bead serial chain `4ca8 → j5ah → 74xc → n3tn`, `jed1` behind all four, `u9uh` behind `f9lq` |
 | concurrency cap | 20 (irrelevant: the collision graph held parallelism to 1) |
 | model lineup | **NOT RECORDED.** `manifest.models` and `manifest.effort` are both absent — see "What the run could NOT verify" and candidate C6 |
 
 `base_sha` is the **run's** start, not the PR's. `git merge-base origin/main HEAD`
-is `67be16f`, where PR #33 began; everything between `67be16f` and `e9e36fa`
+is `67be16f` (measured this session), where PR #33 began; everything between `67be16f` and `e9e36fa`
 belongs to the earlier completed run `agent-plugins-e6xt`. A review or a retro
 scoped to the merge-base would have read ~15,000 lines of another run's work as
 this one's.
@@ -322,8 +322,9 @@ coordinator error and whose retro's own harvest query does not work. Both of
 those *are* tooling defects. Neither was captured as one at the time — the
 first landed in an `amend:` comment on the epic, the second in a dispatch
 prompt, and neither surface is read by any routing step. The single `tooling`
-finding in the table is this retro's, recorded after the fact. That is candidate **C2**, and it is the same hole the invented
-`retro:process:` kind was reaching for on three earlier runs.
+finding in the table is this retro's, recorded after the fact. That is
+candidate **C2**, and it is the same hole the invented `retro:process:` kind
+was reaching for on three earlier runs.
 
 ## Validation
 
@@ -372,8 +373,11 @@ package timeout, not a scatter of cleanup errors:
 FAIL	github.com/brettcallaghan/agent-plugins/cli/swarm/e2e	600.094s
 ```
 
-and `jed1` added a **ninth** e2e fixture to that suite. Locally the same suite
-takes 167s; on Windows it is at its 600s ceiling. Candidate **C8** is to
+and `jed1` added a **ninth** e2e fixture to that suite —
+`ls cli/testdata/swarm-fixtures/ | wc -l` returns 9, of which
+`dispatch-concurrent-worktree` is this run's. Locally the same suite takes 167s
+(the run's own `checks_baseline` records `cli/swarm/e2e 167.114s`); on Windows
+it is at its 600s ceiling. Candidate **C8** is to
 escalate `baih` rather than to file anything new.
 
 ## Pushes
@@ -392,8 +396,9 @@ Push complete.
 EXIT=0
 ```
 
-So this run's 26 findings, 7 closures and the beads filed for it are on
-`refs/dolt/data`, not only in this container.
+So this run's findings, its seven closures and the beads filed for it are on
+`refs/dolt/data`, not only in this container. (That push was taken before this
+retro recorded its own three findings; a second push follows the record.)
 
 ## What the run could NOT verify
 
