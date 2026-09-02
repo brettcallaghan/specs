@@ -293,6 +293,21 @@ func acceptDispatch(
 		if errors.As(err, &stopped) {
 			return acceptStopped(result, stopped), nil
 		}
+		if merged.ran {
+			// The fold has landed and cannot be undone, so nothing after
+			// it may abandon the accept — the rule the post-fold resolve
+			// in [foldIn] already follows, applied to the whole settle
+			// half. A bare refusal returned here would discard every
+			// fact established so far, merged and merged_sha among them,
+			// and a caller could not tell that the fast-forward
+			// happened.
+			//
+			// merged.ran is the condition rather than err's kind: it is
+			// what says an irreversible write took place. Before the
+			// fold — the dry run — there is nothing to preserve and the
+			// refusal is answered bare, below.
+			return acceptDegraded(result, asRefusal(err), dispatchBranch, target), nil
+		}
 		return Result{}, err
 	}
 	result.Facts = append(result.Facts, settled.facts...)
@@ -326,6 +341,45 @@ func acceptStopped(result Result, stopped *acceptStop) Result {
 		result.Summary = stopped.refusal.Reason
 	} else {
 		result.Summary = result.Summary + "; " + stopped.refusal.Reason
+	}
+	return result
+}
+
+// acceptDegraded folds a refusal carrying no facts of its own into the
+// result so far, for the one condition under which discarding it is
+// unsafe: the fast-forward has already landed.
+//
+// It differs from [acceptStopped] in what it does with the resolution.
+// There the refusal is the whole verdict and names its own remedy; here
+// the result may already carry the fold's resolution, which describes a
+// write that happened and cannot be re-read from a result once it is
+// dropped — so the two are appended rather than substituted, the same
+// composition the settle half's own attention verdict takes.
+//
+// A settle-half refusal is unrepairable in place ([OutcomeStop]) and
+// carries no resolution of its own, so one is named here: the fold is not
+// undone, which makes re-accepting the dispatch after settling the named
+// condition the thing to do rather than a thing to avoid.
+func acceptDegraded(result Result, ref *Refusal, dispatchBranch, target string) Result {
+	result.Outcome = ref.Outcome
+
+	settle := ref.Resolution
+	if settle == "" {
+		settle = fmt.Sprintf(
+			"%s was already folded into %s and that is not undone, so only what stopped the settlement "+
+				"is left to put right; settle it and accept the dispatch again",
+			dispatchBranch, target)
+	}
+	if result.Resolution == "" {
+		result.Resolution = settle
+	} else {
+		result.Resolution += "; " + settle
+	}
+
+	if result.Summary == "" {
+		result.Summary = ref.Reason
+	} else {
+		result.Summary = result.Summary + "; " + ref.Reason
 	}
 	return result
 }

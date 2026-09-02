@@ -927,3 +927,158 @@ func TestBothHalvesNeedingAttentionKeepBothResolutions(t *testing.T) {
 		t.Errorf("the removal half's resolution is missing: %q", env.Resolution)
 	}
 }
+
+// The rule the post-fold resolve above states, applied to the WHOLE
+// settle half: once the fast-forward has landed, no failure after it may
+// abandon the accept. `git merge --ff-only` cannot be undone, so a
+// refusal raised anywhere in [settleDispatch] degrades the report — it
+// does not replace it with a bare refusal that carries no merged fact at
+// all, leaving a caller unable to tell the fold happened.
+//
+// The world: the fold succeeds and establishes its sha, and the ancestry
+// read that opens the settle half then fails outright. Exit 128 rather
+// than 1 is what makes it a failure instead of an answer — `Descends`
+// declares `Answers = []int{1}`, so 1 is "no" and anything else is a read
+// that never reached its verdict.
+//
+// Why the ancestry read and not the guard the defect was reported
+// against. [recheckDispatchBeads]' `invocationsRequired` on the beads
+// read raises the same kind of refusal — a plain *Refusal rather than an
+// *acceptStop — through the same return, but that one cannot be reached
+// from outside today: citation_test.go's header records the three
+// measured guards (BeadsFrom's refusal of a record that did not run,
+// [tracker.Descendants] hardcoding [plan.ModeExecute], and
+// [plan.Plan.Validate] refusing a step with no executable) that make
+// [tracker.Descendants] unable to answer successfully with records
+// nothing cites. The ancestry read reaches the identical composition and
+// IS reachable, so this test drives the mechanism rather than the one
+// entrance to it that is currently a defence.
+func TestASettleHalfRefusalAfterTheFoldStillReportsTheMerge(t *testing.T) {
+	recs := append(drainedQueue(), acceptManifest())
+	recs = append(recs, caseReads(0)...) // serialized
+	recs = append(recs, exectest.Recording{Argv: []string{"git", "merge", "--ff-only", acceptBranch}})
+	recs = append(recs, exectest.Recording{
+		Argv:   []string{"git", "rev-parse", "--verify", acceptTargetBr + "^{commit}"},
+		Stdout: []byte(acceptBranchSH + "\n"),
+	})
+	// The settle half's first read, and it does not answer.
+	recs = append(recs, exectest.Recording{
+		Argv:       []string{"git", "merge-base", "--is-ancestor", acceptBranch, acceptTargetBr},
+		Stderr:     []byte("fatal: Not a valid commit name " + acceptBranch + "\n"),
+		ExitStatus: 128,
+	})
+
+	fake := exectest.NewFake(recs...)
+	stdout, _, code := runAccept(t, fake,
+		"dispatch", "accept", "--run", acceptRun, "--dispatch", acceptAgent,
+		"--no-push", "--json", "--full-result")
+
+	if !ran(fake, "git", "merge", "--ff-only", acceptBranch) {
+		t.Fatalf("the fold never ran, so the scenario did not arise: %v", fake.Argvs())
+	}
+
+	env := envelopeOf(t, stdout)
+	merged, ok := factNamed(env, "merged")
+	if !ok {
+		t.Fatalf("the result carries no merged fact at all, so a caller cannot tell the fast-forward "+
+			"already landed and cannot be undone:\n%s", stdout)
+	}
+	if !merged.Established || merged.Value == nil || merged.Value.Flag == nil || !*merged.Value.Flag {
+		t.Errorf("merged = %v, want an established true — the fast-forward succeeded", merged.Value)
+	}
+
+	sha, ok := factNamed(env, "merged_sha")
+	if !ok {
+		t.Fatalf("merged_sha was dropped; the fold established it before the settle half failed:\n%s", stdout)
+	}
+	if !sha.Established || sha.Value == nil || sha.Value.Text == nil || *sha.Value.Text != acceptBranchSH {
+		t.Errorf("merged_sha = %v (established %v), want an established %s",
+			sha.Value, sha.Established, acceptBranchSH)
+	}
+
+	// The refusal is still reported as one — the accept is degraded, not
+	// papered over — and it names what could not be established.
+	if env.Outcome != swarmmodel.CommandOutcome(OutcomeStop) {
+		t.Errorf("outcome = %q, want %q: the settle half found a condition the caller cannot repair in place",
+			env.Outcome, OutcomeStop)
+	}
+	if code != int(StatusStop) {
+		t.Errorf("exit status = %d, want %d\n%s", code, StatusStop, stdout)
+	}
+	if !strings.Contains(env.Summary, "ancestor") {
+		t.Errorf("the summary does not name the read that failed: %q", env.Summary)
+	}
+	if !strings.Contains(env.Summary, "fast-forwarded into it") {
+		t.Errorf("the fold's summary was dropped: %q", env.Summary)
+	}
+	if strings.TrimSpace(env.Resolution) == "" {
+		t.Fatalf("the resolution is empty, so a caller holding a landed merge is told nothing to do:\n%s", stdout)
+	}
+	if !strings.Contains(env.Resolution, "accept the dispatch again") {
+		t.Errorf("the resolution does not say what to do with a fold that already landed: %q", env.Resolution)
+	}
+}
+
+// The first negative control for the test above: the same world with an
+// ancestry read that ANSWERS settles cleanly. So what that test asserts
+// is the degraded report on a settle-half refusal, not the merged facts
+// having become unconditional.
+func TestASettleHalfThatAnswersStillAcceptsCleanly(t *testing.T) {
+	recs := append(drainedQueue(), acceptManifest())
+	recs = append(recs, caseReads(0)...)
+	recs = append(recs, exectest.Recording{Argv: []string{"git", "merge", "--ff-only", acceptBranch}})
+	recs = append(recs, exectest.Recording{
+		Argv:   []string{"git", "rev-parse", "--verify", acceptTargetBr + "^{commit}"},
+		Stdout: []byte(acceptBranchSH + "\n"),
+	})
+	recs = append(recs, settleReads(cleanSettle())...)
+
+	stdout, _, code := runAccept(t, exectest.NewFake(recs...),
+		"dispatch", "accept", "--run", acceptRun, "--dispatch", acceptAgent,
+		"--no-push", "--json", "--full-result")
+	if code != int(StatusClear) {
+		t.Fatalf("exit status = %d, want %d\n%s", code, StatusClear, stdout)
+	}
+	if sha, ok := factNamed(envelopeOf(t, stdout), "merged_sha"); !ok || !sha.Established {
+		t.Errorf("merged_sha is missing or unestablished on a clean accept:\n%s", stdout)
+	}
+}
+
+// The second negative control, and the boundary the rule is drawn at:
+// BEFORE the fold has run, nothing irreversible has happened, so a
+// settle-half refusal still abandons the accept. A dry run refuses the
+// fast-forward and reaches the same ancestry read — which is a read, so
+// it still runs — and the failure is answered with a bare refusal.
+//
+// Without this, "degrade instead of abandoning" would have been widened
+// to a path where there is nothing to preserve, and a dry run would
+// report merged: false beside a refusal it never had to survive.
+func TestASettleHalfRefusalBeforeAnyFoldStillAbandonsTheAccept(t *testing.T) {
+	recs := append(drainedQueue(), acceptManifest())
+	recs = append(recs, caseReads(0)...)
+	recs = append(recs, exectest.Recording{
+		Argv:       []string{"git", "merge-base", "--is-ancestor", acceptBranch, acceptTargetBr},
+		Stderr:     []byte("fatal: Not a valid commit name " + acceptBranch + "\n"),
+		ExitStatus: 128,
+	})
+
+	fake := exectest.NewFake(recs...)
+	stdout, _, code := runAccept(t, fake,
+		"dispatch", "accept", "--run", acceptRun, "--dispatch", acceptAgent,
+		"--dry-run", "--json", "--full-result")
+
+	if ran(fake, "git", "merge", "--ff-only", acceptBranch) {
+		t.Fatalf("a dry run folded; the scenario needs a settle-half failure with nothing merged: %v", fake.Argvs())
+	}
+	if code != int(StatusStop) {
+		t.Fatalf("exit status = %d, want %d\n%s", code, StatusStop, stdout)
+	}
+	env := envelopeOf(t, stdout)
+	if _, ok := factNamed(env, "merged"); ok {
+		t.Errorf("a refusal raised before any fold carries facts of the accept; nothing irreversible "+
+			"happened, so it is answered bare:\n%s", stdout)
+	}
+	if !strings.Contains(env.Summary, "ancestor") {
+		t.Errorf("the refusal does not name the read that failed: %q", env.Summary)
+	}
+}

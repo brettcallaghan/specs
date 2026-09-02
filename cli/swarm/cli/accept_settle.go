@@ -431,8 +431,16 @@ func recheckDispatchBeads(
 		return s, records, RefuseUnrepairable("%s", err)
 	}
 	beads := dispatchBeads(beneath, dispatchID)
-	// The three other contributors to inv below are each appended under a
-	// nil guard, so none of them rescues an empty beadsInv.
+	// The guard is on the BEADS read, and not on the assembled inv
+	// below, because the two are different claims. This read is what
+	// establishes beads_checked and the per-bead half of
+	// acceptance_failures; inv's three other contributors cite the
+	// worktree, commit and ancestry reads, none of which establishes
+	// which beads the dispatch holds. So an inv made non-empty by one of
+	// those would carry a citation a reader could re-run and still not
+	// reproduce the answer beside it, which is the failure the citation
+	// rule exists to prevent — and refusing here is what keeps the beads
+	// read from being covered for by a read of something else.
 	beadsInv, err := invocationsRequired("the beads under "+req.Run, recs)
 	if err != nil {
 		return s, records, err
