@@ -374,13 +374,24 @@ func applyBreaker(ctx context.Context, deps status.Deps, req Request, report bre
 			// what the count stands at, and the projection goes in the
 			// reason where nothing can mistake it for a measurement.
 			if refused(writeReport, writeSteps) {
-				return breakerOutcome{
+				refusal := breakerOutcome{
 					Facts: []Fact{Unestablished("consecutive_dispatch_failures", fmt.Sprintf(
 						"the write was refused: %s. The count stands at %d and would have become %d "+
 							"(threshold %d)", refusalReason(writeReport, writeSteps), recorded, next, threshold),
 						from)},
 					Records: records,
-				}, nil
+				}
+				// The stop verdict rests on recorded, which the read
+				// above established, and never on next, which nothing
+				// wrote. A dry run may not INVENT a stop from a
+				// projection; it must not HIDE one the manifest already
+				// carries — that is the breaker failing open in the mode
+				// meant to be safe to rehearse.
+				if recorded >= threshold {
+					refusal.Stopped = true
+					refusal.Summary = stoppedSummary(recorded, threshold)
+				}
+				return refusal, nil
 			}
 
 			if _, _, derr := document(writeSteps, writeReport); derr != nil {
@@ -396,11 +407,19 @@ func applyBreaker(ctx context.Context, deps status.Deps, req Request, report bre
 	}
 	if next >= threshold {
 		outcome.Stopped = true
-		outcome.Summary = fmt.Sprintf(
-			"the run is stopped: %d consecutive dispatch(es) returned with no bead completed (threshold %d)",
-			next, threshold)
+		outcome.Summary = stoppedSummary(next, threshold)
 	}
 	return outcome, nil
+}
+
+// stoppedSummary is what the breaker says when the run is stopped, from
+// the count the verdict rests on — the value a write established, or the
+// recorded value when the write was refused. One function because the two
+// paths must not drift into two sentences.
+func stoppedSummary(count, threshold int) string {
+	return fmt.Sprintf(
+		"the run is stopped: %d consecutive dispatch(es) returned with no bead completed (threshold %d)",
+		count, threshold)
 }
 
 // breakerOutcome is what one pass of the circuit breaker established: the
@@ -418,8 +437,11 @@ type breakerOutcome struct {
 	// to a --full-result consumer rather than only to this function.
 	Records []plan.Record
 	// Stopped is whether the run is stopped, which is a statement about
-	// the count that WAS recorded. A refused write leaves it false: a run
-	// is not stopped by a number nothing wrote.
+	// the count that WAS recorded — never about the one a write would
+	// have set. A refused write therefore withholds only the PROJECTED
+	// advance: a run the manifest already records at the threshold is
+	// still reported stopped, while a run below it stays clear because
+	// the number that would have crossed it is a number nothing wrote.
 	Stopped bool
 	// Summary is what to say when Stopped, and empty otherwise.
 	Summary string

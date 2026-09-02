@@ -488,3 +488,120 @@ func TestADryRunOfReadyRecordsTheBreakerWriteAsRefused(t *testing.T) {
 		t.Errorf("the result does not report the write as refused:\n%s", out.String())
 	}
 }
+
+// A dry run may not INVENT a stop from a number nothing wrote, and it
+// must not HIDE one from a number something did. When the manifest
+// already records the count at the threshold, the read alone establishes
+// that the run is stopped — so the refused write withholds the projected
+// advance and nothing else.
+func TestADryRunReportsAStopTheRecordedCountAlreadyEstablishes(t *testing.T) {
+	fake := exectest.NewFake(
+		showRecording("run-1", `{"consecutive_dispatch_failures":3}`),
+		// Declared so an attempted write succeeds rather than failing as
+		// a missing recording, which would pass this test for the wrong
+		// reason.
+		updateRecording("run-1", `{"consecutive_dispatch_failures":4}`),
+	)
+
+	facts, stopped, summary, err := breakerPass(context.Background(), breakerDeps(fake),
+		Request{Run: "run-1", Mode: plan.ModeDryRun}, breakerReport{Given: true, Completed: 0}, 3)
+	if err != nil {
+		t.Fatalf("applyBreaker: %v", err)
+	}
+	if !stopped {
+		t.Errorf("stopped = false at a RECORDED count of 3 against a threshold of 3; " +
+			"the read established it and a refused write does not unestablish it")
+	}
+	if !strings.Contains(summary, "the run is stopped") {
+		t.Errorf("summary = %q, want it to say the run is stopped", summary)
+	}
+	// Phrased from the recorded count, never from the projection the
+	// refused write would have set.
+	if strings.Contains(summary, "4 consecutive") {
+		t.Errorf("summary = %q cites the projected 4; a refused write recorded nothing", summary)
+	}
+
+	if len(facts) != 1 {
+		t.Fatalf("applyBreaker reported %d fact(s), want 1", len(facts))
+	}
+	if facts[0].Established {
+		t.Errorf("the count is reported established at %v; a refused write leaves it unknown",
+			facts[0].Value)
+	}
+	if !strings.Contains(facts[0].Reason, "would have become 4") {
+		t.Errorf("the projection is not in the count's reason: %q", facts[0].Reason)
+	}
+
+	for _, argv := range fake.Argvs() {
+		if len(argv) >= 2 && argv[0] == "bd" && argv[1] == "update" {
+			t.Errorf("a dry run wrote: %v", argv)
+		}
+	}
+}
+
+// The regression guard for the test above: BELOW the threshold a refused
+// write still leaves the run clear, so what that test asserts is a stop
+// resting on the RECORDED count rather than the stop test having been
+// moved onto the projection.
+func TestADryRunBelowTheThresholdStaysClear(t *testing.T) {
+	fake := exectest.NewFake(
+		showRecording("run-1", `{"consecutive_dispatch_failures":2}`),
+		updateRecording("run-1", `{"consecutive_dispatch_failures":3}`),
+	)
+
+	_, stopped, summary, err := breakerPass(context.Background(), breakerDeps(fake),
+		Request{Run: "run-1", Mode: plan.ModeDryRun}, breakerReport{Given: true, Completed: 0}, 3)
+	if err != nil {
+		t.Fatalf("applyBreaker: %v", err)
+	}
+	if stopped {
+		t.Errorf("a dry run stopped the run from a recorded 2 against a threshold of 3 "+
+			"(summary %q); the 3 it would have written is a number nothing wrote", summary)
+	}
+}
+
+// The whole command, not the breaker alone: `--dry-run --completed 0` on
+// a run the manifest already records at the threshold exits 2 and says
+// so. The same dry run WITHOUT --completed already did; adding the flag
+// must not suppress the verdict.
+func TestReadyDryRunWithCompletedExitsStopAtARecordedThreshold(t *testing.T) {
+	fake := exectest.NewFake(
+		exectest.Recording{
+			Argv: []string{"bd", "ready", "--parent", "run-1", "--exclude-type", "epic",
+				"--exclude-label", "human", "--limit", "0", "--json"},
+			Stdout: []byte("[]"),
+		},
+		showRecording("run-1", `{"consecutive_dispatch_failures":3}`),
+		updateRecording("run-1", `{"consecutive_dispatch_failures":4}`),
+	)
+
+	var out, errOut bytes.Buffer
+	streams := &ioStreams{out: &out, err: &errOut}
+	root := newRootCmd(streams)
+	root.AddCommand(readyCmd(streams, readyDeps(fake)))
+
+	code := dispatch(root, streams, []string{"ready", "--run", "run-1", "--dry-run",
+		"--completed", "0", "--full-result", "--json"}, &out, &errOut)
+	if code != int(StatusStop) {
+		t.Fatalf("exit status = %d, want %d (the run is stopped)\n%s", code, StatusStop, out.String())
+	}
+	if !strings.Contains(out.String(), "the run is stopped") {
+		t.Errorf("the summary does not say the run is stopped:\n%s", out.String())
+	}
+}
+
+// The --agent arm reaches the same applyBreaker, so it inherits this —
+// asserted rather than assumed.
+func TestTheAgentArmReportsAStopTheRecordedCountEstablishesInADryRun(t *testing.T) {
+	_, stdout, code := runReadyAgent(t, []exectest.Recording{
+		showRecording(acceptRun, `{"consecutive_dispatch_failures":3}`),
+		updateRecording(acceptRun, `{"consecutive_dispatch_failures":4}`),
+	}, "ready", "--run", acceptRun, "--agent", acceptAgent, "--completed", "0",
+		"--dry-run", "--full-result", "--json")
+	if code != int(StatusStop) {
+		t.Fatalf("exit status = %d, want %d (the run is stopped)\n%s", code, StatusStop, stdout)
+	}
+	if !strings.Contains(stdout, "the run is stopped") {
+		t.Errorf("the --agent arm does not say the run is stopped:\n%s", stdout)
+	}
+}
