@@ -3,6 +3,7 @@
 package e2e
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
@@ -348,14 +350,38 @@ exit 0
 	w.mustRun(t, w.repo, "git", "remote", "add", decl.Name, remote)
 }
 
+// restoreStepTimeout bounds a single restore step. The slowest genuine
+// step measured on windows-latest is well under a minute, so this is
+// generous headroom rather than a tuning knob — its job is to name a
+// step that has stopped making progress instead of letting it consume
+// the whole package's budget.
+const restoreStepTimeout = 2 * time.Minute
+
 // mustRun runs a restore step and fails the test with what it said.
+//
+// The wait is bounded because an unbounded one loses the diagnosis: a
+// `bd init --server` that blocks forever surfaces only as `panic: test
+// timed out after 10m0s` with a stack in WaitForSingleObject, which
+// names neither the step nor the world. Measured on windows-latest at
+// 89e7e6b: exactly that, the package failing at 600.071s with this
+// call — harness_test.go's `bd init` — still waiting. CommandContext
+// also kills the child on expiry, so a step that hangs leaves one less
+// orphan behind than it used to.
 func (w world) mustRun(t *testing.T, dir, name string, args ...string) {
 	t.Helper()
 
-	cmd := exec.Command(name, args...)
+	ctx, cancel := context.WithTimeout(context.Background(), restoreStepTimeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, name, args...)
 	cmd.Dir = dir
 	cmd.Env = w.env()
-	if out, err := cmd.CombinedOutput(); err != nil {
+	out, err := cmd.CombinedOutput()
+	if ctx.Err() != nil {
+		t.Fatalf("restoring the fixture: %s %s made no progress in %s, so it was killed:\n%s",
+			name, strings.Join(args, " "), restoreStepTimeout, out)
+	}
+	if err != nil {
 		t.Fatalf("restoring the fixture: %s %s: %v\n%s", name, strings.Join(args, " "), err, out)
 	}
 }
