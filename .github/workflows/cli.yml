@@ -139,47 +139,33 @@ jobs:
           Expand-Archive -Path dolt.zip -DestinationPath .
           Add-Content -Path $env:GITHUB_PATH -Value "$PWD\dolt-windows-amd64\bin"
 
-      # Diagnostic, and deliberately non-fatal. cli.yml previously asserted
-      # that windows-latest "does not carry" a MinGW-w64 toolchain, and
-      # nobody had measured it. This step settles it in the run's own log
-      # whether or not the install below succeeds, so one CI round answers
-      # the question rather than two. Delete it once the answer is
-      # recorded in ADR-027.
-      - name: Report the C toolchain (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
-        continue-on-error: true
-        run: |
-          Write-Host "--- gcc on PATH? ---"
-          $gcc = Get-Command gcc -ErrorAction SilentlyContinue
-          if ($gcc) { Write-Host "FOUND: $($gcc.Source)"; & gcc --version }
-          else       { Write-Host "NOT FOUND on PATH" }
-          Write-Host "--- known MinGW locations ---"
-          foreach ($p in @("C:\mingw64\bin\gcc.exe",
-                           "C:\ProgramData\chocolatey\bin\gcc.exe",
-                           "C:\msys64\mingw64\bin\gcc.exe",
-                           "C:\Strawberry\c\bin\gcc.exe")) {
-            if (Test-Path $p) { Write-Host "EXISTS: $p" } else { Write-Host "absent: $p" }
-          }
-          Write-Host "--- go env ---"
-          go env CGO_ENABLED CC
-
       # CGO-enabled, so `bd` carries the embedded Dolt engine and the e2e
-      # harness needs no `--server`. The `-tags gms_pure_go` build tag is
-      # deliberately NOT passed: it selects beads' pure-Go engine, which is
-      # the thing being moved away from.
+      # harness needs no `--server`. Measured on bd built CGO-free:
+      # `bd init` exits 1 with "embedded Dolt requires a CGO build, but
+      # this bd binary was built with CGO_ENABLED=0" — the engine mode is
+      # chosen by CGO_ENABLED and by nothing else.
       #
-      # If this step fails with "cgo: C compiler not found", the runner
-      # carries no usable toolchain and the step above says which paths
-      # were checked — add a toolchain setup step (msys2/setup-msys2 or
-      # equivalent) before this one rather than reverting to server mode.
+      # `-tags gms_pure_go` selects a pure-Go REGEX, not a pure-Go storage
+      # engine, and the two are orthogonal: with the tag set, `go version
+      # -m bd` lists github.com/dlclark/regexp2 and no go-icu-regex, under
+      # CGO_ENABLED=1 and CGO_ENABLED=0 alike. Keeping it is what lets this
+      # step compile at all. Without it, CGO pulls in
+      # github.com/dolthub/go-icu-regex, whose cgo preamble includes
+      # <unicode/uregex.h>; the runner carries gcc but no ICU development
+      # headers, so the build dies there after nine minutes. The Linux
+      # install this repository's session hook performs uses the same
+      # combination — tag set, CGO on — and runs embedded.
+      #
+      # A toolchain step is NOT needed: windows-latest carries MinGW-w64
+      # gcc 15.2.0 at C:\mingw64\bin\gcc.exe, already on PATH, and
+      # `go env CC` resolves to it.
       - name: Install bd, CGO-enabled (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
         env:
           CGO_ENABLED: "1"
         run: |
-          go install github.com/steveyegge/beads/cmd/bd@latest
+          go install -tags gms_pure_go github.com/steveyegge/beads/cmd/bd@latest
           Add-Content -Path $env:GITHUB_PATH -Value "$(go env GOPATH)\bin"
 
       # The swarm CLI's end-to-end tier restores a fixture through `git`
