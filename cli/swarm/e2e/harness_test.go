@@ -221,6 +221,31 @@ func restore(t *testing.T, binary, fixture string) world {
 	head := w.mustCapture(t, w.repo, "git", "rev-parse", "HEAD")
 
 	w.mustRun(t, w.repo, "bd", initArgs...)
+
+	// Stop the tracker's server before the world's directory is removed.
+	// `bd init --server` (ADR-027's Windows path) auto-starts a `dolt
+	// sql-server` that outlives the command, and nothing else stops it.
+	// Windows cannot unlink a file a live process holds open, so the
+	// server keeps `.beads/dolt/.dolt/noms/journal.idx` open, t.TempDir()'s
+	// removal fails, and one orphan server per case accumulates until the
+	// suite passes its own 10m timeout. Measured on windows-latest: "The
+	// process cannot access the file because it is being used by another
+	// process" on four cases, then `panic: test timed out after 10m0s`,
+	// with 40 orphan `dolt` processes terminated at job cleanup. Linux and
+	// macOS unlink an open file happily, which is the whole reason only
+	// Windows failed and one Linux container could not have caught it.
+	//
+	// Registered AFTER t.TempDir() so LIFO runs this FIRST, and run on
+	// every platform rather than under a GOOS test, so the path Windows
+	// depends on is the path Linux exercises too. Best-effort: a world
+	// whose server already exited is not a test failure.
+	t.Cleanup(func() {
+		stop := exec.Command("bd", "dolt", "stop")
+		stop.Dir = w.repo
+		stop.Env = w.env()
+		_ = stop.Run()
+	})
+
 	w.mustRun(t, w.repo, "bd", "import", export)
 
 	// `bd init` COMMITS its own scaffolding onto whatever branch is
