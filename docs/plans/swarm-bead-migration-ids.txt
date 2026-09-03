@@ -1,0 +1,65 @@
+# The open beads that migrate to brettcallaghan/swarm.
+# Input to `bd delete --from-file` and to the export filter in
+# docs/plans/swarm-skill-migration.md section 3.8. Review before executing.
+# One id per line; text after the id is a comment for review only.
+
+agent-plugins-y63n         # P2 Skill issues harvested from .sf/outbox before it was deleted
+agent-plugins-y63n.1       # P1 No skill tells a coordinator to check before `bd create`, so it filed the same b
+agent-plugins-y63n.2       # P1 A bare `incident:` comment is harvested by nothing
+agent-plugins-y63n.3       # P2 `bb-status.sh bead` fails a bead that legitimately produced no commit
+agent-plugins-y63n.4       # P2 `bb-status.sh`'s human-queue check is repo-wide, not run-scoped
+agent-plugins-y63n.5       # P1 `bb-status.sh` renders a mistyped manifest key as plausible wrong output
+agent-plugins-y63n.6       # P1 The checks-baseline inlining rule does not scale past one agent
+agent-plugins-y63n.7       # P2 `git worktree remove` cannot remove a locked worktree, so the guard is lost
+agent-plugins-y63n.8       # P3 A coordinator turn can end with nothing in flight, so the run stops between cere
+agent-plugins-y63n.9       # P0 No dispatch tool is a hard blocker, not a degradation
+agent-plugins-y63n.10      # P2 The run manifest omits `models` and `effort`, so every issue's provenance is unf
+agent-plugins-y63n.11      # P2 An acceptance test is marked Ready without ever being run against the case that 
+agent-plugins-y63n.12      # P2 A batch's return line carries no findings count, so a silent agent is invisible 
+agent-plugins-y63n.13      # P1 `run-record.md` documents the manifest's shape but not how to write it
+agent-plugins-y63n.14      # P0 `sprint-review` files findings into the ready front the gate just refused
+agent-plugins-y63n.15      # P1 Severity cannot override the scope gate, so a run ships its own regression
+agent-plugins-y63n.16      # P2 A one-run checks baseline cannot tell a flaky check from a regression
+agent-plugins-y63n.17      # P3 Two runs, two coordinators, the same invented retro kind: the unrouted count is 
+agent-plugins-y63n.18      # P1 sprint-retro files a bead whose only evidence is a document path: 25 beads now c
+agent-plugins-y63n.23      # P2 A dispatch prompt names two different owned-file sets and nothing reconciles the
+agent-plugins-offx         # P1 Swarm capability CLI: replace prescribed command sequences with a tested action 
+agent-plugins-offx.2       # P1 FRD for the swarm capability CLI, derived from the audit
+agent-plugins-offx.3       # P2 Retire AGENTS.md's 'Tool claims are measured at the point of use' section once c
+agent-plugins-offx.4       # P2 Turn prose invariants into guards that exit non-zero
+agent-plugins-offx.6       # P2 CLI wraps the bd list --parent / bd ready --parent divergence
+agent-plugins-offx.7       # P3 Re-measure skill body sizes after migration; confirm the 20,000-byte cap is no l
+agent-plugins-offx.8       # P2 Decide: admit_review_findings defaults to false and has never been chosen by any
+agent-plugins-offx.9       # P2 Open question: should review be its own epic, or roll into TARGET?
+agent-plugins-offx.10      # P3 Open question: an agent manifest, per-agent prompt files, and whether prompts ca
+agent-plugins-offx.14      # P1 Scope the CLI as a thin capability layer over bd and git, inside existing harnes
+agent-plugins-offx.15      # P1 A one-shot recovery trigger stops watching after its first firing, so a run is u
+agent-plugins-offx.16      # P2 Decide the target epic's own assignee — the dispatch-policy roster has no row fo
+agent-plugins-offx.17      # P1 The manifest has no key for the circuit breaker's consecutive-failure count
+agent-plugins-offx.18      # P3 Decide whether a human-labelled child is exempt from the epic gate's assignee ch
+agent-plugins-offx.20      # P3 Confirm the CLI routes findings, rather than only harvesting them
+agent-plugins-offx.21      # P1 The circuit breaker misfires: 'not reached' beads count toward its three
+agent-plugins-hg9t         # P1 Simplify round 2: cut duplication and lean into skill delegation
+agent-plugins-hg9t.6       # P2 6. The ceremony chain is seven epics; four of them gate nothing
+agent-plugins-hg9t.7       # P2 7. Fold sprint-scope into the coordinator once the CLI can build the run shape
+agent-plugins-hg9t.8       # P2 8. Replace the bd event-hook stream and the monitor with a polling watch
+agent-plugins-hg9t.9       # P2 9. Turn the 28 measured claims into guards that exit non-zero
+agent-plugins-hg9t.10      # P3 10. Port bb-status.sh and pre-flight-check.sh into the CLI: 70KB of shell, two s
+agent-plugins-hg9t.12      # P1 Implement path 1: the coordinator creates every worktree
+agent-plugins-ia3y         # P1 Close the gaps the post-refactor audit found in the sprint skills
+agent-plugins-ia3y.3       # P3 Mechanize the recovery classification as bb-recover.sh
+agent-plugins-ia3y.4       # P2 The retro's recurrence signal has no mechanism
+agent-plugins-ia3y.6       # P3 Each skill should carry a manifest of the scripts it uses
+agent-plugins-gzcr.1       # P2 Rename bead-bonanza to run-swarm, and the four-tier run-* hierarchy with it
+agent-plugins-pg8s         # P1 The flat-target rule is justified by a property of bd ready --parent that does n
+agent-plugins-muto         # P1 A missing dispatch tool is a pre-flight blocker: roll into the rollout plan and 
+agent-plugins-h92f         # P2 Evaluate bd swarm validate as a plan-time cross-check on sprint-plan's partition
+agent-plugins-89xd         # P2 Nothing in the dispatch path arms the Stop ready-loop hook
+agent-plugins-bhl          # P2 Refine concurrent worktree dispatch from real runs
+agent-plugins-bpon         # P2 run-batch has no return classification for a bead that should not be done and is
+agent-plugins-b1gl         # P2 run-record.md's wave-table example numbers batches per wave, contradicting the r
+agent-plugins-hhdf         # P2 Five concepts are re-derived across 14 bead-bonanza documents with no check keep
+agent-plugins-o76b         # P2 Design: how a run assigns a decision to a human and manages its lifecycle
+agent-plugins-oyf          # P2 The sprint report's manifest does not record the session(s) the run executed in
+agent-plugins-akz          # P3 Measure the run-level ceremony overhead, and decide whether a small run should s
+agent-plugins-93yx         # P3 Remove run-batch's inline nine-kinds table once the CLI validates finding kinds
