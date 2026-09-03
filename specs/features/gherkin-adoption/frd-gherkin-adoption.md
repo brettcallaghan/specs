@@ -168,7 +168,7 @@ Feature: Admissible Gherkin Sources
     And the CLI requires no tag on them to say so
 ```
 
-*Note:* AC-GHK-001.2 requires a change to [[frd-spec-validation-cli]],
+*Note:* AC-GHK-001.2 requires a change to [[frd-spec-index]],
 whose AC-SPEC-001.6 admits only files ending in `.md` as corpus
 candidates. A `.feature` file is not a corpus member — it carries no
 frontmatter and is not a document — so what that criterion needs is a
@@ -647,7 +647,7 @@ Feature: Queries by Tag
 ```
 
 *Rationale:* AC-GHK-007.6 binds these queries to the warm-index
-behaviour [[frd-spec-validation-cli]] already specifies, rather than
+behaviour [[frd-spec-index]] already specifies, rather than
 restating a latency budget this feature does not own.
 
 ### FEAT-GHK-008: Local Change Detection
@@ -737,7 +737,7 @@ Feature: Publication
   constraints its requirements realize
 - [[adr-002]] — EARS, which continues to govern every normative
   statement that is not a feature or an acceptance criterion
-- [[frd-spec-validation-cli]] — the index, the finding record, the warm
+- [[frd-spec-index]] — the index, the finding record, the warm
   index these queries answer from, and AC-SPEC-001.6, whose `.md`-only
   corpus membership FEAT-GHK-001 leaves standing
 - [[frd-spec-reference-integrity]] — the reference extraction that

@@ -872,7 +872,7 @@ func TestCheckForReportsTheReferencesARenamedSlugBroke(t *testing.T) {
 // stubProfile of this test file's own, registered through the same
 // [corpus.Profile] extension point the command surface's real profile
 // implements — never a pairing added to that shipped profile, which
-// registers none by design (reference-integrity-blueprint.md's LIFE
+// registers none by design (feature-spec-reference-integrity.md's LIFE
 // section).
 
 // statusDocument renders a conforming document at the given status,
@@ -977,7 +977,7 @@ func TestCheckReportsALiveDocumentReferencingARetiredOneWithASuccessor(t *testin
 
 // AC: AC-SPECREF-002.6
 //
-// Not every retirement has a successor (reference-integrity-blueprint.md,
+// Not every retirement has a successor (feature-spec-reference-integrity.md,
 // LIFE): a retired target that declares none still raises the warning,
 // with an absent successor rather than one invented from nothing.
 func TestCheckReportsALiveDocumentReferencingARetiredOneWithNoSuccessor(t *testing.T) {
@@ -1025,7 +1025,7 @@ func TestCheckRaisesNoRetiredTargetFindingBetweenTwoLiveDocuments(t *testing.T) 
 
 // A retired document citing another retired one raises no finding: the
 // warning exists to tell a LIVE author what to cite instead, and the
-// referrer here is not one (reference-integrity-blueprint.md's LIFE
+// referrer here is not one (feature-spec-reference-integrity.md's LIFE
 // rationale for why every non-retired status is live).
 func TestCheckRaisesNoRetiredTargetFindingWhenTheReferringDocumentIsAlsoRetired(t *testing.T) {
 	repo := t.TempDir()

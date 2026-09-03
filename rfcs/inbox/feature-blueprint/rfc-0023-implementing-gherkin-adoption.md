@@ -485,7 +485,7 @@ without reading every document.
 
 **Backward compatibility.** P1, P3, P4, P5 and P6 add clauses a delta
 carries; every existing blueprint stays valid, and the four retired ones
-([[feature-spec-validation-cli]], [[feature-spec-reference-integrity]],
+([[feature-spec-index]], [[feature-spec-reference-integrity]],
 [[feature-spec-markdown-links]], [[feature-gherkin-adoption]]) are not
 revisited — a retired blueprint's job is done. The next blueprint to be
 authored, from [[frd-spec-structure-conformance]], acquires the clauses

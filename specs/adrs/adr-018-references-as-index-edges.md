@@ -32,7 +32,7 @@ generated per [[adr-016]]; today it carries `entries` and `exclusions`
 and nothing else. Two constraints bear on the shape. AC-SPEC-002.3 gives
 every entry a workspace identifier precisely so that indexes emitted by
 separate repositories merge into one graph, and `agent-plugins-dgn`
-raised — during review of [[frd-spec-validation-cli]], and explicitly as
+raised — during review of [[frd-spec-index]], and explicitly as
 architectural input for later — that references occurring inside
 document bodies behave like edges rather than like members of the
 objects they connect. Separately, [[container-spec-cli]] pins the index
@@ -100,7 +100,7 @@ is stored a second time.
 
 - [[frd-spec-reference-integrity]] — the requirements this shape serves,
   and the document that defers the shape here
-- [[frd-spec-validation-cli]] — AC-SPEC-002.2 and AC-SPEC-002.3, the
+- [[frd-spec-index]] — AC-SPEC-002.2 and AC-SPEC-002.3, the
   versioned schema and the workspace identifier this shape is chosen
   against
 - [[container-spec-cli]] — the additive-under-1.0 rule, and the Open

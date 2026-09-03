@@ -97,7 +97,7 @@ cli/testdata/cases/<case-name>/
 ```
 
 `manifest.json` holds the index FEAT-SPEC-002 of
-[[frd-spec-validation-cli]] defines. These standards use the file name
+[[frd-spec-index]] defines. These standards use the file name
 the artifact is written under; where this document says *manifest* of an
 expected artifact and *case manifest* of `case.toml`, the qualifier is
 load-bearing.
@@ -189,7 +189,7 @@ that produced it is the only change in view.
 Expected artifacts SHALL be byte-identical across Linux, macOS, and
 Windows for identical input.
 
-**Rationale:** FEAT-SPEC-009.7 of [[frd-spec-validation-cli]] requires the
+**Rationale:** FEAT-SPEC-009.7 of [[frd-spec-index]] requires the
 CLI to report the same findings in the same order on every platform.
 Snapshot artifacts are how that requirement is verified rather than
 asserted.
@@ -240,7 +240,7 @@ well as one nobody tested.
 A map from rule identifier to acceptance-criteria identifiers SHALL be
 maintained.
 
-**Rationale:** AC-SPEC-006.1 of [[frd-spec-validation-cli]] already
+**Rationale:** AC-SPEC-006.1 of [[frd-spec-index]] already
 requires every finding to carry a stable rule identifier, so this is one
 table rather than per-case metadata. It is what makes the cross-check
 below possible.
@@ -271,7 +271,7 @@ the citation obligation above.
 
 ## References
 
-- [[frd-spec-validation-cli]] — the acceptance criteria these standards
+- [[frd-spec-index]] — the acceptance criteria these standards
   make traceable
 - [[container-spec-cli]] — the container whose behavior snapshot cases
   verify

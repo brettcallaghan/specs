@@ -17,7 +17,7 @@ contracts_consumed: []
 ## Overview
 
 The Spec CLI is the single deployable artifact realizing this
-framework's specification tooling. [[frd-spec-validation-cli]] is the
+framework's specification tooling. [[frd-spec-index]] is the
 first of the feature requirements documents it serves, and this
 blueprint describes the container as a whole rather than that one
 feature. It walks a specification corpus, builds a
@@ -84,7 +84,7 @@ see Open Questions.
 **Spec CLI → Spec Corpus.** The CLI reads markdown documents and one
 configuration file, and writes nothing. Read-only operation is a
 property of this feature, not an implementation detail:
-[[frd-spec-validation-cli]] places document modification out of scope.
+[[frd-spec-index]] places document modification out of scope.
 `links` re-affirms rather than narrows this: its rewritten document goes
 only to standard output, and it creates, modifies and deletes no file
 (AC-SPECMD-005.3) — including the derived index cache the "Data" section
@@ -575,6 +575,6 @@ does not apply to a compiled binary.
 ## References
 
 - `c4-guide.md` — C4 mapping rules and diagram conventions
-- [[frd-spec-validation-cli]] — the requirements this container realizes
+- [[frd-spec-index]] — the requirements this container realizes
 - [[module-document-core]] — the general engine it composes
 - [[module-spec-profile]] — the framework vocabulary it composes

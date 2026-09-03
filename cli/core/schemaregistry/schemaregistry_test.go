@@ -365,7 +365,7 @@ func TestCheckSlugPatternReturnsAnErrorForAnInvalidPattern(t *testing.T) {
 // The extension point must not name a document type, because a
 // component that knows one type by name is no longer framework-agnostic
 // and an adopting repository with a different taxonomy cannot reuse it.
-// specs/architecture/module-document-core.md states this for every
+// specs/modules/document-core/module-document-core.md states this for every
 // package under cli/core; cli/core/corpus carries the identical guard
 // for its own source.
 func TestNoDocumentTypeInPackageSource(t *testing.T) {

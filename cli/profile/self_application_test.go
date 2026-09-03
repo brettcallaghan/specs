@@ -41,7 +41,7 @@ func repositoryRoot(t *testing.T) string {
 }
 
 // TestProfileSelfApplicationAgainstThisRepositorysCorpus is the profile
-// self-application gate specs/architecture/module-spec-profile.md names
+// self-application gate specs/modules/spec-profile/module-spec-profile.md names
 // as "the one that catches a registered schema drifting from the
 // templates it mirrors": it builds this framework's own spec-driven-dev
 // profile and runs Document Core's discovery and schema/slug-pattern
@@ -70,7 +70,7 @@ func repositoryRoot(t *testing.T) string {
 // appearing where this asserts none is exactly the drift this gate
 // exists to catch, and this test should fail rather than pass silently.
 //
-// agent-plugins-tff (spec-index-blueprint.md's `plan: agent-plugins-bge`
+// agent-plugins-tff (feature-spec-index.md's `plan: agent-plugins-bge`
 // tripped additionalProperties because FeatureBlueprint's schema did not
 // declare `plan`) was the one finding this test previously asserted
 // exactly. It is resolved: FeatureBlueprint now declares an optional

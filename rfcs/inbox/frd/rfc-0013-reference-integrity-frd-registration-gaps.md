@@ -55,7 +55,7 @@ keeping an FRD's citations true when the vocabulary beneath it moves.
 1. AC-SPECREF-002.6 requires a `warning` WHEN "a document at a status
    the profile treats as live references a document at `status:
    retired`", naming "its `superseded_by` value when it has one"
-   (`specs/features/reference-integrity/reference-integrity-frd.md`
+   (`specs/features/reference-integrity/frd-spec-reference-integrity.md`
    line 273). REQ-SPECREF-004 is the requirement that says what the
    configuration determines, and AC-SPECREF-004.1 scopes it to "which
    frontmatter properties are reference-bearing and which pairs of
@@ -118,7 +118,7 @@ keeping an FRD's citations true when the vocabulary beneath it moves.
 6. AC-SPECREF-002.4 required, unconditionally, that a document at
    `status: retired` declare a resolvable `superseded_by`. A scan of
    this corpus while authoring the LIFE delta found its only retired
-   document is [[feature-spec-validation-cli]] — a feature blueprint,
+   document is [[feature-spec-index]] — a feature blueprint,
    which the feature blueprint template retires when "the feature is
    merged and the Definition of Done is complete", not because anything
    replaced it. The criterion would have reported an `error` against
@@ -221,7 +221,7 @@ the documents whose requirements cite it.
 > feature blueprint is authored from them rather than from the schema.
 
 and fix the four sites in
-`specs/features/reference-integrity/reference-integrity-frd.md`: replace
+`specs/features/reference-integrity/frd-spec-reference-integrity.md`: replace
 the two `related` examples with a property the envelope still carries
 (`sources` for AC-SPECREF-001.7; a `contracts_consumed` value naming no
 member for AC-SPECREF-002.3), restate AC-SPECREF-004.1's example as
@@ -283,7 +283,7 @@ strands them too unless the sweep is written down.
 ## Adoption
 
 P1 and P2 are independent of each other and of P3; each touches only
-`specs/features/reference-integrity/reference-integrity-frd.md` except
+`specs/features/reference-integrity/frd-spec-reference-integrity.md` except
 for P3's rule, which also touches
 `specs/standards/document-relationship-standards.md`.
 

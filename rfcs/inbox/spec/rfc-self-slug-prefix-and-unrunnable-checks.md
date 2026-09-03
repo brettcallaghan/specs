@@ -66,7 +66,7 @@ the wikilink usage `SKILL.md:218` forbids.
    `` `^feature-[a-z0-9]+(-[a-z0-9]+)*$` `` for the `feature-blueprint`
    type — and its own comment records the conflict: "The registry assigns
    the `fb-` prefix, but this repository's one real feature blueprint
-   (`specs/features/spec-index/spec-index-blueprint.md`) is slugged
+   (`specs/features/spec-index/feature-spec-index.md`) is slugged
    `feature-spec-validation-cli`. The pattern here follows the document
    that exists, not the template that was not." The agent did not follow
    the template: it read the existing blueprint and the profile source

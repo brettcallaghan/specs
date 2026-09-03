@@ -2,10 +2,10 @@
 //
 // No test here carries an `AC:` citation, and that is deliberate rather
 // than an omission: no acceptance criterion in
-// specs/features/spec-index/spec-index-frd.md names Spans. The component
+// specs/features/spec-index/frd-spec-index.md names Spans. The component
 // is proven through the components that consume it — Frontmatter, the
 // Schema Registry and Corpus — and its own verification obligation comes
-// from the Change Guidance in specs/architecture/module-document-core.md,
+// from the Change Guidance in specs/modules/document-core/module-document-core.md,
 // which requires property tests over the delimiter scanner. Those live in
 // span_property_test.go.
 package span_test

@@ -1,8 +1,8 @@
 // Command tree wiring for the Spec CLI's command surface (index, check,
 // slug-exists, next-id, refs, links, feature), per FEAT-SPEC-011 of
-// specs/features/spec-index/spec-index-frd.md, the reference-integrity
+// specs/features/spec-index/frd-spec-index.md, the reference-integrity
 // blueprint's CMD delta, the gherkin-adoption blueprint's EMIT delta, and
-// the Command Surface component in specs/architecture/container-spec-cli.md.
+// the Command Surface component in specs/containers/spec-cli/container-spec-cli.md.
 //
 // Everything in this file is orchestration: it builds the cobra command
 // tree, converts flags into calls against cli/core/corpus,

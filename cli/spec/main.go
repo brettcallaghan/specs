@@ -5,7 +5,7 @@
 // This file holds nothing else. Every capability the binary offers —
 // argument parsing, configuration discovery, output rendering, exit
 // codes — lives in cli/cmd and the modules it composes, per the Command
-// Surface component in specs/architecture/container-spec-cli.md.
+// Surface component in specs/containers/spec-cli/container-spec-cli.md.
 //
 // It sits in cli/spec/ rather than at the module root because Go names
 // an installed binary after the directory holding its main package: from

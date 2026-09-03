@@ -48,7 +48,7 @@ skills. The `Rfc` model cannot record that fact; see finding 7 and P2.
 |-------|-------|
 | Origin project | agent-plugins (self) |
 | Phase executed | Groomed the spec-index feature blueprint into beads (epic `agent-plugins-bge`, 16 work orders) |
-| Documents exercised | `specs/features/spec-index/spec-index-blueprint.md`, `specs/features/spec-index/spec-index-frd.md`, `specs/architecture/{container-spec-cli,module-document-core,module-spec-profile}.md`, `specs/standards/testing-standards.md` |
+| Documents exercised | `specs/features/spec-index/feature-spec-index.md`, `specs/features/spec-index/frd-spec-index.md`, `specs/architecture/{container-spec-cli,module-document-core,module-spec-profile}.md`, `specs/standards/testing-standards.md` |
 | Documents produced | Epic `agent-plugins-bge` + 16 work-order beads; `rfcs/findings-capture.md` |
 | Skill(s) followed | `groom-feature-blueprint` v1.2, `groom-beads` v1.1, `retro-spec` v1.3.0 |
 | Templates / standards read | `blueprint-readiness-checklist.md` v0.5.0, `feature-blueprint-template.md` v1.3, `work-order-template.md` v1.2, `ac-traceability-standards.md` v0.2.0, `work-order-definition-of-ready.md` v1.1, `findings-capture-protocol.md` v0.2, `rfc-template.md` v1.1 |
@@ -165,7 +165,7 @@ established by `rfcs/inbox/retro-skill/rfc-self-retro-skill-withheld-model.md`.
 4. **The FRD does not carry the `(manual)` markers its own standards
    require.** The blueprint's AC Coverage table declares AC-SPEC-009.4,
    AC-SPEC-009.5 and AC-SPEC-009.6 verified at level `manual`, but
-   `specs/features/spec-index/spec-index-frd.md` lines 383-393 state
+   `specs/features/spec-index/frd-spec-index.md` lines 383-393 state
    those criteria with no marker appended.
    `specs/standards/testing-standards.md` lines 266-268 make the marker
    the sole exemption mechanism: "IF an acceptance criterion carries the
@@ -191,7 +191,7 @@ established by `rfcs/inbox/retro-skill/rfc-self-retro-skill-withheld-model.md`.
    (#Spans) delta appears in **no** row of the AC Coverage table, and FM
    (#Frontmatter) appears only as a participating delta, never a proving
    one. Nothing in the blueprint states how SP is verified, so grooming
-   derived it from `specs/architecture/module-document-core.md`'s Change
+   derived it from `specs/modules/document-core/module-document-core.md`'s Change
    Guidance ("A change to Spans additionally runs the property tests
    over the delimiter scanner") and wrote that reasoning into the work
    order by hand.
@@ -286,7 +286,7 @@ proposal relaxes.
 
 **Problem.** `specs/standards/testing-standards.md` lines 266-268 grant
 citation exemption only to a criterion carrying the `(manual)` marker,
-and `specs/features/spec-index/spec-index-frd.md` lines 383-393 state
+and `specs/features/spec-index/frd-spec-index.md` lines 383-393 state
 AC-SPEC-009.4, AC-SPEC-009.5 and AC-SPEC-009.6 without it, while the
 blueprint's AC Coverage table declares all three `manual` (finding 4).
 Two approved documents disagree, and only the FRD's author can resolve
@@ -295,7 +295,7 @@ produce the citation the standard demands.
 
 **Change.** Append the `(manual)` marker to the criterion text of
 AC-SPEC-009.4, AC-SPEC-009.5 and AC-SPEC-009.6 in
-`specs/features/spec-index/spec-index-frd.md`, in the format
+`specs/features/spec-index/frd-spec-index.md`, in the format
 `frd-template.md` defines. This records the verification level the
 blueprint already approved; it does not change what the criteria
 require. IF the intent was instead that these be automatically
@@ -318,7 +318,7 @@ distinguish a deliberate omission from a stale one — and readiness check
 listed. Grooming wired both anomalies into the final Definition-of-Done
 work order as notes rather than resolving them silently.
 
-**Change.** In `specs/features/spec-index/spec-index-blueprint.md`,
+**Change.** In `specs/features/spec-index/feature-spec-index.md`,
 classify `agent-plugins-55q` (a prerequisite decision for BUILD, or an
 explicit out-of-scope deferral), and either remove `agent-plugins-vg1`
 or note that it is JSONL-only. Add one line at the head of the section
@@ -338,16 +338,16 @@ blueprint says nothing about how it is verified (finding 6). That is a
 legitimate design — a foundational component proven through its
 consumers — but the reasoning lived only in the author's head. Grooming
 reconstructed it from a different document
-(`specs/architecture/module-document-core.md`'s Change Guidance) and
+(`specs/modules/document-core/module-document-core.md`'s Change Guidance) and
 wrote it into the work order, which is the guesswork the readiness gate
 exists to prevent. The gate does not catch it: check 4 requires every AC
 to appear in the table, not every delta.
 
-**Change.** In `specs/features/spec-index/spec-index-blueprint.md`, add
+**Change.** In `specs/features/spec-index/feature-spec-index.md`, add
 one sentence to the SP delta stating that it carries no acceptance
 criteria of its own and is verified through its consumers plus the
 property tests over the delimiter scanner that
-`specs/architecture/module-document-core.md` requires. Adopt the general
+`specs/modules/document-core/module-document-core.md` requires. Adopt the general
 rule for feature blueprints in this repository: WHERE a delta block is
 named in no AC Coverage row, the delta SHALL state its verification
 basis.
@@ -416,8 +416,8 @@ the interaction with P1: once P1 lands, `specs/` documents are validated
 too, so P2's regeneration must pass the widened gate.
 
 P3, P4 and P5 are independent of everything and of each other. Touch
-points: `specs/features/spec-index/spec-index-frd.md` (P3) and
-`specs/features/spec-index/spec-index-blueprint.md` (P4, P5). P3 should
+points: `specs/features/spec-index/frd-spec-index.md` (P3) and
+`specs/features/spec-index/feature-spec-index.md` (P4, P5). P3 should
 land before work order `agent-plugins-bge.13` (BUILD) is dispatched,
 since that item carries the contradiction as an open obligation; P4 and
 P5 should land before `agent-plugins-bge.16` runs the

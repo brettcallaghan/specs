@@ -24,7 +24,7 @@ plugin_version: "0.14.0"
 
 ## Summary
 
-Sixteen work orders implementing [[feature-spec-validation-cli]] shipped
+Sixteen work orders implementing [[feature-spec-index]] shipped
 the Spec CLI end to end. Aggregating the 53 findings its implementers
 recorded in flight produces two systemic classes, each with independent
 instances that no single item could see.
@@ -57,7 +57,7 @@ failure, and write down the constraints — pipeline, rename, determinism
 |-------|-------|
 | Origin project | agent-plugins (self) |
 | Phase executed | Implemented the 16 work orders of epic `agent-plugins-bge` (Spec Corpus Index and Core Conformance Checks), stages 1–3, plus 5 beads discovered mid-run |
-| Documents exercised | `specs/features/spec-index/spec-index-blueprint.md`, `specs/features/spec-index/spec-index-frd.md`, `specs/standards/testing-standards.md`, `specs/architecture/{module-document-core,module-spec-profile,container-spec-cli}.md`, `specs/contracts/contract-specs-configuration.md`, `schemas/README.md` |
+| Documents exercised | `specs/features/spec-index/feature-spec-index.md`, `specs/features/spec-index/frd-spec-index.md`, `specs/standards/testing-standards.md`, `specs/architecture/{module-document-core,module-spec-profile,container-spec-cli}.md`, `specs/contracts/contract-specs-configuration.md`, `schemas/README.md` |
 | Documents produced | `cli/` (11 Go packages, 11 snapshot cases), `schemas/{index,finding}.strata`, `.github/workflows/{cli,release}.yml`; blueprint retired |
 | Skill(s) followed | `bead-bonanza` v1.3, `retro-spec` v1.3.0 |
 | Templates / standards read | `testing-standards` v0.1, `rfc-template.md` v1.1, `findings-capture-protocol.md` (vendored as `rfcs/findings-capture.md`) |
@@ -534,7 +534,7 @@ policy, neither of which any document mentions. An item dispatched to
 (finding 14), and adding Windows to CI required a `.gitattributes` that
 nothing anticipated.
 
-**Change.** Add to `specs/architecture/module-document-core.md`, in the
+**Change.** Add to `specs/modules/document-core/module-document-core.md`, in the
 Corpus component:
 
 > Determinism has two preconditions outside the emitter. Input is

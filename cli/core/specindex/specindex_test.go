@@ -138,7 +138,7 @@ func TestSchemaDeclaresTheIndexRootShape(t *testing.T) {
 func TestIndexCarriesEachMembersPathAndFrontmatter(t *testing.T) {
 	index := specindex.New("agent-plugins")
 	index.Entries = append(index.Entries, specmodel.IndexEntry{
-		Path: "specs/architecture/module-document-core.md",
+		Path: "specs/modules/document-core/module-document-core.md",
 		Frontmatter: &specmodel.DocumentFrontmatter{
 			Title:       "Module Blueprint: Document Core",
 			Description: "The framework-agnostic engine.",
@@ -150,7 +150,7 @@ func TestIndexCarriesEachMembersPathAndFrontmatter(t *testing.T) {
 	})
 
 	entry := index.Entries[0]
-	if entry.Path != "specs/architecture/module-document-core.md" {
+	if entry.Path != "specs/modules/document-core/module-document-core.md" {
 		t.Errorf("Path = %q", entry.Path)
 	}
 	if entry.Frontmatter == nil {
@@ -358,7 +358,7 @@ func featureWith(id specmodel.FeatureId, criteria ...specmodel.Criterion) specmo
 		Id:           id,
 		Code:         "GHK",
 		DocumentSlug: specmodel.Slug("frd-gherkin-adoption"),
-		Path:         "specs/features/gherkin-adoption/gherkin-adoption-frd.md",
+		Path:         "specs/features/gherkin-adoption/frd-gherkin-adoption.md",
 		Name:         "Feature and Criterion Records",
 		Source:       specmodel.NewFeatureSourceFencedBlock(specmodel.FeatureSourceBlock{Block: span(400, 900)}),
 		Position:     span(420, 860),

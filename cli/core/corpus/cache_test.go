@@ -395,7 +395,7 @@ func TestAWarmIndexIsServedWithoutRewalkingTheCorpus(t *testing.T) {
 }
 
 // referenceEnvironmentEnv declares this machine to be the reference
-// environment [[frd-spec-validation-cli]]'s AC-SPEC-009.9 enforces the
+// environment [[frd-spec-index]]'s AC-SPEC-009.9 enforces the
 // FEAT-SPEC-009 latency targets in. Set it to any non-empty value there.
 //
 // Unset (the default) the targets are measured and reported, not

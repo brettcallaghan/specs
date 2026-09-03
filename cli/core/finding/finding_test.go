@@ -801,7 +801,7 @@ func TestTheReportDistinguishesPassedFromUnrequested(t *testing.T) {
 // reference — is still requested by a run that requests it, and reports
 // passed rather than not-requested: "the profile registers none" and
 // "the check did not run" are different facts
-// (reference-integrity-blueprint.md's LIFE section). The mechanism is
+// (feature-spec-reference-integrity.md's LIFE section). The mechanism is
 // [Report]'s own, already proven rule-agnostically by
 // TestTheReportDistinguishesPassedFromUnrequested; this applies it to
 // the three rule identifiers this delta adds, so the guarantee is

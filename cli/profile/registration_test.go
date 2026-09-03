@@ -32,7 +32,7 @@ import (
 // contract's two most load-bearing edges unchecked; the criterion is
 // "this framework's own reference-bearing properties", and this is the
 // complete set. That divergence is decided — see the PREG delta in
-// specs/features/reference-integrity/reference-integrity-blueprint.md.
+// specs/features/reference-integrity/feature-spec-reference-integrity.md.
 //
 // `sources` appears against `frd` and not against `rfc`, because
 // schemas/frontmatter.strata declares it on `Frd` alone. The set follows

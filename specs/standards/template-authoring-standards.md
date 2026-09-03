@@ -145,6 +145,30 @@ redundant and less descriptive.
 `feature-` is reserved for Gherkin `.feature` files and is NOT a spec
 slug prefix; feature blueprints use `fb-`.
 
+### Filenames
+
+A document's filename SHALL begin with its slug. A numbered type MAY
+append a descriptive tail after the slug; every other type's filename
+SHALL be exactly its slug plus `.md`.
+
+| Type | Filename | Why |
+|------|----------|-----|
+| Numbered (ADR) | `adr-007-promotion-at-a-seam.md` | the slug is terse so it survives a retitle; the tail is what makes a directory listing readable |
+| Every other type | `frd-checkout.md`, `container-ledger-api.md` | the slug is already descriptive, so a tail would only duplicate it |
+
+**Rationale:** the slug is the document's durable address and the
+filename is how a human finds it; a filename sharing no stem with the
+slug leaves neither derivable from the other. A directory that already
+names the unit does not license dropping the prefix from the file
+inside it — the prefix is what identifies the document in an editor
+tab, in grep output, and in a diff, where the directory is not visible.
+
+Renaming a file is cheap: no `[[slug]]` reference addresses a path, and
+the index is built by walking the spec root rather than by matching
+names. Renaming a *slug* is not — it breaks every inbound reference —
+so WHEN a filename and its slug disagree, prefer correcting the
+filename.
+
 ### Frontmatter Index
 
 A document system SHOULD maintain a machine-readable index of all

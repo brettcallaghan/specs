@@ -3,21 +3,21 @@ title: "Feature Blueprint: Spec Corpus Index and Core Conformance Checks"
 description: Builds the first working slice of the Spec CLI — the index
   model, the framework-agnostic engine packages, the spec-driven-dev
   profile, and the command surface — realizing the index, metadata
-  checks, queries and configuration of frd-spec-validation-cli
-slug: feature-spec-validation-cli
+  checks, queries and configuration of frd-spec-index
+slug: feature-spec-index
 type: feature-blueprint
 status: retired
 updated_at: 2026-08-06T00:00:00Z
 delivery: staged
 plan: agent-plugins-bge
-frd: frd-spec-validation-cli
+frd: frd-spec-index
 ---
 
 # Spec Corpus Index and Core Conformance Checks
 
 ## Overview
 
-**FRD:** [[frd-spec-validation-cli]]
+**FRD:** [[frd-spec-index]]
 
 Today the design is complete but almost none of the code exists: the
 Strata sources under `schemas/` generate the frontmatter, configuration
@@ -90,7 +90,7 @@ same way everywhere. This is the foundation the frontmatter parser and
 all later parsers build on.
 
 **Behavior:**
-- The component SHALL define the `Span` type of [[frd-spec-validation-cli]]:
+- The component SHALL define the `Span` type of [[frd-spec-index]]:
   a byte offset and byte length as the authoritative extent, plus start
   and end line and column for readability.
 - The component SHALL provide a delimiter scanner that locates the region
@@ -668,7 +668,7 @@ Verified 2026-08-05 on `agent-plugins-bge.16`.
       and cited from its tests per [[testing-standards]], **with two
       recorded exceptions**:
   - AC-SPEC-009.4, AC-SPEC-009.5 and AC-SPEC-009.6 carry the `(manual)`
-    marker in [[frd-spec-validation-cli]] and are exempt from citation.
+    marker in [[frd-spec-index]] and are exempt from citation.
   - AC-SPEC-006.7 is declared `integration` but is cited only from the
     unit test of `exitCodeFor`. No snapshot case can reach it: every
     finding constructor this sprint registers emits `error` or
@@ -698,7 +698,7 @@ Contracts and Tracker Reconciliation, not a plannability gap.
 
 - `c4-guide.md` — the C4 mapping rules and `#`-reference conventions the
   delta blocks are written against
-- [[frd-spec-validation-cli]] — the requirements this blueprint realizes
+- [[frd-spec-index]] — the requirements this blueprint realizes
 - [[container-spec-cli]], [[module-document-core]], [[module-spec-profile]]
   — the owning blueprints the deltas fold into
 - [[contract-specs-configuration]] — the configuration surface CFG and

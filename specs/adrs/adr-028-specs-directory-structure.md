@@ -3,13 +3,13 @@ title: "ADR-028: Default Directory Structure for the Spec Corpus"
 description: The spec root mirrors the C4 containment hierarchy only where the containment edge has no child-side declaration; everything else is a flat top-level directory
 slug: adr-028
 type: adr
-status: draft
-updated_at: 2026-08-29T00:00:00Z
+status: active
+updated_at: 2026-09-03T00:00:00Z
 ---
 
 # ADR-028: Default Directory Structure for the Spec Corpus
 
-**Status:** draft  
+**Status:** active  
 **Date:** 2026-08-29
 
 ## Context

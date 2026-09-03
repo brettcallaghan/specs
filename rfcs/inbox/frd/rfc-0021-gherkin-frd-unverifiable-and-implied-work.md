@@ -58,7 +58,7 @@ verifier should search for the quoted text rather than trust an offset.
 
 1. **AC-GHK-001.6 could not be assigned a verification level, because
    it describes no behavior of the CLI.** It reads, at
-   `specs/features/gherkin-adoption/gherkin-adoption-frd.md:150-154`:
+   `specs/features/gherkin-adoption/frd-gherkin-adoption.md:150-154`:
 
    > `@AC-GHK-001.6`
    > `Scenario: A standalone feature file sits with the documents of its feature`
@@ -113,11 +113,11 @@ verifier should search for the quoted text rather than trust an offset.
 
 5. **A note asserts an obligation on another FRD that the design does
    not discharge, and nothing tracks it.** At line 164: "`*Note:*
-   AC-GHK-001.2 requires a change to [[frd-spec-validation-cli]]`",
+   AC-GHK-001.2 requires a change to [[frd-spec-index]]`",
    continuing that what AC-SPEC-001.6 "needs is a second discovery pass
    for feature sources, not an exception to corpus membership". The
    blueprint puts that discovery pass in this feature's own DISC delta
-   and changes [[frd-spec-validation-cli]] in no way. The note and the
+   and changes [[frd-spec-index]] in no way. The note and the
    design disagree, and the blueprint author resolved the disagreement
    silently in the design's favour.
 
@@ -146,7 +146,7 @@ does not exist.
 
 ### P2 — Settle whether a verification level is optional or warned about
 
-**Problem.** `gherkin-adoption-frd.md:577` makes an absent level a
+**Problem.** `frd-gherkin-adoption.md:577` makes an absent level a
 `warning`; `gherkin-guide.md:132` calls the tag `optional`. Both are
 current, and the FRD would raise one warning per criterion against
 itself on the day the check ships.
@@ -194,13 +194,13 @@ proposes becomes checkable on this feature.
 ### P4 — Resolve the note that claims another FRD must change
 
 **Problem.** Line 164 states "`AC-GHK-001.2 requires a change to
-[[frd-spec-validation-cli]]`" and the blueprint changes that document
+[[frd-spec-index]]`" and the blueprint changes that document
 in no way. One of the two is wrong, and the FRD gives a reader no way
 to tell which.
 
 **Change.** Replace the note's first sentence with the conclusion its
 own remaining sentences reach: feature-source discovery is wholly this
-feature's, [[frd-spec-validation-cli]] is untouched, and AC-SPEC-001.6
+feature's, [[frd-spec-index]] is untouched, and AC-SPEC-001.6
 stands because a `.feature` file was never a corpus candidate. IF a
 change to that FRD is in fact intended, THEN say which criterion it
 gains and file the bead.
@@ -238,7 +238,7 @@ gains and file the bead.
   whether ordering is in scope or only gaps are.
 - **The 13 compound `SHALL … and SHALL …` bullets the blueprint's
   readiness check flagged.** These were written in the house style
-  `spec-index-blueprint.md` already carries six of, so either the
+  `feature-spec-index.md` already carries six of, so either the
   practice or `document-readiness-checklist.md` check 5 is wrong. That
   is a question about the framework's guidance, not about this
   project's FRD; it is routed to `retro-skill` rather than proposed

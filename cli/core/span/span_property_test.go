@@ -1,6 +1,6 @@
 // Property tests over the delimiter scanner.
 //
-// specs/architecture/module-document-core.md names this the gate for any
+// specs/modules/document-core/module-document-core.md names this the gate for any
 // change to Spans: it is "the highest-risk component because every other
 // position derives from it", so the obligation is properties that hold
 // over generated inputs rather than a handful of examples.

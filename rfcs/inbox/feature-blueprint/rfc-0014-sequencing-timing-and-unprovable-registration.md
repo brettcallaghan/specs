@@ -57,7 +57,7 @@ about a *document* misuses one property.
 
 1. Deriving the dependency graph, the groomer stopped at this
    Sequencing Constraint
-   (`specs/features/reference-integrity/reference-integrity-blueprint.md`
+   (`specs/features/reference-integrity/feature-spec-reference-integrity.md`
    lines 592–594):
 
    > - The PREG delta SHALL land before LIFE, whose every check is
@@ -328,7 +328,7 @@ why the mismatch went unnoticed until now.
 
 P1, P2 and P3 are independent of each other and of RFC-0013. P1 and P2
 touch only
-`specs/features/reference-integrity/reference-integrity-blueprint.md`;
+`specs/features/reference-integrity/feature-spec-reference-integrity.md`;
 P3 touches `schemas/frontmatter.strata` and adds one frontmatter line
 to each existing RFC.
 

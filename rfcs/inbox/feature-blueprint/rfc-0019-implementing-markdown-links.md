@@ -51,7 +51,7 @@ check` does not resolve.
 |-------|-------|
 | Origin project | agent-plugins |
 | Phase executed | Implemented the six work orders of `agent-plugins-ia5` (FND, TGT, MDL, MAP, CMD, DOD) |
-| Documents exercised | [[frd-spec-markdown-links]]; `specs/features/markdown-links/markdown-links-blueprint.md`; [[module-document-core]], [[container-spec-cli]]; [[testing-standards]], [[ac-traceability-standards]], [[frontmatter-standards]], [[cross-document-references]]; [[adr-015]], [[adr-018]]; [[frd-spec-reference-integrity]] |
+| Documents exercised | [[frd-spec-markdown-links]]; `specs/features/markdown-links/feature-spec-markdown-links.md`; [[module-document-core]], [[container-spec-cli]]; [[testing-standards]], [[ac-traceability-standards]], [[frontmatter-standards]], [[cross-document-references]]; [[adr-015]], [[adr-018]]; [[frd-spec-reference-integrity]] |
 | Documents produced | The five deltas' folds into the two architecture blueprints; the blueprint's retirement; this RFC |
 | Skill(s) followed | bead-bonanza v1.5; retro-spec v1.5.0 |
 | Templates / standards read | feature-blueprint-template v1.4; frd-template v1.2; work-order-template v1.5; rfc-template v1.3; `testing-standards.md` v0.1; `ac-traceability-standards.md` v0.3.0; `frontmatter-standards.md` v0.2; `cross-document-references.md` v0.3 |
@@ -75,7 +75,7 @@ implementer's.
    CMD delta states "IF the named document cannot be read, THEN the
    `links` subcommand SHALL report an error finding and write no
    rewritten document"
-   (`specs/features/markdown-links/markdown-links-blueprint.md`, CMD
+   (`specs/features/markdown-links/feature-spec-markdown-links.md`, CMD
    Behavior) — the one bullet in that list carrying no AC in
    parentheses. [[frd-spec-markdown-links]] gives the analogous link-map
    path two criteria, AC-SPECMD-005.8 ("IF the link map cannot be read,
@@ -105,8 +105,8 @@ implementer's.
 3. **Five commits edited two durable architecture blueprints without
    moving either one's `updated_at`.** `82d46f8`, `56ec2bf`, `daa7f3c`,
    `59d8c05` and `b008ff5` all touch
-   `specs/architecture/module-document-core.md` and/or
-   `specs/architecture/container-spec-cli.md`. The former still declares
+   `specs/modules/document-core/module-document-core.md` and/or
+   `specs/containers/spec-cli/container-spec-cli.md`. The former still declares
    `updated_at: 2026-08-09T00:00:00Z` and `version: "0.3"`; the latter
    `updated_at: 2026-08-12T00:00:00Z`. [[frontmatter-standards]] defines
    the property once, in a table — "| `updated_at` | datetime | Last
@@ -383,8 +383,8 @@ Independent of P1–P4.
 ## Adoption
 
 P1 through P5 are independently adoptable and touch disjoint files: P1
-`specs/features/markdown-links/markdown-links-frd.md` and one case
-manifest; P2 `specs/architecture/container-spec-cli.md`; P3
+`specs/features/markdown-links/frd-spec-markdown-links.md` and one case
+manifest; P2 `specs/containers/spec-cli/container-spec-cli.md`; P3
 `specs/standards/frontmatter-standards.md`; P4
 `specs/standards/cross-document-references.md`; P5
 `specs/standards/testing-standards.md` and `schemas/README.md`.

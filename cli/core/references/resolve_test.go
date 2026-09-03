@@ -81,7 +81,7 @@ func TestASlugResolvesComparedLowercased(t *testing.T) {
 // AC: AC-SPECREF-002.2
 func TestAnAnchoredReferenceResolvesOnItsSlugAlone(t *testing.T) {
 	index := indexOf([]specmodel.IndexEntry{
-		member("specs/architecture/container-spec-cli.md", "container-spec-cli"),
+		member("specs/containers/spec-cli/container-spec-cli.md", "container-spec-cli"),
 	})
 
 	anchor := "Element Registry"
@@ -93,7 +93,7 @@ func TestAnAnchoredReferenceResolvesOnItsSlugAlone(t *testing.T) {
 	}}
 	references.Resolve(refs, index)
 
-	if got := targetOf(t, refs[0].Resolution); got != "specs/architecture/container-spec-cli.md" {
+	if got := targetOf(t, refs[0].Resolution); got != "specs/containers/spec-cli/container-spec-cli.md" {
 		t.Errorf("resolved to %q, want the document declaring the slug half", got)
 	}
 	if refs[0].Anchor == nil || *refs[0].Anchor != anchor {

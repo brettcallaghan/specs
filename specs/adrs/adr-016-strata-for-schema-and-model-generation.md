@@ -17,7 +17,7 @@ updated_at: 2026-08-01T00:00:00Z
 
 ## Context
 
-The Spec CLI described by [[frd-spec-validation-cli]] needs the same data
+The Spec CLI described by [[frd-spec-index]] needs the same data
 shapes in three forms at once: **JSON Schema** to validate document
 frontmatter and `specs.toml` ([[contract-specs-configuration]]),
 **Go structs** for the CLI and its modules ([[adr-015]]), and
@@ -40,7 +40,7 @@ the one that eliminates most candidates:
 - **The toolchain must stay thin and reachable.** The repository runs on
   bash, `python3` and (per [[adr-015]]) Go. Adopting a tool that drags in
   a second language runtime is a real cost, and
-  [[frd-spec-validation-cli]] AC-SPEC-009.5 rules out fetching executable
+  [[frd-spec-index]] AC-SPEC-009.5 rules out fetching executable
   content from the network at install time.
 
 **A conflict of interest applies to this decision and is recorded here
@@ -139,7 +139,7 @@ repository remains buildable and correct if Strata is removed.
 
 - [[adr-015]] — Go as the CLI's implementation language, which fixes the
   Go-struct requirement this decision serves
-- [[frd-spec-validation-cli]] — the feature these models exist for;
+- [[frd-spec-index]] — the feature these models exist for;
   AC-SPEC-009.5 constrains install-time network access
 - [[contract-specs-configuration]] — the `specs.toml` surface modelled in
   `schemas/config.strata`
