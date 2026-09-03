@@ -6,7 +6,7 @@
 
 **Agency for the agents.**
 
-A Claude Code plugin — six skills, a document taxonomy, and a CLI — that
+A Claude Code plugin — five skills, a document taxonomy, and a CLI — that
 takes a feature from a written requirement to merged code with agents
 doing the work and humans reviewing at two checkpoints.
 
@@ -54,13 +54,19 @@ flowchart LR
     B --> C["/spec<br/>Feature Blueprint"]
     C --> D{{"Engineer<br/>review"}}
     D --> E["/groom-feature-blueprint<br/>→ work orders"]
-    E --> F["/bead-bonanza<br/>→ implementation"]
+    E --> F["swarm<br/>→ implementation"]
     F --> G{{"PR<br/>review"}}
 
     style B fill:#fde68a,stroke:#b45309,color:#1c1917
     style D fill:#fde68a,stroke:#b45309,color:#1c1917
     style G fill:#fde68a,stroke:#b45309,color:#1c1917
+    style F stroke-dasharray: 4 4
 ```
+
+The implementation step is a **separate plugin in a separate repository**:
+[brettcallaghan/swarm](https://github.com/brettcallaghan/swarm) ships
+`bead-bonanza` and its sprint subprocesses. It depends on this plugin — its
+`sprint-plan` invokes `groom-beads` — and nothing here depends on it.
 
 Two review checkpoints before the PR: the **FRD**, where Product asks
 whether this is the right feature, and the **Feature Blueprint**, where
@@ -188,7 +194,6 @@ references. Making it an explicit frontmatter property is planned.
 | **`spec`** | Authors every document type above from the framework's templates, in [EARS](https://alistairmavin.com/ears/) syntax and the C4 model. Picks the right type for what you're describing and refuses to invent new ones. Runs readiness checklists before anything is handed to a reviewer. |
 | **`groom-feature-blueprint`** | The boundary between the human specification loop and autonomous execution. Gates on an approved blueprint with no open questions, then decomposes its deltas into a graph of work orders carrying AC coverage and a definition of done. A quality firewall: a blueprint it can't plan mechanically gets sent back, not guessed at. |
 | **`groom-beads`** | The Definition of Ready engine for the beads backend. Materializes work orders as beads, wires the dependency graph, assigns each a capability tier, validates the result, and previews execution waves. The north star: a fresh sub-agent with zero context can open `bd show <id>` and finish the job without asking anyone anything. |
-| **`bead-bonanza`** | Delivers a sprint's worth of work in one session, with as little interruption as it can manage. It triages the queue, gates every bead for readiness (grooming the under-specified ones, bouncing what can't be saved), and surfaces every decision up front — so once the run starts it doesn't come back to ask. Then it dispatches each bead via the cheapest viable mode — doc fast lane, shared-surface batch, worktree parallel, or sequential — landing each in a single commit. |
 | **`retro-spec`** | Retrospective on the *documents* a completed phase consumed. A spec's quality is only observable through its consumers, so this runs after a downstream phase has exercised it, and argues from that evidence into improvement RFCs for your own specs. |
 | **`retro-skill`** | Retrospective on the *skill* an agent just ran. Cites the exact instruction that misled, names the script that failed, records the model that ran it — and produces an RFC against the skill itself. This is how the framework improves. |
 
@@ -214,8 +219,9 @@ Blueprint for it. An Engineer reviews and approves it.
 blueprint into specific work orders — beads, if you use them —
 specifying how agents should build the feature.
 
-**5. Execute.** Start a fresh session and run `/bead-bonanza` to work
-through the epic. Review the PR.
+**5. Execute.** Install the
+[swarm](https://github.com/brettcallaghan/swarm) plugin, start a fresh
+session and run `/bead-bonanza` to work through the epic. Review the PR.
 
 **6. Retro.** When a phase struggled, run `/retro-spec` on the documents
 it consumed, or `/retro-skill` on the skill that guided it. The friction
@@ -333,7 +339,7 @@ trust.
 
 | Path | Contents |
 |:---|:---|
-| `plugin/skills/` | The six skills, each with its templates, references, and scripts |
+| `plugin/skills/` | The five skills, each with its templates, references, and scripts |
 | `specs/` | This repository's own specs — the framework applied to itself |
 | `cli/` | The `spec` CLI (Go) |
 | `schemas/` | [Strata](https://github.com/strata-lang/strata) schema sources for frontmatter, findings, the index, and the profile |

@@ -1,15 +1,7 @@
 name: cli
 
-# The Go gates for the binaries the `cli` module ships — `spec` and
-# `swarm` — and the portability evidence for REQ-SPEC-009 that only a
-# real matrix can produce.
-#
-# Both binaries live in one module on purpose (ADR-023), so every job
-# below covers both: `go test ./...` and `go build ./...` reach them
-# without naming either, and the two jobs that DO name a package build
-# each one explicitly. A leg that silently kept compiling only `./spec`
-# would leave the platform guarantee unproven for `swarm` while this
-# workflow stayed green.
+# The Go gates for the `spec` binary the `cli` module ships, and the
+# portability evidence for REQ-SPEC-009 that only a real matrix can produce.
 #
 # Why this is a second workflow rather than more jobs in checks.yml: that
 # one is a single ubuntu runner over the docs corpus and needs no
@@ -106,63 +98,10 @@ jobs:
       - name: Build
         run: go build ./...
 
-      # ADR-027: Windows runs the tracker-dependent end-to-end cases
-      # against the CGO-free, server-mode `bd` install rather than the
-      # embedded engine the other two legs use — it needs no MinGW-w64
-      # toolchain on the runner, which windows-latest does not carry.
-      #
-      # `dolt` is downloaded directly rather than through a package
-      # manager: neither winget nor chocolatey publish it on this runner
-      # image, and `go install`ing github.com/dolthub/dolt/go/cmd/dolt
-      # resolves a Go-module tag frozen at v0.40.4 (2022), not a current
-      # release — verified against proxy.golang.org's @latest for that
-      # module. The release asset URL below was verified reachable
-      # (200, redirecting to a real v2.3.1 asset).
-      - name: Install dolt (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
-        run: |
-          Invoke-WebRequest -Uri "https://github.com/dolthub/dolt/releases/latest/download/dolt-windows-amd64.zip" -OutFile dolt.zip
-          Expand-Archive -Path dolt.zip -DestinationPath .
-          Add-Content -Path $env:GITHUB_PATH -Value "$PWD\dolt-windows-amd64\bin"
-
-      # `-tags gms_pure_go` is what both of beads' own installers
-      # (install.sh's CGO_ENABLED=0 fallback, and install.ps1's only
-      # path) pass; CGO_ENABLED=0 is set explicitly here rather than left
-      # to "no compiler found", so the build does not depend on exactly
-      # which toolchains this runner image happens to carry.
-      - name: Install bd, CGO-free (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
-        env:
-          CGO_ENABLED: "0"
-        run: |
-          go install -tags gms_pure_go github.com/steveyegge/beads/cmd/bd@latest
-          Add-Content -Path $env:GITHUB_PATH -Value "$(go env GOPATH)\bin"
-
-      # The swarm CLI's end-to-end tier restores a fixture through `git`
-      # and `bd`. Where those are absent it skips with the reason, which
-      # keeps the suite green on a machine that has no tracker — and
-      # would also keep it green on a runner that was SUPPOSED to have
-      # one, which is the failure mode that matters.
-      #
-      # SWARM_E2E_REQUIRE_TRACKER is how a platform declares "the tools
-      # are present here": where it is set, a missing tool fails instead
-      # of skipping. Windows sets it because it now installs `bd` above;
-      # macOS and Linux do not yet, so their platform guarantee for the
-      # commands that need a tracker still rests on the unit tier plus
-      # the cross-compile, exactly as ADR-027 says for the legs that
-      # have not installed one.
-      #
-      # `bd init --server` (cli/swarm/e2e/harness_test.go's restore(),
-      # which the server-mode install needs on Windows) auto-starts and
-      # manages its own `dolt sql-server` when it finds none already
-      # listening on the port it tries — ADR-027 marked this unmeasured;
-      # see restore()'s own comment for what settled it. No server is
-      # started by this workflow, and none needs to be.
+      # Go's default 10m per test binary is enough here. The 30m ceiling
+      # this step used to carry existed for the swarm CLI's end-to-end
+      # tier, which is now in brettcallaghan/swarm.
       - name: Test
-        env:
-          SWARM_E2E_REQUIRE_TRACKER: ${{ matrix.os == 'windows-latest' && '1' || '' }}
         run: go test ./...
 
   # Statement coverage across all three test layers, and the gate that
@@ -251,27 +190,15 @@ jobs:
           do
             goos="${target%/*}"
             goarch="${target#*/}"
-            # Every binary the module ships, not just the first one: the
-            # release workflow builds this same set, and a target that
-            # stops cross-compiling for either has to fail here rather
-            # than on the release tag.
-            for pkg in ./spec ./swarm
-            do
-              echo "==> $goos/$goarch $pkg"
-              GOOS="$goos" GOARCH="$goarch" \
-                go build -trimpath -ldflags="-s -w" -o /dev/null "$pkg"
-            done
+            echo "==> $goos/$goarch"
+            GOOS="$goos" GOARCH="$goarch" \
+              go build -trimpath -ldflags="-s -w" -o /dev/null ./spec
           done
 
-  # AC-SPEC-009.4's worked example, run rather than asserted: each binary
+  # AC-SPEC-009.4's worked example, run rather than asserted: the binary
   # is executed in an image holding a shell, busybox's coreutils and
   # nothing else — no Go toolchain, no libc beyond musl, no package
   # manager. A binary that acquired a dynamic dependency fails here.
-  #
-  # `swarm` is held to the same bar because specs/architecture/
-  # container-swarm-cli.md states it as a property of that container:
-  # "its only runtime requirements are bd and git on PATH; it needs no
-  # runtime, interpreter or package manager of its own".
   no-runtime:
     name: runs with no language runtime installed
     runs-on: ubuntu-latest
@@ -284,7 +211,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: cli/go.sum
 
-      - name: Build the static linux/amd64 binaries
+      - name: Build the static linux/amd64 binary
         working-directory: cli
         env:
           CGO_ENABLED: "0"
@@ -293,27 +220,23 @@ jobs:
         run: |
           set -euo pipefail
           go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/spec" ./spec
-          go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/swarm" ./swarm
 
-      - name: The binaries are statically linked
+      - name: The binary is statically linked
         run: |
           set -euo pipefail
-          for binary in spec swarm
-          do
-            description="$(file -b "$binary")"
-            echo "$binary: $description"
-            # `file` rather than `ldd`: ldd's wording for a static binary
-            # varies by distribution ("not a dynamic executable" against
-            # "statically linked") and its exit status is not a reliable
-            # signal either way.
-            case "$description" in
-              *"statically linked"*) ;;
-              *)
-                echo "$binary is not statically linked; it will not run in a bare image"
-                exit 1
-                ;;
-            esac
-          done
+          description="$(file -b spec)"
+          echo "spec: $description"
+          # `file` rather than `ldd`: ldd's wording for a static binary
+          # varies by distribution ("not a dynamic executable" against
+          # "statically linked") and its exit status is not a reliable
+          # signal either way.
+          case "$description" in
+            *"statically linked"*) ;;
+            *)
+              echo "spec is not statically linked; it will not run in a bare image"
+              exit 1
+              ;;
+          esac
 
       - name: Run spec in an image containing only a shell and the binary
         run: |
@@ -327,25 +250,3 @@ jobs:
             -w /corpus \
             busybox:latest \
             /spec check --json
-
-      - name: Run swarm in an image containing only a shell and the binary
-        run: |
-          set -euo pipefail
-          # swarm has no corpus to read and no subcommand yet; what is
-          # being proved here is that it executes at all with no language
-          # runtime present. A bare invocation is its one specified
-          # behaviour — print the command tree, exit with the
-          # malformed-invocation status — so the status is the assertion.
-          #
-          # `|| status=$?` rather than a bare invocation: the expected
-          # status is non-zero, and `set -e` would abort the step on it.
-          status=0
-          docker run --rm \
-            -v "$PWD/swarm:/swarm:ro" \
-            busybox:latest \
-            /swarm || status=$?
-          echo "swarm exited $status"
-          if [ "$status" -ne 3 ]; then
-            echo "expected the malformed-invocation status (3) from a bare invocation"
-            exit 1
-          fi

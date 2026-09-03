@@ -1,4 +1,14 @@
-# Plugin-scoped configuration for the sf agent-plugins toolkit.
+# Configuration this project declares FOR A SWARM RUN.
+#
+# Nothing in this repository parses it. Every reader is in the `swarm` plugin
+# (brettcallaghan/swarm) — `bb-checks.py` runs `[[checks]]`, `swarm-scope`
+# resolves `[run]`, `swarm-retro` reads `[retros]`, `swarm-review` reads
+# `[review]`, and the coordinator resolves `[models]` at dispatch. The file is
+# named for its reader, which is why it is `swarm.toml` and not `sf.toml`: the
+# `sf` plugin has no configuration file and parses no TOML at all.
+#
+# It lives here because a swarm run executed AGAINST this repository needs to
+# know this repository's checks, tiers and run defaults.
 #
 # Per ADR-022 ("Projects Declare Checkpoint Scripts"): a project declares the
 # executables its skills run, by repository-root-relative path, in this file.
@@ -70,38 +80,6 @@ command = 'scripts/check-reference-links.py'
 id = "template-drift"
 command = 'scripts/check-template-drift.py'
 
-# The bundled scripts' own invocation-surface tests. Each needs no database, no
-# repository and no network, which is what makes them runnable as a check.
-[[checks]]
-id = "script-self-tests"
-# NOT `set -e` and NOT `&&`: either stops at the first failure and hides the
-# rest, which is the exact rule bb-checks.py exists to enforce. This records
-# every status and fails at the end.
-#
-# pre-flight-check.sh IS included. It was excluded on the claim that its
-# --self-test falls through to the environment probe and pushes a ref. That is
-# false: the arg loop runs `self_test; exit $?` before any probe. Measured on a
-# clean tree — it emits zero BB_* facts, leaves `git worktree list` at the same
-# count, and adds no refs/dolt/preflight-probe-* on the remote. It asserts the
-# invocation surface, the portability guards, and (since --json) that both
-# output modes carry the same keys.
-#
-# plugin/hooks/bb-stop-ready-loop.sh is here for a stronger reason than the
-# others: it is a Stop hook that can BLOCK a session, so its bound — at most N
-# consecutive blocks, then it stands down — is the difference between a
-# convenience and a trap. Its --self-test stubs `bd` on PATH and points the
-# state directory at a temp dir, so it needs no database either.
-#
-# plugin/hooks/bb-subagent-stop-queue.sh is here for the same reason and one
-# more: it must let a worker holding a BLOCKED bead stop. Refusing that one
-# traps the worker forever, so the case is a self-test assertion rather than a
-# comment. Same stubbing, so it needs no database either.
-#
-# plugin/monitors/bb-events-monitor.sh --self-test appends to real files in a
-# temp directory and waits for its own background tails to report, so it is
-# the slow one here — about ten seconds, and it is timing-sensitive by nature.
-command = 'rc=0; for t in plugin/skills/bead-bonanza/scripts/bb-status.sh plugin/skills/bead-bonanza/scripts/bb-close-bead.sh plugin/skills/bead-bonanza/scripts/sprint-cleanup.sh plugin/skills/bead-bonanza/scripts/bb-checks.py plugin/skills/bead-bonanza/scripts/pre-flight-check.sh plugin/hooks/bb-stop-ready-loop.sh plugin/hooks/bb-subagent-stop-queue.sh plugin/monitors/bb-events-monitor.sh; do "$t" --self-test || rc=1; done; exit $rc'
-
 # Green since 2026-08-22. It exits 1 on a WARNING as well as an error, which is
 # the point: a skill body over the cap is a real defect and this is what says
 # so. Kept separate from `skills` so a future warning fails one check rather
@@ -124,6 +102,12 @@ frontier = "fable"
 # `sprint-scope` resolves each from here when the key is present and from its
 # own default when it is absent, then puts the RESOLVED set to the human as one
 # confirmation.
+#
+# `sprint-scope`, `sprint-retro` and `sprint-review` — the readers of this
+# block, of `[retros]` and of `[review]` — ship in the `swarm` plugin
+# (brettcallaghan/swarm), not in this one. The blocks stay here because they
+# are CONSUMER-PROJECT config: a swarm run against THIS repository reads them
+# from here, wherever the skills themselves were installed from.
 #
 # Setting a key changes WHAT is confirmed, never WHETHER it is. The gate still
 # runs even with all seven set — a run that stops asking is a run that
@@ -158,6 +142,19 @@ frontier = "fable"
 #         not the run's (skill default).
 # merge_to_default = false
 
+# The circuit breaker's threshold: how many consecutive dispatch returns that
+# completed no bead stop the RUN. 3 is the skill default. `sprint-scope`
+# resolves it and the coordinator passes it to `swarm ready --threshold`, which
+# counts against the manifest's `consecutive_dispatch_failures`.
+#
+# MUST BE 1 OR GREATER. `swarm ready` refuses a non-positive --threshold
+# outright, in every mode, before it reads anything. Note this does NOT follow
+# `review_budget` above, where 0 disables the loop: a threshold of 0 would stop
+# the run on every dispatch return rather than disabling the breaker, so it is
+# rejected instead of being given a meaning. There is no value that turns the
+# breaker off.
+# dispatch_failure_threshold = 3
+
 # run_root: where a run's directory is created. Defaults to
 #           ${TMPDIR:-/tmp}/claude/bead-bonanza when unset. Not a gate row.
 # run_root = ""
@@ -171,10 +168,21 @@ frontier = "fable"
 dir = "docs/retros"
 
 # Where issues against the SKILLS a run used are written. DELIBERATELY UNSET
-# here: this repository is the one that vends those skills, so an issue about
-# `bead-bonanza` is ordinary work in this tracker and belongs in it as a bead.
-# A project that CONSUMES the skills sets this — `.sf/outbox` is the convention
-# — so proposals it cannot act on accumulate somewhere other than its backlog.
+# here, and the reason is now narrower than it was: this repository vends the
+# `sf` skills — `spec`, `groom-beads`, `groom-feature-blueprint`, `retro-spec`,
+# `retro-skill` — so an issue about one of those is ordinary work in this
+# tracker and belongs in it as a bead.
+#
+# It no longer vends `bead-bonanza` or the sprint subprocesses; those are the
+# `swarm` plugin's (brettcallaghan/swarm). A finding against one of THOSE
+# cannot be acted on here. `sprint-retro` reads this key as a binary switch, so
+# that split is a rule it must be told rather than one it can derive: file such
+# a finding into `.sf/outbox` for delivery there, and leave this key unset so
+# everything else stays a bead.
+#
+# A project that consumes BOTH plugins and vends neither sets this —
+# `.sf/outbox` is the convention — so proposals it cannot act on accumulate
+# somewhere other than its backlog.
 # skill_issues_dir = ".sf/outbox"
 
 [review]

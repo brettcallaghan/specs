@@ -59,31 +59,9 @@ jobs:
 
       # --strict: it exits 1 on a WARNING as well as an error, which is the
       # point — a skill body over the ~20,000-byte cap is a real defect and
-      # this is what says so. It was known-red while bead-bonanza/SKILL.md sat
-      # at 55 KB; that cleared, so the gate is on.
+      # this is what says so.
       - name: Skill invariants
         run: scripts/check-skills.sh --strict
-
-      # The bundled scripts' own invocation-surface tests. Nothing here needs a
-      # database, a repository or a network, which is what makes them runnable
-      # on a bare runner.
-      #
-      # pre-flight-check.sh IS included. It was excluded on the claim that its
-      # --self-test falls through to the environment probe and pushes a ref;
-      # that is false — the arg loop runs `self_test; exit $?` before any
-      # probe. Measured: zero BB_* facts emitted, worktree count unchanged, no
-      # refs/dolt/preflight-probe-* created.
-      #
-      # No `set -e` and no `&&`: either would stop at the first failure and
-      # hide the rest.
-      - name: Bundled scripts' self-tests
-        run: |
-          d=plugin/skills/bead-bonanza/scripts
-          rc=0
-          for t in bb-status.sh bb-close-bead.sh sprint-cleanup.sh bb-checks.py pre-flight-check.sh; do
-            "$d/$t" --self-test || rc=1
-          done
-          exit $rc
 
       # --check rather than a write: CI verifies the vendored copies are
       # current, and a stale copy is fixed by running the script locally and
