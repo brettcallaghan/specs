@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/standards/c4-guide.md (version 0.2)
+     Source of truth: specs/standards/c4-standards.md (version 0.2)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 

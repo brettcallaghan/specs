@@ -152,27 +152,49 @@ slug prefix; feature blueprints use `fb-`.
 
 ### Filenames
 
-A document's filename SHALL begin with its slug. A numbered type MAY
-append a descriptive tail after the slug; every other type's filename
-SHALL be exactly its slug plus `.md`.
+A document's filename SHALL end in its document type, as a suffix, with
+the ADR the single exception: its number leads, because the number is how
+an ADR is cited and sorted.
 
-| Type | Filename | Why |
-|------|----------|-----|
-| Numbered (ADR) | `adr-007-promotion-at-a-seam.md` | the slug is terse so it survives a retitle; the tail is what makes a directory listing readable |
-| Every other type | `frd-checkout.md`, `container-ledger-api.md` | the slug is already descriptive, so a tail would only duplicate it |
+| Type | Filename |
+|------|----------|
+| ADR | `adr-<nnn>-<name>.md` |
+| FRD | `<name>-frd.md` |
+| Feature Blueprint | `<name>-blueprint.md` |
+| System Blueprint | `<name>-system.md` |
+| Container Blueprint | `<name>-container.md` |
+| Module Blueprint | `<name>-module.md` |
+| Component Blueprint | `<name>-component.md` |
+| Standards | `<name>-standards.md` |
+| Contract | `<name>-contract.md` |
+| Guide | `<name>-guide.md` |
 
-**Rationale:** the slug is the document's durable address and the
-filename is how a human finds it; a filename sharing no stem with the
-slug leaves neither derivable from the other. A directory that already
-names the unit does not license dropping the prefix from the file
-inside it — the prefix is what identifies the document in an editor
-tab, in grep output, and in a diff, where the directory is not visible.
+The `<name>` is the document's own name — its slug with the registered
+type prefix removed, since the suffix now carries what the prefix did.
+
+A suffix SHALL NOT be doubled, and SHALL NOT be stacked on a name that
+already ends in a role noun serving the same purpose (`-checklist`,
+`-protocol`, `-reference`, `-guide`, `-definition-of-ready`). A standards
+document named `blueprint-readiness-checklist` is already announced as
+what it is; `blueprint-readiness-checklist-standards.md` says it twice
+and reads worse for it.
+
+**Rationale:** the suffix sorts a directory by subject rather than by
+type, which is how a reader looks for a document — every FRD grouped
+together is useless when the directory holds only FRDs, while `checkout`
+next to `checkout-frd.md` and `checkout-blueprint.md` is not. The ADR
+inverts this because its identity is its number: `[[adr-011]]` cites a
+number, so a directory sorted by number is the one a reader can navigate.
 
 Renaming a file is cheap: no `[[slug]]` reference addresses a path, and
 the index is built by walking the spec root rather than by matching
-names. Renaming a *slug* is not — it breaks every inbound reference —
-so WHEN a filename and its slug disagree, prefer correcting the
-filename.
+names. Renaming a *slug* is not — it breaks every inbound reference — so
+WHEN a filename and its slug disagree, prefer correcting the filename.
+
+The one cost to weigh first: a standard or guide vendored into a skill
+(`references/shared/`) takes its copy's basename from its source, so
+renaming the source renames every copy and breaks each backticked
+citation of it.
 
 ### Frontmatter Index
 

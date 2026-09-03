@@ -43,7 +43,7 @@ is meant to reach.
 | Origin project | agent-plugins (self) |
 | Skill critiqued | `groom-feature-blueprint` v1.2 |
 | Task | Groom the approved reference-integrity feature blueprint into an executable plan |
-| Documents consumed | `specs/features/reference-integrity/feature-spec-reference-integrity.md`; `specs/features/reference-integrity/frd-spec-reference-integrity.md`; [[module-document-core]], [[module-spec-profile]], [[container-spec-cli]], [[contract-specs-configuration]], [[adr-018]] |
+| Documents consumed | `specs/features/reference-integrity/reference-integrity-blueprint.md`; `specs/features/reference-integrity/reference-integrity-frd.md`; [[module-document-core]], [[module-spec-profile]], [[container-spec-cli]], [[contract-specs-configuration]], [[adr-018]] |
 | Output produced | Epic `agent-plugins-9kb`, work orders `agent-plugins-9kb.1`–`.10` |
 | References invoked | blueprint-readiness-checklist v0.6.0; feature-blueprint-template v1.4; work-order-template v1.3; ac-traceability-standards v0.2.0; findings-capture-protocol v0.2; work-order-definition-of-ready v1.2 |
 | Downstream skill invoked | `groom-beads` v1.1 (finishing pass) |
@@ -57,7 +57,7 @@ is meant to reach.
 
 1. **[gap, blocker]** The blueprint's Sequencing Constraints contained
    this bullet
-   (`specs/features/reference-integrity/feature-spec-reference-integrity.md`
+   (`specs/features/reference-integrity/reference-integrity-blueprint.md`
    lines 592–594):
 
    > - The PREG delta SHALL land before LIFE, whose every check is
@@ -121,7 +121,7 @@ is meant to reach.
    Six of the ten work orders fold some part of their delta into
    [[module-document-core]]. Its Definition-of-Done entry names one
    version bump — "`version` bumped 0.2 → 0.3"
-   (`feature-spec-reference-integrity.md` line 686) — and
+   (`reference-integrity-blueprint.md` line 686) — and
    [[module-spec-profile]]'s names another (line 692). A version is
    single-valued; six distributed folds are not. Nothing in the skill
    says who owns it. The agent wrote "Set `version` to 0.3 if not

@@ -39,7 +39,7 @@ prescribed failure response was disproportionate to the defect.
 | Field | Value |
 |-------|-------|
 | Harness | Claude Code on the web (remote execution environment) |
-| Task the skill was applied to | Grooming `specs/features/spec-index/feature-spec-index.md` into beads — epic `agent-plugins-bge` plus 16 work orders, then handing the finishing pass to `groom-beads` |
+| Task the skill was applied to | Grooming `specs/features/spec-index/spec-index-blueprint.md` into beads — epic `agent-plugins-bge` plus 16 work orders, then handing the finishing pass to `groom-beads` |
 | References / scripts / templates invoked | `blueprint-readiness-checklist.md` v0.5.0, `feature-blueprint-template.md` v1.3, `work-order-template.md` v1.2, `ac-traceability-standards.md` v0.2.0, `findings-capture-protocol.md` v0.2, `groom-beads` v1.1, `work-order-definition-of-ready.md` v1.1 |
 | Run dates | 2026-08-04 |
 

@@ -58,7 +58,7 @@ verifier should search for the quoted text rather than trust an offset.
 
 1. **AC-GHK-001.6 could not be assigned a verification level, because
    it describes no behavior of the CLI.** It reads, at
-   `specs/features/gherkin-adoption/frd-gherkin-adoption.md:150-154`:
+   `specs/features/gherkin-adoption/gherkin-adoption-frd.md:150-154`:
 
    > `@AC-GHK-001.6`
    > `Scenario: A standalone feature file sits with the documents of its feature`
@@ -146,7 +146,7 @@ does not exist.
 
 ### P2 — Settle whether a verification level is optional or warned about
 
-**Problem.** `frd-gherkin-adoption.md:577` makes an absent level a
+**Problem.** `gherkin-adoption-frd.md:577` makes an absent level a
 `warning`; `gherkin-guide.md:132` calls the tag `optional`. Both are
 current, and the FRD would raise one warning per criterion against
 itself on the day the check ships.
@@ -238,7 +238,7 @@ gains and file the bead.
   whether ordering is in scope or only gaps are.
 - **The 13 compound `SHALL … and SHALL …` bullets the blueprint's
   readiness check flagged.** These were written in the house style
-  `feature-spec-index.md` already carries six of, so either the
+  `spec-index-blueprint.md` already carries six of, so either the
   practice or `document-readiness-checklist.md` check 5 is wrong. That
   is a question about the framework's guidance, not about this
   project's FRD; it is routed to `retro-skill` rather than proposed

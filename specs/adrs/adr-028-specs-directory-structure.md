@@ -70,22 +70,22 @@ specs/
   contracts/
   systems/
     <system-name>/
-      system-<system-name>.md
+      <system-name>-system.md
       containers/              WHEN two or more systems are documented
   containers/
     <container-name>/
-      container-<container-name>.md
+      <container-name>-container.md
       components/
-        component-<component-name>.md
+        <component-name>-component.md
   modules/
     <module-name>/
-      module-<module-name>.md
+      <module-name>-module.md
       components/
-        component-<component-name>.md
+        <component-name>-component.md
   features/
     <feature-name>/
-      frd-<feature-name>.md
-      feature-<feature-name>.md
+      <feature-name>-frd.md
+      <feature-name>-blueprint.md
       <subfeature-name>/
 ```
 

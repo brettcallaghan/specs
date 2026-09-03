@@ -24,7 +24,7 @@ import "github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 // vocabulary — because it constrains everything downstream of it.
 // Required sections and element records are later capabilities, and each
 // will widen this interface further. Per the Change Guidance in
-// specs/modules/spec-profile/module-spec-profile.md, that widening is a change to
+// specs/modules/spec-profile/spec-profile-module.md, that widening is a change to
 // the host reviewed on its own merits, never a special case granted to
 // one profile.
 type Profile interface {

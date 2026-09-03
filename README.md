@@ -115,7 +115,7 @@ The *what*. Owned by Product.
 
 | Document | Captures | Example | Template |
 |:---|:---|:---|:---|
-| **FRD** — Feature Requirements Document | Pure features: the user story (WHY) and the acceptance criteria (WHAT), in EARS. Never the how. | [FRD: Spec Corpus Index](specs/features/spec-index/frd-spec-index.md) | [`frd-template.md`](plugin/skills/spec/references/frd-template.md) |
+| **FRD** — Feature Requirements Document | Pure features: the user story (WHY) and the acceptance criteria (WHAT), in EARS. Never the how. | [FRD: Spec Corpus Index](specs/features/spec-index/spec-index-frd.md) | [`frd-template.md`](plugin/skills/spec/references/frd-template.md) |
 
 **Always start here. No FRD, no feature.** An FRD is one feature that
 delivers independently testable value — sub-features get their own FRDs
@@ -132,12 +132,12 @@ thousands of systems, where every team's diagram means the same thing.
 | Document | Captures | Example | Template |
 |:---|:---|:---|:---|
 | **System Blueprint** | A system's context, its containers, its public contracts, deployment (C4 levels 1–2) | *none in this repo yet* | [`system-blueprint-template.md`](plugin/skills/spec/references/system-blueprint-template.md) |
-| **Container Blueprint** | One deployable unit: components, contracts provided and consumed, owned data, change guidance | [Container: Spec CLI](specs/containers/spec-cli/container-spec-cli.md) | [`container-blueprint-template.md`](plugin/skills/spec/references/container-blueprint-template.md) |
+| **Container Blueprint** | One deployable unit: components, contracts provided and consumed, owned data, change guidance | [Container: Spec CLI](specs/containers/spec-cli/spec-cli-container.md) | [`container-blueprint-template.md`](plugin/skills/spec/references/container-blueprint-template.md) |
 | **Component Blueprint** | An atomic internal building block of one container, plus its interface | *none in this repo yet* | [`component-blueprint-template.md`](plugin/skills/spec/references/component-blueprint-template.md) |
-| **Module Blueprint** | A unit that crosses a boundary of independent change — shared or published across containers, or composite — plus versioning and change rules | [Module: Document Core](specs/modules/document-core/module-document-core.md) | [`module-blueprint-template.md`](plugin/skills/spec/references/module-blueprint-template.md) |
+| **Module Blueprint** | A unit that crosses a boundary of independent change — shared or published across containers, or composite — plus versioning and change rules | [Module: Document Core](specs/modules/document-core/document-core-module.md) | [`module-blueprint-template.md`](plugin/skills/spec/references/module-blueprint-template.md) |
 | **ADR** — Architecture Decision Record | One significant decision: context, alternatives, choice, consequences | [ADR-015: Go for the Spec CLI](specs/adrs/adr-015-go-for-the-spec-cli.md) | [`adr-template.md`](plugin/skills/spec/references/adr-template.md) |
 | **Standards** | Cross-cutting standards, policies, invariants, constraints | [Testing Standards](specs/standards/testing-standards.md) | [`standards-template.md`](plugin/skills/spec/references/standards-template.md) |
-| **Contract** | The prose semantics of an interface consumed across a boundary: an API, event stream, or data product | [Contract: Specs Configuration](specs/contracts/contract-specs-configuration.md) | [`contract-template.md`](plugin/skills/spec/references/contract-template.md) |
+| **Contract** | The prose semantics of an interface consumed across a boundary: an API, event stream, or data product | [Contract: Specs Configuration](specs/contracts/specs-configuration-contract.md) | [`contract-template.md`](plugin/skills/spec/references/contract-template.md) |
 
 > **We document systems, containers, and components — and stop there.**
 > Code is the last level of the C4 hierarchy, and only transient work
@@ -150,7 +150,7 @@ or delete them once merged.
 
 | Document | Captures | Example | Template |
 |:---|:---|:---|:---|
-| **Feature Blueprint** | The HOW, 1:1 with an FRD's WHAT: how the feature maps onto your architecture — components created, updated, deleted — plus contracts, sequencing, AC coverage, and a definition of done | [Blueprint: Spec Corpus Index](specs/features/spec-index/feature-spec-index.md) | [`feature-blueprint-template.md`](plugin/skills/spec/references/feature-blueprint-template.md) |
+| **Feature Blueprint** | The HOW, 1:1 with an FRD's WHAT: how the feature maps onto your architecture — components created, updated, deleted — plus contracts, sequencing, AC coverage, and a definition of done | [Blueprint: Spec Corpus Index](specs/features/spec-index/spec-index-blueprint.md) | [`feature-blueprint-template.md`](plugin/skills/spec/references/feature-blueprint-template.md) |
 | **Work Order** | One atomic unit of work — a "dev task". Everything a fresh, zero-context agent needs to finish one job, connecting component changes to code changes | Materialized as beads in [`.beads/issues.jsonl`](.beads/issues.jsonl) | [`work-order-template.md`](plugin/skills/spec/references/work-order-template.md) |
 
 A **Feature Blueprint** references exactly one FRD, and as many
@@ -262,7 +262,7 @@ line_width = 80
 
 The engine is framework-agnostic; the document vocabulary comes from a
 **profile** plugged into it — see
-[Module: Spec-Driven Development Profile](specs/modules/spec-profile/module-spec-profile.md).
+[Module: Spec-Driven Development Profile](specs/modules/spec-profile/spec-profile-module.md).
 
 ---
 

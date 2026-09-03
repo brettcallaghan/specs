@@ -1,6 +1,6 @@
 // Package numbering derives the next identifier for a numbered document
 // type from the built [specmodel.SpecIndex], per
-// specs/modules/document-core/module-document-core.md's Numbering component.
+// specs/modules/document-core/document-core-module.md's Numbering component.
 //
 // Numbering is global per type: the next number is one greater than the
 // highest number in use for that type anywhere in the corpus, regardless

@@ -12,7 +12,7 @@ import (
 //
 // Only a bare identifier is recognised. Array-of-tables (`[[name]]`), and
 // a dotted or quoted table name, are outside the pinned v1 grammar
-// contract-specs-configuration.md fixes ("That is the whole of it in
+// specs-configuration-contract.md fixes ("That is the whole of it in
 // v1."); a line using one of those forms simply produces no location
 // below, and a finding about it falls back to an enclosing or whole-file
 // span rather than a precise one.
@@ -47,7 +47,7 @@ type locations struct {
 // locateConfig performs a line-oriented scan of a specs.toml source. It
 // is deliberately shallow rather than a general TOML parser: one level of
 // `[table]` headers, each holding flat `key = value` lines, is the whole
-// of the pinned v1 grammar (contract-specs-configuration.md), and nothing
+// of the pinned v1 grammar (specs-configuration-contract.md), and nothing
 // else needs to be locatable precisely. BurntSushi/toml still decodes a
 // file using a dotted key, an inline table, an array of tables, or a
 // multi-line value as far as TOML's own grammar allows; this scanner

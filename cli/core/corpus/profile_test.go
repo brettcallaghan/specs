@@ -2,7 +2,7 @@
 //
 // No test here carries an `AC:` citation. The extension point is a
 // foundational sliver lifted out of the CO delta by the Sequencing
-// Constraints of specs/features/spec-index/feature-spec-index.md, and
+// Constraints of specs/features/spec-index/spec-index-blueprint.md, and
 // no acceptance criterion names it: AC-SPEC-008.6 is proven by the
 // profile that implements this interface, and AC-SPEC-003.1 by the
 // registry that consumes its schema. What is verified here is that the
@@ -128,7 +128,7 @@ func TestProfileMaySupplyNoConventionDefaults(t *testing.T) {
 
 // Document Core is the host, and a host that imports its plugin is not a
 // host. The Change Guidance in
-// specs/modules/document-core/module-document-core.md states this as a
+// specs/modules/document-core/document-core-module.md states this as a
 // prohibition; this test is what makes it a gate.
 func TestDocumentCoreImportsNoProfilePackage(t *testing.T) {
 	forbidden := modulePath + "/profile"

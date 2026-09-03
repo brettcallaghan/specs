@@ -872,7 +872,7 @@ func TestCheckForReportsTheReferencesARenamedSlugBroke(t *testing.T) {
 // stubProfile of this test file's own, registered through the same
 // [corpus.Profile] extension point the command surface's real profile
 // implements — never a pairing added to that shipped profile, which
-// registers none by design (feature-spec-reference-integrity.md's LIFE
+// registers none by design (reference-integrity-blueprint.md's LIFE
 // section).
 
 // statusDocument renders a conforming document at the given status,
@@ -920,7 +920,7 @@ updated_at: "2026-08-05T00:00:00Z"
 // draft and approved are live, retired is retired, and superseded_by is
 // the successor property — this framework's own registration, restated
 // here as test data rather than imported, so this package proves its
-// checks against a fixture it owns (module-spec-profile.md's Change
+// checks against a fixture it owns (spec-profile-module.md's Change
 // Guidance: Document Core imports no profile).
 func lifecycleCheckProfile() corpus.Profile {
 	return stubProfile{
@@ -977,7 +977,7 @@ func TestCheckReportsALiveDocumentReferencingARetiredOneWithASuccessor(t *testin
 
 // AC: AC-SPECREF-002.6
 //
-// Not every retirement has a successor (feature-spec-reference-integrity.md,
+// Not every retirement has a successor (reference-integrity-blueprint.md,
 // LIFE): a retired target that declares none still raises the warning,
 // with an absent successor rather than one invented from nothing.
 func TestCheckReportsALiveDocumentReferencingARetiredOneWithNoSuccessor(t *testing.T) {
@@ -1025,7 +1025,7 @@ func TestCheckRaisesNoRetiredTargetFindingBetweenTwoLiveDocuments(t *testing.T) 
 
 // A retired document citing another retired one raises no finding: the
 // warning exists to tell a LIVE author what to cite instead, and the
-// referrer here is not one (feature-spec-reference-integrity.md's LIFE
+// referrer here is not one (reference-integrity-blueprint.md's LIFE
 // rationale for why every non-retired status is live).
 func TestCheckRaisesNoRetiredTargetFindingWhenTheReferringDocumentIsAlsoRetired(t *testing.T) {
 	repo := t.TempDir()

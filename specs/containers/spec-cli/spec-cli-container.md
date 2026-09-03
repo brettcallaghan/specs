@@ -498,7 +498,7 @@ This container SHALL comply with:
   coverage obligations tying both back to acceptance criteria.
 
 The repository's other standards document,
-`specs/standards/skill-best-practices.md`, governs skill authoring and
+`specs/standards/skill-authoring-standards.md`, governs skill authoring and
 does not apply to a compiled binary.
 
 ## Change Guidance

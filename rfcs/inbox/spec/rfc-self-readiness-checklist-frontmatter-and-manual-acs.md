@@ -40,7 +40,7 @@ plannable and grooming had to carry forward onto a work order.
 | Field | Value |
 |-------|-------|
 | Harness | Claude Code on the web (remote execution environment) |
-| Task the skill was applied to | `blueprint-readiness-checklist.md` run as `groom-feature-blueprint`'s Phase 1 gate over `specs/features/spec-index/feature-spec-index.md` (51 acceptance criteria, 12 delta blocks) before decomposition into 16 work orders |
+| Task the skill was applied to | `blueprint-readiness-checklist.md` run as `groom-feature-blueprint`'s Phase 1 gate over `specs/features/spec-index/spec-index-blueprint.md` (51 acceptance criteria, 12 delta blocks) before decomposition into 16 work orders |
 | References / scripts / templates invoked | `blueprint-readiness-checklist.md` v0.5.0, `ac-traceability-standards.md` v0.2.0, `feature-blueprint-template.md` v1.3, `frd-template.md` (via `ac-traceability-standards`), `groom-feature-blueprint` v1.2 |
 | Run dates | 2026-08-04 |
 

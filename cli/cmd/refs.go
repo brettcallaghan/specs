@@ -14,7 +14,7 @@ import (
 // references, per AC-SPECREF-003.1 through AC-SPECREF-003.5.
 //
 // This is the fifth subcommand FEAT-SPEC-011 anticipated growing into
-// (container-spec-cli.md's Change Guidance); it neither renames nor
+// (spec-cli-container.md's Change Guidance); it neither renames nor
 // repurposes the four `newRootCmd` already builds.
 func newRefsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 	var jsonOut, outbound bool

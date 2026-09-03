@@ -11,7 +11,7 @@
 // by ("SystemBlueprint"). That transform is a string operation, not a
 // lookup table, which is what lets this package name no document type
 // of its own: [[module-spec-profile]]'s Change Guidance forbids it, and
-// specs/modules/document-core/module-document-core.md states the same rule for
+// specs/modules/document-core/document-core-module.md states the same rule for
 // every package under cli/core.
 //
 // A slug pattern is a separate concern from the union schema — the

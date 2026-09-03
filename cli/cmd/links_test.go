@@ -117,7 +117,7 @@ func treeDigest(t *testing.T, dir string) map[string]string {
 // next-id do (this bead's own Design), but unlike them it may not
 // persist a freshly built index: those four subcommands' shared
 // openCorpus helper writes the index back to disk on a cold cache
-// (specs.json, container-spec-cli.md's "Data" section), and doing that
+// (specs.json, spec-cli-container.md's "Data" section), and doing that
 // here would create a file on a run that AC-SPECMD-005.3 requires create
 // none. This test runs on a cold cache specifically, so it would catch a
 // regression back onto the shared helper.

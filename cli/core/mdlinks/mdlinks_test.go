@@ -120,8 +120,8 @@ func TestWithNoMapATargetIsDerivedRelativeToTheCitingDirectory(t *testing.T) {
 		{
 			name:       "a different directory",
 			citingPath: "specs/adrs/adr-011.md",
-			targetPath: "specs/features/markdown-links/frd-spec-markdown-links.md",
-			want:       "../features/markdown-links/frd-spec-markdown-links.md",
+			targetPath: "specs/features/markdown-links/markdown-links-frd.md",
+			want:       "../features/markdown-links/markdown-links-frd.md",
 		},
 		{
 			name:       "citing document at the repository root",

@@ -26,7 +26,7 @@ version: "0.1"                       # required WHEN visibility: public
 Template: Module Blueprint
 Version: 0.8
 Source: Architecture documentation framework. C4 mapping rules are
-  defined in `shared/c4-guide.md` — load it before authoring.
+  defined in `shared/c4-standards.md` — load it before authoring.
 
 Sections (complete each, then delete its instruction block)
   - Overview
@@ -59,7 +59,7 @@ Purpose
   for contract visibility: does it cross a boundary of independent
   change? A component does not — it is internal to one container and
   changes in lockstep with it; a module does. This framework's "module"
-  is part of the deliberate C4 superset defined in `shared/c4-guide.md`.
+  is part of the deliberate C4 superset defined in `shared/c4-standards.md`.
 
 When to use — either trigger is sufficient
   - SHARED / PUBLISHED: the unit is vended or consumed across containers
@@ -194,7 +194,7 @@ has none; delete this section for it.
 The module's internal components — the container-like half of a module
 blueprint. The components are DECLARED in the list below; the C4
 Component diagram is a view rendered from those declarations (see
-`shared/c4-guide.md`). This module owns the relationships AMONG these components.
+`shared/c4-standards.md`). This module owns the relationships AMONG these components.
 
 Each declaration captures: the component's name (canonical — used
 verbatim on diagrams), its technology or kind, a brief description that
@@ -311,7 +311,7 @@ Standards this module complies with, by reference. A shared module
 complies with standards independently of any one host container.
 Platform choices that apply everywhere are mentioned in prose or
 standards docs, never modeled as elements on this module's diagrams —
-see `shared/c4-guide.md`.
+see `shared/c4-standards.md`.
 -->
 
 This module SHALL comply with:
@@ -386,6 +386,6 @@ status becomes active.
 
 ## References
 
-- `shared/c4-guide.md` — C4 mapping rules and diagram conventions
+- `shared/c4-standards.md` — C4 mapping rules and diagram conventions
 - [[container-<name>]] — the container(s) this module is composed into
 - <Additional references>
