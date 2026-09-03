@@ -1,9 +1,0 @@
-{
-  "packageName": "SwarmModel",
-  "version": "0.1.0",
-  "jsonSchema": {
-    "bundle": true,
-    "schemaVersion": "Draft07",
-    "allowAdditionalProperties": false
-  }
-}

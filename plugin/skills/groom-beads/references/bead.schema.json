@@ -61,7 +61,7 @@
       "properties": {
         "tier": {
           "enum": ["light", "standard", "advanced", "frontier"],
-          "description": "Capability tier this bead needs. Closed and ORDERED, least to most capable. Never null on a ready bead. This is the routing field — the orchestrator resolves tier -> model at dispatch via the project's `sf.toml` `[models]` lineup block. Assign the LOWEST tier that can complete the work correctly. Canonical rubric: spec skill, references/work-order-field-guide.md."
+          "description": "Capability tier this bead needs. Closed and ORDERED, least to most capable. Never null on a ready bead. This is the routing field — the orchestrator resolves tier -> model at dispatch via the orchestrator's `swarm.toml` `[models]` lineup block. Assign the LOWEST tier that can complete the work correctly. Canonical rubric: spec skill, references/work-order-field-guide.md."
         },
         "tier_reason": { "type": "string", "minLength": 1 },
         "model": {

@@ -1,8 +1,0 @@
-[
-  {
-    "name": "beads",
-    "command": "\"${CLAUDE_PLUGIN_ROOT}\"/monitors/bb-events-monitor.sh",
-    "description": "bead state changes: create, status change, close",
-    "when": "on-skill-invoke:bead-bonanza"
-  }
-]
