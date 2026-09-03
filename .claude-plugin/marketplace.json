@@ -1,7 +1,7 @@
 {
   "name": "spec-driven-dev",
   "metadata": {
-    "description": "Marketplace for the sf (spec-first) plugin: spec authoring and grooming (spec, groom-beads, groom-feature-blueprint), autonomous sprint orchestration (bead-bonanza and its sprint-* subprocesses, run-batch), and retrospectives (sprint-retro, retro-spec, retro-skill)"
+    "description": "Marketplace for the sf (spec-first) plugin: spec authoring and grooming (spec, groom-beads, groom-feature-blueprint) and retrospectives (retro-spec, retro-skill)"
   },
   "owner": {
     "name": "Brett Callaghan",
@@ -11,7 +11,7 @@
     {
       "name": "sf",
       "source": "./plugin",
-      "description": "Spec-first development: authoring specs in Gherkin and EARS (ADRs, FRDs, requirements documents, architecture and feature blueprints, contracts), grooming approved feature blueprints into executable implementation plans, orchestrating them as autonomous sprints, and retrospectives that turn a run's friction into filed work"
+      "description": "Spec-first development: authoring specs in Gherkin and EARS (ADRs, FRDs, requirements documents, architecture and feature blueprints, contracts), grooming approved feature blueprints into executable implementation plans, and retrospectives that turn friction into filed work"
     }
   ]
 }

@@ -6,10 +6,13 @@
 #   1. Install `bd` (Beads), which every grooming and orchestration skill in
 #      this repo assumes is on PATH. Without it those skills cannot be
 #      exercised at all, which is the definition of not dogfooding.
-#   2. Keep the vendored shared references current and build `swarm` — the
-#      bead-bonanza skills invoke `swarm manifest` and `swarm status` as
-#      required steps, and this is the one place that provisions it. The
-#      skills themselves are committed symlinks under .claude/skills/
+#   2. Keep the vendored shared references current and build `swarm`. The
+#      `swarm` CLI's source still lives here (cli/swarm), so this is still the
+#      one place that provisions the binary — but the skills that invoke
+#      `swarm manifest` and `swarm status` now ship in the `swarm` plugin
+#      (brettcallaghan/swarm), so nothing in a session on THIS repository
+#      calls it. Step 4 follows cli/swarm out when the CLI migrates. The
+#      skills that remain are committed symlinks under .claude/skills/
 #      (each -> plugin/skills/<name>), so the session runs the working tree
 #      directly — no materialization step, and no global copy can shadow it.
 #   3. Build the `strata` CLI.
@@ -103,9 +106,8 @@ fi
 
 # --- 2. Beads telemetry and database ----------------------------------------
 if command -v bd >/dev/null 2>&1; then
-  # bd stores data in Dolt, which phones home to eventsapi.dolthub.com. The
-  # bead-bonanza skill tells its own users to kill this; do it here too rather
-  # than making every session re-do it.
+  # bd stores data in Dolt, which phones home to eventsapi.dolthub.com. Killed
+  # here rather than making every session re-do it.
   if command -v dolt >/dev/null 2>&1 \
      && ! dolt config --global --list 2>/dev/null | grep -q 'metrics.disabled = true'; then
     dolt config --global --add metrics.disabled true >/dev/null 2>&1 || true
@@ -142,9 +144,9 @@ if command -v bd >/dev/null 2>&1; then
   #      Direct egress to github.com is permitted, so bypassing the proxy lets
   #      the real PAT through.
   #
-  # The token name is this repository's environment contract, not the skill's:
-  # bead-bonanza requires only "write access to refs/dolt/data" and never names
-  # a credential. See docs/session-bootstrap.md.
+  # The token name is this repository's environment contract, not any skill's:
+  # a skill needing a durable tracker requires only "write access to
+  # refs/dolt/data" and never names a credential. See docs/session-bootstrap.md.
   BB_DOLT_FATAL=""
   BB_STRATA_FATAL="${BB_STRATA_FATAL:-}"
   # The helper body is guarded exactly like STRATA_CRED_HELPER further down.
@@ -318,11 +320,11 @@ if [ -x scripts/sync-shared-references.sh ]; then
 fi
 
 # --- 4. swarm CLI --------------------------------------------------------------
-# `swarm manifest` and `swarm status` are required steps the bead-bonanza
-# skills invoke directly, not an optional capability like strata — so THIS is
-# who provisions it in a cloud session (module-bead-bonanza.md's Environment
-# Probe boundary names the decision; pre-flight-check.sh's capability probe
-# is what enforces it at the point a run actually starts).
+# `swarm manifest` and `swarm status` are required steps for the sprint skills,
+# which now ship in the `swarm` plugin (brettcallaghan/swarm). NOTHING IN A
+# SESSION ON THIS REPOSITORY INVOKES THEM ANY MORE. The step stays only because
+# cli/swarm is still here: it goes with the CLI, and a session here needs no
+# `swarm` on PATH once it does.
 #
 # Built from cli/swarm in THIS checkout: no clone, no network, and the
 # capability probe below — not a version string, since the binary carries

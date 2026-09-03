@@ -51,12 +51,5 @@ sh_run "rfc-queue"     'build/spec check --config rfcs/specs.toml --only frontma
 sh_run "strata-docs"   'scripts/sync-strata-docs.sh --check'
 sh_run "schemas"       'scripts/generate-schemas.sh --check'
 
-# --- the bundled scripts' own invocation-surface tests ---------------------
-# All five, pre-flight-check.sh included. It was excluded on the claim that its
-# --self-test runs the environment probe and pushes a ref; measured false — the
-# arg loop exits before any probe, emitting no BB_* facts and touching neither
-# worktrees nor the remote.
-sh_run "script-self-tests" 'd=plugin/skills/bead-bonanza/scripts; r=0; for t in bb-status.sh bb-close-bead.sh sprint-cleanup.sh bb-checks.py pre-flight-check.sh; do "$d/$t" --self-test || r=1; done; exit $r'
-
 printf '\n=== RESULT: %s\n' "$([ $rc -eq 0 ] && echo PASS || echo FAIL)"
 exit $rc
