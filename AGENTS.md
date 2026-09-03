@@ -268,6 +268,29 @@ scope for this run's beads" tells a future reader nothing they can act on.
   of times and refuse to commit a closure the export does not carry — rather
   than trusting one export. (`swarm`'s `bb-close-bead.sh` does exactly this;
   the trap is `bd`'s, not that script's, so it applies here too.)
+- **The hook's proxy bypass is SCOPED to origin's URL, and must stay that way.**
+  A host-wide `http.https://github.com/.proxy` reaches every other github.com
+  remote in the container while the credential helper beside it does not, so
+  those remotes lose the proxy's brokered credential and gain nothing in its
+  place. Measured in a session holding `agent-plugins` and `swarm`, with the
+  host-wide form in place: a push to `swarm` died with `could not read Username
+  for 'https://github.com'`, and the same push succeeded under
+  `git -c "http.https://github.com/.proxy=$HTTPS_PROXY" push`. After scoping,
+  `git config --get-urlmatch http.proxy <url>` returns rc=0 (bypass applies)
+  for `https://github.com/brettcallaghan/agent-plugins` and its `.git` form,
+  and rc=1 (proxy stays on) for `https://github.com/brettcallaghan/swarm`;
+  `git ls-remote origin HEAD` exits 0 in both clones with no `-c` override.
+- **A push to THIS repository touching `.github/workflows/` is refused, and
+  that is the bypass working as designed.** The bypass is what routes this
+  remote to the real PAT, and `AGENT_PLUGINS_ACCESS_TOKEN` has no `workflow`
+  scope. Measured: `! [remote rejected] ... refusing to allow a Personal Access
+  Token to create or update workflow '.github/workflows/cli.yml' without
+  'workflow' scope`; the same push succeeded through
+  `git -c "http.https://github.com/.proxy=$HTTPS_PROXY" push`, which restores
+  the proxy's brokered token for that one command. Git config cannot scope a
+  bypass by refspec, so the bypass cannot apply to `refs/dolt/*` alone — the
+  two remedies are that per-command override, or granting the PAT `workflow`
+  scope. Do NOT "fix" it by widening the bypass back to the host.
 - **`scripts/generate-schemas.sh --check` fails when the installed `strata`
   predates `strata-lang/strata@8997153`.** That commit fixes
   `allowAdditionalProperties: false` silently dropping struct inheritance.
