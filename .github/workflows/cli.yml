@@ -104,6 +104,58 @@ jobs:
       - name: Test
         run: go test ./...
 
+  # Statement coverage across all three test layers, and the gate that
+  # keeps the numbers published in the README honest.
+  #
+  # One platform only: coverage is a property of which statements the
+  # tests reach, and the suite is required to behave identically on all
+  # three (the matrix above is what proves that), so measuring it three
+  # times would report the same answer three times and then have to
+  # decide which one the README quotes.
+  #
+  # It re-runs the tests rather than reusing the matrix's run because an
+  # instrumented run is a different build: the end-to-end leg needs a
+  # binary built with `go build -cover`, and the in-process legs are
+  # split into two profiles the ordinary `go test ./...` does not
+  # produce.
+  coverage:
+    name: coverage across unit, snapshot and end-to-end layers
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          # Statement counts come from the toolchain, so this must match
+          # the version a contributor regenerates the README with.
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: cli/go.sum
+
+      # --check measures, then fails if README.md does not already say
+      # what was measured. The alternative — a job that commits the
+      # regenerated README — would put the number outside review, which
+      # is where an unnoticed coverage drop lives.
+      - name: Measure coverage and verify the README is current
+        run: scripts/coverage.sh --check
+
+      # Written whether the check passed or failed, so a stale-README
+      # failure can be diagnosed from the run rather than reproduced.
+      - name: Publish the tables to the run summary
+        if: always()
+        run: cat build/coverage/summary.md >> "$GITHUB_STEP_SUMMARY" || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cli-coverage
+          path: |
+            build/coverage/summary.md
+            build/coverage/coverage-func.txt
+            build/coverage/coverage.html
+            build/coverage/coverage.out
+          if-no-files-found: warn
+
   # AC-SPEC-009.7's "produced by cross-compilation from a single source":
   # every platform in the release matrix is built here, on one Linux
   # runner, from the same checkout. A target that stops cross-compiling
