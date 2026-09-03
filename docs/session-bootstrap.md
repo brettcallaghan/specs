@@ -66,10 +66,19 @@ A cloud environment must supply two things:
    `Authorization` header with a brokered GitHub App installation token scoped
    to `refs/heads`, which returns 403 on `refs/dolt/*` — the 403 is the proxy,
    **not** GitHub refusing `refs/dolt/*` writes. The hook handles this by
-   setting `http.https://github.com/.proxy` to empty and installing a
-   credential helper — scoped to this repository's own remote URL, so it never
-   answers for another repo — that reads the PAT from the environment at call
-   time, so the token is never written to disk. If an environment blocks direct egress,
+   setting the proxy to empty **for this repository's own origin URL** —
+   `http.<origin>.proxy`, never the host-wide `http.https://github.com/.proxy`,
+   which would reach every other github.com remote in the container while the
+   credential helper beside it does not — and installing a credential helper
+   scoped the same way, which reads the PAT from the environment at call time
+   so the token is never written to disk.
+
+   One consequence to know about: the bypass is what routes this remote to the
+   PAT, and that PAT has no `workflow` scope, so a push touching
+   `.github/workflows/` is refused. Git config cannot scope a bypass by
+   refspec, so it cannot apply to `refs/dolt/*` alone. Push such a change with
+   `git -c "http.<origin>.proxy=$HTTPS_PROXY" push`, which restores the proxy's
+   brokered token for that one command, or grant the PAT the scope. If an environment blocks direct egress,
    the hook will fail its probe and say so.
 
 ### Not needed here any more: `worktree.baseRef`
@@ -86,11 +95,15 @@ it and a session that skips the script is not exposed. Claude Code resolves the
 key highest-precedence-first — `.claude/settings.local.json`, then
 `.claude/settings.json`, then `~/.claude/settings.json` — so the committed value
 holds unless someone sets the local file. Pre-flight reads all three and reports
-which one answered; the `bead-bonanza` skill treats a wrong value as
-stop-and-fix at worktree dispatch.
+which one answered.
 
-The `$HOME/.claude/settings.json` step in the script below is now belt-and-braces
-rather than the only source, and is safe to drop.
+**It is no longer this repository's concern.** `bead-bonanza` and its worktree
+dispatch moved to [brettcallaghan/swarm](https://github.com/brettcallaghan/swarm),
+which commits the same key for the same reason; nothing left here runs a bead in
+a worktree. The committed value stays because a `swarm` run against THIS
+repository still needs it in effect, and because it costs nothing. The
+`$HOME/.claude/settings.json` step in the script below is belt-and-braces rather
+than the only source, and is safe to drop.
 
 ## The fix: an environment setup script
 

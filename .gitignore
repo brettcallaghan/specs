@@ -6,14 +6,6 @@
 *.db
 .beads-credential-key
 .beads/proxieddb/
-# Per-run graph plans emitted by `sprint-plan` for `bd create --graph`.
-# Transient run scratch: loaded once, then the tracker holds the beads. The
-# run's report names the path; a stale copy in the tree would outlive the
-# graph it describes.
-.beads/plans/
-
-# git worktrees created for isolated work
-.worktrees/
 # local-comments.json
 
 # A scratchpad directory for local files that should not be committed to the repository
@@ -36,15 +28,6 @@ specs/specs.json
 rfcs/specs.json
 
 build/
-# Beads / Dolt runtime locks (bd init flags this as a required pattern;
-# .beads/.gitignore ignores *.lock but only inside .beads/, and the gate
-# lock is written at the repo root)
-*.gate.lock*
-
-# Harness-managed worktrees for isolated subagents (bead-bonanza runs).
-# Transient: each holds one in-flight bead and is removed when it is accepted.
-.claude/worktrees/
-
 # Python bytecode caches. Several repo scripts are Python; running one in a
 # bead's worktree leaves __pycache__/ behind, and the close ceremony stages
 # everything dirty in that worktree.

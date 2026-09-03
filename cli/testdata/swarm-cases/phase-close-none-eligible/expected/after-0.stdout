@@ -1,5 +1,0 @@
-closed_epics: []
-left_open:
-  - epic: fixture-run.target
-    open_child: fixture-run.2
-released_ready: []

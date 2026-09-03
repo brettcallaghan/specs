@@ -117,7 +117,6 @@ Grooming progress:
 - [ ] 4. Tier + tier_reason on every bead (never null)
 - [ ] 5. C4 blast radius tagged (or explicitly skipped: no C4 docs)
 - [ ] 6. Validated — 0 errors, re-run after each fix
-  - [ ] 6a. WHEN grooming under an epic: the epic itself meets the epic-level DoR
 - [ ] 7. Reported: changes, still-not-ready + gaps, flags for the human
 ```
 
@@ -160,19 +159,6 @@ Confirm the checks against the bead; do not re-derive its Design, re-wire edges
 that are already right, or edit it to prove you looked. **You are the only
 holder of this checklist**, so a caller that skipped you has no verdict at all,
 and one that gets silence cannot tell "ready" from "not examined".
-
-### An epic has its own Definition of Ready
-
-The per-bead DoR says when a *bead* can be dispatched; it says nothing about
-when an *epic* is fit to scope a run. WHEN you groom under an epic, check the
-epic too against `references/epic-definition-of-ready.md` — has children, every
-child ready or explicitly out of scope, dependency edges wired rather than
-implied, nothing the run needs derivable only by you.
-
-**Flatness is preferred, not required**, and the reference says what a nested
-epic costs: the graph preview and the progress count, both recomputable.
-Dispatch is unaffected. Report which shape the epic is in; requiring flatness
-would push the author to move beads out of the epics that own them.
 
 **WHEN a bead cannot be brought to Ready, park it — which takes TWO writes,
 and only the second one works.** `bd ready` reads `status`, not
@@ -223,7 +209,7 @@ record it on the epic and say so rather than leaving a failed command behind.
 
 Beads carry a **tier** (`light | standard | advanced | frontier`, least to most
 capable), never a model name — the orchestrator resolves tier → model at
-dispatch from the project's `sf.toml` `[models]` lineup, so a bead groomed
+dispatch from the orchestrator's `swarm.toml` `[models]` lineup, so a bead groomed
 today still routes correctly after the lineup changes.
 
 ```
