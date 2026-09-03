@@ -1,16 +1,16 @@
 name: release
 
-# Publishes the Spec CLI's per-platform binaries for one tag.
+# Publishes the per-platform `spec` binaries for one tag.
 #
 # Distribution has two channels, and this workflow is only the second of
 # them:
 #
 #  1. `go install github.com/brettcallaghan/agent-plugins/cli/spec@<tag>`
-#     — the Go module proxy is a package registry that supports
-#     on-premises mirroring (GOPROXY, Athens, Artifactory and the rest),
-#     which is what AC-SPEC-009.6 asks for. It needs nothing from this
-#     workflow beyond the tag, because the proxy serves source from the
-#     tag itself.
+#     — the Go module proxy is a package
+#     registry that supports on-premises mirroring (GOPROXY, Athens,
+#     Artifactory and the rest), which is what AC-SPEC-009.6 asks for. It
+#     needs nothing from this workflow beyond the tag, because the proxy
+#     serves source from the tag itself.
 #  2. The archives built below, for a machine with no Go toolchain at
 #     all. Downloading one retrieves an already-built artifact and runs
 #     no install-time code — no build script, no post-install hook, no
@@ -108,6 +108,7 @@ jobs:
           do
             goos="${target%/*}"
             goarch="${target#*/}"
+
             stage="$(mktemp -d)"
             binary="spec"
             if [ "$goos" = "windows" ]; then binary="spec.exe"; fi

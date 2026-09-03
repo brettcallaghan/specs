@@ -2,14 +2,15 @@
 # SessionStart hook — provision this repo's dependencies so a session can
 # actually run the workflows the skills prescribe.
 #
-# Two jobs:
+# Three jobs:
 #   1. Install `bd` (Beads), which every grooming and orchestration skill in
 #      this repo assumes is on PATH. Without it those skills cannot be
 #      exercised at all, which is the definition of not dogfooding.
-#   2. Keep the vendored shared references current and build the `strata`
-#      CLI. The skills themselves are committed symlinks under .claude/skills/
-#      (each -> plugin/skills/<name>), so the session runs the working tree
-#      directly — no materialization step, and no global copy can shadow it.
+#   2. Keep the vendored shared references current. The skills are committed
+#      symlinks under .claude/skills/ (each -> plugin/skills/<name>), so the
+#      session runs the working tree directly — no materialization step, and
+#      no global copy can shadow it.
+#   3. Build the `strata` CLI.
 #
 # Idempotent and non-interactive. Safe to re-run — and sometimes it must be
 # re-run by hand, because this hook is not always invoked:
@@ -100,9 +101,8 @@ fi
 
 # --- 2. Beads telemetry and database ----------------------------------------
 if command -v bd >/dev/null 2>&1; then
-  # bd stores data in Dolt, which phones home to eventsapi.dolthub.com. The
-  # bead-bonanza skill tells its own users to kill this; do it here too rather
-  # than making every session re-do it.
+  # bd stores data in Dolt, which phones home to eventsapi.dolthub.com. Killed
+  # here rather than making every session re-do it.
   if command -v dolt >/dev/null 2>&1 \
      && ! dolt config --global --list 2>/dev/null | grep -q 'metrics.disabled = true'; then
     dolt config --global --add metrics.disabled true >/dev/null 2>&1 || true
@@ -130,18 +130,28 @@ if command -v bd >/dev/null 2>&1; then
   #   1. A credential helper that reads the PAT from the environment at call
   #      time. The token is never written to disk. It is registered under a
   #      URL-scoped key, never the bare `credential.helper` — see below.
-  #   2. Proxy bypass for github.com. The egress proxy REPLACES the
-  #      Authorization header with a brokered GitHub App installation token,
-  #      which is scoped to refs/heads and returns 403 on refs/dolt/*. This was
-  #      misdiagnosed for a full session as "GitHub refuses refs/dolt/* writes";
-  #      it is not. Proof: a push with a deliberately INVALID token succeeded,
-  #      which is only possible if the proxy substituted its own credential.
-  #      Direct egress to github.com is permitted, so bypassing the proxy lets
-  #      the real PAT through.
+  #   2. Proxy bypass, scoped to THIS repository's origin. The egress proxy
+  #      REPLACES the Authorization header with a brokered GitHub App
+  #      installation token, which is scoped to refs/heads and returns 403 on
+  #      refs/dolt/*. Proof it is the proxy and not GitHub: a push with a
+  #      deliberately INVALID token succeeded, which is only possible if the
+  #      proxy substituted its own credential. Direct egress to github.com is
+  #      permitted, so bypassing the proxy lets the real PAT through.
   #
-  # The token name is this repository's environment contract, not the skill's:
-  # bead-bonanza requires only "write access to refs/dolt/data" and never names
-  # a credential. See docs/session-bootstrap.md.
+  #      SCOPE IT THE SAME WAY AS THE HELPER — never `http.https://github.com/`.
+  #      A host-wide bypass reaches every OTHER github.com remote in the
+  #      container while the helper beside it does not, so those remotes lose
+  #      the proxy's brokered credential and gain nothing in its place. In a
+  #      session with a second repository attached this breaks both directions:
+  #      a push to the other repo dies with "could not read Username for
+  #      'https://github.com'", and a push to THIS one starts using the PAT,
+  #      which lacks `workflow` scope and is refused on any commit touching
+  #      .github/workflows/. Both were measured in a session holding
+  #      agent-plugins and swarm.
+  #
+  # The token name is this repository's environment contract, not any skill's:
+  # a skill needing a durable tracker requires only "write access to
+  # refs/dolt/data" and never names a credential. See docs/session-bootstrap.md.
   BB_DOLT_FATAL=""
   BB_STRATA_FATAL="${BB_STRATA_FATAL:-}"
   # The helper body is guarded exactly like STRATA_CRED_HELPER further down.
@@ -184,7 +194,18 @@ if command -v bd >/dev/null 2>&1; then
       git config --global --unset-all credential.helper 2>/dev/null || true
       git config --global "credential.${_origin}.helper" "$DOLT_CRED_HELPER"
       git config --global "credential.${_origin}.git.helper" "$DOLT_CRED_HELPER"
-      git config --global 'http.https://github.com/.proxy' ''
+
+      # Both URL forms, for the reason the helper registers both: git matches
+      # an http.<url>.* key's path against the request's path, and only the
+      # matching form answers.
+      #
+      # The host-wide key is UNSET rather than merely shadowed. An earlier
+      # revision of this hook set it, so a container whose git config it
+      # already touched still carries it — and a bypass left in place keeps
+      # answering for every github.com remote, which is the defect.
+      git config --global --unset-all 'http.https://github.com/.proxy' 2>/dev/null || true
+      git config --global "http.${_origin}.proxy" ''
+      git config --global "http.${_origin}.git.proxy" ''
 
       # Verify rather than assume — a mis-scoped helper breaks nothing in the
       # session that writes it and everything in the next one. Pushing HEAD

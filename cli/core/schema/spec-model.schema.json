@@ -595,7 +595,7 @@
     },
     "CriterionId": {
       "description": "The identifier of one acceptance criterion, as written in the tag that\ndeclares it.\n\nConstrained here rather than checked in code, because this is the join\nbetween three things that must agree: the criterion in a specification,\nthe citation a test carries, and the row a central store holds. The\npattern is the one the framework's acceptance-criterion traceability\nstandard already fixes, minus\nthe leading `@` that makes it a Gherkin tag — the identifier is the\nvalue, and the tag is only how it is written down.\n\nThe middle segments are the owning feature's code and number, which is\nwhat allows a criterion to name its feature without carrying a second\nproperty: `AC-GHK-001.1` belongs to the feature coded `GHK` numbered\n`001`.",
-      "pattern": "^AC-[A-Z0-9]+-[0-9]{3}\\.[0-9]+$",
+      "pattern": "^AC-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-[0-9]{3}\\.[0-9]+$",
       "type": "string"
     },
     "CriterionNotation": {
@@ -961,13 +961,13 @@
       "type": "object"
     },
     "FeatureCode": {
-      "description": "The short code that groups features by topic, domain or capability.\n\nUppercase and terse — `GHK`, `SPEC`, `CHK`. **Features share a code**:\n`SPEC` covers eleven requirements of the spec-index feature, and that is\nwhat makes it a grouping rather than an identity. A feature is identified\nby its code together with its number.",
-      "pattern": "^[A-Z][A-Z0-9]*$",
+      "description": "The short code that groups features by topic, domain or capability.\n\nUppercase and terse — `GHK`, `SPEC`, `CHK`. **Features share a code**:\n`SPEC` covers eleven requirements of the spec-index feature, and that is\nwhat makes it a grouping rather than an identity. A feature is identified\nby its code together with its number.\n\nA code may be several hyphen-joined segments — `SWARM-DISP`, `SWARM-RUN` —\nwhich is how one capability split across several documents keeps a common\nfirst segment. Every segment begins with a letter, so the trailing number\ncan never be read as one and the split back into segments is unambiguous.",
+      "pattern": "^[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*$",
       "type": "string"
     },
     "FeatureId": {
       "description": "The identifier of one feature — its prefix, its group code and its number.\n\n`FEAT-SPEC-009`, `FEAT-GHK-001`. This is the feature's durable address: it\ndoes not change when the feature moves between documents or between the\ntwo admissible forms, and it is what every acceptance-criterion identifier\nbeneath the feature is derived from.\n\nThe pattern admits any uppercase prefix rather than fixing `FEAT`, so that\na project adopting the framework can carry its own.",
-      "pattern": "^[A-Z]+-[A-Z0-9]+-[0-9]{3}$",
+      "pattern": "^[A-Z]+-[A-Z][A-Z0-9]*(?:-[A-Z][A-Z0-9]*)*-[0-9]{3}$",
       "type": "string"
     },
     "FeatureSource": {

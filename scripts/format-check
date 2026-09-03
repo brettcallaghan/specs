@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 #
-# format-check — the `format` check declared in sf.toml.
+# format-check — the `format` check declared in swarm.toml.
 #
 # `gofmt -l` exits 0 whether or not it found unformatted files, so the FILE
 # LIST is the verdict and the status is not. A check reading only the status

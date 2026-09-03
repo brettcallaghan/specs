@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/standards/gherkin-guide.md (version 1.1.0)
+     Source of truth: specs/standards/gherkin-guide.md (version 1.2.0)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -12,7 +12,7 @@ slug: gherkin-guide
 type: standards
 status: active
 updated_at: 2026-08-15T00:00:00Z
-version: "1.1.0"
+version: "1.2.0"
 ---
 
 # Gherkin Authoring Guide
@@ -198,6 +198,22 @@ lowercase alphanumerics and hyphens, so a hyphenated slug cannot be split
 back into segments unambiguously. The code carries the grouping instead,
 and a criterion identifier derives from its feature's: `AC-CHK-003.1`
 belongs to `FEAT-CHK-003` without anything having to be parsed.
+
+**A code may itself be hyphen-joined segments** — `SWARM-DISP`,
+`SWARM-RUN` — which is how one capability split across several documents
+keeps a common first segment while each document's requirements stay
+addressable on their own. Every segment begins with a letter, so the
+trailing number can never be read as a segment and the split is
+unambiguous in a way a slug's is not:
+
+```text
+FEAT-SWARM-DISP-001      prefix FEAT · code SWARM-DISP · number 001
+AC-SWARM-DISP-001.1      the criterion, deriving both from its feature
+```
+
+Reach for one only where the shared segment is doing work. Two codes that
+merely look alike are two codes, and a reader gains nothing from a common
+prefix that groups nothing.
 
 ---
 

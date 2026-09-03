@@ -1,7 +1,7 @@
 name: cli
 
-# The Go gates for the Spec CLI, and the portability evidence for
-# REQ-SPEC-009 that only a real matrix can produce.
+# The Go gates for the `spec` binary the `cli` module ships, and the
+# portability evidence for REQ-SPEC-009 that only a real matrix can produce.
 #
 # Why this is a second workflow rather than more jobs in checks.yml: that
 # one is a single ubuntu runner over the docs corpus and needs no
@@ -98,6 +98,9 @@ jobs:
       - name: Build
         run: go build ./...
 
+      # Go's default 10m per test binary is enough here. The 30m ceiling
+      # this step used to carry existed for the swarm CLI's end-to-end
+      # tier, which is now in brettcallaghan/swarm.
       - name: Test
         run: go test ./...
 
@@ -162,13 +165,15 @@ jobs:
           CGO_ENABLED: "0"
           GOOS: linux
           GOARCH: amd64
-        run: go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/spec" ./spec
+        run: |
+          set -euo pipefail
+          go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/spec" ./spec
 
       - name: The binary is statically linked
         run: |
           set -euo pipefail
           description="$(file -b spec)"
-          echo "$description"
+          echo "spec: $description"
           # `file` rather than `ldd`: ldd's wording for a static binary
           # varies by distribution ("not a dynamic executable" against
           # "statically linked") and its exit status is not a reliable
@@ -181,7 +186,7 @@ jobs:
               ;;
           esac
 
-      - name: Run it in an image containing only a shell and the binary
+      - name: Run spec in an image containing only a shell and the binary
         run: |
           set -euo pipefail
           # busybox is a shell plus coreutils. The corpus is one of the

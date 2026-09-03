@@ -117,7 +117,6 @@ Grooming progress:
 - [ ] 4. Tier + tier_reason on every bead (never null)
 - [ ] 5. C4 blast radius tagged (or explicitly skipped: no C4 docs)
 - [ ] 6. Validated — 0 errors, re-run after each fix
-  - [ ] 6a. WHEN grooming under an epic: the epic itself meets the epic-level DoR
 - [ ] 7. Reported: changes, still-not-ready + gaps, flags for the human
 ```
 
@@ -161,19 +160,6 @@ that are already right, or edit it to prove you looked. **You are the only
 holder of this checklist**, so a caller that skipped you has no verdict at all,
 and one that gets silence cannot tell "ready" from "not examined".
 
-### An epic has its own Definition of Ready
-
-The per-bead DoR says when a *bead* can be dispatched; it says nothing about
-when an *epic* is fit to scope a run. WHEN you groom under an epic, check the
-epic too against `references/epic-definition-of-ready.md` — has children, every
-child ready or explicitly out of scope, dependency edges wired rather than
-implied, nothing the run needs derivable only by you.
-
-**Flatness is preferred, not required**, and the reference says what a nested
-epic costs: the graph preview and the progress count, both recomputable.
-Dispatch is unaffected. Report which shape the epic is in; requiring flatness
-would push the author to move beads out of the epics that own them.
-
 **WHEN a bead cannot be brought to Ready, park it — which takes TWO writes,
 and only the second one works.** `bd ready` reads `status`, not
 `grooming_status`, so a bead flagged only with the metadata stays dispatchable
@@ -197,7 +183,7 @@ work order's `depends_on` / `blocks` / `parent_slug` / `related` /
 `discovered_from` fields):
 
 - `blocks` / `blocked-by` — genuine sequential dependencies. This is what the
-  ready front is computed from.
+  ready set is computed from.
 - `parent` — the bead belongs to an epic.
 - `related` — relevant but non-blocking.
 - `discovered-from` — work surfaced while implementing another bead. Preserve
@@ -210,7 +196,7 @@ fabricated edge needlessly serializes work the orchestrator could parallelize.
 bead consumes a contract another is changing — `c4_impacts` intersecting
 another bead's `c4_changes`, or a stated prerequisite — wire
 `bd dep add <consumer> <producer>`. An orchestrator dispatches from the
-re-queried ready front, so an edge is honoured automatically, at any depth and
+re-queried ready set, so an edge is honoured automatically, at any depth and
 across epic boundaries; a line of prose in a preview is honoured only if
 someone reads it, and nothing re-reads it after the first dispatch.
 
@@ -223,7 +209,7 @@ record it on the epic and say so rather than leaving a failed command behind.
 
 Beads carry a **tier** (`light | standard | advanced | frontier`, least to most
 capable), never a model name — the orchestrator resolves tier → model at
-dispatch from the project's `sf.toml` `[models]` lineup, so a bead groomed
+dispatch from the orchestrator's `swarm.toml` `[models]` lineup, so a bead groomed
 today still routes correctly after the lineup changes.
 
 ```
@@ -325,7 +311,7 @@ Close the pass with a concise report:
 **Optional partition preview** (default on, non-authoritative): name every pair
 of ready beads sharing a `c4_changes` component, and group each cluster into a
 candidate batch in dependency order. Those pairs become **collision edges** in
-the plan, so a pair never reaches the ready front together. The planner remains
+the plan, so a pair never reaches the ready set together. The planner remains
 the source of truth on packing; say explicitly that this is a preview.
 
 ## The retro loop (closing the circle)
