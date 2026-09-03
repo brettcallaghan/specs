@@ -51,7 +51,56 @@ func (treeTracker) Children(name, parent string) plan.Step {
 }
 
 func (treeTracker) Bead(name, id string) plan.Step { return plan.Step{Name: name, Executable: "tree"} }
-func (treeTracker) Ready(name, scope string, _ tracker.ReadyFilter) plan.Step {
+
+// Ready and Holding are the two halves [tracker.AgentQueue] is built
+// from, so unlike the rest they decode what the fake replays. Each
+// answers with a JSON list of ids.
+func (treeTracker) Ready(name, scope string, filter tracker.ReadyFilter) plan.Step {
+	return plan.Step{
+		Name: name, Executable: "tree",
+		Args:   []plan.Arg{plan.Lit("ready"), plan.Lit(scope), plan.Lit(filter.Assignee)},
+		Effect: plan.Read, Repeatable: true,
+		Decode: func(res swarmexec.Result) (any, error) {
+			return decodeIDs(res, scope)
+		},
+	}
+}
+func (treeTracker) Holding(name, scope string, filter tracker.ReadyFilter) plan.Step {
+	agent := filter.Assignee
+	return plan.Step{
+		Name: name, Executable: "tree",
+		Args:   []plan.Arg{plan.Lit("holding"), plan.Lit(agent)},
+		Effect: plan.Read, Repeatable: true,
+		Decode: func(res swarmexec.Result) (any, error) {
+			beads, err := decodeIDs(res, "")
+			if err != nil {
+				return nil, err
+			}
+			return tracker.Held{Scope: scope, Agent: agent, Beads: beads}, nil
+		},
+	}
+}
+
+// decodeIDs turns the fake's JSON id list into beads.
+func decodeIDs(res swarmexec.Result, parent string) ([]tracker.Bead, error) {
+	body := strings.TrimSpace(string(res.Stdout))
+	if body == "" || body == "null" {
+		return []tracker.Bead{}, nil
+	}
+	var ids []string
+	if err := json.Unmarshal([]byte(body), &ids); err != nil {
+		return nil, err
+	}
+	beads := make([]tracker.Bead, 0, len(ids))
+	for _, id := range ids {
+		beads = append(beads, tracker.Bead{ID: id, Parent: parent, State: tracker.StateOpen})
+	}
+	return beads, nil
+}
+func (treeTracker) ClosableEpics(name, scope string) plan.Step {
+	return plan.Step{Name: name, Executable: "tree"}
+}
+func (treeTracker) Findings(name, id string) plan.Step {
 	return plan.Step{Name: name, Executable: "tree"}
 }
 func (treeTracker) Claim(name, id, agent string) plan.Step {

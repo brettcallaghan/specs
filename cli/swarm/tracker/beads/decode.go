@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	swarmexec "github.com/brettcallaghan/agent-plugins/cli/swarm/exec"
+	"github.com/brettcallaghan/agent-plugins/cli/swarm/plan"
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/tracker"
 )
 
@@ -23,9 +24,18 @@ import (
 //	bd update <id> … --json      -> a JSON array of the updated issue
 //	bd update <missing> … --json -> exit 1, STDOUT EMPTY, message on stderr
 //	bd comment <id> … --json     -> an OBJECT {author,created_at,id,issue_id,text,…}
+//	bd comments <id> --json      -> a JSON ARRAY of those objects; empty is []
+//	bd comments <missing> --json -> exit 1, an OBJECT {"error":…} on STDOUT
 //	bd dep add A B --json        -> an OBJECT {issue_id,depends_on_id,type,status}
 //	bd dep add <missing> --json  -> exit 1, an OBJECT {"error":…} on STDOUT
 //	bd gate list --json          -> a JSON array; empty is a bare NULL
+//	bd epic status --json        -> a JSON array of {epic,total_children,
+//	                                closed_children,eligible_for_close};
+//	                                empty is []
+//
+// `bd comment` and `bd comments` differ by one letter and by their
+// container: the write returns the object, the read returns an array of
+// them. That is why each has its own decoder rather than sharing one.
 //
 // Four container shapes and two different failure shapes across the set,
 // all but the failures at exit 0. A generic "treat any non-array as
@@ -214,12 +224,17 @@ func decodeUpdate(res swarmexec.Result) (any, error) {
 	return beads[0], nil
 }
 
-// Note is what `bd comment` records: the comment as the tracker stored it.
-type Note struct {
+// commentJSON is bd's own comment shape, named as bd names it. Confined
+// to this file: everything above sees a [tracker.Finding].
+type commentJSON struct {
 	ID      string `json:"id"`
 	IssueID string `json:"issue_id"`
 	Author  string `json:"author"`
 	Text    string `json:"text"`
+}
+
+func findingFrom(c commentJSON) tracker.Finding {
+	return tracker.Finding{ID: c.ID, Bead: c.IssueID, Author: c.Author, Text: c.Text}
 }
 
 // decodeComment decodes `bd comment <id> <text> --json`.
@@ -235,14 +250,109 @@ func decodeComment(res swarmexec.Result) (any, error) {
 	if body == "" || body == "null" {
 		return nil, fmt.Errorf("beads: bd comment exited 0 without saying what it recorded")
 	}
-	var note Note
-	if err := json.Unmarshal([]byte(body), &note); err != nil {
+	var comment commentJSON
+	if err := json.Unmarshal([]byte(body), &comment); err != nil {
 		return nil, fmt.Errorf("beads: bd comment returned a shape this decoder does not know: %w", err)
 	}
-	if note.IssueID == "" {
+	if comment.IssueID == "" {
 		return nil, fmt.Errorf("beads: bd comment exited 0 but named no issue")
 	}
-	return note, nil
+	return findingFrom(comment), nil
+}
+
+// decodeComments decodes `bd comments <id> --json`.
+//
+// Measured on bd 1.2.2: an ARRAY of the same objects `bd comment`
+// returns one of, and `[]` for a bead carrying none. The empty case is a
+// real answer — a bead may legitimately have recorded nothing — so it
+// decodes to an empty set rather than to an error; a shape that is not an
+// array does not, because "nothing was recorded" and "the read returned
+// something else" are what an acceptance check exists to keep apart.
+func decodeComments(res swarmexec.Result) (any, error) {
+	if !res.Succeeded() {
+		return nil, failure("bd comments", res)
+	}
+	body := strings.TrimSpace(string(res.Stdout))
+	if body == "" || body == "null" {
+		return []tracker.Finding{}, nil
+	}
+
+	var comments []commentJSON
+	if err := json.Unmarshal([]byte(body), &comments); err != nil {
+		return nil, fmt.Errorf("beads: bd comments returned a shape this decoder does not know: %w", err)
+	}
+
+	findings := make([]tracker.Finding, 0, len(comments))
+	for _, c := range comments {
+		findings = append(findings, findingFrom(c))
+	}
+	return findings, nil
+}
+
+// epicStatusJSON is one row of `bd epic status --json`, named as bd names
+// it. The eligibility verdict is bd's own field: nothing here recomputes
+// it from the two counts, which would be a second rule to disagree with
+// the first.
+type epicStatusJSON struct {
+	Epic     issueJSON `json:"epic"`
+	Children int       `json:"total_children"`
+	Closed   int       `json:"closed_children"`
+	Eligible bool      `json:"eligible_for_close"`
+}
+
+// closableDecoder decodes `bd epic status --eligible-only --json`,
+// carrying the scope the caller asked about into the answer so the two
+// cannot be confused. See [Tracker.ClosableEpics] for why the invocation
+// itself cannot be scoped.
+//
+// Measured on bd 1.2.2: an ARRAY of {epic, total_children,
+// closed_children, eligible_for_close} where `epic` is the same issue
+// shape every other subcommand returns, and `[]` when nothing is
+// eligible.
+func closableDecoder(scope string) plan.Decoder {
+	return func(res swarmexec.Result) (any, error) {
+		if !res.Succeeded() {
+			return nil, failure("bd epic status", res)
+		}
+		body := strings.TrimSpace(string(res.Stdout))
+		if body == "" || body == "null" {
+			return tracker.Closable{Scope: scope, Judged: []tracker.EpicClosure{}}, nil
+		}
+
+		var rows []epicStatusJSON
+		if err := json.Unmarshal([]byte(body), &rows); err != nil {
+			return nil, fmt.Errorf("beads: bd epic status returned a shape this decoder does not know: %w", err)
+		}
+
+		judged := make([]tracker.EpicClosure, 0, len(rows))
+		for _, r := range rows {
+			if r.Epic.ID == "" {
+				return nil, fmt.Errorf("beads: bd epic status reported a row naming no epic")
+			}
+			judged = append(judged, tracker.EpicClosure{
+				Epic:     beadFrom(r.Epic),
+				Children: r.Children,
+				Finished: r.Closed,
+				Eligible: r.Eligible,
+			})
+		}
+		return tracker.Closable{Scope: scope, Judged: judged}, nil
+	}
+}
+
+// holdingDecoder decodes the `bd list` behind [Tracker.Holding], carrying
+// the scope and the agent into the answer for the same reason.
+func holdingDecoder(scope, agent string) plan.Decoder {
+	return func(res swarmexec.Result) (any, error) {
+		if !res.Succeeded() {
+			return nil, failure("bd list", res)
+		}
+		beads, err := issueArray("bd list", res)
+		if err != nil {
+			return nil, err
+		}
+		return tracker.Held{Scope: scope, Agent: agent, Beads: beads}, nil
+	}
 }
 
 // Edge is what `bd dep add` records.

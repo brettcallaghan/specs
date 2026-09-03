@@ -217,10 +217,11 @@ that, and gets to.
 | **Tier escalation** on repeated failure | `tier_escalation` | escalate one tier, once, and report it |
 | **Review loop budget** | `review_budget` | 2 loops (three passes total) |
 | **Merge to the default branch** | `merge_to_default` | never — that is the pull request's, not the run's |
+| **Circuit-breaker threshold** — consecutive dispatch returns completing no bead that stop the run; **must be 1 or greater, and there is no value that disables the breaker** | `dispatch_failure_threshold` | 3 |
 
 **Configuring a row changes what is confirmed, never whether it is.** A project
-that sets all six still gets the gate — as one confirmation of six resolved
-values rather than six questions, which is the point. **A run that stops
+that sets all seven still gets the gate — as one confirmation of seven resolved
+values rather than seven questions, which is the point. **A run that stops
 asking is a run that authorized itself.**
 
 Record the outcome in the manifest's `standing_auth` — every row's value **and
@@ -229,7 +230,8 @@ where it came from**, `sf.toml` or the skill:
 ```sh
 swarm manifest set --run <epic> --key standing_auth --value '{
   "pull_request":  {"value": "draft", "source": "sf.toml"},
-  "review_budget": {"value": 2,       "source": "default"}
+  "review_budget": {"value": 2,       "source": "default"},
+  "dispatch_failure_threshold": {"value": 3, "source": "default"}
 }'
 ```
 

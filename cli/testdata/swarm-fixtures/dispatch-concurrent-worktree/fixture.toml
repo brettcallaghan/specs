@@ -1,0 +1,99 @@
+# A concurrent run whose worktrees carry the names the harness gives them.
+#
+# This is the world the code actually runs in, which no other fixture
+# models: `dispatch-worktree`'s branch takes the `bb/<dispatch-id>` form,
+# and the mechanism that really creates a dispatch's worktree here names
+# it `worktree-agent-<hash>` — see the note above `KindEpic` in
+# cli/swarm/status/status.go, which is written against a real capture. A
+# worktree branch here therefore carries no dispatch id at all, and
+# attribution has to reach the bead its HEAD commit closed.
+#
+# Derived from the core fixture: the core's three commits keep their
+# recorded shas, and two are added.
+#
+#   repository.bundle  the core's three commits; 016160f on
+#                      `worktree-agent-3f8a2c1d` off ac4a37c; and
+#                      d54d47f on the sprint branch, made after it.
+#                      `worktree-agent-b7e40952` points at d54d47f, the
+#                      sprint head, and adds nothing to it. Every commit
+#                      was made with a pinned author, committer and date,
+#                      so the shas are fixed.
+#   tracker.jsonl      the core's run epic and its two beads, plus
+#                      fixture-run.3 closed to dev-fixture-2,
+#                      fixture-run.4 closed to dev-fixture-4, and
+#                      fixture-run.5 claimed by dev-fixture-3. The
+#                      admitted list carries all five, so the world holds
+#                      no scope drift beside the conditions below.
+#
+# Three conditions hold at once, and each is measured on the built
+# bundle:
+#
+# 1. The target is ahead of the dispatch branch, so an accept reads the
+#    concurrent case. `readCase` compares the branch's merge-base with
+#    the target against the target's head; measured here, the merge-base
+#    of `claude/bead-bonanza-fixture` and `worktree-agent-3f8a2c1d` is
+#    ac4a37c while the target head is d54d47f, and `git merge-base
+#    --is-ancestor claude/bead-bonanza-fixture worktree-agent-3f8a2c1d`
+#    exits 1 — concurrent, not serialized.
+#
+#    The rebase that case calls for is refused while the worktree stands.
+#    Measured: `git rebase claude/bead-bonanza-fixture
+#    worktree-agent-3f8a2c1d` exits 128 with `fatal:
+#    'worktree-agent-3f8a2c1d' is already used by worktree at <path>`.
+#    The negative control isolates the worktree as the cause rather than
+#    the content: on a fresh clone of this same bundle with the local
+#    branch created and NO worktree standing, that rebase exits 0,
+#    "Successfully rebased and updated refs/heads/worktree-agent-3f8a2c1d",
+#    no unmerged paths — the two sides touch different files, work.txt
+#    and notes.txt.
+#
+# 2. A bead is assigned to a dispatch whose worktree stands on a branch
+#    carrying no dispatch id: fixture-run.5 is dev-fixture-3's, and
+#    dev-fixture-3 holds `worktree-agent-b7e40952`. Nothing in that name
+#    says dev-fixture-3, so attribution must fall back to the bead the
+#    tree's HEAD commit closed.
+#
+# 3. That fallback has nothing of its own to read. `worktree-agent-b7e40952`
+#    sits at d54d47f, which is the sprint head — measured, `git rev-list
+#    --count claude/bead-bonanza-fixture..worktree-agent-b7e40952` is 0,
+#    so the tree has committed nothing. Its HEAD commit is
+#    `fixture-run.4 P1 the fourth bead of the run`, which dev-fixture-4
+#    landed, so attribution by HEAD commit reaches a dispatch that has
+#    finished rather than the live one holding the tree.
+#
+# No case asserts those three today: they are open defects, and a case
+# demonstrating one would be red. This fixture is the world they are
+# fixed against.
+
+kind = "variant"
+contract_version = "2.0"
+
+description = """A concurrent run whose worktrees are harness-named: the target is ahead \
+of a drained dispatch's branch while that dispatch's worktree still stands, and a second \
+worktree sits at the sprint head having committed nothing, so neither tree can be \
+attributed by its branch name."""
+
+prefix = "fixture"
+run = "fixture-run"
+
+# dev-fixture-2's tree. Drained — fixture-run.3 is closed — and still
+# standing, which is what an accept has to get past.
+[[worktree]]
+branch = "worktree-agent-3f8a2c1d"
+path = "worktree-agent-3f8a2c1d"
+
+# dev-fixture-3's tree, at the sprint head with no commit of its own.
+#
+# Both paths are named for their branches so they carry no dispatch id
+# either — a chosen name, not a measured one. What the harness really
+# calls the DIRECTORY is unverified: status.go's capture records the
+# branch form and says nothing about the path, and no `worktree-agent-`
+# tree was standing to measure (`git worktree list --porcelain` in the
+# session that recorded this fixture listed only the repository and a
+# coordinator-named `.bb-worktrees/<dispatch-id>` tree). Settle it by
+# running that command in a session where the harness has created one.
+# Nothing here depends on the answer: attribution reads the HEAD commit,
+# and the paths only have to carry no dispatch id, which they do.
+[[worktree]]
+branch = "worktree-agent-b7e40952"
+path = "worktree-agent-b7e40952"

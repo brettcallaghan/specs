@@ -127,6 +127,88 @@ func TestTheReviewCounterSurvivesAResumedRunAndOnlyGoesForward(t *testing.T) {
 	}
 }
 
+// The circuit breaker's count is durable for the same reason the review
+// counter is — a resumed session that restarted it would never trip — and
+// it moves in only two ways: up, or back to zero. Anything between is a
+// partial forgiveness nothing is entitled to grant.
+//
+// Its absence is a third state, and the one most easily lost: a run that
+// has not dispatched yet carries no count, and the record reports that as
+// absent rather than as zero, because reading absence as zero is the
+// caller's decision to make.
+func TestTheDispatchFailureCountRisesOrResetsToZeroAndIsAbsentBeforeItStarts(t *testing.T) {
+	const key = "consecutive_dispatch_failures"
+
+	// Absent is absent. A record before the run's first dispatch reports
+	// the key as not present, and hands back no value to mistake for one.
+	empty := doc(t, map[string]string{})
+	if value, present := empty.Get(key); present {
+		t.Errorf("an unwritten count reads as present with %s, want absent", value)
+	}
+	var before int
+	present, err := empty.Decode(key, &before)
+	if present || err != nil {
+		t.Errorf("Decode of an unwritten count = (present=%v, err=%v), want (false, nil)", present, err)
+	}
+
+	// The stage is dispatch, so before that stage the key is pending
+	// rather than a failure — its absence is a run partway through.
+	report := manifest.Validate(empty, swarmmodel.RunStageScope)
+	for _, f := range report.Failures() {
+		if len(f.Keys) == 1 && f.Keys[0] == key {
+			t.Errorf("an unwritten count is a failure at the scope stage: %s", f.Message)
+		}
+	}
+
+	current := doc(t, map[string]string{key: `3`})
+
+	// It reads back what was counted, not zero.
+	var counted int
+	if present, err := current.Decode(key, &counted); err != nil || !present || counted != 3 {
+		t.Fatalf("a resumed run read the count as %d (present=%v, err=%v), want 3", counted, present, err)
+	}
+
+	// Every decrease that is not a reset is refused, at both ends of the
+	// range — one below, and one above zero.
+	for name, value := range map[string]string{
+		"one lower":      `2`,
+		"almost a reset": `1`,
+	} {
+		report := manifest.CheckWrite(current, raw(t, map[string]string{key: value}))
+		if !report.Failed() {
+			t.Errorf("%s: the write was accepted", name)
+			continue
+		}
+		if !hasRule(report, manifest.RuleFailureCountBackwards) {
+			t.Errorf("%s: findings are %v, want a backwards refusal", name, rules(report))
+		}
+		// The refusal names the count already recorded, so a caller sees
+		// it lost to a value rather than only that it lost.
+		if !strings.Contains(report.Error(), "3") {
+			t.Errorf("%s: the refusal does not name the recorded count: %s", name, report.Error())
+		}
+	}
+
+	// The negative controls: rising is how the breaker counts, and a
+	// reset to zero is what a dispatch that completed something writes.
+	// Neither may be caught by the rule, or the count could never move.
+	for name, value := range map[string]string{
+		"another failure": `4`,
+		"a reset":         `0`,
+		"the same count":  `3`,
+	} {
+		if report := manifest.CheckWrite(current, raw(t, map[string]string{key: value})); report.Failed() {
+			t.Errorf("%s was refused: %s", name, report.Error())
+		}
+	}
+
+	// And a record carrying no count yet accepts one, so the rule reads
+	// an absent count as absent rather than as a zero to compare against.
+	if report := manifest.CheckWrite(empty, raw(t, map[string]string{key: `1`})); report.Failed() {
+		t.Errorf("the first count written was refused: %s", report.Error())
+	}
+}
+
 // AC: AC-SWARM-CORE-002.8
 //
 // Dispatch prompts cite ledger entries by position, so an entry removed

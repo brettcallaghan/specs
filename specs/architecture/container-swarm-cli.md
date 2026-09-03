@@ -173,6 +173,13 @@ implements any of them a second time.
   outcome that names no resolution — both are contract obligations, and
   enforcing them here is what makes them true of every command rather
   than of the ones that remembered.
+- **Every result names the invocation that produced it** — the command
+  path, the run it was scoped to, and the interpreter that actually ran —
+  and the surface stamps all three rather than each command setting them.
+  A result built without them does not merely omit them: `explain` is the
+  mode's zero value, so a run that merged a branch and deleted a ref
+  reports `mode: explain` and a consumer routing on the mode reads it as
+  a no-op. `run` is empty only for a command that takes no `--run`.
 - **The plan runner's output is captured rather than streamed**, so a
   `--json` envelope is never preceded on standard output by transcript
   lines that would corrupt it, and both forms carry the same transcript.
@@ -190,24 +197,33 @@ implements any of them a second time.
   reason is what the caller is told.** Reading the fragment's answer
   instead would report "the last step produced no value", which is true
   and useless.
-- **`swarm status` is the one command that does not supply a plan and an
-  interpretation.** The Status Collector's completion walk queries one
-  level of the run's tree at a time, with the next query depending on
-  what the last one answered, so there is no fixed sequence to render
-  before running it — a plan has to be a value a test can compare without
-  starting a process, and a walk of unknown depth is not one. It declares
-  the five contract flags itself instead, and reuses the surface's own
+- **`swarm status` was the first command that does not supply a fixed
+  plan and an interpretation, and `phase close`, `dispatch open` and
+  `dispatch accept` take the same path for the same reason.** The Status
+  Collector's completion walk queries one level of the run's tree at a
+  time, with the next query depending on what the last one answered, so
+  there is no fixed sequence to render before running it — a plan has to
+  be a value a test can compare without starting a process, and a walk of
+  unknown depth is not one. `phase close`'s scope is not known until the
+  run's descendants have been walked, `dispatch open`'s worktree half
+  cannot be described until the sprint-branch half has answered, and
+  `dispatch accept`'s sequence depends on the drain check and then on
+  which case — serialized or concurrent — the branches turn out to be in.
+  Each of the four declares the five contract flags itself instead of
+  going through [Spec] and `newSubcommand`, and reuses the surface's own
   exit-status mapping and both renderings, so those two stay properties of
-  the surface rather than a second copy of them. Explain still measures
-  nothing: it describes what the collector would query rather than
-  printing a plan it cannot know the shape of, per the Status Collector's
-  own note on this.
+  the surface rather than a second copy of them living in every command
+  that cannot use it. Explain still measures nothing for any of them: each
+  describes what it would do rather than printing a plan it cannot know
+  the shape of ahead of running.
 
-The tree so far is `swarm manifest get | set | require | validate` and
-`swarm status`. `manifest` is a noun with no `RunE`: it cannot be
-invoked, and cobra prints its verbs instead — so the rule that every
-subcommand carries the contract flags is about the leaves, and that is
-what the surface's own test walks.
+The tree today is `swarm manifest get | set | require | validate`,
+`swarm status`, `swarm phase close`, `swarm ready` (with `--agent`),
+`swarm dispatch open | accept`, and `swarm branch verify-landed | push`.
+`manifest`, `phase`, `dispatch` and `branch` are nouns with no `RunE`:
+none can be invoked on its own, and cobra prints its verbs instead — so
+the rule that every subcommand carries the contract flags is about the
+leaves, and that is what the surface's own test walks.
 
 **`get` is the lookup**: `--key <k>` answers with that key and its value,
 no key answers with every key the record carries, and several keys answer
@@ -239,6 +255,152 @@ per-property verdicts a failing invocation renders, and the style rules
 that keep the two forms readable. It is a standard over every subcommand
 rather than a property of any one of them, which is why it is stated
 there and enforced here.
+
+**`swarm phase close`** closes the epics beneath the run epic that the
+tracker judges eligible to close — open, with every child closed — and
+reports the beads that closure released as ready. `bd epic status
+--eligible-only --json` ignores its positional scope argument and closes
+every eligible epic in the database at exit 0 regardless of what is
+passed, so this command narrows the tracker's own answer to the run's
+own descendants through `tracker.Descendants` rather than trusting the
+invocation to scope itself. An epic outside the run is never touched and
+never reported, and eligibility is never re-derived here — it stays the
+tracker's own rule, only narrowed.
+
+**`swarm ready`** reports the beads under the run that nothing is
+blocking, with the run's own filter applied — no epic, no bead closed or
+deferred, none carrying the `human` label, since a completion count that
+hid a bead awaiting a human decision would report the run drained while
+a human still owes it an answer. Each bead is named with the dispatch id
+it is assigned to, or unassigned when none is, and a bead assigned to a
+dispatch whose worktree is standing is reported **held** rather than
+available — the same worktree-to-dispatch attribution `swarm status`
+performs (matching a standing worktree to the bead its HEAD commit
+closed, then that bead's own assignee), so a caller does not send a
+second agent after one already at work.
+
+With `--agent <id>`, the same command narrows to one dispatch's own
+queue in dependency order, together with its drain verdict — the two
+reads `tracker.AgentQueue` pairs, per the Tracker component above.
+`swarm dispatch accept`'s own drain check reuses this exact derivation
+rather than re-deriving the two queries, so "drained" has one
+implementation for every command to agree with.
+
+`swarm ready` also carries the run's circuit breaker, **on both arms**:
+`--agent` narrows which beads are reported and changes nothing about the
+dispatch return the same invocation carried, so reporting a return and
+asking for that dispatch's remaining queue is one invocation rather than
+two. It reads
+`consecutive_dispatch_failures` from the manifest on every invocation, so
+a bare query still reports the count and still stops a run already at
+threshold, and — only where `--completed <n>` is given — advances it
+(`n == 0` records a failed dispatch and increments; `n > 0` records one
+that completed something and resets to zero) and writes the result back
+through the Manifest Store. `--threshold` defaults to 3 and is a flag,
+not a manifest key, since it is a property of the invocation rather than
+of the run's record. At or past the threshold the command reports the
+run stopped, naming the count and the threshold, rather than failing
+silently or leaving a caller to compare the two itself.
+
+That write is the command's only write, and it goes through the plan
+runner under the invocation's own mode like every other. A dry run
+therefore refuses it — the step is reported refused, with the runner's
+own reason — and the count it would have set is not a measurement, so the
+count is reported **unestablished** with the projection in its reason
+rather than as the value nothing wrote. A dry run does not report the run
+stopped for the same reason: a run is not stopped by a number that was
+never recorded.
+
+**`swarm dispatch open`** establishes the sprint branch and, with
+`--dispatch <id>`, that dispatch's own worktree — in that order, and the
+order is structural rather than incidental: the worktree half runs only
+after the sprint-branch half has returned a branch to cut from. The
+branch is created and recorded in one manifest write the first time any
+dispatch of the run is opened; every dispatch after the first reuses the
+recorded branch, `--branch` is ignored once one is recorded, and a
+branch already carrying the name the run would use — with the manifest
+recording none — stops the run rather than being silently claimed for
+it. With `--dispatch`, a worktree is stood up at
+`<parent>/.bb-worktrees/<dispatch-id>` on a new branch
+`bb/<dispatch-id>`, cut from `--base` or, absent that, the sprint
+branch's head at that moment; a dispatch whose worktree already stands
+is reported and left untouched.
+
+**`swarm dispatch accept`** first checks that the named dispatch holds
+nothing ready and nothing in progress — the drain check — and merges
+nothing when it does not; a dispatch still holding work stops the
+acceptance at this one step. Once drained, it decides whether the
+dispatch was **serialized** or **concurrent** by comparing the dispatch
+branch's merge-base with the target against the target's current head —
+equal is serialized, anything else concurrent — and reports which case
+it read *before* it reads a fast-forward refusal: a refused fast-forward
+means either the dispatch was cut from an earlier target and must be
+rebased, or the target moved between the case being read and the fold
+being attempted, and the two call for opposite remedies, so reading the
+refusal without the case first is how a healthy run gets stopped and a
+raced one gets rewritten. A concurrent branch is rebased onto the target
+as it stands at that moment, checked out back onto the target — a rebase
+leaves the repository on the dispatch's own branch, per [Checkout]'s own
+note — and then fast-forwarded; a serialized branch whose fast-forward is
+refused stops, and the merge is never re-attempted. A rebase that
+conflicts records a `sequencing` finding naming both beads (read through
+`status.BeadIDFromCloseSubject`, the run's one reading of a close
+commit's subject — see the Status Collector component below) and every
+conflicting path, marks the unmerged bead blocked, and resolves nothing
+itself.
+
+**What landed is read from the target, after the fold, on both arms.**
+The `merged_sha` the command reports is the target's own head once the
+fast-forward has been made — never the dispatch branch's sha, which is
+read before any write and which the concurrent arm's rebase then
+rewrites into commits the target does not carry. It is the same reason
+the post-merge re-check reads the target rather than the branch, and the
+same reason the branch is not consulted at all by then: it has been
+deleted.
+
+After a successful fold, the dispatch branch's ancestry of the target is
+read as its own plan — the answer decides whether a removal plan is
+built at all, so the guard cannot be a step of the plan it guards — and
+the worktree is removed, then its branch deleted, only when the dispatch
+branch is an ancestor of the target; the deletion is ordered behind the
+removal as two steps of one plan, so a removal the tool refuses (never
+retried, never forced) leaves the branch undeleted too, per [[adr-026]].
+Every bead the dispatch held is then re-checked against all five
+acceptance signals with none deferred, and only once every one has
+passed is the sprint branch pushed and proved landed — `swarm branch
+push`'s own steps, run in place unless `--no-push` reports the branch
+unlanded instead of pushing it.
+
+**`swarm branch verify-landed`** and **`swarm branch push`** fetch the
+remote and compare the branch against its counterpart there, so a stale
+local record of where the remote points cannot report a branch as
+landed; a branch ahead of its remote is reported with the count of
+unpushed commits, and one with no counterpart on the remote is reported
+unlanded rather than clean — both take the attention status. `push` is
+`verify-landed` with the push run first, on the same plan — one
+implementation, not two commands that resemble each other. Where
+`--branch` is absent the branch is the one currently checked out, and
+where `--remote` is absent the remote is `origin`; both are read from
+the repository rather than from configuration outside it.
+
+The fetch is a write, so a dry run refuses it while the two reads that
+compare still run — against whatever the local tracking ref happens to
+hold. A stale ref is indistinguishable from a fresh one from inside the
+process: it resolves, it compares, and it would report a branch as
+landed. **The verdict is therefore taken from whether the remote was
+actually fetched, before either read's answer is consulted at all**: a
+fetch that was refused or failed reports `landed` unestablished with the
+attention status, never `true` and never `false`. Guarding on either
+read instead is the mistake that looks right — both are reads, so both
+always run, and a guard on them never fires.
+
+**Neither command refuses an absent run scope** — the one exception, in
+this whole surface, to "the scope is checked before the mode is
+resolved" above. Both are the recovery path: a session whose first act
+is the landing check does not yet know which run it is in, and requiring
+a scope would defeat the purpose. `--run` is still declared, so the flag
+set every command carries stays uniform, and it is carried into the
+result when given.
 
 ### Plan Runner
 
@@ -327,10 +489,12 @@ description: The interface stating what a run needs from an issue tracker, indep
 
 (Go interface) — The interface stating what a run needs from an issue
 tracker: reading a bead, its children and its metadata; the ready set
-under a scope; writing a status, an assignee, a label, a comment and an
-edge. It names operations in the run's vocabulary rather than any
-tracker's, which is what makes a second implementation a matter of
-satisfying it rather than of rewriting the callers.
+under a scope; the beads one agent is holding; which epics beneath a
+scope are eligible to close; the findings recorded on a bead; writing a
+status, an assignee, a label, a comment and an edge. It names operations
+in the run's vocabulary rather than any tracker's, which is what makes a
+second implementation a matter of satisfying it rather than of rewriting
+the callers.
 
 It lives at `cli/swarm/tracker`. Three things about the built interface
 that the roster line does not carry:
@@ -347,6 +511,32 @@ that the roster line does not carry:
   kept beside it.** A status the vocabulary does not cover becomes
   `unknown` rather than any of the others, so a tracker release that adds
   one is visible instead of making every bead carrying it read as open.
+
+**`Holding` and `ClosableEpics` answer wider than the scope asked for, and
+the caller narrows it.** Neither has a transitive, run-scoped tracker
+query behind it — the Beads Tracker section below measures why — so each
+declares the widest query that is correct and returns a
+[tracker.Held]/[tracker.Closable] carrying the scope beside the wide
+answer. `Held.Within` and `Closable.Within` are the only way to reach the
+run's own answer, which is what stops a caller mistaking one run's held
+beads or closable epics for another's.
+
+**A dispatch's queue is two reads, not one.** `Ready` filtered to an
+agent excludes work already claimed, so on its own it reports an agent
+mid-bead as finished; [tracker.Queue] pairs it with `Holding` and is
+`Drained` only when both halves are empty.
+
+**Both halves take the SAME filter, and one value is passed to both.**
+`Ready` and `Holding` each accept a `tracker.ReadyFilter`, and
+`AgentQueue` builds one and hands it to each, so the two cannot disagree
+about which beads are this dispatch's. An exclusion applied to only one
+half is not cosmetic: a bead the ready half drops and the held half
+returns leaves `Drained` false for as long as it stays in progress, so
+`swarm dispatch accept` refuses that dispatch permanently — while the
+post-merge re-check, which applies the run's filters, settles a set that
+never contained it. The narrowing is applied to the HELD half rather
+than relaxed on the ready half, because the ready set's exclusions are
+fixed by the feature's own requirements.
 
 **`Descendants` is a walk, and lives here rather than in an
 implementation.** "Every bead in this run" is not a query any tracker
@@ -389,11 +579,14 @@ rather than one guard:
 |---|---|---|
 | `bd show <id> --json` | an array of one issue | exit 1, an **object** carrying `error` on **stdout** |
 | `bd list --parent <id> --json` | an array; empty is `[]` | — |
-| `bd ready --parent <id> --json` | an array; empty is `[]` | — |
+| `bd ready --parent <id> --limit 0 --json` | an array; empty is `[]` | — |
+| `bd list --assignee <agent> --status in_progress --limit 0 --json` | an array; empty is `[]` | — |
 | `bd update <id> … --json` | an array of the updated issue | exit 1, **stdout empty**, message on **stderr** |
 | `bd comment <id> <text> --json` | an **object** | — |
+| `bd comments <id> --json` | an array of the same objects `bd comment` returns one of; empty is `[]` | exit 1, an object carrying `error` on stdout |
 | `bd dep add <a> <b> --json` | an **object**, `status:"added"` even when the edge already existed | exit 1, an object carrying `error` on stdout |
 | `bd gate list --json` | an array; empty is a bare **`null`** | — |
+| `bd epic status --eligible-only --json` | an array of `{epic, total_children, closed_children, eligible_for_close}`; empty is `[]` | — |
 
 Two failure shapes and four container shapes, all but the failures at
 exit 0. The two rules that a shared guard gets wrong are both in that
@@ -401,7 +594,31 @@ table: "treat any non-array as empty" reports a written comment as one
 that was not written, and "read stderr on failure" reports `bd show`'s
 message as absent. Absent, `null` and `[]` normalize to one empty value
 per subcommand; any other shape is an error, because a shape a decoder
-does not know is not evidence of emptiness.
+does not know is not evidence of emptiness. `bd comment` and `bd
+comments` differ by one letter and by their container — the write
+returns the object, the read returns an array of them — which is why
+each keeps its own decoder rather than sharing one.
+
+Two further traps, both silent at exit 0:
+
+- **`bd ready`'s own default truncates at 100.** Measured on bd 1.2.2
+  against this repository's database: `bd ready --json | jq length` → 100,
+  the same query with `--limit 0` → 106. Every `Ready` and `Holding`
+  invocation therefore carries `--limit 0`, since a truncated ready or
+  held set is a run reporting less work than it has, at exit 0.
+- **`bd list` carries the same two exclusions `bd ready` does**, which is
+  what lets the held half of a dispatch's queue apply the run's filters
+  rather than only its ready half. Measured on bd 1.2.2 against this
+  repository's database: `bd list --limit 0 --all --json | jq length` →
+  602 with 40 of `issue_type == "epic"`; the same query with
+  `--exclude-type epic` → 562 with none. `--exclude-label human` → 601,
+  dropping the one bead carrying that label and leaving none behind.
+- **`bd epic status`'s positional scope argument is ignored.** Measured:
+  `bd epic status --json | jq length` and `bd epic status <run> --json |
+  jq length` both return every epic in the database, exit 0, nothing on
+  stderr. That is why `ClosableEpics` is scoped through
+  `tracker.Closable.Within` rather than through the invocation — the same
+  reason `Holding`'s scope is.
 
 `bd` also writes standing warnings to stderr while its JSON goes to
 stdout, which is why nothing here reads a merged stream and why a
@@ -418,8 +635,11 @@ description: The interface stating what a run needs from version control, indepe
 (Go interface) — The interface stating what a run needs from version
 control: history and commit subjects, branches and their ancestry,
 worktree registrations, merges, and the comparison of a local branch
-against its remote. Stated in the run's vocabulary — a dispatch's branch,
-the sprint branch, a standing worktree — rather than in any one system's.
+against its remote; and the dispatch loop's writes — creating and
+removing a worktree, creating and deleting a branch, rebasing onto a
+named commit, fast-forwarding, fetching and pushing. Stated in the run's
+vocabulary — a dispatch's branch, the sprint branch, a standing worktree —
+rather than in any one system's.
 
 It lives at `cli/swarm/vcs`. Its operations return a **fragment** — an
 ordered slice of steps whose last one carries the answer — rather than a
@@ -429,6 +649,49 @@ interface where one method returned a fragment and the rest returned
 single steps would be one a caller has to remember the shape of. The
 Tracker's operations are each a single invocation and return a bare step;
 if one ever needs two, this is the type it takes.
+
+**A refusal — a merge or a rebase version control declines to perform —
+decodes to a [vcs.Refusal] rather than being left in the tool's prose.**
+Which paths conflict, or whether the refusal was a non-fast-forward, is
+what a caller branches on: a dispatch whose rebase conflicts is handed
+back to its agent with the paths, one whose fast-forward is refused is
+rebased and retried, and re-deriving either from text at every call site
+is the decoding this container exists to do once. `RemoveWorktree` takes
+no force parameter, and none can be added: the forcing form discards
+uncommitted work, which is exactly what a dispatch's still-working
+worktree holds, so a tree with work in it refusing removal is how an
+orchestrator learns the dispatch is unfinished.
+
+**A remote's rejection of a push decodes to a [vcs.Rejection], the same
+reasoning as [vcs.Refusal] applied to the other party.** `Push`'s
+decoder reads which refs the remote refused and the remote's own reason
+from stderr rather than from the tool's last line, since a push the
+remote refused landed nothing — not even the refs it accepted alongside
+the refused one, because git reports the whole push as failed — so a
+caller has to be able to name the refused ref rather than infer from
+prose whether its work reached the remote.
+
+**`Root` and `CurrentBranch` read facts a dispatch's own invocation
+needs before it can build the rest of its plan** — the coordinator's
+checkout, from which a dispatch's worktree path is derived as a sibling,
+and the branch a command takes as its default when the caller names
+none. `CurrentBranch` answers the literal string `HEAD` when the
+repository is on no branch, which a caller reads as "no branch" rather
+than as a branch by that name. `Divergence` takes the remote as an
+argument rather than reading the branch's configured upstream, because
+the two are not the same question: a caller that named a remote is
+asking about THAT remote, and a branch whose counterpart exists there
+may still have no upstream configured, in which case an upstream-based
+comparison fails where the answer is plainly available.
+
+**`Checkout` puts the repository on a named branch, with nothing
+forcing and no parameter that could add one** — a checkout that would
+overwrite uncommitted work refuses, which is the refusal a run needs to
+see rather than to override. It exists because [Rebase] moves the
+repository: a rebase leaves the working tree on the branch being
+rebased, so a fold immediately afterward has to check the repository
+back onto its target first, or it would advance the dispatch's own
+branch onto itself and leave the target untouched.
 
 ### Git Version Control
 
@@ -455,9 +718,21 @@ for the case that needs a deliberately broken registration:
 | `git worktree prune` | exit 0, and the stale entry is gone |
 | `git merge-base --is-ancestor A B` | **exit 0 yes, exit 1 no, exit 128 when a revision does not resolve** |
 | `git rev-parse <missing>` | exit 128 — **and it echoes the argument on stdout**, so a decoder reading stdout before the status takes a branch name for a commit id |
-| `git rev-list --count --left-right <b>...<b>@{upstream}` | exit 128 with "no upstream configured" when there is none, which is a condition rather than a crash |
+| `git rev-parse --show-toplevel` | exit 0, one absolute path with no trailing slash |
+| `git rev-parse --abbrev-ref HEAD` | exit 0; the short branch name, or the literal `HEAD` when the repository is on no branch |
+| `git rev-list --count --left-right <branch>...<remote>/<branch>` | exit 128, `fatal: ambiguous argument`, when the named remote has no such counterpart — a condition rather than a crash, and not the same failure as `<branch>@{upstream}` with no upstream configured |
+| `git worktree add -b <branch> <path> <base>` | exit 0; a second `add` of the same branch exits 255, `fatal: a branch named '<branch>' already exists` |
+| `git worktree remove <path>` | exit 0; removing it again exits 128, `fatal: '<path>' is not a working tree` |
+| `git branch <name> <base>` | exit 0; again exit 128, `fatal: a branch named '<name>' already exists` |
+| `git branch -d <name>` | exit 0, `Deleted branch <name> (was <sha>).`; again exit 1, `error: branch '<name>' not found` |
+| `git merge --no-ff -m <msg> <branch>` | a conflict exits 1 with the `CONFLICT (…)` lines **on stdout** and nothing on stderr |
+| `git merge --ff-only <branch>` | diverged exits 128, `fatal: Not possible to fast-forward, aborting.` on stderr, and leaves nothing behind — clean tree, HEAD unmoved, no `MERGE_HEAD`; already merged exits 0, `Already up to date.` |
+| `git rebase <onto> <branch>` | a conflict exits 1 with the `CONFLICT (…)` lines **on stdout** and `error: could not apply …` on stderr; the repository is left mid-rebase. Nothing to do exits 0. Leaves the repository checked out on `<branch>` |
+| `git checkout <branch>` | exit 0; already on it exits 0, `Already on '<branch>'`; local changes the checkout would overwrite exit 1, `error: Your local changes to the following files would be overwritten by checkout` |
+| `git fetch <remote>` | exit 0, re-runnable |
+| `git push <remote> <branch>` | exit 0 and re-runnable when nothing is new, `Everything up-to-date`; a non-fast-forward refusal exits 1 with ` ! [rejected] … (non-fast-forward)` on stderr; a server-side refusal (a pre-receive hook, say) exits 1 with the hook's `remote: …` reason **and** a ` ! [remote rejected] <src> -> <dst> (…)` line, both on stderr, stdout empty |
 
-Three consequences the code carries:
+Five consequences the code carries:
 
 - **Worktrees prunes and then lists, and the list's decoder drops
   prunable entries too.** The prune is a write, so a dry run refuses it;
@@ -469,6 +744,25 @@ Three consequences the code carries:
 - **A commit is read through a requested format with NUL separators**,
   never out of a rendered log. A run's own commit subjects carry a bead
   id, a priority and a title, and a subject may contain anything.
+- **A conflict's lines are on stdout, not stderr, for both `merge` and
+  `rebase`** — the trap a decoder reading stderr for the reason falls
+  into, since that stream is empty on a conflict. A path is read out of
+  `Merge conflict in <path>` and the `deleted in` / `renamed to` forms
+  unquoted to the end of the line, spaces included, never out of a
+  whitespace split. Re-running is safe only for `Fetch`, `Push` and a
+  `MergeFastForward` that succeeds; `CreateWorktree`, `RemoveWorktree`,
+  `CreateBranch`, `DeleteBranch` and `Rebase` are not — each either names
+  something a second call collides with, or leaves the repository
+  mid-rebase, which a second call does not resolve.
+- **A rejected push is read from the `! [` and `remote: ` lines, not
+  from the last line of stderr.** Only the `! [` line names the ref the
+  remote refused, and only the `remote: ` lines carry the server's own
+  reason; `error: failed to push some refs to '<remote>'`, the line a
+  decoder reading just the tail of stderr would land on, carries
+  neither. A push that fails with no ref named and nothing said —
+  because the remote could not be reached at all, say — decodes as an
+  ordinary failure rather than as a [vcs.Rejection] naming nothing, which
+  a caller must not read as "nothing was refused".
 
 ### Manifest
 
@@ -524,6 +818,7 @@ it has to read:
 | write-once | a different `branch` or `base_sha`. Three things read them — the review scopes its diff from the base, every worktree branches from the branch, the pull request opens against it — so a run that repointed either mid-flight would leave the three describing different trees. Re-writing the SAME value is not a change, which is what lets a resumed run reuse its branch |
 | counter backwards | a lower `review_passes`, because a resumed run that restarted the counter would loop forever |
 | counter over budget | a `review_passes` past the `review_budget` beside it |
+| failure count backwards | a `consecutive_dispatch_failures` lower than what is recorded, unless it resets to 0. Only a dispatch that completed something earns the reset, so a partial decrease is forgiveness nothing is entitled to grant |
 | ledger rewritten | an entry removed, reordered or altered. Dispatch prompts cite entries by position, so a rewrite retargets every citation that addressed one — and nothing downstream can tell |
 | admission overlap | a bead in more than one of `admitted`, `excluded` and `moved`. The finding names the BEAD rather than the lists, because the bead is what somebody has to decide about |
 | effort unrecorded | an absent `effort` past its stage. A harness exposing no such setting records `unrecorded`, so a reader can tell "not offered" from "not yet written" |
@@ -629,7 +924,12 @@ because each is a place the obvious implementation is wrong:
   commit like any other. A worktree whose HEAD is not shaped like a
   bead's own close, or whose bead this run's walk did not find, matches
   nobody, and that is the safe direction: an unmatched tree is reported
-  standing rather than attributed to an agent that does not own it.
+  standing rather than attributed to an agent that does not own it. That
+  subject form is read through `status.BeadIDFromCloseSubject`, exported
+  because this collector is not its only reader: `swarm dispatch accept`
+  asks the same question of a rebase conflict, to name the two beads it
+  is between, so the run has one reading of a close commit's subject
+  rather than two that could disagree.
 - **It executes.** Explain and dry-run are the command surface's modes
   and belong to the command that renders the measurements; a collector
   asked to explain would return a set in which nothing was established,
@@ -713,6 +1013,11 @@ behaviour follows from.
     apply them as one merge.
   - IF any key in a multi-key write is refused, THEN the container SHALL
     store none of them.
+  - WHEN a dispatch completes nothing, the container SHALL increase
+    `consecutive_dispatch_failures`; a write lowering it to anything other
+    than zero SHALL be refused, since only a dispatch that completed
+    something earns the reset. Its stage is dispatch, so its absence
+    before the run's first dispatch is legitimate.
 - **The repository and its worktrees** (git) — read for history,
   branches, ancestry and worktree registrations; written by the commands
   that create a branch or a worktree, merge, or push. Not exclusively
@@ -726,15 +1031,23 @@ behaviour follows from.
   reads exclusively. Each fixture is a directory holding `repository.bundle`,
   `tracker.jsonl` and `fixture.toml`; the upper test tier restores one
   through `git` and `bd` rather than generating a world, so a case asserts
-  against a repository and a tracker that behave like the real ones. Three
-  are committed today — `core`, `status-attention` and
-  `status-narrowed-scope`. [[adr-027]] owns the decision; Change Guidance
-  below owns the rules for re-recording one.
+  against a repository and a tracker that behave like the real ones. Nine
+  are committed today — `core`, `status-attention`,
+  `status-narrowed-scope`, `dispatch-concurrent-worktree`,
+  `dispatch-rebase-conflict`, `dispatch-stale-base`, `dispatch-worktree`,
+  `phase-epics` and `push-refused`. [[adr-027]] owns the decision; Change
+  Guidance below owns the rules for re-recording one.
   - WHEN a fixture is recorded, the contract version it was recorded
     against SHALL be recorded with it, so a case that starts failing names
     a shape change rather than a mystery.
   - A fixture SHALL be restored per case rather than shared across cases,
     so no case depends on another having run.
+  - `fixture.toml` MAY declare `[[worktree]]` entries (a branch and a
+    path) and a `[refusing_remote]` (a name, the ref pattern it refuses,
+    and a message) for a world a bundle cannot carry on its own — a
+    worktree is a registration under `.git`, and a remote with a
+    pre-receive hook is neither refs nor objects. The harness stands both
+    up at restore, from the declaration, never from a case.
 
 ## Infrastructure and Deployment
 
@@ -812,6 +1125,25 @@ This container SHALL comply with:
   the vocabulary of the tool implementing it.
 - WHEN a decoder is added or changed, a unit case SHALL pin every result
   shape that subcommand is known to return, including its empty forms.
+- WHEN a command's plan is not knowable before an earlier read answers —
+  the scope to act on, the branch to cut from, which case a comparison
+  turns out to be — it SHALL declare the five contract flags itself
+  rather than being built through [Spec] and `newSubcommand`, which
+  require one fixed plan known ahead of running. `swarm status`, `phase
+  close`, `dispatch open` and `dispatch accept` all take this path today.
+- WHEN a command needs a dispatch's drain verdict, it SHALL reuse
+  `tracker.AgentQueue` — the derivation `swarm ready --agent` exposes —
+  rather than re-deriving the ready and held queries, so "drained" has
+  one implementation for every command to agree with.
+- WHEN a commit subject is read for the bead id a close commit names, it
+  SHALL go through `status.BeadIDFromCloseSubject` rather than being
+  parsed a second time, so the run has one reading of the
+  `bb-close-bead.sh` subject form.
+- A command SHALL refuse an absent run scope unless it is itself the
+  run-recovery path. `swarm branch verify-landed` and `swarm branch
+  push` are the only two that do not: a session whose first act is the
+  landing check does not yet know which run it is in, and requiring a
+  scope would defeat the purpose.
 - WHEN a manifest key is added, removed or retyped,
   `schemas/swarm/manifest.strata`, the generated artifacts and the
   validation rules SHALL be updated in the same change.
@@ -831,9 +1163,20 @@ This container SHALL comply with:
   case SHALL be one directory under `cli/testdata/swarm-cases/` holding
   `case.toml` and the `expected/` artifacts it names — so adding either
   is data a reviewer reads rather than Go a reviewer runs.
+- WHEN a world needs a standing worktree or a remote that refuses a push,
+  it SHALL be declared in that fixture's `fixture.toml`
+  (`[[worktree]]`, `[refusing_remote]`) rather than created by a case,
+  since a bundle cannot carry either and a case that built half the world
+  itself would make two cases reading the same world agree by hand about
+  what it contains.
 - WHEN a new world shape is needed for a case, it SHALL be derived as a
   branch from the core fixture rather than authored separately, so a
   change to the core reaches every variant.
+- A fixture SHALL model the world the code runs in today, and WHERE it
+  models a world that would hold only after an adoption, its
+  `fixture.toml` SHALL say so and name the adoption it presumes — a
+  fixture asserting against a world nobody runs in is green about
+  nothing, and the reader has no other way to tell the two apart.
 - WHEN a field is added to a command's JSON result,
   `schemas/swarm/output.strata` SHALL be updated in the same change.
 - WHEN a change to either schema removes, renames or retypes anything,

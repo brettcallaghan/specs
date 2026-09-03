@@ -158,6 +158,19 @@ frontier = "fable"
 #         not the run's (skill default).
 # merge_to_default = false
 
+# The circuit breaker's threshold: how many consecutive dispatch returns that
+# completed no bead stop the RUN. 3 is the skill default. `sprint-scope`
+# resolves it and the coordinator passes it to `swarm ready --threshold`, which
+# counts against the manifest's `consecutive_dispatch_failures`.
+#
+# MUST BE 1 OR GREATER. `swarm ready` refuses a non-positive --threshold
+# outright, in every mode, before it reads anything. Note this does NOT follow
+# `review_budget` above, where 0 disables the loop: a threshold of 0 would stop
+# the run on every dispatch return rather than disabling the breaker, so it is
+# rejected instead of being given a meaning. There is no value that turns the
+# breaker off.
+# dispatch_failure_threshold = 3
+
 # run_root: where a run's directory is created. Defaults to
 #           ${TMPDIR:-/tmp}/claude/bead-bonanza when unset. Not a gate row.
 # run_root = ""

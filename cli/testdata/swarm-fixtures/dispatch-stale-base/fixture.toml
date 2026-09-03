@@ -1,0 +1,30 @@
+# A dispatch branch cut from an earlier target than the current one.
+#
+# Derived from the core fixture: `bb/dev-fixture-2` is cut from the sprint
+# branch at ac4a37c, and the sprint branch then advances to d54d47f. So
+# the branch's merge-base with the target is NOT the target's head, which
+# is what makes the case concurrent rather than serialized.
+#
+# The two sides touch different files — the dispatch wrote `work.txt`, the
+# target added `notes.txt` — so the rebase the concurrent case calls for
+# succeeds. Measured on the built bundle: `git rebase
+# origin/claude/bead-bonanza-fixture` on `bb/dev-fixture-2` exits 0,
+# "Successfully rebased and updated refs/heads/bb/dev-fixture-2", no
+# unmerged paths. The conflicting world is `dispatch-rebase-conflict`.
+#
+#   repository.bundle  the core's three commits; 016160f on
+#                      `bb/dev-fixture-2` off ac4a37c; and d54d47f on the
+#                      sprint branch, made after it.
+#   tracker.jsonl      dev-fixture-2's one bead closed, so the dispatch
+#                      has drained and an accept reaches the merge rather
+#                      than stopping at the drain check.
+
+kind = "variant"
+contract_version = "2.0"
+
+description = """A drained dispatch whose branch was cut from an earlier target than \
+the one it would merge into: the merge-base is not the target's head, so the case is \
+concurrent, and the rebase it calls for succeeds."""
+
+prefix = "fixture"
+run = "fixture-run"

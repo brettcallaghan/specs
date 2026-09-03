@@ -48,6 +48,9 @@ const (
 	RuleCounterBackwards Rule = "manifest/counter-backwards"
 	// RuleCounterOverBudget — the review counter passed its budget.
 	RuleCounterOverBudget Rule = "manifest/counter-over-budget"
+	// RuleFailureCountBackwards — the consecutive-dispatch-failure count
+	// went down by something other than a reset to zero.
+	RuleFailureCountBackwards Rule = "manifest/failure-count-backwards"
 	// RuleLedgerRewritten — a ledger entry was removed or reordered.
 	RuleLedgerRewritten Rule = "manifest/ledger-rewritten"
 	// RuleAdmissionOverlap — a bead is in more than one admission list.
@@ -302,6 +305,7 @@ func CheckWrite(current Document, changes map[string]json.RawMessage) Report {
 		}
 		checkWriteOnce(current, name, changes[name], &report)
 		checkCounter(current, name, changes[name], &report)
+		checkFailureCount(current, name, changes[name], &report)
 		checkLedger(current, name, changes[name], &report)
 	}
 
@@ -351,6 +355,32 @@ func checkCounter(current Document, name string, value json.RawMessage, report *
 		report.add(RuleCounterOverBudget, SeverityFailure, []string{name},
 			`"review_passes" would be %d against a budget of %d`, next, budget)
 	}
+}
+
+// checkFailureCount: the circuit breaker's count goes up, or resets to
+// zero, and does nothing else. A dispatch that completed something is the
+// only thing that clears it, and clearing it means zero — so a write that
+// lowers the count to any other value is a partial forgiveness nothing is
+// entitled to grant, and it would hand a run that is failing steadily an
+// unbounded supply of dispatches.
+func checkFailureCount(current Document, name string, value json.RawMessage, report *Report) {
+	if name != "consecutive_dispatch_failures" {
+		return
+	}
+
+	var next int
+	if err := json.Unmarshal(value, &next); err != nil {
+		return
+	}
+	// An absent count is absent, not zero: a run that has not dispatched
+	// yet has nothing to compare against, so there is nothing to refuse.
+	recorded, ok := readInt(current, name)
+	if !ok || next >= recorded || next == 0 {
+		return
+	}
+	report.add(RuleFailureCountBackwards, SeverityFailure, []string{name},
+		`"consecutive_dispatch_failures" already reads %d; refusing to lower it to %d, because the only legitimate decrease is a reset to 0 by a dispatch that completed something`,
+		recorded, next)
 }
 
 // checkLedger: the environmental ledger is append-only. Dispatch prompts

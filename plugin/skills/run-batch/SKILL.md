@@ -50,8 +50,8 @@ RECORD=$(swarm manifest get --run {EPIC} --key branch --key checks_baseline --js
 BRANCH=$(printf '%s' "$RECORD" | jq -r .branch)              # the values themselves
 BASELINE=$(printf '%s' "$RECORD" | jq -r .checks_baseline)
 CHECKS_IDS=$($SCRIPTS/bb-checks.py --ids)
-bd ready --parent {EPIC} --assignee {DISPATCH_ID} --exclude-type=epic   # your queue
-bd list  --assignee {DISPATCH_ID} --status blocked                     # already blocked
+swarm ready --run {EPIC} --agent {DISPATCH_ID}      # your queue, in order
+bd list --assignee {DISPATCH_ID} --status blocked   # already blocked
 ```
 
 **The manifest is `swarm manifest`'s, never the tracker's** — the command owns
@@ -62,8 +62,12 @@ will disagree with it.
 its acceptance criteria and any decision it pins are there, and a summary
 handed to you would be a lossy copy of what you are about to read anyway.
 
-**An empty queue is a dispatch error, not an empty batch.** Report it and stop;
-do not go looking for work to do.
+**`swarm ready --agent` IS your queue** — your beads under the run, in
+dependency order, each marked ready or in progress, with your drain verdict.
+Route on its exit status and work the order it gives you. **An empty queue is a
+dispatch error, not an empty batch** — report it and stop. A dispatch id no
+bead names is reported as *not an established dispatch* rather than as drained,
+so a mistyped id cannot read as a finished batch either.
 
 **A missing manifest key is reported, never guessed** — `require` answers that
 as a status, so route on it rather than testing for an empty string. An absent
@@ -92,10 +96,9 @@ Cheap, and each has caught a run. The queue itself you already resolved above.
    commits — and the merge afterwards looks like a conflict rather than like a
    mistake. Report and **do not start**.
 
-**A bead in your queue that is not assigned to you is a dispatch error**:
-report it and do not start, rather than claiming your way into someone else's
-queue. A bead you expected that is missing is blocked behind something — say
-which, from `bd show <id>`.
+**A bead you expected that is missing is blocked behind something** — say
+which, from `bd show <id>`. One assigned to somebody else cannot reach you: the
+queue is narrowed to your own id.
 
 **One worktree, one branch, both already yours.** The branch is named for the
 dispatch and it is where every bead commits. **Do not cut a branch per bead and
@@ -356,12 +359,10 @@ branch back; you do not merge it and you do not push it.**
 
 ### How the orchestrator reads you
 
-Not from your return line — from your queue. **You have DRAINED when no open,
-ready bead in `{EPIC}` is assigned to you and you hold nothing `in_progress`.**
-Both halves are required: `bd ready` excludes `in_progress`, so a bead you are
-working right now empties the ready set, and the ready query alone would
-report you finished mid-bead. **Scope the query to `{EPIC}`** — `--assignee`
-alone spans the whole tracker, so work outside this run would read as yours.
+Not from your return line — from your queue. **You have DRAINED when
+`swarm ready --run {EPIC} --agent {DISPATCH_ID}` says so** — nothing ready and
+nothing in progress, both halves, which is why the verdict is the command's to
+give and not yours to derive.
 
 | your queue | your worktree | reading |
 |---|---|---|

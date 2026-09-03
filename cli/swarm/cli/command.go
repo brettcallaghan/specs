@@ -31,6 +31,25 @@ type Request struct {
 	FullResult bool
 }
 
+// stamp records on a result which invocation produced it: the command
+// path, the run it was scoped to, and the interpreter that actually ran.
+//
+// Every result a command hands to [finish] goes through here, or through
+// [refusal], which sets the same three. That is not tidiness:
+// [plan.ModeExplain] is [plan.Mode]'s zero value, so a result built
+// without these fields does not merely omit them — it reports a run that
+// merged a branch and deleted a ref as mode: explain, and a consumer
+// routing on the mode reads it as a no-op.
+//
+// Run stays empty for a command that takes no --run, which is what
+// schemas/swarm/output.strata declares run to mean.
+func (req Request) stamp(r Result) Result {
+	r.Command = req.Command
+	r.Run = req.Run
+	r.Mode = req.Mode
+	return r
+}
+
 // Spec is what a subcommand supplies to the surface. Everything else —
 // the flags, the scope check, the mode, the rendering and the exit status
 // — is the surface's, so no subcommand implements any of it a second
@@ -125,23 +144,18 @@ func newSubcommand(spec Spec, streams *ioStreams, runner swarmexec.Runner) *cobr
 			}
 
 			if req.Mode == plan.ModeExplain {
-				return finish(streams, req, Result{
-					Command:    req.Command,
-					Run:        req.Run,
-					Mode:       req.Mode,
+				return finish(streams, req, req.stamp(Result{
 					Outcome:    OutcomeClear,
 					Summary:    "explained; nothing was executed",
 					Transcript: lines(transcript.String()),
-				})
+				}))
 			}
 
 			result, err := spec.Interpret(req, report)
 			if err != nil {
 				return finish(streams, req, refusal(req, asRefusal(err)))
 			}
-			result.Command = req.Command
-			result.Run = req.Run
-			result.Mode = req.Mode
+			result = req.stamp(result)
 			result.Records = report.Records
 			result.Transcript = lines(transcript.String())
 			return finish(streams, req, result)
@@ -189,14 +203,11 @@ func finish(streams *ioStreams, req Request, result Result) error {
 
 // refusal turns a refusal into a renderable result.
 func refusal(req Request, r *Refusal) Result {
-	return Result{
-		Command:    req.Command,
-		Run:        req.Run,
-		Mode:       req.Mode,
+	return req.stamp(Result{
 		Outcome:    r.Outcome,
 		Summary:    r.Reason,
 		Resolution: r.Resolution,
-	}
+	})
 }
 
 // asRefusal classifies an error a subcommand or the plan runner returned.

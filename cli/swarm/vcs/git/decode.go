@@ -7,6 +7,7 @@ import (
 	"time"
 
 	swarmexec "github.com/brettcallaghan/agent-plugins/cli/swarm/exec"
+	"github.com/brettcallaghan/agent-plugins/cli/swarm/plan"
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/vcs"
 )
 
@@ -39,6 +40,54 @@ import (
 //	    none, which is a condition rather than a crash.
 //	git for-each-ref --format=... refs/heads/
 //	    -> exit 0; a branch with no upstream yields an empty field.
+//	git rev-parse --show-toplevel
+//	    -> exit 0, one absolute path with no trailing slash (measured on
+//	    git 2.43.0, run from the repository root, which is where this
+//	    container is always invoked).
+//
+// The dispatch loop's writes, measured the same way:
+//
+//	git worktree add -b <branch> <path> <base>
+//	    -> exit 0. A second add of the same branch exits 255,
+//	    `fatal: a branch named 'dev-1' already exists`.
+//	git worktree remove <path>
+//	    -> exit 0; removing it again exits 128,
+//	    `fatal: '<path>' is not a working tree`.
+//	git branch <name> <base>   -> exit 0; again exit 128, `already exists`
+//	git branch -d <name>       -> exit 0, `Deleted branch br-1 (was 863ebb2).`;
+//	    again exit 1, `error: branch 'br-1' not found`
+//	git merge --no-ff -m <m> <b>
+//	    -> a conflict exits 1 with the CONFLICT lines ON STDOUT and
+//	    nothing on stderr. That is the trap: a decoder reading stderr for
+//	    the reason finds an empty stream.
+//	git merge --ff-only <b>
+//	    -> diverged branches exit 128 with `fatal: Not possible to
+//	    fast-forward, aborting.` on stderr, behind several `hint:` lines.
+//	    Nothing is left behind: the working tree is clean, HEAD is
+//	    unmoved, and there is no MERGE_HEAD.
+//	    Already merged -> exit 0, `Already up to date.`
+//	git rebase <onto> <branch>
+//	    -> a conflict exits 1 with the CONFLICT lines ON STDOUT and
+//	    `error: could not apply ...` plus hints on stderr. The repository
+//	    is left mid-rebase.
+//	    Nothing to do -> exit 0, `Current branch clean is up to date.`
+//	git fetch <remote>   -> exit 0, silent; a missing remote exits 128
+//	git push <remote> <branch>
+//	    -> exit 0; nothing new -> exit 0, `Everything up-to-date`;
+//	    refused -> exit 1 with ` ! [rejected]        main -> main
+//	    (non-fast-forward)` on stderr.
+//
+// The conflict-line forms measured, which is what the path decoder is
+// held to:
+//
+//	CONFLICT (content): Merge conflict in f.txt
+//	CONFLICT (add/add): Merge conflict in sp ace.txt
+//	CONFLICT (modify/delete): del.txt deleted in dev and modified in HEAD.  Version HEAD of del.txt left in tree.
+//	CONFLICT (rename/rename): a.txt renamed to c.txt in HEAD and to b.txt in dev.
+//
+// A path is printed unquoted, spaces and all, so the path in the first
+// two forms is everything after `Merge conflict in ` — never a
+// whitespace split.
 
 // failure turns a non-zero result into an error naming the subcommand and
 // what git said. git puts its diagnostics on stderr; the last non-empty
@@ -206,6 +255,18 @@ func decodeRevision(res swarmexec.Result) (any, error) {
 	return strings.TrimSpace(lines[0]), nil
 }
 
+// decodeRoot decodes `git rev-parse --show-toplevel`.
+func decodeRoot(res swarmexec.Result) (any, error) {
+	if !res.Succeeded() {
+		return nil, failure("git rev-parse --show-toplevel", res)
+	}
+	lines := nonEmptyLines(res.Stdout)
+	if len(lines) != 1 {
+		return nil, fmt.Errorf("git: rev-parse --show-toplevel printed %d lines, want one path", len(lines))
+	}
+	return strings.TrimSpace(lines[0]), nil
+}
+
 // decodeDivergence decodes
 // `git rev-list --count --left-right <branch>...<branch>@{upstream}`,
 // whose output is two counts separated by a tab: local-only, then
@@ -227,6 +288,204 @@ func decodeDivergence(res swarmexec.Result) (any, error) {
 		return nil, fmt.Errorf("git: the behind count is not a number: %q", fields[1])
 	}
 	return vcs.Divergence{Ahead: ahead, Behind: behind}, nil
+}
+
+// conflictMarker introduces every conflict line git prints, on both the
+// merge and the rebase paths.
+const conflictMarker = "CONFLICT ("
+
+// The two markers a rejected push is read from, both measured on git
+// 2.43.0 against a bare repository whose pre-receive hook declines a ref
+// namespace:
+//
+//	remote: refusing refs/heads/claude/*: this remote does not accept sprint branches
+//	To ../remote.git
+//	 ! [remote rejected] claude/sprint -> claude/sprint (pre-receive hook declined)
+//	error: failed to push some refs to '../remote.git'
+//
+// The `!` line is the only one that names the ref, and the `remote:`
+// lines are the only ones carrying the server's own reason — so a
+// decoder reading just the last line of stderr (`error: failed to push
+// some refs…`) gets neither.
+const (
+	rejectedMarker = "! ["
+	remoteMarker   = "remote: "
+)
+
+// pushDecoder decodes `git push` for one remote. A rejection comes back
+// as a [*vcs.Rejection] so a caller branches on which refs the remote
+// refused rather than on git's prose; anything else is an ordinary
+// failure.
+func pushDecoder(remote string) plan.Decoder {
+	return func(res swarmexec.Result) (any, error) {
+		if res.Succeeded() {
+			return nil, nil
+		}
+		return nil, rejection(remote, res)
+	}
+}
+
+// rejection reads a failed push as a [vcs.Rejection], or reports an
+// ordinary failure when the remote named no ref and said nothing.
+func rejection(remote string, res swarmexec.Result) error {
+	lines := append(nonEmptyLines(res.Stdout), nonEmptyLines(res.Stderr)...)
+
+	var refused, reasons, detail []string
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		switch {
+		case strings.HasPrefix(trimmed, rejectedMarker):
+			detail = append(detail, trimmed)
+			if ref := rejectedRef(trimmed); ref != "" {
+				refused = append(refused, ref)
+			}
+		case strings.HasPrefix(trimmed, remoteMarker):
+			said := strings.TrimSpace(strings.TrimPrefix(trimmed, remoteMarker))
+			if said != "" {
+				reasons = append(reasons, said)
+				detail = append(detail, trimmed)
+			}
+		}
+	}
+
+	if len(refused) == 0 && len(reasons) == 0 {
+		// Not a rejection — git could not run the push at all, which is
+		// an ordinary failure and reads better as one.
+		return failure("git push", res)
+	}
+	return &vcs.Rejection{
+		Remote:  remote,
+		Refused: refused,
+		Reason:  strings.Join(reasons, "; "),
+		Detail:  strings.Join(detail, "\n"),
+	}
+}
+
+// rejectedRef pulls the refused ref out of one rejection line, empty when
+// the line's form does not name one.
+//
+// The form is `! [<kind>] <src> -> <dst> (<why>)`, and <dst> is the ref
+// the REMOTE refused, which is the one worth naming: a push whose local
+// and remote names differ is refused on the remote's.
+func rejectedRef(line string) string {
+	_, rest, ok := strings.Cut(line, "] ")
+	if !ok {
+		return ""
+	}
+	_, dst, ok := strings.Cut(rest, " -> ")
+	if !ok {
+		return ""
+	}
+	ref, _, ok := strings.Cut(dst, " (")
+	if !ok {
+		return strings.TrimSpace(dst)
+	}
+	return strings.TrimSpace(ref)
+}
+
+// mergeConflictIn is the form that names a path unambiguously: whatever
+// follows it, to the end of the line, IS the path — spaces included,
+// because git does not quote it here.
+const mergeConflictIn = "Merge conflict in "
+
+// refusal reads a failed merge or rebase as a [vcs.Refusal], or reports
+// an ordinary failure when the result is not a refusal at all.
+//
+// Both streams are scanned for conflict lines. Measured, git puts them on
+// stdout for both subcommands and the diagnostics on stderr; scanning
+// both costs nothing and cannot produce a wrong answer, since the marker
+// appears in no other output either subcommand emits.
+func refusal(operation string, res swarmexec.Result) error {
+	lines := append(nonEmptyLines(res.Stdout), nonEmptyLines(res.Stderr)...)
+
+	var conflictLines, paths []string
+	for _, line := range lines {
+		trimmed := strings.TrimSpace(line)
+		if !strings.HasPrefix(trimmed, conflictMarker) {
+			continue
+		}
+		conflictLines = append(conflictLines, trimmed)
+		if path := conflictPath(trimmed); path != "" {
+			paths = append(paths, path)
+		}
+	}
+
+	nonFastForward := strings.Contains(string(res.Stderr), "Not possible to fast-forward")
+
+	if len(conflictLines) == 0 && !nonFastForward {
+		// Not a refusal — git could not run the operation at all, which
+		// is an ordinary failure and reads better as one.
+		return failure("git "+operation, res)
+	}
+
+	detail := strings.Join(conflictLines, "\n")
+	if detail == "" {
+		detail = lastLine(strings.TrimSpace(string(res.Stderr)))
+	}
+	return &vcs.Refusal{
+		Operation:      operation,
+		Conflicts:      paths,
+		NonFastForward: nonFastForward,
+		Detail:         detail,
+	}
+}
+
+// conflictPath pulls the path out of one conflict line, empty when the
+// line's form does not name one unambiguously.
+//
+// Three forms are decoded, all measured — the two above the package
+// comment records and the rename. A form naming no path still reaches the
+// caller: the line itself is kept in [vcs.Refusal.Detail], so a conflict
+// this cannot parse is visible rather than silently absent.
+func conflictPath(line string) string {
+	_, rest, ok := strings.Cut(line, "): ")
+	if !ok {
+		return ""
+	}
+	if _, path, found := strings.Cut(rest, mergeConflictIn); found {
+		return path
+	}
+	// `<path> deleted in <branch> and modified in HEAD. …` and
+	// `<path> renamed to <other> in HEAD and to …` — the path is what
+	// precedes the verb. A path containing the verb phrase itself would
+	// be cut short; nothing in git's output distinguishes that case,
+	// which is why the whole line is kept in Detail regardless.
+	for _, verb := range []string{" deleted in ", " renamed to "} {
+		if path, _, found := strings.Cut(rest, verb); found {
+			return path
+		}
+	}
+	return ""
+}
+
+// decodeMerge decodes `git merge --no-ff`. A refusal comes back as a
+// [*vcs.Refusal] so a caller branches on which paths conflict rather than
+// on git's prose; anything else is an ordinary failure.
+func decodeMerge(res swarmexec.Result) (any, error) {
+	if !res.Succeeded() {
+		return nil, refusal("merge", res)
+	}
+	return nil, nil
+}
+
+// decodeFastForward decodes `git merge --ff-only`, whose characteristic
+// refusal is the non-fast-forward: the branch and its target diverged, so
+// the dispatch was not rebased onto the current target.
+func decodeFastForward(res swarmexec.Result) (any, error) {
+	if !res.Succeeded() {
+		return nil, refusal("merge", res)
+	}
+	return nil, nil
+}
+
+// decodeRebase decodes `git rebase`. A conflict is a [*vcs.Refusal]
+// carrying the paths; the repository is left mid-rebase, which the
+// caller resolves — this container does not abort on its behalf.
+func decodeRebase(res swarmexec.Result) (any, error) {
+	if !res.Succeeded() {
+		return nil, refusal("rebase", res)
+	}
+	return nil, nil
 }
 
 // decodeMerged decodes the `git log -1` that follows a merge, which is

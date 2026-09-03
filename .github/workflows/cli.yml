@@ -106,10 +106,23 @@ jobs:
       - name: Build
         run: go build ./...
 
-      # ADR-027: Windows runs the tracker-dependent end-to-end cases
-      # against the CGO-free, server-mode `bd` install rather than the
-      # embedded engine the other two legs use — it needs no MinGW-w64
-      # toolchain on the runner, which windows-latest does not carry.
+      # ADR-027's remedy, taken: Windows now runs the tracker-dependent
+      # end-to-end cases against the SAME embedded engine as the other two
+      # legs, rather than the CGO-free server-mode install.
+      #
+      # The ADR accepted server mode "for the first leg" and named this
+      # exact escape: "the remedy, if attribution becomes the problem, is
+      # adding the CGO toolchain to the runner". Attribution became the
+      # problem — a Windows-only teardown failure could not be attributed
+      # to the platform rather than to the mode, and seven CI rounds went
+      # into establishing it was neither. The cause was the mode: the
+      # server-mode install starts a `dolt sql-server` whose working
+      # directory is the test's own world, and Windows will not remove a
+      # directory that is a live process's cwd.
+      #
+      # Embedded means no server process, so no pinned cwd, so the
+      # teardown failure cannot occur — and the topology divergence that
+      # made attribution expensive goes with it.
       #
       # `dolt` is downloaded directly rather than through a package
       # manager: neither winget nor chocolatey publish it on this runner
@@ -126,19 +139,43 @@ jobs:
           Expand-Archive -Path dolt.zip -DestinationPath .
           Add-Content -Path $env:GITHUB_PATH -Value "$PWD\dolt-windows-amd64\bin"
 
-      # `-tags gms_pure_go` is what both of beads' own installers
-      # (install.sh's CGO_ENABLED=0 fallback, and install.ps1's only
-      # path) pass; CGO_ENABLED=0 is set explicitly here rather than left
-      # to "no compiler found", so the build does not depend on exactly
-      # which toolchains this runner image happens to carry.
-      - name: Install bd, CGO-free (Windows)
+      # Downloaded, not compiled. The published Windows binary is built
+      # with the exact configuration this step used to spend nine minutes
+      # reproducing — verified with `go version -m bd.exe` on the asset:
+      #
+      #   mod    github.com/steveyegge/beads  v1.2.2
+      #   build  -tags=gms_pure_go
+      #   build  CGO_ENABLED=1
+      #   build  GOOS=windows  GOARCH=amd64
+      #   dep    github.com/dlclark/regexp2   (and no go-icu-regex)
+      #
+      # Both properties the e2e tier needs therefore hold: CGO_ENABLED=1
+      # gives the embedded Dolt engine, so no `--server` and no `dolt
+      # sql-server` pinning a world's directory open; and `gms_pure_go`
+      # keeps go-icu-regex out, which is what a source build needs the ICU
+      # headers for. `go install` produced the same binary in 8m32s and
+      # 9m12s on two runs, uncached both times — setup-go's cache is keyed
+      # on cli/go.sum, which does not carry beads' dependencies, so it can
+      # never hit for this build.
+      #
+      # BD_VERSION is pinned rather than tracking @latest: a beads release
+      # would otherwise change what CI runs on a pull request that touched
+      # nothing, and 1.2.2 is the version this repository's own sessions
+      # run. Bump it deliberately, here.
+      #
+      # Releases are reached by direct asset URL, the same way the dolt
+      # step above works. The archive holds bd.exe at its root.
+      - name: Install bd (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
         env:
-          CGO_ENABLED: "0"
+          BD_VERSION: "1.2.2"
         run: |
-          go install -tags gms_pure_go github.com/steveyegge/beads/cmd/bd@latest
-          Add-Content -Path $env:GITHUB_PATH -Value "$(go env GOPATH)\bin"
+          $url = "https://github.com/gastownhall/beads/releases/download/v$env:BD_VERSION/beads_${env:BD_VERSION}_windows_amd64.zip"
+          Invoke-WebRequest -Uri $url -OutFile bd.zip
+          Expand-Archive -Path bd.zip -DestinationPath bd-dist
+          Add-Content -Path $env:GITHUB_PATH -Value "$PWD\bd-dist"
+          & "$PWD\bd-dist\bd.exe" version
 
       # The swarm CLI's end-to-end tier restores a fixture through `git`
       # and `bd`. Where those are absent it skips with the reason, which
@@ -154,16 +191,27 @@ jobs:
       # the cross-compile, exactly as ADR-027 says for the legs that
       # have not installed one.
       #
-      # `bd init --server` (cli/swarm/e2e/harness_test.go's restore(),
-      # which the server-mode install needs on Windows) auto-starts and
-      # manages its own `dolt sql-server` when it finds none already
-      # listening on the port it tries — ADR-027 marked this unmeasured;
-      # see restore()'s own comment for what settled it. No server is
-      # started by this workflow, and none needs to be.
+      # `-timeout` is raised on every platform, not on Windows alone. Go's
+      # default is 10m per test binary, and cli/swarm/e2e exceeded it on
+      # Windows: `FAIL ... 600.073s`, panicking inside world.run's
+      # exec.Cmd.Run while a `bd` subprocess was working — slow, not hung,
+      # and nothing to do with the teardown failure that server mode
+      # caused. Linux runs the same tier in 144.547s.
+      #
+      # The tier is ~27 largely serial worlds, each a git clone plus an
+      # embedded `bd init` plus a run of subprocesses, so Windows's much
+      # higher process-spawn cost lands on it multiplied. 30m is set to be
+      # comfortably clear of that ceiling rather than as a measured
+      # budget: a third truncated run would tell us no more than the first
+      # two did, and the real Windows duration is still unknown. Once a
+      # run reports it, bring this down to something with a reason.
+      #
+      # Raising the ceiling is not the fix for a slow suite. Making the
+      # tier parallel is, and it is deliberately not bundled here.
       - name: Test
         env:
           SWARM_E2E_REQUIRE_TRACKER: ${{ matrix.os == 'windows-latest' && '1' || '' }}
-        run: go test ./...
+        run: go test -timeout 30m ./...
 
   # AC-SPEC-009.7's "produced by cross-compilation from a single source":
   # every platform in the release matrix is built here, on one Linux

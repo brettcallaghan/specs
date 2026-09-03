@@ -1,0 +1,9 @@
+ready:
+  - dispatch: dev-fixture-2
+    held: true
+    id: fixture-run.3
+  - dispatch: dev-fixture-3
+    held: false
+    id: fixture-run.4
+ready_count: 2
+consecutive_dispatch_failures: 0

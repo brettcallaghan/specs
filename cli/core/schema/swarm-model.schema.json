@@ -194,6 +194,17 @@
             }
           ]
         },
+        "consecutive_dispatch_failures": {
+          "description": "How many dispatches in a row have completed nothing. Durable because\nthe circuit breaker it feeds has to survive a resumed session, and a\ncount held only in an orchestrator's head is lost the moment that\nsession ends.\n\nIts stage is dispatch, so its absence before the run's first dispatch\nis legitimate — and an absent count is reported as absent rather than\nas zero, because reading absence as zero is the caller's decision to\nmake and not the record's.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "effort": {
           "description": "The reasoning effort the harness was set to.",
           "oneOf": [
@@ -824,6 +835,17 @@
             }
           ]
         },
+        "consecutive_dispatch_failures": {
+          "description": "How many dispatches in a row have completed nothing. Durable because\nthe circuit breaker it feeds has to survive a resumed session, and a\ncount held only in an orchestrator's head is lost the moment that\nsession ends.\n\nIts stage is dispatch, so its absence before the run's first dispatch\nis legitimate — and an absent count is reported as absent rather than\nas zero, because reading absence as zero is the caller's decision to\nmake and not the record's.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "effort": {
           "description": "The reasoning effort the harness was set to.",
           "oneOf": [
@@ -1042,6 +1064,17 @@
         },
         "concurrency_cap": {
           "description": "The most dispatches the run may have in flight at once.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/__Int"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "consecutive_dispatch_failures": {
+          "description": "How many dispatches in a row have completed nothing. Durable because\nthe circuit breaker it feeds has to survive a resumed session, and a\ncount held only in an orchestrator's head is lost the moment that\nsession ends.\n\nIts stage is dispatch, so its absence before the run's first dispatch\nis legitimate — and an absent count is reported as absent rather than\nas zero, because reading absence as zero is the caller's decision to\nmake and not the record's.",
           "oneOf": [
             {
               "$ref": "#/definitions/__Int"

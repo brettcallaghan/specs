@@ -91,6 +91,20 @@ func (t Tracker) Children(name, parent string) plan.Step {
 }
 
 // Ready reads the beads under a scope that nothing is blocking.
+//
+//   - `--parent` is transitive here, unlike on `bd list`. Measured on bd
+//     1.2.2: `bd ready --parent <run>` returned a bead two levels below
+//     the run epic, where `bd list --parent <run>` returned only the
+//     run's direct children.
+//   - `--limit 0` because `bd ready`'s own default is 100 and it APPLIES
+//     to JSON output. Measured on bd 1.2.2 against this repository's
+//     database: `bd ready --json | jq length` → 100, and the same query
+//     with `--limit 0` → 106. A truncated ready set is a run reporting
+//     less work than it has, at exit 0.
+//
+// The `bd list` default behaves differently, which is why neither flag
+// can be reasoned from the other: `bd list --all --json` and
+// `bd list --all --limit 0 --json` both returned 585.
 func (t Tracker) Ready(name, scope string, filter tracker.ReadyFilter) plan.Step {
 	args := []string{"ready", "--parent", scope}
 	if filter.Assignee != "" {
@@ -102,10 +116,83 @@ func (t Tracker) Ready(name, scope string, filter tracker.ReadyFilter) plan.Step
 	if len(filter.ExcludeLabels) > 0 {
 		args = append(args, "--exclude-label", strings.Join(filter.ExcludeLabels, ","))
 	}
-	args = append(args, "--json")
+	args = append(args, "--limit", "0", "--json")
 
 	s := t.step(name, plan.Read, true, decodeReady, args...)
 	s.Description = "the ready set under " + scope
+	return s
+}
+
+// Holding reads the beads one agent has taken and not finished.
+//
+// **The scope reaches the answer through the decoded value, not through
+// the invocation**, because bd has no transitive parent filter for this
+// query: `bd list --parent` answers with DIRECT children only (measured
+// on 1.2.2: `bd list --parent <run> --all --limit 0 --json` returned the
+// run's seven direct children and none of their children), while the
+// beads an agent holds in a run sit two levels down. Narrowing by it
+// would drop the run's real work; passing nothing and calling the result
+// the run's would pick up another run's. So the widest correct query is
+// declared here and [tracker.Held.Within] is what makes the answer the
+// run's.
+//
+// `--status in_progress` is explicit, so `bd list`'s default of hiding
+// closed issues cannot change what comes back and `--all` is not needed.
+// `--limit 0` is still passed: `bd list`'s default did not truncate JSON
+// output when measured, and a query whose completeness rests on that
+// staying true is one release away from reporting an agent as drained.
+// The kind and label exclusions come from the same [tracker.ReadyFilter]
+// the ready half is built from, and are rendered here as `bd list`'s own
+// `--exclude-type` and `--exclude-label` (measured on bd 1.2.2:
+// `bd list --help` declares both, and
+// `bd list --assignee <a> --status in_progress --limit 0 --exclude-type
+// epic --exclude-label human --json` exits 0). Without them the drain
+// verdict is taken from two sets with different membership rules.
+func (t Tracker) Holding(name, scope string, filter tracker.ReadyFilter) plan.Step {
+	agent := filter.Assignee
+	args := []string{"list", "--assignee", agent, "--status", "in_progress"}
+	if len(filter.ExcludeKinds) > 0 {
+		args = append(args, "--exclude-type", strings.Join(filter.ExcludeKinds, ","))
+	}
+	if len(filter.ExcludeLabels) > 0 {
+		args = append(args, "--exclude-label", strings.Join(filter.ExcludeLabels, ","))
+	}
+	args = append(args, "--limit", "0", "--json")
+
+	s := t.step(name, plan.Read, true, holdingDecoder(scope, agent), args...)
+	s.Description = "the beads " + agent + " holds"
+	return s
+}
+
+// ClosableEpics reads which epics the tracker judges eligible to close.
+//
+// **Also scoped through the decoded value**, and here the trap is
+// sharper: bd's epic commands take a positional argument and IGNORE it.
+// Measured on 1.2.2 against this repository's database, `bd epic status
+// --json | jq length` → 12 and `bd epic status agent-plugins-e6xt --json
+// | jq length` → 12 as well, exit 0 both times with nothing on stderr. So
+// an invocation that looks scoped is not, and the only honest place to
+// scope it is [tracker.Closable.Within].
+//
+// `--eligible-only` is the tracker's own filter; the decoder pins
+// `eligible_for_close` per row as well, so a release in which the flag
+// stops filtering cannot get an ineligible epic past `Within`.
+func (t Tracker) ClosableEpics(name, scope string) plan.Step {
+	s := t.step(name, plan.Read, true, closableDecoder(scope),
+		"epic", "status", "--eligible-only", "--json")
+	s.Description = "the epics eligible to close under " + scope
+	return s
+}
+
+// Findings reads the notes recorded on a bead.
+//
+// `bd comments <id>` rather than a field of `bd show`: measured on 1.2.2,
+// `bd show <id> --json` carries a `comment_count` and no `comments` key
+// at all, so the notes themselves are only available from this
+// subcommand.
+func (t Tracker) Findings(name, id string) plan.Step {
+	s := t.step(name, plan.Read, true, decodeComments, "comments", id, "--json")
+	s.Description = "the findings recorded on " + id
 	return s
 }
 

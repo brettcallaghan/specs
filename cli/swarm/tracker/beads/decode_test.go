@@ -239,11 +239,11 @@ func TestDecodeCommentReadsTheObjectBdReturns(t *testing.T) {
 	if err != nil {
 		t.Fatalf("decodeComment: %v", err)
 	}
-	note, ok := value.(Note)
-	if !ok {
-		t.Fatalf("decodeComment produced %T", value)
+	note, err := tracker.FindingFrom(value)
+	if err != nil {
+		t.Fatalf("FindingFrom: %v", err)
 	}
-	if note.IssueID != "run-1.5" || note.Author != "dev-1" {
+	if note.Bead != "run-1.5" || note.Author != "dev-1" {
 		t.Errorf("note = %+v", note)
 	}
 	if !strings.Contains(note.Text, "retro:proof") {
@@ -306,5 +306,226 @@ func TestAFailureWithNoMessageIsStillAFailure(t *testing.T) {
 	}
 	if errors.Unwrap(err) != nil {
 		t.Logf("wrapped: %v", errors.Unwrap(err))
+	}
+}
+
+// --- the dispatch loop's operations ---------------------------------
+
+// Measured: `bd comments <id> --json` returns an ARRAY of the objects
+// `bd comment` returns one of. One letter apart from the write, one
+// container different, so the two do not share a decoder.
+func TestDecodeCommentsReadsTheArrayBdReturns(t *testing.T) {
+	const body = `[
+  {
+    "author": "dev-e6xt-b1",
+    "created_at": "2026-09-01T17:20:11.123456789Z",
+    "id": "01a039db-0ab7-7243-977a-2c9aac0b1c33",
+    "issue_id": "run-1.5",
+    "text": "retro:proof measured against bd 1.2.2"
+  },
+  {
+    "author": "dev-e6xt-b1",
+    "created_at": "2026-09-01T17:21:00.000000000Z",
+    "id": "01a039db-0ab7-7243-977a-2c9aac0b1c34",
+    "issue_id": "run-1.5",
+    "text": "retro:decision the wide query is narrowed by the caller"
+  }
+]`
+
+	value, err := decodeComments(result(body, bdWarning, 0))
+	if err != nil {
+		t.Fatalf("decodeComments: %v", err)
+	}
+	findings, err := tracker.FindingsFrom(value)
+	if err != nil {
+		t.Fatalf("FindingsFrom: %v", err)
+	}
+	if len(findings) != 2 {
+		t.Fatalf("decoded %d findings, want 2", len(findings))
+	}
+	if findings[0].Bead != "run-1.5" || findings[0].Author != "dev-e6xt-b1" {
+		t.Errorf("finding = %+v", findings[0])
+	}
+	if !strings.Contains(findings[1].Text, "retro:decision") {
+		t.Errorf("the finding's text was not carried: %q", findings[1].Text)
+	}
+}
+
+// A bead carrying no comments answers `[]`, which is a real answer and
+// decodes to an empty set. A shape that is not an array is not: "nothing
+// was recorded" and "the read returned something else" are what an
+// acceptance check exists to keep apart.
+func TestDecodeCommentsPinsItsEmptyAndUnknownForms(t *testing.T) {
+	for _, empty := range []string{"[]", "", "null"} {
+		value, err := decodeComments(result(empty, bdWarning, 0))
+		if err != nil {
+			t.Fatalf("decodeComments(%q): %v", empty, err)
+		}
+		findings, err := tracker.FindingsFrom(value)
+		if err != nil {
+			t.Fatalf("FindingsFrom(%q): %v", empty, err)
+		}
+		if findings == nil {
+			t.Errorf("decodeComments(%q) produced a nil set; the empty set is not nothing", empty)
+		}
+		if len(findings) != 0 {
+			t.Errorf("decodeComments(%q) produced %d findings", empty, len(findings))
+		}
+	}
+
+	// An error body at exit 0 is not an empty comment list.
+	if _, err := decodeComments(result(`{"error": "no issues found"}`, "", 0)); err == nil {
+		t.Error("decodeComments read an error object as a comment list")
+	}
+
+	if _, err := decodeComments(result("", "boom", 1)); err == nil {
+		t.Error("decodeComments accepted a result at exit 1")
+	}
+
+	// Measured: `bd comments <missing> --json` exits 1 with the message
+	// in an OBJECT on STDOUT, like bd show and unlike bd update.
+	const missing = `{
+  "error": "resolving nonexistent-xyz: no issue found matching \"nonexistent-xyz\"",
+  "schema_version": 1
+}`
+	err := func() error { _, err := decodeComments(result(missing, bdWarning, 1)); return err }()
+	if err == nil {
+		t.Fatal("decodeComments returned no error for a failing result")
+	}
+	if !strings.Contains(err.Error(), "no issue found matching") {
+		t.Errorf("the error does not carry what bd said: %v", err)
+	}
+	if strings.Contains(err.Error(), "beads.role") {
+		t.Errorf("the error reports bd's standing warning instead of the failure: %v", err)
+	}
+}
+
+// eligibleEpics is the shape measured from `bd epic status --json`: an
+// array of rows, each wrapping the same issue object every other
+// subcommand returns.
+const eligibleEpics = `[
+  {
+    "epic": {"id": "run-1.2", "title": "Phase 2", "status": "open", "issue_type": "epic", "priority": 1},
+    "total_children": 4,
+    "closed_children": 4,
+    "eligible_for_close": true
+  },
+  {
+    "epic": {"id": "other-9", "title": "Another run's phase", "status": "open", "issue_type": "epic", "priority": 2},
+    "total_children": 2,
+    "closed_children": 2,
+    "eligible_for_close": true
+  }
+]`
+
+func TestDecodeEpicStatusReadsTheRowsBdReturns(t *testing.T) {
+	value, err := closableDecoder("run-1")(result(eligibleEpics, bdWarning, 0))
+	if err != nil {
+		t.Fatalf("closableDecoder: %v", err)
+	}
+	closable, err := tracker.ClosableFrom(value)
+	if err != nil {
+		t.Fatalf("ClosableFrom: %v", err)
+	}
+	if closable.Scope != "run-1" {
+		t.Errorf("Scope = %q — the answer carries the scope it was asked about", closable.Scope)
+	}
+	if len(closable.Judged) != 2 {
+		t.Fatalf("decoded %d rows, want 2", len(closable.Judged))
+	}
+	first := closable.Judged[0]
+	if first.Epic.ID != "run-1.2" || first.Epic.Kind != "epic" {
+		t.Errorf("epic = %+v", first.Epic)
+	}
+	if first.Children != 4 || first.Finished != 4 || !first.Eligible {
+		t.Errorf("closure = %+v", first)
+	}
+}
+
+// Nothing eligible answers `[]`, which is an answer and not a failure.
+func TestDecodeEpicStatusPinsItsEmptyAndUnknownForms(t *testing.T) {
+	for _, empty := range []string{"[]", "", "null"} {
+		value, err := closableDecoder("run-1")(result(empty, bdWarning, 0))
+		if err != nil {
+			t.Fatalf("closableDecoder(%q): %v", empty, err)
+		}
+		closable, err := tracker.ClosableFrom(value)
+		if err != nil {
+			t.Fatalf("ClosableFrom(%q): %v", empty, err)
+		}
+		if closable.Judged == nil {
+			t.Errorf("closableDecoder(%q) produced a nil set", empty)
+		}
+		if len(closable.Judged) != 0 {
+			t.Errorf("closableDecoder(%q) judged %d epics", empty, len(closable.Judged))
+		}
+	}
+
+	// A row naming no epic is a shape this decoder does not know, not an
+	// epic with an empty id that a later close would be pointed at.
+	if _, err := closableDecoder("run-1")(result(`[{"total_children": 1}]`, "", 0)); err == nil {
+		t.Error("closableDecoder accepted a row naming no epic")
+	}
+	if _, err := closableDecoder("run-1")(result(`{"error": "nope"}`, "", 0)); err == nil {
+		t.Error("closableDecoder read an error object as an eligibility answer")
+	}
+	if _, err := closableDecoder("run-1")(result("", "boom", 1)); err == nil {
+		t.Error("closableDecoder accepted a result at exit 1")
+	}
+}
+
+// The held set carries the scope and the agent it was asked about, and
+// the beads exactly as `bd list` reported them — narrowing is
+// [tracker.Held.Within]'s, not the decoder's.
+func TestHoldingDecoderCarriesTheScopeAndTheAgent(t *testing.T) {
+	const body = `[
+  {"id": "run-1.5", "title": "TRK", "status": "in_progress", "assignee": "dev-1", "issue_type": "task", "parent": "run-1.2"},
+  {"id": "other-9.1", "title": "someone else's run", "status": "in_progress", "assignee": "dev-1", "issue_type": "task", "parent": "other-9"}
+]`
+
+	value, err := holdingDecoder("run-1", "dev-1")(result(body, bdWarning, 0))
+	if err != nil {
+		t.Fatalf("holdingDecoder: %v", err)
+	}
+	held, err := tracker.HeldFrom(value)
+	if err != nil {
+		t.Fatalf("HeldFrom: %v", err)
+	}
+	if held.Scope != "run-1" || held.Agent != "dev-1" {
+		t.Errorf("held = {Scope:%q Agent:%q}", held.Scope, held.Agent)
+	}
+	if len(held.Beads) != 2 {
+		t.Fatalf("decoded %d beads, want both — the decoder narrows nothing", len(held.Beads))
+	}
+	if held.Beads[0].State != tracker.StateClaimed {
+		t.Errorf("State = %q, want %q", held.Beads[0].State, tracker.StateClaimed)
+	}
+}
+
+func TestHoldingDecoderPinsItsEmptyAndUnknownForms(t *testing.T) {
+	for _, empty := range []string{"[]", "", "null"} {
+		value, err := holdingDecoder("run-1", "dev-1")(result(empty, bdWarning, 0))
+		if err != nil {
+			t.Fatalf("holdingDecoder(%q): %v", empty, err)
+		}
+		held, err := tracker.HeldFrom(value)
+		if err != nil {
+			t.Fatalf("HeldFrom(%q): %v", empty, err)
+		}
+		if held.Beads == nil {
+			t.Errorf("holdingDecoder(%q) produced a nil set", empty)
+		}
+		if len(held.Beads) != 0 {
+			t.Errorf("holdingDecoder(%q) held %d beads", empty, len(held.Beads))
+		}
+	}
+
+	// The one that matters: an error body is not a queue of length one.
+	value, err := holdingDecoder("run-1", "dev-1")(result(`{"error": "no issues found"}`, "", 0))
+	if err == nil {
+		t.Fatalf("holdingDecoder read an error object as a queue: %#v", value)
+	}
+	if _, err := holdingDecoder("run-1", "dev-1")(result("", "boom", 1)); err == nil {
+		t.Error("holdingDecoder accepted a result at exit 1")
 	}
 }

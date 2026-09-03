@@ -45,7 +45,7 @@ func TestAWorktreeIsAttributedByItsCommitNotItsBranchName(t *testing.T) {
 	if !ok {
 		t.Fatalf("dev-fixture-1 was not named among the dispatches:\n%s", stdout)
 	}
-	if found.Worktree != extra {
+	if !samePath(found.Worktree, extra) {
 		t.Errorf("dev-fixture-1's worktree was attributed as %q, want %q — though the branch carries "+
 			"no dispatch id at all", found.Worktree, extra)
 	}
@@ -70,7 +70,7 @@ func TestAWorktreeIsAttributedByItsCommitNotItsBranchName(t *testing.T) {
 	if !ok2 {
 		t.Fatalf("dev-fixture-1 was not named among the dispatches:\n%s", stdout2)
 	}
-	if found2.Worktree != otherExtra {
+	if !samePath(found2.Worktree, otherExtra) {
 		t.Errorf("dev-fixture-1's worktree was attributed as %q on a bb/-shaped branch, want %q",
 			found2.Worktree, otherExtra)
 	}

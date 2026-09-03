@@ -4,7 +4,7 @@ description: The dispatch loop of the swarm CLI — the commands a coordinator
   runs to send work out, take it back, and prove the result landed
 slug: frd-swarm-dispatch
 type: frd
-status: draft
+status: approved
 updated_at: 2026-08-28T00:00:00Z
 sources: []
 ---

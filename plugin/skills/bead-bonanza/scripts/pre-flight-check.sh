@@ -23,7 +23,7 @@
 #   Emitted only:        SCRIPTS, BB_NO_AGENT, BB_TREE_CLEAN,
 #                        BB_PUSH_NEEDS_REFSPEC, BB_GIT_CONFIG_WRITABLE,
 #                        BB_DOLT_*, BB_BRANCH / REMOTE / UPSTREAM,
-#                        BB_WORKTREE_BASEREF, BB_EVENT_LOG
+#                        BB_EVENT_LOG
 #   Audited against this rule when it was written; every fact is on the side
 #   the rule puts it.
 #
@@ -690,26 +690,6 @@ else
   say "$SETTINGS_LOCAL: absent — expect a permission prompt per distinct command"
 fi
 
-# worktree.baseRef — hard gate, blocking. Every dispatch runs in its own worktree
-# (universal, not opt-in — see SKILL.md, "Every bead runs in its own
-# worktree"), so an unset baseRef silently branches EVERY worktree from the
-# DEFAULT branch instead of session HEAD. Measured, because this lives in
-# user-scope settings that no repository owns.
-USER_SETTINGS="$HOME/.claude/settings.json"
-if [ "$JQ" = ok ] && [ -f "$USER_SETTINGS" ]; then
-  WORKTREE_BASEREF="$(jq -r '.worktree.baseRef // "unset"' "$USER_SETTINGS" 2>/dev/null)"
-  [ -n "$WORKTREE_BASEREF" ] || WORKTREE_BASEREF=unset
-else
-  WORKTREE_BASEREF=unknown
-fi
-say "worktree.baseRef: $WORKTREE_BASEREF"
-if [ "$WORKTREE_BASEREF" != head ]; then
-  say "  ^ NOT 'head'. isolation:\"worktree\" will branch from the default branch,"
-  say "    not session HEAD, and every worktree loses the sprint branch's commits."
-  block "worktree.baseRef is '$WORKTREE_BASEREF', not 'head' — every worktree dispatched this run will branch from the default branch instead of session HEAD, silently dropping every commit the sprint branch carries, isolated beads included. Fix: set .worktree.baseRef = \"head\" in $USER_SETTINGS (user scope; takes effect immediately, no restart), then re-run pre-flight-check.sh before dispatching."
-fi
-
-
 # =============================================================== 7. PR CI
 
 # ============================================== 7b. the Agent tool assertion
@@ -906,7 +886,6 @@ emit  BB_DOLT_TELEMETRY "$DOLT_TELEMETRY"
 emit  BB_DOLT_WRITE "$DOLT_WRITE"
 emit  BB_DENY_ENTRY "$DENY_ENTRY"
 emit  BB_SETTINGS_LOCAL_ALLOW "$SETTINGS_LOCAL_ALLOW"
-emitq BB_WORKTREE_BASEREF "$WORKTREE_BASEREF"
 emit  BB_CHECKS_BASELINE "$CHECKS_BASELINE"
 emitq BB_EPIC "$EPIC"
 emitq BB_EVENT_LOG "$EVENT_LOG"

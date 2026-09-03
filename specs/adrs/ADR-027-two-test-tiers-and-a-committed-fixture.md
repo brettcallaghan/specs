@@ -57,17 +57,51 @@ declared normalization list.
 
 The CLI ships no fixture-generating command.
 
-**On Windows, cases run against the CGO-free, server-mode `bd` install.**
-It needs no MinGW-w64 toolchain on the runner, and it matches the
-CGO-free stance of our own build. The cost is that Windows then exercises
-a different tracker topology from Linux — a Dolt server on a loopback
-endpoint rather than an embedded database — so a Windows-only failure is
-not immediately attributable to the platform rather than to the mode. We
-accept that for the first leg; the remedy, if attribution becomes the
-problem, is adding the CGO toolchain to the runner rather than changing
-anything here. Whether that install needs a server started before a case
-can restore its fixture is unmeasured, and the fixture harness is where
-it will be handled.
+**On Windows, cases run against the same embedded `bd` the other two legs
+run against.** This supersedes the server-mode install this ADR first
+chose, by the escape it wrote for itself: attribution became the problem,
+so the CGO toolchain was taken up rather than the harness changed. One
+topology across three platforms means a Windows-only failure is
+attributable to the platform.
+
+Three measured facts hold that in place, each of which the first choice
+had wrong or unmeasured:
+
+- **The engine mode is chosen by `CGO_ENABLED` and by nothing else.** A
+  CGO-free `bd` exits 1 on `bd init` with "embedded Dolt requires a CGO
+  build, but this bd binary was built with CGO_ENABLED=0".
+- **`-tags gms_pure_go` selects a pure-Go regex, not a pure-Go storage
+  engine.** With the tag set, `go version -m bd` lists
+  `github.com/dlclark/regexp2` and no `go-icu-regex`, under
+  `CGO_ENABLED=1` and `CGO_ENABLED=0` alike. The tag is therefore kept on
+  the CGO build: without it, cgo compiles `go-icu-regex`, whose preamble
+  includes `<unicode/uregex.h>`, and the runner carries no ICU
+  development headers.
+- **The runner already carries the toolchain this ADR assumed it lacked.**
+  `windows-latest` has MinGW-w64 gcc 15.2.0 at `C:\mingw64\bin\gcc.exe`,
+  on PATH, and `go env CC` resolves to it. No toolchain setup step is
+  needed — and, as it turns out, no compiler either: the published
+  `beads_<version>_windows_amd64.zip` is built `-tags=gms_pure_go` with
+  `CGO_ENABLED=1`, so CI downloads that binary at a pinned version rather
+  than spending nine uncacheable minutes rebuilding it. The toolchain
+  finding still matters, because it is what makes a source build a
+  workable fallback if the release ever stops carrying those settings.
+
+**A Windows-only teardown failure remains, and embedded mode did not fix
+it.** `t.TempDir`'s cleanup reports "The process cannot access the file
+because it is being used by another process" on the world's `repo`
+directory — 18 tests in the run that timed out, 14 in the run that
+completed. Server mode was blamed for it on the theory that the
+`dolt sql-server` it starts pins the world as its working directory. That
+theory predicted the failure would disappear with the server. It did not,
+so the theory is wrong or incomplete, and **what holds the handle is
+currently unknown.** Do not re-assert the server explanation; it has been
+tested and failed.
+
+Two things this does establish: the failure is not caused by the tracker
+topology, since it survives the switch; and it is a cleanup failure
+rather than an assertion failure, so it says nothing about whether the
+commands under test behave correctly on Windows.
 
 ## Alternatives Considered
 
@@ -126,12 +160,11 @@ it will be handled.
   is itself something to review.
 - A human debugging by hand restores the fixture with the same two
   commands a case runs, rather than with one command the CLI provides.
-- Cases needing the tracker do not run everywhere. `bd` documents a
-  Windows install, but its CGO-free install is server-mode rather than
-  embedded, so the tracker a Windows case would run against is not the
-  one a Linux case runs against; the platform guarantee for those
-  commands rests on the unit tier plus the cross-compile until a Windows
-  leg is actually run.
+- Cases needing the tracker run on Windows, against the same embedded
+  tracker a Linux case runs against, and `SWARM_E2E_REQUIRE_TRACKER`
+  makes a missing tool fail there rather than skip. macOS and Linux
+  install no `bd` yet, so their platform guarantee for those commands
+  still rests on the unit tier plus the cross-compile.
 
 ## How the fixture evolves
 

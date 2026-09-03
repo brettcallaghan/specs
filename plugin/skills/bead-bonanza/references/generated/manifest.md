@@ -217,6 +217,7 @@ before its first dispatch.
 | branch | String? | The sprint branch. Written once: a run whose manifest already carries it reuses the branch and creates nothing, which is what makes a resumed run land where the original did. |
 | base_sha | String? | The commit the sprint branch was cut from, recorded at creation and never derived later — a merge-base taken afterwards assumes the base has not moved, and on a long run it will have. |
 | review_passes | Int? | How many review loops the run has spent. Durable because a resumed run that restarted the counter would loop forever. |
+| consecutive_dispatch_failures | Int? | How many dispatches in a row have completed nothing. Durable because the circuit breaker it feeds has to survive a resumed session, and a count held only in an orchestrator's head is lost the moment that session ends.<br><br>Its stage is dispatch, so its absence before the run's first dispatch is legitimate — and an absent count is reported as absent rather than as zero, because reading absence as zero is the caller's decision to make and not the record's. |
 
 
 ## RetroKeys

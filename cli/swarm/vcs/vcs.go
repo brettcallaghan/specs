@@ -12,6 +12,8 @@
 package vcs
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/brettcallaghan/agent-plugins/cli/swarm/plan"
@@ -77,6 +79,83 @@ type Divergence struct {
 	Behind int
 }
 
+// Refusal is version control declining to fold one line of work into
+// another, decoded into the run's vocabulary.
+//
+// It is a type rather than a message because the run branches on it: a
+// dispatch whose rebase conflicts is handed back to its agent with the
+// paths, and one whose merge is refused as a non-fast-forward is rebased
+// and retried. A caller given the tool's text would have to re-derive
+// both by matching on prose, which is the decoding this container exists
+// to do once.
+type Refusal struct {
+	// Operation is what was refused, in the run's words: "merge" or
+	// "rebase".
+	Operation string
+	// Conflicts are the repository-relative paths reported as
+	// conflicting, in the order the tool reported them. Empty when the
+	// refusal was not a conflict.
+	Conflicts []string
+	// NonFastForward is true when the refusal was that the fold could not
+	// be a fast forward — the branch and its target have diverged.
+	NonFastForward bool
+	// Detail is what the tool said, kept for a report to show a human. It
+	// is never the thing a caller branches on; Conflicts and
+	// NonFastForward are.
+	Detail string
+}
+
+func (r *Refusal) Error() string {
+	switch {
+	case r.NonFastForward:
+		return fmt.Sprintf("%s refused: the branch and its target have diverged, so this cannot be a fast forward", r.Operation)
+	case len(r.Conflicts) > 0:
+		return fmt.Sprintf("%s refused: %d conflicting path(s): %s",
+			r.Operation, len(r.Conflicts), strings.Join(r.Conflicts, ", "))
+	default:
+		return fmt.Sprintf("%s refused: %s", r.Operation, r.Detail)
+	}
+}
+
+// Rejection is a remote declining a push, decoded into the run's
+// vocabulary.
+//
+// A type rather than a message for the same reason [Refusal] is one: a
+// run branches on it. A push the remote refused landed NOTHING — not the
+// refs it accepted alongside the refused one, since git reports the whole
+// push as failed — so a caller has to be able to name the refused ref
+// rather than match on prose to decide whether its work is on the remote.
+type Rejection struct {
+	// Remote is the remote that refused.
+	Remote string
+	// Refused are the refs the remote reported refusing, in the order it
+	// reported them, as the remote names them. Empty when the push
+	// failed without the remote naming a ref — it could not be reached,
+	// say — which is the case a caller must not read as "nothing was
+	// refused".
+	Refused []string
+	// Reason is what the remote itself said, its own lines joined. It is
+	// the cause a report shows a human.
+	Reason string
+	// Detail is git's whole account of the rejection, kept for a report.
+	Detail string
+}
+
+func (r *Rejection) Error() string {
+	switch {
+	case len(r.Refused) > 0 && r.Reason != "":
+		return fmt.Sprintf("the push to %s was rejected: %s refused %s: %s",
+			r.Remote, r.Remote, strings.Join(r.Refused, ", "), r.Reason)
+	case len(r.Refused) > 0:
+		return fmt.Sprintf("the push to %s was rejected: %s refused %s",
+			r.Remote, r.Remote, strings.Join(r.Refused, ", "))
+	case r.Reason != "":
+		return fmt.Sprintf("the push to %s was rejected: %s", r.Remote, r.Reason)
+	default:
+		return fmt.Sprintf("the push to %s was rejected: %s", r.Remote, r.Detail)
+	}
+}
+
 // VersionControl states what a run needs from version control.
 //
 // Each method takes a step-name prefix rather than a name: a fragment may
@@ -88,6 +167,11 @@ type VersionControl interface {
 	// still appears in the list and reads as a live worktree to
 	// everything above. Answer: []Worktree.
 	Worktrees(prefix string) Steps
+
+	// Root reads the repository's working-tree root — the coordinator's
+	// own checkout, from which a dispatch's worktree path is derived as
+	// a sibling. Answer: string, the absolute path.
+	Root(prefix string) Steps
 
 	// Commits reads the most recent commits on a revision, newest first.
 	// Answer: []Commit.
@@ -107,12 +191,103 @@ type VersionControl interface {
 	// Answer: string, the full object name.
 	Resolve(prefix, revision string) Steps
 
-	// Divergence compares a local branch against its remote.
-	// Answer: Divergence.
-	Divergence(prefix, branch string) Steps
+	// CurrentBranch reads the branch the repository is on — the default
+	// a command takes when the caller names none, read from the
+	// repository rather than from any configuration outside it.
+	// Answer: string, the short name, or "HEAD" when the repository is
+	// on no branch at all.
+	CurrentBranch(prefix string) Steps
+
+	// Divergence compares a local branch against its counterpart on a
+	// named remote. Answer: Divergence.
+	//
+	// The remote is an argument rather than the branch's configured
+	// upstream, because the two are not the same question: a caller that
+	// named a remote is asking about THAT remote, and a branch whose
+	// counterpart exists there may still have no upstream configured —
+	// in which case an upstream-based comparison fails where the answer
+	// is plainly available.
+	Divergence(prefix, branch, remote string) Steps
 
 	// Merge folds one branch into the current one, without fast
 	// forwarding, so the merge is a commit a run can find.
 	// Answer: Commit, the merge commit.
+	//
+	// A refusal is a [*Refusal] on the step's error, not the tool's text.
 	Merge(prefix, branch, message string) Steps
+
+	// The writes the dispatch loop makes. Every one of them declares its
+	// effect and whether re-running it is safe, per ADR-026: recovery
+	// from a partial plan is re-running rather than undoing, so an
+	// operation that cannot be re-run says so and the caller is told
+	// recovery is not available for it.
+
+	// CreateWorktree stands a working tree up at path, on a NEW branch
+	// cut from base. The branch is created by this operation rather than
+	// looked up, so a caller cannot attach a second worktree to a branch
+	// another dispatch already holds. Answer: none.
+	CreateWorktree(prefix, path, branch, base string) Steps
+
+	// RemoveWorktree removes the working tree standing at path.
+	//
+	// There is deliberately NO force parameter, and the absence is the
+	// guarantee rather than a default: the forcing form discards
+	// uncommitted work, and a dispatch's worktree is exactly where an
+	// unfinished agent's work lives. A bool here would put that discard
+	// one argument away from every caller, and a run under time pressure
+	// is the caller most likely to pass it. A tree with work in it is
+	// meant to refuse removal — that refusal is how an orchestrator
+	// learns the dispatch is unfinished. Answer: none.
+	RemoveWorktree(prefix, path string) Steps
+
+	// CreateBranch creates a branch at base without checking it out.
+	// Answer: none.
+	CreateBranch(prefix, name, base string) Steps
+
+	// DeleteBranch deletes a branch that has been merged. It does not
+	// force, so a branch carrying commits nothing else holds refuses
+	// deletion rather than taking them with it. Answer: none.
+	DeleteBranch(prefix, name string) Steps
+
+	// Rebase replays branch onto a named commit.
+	//
+	// A conflict is a [*Refusal] carrying the paths. Answer: none.
+	//
+	// It MOVES the repository: a rebase leaves the working tree on
+	// branch, so a fold run straight afterwards would advance branch
+	// onto itself rather than the target. [Checkout] is what puts the
+	// repository back before the fold.
+	Rebase(prefix, branch, onto string) Steps
+
+	// Checkout puts the repository on a branch, so that the next fold
+	// advances THAT branch and no other. Answer: none.
+	//
+	// It exists because [Rebase] moves the repository, and the fold that
+	// follows a rebase has to land on the target. Nothing here forces:
+	// a checkout that would overwrite uncommitted work refuses, and that
+	// refusal is how a run learns the tree is not in the state it
+	// assumed.
+	Checkout(prefix, branch string) Steps
+
+	// MergeFastForward advances the current branch to branch, and refuses
+	// when that would not be a fast forward — the check a run makes
+	// before landing a dispatch, since a fold that is not a fast forward
+	// means the branch was not rebased onto the current target.
+	//
+	// A refusal is a [*Refusal] with NonFastForward set. Answer: none.
+	MergeFastForward(prefix, branch string) Steps
+
+	// Fetch updates the remote-tracking refs for a remote. It writes —
+	// refs move — even though nothing in the working tree changes.
+	// Answer: none.
+	Fetch(prefix, remote string) Steps
+
+	// Push publishes a branch to a remote. It does not force: a rejected
+	// push means the remote holds something this branch is not built on,
+	// or refuses the ref outright, which is a condition to report rather
+	// than to overwrite. Answer: none.
+	//
+	// A rejection is a [*Rejection] on the step's error, not the tool's
+	// text.
+	Push(prefix, remote, branch string) Steps
 }

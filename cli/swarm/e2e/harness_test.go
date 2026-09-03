@@ -3,8 +3,11 @@
 package e2e
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,6 +15,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/BurntSushi/toml"
 )
@@ -35,6 +39,39 @@ type fixtureStamp struct {
 	Description     string `toml:"description"`
 	Prefix          string `toml:"prefix"`
 	Run             string `toml:"run"`
+	// Worktree is the dispatch worktrees standing in this world.
+	//
+	// Declared here rather than created by each case, because a bundle
+	// cannot carry one: a worktree is a registration under .git, and a
+	// bundle carries refs and objects. A world whose worktrees were
+	// created by the case would put half the world in the case, and two
+	// cases reading the same world would then have to agree by hand.
+	Worktree []worktreeDecl `toml:"worktree"`
+	// RefusingRemote, where declared, is a remote that rejects a push.
+	RefusingRemote *refusingRemote `toml:"refusing_remote"`
+}
+
+// worktreeDecl is one standing dispatch worktree.
+type worktreeDecl struct {
+	// Branch is checked out in the worktree; it must exist in the bundle.
+	Branch string `toml:"branch"`
+	// Path is relative to the world directory, which is the parent of the
+	// repository — the location a dispatch worktree really takes.
+	Path string `toml:"path"`
+}
+
+// refusingRemote is a remote whose pre-receive hook rejects the refs
+// matching a pattern, which is how a push refusal is made to happen
+// rather than simulated.
+//
+// The pattern is declared rather than fixed because what a remote refuses
+// is the interesting half: a remote refusing everything and one refusing
+// a single ref namespace produce different reports, and a world that
+// could only express the first could not prove the second.
+type refusingRemote struct {
+	Name    string `toml:"name"`
+	Refuses string `toml:"refuses"`
+	Message string `toml:"message"`
 }
 
 // caseManifest is case.toml's shape: which fixture the case restores,
@@ -140,6 +177,7 @@ func restore(t *testing.T, binary, fixture string) world {
 	}
 
 	dir := t.TempDir()
+	t.Cleanup(func() { releaseWorld(t, dir) })
 	w := world{
 		dir:    dir,
 		repo:   filepath.Join(dir, "repo"),
@@ -166,38 +204,292 @@ func restore(t *testing.T, binary, fixture string) world {
 	// the bundle happened to record as HEAD.
 	w.mustRun(t, w.repo, "git", "checkout", "--quiet", "claude/bead-bonanza-fixture")
 
+	// Every platform takes the same path: `bd` is installed CGO-enabled
+	// on all three, so it carries the embedded Dolt engine and needs no
+	// `--server`. ADR-027 accepted a CGO-free, server-mode install on
+	// Windows "for the first leg" and named the escape taken here —
+	// adding the CGO toolchain to the runner — for when a Windows-only
+	// failure could not be attributed to the platform rather than to the
+	// mode. One topology across three platforms is the point: a failure
+	// here is now the platform's or the code's, and never the mode's.
 	initArgs := []string{"init", "--prefix", stamp.Prefix}
-	if runtime.GOOS == "windows" {
-		// ADR-027: Windows runs against the CGO-free, server-mode `bd`
-		// install, which carries no embedded Dolt engine — `--server` is
-		// required or the restore fails outright. Nothing else is
-		// needed: `bd init --server` auto-starts and manages its own
-		// `dolt sql-server` when it finds none already listening on the
-		// port it tries, which ADR-027 marked unmeasured. Measured here
-		// (Linux, dolt 2.3.1, no --server-port given): two `bd init
-		// --server` calls made back to back came up on two different
-		// auto-selected ports (36331, then 37165) with no conflict and
-		// no server started by hand — which is what lets this suite's
-		// cases, run with t.Parallel(), each restore its own fixture
-		// without colliding on one.
-		initArgs = append(initArgs, "--server")
-	}
+
+	// The sprint branch's own head, read BEFORE the tracker is
+	// initialised, because initialising it moves the branch.
+	head := w.mustCapture(t, w.repo, "git", "rev-parse", "HEAD")
+
 	w.mustRun(t, w.repo, "bd", initArgs...)
+
 	w.mustRun(t, w.repo, "bd", "import", export)
+
+	// `bd init` COMMITS its own scaffolding onto whatever branch is
+	// checked out. Measured on bd 1.2.2 against this suite's own
+	// fixtures: the sprint branch's head reads `fixture-run.4 P1 the
+	// fourth bead of the run` after the clone and `bd init: initialize
+	// beads issue tracking` after `bd init`. Two things break in a world
+	// left that way — the branch is no longer at the sha the fixture's
+	// stamp documents, and the index carries the same files, which makes
+	// `git rebase` exit 1 with `error: cannot rebase: Your index contains
+	// uncommitted changes.`
+	//
+	// A mixed reset back to the recorded head fixes both at once: the
+	// branch returns to the bundle's own commit and the scaffolding stays
+	// on disk untracked, which is where the tracker reads it from —
+	// measured, `bd show` still answers afterwards. Never `--hard`, which
+	// would delete the tracker the case is about to query.
+	w.mustRun(t, w.repo, "git", "reset", "--quiet", head)
+
+	w.standWorktrees(t)
+	w.standRefusingRemote(t)
 
 	return w
 }
 
+// standWorktrees registers the worktrees the fixture declares.
+//
+// They are created here rather than in a case because the world is what
+// a fixture is: a case that had to create half of it would be asserting
+// against a world it built, which is the thing this tier exists not to
+// do.
+func (w world) standWorktrees(t *testing.T) {
+	t.Helper()
+
+	for _, decl := range w.stamp.Worktree {
+		if decl.Branch == "" || decl.Path == "" {
+			t.Fatalf("a worktree declaration names a branch and a path; got %+v", decl)
+		}
+		path := filepath.Join(w.dir, filepath.FromSlash(decl.Path))
+		w.mustRun(t, w.repo, "git", "worktree", "add", "--quiet",
+			"--checkout", path, decl.Branch)
+	}
+}
+
+// standRefusingRemote stands up a remote that rejects the refs matching
+// the fixture's declared pattern.
+//
+// A real bare repository with a real pre-receive hook, because the point
+// is that the refusal comes back through git the way a server's does —
+// a remote faked at any higher level would prove the fake.
+func (w world) standRefusingRemote(t *testing.T) {
+	t.Helper()
+
+	decl := w.stamp.RefusingRemote
+	if decl == nil {
+		return
+	}
+	if decl.Name == "" || decl.Refuses == "" {
+		t.Fatalf("a refusing remote names a remote and the refs it refuses; got %+v", *decl)
+	}
+	if runtime.GOOS == "windows" {
+		t.Skip("the refusing remote's pre-receive hook is a shell script, which this platform does not run")
+	}
+
+	remote := filepath.Join(w.dir, "refusing-remote.git")
+	w.mustRun(t, w.dir, "git", "init", "--quiet", "--bare", remote)
+
+	message := decl.Message
+	if message == "" {
+		message = "the remote refuses this ref"
+	}
+	// Reads the (oldsha newsha ref) triples git feeds a pre-receive hook
+	// and rejects the whole push when any ref matches, which is what a
+	// server refusing one path of a push does.
+	hook := fmt.Sprintf(`#!/bin/sh
+while read -r _old _new ref; do
+  case "$ref" in
+    %s) echo "%s" >&2; exit 1 ;;
+  esac
+done
+exit 0
+`, decl.Refuses, message)
+	hookPath := filepath.Join(remote, "hooks", "pre-receive")
+	if err := os.WriteFile(hookPath, []byte(hook), 0o755); err != nil {
+		t.Fatalf("writing the refusing remote's hook: %v", err)
+	}
+
+	// Replace rather than add: the clone's own origin is the bundle file,
+	// which no push reaches, so a case pushing to "origin" must reach
+	// this one.
+	if decl.Name == "origin" {
+		w.mustRun(t, w.repo, "git", "remote", "remove", decl.Name)
+	}
+	w.mustRun(t, w.repo, "git", "remote", "add", decl.Name, remote)
+}
+
+// reportHold records one world's handle-release measurement somewhere a
+// green run will still show it. See releaseWorld for why stderr alone is
+// not enough.
+func reportHold(format string, args ...any) {
+	line := "e2e teardown: " + fmt.Sprintf(format, args...) + "\n"
+	if summary := os.Getenv("GITHUB_STEP_SUMMARY"); summary != "" {
+		f, err := os.OpenFile(summary, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o644)
+		if err == nil {
+			defer f.Close()
+			if _, err := io.WriteString(f, line); err == nil {
+				return
+			}
+		}
+		// Fall through to stderr rather than losing the measurement.
+	}
+	fmt.Fprint(os.Stderr, line)
+}
+
+// releaseWorld removes a world's tree before t.TempDir's own cleanup
+// reaches it, retrying while Windows still reports the directory held.
+//
+// Windows refuses to unlink a file another process has open, and this
+// tier spawns `git`, `bd` and `swarm` against every world. A handle
+// outliving its process by a few hundred milliseconds is enough for
+// t.TempDir's single RemoveAll to fail the test during cleanup.
+//
+// The hold is a race, not a design fault in any one case. Measured over
+// three CI runs on windows-latest: 18, 14 and 14 cleanup failures, and
+// the FAILING SET MOVED — only 6 of 14 overlapped between the last two.
+// A process that genuinely owned a world would fail the same cases every
+// run.
+//
+// This does not paper over a failing test. Every command under test has
+// run and been asserted by the time this fires; the only retried
+// operation is deleting a scratch directory. A world that never releases
+// still fails the test, because t.TempDir's cleanup runs immediately
+// after this one and reports what is left — so the outcome is unchanged
+// for a genuine holder, and the line written to stderr says how long the
+// wait was, which is what separates the two cases.
+//
+// Reporting a PASSING package is the hard part, and the obvious answers
+// do not work. Measured on go1.24: without -v, `go test` discards a
+// passing package's t.Logf output AND its stdout AND its stderr — all
+// three markers in a throwaway test appeared only under -v. Writing to
+// stderr does not escape that capture.
+//
+// So when the runner offers GITHUB_STEP_SUMMARY — a plain file path
+// whose contents render in the job summary — the measurement is appended
+// there, which survives a green run without needing -v or a workflow
+// change. Everywhere else it falls back to stderr, visible under -v.
+//
+// Nothing is written when the first removal succeeds.
+func releaseWorld(t *testing.T, dir string) {
+	t.Helper()
+
+	const (
+		budget       = 20 * time.Second
+		firstBackoff = 50 * time.Millisecond
+		maxBackoff   = 2 * time.Second
+	)
+
+	started := time.Now()
+	backoff := firstBackoff
+	for attempt := 1; ; attempt++ {
+		err := os.RemoveAll(dir)
+		if err == nil {
+			if attempt > 1 {
+				reportHold("released `%s` after %s (%d attempts)",
+					filepath.Base(dir), time.Since(started).Round(time.Millisecond), attempt)
+			}
+			return
+		}
+		if time.Since(started) >= budget {
+			reportHold("**STILL HELD** `%s` after %s (%d attempts): %v",
+				filepath.Base(dir), time.Since(started).Round(time.Millisecond), attempt, err)
+			return
+		}
+		time.Sleep(backoff)
+		if backoff *= 2; backoff > maxBackoff {
+			backoff = maxBackoff
+		}
+	}
+}
+
+// restoreStepTimeout bounds a single restore step. The slowest genuine
+// step measured on windows-latest is well under a minute, so this is
+// generous headroom rather than a tuning knob — its job is to name a
+// step that has stopped making progress instead of letting it consume
+// the whole package's budget.
+const restoreStepTimeout = 2 * time.Minute
+
 // mustRun runs a restore step and fails the test with what it said.
+//
+// The wait is bounded because an unbounded one loses the diagnosis: a
+// `bd init --server` that blocks forever surfaces only as `panic: test
+// timed out after 10m0s` with a stack in WaitForSingleObject, which
+// names neither the step nor the world. Measured on windows-latest at
+// 89e7e6b: exactly that, the package failing at 600.071s with this
+// call — harness_test.go's `bd init` — still waiting. CommandContext
+// also kills the child on expiry, so a step that hangs leaves one less
+// orphan behind than it used to.
 func (w world) mustRun(t *testing.T, dir, name string, args ...string) {
 	t.Helper()
 
+	ctx, cancel := context.WithTimeout(context.Background(), restoreStepTimeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, name, args...)
+	cmd.Dir = dir
+	cmd.Env = w.env()
+	out, err := cmd.CombinedOutput()
+	if ctx.Err() != nil {
+		t.Fatalf("restoring the fixture: %s %s made no progress in %s, so it was killed:\n%s",
+			name, strings.Join(args, " "), restoreStepTimeout, out)
+	}
+	if err != nil {
+		t.Fatalf("restoring the fixture: %s %s: %v\n%s", name, strings.Join(args, " "), err, out)
+	}
+}
+
+// run runs a tool in the world and returns what it said and its status,
+// for the callers that need to inspect a failure rather than stop on it.
+func (w world) run(t *testing.T, dir, name string, args ...string) (stdout, stderr string, code int) {
+	t.Helper()
+
+	var out, errOut strings.Builder
 	cmd := exec.Command(name, args...)
 	cmd.Dir = dir
 	cmd.Env = w.env()
-	if out, err := cmd.CombinedOutput(); err != nil {
-		t.Fatalf("restoring the fixture: %s %s: %v\n%s", name, strings.Join(args, " "), err, out)
+	cmd.Stdout = &out
+	cmd.Stderr = &errOut
+
+	if err := cmd.Run(); err != nil {
+		var exit *exec.ExitError
+		if !errors.As(err, &exit) {
+			t.Fatalf("running %s %s: %v", name, strings.Join(args, " "), err)
+		}
+		return out.String(), errOut.String(), exit.ExitCode()
 	}
+	return out.String(), errOut.String(), 0
+}
+
+// mustCapture runs a tool that has to succeed and returns its trimmed
+// stdout.
+func (w world) mustCapture(t *testing.T, dir, name string, args ...string) string {
+	t.Helper()
+
+	stdout, stderr, code := w.run(t, dir, name, args...)
+	if code != 0 {
+		t.Fatalf("%s %s: exit %d\n%s\n%s", name, strings.Join(args, " "), code, stdout, stderr)
+	}
+	return strings.TrimSpace(stdout)
+}
+
+// createID runs a command in the world's repository that must succeed
+// and answer a single JSON object carrying an "id" field — `bd create`'s
+// own shape — and returns that id.
+//
+// A test that needs a bead outside the ones a fixture already commits
+// (a foreign epic to prove one scoped command never reaches it, say)
+// creates one this way rather than hand-naming an id: `bd create` mints
+// a hash-based id, so the only way to know it is to read what bd
+// answered.
+func (w world) createID(t *testing.T, name string, args ...string) string {
+	t.Helper()
+
+	stdout := w.mustCapture(t, w.repo, name, args...)
+	var created struct {
+		ID string `json:"id"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &created); err != nil || created.ID == "" {
+		t.Fatalf("%s %s did not answer an id:\n%s", name, strings.Join(args, " "), stdout)
+	}
+	return created.ID
 }
 
 // env is the environment a run against this world needs.
@@ -209,6 +501,16 @@ func (w world) env() []string {
 	return append(os.Environ(),
 		"HOME="+w.home,
 		"BEADS_ACTOR=fixture-e2e",
+		// A pinned identity, because HOME is pinned into the world and
+		// carries no git configuration: a case that writes a commit —
+		// a rebase replaying one — otherwise fails with `fatal: unable to
+		// auto-detect email address`, which is the world's fault rather
+		// than the command's. Pinned rather than inherited so a rebased
+		// commit says the same thing on every machine.
+		"GIT_AUTHOR_NAME=fixture",
+		"GIT_AUTHOR_EMAIL=fixture@example.invalid",
+		"GIT_COMMITTER_NAME=fixture",
+		"GIT_COMMITTER_EMAIL=fixture@example.invalid",
 		// Locale-independent output from every tool the run shells out
 		// to; the contract forbids a field whose meaning depends on the
 		// producing process's locale, and this is the other half of that.
@@ -252,4 +554,44 @@ func normalized(t *testing.T, text string, subs []substitution) string {
 		text = re.ReplaceAllString(text, sub.With)
 	}
 	return text
+}
+
+// samePath reports whether two paths name the same location. The two
+// sides routinely differ on Windows without disagreeing: t.TempDir()
+// hands back an 8.3 short path (".../RUNNER~1/...") where git resolves
+// the long one (".../runneradmin/..."), and git reports forward slashes
+// where filepath.Join builds backslashes. Neither difference means the
+// paths differ, so compare a canonical form rather than the bytes.
+//
+// A path that does not exist cannot be resolved; canonicalPath falls
+// back to cleaning it, which still settles the separator half.
+func samePath(a, b string) bool { return canonicalPath(a) == canonicalPath(b) }
+
+func canonicalPath(p string) string {
+	if p == "" {
+		return ""
+	}
+	// EvalSymlinks resolves 8.3 short names to their long form on
+	// Windows, which is the half Clean cannot reach.
+	if resolved, err := filepath.EvalSymlinks(p); err == nil {
+		p = resolved
+	}
+	if abs, err := filepath.Abs(p); err == nil {
+		p = abs
+	}
+	return filepath.ToSlash(filepath.Clean(p))
+}
+
+// worktreeListed reports whether `git worktree list --porcelain` output
+// registers the given path, comparing per entry with samePath rather
+// than substring-matching the whole blob — on Windows the separators in
+// git's output and in the answer's path do not match textually.
+func worktreeListed(porcelain, path string) bool {
+	for _, line := range strings.Split(porcelain, "\n") {
+		entry, ok := strings.CutPrefix(strings.TrimSpace(line), "worktree ")
+		if ok && samePath(entry, path) {
+			return true
+		}
+	}
+	return false
 }

@@ -1,0 +1,37 @@
+# A run with a dispatch worktree standing on its own branch.
+#
+# Derived from the core fixture: the core's history plus one branch,
+# `bb/dev-fixture-2`, cut from the sprint branch and carrying one commit.
+# The branch takes the `bb/<dispatch-id>` form the coordinator creates, so
+# a worktree checked out on it is attributable to its dispatch by branch
+# name alone.
+#
+#   repository.bundle  the core's three commits, plus 016160f on
+#                      `bb/dev-fixture-2`. Every commit was made with a
+#                      pinned author, committer and date, so the shas are
+#                      fixed.
+#   tracker.jsonl      the core's run epic and its two beads, plus one
+#                      bead assigned to dev-fixture-2 — whose worktree
+#                      stands — and one assigned to dev-fixture-3, whose
+#                      does not. Both are open, so "held" and "available"
+#                      are told apart by the worktree and by nothing else.
+
+kind = "variant"
+contract_version = "2.0"
+
+description = """A run with one dispatch worktree standing: a bead assigned to the \
+dispatch that holds it is held rather than available, while a bead assigned to a \
+dispatch with no worktree is available."""
+
+prefix = "fixture"
+run = "fixture-run"
+
+# The standing worktree. A bundle cannot carry a worktree registration —
+# it carries refs and objects — so the world declares it and the harness
+# registers it at restore.
+#
+# The path is the one the coordinator really uses: a sibling of the
+# repository root, `<parent>/.bb-worktrees/<dispatch-id>`.
+[[worktree]]
+branch = "bb/dev-fixture-2"
+path = ".bb-worktrees/dev-fixture-2"

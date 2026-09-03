@@ -708,6 +708,12 @@ Feature: Record and read a finding
   Scenario: An ordinal is derived and is not accepted as input
     When a finding is recorded with an ordinal supplied by the caller
     Then the command exits non-zero
+
+  @AC-SWARM-RUN-006.10
+  Scenario: Evidence is taken from a file byte for byte
+    Given evidence containing backticks, a dollar-parenthesis sequence, quotes and newlines
+    When it is recorded with the @file form
+    Then the finding reads back carrying that evidence unchanged
 ```
 
 ### FEAT-SWARM-RUN-007: Harvest and route a run's findings
@@ -738,7 +744,9 @@ Feature: Harvest and route a run's findings
   almost entirely closed, so a literal reading returns findings for the
   handful of beads that never closed and drops nearly everything else.
   A second query omits comments altogether while its text output prints
-  them. Routing is a lookup applied without reading content, which is
+  them. The empty answer is the survivable one, because it is obviously
+  wrong; the partial answer is not, so the harvest is reconciled against
+  the count the beads themselves record rather than only checked for zero. Routing is a lookup applied without reading content, which is
   what keeps it viable on a run with seventy findings.
 
   Two kinds terminate at the record and produce no issue candidate.
@@ -802,6 +810,12 @@ Feature: Harvest and route a run's findings
     Given a candidate filed from two findings
     When the filing is recorded
     Then each finding's bead carries a record naming the issue that was filed and the finding it came from
+
+  @AC-SWARM-RUN-007.8
+  Scenario: An incomplete harvest is caught, not only an empty one
+    Given a run whose beads record a known number of findings
+    When the harvest returns fewer than that number
+    Then the command exits non-zero naming the beads whose findings it did not read
 ```
 
 ### FEAT-SWARM-RUN-008: Reconstruct a run nobody is holding
