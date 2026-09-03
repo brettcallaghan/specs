@@ -2,9 +2,9 @@
 #
 # ci.sh — the full check picture for this repository, run by hand.
 #
-# THIS IS NOT `sf.toml`'s `[[checks]]`, and it deliberately runs more.
+# THIS IS NOT `swarm.toml`'s `[[checks]]`, and it deliberately runs more.
 #
-#   sf.toml   the quality bar for ONE COMMIT — what every bead runs before its
+#   swarm.toml   the quality bar for ONE COMMIT — what every bead runs before its
 #             own close. Sized to be affordable every time.
 #   ci.sh     everything a contributor should see green before pushing.
 #

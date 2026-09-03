@@ -1,4 +1,14 @@
-# Plugin-scoped configuration for the sf agent-plugins toolkit.
+# Configuration this project declares FOR A SWARM RUN.
+#
+# Nothing in this repository parses it. Every reader is in the `swarm` plugin
+# (brettcallaghan/swarm) — `bb-checks.py` runs `[[checks]]`, `swarm-scope`
+# resolves `[run]`, `swarm-retro` reads `[retros]`, `swarm-review` reads
+# `[review]`, and the coordinator resolves `[models]` at dispatch. The file is
+# named for its reader, which is why it is `swarm.toml` and not `sf.toml`: the
+# `sf` plugin has no configuration file and parses no TOML at all.
+#
+# It lives here because a swarm run executed AGAINST this repository needs to
+# know this repository's checks, tiers and run defaults.
 #
 # Per ADR-022 ("Projects Declare Checkpoint Scripts"): a project declares the
 # executables its skills run, by repository-root-relative path, in this file.

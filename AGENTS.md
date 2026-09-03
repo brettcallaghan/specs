@@ -215,7 +215,7 @@ Two lists, and they are not the same list:
 | | |
 |---|---|
 | `scripts/ci.sh` | everything a contributor should see green before pushing |
-| `sf.toml`'s `[[checks]]` | the quality bar for ONE COMMIT — what a bead runs before its own close |
+| `swarm.toml`'s `[[checks]]` | the quality bar for ONE COMMIT — what a bead runs before its own close |
 
 They overlap today and will not stay that way: anything too slow to pay per
 bead belongs in `ci.sh` and not in the declaration. Neither is the **release
