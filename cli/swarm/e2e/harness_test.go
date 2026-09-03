@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -315,6 +316,24 @@ exit 0
 	w.mustRun(t, w.repo, "git", "remote", "add", decl.Name, remote)
 }
 
+// reportHold records one world's handle-release measurement somewhere a
+// green run will still show it. See releaseWorld for why stderr alone is
+// not enough.
+func reportHold(format string, args ...any) {
+	line := "e2e teardown: " + fmt.Sprintf(format, args...) + "\n"
+	if summary := os.Getenv("GITHUB_STEP_SUMMARY"); summary != "" {
+		f, err := os.OpenFile(summary, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0o644)
+		if err == nil {
+			defer f.Close()
+			if _, err := io.WriteString(f, line); err == nil {
+				return
+			}
+		}
+		// Fall through to stderr rather than losing the measurement.
+	}
+	fmt.Fprint(os.Stderr, line)
+}
+
 // releaseWorld removes a world's tree before t.TempDir's own cleanup
 // reaches it, retrying while Windows still reports the directory held.
 //
@@ -337,10 +356,18 @@ exit 0
 // for a genuine holder, and the line written to stderr says how long the
 // wait was, which is what separates the two cases.
 //
-// It writes to stderr rather than t.Logf on purpose: `go test` prints a
-// passing test's log output only under -v, and the measurement is wanted
-// precisely on the runs that now pass. Nothing is written when the first
-// removal succeeds, which is every world on Linux and macOS.
+// Reporting a PASSING package is the hard part, and the obvious answers
+// do not work. Measured on go1.24: without -v, `go test` discards a
+// passing package's t.Logf output AND its stdout AND its stderr — all
+// three markers in a throwaway test appeared only under -v. Writing to
+// stderr does not escape that capture.
+//
+// So when the runner offers GITHUB_STEP_SUMMARY — a plain file path
+// whose contents render in the job summary — the measurement is appended
+// there, which survives a green run without needing -v or a workflow
+// change. Everywhere else it falls back to stderr, visible under -v.
+//
+// Nothing is written when the first removal succeeds.
 func releaseWorld(t *testing.T, dir string) {
 	t.Helper()
 
@@ -356,14 +383,14 @@ func releaseWorld(t *testing.T, dir string) {
 		err := os.RemoveAll(dir)
 		if err == nil {
 			if attempt > 1 {
-				fmt.Fprintf(os.Stderr, "e2e: %s released after %s (%d attempts)\n",
-					dir, time.Since(started).Round(time.Millisecond), attempt)
+				reportHold("released `%s` after %s (%d attempts)",
+					filepath.Base(dir), time.Since(started).Round(time.Millisecond), attempt)
 			}
 			return
 		}
 		if time.Since(started) >= budget {
-			fmt.Fprintf(os.Stderr, "e2e: %s STILL HELD after %s (%d attempts): %v\n",
-				dir, time.Since(started).Round(time.Millisecond), attempt, err)
+			reportHold("**STILL HELD** `%s` after %s (%d attempts): %v",
+				filepath.Base(dir), time.Since(started).Round(time.Millisecond), attempt, err)
 			return
 		}
 		time.Sleep(backoff)
