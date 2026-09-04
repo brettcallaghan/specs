@@ -898,7 +898,7 @@ not exist.
   decide. Settle it on a throwaway bead.
 - **Whether CI is green on head, `62e9e42`.** Checks pass locally; no workflow
   run was read back, in either half of the run.
-- **The recurrence count on any of the 13 filed issues.** All 13 carry
+- **The recurrence count on any of the 16 filed issues.** All 16 carry
   `recurrence: 0`, which is the template's starting value rather than a
   measurement: no window over prior runs' UNFILED findings was computed. This
   repository's earlier runs did report findings against the sprint skills while it
@@ -922,9 +922,12 @@ Each was put to a human once; a declined candidate stays in this document, where
 a later run hitting the same friction raises it again with a higher recurrence
 count.
 
-**Nineteen candidates in two sets.** The next two subsections are **pass 1's
-fifteen**, answered at `AMENDMENT 3` and unchanged; the third is **pass 2's
-four**, which are pending.
+**Nineteen candidates in two sets, and both sets are now answered.** The next
+two subsections are **pass 1's fifteen**, answered at `AMENDMENT 3` and
+unchanged; the third is **pass 2's four**, answered in a second decision round
+on 2026-09-04 — **S11, S12 and P6 accepted and filed; A1 HELD**, neither filed
+nor declined, pending a root-cause investigation already under way on
+`agent-plugins-yztv`.
 
 Provenance carried by every candidate: run `agent-plugins-d7w5`, branch
 `claude/swarm-agent-plugins-5wxrfo`, record this file, model `opus` (advanced
@@ -974,13 +977,16 @@ implementation time" is a summary, not a change anyone can accept or decline.
 They stay in this document so a second run reporting the same shape can be
 counted against them.
 
-### Pass 2 — four further candidates, PUT TO THE HUMAN AND PENDING
+### Pass 2 — four further candidates, PUT TO THE HUMAN AND ANSWERED
 
 Reasoned from pass 2's seventeen findings, deduped against everything pass 1
-filed and against the nine beads filed outside the run. **Nothing below has been
-filed.** No `retro:filed:` mark was written for any of it and the manifest
-counters are untouched; they move once, as one merge, when the answer comes
-back.
+filed and against the nine beads filed outside the run. **The list below is as
+PUT**; the second decision round's answer and what was filed for each are under
+"Pass 2's decision" in the next section. In summary: **S11, S12 and P6
+accepted and filed on 2026-09-04**, their `retro:filed:` marks written, and the
+manifest counters moved once as one merge; **A1 held** — the human answered
+"investigate the cause but don't commit to a resolution yet", so
+`agent-plugins-yztv` was not touched at all.
 
 | # | audience | candidate | findings | rank |
 |---|---|---|---|---|
@@ -1033,14 +1039,15 @@ channel, and answered there: **13 accepted, 2 declined.** Recorded on the run
 epic as `AMENDMENT 3`, which also admitted the four P1 review findings that
 produced the second half of this run. Filing was carried out by `retro-d7w5` on
 2026-09-04; nothing below was filed before the decision. **Pass 2's four
-candidates are pending** — see the end of this section.
+candidates were put once and answered in a second round** — 3 accepted and
+filed, 1 held; see "Pass 2's decision" at the end of this section.
 
-`manifest.retro_filed` = **13**, `manifest.retro_declined` = **2**,
-`manifest.retro_routed` = **28** — written as one merge with
-`swarm manifest set --run agent-plugins-d7w5`. **Those three counters still hold
-pass 1's figures and are deliberately not updated**, because the routed total is
-now 45 and the filed total moves with pass 2's answer; they change once, in one
-merge, when it comes back.
+`manifest.retro_filed` = **16**, `manifest.retro_declined` = **2**,
+`manifest.retro_routed` = **45** — written as one merge with
+`swarm manifest set --run agent-plugins-d7w5`, once, after the second round came
+back. The figures cover both rounds together: 13 filed in pass 1 plus 3 in pass
+2, the two pass-1 declines unchanged (a held candidate is not a decline), and
+every one of the run's 45 findings routed.
 
 ### Accepted — skill audience, all 10, delivered to `brettcallaghan/swarm`
 
@@ -1141,22 +1148,86 @@ The eleven `decision` findings were never candidates — each is already recorde
 where it belongs, by the agent that made it — and the one `proof` finding
 terminated at routing. Neither is a decision anyone declined.
 
-### Pass 2 — pending
+### Pass 2's decision — 3 accepted and filed, 1 held
 
 The four candidates above (**S11**, **A1**, **P6**, **S12**) were put to the
-human at this retro's channel and **the answer is not recorded in this
-document**. Nothing was filed for them, no `retro:filed:` mark was written on
-`d7w5.2.1` or on any pass-2 bead, and no existing bead's priority was changed —
-`agent-plugins-yztv` still reads P2. A declined candidate stays here, as pass
-1's two did.
+human at this retro's channel once, and answered on 2026-09-04. Filing was
+carried out by `retro-d7w5` after the answer; nothing was filed before it.
+
+| # | rank | decision | finding(s) | what was filed |
+|---|---|---|---|---|
+| S11 | P0 | **accepted** | `d7w5.2.1#12` | `.sf/outbox/swarm/2026-09-04-dispatch-accept-rebases-a-branch-still-checked-out-in-its-worktree.md` |
+| S12 | P2 | **accepted** | `d7w5.9#2`, `d7w5.11#3` | `.sf/outbox/swarm/2026-09-04-review-filed-beads-prescribe-a-remedy-the-reviewer-never-ran.md` |
+| P6 | P1 | **accepted** | `d7w5.9#2`, `d7w5.8#2`, `d7w5.7#2`, `d7w5.11#3` | bead `agent-plugins-yois` (P1, `parent=null`) |
+| A1 | P1 | **HELD** | `d7w5.11#3`, `agent-plugins-yztv` | nothing — see below |
+
+**S11** and **S12** are skill-audience and went to `.sf/outbox/swarm/` for
+delivery to `brettcallaghan/swarm`, in the issue template's shape and with the
+same provenance the pass-1 ten carry: run `agent-plugins-d7w5`, branch
+`claude/swarm-agent-plugins-5wxrfo`, this record, `skill_version`
+`swarm 0.1.0 @ 1a19e8e (2026-09-02)`, `model` **unrecorded** with the reason,
+and `recurrence: 0` as the template's starting value rather than a measurement.
+S11 quotes `d7w5.2.1#12` in full and, beside it, the run epic's `PASS 2
+ACCEPTANCE EVIDENCE` comment, which records both accepts side by side. S12
+cites the three measured instances the human named: `d7w5.9`'s finding proposed
+asking `heading.Type()` / the AST kind and goldmark v1.8.5's `ast.Heading`
+carries only `BaseBlock` and `Level` (`d7w5.9#2`); the same finding mis-stated
+part of its own defect, and `agent-plugins-d7w5.9`'s Problem section records the
+grooming correction — "A's Section is EMPTY" is correct behaviour, A stands over
+nothing; and `d7w5.11`'s three named fixes left field dominance unhandled and
+would have produced the key `name` twice carrying two different values
+(`d7w5.11#3`).
+
+**S12 and P6 overlap deliberately and both were accepted.** P6 is the readiness
+gate that would catch such a work order at grooming; S12 is the source that
+produces it. Each says so on its face, and neither is offered as a substitute
+for the other.
+
+**`agent-plugins-yois`** (candidate P6) requires that a work order state as fact
+only what was measured: any value, signature, identifier or enumerated fix
+derived by inference either carries the command and output that establish it, or
+is marked unverified in place. It lands as a tenth check in
+`specs/standards/work-order-definition-of-ready.md`, which
+`scripts/sync-shared-references.sh` vendors into both `groom-beads` and `spec`,
+so one edit reaches both — the bead's acceptance criteria require the version
+bump, both regenerated copies and `--check` exiting 0. It carries the four
+measured instances quoted inline: the unreachable AST field (`d7w5.9#2`), the
+identifier arithmetic that gave `--bullet` and `3--design-present` where the
+Design said `-bullet` and `3-design-present` (`d7w5.8#2`), the `Locate(src)
+(span.Region, bool)` signature that could not distinguish "no block" from
+"opened and never closed" (`d7w5.7#2`), and the three named fixes that asserted
+a sufficiency they did not have (`d7w5.11#3`). Groomed to this repository's own
+Definition of Ready — problem with durable anchors, design with the choice
+settled and its alternatives recorded, checkable acceptance criteria,
+`tier: advanced` with a reason, declared C4 blast radius. **`parent=null`**, with
+`discovered-from` edges to `d7w5.7`, `.8`, `.9` and `.11` and a `related` edge to
+`agent-plugins-3oiv`, which edits the same standard: parenting a retro filing
+under the run epic is the P0 defect this run reported as `d7w5.2.1#10`.
+
+**A1 is HELD — neither filed nor declined.** The human answered "investigate the
+cause but don't commit to a resolution yet". `agent-plugins-yztv` was therefore
+**not touched at all**: its priority still reads **P2**, no remedy was recorded
+on it, and no comment was added — a separate agent is investigating its cause and
+owns that bead. The measurement behind A1 stands and is recorded above, in
+"A1's measurement, reproduced by this retro rather than inherited"; it is
+evidence for whoever takes the investigation, not a decision anyone made. A held
+candidate is not a decline and is not counted as one: `retro_declined` stays at
+pass 1's **2**. If the investigation settles that the regression is worth fixing
+at P1, this candidate is where the reproduction is written down.
 
 ### The audit closes both ways
 
 Each filed issue is marked on the bead carrying its finding, as a
-`retro:filed:<id> — <finding id>` comment: ten on `agent-plugins-d7w5.2.1` for
-the outbox deliveries, plus `3oiv` on `f6tl.1`, `f6tl.3` and `f6tl.4`, `yqjh` on
-`d7w5.2.1`, and `nduj` on `f6tl.4`. Recurrence counts unfiled findings only, so
-the pool shrinks as issues are filed rather than growing without limit.
+`retro:filed:<id> — <finding id>` comment. **Pass 1:** ten on
+`agent-plugins-d7w5.2.1` for the outbox deliveries, plus `3oiv` on `f6tl.1`,
+`f6tl.3` and `f6tl.4`, `yqjh` on `d7w5.2.1`, and `nduj` on `f6tl.4`. **Pass 2:**
+S11's outbox file on `d7w5.2.1` (for `#12`); S12's outbox file on `d7w5.9` (for
+`#2`) and on `d7w5.11` (for `#3`); and `agent-plugins-yois` on all four pass-2
+beads — `d7w5.9`, `d7w5.8`, `d7w5.7` and `d7w5.11`, each naming the finding it
+rests on. Nothing was marked for **A1**, which was held rather than filed, so
+`d7w5.11#3` remains unfiled for that candidate and keeps counting toward
+recurrence. Recurrence counts unfiled findings only, so the pool shrinks as
+issues are filed rather than growing without limit.
 
 ### Counts
 
@@ -1171,8 +1242,13 @@ terminating at `proof`), unrouted 0; 15 candidates, 13 filed, 2 declined.
   **Unrouted 0.**
 - **Candidates 19** — 15 in pass 1, 4 in pass 2. By audience: 12 skill, 7
   project.
-- **Filed 13**, all of them pass 1's — 10 outbox files, 3 beads. **Declined 2.**
-  **Pending 4.**
+- **Filed 16** — 13 in pass 1 (10 outbox files, 3 beads) and 3 in pass 2 (2
+  outbox files, 1 bead: `agent-plugins-yois`). **Declined 2**, both pass 1's.
+  **Held 1** — candidate A1, pending a root-cause investigation on
+  `agent-plugins-yztv`; a held candidate is neither filed nor declined and is
+  counted as neither. **Pending 0.**
+- **Written to the manifest as one merge**, covering both rounds:
+  `retro_filed` **16**, `retro_declined` **2**, `retro_routed` **45**.
 - Nothing was filed in this repository's tracker from the skill branch, and
   nothing in `brettcallaghan/swarm`'s tracker from here.
 - Beads filed **outside** this retro, by the dispatches and by review pass 2,
