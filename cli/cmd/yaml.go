@@ -6,18 +6,25 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+	"unicode"
 )
 
 // YAML rendering for this command surface, per
 // [[cli-output-standards]]'s YAML Style section.
 //
-// The renderer walks the same struct `encoding/json` marshals, reading
-// the same `json` tags in the same field order, because the standards
-// require both renderings to carry "the same values in the same order".
-// Deriving one rendering from the other's declaration is what makes that
-// true by construction rather than by two authors agreeing; a value that
-// appears in `--json` and not in the YAML would be a bug the type system
-// cannot see.
+// The renderer walks the same struct `encoding/json` marshals and
+// resolves its fields the same way — the same `json` tags, the same
+// promotion of embedded structs, the same dominance rules between two
+// fields of one name — so the two renderings carry the same keys in the
+// same order. The standards require that ("the same values in the same
+// order"), and deriving one rendering from the other's declaration is
+// what makes it true by construction rather than by two authors
+// agreeing; a value that appears in `--json` and not in the YAML would
+// be a bug the type system cannot see.
+//
+// One difference is deliberate: an empty or nil sequence renders `[]`
+// and an empty or nil mapping `{}`, per the standards' YAML Style
+// section, where `encoding/json` writes `null` for a nil one.
 //
 // It is deliberately not a general YAML library. Every rule below removes
 // a choice a library would offer — no flow style, no anchors, no folding,
@@ -315,56 +322,254 @@ func indirect(v reflect.Value) reflect.Value {
 	return v
 }
 
-// structFields returns a struct's rendered fields, in declaration order,
-// reading the same json tags encoding/json reads so that the two
-// renderings carry the same values in the same order.
+// structFields returns a struct's rendered fields: the same keys, under
+// the same names, in the same order `encoding/json` writes them.
+//
+// The field set is resolved by typeFields below; this walks each
+// resolved index path to the value, skipping a field reached through a
+// nil embedded pointer exactly as `encoding/json` skips it.
 func structFields(v reflect.Value) []field {
 	var fields []field
-	t := v.Type()
-	for i := range t.NumField() {
-		f := t.Field(i)
-		if f.PkgPath != "" {
-			// Unexported, and invisible to encoding/json too.
+resolve:
+	for _, spec := range typeFields(v.Type()) {
+		fv := v
+		for _, i := range spec.index {
+			if fv.Kind() == reflect.Pointer {
+				if fv.IsNil() {
+					// The embedded struct is absent, and so is every
+					// field promoted through it.
+					continue resolve
+				}
+				fv = fv.Elem()
+			}
+			fv = fv.Field(i)
+		}
+		if spec.omitEmpty && isEmptyValue(fv) {
 			continue
 		}
-		name, opts, ok := jsonName(f)
-		if !ok {
-			continue
-		}
-		value := v.Field(i)
-		if opts["omitempty"] && isEmptyValue(value) {
-			continue
-		}
-		if f.Anonymous && indirect(value).Kind() == reflect.Struct && name == "" {
-			// An embedded struct with no tag flattens into its parent,
-			// exactly as encoding/json flattens it.
-			fields = append(fields, structFields(indirect(value))...)
-			continue
-		}
-		if name == "" {
-			name = f.Name
-		}
-		fields = append(fields, field{key: name, value: value})
+		fields = append(fields, field{key: spec.key, value: fv})
 	}
 	return fields
 }
 
-// jsonName reads a field's json tag: the name it renders under, its
-// options, and whether it is rendered at all.
-func jsonName(f reflect.StructField) (string, map[string]bool, bool) {
-	tag, tagged := f.Tag.Lookup("json")
-	if !tagged {
-		return f.Name, nil, true
+// fieldSpec is one visible field of a struct type: the key it renders
+// under, the index path reaching it through any embedded structs,
+// whether a json tag NAMED it, and whether that tag asked for
+// omitempty.
+type fieldSpec struct {
+	key       string
+	index     []int
+	tagged    bool
+	omitEmpty bool
+}
+
+// embeddedType is a struct type awaiting exploration, with the index
+// path that reached it.
+type embeddedType struct {
+	typ   reflect.Type
+	index []int
+}
+
+// typeFields resolves a struct type's visible fields the way
+// `encoding/json` resolves them: a breadth-first walk over the type and
+// the struct types it embeds, then the dominance rules that decide which
+// of two fields sharing a name is visible, and finally a return to
+// declaration order.
+//
+// Reproducing the walk is what makes the two renderings agree. A
+// shallower field hides a promoted one of the same name; two fields at
+// the same depth hide each other unless exactly one is named by a tag;
+// and an embedded field is flattened only when no tag names it — the
+// rules a hand-rolled reading of the tags gets wrong in the direction of
+// silently dropping a value.
+func typeFields(t reflect.Type) []fieldSpec {
+	var fields []fieldSpec
+	current := []embeddedType{}
+	next := []embeddedType{{typ: t}}
+	var count, nextCount map[reflect.Type]int
+	visited := map[reflect.Type]bool{}
+
+	for len(next) > 0 {
+		current, next = next, current[:0]
+		count, nextCount = nextCount, map[reflect.Type]int{}
+
+		for _, e := range current {
+			if visited[e.typ] {
+				continue
+			}
+			visited[e.typ] = true
+
+			for i := range e.typ.NumField() {
+				sf := e.typ.Field(i)
+				if sf.Anonymous {
+					et := sf.Type
+					if et.Kind() == reflect.Pointer {
+						et = et.Elem()
+					}
+					if !sf.IsExported() && et.Kind() != reflect.Struct {
+						// An embedded field of an unexported NON-struct
+						// type is invisible. One of an unexported STRUCT
+						// type is not: its exported fields are promoted
+						// through it, and the type's own name never
+						// appears.
+						continue
+					}
+				} else if !sf.IsExported() {
+					// Unexported, and invisible to encoding/json too.
+					continue
+				}
+
+				tag := sf.Tag.Get("json")
+				if tag == "-" {
+					continue
+				}
+				name, opts := parseJSONTag(tag)
+				if !validTagName(name) {
+					name = ""
+				}
+
+				index := make([]int, len(e.index)+1)
+				copy(index, e.index)
+				index[len(e.index)] = i
+
+				ft := sf.Type
+				if ft.Name() == "" && ft.Kind() == reflect.Pointer {
+					ft = ft.Elem()
+				}
+
+				if name != "" || !sf.Anonymous || ft.Kind() != reflect.Struct {
+					tagged := name != ""
+					if name == "" {
+						name = sf.Name
+					}
+					fields = append(fields, fieldSpec{
+						key:       name,
+						index:     index,
+						tagged:    tagged,
+						omitEmpty: opts["omitempty"],
+					})
+					if count[e.typ] > 1 {
+						// The embedding type was reached by more than
+						// one path, so record a duplicate for the
+						// dominance rules to annihilate.
+						fields = append(fields, fields[len(fields)-1])
+					}
+					continue
+				}
+
+				// An embedded struct no tag names: explore it in the
+				// next round, one level deeper.
+				nextCount[ft]++
+				if nextCount[ft] == 1 {
+					next = append(next, embeddedType{typ: ft, index: index})
+				}
+			}
+		}
 	}
-	parts := strings.Split(tag, ",")
-	if parts[0] == "-" && len(parts) == 1 {
-		return "", nil, false
+
+	// Group by name, shallowest first, and within one depth the
+	// tag-named field ahead of the one named after its Go field.
+	sort.Slice(fields, func(i, j int) bool {
+		x, y := fields[i], fields[j]
+		if x.key != y.key {
+			return x.key < y.key
+		}
+		if len(x.index) != len(y.index) {
+			return len(x.index) < len(y.index)
+		}
+		if x.tagged != y.tagged {
+			return x.tagged
+		}
+		return lessByIndex(x, y)
+	})
+
+	out := fields[:0]
+	for advance, i := 0, 0; i < len(fields); i += advance {
+		fi := fields[i]
+		for advance = 1; i+advance < len(fields); advance++ {
+			if fields[i+advance].key != fi.key {
+				break
+			}
+		}
+		if advance == 1 {
+			out = append(out, fi)
+			continue
+		}
+		if dominant, ok := dominantField(fields[i : i+advance]); ok {
+			out = append(out, dominant)
+		}
 	}
+	fields = out
+
+	sort.Slice(fields, func(i, j int) bool { return lessByIndex(fields[i], fields[j]) })
+	return fields
+}
+
+// dominantField picks the visible field from a group sharing one name,
+// already ordered shallowest-first and tag-named-first. The first is
+// therefore the dominant one unless the second ties it on both depth and
+// tagging, in which case Go's embedding rules hide both and the name
+// renders in neither rendering.
+func dominantField(fields []fieldSpec) (fieldSpec, bool) {
+	if len(fields) > 1 &&
+		len(fields[0].index) == len(fields[1].index) &&
+		fields[0].tagged == fields[1].tagged {
+		return fieldSpec{}, false
+	}
+	return fields[0], true
+}
+
+// lessByIndex orders two fields by their index paths, which restores
+// declaration order with a promoted field sitting where its embedding
+// field was declared.
+func lessByIndex(x, y fieldSpec) bool {
+	for k, xk := range x.index {
+		if k >= len(y.index) {
+			return false
+		}
+		if xk != y.index[k] {
+			return xk < y.index[k]
+		}
+	}
+	return len(x.index) < len(y.index)
+}
+
+// parseJSONTag splits a json tag into the name it asks for and the
+// options that follow it. An absent tag yields an empty name, which is
+// what lets an untagged embedded struct be told from one tagged with a
+// name.
+func parseJSONTag(tag string) (string, map[string]bool) {
+	name, rest, _ := strings.Cut(tag, ",")
 	opts := map[string]bool{}
-	for _, opt := range parts[1:] {
+	for rest != "" {
+		var opt string
+		opt, rest, _ = strings.Cut(rest, ",")
 		opts[opt] = true
 	}
-	return parts[0], opts, true
+	return name, opts
+}
+
+// tagNamePunctuation is the punctuation `encoding/json` accepts inside a
+// tag name; a backslash or a quote is reserved.
+const tagNamePunctuation = "!#$%&()*+-./:;<=>?@[]^_{|}~ "
+
+// validTagName reports whether a json tag names a field, on
+// `encoding/json`'s terms. A name it rejects is ignored rather than
+// honoured, so the field renders under its Go name — or, for an embedded
+// struct, flattens.
+func validTagName(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		if strings.ContainsRune(tagNamePunctuation, r) {
+			continue
+		}
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) {
+			return false
+		}
+	}
+	return true
 }
 
 // isEmptyValue mirrors encoding/json's own omitempty test, so a field
@@ -377,7 +582,7 @@ func isEmptyValue(v reflect.Value) bool {
 		return !v.Bool()
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return v.Int() == 0
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		return v.Uint() == 0
 	case reflect.Float32, reflect.Float64:
 		return v.Float() == 0

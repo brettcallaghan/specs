@@ -352,13 +352,22 @@ the identifier derivation are Markdown Structure's.
 **`headings` is the first command written to [[cli-output-standards]].**
 Its answer renders as YAML by default and as JSON under `--json`, both
 carrying the same values in the same order. The YAML rendering lives in
-`cli/cmd`, in `renderYAML`, and walks the same struct `encoding/json`
-marshals — the same `json` tags in the same field order — so the two
-renderings cannot drift into carrying different values. It is not a
-general YAML library: block style, two-space indent, `[]` and `{}` for
-empty collections, block scalars for multi-line values trimmed at the
-edges, plain scalars where they round-trip and double quotes where they
-do not, and no comments, anchors, aliases, tags or document markers.
+`cli/cmd`, in `renderYAML`, and resolves the marshalled struct's fields
+the way `encoding/json` resolves them — the same `json` tags, embedded
+structs promoted the same way, and the same rule deciding which of two
+fields sharing a name is visible — so the two renderings carry the same
+keys in the same order and neither can quietly gain or lose a value the
+other has. One difference between them is required rather than
+accidental: an empty or nil sequence renders `[]` and an empty or nil
+mapping `{}` per [[cli-output-standards]], where JSON writes `null` for a
+nil one. `cli/cmd/yaml_promotion_test.go` holds the renderer to this by
+rendering a table of struct shapes both ways and comparing the key
+sequences, and asserts the collection difference as the deliberate one it
+is. It is not a general YAML library: block style, two-space indent, `[]`
+and `{}` for empty collections, block scalars for multi-line values
+trimmed at the edges, plain scalars where they round-trip and double
+quotes where they do not, and no comments, anchors, aliases, tags or
+document markers.
 Every other command on this surface still prints what it printed before;
 migrating them is per command, and belongs to whichever feature next
 touches each one.
