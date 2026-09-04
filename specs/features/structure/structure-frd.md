@@ -6,7 +6,7 @@ description: Records each document's headings with their section spans
   re-parsing the corpus
 slug: frd-spec-structure
 type: frd
-status: draft
+status: approved
 updated_at: 2026-09-04T00:00:00Z
 sources:
   - "frd-spec-index"

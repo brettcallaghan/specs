@@ -5,7 +5,7 @@ description: What every spec command writes to its output stream — YAML
   as itself, and the style rules that make both readable
 slug: cli-output-standards
 type: standards
-status: draft
+status: approved
 updated_at: 2026-09-04T00:00:00Z
 version: "0.1"
 ---
@@ -27,7 +27,7 @@ so a reader who has met YAML once can read it and a consumer already has
 a parser for it. There is no line grammar to reverse-engineer, no column
 convention, no punctuation carrying meaning.
 
-**Status: draft, and not yet met.** The surface predates these
+**Status: approved, and not yet met.** The surface predates these
 standards; [Current conformance](#current-conformance) records what each
 command prints today, measured, and what each has to change. A command
 specified after this document is written to conform from the start.

@@ -5,7 +5,7 @@ description: Resolves the anchor half of a wikilink — the heading it
   rigorously as a link to the document
 slug: frd-spec-anchor-references
 type: frd
-status: draft
+status: approved
 updated_at: 2026-09-04T00:00:00Z
 sources:
   - "frd-spec-reference-integrity"

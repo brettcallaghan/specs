@@ -5,7 +5,7 @@ description: Resolves a reference's anchor against its target's headings
   checks, and an anchor-qualified refs query
 slug: feature-spec-anchor-references
 type: feature-blueprint
-status: draft
+status: approved
 updated_at: 2026-09-04T00:00:00Z
 delivery: staged
 frd: frd-spec-anchor-references

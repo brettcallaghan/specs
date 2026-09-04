@@ -5,7 +5,7 @@ description: Builds the heading tree with section spans, attaches parsed
   index, and answers a heading query
 slug: feature-spec-structure
 type: feature-blueprint
-status: draft
+status: approved
 updated_at: 2026-09-04T00:00:00Z
 delivery: staged
 frd: frd-spec-structure
