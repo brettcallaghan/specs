@@ -131,7 +131,7 @@ line_width = 72
 }
 
 // Absent [conventions] keys resolve from the active profile
-// (contract-specs-configuration.md's resolution rule).
+// (specs-configuration-contract.md's resolution rule).
 func TestLoadResolvesAbsentConventionsFromTheActiveProfile(t *testing.T) {
 	dir := t.TempDir()
 	path := writeConfig(t, dir, `

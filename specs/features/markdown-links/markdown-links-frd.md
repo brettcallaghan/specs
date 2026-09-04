@@ -421,8 +421,8 @@ Feature: Target the corpus's own layout when no map is given
 ```
 
 *Example:* this FRD cites `` `[[adr-018]]` ``, whose document is
-`specs/adrs/ADR-018-references-as-index-edges.md`; with no map the
-emitted target is `../../adrs/ADR-018-references-as-index-edges.md`
+`specs/adrs/adr-018-references-as-index-edges.md`; with no map the
+emitted target is `../../adrs/adr-018-references-as-index-edges.md`
 (AC-SPECMD-006.1), keeping that file name rather than one derived from
 the `adr-018` slug (AC-SPECMD-006.2).
 

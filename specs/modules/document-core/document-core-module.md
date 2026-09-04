@@ -289,7 +289,7 @@ description: Position type and delimited-region scanning shared by every parser
 
 (Go package) — Position type and delimited-region scanning shared by
 every parser. Owns the `Span` type defined in
-[[frd-spec-validation-cli]]: a byte offset and byte length as the
+[[frd-spec-index]]: a byte offset and byte length as the
 authoritative extent, plus line and column for readability. It also
 provides the general delimiter scanner every other parser is built on —
 find the region between an opening and a closing delimiter, such as
@@ -1237,7 +1237,7 @@ description: The finding and severity model, and emission of the report in human
 
 (Go package) — The finding and severity model, and emission of the
 report in human and JSON form. Owns the three severities
-[[frd-spec-validation-cli]] defines — `error`, `warning` and
+[[frd-spec-index]] defines — `error`, `warning` and
 `unverified` — and the rule that a check which could not run is reported
 as `unverified` rather than as passed. Every finding carries a rule
 identifier, a severity, a path, a span, and a message stating the
@@ -1286,7 +1286,7 @@ is:
   leaves it unknown. The message is derivable from the variant, so a
   consumer branches on structure rather than parsing prose.
 - **`Severity`** — `error`, `warning` and `unverified`, the three
-  [[frd-spec-validation-cli]] defines and no others.
+  [[frd-spec-index]] defines and no others.
 - **`FindingReport`** — the run envelope: every `Finding` produced, and a
   `CheckResult` for every check the run knows about carrying an outcome
   of `passed`, `failed`, `unverified` or `not-requested`.
@@ -1534,5 +1534,5 @@ This module SHALL comply with:
 
 - `c4-guide.md` — C4 mapping rules and diagram conventions
 - [[container-spec-cli]] — the container this module is composed into
-- [[frd-spec-validation-cli]] — the requirements it implements
+- [[frd-spec-index]] — the requirements it implements
 - [[module-spec-profile]] — the profile that registers into this module

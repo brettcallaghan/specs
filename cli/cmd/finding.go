@@ -195,7 +195,7 @@ func configSyntaxError(path string, at specmodel.Span, message string) specmodel
 
 // configUnknownProfile reports a [profile].name naming no profile in the
 // registry, listing the registered names
-// (contract-specs-configuration.md).
+// (specs-configuration-contract.md).
 func configUnknownProfile(path string, at specmodel.Span, name string, registered []string) specmodel.Finding {
 	list := "none are registered"
 	if len(registered) > 0 {

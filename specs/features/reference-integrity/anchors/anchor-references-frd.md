@@ -255,7 +255,7 @@ ships there is no heading data at all, so every anchor reference reports
 target whose frontmatter failed to parse and whose headings were
 therefore never extracted, which is what lets this feature ship before
 the heading data exists (AC-SPECANCH-002.4).
-`specs/architecture/module-document-core.md` declares two `References`
+`specs/modules/document-core/document-core-module.md` declares two `References`
 headings today, so `` `[[module-document-core#References]]` `` would be
 ambiguous; a reader lands on a real section and Obsidian takes the
 first, but which one is an accident of document order that a later edit
@@ -351,7 +351,7 @@ resolved it the same way.
   the slug half of every reference and defers the anchor half here
 - [[frd-spec-structure-conformance]] — supplies the headings and section
   spans this feature resolves an anchor against
-- [[frd-spec-validation-cli]] — the index, finding engine, severities,
+- [[frd-spec-index]] — the index, finding engine, severities,
   and query surface both features extend
 - [[adr-012]] — the wikilink and heading-anchor conventions, and the
   requirement that un-promoted components be addressed by anchor

@@ -76,17 +76,17 @@ retro-spec	specs/standards/findings-capture-protocol.md
 retro-spec	spec/references/issue-template.md
 spec	specs/standards/ac-traceability-standards.md
 spec	specs/standards/blueprint-readiness-checklist.md
-spec	specs/standards/c4-guide.md
-spec	specs/standards/cross-document-references.md
+spec	specs/standards/c4-standards.md
+spec	specs/standards/cross-document-references-standards.md
 spec	specs/standards/document-readiness-checklist.md
 spec	specs/standards/frontmatter-standards.md
 spec	specs/standards/template-authoring-standards.md
 spec	specs/standards/work-order-definition-of-ready.md
-spec	specs/guides/anti-patterns.md
-spec	specs/guides/document-type-boundaries.md
+spec	specs/guides/anti-patterns-guide.md
+spec	specs/guides/document-type-boundaries-guide.md
 spec	specs/guides/ears-guide.md
 spec	specs/standards/gherkin-guide.md
-spec	specs/guides/spec-cli.md
+spec	specs/guides/spec-cli-reference.md
 spec	specs/guides/work-order-field-guide.md
 EOF
 )

@@ -2,21 +2,21 @@
 // slug-exists, next-id, refs, links, feature), per FEAT-SPEC-011 of
 // specs/features/spec-index/spec-index-frd.md, the reference-integrity
 // blueprint's CMD delta, the gherkin-adoption blueprint's EMIT delta, and
-// the Command Surface component in specs/architecture/container-spec-cli.md.
+// the Command Surface component in specs/containers/spec-cli/spec-cli-container.md.
 //
 // Everything in this file is orchestration: it builds the cobra command
 // tree, converts flags into calls against cli/core/corpus,
 // cli/core/numbering and cli/core/finding, and renders their results as
 // stdout and an exit status. No file in this package decides what makes a
 // document valid, what a slug pattern is, or how a check is scored — that
-// is the binding Change Guidance in container-spec-cli.md ("a check that
+// is the binding Change Guidance in spec-cli-container.md ("a check that
 // lived here would be unavailable to a future API or MCP wrapper"). A
 // capability that looks missing here belongs in cli/core or cli/profile,
 // not in a workaround in this file.
 //
 // `--help` text is never written by hand: it is cobra's own rendering of
 // the Use, Short and flag declarations below, so the declaration and the
-// help text cannot drift (container-spec-cli.md's Change Guidance).
+// help text cannot drift (spec-cli-container.md's Change Guidance).
 package cmd
 
 import (
@@ -190,7 +190,7 @@ func openCorpus(opts corpus.Options) (*corpus.Corpus, error) {
 // findings itself. AC-SPEC-006.5 is what requires the JSON rendering to
 // be available at all; this function is what "the command surface turns
 // findings into the JSON that AC-SPEC-006.5 requires"
-// (container-spec-cli.md) means in code.
+// (spec-cli-container.md) means in code.
 func renderReport(streams *ioStreams, report *finding.Report, asJSON bool) error {
 	if asJSON {
 		data, err := report.JSON()

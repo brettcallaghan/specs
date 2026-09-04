@@ -113,11 +113,11 @@ verifier should search for the quoted text rather than trust an offset.
 
 5. **A note asserts an obligation on another FRD that the design does
    not discharge, and nothing tracks it.** At line 164: "`*Note:*
-   AC-GHK-001.2 requires a change to [[frd-spec-validation-cli]]`",
+   AC-GHK-001.2 requires a change to [[frd-spec-index]]`",
    continuing that what AC-SPEC-001.6 "needs is a second discovery pass
    for feature sources, not an exception to corpus membership". The
    blueprint puts that discovery pass in this feature's own DISC delta
-   and changes [[frd-spec-validation-cli]] in no way. The note and the
+   and changes [[frd-spec-index]] in no way. The note and the
    design disagree, and the blueprint author resolved the disagreement
    silently in the design's favour.
 
@@ -194,13 +194,13 @@ proposes becomes checkable on this feature.
 ### P4 — Resolve the note that claims another FRD must change
 
 **Problem.** Line 164 states "`AC-GHK-001.2 requires a change to
-[[frd-spec-validation-cli]]`" and the blueprint changes that document
+[[frd-spec-index]]`" and the blueprint changes that document
 in no way. One of the two is wrong, and the FRD gives a reader no way
 to tell which.
 
 **Change.** Replace the note's first sentence with the conclusion its
 own remaining sentences reach: feature-source discovery is wholly this
-feature's, [[frd-spec-validation-cli]] is untouched, and AC-SPEC-001.6
+feature's, [[frd-spec-index]] is untouched, and AC-SPEC-001.6
 stands because a `.feature` file was never a corpus candidate. IF a
 change to that FRD is in fact intended, THEN say which criterion it
 gains and file the bead.

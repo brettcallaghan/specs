@@ -105,8 +105,8 @@ implementer's.
 3. **Five commits edited two durable architecture blueprints without
    moving either one's `updated_at`.** `82d46f8`, `56ec2bf`, `daa7f3c`,
    `59d8c05` and `b008ff5` all touch
-   `specs/architecture/module-document-core.md` and/or
-   `specs/architecture/container-spec-cli.md`. The former still declares
+   `specs/modules/document-core/document-core-module.md` and/or
+   `specs/containers/spec-cli/spec-cli-container.md`. The former still declares
    `updated_at: 2026-08-09T00:00:00Z` and `version: "0.3"`; the latter
    `updated_at: 2026-08-12T00:00:00Z`. [[frontmatter-standards]] defines
    the property once, in a table — "| `updated_at` | datetime | Last
@@ -384,9 +384,9 @@ Independent of P1–P4.
 
 P1 through P5 are independently adoptable and touch disjoint files: P1
 `specs/features/markdown-links/markdown-links-frd.md` and one case
-manifest; P2 `specs/architecture/container-spec-cli.md`; P3
+manifest; P2 `specs/containers/spec-cli/spec-cli-container.md`; P3
 `specs/standards/frontmatter-standards.md`; P4
-`specs/standards/cross-document-references.md`; P5
+`specs/standards/cross-document-references-standards.md`; P5
 `specs/standards/testing-standards.md` and `schemas/README.md`.
 
 Each is backward compatible. P1 appends criteria at unused numbers and

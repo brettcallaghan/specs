@@ -861,7 +861,7 @@ None.
 - [[module-document-core]] — the host every parsing delta lands in
 - [[module-spec-profile]] — the plugin PREG registers through
 - [[container-spec-cli]] — the command surface QRY, EMIT and CHG extend
-- [[frd-spec-validation-cli]] — the index, the finding record and the
+- [[frd-spec-index]] — the index, the finding record and the
   warm index these deltas build on
 - [[frd-spec-reference-integrity]] — the reference extraction GREF
   narrows the code mask of

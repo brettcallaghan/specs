@@ -92,7 +92,7 @@ are excluded from every check as `unknown-type`.
 **Undeclared keys are rejected.** The manifest sets
 `jsonSchema.allowAdditionalProperties: false`, which puts
 `additionalProperties: false` on every emitted object — what
-`contract-specs-configuration.md` asks for, on the grounds that a
+`specs-configuration-contract.md` asks for, on the grounds that a
 misspelled key is far more common than a key from the future. A document
 carrying `releated:` fails validation naming the key.
 
@@ -107,6 +107,6 @@ file is larger for it. The Markdown and Go targets are unaffected —
 both flatten anyway.
 
 **The CLI still needs its own unknown-key detection.**
-`contract-specs-configuration.md` requires each finding to carry a
+`specs-configuration-contract.md` requires each finding to carry a
 **span** into `specs.toml`, and JSON Schema has no notion of source
 position. The schema is the second line of defence, not the first.

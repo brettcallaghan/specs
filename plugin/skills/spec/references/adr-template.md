@@ -55,7 +55,7 @@ Slug format
   - The slug is the bare type prefix and number: adr-<nnn>
   - Example: adr-003
   - The slug is independent of the filename. Name the FILE
-    descriptively — ADR-003-local-tesseract-for-ocr.md — so humans can
+    descriptively — adr-003-local-tesseract-for-ocr.md — so humans can
     find it; the slug stays adr-003 so [[adr-003]] resolves.
   - See template-authoring-standards.md, Prefix Registry.
 -->

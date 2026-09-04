@@ -169,7 +169,7 @@ check can only ever fail on work the tool did not need done.
 - [[frd-spec-reference-integrity]] — records the reference graph in both
   directions (AC-SPECREF-001.1, AC-SPECREF-001.3) and exposes the reverse
   as a query (AC-SPECREF-003); the capability these standards rest on
-- [[frd-spec-validation-cli]] — the index every relationship is derived
+- [[frd-spec-index]] — the index every relationship is derived
   into, and the artifact a consumer reads instead of re-deriving the graph
 - [[adr-009]] — parents own the edges among their children; the source of
   the intrinsic-over-host-varying tie-breaker

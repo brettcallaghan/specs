@@ -62,7 +62,7 @@ const defaultLineWidth = 80
 //   - Feature blueprints. The registry assigns the fb- prefix, but this
 //     repository's one real feature blueprint
 //     (specs/features/spec-index/spec-index-blueprint.md) is slugged
-//     feature-spec-validation-cli. The pattern here follows the
+//     feature-spec-index. The pattern here follows the
 //     document that exists, not the template that was not.
 //   - Guides. The registry has no row for this type at all. Of this
 //     repository's four guide documents, two are prefixed guide- and

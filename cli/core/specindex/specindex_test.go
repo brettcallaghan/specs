@@ -138,7 +138,7 @@ func TestSchemaDeclaresTheIndexRootShape(t *testing.T) {
 func TestIndexCarriesEachMembersPathAndFrontmatter(t *testing.T) {
 	index := specindex.New("agent-plugins")
 	index.Entries = append(index.Entries, specmodel.IndexEntry{
-		Path: "specs/architecture/module-document-core.md",
+		Path: "specs/modules/document-core/document-core-module.md",
 		Frontmatter: &specmodel.DocumentFrontmatter{
 			Title:       "Module Blueprint: Document Core",
 			Description: "The framework-agnostic engine.",
@@ -150,7 +150,7 @@ func TestIndexCarriesEachMembersPathAndFrontmatter(t *testing.T) {
 	})
 
 	entry := index.Entries[0]
-	if entry.Path != "specs/architecture/module-document-core.md" {
+	if entry.Path != "specs/modules/document-core/document-core-module.md" {
 		t.Errorf("Path = %q", entry.Path)
 	}
 	if entry.Frontmatter == nil {

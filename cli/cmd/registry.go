@@ -9,7 +9,7 @@
 // the generated configuration schema, and selects a profile by name from
 // a registry — but the schema itself, the profile vocabulary, and the
 // corpus and finding machinery all come from cli/core and cli/profile.
-// Per specs/architecture/container-spec-cli.md's Change Guidance, a
+// Per specs/containers/spec-cli/spec-cli-container.md's Change Guidance, a
 // capability that belongs in a module is invoked from here, never
 // reimplemented here.
 package cmd
@@ -70,7 +70,7 @@ func (r *Registry) Lookup(name string) (corpus.Profile, bool) {
 }
 
 // Names returns every registered profile name, sorted, for a finding that
-// must list them (contract-specs-configuration.md: "IF [profile].name
+// must list them (specs-configuration-contract.md: "IF [profile].name
 // names no profile in the registry... a finding listing the registered
 // names").
 func (r *Registry) Names() []string {

@@ -4,7 +4,7 @@ description: A command-line tool that indexes a specification corpus into
   machine-readable JSON and reports deterministic frontmatter and metadata
   conformance findings, so CI, agents, and architecture tooling read one
   authoritative artifact
-slug: frd-spec-validation-cli
+slug: frd-spec-index
 type: frd
 status: approved
 updated_at: 2026-08-15T00:00:00Z

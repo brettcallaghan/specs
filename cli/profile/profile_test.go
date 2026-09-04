@@ -140,24 +140,24 @@ func TestOnlyAdrIsNumbered(t *testing.T) {
 var realSlugs = []struct {
 	documentType, slug, source string
 }{
-	{"adr", "adr-013", "specs/adrs/ADR-013-work-order-terminology.md"},
+	{"adr", "adr-013", "specs/adrs/adr-013-work-order-terminology.md"},
 	// The descriptive form no longer appears in this repository — the
 	// slugs were migrated to the number-only form [[adr-012]] decided —
 	// but the pattern still accepts it, because an adopting repository
 	// that never made that migration is not thereby non-conformant.
 	{"adr", "adr-003-yaml-frontmatter-for-metadata", "the optional descriptive suffix the pattern still admits"},
-	{"frd", "frd-spec-validation-cli", "specs/features/spec-index/spec-index-frd.md"},
+	{"frd", "frd-spec-index", "specs/features/spec-index/spec-index-frd.md"},
 	{"frd", "frd-spec-reference-integrity", "specs/features/reference-integrity/reference-integrity-frd.md"},
-	{"contract", "contract-specs-configuration", "specs/contracts/contract-specs-configuration.md"},
+	{"contract", "contract-specs-configuration", "specs/contracts/specs-configuration-contract.md"},
 	{"standards", "testing-standards", "specs/standards/testing-standards.md"},
-	{"standards", "cross-document-references", "specs/standards/cross-document-references.md"},
+	{"standards", "cross-document-references", "specs/standards/cross-document-references-standards.md"},
 	{"standards", "blueprint-readiness-checklist", "specs/standards/blueprint-readiness-checklist.md"},
 	{"standards", "findings-capture-protocol", "specs/standards/findings-capture-protocol.md"},
-	{"standards", "c4-standards", "specs/standards/c4-guide.md"},
-	{"container-blueprint", "container-spec-cli", "specs/architecture/container-spec-cli.md"},
-	{"module-blueprint", "module-spec-profile", "specs/architecture/module-spec-profile.md"},
-	{"module-blueprint", "module-document-core", "specs/architecture/module-document-core.md"},
-	{"feature-blueprint", "feature-spec-validation-cli", "specs/features/spec-index/spec-index-blueprint.md"},
+	{"standards", "c4-standards", "specs/standards/c4-standards.md"},
+	{"container-blueprint", "container-spec-cli", "specs/containers/spec-cli/spec-cli-container.md"},
+	{"module-blueprint", "module-spec-profile", "specs/modules/spec-profile/spec-profile-module.md"},
+	{"module-blueprint", "module-document-core", "specs/modules/document-core/document-core-module.md"},
+	{"feature-blueprint", "feature-spec-index", "specs/features/spec-index/spec-index-blueprint.md"},
 	{"rfc", "rfc-0007", "rfcs/retired/rfc-0007-spec-architecture-templates.md"},
 	{"rfc", "rfc-0001-spec-document-self-check", "rfcs/retired/rfc-0001-spec-document-self-check.md"},
 	{"rfc", "rfc-self-strata-compile-gate", "rfcs/inbox/strata/rfc-self-strata-compile-gate.md"},

@@ -26,7 +26,7 @@ import "github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 // rather than adding alongside it — updates this constant, the Strata
 // source that constrains the property, and the emitted index in one
 // change, per the Change Guidance in
-// specs/architecture/module-document-core.md.
+// specs/modules/document-core/document-core-module.md.
 const SchemaVersion = "1.0"
 
 // New returns an empty index for the given workspace, with the schema

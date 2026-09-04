@@ -117,7 +117,7 @@ to try harder at:
    the sentence being deleted and not to the one being installed.
 
 A fifth reason is not about placement: **the rule has no automated check.**
-`specs/standards/skill-best-practices.md` requires every invariant a skill
+`specs/standards/skill-authoring-standards.md` requires every invariant a skill
 asserts about itself to be enforced by a check; this one is enforced by
 authorial memory, which is the condition it exists to correct. Stating it at
 the point of use narrows the gap. It does not close it.
