@@ -125,7 +125,7 @@ Feature: Structure Queries
 
   @AC-SPECSTR-003.1
   Scenario: A heading selection returns each match with its section span
-    When the CLI is asked for the spans of headings matching a configured selection
+    When the CLI is asked for the spans of headings matching a given selection
     Then the CLI returns each match as a file path, heading text, and the span of the content beneath it
 ```
 
