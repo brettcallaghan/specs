@@ -305,3 +305,142 @@ func TestASearchFromTheBodyOffsetLeavesTheFrontmatterBehind(t *testing.T) {
 		t.Errorf("the control did not reproduce the frontmatter-as-heading case: %q", whole[0].Text)
 	}
 }
+
+// A prefixed heading inside a container block — a blockquote, a list
+// item — is the prefixed form, so its Position covers its own line and no
+// more. The container's own marker opens the line, and reading that
+// marker as the heading's first character would make an ATX heading look
+// underlined and extend its Position over the line beneath it.
+//
+// AC: AC-SPECSTR-001.1
+func TestAPrefixedHeadingInsideAContainerBlockCoversOnlyItsOwnLine(t *testing.T) {
+	body := []byte("> ## A\n> ## B\n\ntail\n")
+
+	found := markdown.Headings(body)
+
+	if len(found) != 2 {
+		t.Fatalf("found %d headings, want 2: %+v", len(found), found)
+	}
+	if got, want := string(span.Slice(body, found[0].Position)), "> ## A\n"; got != want {
+		t.Errorf("A's Position slices to %q, want %q", got, want)
+	}
+	if got, want := string(span.Slice(body, found[1].Position)), "> ## B\n"; got != want {
+		t.Errorf("B's Position slices to %q, want %q", got, want)
+	}
+	// The pair is the reason the case matters: an overlapping pair of
+	// heading positions is not a structure.
+	if end, next := found[0].Position.Offset+found[0].Position.Length, found[1].Position.Offset; end > next {
+		t.Errorf("A's Position ends at %d and B's begins at %d; the two overlap", end, next)
+	}
+}
+
+// A prefixed heading inside a list item keeps the item's remaining
+// content in its section: reading the list marker as the heading's first
+// character would treat the heading as underlined, swallow the content
+// line into Position and leave the section without it.
+//
+// AC: AC-SPECSTR-001.1
+func TestAPrefixedHeadingInsideAListItemKeepsItsContentInTheSection(t *testing.T) {
+	body := []byte("- # Item\n  body line\n")
+
+	found := markdown.Headings(body)
+
+	if len(found) != 1 {
+		t.Fatalf("found %d headings, want 1: %+v", len(found), found)
+	}
+	if got, want := string(span.Slice(body, found[0].Position)), "- # Item\n"; got != want {
+		t.Errorf("Position slices to %q, want %q", got, want)
+	}
+	if got, want := string(span.Slice(body, found[0].Section)), "  body line\n"; got != want {
+		t.Errorf("Section slices to %q, want %q", got, want)
+	}
+}
+
+// An underlined heading inside a container block is still underlined: its
+// underline belongs to the heading, so Position ends exactly where
+// Section begins.
+//
+// AC: AC-SPECSTR-001.1
+func TestAnUnderlinedHeadingInsideAContainerBlockKeepsItsUnderline(t *testing.T) {
+	body := []byte("> A\n> ---\n> body\n")
+
+	found := markdown.Headings(body)
+
+	if len(found) != 1 {
+		t.Fatalf("found %d headings, want 1: %+v", len(found), found)
+	}
+	if got, want := string(span.Slice(body, found[0].Position)), "> A\n> ---\n"; got != want {
+		t.Errorf("Position slices to %q, want %q", got, want)
+	}
+	if got, want := found[0].Position.Offset+found[0].Position.Length, found[0].Section.Offset; got != want {
+		t.Errorf("Position ends at %d, Section begins at %d; want them equal", got, want)
+	}
+}
+
+// The two written forms are told apart by where the heading's text sits
+// on its line, which holds inside a container block and does not mistake
+// a "#" in the heading's own text for a marker. No two headings of any
+// body carry overlapping Position spans.
+//
+// AC: AC-SPECSTR-001.1
+func TestNoTwoHeadingPositionsOverlapForAnyForm(t *testing.T) {
+	bodies := []string{
+		"# A\nbody\n",                 // plain prefixed
+		"   ## Indented\nbody\n",      // prefixed behind indentation
+		"A\n---\nbody\n",              // plain underlined
+		"a # b\n===\nbody\n",          // underlined, "#" in its own text
+		"## # Hashy\nbody\n",          // prefixed, "#" in its own text
+		"> ## A\n> ## B\n\ntail\n",    // prefixed inside a blockquote
+		"- # Item\n  body line\n",     // prefixed inside a list item
+		"> A\n> ---\n> body\n",        // underlined inside a blockquote
+		"# A\n\n## B\n\n### C\n\nx\n", // a nested run
+		"# One\nx\n\n# Two\ny\n",      // siblings
+	}
+	for _, source := range bodies {
+		body := []byte(source)
+		found := markdown.Headings(body)
+		for i := 1; i < len(found); i++ {
+			previous, current := found[i-1], found[i]
+			if end := previous.Position.Offset + previous.Position.Length; end > current.Position.Offset {
+				t.Errorf("%q: heading %d's Position ends at %d and heading %d's begins at %d; the two overlap",
+					source, i-1, end, i, current.Position.Offset)
+			}
+		}
+		// Every heading's own line ends where its section begins, in
+		// both written forms.
+		for i, heading := range found {
+			if end := heading.Position.Offset + heading.Position.Length; end != heading.Section.Offset {
+				t.Errorf("%q: heading %d's Position ends at %d but its Section begins at %d",
+					source, i, end, heading.Section.Offset)
+			}
+		}
+	}
+}
+
+// The forms that already worked are unchanged: a prefixed heading whose
+// own text begins with "#" is prefixed, and an underlined heading whose
+// text contains one is underlined.
+//
+// AC: AC-SPECSTR-001.1
+func TestAHashInTheHeadingsOwnTextDoesNotChangeItsForm(t *testing.T) {
+	prefixed := []byte("## # Hashy\nbody\n")
+	found := markdown.Headings(prefixed)
+	if len(found) != 1 {
+		t.Fatalf("found %d headings, want 1: %+v", len(found), found)
+	}
+	if got, want := string(span.Slice(prefixed, found[0].Position)), "## # Hashy\n"; got != want {
+		t.Errorf("Position slices to %q, want %q", got, want)
+	}
+	if got, want := found[0].Text, "# Hashy"; got != want {
+		t.Errorf("Text = %q, want %q", got, want)
+	}
+
+	underlined := []byte("a # b\n===\nbody\n")
+	found = markdown.Headings(underlined)
+	if len(found) != 1 {
+		t.Fatalf("found %d headings, want 1: %+v", len(found), found)
+	}
+	if got, want := string(span.Slice(underlined, found[0].Position)), "a # b\n===\n"; got != want {
+		t.Errorf("Position slices to %q, want %q", got, want)
+	}
+}

@@ -155,7 +155,7 @@ func locate(body []byte) []placed {
 
 		start := lineStart(body, first.Start)
 		end := lineEnd(body, last.Start)
-		if !prefixed(body, start) {
+		if !prefixed(body, start, first.Start) {
 			// An underlined heading: the line of dashes or equals signs
 			// below the text is part of the heading rather than the
 			// first line of its section.
@@ -173,15 +173,25 @@ func locate(body []byte) []placed {
 	return located
 }
 
-// prefixed reports whether the heading line beginning at start is written
-// with leading markers rather than underlined beneath its text.
-func prefixed(body []byte, start int) bool {
-	for i := start; i < len(body); i++ {
-		if body[i] != ' ' && body[i] != '\t' {
-			return body[i] == '#'
-		}
+// prefixed reports whether the heading whose text begins at textAt, on
+// the line beginning at lineAt, is written with leading markers rather
+// than underlined beneath its text.
+//
+// The two written forms are told apart by where the heading's text sits
+// on its line rather than by asking the node, because goldmark's public
+// AST does not carry the distinction: ast.Heading holds only its level,
+// and the prefixed and underlined parsers both build it the same way.
+// Scanning forward from the start of the line for a '#' does not answer
+// it either — inside a container block the first non-space byte is the
+// container's own marker, so a prefixed heading reads as underlined and
+// its span swallows the line beneath it. Between the start of the line
+// and the start of the text lie the heading's markers when it has them,
+// and the container's markers alone when it does not.
+func prefixed(body []byte, lineAt, textAt int) bool {
+	if textAt < lineAt || textAt > len(body) {
+		return false
 	}
-	return false
+	return bytes.IndexByte(body[lineAt:textAt], '#') >= 0
 }
 
 // Identifier returns the heading identifier of text: its rendered inline

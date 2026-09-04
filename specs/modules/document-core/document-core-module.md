@@ -460,8 +460,14 @@ does: what looks like a heading inside a fenced block or an inline code
 span is not one, and only a markdown parser knows which regions are not
 to be scanned. A heading underlined rather than prefixed carries its
 underline inside `Position`, so `Position` ends exactly where `Section`
-begins in both written forms. No section content is returned — only the
-span of it, which a caller slices back out of the body it passed in.
+begins in both written forms. The two forms are told apart by where the
+heading's text sits on its line — a prefixed heading's markers stand
+between the start of the line and the start of its text, an underlined
+heading's text begins the line's content — rather than by the line's
+first character, so the rule holds inside a container block, where that
+first character is the blockquote's or list item's own marker and not
+the heading's. No section content is returned — only the span of it,
+which a caller slices back out of the body it passed in.
 
 `HeadingsFrom` is the same search started at a byte offset, with every
 span still expressed in the whole source's coordinates. It is what a
