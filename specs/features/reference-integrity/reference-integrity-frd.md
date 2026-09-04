@@ -6,7 +6,7 @@ description: Parses cross-document references from a spec corpus, records
 slug: frd-spec-reference-integrity
 type: frd
 status: approved
-updated_at: 2026-09-03T00:00:00Z
+updated_at: 2026-09-04T00:00:00Z
 sources:
   - "frd-spec-index"
 ---
@@ -63,11 +63,11 @@ deliberately, not overlooked:
   Interpreting it is specified in [[frd-spec-anchor-references]], a
   sub-feature of this one. The split is deliberate: anchor resolution
   needs heading data this feature does not have, from
-  [[frd-spec-structure-conformance]], and every anchor reference in the
+  [[frd-spec-structure]], and every anchor reference in the
   corpus resolves on its slug half — so shipping slug resolution first
   costs the corpus nothing and unblocks it sooner.
 - **Heading extraction and section spans.** Specified in
-  [[frd-spec-structure-conformance]]. Nothing in this feature reads a
+  [[frd-spec-structure]]. Nothing in this feature reads a
   document's headings.
 - **Suggesting a correction for a broken reference.** Findings state
   the fact and leave the fix to a reviewing agent.
@@ -550,8 +550,8 @@ renumbered.
   anchor half of a reference this feature resolves the slug half of
 - [[frd-spec-slug-rename]] — the sub-feature that rewrites every
   reference to a slug when the slug is deliberately renamed
-- [[frd-spec-structure-conformance]] — supplies the document headings
-  the anchor sub-feature resolves an anchor against
+- [[frd-spec-structure]] — supplies the document headings the anchor
+  sub-feature resolves an anchor against
 - [[contract-specs-configuration]] — the configuration surface
   FEAT-SPECREF-004 consumes, whose `reference_properties` and `pairings`
   are already declared

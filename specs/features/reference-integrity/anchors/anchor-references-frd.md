@@ -6,7 +6,7 @@ description: Resolves the anchor half of a wikilink — the heading it
 slug: frd-spec-anchor-references
 type: frd
 status: draft
-updated_at: 2026-09-03T00:00:00Z
+updated_at: 2026-09-04T00:00:00Z
 sources:
   - "frd-spec-reference-integrity"
 ---
@@ -27,7 +27,7 @@ and stops there, splitting on the first `#` and ignoring what follows
 (AC-SPECREF-002.2). This sub-feature specifies the other half, as its
 own document because the two halves need different data: slug
 resolution needs only the index, anchor resolution needs the headings
-[[frd-spec-structure-conformance]] extracts.
+[[frd-spec-structure]] records.
 
 Nine references in the corpus name an anchor — four into
 `container-spec-cli#Command Surface`, five into component rosters of
@@ -48,7 +48,7 @@ clickable in both.
 deliberately, not overlooked:
 
 - **Extracting headings and section spans.** Specified in
-  [[frd-spec-structure-conformance]]. This feature consumes that data
+  [[frd-spec-structure]]. This feature consumes that data
   and does not re-derive it.
 - **Resolving the slug half of a reference.** Specified in
   [[frd-spec-reference-integrity]]. A reference whose slug resolves to
@@ -239,13 +239,14 @@ Feature: Anchor Resolution Checks
 correction, per the parent feature's rule (AC-SPECANCH-002.1).
 `#element registry` matches `### Element Registry` because both yield
 `element-registry`, which is also the fragment an exported copy targets
-(AC-SPECANCH-002.2). Until [[frd-spec-structure-conformance]] supplies
-headings there is nothing to match against, so every anchor reference
-reports `unverified` per AC-SPEC-006.3 and AC-SPEC-006.4 — the same path
-a target whose frontmatter failed to parse takes, and what lets this
-feature ship first (AC-SPECANCH-002.4). [[module-document-core]] declares
-two `References` headings, so `` `[[module-document-core#References]]` ``
-names two sections and resolves to neither; the author disambiguates by
+(AC-SPECANCH-002.2). A target whose frontmatter failed to parse had no
+headings extracted from it, so a reference into it reports `unverified`
+per AC-SPEC-006.3 and AC-SPEC-006.4 rather than as resolved or as broken
+— the tool says it could not look, which is not the same claim as
+looking and finding nothing (AC-SPECANCH-002.4).
+[[module-document-core]] declares two `References` headings, so
+`` `[[module-document-core#References]]` `` names two sections and
+resolves to neither; the author disambiguates by
 renaming one of them (AC-SPECANCH-002.5). `` `[[#Terminology]]` `` in
 this FRD resolves to this FRD's own Terminology heading, where a
 reference to a document whose slug is empty would report as broken every
@@ -278,7 +279,8 @@ One consequence constrains this framework's most likely use of anchors:
 a reference to a requirement names its heading in full, and the terser
 `#FEAT-SPECREF-002` resolves to nothing. IF the terse form is wanted,
 THEN the fix is to change what the heading says — a template decision
-for [[frd-spec-structure-conformance]]'s required headings — rather than
+for [[frd-spec-structure-conformance]]'s required headings — rather
+than
 a resolver only this tool understands, which would fail the moment an
 author clicked the link in Obsidian.
 
@@ -342,8 +344,8 @@ feature answers the same question for slugs the same way.
 
 - [[frd-spec-reference-integrity]] — the parent feature, which resolves
   the slug half of every reference and defers the anchor half here
-- [[frd-spec-structure-conformance]] — supplies the headings and section
-  spans this feature resolves an anchor against
+- [[frd-spec-structure]] — supplies the headings and section spans this
+  feature resolves an anchor against
 - [[frd-spec-index]] — the index, finding engine, severities,
   and query surface both features extend
 - [[frd-spec-markdown-links]] — rewrites a citation into a markdown

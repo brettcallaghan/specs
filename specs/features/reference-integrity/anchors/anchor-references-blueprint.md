@@ -200,8 +200,8 @@ cases under `cli/testdata/cases/`.
 
 ### Relied-upon elements (unchanged)
 
-- [[frd-spec-structure-conformance]] — supplies the heading tree the
-  ARES and CHK deltas match against; see Sequencing Constraints.
+- [[frd-spec-structure]] — supplies the heading tree the ARES and CHK
+  deltas match against; see Sequencing Constraints.
 - [[container-spec-cli#Command Surface]] — the warm corpus open that
   `check` and `refs` already share.
 - `Corpus` in [[module-document-core]] — the index the resolved
@@ -247,11 +247,13 @@ cases under `cli/testdata/cases/`.
     Anchors resolve, the checks report, `refs` answers by heading, and
     exit status becomes sensitive to anchors for the first time.
 - The heading tree in `Markdown Structure` SHALL be built before the
-  ARES and CHK deltas land. It does not exist today, so stage 2 depends
-  on [[frd-spec-structure-conformance]] shipping its heading extraction
-  first; a check with no heading source reports `unverified` for every
-  anchored reference, and this repository's own gates run `spec check
-  --strict`, which fails on `unverified`.
+  ARES and CHK deltas land. It does not exist today:
+  [[frd-spec-structure]] specifies it, and AC-SPECSTR-001.1 — a heading
+  recorded with the span of the content beneath it — is the whole of
+  what this feature needs from it. Stage 2 lands after that criterion
+  does. Shipping stage 2 first would report `unverified` for every
+  anchored reference in the corpus, and this repository's own gates run
+  `spec check --strict`, which fails on `unverified`.
 - The FIND delta SHALL land before CHK, which reports through the
   variants it declares.
 - The SREF delta SHALL land before a frontmatter citation carrying an
@@ -344,25 +346,15 @@ checks in `Corpus`; CMD = Command Surface in [[container-spec-cli]].
 
 ## Open Questions
 
-- [ ] Stage 2 is gated on a heading tree that does not exist, which
-  contradicts the FRD's statement that reporting `unverified` is what
-  lets this feature ship before the heading data does. Both cannot
-  hold: `spec check --strict` fails on `unverified`, and this
-  repository's own gates run it, so shipping stage 2 first turns the
-  corpus's nine anchored references into a red build. Either gate stage
-  2 on [[frd-spec-structure-conformance]]'s heading extraction
-  (recommended, and what Sequencing Constraints currently states), or
-  ship stage 2 first and carve the anchor rules out of `--strict` until
-  headings arrive. The human reviewer decides; the FRD's example prose
-  changes with it.
+None.
 
 ## References
 
 - [[frd-spec-anchor-references]] — the FRD this blueprint realizes
 - [[frd-spec-reference-integrity]] — the parent feature, whose
   extraction and resolution this design extends
-- [[frd-spec-structure-conformance]] — supplies the heading tree stage 2
-  matches against
+- [[frd-spec-structure]] — supplies the heading tree stage 2 matches
+  against, in AC-SPECSTR-001.1
 - [[frd-spec-markdown-links]] — the rewriter HID makes a consumer of the
   shared derivation
 - [[c4-standards]] — the container, module and component definitions the
