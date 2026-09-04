@@ -269,12 +269,13 @@ emitted index carries the resolved reference graph, and the corpus checks
 read it: a broken link, a live document citing a retired one, a
 half-declared pairing and a typed reference landing on the wrong
 document type are each reported against the document a reader must
-open. **Markdown Structure is built for one of its three capabilities.**
-`cli/core/markdown` locates fenced blocks by info string; the heading
-tree and comment-block location remain not yet built, and the diagram
-edges that would carry those two are still the intended shape rather
-than an exercised one. Both edges from Corpus into Markdown Structure
-and Gherkin are exercised: the walk extracts a fenced Gherkin block
+open. **Markdown Structure is built for two of its three capabilities.**
+`cli/core/markdown` locates fenced blocks by info string and builds the
+heading tree with each heading's section span; comment-block location
+remains not yet built, and the diagram edge that would carry it is still
+the intended shape rather than an exercised one. Both edges from Corpus
+into Markdown Structure and Gherkin are exercised: the walk extracts a
+fenced Gherkin block
 through `markdown.Fenced` and parses every feature source through
 `gherkin.Parse`, and the `gherkin/` checks recompute from the same two
 packages.
@@ -426,9 +427,10 @@ content and as leftover-scaffolding hygiene. This is the component the
 extract-then-review pattern depends on: an agent asks for the spans of
 particular sections and reads only those.
 
-**Built — fenced blocks only.** `cli/core/markdown`. Its surface is
-`Fenced`, which takes a document body and a set of registered tags and
-returns every fenced block whose info string matches one of them, in
+**Built — headings and fenced blocks.** `cli/core/markdown`. Its
+fenced-block surface is `Fenced`, which takes a document body and a set
+of registered tags and returns every fenced block whose info string
+matches one of them, in
 document order, as a `Block`: `Content` — the bytes between the fences —
 alongside `Outer`, over the whole construct including both fence lines
 in full, and `Inner`, over the content alone. Fence recognition comes
@@ -443,8 +445,39 @@ guess at a dangling delimiter. `Fenced` locates and returns bytes only:
 parsing a matched block's content in its tag's declared format is a
 question for that tag's own consumer, not for this package.
 
-The heading tree and the comment-block location remain **not yet
-built**. Nothing reads a heading anywhere in the module, and no
+Its heading surface is `Headings`, which takes a document body and
+returns every heading in document order as a `Heading`: its `Text` as
+authored with the markers that open and close the line removed, its
+`Level`, `Position` over the heading line itself, and `Section` over the
+content beneath it. A section runs from the end of the heading line to
+the start of the next heading of the same or a higher level, and to the
+end of the document where there is none, so a deeper heading falls
+inside its parent's section rather than closing it. A heading standing
+over nothing carries an empty span rather than an absent one, and a body
+with no heading yields an empty result rather than an error. Heading
+recognition comes from `goldmark` for the same reason fence recognition
+does: what looks like a heading inside a fenced block or an inline code
+span is not one, and only a markdown parser knows which regions are not
+to be scanned. A heading underlined rather than prefixed carries its
+underline inside `Position`, so `Position` ends exactly where `Section`
+begins in both written forms. No section content is returned — only the
+span of it, which a caller slices back out of the body it passed in.
+
+The package also exposes `Identifier`, the heading identifier of a text:
+its rendered inline content lowercased, with every character that is not
+a letter, digit, hyphen, underscore or space removed and each remaining
+space replaced by a hyphen. Inline content is rendered rather than
+filtered, so the identifier of ``The `Profile` interface`` is
+`the-profile-interface` and a link's target does not leak into the
+identifier of the heading that carries it. The derivation is a pure
+function of the text and derives no positional suffix for a repeated
+heading, which is what lets anchor resolution match against this one
+derivation rather than a second one. It is exposed as a function rather
+than recorded on a `Heading`, and the index model carries no identifier
+property for the same reason: it is recomputable from the text and is
+therefore not state.
+
+The comment-block location remains **not yet built**: no
 `cli/core/markdown` surface locates an HTML comment block yet.
 
 ### Gherkin
