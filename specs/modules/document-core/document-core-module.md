@@ -757,7 +757,13 @@ The vocabulary is:
 - **`IndexEntry`** — one corpus member: its repository-relative `path`,
   its parsed `frontmatter`, and a `parse_error` carrying a located
   failure for a member whose frontmatter could not be read
-  (AC-SPEC-002.4). Exactly one of the latter two is present.
+  (AC-SPEC-002.4). Exactly one of the latter two is present. It also
+  carries the document's structure: its `headings` in document order
+  (AC-SPECSTR-001.1), and the `record_blocks` attached to the document
+  rather than to any heading — those written before the first heading,
+  and those in a document with none. Headings are recorded for every
+  member, including one whose frontmatter could not be parsed, because a
+  heading is markdown and does not depend on an envelope.
 - **`IndexExclusion`** — one candidate file that is not a member: its
   `path`, a `reason` of `no-frontmatter` or `unknown-type`, and — where
   the reason is `unknown-type` — the `type` value the file declared
@@ -810,6 +816,31 @@ The vocabulary is:
   notation only (AC-GHK-005.3). The `content_hash` covers the criterion's
   name and text and nothing else, so a criterion that moved has not
   changed (AC-GHK-005.5).
+- **`Heading`** — one heading of a document body: its `text` as
+  authored, its `level` constrained to 1 through 6, the `position` of the
+  heading line itself, the `section` span of the content beneath it, and
+  the `record_blocks` attached to it. The section span runs from the end
+  of the heading line to the start of the next heading of the same or a
+  higher level, and to the end of the document where there is none. No
+  section content is carried: a reader that wants the text reads it back
+  through the span, which is what keeps a document's prose out of the
+  index. A heading carries no identifier, because the identifier is a
+  pure function of the text and is derived by the Markdown Structure
+  component on demand.
+- **`RecordBlock`** — one fenced block the active profile registers as
+  carrying structured data about an element declared inside a document
+  ([[adr-008]]): its `tag`, its parsed `content`, and the `position` of
+  the block as written, fences included, so that a rewrite promoting the
+  element replaces the whole construct. The content is a mapping of
+  property name to value; Strata models closed shapes, so an open record
+  is a map rather than an arbitrary value, and this framework's element
+  declarations — a title, a description and a slug — are exactly that
+  shape. A tag whose registration names a schema is validated against it
+  by the Schema Registry, so this shape names no tag and carries no
+  vocabulary of its own. A block is attached to the innermost heading
+  whose section contains it, and to the document where no heading does,
+  so every parsed block in a document appears exactly once
+  (AC-SPECSTR-001.2).
 - **`Span`** and **`ParseError`** — the position type every component
   reports through, and a message paired with one. `Span` is declared
   here, in the generated model, because findings and parse errors carry
@@ -817,14 +848,18 @@ The vocabulary is:
   semantics and is the only place spans are computed.
 
 `schema_version` is required and pinned to `1.0` (AC-SPEC-002.2). The
-model is additive: later features attach headings and extracted record
-blocks under this same version. The reference collection is the first
-exercise of that rule and it is a deliberate no-bump rather than an
-oversight — `references` is an addition alongside the existing shape,
+model is additive. The reference collection is the first exercise of that
+rule and it is a deliberate no-bump rather than an oversight —
+`references` is an addition alongside the existing shape,
 which is exactly what [[container-spec-cli]]'s additive rule permits at
 the same version, and the model and the emitted index changed in the
 same change as the Change Guidance below requires. The `features`
-collection is the second exercise, and is a no-bump for the same reason. The schema constrains
+collection is the second exercise, and is a no-bump for the same reason.
+The structure properties — `headings` and `record_blocks` on
+`IndexEntry`, with the `Heading` and `RecordBlock` shapes they carry —
+are the third, and are a no-bump for the same reason: every one of them
+is an addition alongside the existing shape, and none changes how
+anything already recorded is carried. The schema constrains
 `schema_version` by pattern (`String ~= /^1\.0$/`) rather than pinning
 it, so the generated model carries a validated field and not a constant;
 the emitted value lives in `cli/core/specindex` alongside the

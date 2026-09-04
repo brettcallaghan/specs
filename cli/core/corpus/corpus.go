@@ -526,6 +526,17 @@ func (b *builder) extractReferences(reported string, src []byte, doc *frontmatte
 // will need. A zero member — an entry with a parse failure — declares no
 // slug and takes part in no slug comparison.
 func (b *builder) addEntry(entry specmodel.IndexEntry, m member) {
+	// Every collection on the entry is non-nil for the reason
+	// [specindex.New] gives for the index's own: an entry with no
+	// headings marshals them as [] rather than as null, so the emitted
+	// index compares byte for byte across platforms and a consumer
+	// iterating a collection never distinguishes "empty" from "absent".
+	if entry.Headings == nil {
+		entry.Headings = []specmodel.Heading{}
+	}
+	if entry.RecordBlocks == nil {
+		entry.RecordBlocks = []specmodel.RecordBlock{}
+	}
 	b.index.Entries = append(b.index.Entries, entry)
 	if m.slug != "" {
 		b.members = append(b.members, m)

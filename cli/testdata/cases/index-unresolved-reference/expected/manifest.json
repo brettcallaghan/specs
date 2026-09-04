@@ -11,7 +11,9 @@
         "type": "adr",
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
-      }
+      },
+      "headings": [],
+      "record_blocks": []
     },
     {
       "path": "docs/adrs/adr-002-cited.md",
@@ -22,7 +24,9 @@
         "type": "adr",
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
-      }
+      },
+      "headings": [],
+      "record_blocks": []
     }
   ],
   "exclusions": [],
@@ -68,5 +72,5 @@
     }
   ],
   "features": [],
-  "input_hash": "sha256:843c48371eaab2185ca83187ca38de40f7fb7ebc6e0d87d95ad3b5ce7e7f86f6"
+  "input_hash": "sha256:a5eb1c5a8b09ae1458ac80568fa59d79608de7de89cc04fff5d211294fe51efe"
 }

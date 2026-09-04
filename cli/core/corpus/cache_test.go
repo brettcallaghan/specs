@@ -374,6 +374,8 @@ func TestAWarmIndexIsServedWithoutRewalkingTheCorpus(t *testing.T) {
 			Status:      specmodel.StatusApproved,
 			UpdatedAt:   time.Date(2026, 8, 5, 0, 0, 0, 0, time.UTC),
 		},
+		Headings:     []specmodel.Heading{},
+		RecordBlocks: []specmodel.RecordBlock{},
 	})
 	if err := corpus.Write(persisted, dest, nil); err != nil {
 		t.Fatalf("Write: %v", err)
