@@ -3,6 +3,9 @@ dolt/
 embeddeddolt/
 proxieddb/
 
+# Swarm run artifacts (per-run scratch: collision-edge files, plan documents)
+plans/
+
 # Runtime files
 bd.sock
 bd.sock.startlock
