@@ -121,6 +121,26 @@ type Document struct {
 	index  map[string]int
 }
 
+// Locate reports the region of src's frontmatter block: Outer over both
+// delimiters, Inner over the YAML between them. It reports false where
+// src carries none — no block, one opened and never closed, or one that
+// does not begin at the very first byte.
+//
+// It is the block-location half of [Parse], exported because a caller can
+// need where the block ends without needing what is in it: the corpus
+// walk asks for the body's offset for a document whose frontmatter did
+// not parse. Both read the delimiters here rather than each declaring its
+// own, which is the point — the closing delimiter carries a leading
+// newline, and a caller re-deriving the format from "---" alone closes
+// the block at the first run of three hyphens inside a value.
+func Locate(src []byte) (span.Region, bool) {
+	region, found := span.Find(src, openingDelimiter, closingDelimiter, 0)
+	if !found || region.Outer.Offset != 0 {
+		return span.Region{}, false
+	}
+	return region, true
+}
+
 // Parse returns the frontmatter of src.
 //
 // The three outcomes are distinct and the caller acts on each one
@@ -138,8 +158,8 @@ type Document struct {
 // A block is only recognised at the very start of the document. A `---`
 // further down is content.
 func Parse(src []byte) (*Document, *specmodel.ParseError) {
-	region, found := span.Find(src, openingDelimiter, closingDelimiter, 0)
-	if !found || region.Outer.Offset != 0 {
+	region, found := Locate(src)
+	if !found {
 		if bytes.HasPrefix(src, []byte(openingDelimiter)) {
 			return nil, located(
 				"the frontmatter block is opened and never closed",

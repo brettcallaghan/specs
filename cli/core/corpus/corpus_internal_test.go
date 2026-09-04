@@ -74,3 +74,55 @@ func TestTheWalkOffersEachSourceExactlyOnce(t *testing.T) {
 		}
 	}
 }
+
+// A member whose frontmatter failed to parse still carries its headings,
+// and its envelope is not one of them — including when a value inside the
+// block contains a run of three hyphens. The block's extent is the
+// Frontmatter component's to decide, and closing it at the first "---"
+// anywhere leaves the body starting mid-block, where the block's real
+// closing delimiter underlines the YAML above it and CommonMark reads the
+// envelope as a level-2 heading.
+func TestAnUnparsableFrontmatterBlockIsNotIndexedAsAHeading(t *testing.T) {
+	// The value carries "---" and the block does not parse: status opens
+	// a sequence it never closes.
+	src := []byte("---\ntitle: a---b\nstatus: [unclosed\n---\n\n# Real heading\n\nbody\n")
+
+	found := headingsOf(src, nil)
+
+	if len(found) != 1 {
+		t.Fatalf("found %d headings, want 1: %+v", len(found), found)
+	}
+	if found[0].Text != "Real heading" {
+		t.Errorf("Text = %q, want %q", found[0].Text, "Real heading")
+	}
+	if found[0].Level != 1 {
+		t.Errorf("Level = %d, want 1", found[0].Level)
+	}
+	// The envelope sits before the body, so no heading may begin inside
+	// it.
+	if got := found[0].Position.Offset; got < 40 {
+		t.Errorf("the heading begins at offset %d, inside the frontmatter block", got)
+	}
+}
+
+// The fallback still finds the headings of a document whose frontmatter
+// failed to parse without any "---" inside a value, and of one carrying
+// no frontmatter at all — the behaviours the fallback exists for.
+func TestTheFallbackStillLocatesTheBodyOfAnOrdinaryDocument(t *testing.T) {
+	unparsable := []byte("---\nstatus: [unclosed\n---\n\n# Real heading\n\nbody\n")
+	if found := headingsOf(unparsable, nil); len(found) != 1 || found[0].Text != "Real heading" {
+		t.Errorf("unparsable frontmatter: got %+v, want the one heading %q", found, "Real heading")
+	}
+
+	none := []byte("# Only heading\n\nbody\n")
+	if found := headingsOf(none, nil); len(found) != 1 || found[0].Text != "Only heading" {
+		t.Errorf("no frontmatter: got %+v, want the one heading %q", found, "Only heading")
+	}
+
+	// A "---" further down a document with no block of its own opens
+	// nothing: the whole source is the body.
+	late := []byte("# Heading\n\nbody\n\n---\n\nmore\n")
+	if found := headingsOf(late, nil); len(found) != 1 || found[0].Text != "Heading" {
+		t.Errorf("a late delimiter: got %+v, want the one heading %q", found, "Heading")
+	}
+}

@@ -501,3 +501,59 @@ func TestANonSequencePropertyCarriesNoItems(t *testing.T) {
 		t.Error("tags: Items is nil, want a sequence's items")
 	}
 }
+
+// Locate reports where a block sits without reading it, so a caller that
+// needs only the body's offset — the corpus walk, for a document whose
+// frontmatter did not parse — asks the component that owns the format
+// rather than re-deriving the delimiters.
+func TestLocateReportsTheBlockWithoutParsingIt(t *testing.T) {
+	// A run of three hyphens inside a value is content: only a "---"
+	// beginning a line closes the block.
+	withHyphens := []byte("---\ntitle: a---b\nstatus: [unclosed\n---\n\n# Real heading\n")
+	region, ok := frontmatter.Locate(withHyphens)
+	if !ok {
+		t.Fatalf("Locate found no block in %q", withHyphens)
+	}
+	if got, want := string(span.Slice(withHyphens, region.Outer)), "---\ntitle: a---b\nstatus: [unclosed\n---"; got != want {
+		t.Errorf("Outer slices to %q, want %q", got, want)
+	}
+	if got, want := string(span.Slice(withHyphens, region.Inner)), "\ntitle: a---b\nstatus: [unclosed"; got != want {
+		t.Errorf("Inner slices to %q, want %q", got, want)
+	}
+
+	// A source with no block reports not-found.
+	if _, ok := frontmatter.Locate([]byte("# Just a heading\n\nbody\n")); ok {
+		t.Error("Locate found a block in a source that carries none")
+	}
+
+	// A block that does not begin at the first byte is not frontmatter.
+	if _, ok := frontmatter.Locate([]byte("intro\n\n---\ntitle: One\n---\n")); ok {
+		t.Error("Locate found a block that does not open at the first byte")
+	}
+
+	// An opened block that never closes is not located.
+	if _, ok := frontmatter.Locate([]byte("---\ntitle: One\n")); ok {
+		t.Error("Locate found a block that is never closed")
+	}
+}
+
+// Parse and Locate share one implementation, so a block Parse reads and
+// one Locate reports occupy the same region.
+func TestParseAndLocateAgreeOnTheRegion(t *testing.T) {
+	src := []byte("---\ntitle: One\nslug: adr-001\n---\n\nbody\n")
+
+	doc, err := frontmatter.Parse(src)
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if doc == nil {
+		t.Fatal("Parse returned no document")
+	}
+	region, ok := frontmatter.Locate(src)
+	if !ok {
+		t.Fatal("Locate found no block")
+	}
+	if region != doc.Region {
+		t.Errorf("Locate = %+v, Parse recorded %+v", region, doc.Region)
+	}
+}

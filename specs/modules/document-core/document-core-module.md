@@ -357,6 +357,13 @@ span of its value, the value's raw source text, and the parsed value.
 serving both, so a property's position and its value cannot disagree.
 `goccy/go-yaml` is the parser, per [[adr-015]].
 
+Beside `Parse` the package exposes `Locate`, which reports the block's
+`Region` and nothing else. `Parse` is written on it, so where a block
+begins and ends is decided in one place: a caller that needs only where
+the block ends — the Corpus walk, for a document whose frontmatter did
+not parse — asks this component rather than re-deriving the delimiters,
+and a second derivation cannot disagree with the first.
+
 Six semantics are pinned by the implementation:
 
 - **A sequence-valued property carries its elements individually.**
@@ -380,9 +387,13 @@ Six semantics are pinned by the implementation:
 - **A block is recognised only at the start of the document,** located by
   the Spans scanner with `---` as the opening delimiter and a newline
   followed by `---` as the closing one. A `---` further down is content.
-  An opening delimiter with no closing one is reported as an
+  The closing delimiter carries its leading newline so that only a `---`
+  beginning a line ends the block: a run of three hyphens inside a value
+  is content, and a search for a bare `---` would close the block inside
+  that value. An opening delimiter with no closing one is reported as an
   unterminated block located at that delimiter — the case the Spans
-  scanner deliberately declines to guess at.
+  scanner deliberately declines to guess at. `Locate` applies exactly
+  this rule and is the only place it is applied.
 - **Raw text is source text, not a re-rendering.** A property's raw value
   runs from the first byte of the value to the start of the next
   property, trailing whitespace removed, so a quoted string keeps its
@@ -956,8 +967,14 @@ the file. A frontmatter block's closing delimiter underlines the YAML
 above it, which CommonMark reads as a setext heading, so a whole-file
 search would record the entire frontmatter block as a level-2 heading.
 The offset comes from the frontmatter parse the walk already performed;
-where that parse failed the block is located again from the source, so
-the member still gets its headings and not its frontmatter. This is the
+where that parse failed the block is located again from the source
+through Frontmatter's `Locate`, so the member still gets its headings and
+not its frontmatter. Corpus asks for the block rather than re-deriving
+it: the block's extent is the Frontmatter component's rule, and a second
+derivation here — closing the block at a bare `---` — would end it inside
+a value that contains one and hand the rest of the envelope to the
+heading search, which is the level-2 heading the offset exists to avoid.
+This is the
 one respect in which the heading search differs from the fenced-block
 search beside it, which is offered the whole file precisely so that its
 spans need no second arithmetic — heading spans are in document

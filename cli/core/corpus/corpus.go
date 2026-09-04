@@ -541,11 +541,14 @@ func headingsOf(src []byte, doc *frontmatter.Document) []specmodel.Heading {
 	case doc != nil:
 		from = int(doc.Region.Outer.Offset + doc.Region.Outer.Length)
 	default:
-		// The same test frontmatter.Parse applies: a block that opens
-		// anywhere but the first byte is not frontmatter. Where none is
-		// found — no block, or one that never closes — the whole source
-		// is the body.
-		if region, ok := span.Find(src, frontmatterDelimiter, frontmatterDelimiter, 0); ok && region.Outer.Offset == 0 {
+		// The Frontmatter component owns the format, so it is asked
+		// where the block is rather than the rule being re-derived here:
+		// its closing delimiter carries a leading newline, and a search
+		// for a bare "---" would close the block at the first such run
+		// inside a value and leave the body starting mid-block. Where no
+		// block is located — none present, or one that never closes —
+		// the whole source is the body.
+		if region, ok := frontmatter.Locate(src); ok {
 			from = int(region.Outer.Offset + region.Outer.Length)
 		}
 	}
@@ -566,11 +569,6 @@ func headingsOf(src []byte, doc *frontmatter.Document) []specmodel.Heading {
 	}
 	return headings
 }
-
-// frontmatterDelimiter opens and closes a frontmatter block. It is
-// declared here only so [headingsOf] can locate a block the Frontmatter
-// component could not parse; that component owns the format.
-const frontmatterDelimiter = "---"
 
 // extractReferences records the references one member makes, from the
 // bytes the walk has already read and the frontmatter it has already
