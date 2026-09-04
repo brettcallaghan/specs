@@ -2001,9 +2001,48 @@
       ],
       "type": "object"
     },
+    "Heading": {
+      "additionalProperties": false,
+      "description": "One heading of a document body, with the extent of the content beneath\nit.\n\nThe section span is what makes a place inside a document addressable. A\nreader that wants the text under a heading reads it back through the\nspan, which is why no section content is carried here or anywhere else\nin this model.",
+      "properties": {
+        "level": {
+          "description": "The heading's level: 1 for `#`, through 6 for `######`.",
+          "maximum": 6,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "position": {
+          "$ref": "#/definitions/Span",
+          "description": "Where the heading line itself is written."
+        },
+        "record_blocks": {
+          "description": "The record blocks attached to this heading: those whose extent falls\nwithin its section span and within no nested heading's, so a block\nbelongs to the innermost heading that contains it.",
+          "items": {
+            "$ref": "#/definitions/RecordBlock"
+          },
+          "type": "array"
+        },
+        "section": {
+          "$ref": "#/definitions/Span",
+          "description": "The extent of the content beneath the heading: from the end of the\nheading line to the start of the next heading of the same or a higher\nlevel, and to the end of the document where there is none.\n\nA heading that stands over nothing carries an empty span rather than an\nabsent one, the same way an empty frontmatter block does."
+        },
+        "text": {
+          "description": "The heading's text as authored, without the `#` markers that open the\nline.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "level",
+        "position",
+        "section",
+        "record_blocks"
+      ],
+      "type": "object"
+    },
     "IndexEntry": {
       "additionalProperties": false,
-      "description": "One corpus member in the index: where it lives and what its frontmatter\ndeclares.\n\nThe entry is deliberately additive. This sprint populates the path and\nthe frontmatter envelope; later features attach headings, extracted\nrecord blocks and references to the same entry under the same\n`schema_version`, and no property here forecloses modelling references\nas their own collection later.",
+      "description": "One corpus member in the index: where it lives and what its frontmatter\ndeclares.\n\nThe entry is deliberately additive. It carries the path, the frontmatter\nenvelope, and the document's structure — its headings and the record\nblocks attached to the document rather than to any heading — and later\nfeatures attach further properties under the same `schema_version`.",
       "properties": {
         "frontmatter": {
           "description": "The member's parsed frontmatter.\n\nAbsent exactly when `parse_error` is present: a document whose\nfrontmatter could not be parsed is still indexed, but it has no parsed\nenvelope to carry.",
@@ -2015,6 +2054,13 @@
               "type": "null"
             }
           ]
+        },
+        "headings": {
+          "description": "The document's headings, in document order.\n\nRecorded for every member, including one whose frontmatter could not be\nparsed: a heading is markdown and does not depend on an envelope.",
+          "items": {
+            "$ref": "#/definitions/Heading"
+          },
+          "type": "array"
         },
         "parse_error": {
           "description": "The failure that prevented this member's frontmatter from being\nparsed, with its position.\n\nPresent exactly when `frontmatter` is absent. A member carrying this\nproperty does not make the index a failure; the index is still emitted\nand still contains every other document.",
@@ -2030,10 +2076,19 @@
         "path": {
           "description": "The member's path, relative to the repository root and written with\nforward slashes on every platform.",
           "type": "string"
+        },
+        "record_blocks": {
+          "description": "The record blocks attached to the document rather than to any heading:\nthose written before the first heading, and those in a document that\nhas none.\n\nA block inside a heading's section is carried by that heading instead,\nso every parsed block in a document appears exactly once.",
+          "items": {
+            "$ref": "#/definitions/RecordBlock"
+          },
+          "type": "array"
         }
       },
       "required": [
-        "path"
+        "path",
+        "headings",
+        "record_blocks"
       ],
       "type": "object"
     },
@@ -2391,6 +2446,36 @@
       "required": [
         "tag",
         "meaning"
+      ],
+      "type": "object"
+    },
+    "RecordBlock": {
+      "additionalProperties": false,
+      "description": "A fenced block whose content the active profile registers as structured\ndata about an element declared inside a document.\n\nA block is a record block only where the active profile registers its\ninfo string as a tag; a profile that registers none yields a corpus with\nno record blocks. The registration also names the format the content is\nparsed as and, optionally, the schema it is validated against, so this\nshape names no particular tag and carries no vocabulary of its own.",
+      "properties": {
+        "content": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "The block's content, parsed in the format its tag declares.\n\nA mapping of property name to value as written. Strata models closed\nshapes, so an open record is a map rather than an arbitrary value, and\nthis framework's element declarations — a title, a description and a\nslug — are exactly that shape. A tag whose registration names a schema\nis validated against that schema by the schema registry; this property\ncarries what was parsed and no judgement about it.",
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        "position": {
+          "$ref": "#/definitions/Span",
+          "description": "The extent of the block as written, opening and closing fences\nincluded.\n\nThe fences are inside the span because promotion replaces the whole\nblock with a link: a rewrite addressing only the content would leave\nthe fences behind."
+        },
+        "tag": {
+          "description": "The block's info string, which is the tag the active profile\nregistered — `component` for a component record block.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tag",
+        "content",
+        "position"
       ],
       "type": "object"
     },

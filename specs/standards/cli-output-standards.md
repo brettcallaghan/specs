@@ -27,10 +27,12 @@ so a reader who has met YAML once can read it and a consumer already has
 a parser for it. There is no line grammar to reverse-engineer, no column
 convention, no punctuation carrying meaning.
 
-**Status: approved, and not yet met.** The surface predates these
-standards; [Current conformance](#current-conformance) records what each
-command prints today, measured, and what each has to change. A command
-specified after this document is written to conform from the start.
+**Status: approved, and met by the commands specified since.** The rest
+of the surface predates these standards; [Current
+conformance](#current-conformance) records what each command prints
+today, measured, and what each has to change. A command specified after
+this document is written to conform from the start, and `headings` is
+the first.
 
 ---
 
@@ -268,8 +270,9 @@ Stated because the absence is a decision rather than an omission.
 ## Current conformance
 
 Measured with a binary built from this branch (`go build -C cli -o spec
-./spec`), run against this repository's corpus. No command conforms
-today; the surface predates these standards.
+./spec`), run against this repository's corpus. Every command below
+predates these standards and none of them conforms yet; `headings`,
+specified after them, conforms and is listed last.
 
 | command | prints today | to conform |
 |---|---|---|
@@ -280,6 +283,7 @@ today; the surface predates these standards.
 | `feature`, `criterion` | text summary; `--json` a compact object | render as YAML |
 | `links <path>` | the rewritten document | conforms — a document payload, written as itself |
 | `index` | the artifact, or the path it wrote | the artifact is out of scope; the printed path is an answer |
+| `headings <selection>` | a YAML mapping whose one key is the sequence of matches; `--json` the same values in the same order; `--emit` the matched sections as themselves | conforms — written against these standards, and the source of the `renderYAML` the other commands adopt |
 
 Migration is per command and belongs to whichever feature next touches
 it. Every command carries snapshot cases under `cli/testdata/cases/`,

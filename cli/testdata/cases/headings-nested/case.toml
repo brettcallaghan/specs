@@ -1,0 +1,5 @@
+description = "a matched heading is returned with every heading inside its section, each carrying its own level"
+cites = ["AC-SPECSTR-003.4"]
+artifacts = ["checks.log"]
+args = ["headings", "adr-001-first#Decision"]
+exit_code = 0

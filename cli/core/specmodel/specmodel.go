@@ -3746,14 +3746,127 @@ func (e ExclusionReason) String() string {
 	return string(e)
 }
 
+// A fenced block whose content the active profile registers as structured
+// data about an element declared inside a document.
+//
+// A block is a record block only where the active profile registers its
+// info string as a tag; a profile that registers none yields a corpus with
+// no record blocks. The registration also names the format the content is
+// parsed as and, optionally, the schema it is validated against, so this
+// shape names no particular tag and carries no vocabulary of its own.
+type RecordBlock struct {
+	// The block's info string, which is the tag the active profile
+	// registered — `component` for a component record block.
+	Tag string `json:"tag"`
+	// The block's content, parsed in the format its tag declares.
+	//
+	// A mapping of property name to value as written. Strata models closed
+	// shapes, so an open record is a map rather than an arbitrary value, and
+	// this framework's element declarations — a title, a description and a
+	// slug — are exactly that shape. A tag whose registration names a schema
+	// is validated against that schema by the schema registry; this property
+	// carries what was parsed and no judgement about it.
+	Content map[string]string `json:"content"`
+	// The extent of the block as written, opening and closing fences
+	// included.
+	//
+	// The fences are inside the span because promotion replaces the whole
+	// block with a link: a rewrite addressing only the content would leave
+	// the fences behind.
+	Position Span `json:"position"`
+}
+
+func (v *RecordBlock) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["tag"]; !ok || string(m) == "null" {
+		return fmt.Errorf("RecordBlock: required field \"tag\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Tag); err != nil {
+		return prefixField("tag", err)
+	}
+	if m, ok := raw["content"]; !ok || string(m) == "null" {
+		return fmt.Errorf("RecordBlock: required field \"content\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Content); err != nil {
+		return prefixField("content", err)
+	}
+	if m, ok := raw["position"]; !ok || string(m) == "null" {
+		return fmt.Errorf("RecordBlock: required field \"position\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Position); err != nil {
+		return prefixField("position", err)
+	}
+	return nil
+}
+
+// One heading of a document body, with the extent of the content beneath
+// it.
+//
+// The section span is what makes a place inside a document addressable. A
+// reader that wants the text under a heading reads it back through the
+// span, which is why no section content is carried here or anywhere else
+// in this model.
+type Heading struct {
+	// The heading's text as authored, without the `#` markers that open the
+	// line.
+	Text string `json:"text"`
+	// The heading's level: 1 for `#`, through 6 for `######`.
+	Level uint64 `json:"level"`
+	// Where the heading line itself is written.
+	Position Span `json:"position"`
+	// The extent of the content beneath the heading: from the end of the
+	// heading line to the start of the next heading of the same or a higher
+	// level, and to the end of the document where there is none.
+	//
+	// A heading that stands over nothing carries an empty span rather than an
+	// absent one, the same way an empty frontmatter block does.
+	Section Span `json:"section"`
+	// The record blocks attached to this heading: those whose extent falls
+	// within its section span and within no nested heading's, so a block
+	// belongs to the innermost heading that contains it.
+	RecordBlocks []RecordBlock `json:"record_blocks"`
+}
+
+func (v *Heading) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["text"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Heading: required field \"text\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Text); err != nil {
+		return prefixField("text", err)
+	}
+	if m, ok := raw["level"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Heading: required field \"level\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Level); err != nil {
+		return prefixField("level", err)
+	}
+	if m, ok := raw["position"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Heading: required field \"position\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Position); err != nil {
+		return prefixField("position", err)
+	}
+	if m, ok := raw["section"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Heading: required field \"section\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Section); err != nil {
+		return prefixField("section", err)
+	}
+	if m, ok := raw["record_blocks"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Heading: required field \"record_blocks\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.RecordBlocks); err != nil {
+		return prefixField("record_blocks", err)
+	}
+	return nil
+}
+
 // One corpus member in the index: where it lives and what its frontmatter
 // declares.
 //
-// The entry is deliberately additive. This sprint populates the path and
-// the frontmatter envelope; later features attach headings, extracted
-// record blocks and references to the same entry under the same
-// `schema_version`, and no property here forecloses modelling references
-// as their own collection later.
+// The entry is deliberately additive. It carries the path, the frontmatter
+// envelope, and the document's structure — its headings and the record
+// blocks attached to the document rather than to any heading — and later
+// features attach further properties under the same `schema_version`.
 type IndexEntry struct {
 	// The member's path, relative to the repository root and written with
 	// forward slashes on every platform.
@@ -3771,6 +3884,18 @@ type IndexEntry struct {
 	// property does not make the index a failure; the index is still emitted
 	// and still contains every other document.
 	ParseError *ParseError `json:"parse_error,omitempty"`
+	// The document's headings, in document order.
+	//
+	// Recorded for every member, including one whose frontmatter could not be
+	// parsed: a heading is markdown and does not depend on an envelope.
+	Headings []Heading `json:"headings"`
+	// The record blocks attached to the document rather than to any heading:
+	// those written before the first heading, and those in a document that
+	// has none.
+	//
+	// A block inside a heading's section is carried by that heading instead,
+	// so every parsed block in a document appears exactly once.
+	RecordBlocks []RecordBlock `json:"record_blocks"`
 }
 
 func (v *IndexEntry) UnmarshalJSON(data []byte) error {
@@ -3792,6 +3917,16 @@ func (v *IndexEntry) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(m, &v.ParseError); err != nil {
 			return prefixField("parse_error", err)
 		}
+	}
+	if m, ok := raw["headings"]; !ok || string(m) == "null" {
+		return fmt.Errorf("IndexEntry: required field \"headings\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Headings); err != nil {
+		return prefixField("headings", err)
+	}
+	if m, ok := raw["record_blocks"]; !ok || string(m) == "null" {
+		return fmt.Errorf("IndexEntry: required field \"record_blocks\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.RecordBlocks); err != nil {
+		return prefixField("record_blocks", err)
 	}
 	return nil
 }

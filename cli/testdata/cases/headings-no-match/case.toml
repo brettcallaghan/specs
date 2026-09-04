@@ -1,0 +1,5 @@
+description = "a selection matching no heading renders the empty collection and exits zero"
+cites = ["AC-SPECSTR-003.6"]
+artifacts = ["checks.log"]
+args = ["headings", "#no-such-heading"]
+exit_code = 0

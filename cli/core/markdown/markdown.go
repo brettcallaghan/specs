@@ -1,14 +1,19 @@
-// Package markdown locates fenced blocks in a document body by info
-// string.
+// Package markdown locates a document body's headings and its fenced
+// blocks by info string.
 //
-// This is the fenced-block half of the Markdown Structure component
-// [[module-document-core]] declares. The heading tree and HTML comment
-// blocks are the other two capabilities that component names, and both
+// These are two of the three capabilities the Markdown Structure
+// component [[module-document-core]] declares: [Headings] builds the
+// heading tree with the span of the content beneath each heading, and
+// [Fenced] locates blocks by tag. HTML comment blocks are the third and
 // stay unbuilt here; they belong to [[frd-spec-structure-conformance]].
 //
-// Fence recognition comes from goldmark, already a module dependency —
+// Both take recognition from goldmark, already a module dependency —
 // References brought it in for the code-region mask described under that
-// component. Where a fence ends depends on the fence character, its run
+// component. What looks like a heading or a fence inside a fenced block
+// or an inline code span is not one, and only a markdown parser knows
+// which regions are not to be scanned.
+//
+// Where a fence ends depends on the fence character, its run
 // length and its info string, and a hand-rolled scan that guesses one of
 // those wrong extracts a block no markdown reader would agree with.
 // goldmark decides where a fence is and where its content lines fall;
