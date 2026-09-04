@@ -463,6 +463,16 @@ underline inside `Position`, so `Position` ends exactly where `Section`
 begins in both written forms. No section content is returned — only the
 span of it, which a caller slices back out of the body it passed in.
 
+`HeadingsFrom` is the same search started at a byte offset, with every
+span still expressed in the whole source's coordinates. It is what a
+document with frontmatter needs: a frontmatter block's closing delimiter
+underlines the YAML above it, which CommonMark reads as a setext
+heading, so a whole-file search reports the entire block as a level-2
+heading. Starting at the body leaves that construct behind the offset
+rather than filtering it out afterwards, and reporting against the whole
+source is what keeps a heading's line number the one a reader counts to
+in the file. `Headings` is `HeadingsFrom` at offset zero.
+
 The package also exposes `Identifier`, the heading identifier of a text:
 its rendered inline content lowercased, with every character that is not
 a letter, digit, hyphen, underscore or space removed and each remaining
@@ -920,6 +930,32 @@ member, `OutboundReferences` and `InboundReferences` for the two
 directions of the reference graph, `FeatureFailures` for every Gherkin
 source that would not parse, and `FindingsFor` to narrow a
 whole-corpus result to one file.
+
+**Headings ride the walk too.** Each member's headings are extracted
+inside the same visit that reads its bytes, through Markdown Structure's
+`HeadingsFrom` — Corpus calls the component and holds no heading logic
+of its own. They are recorded in document order, which is the order the
+extraction returns and what keeps the emitted index byte-identical
+across platforms (AC-SPEC-009.7) without a sort of its own. A member
+whose frontmatter could not be parsed still carries its headings,
+because a heading is markdown and does not depend on an envelope.
+
+The search starts at the member's body rather than at the first byte of
+the file. A frontmatter block's closing delimiter underlines the YAML
+above it, which CommonMark reads as a setext heading, so a whole-file
+search would record the entire frontmatter block as a level-2 heading.
+The offset comes from the frontmatter parse the walk already performed;
+where that parse failed the block is located again from the source, so
+the member still gets its headings and not its frontmatter. This is the
+one respect in which the heading search differs from the fenced-block
+search beside it, which is offered the whole file precisely so that its
+spans need no second arithmetic — heading spans are in document
+coordinates for the same reason, computed against the whole file rather
+than against the body slice.
+
+A warm corpus answers for headings from the index it opened, reading no
+document off disk: the headings are in the persisted index like every
+other property of an entry.
 
 **The reference graph rides the walk.** A member's references are
 extracted inside the same visit that reads its bytes and parses its

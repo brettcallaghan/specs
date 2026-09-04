@@ -12,7 +12,29 @@
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
       },
-      "headings": [],
+      "headings": [
+        {
+          "text": "ADR-001: Example",
+          "level": 1,
+          "position": {
+            "offset": 175,
+            "length": 19,
+            "start_line": 10,
+            "start_column": 1,
+            "end_line": 11,
+            "end_column": 1
+          },
+          "section": {
+            "offset": 194,
+            "length": 0,
+            "start_line": 11,
+            "start_column": 1,
+            "end_line": 11,
+            "end_column": 1
+          },
+          "record_blocks": []
+        }
+      ],
       "record_blocks": []
     },
     {
@@ -28,7 +50,29 @@
           "end_column": 33
         }
       },
-      "headings": [],
+      "headings": [
+        {
+          "text": "ADR-002: Broken",
+          "level": 1,
+          "position": {
+            "offset": 175,
+            "length": 18,
+            "start_line": 10,
+            "start_column": 1,
+            "end_line": 11,
+            "end_column": 1
+          },
+          "section": {
+            "offset": 193,
+            "length": 0,
+            "start_line": 11,
+            "start_column": 1,
+            "end_line": 11,
+            "end_column": 1
+          },
+          "record_blocks": []
+        }
+      ],
       "record_blocks": []
     }
   ],

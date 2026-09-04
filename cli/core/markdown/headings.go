@@ -57,6 +57,37 @@ type Heading struct {
 // A body carrying no heading yields an empty result rather than an error:
 // a document without headings is a document, not a defect.
 func Headings(body []byte) []Heading {
+	return HeadingsFrom(body, 0)
+}
+
+// HeadingsFrom returns every heading of src at or after the byte offset
+// from, with every span expressed in src's own coordinates.
+//
+// A caller passes the offset of a document's body rather than slicing it
+// out, because a span is only useful against the file it addresses: the
+// line a report prints and the offset a rewrite seeks to both count from
+// the start of the document, frontmatter included.
+//
+// Searching from an offset rather than over the whole file is what a
+// document with frontmatter requires, and it is the one place the heading
+// search differs from the fenced-block one. A frontmatter block's closing
+// "---" underlines the YAML above it, which is a setext heading in
+// CommonMark: offered a whole specification file, a markdown parser
+// reports the entire frontmatter block as a level-2 heading. Starting at
+// the body leaves that construct behind the offset instead of filtering
+// it afterwards.
+//
+// A negative from is treated as 0, and one past the end of src yields an
+// empty result.
+func HeadingsFrom(src []byte, from int) []Heading {
+	if from < 0 {
+		from = 0
+	}
+	if from > len(src) {
+		return nil
+	}
+	body := src[from:]
+
 	located := locate(body)
 	if len(located) == 0 {
 		return nil
@@ -71,27 +102,33 @@ func Headings(body []byte) []Heading {
 		// the end of the document.
 		sectionEnd := len(body)
 		for _, next := range located[i+1:] {
-			if next.heading.Level <= current.heading.Level {
+			if next.level <= current.level {
 				sectionEnd = next.lineStart
 				break
 			}
 		}
 
-		heading := current.heading
-		heading.Section = span.Of(body, current.sectionStart, sectionEnd-current.sectionStart)
-		headings = append(headings, heading)
+		headings = append(headings, Heading{
+			Text:     current.text,
+			Level:    current.level,
+			Position: span.Of(src, from+current.lineStart, current.sectionStart-current.lineStart),
+			Section:  span.Of(src, from+current.sectionStart, sectionEnd-current.sectionStart),
+		})
 	}
 	return headings
 }
 
-// placed is one heading with the byte offsets [Headings] needs to compute
-// sections, which the Span it reports has already converted away from.
+// placed is one heading as [locate] found it: its text and level, and the
+// offsets within the searched region that [HeadingsFrom] needs in order to
+// compute a section, before either is converted into a [span.Span].
 type placed struct {
-	heading Heading
+	text  string
+	level int
 	// lineStart is where the heading's own line begins: where the section
 	// of every shallower heading above it ends.
 	lineStart int
-	// sectionStart is where the content beneath the heading begins.
+	// sectionStart is where the content beneath the heading begins, and
+	// so also where the heading's own line ends.
 	sectionStart int
 }
 
@@ -126,11 +163,8 @@ func locate(body []byte) []placed {
 		}
 
 		located = append(located, placed{
-			heading: Heading{
-				Text:     string(bytes.TrimSpace(body[first.Start:last.Stop])),
-				Level:    heading.Level,
-				Position: span.Of(body, start, end-start),
-			},
+			text:         string(bytes.TrimSpace(body[first.Start:last.Stop])),
+			level:        heading.Level,
 			lineStart:    start,
 			sectionStart: end,
 		})

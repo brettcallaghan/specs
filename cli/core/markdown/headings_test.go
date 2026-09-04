@@ -260,3 +260,48 @@ func TestTheHeadingIdentifierIsPureAndDerivesNoPositionalSuffix(t *testing.T) {
 		t.Errorf("Identifier is not a pure function of the text: %q then %q", first, again)
 	}
 }
+
+// A search that starts at a document's body leaves the frontmatter block
+// behind the offset, and every span it returns is still in the document's
+// own coordinates.
+//
+// The negative control is the whole-file search below: a frontmatter
+// block's closing "---" underlines the YAML above it, which CommonMark
+// reads as a setext heading, so a search over the whole file reports the
+// entire block as a level-2 heading.
+//
+// AC: AC-SPECSTR-001.1
+func TestASearchFromTheBodyOffsetLeavesTheFrontmatterBehind(t *testing.T) {
+	src := []byte("---\ntitle: Example\nslug: adr-001\n---\n\n# Real\n\nbody\n")
+	bodyAt := len("---\ntitle: Example\nslug: adr-001\n---\n")
+
+	found := markdown.HeadingsFrom(src, bodyAt)
+
+	if len(found) != 1 {
+		t.Fatalf("found %d headings, want 1: %+v", len(found), found)
+	}
+	if found[0].Text != "Real" {
+		t.Errorf("Text = %q, want %q", found[0].Text, "Real")
+	}
+	// The span addresses the document, not the slice: the heading is on
+	// line 6 of the file and slices back out of src.
+	if got, want := string(span.Slice(src, found[0].Position)), "# Real\n"; got != want {
+		t.Errorf("Position slices to %q, want %q", got, want)
+	}
+	if found[0].Position.StartLine != 6 {
+		t.Errorf("StartLine = %d, want 6 — the span must count from the start of the file", found[0].Position.StartLine)
+	}
+	if got, want := string(span.Slice(src, found[0].Section)), "\nbody\n"; got != want {
+		t.Errorf("Section slices to %q, want %q", got, want)
+	}
+
+	// The control: without the offset, the frontmatter itself is reported
+	// as a heading.
+	whole := markdown.Headings(src)
+	if len(whole) != 2 || whole[0].Level != 2 {
+		t.Fatalf("expected the whole-file search to report the frontmatter as a level-2 heading, got %+v", whole)
+	}
+	if whole[0].Text != "title: Example\nslug: adr-001" {
+		t.Errorf("the control did not reproduce the frontmatter-as-heading case: %q", whole[0].Text)
+	}
+}

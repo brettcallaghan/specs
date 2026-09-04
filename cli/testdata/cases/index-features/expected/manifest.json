@@ -12,7 +12,29 @@
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
       },
-      "headings": [],
+      "headings": [
+        {
+          "text": "Checkout",
+          "level": 1,
+          "position": {
+            "offset": 176,
+            "length": 11,
+            "start_line": 10,
+            "start_column": 1,
+            "end_line": 11,
+            "end_column": 1
+          },
+          "section": {
+            "offset": 187,
+            "length": 583,
+            "start_line": 11,
+            "start_column": 1,
+            "end_line": 35,
+            "end_column": 1
+          },
+          "record_blocks": []
+        }
+      ],
       "record_blocks": []
     }
   ],
