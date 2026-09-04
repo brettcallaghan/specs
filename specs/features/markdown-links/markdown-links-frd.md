@@ -6,7 +6,7 @@ description: The Spec CLI rewrites corpus wikilinks into markdown links,
 slug: frd-spec-markdown-links
 type: frd
 status: approved
-updated_at: 2026-08-15T00:00:00Z
+updated_at: 2026-09-03T00:00:00Z
 sources: [adr-018, frd-spec-reference-integrity]
 ---
 
@@ -121,7 +121,7 @@ Feature: Rewrite wikilinks to markdown links
   Scenario: An anchor becomes a fragment on the settled path
     Given a wikilink carrying an anchor
     When the CLI rewrites the document
-    Then the CLI appends to the settled path a fragment derived from that anchor
+    Then the CLI appends to the settled path a fragment derived from the heading that anchor resolves to
 
   @AC-SPECMD-001.4 @negative
   Scenario Outline: A wikilink inside a code region is left as written
@@ -145,6 +145,12 @@ Feature: Rewrite wikilinks to markdown links
     Given a document containing no rewritable wikilink
     When the CLI rewrites it
     Then the CLI emits that document unchanged
+
+  @AC-SPECMD-001.7
+  Scenario: An anchor reaching no heading still yields a fragment
+    Given a wikilink whose anchor resolves to no heading of the settled target
+    When the CLI rewrites the document
+    Then the CLI derives the fragment from the anchor as the author wrote it
 ```
 
 *Examples:* with `template-authoring-standards` mapped to
@@ -154,7 +160,14 @@ Feature: Rewrite wikilinks to markdown links
 (AC-SPECMD-001.1). With `container-api` mapped to `container-api.md`,
 `` `[[container-api#Request Router]]` `` emits
 `container-api#Request Router` as its visible text (AC-SPECMD-001.2) and
-targets `container-api.md#request-router` (AC-SPECMD-001.3). A guide
+targets `container-api.md#request-router`, the identifier of the heading
+that anchor resolves to rather than one derived from the anchor's own
+text — the two agree wherever an anchor names a heading in full, and the
+resolved heading is what the copy has to reach when they do not
+(AC-SPECMD-001.3). A citation whose anchor reaches no heading is still
+rewritten, on a fragment derived from what the author wrote, leaving the
+copy no worse than the source that names a section which is not there
+(AC-SPECMD-001.7). A guide
 explaining citation syntax writes `` `[[document-slug]]` `` as an
 illustration, and the rewrite leaves it alone (AC-SPECMD-001.4).
 
