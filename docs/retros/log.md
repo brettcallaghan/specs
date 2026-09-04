@@ -5,8 +5,13 @@ results, every finding it captured verbatim, and what it could not verify.
 
 | date | run epic | target | admitted / closed | findings | unrouted | filed | record |
 |---|---|---|---|---|---|---|---|
-| 2026-09-04 | `agent-plugins-d7w5` | `agent-plugins-f6tl` — spec corpus structure extraction | 4 / 4, then **+4 admitted by AMENDMENT 3 and still in flight** | 28 (16 project, 11 skill, 1 `proof`) | 0 | 13 of 15 candidates (10 → `.sf/outbox/swarm/`, 3 beads: `3oiv`, `yqjh`, `nduj`); 2 declined | [2026-09-04-d7w5-spec-corpus-structure-extraction.md](2026-09-04-d7w5-spec-corpus-structure-extraction.md) |
+| 2026-09-04 | `agent-plugins-d7w5` | `agent-plugins-f6tl` — spec corpus structure extraction | 8 / 8 — 4 work orders, then +4 review findings admitted by `AMENDMENT 3` | 45 (26 project, 12 skill, 7 `proof`) | 0 | 13 of 19 candidates (10 → `.sf/outbox/swarm/`, 3 beads: `3oiv`, `yqjh`, `nduj`); 2 declined; **4 pending** | [2026-09-04-d7w5-spec-corpus-structure-extraction.md](2026-09-04-d7w5-spec-corpus-structure-extraction.md) |
 
 A record whose "admitted / closed" cell names work still in flight is
 provisional: its results are revised when that run truly ends, and its findings,
-routing and filing decision are not.
+routing and filing decision are not. No row is provisional today.
+
+A "pending" count in the filed column means candidates were put to a human and
+the answer is not yet recorded. The record names them, and that run's
+`retro_filed` / `retro_declined` / `retro_routed` still carry the figures from
+before they were put.

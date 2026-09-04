@@ -3,18 +3,19 @@
 *Written by `retro-d7w5` on 2026-09-04. One document: the run's results, every
 finding it captured, and what it could not establish.*
 
-> **THIS RECORD IS NOT FINAL. The run is back in flight.** `AMENDMENT 3`
-> (coordinator-d7w5, retro human channel) admitted **four P1 review findings** —
-> `agent-plugins-d7w5.7`, `.8`, `.9` and `.11` — into this run, overriding
-> `standing_auth.admit_review_findings=false` after the fact. All four are
-> un-deferred and open; the run re-enters at **groom & plan**, not at dispatch,
-> because review files and does not groom. `review_passes` stands at 1 of 3, so
-> the budget covers a second review pass over the new work.
->
-> Everything below headed **Results**, **Scope**, **Validation** and **Pushes**
-> therefore describes the run **as of the retro decision**, not as of its end.
-> The findings, the routing and the filing decision are complete and do not
-> change; the results will be revised when the run truly ends.
+*Written in two passes, because the run re-entered its dispatch loop after the
+first one. **Pass 1** recorded the run as it then stood — four work orders
+closed, review pass 1's nine findings filed and none admitted. `AMENDMENT 3`
+then admitted four of those findings, the run went back to groom & plan, and
+`AMENDMENT 4` closed the loop at head `62e9e42`. This document was revised
+there, at the run's true end.*
+
+*Pass 1's content is **preserved, not rewritten**: every finding it recorded,
+its routing, its candidate list and the filing decision it took stand exactly as
+reviewed and committed. What was revised is Results, Scope, Validation, Pushes,
+the routing and finding counts, and what could not be verified — plus the
+seventeen findings the second half of the run produced and the four candidates
+they raise.*
 
 ## The run
 
@@ -23,13 +24,15 @@ finding it captured, and what it could not establish.*
 | run epic | `agent-plugins-d7w5` — "Swarm run — Spec corpus structure extraction" |
 | target | `agent-plugins-f6tl` — "Spec corpus structure extraction", adopted whole |
 | sprint branch | `sprint/agent-plugins-d7w5`, merged into `claude/swarm-agent-plugins-5wxrfo` |
-| `base_sha` → head | `70dddef` → `1bb35e7` |
-| queue | 7 beads under the target. **5 admitted at the gate** (`.1 .2 .3 .4 .7`), 2 excluded; AMENDMENT 1 dropped `.7`, leaving **4** |
-| dispatches | one — `dev-d7w5-1`, batch `f6tl.1 → .2 → .3 → .4` |
-| partition | strict dependency chain, **zero parallelism, zero collision edges** |
+| `base_sha` → head | `70dddef` → `62e9e42` |
+| queue | 7 beads under the target. **5 admitted at the gate** (`.1 .2 .3 .4 .7`), 2 excluded; AMENDMENT 1 dropped `.7`, leaving **4**. `AMENDMENT 3` then admitted four review findings (`d7w5.7 .8 .9 .11`), so `manifest.admitted` ends at **8 ids** |
+| dispatches | three — `dev-d7w5-1` (batch `f6tl.1 → .2 → .3 → .4`), then `dev-d7w5-2` (`d7w5.9 → .8 → .7`) and `dev-d7w5-3` (`d7w5.11`) **concurrently** |
+| partition | pass 1: a strict dependency chain — zero parallelism, zero collision edges. Pass 2: **two collision edges** in `.beads/plans/d7w5.pass2.edges.jsonl` (`.8`←`.9`, `.7`←`.8`), partitioning four beads into two batches — **the run's first real parallelism**. `manifest.partition_preview` records pass 1 only |
 | declared checks | 12 — `format`, `vet`, `build`, `test-go`, `skills`, `shared-refs`, `strata-docs`, `schemas`, `corpus`, `ref-links`, `template-drift`, `skills-strict` |
-| model lineup | `advanced` tier → `opus` per `swarm.toml` `[models]`. **The manifest's `models` key is unset** and `effort` reads `unrecorded` — see `d7w5.2.1#3` |
+| model lineup | `advanced` tier → `opus` per `swarm.toml` `[models]`, for all three dispatches. **The manifest's `models` key is unset** and `effort` reads `unrecorded` — see `d7w5.2.1#3` |
 | gate | `agent-plugins-987r` — one authorization gate, taken once |
+| amendments | 4, all on the run epic — 1 narrowed the queue, 2 recorded review pass 1, 3 widened scope after the drain, 4 closed the loop |
+| review passes | **2 of 3. The budget is unspent, not exhausted** |
 
 **Standing authorization** (`manifest.standing_auth`), six rows:
 
@@ -47,10 +50,9 @@ manifest at all** — the model has no field for it (`d7w5.2.1#2`).
 
 ## Results
 
-**As of the retro decision — see the banner above; four review findings have
-since been admitted and are unlanded.**
-
-All four *originally* admitted beads closed, each in one commit, on one dispatch.
+**Eight beads closed across three dispatches, each in one commit, none blocked
+and none skipped.** Four are the target's own work orders; four are review pass
+1's P1 findings, admitted by `AMENDMENT 3` and worked in the second half.
 
 | bead | status | agent | commit | what landed |
 |---|---|---|---|---|
@@ -58,21 +60,41 @@ All four *originally* admitted beads closed, each in one commit, on one dispatch
 | `f6tl.2` | closed | `dev-d7w5-1` | `50f8835` | Built the heading tree, section spans and heading identifiers in `cli/core/markdown` |
 | `f6tl.3` | closed | `dev-d7w5-1` | `1cf26e0` | Populated every member's headings during the corpus walk, from the body offset |
 | `f6tl.4` | closed | `dev-d7w5-1` | `ef94bd1` | Added the `headings` query command with `--json` and `--emit` |
+| `d7w5.11` | closed | `dev-d7w5-3` | `b9b9510` | Ported `encoding/json`'s `typeFields` into `renderYAML`, so both renderings resolve promoted fields and name conflicts identically |
+| `d7w5.9` | closed | `dev-d7w5-2` | `85e3d20` | `prefixed()` stopped re-sniffing the raw line, so a heading in a container block gets a non-overlapping `Position` and a real `Section` |
+| `d7w5.8` | closed | `dev-d7w5-2` | `f0bfadb` | `markdown.Identifier` stopped parsing heading text as a document, so an ordinal or list marker survives into the identifier |
+| `d7w5.7` | closed | `dev-d7w5-2` | `cbfb438` | Exported `frontmatter.Locate` and gave the corpus walk one block-location rule, so an unparsable frontmatter block is no longer indexed as a heading |
 
-- 4 completed, 0 blocked, 0 skipped, **0 tier escalations**.
-- `manifest.consecutive_dispatch_failures` = 0; the circuit breaker never armed.
-- Pre-merge acceptance check: **4/4 exit 0**. `swarm dispatch accept`: merged
-  true, ancestor true, worktree removed, `beads_checked` 4,
+One further commit, `62e9e42`, is the coordinator's single end-of-run coverage
+regeneration and belongs to no bead.
+
+- **8 completed, 0 blocked, 0 skipped, 0 tier escalations.**
+- `manifest.consecutive_dispatch_failures` = 0 throughout; the circuit breaker
+  never armed.
+- **Pass 1 acceptance:** pre-merge checks 4/4 exit 0; `swarm dispatch accept`
+  reported merged true, ancestor true, worktree removed, `beads_checked` 4,
   `acceptance_failures` `[]`.
-- Diff `0f8d8b7..1bb35e7`: **74 files, +3288/−77** (measured; the wider range
-  `70dddef..HEAD` including the `.gitignore` commit is 75 files, +3291/−77).
+- **Pass 2 acceptance:** pre-merge checks 4/4 exit 0; both accepts returned
+  `acceptance_failures: []`, with `beads_checked` 3 (`dev-d7w5-2`) and 1
+  (`dev-d7w5-3`). **The second accept failed on its first call** and needed a
+  manual rebase inside the worktree first — the run's only tooling failure, and
+  finding `d7w5.2.1#12`.
+- `.7`, `.8` and `.9` each exist at two shas; they were rebased during
+  acceptance and only the shas above are reachable from head.
+- Measured on the finished tree: `git worktree list` returns one entry, the
+  repository itself — **no dispatch worktree stands**. `git status --porcelain`
+  is empty.
+- Diff `70dddef..62e9e42`: **91 files, +5380/−81** (measured). The second half
+  alone, `1bb35e7..62e9e42`, is 23 files, +2172/−87. (Pass 1's own figure, for
+  the record it was taken in: `0f8d8b7..1bb35e7`, 74 files, +3288/−77.)
 
 ## What the run decided
 
-Seventeen of the 28 findings are the four work beads’ own — and **eleven of them
-are `decision`**: a design question the work order or the blueprint left open
-and the implementing agent had to settle. That is the run's dominant signal.
-The full text of each is below; what they decided, in one line each:
+Seventeen of the 45 findings are the four *work* beads' own — and **eleven of
+them are `decision`**: a design question the work order or the blueprint left
+open and the implementing agent had to settle. That was pass 1's dominant
+signal, and `decision` remains the run's largest kind at **17 of 45**. The full
+text of each is below; what pass 1's eleven decided, in one line each:
 
 | finding | what was decided, that a document should have pinned |
 |---|---|
@@ -111,12 +133,49 @@ start at the body offset) and `f6tl.2#3` (a heading inside a blockquote or list
 item gets a document-coordinate section span carrying quote markers) name the
 two areas review returned `d7w5.7`, `d7w5.9` and `d7w5.12` against.
 
-There were **no `sequencing` findings**, consistent with a strict-chain
-partition run behind one agent.
+There were **no `sequencing` findings** in pass 1, consistent with a
+strict-chain partition run behind one agent.
+
+### What pass 2 decided
+
+The four admitted review-finding beads produced **six more `decision` findings**,
+plus one `scope`, one `gap`, one `stale` and six `proof`.
+
+**Three of the six decisions are one decision taken three times.** `d7w5.7#3`,
+`d7w5.8#4` and `d7w5.9#3` each record that `README.md`'s coverage figures are
+**left stale by instruction**: the plan forbade per-bead regeneration precisely
+so the two concurrent batches could not conflict on that file, and the
+coordinator regenerated once at the end. That is the plan working, not friction —
+and it is the only place in this run where a deliberate instruction had to be
+repeated in three beads to hold.
+
+**The other three are a single shape, and it is the second half's dominant
+signal: in three of the four beads, what the bead REPORTED was right and what it
+PRESCRIBED was wrong or unreachable.**
+
+| finding | what the bead prescribed | what shipped, and why |
+|---|---|---|
+| `d7w5.11#2` | flatten an embedded struct on `f.Anonymous && !tagged && Kind()==Struct` | `encoding/json` flattens on an empty resolved tag **name**, not on the absence of a tag. The Design's `!tagged` would have rendered an embedded struct tagged `json:",omitempty"` under its type name — reintroducing the same class of divergence the bead exists to close, one case narrower |
+| `d7w5.7#2` | "`Parse` and the exported locator share one implementation — the delimiter constants are read in exactly one function", with `Locate(src) (span.Region, bool)` | the two are unreachable together: that signature cannot distinguish "no block" from "a block opened and never closed", which `Parse` must. The AC's **substance** — one block-location rule, in `Locate` — holds and was verified; its literal wording was not met |
+| `d7w5.8#4` | `Identifier("- Bullet")` is `-bullet`; the identifier of ``3. `## Design` present`` is `3-design-present` | `--bullet` and `3--design-present`. The AC was amended to the measured values and the documented character filter left alone, because changing the filter would silently move the anchor of every corpus heading carrying punctuation beside a space |
+
+The `stale` finding `d7w5.8#2` names the mechanism behind the third row exactly:
+the bead's **measured** table (render output) was correct byte for byte, and the
+sentence **deriving** identifiers from it was an unmeasured inference, two of
+whose four values were wrong. `d7w5.11#3` is the same defect from the other
+side — the bead's three prescribed code fixes would have left the guarantee
+still false, because two further divergences existed that its own reproduction
+never reached, and the agent ported `typeFields` in full instead.
+
+Still **no `sequencing` findings**, in a pass that did have a partition and did
+run two agents at once.
 
 ## Scope
 
-The run finished its **admitted** set. It did so over a scope narrowed twice.
+The run finished its **admitted** set — twice, because the set changed under it.
+Scope was **narrowed twice at the start and widened once after the first
+drain**, and the table below is the narrowing; the widening is `AMENDMENT 3`,
+further down.
 
 | bead | disposition | reason |
 |---|---|---|
@@ -132,29 +191,67 @@ Closing it would report the feature complete while its stage-2 deltas are
 unlanded. `f6tl.7` carries the bounce record and two ways a human can clear it
 (admit stage 2, or split a stage-1-only DoD verification out of it).
 
-**Review filed 9 findings, and this run admitted none of them at the time** —
-`admit_review_findings=false`, authorized at the gate. `d7w5.7` … `d7w5.15`
-(4 P1, 4 P2, 1 P3; 6 in scope, 3 out) were all deferred. `review_passes` = 1 of
-3: **the budget is unspent, not exhausted.** The loop did not re-enter because
-its condition is findings *admitted*, and zero were.
+**Review pass 1 filed 9 findings and the run admitted none of them at the
+time** — `admit_review_findings=false`, authorized at the gate. `d7w5.7` …
+`d7w5.15` (4 P1, 4 P2, 1 P3; 6 in scope, 3 out) were all deferred. The loop did
+not re-enter, because its condition is findings *admitted*, and zero were.
 
 **`AMENDMENT 3` reversed that for four of them.** At the retro decision the
 human overrode `admit_review_findings=false` after the fact and admitted the
-four P1 findings — `d7w5.7`, `.8`, `.9`, `.11` — which are un-deferred and open
-(verified from the tracker at filing time). The remaining five (`.10`, `.12`,
-`.13`, `.14`, `.15`) stay deferred and unadmitted. This is a **scope widening
-after the run's admitted set was drained**, and it is the reason the results
-above are provisional: the run re-enters at groom & plan and will close a larger
-set than the one this record reports.
+four P1 findings — `d7w5.7`, `.8`, `.9`, `.11`. `manifest.admitted` went from
+four ids to eight. The run re-entered at **groom & plan**, not at dispatch,
+because review files and does not groom. This was a **scope widening after the
+run's admitted set had already drained**, and it is why this record exists in
+two passes. The other five findings (`.10`, `.12`, `.13`, `.14`, `.15`) stayed
+deferred and unadmitted, and are still deferred at the run's end.
+
+**Groom & plan pass 2 groomed all four to Ready and none bounced.** Each was
+assigned a tier, and the pass produced **two collision edges** —
+`.beads/plans/d7w5.pass2.edges.jsonl`, `.8`←`.9` and `.7`←`.8` — the first real
+partition this run had. The ready-set assertion held both ways: all four ready
+before the edges were loaded, exactly `.9` and `.11` after.
+
+**Review pass 2** ran over `ec6b6fd..62e9e42` with the same declared reviewer
+(`swarm.toml` `[review] skill = "code-review"`). It confirmed that all four
+fixes fix the defect pass 1 found, each with a test that fails against the
+pre-fix code for the stated reason, and filed **four further findings** —
+`agent-plugins-yztv` (P2), `912t` (P2), `s5ok` (P3), `rk27` (P3). **None was
+admitted**, and all four were filed with `parent=null`, outside the run epic —
+which is exactly the correction to the defect pass 1 committed and that
+candidate S1 was filed against.
+
+**`AMENDMENT 4` closed the loop.** `standing_auth.admit_review_findings`
+returned to `false`: AMENDMENT 3's override was a one-time admission of pass 1's
+four P1s, not a standing change. The loop condition — findings *admitted*, and
+passes under budget — failed on its first clause, so the dispatch loop did not
+re-enter. **`review_passes` = 2 of 3: the budget is unspent, not exhausted**,
+and the run ends with a review pass in hand rather than out of them.
+
+**Nine beads were filed outside the run and not one entered its dispatch set.**
+`zka9` (P3) and `1j2i` (P2) by the dispatches; `yztv` (P2), `912t` (P2), `s5ok`
+(P3) and `rk27` (P3) by review pass 2; `3oiv` (P1), `yqjh` (P1) and `nduj` (P2)
+by this retro's first pass. Measured at the run's end from `bd export`: all nine
+carry `parent=null` and all nine are open.
 
 ## Every finding, verbatim
 
-28 findings across 5 beads. Counts verified against each bead's
-`comment_count` before aggregating: `f6tl.1` 5, `f6tl.2` 4, `f6tl.3` 3,
-`f6tl.4` 5 (17, every comment a finding); `d7w5.2.1` 12 comments of which 11
-are findings and one is the gate record.
+**45 findings across 9 beads** — 28 harvested in pass 1 (below, unchanged) and
+17 in pass 2, from the four admitted review-finding beads plus one further
+`tooling` finding on the gate bead.
 
-### `decision` — 11
+Counts verified against each bead's `comment_count` before aggregating. Pass 1:
+`f6tl.1` 5, `f6tl.2` 4, `f6tl.3` 3, `f6tl.4` 5 — 17, every comment then a
+finding — and `d7w5.2.1` 11 findings plus one gate record. Pass 2: `d7w5.7` 3,
+`d7w5.8` 4, `d7w5.9` 4, `d7w5.11` 5, and `d7w5.2.1#12`. The `comment_count`s
+read higher today — `f6tl.1` 6, `f6tl.3` 4, `f6tl.4` 7, `d7w5.2.1` 24 — because
+pass 1's fifteen `retro:filed:` audit marks are comments too. They are marks,
+not findings, and are excluded here.
+
+Harvested with `bd export`, never `bd show --json`, for the reason
+`d7w5.2.1#9` records: the JSON view returns `.comments` as `null` while the same
+object reports a non-zero `comment_count`.
+
+### `decision` — 17
 
 **`f6tl.4#1`**
 
@@ -212,7 +309,75 @@ are findings and one is the gate record.
 > evidence: The bead's AC lists exactly 'text, level, heading-line span and section span', and the blueprint's HEAD delta makes the identifier the component's — 'The derivation SHALL be a pure function of the text, deriving no positional suffix for a repeated heading' — so it is recomputable and not state. But CMD's AC-SPECSTR-003.1 returns the identifier on every match, so a later agent may reasonably expect to read it off the index; specs/modules/document-core/document-core-module.md now says 'A heading carries no identifier, because the identifier is a pure function of the text and is derived by the Markdown Structure component on demand' so the omission reads as a decision rather than a gap. Flagging because the cost lands on CMD, not here: the query derives an identifier per heading per run instead of reading one.
 
 
-### `scope` — 3
+**From pass 2 — the four admitted review-finding beads, and one further finding on the gate bead:**
+
+**`d7w5.7#2`**
+
+> retro:decision An acceptance criterion is met in substance but not in its literal wording, because the Design's own prescribed signature makes the literal reading unreachable. Reviewers should confirm this at the pull request.
+> evidence: AC — "frontmatter.Parse and the exported locator share one implementation — the delimiter constants are read in exactly one function." Design — "export a locator ... e.g. func Locate(src []byte) (span.Region, bool)".
+> With that signature Locate cannot distinguish "src carries no block" from "a block is opened and never closed", yet Parse must, because those are two of its three documented outcomes (a nil,nil versus a located error). Parse therefore keeps the bytes.HasPrefix(src, []byte(openingDelimiter)) test and the len(openingDelimiter) it measures the error span with — so openingDelimiter is read in two functions however the code is arranged, short of changing the signature the Design pinned.
+> Measured on the finished tree: grep -rn "openingDelimiter|closingDelimiter" --include=*.go . returns, for this package, frontmatter.go:49 and :50 (the declarations), :137 inside Locate, and :163 and :166 inside Parse's unclosed-block error. The DELIMITER PAIR — the block-location rule, which is what the bug was — is read in exactly one function, Locate; Parse's two remaining reads are the opening delimiter alone, for reporting, and cannot close a block anywhere.
+> The AC's substance holds and is verified: grep -rn "frontmatterDelimiter" . --include=*.go returns nothing (exit 1), so corpus.go declares no delimiter constant, and span.Find over the frontmatter delimiters appears once in the tree.
+> REJECTED — widening Locate to return the opened-but-unclosed case (a third return value, or an error) so Parse reads no constant. It would satisfy the wording, and it changes an exported signature the Design fixed, to move a string used for an error message. Rejected as the more invasive answer to a criterion whose stated purpose — the Design says "so there is one implementation rather than two" — is already met.
+
+**`d7w5.7#3`**
+
+> retro:decision Coverage figures in README.md are LEFT STALE by this bead, by instruction; the run's coordinator must regenerate them before the run is finished.
+> evidence: the bead's Design says "DO NOT run scripts/coverage.sh or commit README.md coverage figures. The run's coordinator regenerates coverage once at the end", and the dispatch prompt repeats it, naming concurrent dispatch dev-d7w5-3 under cli/**. This bead changes cli/core/corpus/corpus.go and cli/core/frontmatter/frontmatter.go and adds tests in both packages, so the committed figures no longer match a fresh measurement; AGENTS.md ("Checks") states cli.yml's coverage job runs scripts/coverage.sh --check and fails when they do not match. This is the third bead of dispatch dev-d7w5-2 to leave them stale — d7w5.9, d7w5.8 and d7w5.7 all touch cli/**. Verified no coverage run happened here: git status --porcelain lists only cli/core/corpus/corpus.go, cli/core/corpus/corpus_internal_test.go, cli/core/frontmatter/frontmatter.go, cli/core/frontmatter/frontmatter_test.go and specs/modules/document-core/document-core-module.md.
+
+**`d7w5.8#3`**
+
+> retro:decision AMENDED an acceptance criterion rather than the code: the AC's two literal expected strings were changed to the measured values, and the character filter was left exactly as documented. Reviewers should confirm this at the pull request.
+> evidence: AC as written — "Identifier(\"- Bullet\") is -bullet, and the identifier of the heading text 3. `## Design` present is 3-design-present". Shipped instead: "--bullet" and "3--design-present" (see the retro:stale comment for the measurement). Everything the AC asserts SUBSTANTIVELY is met and tested: numbered siblings differ (1-overview vs 2-overview), the ordinal survives, no identifier derived from a digit-initial heading begins with a hyphen, and inline rendering is unchanged.
+> REJECTED — make the AC's strings true by collapsing runs of hyphens and trimming leading ones. Cost, and why it is not this bead's call: (1) it contradicts the derivation documented in the Markdown Structure component block of specs/modules/document-core/document-core-module.md, which this bead is only meant to extend, not rewrite; (2) it breaks a committed assertion, headings_test.go's "corpus-in-module-document-core-modified--idx"; (3) the identifier is the whole key of the <document>#<heading> addressing grammar, so it would silently change the anchor of every corpus heading carrying punctuation beside a space — measured on one document alone, spec headings specs/standards/work-order-definition-of-ready.md --json shows "7. Tier assigned (+ reason)" -> 7-tier-assigned--reason, which predates this bead; (4) the bead's own Design says only rendered() changes and the existing character filter stays.
+> FILED rather than decided silently: agent-plugins-1j2i (P2, discovered-from d7w5.8) puts the collapse-and-trim question, with the two answers and their costs. It records as UNVERIFIED the premise the bead's problem statement leans on — that GitHub renders these without the doubled hyphen — because no probe of a rendered GitHub anchor was run in this container, and names what would settle it.
+
+**`d7w5.8#4`**
+
+> retro:decision Coverage figures in README.md are LEFT STALE by this bead, by instruction; the run's coordinator must regenerate them before the run is finished.
+> evidence: the bead's Design says "DO NOT run scripts/coverage.sh or commit README.md coverage figures. The run's coordinator regenerates coverage once at the end", and the dispatch prompt repeats it, naming concurrent dispatch dev-d7w5-3 under cli/**. This bead changes cli/core/markdown/headings.go and adds tests, so the committed figures no longer match a fresh measurement; AGENTS.md ("Checks") states cli.yml's coverage job runs scripts/coverage.sh --check and fails when they do not match. Rejected alternative: regenerate per bead — it would guarantee a README.md merge conflict with the sibling batch, which is why the instruction exists. Verified no coverage run happened here: git status --porcelain lists only cli/core/markdown/headings.go, cli/core/markdown/headings_test.go and specs/modules/document-core/document-core-module.md.
+
+**`d7w5.9#3`**
+
+> retro:decision Coverage figures in README.md are LEFT STALE by this bead, by instruction, so the run's coordinator must regenerate them before the run is finished.
+> evidence: the bead's Design says "DO NOT run scripts/coverage.sh or commit README.md coverage figures. The run's coordinator regenerates coverage once at the end", and the dispatch prompt repeats it, naming concurrent dispatch dev-d7w5-3 under cli/**. This bead adds ~120 lines of test to cli/core/markdown/headings_test.go and changes cli/core/markdown/headings.go, so the committed figures no longer match a fresh measurement. AGENTS.md ("Checks") states that cli.yml's coverage job runs scripts/coverage.sh --check and FAILS when the committed figures do not match. Rejected alternative: regenerate per bead — it would guarantee a README.md merge conflict with the sibling batch, which is the reason the instruction exists. Verified in this worktree that no coverage run happened and README.md is untouched: git status --porcelain -> only cli/core/markdown/headings.go, cli/core/markdown/headings_test.go, specs/modules/document-core/document-core-module.md.
+
+**`d7w5.11#2`**
+
+> retro:decision The Design's proposed flatten guard (`f.Anonymous && !tagged && Kind()==Struct`) is not what encoding/json does; implemented the tag-NAME test instead.
+>
+> evidence: encoding/json flattens on an empty resolved tag NAME, not on the
+> ABSENCE of a tag. Its typeFields reads
+>
+>     name, opts := parseTag(tag)
+>     if !isValidTag(name) { name = "" }
+>     ...
+>     if name != "" || !sf.Anonymous || ft.Kind() != reflect.Struct { ... render as one key ... }
+>     // else: explore the embedded struct
+>
+> So an embedded struct tagged `json:",omitempty"` — tagged, but with an empty
+> name — still flattens, and one whose tag name is rejected by isValidTag
+> flattens too. The Design's `!tagged` would have rendered the first as a key
+> named after its type.
+>
+> Measured against the shipped code, case "embedded struct tagged with options
+> only" in cli/cmd/yaml_promotion_test.go:
+>
+>     struct { PromotionTagged `json:",omitempty"`; B string `json:"b"` }
+>     JSON: ["t" "b"]   YAML: ["t" "b"]
+>
+> REJECTED the Design's literal `!tagged` wording: it is a near-miss that
+> reintroduces the same class of divergence the bead exists to close, one case
+> narrower. The bead's INTENT — "make structFields mirror encoding/json for
+> promoted fields" — is served by mirroring the actual condition. Cost of the
+> choice: `jsonName` was replaced by `parseJSONTag` + `validTagName` (a port of
+> encoding/json's isValidTag, including its punctuation set) rather than gaining
+> a fourth return value; the acceptance criterion that speaks to this ("an
+> embedded field that DOES carry a json tag still renders under that tag's name")
+> is satisfied either way, since it is about a tag that NAMES the field.
+
+
+### `scope` — 4
 
 **`f6tl.4#4`**
 
@@ -230,7 +395,49 @@ are findings and one is the gate record.
 > evidence: The bead's Design is 'Declare the shapes in schemas/index.strata and regenerate', Anchors name only schemas/index.strata, cli/core/schema/spec-model.schema.json and cli/core/specmodel. Measured after regenerating, before any further edit — 'cd cli && go test ./...' rc=1 with three distinct failures: (a) specindex_test.go:166 and :203 'unmarshal: IndexEntry: required field "headings" is missing or null' from entries built as Go literals and round-tripped; (b) cache_test.go:387 'Open rebuilt an index whose inputs are unchanged', because the planted entry marshalled headings as null and the warm read then rejected its own file; (c) portability_test.go:71 index-default, the emitted index carrying '"headings": null, "record_blocks": null'. Required-list was the right call — it is exactly how 'references' and 'features', the first two exercises of the additive-at-1.0 rule, are declared on SpecIndex, and the blueprint states 'No backward-compatibility window applies' — but the consequence is that a MODEL-only bead cannot land green without touching the emitter. The fix mirrors the rule cli/core/specindex/specindex.go:35 already states for the index's own collections ('Every collection is non-nil so that an index containing no members marshals its collections as [] rather than as null'), applied centrally in builder.addEntry so all four IndexEntry construction sites in corpus.go are covered.
 
 
-### `gap` — 2
+**From pass 2 — the four admitted review-finding beads, and one further finding on the gate bead:**
+
+**`d7w5.11#3`**
+
+> retro:scope The bead's three named code fixes would have left the guarantee still false; two further divergences existed that the bead's reproduction did not reach.
+>
+> evidence: the Design named three changes (tag-presence in jsonName, the flatten
+> guard, the PkgPath skip). Implementing only those leaves structFields as a
+> DEPTH-FIRST walk with no conflict handling, while encoding/json resolves fields
+> BREADTH-first and then applies dominance rules. Two shapes measured failing on
+> this run's tree, neither mentioned in the bead:
+>
+> (a) A shallower field does not hide a promoted one of the same name.
+>
+>     type PromotionShadowed struct { Name string `json:"name"`; Deep string `json:"deep"` }
+>     struct { PromotionShadowed; Name string `json:"name"` }
+>
+>     JSON: ["deep" "name"]                        (outer "name" wins; inner hidden)
+>     YAML before the fix: ["PromotionShadowed" "name"]
+>     YAML with only the three named fixes: would be ["name" "deep" "name"] —
+>     the key "name" TWICE, carrying two different values.
+>
+> (b) Two embedded structs at one depth offering the same name do not annihilate.
+>
+>     struct { PromotionLeft; PromotionRight }   // both declare `Clash string`
+>     JSON: ["left" "right"]                     (Clash dropped from both)
+>     YAML before the fix: ["PromotionLeft" "PromotionRight"]
+>
+> DECIDED to port encoding/json's typeFields in full — breadth-first walk,
+> `count`/`nextCount` duplicate-path bookkeeping, the name/depth/tagged sort,
+> dominantField, and the return to index order — rather than patch the three
+> named spots. The sentence this bead repairs in
+> specs/containers/spec-cli/spec-cli-container.md promises "the same keys in the
+> same order"; a partial fix would have left me writing a claim I had just
+> measured false, which is the exact defect the bead was filed for.
+>
+> REJECTED the narrower reading of the bead's scope. Cost: cli/cmd/yaml.go grew
+> by roughly 180 lines and now carries a port of stdlib logic that must be
+> re-checked if the Go version's own rules change. The bead's tier_reason names
+> "conflicts" among the intricacies, so this is within what it was sized for.
+
+
+### `gap` — 3
 
 **`f6tl.2#3`**
 
@@ -243,7 +450,74 @@ are findings and one is the gate record.
 > evidence: A frontmatter block's closing '---' underlines the YAML above it, which is a setext heading in CommonMark. Measured by running the heading extraction over a real corpus file, specs/adrs/adr-008-element-record-blocks.md: 7 headings found, of which the first is level=2 with text 'title: "ADR-008: Machine-Readable Element Record Blocks with a Two-Schema Model"\ndescription: Un-promoted elements carry a fenced record block...\nslug: adr-008\ntype: adr\nstatus: active\nupdated_at: 2026-08-05T00:00:00Z' — the whole block. The blueprint does carry the fact, but only as a relied-upon element ('Frontmatter — the body offset a heading search starts from'), which reads as a convenience rather than as the thing that makes the output wrong. It also cuts against the nearest precedent: cli/core/corpus/features.go documents that 'The whole of src is offered to the fenced-block lookup, frontmatter included, so that every span a block yields is already in the document's own coordinates', which is safe for fences and not for headings. Pinned by TestASearchFromTheBodyOffsetLeavesTheFrontmatterBehind, whose negative control asserts the whole-file search still reports the frontmatter, so the two searches cannot be silently unified later.
 
 
-### `proof` — 1
+**From pass 2 — the four admitted review-finding beads, and one further finding on the gate bead:**
+
+**`d7w5.11#5`**
+
+> retro:gap The sweep for copies of the retracted "cannot drift" claim reached every surface; one copy remains true after the fix and one further divergence was filed as a bead.
+>
+> evidence: grepped the distinctive phrasing BEFORE editing the source.
+>
+>     grep -rn "cannot drift" . | grep -v '^\./\.git/'
+>       specs/containers/spec-cli/spec-cli-container.md:357   <- the retracted claim, rewritten
+>       specs/containers/spec-cli/spec-cli-container.md:369   <- about cobra help text, unrelated
+>       specs/adrs/adr-015-go-for-the-spec-cli.md:224         <- about clap/Rust --help, unrelated
+>       specs/features/gherkin-adoption/gherkin-adoption-blueprint.md:309  <- unrelated
+>       specs/standards/document-relationship-standards.md:48 <- unrelated
+>       scripts/sync-shared-references.sh:46                  <- unrelated
+>       cli/cmd/root.go:19                                    <- about cobra help text, unrelated
+>       .claude/skills/strata/SKILL.md:165                    <- unrelated
+>
+>     grep -rn "same struct \`encoding/json\`|same field order|walks the same struct" .
+>       specs/containers/spec-cli/spec-cli-container.md:355-356  <- rewritten
+>       cli/cmd/yaml.go:15                                       <- file header, rewritten
+>       docs/retros/2026-09-04-d7w5-spec-corpus-structure-extraction.md:87
+>
+> The retro-document copy reads: "The YAML renderer is hand-written over the same
+> struct `encoding/json` marshals, not `goccy/go-yaml` configured — parity is by
+> construction". That is a run record of a DECISION, and it is TRUE as of this
+> bead: parity is now by construction. No retraction needed, and a run record is
+> not a surface to edit after the fact.
+>
+>     ls docs/plans      -> absent
+>     ls .sf/outbox      -> README.md and swarm/ only; no issue carrying the claim
+>
+> No durable trigger prompt or dispatch prompt in this session carries the claim.
+>
+> FILED, not fixed here: agent-plugins-zka9 (P3, discovered-from d7w5.11) —
+> renderYAML ignores encoding/json's `,string` tag option, so the two renderings
+> still differ in value TYPE where a field carries it. Measured on the fixed tree:
+>
+>     struct { N int `json:"n,string"` }{5}
+>     JSON: {"n":"5"}    YAML: "n: 5\n"
+>
+> Keys agree, so this bead's acceptance criteria and the rewritten doc sentence
+> (which speaks to keys and order, plus the deliberate collection difference)
+> are honest as written. Adjacent, not blocking: no type on this command surface
+> uses `,string`.
+
+
+### `stale` — 1
+
+New in pass 2. A claim in a bead that was true when written, or inferred from
+something true, and is not true of the tree the bead ran against.
+
+**`d7w5.8#2`**
+
+> retro:stale The bead's Design states post-filter identifier values that the chosen fix does not produce. Its MEASURED table (render output) is correct; the sentence deriving identifiers from it is an unmeasured inference and two of its four values are wrong.
+> evidence: the Design says "After Identifier's character filter these give 1-overview, 2-overview, -bullet and 3-design-present", and the Acceptance repeats "Identifier(\"- Bullet\") is -bullet, and the identifier of the heading text 3. `## Design` present is 3-design-present".
+> Measured with the fix in place, via a temporary in-package probe calling rendered() and Identifier() (removed before commit):
+>   "1. Overview"            -> rendered "1. Overview"            -> identifier "1-overview"     (Design correct)
+>   "- Bullet"               -> rendered "- Bullet"               -> identifier "--bullet"       (Design said "-bullet")
+>   "3. `## Design` present" -> rendered "3. ## Design present"   -> identifier "3--design-present" (Design said "3-design-present")
+>   "## Not a heading here"  -> rendered "## Not a heading here"  -> identifier "-not-a-heading-here"
+>   "> quoted"               -> rendered "> quoted"               -> identifier "-quoted"
+> Every RENDER above matches the Design's measured table byte for byte, so the parser change is exactly what was specified; only the arithmetic applied to it afterwards is wrong.
+> Cause: the documented derivation removes a disallowed character and then maps each REMAINING space to a hyphen, and does not collapse or trim. specs/modules/document-core/document-core-module.md: "every character that is not a letter, digit, hyphen, underscore or space removed and each remaining space replaced by a hyphen." So "- Bullet" contributes the literal "-" AND the space's "-". The Design's derivation silently dropped one of the two.
+> The behaviour is not new and is already asserted in the committed tests: cli/core/markdown/headings_test.go asserts Identifier("Corpus in [[module-document-core]] (modified) — IDX") == "corpus-in-module-document-core-modified--idx" — a double hyphen from the dropped em dash beside a space.
+
+
+### `proof` — 7
 
 **`f6tl.1#5`**
 
@@ -251,7 +525,136 @@ are findings and one is the gate record.
 > evidence: git diff on cli/testdata/cases/index-default/expected/manifest.json shows input_hash sha256:3ae7797c... -> sha256:f9bb75b7... alongside the expected per-entry '"headings": []'. cli/core/corpus/hash.go's sum() folds in 'field(sum, "profile-schema", opts.Profile.Schema())' and its doc block states 'the active profile's schema and per-type table decide which candidates are members ... A change to any of them changes the index while every file on disk stands still, so all of them are folded in.' The profile's schema IS the regenerated cli/core/schema/spec-model.schema.json, so a model change necessarily moves the hash. Worth knowing for review: every future MODEL delta will rewrite input_hash in all five index snapshots, and that is correct, not snapshot churn to suppress.
 
 
-### `tooling` — 11
+**From pass 2 — the four admitted review-finding beads, and one further finding on the gate bead:**
+
+**`d7w5.7#1`**
+
+> retro:proof The defect was reproduced by test in BOTH packages before the fix, matching the bead's reported figures byte for byte, and the goldens were confirmed unchanged afterwards.
+> evidence: tests added first, then run against the UNFIXED code.
+> (1) cd cli && go test ./core/corpus/ -run 'UnparsableFrontmatterBlockIsNotIndexed|FallbackStillLocates' -> exit 1:
+> --- FAIL: TestAnUnparsableFrontmatterBlockIsNotIndexedAsAHeading
+>     corpus_internal_test.go:93: found 2 headings, want 1: [{Text:b
+>         status: [unclosed Level:2 Position:{Offset:15 Length:24 StartLine:2 StartColumn:12 EndLine:5 EndColumn:1} Section:{Offset:39 Length:1 ...} RecordBlocks:[]} {Text:Real heading Level:1 Position:{Offset:40 Length:15 StartLine:6 ...} ...}]
+> That is the bead's reported probe exactly: level=2, text "b\nstatus: [unclosed", Offset 15, Length 24, StartLine 2.
+> The control in the same run, TestTheFallbackStillLocatesTheBodyOfAnOrdinaryDocument, PASSED before and after — unparsable frontmatter with no "---" in a value, a document with no frontmatter, and a "---" appearing later in the body. So the failure is confined to the delimiter-inside-a-value case and the fallback itself was never broken.
+> (2) cd cli && go test ./core/frontmatter/ -run Locate -> exit 1, build failed: "undefined: frontmatter.Locate" at frontmatter_test.go:513, :525, :530, :535, :552 — the locator did not exist.
+> After the fix: cd cli && go test ./core/corpus/ ./core/frontmatter/ -> both ok, exit 0. Full gate: bb-checks.py -> exit 0, all twelve, no line absent from the run's checks_baseline.
+> (3) The AC's fixture invariant, measured on the finished tree: git diff --stat cli/testdata -> no output, no files. The bead predicted this (adr-002-broken.md carries no "---" inside a value) and it held.
+
+**`d7w5.8#1`**
+
+> retro:proof The defect was reproduced by test BEFORE the fix and the failure matched the bead's reported figures exactly; the fix was then confirmed on the real corpus document the AC names.
+> evidence: tests added to cli/core/markdown/headings_test.go first, run against the UNFIXED rendered(). Command: cd cli && go test ./core/markdown/ -run 'BlockMarker|InlineRendering'
+> Output (exit 1):
+> --- FAIL: TestALeadingBlockMarkerIsPartOfTheHeadingsName
+>     Identifier("1. Overview") = "overview", want "1-overview"
+>     Identifier("2. Overview") = "overview", want "2-overview"
+>     Identifier("- Bullet") = "bullet", want "-bullet"
+>     Identifier("3. `## Design` present") = "-design-present", want "3-design-present"
+>     Identifier("1. Self-contained Problem statement (the fresh-agent test)") = "self-contained-problem-statement-the-fresh-agent-test", want "1-..."
+>     numbered siblings collide: both "overview"
+>     Identifier("3. `## Design` present") = "-design-present", which begins with a hyphen
+>     Identifier("4. `## Acceptance` criteria (`kind: bug`)") = "-acceptance-criteria-kind-bug", which begins with a hyphen
+> TestInlineRenderingIsUnchangedByTheBlockMarkerRule passed BOTH before and after — the negative control that the change is confined to block syntax.
+> After the fix: cd cli && go test ./core/markdown/ -> ok, exit 0.
+> Corpus confirmation, the AC's own command, go build -C cli -o spec ./spec && spec headings specs/standards/work-order-definition-of-ready.md --json:
+>   1. Self-contained Problem statement (the fresh-agent test) -> 1-self-contained-problem-statement-the-fresh-agent-test
+>   2. Right size (single session)                             -> 2-right-size-single-session
+>   3. `## Design` present (non-trivial, non-epic orders)      -> 3--design-present-non-trivial-non-epic-orders
+>   4. `## Acceptance` criteria (`kind: bug` & `kind: feature`)-> 4--acceptance-criteria-kind-bug--kind-feature
+>   5. Kind-appropriate completeness                           -> 5-kind-appropriate-completeness
+>   6. Dependencies wired                                      -> 6-dependencies-wired
+>   7. Tier assigned (+ reason)                                -> 7-tier-assigned--reason
+>   8. C4 blast radius declared (IF the repo uses C4)          -> 8-c4-blast-radius-declared-if-the-repo-uses-c4
+>   9. No open decisions                                       -> 9-no-open-decisions
+> All nine carry their ordinal and none begins with a hyphen.
+
+**`d7w5.9#1`**
+
+> retro:proof The defect was reproduced by test BEFORE the fix, and the observed failure matches the bead's reported shape exactly.
+> evidence: tests added to cli/core/markdown/headings_test.go first, then run against the UNFIXED prefixed(). Command: cd cli && go test ./core/markdown/ -run 'Container|ListItem|Overlap|Hash'
+> Output (exit 1):
+> --- FAIL: TestAPrefixedHeadingInsideAContainerBlockCoversOnlyItsOwnLine (0.00s)
+>     headings_test.go:325: A's Position slices to "> ## A\n> ## B\n", want "> ## A\n"
+>     headings_test.go:328: B's Position slices to "> ## B\n\n", want "> ## B\n"
+>     headings_test.go:333: A's Position ends at 14 and B's begins at 7; the two overlap
+> --- FAIL: TestAPrefixedHeadingInsideAListItemKeepsItsContentInTheSection (0.00s)
+>     headings_test.go:352: Position slices to "- # Item\n  body line\n", want "- # Item\n"
+>     headings_test.go:355: Section slices to "", want "  body line\n"
+> --- FAIL: TestNoTwoHeadingPositionsOverlapForAnyForm (0.00s)
+>     headings_test.go:405: "> ## A\n> ## B\n\ntail\n": heading 0's Position ends at 14 and heading 1's begins at 7; the two overlap
+> FAIL
+> Negative controls in the SAME run passed before the fix and after it: TestAnUnderlinedHeadingInsideAContainerBlockKeepsItsUnderline ("> A\n> ---\n> body\n") and TestAHashInTheHeadingsOwnTextDoesNotChangeItsForm ("## # Hashy", "a # b\n===\n") — the two cases the old forward scan already got right, so the change is narrowed to the container case. After the fix: cd cli && go test ./core/markdown/ -> ok, exit 0.
+
+**`d7w5.9#2`**
+
+> retro:proof The bead's REJECTED alternative — ask the AST node for the heading's written form — was re-measured at the point of use, because the code comment I shipped restates it and an inherited claim reads exactly like a measured one.
+> evidence: goldmark v1.8.5 in this container, /root/go/pkg/mod/github.com/yuin/goldmark@v1.8.5.
+> (1) sed -n '200,230p' ast/block.go ->
+>     // A Heading struct represents headings like SetextHeading and ATXHeading.
+>     type Heading struct {
+>         BaseBlock
+>         // Level returns a level of this heading.
+>         Level int
+>     }
+>     ... var KindHeading = NewNodeKind("Heading")  // one kind for both forms
+> (2) grep -rn "NewHeading(" parser/ ast/ -> parser/setext_headings.go:70, parser/atx_heading.go:95, parser/atx_heading.go:103 all call ast.NewHeading(level); no other constructor and no form argument.
+> (3) grep -n "SetAttribute|Attribute" parser/setext_headings.go parser/atx_heading.go -> the only SetAttribute calls are attrNameID and parseLastLineAttributes, i.e. author-written {#id} attributes gated on the opt-in WithHeadingAttribute option; neither parser sets anything that names the written form.
+> Conclusion: the public AST genuinely does not carry the distinction on the pinned version, so comparing the line-start and text-start offsets is not a workaround for a simpler API that exists. That is why the comment on prefixed() says so — without it the next reader "simplifies" it back to the forward scan that caused this bug.
+
+**`d7w5.9#4`**
+
+> retro:proof The acceptance criterion "every expected/ artifact under cli/testdata/cases/ is either unchanged or its diff is explained" is satisfied by UNCHANGED, and grooming's premise for that was re-measured rather than inherited.
+> evidence: (1) after the fix and a full check run, git status --porcelain in the worktree lists no path under cli/testdata/. (2) The premise — no fixture input carries a heading inside a container block — measured with grep -rlnE '^\s*([>]|[-*+]|[0-9]+\.)\s+#' cli/testdata/cases/ -> no output, exit 1. So no fixture exercises the changed branch, which is also why the new coverage had to be written as unit tests in cli/core/markdown/headings_test.go rather than as a case fixture.
+
+**`d7w5.11#1`**
+
+> retro:proof The defect was reproduced by a failing differential test BEFORE any code changed — 7 of 16 subtests failed, on the shapes the bead named plus three it did not.
+>
+> evidence: cli/cmd/yaml_promotion_test.go written first, run against the unmodified cli/cmd/yaml.go.
+> `cd cli && go test ./cmd/ -run 'TestRenderYAMLResolvesFieldsAsEncodingJSONDoes|TestNilCollections' -v` → exit 1:
+>
+>     --- FAIL: .../embedded_exported_struct
+>           YAML: ["PromotionExported" "b"]   JSON: ["a" "b"]
+>     --- FAIL: .../embedded_unexported_struct_type
+>           YAML: ["b"]                       JSON: ["u" "b"]
+>     --- FAIL: .../embedded_pointer_to_struct,_set
+>           YAML: ["PromotionExported" "b"]   JSON: ["a" "b"]
+>     --- FAIL: .../embedded_pointer_to_struct,_nil
+>           YAML: ["PromotionExported" "b"]   JSON: ["b"]
+>     --- FAIL: .../shallow_field_dominates_a_promoted_one
+>           YAML: ["PromotionShadowed" "name"] JSON: ["deep" "name"]
+>     --- FAIL: .../same-depth_conflict_annihilates_the_key
+>           YAML: ["PromotionLeft" "PromotionRight"] JSON: ["left" "right"]
+>     --- FAIL: .../tagged_field_wins_a_same-depth_conflict
+>           YAML: ["PromotionTaggedClash" "PromotionUntaggedClash"] JSON: ["Clash" "only_tagged" "only_untagged"]
+>     --- PASS: .../embedded_struct_with_a_json_tag
+>     --- PASS: .../embedded_struct_tagged_with_options_only
+>     --- PASS: .../embedded_struct_marked_json:"-"
+>     --- PASS: .../field_marked_json:"-"
+>     --- PASS: .../omitempty_on_an_empty_field
+>     --- PASS: .../omitempty_on_a_populated_field
+>     --- PASS: .../untagged_field_renders_under_its_Go_name
+>     --- PASS: .../unexported_non-embedded_field_is_invisible_to_both
+>     --- PASS: .../nil_slice_and_nil_map
+>     --- PASS: TestNilCollectionsRenderPerTheOutputStandards
+>
+> After the fix the same command exits 0 with all 16 subtests passing.
+>
+> NEGATIVE CONTROL on the test itself: the first draft named its fixture types
+> `promotionExported`, `promotionTagged` etc. in lower case. An embedded field
+> takes its TYPE's name as its field name, so a lower-cased type name makes the
+> embedded FIELD unexported and every case fell into structFields' `PkgPath !=
+> ""` skip — case 1 "embedded exported struct" was silently testing the
+> unexported-type path instead. Measured: with the lower-case names, JSON gave
+> ["a" "b"] and YAML gave ["b"], i.e. the field vanished rather than rendering
+> under the type name. The types were renamed to exported form, which is what
+> produced the ["PromotionExported" "b"] evidence above. A differential test
+> over embedded structs must use EXPORTED fixture type names or it tests a
+> different rule than its case name claims.
+
+
+### `tooling` — 13
 
 **`d7w5.2.1#1`** · target `swarm`
 
@@ -297,22 +700,68 @@ are findings and one is the gate record.
 
 > retro:tooling:swarm — the phase chain deadlocks whenever the target epic legitimately cannot close. Measured: `bd close agent-plugins-d7w5.4` -> 'cannot close agent-plugins-d7w5.4: blocked by open issues [agent-plugins-f6tl] (use --force to override)'. f6tl is open only because .5 .6 .7 are deferred, and closing it would falsely report the feature complete — the false-complete failure swarm-scope explicitly warns about. So review, retro and post-flight each need --force to close, on a run that did everything right. A run whose target is a partially-scoped feature epic is the normal case, not the exception, and `swarm phase close` has no path through it.
 
+**From pass 2 — the four admitted review-finding beads, and one further finding on the gate bead:**
+
+**`d7w5.11#4`**
+
+> retro:tooling `go vet`'s structtag analyzer makes one of the shapes under test impossible to write statically, so the test expresses that rule a different way.
+>
+> evidence: the same-depth annihilation case was first written with both embedded
+> structs tagging the field `json:"clash"`. `bb-checks.py` failed:
+>
+>     === vet
+>     # github.com/brettcallaghan/agent-plugins/cli/cmd
+>     cmd/yaml_promotion_test.go:254:5: struct field Clash repeats json tag "clash" also at yaml_promotion_test.go:116
+>     === vet FAILED (exit 1)
+>
+> vet forbids two promoted fields repeating one json tag — which is precisely the
+> shape whose runtime behaviour (both keys dropped) the test needs to pin. There
+> is no `//nolint`-style suppression for `go vet` short of excluding the package.
+>
+> Worked around by giving both fields the name from the Go FIELD name rather than
+> from a tag (`Clash string`, untagged, in PromotionLeft and PromotionRight).
+> dominantField compares resolved name, depth and taggedness, and does not care
+> which of the two ways a name arrived, so the annihilation rule is still
+> exercised; the tagged-vs-untagged tie-break is covered separately by
+> PromotionTaggedClash / PromotionUntaggedClash, which vet accepts because only
+> one side carries a tag. Verified after the change:
+>
+>     struct{PromotionLeft; PromotionRight}       JSON {"left":"L","right":"R"}   YAML left/right
+>     struct{PromotionTaggedClash; PromotionUntaggedClash}
+>                                                 JSON {"Clash":"tagged","only_tagged":"t","only_untagged":"u"}
+>                                                 YAML Clash/only_tagged/only_untagged
+>
+> NOT reachable by this bead: the both-TAGGED same-depth conflict cannot be
+> covered by a static test in this repository at all while `vet` is a declared
+> check. It would need `reflect.StructOf` to build the type at runtime. Left
+> uncovered deliberately; the untagged form exercises the same branch of
+> dominantField.
+
+**`d7w5.2.1#12`**
+
+> retro:tooling:swarm — `swarm dispatch accept` cannot accept the SECOND of two concurrent dispatches: it tries to rebase the dispatch branch while that branch is still checked out in the worktree the command itself created. Measured, accepting dev-d7w5-2 after dev-d7w5-3 had advanced the sprint head to b9b9510: exit 2, 'rebasing bb/dev-d7w5-2 onto b9b9510 failed: git rebase exited 128: fatal: bb/dev-d7w5-2 is already used by worktree at /home/user/.bb-worktrees/dev-d7w5-2'. The first dispatch accepted cleanly because the sprint head had not moved, so this reproduces only under actual concurrency — the thing the whole worktree design exists to enable. Workaround: run `git rebase <sprint-head>` inside the worktree, then re-run accept, which then reports case: serialized and succeeds. The command should rebase inside the worktree, or remove the worktree before rebasing, since it owns both.
+
 ## Routing
 
 Routed by the kind recorded at capture, not by reading the finding.
 
 | kind | n | branch |
 |---|---|---|
-| `decision` | 11 | **project** — a bead in this tracker |
-| `scope` | 3 | **project** |
-| `gap` | 2 | **project** |
-| `proof` | 1 | **terminates here.** Recorded beside what it supports; no issue |
-| `tooling`, target `swarm` | 11 | **skill** — the `swarm` plugin (`brettcallaghan/swarm`), which this repository does **not** vend. `.sf/outbox/swarm/` |
+| `decision` | 17 | **project** — a bead in this tracker |
+| `scope` | 4 | **project** |
+| `gap` | 3 | **project** |
+| `stale` | 1 | **project** |
+| `proof` | 7 | **terminates here.** Recorded beside what it supports; no issue |
+| `tooling`, target `swarm` | 12 | **skill** — the `swarm` plugin (`brettcallaghan/swarm`), which this repository does **not** vend. `.sf/outbox/swarm/` |
+| `tooling`, **target unrecorded** | 1 | **project**, by the merge test — see below |
 | `environment` | 0 | — |
-| `stale`, `unverifiable`, `sequencing` | 0 | — |
+| `unverifiable`, `sequencing` | 0 | — |
 | **unrouted** | **0** | every finding carried a parseable kind |
 
-**Zero unrouted.** The taxonomy covered everything this run hit.
+**45 harvested, 45 routed — 26 project, 12 skill, 7 terminating at `proof`.
+Zero unrouted**, in both passes. The taxonomy covered everything this run hit,
+and pass 2 exercised two kinds pass 1 never produced: `stale`, and a `tooling`
+finding carrying no target.
 
 `swarm.toml`'s `[retros] skill_issues_dir` is deliberately unset, and its
 comment carries the split this routing rests on: this repository vends the `sf`
@@ -321,37 +770,65 @@ skills (`spec`, `groom-beads`, `groom-feature-blueprint`, `retro-spec`,
 no longer vends the swarm plugin, so a finding against `swarm` cannot be acted
 on here and goes to `.sf/outbox/swarm/` for delivery.
 
-**All eleven `tooling` findings target the swarm plugin.** None targets an `sf`
-skill. So the outbox is this run's entire skill-audience output, and this
-repository's own tracker takes nothing from that branch.
+**Twelve of the thirteen `tooling` findings target the swarm plugin.** None
+targets an `sf` skill, so the outbox is this run's entire skill-audience output
+and this repository's own tracker takes nothing from that branch.
+
+**The thirteenth, `d7w5.11#4`, carries no target, and the merge test resolves
+it to the PROJECT.** It reports that `go vet`'s structtag analyzer forbids two
+promoted fields repeating one json tag — which is the exact shape whose runtime
+behaviour a differential test needed to pin. Where would a fix land? Not in a
+skill repository: `go vet` is the Go toolchain's, and the only thing anyone here
+can change is this repository's own declared `vet` check and the test that works
+around it, both of which the finding already documents. It is routed to the
+project and raised as no candidate; the residual is recorded under "what the run
+could NOT verify".
 
 ## Validation
 
 - **Baseline** (`manifest.checks_baseline`, untouched tree): all 12 declared
   checks passed, exit status 0.
-- **At head**: all 12 pass on the merged tree — `python3 <swarm scripts>/bb-checks.py` (recorded with the placeholder `{SCRIPTS}` unresolved on `d7w5.4`; the run resolved it to `/root/.cache/swarm-src/plugin/skills/swarm/scripts`)
-  → rc=0, recorded on `agent-plugins-d7w5.4` by the reviewer against the
-  merged tree at review pass 1, and reported again by the coordinator. **Same
-  12, same result as the baseline.** This retro did **not** re-run them — the
-  claim is inherited from those two records, not measured here, and the tree
-  gained one commit (`1bb35e7`, the coverage regeneration) after review.
+- **At head**: all 12 pass. Recorded twice, by two agents, and **not re-run by
+  this retro** — the skill forbids a second pass over the run, so the claim is
+  inherited, not measured here. Review pass 1 ran
+  `python3 <swarm scripts>/bb-checks.py` → rc=0 against the pass-1 merged tree
+  (recorded on `agent-plugins-d7w5.4` with the placeholder `{SCRIPTS}`
+  unresolved; the run resolved it to
+  `/root/.cache/swarm-src/plugin/skills/swarm/scripts`). Review pass 2
+  independently confirmed all 12 exit 0 at **`62e9e42`**, the current head. The
+  coordinator reports pre-merge checks 4/4 exit 0 on each dispatch acceptance.
+  **Same 12, same result as the baseline, at both ends of the run.**
 - **Coverage** — not a declared check, but `AGENTS.md` requires it for a
-  `cli/**` change and `cli.yml`'s `coverage` job enforces it. Regenerated by
-  the coordinator: **89.5% → 89.1%**, +313 statements. `cli/core/markdown` went
-  37 → 96 statements and 100% → 93.8%. `scripts/coverage.sh --check` exits 0,
-  so the committed README figures match a fresh measurement.
+  `cli/**` change and `cli.yml`'s `coverage` job enforces it. Regenerated
+  **twice, once per half of the run, never per bead**: the plan forbade per-bead
+  regeneration so the two concurrent pass-2 batches could not conflict on
+  `README.md`, and three beads record that instruction as a `decision`
+  (`d7w5.7#3`, `d7w5.8#4`, `d7w5.9#3`).
+  - **After pass 1** (`1bb35e7`): 89.5% → **89.1%**, +313 statements;
+    `cli/core/markdown` went 37 → 96 statements and 100% → 93.8%.
+  - **After pass 2** (`62e9e42`): 89.1% → **89.5%**, 2,835 / 3,168 statements;
+    `cli/cmd` 84.1% → **85.7%**. Read here from the committed `README.md`
+    between its generated markers, which is what CI compares. That
+    `scripts/coverage.sh --check` exits 0 against it is review pass 2's
+    measurement and the coordinator's, inherited — this retro did not re-run
+    the three instrumented test legs.
 - **CI was not observed.** The branch is pushed; no workflow run was read back.
 
 ## Pushes
 
 - `git log origin/claude/swarm-agent-plugins-5wxrfo..HEAD` is **empty** —
-  nothing is stranded on the designated branch. Head is `1bb35e7`.
+  nothing is stranded on the designated branch. Head is **`62e9e42`**. Measured
+  at the run's end.
 - **`sprint/agent-plugins-d7w5` was never pushed, deliberately.** Only the
-  designated branch may be pushed in this environment, so each dispatch was
-  accepted with `--no-push` and merged by hand. The sprint branch's tip
-  (`ef94bd1`) is an ancestor of the pushed head, so nothing is lost by that;
-  `git log origin/claude/swarm-agent-plugins-5wxrfo..sprint/agent-plugins-d7w5`
-  is empty.
+  designated branch may be pushed in this environment, so every dispatch was
+  accepted with `--no-push` and merged by hand. Measured at the run's end: the
+  sprint branch's tip is `cbfb438` and
+  `git rev-list --left-right --count sprint/agent-plugins-d7w5...HEAD` → `0 1`,
+  so it is an ancestor of the pushed head and carries nothing head does not.
+  (Pass 1's own figure, for the record it was taken in: the tip was then
+  `ef94bd1`, likewise an ancestor.)
+- The pre-rebase shas of `.7`, `.8` and `.9` are reachable from no branch and
+  were never pushed; the history behind head is linear.
 - `merge_to_default=false` and `pull_request=none`, both authorized: **no pull
   request was opened and nothing reached the default branch.** Whatever happens
   to this branch is a human's next move, not the run's.
@@ -361,10 +838,38 @@ repository's own tracker takes nothing from that branch.
 Named, one per line. An unstated gap is indistinguishable from one that does
 not exist.
 
-- **Whether the 4 P1 review findings are reachable in production or latent.**
-  The reviewer established reachability for `d7w5.7` specifically and marked
-  `d7w5.11` latent-but-specified. `d7w5.8` and `d7w5.9` were **not probed**
-  either way. All four are deferred, so nothing downstream has settled it.
+- **SETTLED IN PASS 2 — whether the 4 P1 review findings are reachable or
+  latent.** Pass 1 could not say; all four have since been fixed and reviewed,
+  each with a test that fails against the pre-fix code, and the answer differs
+  per bead. Two changed real corpus output — `d7w5.8`'s fix took
+  `Identifier`-vs-`mdlinks.slugifyAnchor` from 9 disagreements to 0 over 612
+  `specs/**` headings, and removed leading hyphens rather than adding them.
+  **`d7w5.9`'s fix is preventive, not corrective on this corpus**: review pass 2
+  reported the span invariants holding across all 291 `.md` files both before
+  and after, because no corpus heading currently sits inside a blockquote or a
+  list item. Re-measured here rather than inherited —
+  `grep -rEn '^[[:space:]]*([>]|[-*+]|[0-9]+\.)[[:space:]]+#{1,6}[[:space:]]' specs/ --include='*.md'`
+  → rc=1, 0 matches over 58 files. The defect was real in the code and unreached
+  by the tree, which is a reason to keep the fix, not to discount it; it is
+  recorded here so nobody later reads the four as one uniform class.
+- **The pass-2 acceptance figures.** "Pre-merge checks 4/4 exit 0" and
+  `acceptance_failures: []` with `beads_checked` 3 and 1 come from the
+  coordinator's report and are carried into this record unmeasured: no bead or
+  phase epic holds them — `agent-plugins-d7w5.3` and `d7w5.6` both have
+  `comment_count` 0, so the pass-2 groom & plan and post-flight phases left no
+  durable record of their own. What **is** measured here: all four beads closed,
+  one reachable commit each, the tree clean, no worktree standing, and nothing
+  stranded. Settle the rest by re-running the acceptance command, which is no
+  longer possible — the worktrees are gone.
+- **Whether `agent-plugins-912t` (the `omitzero` key divergence) is reachable on
+  this command surface.** Filed P2 by review pass 2 by analogy with `zka9`,
+  whose finding states no type on this surface uses `,string`; no equivalent
+  probe for `omitzero` was run here.
+- **The both-tagged same-depth promotion conflict cannot be covered by a static
+  test in this repository at all** while `vet` is a declared check
+  (`d7w5.11#4`). The untagged form exercises the same `dominantField` branch, so
+  the *rule* is covered and the *shape* is not. Settling it would need
+  `reflect.StructOf` to build the type at runtime.
 - **The batch agent's finding count.** Its return claimed 21 `retro:` comments
   across the four work beads. Measured here from `bd export`: **17** — `f6tl.1`
   5, `f6tl.2` 4, `f6tl.3` 3, `f6tl.4` 5, each exactly matching that bead's
@@ -391,8 +896,8 @@ not exist.
   `f6tl.7`'s bounce comment and **not re-measured here** — the command comments
   *and* closes, so probing it would corrupt a bead the human still has to
   decide. Settle it on a throwaway bead.
-- **Whether CI is green on `1bb35e7`.** Checks pass locally; no workflow run was
-  read.
+- **Whether CI is green on head, `62e9e42`.** Checks pass locally; no workflow
+  run was read back, in either half of the run.
 - **The recurrence count on any of the 13 filed issues.** All 13 carry
   `recurrence: 0`, which is the template's starting value rather than a
   measurement: no window over prior runs' UNFILED findings was computed. This
@@ -401,11 +906,12 @@ not exist.
   count toward recurrence — but that was not checked either. Settle it by
   harvesting `retro:` comments across the prior runs in the window and counting
   those with no `retro:filed:` mark for the same kind and target.
-- **Whether the 12 declared checks pass at `1bb35e7` specifically.** The green
-  result is inherited from the reviewer's and the coordinator's records, both
-  taken before or at the coverage commit; this retro deliberately does not
-  re-run checks. Settle it with `python3 <swarm scripts>/bb-checks.py` on the
-  current tree.
+- **Whether the 12 declared checks pass at head, `62e9e42`, specifically.** The
+  green result is inherited from the reviewer's and the coordinator's records —
+  review pass 2 states it measured all 12 at exactly this commit — and this
+  retro deliberately does not re-run checks. Settle it with
+  `python3 <swarm scripts>/bb-checks.py` on the current tree. (Pass 1 recorded
+  the same gap against the then-head, `1bb35e7`.)
 
 ## Candidates
 
@@ -416,12 +922,16 @@ Each was put to a human once; a declined candidate stays in this document, where
 a later run hitting the same friction raises it again with a higher recurrence
 count.
 
+**Nineteen candidates in two sets.** The next two subsections are **pass 1's
+fifteen**, answered at `AMENDMENT 3` and unchanged; the third is **pass 2's
+four**, which are pending.
+
 Provenance carried by every candidate: run `agent-plugins-d7w5`, branch
 `claude/swarm-agent-plugins-5wxrfo`, record this file, model `opus` (advanced
 tier per `swarm.toml` `[models]`) for the work-bead findings; the coordinator's
 model is **unrecorded** — see the could-not-verify list.
 
-### Skill audience → `.sf/outbox/swarm/` (the swarm plugin)
+### Pass 1, skill audience → `.sf/outbox/swarm/` (the swarm plugin)
 
 Ten candidates from eleven `tooling` findings. One finding deduped out.
 
@@ -445,7 +955,7 @@ retro**: `swarm-retro` §2 states "`bd export`, never `bd list` plus
 output prints them." The skill half needs no issue. The `bd` half is a durable
 platform fact and is candidate **P4** below.
 
-### Project audience → beads in this tracker
+### Pass 1, project audience → beads in this tracker
 
 | # | candidate | findings | rank |
 |---|---|---|---|
@@ -464,16 +974,73 @@ implementation time" is a summary, not a change anyone can accept or decline.
 They stay in this document so a second run reporting the same shape can be
 counted against them.
 
+### Pass 2 — four further candidates, PUT TO THE HUMAN AND PENDING
+
+Reasoned from pass 2's seventeen findings, deduped against everything pass 1
+filed and against the nine beads filed outside the run. **Nothing below has been
+filed.** No `retro:filed:` mark was written for any of it and the manifest
+counters are untouched; they move once, as one merge, when the answer comes
+back.
+
+| # | audience | candidate | findings | rank |
+|---|---|---|---|---|
+| **S11** | skill → `.sf/outbox/swarm/` | **`swarm dispatch accept` cannot accept the SECOND of two concurrent dispatches.** It rebases the dispatch branch while that branch is still checked out in the worktree the command itself created. Measured, accepting `dev-d7w5-2` after `dev-d7w5-3` had advanced the sprint head: exit 2, `fatal: bb/dev-d7w5-2 is already used by worktree at /home/user/.bb-worktrees/dev-d7w5-2`. It reproduces **only under real concurrency** — the thing the whole worktree design exists to enable — and the first accept was clean only because the sprint head had not moved. Workaround used: rebase inside the worktree, then re-run accept, which reports `case: serialized` and succeeds. Proposed: rebase inside the worktree, or remove the worktree before rebasing, since the command owns both | `d7w5.2.1#12` | **P0** |
+| **A1** | project → an **existing** bead | **The run introduced and shipped a performance regression against a specified target, and it is filed only as a P2.** `agent-plugins-yztv`: `d7w5.11`'s port of `encoding/json`'s `typeFields` is faithful but drops the one thing `encoding/json` does around it — the per-`reflect.Type` memo — so the field set is re-resolved for every struct **value**, and `isBlock` pays for it a second time on the same value. `AC-SPEC-009.1` sets 50 ms for a warm corpus query; the YAML rendering alone now costs ~40 ms of that budget on this corpus. A memoized prototype is faster than the pre-run code. Proposed: raise `yztv` to **P1** and record this retro's independent reproduction on it. **Not a new bead — `yztv` already exists**, so this is a priority change and a comment, not a filing | `d7w5.11#3` (its origin), `agent-plugins-yztv` | **P1** |
+| **P6** | project → a bead here | **A work order must not state a value or a signature it DERIVED by inference from a measurement.** In three of the four pass-2 beads what the bead *reported* was right and what it *prescribed* was wrong or unreachable: `d7w5.8`'s Design gave two of four post-filter identifiers incorrectly while its measured render table was byte-correct; `d7w5.7`'s acceptance criterion was unreachable given the signature its own Design pinned; `d7w5.11`'s three named fixes would have left the guarantee still false. Each cost the implementing agent an AC amendment or a mid-bead scope expansion, and each is exactly `AGENTS.md`'s "tool claims are measured at the point of use" one document earlier. Proposed: `specs/standards/work-order-definition-of-ready.md` — which `scripts/sync-shared-references.sh` vendors into both `groom-beads` and `spec`, so one edit reaches both — requires that a Design or AC stating a literal expected value cite the command that produced it, and marks a derived value **unverified** otherwise | `d7w5.8#2`, `d7w5.8#4`, `d7w5.7#2`, `d7w5.11#3` | **P1** |
+| **S12** | skill → `.sf/outbox/swarm/` | **`swarm-review` files a finding as a bead carrying a prescribed remedy the reviewer did not measure.** The same four findings read at their origin rather than at the gate: the reviewer's *evidence* was correct in all four cases and its *suggested shape* was wrong or incomplete in three. A bead reads as already-decided work, so the prescription gets acted on rather than re-derived. Proposed: a review-filed bead states the defect and its evidence, and marks any suggested remedy explicitly unverified. **Overlaps P6** — P6 is the gate that would catch this, S12 is the source that produces it; decline either half if the other is judged sufficient | `d7w5.8#2`, `d7w5.8#4`, `d7w5.7#2`, `d7w5.11#3` | P2 |
+
+#### A1's measurement, reproduced by this retro rather than inherited
+
+`retro-d7w5` re-ran it on 2026-09-04 against two scratch trees extracted with
+`git archive` — `ec6b6fd` (before `d7w5.11`) and `62e9e42` (head) — with one
+identical benchmark added to each: `renderYAML` over a `headingsResult` of
+2,434 `headingMatch` entries, this corpus's own heading count.
+`go test ./cmd/ -run '^$' -bench BenchmarkRetroRenderYAML -benchtime 20x -count 3`,
+go1.24.7, 4-core container:
+
+| tree | ns/op, three runs | B/op | allocs/op |
+|---|---|---|---|
+| `ec6b6fd` — before `d7w5.11` | 24,555,037 / 23,476,837 / 24,732,037 | 11,450,768 | 130,988–990 |
+| `62e9e42` — head, as shipped | 41,520,183 / 41,570,698 / 41,224,854 | 18,485,133 | 211,346–347 |
+| head + a `sync.Map` memo on `typeFields` | 17,492,805 / 16,892,487 / 16,681,633 | 8,800,329 | 48,218–220 |
+
+**~1.7x slower and 1.61x more allocations than before the run touched it**, and
+the memoized prototype is **~1.4x faster than the pre-run code**. The allocation
+counts reproduce review pass 2's reported 130,969 → 211,325 → 48,199 to within
+the handful my fixture differs by; the wall-clock figures run higher than its
+22.7 / 39.8 / 14.7 ms on the same class of container, so **the ratio is the
+durable fact and the absolute numbers are indicative** — which is what the
+`yztv` bead itself says. `go test ./cmd/` exits 0 with the memo in place, so the
+differential suite `d7w5.11` shipped still holds. The mechanism is visible in
+the source without a benchmark at all: `cli/cmd/yaml.go` contains no `sync.Map`
+and no cache, and `structFields` is called once by `writeYAMLValue` and again by
+`isBlock` for the same value.
+
+**Considered in pass 2 and NOT raised as candidates.** `d7w5.11#4` — `go vet`'s
+structtag analyzer forbidding the both-tagged same-depth shape — is a residual
+already documented in the finding and beside the test, with nothing for anyone
+to accept or decline; it is recorded under what the run could not verify. The
+three identical coverage-left-stale `decision` findings record the plan working
+as designed. The six `proof` findings terminate at routing. The five other beads
+filed outside the run — `zka9`, `1j2i`, `912t`, `s5ok`, `rk27` — are already
+filed, and re-filing them here would be a duplicate.
+
+
 ## The decision, and what was filed
 
-The candidate list above was put to the human once, at the retro human channel,
-and answered there. **13 of 15 candidates accepted, 2 declined.** Recorded on the
-run epic as `AMENDMENT 3`. Filing was carried out by `retro-d7w5` on 2026-09-04;
-nothing below was filed before the decision.
+**Pass 1's fifteen candidates** were put to the human once, at the retro human
+channel, and answered there: **13 accepted, 2 declined.** Recorded on the run
+epic as `AMENDMENT 3`, which also admitted the four P1 review findings that
+produced the second half of this run. Filing was carried out by `retro-d7w5` on
+2026-09-04; nothing below was filed before the decision. **Pass 2's four
+candidates are pending** — see the end of this section.
 
 `manifest.retro_filed` = **13**, `manifest.retro_declined` = **2**,
 `manifest.retro_routed` = **28** — written as one merge with
-`swarm manifest set --run agent-plugins-d7w5`.
+`swarm manifest set --run agent-plugins-d7w5`. **Those three counters still hold
+pass 1's figures and are deliberately not updated**, because the routed total is
+now 45 and the filed total moves with pass 2's answer; they change once, in one
+merge, when it comes back.
 
 ### Accepted — skill audience, all 10, delivered to `brettcallaghan/swarm`
 
@@ -574,6 +1141,15 @@ The eleven `decision` findings were never candidates — each is already recorde
 where it belongs, by the agent that made it — and the one `proof` finding
 terminated at routing. Neither is a decision anyone declined.
 
+### Pass 2 — pending
+
+The four candidates above (**S11**, **A1**, **P6**, **S12**) were put to the
+human at this retro's channel and **the answer is not recorded in this
+document**. Nothing was filed for them, no `retro:filed:` mark was written on
+`d7w5.2.1` or on any pass-2 bead, and no existing bead's priority was changed —
+`agent-plugins-yztv` still reads P2. A declined candidate stays here, as pass
+1's two did.
+
 ### The audit closes both ways
 
 Each filed issue is marked on the bead carrying its finding, as a
@@ -584,9 +1160,21 @@ the pool shrinks as issues are filed rather than growing without limit.
 
 ### Counts
 
-- **Harvested** 28. **Routed** 28 — 16 project, 11 skill, 1 terminating at
-  `proof`. **Unrouted 0.**
-- **Candidates** 15 — 10 skill, 5 project.
-- **Filed 13** — 10 outbox files, 3 beads. **Declined 2.**
-- Nothing filed in this repository's tracker from the skill branch, and nothing
-  filed in `brettcallaghan/swarm`'s tracker from here.
+**Pass 1, unchanged:** harvested 28, routed 28 (16 project, 11 skill, 1
+terminating at `proof`), unrouted 0; 15 candidates, 13 filed, 2 declined.
+
+**The run, at its end:**
+
+- **Harvested 45** — 28 in pass 1, 17 in pass 2. Every count verified against
+  its bead's `comment_count` before aggregating.
+- **Routed 45** — **26 project**, **12 skill**, **7 terminating at `proof`**.
+  **Unrouted 0.**
+- **Candidates 19** — 15 in pass 1, 4 in pass 2. By audience: 12 skill, 7
+  project.
+- **Filed 13**, all of them pass 1's — 10 outbox files, 3 beads. **Declined 2.**
+  **Pending 4.**
+- Nothing was filed in this repository's tracker from the skill branch, and
+  nothing in `brettcallaghan/swarm`'s tracker from here.
+- Beads filed **outside** this retro, by the dispatches and by review pass 2,
+  all `parent=null` and all open: `zka9`, `1j2i`, `yztv`, `912t`, `s5ok`,
+  `rk27`. This retro re-files none of them.
