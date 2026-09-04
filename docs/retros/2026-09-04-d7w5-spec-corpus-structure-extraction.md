@@ -3,6 +3,19 @@
 *Written by `retro-d7w5` on 2026-09-04. One document: the run's results, every
 finding it captured, and what it could not establish.*
 
+> **THIS RECORD IS NOT FINAL. The run is back in flight.** `AMENDMENT 3`
+> (coordinator-d7w5, retro human channel) admitted **four P1 review findings** —
+> `agent-plugins-d7w5.7`, `.8`, `.9` and `.11` — into this run, overriding
+> `standing_auth.admit_review_findings=false` after the fact. All four are
+> un-deferred and open; the run re-enters at **groom & plan**, not at dispatch,
+> because review files and does not groom. `review_passes` stands at 1 of 3, so
+> the budget covers a second review pass over the new work.
+>
+> Everything below headed **Results**, **Scope**, **Validation** and **Pushes**
+> therefore describes the run **as of the retro decision**, not as of its end.
+> The findings, the routing and the filing decision are complete and do not
+> change; the results will be revised when the run truly ends.
+
 ## The run
 
 | | |
@@ -34,7 +47,10 @@ manifest at all** — the model has no field for it (`d7w5.2.1#2`).
 
 ## Results
 
-All four admitted beads closed, each in one commit, on one dispatch.
+**As of the retro decision — see the banner above; four review findings have
+since been admitted and are unlanded.**
+
+All four *originally* admitted beads closed, each in one commit, on one dispatch.
 
 | bead | status | agent | commit | what landed |
 |---|---|---|---|---|
@@ -116,11 +132,20 @@ Closing it would report the feature complete while its stage-2 deltas are
 unlanded. `f6tl.7` carries the bounce record and two ways a human can clear it
 (admit stage 2, or split a stage-1-only DoD verification out of it).
 
-**Review filed 9 findings, and this run admitted none of them** —
+**Review filed 9 findings, and this run admitted none of them at the time** —
 `admit_review_findings=false`, authorized at the gate. `d7w5.7` … `d7w5.15`
-(4 P1, 4 P2, 1 P3; 6 in scope, 3 out) are all deferred. `review_passes` = 1 of
+(4 P1, 4 P2, 1 P3; 6 in scope, 3 out) were all deferred. `review_passes` = 1 of
 3: **the budget is unspent, not exhausted.** The loop did not re-enter because
 its condition is findings *admitted*, and zero were.
+
+**`AMENDMENT 3` reversed that for four of them.** At the retro decision the
+human overrode `admit_review_findings=false` after the fact and admitted the
+four P1 findings — `d7w5.7`, `.8`, `.9`, `.11` — which are un-deferred and open
+(verified from the tracker at filing time). The remaining five (`.10`, `.12`,
+`.13`, `.14`, `.15`) stay deferred and unadmitted. This is a **scope widening
+after the run's admitted set was drained**, and it is the reason the results
+above are provisional: the run re-enters at groom & plan and will close a larger
+set than the one this record reports.
 
 ## Every finding, verbatim
 
@@ -368,6 +393,14 @@ not exist.
   decide. Settle it on a throwaway bead.
 - **Whether CI is green on `1bb35e7`.** Checks pass locally; no workflow run was
   read.
+- **The recurrence count on any of the 13 filed issues.** All 13 carry
+  `recurrence: 0`, which is the template's starting value rather than a
+  measurement: no window over prior runs' UNFILED findings was computed. This
+  repository's earlier runs did report findings against the sprint skills while it
+  still vended them, and those were filed as beads here — filed findings do not
+  count toward recurrence — but that was not checked either. Settle it by
+  harvesting `retro:` comments across the prior runs in the window and counting
+  those with no `retro:filed:` mark for the same kind and target.
 - **Whether the 12 declared checks pass at `1bb35e7` specifically.** The green
   result is inherited from the reviewer's and the coordinator's records, both
   taken before or at the coverage commit; this retro deliberately does not
@@ -377,9 +410,11 @@ not exist.
 ## Candidates
 
 Reasoned from the findings above, deduped against what is already filed, and
-ranked. **Nothing here has been filed.** Each is put to a human once; a
-declined candidate stays in this document, where a later run hitting the same
-friction raises it again with a higher recurrence count.
+ranked. **This section is the list AS PUT to the human; the decision and what
+was filed for each are recorded under "The decision, and what was filed" below.**
+Each was put to a human once; a declined candidate stays in this document, where
+a later run hitting the same friction raises it again with a higher recurrence
+count.
 
 Provenance carried by every candidate: run `agent-plugins-d7w5`, branch
 `claude/swarm-agent-plugins-5wxrfo`, record this file, model `opus` (advanced
@@ -429,14 +464,129 @@ implementation time" is a summary, not a change anyone can accept or decline.
 They stay in this document so a second run reporting the same shape can be
 counted against them.
 
-## What was filed
+## The decision, and what was filed
 
-**Nothing yet.** The candidate list above has not been put to a human, and this
-skill files nothing without one. `manifest.retro_filed`, `retro_declined` and
-`retro_routed` are therefore **unwritten** — they land as one merge when the
-decision comes back, and writing `retro_filed: 0` now would report a decision
-nobody made.
+The candidate list above was put to the human once, at the retro human channel,
+and answered there. **13 of 15 candidates accepted, 2 declined.** Recorded on the
+run epic as `AMENDMENT 3`. Filing was carried out by `retro-d7w5` on 2026-09-04;
+nothing below was filed before the decision.
 
-Routing itself is complete and does not depend on the decision: 28 harvested,
-16 to the project branch, 11 to the skill branch, 1 terminating at `proof`,
-**0 unrouted**.
+`manifest.retro_filed` = **13**, `manifest.retro_declined` = **2**,
+`manifest.retro_routed` = **28** — written as one merge with
+`swarm manifest set --run agent-plugins-d7w5`.
+
+### Accepted — skill audience, all 10, delivered to `brettcallaghan/swarm`
+
+One file per issue in `.sf/outbox/swarm/`, in the issue template's shape. **None
+of these is a bead in this tracker**: this repository does not vend the swarm
+plugin, so a proposal about it cannot be acted on here.
+
+| # | rank | finding | file (under `.sf/outbox/swarm/`) |
+|---|---|---|---|
+| S1 | P0 | `d7w5.2.1#10` | `2026-09-04-swarm-review-parents-findings-under-the-run-epic.md` |
+| S2 | P0 | `d7w5.2.1#3` | `2026-09-04-pre-flight-check-never-writes-models-or-ledger.md` |
+| S3 | P0 | `d7w5.2.1#11` | `2026-09-04-phase-close-has-no-path-through-an-unclosable-target-epic.md` |
+| S4 | P1 | `d7w5.2.1#1` | `2026-09-04-authsource-has-no-human-member.md` |
+| S5 | P1 | `d7w5.2.1#2` | `2026-09-04-standing-auth-has-no-home-for-dispatch-failure-threshold.md` |
+| S6 | P1 | `d7w5.2.1#7` | `2026-09-04-phase-close-cannot-close-a-childless-ceremony-epic.md` |
+| S7 | P1 | `d7w5.2.1#8` | `2026-09-04-swarm-status-counts-ceremony-beads-as-scope-creep.md` |
+| S8 | P2 | `d7w5.2.1#4` | `2026-09-04-manifest-validate-renders-severitypending-as-not-ok.md` |
+| S9 | P2 | `d7w5.2.1#5` | `2026-09-04-manifest-set-type-errors-name-the-go-type-not-the-shape.md` |
+| S10 | P2 | `d7w5.2.1#6` | `2026-09-04-no-way-to-list-the-declared-manifest-keys.md` |
+
+Every one carries its finding quoted inline, not only cited, and the run's
+provenance: run `agent-plugins-d7w5`, branch `claude/swarm-agent-plugins-5wxrfo`,
+this record, `skill_version` `swarm 0.1.0 @ 1a19e8e (2026-09-02)`. The `model`
+field reads **unrecorded** on all ten, with the reason — `manifest.models` is
+unset, which is candidate S2's own defect. `recurrence` is written as **0** on
+all ten, and that figure is **not measured** — no recurrence window was computed
+over prior runs' unfiled findings. It is the template's starting value for a
+kind/target pair, not a finding that this pair is new; see the could-not-verify
+list.
+
+**Delivery is not filing.** `.sf/outbox/swarm/` is a delivery channel to
+`brettcallaghan/swarm`; carrying it there is the outbox owner's call. Candidate
+P2 below exists because two documents in this repository currently say the
+opposite.
+
+### Accepted — project audience, 3 beads in this tracker
+
+**None is parented under the run epic.** Parenting findings under the run epic
+is what put nine unadmitted beads into this run's own dispatch set (`d7w5.2.1#10`,
+candidate S1); these carry `discovered-from` edges to their origin beads instead,
+which records provenance without feeding dispatch. Each was groomed to the
+work-order Definition of Ready — problem with durable anchors, design with the
+choice settled, checkable acceptance criteria, dependencies, tier and reason, and
+declared blast radius.
+
+| # | bead | rank | title |
+|---|---|---|---|
+| P1 | `agent-plugins-3oiv` | P1 | groom-beads has no rule that a "declare and regenerate" bead must declare the emitter, fixtures, snapshots and standards its regeneration reaches |
+| P2 | `agent-plugins-yqjh` | P1 | The outbox README and triage-issue still say we vend every skill we run, so triage would sweep the swarm deliveries into this backlog |
+| P3 | `agent-plugins-nduj` | P2 | `cli-output-standards`' conformance table and status line are hand-maintained, unchecked, and false again |
+
+Notes on each, where the filed bead differs from or extends the candidate:
+
+- **`agent-plugins-3oiv`** (findings `f6tl.1#2`, `f6tl.3#2`, `f6tl.4#4`) lands the
+  rule in `specs/standards/work-order-definition-of-ready.md` check 8 rather than
+  in `groom-beads`' own body — measured, `plugin/skills/groom-beads/SKILL.md` is
+  19,825 bytes against `scripts/check-skills.sh`'s `BODY_BYTE_MAX = 20000`, so
+  the rule does not fit there. `scripts/sync-shared-references.sh` vendors that
+  standard into both `groom-beads` and `spec`, so one edit reaches both. Carries a
+  `related` edge to `agent-plugins-d7w5.15`, which it partially overlaps, and an
+  acceptance criterion requiring that overlap to be resolved rather than left.
+- **`agent-plugins-yqjh`** (findings `d7w5.2.1#1`–`#11`, whose existence is the
+  evidence). **Both file locations were re-verified before filing, because a
+  variant of this candidate in circulation named the wrong one.** Measured
+  2026-09-04: `ls plugin/skills/triage-issue` → "No such file or directory", and
+  `plugin/skills/` holds exactly `groom-beads`, `groom-feature-blueprint`,
+  `retro-skill`, `retro-spec`, `spec` — five vended skills, `triage-issue` not
+  among them. The file that carries the assertion is
+  `.claude/skills/triage-issue/SKILL.md`, a real directory rather than a symlink
+  into `plugin/skills/`, so `triage-issue` is repo-local and not vended; the text
+  is its `## Inputs` bullet on `.sf/outbox/<skill>/*.md`. The second site,
+  `.sf/outbox/README.md`'s "## In this repository" section, was confirmed as
+  cited. The bead anchors on the quoted strings, not on line numbers.
+- **`agent-plugins-nduj`** (finding `f6tl.4#4`). The candidate offered two
+  remedies — derive the table, or replace the corpus-wide assertion — which is an
+  open decision and would have failed the Definition of Ready's check 9, so the
+  bead settles it: the table is **not** derived (that would mean asserting in code
+  a conformance judgement nobody measured), the universal claims are deleted, and
+  a new declared check enforces the part that is mechanizable — that the table's
+  row set matches the command set the CLI registers. Measured while filing: the
+  preamble is **false again today**, reading "Every command below predates these
+  standards and none of them conforms yet" directly above a table whose `links`
+  row reads "conforms". That is the second falsification of this document in one
+  run, and it is on the bead.
+
+### Declined — 2
+
+Recorded, not deleted. A later run hitting the same friction raises it again with
+a higher recurrence count, which is how a wrong decision corrects itself with
+nobody tracking it.
+
+| # | candidate | why it stays here |
+|---|---|---|
+| P4 | Three durable `bd` 1.2.2 facts for `AGENTS.md`'s environmental-failure ledger | Declined. The measurements stand and are recorded in the candidate above — including the two re-measured by `retro-d7w5` and the one that must be marked unverified if ever filed — but they are not being added to the ledger |
+| P5 | The module blueprint should decide the two cases the `gap` findings name | Declined. The three already-filed review beads (`d7w5.7`, `d7w5.9`, `d7w5.12`) are considered sufficient; note that `.7` and `.9` have since been admitted by `AMENDMENT 3` and `.12` remains deferred |
+
+The eleven `decision` findings were never candidates — each is already recorded
+where it belongs, by the agent that made it — and the one `proof` finding
+terminated at routing. Neither is a decision anyone declined.
+
+### The audit closes both ways
+
+Each filed issue is marked on the bead carrying its finding, as a
+`retro:filed:<id> — <finding id>` comment: ten on `agent-plugins-d7w5.2.1` for
+the outbox deliveries, plus `3oiv` on `f6tl.1`, `f6tl.3` and `f6tl.4`, `yqjh` on
+`d7w5.2.1`, and `nduj` on `f6tl.4`. Recurrence counts unfiled findings only, so
+the pool shrinks as issues are filed rather than growing without limit.
+
+### Counts
+
+- **Harvested** 28. **Routed** 28 — 16 project, 11 skill, 1 terminating at
+  `proof`. **Unrouted 0.**
+- **Candidates** 15 — 10 skill, 5 project.
+- **Filed 13** — 10 outbox files, 3 beads. **Declined 2.**
+- Nothing filed in this repository's tracker from the skill branch, and nothing
+  filed in `brettcallaghan/swarm`'s tracker from here.
