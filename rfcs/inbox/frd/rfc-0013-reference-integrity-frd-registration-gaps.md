@@ -118,7 +118,7 @@ keeping an FRD's citations true when the vocabulary beneath it moves.
 6. AC-SPECREF-002.4 required, unconditionally, that a document at
    `status: retired` declare a resolvable `superseded_by`. A scan of
    this corpus while authoring the LIFE delta found its only retired
-   document is [[feature-spec-validation-cli]] — a feature blueprint,
+   document is [[feature-spec-index]] — a feature blueprint,
    which the feature blueprint template retires when "the feature is
    merged and the Definition of Done is complete", not because anything
    replaced it. The criterion would have reported an `error` against

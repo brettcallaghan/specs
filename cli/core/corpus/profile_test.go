@@ -128,7 +128,7 @@ func TestProfileMaySupplyNoConventionDefaults(t *testing.T) {
 
 // Document Core is the host, and a host that imports its plugin is not a
 // host. The Change Guidance in
-// specs/architecture/module-document-core.md states this as a
+// specs/modules/document-core/document-core-module.md states this as a
 // prohibition; this test is what makes it a gate.
 func TestDocumentCoreImportsNoProfilePackage(t *testing.T) {
 	forbidden := modulePath + "/profile"

@@ -41,7 +41,7 @@ func repositoryRoot(t *testing.T) string {
 }
 
 // TestProfileSelfApplicationAgainstThisRepositorysCorpus is the profile
-// self-application gate specs/architecture/module-spec-profile.md names
+// self-application gate specs/modules/spec-profile/spec-profile-module.md names
 // as "the one that catches a registered schema drifting from the
 // templates it mirrors": it builds this framework's own spec-driven-dev
 // profile and runs Document Core's discovery and schema/slug-pattern

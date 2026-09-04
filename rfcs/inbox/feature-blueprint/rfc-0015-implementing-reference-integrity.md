@@ -127,7 +127,7 @@ single comment from one of those three, it says so.
 
 3. Four statements asserting a component was unbuilt were still standing
    in the two module blueprints after every delta had folded. In
-   `specs/architecture/module-document-core.md`: "The emitted index
+   `specs/modules/document-core/document-core-module.md`: "The emitted index
    carries the resolved reference graph; no check reads it yet, so a
    broken link is recorded and not reported" (Components); "There is no
    `cli/core/markdown` package and no markdown parser in the module's
@@ -138,12 +138,12 @@ single comment from one of those three, it says so.
    Frontmatter alone" (component relationships) —
    `cli/core/corpus/corpus.go:19`
    imports `cli/core/references`. In
-   `specs/architecture/module-spec-profile.md`: "the checks that will
+   `specs/modules/spec-profile/spec-profile-module.md`: "the checks that will
    read them belong in [[module-document-core]] ... (Those Document Core
    checks are themselves later work — `agent-plugins-9kb.6` and `.7` —
    which this module does not gate on)". This is the second occurrence
    of the same failure: `agent-plugins-9kb.4` recorded that
-   "`module-document-core.md`'s Key Decisions still read 'goldmark is
+   "`document-core-module.md`'s Key Decisions still read 'goldmark is
    not a dependency yet and arrives with the Markdown Structure
    component', stale since REX. Folding this document for RES was the
    first thing to touch that line." Each delta added its own positive
@@ -366,8 +366,8 @@ summary, in a sibling component's section, and in a relationship
 paragraph, which is exactly why eight consecutive folds walked past them.
 
 **Change.** Add a third amendment to rfc-0011 P6, landing in the Change
-Guidance of `specs/architecture/module-document-core.md` and
-`specs/architecture/module-spec-profile.md`:
+Guidance of `specs/modules/document-core/document-core-module.md` and
+`specs/modules/spec-profile/spec-profile-module.md`:
 
 > WHEN a component's build state changes, every statement in this
 > document that asserted the previous state SHALL be retracted in the
@@ -639,8 +639,8 @@ every statement of the previous state goes when it changes.
 
 **Touch points.** `specs/standards/document-relationship-standards.md`
 (P1, P7 if filed there instead); `specs/standards/testing-standards.md`
-(P2, P7); `specs/architecture/module-document-core.md` and
-`specs/architecture/module-spec-profile.md` Change Guidance (P3);
+(P2, P7); `specs/modules/document-core/document-core-module.md` and
+`specs/modules/spec-profile/spec-profile-module.md` Change Guidance (P3);
 `specs/features/reference-integrity/reference-integrity-frd.md` and
 `schemas/index.strata` (P6); the three pending RFCs (P2, P4, P5).
 

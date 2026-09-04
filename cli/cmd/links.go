@@ -18,7 +18,7 @@ import (
 
 // newLinksCmd builds the `links` subcommand: rewrite one document's
 // `[[slug]]` wikilinks into markdown links, per
-// container-spec-cli.md's Command Surface (modified — links) delta
+// spec-cli-container.md's Command Surface (modified — links) delta
 // (AC-SPECMD-005.1 through AC-SPECMD-005.10).
 //
 // This is the sixth subcommand FEAT-SPEC-011 anticipated growing into; it

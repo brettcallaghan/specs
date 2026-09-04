@@ -33,7 +33,7 @@ of these repositories into a **central structured store for C4 models,
 features and acceptance criteria**, a knowledge graph fed the same
 content, or both; and beyond that, acceptance criteria living in
 product/QA tooling that product managers, engineers and QA share rather
-than in a source repository at all. [[frd-spec-validation-cli]] already
+than in a source repository at all. [[frd-spec-index]] already
 carries this intent — "an organization pushes the index to a central
 service and sees its whole architecture."
 
@@ -106,11 +106,11 @@ are the illustrative instances. The split not only survives — it becomes
 example, with tags already inherited from Feature and Rule:
 
 ```
-pickle "Slug pattern mismatch…"  tags=[@frd-spec-validation-cli @AC-SPEC-003.5
+pickle "Slug pattern mismatch…"  tags=[@frd-spec-index @AC-SPEC-003.5
                                        @level-unit]  steps=5
 pickle "Slug pattern mismatch…"  tags=[…]  steps=5   <- 2nd Examples row
 pickle "Files outside the spec root are never read"
-                                 tags=[@frd-spec-validation-cli @AC-SPEC-001.5
+                                 tags=[@frd-spec-index @AC-SPEC-001.5
                                        @negative @level-unit]  steps=1
 ```
 
@@ -169,7 +169,7 @@ constraint 1 it legitimately carries the user story and design note.
 
 ### Tried on a real document
 
-The whole of [[frd-spec-validation-cli]] was rewritten in Gherkin as a
+The whole of [[frd-spec-index]] was rewritten in Gherkin as a
 trial — 52 criteria, nine blocks — and parsed with the extractor
 (findings in `docs/research/gherkin/ears-vs-gherkin-comparison.md`). All
 nine blocks parse and all 52 identifiers extract, so the design holds.
@@ -433,7 +433,7 @@ the target shape directly.
   parser; this decision exercises it
 - [[adr-008]], [[adr-016]] — the record-block and Strata mechanisms
   behind the structured-record alternative
-- [[frd-spec-validation-cli]] — the central-publication intent this ADR
+- [[frd-spec-index]] — the central-publication intent this ADR
   optimises for, and the corpus membership rules level 3 contradicts
 - `plugin/skills/spec/references/frd-template.md` — the criterion/example
   split `Scenario Outline` preserves

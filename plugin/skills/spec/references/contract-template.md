@@ -17,7 +17,7 @@ version: "1.0"
 Template: Contract
 Version: 1.4
 Source: Architecture documentation framework. C4 mapping rules and
-  contract visibility tiers are defined in `shared/c4-guide.md`.
+  contract visibility tiers are defined in `shared/c4-standards.md`.
 
 Sections (complete each, then delete its instruction block)
   - Overview
@@ -52,7 +52,7 @@ Independence and longevity
   consequential architectural decision. WHEN no provider exists yet,
   leave provider a draft slug and keep status: draft.
 
-Visibility (see `shared/c4-guide.md`)
+Visibility (see `shared/c4-standards.md`)
   public   — crosses the system boundary; consumable by other teams.
   internal — crosses container boundaries within one system only.
              Internal contracts SHALL NOT be consumed outside their
@@ -197,6 +197,6 @@ status becomes active.
 
 ## References
 
-- `shared/c4-guide.md` — C4 mapping rules and contract visibility tiers
+- `shared/c4-standards.md` — C4 mapping rules and contract visibility tiers
 - [[<provider-slug>]] — provider's blueprint
 - <Additional references>

@@ -89,8 +89,9 @@ deliberately, not overlooked:
 - **Ambiguous anchor** — an anchor whose identifier is the identifier of
   more than one heading in the target document.
 - **Display alias** — Obsidian's `[[slug|label]]` form, which
-  [[cross-document-references]] prohibits. A vertical bar is therefore
-  not a separator here.
+  [[cross-document-references]] prohibits. No slug admits a vertical
+  bar, so an aliased reference names no document; where one carries an
+  anchor as well, the bar falls inside the anchor.
 
 ## Requirements
 
@@ -127,10 +128,10 @@ Feature: Anchor Extraction in the Index
     Then the CLI records an anchor as it was authored, without normalization
 
   @AC-SPECANCH-001.5 @negative
-  Scenario: A vertical bar does not divide a reference
-    Given a reference containing a vertical bar
+  Scenario: A vertical bar does not divide an anchor
+    Given a reference whose anchor contains a vertical bar
     When the CLI builds the index
-    Then the CLI records the vertical bar as ordinary text of the slug or the anchor containing it
+    Then the CLI records the vertical bar as ordinary text of that anchor
 
   @AC-SPECANCH-001.6
   Scenario: An anchor in a frontmatter property is recorded like any other
@@ -144,11 +145,9 @@ Feature: Anchor Extraction in the Index
 entry, at one span — not two references (AC-SPECANCH-001.1).
 `#Element  Registry` keeps its double space, because the index has to
 report the text a fix will edit (AC-SPECANCH-001.2).
-`` `[[adr-012|the reference conventions ADR]]` `` records the whole of
-`adr-012|the reference conventions ADR` as its slug, which matches no
-corpus member and reports as unresolved — the alias
-[[cross-document-references]] prohibits reaches nothing rather than
-resolving quietly (AC-SPECANCH-001.5). `sources: ["adr-012#Decision"]`
+`` `[[container-spec-cli#Element Registry|the registry]]` `` records the
+anchor `Element Registry|the registry`, which is the identifier of no
+heading and reports (AC-SPECANCH-001.5). `sources: ["adr-012#Decision"]`
 records an anchor exactly as a body citation of the same target does: a
 citation names a section wherever it is written (AC-SPECANCH-001.6).
 
@@ -156,9 +155,10 @@ citation names a section wherever it is written (AC-SPECANCH-001.6).
 author wrote — the parent feature records a reference's text and span
 before anything resolves it (AC-SPECREF-001.1), and every question about
 what an anchor matches is answered later, against corpus knowledge the
-index does not hold. AC-SPECANCH-001.5 is stated as a prohibition
-because the obvious handling of an alias, splitting it off and resolving
-the rest, would quietly legalize a notation
+index does not hold. AC-SPECANCH-001.5 covers the one half an alias can
+reach: a vertical bar is not a slug character, so `` `[[adr-012|label]]` ``
+names no document whatever this feature says, while an anchor is free
+text — and splitting one on a bar would quietly legalize a notation
 [[cross-document-references]] forbids.
 
 ### FEAT-SPECANCH-002: Anchor Resolution Checks
@@ -344,7 +344,7 @@ feature answers the same question for slugs the same way.
   the slug half of every reference and defers the anchor half here
 - [[frd-spec-structure-conformance]] — supplies the headings and section
   spans this feature resolves an anchor against
-- [[frd-spec-validation-cli]] — the index, finding engine, severities,
+- [[frd-spec-index]] — the index, finding engine, severities,
   and query surface both features extend
 - [[frd-spec-markdown-links]] — rewrites a citation into a markdown
   link, and derives that link's fragment from the heading this feature
@@ -358,5 +358,6 @@ feature answers the same question for slugs the same way.
 - [[adr-021]] — Gherkin, the notation these features and acceptance
   criteria are written in
 - [[gherkin-guide]] — how to write them
-- `plugin/skills/spec/references/c4-guide.md` — element declarations and
-  the roster headings an element anchor resolves against
+- `plugin/skills/spec/references/shared/c4-standards.md` — element
+  declarations and the roster headings an element anchor resolves
+  against

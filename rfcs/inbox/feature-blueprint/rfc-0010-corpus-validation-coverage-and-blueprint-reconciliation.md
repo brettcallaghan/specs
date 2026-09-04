@@ -191,7 +191,7 @@ established by `rfcs/inbox/retro-skill/rfc-self-retro-skill-withheld-model.md`.
    (#Spans) delta appears in **no** row of the AC Coverage table, and FM
    (#Frontmatter) appears only as a participating delta, never a proving
    one. Nothing in the blueprint states how SP is verified, so grooming
-   derived it from `specs/architecture/module-document-core.md`'s Change
+   derived it from `specs/modules/document-core/document-core-module.md`'s Change
    Guidance ("A change to Spans additionally runs the property tests
    over the delimiter scanner") and wrote that reasoning into the work
    order by hand.
@@ -338,7 +338,7 @@ blueprint says nothing about how it is verified (finding 6). That is a
 legitimate design — a foundational component proven through its
 consumers — but the reasoning lived only in the author's head. Grooming
 reconstructed it from a different document
-(`specs/architecture/module-document-core.md`'s Change Guidance) and
+(`specs/modules/document-core/document-core-module.md`'s Change Guidance) and
 wrote it into the work order, which is the guesswork the readiness gate
 exists to prevent. The gate does not catch it: check 4 requires every AC
 to appear in the table, not every delta.
@@ -347,7 +347,7 @@ to appear in the table, not every delta.
 one sentence to the SP delta stating that it carries no acceptance
 criteria of its own and is verified through its consumers plus the
 property tests over the delimiter scanner that
-`specs/architecture/module-document-core.md` requires. Adopt the general
+`specs/modules/document-core/document-core-module.md` requires. Adopt the general
 rule for feature blueprints in this repository: WHERE a delta block is
 named in no AC Coverage row, the delta SHALL state its verification
 basis.

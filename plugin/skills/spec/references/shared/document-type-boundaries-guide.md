@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/guides/document-type-boundaries.md (version 0.1)
+     Source of truth: specs/guides/document-type-boundaries-guide.md (version 0.1)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 

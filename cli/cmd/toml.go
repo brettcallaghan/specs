@@ -46,7 +46,7 @@ func syntaxErrorSpan(src []byte, err error) specmodel.Span {
 // tree, independent of whether any other part of the tree is
 // schema-valid — so an unregistered profile name is still checked, and
 // reported, in the same run as an unrelated defect elsewhere in the file
-// (contract-specs-configuration.md's "report every defect... rather than
+// (specs-configuration-contract.md's "report every defect... rather than
 // stopping at the first").
 func profileNameFrom(raw map[string]any) (string, bool) {
 	section, ok := raw["profile"].(map[string]any)

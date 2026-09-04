@@ -23,7 +23,7 @@ skipped a section or still carries its template's instruction blocks can
 reach review looking finished.
 
 This feature adds structure awareness to the tool established by
-[[frd-spec-validation-cli]]. It walks each document's headings and body,
+[[frd-spec-index]]. It walks each document's headings and body,
 records the headings with their section spans and the parsed record
 blocks in the shared index, and reports documents that omit a required
 section, exceed the configured line width, or retain placeholder or
@@ -197,7 +197,7 @@ Feature: Structure Configuration
 
 ## References
 
-- [[frd-spec-validation-cli]] — the index, finding engine, corpus
+- [[frd-spec-index]] — the index, finding engine, corpus
   discovery, and configuration this feature extends
 - [[frd-spec-anchor-references]] — consumes the headings this feature
   extracts to resolve anchor references

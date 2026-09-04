@@ -8,7 +8,7 @@ type: frd
 status: approved
 updated_at: 2026-09-03T00:00:00Z
 sources:
-  - "frd-spec-validation-cli"
+  - "frd-spec-index"
 ---
 
 # Spec Corpus Reference Integrity
@@ -37,7 +37,7 @@ been checked from both ends. Those are not passing checks. They are
 checks that have never run.
 
 This feature adds reference awareness to the tool established by
-[[frd-spec-validation-cli]]. It reads each document's body and
+[[frd-spec-index]]. It reads each document's body and
 reference-bearing frontmatter, records the outbound and inbound
 references in the shared index, and reports every reference that
 resolves to no corpus member. It does not introduce a new artifact or a
@@ -218,7 +218,7 @@ to cite a standard" contributes no reference, because the link is an
 illustration (AC-SPECREF-001.2). `adr-004`'s entry lists `adr-005`,
 `adr-006` and `adr-007` as inbound, without any of them declaring the
 relationship in frontmatter (AC-SPECREF-001.3).
-`specs/adrs/ADR-012-reference-conventions.md` line 3 carries
+`specs/adrs/adr-012-reference-conventions.md` line 3 carries
 `description: References use [[slug]] wikilinks …`, which names the
 notation rather than a document (AC-SPECREF-001.4). An FRD citing
 `` `[[adr-021]]` `` in its Requirements and again in its References
@@ -332,7 +332,7 @@ Feature: Reference Integrity Checks
 ```
 
 *Examples:* `reference/unresolved  error
-specs/adrs/ADR-004-module-blueprint-and-atomic-component.md:88:12`
+specs/adrs/adr-004-module-blueprint-and-atomic-component.md:88:12`
 "`[[adr-011]]` matches no document's slug" (AC-SPECREF-002.1).
 `` `[[container-spec-cli#Element Registry]]` `` resolves iff a corpus
 member declares `slug: container-spec-cli`; whether that document has an
@@ -533,7 +533,7 @@ indistinguishable from a passing one: the check runs, finds no
 registered property to compare, and reports success.
 
 *Note on numbering:* this feature's requirements carry the `SPECREF`
-prefix rather than continuing [[frd-spec-validation-cli]]'s sequence.
+prefix rather than continuing [[frd-spec-index]]'s sequence.
 FEAT-SPEC-004, the number reference integrity held before the split, is
 left unused in that document rather than reclaimed here, so the ADRs
 citing FEAT-SPEC-006, -008 and -009 keep resolving. The gap there and the
@@ -544,7 +544,7 @@ renumbered.
 
 ## References
 
-- [[frd-spec-validation-cli]] — the index, finding engine, corpus
+- [[frd-spec-index]] — the index, finding engine, corpus
   discovery, and configuration this feature extends
 - [[frd-spec-anchor-references]] — the sub-feature that resolves the
   anchor half of a reference this feature resolves the slug half of

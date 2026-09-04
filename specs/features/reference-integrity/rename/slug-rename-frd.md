@@ -166,7 +166,7 @@ become `` `[[adr-012]]` `` when renamed to `adr-012` — resolution is
 case-insensitive per AC-SPEC-003.4, so both were valid before, and
 leaving them divergent preserves a difference that means nothing and
 greps badly (AC-SPECREN-001.5). Renaming the slug of
-`specs/adrs/ADR-011-targeted-verification-gates.md` leaves the path
+`specs/adrs/adr-011-targeted-verification-gates.md` leaves the path
 untouched (AC-SPECREN-001.6).
 
 *Rationale:* AC-SPECREN-001.2 is the criterion this whole feature turns
@@ -242,7 +242,7 @@ modes are worse than its success is valuable. A rename that half
 completes, or that renames toward a name already taken, produces a
 corpus that is harder to repair than the one the author started with.
 Preview-by-default (AC-SPECREN-002.1) is the same argument as the
-ordering [[frd-spec-validation-cli]] sets between indexing and checking:
+ordering [[frd-spec-index]] sets between indexing and checking:
 the destructive step is always the one you opt into.
 
 ### FEAT-SPECREN-003: Outcome
@@ -355,7 +355,7 @@ four are built.
 - [[frd-spec-reference-integrity]] — the parent feature, whose recorded
   reference spans this command rewrites and whose checks verify the
   result
-- [[frd-spec-validation-cli]] — the index, corpus discovery, and command
+- [[frd-spec-index]] — the index, corpus discovery, and command
   surface this feature extends
 - [[frd-spec-anchor-references]] — the anchor half of a reference, whose
   preservation AC-SPECREN-001.3 requires

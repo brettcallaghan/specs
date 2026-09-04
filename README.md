@@ -136,12 +136,12 @@ thousands of systems, where every team's diagram means the same thing.
 | Document | Captures | Example | Template |
 |:---|:---|:---|:---|
 | **System Blueprint** | A system's context, its containers, its public contracts, deployment (C4 levels 1–2) | *none in this repo yet* | [`system-blueprint-template.md`](plugin/skills/spec/references/system-blueprint-template.md) |
-| **Container Blueprint** | One deployable unit: components, contracts provided and consumed, owned data, change guidance | [Container: Spec CLI](specs/architecture/container-spec-cli.md) | [`container-blueprint-template.md`](plugin/skills/spec/references/container-blueprint-template.md) |
+| **Container Blueprint** | One deployable unit: components, contracts provided and consumed, owned data, change guidance | [Container: Spec CLI](specs/containers/spec-cli/spec-cli-container.md) | [`container-blueprint-template.md`](plugin/skills/spec/references/container-blueprint-template.md) |
 | **Component Blueprint** | An atomic internal building block of one container, plus its interface | *none in this repo yet* | [`component-blueprint-template.md`](plugin/skills/spec/references/component-blueprint-template.md) |
-| **Module Blueprint** | A unit that crosses a boundary of independent change — shared or published across containers, or composite — plus versioning and change rules | [Module: Document Core](specs/architecture/module-document-core.md) | [`module-blueprint-template.md`](plugin/skills/spec/references/module-blueprint-template.md) |
-| **ADR** — Architecture Decision Record | One significant decision: context, alternatives, choice, consequences | [ADR-015: Go for the Spec CLI](specs/adrs/ADR-015-go-for-the-spec-cli.md) | [`adr-template.md`](plugin/skills/spec/references/adr-template.md) |
+| **Module Blueprint** | A unit that crosses a boundary of independent change — shared or published across containers, or composite — plus versioning and change rules | [Module: Document Core](specs/modules/document-core/document-core-module.md) | [`module-blueprint-template.md`](plugin/skills/spec/references/module-blueprint-template.md) |
+| **ADR** — Architecture Decision Record | One significant decision: context, alternatives, choice, consequences | [ADR-015: Go for the Spec CLI](specs/adrs/adr-015-go-for-the-spec-cli.md) | [`adr-template.md`](plugin/skills/spec/references/adr-template.md) |
 | **Standards** | Cross-cutting standards, policies, invariants, constraints | [Testing Standards](specs/standards/testing-standards.md) | [`standards-template.md`](plugin/skills/spec/references/standards-template.md) |
-| **Contract** | The prose semantics of an interface consumed across a boundary: an API, event stream, or data product | [Contract: Specs Configuration](specs/contracts/contract-specs-configuration.md) | [`contract-template.md`](plugin/skills/spec/references/contract-template.md) |
+| **Contract** | The prose semantics of an interface consumed across a boundary: an API, event stream, or data product | [Contract: Specs Configuration](specs/contracts/specs-configuration-contract.md) | [`contract-template.md`](plugin/skills/spec/references/contract-template.md) |
 
 > **We document systems, containers, and components — and stop there.**
 > Code is the last level of the C4 hierarchy, and only transient work
@@ -266,7 +266,7 @@ line_width = 80
 
 The engine is framework-agnostic; the document vocabulary comes from a
 **profile** plugged into it — see
-[Module: Spec-Driven Development Profile](specs/architecture/module-spec-profile.md).
+[Module: Spec-Driven Development Profile](specs/modules/spec-profile/spec-profile-module.md).
 
 ### Test coverage
 

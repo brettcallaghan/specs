@@ -920,7 +920,7 @@ updated_at: "2026-08-05T00:00:00Z"
 // draft and approved are live, retired is retired, and superseded_by is
 // the successor property — this framework's own registration, restated
 // here as test data rather than imported, so this package proves its
-// checks against a fixture it owns (module-spec-profile.md's Change
+// checks against a fixture it owns (spec-profile-module.md's Change
 // Guidance: Document Core imports no profile).
 func lifecycleCheckProfile() corpus.Profile {
 	return stubProfile{

@@ -16,7 +16,7 @@ updated_at: 2026-07-31T00:00:00Z
 
 ## Context
 
-[[frd-spec-validation-cli]] deliberately states requirements rather than
+[[frd-spec-index]] deliberately states requirements rather than
 technology and defers this choice. FEAT-SPEC-009 binds: a corpus query
 returns within 50 ms at p95 against a warm index, a single-document
 check within 100 ms, a cold 1,000-document index within 1 second, and
@@ -298,7 +298,7 @@ need appears that Go cannot meet.
 
 ## References
 
-- [[frd-spec-validation-cli]] — FEAT-SPEC-009, the requirements this
+- [[frd-spec-index]] — FEAT-SPEC-009, the requirements this
   decision is measured against
 - [[adr-021]] — adopts Gherkin for acceptance criteria, exercising the
   in-process parser this decision preserved

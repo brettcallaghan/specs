@@ -164,7 +164,7 @@ Records is retained as designed but marked not yet built.
 transcribed from the prefix registry**, and in three places the two
 disagree. Feature blueprints: the registry assigns `fb-`, while this
 repository's one real feature blueprint is slugged
-`feature-spec-validation-cli`, so the pattern follows the document that
+`feature-spec-index`, so the pattern follows the document that
 exists. Guides: the registry has no row at all and this repository's four
 guides split two-and-two on a `guide-` prefix, so the pattern is the
 type's least restrictive form. RFCs: this repository mixes a numbered
@@ -397,7 +397,7 @@ under Interface come from.
 ## References
 
 - `c4-guide.md` — C4 mapping rules and diagram conventions
-- [[frd-spec-validation-cli]] — the requirements this module's
+- [[frd-spec-index]] — the requirements this module's
   registrations satisfy
 - [[container-spec-cli]] — the container this module is composed into
 - [[module-document-core]] — the host it registers into
