@@ -4,7 +4,7 @@ description: References use [[slug]] wikilinks for documents, heading anchors fo
 slug: adr-012
 type: adr
 status: ready-for-review
-updated_at: 2026-08-05T00:00:00Z
+updated_at: 2026-09-03T00:00:00Z
 ---
 
 # ADR-012: Wikilink and Anchor Reference Conventions
@@ -51,6 +51,8 @@ backticks reserved for code:
   heading in their parent container's or module's Components roster, and
   referenced by an Obsidian heading anchor into that parent:
   `[[container-<name>#Display Name]]`.
+- **A section of the referring document itself** is referenced by an
+  anchor with the slug omitted: `[[#Terminology]]`.
 - **Code-level elements that are not modeled components** — schemas,
   domain types, events, flags, tables — use backtick identifiers
   (`` `ElementName` ``).

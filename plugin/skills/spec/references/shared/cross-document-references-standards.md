@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/standards/cross-document-references-standards.md (version 0.3)
+     Source of truth: specs/standards/cross-document-references-standards.md (version 0.4)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -11,8 +11,8 @@ description: How documents reference each other and the elements they
 slug: cross-document-references
 type: standards
 status: active
-updated_at: 2026-08-09T00:00:00Z
-version: "0.3"
+updated_at: 2026-09-03T00:00:00Z
+version: "0.4"
 ---
 
 # Cross-Document Reference Standards
@@ -71,6 +71,10 @@ link: `the checkout FRD ([[frd-checkout]])`.
 
 **Correct:** `See [[security-standards]] for requirements.`  
 **Incorrect:** `See Security Standards for requirements.`
+
+WHERE an anchor names a section of the document containing the
+reference, the slug MAY be omitted: `[[#Terminology]]`. Such a reference
+resolves against the containing document.
 
 **Rationale:** An unambiguous closing delimiter lets tooling extract and
 validate every reference against the frontmatter index and build

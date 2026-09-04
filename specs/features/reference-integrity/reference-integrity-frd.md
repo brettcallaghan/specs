@@ -6,7 +6,7 @@ description: Parses cross-document references from a spec corpus, records
 slug: frd-spec-reference-integrity
 type: frd
 status: approved
-updated_at: 2026-08-15T00:00:00Z
+updated_at: 2026-09-04T00:00:00Z
 sources:
   - "frd-spec-index"
 ---
@@ -31,7 +31,7 @@ prototype and a hand migration, and nothing now stands between the
 corpus and the next such drift; a corpus that is clean exactly once, at
 the moment someone looked, is the state this feature exists to end. The
 same scan also shows how little of the relationship graph has ever been
-examined: no reference in the corpus names a heading anchor, no retired
+examined: no anchor has ever been resolved against a heading, no retired
 document's successor has been resolved, and no paired relationship has
 been checked from both ends. Those are not passing checks. They are
 checks that have never run.
@@ -63,11 +63,11 @@ deliberately, not overlooked:
   Interpreting it is specified in [[frd-spec-anchor-references]], a
   sub-feature of this one. The split is deliberate: anchor resolution
   needs heading data this feature does not have, from
-  [[frd-spec-structure-conformance]], and the corpus contains no anchor
-  reference today — so shipping slug resolution first costs the corpus
-  nothing and unblocks it sooner.
+  [[frd-spec-structure]], and every anchor reference in the
+  corpus resolves on its slug half — so shipping slug resolution first
+  costs the corpus nothing and unblocks it sooner.
 - **Heading extraction and section spans.** Specified in
-  [[frd-spec-structure-conformance]]. Nothing in this feature reads a
+  [[frd-spec-structure]]. Nothing in this feature reads a
   document's headings.
 - **Suggesting a correction for a broken reference.** Findings state
   the fact and leave the fix to a reviewing agent.
@@ -280,7 +280,6 @@ Feature: Reference Integrity Checks
     Given a reference naming a heading anchor
     When the CLI checks it
     Then the CLI resolves the reference on its slug portion alone
-    And the CLI reports no finding about the anchor
 
   @AC-SPECREF-002.3
   Scenario: A reference-bearing frontmatter value matching no corpus member is an error
@@ -551,8 +550,8 @@ renumbered.
   anchor half of a reference this feature resolves the slug half of
 - [[frd-spec-slug-rename]] — the sub-feature that rewrites every
   reference to a slug when the slug is deliberately renamed
-- [[frd-spec-structure-conformance]] — supplies the document headings
-  the anchor sub-feature resolves an anchor against
+- [[frd-spec-structure]] — supplies the document headings the anchor
+  sub-feature resolves an anchor against
 - [[contract-specs-configuration]] — the configuration surface
   FEAT-SPECREF-004 consumes, whose `reference_properties` and `pairings`
   are already declared

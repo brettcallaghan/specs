@@ -2,7 +2,7 @@
 # SessionStart hook — provision this repo's dependencies so a session can
 # actually run the workflows the skills prescribe.
 #
-# Three jobs:
+# Four jobs:
 #   1. Install `bd` (Beads), which every grooming and orchestration skill in
 #      this repo assumes is on PATH. Without it those skills cannot be
 #      exercised at all, which is the definition of not dogfooding.
@@ -11,6 +11,9 @@
 #      session runs the working tree directly — no materialization step, and
 #      no global copy can shadow it.
 #   3. Build the `strata` CLI.
+#   4. Install the `swarm` plugin at user scope and build the `swarm` CLI. Its
+#      skills are the sprint orchestration this repo grooms beads for, and each
+#      of them shells out to that CLI.
 #
 # Idempotent and non-interactive. Safe to re-run — and sometimes it must be
 # re-run by hand, because this hook is not always invoked:
@@ -533,7 +536,169 @@ if [ "${STRATA_CLI_SKIP:-}" != "1" ]; then
   fi
 fi
 
-# --- 5. Fail loudly if the tracker is unreachable ----------------------------
+# --- 5. swarm plugin and CLI -------------------------------------------------
+# The `swarm` plugin (skills `swarm`, `sprint-*`, `swarm-dispatch`) orchestrates
+# a sprint over this repository's bead backlog, and every one of those skills
+# shells out to the `swarm` CLI. Neither half is useful alone, so both are
+# provisioned here: the plugin at user scope, the CLI on PATH.
+#
+# Non-fatal throughout. A session with no swarm can still do everything the
+# rest of this hook provisions.
+if [ "${SWARM_SKIP:-}" != "1" ]; then
+  SWARM_CACHE="$HOME/.cache/swarm-cli"
+  SWARM_CLONE="$HOME/.cache/swarm-src"
+  SWARM_BIN=/usr/local/bin/swarm
+  SWARM_STAMP="$SWARM_CACHE/built-commit"
+  SWARM_LOG="$SWARM_CACHE/build.log"
+  mkdir -p "$SWARM_CACHE"
+
+  # Prefer a checkout the session already has, for the same reason strata does:
+  # if swarm is attached as a source, the CLI should match the code in front of
+  # the user.
+  swarm_src=""
+  for candidate in "${SWARM_SRC_DIR:-}" "$PROJECT_DIR/../swarm" "$HOME/swarm" \
+                   "$SWARM_CLONE"; do
+    [ -n "$candidate" ] || continue
+    [ -f "$candidate/cmd/swarm/main.go" ] || continue
+    swarm_src="$(cd "$candidate" && pwd)"
+    break
+  done
+
+  # brettcallaghan/swarm is private. The token that already exists in this
+  # environment for the Dolt remote — AGENT_PLUGINS_ACCESS_TOKEN — reads it
+  # (SWARM_ACCESS_TOKEN overrides, for an environment that scopes them apart).
+  # Handed to git through a credential helper that reads the variable at call
+  # time, never written into the remote URL: a URL carrying the token persists
+  # in .git/config and leaks into `git remote -v`.
+  #
+  # Scoped to this clone via `git clone -c`, never global — a global github.com
+  # helper would also answer for this repository's own pushes.
+  #
+  # No proxy bypass: the clone succeeds through the egress proxy with this
+  # token. Do not add one — the bypass this repo configures is scoped to
+  # origin's URL on purpose (see AGENTS.md).
+  SWARM_CRED_HELPER='!f() { [ "$1" = get ] || exit 0; t="${SWARM_ACCESS_TOKEN:-${AGENT_PLUGINS_ACCESS_TOKEN:-}}"; [ -n "$t" ] || exit 0; printf "username=x-access-token\npassword=%s\n" "$t"; }; f'
+
+  if [ -z "$swarm_src" ]; then
+    if [ -z "${SWARM_ACCESS_TOKEN:-${AGENT_PLUGINS_ACCESS_TOKEN:-}}" ]; then
+      log "WARNING: no swarm checkout and neither SWARM_ACCESS_TOKEN nor AGENT_PLUGINS_ACCESS_TOKEN is set — brettcallaghan/swarm is private, so the clone would fail. Point SWARM_SRC_DIR at a checkout, or set SWARM_SKIP=1."
+    fi
+    log "cloning brettcallaghan/swarm into $SWARM_CLONE"
+    # `-c credential.helper=` first resets the multi-valued list, so a global
+    # helper carrying the wrong identity cannot answer ahead of this one —
+    # GitHub reports that case as a 403 about write access, for a read.
+    if git clone --filter=blob:none --quiet \
+         -c credential.helper= -c "credential.helper=$SWARM_CRED_HELPER" \
+         https://github.com/brettcallaghan/swarm.git \
+         "$SWARM_CLONE" >>"$SWARM_LOG" 2>&1 \
+       || git clone --quiet \
+            -c credential.helper= -c "credential.helper=$SWARM_CRED_HELPER" \
+            https://github.com/brettcallaghan/swarm.git \
+            "$SWARM_CLONE" >>"$SWARM_LOG" 2>&1; then
+      swarm_src="$SWARM_CLONE"
+    else
+      log "WARNING: could not clone swarm (see $SWARM_LOG) — plugin and CLI unavailable"
+    fi
+  fi
+
+  if [ -n "$swarm_src" ]; then
+    # Reassert the helper on the clone this hook owns, so a clone made by an
+    # earlier version of this script can still fetch. Never on an attached
+    # checkout: that one belongs to the user.
+    if [ "$swarm_src" = "$SWARM_CLONE" ] \
+       && git -C "$swarm_src" rev-parse --git-dir >/dev/null 2>&1; then
+      git -C "$swarm_src" config --replace-all credential.helper "" 2>/dev/null || true
+      git -C "$swarm_src" config --add credential.helper "$SWARM_CRED_HELPER" 2>/dev/null || true
+    fi
+
+    # Fast-forward only, and only a clean default branch. A session may be
+    # mid-change in an attached swarm checkout; a hook that resets someone's
+    # branch is data loss, not convenience.
+    _swarm_fetch_unverified=0
+    if ! git -C "$swarm_src" rev-parse --git-dir >/dev/null 2>&1; then
+      log "swarm: $swarm_src is not a git checkout — building it as-is"
+    else
+      _sdefault="$(git -C "$swarm_src" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||' || true)"
+      _sdefault="${_sdefault:-main}"
+      _sbranch="$(git -C "$swarm_src" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '')"
+      if [ "$_sbranch" != "$_sdefault" ]; then
+        log "swarm: checkout is on '$_sbranch', not '$_sdefault' — building it as-is"
+      elif [ -n "$(git -C "$swarm_src" status --porcelain 2>/dev/null)" ]; then
+        log "swarm: checkout has uncommitted changes — building it as-is"
+      else
+        git -C "$swarm_src" fetch --quiet origin "$_sdefault" >>"$SWARM_LOG" 2>&1 \
+          && git -C "$swarm_src" merge --ff-only --quiet "origin/$_sdefault" >>"$SWARM_LOG" 2>&1 \
+          || { _swarm_fetch_unverified=1; log "WARNING: swarm: fetch/fast-forward against upstream failed — using the checkout as-is; freshness relative to upstream is unverified this session (see $SWARM_LOG)"; }
+      fi
+    fi
+
+    # --- the plugin ---------------------------------------------------------
+    # Both installs are idempotent: `marketplace add` on an already-declared
+    # marketplace and `install` of an already-installed plugin both report the
+    # existing state and exit 0. `--yes` is required because stdout here is not
+    # a TTY.
+    #
+    # sf first. swarm declares sf@spec-driven-dev as a plugin dependency, and
+    # without it `claude plugin install swarm@swarm` reports "1 dependency
+    # still unresolved". THIS repository is the spec-driven-dev marketplace, so
+    # sf installs from the working tree — no clone, no token, and the same
+    # files the committed .claude/skills/ symlinks already point at.
+    if ! command -v claude >/dev/null 2>&1; then
+      log "WARNING: claude not on PATH — skipping the swarm plugin install"
+    else
+      _plugin_ok=1
+      for _m in "$PROJECT_DIR" "$swarm_src"; do
+        claude plugin marketplace add "$_m" --scope user >>"$SWARM_LOG" 2>&1 \
+          || { _plugin_ok=0; log "WARNING: could not add the marketplace at $_m (see $SWARM_LOG)"; }
+      done
+      for _p in sf@spec-driven-dev swarm@swarm; do
+        claude plugin install "$_p" --scope user --yes >>"$SWARM_LOG" 2>&1 \
+          || { _plugin_ok=0; log "WARNING: could not install plugin $_p (see $SWARM_LOG)"; }
+      done
+      [ "$_plugin_ok" = "1" ] && log "swarm plugin installed at user scope (with sf@spec-driven-dev, its declared dependency)"
+    fi
+
+    # --- the CLI ------------------------------------------------------------
+    # An empty _shead means the source is not a git checkout, which rebuilds
+    # every session: there is no commit to compare, and a placeholder stamp
+    # would match itself forever and pin the binary.
+    _shead="$(git -C "$swarm_src" rev-parse HEAD 2>/dev/null || true)"
+    if ! command -v go >/dev/null 2>&1; then
+      log "WARNING: go not on PATH — cannot build the swarm CLI"
+    elif [ -n "$_shead" ] && [ -x "$SWARM_BIN" ] \
+         && [ "$(cat "$SWARM_STAMP" 2>/dev/null)" = "$_shead" ]; then
+      if [ "$_swarm_fetch_unverified" = "1" ]; then
+        # The stamp matching local HEAD proves the binary matches disk, not
+        # that disk is caught up with upstream.
+        log "WARNING: swarm CLI stamp matches local HEAD (${_shead:0:8}), but this session could not verify that HEAD against upstream (fetch failed above) — the installed binary may be stale. Re-run the hook once github.com is reachable, or inspect $SWARM_LOG."
+      else
+        log "swarm CLI current: ${_shead:0:8}"
+      fi
+    else
+      log "building swarm CLI from $swarm_src${_shead:+ @ ${_shead:0:8}}"
+      _swarm_tmp="$SWARM_CACHE/swarm.new"
+      if (cd "$swarm_src" && CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" \
+            -o "$_swarm_tmp" ./cmd/swarm) >>"$SWARM_LOG" 2>&1 \
+         && install -m 0755 "$_swarm_tmp" "$SWARM_BIN" 2>>"$SWARM_LOG"; then
+        rm -f "$_swarm_tmp"
+        # Prove the binary runs before stamping. `--help` rather than a bare
+        # invocation: `swarm` with no arguments exits 3 by design.
+        if "$SWARM_BIN" --help >/dev/null 2>&1; then
+          if [ -n "$_shead" ]; then printf '%s' "$_shead" > "$SWARM_STAMP"; else rm -f "$SWARM_STAMP"; fi
+          log "swarm CLI ready: $SWARM_BIN${_shead:+ (${_shead:0:8})}"
+        else
+          rm -f "$SWARM_STAMP"
+          log "WARNING: $SWARM_BIN was installed but does not run — see $SWARM_LOG"
+        fi
+      else
+        rm -f "$_swarm_tmp"
+        log "WARNING: swarm CLI build failed — see $SWARM_LOG"
+      fi
+    fi
+  fi
+fi
+
+# --- 6. Fail loudly if the tracker is unreachable ----------------------------
 # Deliberately last: everything else still gets provisioned, so the failure is
 # reported against a fully set-up session rather than aborting halfway. But it
 # IS a failure — this repository's issue tracker lives on the Dolt remote, and
