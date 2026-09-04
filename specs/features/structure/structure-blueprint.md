@@ -50,7 +50,13 @@ like every other model rather than assembled in the emitter.
   `IndexEntry` SHALL carry those attached to the document rather than to
   any heading.
 - A recorded record block SHALL carry its tag, its parsed content, and
-  the span of the block as written.
+  the span of the block as written. The parsed content is what a
+  catalogue reads an element declaration from; measured on this corpus,
+  thirteen blocks carry 1,991 bytes against a 433 KB index, beside the
+  153 KB the parsed Gherkin features already occupy.
+- The index SHALL carry no section content, only the span of it. A
+  reader that wants the text reads it back through the span, which is
+  what the CMD delta's emit form does.
 - The `schema_version` SHALL remain `1.0`: every property this delta
   adds is an addition, which the container blueprint's additive rule
   admits without a bump.
@@ -62,8 +68,11 @@ like every other model rather than assembled in the emitter.
 
 **Intent:** The component's own blueprint records the heading tree as
 not yet built. This delta builds it: every heading with the span of the
-content beneath it, which is the one input anchor resolution needs and
-the unit a reviewing agent reads.
+content beneath it, and the identifier a markdown renderer would derive
+from it. The identifier lives here because it is a property of a
+heading, and because the first thing to need it is this feature's own
+query; [[frd-spec-anchor-references]] then matches against the same
+derivation rather than a second one.
 
 **Behavior:**
 - The component SHALL return every heading of a document body in
@@ -76,6 +85,12 @@ the unit a reviewing agent reads.
 - Every span the component returns SHALL be computed through `Spans`.
 - WHERE a document carries no heading, the component SHALL return an
   empty result rather than an error.
+- The component SHALL expose the heading identifier of a text: its
+  rendered inline content lowercased, with every character that is not
+  a letter, digit, hyphen, underscore or space removed, and each
+  remaining space replaced by a hyphen.
+- The derivation SHALL be a pure function of the text, deriving no
+  positional suffix for a repeated heading.
 
 **Anchors:** `cli/core/markdown` (alongside `Fenced`); `goldmark` for
 heading recognition, as `Fenced` already uses it for fences; `Of` in
@@ -110,15 +125,28 @@ existing discipline — open warm, convert flags into one core call, and
 carry the result back out with no domain logic in the command.
 
 **Behavior:**
-- The CLI SHALL expose a command answering, for a heading selection,
-  every matching heading as a file path, the heading text, and the span
-  of the content beneath it.
-- The selection SHALL be an operand of the command naming one heading,
-  matched on the heading identifier so that letter case and punctuation
-  do not decide a match.
+- The CLI SHALL expose a `headings` command answering a heading
+  selection with every match's file path, heading text, heading
+  identifier, level, and the span of the content beneath it.
+- The selection SHALL be one operand written `<document>#<heading>`,
+  either half of which MAY be omitted: `<document>` alone selects every
+  heading in that document, `#<heading>` alone selects that heading in
+  every corpus member, and an absent operand selects every heading in
+  the corpus.
+- WHERE the operand's document half holds a path separator or ends in
+  `.md`, the CLI SHALL read it as a repository-relative path; otherwise
+  it SHALL read it as a slug.
+- The CLI SHALL match a heading selection on heading identifier.
+- WHEN a selection matches a heading, the CLI SHALL also return every
+  heading within that heading's section, each carrying its own level.
+- WHEN the caller asks for it, the CLI SHALL emit the content each
+  matched heading stands over, read through the recorded span.
+- The CLI SHALL accept `--json`, as every other query command does.
 - WHERE no heading matches, the CLI SHALL report that and exit zero.
 - The command SHALL open the corpus warm, as `check`, `refs`,
   `slug-exists` and `next-id` do.
+- The command SHALL be one flat command with no subcommand of its own,
+  as every command on this surface is.
 - The command's `--help` text SHALL derive from the declaration that
   defines it.
 
@@ -244,7 +272,7 @@ in `cli/core/finding`.
 ## AC Coverage
 
 Legend: MODEL = the structure properties on the index model; HEAD =
-`Markdown Structure` (headings and section spans); IDX = `Corpus`
+`Markdown Structure` (headings, section spans and identifiers); IDX = `Corpus`
 population of those properties; CMD = Command Surface in
 [[container-spec-cli]]; XPT = the record-block tag registration on the
 `Profile` extension point; REC = `Markdown Structure` (record-block
@@ -255,6 +283,11 @@ parsing and attachment).
 | AC-SPECSTR-001.1 | **HEAD (proves)**, MODEL, IDX | unit |
 | AC-SPECSTR-001.2 | **REC (proves)**, XPT, MODEL, IDX | unit |
 | AC-SPECSTR-003.1 | **CMD (proves)**, HEAD, IDX | integration |
+| AC-SPECSTR-003.2 | **CMD (proves)**, HEAD | integration |
+| AC-SPECSTR-003.3 | **CMD (proves)**, IDX | integration |
+| AC-SPECSTR-003.4 | **CMD (proves)**, HEAD | integration |
+| AC-SPECSTR-003.5 | **CMD (proves)**, HEAD | integration |
+| AC-SPECSTR-003.6 | **CMD (proves)** | integration |
 
 ## Key Decisions
 

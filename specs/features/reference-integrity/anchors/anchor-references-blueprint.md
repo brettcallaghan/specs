@@ -28,7 +28,7 @@ gains two checks, and the command surface gains an anchor-qualified
 an anchor where a document's own slug may not, and the finding union
 gains the two variants the checks report through.
 
-Delta blocks in dependency order: FIND, SREF, AEX, HID, ARES, CHK, CMD.
+Delta blocks in dependency order: FIND, SREF, AEX, MDL, ARES, CHK, CMD.
 
 ## Element Deltas
 
@@ -95,32 +95,26 @@ quietly acquire an alias splitter or normalize on the way in.
 **Anchors:** `cli/core/references/references.go` (`reference`,
 `bodyReferences`, `frontmatterReferences`).
 
-### Heading identifiers in [[module-document-core]] (added) — HID
+### Markdown Links in [[module-document-core]] (modified) — MDL
 
-**Intent:** Two halves of the module need the same derivation: the
-matcher, to compare an anchor with a heading, and the rewriter, to emit
-a fragment. `cli/core/mdlinks` holds a private one today. Left as two,
-they can disagree, and every disagreement is a link the checks call
-resolved and a reader cannot follow. This delta gives the derivation one
-home, in the component that owns heading semantics, and makes the
-rewriter a consumer of it.
+**Intent:** `cli/core/mdlinks` holds a private heading-identifier
+derivation, and [[frd-spec-structure]] exposes the one this feature
+matches against. Left as two, they can disagree, and every disagreement
+is a link the checks call resolved and a reader cannot follow. This
+delta makes the rewriter a consumer of the shared derivation, and
+settles which heading a fragment is derived from.
 
 **Behavior:**
-- `Markdown Structure` SHALL expose the heading identifier of a text:
-  its rendered inline content lowercased, with every character that is
-  not a letter, digit, hyphen, underscore or space removed, and each
-  remaining space replaced by a hyphen.
-- The derivation SHALL be a pure function of the text, deriving no
-  positional suffix for a repeated heading.
-- `Markdown Links` SHALL derive a fragment through that surface rather
-  than through a derivation of its own.
+- `Markdown Links` SHALL derive a fragment through the heading
+  identifier `Markdown Structure` exposes rather than through a
+  derivation of its own.
 - WHERE a reference's anchor resolves to a heading, `Markdown Links`
   SHALL derive the emitted fragment from that heading.
 - WHERE a reference's anchor resolves to no heading, `Markdown Links`
   SHALL derive the emitted fragment from the anchor as authored.
 
-**Anchors:** `cli/core/markdown`; `slugifyAnchor` and `anchorFragment`
-in `cli/core/mdlinks/mdlinks.go`.
+**Anchors:** `slugifyAnchor` and `anchorFragment` in
+`cli/core/mdlinks/mdlinks.go`.
 
 ### References in [[module-document-core]] (modified — matching) — ARES
 
@@ -201,7 +195,8 @@ cases under `cli/testdata/cases/`.
 ### Relied-upon elements (unchanged)
 
 - [[frd-spec-structure]] — supplies the heading tree the ARES and CHK
-  deltas match against; see Sequencing Constraints.
+  deltas match against, and the heading-identifier derivation ARES and
+  MDL both use; see Sequencing Constraints.
 - [[container-spec-cli#Command Surface]] — the warm corpus open that
   `check` and `refs` already share.
 - `Corpus` in [[module-document-core]] — the index the resolved
@@ -243,7 +238,7 @@ cases under `cli/testdata/cases/`.
     extraction semantics are pinned and tested, a frontmatter citation
     may carry an anchor, and the finding vocabulary exists. No check
     runs, no finding is raised, and no exit status changes.
-  - **Stage 2 — matching, checks and query:** HID, ARES, CHK, CMD.
+  - **Stage 2 — matching, checks and query:** MDL, ARES, CHK, CMD.
     Anchors resolve, the checks report, `refs` answers by heading, and
     exit status becomes sensitive to anchors for the first time.
 - The heading tree in `Markdown Structure` SHALL be built before the
@@ -259,8 +254,9 @@ cases under `cli/testdata/cases/`.
 - The SREF delta SHALL land before a frontmatter citation carrying an
   anchor is added to the corpus, since the schema rejects one until it
   lands.
-- The HID delta SHALL land before ARES, which matches through the
-  derivation it exposes.
+- The heading-identifier derivation [[frd-spec-structure]] exposes
+  SHALL land before ARES, which matches through it, and before MDL,
+  which derives a fragment through it.
 - The ARES delta SHALL land before CHK and CMD, which read what it
   resolved.
 - **Lockstep rules spanning delta blocks, and how they are satisfied:**
@@ -271,8 +267,8 @@ cases under `cli/testdata/cases/`.
     additive-at-1.0 rule [[container-spec-cli]] states. The satisfying
     act is the recorded no-bump.
   - [[module-document-core]] requires a new parsing capability to be
-    built on the Spans delimiter scanner. HID derives an identifier from
-    text a heading already carries and computes no position of its own;
+    built on the Spans delimiter scanner. No delta here parses anything
+    new: MDL consumes a derivation over text a heading already carries;
     every position this feature reports is the `Span` its source already
     holds.
   - [[container-spec-cli]] requires the snapshot regeneration script to
@@ -288,8 +284,8 @@ cases under `cli/testdata/cases/`.
 
 Legend: FIND = the finding variants for the two anchor rules; SREF =
 the citation type in the profile's frontmatter schema; AEX = References
-(extraction); HID = the heading-identifier derivation and its two
-consumers; ARES = References (anchor resolution); CHK = the anchor
+(extraction); MDL = the link rewriter's fragment, derived from the
+resolved heading; ARES = References (anchor resolution); CHK = the anchor
 checks in `Corpus`; CMD = Command Surface in [[container-spec-cli]].
 
 | AC | Satisfied by | Verified by |
@@ -299,7 +295,7 @@ checks in `Corpus`; CMD = Command Surface in [[container-spec-cli]].
 | AC-SPECANCH-001.5 | **AEX (proves)** | unit |
 | AC-SPECANCH-001.6 | **SREF (proves)**, AEX | integration |
 | AC-SPECANCH-002.1 | **CHK (proves)**, ARES, FIND | unit |
-| AC-SPECANCH-002.2 | **ARES (proves)**, HID | unit |
+| AC-SPECANCH-002.2 | **ARES (proves)**, MDL | unit |
 | AC-SPECANCH-002.4 | **CHK (proves)**, ARES, FIND | unit |
 | AC-SPECANCH-002.5 | **CHK (proves)**, ARES, FIND | unit |
 | AC-SPECANCH-002.6 | **ARES (proves)** | unit |
@@ -340,7 +336,7 @@ checks in `Corpus`; CMD = Command Surface in [[container-spec-cli]].
   or re-scoped (none; `agent-plugins-bem` is a prerequisite and
   `agent-plugins-z8r` and `agent-plugins-im99` are out-of-scope)
 - [ ] [[frd-spec-markdown-links]]'s revised fragment criteria are
-  verified by the HID delta's tests, since this feature is what makes
+  verified by the MDL delta's tests, since this feature is what makes
   them true
 - [ ] This blueprint's status → retired
 
@@ -355,8 +351,8 @@ None.
   extraction and resolution this design extends
 - [[frd-spec-structure]] — supplies the heading tree stage 2 matches
   against, in AC-SPECSTR-001.1
-- [[frd-spec-markdown-links]] — the rewriter HID makes a consumer of the
-  shared derivation
+- [[frd-spec-markdown-links]] — the rewriter MDL makes a consumer of
+  the shared derivation
 - [[c4-standards]] — the container, module and component definitions the
   delta blocks are written against
 - [[ac-traceability-standards]] — the citation obligation the coverage

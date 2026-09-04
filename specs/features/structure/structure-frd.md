@@ -126,8 +126,45 @@ Feature: Structure Queries
   @AC-SPECSTR-003.1
   Scenario: A heading selection returns each match with its section span
     When the CLI is asked for the spans of headings matching a given selection
-    Then the CLI returns each match as a file path, heading text, and the span of the content beneath it
+    Then the CLI returns each match as a file path, the heading text, its identifier, its level, and the span of the content beneath it
+
+  @AC-SPECSTR-003.2
+  Scenario: A selection matches a heading on its identifier
+    Given a selection naming a heading
+    When the CLI runs the query
+    Then the CLI matches the selection against each heading by identifier, so that letter case and punctuation do not decide a match
+
+  @AC-SPECSTR-003.3
+  Scenario: A selection may name one document or none
+    Given a selection qualified by a document
+    When the CLI runs the query
+    Then the CLI returns matches from that document alone
+    And the CLI answers an unqualified selection from every corpus member
+
+  @AC-SPECSTR-003.4
+  Scenario: A matched heading carries the headings nested beneath it
+    Given a selection matching one heading
+    When the CLI runs the query
+    Then the CLI returns every heading within that heading's section, each with its own level
+
+  @AC-SPECSTR-003.5
+  Scenario: The content beneath a match is returned on request
+    When the CLI is asked to emit the content the headings a selection matches stand over
+    Then the CLI returns the text of each match's section, read from its recorded span
+
+  @AC-SPECSTR-003.6
+  Scenario: A selection matching no heading is an answer rather than a failure
+    Given a selection matching no heading
+    When the CLI runs the query
+    Then the CLI reports that
+    And the CLI exits zero
 ```
+
+*Note:* AC-SPECSTR-003.4 is what answers a roster question — the
+components declared beneath a `Components` heading — without the caller
+knowing how many there are or what they are called. AC-SPECSTR-003.5 is
+what keeps the index free of section content: the span is recorded, and
+the text is read back through it on demand.
 
 ## References
 
