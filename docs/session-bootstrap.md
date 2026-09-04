@@ -10,8 +10,9 @@ frontmatter and is not a corpus member.
 ## The problem
 
 `.claude/settings.json` registers `.claude/hooks/session-start.sh` as a
-SessionStart hook. That hook installs `bd`, builds the `strata` CLI, and
-regenerates the vendored shared references. (The skills are committed
+SessionStart hook. That hook installs `bd`, builds the `strata` CLI,
+installs the `swarm` plugin and builds the `swarm` CLI, and regenerates
+the vendored shared references. (The skills are committed
 symlinks under `.claude/skills/` → `plugin/skills/`, so they need no
 materialization and are unaffected by whether the hook runs.)
 
@@ -31,8 +32,9 @@ the multi-repo case both repositories are cloned as siblings:
   strata/              <- same
 ```
 
-The symptom is no `bd` on PATH and no `strata` binary; the skills are
-committed symlinks and are present either way. The hook script is fine —
+The symptom is no `bd`, `strata` or `swarm` on PATH and no `swarm`
+plugin; this repository's own skills are committed symlinks and are
+present either way. The hook script is fine —
 run by hand it completes. It is simply never invoked.
 
 `strata` has the same exposure through its own
@@ -215,9 +217,18 @@ agent acting on the instruction rather than on the harness enforcing it.
 ## Checking which path ran
 
 ```bash
-command -v bd strata          # both present -> provisioning worked
+command -v bd strata swarm    # all three present -> provisioning worked
+claude plugin list            # sf@spec-driven-dev and swarm@swarm, user scope
 cat ~/.cache/strata-cli/build.log   # the hook's strata build output
+cat ~/.cache/swarm-cli/build.log    # the hook's swarm clone, plugin and build output
 ```
+
+`swarm` is provisioned by the hook only — the setup script above does not
+install it, so a session where the hook did not run has no `swarm` even
+when `bd` and `strata` are present from the cache. The clone reads
+`SWARM_ACCESS_TOKEN`, falling back to `AGENT_PLUGINS_ACCESS_TOKEN`, which
+that same PAT covers; `SWARM_SRC_DIR` points the build at a checkout
+already on disk, and `SWARM_SKIP=1` skips the step.
 
 A build log ending in `could not read Username for 'https://github.com'`
 means the clone was unauthenticated — `STRATA_ACCESS_TOKEN` is unset or its
