@@ -1,0 +1,5 @@
+description = "headings with no operand answers from every heading in the corpus"
+cites = ["AC-SPECSTR-003.3"]
+artifacts = ["checks.log"]
+args = ["headings"]
+exit_code = 0

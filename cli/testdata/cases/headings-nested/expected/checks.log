@@ -1,0 +1,23 @@
+matches:
+  - path: docs/adrs/adr-001-first.md
+    text: Decision
+    identifier: decision
+    level: 2
+    section:
+      offset: 252
+      length: 87
+      start_line: 17
+      start_column: 1
+      end_line: 24
+      end_column: 1
+  - path: docs/adrs/adr-001-first.md
+    text: Detail
+    identifier: detail
+    level: 3
+    section:
+      offset: 287
+      length: 52
+      start_line: 21
+      start_column: 1
+      end_line: 24
+      end_column: 1

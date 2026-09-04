@@ -7,6 +7,7 @@ Available Commands:
   check       Check the corpus, or a single document, for conformance
   criterion   Query an acceptance criterion, or list ones that changed locally
   feature     Query a feature, or emit one as a standalone Gherkin file
+  headings    Report the headings matching a selection, with the span of each one's section
   help        Help about any command
   index       Build the spec index and write it to disk
   links       Rewrite a document's wikilinks into markdown links

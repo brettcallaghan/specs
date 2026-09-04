@@ -1,0 +1,5 @@
+description = "headings reads a document half holding a path separator as a repository-relative path rather than as a slug"
+cites = ["AC-SPECSTR-003.3"]
+artifacts = ["checks.log"]
+args = ["headings", "docs/adrs/adr-001-first.md"]
+exit_code = 0

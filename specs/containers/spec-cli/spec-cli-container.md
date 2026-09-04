@@ -177,8 +177,8 @@ written.
 
 **Built (command tree)** — also `cli/cmd`, via `cobra`
 ([[adr-015]]): `Execute` builds the command tree — `index`, `check`,
-`slug-exists`, `next-id`, `refs`, `links`, `feature`, `criterion` — and
-converts each one's flags into calls against Document Core
+`slug-exists`, `next-id`, `refs`, `links`, `feature`, `criterion`,
+`headings` — and converts each one's flags into calls against Document Core
 (`corpus.Build`, `corpus.Open`, `corpus.Load`, `corpus.Corpus.Check`/`CheckFor`,
 `corpus.Corpus.Slug`, `corpus.Corpus.InboundReferences`/`OutboundReferences`,
 `corpus.Corpus.Feature`/`Features`/`FeaturesByCode`,
@@ -327,6 +327,41 @@ means no filesystem walk happens, and the two subcommands hold to the
 same no-domain-logic discipline `refs` does: each converts its flags into
 one corpus lookup and the result into stdout and an exit status, with no
 selection or matching logic of its own.
+
+`headings` answers a heading selection with every match's file path,
+heading text, heading identifier, level and the span of the content
+beneath it (AC-SPECSTR-003.1). The selection is one operand written
+`<document>#<heading>`, either half omittable: `<document>` alone selects
+every heading in that document, `#<heading>` that heading in every corpus
+member, and an absent operand every heading in the corpus
+(AC-SPECSTR-003.3). A document half holding a path separator or ending in
+`.md` is read as a repository-relative path and otherwise as a slug. A
+heading is matched on the identifier `markdown.Identifier` derives, so
+letter case and punctuation do not decide a match (AC-SPECSTR-003.2), and
+a matched heading is returned with every heading nested inside its
+section, each carrying its own level (AC-SPECSTR-003.4). `--emit` writes
+the content each match stands over instead, read back through the
+recorded span and written as itself with no envelope (AC-SPECSTR-003.5) —
+a section already contained in one just written is skipped, because the
+matches carry nested headings and a parent's span already covers its
+children's text. A selection matching nothing renders the empty
+collection and exits zero (AC-SPECSTR-003.6). Like the queries beside it,
+it opens the corpus warm and holds no domain logic: the heading tree and
+the identifier derivation are Markdown Structure's.
+
+**`headings` is the first command written to [[cli-output-standards]].**
+Its answer renders as YAML by default and as JSON under `--json`, both
+carrying the same values in the same order. The YAML rendering lives in
+`cli/cmd`, in `renderYAML`, and walks the same struct `encoding/json`
+marshals — the same `json` tags in the same field order — so the two
+renderings cannot drift into carrying different values. It is not a
+general YAML library: block style, two-space indent, `[]` and `{}` for
+empty collections, block scalars for multi-line values trimmed at the
+edges, plain scalars where they round-trip and double quotes where they
+do not, and no comments, anchors, aliases, tags or document markers.
+Every other command on this surface still prints what it printed before;
+migrating them is per command, and belongs to whichever feature next
+touches each one.
 
 A bare invocation or `--help` lists the subcommands with their one-line
 synopses and, per subcommand, its own flags — cobra's default rendering

@@ -1,0 +1,5 @@
+description = "headings <slug> lists that document's headings with path, text, identifier, level and section span"
+cites = ["AC-SPECSTR-003.1", "AC-SPECSTR-003.3"]
+artifacts = ["checks.log"]
+args = ["headings", "adr-001-first"]
+exit_code = 0

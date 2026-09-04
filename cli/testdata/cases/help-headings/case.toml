@@ -1,0 +1,5 @@
+description = "headings --help documents the selection grammar and its --json and --emit options, derived from the same declaration that defines them"
+cites = ["AC-SPEC-011.5"]
+artifacts = ["checks.log"]
+args = ["headings", "--help"]
+exit_code = 0
