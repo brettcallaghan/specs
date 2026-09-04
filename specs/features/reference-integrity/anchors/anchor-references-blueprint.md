@@ -188,6 +188,8 @@ carries one.
   and exit zero.
 - The `--help` text for the anchor-qualified form SHALL derive from the
   declaration that defines it.
+- The command's output SHALL conform to [[cli-output-standards]], as
+  SHALL the findings the CHK delta reports.
 
 **Anchors:** `cli/cmd/refs.go`; `cli/cmd/registry.go`; the snapshot
 cases under `cli/testdata/cases/`.
@@ -355,5 +357,7 @@ None.
   the shared derivation
 - [[c4-standards]] — the container, module and component definitions the
   delta blocks are written against
+- [[cli-output-standards]] — what the anchor query and the anchor
+  findings print, and in which rendering
 - [[ac-traceability-standards]] — the citation obligation the coverage
   table feeds

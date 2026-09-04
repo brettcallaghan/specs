@@ -141,7 +141,9 @@ carry the result back out with no domain logic in the command.
   heading within that heading's section, each carrying its own level.
 - WHEN the caller asks for it, the CLI SHALL emit the content each
   matched heading stands over, read through the recorded span.
-- The CLI SHALL accept `--json`, as every other query command does.
+- The command's output SHALL conform to [[cli-output-standards]]: the
+  matches render as YAML by default and as JSON under `--json`, and the
+  emitted content is a document payload written as itself.
 - WHERE no heading matches, the CLI SHALL report that and exit zero.
 - The command SHALL open the corpus warm, as `check`, `refs`,
   `slug-exists` and `next-id` do.
@@ -331,5 +333,7 @@ None.
   feature extends
 - [[c4-standards]] — the container, module and component definitions the
   delta blocks are written against
+- [[cli-output-standards]] — what the heading query prints, and in
+  which rendering
 - [[ac-traceability-standards]] — the citation obligation the coverage
   table feeds
