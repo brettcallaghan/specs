@@ -485,7 +485,12 @@ a letter, digit, hyphen, underscore or space removed and each remaining
 space replaced by a hyphen. Inline content is rendered rather than
 filtered, so the identifier of ``The `Profile` interface`` is
 `the-profile-interface` and a link's target does not leak into the
-identifier of the heading that carries it. The derivation is a pure
+identifier of the heading that carries it. It is rendered as *inline*
+content specifically: the text is a heading's name and not a document,
+so a block-level marker opening it — an ordinal, a bullet, a blockquote
+marker — is a literal character of that name rather than syntax, and
+`1. Overview` and `2. Overview` yield `1-overview` and `2-overview`
+rather than one identifier addressing neither. The derivation is a pure
 function of the text and derives no positional suffix for a repeated
 heading, which is what lets anchor resolution match against this one
 derivation rather than a second one. It is exposed as a function rather

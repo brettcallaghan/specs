@@ -6,7 +6,9 @@ import (
 	"unicode"
 
 	mdast "github.com/yuin/goldmark/ast"
+	mdparser "github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
+	mdutil "github.com/yuin/goldmark/util"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/span"
 )
@@ -206,7 +208,11 @@ func prefixed(body []byte, lineAt, textAt int) bool {
 //
 // Inline content is rendered rather than filtered: the identifier of
 // "The `Profile` interface" is "the-profile-interface", the backticks
-// being markup rather than characters of the heading's name.
+// being markup rather than characters of the heading's name. A
+// block-level marker is not markup here: text is a heading's name and
+// not a document, so the ordinal of "1. Overview" is a character of that
+// name and the identifier is "1-overview". Two numbered headings that
+// otherwise read the same therefore address differently.
 func Identifier(text string) string {
 	var identifier strings.Builder
 	for _, r := range strings.ToLower(rendered(text)) {
@@ -220,12 +226,32 @@ func Identifier(text string) string {
 	return identifier.String()
 }
 
+// inlineParser parses a heading's text: every inline parser goldmark
+// ships with, and no block parser but the one that makes a paragraph out
+// of the line.
+//
+// A heading's text is a fragment of one line rather than a document, and
+// the full parser reads it as a document — an ordinal, a bullet or a
+// blockquote marker opening the text is consumed as block syntax and
+// never reaches the rendered content, so "1. Overview" and "2. Overview"
+// render alike and collide. Withholding the block parsers leaves nothing
+// that can consume such a marker while inline rendering stays exactly as
+// it is. The package's other parser keeps full CommonMark block
+// recognition: the heading and fenced-block searches ask where a block
+// is, which is the opposite question.
+var inlineParser = mdparser.NewParser(
+	mdparser.WithBlockParsers(mdutil.Prioritized(mdparser.NewParagraphParser(), 1000)),
+	mdparser.WithInlineParsers(mdparser.DefaultInlineParsers()...),
+	mdparser.WithParagraphTransformers(mdparser.DefaultParagraphTransformers()...),
+)
+
 // rendered returns source's inline content as a reader sees it, with the
-// markup that produced it removed.
+// markup that produced it removed. Block-level syntax is not markup in a
+// heading's text and is left as authored — see [inlineParser].
 func rendered(source string) string {
 	body := []byte(source)
 	var out []byte
-	mdast.Walk(parser.Parse(text.NewReader(body)), func(node mdast.Node, entering bool) (mdast.WalkStatus, error) {
+	mdast.Walk(inlineParser.Parse(text.NewReader(body)), func(node mdast.Node, entering bool) (mdast.WalkStatus, error) {
 		if !entering {
 			return mdast.WalkContinue, nil
 		}

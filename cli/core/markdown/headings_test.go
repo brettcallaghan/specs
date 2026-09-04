@@ -5,6 +5,7 @@
 package markdown_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
@@ -442,5 +443,73 @@ func TestAHashInTheHeadingsOwnTextDoesNotChangeItsForm(t *testing.T) {
 	}
 	if got, want := string(span.Slice(underlined, found[0].Position)), "a # b\n===\n"; got != want {
 		t.Errorf("Position slices to %q, want %q", got, want)
+	}
+}
+
+// A heading's text is rendered as inline content, so a block-level
+// marker that opens it — an ordinal, a bullet, a blockquote marker — is a
+// literal character of the heading's name rather than syntax. Two
+// numbered siblings that read the same therefore address differently.
+//
+// AC: AC-SPECSTR-003.2
+func TestALeadingBlockMarkerIsPartOfTheHeadingsName(t *testing.T) {
+	cases := []struct {
+		text string
+		want string
+	}{
+		{"1. Overview", "1-overview"},
+		{"2. Overview", "2-overview"},
+		// The derivation removes a disallowed character and maps each
+		// remaining space to a hyphen, and does neither collapse a run
+		// of hyphens nor trim one: dropped punctuation beside a space
+		// leaves both hyphens, here and in the "modified — IDX" case
+		// above.
+		{"- Bullet", "--bullet"},
+		{"3. `## Design` present", "3--design-present"},
+		{"## Not a heading here", "-not-a-heading-here"},
+		{"> quoted", "-quoted"},
+		{"1. Self-contained Problem statement (the fresh-agent test)",
+			"1-self-contained-problem-statement-the-fresh-agent-test"},
+	}
+	for _, c := range cases {
+		if got := markdown.Identifier(c.text); got != c.want {
+			t.Errorf("Identifier(%q) = %q, want %q", c.text, got, c.want)
+		}
+	}
+
+	// The collision is the point: an ordinal is neither letter case nor
+	// punctuation, so two numbered siblings must not share an anchor.
+	if first, second := markdown.Identifier("1. Overview"), markdown.Identifier("2. Overview"); first == second {
+		t.Errorf("numbered siblings collide: both %q", first)
+	}
+	// An identifier derived from a heading whose text begins with a digit
+	// does not begin with a hyphen.
+	for _, text := range []string{"3. `## Design` present", "4. `## Acceptance` criteria (`kind: bug`)"} {
+		if got := markdown.Identifier(text); strings.HasPrefix(got, "-") {
+			t.Errorf("Identifier(%q) = %q, which begins with a hyphen", text, got)
+		}
+	}
+}
+
+// Rendering inline content is unchanged by that: markup is still removed
+// rather than retained, and a link's target still does not leak into the
+// identifier.
+//
+// AC: AC-SPECSTR-003.2
+func TestInlineRenderingIsUnchangedByTheBlockMarkerRule(t *testing.T) {
+	cases := []struct {
+		text string
+		want string
+	}{
+		{"The `Profile` interface", "the-profile-interface"},
+		{"**Bold** and *italic*", "bold-and-italic"},
+		{"*emph* and _under_", "emph-and-under"},
+		{"See [the guide](http://example.com/guide)", "see-the-guide"},
+		{"A [link](http://x) here", "a-link-here"},
+	}
+	for _, c := range cases {
+		if got := markdown.Identifier(c.text); got != c.want {
+			t.Errorf("Identifier(%q) = %q, want %q", c.text, got, c.want)
+		}
 	}
 }
