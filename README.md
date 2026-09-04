@@ -1,7 +1,7 @@
 # `sf` — Spec-First Development
 
 <!-- coverage:badge:start -->
-[![coverage](https://img.shields.io/badge/cli%20coverage-89.1%25-green)](#test-coverage)
+[![coverage](https://img.shields.io/badge/cli%20coverage-89.5%25-green)](#test-coverage)
 <!-- coverage:badge:end -->
 
 **Agency for the agents.**
@@ -290,19 +290,19 @@ alone is visible rather than averaged away.
 <!-- coverage:table:start -->
 | Test layer | Statements covered | Coverage |
 |:---|---:|---:|
-| Unit tests | 2,377 / 3,088 | 77.0% |
-| Snapshot cases | 2,290 / 3,088 | 74.2% |
-| End-to-end (built binary) | 1,036 / 3,088 | 33.5% |
-| **All layers combined** | **2,750 / 3,088** | **89.1%** |
+| Unit tests | 2,462 / 3,168 | 77.7% |
+| Snapshot cases | 2,343 / 3,168 | 74.0% |
+| End-to-end (built binary) | 1,038 / 3,168 | 32.8% |
+| **All layers combined** | **2,835 / 3,168** | **89.5%** |
 
 | Package | Statements | Covered | Coverage |
 |:---|---:|---:|---:|
-| `cli/cmd` | 998 | 839 | 84.1% |
+| `cli/cmd` | 1,075 | 921 | 85.7% |
 | `cli/core/corpus` | 974 | 875 | 89.8% |
 | `cli/core/finding` | 164 | 156 | 95.1% |
-| `cli/core/frontmatter` | 127 | 112 | 88.2% |
+| `cli/core/frontmatter` | 131 | 116 | 88.5% |
 | `cli/core/gherkin` | 289 | 267 | 92.4% |
-| `cli/core/markdown` | 96 | 90 | 93.8% |
+| `cli/core/markdown` | 95 | 89 | 93.7% |
 | `cli/core/mdlinks` | 70 | 70 | 100.0% |
 | `cli/core/numbering` | 26 | 22 | 84.6% |
 | `cli/core/references` | 116 | 112 | 96.6% |
@@ -311,7 +311,7 @@ alone is visible rather than averaged away.
 | `cli/core/specindex` | 1 | 1 | 100.0% |
 | `cli/profile` | 60 | 56 | 93.3% |
 | `cli/spec` | 1 | 1 | 100.0% |
-| **Total** | **3,088** | **2,750** | **89.1%** |
+| **Total** | **3,168** | **2,835** | **89.5%** |
 
 Generated code is excluded from these figures: 1,806 statements in 1 file (`specmodel.go`) carrying the `// Code generated … DO NOT EDIT.` marker. It is excluded from the coverage profile too, so every report derived from it agrees with this table.
 <!-- coverage:table:end -->
