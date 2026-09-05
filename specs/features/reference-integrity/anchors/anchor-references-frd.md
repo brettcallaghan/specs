@@ -6,7 +6,7 @@ description: Resolves the anchor half of a wikilink — the heading it
 slug: frd-spec-anchor-references
 type: frd
 status: approved
-updated_at: 2026-09-04T00:00:00Z
+updated_at: 2026-09-05T00:00:00Z
 sources:
   - "frd-spec-reference-integrity"
 ---
@@ -29,10 +29,11 @@ own document because the two halves need different data: slug
 resolution needs only the index, anchor resolution needs the headings
 [[frd-spec-structure]] records.
 
-Nine references in the corpus name an anchor — four into
+Eleven references in the corpus name an anchor — six into
 `container-spec-cli#Command Surface`, five into component rosters of
 [[module-document-core]]. Each names one heading in full, each reaches a
-heading that exists, and nothing verifies either fact. That is the case
+heading that exists, and until this feature nothing verified either
+fact. That is the case
 for settling the rules now: few enough that any rule chosen here costs
 nothing to adopt, established enough that the next author will copy one
 of them.
@@ -239,11 +240,15 @@ Feature: Anchor Resolution Checks
 correction, per the parent feature's rule (AC-SPECANCH-002.1).
 `#element registry` matches `### Element Registry` because both yield
 `element-registry`, which is also the fragment an exported copy targets
-(AC-SPECANCH-002.2). A target whose frontmatter failed to parse had no
-headings extracted from it, so a reference into it reports `unverified`
-per AC-SPEC-006.3 and AC-SPEC-006.4 rather than as resolved or as broken
-— the tool says it could not look, which is not the same claim as
-looking and finding nothing (AC-SPECANCH-002.4).
+(AC-SPECANCH-002.2). Headings are unavailable where the index carries no
+entry for the target path at all — a standalone `.feature` source is the
+concrete case, since its references are recorded against its own path
+though the file is no corpus member — so a `` `[[#Heading]]` `` written
+there reports `unverified` per AC-SPEC-006.3 and AC-SPEC-006.4 rather
+than as resolved or as broken: the tool says it could not look, which is
+not the same claim as looking and finding nothing (AC-SPECANCH-002.4).
+An entry that exists and records no matching heading is not this case;
+it looked, so it reports an error.
 [[module-document-core]] declares two `References` headings, so
 `` `[[module-document-core#References]]` `` names two sections and
 resolves to neither; the author disambiguates by
