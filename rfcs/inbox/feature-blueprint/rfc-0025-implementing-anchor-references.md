@@ -457,13 +457,29 @@ and AC-SPECANCH-002.6 stands. Implemented and closed as
 `agent-plugins-clau`, which added `@AC-SPECREF-002.12` to
 [[frd-spec-reference-integrity]].
 
-**Two consequences of the slug-less form outlive P6**, both measured
-after that fix landed and neither in its scope — the decision settled
-whether the form reports, not everything the empty slug reaches:
+**P6 took two follow-ups to complete.** Exempting the form from
+`reference/unresolved` made it legal but left it invisible: two consumers
+still keyed off the slug half resolving, and an empty slug never
+resolves. Both were measured after the exemption landed.
 
-- `agent-plugins-etyf` (P1) — `spec refs '<slug>#<anchor>'` omits such a
-  reference from its answer, and `spec links` emits the wikilink
-  unrewritten. A wrong answer rather than a failing one, seen by no gate.
-- `agent-plugins-oksv` (P2) — a slug-less anchor reaching no heading
-  yields two findings at one span for one typo, which contradicts
-  AC-SPECANCH-002.8.
+- `agent-plugins-etyf` (P1) — **landed.** `spec refs` omitted such a
+  reference from its answer and `spec links` emitted the wikilink
+  unrewritten. A wrong answer rather than a failing one, seen by no gate,
+  which is what made it worse than the check defect P6 fixed. Now
+  `corpus.indexReferences` records the reference as inbound on the
+  document holding it (`@AC-SPECREF-001.8`) and `mdlinks` rewrites it to
+  the heading's fragment (`@AC-SPECMD-001.8`). All three consumers — the
+  check, the graph and the rewrite — now ask one predicate,
+  `references.ResolvedSelfAnchor`.
+- `agent-plugins-oksv` (P2) — open. A slug-less anchor reaching no
+  heading yields two findings at one span for one typo, contradicting
+  AC-SPECANCH-002.8. Out of scope for P6, which settled whether the form
+  reports rather than how many findings it makes.
+
+**A wording defect this exposed, which append-only forbids repairing in
+place.** `AC-SPECREF-001.3` derives inbound references "from the outbound
+references of **all other** corpus members". Read strictly, that makes the
+omission conformant. It is not a prohibition — its Then clause states
+what must be included, not what must not — so `AC-SPECREF-001.8` extends
+it rather than contradicting it, and says so in its own rationale. The
+phrase itself cannot be corrected without renumbering.
