@@ -1,1 +1,4 @@
-does-not-exist: not declared by any corpus member
+slug: does-not-exist
+direction: inbound
+declared: false
+references: []

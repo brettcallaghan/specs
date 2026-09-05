@@ -1,0 +1,5 @@
+description = "refs '<slug>#<anchor>' for an anchor no reference names reports the empty collection and exits zero"
+cites = ["AC-SPECANCH-003.3"]
+artifacts = ["checks.log"]
+args = ["refs", "adr-900-old-approach#Rationale"]
+exit_code = 0

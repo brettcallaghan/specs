@@ -32,7 +32,8 @@ of the surface predates these standards; [Current
 conformance](#current-conformance) records what each command prints
 today, measured, and what each has to change. A command specified after
 this document is written to conform from the start, and `headings` is
-the first.
+the first. `refs` is the first of the commands that predate them to be
+migrated, by the feature that next touched it.
 
 ---
 
@@ -276,7 +277,7 @@ specified after them, conforms and is listed last.
 
 | command | prints today | to conform |
 |---|---|---|
-| `refs <slug>` | `path:line:col  slug` per line; `--json` a compact object | render the sequence of references as YAML mappings |
+| `refs <slug>[#<anchor>]` | a YAML mapping of the properties the query established, the references a sequence of mappings beneath it; `--json` the same values in the same order | conforms — migrated by the anchor-qualified form [[frd-spec-anchor-references]] adds |
 | `slug-exists <slug>` | `adr-012: found at specs/adrs/adr-012-reference-conventions.md` | a mapping of the properties it established |
 | `next-id <type>` | `29` | a mapping; the bare number is a value with no name |
 | `check [path]` | a document count, exclusions, findings, then a per-rule pass list | render as YAML; the findings are the answer |

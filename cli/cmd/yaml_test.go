@@ -3,10 +3,15 @@
 package cmd
 
 import (
+	"encoding/json"
+	"fmt"
+	"sort"
 	"strings"
 	"testing"
 
 	"github.com/goccy/go-yaml"
+
+	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
 // roundTrips parses rendered YAML back, so a case proves the bytes say
@@ -216,5 +221,151 @@ func TestAMapRendersInKeyOrder(t *testing.T) {
 		if got := renderYAML(value); got != want {
 			t.Fatalf("rendering = %q, want %q", got, want)
 		}
+	}
+}
+
+// A value that marshals itself renders from its own JSON rather than
+// from its Go fields, so the two renderings carry the same keys in the
+// same order. A union is the case that forces it: its Go shape is one
+// field holding a variant, and its JSON is the variant's keys under a
+// tag naming which variant it is.
+func TestAValueThatMarshalsItselfRendersFromItsOwnJSON(t *testing.T) {
+	value := struct {
+		Reference specmodel.Reference `json:"reference"`
+	}{Reference: specmodel.Reference{
+		Path:     "docs/adrs/adr-800-current.md",
+		Text:     "adr-900-old-approach",
+		Slug:     "adr-900-old-approach",
+		Origin:   specmodel.NewReferenceOriginFrontmatterProperty(specmodel.ReferenceFrontmatterOrigin{Property: "superseded_by"}),
+		Position: specmodel.Span{Offset: 1, Length: 2, StartLine: 3, StartColumn: 4, EndLine: 5, EndColumn: 6},
+		Resolution: specmodel.NewReferenceResolutionResolved(
+			specmodel.ReferenceResolved{TargetPath: "docs/adrs/adr-900-old-approach.md"}),
+	}}
+
+	got := renderYAML(value)
+	for _, want := range []string{
+		"  origin:\n    kind: frontmatter-property\n    property: superseded_by\n",
+		"  resolution:\n    state: resolved\n    target_path: docs/adrs/adr-900-old-approach.md\n",
+	} {
+		if !strings.Contains(got, want) {
+			t.Errorf("rendering does not contain %q:\n%s", want, got)
+		}
+	}
+	// The Go field the union holds its variant in is not a key of the
+	// answer, and its absence is the whole point of the rule.
+	if strings.Contains(got, "Value:") {
+		t.Errorf("rendering exposes the union's Go field:\n%s", got)
+	}
+	roundTrips(t, got)
+}
+
+// The rendering and the JSON one carry the same keys in the same order,
+// which is what [[cli-output-standards]] requires of the two forms —
+// checked over a value carrying two unions rather than asserted of the
+// renderer in the abstract.
+func TestTheTwoRenderingsCarryTheSameKeysInTheSameOrder(t *testing.T) {
+	anchor := "Decision"
+	value := struct {
+		Reference specmodel.Reference `json:"reference"`
+	}{Reference: specmodel.Reference{
+		Path:     "docs/adrs/adr-800-current.md",
+		Text:     "adr-900-old-approach#Decision",
+		Slug:     "adr-900-old-approach",
+		Anchor:   &anchor,
+		Origin:   specmodel.NewReferenceOriginBody(specmodel.ReferenceBodyOrigin{}),
+		Position: specmodel.Span{Offset: 1, Length: 2, StartLine: 3, StartColumn: 4, EndLine: 5, EndColumn: 6},
+		Resolution: specmodel.NewReferenceResolutionResolved(
+			specmodel.ReferenceResolved{TargetPath: "docs/adrs/adr-900-old-approach.md"}),
+		AnchorResolution: ambiguousAnchorResolution(),
+	}}
+
+	data, err := json.Marshal(value)
+	if err != nil {
+		t.Fatalf("marshalling the value as JSON: %v", err)
+	}
+	if diff := keyOrderDiff(t, data, renderYAML(value)); diff != "" {
+		t.Errorf("the two renderings disagree: %s", diff)
+	}
+}
+
+// ambiguousAnchorResolution is an anchor that matched two headings — a
+// union whose payload carries a sequence of mappings, so the comparison
+// above covers nesting under a tag as well as beside one.
+func ambiguousAnchorResolution() *specmodel.AnchorResolution {
+	resolution := specmodel.NewAnchorResolutionAmbiguous(specmodel.AnchorAmbiguous{
+		Matches: []specmodel.AnchorMatch{
+			{Text: "Decision", Position: specmodel.Span{Offset: 7, Length: 8}},
+			{Text: "Decision", Position: specmodel.Span{Offset: 9, Length: 10}},
+		},
+	})
+	return &resolution
+}
+
+// keyOrderDiff reports how the keys of a JSON document and of a YAML one
+// differ, comparing the flattened key path and leaf value of each. It
+// returns the empty string where they agree.
+func keyOrderDiff(t *testing.T, data []byte, rendered string) string {
+	t.Helper()
+
+	var fromJSON any
+	if err := json.Unmarshal(data, &fromJSON); err != nil {
+		t.Fatalf("parsing the JSON rendering: %v", err)
+	}
+	var fromYAML any
+	if err := yaml.Unmarshal([]byte(rendered), &fromYAML); err != nil {
+		t.Fatalf("parsing the YAML rendering: %v\n%s", err, rendered)
+	}
+
+	jsonKeys := strings.Join(sortedKeyPaths(fromJSON, ""), "\n")
+	yamlKeys := strings.Join(sortedKeyPaths(fromYAML, ""), "\n")
+	if jsonKeys == yamlKeys {
+		return ""
+	}
+	return "\n--- json ---\n" + jsonKeys + "\n--- yaml ---\n" + yamlKeys
+}
+
+// sortedKeyPaths flattens a parsed document into its key paths. Both
+// parsers hand back unordered maps, so the paths are sorted and the
+// comparison is of the key SETS; the order within one rendering is
+// pinned by the byte-exact cases above.
+func sortedKeyPaths(value any, prefix string) []string {
+	var paths []string
+	switch v := value.(type) {
+	case map[string]any:
+		for key, nested := range v {
+			paths = append(paths, sortedKeyPaths(nested, prefix+"."+key)...)
+		}
+	case map[any]any:
+		for key, nested := range v {
+			paths = append(paths, sortedKeyPaths(nested, fmt.Sprintf("%s.%v", prefix, key))...)
+		}
+	case []any:
+		for i, nested := range v {
+			paths = append(paths, sortedKeyPaths(nested, fmt.Sprintf("%s[%d]", prefix, i))...)
+		}
+	default:
+		paths = append(paths, fmt.Sprintf("%s = %v", prefix, value))
+	}
+	sort.Strings(paths)
+	return paths
+}
+
+// A value whose own marshalling fails is rendered from its Go fields
+// rather than lost or fatal. A union holding no variant is the case that
+// reaches it: its MarshalJSON returns an error, and the rendering still
+// has to answer, because a YAML rendering that vanished would report the
+// same defect --json already reports and answer nothing.
+func TestAValueWhoseOwnMarshallingFailsFallsBackToItsFields(t *testing.T) {
+	value := struct {
+		Resolution specmodel.ReferenceResolution `json:"resolution"`
+	}{}
+
+	if _, err := json.Marshal(value); err == nil {
+		t.Fatal("the fixture's JSON marshalling succeeded; it must fail for this case to mean anything")
+	}
+
+	got := renderYAML(value)
+	if !strings.Contains(got, "resolution:") {
+		t.Errorf("rendering dropped the value: %q", got)
 	}
 }
