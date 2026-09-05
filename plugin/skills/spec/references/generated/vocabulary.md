@@ -3,6 +3,7 @@
 ## Table of Contents
 
 - [Slug](#slug)
+- [Citation](#citation)
 - [DocumentType](#documenttype)
 - [RfcSeverity](#rfcseverity)
 - [Status](#status)
@@ -22,6 +23,27 @@ lowercase alphanumeric words joined by single hyphens.
 
 ```strata
 alias Slug: String ~= `/^[a-z0-9]+(?:-[a-z0-9]+)*$/`
+```
+
+
+## Type Alias: Citation
+
+A reference to another specification document, optionally qualified by
+an anchor into one of its sections.
+
+Held apart from `Slug` because the two type different things: `Slug` is
+the identity a document declares about itself, and admitting an anchor
+there would let a document declare its identity as `adr-012#Decision`,
+breaking uniqueness and slug resolution. A citation names someone
+else's identity and may legitimately point at a place inside it — the
+slug half matches the same pattern `Slug` does, and a trailing `#` with
+nothing after it is rejected rather than admitted as an anchor-less
+citation.
+
+**Definition:**
+
+```strata
+alias Citation: String ~= `/^[a-z0-9]+(?:-[a-z0-9]+)*(?:#.+)?$/`
 ```
 
 

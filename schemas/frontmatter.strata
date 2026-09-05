@@ -96,7 +96,7 @@ struct DocumentFrontmatter: ElementRecord {
   document with no resolvable successor is a dead end for anyone who
   follows a reference to it.
   """
-  superseded_by: Slug?
+  superseded_by: Citation?
 }
 
 """
@@ -126,7 +126,7 @@ struct ContractEdges {
   service surface, a module's package API, a component's interface
   where it warrants a contract document of its own.
   """
-  contracts_provided: [Slug]?
+  contracts_provided: [Citation]?
 
   """
   Contract slugs this element depends on.
@@ -135,7 +135,7 @@ struct ContractEdges {
   listed here — those are neighbour edges, and per ADR-009 they belong
   to the parent that composes the elements, or to the code.
   """
-  contracts_consumed: [Slug]?
+  contracts_consumed: [Citation]?
 }
 
 """
@@ -158,7 +158,7 @@ struct Frd: DocumentFrontmatter {
   The documents this FRD is derived from — a brief, a research
   document, or an FRD it narrows.
   """
-  sources: [Slug]?
+  sources: [Citation]?
 }
 
 """
@@ -171,7 +171,7 @@ struct Contract: DocumentFrontmatter {
 
   Exactly one, because a contract with two providers is two contracts.
   """
-  provider: Slug
+  provider: Citation
 
   """
   Whether this interface is published beyond the repository that
@@ -185,7 +185,7 @@ struct Contract: DocumentFrontmatter {
   restriction — an unlisted consumer is not forbidden, it is merely
   unknown to the provider.
   """
-  consumers: [Slug]?
+  consumers: [Citation]?
 
   """
   Paths or URLs of the machine-readable artifacts that make this
@@ -260,7 +260,7 @@ struct ContainerBlueprint: DocumentFrontmatter, ContractEdges {
   blueprint documents it. Absence records a documented fact rather than
   an oversight.
   """
-  system: Slug?
+  system: Citation?
 }
 
 """
@@ -305,7 +305,7 @@ struct ModuleBlueprint: DocumentFrontmatter, ContractEdges {
   Omitted when no host has a blueprint of its own — absence records a
   documented fact rather than an oversight.
   """
-  contained_by: [Slug]?
+  contained_by: [Citation]?
 
   """Repository-relative source roots, so a reader can find the code."""
   source_paths: [String]?
@@ -391,7 +391,7 @@ struct FeatureBlueprint: DocumentFrontmatter {
   property name does not span two relationships — `Frd.sources` is
   optional, many-valued provenance, which is a different edge.
   """
-  frd: Slug
+  frd: Citation
 }
 
 """

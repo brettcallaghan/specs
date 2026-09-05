@@ -2172,7 +2172,7 @@ type DocumentFrontmatter struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 }
 
 func (v *DocumentFrontmatter) UnmarshalJSON(data []byte) error {
@@ -2251,13 +2251,13 @@ type ContractEdges struct {
 	// the element's altitude — a system's public API, a container's
 	// service surface, a module's package API, a component's interface
 	// where it warrants a contract document of its own.
-	ContractsProvided *[]Slug `json:"contracts_provided,omitempty"`
+	ContractsProvided *[]Citation `json:"contracts_provided,omitempty"`
 	// Contract slugs this element depends on.
 	//
 	// Named contracts only. An element's untyped collaborators are not
 	// listed here — those are neighbour edges, and per ADR-009 they belong
 	// to the parent that composes the elements, or to the code.
-	ContractsConsumed *[]Slug `json:"contracts_consumed,omitempty"`
+	ContractsConsumed *[]Citation `json:"contracts_consumed,omitempty"`
 }
 
 // An architecture decision record.
@@ -2305,7 +2305,7 @@ type Adr struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 }
 
 func (v *Adr) UnmarshalJSON(data []byte) error {
@@ -2402,10 +2402,10 @@ type Frd struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 	// The documents this FRD is derived from — a brief, a research
 	// document, or an FRD it narrows.
-	Sources *[]Slug `json:"sources,omitempty"`
+	Sources *[]Citation `json:"sources,omitempty"`
 }
 
 func (v *Frd) UnmarshalJSON(data []byte) error {
@@ -2507,11 +2507,11 @@ type Contract struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 	// The container or system that provides this interface.
 	//
 	// Exactly one, because a contract with two providers is two contracts.
-	Provider Slug `json:"provider"`
+	Provider Citation `json:"provider"`
 	// Whether this interface is published beyond the repository that
 	// declares it, and therefore whether its versioning policy binds
 	// adopters outside this team.
@@ -2519,7 +2519,7 @@ type Contract struct {
 	// Known consumers, by slug. Derived knowledge rather than a
 	// restriction — an unlisted consumer is not forbidden, it is merely
 	// unknown to the provider.
-	Consumers *[]Slug `json:"consumers,omitempty"`
+	Consumers *[]Citation `json:"consumers,omitempty"`
 	// Paths or URLs of the machine-readable artifacts that make this
 	// contract executable: JSON Schemas, OpenAPI documents, protobuf
 	// definitions.
@@ -2651,7 +2651,7 @@ type Standards struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 	// The document's semantic version, quoted so YAML reads it as a string.
 	//
 	// Unquoted `0.1` is a floating-point number to a YAML parser and fails
@@ -2771,20 +2771,20 @@ type SystemBlueprint struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 	// Contract slugs this element provides.
 	//
 	// The interface is this element's own, so it is recorded here whatever
 	// the element's altitude — a system's public API, a container's
 	// service surface, a module's package API, a component's interface
 	// where it warrants a contract document of its own.
-	ContractsProvided *[]Slug `json:"contracts_provided,omitempty"`
+	ContractsProvided *[]Citation `json:"contracts_provided,omitempty"`
 	// Contract slugs this element depends on.
 	//
 	// Named contracts only. An element's untyped collaborators are not
 	// listed here — those are neighbour edges, and per ADR-009 they belong
 	// to the parent that composes the elements, or to the code.
-	ContractsConsumed *[]Slug `json:"contracts_consumed,omitempty"`
+	ContractsConsumed *[]Citation `json:"contracts_consumed,omitempty"`
 }
 
 func (v *SystemBlueprint) UnmarshalJSON(data []byte) error {
@@ -2901,26 +2901,26 @@ type ContainerBlueprint struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 	// Contract slugs this element provides.
 	//
 	// The interface is this element's own, so it is recorded here whatever
 	// the element's altitude — a system's public API, a container's
 	// service surface, a module's package API, a component's interface
 	// where it warrants a contract document of its own.
-	ContractsProvided *[]Slug `json:"contracts_provided,omitempty"`
+	ContractsProvided *[]Citation `json:"contracts_provided,omitempty"`
 	// Contract slugs this element depends on.
 	//
 	// Named contracts only. An element's untyped collaborators are not
 	// listed here — those are neighbour edges, and per ADR-009 they belong
 	// to the parent that composes the elements, or to the code.
-	ContractsConsumed *[]Slug `json:"contracts_consumed,omitempty"`
+	ContractsConsumed *[]Citation `json:"contracts_consumed,omitempty"`
 	// The system this container belongs to.
 	//
 	// Omitted when the container is standalone — that is, when no system
 	// blueprint documents it. Absence records a documented fact rather than
 	// an oversight.
-	System *Slug `json:"system,omitempty"`
+	System *Citation `json:"system,omitempty"`
 }
 
 func (v *ContainerBlueprint) UnmarshalJSON(data []byte) error {
@@ -3037,20 +3037,20 @@ type ModuleBlueprint struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 	// Contract slugs this element provides.
 	//
 	// The interface is this element's own, so it is recorded here whatever
 	// the element's altitude — a system's public API, a container's
 	// service surface, a module's package API, a component's interface
 	// where it warrants a contract document of its own.
-	ContractsProvided *[]Slug `json:"contracts_provided,omitempty"`
+	ContractsProvided *[]Citation `json:"contracts_provided,omitempty"`
 	// Contract slugs this element depends on.
 	//
 	// Named contracts only. An element's untyped collaborators are not
 	// listed here — those are neighbour edges, and per ADR-009 they belong
 	// to the parent that composes the elements, or to the code.
-	ContractsConsumed *[]Slug `json:"contracts_consumed,omitempty"`
+	ContractsConsumed *[]Citation `json:"contracts_consumed,omitempty"`
 	// Whether this blueprint documents one concrete module or a pattern
 	// several modules follow.
 	Kind BlueprintKind `json:"kind"`
@@ -3075,7 +3075,7 @@ type ModuleBlueprint struct {
 	//
 	// Omitted when no host has a blueprint of its own — absence records a
 	// documented fact rather than an oversight.
-	ContainedBy *[]Slug `json:"contained_by,omitempty"`
+	ContainedBy *[]Citation `json:"contained_by,omitempty"`
 	// Repository-relative source roots, so a reader can find the code.
 	SourcePaths *[]string `json:"source_paths,omitempty"`
 	// Repository-relative test roots.
@@ -3230,20 +3230,20 @@ type ComponentBlueprint struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 	// Contract slugs this element provides.
 	//
 	// The interface is this element's own, so it is recorded here whatever
 	// the element's altitude — a system's public API, a container's
 	// service surface, a module's package API, a component's interface
 	// where it warrants a contract document of its own.
-	ContractsProvided *[]Slug `json:"contracts_provided,omitempty"`
+	ContractsProvided *[]Citation `json:"contracts_provided,omitempty"`
 	// Contract slugs this element depends on.
 	//
 	// Named contracts only. An element's untyped collaborators are not
 	// listed here — those are neighbour edges, and per ADR-009 they belong
 	// to the parent that composes the elements, or to the code.
-	ContractsConsumed *[]Slug `json:"contracts_consumed,omitempty"`
+	ContractsConsumed *[]Citation `json:"contracts_consumed,omitempty"`
 	// Whether this blueprint documents one concrete component or a pattern
 	// several components follow.
 	Kind BlueprintKind `json:"kind"`
@@ -3382,7 +3382,7 @@ type FeatureBlueprint struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 	// The delivery unit grooming plans against. When `staged`, each stage
 	// boundary is enumerated in the blueprint's Sequencing Constraints.
 	Delivery Delivery `json:"delivery"`
@@ -3402,7 +3402,7 @@ type FeatureBlueprint struct {
 	// in this comment, and named `frd` rather than `sources` so that one
 	// property name does not span two relationships — `Frd.sources` is
 	// optional, many-valued provenance, which is a different edge.
-	Frd Slug `json:"frd"`
+	Frd Citation `json:"frd"`
 }
 
 func (v *FeatureBlueprint) UnmarshalJSON(data []byte) error {
@@ -3521,7 +3521,7 @@ type Rfc struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 	// Where the run happened: `self` when this repository critiqued its own
 	// skill, otherwise the name of the project the run took place in.
 	Origin string `json:"origin"`
@@ -3690,7 +3690,7 @@ type Guide struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 	// The guide's semantic version, quoted so YAML reads it as a string.
 	Version *string `json:"version,omitempty"`
 }
@@ -5151,6 +5151,19 @@ func (e BlockFormat) String() string {
 // path, so moving a file never breaks a reference. Slugs are kebab-case:
 // lowercase alphanumeric words joined by single hyphens.
 type Slug string
+
+// A reference to another specification document, optionally qualified by
+// an anchor into one of its sections.
+//
+// Held apart from `Slug` because the two type different things: `Slug` is
+// the identity a document declares about itself, and admitting an anchor
+// there would let a document declare its identity as `adr-012#Decision`,
+// breaking uniqueness and slug resolution. A citation names someone
+// else's identity and may legitimately point at a place inside it — the
+// slug half matches the same pattern `Slug` does, and a trailing `#` with
+// nothing after it is rejected rather than admitted as an anchor-less
+// citation.
+type Citation string
 
 // The classification of a specification document.
 //

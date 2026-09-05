@@ -1,0 +1,5 @@
+description = "a reference-bearing frontmatter property carrying an anchor is recorded in the index exactly as a body reference's anchor is"
+cites = ["AC-SPECANCH-001.6"]
+artifacts = ["checks.log", "manifest.json"]
+args = ["index"]
+exit_code = 0

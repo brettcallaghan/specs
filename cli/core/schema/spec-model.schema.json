@@ -29,7 +29,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -168,6 +168,11 @@
       ],
       "type": "object"
     },
+    "Citation": {
+      "description": "A reference to another specification document, optionally qualified by\nan anchor into one of its sections.\n\nHeld apart from `Slug` because the two type different things: `Slug` is\nthe identity a document declares about itself, and admitting an anchor\nthere would let a document declare its identity as `adr-012#Decision`,\nbreaking uniqueness and slug resolution. A citation names someone\nelse's identity and may legitimately point at a place inside it — the\nslug half matches the same pattern `Slug` does, and a trailing `#` with\nnothing after it is rejected rather than admitted as an anchor-less\ncitation.",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*(?:#.+)?$",
+      "type": "string"
+    },
     "ComponentBlueprint": {
       "additionalProperties": false,
       "description": "A C4 component blueprint: a single component promoted out of its\nparent's roster into a document of its own, because it warrants more\nthan a record block.\n\nCarries no parent property. A component has exactly one parent, as C4\nrequires, and its parent's roster section already links it by\n`[[slug]]` under its own heading — so the edge is declared once, in the\none place a reader meets the child, and the index derives the component's\nparent from that inbound link. `contained_by` is the module level's\nalone, because being composed into more than one container is what\ndistinguishes a module from a component.",
@@ -175,7 +180,7 @@
         "contracts_consumed": {
           "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -185,7 +190,7 @@
         "contracts_provided": {
           "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -230,7 +235,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -289,7 +294,7 @@
         "contracts_consumed": {
           "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -299,7 +304,7 @@
         "contracts_provided": {
           "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -330,7 +335,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -341,7 +346,7 @@
           "description": "The system this container belongs to.\n\nOmitted when the container is standalone — that is, when no system\nblueprint documents it. Absence records a documented fact rather than\nan oversight.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -394,7 +399,7 @@
         "consumers": {
           "description": "Known consumers, by slug. Derived knowledge rather than a\nrestriction — an unlisted consumer is not forbidden, it is merely\nunknown to the provider.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -414,7 +419,7 @@
           "type": "string"
         },
         "provider": {
-          "$ref": "#/definitions/Slug",
+          "$ref": "#/definitions/Citation",
           "description": "The container or system that provides this interface.\n\nExactly one, because a contract with two providers is two contracts."
         },
         "slug": {
@@ -439,7 +444,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -498,7 +503,7 @@
         "contracts_consumed": {
           "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -508,7 +513,7 @@
         "contracts_provided": {
           "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -661,7 +666,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -914,7 +919,7 @@
           "type": "string"
         },
         "frd": {
-          "$ref": "#/definitions/Slug",
+          "$ref": "#/definitions/Citation",
           "description": "The FRD this blueprint realizes, one to one.\n\nA feature blueprint answers how the system changes; the FRD it names\nanswers what the change must achieve. Singular and required, so the\none-to-one relationship is expressible in the schema rather than only\nin this comment, and named `frd` rather than `sources` so that one\nproperty name does not span two relationships — `Frd.sources` is\noptional, many-valued provenance, which is a different edge."
         },
         "plan": {
@@ -936,7 +941,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -1968,7 +1973,7 @@
         "sources": {
           "description": "The documents this FRD is derived from — a brief, a research\ndocument, or an FRD it narrows.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -1983,7 +1988,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -2052,7 +2057,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -2224,7 +2229,7 @@
         "contained_by": {
           "description": "The containers, or the modules, that compose this module.\n\n**The only multi-parent relationship in the vocabulary, and the reason\nthe module level exists.** C4 gives every element exactly one parent —\na container belongs to one system, a component to one container — and\nthat edge is recorded by the parent, in the roster section of its body.\nModule is this framework's addition to C4, and being composed into more\nthan one container is its whole purpose: a unit shared by two\ncontainers is a module precisely because it is shared.\n\nSo this is a list, and it is declared here rather than derived from\nparent rosters, because a shared module's hosts are a fact about the\nmodule. It is the direction ADR-009 tells modules to point when it\ndenies them a context view — no single outward-edge list is correct for\na module, but the set of hosts is, and this is where it goes.\n\nOmitted when no host has a blueprint of its own — absence records a\ndocumented fact rather than an oversight.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -2234,7 +2239,7 @@
         "contracts_consumed": {
           "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -2244,7 +2249,7 @@
         "contracts_provided": {
           "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -2289,7 +2294,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -2879,7 +2884,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -3145,7 +3150,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -3210,7 +3215,7 @@
         "contracts_consumed": {
           "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -3220,7 +3225,7 @@
         "contracts_provided": {
           "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -3251,7 +3256,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"

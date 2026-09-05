@@ -66,7 +66,7 @@ citations does not earn its maintenance cost.
 | updated_at | DateTime | RFC 3339 timestamp of the last substantive modification.<br><br>Validated against the text as written in the file rather than against a parsed value, so a bare `2026-07-29` is reported as a defect instead of being silently widened to midnight UTC by the YAML parser. |
 | created_at | DateTime? | RFC 3339 timestamp of the document's creation. Optional. |
 | tags | Array<String>? | Free-form tags for filtering and search. |
-| superseded_by | [Slug](vocabulary.md#slug)? | The document that replaces this one.<br><br>Required in practice on any document at `status: retired` — a retired document with no resolvable successor is a dead end for anyone who follows a reference to it. |
+| superseded_by | [Citation](vocabulary.md#citation)? | The document that replaces this one.<br><br>Required in practice on any document at `status: retired` — a retired document with no resolvable successor is a dead end for anyone who follows a reference to it. |
 
 
 ## ContractEdges
@@ -90,8 +90,8 @@ this edge belongs to the element, and ADR-009's rule is untouched.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
-| contracts_provided | Array<[Slug](vocabulary.md#slug)>? | Contract slugs this element provides.<br><br>The interface is this element's own, so it is recorded here whatever the element's altitude — a system's public API, a container's service surface, a module's package API, a component's interface where it warrants a contract document of its own. |
-| contracts_consumed | Array<[Slug](vocabulary.md#slug)>? | Contract slugs this element depends on.<br><br>Named contracts only. An element's untyped collaborators are not listed here — those are neighbour edges, and per ADR-009 they belong to the parent that composes the elements, or to the code. |
+| contracts_provided | Array<[Citation](vocabulary.md#citation)>? | Contract slugs this element provides.<br><br>The interface is this element's own, so it is recorded here whatever the element's altitude — a system's public API, a container's service surface, a module's package API, a component's interface where it warrants a contract document of its own. |
+| contracts_consumed | Array<[Citation](vocabulary.md#citation)>? | Contract slugs this element depends on.<br><br>Named contracts only. An element's untyped collaborators are not listed here — those are neighbour edges, and per ADR-009 they belong to the parent that composes the elements, or to the code. |
 
 
 ## Adr
@@ -117,7 +117,7 @@ the acceptance criteria that decide whether it has been met.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
-| sources | Array<[Slug](vocabulary.md#slug)>? | The documents this FRD is derived from — a brief, a research document, or an FRD it narrows. |
+| sources | Array<[Citation](vocabulary.md#citation)>? | The documents this FRD is derived from — a brief, a research document, or an FRD it narrows. |
 
 
 ## Contract
@@ -129,9 +129,9 @@ independent change.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
-| provider | [Slug](vocabulary.md#slug) | The container or system that provides this interface.<br><br>Exactly one, because a contract with two providers is two contracts. |
+| provider | [Citation](vocabulary.md#citation) | The container or system that provides this interface.<br><br>Exactly one, because a contract with two providers is two contracts. |
 | visibility | [Visibility](vocabulary.md#visibility) | Whether this interface is published beyond the repository that declares it, and therefore whether its versioning policy binds adopters outside this team. |
-| consumers | Array<[Slug](vocabulary.md#slug)>? | Known consumers, by slug. Derived knowledge rather than a restriction — an unlisted consumer is not forbidden, it is merely unknown to the provider. |
+| consumers | Array<[Citation](vocabulary.md#citation)>? | Known consumers, by slug. Derived knowledge rather than a restriction — an unlisted consumer is not forbidden, it is merely unknown to the provider. |
 | specs | Array<String>? | Paths or URLs of the machine-readable artifacts that make this contract executable: JSON Schemas, OpenAPI documents, protobuf definitions. |
 | version | String | The contract's semantic version.<br><br>Required rather than optional: a contract without a version cannot state a compatibility promise, which is the only reason to write one down separately from the code that implements it. |
 
@@ -189,7 +189,7 @@ container's roster rather than reading it from frontmatter.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
-| system | [Slug](vocabulary.md#slug)? | The system this container belongs to.<br><br>Omitted when the container is standalone — that is, when no system blueprint documents it. Absence records a documented fact rather than an oversight. |
+| system | [Citation](vocabulary.md#citation)? | The system this container belongs to.<br><br>Omitted when the container is standalone — that is, when no system blueprint documents it. Absence records a documented fact rather than an oversight. |
 
 
 ## ModuleBlueprint
@@ -208,7 +208,7 @@ of the two per ADR-008 — and the index derives the roster from there.
 |----------|------|---------------|
 | kind | [BlueprintKind](vocabulary.md#blueprintkind) | Whether this blueprint documents one concrete module or a pattern several modules follow. |
 | visibility | [Visibility](vocabulary.md#visibility) | Whether the module is published to a registry, and therefore whether its package API is bound by a compatibility policy. |
-| contained_by | Array<[Slug](vocabulary.md#slug)>? | The containers, or the modules, that compose this module.<br><br>**The only multi-parent relationship in the vocabulary, and the reason the module level exists.** C4 gives every element exactly one parent — a container belongs to one system, a component to one container — and that edge is recorded by the parent, in the roster section of its body. Module is this framework's addition to C4, and being composed into more than one container is its whole purpose: a unit shared by two containers is a module precisely because it is shared.<br><br>So this is a list, and it is declared here rather than derived from parent rosters, because a shared module's hosts are a fact about the module. It is the direction ADR-009 tells modules to point when it denies them a context view — no single outward-edge list is correct for a module, but the set of hosts is, and this is where it goes.<br><br>Omitted when no host has a blueprint of its own — absence records a documented fact rather than an oversight. |
+| contained_by | Array<[Citation](vocabulary.md#citation)>? | The containers, or the modules, that compose this module.<br><br>**The only multi-parent relationship in the vocabulary, and the reason the module level exists.** C4 gives every element exactly one parent — a container belongs to one system, a component to one container — and that edge is recorded by the parent, in the roster section of its body. Module is this framework's addition to C4, and being composed into more than one container is its whole purpose: a unit shared by two containers is a module precisely because it is shared.<br><br>So this is a list, and it is declared here rather than derived from parent rosters, because a shared module's hosts are a fact about the module. It is the direction ADR-009 tells modules to point when it denies them a context view — no single outward-edge list is correct for a module, but the set of hosts is, and this is where it goes.<br><br>Omitted when no host has a blueprint of its own — absence records a documented fact rather than an oversight. |
 | source_paths | Array<String>? | Repository-relative source roots, so a reader can find the code. |
 | test_paths | Array<String>? | Repository-relative test roots. |
 | version | String? | The module's semantic version.<br><br>Required in practice when `visibility` is `public`, since a published package API owes its consumers a compatibility promise. |
@@ -258,7 +258,7 @@ that must agree.
 |----------|------|---------------|
 | delivery | [Delivery](vocabulary.md#delivery) | The delivery unit grooming plans against. When `staged`, each stage boundary is enumerated in the blueprint's Sequencing Constraints. |
 | plan | String? | Where this feature's implementation plan lives, stamped in by the groom-feature-blueprint skill once grooming serializes the plan: an epic id (`agent-plugins-bge`) when the plan is beads, or a repository-relative directory (`plans/<feature-slug>/`) when it is task files. Absent before grooming, since an ungroomed blueprint has no plan yet; present through `retired`, since the pointer retires with the document rather than being cleared. |
-| frd | [Slug](vocabulary.md#slug) | The FRD this blueprint realizes, one to one.<br><br>A feature blueprint answers how the system changes; the FRD it names answers what the change must achieve. Singular and required, so the one-to-one relationship is expressible in the schema rather than only in this comment, and named `frd` rather than `sources` so that one property name does not span two relationships — `Frd.sources` is optional, many-valued provenance, which is a different edge. |
+| frd | [Citation](vocabulary.md#citation) | The FRD this blueprint realizes, one to one.<br><br>A feature blueprint answers how the system changes; the FRD it names answers what the change must achieve. Singular and required, so the one-to-one relationship is expressible in the schema rather than only in this comment, and named `frd` rather than `sources` so that one property name does not span two relationships — `Frd.sources` is optional, many-valued provenance, which is a different edge. |
 
 
 ## Rfc

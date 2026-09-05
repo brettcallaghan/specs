@@ -1,0 +1,124 @@
+{
+  "schema_version": "1.0",
+  "workspace": "acme",
+  "entries": [
+    {
+      "path": "docs/adrs/adr-012-decision.md",
+      "frontmatter": {
+        "title": "ADR-012: Decision",
+        "description": "The document a frontmatter citation anchors into.",
+        "slug": "adr-012-decision",
+        "type": "adr",
+        "status": "approved",
+        "updated_at": "2026-08-01T00:00:00Z"
+      },
+      "headings": [
+        {
+          "text": "ADR-012: Decision",
+          "level": 1,
+          "position": {
+            "offset": 182,
+            "length": 20,
+            "start_line": 10,
+            "start_column": 1,
+            "end_line": 11,
+            "end_column": 1
+          },
+          "section": {
+            "offset": 202,
+            "length": 36,
+            "start_line": 11,
+            "start_column": 1,
+            "end_line": 15,
+            "end_column": 1
+          },
+          "record_blocks": []
+        },
+        {
+          "text": "Decision",
+          "level": 2,
+          "position": {
+            "offset": 203,
+            "length": 12,
+            "start_line": 12,
+            "start_column": 1,
+            "end_line": 13,
+            "end_column": 1
+          },
+          "section": {
+            "offset": 215,
+            "length": 23,
+            "start_line": 13,
+            "start_column": 1,
+            "end_line": 15,
+            "end_column": 1
+          },
+          "record_blocks": []
+        }
+      ],
+      "record_blocks": []
+    },
+    {
+      "path": "docs/features/frd-citing-anchor.md",
+      "frontmatter": {
+        "title": "FRD: Citing Anchor",
+        "description": "An FRD whose sources cites an anchor into another document.",
+        "slug": "frd-citing-anchor",
+        "type": "frd",
+        "status": "approved",
+        "updated_at": "2026-08-01T00:00:00Z"
+      },
+      "headings": [
+        {
+          "text": "FRD: Citing Anchor",
+          "level": 1,
+          "position": {
+            "offset": 235,
+            "length": 21,
+            "start_line": 12,
+            "start_column": 1,
+            "end_line": 13,
+            "end_column": 1
+          },
+          "section": {
+            "offset": 256,
+            "length": 12,
+            "start_line": 13,
+            "start_column": 1,
+            "end_line": 15,
+            "end_column": 1
+          },
+          "record_blocks": []
+        }
+      ],
+      "record_blocks": []
+    }
+  ],
+  "exclusions": [],
+  "references": [
+    {
+      "path": "docs/features/frd-citing-anchor.md",
+      "text": "adr-012-decision#Decision",
+      "slug": "adr-012-decision",
+      "anchor": "Decision",
+      "origin": {
+        "kind": "frontmatter-property",
+        "property": "sources"
+      },
+      "position": {
+        "offset": 202,
+        "length": 27,
+        "start_line": 9,
+        "start_column": 5,
+        "end_line": 9,
+        "end_column": 32
+      },
+      "resolution": {
+        "state": "resolved",
+        "target_path": "docs/adrs/adr-012-decision.md"
+      }
+    }
+  ],
+  "features": [],
+  "input_hash": "sha256:eccc717ef80f32ee3052eccf7952f78068309fe9c62b8d2cda501018f94ce9ac"
+}
