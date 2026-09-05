@@ -433,5 +433,37 @@ urgent; it is tracked as `agent-plugins-clau`.
 
 ## Resolution
 
-<!-- Filled by the resolving review: for each proposal, adopt / defer /
-     reject with rationale. -->
+Resolved by the repository owner in review of PR #38, 2026-09-05.
+
+| | disposition | tracked as |
+|---|---|---|
+| **P1** — reference-property derivation is keyed on a definition's name | **adopted** | `agent-plugins-a7cg` |
+| **P2** — what stales a snapshot manifest, and how to refresh it | **adopted** | `agent-plugins-u3ng` |
+| **P3** — a criterion for the refused outbound/anchor combination | **adopted** | `agent-plugins-f6lh` |
+| **P4** — which rule identifier carries the unverified report | **rephrased, awaiting review** | — |
+| **P5** — why AC-SPECMD-001.3 is load bearing | **not yet reviewed** | — |
+| **P6** — legality of the slug-less anchor form | **adopted: exempt the form** | `agent-plugins-clau`, landed |
+
+**P4** was returned as unclear rather than judged on its merits: "I read
+this a couple times and I don't understand it. Rephrase for clarity or
+we'll decline this proposal." The proposed FRD text has been rewritten
+above — four short paragraphs where there had been one sentence carrying
+four ideas — with its substance unchanged. It awaits a second read.
+
+**P6** was decided against the alternative this proposal had left open.
+An anchor-only reference naming a real heading of the document it sits in
+is valid and must not be reported; [[adr-012]] keeps its slug-less bullet
+and AC-SPECANCH-002.6 stands. Implemented and closed as
+`agent-plugins-clau`, which added `@AC-SPECREF-002.12` to
+[[frd-spec-reference-integrity]].
+
+**Two consequences of the slug-less form outlive P6**, both measured
+after that fix landed and neither in its scope — the decision settled
+whether the form reports, not everything the empty slug reaches:
+
+- `agent-plugins-etyf` (P1) — `spec refs '<slug>#<anchor>'` omits such a
+  reference from its answer, and `spec links` emits the wikilink
+  unrewritten. A wrong answer rather than a failing one, seen by no gate.
+- `agent-plugins-oksv` (P2) — a slug-less anchor reaching no heading
+  yields two findings at one span for one typo, which contradicts
+  AC-SPECANCH-002.8.
