@@ -258,6 +258,7 @@ C4Component
     Rel(refs, find, "Reports through")
     Rel(corpus, find, "Folds Check's findings through")
     Rel(mdlinks, refs, "Settles targets from the resolved references of")
+    Rel(mdlinks, md, "Derives anchor fragments through the heading identifier of")
     Rel(mdlinks, span, "Locates the extents it replaces with")
     Rel(mdlinks, find, "Reports through")
 ```
@@ -1552,10 +1553,17 @@ Four semantics are pinned by the implementation:
   `error`; a slug naming no corpus document at all raises
   `links/unresolved` at `warning`, mapped or not. Either way the
   reference settles no target (AC-SPECMD-002.1, AC-SPECMD-006.3).
-- **An anchor becomes a target fragment by GitHub's heading-anchor
-  rule:** lowercase the anchor text, drop every character that is not a
-  letter, digit, space, hyphen or underscore, then replace each
-  remaining space with a hyphen (AC-SPECMD-001.3).
+- **An anchor becomes a target fragment through the heading identifier
+  Markdown Structure exposes**, and the text it is derived FROM is the
+  resolved heading's wherever the anchor resolved to one
+  (AC-SPECMD-001.3) — the two agree wherever an anchor names a heading
+  in full, and the heading is what a reader following the emitted link
+  has to land on when they do not. Every other outcome, an absent
+  resolution included, derives the fragment from the anchor as the
+  author wrote it, so the rewrite stays total and the copy is no worse
+  than the source (AC-SPECMD-001.7). This component holds no derivation
+  of its own: two would be free to disagree, and every disagreement is a
+  link the checks call resolved and a reader cannot follow.
 
 Every reference is settled in one pass and every finding returned, never
 just the first (AC-SPECMD-002.5).
@@ -1609,10 +1617,14 @@ document model Frontmatter produces. It never reads files.
 **Numbering → Corpus.** Numbering is a query over the built index, not
 an independent scan.
 
-**Markdown Links → References, Spans, Findings.** It settles targets
-from References' already-resolved reference collection, uses Spans for
-the extents its substitution half replaces, and reports through
-Findings like every other component that can find a problem.
+**Markdown Links → References, Markdown Structure, Spans, Findings.**
+It settles targets from References' already-resolved reference
+collection, derives every anchor fragment through Markdown Structure's
+heading identifier rather than a rule of its own — the same derivation
+References matches an anchor by, so a fragment cannot address something
+the checks resolved differently — uses Spans for the extents its
+substitution half replaces, and reports through Findings like every
+other component that can find a problem.
 
 **Schema Registry, References → Findings.** Every component that can
 report a problem produces `Finding` values; none of them formats output.

@@ -6,6 +6,10 @@
 // case reaches: a rune that is neither ASCII letter nor space, an anchor
 // that survives no character at all, and a target whose file name spells
 // the same as a directory component of the citing document's own path.
+//
+// Every anchor case here carries no anchor resolution, so each exercises
+// the authored-anchor fallback rather than the resolved-heading path
+// mdlinks_test.go covers.
 package mdlinks_test
 
 import (
@@ -17,10 +21,19 @@ import (
 
 // The heading-anchor rule keeps every letter and digit and drops
 // everything else that is not a space, hyphen or underscore — "letter"
-// meaning any Unicode letter, not an ASCII one, and no hyphen the rule
-// produces being trimmed or collapsed at either end.
+// meaning any Unicode letter, not an ASCII one — and no hyphen it
+// produces between two surviving characters is collapsed.
 //
-// AC: AC-SPECMD-001.3
+// The rule is [markdown.Identifier], shared with the matcher that
+// decides whether an anchor resolves at all, so an anchor's fragment and
+// the identifier it was looked up under cannot disagree. Two of its
+// edges follow from the identifier being derived from RENDERED inline
+// content rather than from the characters as typed: whitespace around
+// the text is not content and is gone before the rule runs, and markup
+// that produced content contributes the content and not its own
+// punctuation.
+//
+// AC: AC-SPECMD-001.7
 func TestTheAnchorRuleKeepsUnicodeLettersAndDigitsAndDropsTheRest(t *testing.T) {
 	cases := []struct {
 		name   string
@@ -39,9 +52,17 @@ func TestTheAnchorRuleKeepsUnicodeLettersAndDigitsAndDropsTheRest(t *testing.T) 
 		{name: "ideographs are kept", anchor: "設計 概要", want: "設計-概要"},
 		{name: "an emoji is dropped, its spaces are not", anchor: "Hello 🎉 World", want: "hello--world"},
 		{name: "a tab is dropped rather than hyphenated", anchor: "Tab\tSeparated", want: "tabseparated"},
-		{name: "leading and trailing spaces become hyphens", anchor: " Leading And Trailing ", want: "-leading-and-trailing-"},
+		{name: "leading and trailing spaces are not content and are trimmed", anchor: " Leading And Trailing ", want: "leading-and-trailing"},
 		{name: "an anchor of only punctuation survives as nothing", anchor: "!!!", want: ""},
-		{name: "an anchor of only spaces survives as hyphens", anchor: "   ", want: "---"},
+		{name: "an anchor of only spaces survives as nothing", anchor: "   ", want: ""},
+		// Markup renders: the backticks around Profile are the syntax
+		// that produced the word, not characters of it, so the fragment
+		// reads as it would had the heading been written without them.
+		{name: "inline markup renders to its content", anchor: "The `Profile` interface", want: "the-profile-interface"},
+		// A nested heading path is one anchor, per the anchor feature's
+		// out-of-scope list: it names no heading, and the fragment keeps
+		// the whole of what was written rather than the last segment.
+		{name: "a nested heading path stays one anchor", anchor: "Components#Spans", want: "componentsspans"},
 	}
 
 	for _, c := range cases {
