@@ -70,6 +70,32 @@ func AnchorTarget(ref specmodel.Reference) (string, bool) {
 	return resolved.TargetPath, true
 }
 
+// ResolvedSelfAnchor reports whether ref is the anchor-only form —
+// `[[#Heading]]`, the way a document references a section of itself
+// (AC-SPECANCH-002.6) — with its anchor resolved against the document
+// holding it.
+//
+// The slug half of such a reference is empty and matches no declared
+// slug, so resolution records it unresolved. A consumer keying off that
+// half alone therefore calls a reference which reaches exactly the
+// heading it names broken — reporting it, dropping it from the
+// reference graph, or leaving it unrewritten. The three that would are
+// the check, the graph and the rewrite, and each asks this instead
+// (AC-SPECREF-002.12, AC-SPECREF-001.8, AC-SPECMD-001.8), so the set
+// they exempt, record and target is one set rather than three
+// derivations free to disagree.
+//
+// The conjunction is what keeps it narrow. An anchor-only reference
+// whose anchor names no heading of its own document reaches nothing and
+// is not one of these, so an empty slug alone is never waved through.
+func ResolvedSelfAnchor(ref specmodel.Reference) bool {
+	if ref.Slug != "" || ref.Anchor == nil || ref.AnchorResolution == nil {
+		return false
+	}
+	_, resolved := ref.AnchorResolution.AsResolved()
+	return resolved
+}
+
 // resolveAnchor returns what ref's anchor resolved to, or nil where an
 // anchor resolution does not apply to this reference at all.
 //

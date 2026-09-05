@@ -173,6 +173,73 @@ func TestInboundReferencesAreDerivedFromTheSameCollection(t *testing.T) {
 	}
 }
 
+// The anchor-only form is the one reference whose target is not what its
+// slug half reached: the slug is empty and resolves to nothing, and the
+// heading it names is in the document holding it. It is recorded among
+// that document's inbound references, so that a query for what reaches
+// a heading answers with every reference that reaches it.
+//
+// AC: AC-SPECREF-001.8
+func TestAnAnchorOnlyReferenceIsInboundOnTheDocumentHoldingIt(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-001.md",
+		citing("adr", "adr-001", "First", "See [[#Rationale]].\n\n## Rationale\n\nProse beneath it.\n"))
+	write(t, repo, "specs/adrs/adr-002.md", document("adr", "adr-002", "Second"))
+
+	built := corpusAt(t, repo)
+
+	inbound := built.InboundReferences("specs/adrs/adr-001.md")
+	if len(inbound) != 1 {
+		t.Fatalf("inbound = %+v, want the document's own anchor-only reference", inbound)
+	}
+	// The referring document and the target are the same file, which is
+	// what the reference's own path says: it is cited where a reader
+	// opens it, exactly as every other inbound reference is.
+	if inbound[0].Path != "specs/adrs/adr-001.md" {
+		t.Errorf("inbound comes from %q, want the document holding it", inbound[0].Path)
+	}
+	if inbound[0].Slug != "" {
+		t.Errorf("slug = %q, want empty — this is the anchor-only form", inbound[0].Slug)
+	}
+	if inbound[0].Position.Length == 0 {
+		t.Errorf("inbound carries an empty span")
+	}
+
+	// Recording it inbound stores no second row: both directions read the
+	// one occurrence the index carries.
+	if got := len(built.Index().References); got != 1 {
+		t.Fatalf("the index carries %d reference rows, want 1", got)
+	}
+	outbound := built.OutboundReferences("specs/adrs/adr-001.md")
+	if len(outbound) != 1 || outbound[0] != inbound[0] {
+		t.Errorf("the outbound and inbound views of one reference differ:\n%+v\n%+v", outbound, inbound)
+	}
+	if got := built.InboundReferences("specs/adrs/adr-002.md"); len(got) != 0 {
+		t.Errorf("inbound of adr-002 = %+v, want none — nothing references it", got)
+	}
+}
+
+// The recording is conjunctive, like the exemption the check makes: an
+// empty slug alone earns nothing. An anchor-only reference naming no
+// heading of the document holding it reaches nothing, so it has one end
+// like any other broken edge.
+//
+// AC: AC-SPECREF-001.8
+func TestAnAnchorOnlyReferenceReachingNoHeadingIsInboundOnNothing(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-001.md",
+		citing("adr", "adr-001", "First", "See [[#Rationale]].\n\n## Decision\n\nProse beneath it.\n"))
+
+	built := corpusAt(t, repo)
+
+	if got := built.InboundReferences("specs/adrs/adr-001.md"); len(got) != 0 {
+		t.Errorf("inbound = %+v, want none — the anchor reaches no heading", got)
+	}
+	if got := len(built.OutboundReferences("specs/adrs/adr-001.md")); got != 1 {
+		t.Errorf("outbound = %d, want the reference recorded — indexing never fails", got)
+	}
+}
+
 // A reference that resolves to no corpus member is recorded with its
 // unresolved state rather than dropped, and the index is complete: the
 // indexer describes the corpus it found, including the broken parts of

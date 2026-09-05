@@ -1,0 +1,5 @@
+description = "an anchor-only citation is rewritten to the fragment of the heading it names in the document being rewritten, with no path in front of it, and the slug-bearing citation beside it is unaffected"
+cites = ["AC-SPECMD-001.8"]
+artifacts = ["checks.log", "checks.err"]
+args = ["links", "docs/adrs/adr-402-self-citing.md"]
+exit_code = 0

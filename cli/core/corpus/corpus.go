@@ -730,6 +730,15 @@ func orderedFeatures(features []specmodel.Feature) []specmodel.Feature {
 // into [Corpus.index].References. A reference that resolved to nothing has
 // no inbound key, which is the honest shape — a broken edge has one end.
 //
+// The anchor-only form is the one reference whose target is not what its
+// slug half reached: its slug is empty and resolves to nothing, and the
+// document it points into is the one holding it (AC-SPECANCH-002.6). It
+// is recorded inbound against that document, so that a query for what
+// reaches a heading answers with every reference that reaches it rather
+// than with every reference written somewhere else (AC-SPECREF-001.8).
+// Only where its anchor resolved: one that names no heading of its own
+// document reaches nothing and has one end like any other broken edge.
+//
 // The values come out in the collection's own order, so a lookup answers
 // in path-then-position order without sorting anything a second time.
 func (c *Corpus) indexReferences() {
@@ -740,6 +749,10 @@ func (c *Corpus) indexReferences() {
 		c.outbound[reference.Path] = append(c.outbound[reference.Path], i)
 		if resolved, ok := reference.Resolution.AsResolved(); ok {
 			c.inbound[resolved.TargetPath] = append(c.inbound[resolved.TargetPath], i)
+			continue
+		}
+		if references.ResolvedSelfAnchor(reference) {
+			c.inbound[reference.Path] = append(c.inbound[reference.Path], i)
 		}
 	}
 }

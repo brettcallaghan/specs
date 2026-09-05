@@ -27,6 +27,7 @@ import (
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
 	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
+	"github.com/brettcallaghan/agent-plugins/cli/core/references"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
@@ -77,6 +78,10 @@ func Resolve(refs []specmodel.Reference, options Options) (targets []*string, fi
 // resolveOne settles one reference's target, per the delta's Behavior, in
 // the order the checks below run:
 //
+//   - an anchor-only citation reaching a heading of the document being
+//     rewritten settles on that fragment alone (AC-SPECMD-001.8), ahead
+//     of the map because an empty slug names no corpus document a map
+//     could cover;
 //   - a mapped slug wins outright, whether or not it also names a corpus
 //     document (AC-SPECMD-005.5), and raises nothing;
 //   - otherwise a slug naming no corpus document raises links/unresolved
@@ -87,6 +92,16 @@ func Resolve(refs []specmodel.Reference, options Options) (targets []*string, fi
 //     target from the corpus when no map was given at all — never both.
 func resolveOne(ref specmodel.Reference, options Options) (*string, *specmodel.Finding) {
 	fragment := anchorFragment(ref)
+
+	// The one target that is not a path: the heading this reference
+	// names is in the document being rewritten, so a fragment on its own
+	// is what a reader follows, in the copy and in the source alike. An
+	// anchor-only citation whose anchor resolved to no heading falls
+	// through to the rules below and is reported and left as written
+	// like any other slug naming no corpus document.
+	if references.ResolvedSelfAnchor(ref) {
+		return &fragment, nil
+	}
 
 	if options.Map != nil {
 		if mapped, ok := options.Map[ref.Slug]; ok {

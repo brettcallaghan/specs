@@ -460,3 +460,93 @@ func TestACitingDocumentOutsideTheCorpusResolvesTheSameWay(t *testing.T) {
 		t.Fatalf("target = %v, want %q", targets[0], want)
 	}
 }
+
+// selfAnchorRef builds the anchor-only form — a reference carrying an
+// anchor and no slug — whose anchor resolved to the named heading of the
+// document holding it. The slug half of such a reference is empty and
+// reaches nothing, which is what resolution records.
+func selfAnchorRef(t *testing.T, citingPath, anchor, heading string) specmodel.Reference {
+	t.Helper()
+	ref := specmodel.Reference{
+		Path:       citingPath,
+		Text:       "#" + anchor,
+		Anchor:     &anchor,
+		Position:   at(t),
+		Resolution: specmodel.NewReferenceResolutionUnresolved(specmodel.ReferenceUnresolved{}),
+	}
+	ref.AnchorResolution = anchorResolvedTo(t, heading)
+	return ref
+}
+
+// The anchor-only form names a heading of the document being rewritten,
+// so its target is that heading's fragment and nothing in front of it:
+// there is no path to a document the reader is already in.
+//
+// AC: AC-SPECMD-001.8
+func TestAnAnchorOnlyCitationTargetsAFragmentOfTheDocumentItself(t *testing.T) {
+	ref := selfAnchorRef(t, "specs/adrs/adr-012.md", "Terminology", "The `Terminology` Section")
+
+	targets, findings := mdlinks.Resolve([]specmodel.Reference{ref}, mdlinks.Options{})
+
+	if len(findings) != 0 {
+		t.Fatalf("findings = %v, want none", findings)
+	}
+	// The fragment comes from the resolved heading rather than from the
+	// anchor as authored, the same rule AC-SPECMD-001.3 states for every
+	// other anchor.
+	const want = "#the-terminology-section"
+	if targets[0] == nil || *targets[0] != want {
+		t.Fatalf("target = %v, want %q", targets[0], want)
+	}
+}
+
+// A link map names where a corpus document is published. An empty slug
+// names no corpus document, and the heading is inside the document being
+// rewritten either way, so a map neither covers this citation nor
+// withholds it.
+//
+// AC: AC-SPECMD-001.8
+func TestAnAnchorOnlyCitationTargetsItsOwnFragmentWithAMapGiven(t *testing.T) {
+	ref := selfAnchorRef(t, "specs/adrs/adr-012.md", "Terminology", "Terminology")
+
+	targets, findings := mdlinks.Resolve([]specmodel.Reference{ref}, mdlinks.Options{
+		Map:     mdlinks.LinkMap{"adr-012": "adr-012.html"},
+		MapPath: "links.yaml",
+	})
+
+	if len(findings) != 0 {
+		t.Fatalf("findings = %v, want none", findings)
+	}
+	const want = "#terminology"
+	if targets[0] == nil || *targets[0] != want {
+		t.Fatalf("target = %v, want %q", targets[0], want)
+	}
+}
+
+// The exemption is conjunctive: an empty slug alone earns nothing. An
+// anchor-only citation whose anchor resolved to no heading of the
+// document holding it reaches nothing, so it settles no target and is
+// reported like any other slug naming no corpus document.
+//
+// AC: AC-SPECMD-001.8
+func TestAnAnchorOnlyCitationReachingNoHeadingSettlesNoTarget(t *testing.T) {
+	anchor := "Nowhere"
+	ref := specmodel.Reference{
+		Path:       "specs/adrs/adr-012.md",
+		Text:       "#Nowhere",
+		Anchor:     &anchor,
+		Position:   at(t),
+		Resolution: specmodel.NewReferenceResolutionUnresolved(specmodel.ReferenceUnresolved{}),
+	}
+	unresolved := specmodel.NewAnchorResolutionUnresolved(specmodel.AnchorUnresolved{})
+	ref.AnchorResolution = &unresolved
+
+	targets, findings := mdlinks.Resolve([]specmodel.Reference{ref}, mdlinks.Options{})
+
+	if targets[0] != nil {
+		t.Errorf("target = %q, want none — the anchor reaches no heading", *targets[0])
+	}
+	if len(findings) != 1 || findings[0].Rule != finding.RuleUnresolvedCitation {
+		t.Fatalf("findings = %+v, want one links/unresolved", findings)
+	}
+}

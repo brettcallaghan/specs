@@ -209,6 +209,13 @@ Feature: Reference Extraction in the Index
   Scenario: A reference-bearing frontmatter property contributes outbound references
     When the CLI builds the index
     Then the CLI records every value held by a frontmatter property the active profile registers as reference-bearing as an outbound reference of that document, each with the span at which it occurs, distinguishable from a reference parsed from the body
+
+  @AC-SPECREF-001.8
+  Scenario: A reference reaching a heading of its own document is an inbound reference of it
+    Given a reference carrying an anchor and no slug
+    When the CLI builds the index
+    Then the CLI records it among the inbound references of the document holding it, where its anchor resolves against that document
+    And the CLI records no inbound reference for it where its anchor does not
 ```
 
 *Examples:* `adr-011`'s entry gains outbound references to `adr-004` and
@@ -228,7 +235,12 @@ byte-identical across platforms per AC-SPEC-009.7 (AC-SPECREF-001.5). A
 corpus with eleven broken links still produces a complete index
 (AC-SPECREF-001.6). A document's `related: ["adr-012", "adr-002"]`
 records two outbound references naming the property they came from
-(AC-SPECREF-001.7).
+(AC-SPECREF-001.7). `` `[[#Terminology]]` `` written in a document that
+carries a `Terminology` heading is listed among that document's own
+inbound references, so `spec refs` answers with the section link a reader
+renaming that heading has to fix; `` `[[#Nowhere]]` `` written beside it
+is listed among none, because it reaches no heading to break
+(AC-SPECREF-001.8).
 
 *Rationale:* AC-SPECREF-001.2 and AC-SPECREF-001.4 are the same rule
 applied to the two places a reference is written about rather than
@@ -248,6 +260,19 @@ AC-SPECREN-001.4 rewrites them from their recorded spans. Left implicit,
 the reasonable reading of FEAT-SPECREF-001 is that the index holds prose
 links only — which passes every criterion in this requirement and
 silently drops the half of the graph a catalogue reads first.
+
+AC-SPECREF-001.8 says what AC-SPECREF-001.3's "all other corpus members"
+leaves open, for the one reference whose target is the document holding
+it. The anchor-only form AC-SPECANCH-002.6 resolves against the
+containing document is a reference like any other — AC-SPECREF-002.12
+already refuses to call it broken — so a query that omitted it would
+answer "nothing references this heading" about a document that visibly
+does. That answer is wrong rather than failing, and no check sees it,
+which is why the criterion is stated here rather than left to the
+queries FEAT-SPECREF-003 and FEAT-SPECANCH-003 define over this graph.
+The conjunction is AC-SPECREF-002.12's: an empty slug alone earns
+nothing, and an anchor reaching no heading records no edge, because a
+reference that reaches nothing has no second end.
 
 ### FEAT-SPECREF-002: Reference Integrity Checks
 
