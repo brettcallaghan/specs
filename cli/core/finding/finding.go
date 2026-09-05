@@ -79,6 +79,15 @@ const (
 	// matching a file that exists but is not a member): they are the
 	// same defect reported from three places, not three defects.
 	RuleUnresolvedReference specmodel.RuleId = "reference/unresolved"
+	// RuleUnresolvedAnchor covers a reference's anchor matching no
+	// heading of its target document, once the target's slug has
+	// resolved and its headings are known. Distinct from
+	// [RuleUnresolvedReference] so `--only` can select the anchor checks
+	// without selecting slug resolution.
+	RuleUnresolvedAnchor specmodel.RuleId = "reference/unresolved-anchor"
+	// RuleAmbiguousAnchor covers an anchor whose identifier is the
+	// identifier of more than one heading of its target document.
+	RuleAmbiguousAnchor specmodel.RuleId = "reference/ambiguous-anchor"
 	// RuleRetiredTarget covers a reference from a document at a status
 	// the active profile's lifecycle registration treats as live to one
 	// at a registered retired status. It is the first rule this package
@@ -345,6 +354,46 @@ func nonMemberReason(nonMember specmodel.ReferenceNonMember) string {
 		return fmt.Sprintf("excluded: %s", *nonMember.Reason)
 	}
 	return "not a corpus member"
+}
+
+// UnresolvedAnchor reports a reference's anchor matching no heading of
+// its target document, once the target's slug has resolved and its
+// headings are known (AC-SPECANCH-002.1). Raised against the referring
+// document, matching [UnresolvedReference] and every other
+// reference-integrity finding — the reader's next step is to open the
+// target named in the message, not the document this finding is
+// attached to.
+func UnresolvedAnchor(path string, at specmodel.Span, anchor, targetPath string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleUnresolvedAnchor,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message:  fmt.Sprintf("no heading named %q in %s", anchor, targetPath),
+		Detail: specmodel.NewFindingDetailUnresolvedAnchor(specmodel.FindingUnresolvedAnchor{
+			Anchor:     anchor,
+			TargetPath: targetPath,
+		}),
+	}
+}
+
+// AmbiguousAnchor reports an anchor whose identifier is the identifier of
+// more than one heading of its target document, naming every match
+// (AC-SPECANCH-002.5). Raised against the referring document, like
+// [UnresolvedAnchor].
+func AmbiguousAnchor(path string, at specmodel.Span, anchor, targetPath string, matches []specmodel.AnchorMatch) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleAmbiguousAnchor,
+		Severity: SeverityError,
+		Path:     path,
+		Position: at,
+		Message:  fmt.Sprintf("%q matches %d headings in %s", anchor, len(matches), targetPath),
+		Detail: specmodel.NewFindingDetailAmbiguousAnchor(specmodel.FindingAmbiguousAnchor{
+			Anchor:     anchor,
+			TargetPath: targetPath,
+			Matches:    matches,
+		}),
+	}
 }
 
 // RetiredTarget reports a reference from a document at a live status to

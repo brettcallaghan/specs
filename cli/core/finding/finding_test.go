@@ -150,6 +150,43 @@ func TestEveryFindingIsSelfContained(t *testing.T) {
 			},
 		},
 		{
+			name:     "unresolved anchor",
+			finding:  finding.UnresolvedAnchor("specs/adrs/adr-011.md", position, "Componets", "container-spec-cli"),
+			rule:     finding.RuleUnresolvedAnchor,
+			contains: []string{"Componets", "container-spec-cli"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsUnresolvedAnchor()
+				if !ok {
+					t.Fatalf("detail is not an unresolved anchor: %#v", d.Value)
+				}
+				if v.Anchor != "Componets" || v.TargetPath != "container-spec-cli" {
+					t.Errorf("detail = %#v, want the anchor and the target document", v)
+				}
+			},
+		},
+		{
+			name: "ambiguous anchor",
+			finding: finding.AmbiguousAnchor("specs/adrs/adr-011.md", position, "References", "module-document-core.md",
+				[]specmodel.AnchorMatch{
+					{Text: "References", Position: position},
+					{Text: "References", Position: position},
+				}),
+			rule:     finding.RuleAmbiguousAnchor,
+			contains: []string{"References", "module-document-core.md", "2"},
+			detail: func(t *testing.T, d specmodel.FindingDetail) {
+				v, ok := d.AsAmbiguousAnchor()
+				if !ok {
+					t.Fatalf("detail is not an ambiguous anchor: %#v", d.Value)
+				}
+				if v.Anchor != "References" || v.TargetPath != "module-document-core.md" {
+					t.Errorf("detail = %#v, want the anchor and the target document", v)
+				}
+				if len(v.Matches) != 2 {
+					t.Errorf("Matches = %#v, want every matching heading", v.Matches)
+				}
+			},
+		},
+		{
 			name: "retired target",
 			finding: finding.RetiredTarget("specs/adrs/adr-011.md", position, "adr-009",
 				strPtr("adr-013")),

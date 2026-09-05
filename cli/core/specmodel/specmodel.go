@@ -1320,6 +1320,113 @@ type FindingOwningDocument struct {
 	DocumentSlug *string `json:"document_slug,omitempty"`
 }
 
+// An anchor that names no heading of its target document.
+//
+// Recorded once the target's slug has resolved and its headings are
+// known — a reference whose slug does not resolve at all is the parent
+// feature's own unresolved-reference finding, and this variant adds
+// nothing to it (AC-SPECANCH-002.1, AC-SPECANCH-002.8). The anchor is
+// carried as authored, matching how the index records it, so the finding
+// needs no further lookup to quote the text a fix has to edit.
+type FindingUnresolvedAnchor struct {
+	// The anchor as authored, without normalization.
+	Anchor string `json:"anchor"`
+	// The target document's path, relative to the repository root and
+	// written with forward slashes on every platform.
+	TargetPath string `json:"target_path"`
+}
+
+func (v *FindingUnresolvedAnchor) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["anchor"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingUnresolvedAnchor: required field \"anchor\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Anchor); err != nil {
+		return prefixField("anchor", err)
+	}
+	if m, ok := raw["target_path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingUnresolvedAnchor: required field \"target_path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.TargetPath); err != nil {
+		return prefixField("target_path", err)
+	}
+	return nil
+}
+
+// An anchor whose identifier is the identifier of more than one heading of
+// its target document.
+//
+// Every matching heading is carried, not merely the count: the reader's
+// next step is to open one of them and rename it, and a finding naming
+// only "two matches" would send them back to the document to find what
+// this check already found (AC-SPECANCH-002.5).
+type FindingAmbiguousAnchor struct {
+	// The anchor as authored, without normalization.
+	Anchor string `json:"anchor"`
+	// The target document's path, relative to the repository root and
+	// written with forward slashes on every platform.
+	TargetPath string `json:"target_path"`
+	// Every heading of the target document whose identifier matches the
+	// anchor's, in document order.
+	Matches []AnchorMatch `json:"matches"`
+}
+
+func (v *FindingAmbiguousAnchor) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["anchor"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingAmbiguousAnchor: required field \"anchor\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Anchor); err != nil {
+		return prefixField("anchor", err)
+	}
+	if m, ok := raw["target_path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingAmbiguousAnchor: required field \"target_path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.TargetPath); err != nil {
+		return prefixField("target_path", err)
+	}
+	if m, ok := raw["matches"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingAmbiguousAnchor: required field \"matches\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Matches); err != nil {
+		return prefixField("matches", err)
+	}
+	return nil
+}
+
+// One heading matched against an ambiguous anchor.
+//
+// Held apart from the full `Heading` shape because a match names only what
+// the reader needs to find the right one — its text and where it is
+// written — and carries none of a heading's own section content or nested
+// record blocks.
+type AnchorMatch struct {
+	// The heading's text as authored, without the `#` markers that open the
+	// line.
+	Text string `json:"text"`
+	// Where the heading line itself is written.
+	Position Span `json:"position"`
+}
+
+func (v *AnchorMatch) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["text"]; !ok || string(m) == "null" {
+		return fmt.Errorf("AnchorMatch: required field \"text\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Text); err != nil {
+		return prefixField("text", err)
+	}
+	if m, ok := raw["position"]; !ok || string(m) == "null" {
+		return fmt.Errorf("AnchorMatch: required field \"position\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Position); err != nil {
+		return prefixField("position", err)
+	}
+	return nil
+}
+
 type FindingDetailVariant interface{ isFindingDetailVariant() }
 
 // The structured detail of one finding, selected by the kind of defect.
@@ -1355,6 +1462,8 @@ func (FindingIdentifierPattern) isFindingDetailVariant()      {}
 func (FindingDuplicateIdentifier) isFindingDetailVariant()    {}
 func (FindingPartiallyTaggedOutline) isFindingDetailVariant() {}
 func (FindingOwningDocument) isFindingDetailVariant()         {}
+func (FindingUnresolvedAnchor) isFindingDetailVariant()       {}
+func (FindingAmbiguousAnchor) isFindingDetailVariant()        {}
 
 func NewFindingDetailSchemaViolation(v FindingSchemaViolation) FindingDetail {
 	return FindingDetail{Value: v}
@@ -1425,6 +1534,14 @@ func NewFindingDetailPartiallyTaggedOutline(v FindingPartiallyTaggedOutline) Fin
 }
 
 func NewFindingDetailOwningDocument(v FindingOwningDocument) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailUnresolvedAnchor(v FindingUnresolvedAnchor) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailAmbiguousAnchor(v FindingAmbiguousAnchor) FindingDetail {
 	return FindingDetail{Value: v}
 }
 
@@ -1518,6 +1635,16 @@ func (u FindingDetail) AsOwningDocument() (FindingOwningDocument, bool) {
 	return v, ok
 }
 
+func (u FindingDetail) AsUnresolvedAnchor() (FindingUnresolvedAnchor, bool) {
+	v, ok := u.Value.(FindingUnresolvedAnchor)
+	return v, ok
+}
+
+func (u FindingDetail) AsAmbiguousAnchor() (FindingAmbiguousAnchor, bool) {
+	v, ok := u.Value.(FindingAmbiguousAnchor)
+	return v, ok
+}
+
 func (u FindingDetail) MarshalJSON() ([]byte, error) {
 	var payload []byte
 	var tag string
@@ -1576,6 +1703,12 @@ func (u FindingDetail) MarshalJSON() ([]byte, error) {
 		payload, err = json.Marshal(v)
 	case FindingOwningDocument:
 		tag = "owning-document"
+		payload, err = json.Marshal(v)
+	case FindingUnresolvedAnchor:
+		tag = "unresolved-anchor"
+		payload, err = json.Marshal(v)
+	case FindingAmbiguousAnchor:
+		tag = "ambiguous-anchor"
 		payload, err = json.Marshal(v)
 	default:
 		return nil, fmt.Errorf("FindingDetail: nil or unknown variant")
@@ -1727,6 +1860,20 @@ func (u *FindingDetail) UnmarshalJSON(data []byte) error {
 		return nil
 	case "owning-document":
 		var v FindingOwningDocument
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "unresolved-anchor":
+		var v FindingUnresolvedAnchor
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "ambiguous-anchor":
+		var v FindingAmbiguousAnchor
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}

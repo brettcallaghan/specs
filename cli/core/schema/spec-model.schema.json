@@ -70,6 +70,25 @@
       ],
       "type": "object"
     },
+    "AnchorMatch": {
+      "additionalProperties": false,
+      "description": "One heading matched against an ambiguous anchor.\n\nHeld apart from the full `Heading` shape because a match names only what\nthe reader needs to find the right one — its text and where it is\nwritten — and carries none of a heading's own section content or nested\nrecord blocks.",
+      "properties": {
+        "position": {
+          "$ref": "#/definitions/Span",
+          "description": "Where the heading line itself is written."
+        },
+        "text": {
+          "description": "The heading's text as authored, without the `#` markers that open the\nline.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "position"
+      ],
+      "type": "object"
+    },
     "BlockFormat": {
       "description": "The formats a registered fenced block's contents may be parsed as.",
       "enum": [
@@ -1127,6 +1146,33 @@
       ],
       "type": "object"
     },
+    "FindingAmbiguousAnchor": {
+      "additionalProperties": false,
+      "description": "An anchor whose identifier is the identifier of more than one heading of\nits target document.\n\nEvery matching heading is carried, not merely the count: the reader's\nnext step is to open one of them and rename it, and a finding naming\nonly \"two matches\" would send them back to the document to find what\nthis check already found (AC-SPECANCH-002.5).",
+      "properties": {
+        "anchor": {
+          "description": "The anchor as authored, without normalization.",
+          "type": "string"
+        },
+        "matches": {
+          "description": "Every heading of the target document whose identifier matches the\nanchor's, in document order.",
+          "items": {
+            "$ref": "#/definitions/AnchorMatch"
+          },
+          "type": "array"
+        },
+        "target_path": {
+          "description": "The target document's path, relative to the repository root and\nwritten with forward slashes on every platform.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "anchor",
+        "target_path",
+        "matches"
+      ],
+      "type": "object"
+    },
     "FindingCorpusEmpty": {
       "additionalProperties": false,
       "description": "A configured spec root beneath which discovery found no corpus member.\n\nThe only finding whose subject is the corpus rather than a document, and\nthe reason it carries a variant of its own: a consumer keying off the\nkind must be able to tell \"the run examined nothing\" from a defect in\nsome file, and there is no file here to name. The root is carried\nbecause it is the whole of what an operator acts on — a typo'd path, a\nmoved directory, an ignore rule that swallowed the corpus.",
@@ -1430,6 +1476,38 @@
           "then": {
             "$ref": "#/definitions/FindingOwningDocument"
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "unresolved-anchor"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FindingUnresolvedAnchor"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "ambiguous-anchor"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FindingAmbiguousAnchor"
+          }
         }
       ],
       "description": "The structured detail of one finding, selected by the kind of defect.\n\nEvery finding carries one. The message on the finding is derivable from\nthis value, so a consumer branches on structure rather than parsing\nprose, and a renderer that wants to offer a fix reads the fields it needs\nas values.\n\nThe union is open to extension in the sense that matters: a later check\nadds a variant without changing the envelope that carries it, and a\nconsumer that does not recognise a variant still has the rule\nidentifier, the severity, the path, the span and the message.",
@@ -1453,7 +1531,9 @@
             "identifier-pattern",
             "duplicate-identifier",
             "partially-tagged-outline",
-            "owning-document"
+            "owning-document",
+            "unresolved-anchor",
+            "ambiguous-anchor"
           ],
           "type": "string"
         }
@@ -1780,6 +1860,25 @@
         "slug",
         "citing_path",
         "map_path"
+      ],
+      "type": "object"
+    },
+    "FindingUnresolvedAnchor": {
+      "additionalProperties": false,
+      "description": "An anchor that names no heading of its target document.\n\nRecorded once the target's slug has resolved and its headings are\nknown — a reference whose slug does not resolve at all is the parent\nfeature's own unresolved-reference finding, and this variant adds\nnothing to it (AC-SPECANCH-002.1, AC-SPECANCH-002.8). The anchor is\ncarried as authored, matching how the index records it, so the finding\nneeds no further lookup to quote the text a fix has to edit.",
+      "properties": {
+        "anchor": {
+          "description": "The anchor as authored, without normalization.",
+          "type": "string"
+        },
+        "target_path": {
+          "description": "The target document's path, relative to the repository root and\nwritten with forward slashes on every platform.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "anchor",
+        "target_path"
       ],
       "type": "object"
     },

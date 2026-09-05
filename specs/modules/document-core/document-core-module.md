@@ -1417,11 +1417,16 @@ is:
   malformed, with the identifier as written where there is one and the
   pattern it must match (AC-GHK-006.5); a duplicate identifier with the
   other occurrence's path and span; a partially tagged scenario outline
-  with the spans of the untagged examples blocks; and an owning-document
+  with the spans of the untagged examples blocks; an owning-document
   defect with the slug the feature's tag names and the slug of the
   document the feature is written in, each absent where that defect
-  leaves it unknown. The message is derivable from the variant, so a
-  consumer branches on structure rather than parsing prose.
+  leaves it unknown; an anchor matching no heading of its target, with
+  the anchor as authored and the target document's path
+  (AC-SPECANCH-002.1); and an ambiguous anchor, with the anchor as
+  authored, the target document's path and every heading it matches with
+  its span (AC-SPECANCH-002.5). The message is derivable from the
+  variant, so a consumer branches on structure rather than parsing
+  prose.
 - **`Severity`** — `error`, `warning` and `unverified`, the three
   [[frd-spec-index]] defines and no others.
 - **`FindingReport`** — the run envelope: every `Finding` produced, and a

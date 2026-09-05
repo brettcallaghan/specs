@@ -442,6 +442,72 @@ struct FindingOwningDocument {
 }
 
 """
+An anchor that names no heading of its target document.
+
+Recorded once the target's slug has resolved and its headings are
+known — a reference whose slug does not resolve at all is the parent
+feature's own unresolved-reference finding, and this variant adds
+nothing to it (AC-SPECANCH-002.1, AC-SPECANCH-002.8). The anchor is
+carried as authored, matching how the index records it, so the finding
+needs no further lookup to quote the text a fix has to edit.
+"""
+struct FindingUnresolvedAnchor {
+  """The anchor as authored, without normalization."""
+  anchor: String
+
+  """
+  The target document's path, relative to the repository root and
+  written with forward slashes on every platform.
+  """
+  target_path: String
+}
+
+"""
+An anchor whose identifier is the identifier of more than one heading of
+its target document.
+
+Every matching heading is carried, not merely the count: the reader's
+next step is to open one of them and rename it, and a finding naming
+only "two matches" would send them back to the document to find what
+this check already found (AC-SPECANCH-002.5).
+"""
+struct FindingAmbiguousAnchor {
+  """The anchor as authored, without normalization."""
+  anchor: String
+
+  """
+  The target document's path, relative to the repository root and
+  written with forward slashes on every platform.
+  """
+  target_path: String
+
+  """
+  Every heading of the target document whose identifier matches the
+  anchor's, in document order.
+  """
+  matches: [AnchorMatch]
+}
+
+"""
+One heading matched against an ambiguous anchor.
+
+Held apart from the full `Heading` shape because a match names only what
+the reader needs to find the right one — its text and where it is
+written — and carries none of a heading's own section content or nested
+record blocks.
+"""
+struct AnchorMatch {
+  """
+  The heading's text as authored, without the `#` markers that open the
+  line.
+  """
+  text: String
+
+  """Where the heading line itself is written."""
+  position: Span
+}
+
+"""
 The structured detail of one finding, selected by the kind of defect.
 
 Every finding carries one. The message on the finding is derivable from
@@ -509,6 +575,12 @@ union FindingDetail {
 
   """A feature whose owning document is unstated, mismatched or unresolved."""
   @tag("owning-document") OwningDocument: FindingOwningDocument
+
+  """An anchor matching no heading of its target document."""
+  @tag("unresolved-anchor") UnresolvedAnchor: FindingUnresolvedAnchor
+
+  """An anchor matching more than one heading of its target document."""
+  @tag("ambiguous-anchor") AmbiguousAnchor: FindingAmbiguousAnchor
 }
 
 """
