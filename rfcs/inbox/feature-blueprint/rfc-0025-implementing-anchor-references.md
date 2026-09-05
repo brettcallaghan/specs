@@ -290,12 +290,22 @@ selecting the anchor checks with `--only`.
 **Change.** Add to AC-SPECANCH-002.4's Examples paragraph in
 [[frd-spec-anchor-references]]:
 
-> The unverified report is raised under `reference/unresolved-anchor`,
-> the same identifier the no-heading error uses: it is the same check
-> declining to answer rather than a different defect, and a caller
-> selecting the anchor checks with `--only` selects both outcomes with
-> one identifier. This is the one rule identifier in the corpus checks
-> that reports at more than one severity.
+> `reference/unresolved-anchor` carries two outcomes, not one.
+>
+> At severity `error` it means the anchor named no heading in the target
+> document. At severity `unverified` it means the check could not answer:
+> the target has no index entry, so there were no headings to match the
+> anchor against.
+>
+> They share one identifier deliberately. Both are the same check
+> reporting on the same anchor — one found the answer is no, the other
+> found it could not ask. Giving the second a separate identifier such as
+> `reference/unverified-anchor` would split them, and every caller that
+> narrows to the anchor checks with `--only` would have to name both to
+> keep the coverage one name gives it today.
+>
+> This is the only rule identifier in the corpus checks that reports at
+> more than one severity.
 
 **Backward compatibility.** States what ships; no test or document
 changes meaning.
@@ -334,23 +344,31 @@ section of the referring document, and every use of it raises
 `spec check --strict` — this one does — cannot contain the form the ADR
 requires. The two documents cannot both be followed.
 
-**Change.** One of two, and the choice is the decision this proposal
-asks review to make. Filed as `agent-plugins-clau` so the work is
-tracked whichever way it goes.
+**Change. Decided in review of this proposal: exempt the form.** A
+reference whose anchor names a real heading of the document it sits in is
+valid, and must not be reported. The work is tracked as
+`agent-plugins-clau`.
 
-- **Exempt the form.** `reference/unresolved` skips a reference whose
-  slug half is empty and whose anchor resolved against the containing
-  document, and [[frd-spec-reference-integrity]] gains the criterion
-  saying so. This is the reading AC-SPECANCH-002.6 implies: the anchor
-  half already resolves such a reference deliberately, and reporting the
-  slug half broken contradicts it.
-- **Withdraw the form.** [[adr-012]] drops the slug-less bullet and
-  names the fully qualified form instead. AC-SPECANCH-002.6 would then
-  describe a form the conventions forbid, and should be retired with it.
+- `reference/unresolved` skips a reference whose slug half is empty and
+  whose anchor resolved against the containing document, and
+  [[frd-spec-reference-integrity]] gains the criterion saying so.
+- [[adr-012]] keeps the slug-less bullet; the form it mandates stays
+  legal.
+- AC-SPECANCH-002.6 stands. The anchor half already resolves such a
+  reference deliberately, and reporting the slug half broken contradicts
+  it — which is the contradiction this proposal exists to remove.
 
-**Backward compatibility.** Either direction leaves every existing
-document valid: no corpus member uses the form today, measured on the
-finished tree — all eleven anchored references carry a slug.
+**Rejected: withdraw the form.** [[adr-012]] would drop the slug-less
+bullet and name the fully qualified form instead, retiring
+AC-SPECANCH-002.6 with it. Rejected because an anchor-only reference into
+the enclosing document is a legitimate thing to write and the checker
+already resolves it correctly; the defect is that a second rule then
+calls the same reference broken.
+
+**Backward compatibility.** Every existing document stays valid: no
+corpus member uses the form today, measured on the finished tree — all
+eleven anchored references carry a slug. The change can only turn a
+reported error into silence, never the reverse.
 
 ## Considered and Not Proposed
 
