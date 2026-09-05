@@ -1092,8 +1092,13 @@ recorded an exclusion the error carries its reason, so the answer to
 
 **They also report what a resolved reference *means*, not only whether
 it lands.** Three rules walk the same already-resolved reference
-collection `reference/unresolved` reads, so each costs a lookup rather
-than a second corpus walk. `reference/retired-target` — the first rule
+collection `reference/unresolved` reads, so none re-walks the corpus to
+find its candidates — but two of the three, in resolving a retired
+target's successor or a pairing's counterpart, call back into the
+corpus for the target document itself, which on a warm corpus reads and
+parses that one file off disk (and caches it for later callers); all
+three also run corpus-wide, unnarrowed by a single-document `CheckFor`.
+`reference/retired-target` — the first rule
 this package emits at severity `warning` rather than `error` — fires
 when a document at a status the active profile's `Lifecycle` registers
 as live resolves a reference to one at a registered retired status,

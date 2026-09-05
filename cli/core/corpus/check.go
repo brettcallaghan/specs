@@ -181,9 +181,15 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 
 	// The relational half of reference integrity — what a resolved
 	// reference *means* rather than whether it lands — walks the same
-	// already-resolved reference collection, for the same reason: the
-	// work is a lookup over data already in memory, not a second corpus
-	// walk (AC-SPECREF-002.5, AC-SPECREF-002.6, AC-SPECREF-002.10).
+	// already-resolved reference collection rather than re-walking the
+	// corpus. It is not, though, a lookup over data already in memory on
+	// a warm corpus: retiredTargetFindings' successorOf and
+	// pairingIncompleteFindings each call Corpus.document for a resolved
+	// reference's target, which on a warm corpus reads and parses that
+	// one target off disk (and caches it for later callers). All three
+	// checks below also run corpus-wide, unnarrowed by only, exactly as
+	// the unresolved-reference loop above does (AC-SPECREF-002.5,
+	// AC-SPECREF-002.6, AC-SPECREF-002.10).
 	report.Add(c.retiredTargetFindings()...)
 	report.Add(c.pairingIncompleteFindings()...)
 	report.Add(c.typeMismatchFindings()...)

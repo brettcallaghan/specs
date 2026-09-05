@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
+	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
@@ -489,6 +490,95 @@ func TestWarmQueriesAndChecksMeetTheirBudgets(t *testing.T) {
 	reportLatency(t, fmt.Sprintf("warm query p95 over %d documents", documents),
 		percentile95(queries), queryTarget)
 	reportLatency(t, fmt.Sprintf("warm single-document check p95 over %d documents", documents),
+		percentile95(checks), checkTarget)
+}
+
+// lifecycleBudgetProfile is checkingOptions' profile widened with a
+// lifecycle registration — draft and approved live, retired retired —
+// and a permissive slug pattern, so the fixture below can name retired
+// documents without also producing unrelated slug-pattern findings that
+// would obscure what this test is measuring.
+func lifecycleBudgetProfile() corpus.Profile {
+	return stubProfile{
+		schema: []byte(permissiveCheckSchema),
+		types: map[string]corpus.DocumentTypeRules{
+			"adr": {SlugPattern: `^adr-[a-z0-9-]+$`},
+		},
+		lifecycle: corpus.LifecycleRules{
+			Statuses:        []string{"approved", "retired"},
+			LiveStatuses:    []string{"approved"},
+			RetiredStatuses: []string{"retired"},
+		},
+	}
+}
+
+// TestWarmSingleDocumentCheckMeetsItsBudgetWithRelationalReferences guards
+// the budget TestWarmQueriesAndChecksMeetTheirBudgets also measures, but
+// against a corpus where the relational reference checks actually run:
+// that test's fixture (document(), via the document() helper) emits
+// status: approved and no references at all, so retiredTargetFindings and
+// pairingIncompleteFindings never resolve a target and never call
+// Corpus.document — the budget there is green because the relational
+// path is never taken, not because it is affordable.
+//
+// This fixture gives every one of 1,000 live documents a reference into
+// one of 20 retired documents (one per section), so a warm CheckFor
+// resolves 1,000 relational references and reads up to 20 distinct
+// targets off disk through successorOf — see the comment above the
+// retiredTargetFindings/pairingIncompleteFindings calls in check.go —
+// rather than doing no relational work at all.
+//
+// AC: AC-SPEC-009.2
+func TestWarmSingleDocumentCheckMeetsItsBudgetWithRelationalReferences(t *testing.T) {
+	const (
+		documents   = 1000
+		sections    = 20
+		samples     = 20
+		checkTarget = 100 * time.Millisecond
+	)
+
+	repo := t.TempDir()
+	for s := range sections {
+		write(t, repo, fmt.Sprintf("specs/section-%02d/adr-retired-%02d.md", s, s),
+			statusDocument("adr", fmt.Sprintf("adr-retired-%02d", s), fmt.Sprintf("Retired decision %d", s), "retired"))
+	}
+	for i := range documents {
+		section := i % sections
+		rel := fmt.Sprintf("specs/section-%02d/adr-%04d.md", section, i)
+		write(t, repo, rel, citingAtStatus("adr", fmt.Sprintf("adr-%04d", i), fmt.Sprintf("Document %d", i),
+			"approved", fmt.Sprintf("This decision refines [[adr-retired-%02d]].", section)))
+	}
+
+	opts := indexOptions(repo)
+	opts.Profile = lifecycleBudgetProfile()
+	dest := buildAndWriteWith(t, opts)
+
+	checked := "specs/section-00/adr-0500.md"
+	checks := make([]time.Duration, 0, samples)
+
+	for range samples {
+		opened, warm, err := corpus.Open(opts, dest)
+		if err != nil {
+			t.Fatalf("Open: %v", err)
+		}
+		if !warm {
+			t.Fatal("Open rebuilt an index whose inputs are unchanged")
+		}
+
+		started := time.Now()
+		findings, err := opened.CheckFor(checked)
+		if err != nil {
+			t.Fatalf("CheckFor: %v", err)
+		}
+		checks = append(checks, time.Since(started))
+
+		if got := findingsWithRule(findings, finding.RuleRetiredTarget, checked); len(got) != 1 {
+			t.Fatalf("CheckFor(%s) reported %d reference/retired-target findings, want 1 — "+
+				"the relational path was not exercised: %+v", checked, len(got), findings)
+		}
+	}
+
+	reportLatency(t, fmt.Sprintf("warm single-document check p95 over %d documents with %d relational references", documents, documents),
 		percentile95(checks), checkTarget)
 }
 
