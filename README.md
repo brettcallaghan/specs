@@ -290,15 +290,15 @@ alone is visible rather than averaged away.
 <!-- coverage:table:start -->
 | Test layer | Statements covered | Coverage |
 |:---|---:|---:|
-| Unit tests | 2,579 / 3,309 | 77.9% |
-| Snapshot cases | 2,498 / 3,309 | 75.5% |
-| End-to-end (built binary) | 1,045 / 3,309 | 31.6% |
-| **All layers combined** | **2,966 / 3,309** | **89.6%** |
+| Unit tests | 2,584 / 3,314 | 78.0% |
+| Snapshot cases | 2,509 / 3,314 | 75.7% |
+| End-to-end (built binary) | 1,045 / 3,314 | 31.5% |
+| **All layers combined** | **2,971 / 3,314** | **89.6%** |
 
 | Package | Statements | Covered | Coverage |
 |:---|---:|---:|---:|
 | `cli/cmd` | 1,163 | 996 | 85.6% |
-| `cli/core/corpus` | 992 | 896 | 90.3% |
+| `cli/core/corpus` | 997 | 901 | 90.4% |
 | `cli/core/finding` | 166 | 158 | 95.2% |
 | `cli/core/frontmatter` | 131 | 116 | 88.5% |
 | `cli/core/gherkin` | 289 | 267 | 92.4% |
@@ -311,7 +311,7 @@ alone is visible rather than averaged away.
 | `cli/core/specindex` | 1 | 1 | 100.0% |
 | `cli/profile` | 60 | 56 | 93.3% |
 | `cli/spec` | 1 | 1 | 100.0% |
-| **Total** | **3,309** | **2,966** | **89.6%** |
+| **Total** | **3,314** | **2,971** | **89.6%** |
 
 Generated code is excluded from these figures: 1,955 statements in 1 file (`specmodel.go`) carrying the `// Code generated … DO NOT EDIT.` marker. It is excluded from the coverage profile too, so every report derived from it agrees with this table.
 <!-- coverage:table:end -->

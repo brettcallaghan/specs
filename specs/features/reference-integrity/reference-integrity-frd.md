@@ -6,7 +6,7 @@ description: Parses cross-document references from a spec corpus, records
 slug: frd-spec-reference-integrity
 type: frd
 status: approved
-updated_at: 2026-09-04T00:00:00Z
+updated_at: 2026-09-05T00:00:00Z
 sources:
   - "frd-spec-index"
 ---
@@ -329,6 +329,13 @@ Feature: Reference Integrity Checks
     When the CLI checks a single document
     Then the CLI reports every reference finding against the document that holds the reference, whichever document that is, in addition to findings against the document named
     And that covers the retired target of AC-SPECREF-002.6, the incomplete pairing of AC-SPECREF-002.5 and the type mismatch of AC-SPECREF-002.10, on the same terms AC-SPECREF-002.9 states for an unresolved reference
+
+  @AC-SPECREF-002.12
+  Scenario: An anchor-only reference reaching a heading of its own document is not unresolved
+    Given a reference carrying an anchor and no slug
+    When the CLI checks the corpus
+    Then the CLI reports no unresolved-reference finding for it where its anchor resolves against the document holding the reference
+    And the CLI reports it as an unresolved reference where its anchor does not
 ```
 
 *Examples:* `reference/unresolved  error
@@ -356,7 +363,10 @@ reports the seven documents now pointing at nothing, at their own lines
 reports "frd expects type 'frd', target 'adr-009' declares type 'adr'"
 (AC-SPECREF-002.10). An agent sets an ADR to `status: retired` and the
 write-time check on that one file reports the four live documents still
-citing it, at their own lines (AC-SPECREF-002.11).
+citing it, at their own lines (AC-SPECREF-002.11). `` `[[#Terminology]]` ``
+in a document carrying a `Terminology` heading is reported by nothing,
+while `` `[[#Terminolgy]]` `` in the same document is reported both as an
+unresolved reference and as an unresolved anchor (AC-SPECREF-002.12).
 
 *Rationale:* Severity is assigned here rather than left to
 implementation because it is what the exit status of a build depends on.
@@ -415,6 +425,16 @@ passed` means "ran, found nothing" under AC-SPEC-006.8's accounting,
 while the same corpus checked whole reported findings the narrowing had
 dropped. A check that reports a rule as passed on evidence it discarded
 is worse than one that does not run the rule.
+
+AC-SPECREF-002.12 is what makes the slug-less anchor form [[adr-012]]
+mandates for a section of the referring document usable in a corpus that
+gates on `--strict`. That form carries no slug, so the slug half matches
+nothing and this feature's own AC-SPECREF-002.1 calls it broken in the
+same run the sub-feature's AC-SPECANCH-002.6 resolves it — two rules
+disagreeing about one reference. The exemption is conjunctive rather
+than a blanket skip of slug-less references: a reference whose anchor
+names no heading of its own document reaches nothing and is still an
+error, so the only thing waved through is a reference that resolves.
 
 ### FEAT-SPECREF-003: Reference Queries
 

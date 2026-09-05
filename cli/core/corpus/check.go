@@ -21,7 +21,9 @@ import (
 // a non-member — [finding.RuleUnresolvedReference], one rule whether the
 // reference was written in a document's body, held by a registered
 // frontmatter property, or matched a file that exists but is not a corpus
-// member (AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7).
+// member (AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7). The one
+// reference it does not report is the slug-less anchor form whose anchor
+// resolved against the document holding it (AC-SPECREF-002.12).
 //
 // The result folds into one [finding.Report] together with the corpus's
 // own duplicate-slug findings, so callers read one ordered list rather
@@ -264,8 +266,12 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 
 // unresolvedReferenceFinding derives the reference/unresolved finding a
 // reference's own recorded resolution calls for, or reports none for a
-// reference that resolved to a corpus member.
+// reference that resolved to a corpus member or is a resolved
+// self-anchor.
 func unresolvedReferenceFinding(ref specmodel.Reference) (specmodel.Finding, bool) {
+	if isResolvedSelfAnchor(ref) {
+		return specmodel.Finding{}, false
+	}
 	if nonMember, ok := ref.Resolution.AsNonMember(); ok {
 		return finding.UnresolvedReference(ref.Path, ref.Position, ref.Text, ref.Slug, ref.Origin, &nonMember), true
 	}
@@ -273,6 +279,27 @@ func unresolvedReferenceFinding(ref specmodel.Reference) (specmodel.Finding, boo
 		return finding.UnresolvedReference(ref.Path, ref.Position, ref.Text, ref.Slug, ref.Origin, nil), true
 	}
 	return specmodel.Finding{}, false
+}
+
+// isResolvedSelfAnchor reports whether ref is the slug-less anchor form
+// — `[[#Heading]]`, the way a document references a section of itself —
+// with its anchor resolved against the document holding it
+// (AC-SPECREF-002.12).
+//
+// The slug half of such a reference is empty and so matches no declared
+// slug: resolution records it unresolved, and reporting it would call
+// the same reference broken in the run that reports its anchor resolved
+// (AC-SPECANCH-002.6).
+//
+// The conjunction is what keeps the exemption narrow. A slug-less
+// reference whose anchor names no heading of its own document still
+// reports, so the form is exempt only where it reaches the section it
+// names, and a genuinely empty slug is not waved through.
+func isResolvedSelfAnchor(ref specmodel.Reference) bool {
+	if ref.Slug != "" || ref.Anchor == nil || ref.AnchorResolution == nil {
+		return false
+	}
+	return isAnchorResolved(*ref.AnchorResolution)
 }
 
 // anchorFindings derives the findings a reference's own recorded anchor

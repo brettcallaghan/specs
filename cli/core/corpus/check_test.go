@@ -866,6 +866,81 @@ func TestCheckForReportsTheReferencesARenamedSlugBroke(t *testing.T) {
 	}
 }
 
+// The slug-less anchor form — a reference to a section of the document
+// holding it — resolves its anchor against that document and carries an
+// empty slug, which matches no corpus member. Reporting the slug half
+// would call the same reference broken in the run that reports its
+// anchor resolved, so the unresolved-reference rule skips it.
+//
+// AC: AC-SPECREF-002.12
+func TestAnAnchorOnlyReferenceReachingItsOwnHeadingIsNotUnresolved(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-001.md",
+		citing("adr", "adr-001", "First", "See [[#Rationale]].\n\n## Rationale\n\nProse beneath it.\n"))
+
+	findings := checkedAnchors(t, repo)
+
+	if got := findingsWithRule(findings, finding.RuleUnresolvedReference, "specs/adrs/adr-001.md"); len(got) != 0 {
+		t.Errorf("got %d reference/unresolved findings, want 0: %+v", len(got), got)
+	}
+	if got := anchorFindingsOf(findings); len(got) != 0 {
+		t.Errorf("got %d anchor findings, want 0: %+v", len(got), got)
+	}
+}
+
+// The exemption is conjunctive: an empty slug alone does not earn it.
+// An anchor-only reference naming no heading of the document holding it
+// reaches nothing, so it stays an unresolved reference.
+//
+// AC: AC-SPECREF-002.12
+func TestAnAnchorOnlyReferenceReachingNoHeadingOfItsOwnDocumentIsStillUnresolved(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-001.md",
+		citing("adr", "adr-001", "First", "See [[#Rationale]].\n\n## Decision\n\nProse beneath it.\n"))
+
+	findings := checkedAnchors(t, repo)
+
+	got := findingsWithRule(findings, finding.RuleUnresolvedReference, "specs/adrs/adr-001.md")
+	if len(got) != 1 {
+		t.Fatalf("got %d reference/unresolved findings, want 1: %+v", len(got), findings)
+	}
+	if got[0].Severity != finding.SeverityError {
+		t.Errorf("severity = %q, want error", got[0].Severity)
+	}
+	detail, ok := got[0].Detail.Value.(specmodel.FindingUnresolvedReference)
+	if !ok {
+		t.Fatalf("detail = %T, want FindingUnresolvedReference", got[0].Detail.Value)
+	}
+	if detail.Slug != "" {
+		t.Errorf("slug = %q, want it empty — the reference names none", detail.Slug)
+	}
+}
+
+// A reference carrying a slug that resolves nowhere is not the exempt
+// form, whatever its anchor did: the exemption turns on the reference
+// naming no document, not on it carrying an anchor.
+//
+// AC: AC-SPECREF-002.12
+func TestASlugBearingAnchoredReferenceIsUnaffectedByTheSelfAnchorExemption(t *testing.T) {
+	repo := t.TempDir()
+	write(t, repo, "specs/adrs/adr-001.md",
+		citing("adr", "adr-001", "First", "See [[adr-404#Rationale]].\n\n## Rationale\n\nProse beneath it.\n"))
+
+	findings := checkedAnchors(t, repo)
+
+	got := findingsWithRule(findings, finding.RuleUnresolvedReference, "specs/adrs/adr-001.md")
+	if len(got) != 1 {
+		t.Fatalf("got %d reference/unresolved findings, want 1: %+v", len(got), findings)
+	}
+	detail, ok := got[0].Detail.Value.(specmodel.FindingUnresolvedReference)
+	if !ok {
+		t.Fatalf("detail = %T, want FindingUnresolvedReference", got[0].Detail.Value)
+	}
+	if detail.Slug != "adr-404" {
+		t.Errorf("slug = %q, want adr-404", detail.Slug)
+	}
+}
+
 // Tests for reference/retired-target, reference/pairing-incomplete and
 // reference/type-mismatch — the LIFE delta's relational half of
 // reference integrity. Every registration these tests exercise is a
