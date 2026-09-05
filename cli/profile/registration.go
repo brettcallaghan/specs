@@ -14,12 +14,13 @@ import (
 )
 
 // This file holds the half of the registration that is *derived* rather
-// than authored: which frontmatter properties hold a document slug, and
-// which statuses this framework's documents move through. Both are facts
-// the vocabulary already states — `schemas/frontmatter.strata` types a
-// property as `Slug` or `[Slug]`, and `schemas/vocabulary.strata`
-// enumerates `Status` — and both reach this package through the same
-// generated schema the profile already embeds.
+// than authored: which frontmatter properties hold a reference to
+// another document, and which statuses this framework's documents move
+// through. Both are facts the vocabulary already states —
+// `schemas/frontmatter.strata` types a reference-bearing property as
+// `Citation` or `[Citation]`, and `schemas/vocabulary.strata` enumerates
+// `Status` — and both reach this package through the same generated
+// schema the profile already embeds.
 //
 // Deriving them rather than transcribing them is the point. A property
 // added to the vocabulary is reference-bearing the moment it is declared,
@@ -27,16 +28,19 @@ import (
 // the day it was written and silently incomplete afterwards, which is the
 // failure a registration cannot report about itself.
 
-// identityProperty is the one slug-typed property that names the document
-// declaring it rather than another document. Registering it as
-// reference-bearing would make every document reference itself, so it is
-// the single exclusion from the derivation below.
+// identityProperty is the one property that names the document declaring
+// it rather than another document. It is typed `Slug` — never `Citation`,
+// since a document's own identity must never carry an anchor — and
+// registering it as reference-bearing would make every document
+// reference itself, so it is the single exclusion from the derivation
+// below.
 const identityProperty = "slug"
 
-// slugDefinition is the JSON Pointer the generated schema gives the Slug
-// alias. A property whose value is that definition, or a list of it,
-// holds a document slug.
-const slugDefinition = "#/definitions/Slug"
+// citationDefinition is the JSON Pointer the generated schema gives the
+// Citation alias. A property whose value is that definition, or a list
+// of it, holds a reference to another document, optionally qualified by
+// an anchor.
+const citationDefinition = "#/definitions/Citation"
 
 // statusDefinition names the enum the status vocabulary is declared in.
 const statusDefinition = "Status"
@@ -58,9 +62,10 @@ const successorProperty = "superseded_by"
 //
 // It is authored rather than derived, because it is the one constraint
 // the vocabulary cannot state. `FeatureBlueprint.frd` is declared as a
-// `Slug`, which says the value is one document's identifier; that the
-// document it names must be an FRD is a fact about the corpus, and only
-// the index knows what a slug resolved to.
+// `Citation`, which says the value names another document, optionally
+// by anchor; that the document it names must be an FRD is a fact about
+// the corpus, and only the index knows what a citation's slug resolved
+// to.
 //
 // Keyed by document type, then by property, mirroring the shape
 // [corpus.DocumentTypeRules.TypedReferenceProperties] takes.
@@ -96,11 +101,11 @@ var pairings = map[string][]specmodel.PropertyPairing{}
 // registered nothing would be a registration that checks less than it
 // says: the vacuous pass [corpus.ValidateRegistration] exists to prevent.
 func registeredTypes() map[string]corpus.DocumentTypeRules {
-	slugProperties := slugPropertiesByType()
+	citationProperties := citationPropertiesByType()
 
 	types := make(map[string]corpus.DocumentTypeRules, len(documentTypes))
 	for name, rules := range documentTypes {
-		properties, declared := slugProperties[name]
+		properties, declared := citationProperties[name]
 		if !declared {
 			panic(fmt.Sprintf(
 				"profile: the embedded schema declares no branch for document type %q", name))
@@ -140,9 +145,9 @@ func lifecycle() corpus.LifecycleRules {
 }
 
 // schemaProperty is one property of a document type's branch, decoded
-// only as far as telling a slug from anything else needs: a direct `$ref`
-// for a required value, a `oneOf` against null for an optional one, and
-// `items` for a list.
+// only as far as telling a citation from anything else needs: a direct
+// `$ref` for a required value, a `oneOf` against null for an optional
+// one, and `items` for a list.
 type schemaProperty struct {
 	Ref   string `json:"$ref"`
 	OneOf []struct {
@@ -153,14 +158,14 @@ type schemaProperty struct {
 	} `json:"items"`
 }
 
-// holdsSlug reports whether this property's value is a document slug, in
+// holdsCitation reports whether this property's value is a citation, in
 // any of the three forms the transpiler emits.
-func (p schemaProperty) holdsSlug() bool {
-	if p.Ref == slugDefinition || p.Items.Ref == slugDefinition {
+func (p schemaProperty) holdsCitation() bool {
+	if p.Ref == citationDefinition || p.Items.Ref == citationDefinition {
 		return true
 	}
 	for _, alternative := range p.OneOf {
-		if alternative.Ref == slugDefinition {
+		if alternative.Ref == citationDefinition {
 			return true
 		}
 	}
@@ -196,22 +201,21 @@ var decodedSchema = sync.OnceValue(func() schemaBundle {
 	return bundle
 })
 
-// slugPropertiesByType returns, for every document type the schema
+// citationPropertiesByType returns, for every document type the schema
 // declares a branch for, the frontmatter properties of that branch whose
-// value is a document slug, excluding the document's own identity
-// property.
+// value is a citation, excluding the document's own identity property.
 //
 // The result is keyed by the value documents declare in `type`, and each
 // list is sorted, so what the profile hands the host is the same list on
 // every run rather than a map iteration order.
-func slugPropertiesByType() map[string][]string {
+func citationPropertiesByType() map[string][]string {
 	definitions := decodedSchema().Definitions
 
 	byType := make(map[string][]string, len(definitions))
 	for name, definition := range definitions {
 		var properties []string
 		for property, declared := range definition.Properties {
-			if property == identityProperty || !declared.holdsSlug() {
+			if property == identityProperty || !declared.holdsCitation() {
 				continue
 			}
 			properties = append(properties, property)

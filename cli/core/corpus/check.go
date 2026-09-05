@@ -7,6 +7,7 @@ import (
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
 	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
+	"github.com/brettcallaghan/agent-plugins/cli/core/references"
 	"github.com/brettcallaghan/agent-plugins/cli/core/schemaregistry"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
@@ -20,7 +21,9 @@ import (
 // a non-member — [finding.RuleUnresolvedReference], one rule whether the
 // reference was written in a document's body, held by a registered
 // frontmatter property, or matched a file that exists but is not a corpus
-// member (AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7).
+// member (AC-SPECREF-002.1, AC-SPECREF-002.3, AC-SPECREF-002.7). The one
+// reference it does not report is the slug-less anchor form whose anchor
+// resolved against the document holding it (AC-SPECREF-002.12).
 //
 // The result folds into one [finding.Report] together with the corpus's
 // own duplicate-slug findings, so callers read one ordered list rather
@@ -177,13 +180,20 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 		if f, ok := unresolvedReferenceFinding(ref); ok {
 			report.Add(f)
 		}
+		report.Add(anchorFindings(ref)...)
 	}
 
 	// The relational half of reference integrity — what a resolved
 	// reference *means* rather than whether it lands — walks the same
-	// already-resolved reference collection, for the same reason: the
-	// work is a lookup over data already in memory, not a second corpus
-	// walk (AC-SPECREF-002.5, AC-SPECREF-002.6, AC-SPECREF-002.10).
+	// already-resolved reference collection rather than re-walking the
+	// corpus. It is not, though, a lookup over data already in memory on
+	// a warm corpus: retiredTargetFindings' successorOf and
+	// pairingIncompleteFindings each call Corpus.document for a resolved
+	// reference's target, which on a warm corpus reads and parses that
+	// one target off disk (and caches it for later callers). All three
+	// checks below also run corpus-wide, unnarrowed by only, exactly as
+	// the unresolved-reference loop above does (AC-SPECREF-002.5,
+	// AC-SPECREF-002.6, AC-SPECREF-002.10).
 	report.Add(c.retiredTargetFindings()...)
 	report.Add(c.pairingIncompleteFindings()...)
 	report.Add(c.typeMismatchFindings()...)
@@ -256,8 +266,12 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 
 // unresolvedReferenceFinding derives the reference/unresolved finding a
 // reference's own recorded resolution calls for, or reports none for a
-// reference that resolved to a corpus member.
+// reference that resolved to a corpus member or is a resolved
+// self-anchor (AC-SPECREF-002.12).
 func unresolvedReferenceFinding(ref specmodel.Reference) (specmodel.Finding, bool) {
+	if references.ResolvedSelfAnchor(ref) {
+		return specmodel.Finding{}, false
+	}
 	if nonMember, ok := ref.Resolution.AsNonMember(); ok {
 		return finding.UnresolvedReference(ref.Path, ref.Position, ref.Text, ref.Slug, ref.Origin, &nonMember), true
 	}
@@ -265,6 +279,72 @@ func unresolvedReferenceFinding(ref specmodel.Reference) (specmodel.Finding, boo
 		return finding.UnresolvedReference(ref.Path, ref.Position, ref.Text, ref.Slug, ref.Origin, nil), true
 	}
 	return specmodel.Finding{}, false
+}
+
+// anchorFindings derives the findings a reference's own recorded anchor
+// resolution calls for: none where the anchor resolved, or where there
+// is no anchor resolution at all (AC-SPECANCH-002.9).
+//
+// An absent resolution is the one-mistake-one-finding rule already
+// applied: a reference carrying no anchor has nothing to check, and one
+// whose slug did not resolve is already reported as an unresolved
+// reference by the loop this is called from, so an anchor finding on top
+// of it would be a second finding for one mistake (AC-SPECANCH-002.8).
+//
+// Like the unresolved-reference derivation above, this is a lookup over
+// what resolution already settled: it opens no document, re-reads no
+// heading and re-derives no identifier, so it costs nothing on the warm
+// single-document path that the relational checks below do pay for.
+//
+// Every finding is raised against the REFERRING document at the
+// reference's own span, which is the document a reader must open to fix
+// it — the target named in the message is where they look next
+// (AC-SPECANCH-003.2).
+func anchorFindings(ref specmodel.Reference) []specmodel.Finding {
+	if ref.AnchorResolution == nil || ref.Anchor == nil {
+		return nil
+	}
+	targetPath, checkable := references.AnchorTarget(ref)
+	if !checkable {
+		return nil
+	}
+
+	switch {
+	case isAnchorResolved(*ref.AnchorResolution):
+		return nil
+	case isAnchorUnresolved(*ref.AnchorResolution):
+		return []specmodel.Finding{
+			finding.UnresolvedAnchor(ref.Path, ref.Position, *ref.Anchor, targetPath),
+		}
+	}
+	if ambiguous, ok := ref.AnchorResolution.AsAmbiguous(); ok {
+		return []specmodel.Finding{
+			finding.AmbiguousAnchor(ref.Path, ref.Position, *ref.Anchor, targetPath, ambiguous.Matches),
+		}
+	}
+	if unverified, ok := ref.AnchorResolution.AsUnverified(); ok {
+		// The tool could not look, which is not the claim that it looked
+		// and found nothing (AC-SPECANCH-002.4). It is reported under
+		// the same rule identifier the anchor check owns, at
+		// [finding.SeverityUnverified], so a caller reads "this was not
+		// checked" rather than "this is fine".
+		return []specmodel.Finding{
+			finding.Unverified(finding.RuleUnresolvedAnchor, ref.Path, ref.Position, unverified.Reason),
+		}
+	}
+	return nil
+}
+
+// isAnchorResolved and isAnchorUnresolved name the two variants the
+// switch above tests without binding a payload it does not read.
+func isAnchorResolved(resolution specmodel.AnchorResolution) bool {
+	_, ok := resolution.AsResolved()
+	return ok
+}
+
+func isAnchorUnresolved(resolution specmodel.AnchorResolution) bool {
+	_, ok := resolution.AsUnresolved()
+	return ok
 }
 
 // retiredTargetFindings reports, for every resolved reference from a

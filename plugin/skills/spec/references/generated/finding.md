@@ -22,6 +22,9 @@
 - [FindingDuplicateIdentifier](#findingduplicateidentifier)
 - [FindingPartiallyTaggedOutline](#findingpartiallytaggedoutline)
 - [FindingOwningDocument](#findingowningdocument)
+- [FindingUnresolvedAnchor](#findingunresolvedanchor)
+- [FindingAmbiguousAnchor](#findingambiguousanchor)
+- [AnchorMatch](#anchormatch)
 - [FindingDetail](#findingdetail)
 - [Finding](#finding)
 - [CheckOutcome](#checkoutcome)
@@ -371,6 +374,55 @@ its own to disagree with.
 | document_slug | String? | The slug of the document the feature is written in, absent where the feature is a standalone feature file rather than a fenced block. |
 
 
+## FindingUnresolvedAnchor
+
+An anchor that names no heading of its target document.
+
+Recorded once the target's slug has resolved and its headings are
+known — a reference whose slug does not resolve at all is the parent
+feature's own unresolved-reference finding, and this variant adds
+nothing to it (AC-SPECANCH-002.1, AC-SPECANCH-002.8). The anchor is
+carried as authored, matching how the index records it, so the finding
+needs no further lookup to quote the text a fix has to edit.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| anchor | String | The anchor as authored, without normalization. |
+| target_path | String | The target document's path, relative to the repository root and written with forward slashes on every platform. |
+
+
+## FindingAmbiguousAnchor
+
+An anchor whose identifier is the identifier of more than one heading of
+its target document.
+
+Every matching heading is carried, not merely the count: the reader's
+next step is to open one of them and rename it, and a finding naming
+only "two matches" would send them back to the document to find what
+this check already found (AC-SPECANCH-002.5).
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| anchor | String | The anchor as authored, without normalization. |
+| target_path | String | The target document's path, relative to the repository root and written with forward slashes on every platform. |
+| matches | Array<[AnchorMatch](#anchormatch)> | Every heading of the target document whose identifier matches the anchor's, in document order. |
+
+
+## AnchorMatch
+
+One heading matched against an ambiguous anchor.
+
+Held apart from the full `Heading` shape because a match names only what
+the reader needs to find the right one — its text and where it is
+written — and carries none of a heading's own section content or nested
+record blocks.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| text | String | The heading's text as authored, without the `#` markers that open the line. |
+| position | [Span](index.md#span) | Where the heading line itself is written. |
+
+
 ## FindingDetail
 
 The structured detail of one finding, selected by the kind of defect.
@@ -407,6 +459,8 @@ identifier, the severity, the path, the span and the message.
 | "duplicate-identifier" | DuplicateIdentifier | An identifier declared by two records in the corpus. |
 | "partially-tagged-outline" | PartiallyTaggedOutline | A scenario outline whose examples blocks are inconsistently tagged. |
 | "owning-document" | OwningDocument | A feature whose owning document is unstated, mismatched or unresolved. |
+| "unresolved-anchor" | UnresolvedAnchor | An anchor matching no heading of its target document. |
+| "ambiguous-anchor" | AmbiguousAnchor | An anchor matching more than one heading of its target document. |
 
 
 ## Finding

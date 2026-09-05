@@ -1,1 +1,20 @@
-docs/adrs/adr-900-old-approach.md:8:16  adr-901-new-approach
+slug: adr-900-old-approach
+direction: outbound
+declared: true
+references:
+  - path: docs/adrs/adr-900-old-approach.md
+    text: adr-901-new-approach
+    slug: adr-901-new-approach
+    origin:
+      kind: frontmatter-property
+      property: superseded_by
+    position:
+      offset: 195
+      length: 20
+      start_line: 8
+      start_column: 16
+      end_line: 8
+      end_column: 36
+    resolution:
+      state: resolved
+      target_path: docs/adrs/adr-901-new-approach.md

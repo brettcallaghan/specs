@@ -1,0 +1,5 @@
+description = "refs '<slug>#<anchor>' --json carries the same values in the same order as the YAML rendering"
+cites = ["AC-SPECANCH-003.1"]
+artifacts = ["checks.json"]
+args = ["refs", "adr-900-old-approach#Decision", "--json"]
+exit_code = 0

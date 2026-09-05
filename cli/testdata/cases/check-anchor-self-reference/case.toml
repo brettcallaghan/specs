@@ -1,0 +1,5 @@
+description = "a corpus whose document references sections of itself with the slug-less anchor form is reported by nothing and passes check --strict"
+cites = ["AC-SPECREF-002.12"]
+artifacts = ["checks.log"]
+args = ["check", "--strict"]
+exit_code = 0

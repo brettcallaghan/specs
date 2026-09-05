@@ -21,7 +21,8 @@ import (
 // "requested and passed" (AC-SPEC-006.8's report distinction, carried by
 // [finding.Report] itself; see buildCheckReport below).
 //
-// RuleRetiredTarget, RuleIncompletePairing and RuleTypeMismatch are
+// RuleUnresolvedAnchor, RuleAmbiguousAnchor, RuleRetiredTarget,
+// RuleIncompletePairing and RuleTypeMismatch are
 // declared here rather than left to [finding.Report.Add]'s own
 // auto-registration of an unnamed rule: without a declaration, a run
 // that raises none of them would leave them out of the report's checks
@@ -41,6 +42,8 @@ var checkRules = []specmodel.RuleId{
 	finding.RuleSlugPattern,
 	finding.RuleDuplicateSlug,
 	finding.RuleUnresolvedReference,
+	finding.RuleUnresolvedAnchor,
+	finding.RuleAmbiguousAnchor,
 	finding.RuleRetiredTarget,
 	finding.RuleIncompletePairing,
 	finding.RuleTypeMismatch,

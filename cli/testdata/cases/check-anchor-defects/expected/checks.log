@@ -1,0 +1,32 @@
+checked 2 documents
+
+docs/adrs/adr-401-referrer.md:
+  reference/unresolved-anchor  error  13:3  no heading named "Rationale" in docs/adrs/adr-400-target.md
+  reference/ambiguous-anchor  error  13:43  "References" matches 2 headings in docs/adrs/adr-400-target.md
+
+checks:
+  corpus/empty  passed
+  frontmatter/missing-property  passed
+  frontmatter/parse  passed
+  frontmatter/schema  passed
+  gherkin/criterion-code-mismatch  passed
+  gherkin/criterion-empty  passed
+  gherkin/criterion-untagged  passed
+  gherkin/examples-partially-tagged  passed
+  gherkin/feature-untagged  passed
+  gherkin/identifier-duplicate  passed
+  gherkin/identifier-malformed  passed
+  gherkin/identifier-multiple  passed
+  gherkin/owner-mismatch  passed
+  gherkin/owner-missing  passed
+  gherkin/owner-unresolved  passed
+  gherkin/parse  passed
+  gherkin/scenario-prose  passed
+  reference/ambiguous-anchor  failed
+  reference/pairing-incomplete  passed
+  reference/retired-target  passed
+  reference/type-mismatch  passed
+  reference/unresolved  passed
+  reference/unresolved-anchor  failed
+  slug/duplicate  passed
+  slug/pattern-mismatch  passed

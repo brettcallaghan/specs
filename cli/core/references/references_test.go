@@ -371,8 +371,9 @@ Body.
 	}
 }
 
+// AC: AC-SPECANCH-001.1
 func TestAnAnchorIsSplitOnTheFirstHashAndNotInterpreted(t *testing.T) {
-	found, _ := extract(t, `---
+	found, source := extract(t, `---
 title: A document
 ---
 
@@ -386,6 +387,12 @@ and [[adr-009]] and [[slug|text]].
 
 	if found[0].Anchor == nil || *found[0].Anchor != "Element Registry" {
 		t.Errorf("anchor = %v, want the heading text", found[0].Anchor)
+	}
+	// One entry at one span: the anchor is carried alongside the slug on
+	// the very reference the slug is recorded on — not a second
+	// reference, and not a span of its own.
+	if got := string(span.Slice(source, found[0].Position)); got != "container-spec-cli#Element Registry" {
+		t.Errorf("the span covers %q, want slug and anchor together in one span", got)
 	}
 	// Split on the FIRST hash: what follows is recorded whole and not
 	// read as a second anchor.
@@ -403,6 +410,118 @@ and [[adr-009]] and [[slug|text]].
 	}
 	if found[3].Text != "slug|text" {
 		t.Errorf("text = %q, want the reference as written", found[3].Text)
+	}
+}
+
+// The index has to report the text a fix will edit, so an anchor is
+// recorded exactly as authored: neither its internal whitespace nor its
+// case is touched on the way in. Normalization is a matching question
+// anchor resolution answers later, against corpus knowledge extraction
+// does not have.
+//
+// AC: AC-SPECANCH-001.2
+func TestAnAnchorIsRecordedWithNoNormalization(t *testing.T) {
+	found, _ := extract(t, "---\ntitle: A document\n---\n\n"+
+		"[[container-spec-cli#Element  Registry]] and [[adr-012#miXedCase]].\n")
+
+	if len(found) != 2 {
+		t.Fatalf("found %d references, want 2: %v", len(found), slugs(found))
+	}
+	const wantDoubleSpace = "Element  Registry"
+	if found[0].Anchor == nil || *found[0].Anchor != wantDoubleSpace {
+		t.Errorf("anchor = %v, want %q with its double space preserved", found[0].Anchor, wantDoubleSpace)
+	}
+	const wantMixedCase = "miXedCase"
+	if found[1].Anchor == nil || *found[1].Anchor != wantMixedCase {
+		t.Errorf("anchor = %v, want %q with its case preserved", found[1].Anchor, wantMixedCase)
+	}
+}
+
+// The anchor separator is `#` alone. A vertical bar written inside an
+// anchor is not read as the display alias delimiter — that notation
+// [[cross-document-references]] prohibits reaches only the slug half —
+// so the bar is ordinary text of the anchor, recorded whole.
+//
+// AC: AC-SPECANCH-001.5
+func TestAVerticalBarInsideAnAnchorIsOrdinaryText(t *testing.T) {
+	found, _ := extract(t, "---\ntitle: A document\n---\n\n"+
+		"[[container-spec-cli#Element Registry|the registry]]\n")
+
+	if len(found) != 1 {
+		t.Fatalf("found %d references, want 1: %v", len(found), slugs(found))
+	}
+	if found[0].Slug != "container-spec-cli" {
+		t.Errorf("slug = %q, want container-spec-cli — the bar plays no part in the slug half", found[0].Slug)
+	}
+	const want = "Element Registry|the registry"
+	if found[0].Anchor == nil || *found[0].Anchor != want {
+		t.Errorf("anchor = %v, want %q — the bar is ordinary text of the anchor", found[0].Anchor, want)
+	}
+}
+
+// An anchor written in a reference-bearing frontmatter property is
+// recorded exactly as one written in the body: same split on the first
+// `#`, same lack of normalization, same span covering the value as
+// written.
+//
+// This item participates in AC-SPECANCH-001.6; the SREF delta that lets
+// a frontmatter citation carry an anchor owns the citation for it.
+func TestAnAnchorInAFrontmatterPropertyIsRecordedLikeABodyAnchor(t *testing.T) {
+	found, source := extract(t, `---
+title: A document
+sources:
+  - "adr-012#Decision"
+---
+
+Body.
+`, "sources")
+
+	if len(found) != 1 {
+		t.Fatalf("found %d references, want 1: %v", len(found), slugs(found))
+	}
+	reference := found[0]
+	if reference.Slug != "adr-012" {
+		t.Errorf("slug = %q, want adr-012", reference.Slug)
+	}
+	if reference.Anchor == nil || *reference.Anchor != "Decision" {
+		t.Errorf("anchor = %v, want %q", reference.Anchor, "Decision")
+	}
+	if _, ok := reference.Origin.AsFrontmatterProperty(); !ok {
+		t.Errorf("%q is not recorded as a frontmatter reference", reference.Text)
+	}
+	if got := string(span.Slice(source, reference.Position)); got != `"adr-012#Decision"` {
+		t.Errorf("the span covers %q, want the value as written, quotes included", got)
+	}
+}
+
+// An embed is written with a leading `!` before the delimiters, but
+// extraction does not special-case it: nothing here looks for the `!`,
+// so an embed is recorded exactly as the equivalent link is — same
+// slug, same anchor, same text, same body origin.
+//
+// This item participates in AC-SPECANCH-002.7; the ARES delta that
+// resolves and checks an embed owns the citation for it.
+func TestAnEmbedIsRecordedAsTheEquivalentLink(t *testing.T) {
+	embed, _ := extract(t, "---\ntitle: A document\n---\n\n"+
+		"![[container-spec-cli#Element Registry]]\n")
+	link, _ := extract(t, "---\ntitle: A document\n---\n\n"+
+		"[[container-spec-cli#Element Registry]]\n")
+
+	if len(embed) != 1 || len(link) != 1 {
+		t.Fatalf("found %d embed reference(s) and %d link reference(s), want 1 each", len(embed), len(link))
+	}
+	if embed[0].Slug != link[0].Slug {
+		t.Errorf("embed slug = %q, link slug = %q, want them equal", embed[0].Slug, link[0].Slug)
+	}
+	if (embed[0].Anchor == nil) != (link[0].Anchor == nil) ||
+		(embed[0].Anchor != nil && *embed[0].Anchor != *link[0].Anchor) {
+		t.Errorf("embed anchor = %v, link anchor = %v, want them equal", embed[0].Anchor, link[0].Anchor)
+	}
+	if embed[0].Text != link[0].Text {
+		t.Errorf("embed text = %q, link text = %q, want them equal", embed[0].Text, link[0].Text)
+	}
+	if _, ok := embed[0].Origin.AsBody(); !ok {
+		t.Error("the embed is not recorded as a body reference")
 	}
 }
 

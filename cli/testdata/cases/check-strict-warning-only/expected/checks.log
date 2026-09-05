@@ -21,9 +21,11 @@ checks:
   gherkin/owner-unresolved  passed
   gherkin/parse  passed
   gherkin/scenario-prose  passed
+  reference/ambiguous-anchor  passed
   reference/pairing-incomplete  passed
   reference/retired-target  failed
   reference/type-mismatch  passed
   reference/unresolved  passed
+  reference/unresolved-anchor  passed
   slug/duplicate  passed
   slug/pattern-mismatch  passed

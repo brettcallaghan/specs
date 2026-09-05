@@ -39,6 +39,16 @@ func resolvedRef(t *testing.T, citingPath, slug, targetPath string, anchor *stri
 	}
 }
 
+// anchorResolvedTo builds the anchor resolution of a reference whose
+// anchor matched exactly one heading, whose text is heading.
+func anchorResolvedTo(t *testing.T, heading string) *specmodel.AnchorResolution {
+	t.Helper()
+	resolution := specmodel.NewAnchorResolutionResolved(specmodel.AnchorResolved{
+		Heading: specmodel.AnchorMatch{Text: heading, Position: at(t)},
+	})
+	return &resolution
+}
+
 // unresolvedRef builds a reference whose slug reached nothing at all.
 func unresolvedRef(t *testing.T, citingPath, slug string) specmodel.Reference {
 	t.Helper()
@@ -260,8 +270,13 @@ func TestEveryFindingInARunIsReportedNotJustTheFirst(t *testing.T) {
 	}
 }
 
-// AC: AC-SPECMD-001.3
-func TestAnAnchorYieldsATargetFragmentByGitHubsHeadingAnchorRule(t *testing.T) {
+// An anchor that reached no heading still yields a fragment, derived
+// from the anchor as the author wrote it: the rewrite stays total, and
+// the copy names the section the source named rather than naming
+// nothing at all.
+//
+// AC: AC-SPECMD-001.7
+func TestAnAnchorReachingNoHeadingYieldsAFragmentFromTheAnchorAsAuthored(t *testing.T) {
 	cases := []struct {
 		anchor string
 		want   string
@@ -290,6 +305,144 @@ func TestAnAnchorYieldsATargetFragmentByGitHubsHeadingAnchorRule(t *testing.T) {
 	}
 }
 
+// A reference whose anchor resolved to a heading takes its fragment from
+// that heading's text, not from the anchor's.
+//
+// Every fixture below states a heading whose text is NOT the anchor's,
+// which the matcher that settles a resolution would never produce: it
+// resolves an anchor by comparing the two identifiers, so under today's
+// matching rule the heading and the anchor always derive alike and no
+// corpus input can tell the two sources apart. Stating a divergent
+// heading is what makes the seam observable — and it is a fair fixture
+// because this package is a CONSUMER of a settled resolution and never
+// re-derives or re-checks the match. The distinction is the point of the
+// criterion: the emitted link has to land on the heading a reader is
+// being sent to, so a looser matcher — one that admits a leading
+// requirement code, or a heading named in part — cannot silently start
+// emitting fragments that reach nothing.
+//
+// AC: AC-SPECMD-001.3
+func TestAResolvedAnchorTakesItsFragmentFromTheResolvedHeading(t *testing.T) {
+	cases := []struct {
+		name    string
+		anchor  string
+		heading string
+		want    string
+	}{
+		{
+			name:    "the anchor names the heading in full and the two agree",
+			anchor:  "Request Router",
+			heading: "Request Router",
+			want:    "request-router",
+		},
+		{
+			name:    "the heading carries markup the anchor does not",
+			anchor:  "The Profile interface",
+			heading: "The `Profile` interface",
+			want:    "the-profile-interface",
+		},
+		{
+			name:    "the heading is spelled differently from the anchor",
+			anchor:  "Reference Integrity Checks",
+			heading: "FEAT-SPECREF-002: Reference Integrity Checks",
+			want:    "feat-specref-002-reference-integrity-checks",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			anchor := c.anchor
+			ref := resolvedRef(t, "specs/adrs/adr-011.md", "adr-012", "specs/adrs/adr-012.md", &anchor)
+			ref.AnchorResolution = anchorResolvedTo(t, c.heading)
+
+			targets, findings := mdlinks.Resolve([]specmodel.Reference{ref}, mdlinks.Options{})
+
+			if len(findings) != 0 {
+				t.Fatalf("findings = %v, want none", findings)
+			}
+			want := "adr-012.md#" + c.want
+			if targets[0] == nil || *targets[0] != want {
+				t.Fatalf("target = %v, want %q", targets[0], want)
+			}
+		})
+	}
+}
+
+// Every anchor resolution that is not a resolved one falls back to the
+// anchor as authored — a considered "no heading", a collision the
+// resolver refused to pick between, and a target whose headings were
+// never recorded alike. None of the three names a heading to derive
+// from, so none can supply one.
+//
+// AC: AC-SPECMD-001.7
+func TestAnAnchorResolutionThatNamesNoHeadingFallsBackToTheAnchor(t *testing.T) {
+	unresolved := specmodel.NewAnchorResolutionUnresolved(specmodel.AnchorUnresolved{})
+	ambiguous := specmodel.NewAnchorResolutionAmbiguous(specmodel.AnchorAmbiguous{
+		Matches: []specmodel.AnchorMatch{
+			{Text: "Overview Of The Thing", Position: at(t)},
+			{Text: "Overview of the thing", Position: at(t)},
+		},
+	})
+	unverified := specmodel.NewAnchorResolutionUnverified(specmodel.AnchorUnverified{
+		Reason: "no headings are recorded for specs/adrs/adr-012.md",
+	})
+
+	cases := []struct {
+		name       string
+		resolution *specmodel.AnchorResolution
+	}{
+		{name: "no heading matched", resolution: &unresolved},
+		// Ambiguous carries matches, and it is still the anchor that the
+		// fragment comes from: the resolver declined to choose one, and
+		// this package must not choose for it.
+		{name: "several headings matched", resolution: &ambiguous},
+		{name: "the target's headings were never recorded", resolution: &unverified},
+		{name: "no resolution was computed at all", resolution: nil},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			anchor := "Overview Of The Thing"
+			ref := resolvedRef(t, "specs/adrs/adr-011.md", "adr-012", "specs/adrs/adr-012.md", &anchor)
+			ref.AnchorResolution = c.resolution
+
+			targets, findings := mdlinks.Resolve([]specmodel.Reference{ref}, mdlinks.Options{})
+
+			if len(findings) != 0 {
+				t.Fatalf("findings = %v, want none", findings)
+			}
+			const want = "adr-012.md#overview-of-the-thing"
+			if targets[0] == nil || *targets[0] != want {
+				t.Fatalf("target = %v, want %q", targets[0], want)
+			}
+		})
+	}
+}
+
+// A mapped slug's target gains the same fragment a derived one does: the
+// fragment is a property of the reference's anchor rather than of how
+// its path was settled.
+//
+// AC: AC-SPECMD-001.3
+func TestAMappedTargetCarriesTheResolvedHeadingsFragmentToo(t *testing.T) {
+	anchor := "Request Router"
+	ref := resolvedRef(t, "specs/adrs/adr-011.md", "container-api", "specs/containers/container-api.md", &anchor)
+	ref.AnchorResolution = anchorResolvedTo(t, "The `Request` Router")
+
+	targets, findings := mdlinks.Resolve([]specmodel.Reference{ref}, mdlinks.Options{
+		Map:     mdlinks.LinkMap{"container-api": "container-api.md"},
+		MapPath: "links.yaml",
+	})
+
+	if len(findings) != 0 {
+		t.Fatalf("findings = %v, want none", findings)
+	}
+	const want = "container-api.md#the-request-router"
+	if targets[0] == nil || *targets[0] != want {
+		t.Fatalf("target = %v, want %q", targets[0], want)
+	}
+}
+
 // A citing document that is not itself a corpus member resolves exactly
 // as one that is: the citing path is taken from the caller and used as
 // given, never looked up. The checklist item this bead owes with no cited
@@ -305,5 +458,95 @@ func TestACitingDocumentOutsideTheCorpusResolvesTheSameWay(t *testing.T) {
 	want := "../../specs/adrs/adr-012.md"
 	if targets[0] == nil || *targets[0] != want {
 		t.Fatalf("target = %v, want %q", targets[0], want)
+	}
+}
+
+// selfAnchorRef builds the anchor-only form — a reference carrying an
+// anchor and no slug — whose anchor resolved to the named heading of the
+// document holding it. The slug half of such a reference is empty and
+// reaches nothing, which is what resolution records.
+func selfAnchorRef(t *testing.T, citingPath, anchor, heading string) specmodel.Reference {
+	t.Helper()
+	ref := specmodel.Reference{
+		Path:       citingPath,
+		Text:       "#" + anchor,
+		Anchor:     &anchor,
+		Position:   at(t),
+		Resolution: specmodel.NewReferenceResolutionUnresolved(specmodel.ReferenceUnresolved{}),
+	}
+	ref.AnchorResolution = anchorResolvedTo(t, heading)
+	return ref
+}
+
+// The anchor-only form names a heading of the document being rewritten,
+// so its target is that heading's fragment and nothing in front of it:
+// there is no path to a document the reader is already in.
+//
+// AC: AC-SPECMD-001.8
+func TestAnAnchorOnlyCitationTargetsAFragmentOfTheDocumentItself(t *testing.T) {
+	ref := selfAnchorRef(t, "specs/adrs/adr-012.md", "Terminology", "The `Terminology` Section")
+
+	targets, findings := mdlinks.Resolve([]specmodel.Reference{ref}, mdlinks.Options{})
+
+	if len(findings) != 0 {
+		t.Fatalf("findings = %v, want none", findings)
+	}
+	// The fragment comes from the resolved heading rather than from the
+	// anchor as authored, the same rule AC-SPECMD-001.3 states for every
+	// other anchor.
+	const want = "#the-terminology-section"
+	if targets[0] == nil || *targets[0] != want {
+		t.Fatalf("target = %v, want %q", targets[0], want)
+	}
+}
+
+// A link map names where a corpus document is published. An empty slug
+// names no corpus document, and the heading is inside the document being
+// rewritten either way, so a map neither covers this citation nor
+// withholds it.
+//
+// AC: AC-SPECMD-001.8
+func TestAnAnchorOnlyCitationTargetsItsOwnFragmentWithAMapGiven(t *testing.T) {
+	ref := selfAnchorRef(t, "specs/adrs/adr-012.md", "Terminology", "Terminology")
+
+	targets, findings := mdlinks.Resolve([]specmodel.Reference{ref}, mdlinks.Options{
+		Map:     mdlinks.LinkMap{"adr-012": "adr-012.html"},
+		MapPath: "links.yaml",
+	})
+
+	if len(findings) != 0 {
+		t.Fatalf("findings = %v, want none", findings)
+	}
+	const want = "#terminology"
+	if targets[0] == nil || *targets[0] != want {
+		t.Fatalf("target = %v, want %q", targets[0], want)
+	}
+}
+
+// The exemption is conjunctive: an empty slug alone earns nothing. An
+// anchor-only citation whose anchor resolved to no heading of the
+// document holding it reaches nothing, so it settles no target and is
+// reported like any other slug naming no corpus document.
+//
+// AC: AC-SPECMD-001.8
+func TestAnAnchorOnlyCitationReachingNoHeadingSettlesNoTarget(t *testing.T) {
+	anchor := "Nowhere"
+	ref := specmodel.Reference{
+		Path:       "specs/adrs/adr-012.md",
+		Text:       "#Nowhere",
+		Anchor:     &anchor,
+		Position:   at(t),
+		Resolution: specmodel.NewReferenceResolutionUnresolved(specmodel.ReferenceUnresolved{}),
+	}
+	unresolved := specmodel.NewAnchorResolutionUnresolved(specmodel.AnchorUnresolved{})
+	ref.AnchorResolution = &unresolved
+
+	targets, findings := mdlinks.Resolve([]specmodel.Reference{ref}, mdlinks.Options{})
+
+	if targets[0] != nil {
+		t.Errorf("target = %q, want none — the anchor reaches no heading", *targets[0])
+	}
+	if len(findings) != 1 || findings[0].Rule != finding.RuleUnresolvedCitation {
+		t.Fatalf("findings = %+v, want one links/unresolved", findings)
 	}
 }

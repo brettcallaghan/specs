@@ -1,7 +1,7 @@
 # `sf` — Spec-First Development
 
 <!-- coverage:badge:start -->
-[![coverage](https://img.shields.io/badge/cli%20coverage-89.5%25-green)](#test-coverage)
+[![coverage](https://img.shields.io/badge/cli%20coverage-89.7%25-green)](#test-coverage)
 <!-- coverage:badge:end -->
 
 **Agency for the agents.**
@@ -290,30 +290,30 @@ alone is visible rather than averaged away.
 <!-- coverage:table:start -->
 | Test layer | Statements covered | Coverage |
 |:---|---:|---:|
-| Unit tests | 2,462 / 3,168 | 77.7% |
-| Snapshot cases | 2,343 / 3,168 | 74.0% |
-| End-to-end (built binary) | 1,038 / 3,168 | 32.8% |
-| **All layers combined** | **2,835 / 3,168** | **89.5%** |
+| Unit tests | 2,590 / 3,320 | 78.0% |
+| Snapshot cases | 2,518 / 3,320 | 75.8% |
+| End-to-end (built binary) | 1,045 / 3,320 | 31.5% |
+| **All layers combined** | **2,977 / 3,320** | **89.7%** |
 
 | Package | Statements | Covered | Coverage |
 |:---|---:|---:|---:|
-| `cli/cmd` | 1,075 | 921 | 85.7% |
-| `cli/core/corpus` | 974 | 875 | 89.8% |
-| `cli/core/finding` | 164 | 156 | 95.1% |
+| `cli/cmd` | 1,163 | 996 | 85.6% |
+| `cli/core/corpus` | 997 | 901 | 90.4% |
+| `cli/core/finding` | 166 | 158 | 95.2% |
 | `cli/core/frontmatter` | 131 | 116 | 88.5% |
 | `cli/core/gherkin` | 289 | 267 | 92.4% |
 | `cli/core/markdown` | 95 | 89 | 93.7% |
 | `cli/core/mdlinks` | 70 | 70 | 100.0% |
 | `cli/core/numbering` | 26 | 22 | 84.6% |
-| `cli/core/references` | 116 | 112 | 96.6% |
+| `cli/core/references` | 155 | 151 | 97.4% |
 | `cli/core/schemaregistry` | 129 | 113 | 87.6% |
 | `cli/core/span` | 37 | 36 | 97.3% |
 | `cli/core/specindex` | 1 | 1 | 100.0% |
 | `cli/profile` | 60 | 56 | 93.3% |
 | `cli/spec` | 1 | 1 | 100.0% |
-| **Total** | **3,168** | **2,835** | **89.5%** |
+| **Total** | **3,320** | **2,977** | **89.7%** |
 
-Generated code is excluded from these figures: 1,806 statements in 1 file (`specmodel.go`) carrying the `// Code generated … DO NOT EDIT.` marker. It is excluded from the coverage profile too, so every report derived from it agrees with this table.
+Generated code is excluded from these figures: 1,955 statements in 1 file (`specmodel.go`) carrying the `// Code generated … DO NOT EDIT.` marker. It is excluded from the coverage profile too, so every report derived from it agrees with this table.
 <!-- coverage:table:end -->
 
 CI regenerates this and fails if it is stale

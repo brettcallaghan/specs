@@ -209,19 +209,44 @@ corpus warm and answer `corpus.Corpus.Slug` and `numbering.Next`
 directly (AC-SPEC-011.3, AC-SPEC-011.4).
 
 `refs` opens the corpus warm, the same as `check`, `slug-exists` and
-`next-id`, and takes one slug: by default it answers
-`corpus.Corpus.InboundReferences` — every corpus member whose body or a
-registered frontmatter property references it (AC-SPECREF-003.1) — and,
-given `--outbound`, `corpus.Corpus.OutboundReferences` instead, the
-documents that slug references (AC-SPECREF-003.2). `--json` marshals the
-generated `specmodel.Reference` values straight through, each already
-carrying its file path and span (AC-SPECREF-003.3). It converts a slug
-and a direction into that one corpus lookup and nothing else — the same
-no-domain-logic discipline every subcommand here holds to — and always
-exits zero: a slug the corpus resolves but nothing references, and a
-slug no corpus member declares at all — the same `corpus.Corpus.Slug`
-query AC-SPEC-007.2 defines for `slug-exists` — are reported as two
-different sentences rather than the same empty result (AC-SPECREF-003.5).
+`next-id`, and takes one argument written `<slug>` or `<slug>#<anchor>`:
+by default it answers `corpus.Corpus.InboundReferences` — every corpus
+member whose body or a registered frontmatter property references it
+(AC-SPECREF-003.1) — and, given `--outbound`,
+`corpus.Corpus.OutboundReferences` instead, the documents that slug
+references (AC-SPECREF-003.2). It converts an argument and a direction
+into that one corpus lookup and nothing else — the same no-domain-logic
+discipline every subcommand here holds to — and always exits zero: a
+slug the corpus resolves but nothing references, and a slug no corpus
+member declares at all — the same `corpus.Corpus.Slug` query
+AC-SPEC-007.2 defines for `slug-exists` — are told apart by the
+`declared` property rather than by the same empty result
+(AC-SPECREF-003.5).
+
+An anchor qualifies the argument rather than changing what it looks up:
+the same inbound set is narrowed to the references whose anchor
+resolves to that heading, the blast radius of renaming it
+(AC-SPECANCH-003.1). Which heading an anchor reached is read off the
+reference's own `anchor_resolution` — the References component settled
+it during resolution — so this command derives nothing about anchors and
+cannot disagree with the checks. A reference whose anchor matched more
+than one heading resolves to none of them and is listed for each of
+them, carrying `ambiguous_anchor` (AC-SPECANCH-003.4); an anchor no
+reference reaches answers with the empty collection and exits zero
+(AC-SPECANCH-003.3). `--outbound` takes no anchor and refuses one: an
+anchor names a heading of the *cited* document, and the outbound
+direction asks what the given document cites.
+
+The answer is a mapping of the properties the query established, with
+the references as a sequence of mappings beneath it, rendered as YAML
+and as JSON under `--json` per [[cli-output-standards]]. Each reference
+is the generated `specmodel.Reference` — already carrying its file path
+and span (AC-SPECREF-003.3) — embedded rather than copied, so both
+renderings are views over the generated model ([[adr-016]]) rather than
+a second declaration of it. The YAML renderer resolves a value that
+marshals itself through its own `MarshalJSON`, which is what makes the
+two renderings carry the same keys in the same order for a union such
+as `resolution` or `anchor_resolution`.
 
 `links` takes one operand, the path of a markdown document, and an
 optional `--map` naming a link-map file; it does not require the operand

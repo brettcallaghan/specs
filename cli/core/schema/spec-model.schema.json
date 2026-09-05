@@ -29,7 +29,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -67,6 +67,160 @@
         "type",
         "status",
         "updated_at"
+      ],
+      "type": "object"
+    },
+    "AnchorAmbiguous": {
+      "additionalProperties": false,
+      "description": "An anchor whose identifier matched more than one heading of its target\ndocument.",
+      "properties": {
+        "matches": {
+          "description": "Every heading of the target document whose identifier matched, in document order.",
+          "items": {
+            "$ref": "#/definitions/AnchorMatch"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "matches"
+      ],
+      "type": "object"
+    },
+    "AnchorMatch": {
+      "additionalProperties": false,
+      "description": "One heading matched against an ambiguous anchor.\n\nHeld apart from the full `Heading` shape because a match names only what\nthe reader needs to find the right one — its text and where it is\nwritten — and carries none of a heading's own section content or nested\nrecord blocks.",
+      "properties": {
+        "position": {
+          "$ref": "#/definitions/Span",
+          "description": "Where the heading line itself is written."
+        },
+        "text": {
+          "description": "The heading's text as authored, without the `#` markers that open the\nline.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text",
+        "position"
+      ],
+      "type": "object"
+    },
+    "AnchorResolution": {
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "resolved"
+              }
+            },
+            "required": [
+              "state"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/AnchorResolved"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "unresolved"
+              }
+            },
+            "required": [
+              "state"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/AnchorUnresolved"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "ambiguous"
+              }
+            },
+            "required": [
+              "state"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/AnchorAmbiguous"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "unverified"
+              }
+            },
+            "required": [
+              "state"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/AnchorUnverified"
+          }
+        }
+      ],
+      "description": "What the anchor half of a reference resolved to.\n\nPresent on a `Reference` exactly when its anchor is present and its\ntarget is known: the slug half reached a corpus member, or the anchor\nnames no slug and resolves against the document containing the\nreference (AC-SPECANCH-002.6). Absent when the reference carries no\nanchor, and absent when the slug half is present and did not resolve —\nthe parent feature already reports that reference as broken, and an\nanchor finding on top of it would be a second finding for one mistake\n(AC-SPECANCH-002.8).",
+      "properties": {
+        "state": {
+          "enum": [
+            "resolved",
+            "unresolved",
+            "ambiguous",
+            "unverified"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "type": "object"
+    },
+    "AnchorResolved": {
+      "additionalProperties": false,
+      "description": "An anchor resolved to exactly one heading of its target document.",
+      "properties": {
+        "heading": {
+          "$ref": "#/definitions/AnchorMatch",
+          "description": "The heading the anchor's identifier matched."
+        }
+      },
+      "required": [
+        "heading"
+      ],
+      "type": "object"
+    },
+    "AnchorUnresolved": {
+      "additionalProperties": false,
+      "description": "An anchor whose identifier matched no heading of its target document,\nwhose headings were available to check it against.\n\nHeld apart from `AnchorUnverified`: this is a considered \"no\", not an\nabsence of an answer — the target's headings were read and none of\nthem matched, which is what a rename-the-heading fix responds to.",
+      "properties": {},
+      "type": "object"
+    },
+    "AnchorUnverified": {
+      "additionalProperties": false,
+      "description": "An anchor whose target document's headings could not be examined.\n\nDistinct from `AnchorUnresolved`: the tool did not get to look, so it\nsays so rather than reporting a heading rename would fix — the same\ndistinction `FindingUnverified` draws for a check that could not run at\nall.",
+      "properties": {
+        "reason": {
+          "description": "Why the target's headings could not be examined, stated so the finding\nbuilt from this needs no further lookup to act on.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason"
       ],
       "type": "object"
     },
@@ -149,6 +303,11 @@
       ],
       "type": "object"
     },
+    "Citation": {
+      "description": "A reference to another specification document, optionally qualified by\nan anchor into one of its sections.\n\nHeld apart from `Slug` because the two type different things: `Slug` is\nthe identity a document declares about itself, and admitting an anchor\nthere would let a document declare its identity as `adr-012#Decision`,\nbreaking uniqueness and slug resolution. A citation names someone\nelse's identity and may legitimately point at a place inside it — the\nslug half matches the same pattern `Slug` does, and a trailing `#` with\nnothing after it is rejected rather than admitted as an anchor-less\ncitation.",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*(?:#.+)?$",
+      "type": "string"
+    },
     "ComponentBlueprint": {
       "additionalProperties": false,
       "description": "A C4 component blueprint: a single component promoted out of its\nparent's roster into a document of its own, because it warrants more\nthan a record block.\n\nCarries no parent property. A component has exactly one parent, as C4\nrequires, and its parent's roster section already links it by\n`[[slug]]` under its own heading — so the edge is declared once, in the\none place a reader meets the child, and the index derives the component's\nparent from that inbound link. `contained_by` is the module level's\nalone, because being composed into more than one container is what\ndistinguishes a module from a component.",
@@ -156,7 +315,7 @@
         "contracts_consumed": {
           "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -166,7 +325,7 @@
         "contracts_provided": {
           "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -211,7 +370,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -270,7 +429,7 @@
         "contracts_consumed": {
           "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -280,7 +439,7 @@
         "contracts_provided": {
           "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -311,7 +470,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -322,7 +481,7 @@
           "description": "The system this container belongs to.\n\nOmitted when the container is standalone — that is, when no system\nblueprint documents it. Absence records a documented fact rather than\nan oversight.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -375,7 +534,7 @@
         "consumers": {
           "description": "Known consumers, by slug. Derived knowledge rather than a\nrestriction — an unlisted consumer is not forbidden, it is merely\nunknown to the provider.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -395,7 +554,7 @@
           "type": "string"
         },
         "provider": {
-          "$ref": "#/definitions/Slug",
+          "$ref": "#/definitions/Citation",
           "description": "The container or system that provides this interface.\n\nExactly one, because a contract with two providers is two contracts."
         },
         "slug": {
@@ -420,7 +579,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -479,7 +638,7 @@
         "contracts_consumed": {
           "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -489,7 +648,7 @@
         "contracts_provided": {
           "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -642,7 +801,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -895,7 +1054,7 @@
           "type": "string"
         },
         "frd": {
-          "$ref": "#/definitions/Slug",
+          "$ref": "#/definitions/Citation",
           "description": "The FRD this blueprint realizes, one to one.\n\nA feature blueprint answers how the system changes; the FRD it names\nanswers what the change must achieve. Singular and required, so the\none-to-one relationship is expressible in the schema rather than only\nin this comment, and named `frd` rather than `sources` so that one\nproperty name does not span two relationships — `Frd.sources` is\noptional, many-valued provenance, which is a different edge."
         },
         "plan": {
@@ -917,7 +1076,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -1124,6 +1283,33 @@
         "position",
         "message",
         "detail"
+      ],
+      "type": "object"
+    },
+    "FindingAmbiguousAnchor": {
+      "additionalProperties": false,
+      "description": "An anchor whose identifier is the identifier of more than one heading of\nits target document.\n\nEvery matching heading is carried, not merely the count: the reader's\nnext step is to open one of them and rename it, and a finding naming\nonly \"two matches\" would send them back to the document to find what\nthis check already found (AC-SPECANCH-002.5).",
+      "properties": {
+        "anchor": {
+          "description": "The anchor as authored, without normalization.",
+          "type": "string"
+        },
+        "matches": {
+          "description": "Every heading of the target document whose identifier matches the\nanchor's, in document order.",
+          "items": {
+            "$ref": "#/definitions/AnchorMatch"
+          },
+          "type": "array"
+        },
+        "target_path": {
+          "description": "The target document's path, relative to the repository root and\nwritten with forward slashes on every platform.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "anchor",
+        "target_path",
+        "matches"
       ],
       "type": "object"
     },
@@ -1430,6 +1616,38 @@
           "then": {
             "$ref": "#/definitions/FindingOwningDocument"
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "unresolved-anchor"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FindingUnresolvedAnchor"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "ambiguous-anchor"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/FindingAmbiguousAnchor"
+          }
         }
       ],
       "description": "The structured detail of one finding, selected by the kind of defect.\n\nEvery finding carries one. The message on the finding is derivable from\nthis value, so a consumer branches on structure rather than parsing\nprose, and a renderer that wants to offer a fix reads the fields it needs\nas values.\n\nThe union is open to extension in the sense that matters: a later check\nadds a variant without changing the envelope that carries it, and a\nconsumer that does not recognise a variant still has the rule\nidentifier, the severity, the path, the span and the message.",
@@ -1453,7 +1671,9 @@
             "identifier-pattern",
             "duplicate-identifier",
             "partially-tagged-outline",
-            "owning-document"
+            "owning-document",
+            "unresolved-anchor",
+            "ambiguous-anchor"
           ],
           "type": "string"
         }
@@ -1783,6 +2003,25 @@
       ],
       "type": "object"
     },
+    "FindingUnresolvedAnchor": {
+      "additionalProperties": false,
+      "description": "An anchor that names no heading of its target document.\n\nRecorded once the target's slug has resolved and its headings are\nknown — a reference whose slug does not resolve at all is the parent\nfeature's own unresolved-reference finding, and this variant adds\nnothing to it (AC-SPECANCH-002.1, AC-SPECANCH-002.8). The anchor is\ncarried as authored, matching how the index records it, so the finding\nneeds no further lookup to quote the text a fix has to edit.",
+      "properties": {
+        "anchor": {
+          "description": "The anchor as authored, without normalization.",
+          "type": "string"
+        },
+        "target_path": {
+          "description": "The target document's path, relative to the repository root and\nwritten with forward slashes on every platform.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "anchor",
+        "target_path"
+      ],
+      "type": "object"
+    },
     "FindingUnresolvedCitation": {
       "additionalProperties": false,
       "description": "A citation whose slug names no corpus document at all.\n\nDistinct from `FindingUnmappedCitation`: nothing in the corpus resolves\nthe slug, so the citation is as likely to be illustrative prose — a\ntemplate teaching citation syntax — as a mistyped reference, and the two\ncannot be told apart by the tool. Carrying only the slug and the citing\ndocument (no map path) reflects that a link map, present or absent, is\nnot what decided this outcome.",
@@ -1869,7 +2108,7 @@
         "sources": {
           "description": "The documents this FRD is derived from — a brief, a research\ndocument, or an FRD it narrows.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -1884,7 +2123,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -1953,7 +2192,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -2125,7 +2364,7 @@
         "contained_by": {
           "description": "The containers, or the modules, that compose this module.\n\n**The only multi-parent relationship in the vocabulary, and the reason\nthe module level exists.** C4 gives every element exactly one parent —\na container belongs to one system, a component to one container — and\nthat edge is recorded by the parent, in the roster section of its body.\nModule is this framework's addition to C4, and being composed into more\nthan one container is its whole purpose: a unit shared by two\ncontainers is a module precisely because it is shared.\n\nSo this is a list, and it is declared here rather than derived from\nparent rosters, because a shared module's hosts are a fact about the\nmodule. It is the direction ADR-009 tells modules to point when it\ndenies them a context view — no single outward-edge list is correct for\na module, but the set of hosts is, and this is where it goes.\n\nOmitted when no host has a blueprint of its own — absence records a\ndocumented fact rather than an oversight.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -2135,7 +2374,7 @@
         "contracts_consumed": {
           "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -2145,7 +2384,7 @@
         "contracts_provided": {
           "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -2190,7 +2429,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -2484,10 +2723,21 @@
       "description": "One occurrence of one document referencing another.\n\nA reference is an edge, and it is recorded as a row of its own rather\nthan as a property of either document it connects. The facts that make\nit actionable — where it was written, whether it came from prose or from\na named frontmatter property, and what it reached — belong to neither\nendpoint, and both directions of the graph are derived by indexing this\none collection rather than stored twice.\n\nOne row per occurrence. A document that references the same target twice\ncontributes two rows carrying two spans, so a finding about either cites\nthe line the reader must open.",
       "properties": {
         "anchor": {
-          "description": "The anchor half: everything after the first `#`, absent where the\nreference names no anchor.\n\nRecorded and not interpreted. Resolving an anchor against the target's\nheadings is a separate feature; splitting on the first `#` is the whole\nof what this shape knows about anchors, and it exists so that an\nanchored reference resolves on its slug rather than reporting as\nbroken.",
+          "description": "The anchor half: everything after the first `#`, absent where the\nreference names no anchor.\n\nRecorded and not interpreted: splitting on the first `#` is the whole\nof what extraction knows about anchors, which is why an anchored\nreference resolves on its slug rather than reporting as broken. What\nthe anchor itself matched is carried separately, in\n`anchor_resolution`.",
           "type": [
             "string",
             "null"
+          ]
+        },
+        "anchor_resolution": {
+          "description": "What the anchor half of this reference resolved to.\n\nPresent exactly when `anchor` is present and there is a target to\ncheck it against: `resolution` reached a corpus member, or the\nreference names no slug at all and resolves against the document\nnamed in `path`. Absent when the reference carries no anchor, and\nabsent when it names a slug that did not resolve — `resolution`\nalready reports that reference as broken.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/AnchorResolution"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "origin": {
@@ -2780,7 +3030,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -3046,7 +3296,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"
@@ -3111,7 +3361,7 @@
         "contracts_consumed": {
           "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -3121,7 +3371,7 @@
         "contracts_provided": {
           "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
           "items": {
-            "$ref": "#/definitions/Slug"
+            "$ref": "#/definitions/Citation"
           },
           "type": [
             "array",
@@ -3152,7 +3402,7 @@
           "description": "The document that replaces this one.\n\nRequired in practice on any document at `status: retired` — a retired\ndocument with no resolvable successor is a dead end for anyone who\nfollows a reference to it.",
           "oneOf": [
             {
-              "$ref": "#/definitions/Slug"
+              "$ref": "#/definitions/Citation"
             },
             {
               "type": "null"

@@ -1,10 +1,15 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"reflect"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"unicode"
 )
@@ -25,6 +30,15 @@ import (
 // One difference is deliberate: an empty or nil sequence renders `[]`
 // and an empty or nil mapping `{}`, per the standards' YAML Style
 // section, where `encoding/json` writes `null` for a nil one.
+//
+// A value that marshals ITSELF — every union and enum
+// `schemas/*.strata` generates does — is rendered from the JSON its own
+// MarshalJSON writes rather than from its Go fields, because those two
+// are not the same document. A union is one Go field holding a variant
+// interface, and its JSON is the variant's own keys under a tag naming
+// which variant it is; walking the fields would print the Go shape
+// (`Value:`) and lose the tag, so the two renderings would carry
+// different keys for one value. See [marshaledValue].
 //
 // It is deliberately not a general YAML library. Every rule below removes
 // a choice a library would offer — no flow style, no anchors, no folding,
@@ -50,12 +64,17 @@ func renderYAML(value any) string {
 // whose first line is therefore already indented and must not be
 // indented again.
 func writeYAMLValue(out *strings.Builder, v reflect.Value, indent int, inSequence bool) {
-	v = indirect(v)
+	v = marshaledValue(v)
 
 	// An invalid value is a nil pointer or interface: an absent value,
 	// which the standards render as null.
 	if !v.IsValid() {
 		writeScalarLine(out, "null", indent, inSequence)
+		return
+	}
+
+	if mapping, ok := asJSONMapping(v); ok {
+		writeYAMLMapping(out, mapping, indent, inSequence)
 		return
 	}
 
@@ -93,7 +112,7 @@ func writeYAMLMapping(out *strings.Builder, fields []field, indent int, inSequen
 		out.WriteString(plainKey(f.key))
 		out.WriteString(":")
 
-		value := indirect(f.value)
+		value := marshaledValue(f.value)
 		if isBlock(value) {
 			// A mapping or sequence value goes on the following lines,
 			// indented one level under the key introducing it.
@@ -124,9 +143,12 @@ func writeYAMLSequence(out *strings.Builder, v reflect.Value, indent int, inSequ
 // rather than after it. An empty collection does not: it renders as "[]"
 // or "{}" on the key's own line.
 func isBlock(v reflect.Value) bool {
-	v = indirect(v)
+	v = marshaledValue(v)
 	if !v.IsValid() {
 		return false
+	}
+	if mapping, ok := asJSONMapping(v); ok {
+		return len(mapping) > 0
 	}
 	switch v.Kind() {
 	case reflect.Struct:
@@ -308,6 +330,168 @@ func plainKey(key string) string {
 // that a whole number reads as one.
 func trimFloat(f float64) string {
 	return strings.TrimSuffix(strings.TrimRight(fmt.Sprintf("%f", f), "0"), ".")
+}
+
+// jsonMapping is a JSON object decoded from a value's own MarshalJSON,
+// holding its keys in the order that JSON wrote them.
+//
+// A Go map cannot stand in for it: the standards require a stable order
+// and a map has none, so the order the value itself chose would be
+// replaced by one this renderer invented.
+type jsonMapping []field
+
+// asJSONMapping reports whether v is a decoded JSON object, and returns
+// it when so. It is checked before the Kind switch because a jsonMapping
+// is a slice and would otherwise render as a sequence.
+func asJSONMapping(v reflect.Value) (jsonMapping, bool) {
+	if !v.IsValid() || v.Type() != reflect.TypeOf(jsonMapping(nil)) {
+		return nil, false
+	}
+	mapping, ok := v.Interface().(jsonMapping)
+	return mapping, ok
+}
+
+// marshaledValue resolves v to what this renderer walks: the value
+// beneath a pointer or interface, and — for a value that marshals itself
+// — the tree its own JSON carries rather than its Go fields.
+//
+// A value whose marshalling fails, or whose JSON cannot be decoded, is
+// returned unchanged and rendered from its fields. The rendering stays
+// total either way: `--json` is where a marshalling failure is reported,
+// and a YAML rendering that panicked or vanished would report it twice
+// and answer neither question.
+func marshaledValue(v reflect.Value) reflect.Value {
+	v = indirect(v)
+	if !v.IsValid() || !v.CanInterface() {
+		return v
+	}
+	if _, already := v.Interface().(jsonMapping); already {
+		return v
+	}
+	marshaler, ok := v.Interface().(json.Marshaler)
+	if !ok {
+		return v
+	}
+	data, err := marshaler.MarshalJSON()
+	if err != nil {
+		return v
+	}
+	decoded, err := decodeOrderedJSON(data)
+	if err != nil {
+		return v
+	}
+	return reflect.ValueOf(decoded)
+}
+
+// decodeOrderedJSON decodes one JSON document into the generic tree this
+// renderer walks: a [jsonMapping] for an object, a []any for an array,
+// and a Go scalar otherwise.
+//
+// Numbers are decoded through [json.Number] and converted back to an
+// integer where they are one, so that a whole number renders unquoted
+// and without a decimal point it was not written with.
+func decodeOrderedJSON(data []byte) (any, error) {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.UseNumber()
+
+	value, err := decodeOrderedValue(decoder)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := decoder.Token(); !errors.Is(err, io.EOF) {
+		return nil, fmt.Errorf("cmd: trailing content after a value's own JSON")
+	}
+	return value, nil
+}
+
+// decodeOrderedValue decodes the next value the decoder offers.
+func decodeOrderedValue(decoder *json.Decoder) (any, error) {
+	token, err := decoder.Token()
+	if err != nil {
+		return nil, err
+	}
+	return decodeOrderedToken(decoder, token)
+}
+
+// decodeOrderedToken turns one token, and whatever it opens, into a
+// value.
+func decodeOrderedToken(decoder *json.Decoder, token json.Token) (any, error) {
+	switch t := token.(type) {
+	case json.Delim:
+		switch t {
+		case '{':
+			return decodeOrderedMapping(decoder)
+		case '[':
+			return decodeOrderedSequence(decoder)
+		}
+		return nil, fmt.Errorf("cmd: unexpected %q in a value's own JSON", t)
+	case json.Number:
+		return orderedNumber(t), nil
+	default:
+		// A string, a boolean, or nil for a JSON null.
+		return t, nil
+	}
+}
+
+// decodeOrderedMapping decodes an object whose opening brace has already
+// been read, keeping its keys in order.
+func decodeOrderedMapping(decoder *json.Decoder) (jsonMapping, error) {
+	mapping := jsonMapping{}
+	for decoder.More() {
+		key, err := decoder.Token()
+		if err != nil {
+			return nil, err
+		}
+		name, ok := key.(string)
+		if !ok {
+			return nil, fmt.Errorf("cmd: a non-string key in a value's own JSON")
+		}
+		value, err := decodeOrderedValue(decoder)
+		if err != nil {
+			return nil, err
+		}
+		mapping = append(mapping, field{key: name, value: reflect.ValueOf(value)})
+	}
+	// The closing brace.
+	if _, err := decoder.Token(); err != nil {
+		return nil, err
+	}
+	return mapping, nil
+}
+
+// decodeOrderedSequence decodes an array whose opening bracket has
+// already been read.
+func decodeOrderedSequence(decoder *json.Decoder) ([]any, error) {
+	sequence := []any{}
+	for decoder.More() {
+		value, err := decodeOrderedValue(decoder)
+		if err != nil {
+			return nil, err
+		}
+		sequence = append(sequence, value)
+	}
+	// The closing bracket.
+	if _, err := decoder.Token(); err != nil {
+		return nil, err
+	}
+	return sequence, nil
+}
+
+// orderedNumber narrows a JSON number to the Go type that renders it as
+// written: an integer where it is one, a float otherwise, and the
+// number's own text where it fits neither — a value too large for either
+// is still reported, in the digits it arrived in.
+func orderedNumber(number json.Number) any {
+	if i, err := strconv.ParseInt(number.String(), 10, 64); err == nil {
+		return i
+	}
+	if u, err := strconv.ParseUint(number.String(), 10, 64); err == nil {
+		return u
+	}
+	if f, err := number.Float64(); err == nil {
+		return f
+	}
+	return number.String()
 }
 
 // indirect follows pointers and interfaces to the value beneath, and

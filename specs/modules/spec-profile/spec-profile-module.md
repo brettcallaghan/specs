@@ -128,7 +128,7 @@ its typed references and its pairings, and `corpus.Profile` carries a
 `Lifecycle()` member supplying the status vocabulary, the live and
 retired statuses and the successor property. This profile registers, for
 every frontmatter property `schemas/frontmatter.strata` types as a
-document slug, that property as reference-bearing; exactly one typed
+citation, that property as reference-bearing; exactly one typed
 reference (a feature blueprint's `frd` must resolve to `type: frd`); no
 pairing, deliberately — every relationship this framework declares has
 its reverse derived from inbound edges, so
@@ -251,11 +251,11 @@ rather than by string literals, so a renamed or removed type fails to
 compile here; `TestDocumentTypesCoversEveryVocabularyValue` asserts one
 table entry, with a compiling slug pattern, for every value in the
 generated vocabulary, so an *added* type fails the suite; and
-`TestEverySlugTypedPropertyInTheVocabularyIsRegistered` asserts, for
+`TestEveryCitationTypedPropertyInTheVocabularyIsRegistered` asserts, for
 every document type, that every frontmatter property the schema types as
-`Slug` or `[Slug]` is registered as reference-bearing by that type and
-that nothing wider is registered — the same drift guard applied to the
-reference set. `cli/profile/registration.go` reads the reference
+`Citation` or `[Citation]` is registered as reference-bearing by that
+type and that nothing wider is registered — the same drift guard applied
+to the reference set. `cli/profile/registration.go` reads the reference
 properties and the status vocabulary from the decoded schema at package
 initialization; only the one typed reference (`frd` → `type: frd`) and
 the lifecycle's live/retired split are authored, because the schema has

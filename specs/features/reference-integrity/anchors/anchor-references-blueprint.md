@@ -5,8 +5,8 @@ description: Resolves a reference's anchor against its target's headings
   checks, and an anchor-qualified refs query
 slug: feature-spec-anchor-references
 type: feature-blueprint
-status: in-progress
-updated_at: 2026-09-04T00:00:00Z
+status: retired
+updated_at: 2026-09-05T00:00:00Z
 delivery: staged
 frd: frd-spec-anchor-references
 plan: agent-plugins-rc14
@@ -324,24 +324,62 @@ checks in `Corpus`; CMD = Command Surface in [[container-spec-cli]].
 
 ## Definition of Done
 
-- [ ] Every delta above is folded into its owning blueprint:
-  - [ ] [[module-document-core]] — References, Markdown Structure,
-    Markdown Links, Findings and Corpus updated
-  - [ ] [[module-spec-profile]] — the registered frontmatter schema's
-    citation type recorded
-  - [ ] [[container-spec-cli]] — Command Surface updated for the
-    anchor-qualified `refs` form
-- [ ] New ADRs are referenced from the owning blueprints' Key Decisions
+- [x] Every delta above is folded into its owning blueprint:
+  - [x] [[module-document-core]] — References carries the five anchor
+    semantics beside its existing resolution list (ARES); the extraction
+    half's split-on-first-`#` semantics stand for AEX; Markdown
+    Structure records `Identifier` and why anchor resolution matches
+    through that one derivation; Markdown Links derives its fragment
+    through it, with the relationship paragraph and the component
+    diagram gaining the `mdlinks → md` edge (MDL); Findings' detail
+    vocabulary gains both anchor variants (FIND); Corpus records both
+    rules, their severities, the unverified case, the one-mistake rule
+    and the corpus-wide exception (CHK)
+  - [x] [[module-spec-profile]] — the registered frontmatter schema's
+    citation type is recorded, along with the drift guard renamed to
+    assert against it (SREF)
+  - [x] [[container-spec-cli]] — Command Surface takes the
+    `<slug>#<anchor>` argument form, the ambiguity mark, the empty
+    answer, the `--outbound` refusal, and the YAML/JSON rendering
+    [[cli-output-standards]] requires (CMD)
+- [x] New ADRs are referenced from the owning blueprints' Key Decisions
   (none authored by this feature)
-- [ ] Every AC in the coverage table is verified at its declared level
-  and cited from its tests per [[ac-traceability-standards]]
-- [ ] Every issue listed as subsumed in Tracker Reconciliation is closed
-  or re-scoped (none; `agent-plugins-bem` is a prerequisite and
-  `agent-plugins-z8r` and `agent-plugins-im99` are out-of-scope)
-- [ ] [[frd-spec-markdown-links]]'s revised fragment criteria are
+- [x] Every AC in the coverage table is verified at its declared level
+  and cited from its tests per [[ac-traceability-standards]] — all 16.
+  Eleven of the twelve declared `unit` carry an `// AC:` comment on a
+  unit test: AC-SPECANCH-001.1/.2/.5 in
+  `cli/core/references/references_test.go`; 002.2/.6/.7 in
+  `cli/core/references/anchor_test.go`; 002.1/.4/.5/.8/.9 in
+  `cli/core/corpus/anchor_check_test.go`. The five declared
+  `integration` are cited by a snapshot case manifest's `cites`, which
+  [[testing-standards]] accepts equally: `index-citation-anchor`
+  (001.6), `check-anchor-defects` and `check-only-anchor-rule` (002.9,
+  which is cited at both levels), `refs-anchor` and `refs-anchor-json`
+  (003.1), `check-path-anchor-elsewhere` (003.2), `refs-anchor-no-match`
+  (003.3), `refs-anchor-ambiguous` (003.4)
+- [x] Every issue listed as subsumed in Tracker Reconciliation is closed
+  or re-scoped (none; `agent-plugins-bem` closed as the prerequisite it
+  was, and `agent-plugins-z8r` — deferred — and `agent-plugins-im99` —
+  open — remain out-of-scope, neither touched by this feature)
+- [x] [[frd-spec-markdown-links]]'s revised fragment criteria are
   verified by the MDL delta's tests, since this feature is what makes
-  them true
-- [ ] This blueprint's status → retired
+  them true — AC-SPECMD-001.3 by
+  `TestAResolvedAnchorTakesItsFragmentFromTheResolvedHeading` and
+  `TestAMappedTargetCarriesTheResolvedHeadingsFragmentToo` in
+  `cli/core/mdlinks/mdlinks_test.go`, AC-SPECMD-001.7 by the
+  authored-anchor fallback tests in the same file and in
+  `cli/core/mdlinks/anchor_edges_test.go`. Both branches are exercised
+  by fixture rather than by corpus input, because the matcher resolves
+  an anchor by identifier equality and so cannot produce a reference
+  whose two fragment sources differ; the criterion is what stops a
+  looser matcher from emitting fragments that reach nothing
+- [x] `spec check --strict` reports no findings over this repository's
+  corpus, with `reference/unresolved-anchor` and
+  `reference/ambiguous-anchor` both listed `passed`. Eleven references
+  in this corpus carry an anchor — six into
+  `container-spec-cli#Command Surface`, five into component rosters of
+  [[module-document-core]] — and every one resolves
+- [x] This blueprint's status → retired
 
 ## Open Questions
 

@@ -1320,6 +1320,113 @@ type FindingOwningDocument struct {
 	DocumentSlug *string `json:"document_slug,omitempty"`
 }
 
+// An anchor that names no heading of its target document.
+//
+// Recorded once the target's slug has resolved and its headings are
+// known — a reference whose slug does not resolve at all is the parent
+// feature's own unresolved-reference finding, and this variant adds
+// nothing to it (AC-SPECANCH-002.1, AC-SPECANCH-002.8). The anchor is
+// carried as authored, matching how the index records it, so the finding
+// needs no further lookup to quote the text a fix has to edit.
+type FindingUnresolvedAnchor struct {
+	// The anchor as authored, without normalization.
+	Anchor string `json:"anchor"`
+	// The target document's path, relative to the repository root and
+	// written with forward slashes on every platform.
+	TargetPath string `json:"target_path"`
+}
+
+func (v *FindingUnresolvedAnchor) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["anchor"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingUnresolvedAnchor: required field \"anchor\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Anchor); err != nil {
+		return prefixField("anchor", err)
+	}
+	if m, ok := raw["target_path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingUnresolvedAnchor: required field \"target_path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.TargetPath); err != nil {
+		return prefixField("target_path", err)
+	}
+	return nil
+}
+
+// An anchor whose identifier is the identifier of more than one heading of
+// its target document.
+//
+// Every matching heading is carried, not merely the count: the reader's
+// next step is to open one of them and rename it, and a finding naming
+// only "two matches" would send them back to the document to find what
+// this check already found (AC-SPECANCH-002.5).
+type FindingAmbiguousAnchor struct {
+	// The anchor as authored, without normalization.
+	Anchor string `json:"anchor"`
+	// The target document's path, relative to the repository root and
+	// written with forward slashes on every platform.
+	TargetPath string `json:"target_path"`
+	// Every heading of the target document whose identifier matches the
+	// anchor's, in document order.
+	Matches []AnchorMatch `json:"matches"`
+}
+
+func (v *FindingAmbiguousAnchor) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["anchor"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingAmbiguousAnchor: required field \"anchor\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Anchor); err != nil {
+		return prefixField("anchor", err)
+	}
+	if m, ok := raw["target_path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingAmbiguousAnchor: required field \"target_path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.TargetPath); err != nil {
+		return prefixField("target_path", err)
+	}
+	if m, ok := raw["matches"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingAmbiguousAnchor: required field \"matches\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Matches); err != nil {
+		return prefixField("matches", err)
+	}
+	return nil
+}
+
+// One heading matched against an ambiguous anchor.
+//
+// Held apart from the full `Heading` shape because a match names only what
+// the reader needs to find the right one — its text and where it is
+// written — and carries none of a heading's own section content or nested
+// record blocks.
+type AnchorMatch struct {
+	// The heading's text as authored, without the `#` markers that open the
+	// line.
+	Text string `json:"text"`
+	// Where the heading line itself is written.
+	Position Span `json:"position"`
+}
+
+func (v *AnchorMatch) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["text"]; !ok || string(m) == "null" {
+		return fmt.Errorf("AnchorMatch: required field \"text\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Text); err != nil {
+		return prefixField("text", err)
+	}
+	if m, ok := raw["position"]; !ok || string(m) == "null" {
+		return fmt.Errorf("AnchorMatch: required field \"position\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Position); err != nil {
+		return prefixField("position", err)
+	}
+	return nil
+}
+
 type FindingDetailVariant interface{ isFindingDetailVariant() }
 
 // The structured detail of one finding, selected by the kind of defect.
@@ -1355,6 +1462,8 @@ func (FindingIdentifierPattern) isFindingDetailVariant()      {}
 func (FindingDuplicateIdentifier) isFindingDetailVariant()    {}
 func (FindingPartiallyTaggedOutline) isFindingDetailVariant() {}
 func (FindingOwningDocument) isFindingDetailVariant()         {}
+func (FindingUnresolvedAnchor) isFindingDetailVariant()       {}
+func (FindingAmbiguousAnchor) isFindingDetailVariant()        {}
 
 func NewFindingDetailSchemaViolation(v FindingSchemaViolation) FindingDetail {
 	return FindingDetail{Value: v}
@@ -1425,6 +1534,14 @@ func NewFindingDetailPartiallyTaggedOutline(v FindingPartiallyTaggedOutline) Fin
 }
 
 func NewFindingDetailOwningDocument(v FindingOwningDocument) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailUnresolvedAnchor(v FindingUnresolvedAnchor) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailAmbiguousAnchor(v FindingAmbiguousAnchor) FindingDetail {
 	return FindingDetail{Value: v}
 }
 
@@ -1518,6 +1635,16 @@ func (u FindingDetail) AsOwningDocument() (FindingOwningDocument, bool) {
 	return v, ok
 }
 
+func (u FindingDetail) AsUnresolvedAnchor() (FindingUnresolvedAnchor, bool) {
+	v, ok := u.Value.(FindingUnresolvedAnchor)
+	return v, ok
+}
+
+func (u FindingDetail) AsAmbiguousAnchor() (FindingAmbiguousAnchor, bool) {
+	v, ok := u.Value.(FindingAmbiguousAnchor)
+	return v, ok
+}
+
 func (u FindingDetail) MarshalJSON() ([]byte, error) {
 	var payload []byte
 	var tag string
@@ -1576,6 +1703,12 @@ func (u FindingDetail) MarshalJSON() ([]byte, error) {
 		payload, err = json.Marshal(v)
 	case FindingOwningDocument:
 		tag = "owning-document"
+		payload, err = json.Marshal(v)
+	case FindingUnresolvedAnchor:
+		tag = "unresolved-anchor"
+		payload, err = json.Marshal(v)
+	case FindingAmbiguousAnchor:
+		tag = "ambiguous-anchor"
 		payload, err = json.Marshal(v)
 	default:
 		return nil, fmt.Errorf("FindingDetail: nil or unknown variant")
@@ -1727,6 +1860,20 @@ func (u *FindingDetail) UnmarshalJSON(data []byte) error {
 		return nil
 	case "owning-document":
 		var v FindingOwningDocument
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "unresolved-anchor":
+		var v FindingUnresolvedAnchor
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "ambiguous-anchor":
+		var v FindingAmbiguousAnchor
 		if err := json.Unmarshal(data, &v); err != nil {
 			return err
 		}
@@ -2025,7 +2172,7 @@ type DocumentFrontmatter struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 }
 
 func (v *DocumentFrontmatter) UnmarshalJSON(data []byte) error {
@@ -2104,13 +2251,13 @@ type ContractEdges struct {
 	// the element's altitude — a system's public API, a container's
 	// service surface, a module's package API, a component's interface
 	// where it warrants a contract document of its own.
-	ContractsProvided *[]Slug `json:"contracts_provided,omitempty"`
+	ContractsProvided *[]Citation `json:"contracts_provided,omitempty"`
 	// Contract slugs this element depends on.
 	//
 	// Named contracts only. An element's untyped collaborators are not
 	// listed here — those are neighbour edges, and per ADR-009 they belong
 	// to the parent that composes the elements, or to the code.
-	ContractsConsumed *[]Slug `json:"contracts_consumed,omitempty"`
+	ContractsConsumed *[]Citation `json:"contracts_consumed,omitempty"`
 }
 
 // An architecture decision record.
@@ -2158,7 +2305,7 @@ type Adr struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 }
 
 func (v *Adr) UnmarshalJSON(data []byte) error {
@@ -2255,10 +2402,10 @@ type Frd struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 	// The documents this FRD is derived from — a brief, a research
 	// document, or an FRD it narrows.
-	Sources *[]Slug `json:"sources,omitempty"`
+	Sources *[]Citation `json:"sources,omitempty"`
 }
 
 func (v *Frd) UnmarshalJSON(data []byte) error {
@@ -2360,11 +2507,11 @@ type Contract struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 	// The container or system that provides this interface.
 	//
 	// Exactly one, because a contract with two providers is two contracts.
-	Provider Slug `json:"provider"`
+	Provider Citation `json:"provider"`
 	// Whether this interface is published beyond the repository that
 	// declares it, and therefore whether its versioning policy binds
 	// adopters outside this team.
@@ -2372,7 +2519,7 @@ type Contract struct {
 	// Known consumers, by slug. Derived knowledge rather than a
 	// restriction — an unlisted consumer is not forbidden, it is merely
 	// unknown to the provider.
-	Consumers *[]Slug `json:"consumers,omitempty"`
+	Consumers *[]Citation `json:"consumers,omitempty"`
 	// Paths or URLs of the machine-readable artifacts that make this
 	// contract executable: JSON Schemas, OpenAPI documents, protobuf
 	// definitions.
@@ -2504,7 +2651,7 @@ type Standards struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 	// The document's semantic version, quoted so YAML reads it as a string.
 	//
 	// Unquoted `0.1` is a floating-point number to a YAML parser and fails
@@ -2624,20 +2771,20 @@ type SystemBlueprint struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 	// Contract slugs this element provides.
 	//
 	// The interface is this element's own, so it is recorded here whatever
 	// the element's altitude — a system's public API, a container's
 	// service surface, a module's package API, a component's interface
 	// where it warrants a contract document of its own.
-	ContractsProvided *[]Slug `json:"contracts_provided,omitempty"`
+	ContractsProvided *[]Citation `json:"contracts_provided,omitempty"`
 	// Contract slugs this element depends on.
 	//
 	// Named contracts only. An element's untyped collaborators are not
 	// listed here — those are neighbour edges, and per ADR-009 they belong
 	// to the parent that composes the elements, or to the code.
-	ContractsConsumed *[]Slug `json:"contracts_consumed,omitempty"`
+	ContractsConsumed *[]Citation `json:"contracts_consumed,omitempty"`
 }
 
 func (v *SystemBlueprint) UnmarshalJSON(data []byte) error {
@@ -2754,26 +2901,26 @@ type ContainerBlueprint struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 	// Contract slugs this element provides.
 	//
 	// The interface is this element's own, so it is recorded here whatever
 	// the element's altitude — a system's public API, a container's
 	// service surface, a module's package API, a component's interface
 	// where it warrants a contract document of its own.
-	ContractsProvided *[]Slug `json:"contracts_provided,omitempty"`
+	ContractsProvided *[]Citation `json:"contracts_provided,omitempty"`
 	// Contract slugs this element depends on.
 	//
 	// Named contracts only. An element's untyped collaborators are not
 	// listed here — those are neighbour edges, and per ADR-009 they belong
 	// to the parent that composes the elements, or to the code.
-	ContractsConsumed *[]Slug `json:"contracts_consumed,omitempty"`
+	ContractsConsumed *[]Citation `json:"contracts_consumed,omitempty"`
 	// The system this container belongs to.
 	//
 	// Omitted when the container is standalone — that is, when no system
 	// blueprint documents it. Absence records a documented fact rather than
 	// an oversight.
-	System *Slug `json:"system,omitempty"`
+	System *Citation `json:"system,omitempty"`
 }
 
 func (v *ContainerBlueprint) UnmarshalJSON(data []byte) error {
@@ -2890,20 +3037,20 @@ type ModuleBlueprint struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 	// Contract slugs this element provides.
 	//
 	// The interface is this element's own, so it is recorded here whatever
 	// the element's altitude — a system's public API, a container's
 	// service surface, a module's package API, a component's interface
 	// where it warrants a contract document of its own.
-	ContractsProvided *[]Slug `json:"contracts_provided,omitempty"`
+	ContractsProvided *[]Citation `json:"contracts_provided,omitempty"`
 	// Contract slugs this element depends on.
 	//
 	// Named contracts only. An element's untyped collaborators are not
 	// listed here — those are neighbour edges, and per ADR-009 they belong
 	// to the parent that composes the elements, or to the code.
-	ContractsConsumed *[]Slug `json:"contracts_consumed,omitempty"`
+	ContractsConsumed *[]Citation `json:"contracts_consumed,omitempty"`
 	// Whether this blueprint documents one concrete module or a pattern
 	// several modules follow.
 	Kind BlueprintKind `json:"kind"`
@@ -2928,7 +3075,7 @@ type ModuleBlueprint struct {
 	//
 	// Omitted when no host has a blueprint of its own — absence records a
 	// documented fact rather than an oversight.
-	ContainedBy *[]Slug `json:"contained_by,omitempty"`
+	ContainedBy *[]Citation `json:"contained_by,omitempty"`
 	// Repository-relative source roots, so a reader can find the code.
 	SourcePaths *[]string `json:"source_paths,omitempty"`
 	// Repository-relative test roots.
@@ -3083,20 +3230,20 @@ type ComponentBlueprint struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 	// Contract slugs this element provides.
 	//
 	// The interface is this element's own, so it is recorded here whatever
 	// the element's altitude — a system's public API, a container's
 	// service surface, a module's package API, a component's interface
 	// where it warrants a contract document of its own.
-	ContractsProvided *[]Slug `json:"contracts_provided,omitempty"`
+	ContractsProvided *[]Citation `json:"contracts_provided,omitempty"`
 	// Contract slugs this element depends on.
 	//
 	// Named contracts only. An element's untyped collaborators are not
 	// listed here — those are neighbour edges, and per ADR-009 they belong
 	// to the parent that composes the elements, or to the code.
-	ContractsConsumed *[]Slug `json:"contracts_consumed,omitempty"`
+	ContractsConsumed *[]Citation `json:"contracts_consumed,omitempty"`
 	// Whether this blueprint documents one concrete component or a pattern
 	// several components follow.
 	Kind BlueprintKind `json:"kind"`
@@ -3235,7 +3382,7 @@ type FeatureBlueprint struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 	// The delivery unit grooming plans against. When `staged`, each stage
 	// boundary is enumerated in the blueprint's Sequencing Constraints.
 	Delivery Delivery `json:"delivery"`
@@ -3255,7 +3402,7 @@ type FeatureBlueprint struct {
 	// in this comment, and named `frd` rather than `sources` so that one
 	// property name does not span two relationships — `Frd.sources` is
 	// optional, many-valued provenance, which is a different edge.
-	Frd Slug `json:"frd"`
+	Frd Citation `json:"frd"`
 }
 
 func (v *FeatureBlueprint) UnmarshalJSON(data []byte) error {
@@ -3374,7 +3521,7 @@ type Rfc struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 	// Where the run happened: `self` when this repository critiqued its own
 	// skill, otherwise the name of the project the run took place in.
 	Origin string `json:"origin"`
@@ -3543,7 +3690,7 @@ type Guide struct {
 	// Required in practice on any document at `status: retired` — a retired
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
-	SupersededBy *Slug `json:"superseded_by,omitempty"`
+	SupersededBy *Citation `json:"superseded_by,omitempty"`
 	// The guide's semantic version, quoted so YAML reads it as a string.
 	Version *string `json:"version,omitempty"`
 }
@@ -4274,6 +4421,213 @@ func (u *ReferenceResolution) UnmarshalJSON(data []byte) error {
 	return fmt.Errorf("ReferenceResolution: unknown state %q", probe.Tag)
 }
 
+// An anchor resolved to exactly one heading of its target document.
+type AnchorResolved struct {
+	// The heading the anchor's identifier matched.
+	Heading AnchorMatch `json:"heading"`
+}
+
+func (v *AnchorResolved) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["heading"]; !ok || string(m) == "null" {
+		return fmt.Errorf("AnchorResolved: required field \"heading\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Heading); err != nil {
+		return prefixField("heading", err)
+	}
+	return nil
+}
+
+// An anchor whose identifier matched no heading of its target document,
+// whose headings were available to check it against.
+//
+// Held apart from `AnchorUnverified`: this is a considered "no", not an
+// absence of an answer — the target's headings were read and none of
+// them matched, which is what a rename-the-heading fix responds to.
+type AnchorUnresolved struct{}
+
+// An anchor whose identifier matched more than one heading of its target
+// document.
+type AnchorAmbiguous struct {
+	// Every heading of the target document whose identifier matched, in document order.
+	Matches []AnchorMatch `json:"matches"`
+}
+
+func (v *AnchorAmbiguous) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["matches"]; !ok || string(m) == "null" {
+		return fmt.Errorf("AnchorAmbiguous: required field \"matches\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Matches); err != nil {
+		return prefixField("matches", err)
+	}
+	return nil
+}
+
+// An anchor whose target document's headings could not be examined.
+//
+// Distinct from `AnchorUnresolved`: the tool did not get to look, so it
+// says so rather than reporting a heading rename would fix — the same
+// distinction `FindingUnverified` draws for a check that could not run at
+// all.
+type AnchorUnverified struct {
+	// Why the target's headings could not be examined, stated so the finding
+	// built from this needs no further lookup to act on.
+	Reason string `json:"reason"`
+}
+
+func (v *AnchorUnverified) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["reason"]; !ok || string(m) == "null" {
+		return fmt.Errorf("AnchorUnverified: required field \"reason\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Reason); err != nil {
+		return prefixField("reason", err)
+	}
+	return nil
+}
+
+type AnchorResolutionVariant interface{ isAnchorResolutionVariant() }
+
+// What the anchor half of a reference resolved to.
+//
+// Present on a `Reference` exactly when its anchor is present and its
+// target is known: the slug half reached a corpus member, or the anchor
+// names no slug and resolves against the document containing the
+// reference (AC-SPECANCH-002.6). Absent when the reference carries no
+// anchor, and absent when the slug half is present and did not resolve —
+// the parent feature already reports that reference as broken, and an
+// anchor finding on top of it would be a second finding for one mistake
+// (AC-SPECANCH-002.8).
+type AnchorResolution struct {
+	Value AnchorResolutionVariant
+}
+
+func (AnchorResolved) isAnchorResolutionVariant()   {}
+func (AnchorUnresolved) isAnchorResolutionVariant() {}
+func (AnchorAmbiguous) isAnchorResolutionVariant()  {}
+func (AnchorUnverified) isAnchorResolutionVariant() {}
+
+func NewAnchorResolutionResolved(v AnchorResolved) AnchorResolution {
+	return AnchorResolution{Value: v}
+}
+
+func NewAnchorResolutionUnresolved(v AnchorUnresolved) AnchorResolution {
+	return AnchorResolution{Value: v}
+}
+
+func NewAnchorResolutionAmbiguous(v AnchorAmbiguous) AnchorResolution {
+	return AnchorResolution{Value: v}
+}
+
+func NewAnchorResolutionUnverified(v AnchorUnverified) AnchorResolution {
+	return AnchorResolution{Value: v}
+}
+
+func (u AnchorResolution) AsResolved() (AnchorResolved, bool) {
+	v, ok := u.Value.(AnchorResolved)
+	return v, ok
+}
+
+func (u AnchorResolution) AsUnresolved() (AnchorUnresolved, bool) {
+	v, ok := u.Value.(AnchorUnresolved)
+	return v, ok
+}
+
+func (u AnchorResolution) AsAmbiguous() (AnchorAmbiguous, bool) {
+	v, ok := u.Value.(AnchorAmbiguous)
+	return v, ok
+}
+
+func (u AnchorResolution) AsUnverified() (AnchorUnverified, bool) {
+	v, ok := u.Value.(AnchorUnverified)
+	return v, ok
+}
+
+func (u AnchorResolution) MarshalJSON() ([]byte, error) {
+	var payload []byte
+	var tag string
+	var err error
+	switch v := u.Value.(type) {
+	case AnchorResolved:
+		tag = "resolved"
+		payload, err = json.Marshal(v)
+	case AnchorUnresolved:
+		tag = "unresolved"
+		payload, err = json.Marshal(v)
+	case AnchorAmbiguous:
+		tag = "ambiguous"
+		payload, err = json.Marshal(v)
+	case AnchorUnverified:
+		tag = "unverified"
+		payload, err = json.Marshal(v)
+	default:
+		return nil, fmt.Errorf("AnchorResolution: nil or unknown variant")
+	}
+	if err != nil {
+		return nil, err
+	}
+	tagBytes, err := json.Marshal(tag)
+	if err != nil {
+		return nil, err
+	}
+	if len(payload) == 0 || payload[0] != '{' {
+		return nil, fmt.Errorf("AnchorResolution: variant produced non-object JSON")
+	}
+	prefix := append([]byte{'{'}, []byte("\"state\":")...)
+	prefix = append(prefix, tagBytes...)
+	if payload[1] != '}' {
+		prefix = append(prefix, ',')
+	}
+	return append(prefix, payload[1:]...), nil
+}
+
+func (u *AnchorResolution) UnmarshalJSON(data []byte) error {
+	var probe struct {
+		Tag string `json:"state"`
+	}
+	if err := json.Unmarshal(data, &probe); err != nil {
+		return err
+	}
+	switch probe.Tag {
+	case "resolved":
+		var v AnchorResolved
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "unresolved":
+		var v AnchorUnresolved
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "ambiguous":
+		var v AnchorAmbiguous
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "unverified":
+		var v AnchorUnverified
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	}
+	return fmt.Errorf("AnchorResolution: unknown state %q", probe.Tag)
+}
+
 // One occurrence of one document referencing another.
 //
 // A reference is an edge, and it is recorded as a row of its own rather
@@ -4310,11 +4664,11 @@ type Reference struct {
 	// The anchor half: everything after the first `#`, absent where the
 	// reference names no anchor.
 	//
-	// Recorded and not interpreted. Resolving an anchor against the target's
-	// headings is a separate feature; splitting on the first `#` is the whole
-	// of what this shape knows about anchors, and it exists so that an
-	// anchored reference resolves on its slug rather than reporting as
-	// broken.
+	// Recorded and not interpreted: splitting on the first `#` is the whole
+	// of what extraction knows about anchors, which is why an anchored
+	// reference resolves on its slug rather than reporting as broken. What
+	// the anchor itself matched is carried separately, in
+	// `anchor_resolution`.
 	Anchor *string `json:"anchor,omitempty"`
 	// Where the reference was written.
 	Origin ReferenceOrigin `json:"origin"`
@@ -4324,6 +4678,15 @@ type Reference struct {
 	Position Span `json:"position"`
 	// What the reference reached.
 	Resolution ReferenceResolution `json:"resolution"`
+	// What the anchor half of this reference resolved to.
+	//
+	// Present exactly when `anchor` is present and there is a target to
+	// check it against: `resolution` reached a corpus member, or the
+	// reference names no slug at all and resolves against the document
+	// named in `path`. Absent when the reference carries no anchor, and
+	// absent when it names a slug that did not resolve — `resolution`
+	// already reports that reference as broken.
+	AnchorResolution *AnchorResolution `json:"anchor_resolution,omitempty"`
 }
 
 func (v *Reference) UnmarshalJSON(data []byte) error {
@@ -4365,6 +4728,11 @@ func (v *Reference) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("Reference: required field \"resolution\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Resolution); err != nil {
 		return prefixField("resolution", err)
+	}
+	if m, ok := raw["anchor_resolution"]; ok {
+		if err := json.Unmarshal(m, &v.AnchorResolution); err != nil {
+			return prefixField("anchor_resolution", err)
+		}
 	}
 	return nil
 }
@@ -5004,6 +5372,19 @@ func (e BlockFormat) String() string {
 // path, so moving a file never breaks a reference. Slugs are kebab-case:
 // lowercase alphanumeric words joined by single hyphens.
 type Slug string
+
+// A reference to another specification document, optionally qualified by
+// an anchor into one of its sections.
+//
+// Held apart from `Slug` because the two type different things: `Slug` is
+// the identity a document declares about itself, and admitting an anchor
+// there would let a document declare its identity as `adr-012#Decision`,
+// breaking uniqueness and slug resolution. A citation names someone
+// else's identity and may legitimately point at a place inside it — the
+// slug half matches the same pattern `Slug` does, and a trailing `#` with
+// nothing after it is rejected rather than admitted as an anchor-less
+// citation.
+type Citation string
 
 // The classification of a specification document.
 //

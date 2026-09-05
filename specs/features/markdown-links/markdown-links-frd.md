@@ -6,7 +6,7 @@ description: The Spec CLI rewrites corpus wikilinks into markdown links,
 slug: frd-spec-markdown-links
 type: frd
 status: approved
-updated_at: 2026-09-03T00:00:00Z
+updated_at: 2026-09-05T00:00:00Z
 sources: [adr-018, frd-spec-reference-integrity]
 ---
 
@@ -151,6 +151,14 @@ Feature: Rewrite wikilinks to markdown links
     Given a wikilink whose anchor resolves to no heading of the settled target
     When the CLI rewrites the document
     Then the CLI derives the fragment from the anchor as the author wrote it
+
+  @AC-SPECMD-001.8
+  Scenario: An anchor-only citation targets a fragment of the document itself
+    Given a wikilink carrying an anchor and no slug
+    When the CLI rewrites the document
+    Then the CLI targets the fragment of the heading that anchor resolves to in the document being rewritten, and nothing before it, where the anchor resolves there
+    And the CLI settles that target whether or not a link map was given
+    And the CLI leaves the wikilink as the author wrote it where the anchor resolves to no heading of that document
 ```
 
 *Examples:* with `template-authoring-standards` mapped to
@@ -167,7 +175,11 @@ resolved heading is what the copy has to reach when they do not
 (AC-SPECMD-001.3). A citation whose anchor reaches no heading is still
 rewritten, on a fragment derived from what the author wrote, leaving the
 copy no worse than the source that names a section which is not there
-(AC-SPECMD-001.7). A guide
+(AC-SPECMD-001.7). `` `[[#Decision]]` `` in a document carrying a
+`## Decision` heading becomes `[#Decision](#decision)`: the target is
+inside the document being rewritten, so there is no path in front of the
+fragment and no link-map entry that could name one — an empty slug names
+no corpus document to map (AC-SPECMD-001.8). A guide
 explaining citation syntax writes `` `[[document-slug]]` `` as an
 illustration, and the rewrite leaves it alone (AC-SPECMD-001.4).
 
@@ -254,6 +266,13 @@ element records, and each is reported as a warning (AC-SPECMD-002.4).
 
 *Note:* AC-SPECMD-002.1 is the reason a given map is never completed by
 derivation — see AC-SPECMD-006.3.
+
+*Note:* AC-SPECMD-001.8 is the one citation that reaches its target
+without naming a corpus document, so neither rule above applies to it
+while its anchor resolves: the document it points into is the one being
+rewritten. Where that anchor resolves to no heading, it reaches nothing
+and AC-SPECMD-002.4 and AC-SPECMD-002.7 govern it like any other slug
+naming no corpus document.
 
 ### FEAT-SPECMD-003: Report what was rewritten
 

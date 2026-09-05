@@ -258,6 +258,7 @@ C4Component
     Rel(refs, find, "Reports through")
     Rel(corpus, find, "Folds Check's findings through")
     Rel(mdlinks, refs, "Settles targets from the resolved references of")
+    Rel(mdlinks, md, "Derives anchor fragments through the heading identifier of")
     Rel(mdlinks, span, "Locates the extents it replaces with")
     Rel(mdlinks, find, "Reports through")
 ```
@@ -633,11 +634,14 @@ in the index without a corpus having been consulted.
 
 **Resolution is a lookup, and it reads nothing.** It matches a
 reference's slug half against the slugs the index's members declare, and
-that is the whole of its input — no document is opened, no frontmatter is
-re-parsed, and the answer is a function of the index alone, so the same
-references over the same index resolve identically on every platform and
-on every run. What it costs is the walk it rides on; see Corpus below for
-where it is called from.
+where a reference carries an anchor, matches it against the headings
+already recorded on the target's index entry — headings Markdown
+Structure populated during the same walk, never read from disk again
+here. That is the whole of its input — no document is opened, no
+frontmatter is re-parsed, and the answer is a function of the index
+alone, so the same references over the same index resolve identically on
+every platform and on every run. What it costs is the walk it rides on;
+see Corpus below for where it is called from.
 
 The graph the index carries is one collection of edges, and both
 directions are read from it. `Corpus` exposes `OutboundReferences` by the
@@ -677,6 +681,36 @@ Five further semantics are pinned by the resolution half:
   non-members share a name the first in path order is reported, decided
   by comparison rather than by the order the index happens to hold its
   collections in.
+
+Five more are pinned by the anchor half, added once the corpus began
+recording headings ([[frd-spec-structure]]):
+
+- **An anchor is matched against a heading by deriving a heading
+  identifier from each and comparing them** (AC-SPECANCH-002.2), the
+  same derivation Markdown Structure exposes and Markdown Links consumes
+  for its own fragment — an anchor this component resolves is an anchor
+  an exported copy can target.
+- **Exactly one match resolves the anchor to that heading; more than one
+  resolves it to no heading and carries every match** (AC-SPECANCH-002.5),
+  so the reader is told which headings to disambiguate rather than only
+  that a collision exists.
+- **An anchor naming no slug resolves against the document containing
+  the reference** (AC-SPECANCH-002.6), so `[[#Heading]]` addresses the
+  document it is written in rather than reporting as broken. An embed
+  resolves exactly as the equivalent link, since nothing on `Reference`
+  distinguishes the two — extraction already records an embed the way
+  it records a link (AC-SPECANCH-002.7).
+- **An anchor resolution is set only where the slug half reached a
+  document to check it against** — a corpus member the slug resolved to,
+  or the containing document for a slug-less anchor. A slug that did not
+  resolve gets no anchor resolution at all: the parent feature already
+  reports it as broken, and a second finding for one mistake would train
+  a reader to skim (AC-SPECANCH-002.8).
+- **A target the index carries no entry for at all resolves the anchor
+  as unverified, not as zero matches.** The concrete case is a
+  standalone `.feature` file's own path, since a feature source produces
+  no index entry; the tool did not get to look, which is a different
+  claim from having looked and found nothing (AC-SPECANCH-002.4).
 
 Nine semantics are pinned by the extraction half:
 
@@ -1082,6 +1116,32 @@ is separate breakage this edit caused from breakage already present — an
 edit invalidates the content fingerprint, so the check reads a freshly
 rebuilt graph with no memory of what those references resolved to.
 
+**They also report the anchor half of a reference, under two rule
+identifiers of its own.** `reference/unresolved-anchor` fires at
+severity `error` when a reference's anchor matches no heading of a
+target whose headings are known, naming the target document and the
+anchor as authored (AC-SPECANCH-002.1); `reference/ambiguous-anchor`
+fires at `error` when the anchor's identifier is the identifier of more
+than one heading, carrying every match with its span, since the reader
+has to know which headings to disambiguate rather than only that a
+collision exists (AC-SPECANCH-002.5). Where the target's headings were
+never recorded, `reference/unresolved-anchor` reports at
+`unverified` instead: the tool could not look, which is not the claim
+that it looked and found nothing (AC-SPECANCH-002.4) — the one rule
+identifier in this package that reports at more than one severity. A
+reference whose slug resolved to nothing gets no anchor finding at all;
+the unresolved slug is already reported and two findings for one mistake
+train a reader to skim (AC-SPECANCH-002.8). Both rules run over every
+anchored reference in an ordinary corpus check rather than behind an
+option (AC-SPECANCH-002.9), and both are corpus-wide on exactly the
+terms `reference/unresolved` is: a renamed heading breaks anchors held
+by files the renaming author never opened, so a single-document check
+reports them against the referring document at the referrer's own span
+(AC-SPECANCH-003.2). Unlike the three relational rules below, these two
+read no document off disk: what an anchor reached was settled by the
+References component during resolution, and this derives the finding
+from that record rather than matching a heading a second time.
+
 `CheckFor` also refuses a path no corpus member occupies, returning
 `ErrNotAMember` rather than a result. Narrowing by path means an unknown
 path selects nothing, and a caller cannot tell an empty result from a
@@ -1092,8 +1152,13 @@ recorded an exclusion the error carries its reason, so the answer to
 
 **They also report what a resolved reference *means*, not only whether
 it lands.** Three rules walk the same already-resolved reference
-collection `reference/unresolved` reads, so each costs a lookup rather
-than a second corpus walk. `reference/retired-target` — the first rule
+collection `reference/unresolved` reads, so none re-walks the corpus to
+find its candidates — but two of the three, in resolving a retired
+target's successor or a pairing's counterpart, call back into the
+corpus for the target document itself, which on a warm corpus reads and
+parses that one file off disk (and caches it for later callers); all
+three also run corpus-wide, unnarrowed by a single-document `CheckFor`.
+`reference/retired-target` — the first rule
 this package emits at severity `warning` rather than `error` — fires
 when a document at a status the active profile's `Lifecycle` registers
 as live resolves a reference to one at a registered retired status,
@@ -1140,7 +1205,7 @@ criteria compared separately, the Gherkin analogue of `slug/duplicate`
 (AC-GHK-002.4, AC-GHK-003.4) — and is the one rule in this set that
 survives `CheckFor`'s narrowing on the same terms `reference/unresolved`
 does: `finding.IsCorpusWideRule` (renamed from `IsReferenceRule` to admit
-a non-`reference/`-prefixed member) now covers it alongside the four
+a non-`reference/`-prefixed member) covers it alongside the six
 reference rules. `gherkin/criterion-code-mismatch` fires when a
 criterion's identifier and its feature's disagree on the capture values
 the profile's `SharedCaptures` name (AC-GHK-003.6) — read from the two
@@ -1412,11 +1477,16 @@ is:
   malformed, with the identifier as written where there is one and the
   pattern it must match (AC-GHK-006.5); a duplicate identifier with the
   other occurrence's path and span; a partially tagged scenario outline
-  with the spans of the untagged examples blocks; and an owning-document
+  with the spans of the untagged examples blocks; an owning-document
   defect with the slug the feature's tag names and the slug of the
   document the feature is written in, each absent where that defect
-  leaves it unknown. The message is derivable from the variant, so a
-  consumer branches on structure rather than parsing prose.
+  leaves it unknown; an anchor matching no heading of its target, with
+  the anchor as authored and the target document's path
+  (AC-SPECANCH-002.1); and an ambiguous anchor, with the anchor as
+  authored, the target document's path and every heading it matches with
+  its span (AC-SPECANCH-002.5). The message is derivable from the
+  variant, so a consumer branches on structure rather than parsing
+  prose.
 - **`Severity`** — `error`, `warning` and `unverified`, the three
   [[frd-spec-index]] defines and no others.
 - **`FindingReport`** — the run envelope: every `Finding` produced, and a
@@ -1509,10 +1579,17 @@ Four semantics are pinned by the implementation:
   `error`; a slug naming no corpus document at all raises
   `links/unresolved` at `warning`, mapped or not. Either way the
   reference settles no target (AC-SPECMD-002.1, AC-SPECMD-006.3).
-- **An anchor becomes a target fragment by GitHub's heading-anchor
-  rule:** lowercase the anchor text, drop every character that is not a
-  letter, digit, space, hyphen or underscore, then replace each
-  remaining space with a hyphen (AC-SPECMD-001.3).
+- **An anchor becomes a target fragment through the heading identifier
+  Markdown Structure exposes**, and the text it is derived FROM is the
+  resolved heading's wherever the anchor resolved to one
+  (AC-SPECMD-001.3) — the two agree wherever an anchor names a heading
+  in full, and the heading is what a reader following the emitted link
+  has to land on when they do not. Every other outcome, an absent
+  resolution included, derives the fragment from the anchor as the
+  author wrote it, so the rewrite stays total and the copy is no worse
+  than the source (AC-SPECMD-001.7). This component holds no derivation
+  of its own: two would be free to disagree, and every disagreement is a
+  link the checks call resolved and a reader cannot follow.
 
 Every reference is settled in one pass and every finding returned, never
 just the first (AC-SPECMD-002.5).
@@ -1566,10 +1643,14 @@ document model Frontmatter produces. It never reads files.
 **Numbering → Corpus.** Numbering is a query over the built index, not
 an independent scan.
 
-**Markdown Links → References, Spans, Findings.** It settles targets
-from References' already-resolved reference collection, uses Spans for
-the extents its substitution half replaces, and reports through
-Findings like every other component that can find a problem.
+**Markdown Links → References, Markdown Structure, Spans, Findings.**
+It settles targets from References' already-resolved reference
+collection, derives every anchor fragment through Markdown Structure's
+heading identifier rather than a rule of its own — the same derivation
+References matches an anchor by, so a fragment cannot address something
+the checks resolved differently — uses Spans for the extents its
+substitution half replaces, and reports through Findings like every
+other component that can find a problem.
 
 **Schema Registry, References → Findings.** Every component that can
 report a problem produces `Finding` values; none of them formats output.

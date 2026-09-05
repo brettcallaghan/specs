@@ -92,14 +92,14 @@ func TestTheProfileRegistersEverySlugHoldingProperty(t *testing.T) {
 // transcribed from it, so a property added to schemas/frontmatter.strata
 // is reference-bearing the moment it is declared. This is the same drift
 // guard the per-type table already carries for document types.
-func TestEverySlugTypedPropertyInTheVocabularyIsRegistered(t *testing.T) {
+func TestEveryCitationTypedPropertyInTheVocabularyIsRegistered(t *testing.T) {
 	types := profile.New().DocumentTypes()
 	seen := 0
 
 	for _, value := range documentTypeVocabulary() {
-		declared := slugTypedPropertiesOf(t, value)
+		declared := citationTypedPropertiesOf(t, value)
 		if len(declared) == 0 {
-			t.Errorf("the generated schema declares no slug-typed property for %q; "+
+			t.Errorf("the generated schema declares no citation-typed property for %q; "+
 				"every document type inherits superseded_by, so this is a misread schema", value)
 			continue
 		}
@@ -110,23 +110,23 @@ func TestEverySlugTypedPropertyInTheVocabularyIsRegistered(t *testing.T) {
 		for _, property := range declared {
 			seen++
 			if !registered[property] {
-				t.Errorf("%q declares %q as a slug and does not register it as reference-bearing",
+				t.Errorf("%q declares %q as a citation and does not register it as reference-bearing",
 					value, property)
 			}
 		}
 		// And nothing is registered that the vocabulary does not type as a
-		// slug — a registration wider than the schema would resolve values
-		// that are not identifiers.
+		// citation — a registration wider than the schema would resolve
+		// values that are not references.
 		for _, property := range types[value].ReferenceProperties {
 			if !contains(declared, property) {
-				t.Errorf("%q registers %q, which the generated schema does not type as a slug",
+				t.Errorf("%q registers %q, which the generated schema does not type as a citation",
 					value, property)
 			}
 		}
 	}
 
 	if seen == 0 {
-		t.Fatal("read no slug-typed property from the generated schema; the guard would pass vacuously")
+		t.Fatal("read no citation-typed property from the generated schema; the guard would pass vacuously")
 	}
 }
 
@@ -367,11 +367,11 @@ func matchingParen(pattern string, start int) (int, bool) {
 	return 0, false
 }
 
-// slugTypedPropertiesOf returns the properties the generated schema types
-// as a document slug for one document type, read by walking the decoded
-// JSON rather than through registration.go's own decoder — see this
-// file's package comment.
-func slugTypedPropertiesOf(t *testing.T, documentType string) []string {
+// citationTypedPropertiesOf returns the properties the generated schema
+// types as a citation for one document type, read by walking the
+// decoded JSON rather than through registration.go's own decoder — see
+// this file's package comment.
+func citationTypedPropertiesOf(t *testing.T, documentType string) []string {
 	t.Helper()
 
 	var bundle map[string]any
@@ -402,23 +402,23 @@ func slugTypedPropertiesOf(t *testing.T, documentType string) []string {
 		if !ok {
 			continue
 		}
-		if mentionsSlug(shape) {
+		if mentionsCitation(shape) {
 			found = append(found, property)
 		}
 	}
 	return found
 }
 
-// mentionsSlug reports whether a decoded property schema refers to the
-// Slug definition anywhere in it — directly, through `items`, or through
-// a `oneOf` against null.
-func mentionsSlug(shape map[string]any) bool {
-	const slugRef = "#/definitions/Slug"
+// mentionsCitation reports whether a decoded property schema refers to
+// the Citation definition anywhere in it — directly, through `items`, or
+// through a `oneOf` against null.
+func mentionsCitation(shape map[string]any) bool {
+	const citationRef = "#/definitions/Citation"
 
-	if ref, ok := shape["$ref"].(string); ok && ref == slugRef {
+	if ref, ok := shape["$ref"].(string); ok && ref == citationRef {
 		return true
 	}
-	if items, ok := shape["items"].(map[string]any); ok && mentionsSlug(items) {
+	if items, ok := shape["items"].(map[string]any); ok && mentionsCitation(items) {
 		return true
 	}
 	alternatives, ok := shape["oneOf"].([]any)
@@ -426,7 +426,7 @@ func mentionsSlug(shape map[string]any) bool {
 		return false
 	}
 	for _, alternative := range alternatives {
-		if branch, ok := alternative.(map[string]any); ok && mentionsSlug(branch) {
+		if branch, ok := alternative.(map[string]any); ok && mentionsCitation(branch) {
 			return true
 		}
 	}

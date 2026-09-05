@@ -1,0 +1,5 @@
+description = "refs lists an anchor-only reference among the inbound references of the document holding it, beside the ordinary slug-bearing reference into the same heading, each cited in the document it is written in"
+cites = ["AC-SPECREF-001.8"]
+artifacts = ["checks.log"]
+args = ["refs", "adr-402-self-citing#Decision"]
+exit_code = 0

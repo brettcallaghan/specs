@@ -1,1 +1,4 @@
-adr-800-current: referenced by no corpus member
+slug: adr-800-current
+direction: inbound
+declared: true
+references: []

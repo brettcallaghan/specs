@@ -1,0 +1,5 @@
+description = "a slug-less anchor naming no heading of the document holding it is still an unresolved reference, alongside the unresolved anchor"
+cites = ["AC-SPECREF-002.12"]
+artifacts = ["checks.log"]
+args = ["check"]
+exit_code = 1

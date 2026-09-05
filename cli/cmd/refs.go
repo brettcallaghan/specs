@@ -2,16 +2,20 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
 
+	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
 // newRefsCmd builds the `refs` subcommand: report which corpus members
 // reference a given slug, or which documents that slug itself
-// references, per AC-SPECREF-003.1 through AC-SPECREF-003.5.
+// references, per AC-SPECREF-003.1 through AC-SPECREF-003.5 — and, for
+// an argument qualified by an anchor, which references reach one heading
+// of that document (AC-SPECANCH-003.1).
 //
 // This is the fifth subcommand FEAT-SPEC-011 anticipated growing into
 // (spec-cli-container.md's Change Guidance); it neither renames nor
@@ -20,54 +24,99 @@ func newRefsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 	var jsonOut, outbound bool
 
 	cmd := &cobra.Command{
-		Use:   "refs <slug>",
-		Short: "Report which corpus members reference a slug, or what it references",
+		Use:   "refs <slug>[#<anchor>]",
+		Short: "Report which corpus members reference a slug or one of its headings, or what it references",
 		Long: "refs reports every corpus member whose body or registered frontmatter " +
-			"properties reference the given slug. Given --outbound, it reports the " +
-			"documents that slug references instead. A slug no corpus member declares " +
-			"is reported distinctly from one that is declared but unreferenced; both " +
-			"exit zero.",
+			"properties reference the given slug. Qualified by an anchor, written " +
+			"<slug>#<anchor>, it reports only the references whose anchor resolves to " +
+			"that heading — the blast radius of renaming it — and a reference whose " +
+			"anchor matches more than one heading is reported for each, marked as " +
+			"matching more than one. A heading is matched on its identifier, so letter " +
+			"case and punctuation do not decide a match. Given --outbound, it reports " +
+			"the documents that slug references instead; --outbound takes no anchor. A " +
+			"slug no corpus member declares is reported distinctly from one that is " +
+			"declared but unreferenced; both exit zero, as does an anchor nothing " +
+			"references.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
-			return runRefs(streams, *configPath, args[0], outbound, jsonOut)
+			asked := parseSelection(args[0])
+			if outbound && asked.heading != "" {
+				return errNoAnchorWithOutbound
+			}
+			return runRefs(streams, *configPath, asked, outbound, jsonOut)
 		},
 	}
 	cmd.Flags().BoolVar(&jsonOut, "json", false,
-		"write each reference as JSON, with its file path and span, to standard output")
+		"write the references as JSON instead of YAML")
 	cmd.Flags().BoolVar(&outbound, "outbound", false,
 		"report the documents the slug references, instead of the documents referencing it")
 	return cmd
 }
 
-// refsResult is what runRefs renders: [refsResult.References] read
-// straight through in --json mode, and one line per entry otherwise.
+// errNoAnchorWithOutbound rejects the one argument-and-flag combination
+// that has no meaning. An anchor names a heading of the cited document,
+// and --outbound asks what the given document cites — the anchors on
+// those references belong to other documents' headings, so there is no
+// question "the references out of X into the heading Y of X" answers.
+var errNoAnchorWithOutbound = errors.New("spec refs: --outbound takes a slug, not a slug qualified by an anchor")
+
+// refsResult is what runRefs renders: a mapping of the properties the
+// query established, per [[cli-output-standards]].
 //
 // Declared is what makes "no corpus member declares this slug" and "the
 // slug is declared but has no references in the asked direction"
 // distinguishable — two different facts about the corpus, both exiting
 // zero (AC-SPECREF-003.5 and the Design section's undeclared-slug
 // bullet) — rather than an empty References list meaning either one.
+//
+// Anchor is present exactly when the argument carried one, so an
+// unanchored query answers with the properties it established and no key
+// standing for a question nobody asked.
 type refsResult struct {
-	Slug       string                `json:"slug"`
-	Direction  string                `json:"direction"`
-	Declared   bool                  `json:"declared"`
-	References []specmodel.Reference `json:"references"`
+	Slug       string      `json:"slug"`
+	Anchor     string      `json:"anchor,omitempty"`
+	Direction  string      `json:"direction"`
+	Declared   bool        `json:"declared"`
+	References []refsMatch `json:"references"`
+}
+
+// refsMatch is one reference the query answers with: the reference as the
+// index recorded it, plus the one property this query establishes about
+// it.
+//
+// The reference is embedded rather than copied field by field, so the
+// answer is a view over the generated model ([[adr-016]]) and gains
+// whatever a later schema change adds to a reference without this file
+// being edited. Both renderings promote an embedded struct's fields the
+// same way, so the two carry the same keys in the same order.
+type refsMatch struct {
+	specmodel.Reference
+
+	// AmbiguousAnchor marks a reference whose anchor matched more than
+	// one heading of its target (AC-SPECANCH-003.4). It is read off the
+	// reference's own anchor resolution rather than decided a second
+	// time here, and is written only where it is true: a reference
+	// carrying no anchor, or one that matched exactly one heading, has
+	// nothing to disambiguate.
+	AmbiguousAnchor bool `json:"ambiguous_anchor,omitempty"`
 }
 
 // runRefs answers [corpus.Corpus.Slug] and, for a declared slug,
 // [corpus.Corpus.InboundReferences] or [corpus.Corpus.OutboundReferences],
-// and renders the result. It is the whole of what this subcommand does:
-// converting a slug and a direction into a corpus lookup and the result
-// into stdout, with no domain logic of its own.
+// narrows the result to one heading where the argument named one, and
+// renders it. It is the whole of what this subcommand does: converting an
+// argument and a direction into a corpus lookup and the result into
+// stdout, with no domain logic of its own — what an anchor resolved to is
+// the References component's answer, already on the reference.
 //
 // It always exits zero: like slug-exists, what refs answers is a fact
 // about the corpus, never a failure of the command that asked it
-// (AC-SPECREF-003.5, and the undeclared-slug case matching the
-// slug-exists contract per AC-SPEC-007.2). The corpus is opened warm
-// (corpus.Open), the same as check, slug-exists and next-id, because this
-// is exactly the corpus query FEAT-SPEC-009.1's latency budget is measured
-// against (AC-SPECREF-003.4).
-func runRefs(streams *ioStreams, configPath, slug string, outbound, jsonOut bool) error {
+// (AC-SPECREF-003.5, AC-SPECANCH-003.3, and the undeclared-slug case
+// matching the slug-exists contract per AC-SPEC-007.2). The corpus is
+// opened warm (corpus.Open), the same as check, slug-exists and next-id,
+// because this is exactly the corpus query FEAT-SPEC-009.1's latency
+// budget is measured against (AC-SPECREF-003.4).
+func runRefs(streams *ioStreams, configPath string, asked selection, outbound, jsonOut bool) error {
 	cfg, findings, err := Load(configPath, BuiltinRegistry())
 	if err != nil {
 		return err
@@ -91,12 +140,19 @@ func runRefs(streams *ioStreams, configPath, slug string, outbound, jsonOut bool
 		direction = "outbound"
 	}
 
-	entry, declared := c.Slug(slug)
-	// References defaults to an empty (never nil) slice, so the JSON
-	// rendering always writes "references":[] rather than "references":null
-	// for either zero-result case — the same "collections are never nil"
-	// discipline [finding.Report.Model] applies to Findings and Checks.
-	result := refsResult{Slug: slug, Direction: direction, Declared: declared, References: []specmodel.Reference{}}
+	entry, declared := c.Slug(asked.document)
+	// References defaults to an empty (never nil) slice, so both
+	// renderings write an empty collection rather than a null for either
+	// zero-result case — the same "collections are never nil" discipline
+	// [finding.Report.Model] applies to Findings and Checks, and what
+	// [[cli-output-standards]] requires of an empty answer.
+	result := refsResult{
+		Slug:       asked.document,
+		Anchor:     asked.heading,
+		Direction:  direction,
+		Declared:   declared,
+		References: []refsMatch{},
+	}
 	if declared {
 		var found []specmodel.Reference
 		if outbound {
@@ -104,22 +160,72 @@ func runRefs(streams *ioStreams, configPath, slug string, outbound, jsonOut bool
 		} else {
 			found = c.InboundReferences(entry.Path)
 		}
-		if found != nil {
-			result.References = found
-		}
+		result.References = matches(found, asked.heading)
 	}
 
 	return renderRefs(streams, result, jsonOut)
 }
 
-// renderRefs writes result to streams.out: the generated [specmodel.Reference]
-// JSON — each entry already carrying its file path and span
-// (AC-SPECREF-003.3) — in --json mode, and a short human summary
-// otherwise.
+// matches turns the references the corpus returned into the query's
+// answer: all of them where no anchor was asked for, and otherwise only
+// those whose anchor resolves to the named heading.
 //
-// Text rendering of a non-empty result mirrors [finding.Report.Text]'s
-// one-line-per-item, path:line:col shape, so a reference and a finding
-// read the same way in a terminal.
+// The order is the corpus's throughout, so two runs over an unchanged
+// corpus print identical bytes.
+func matches(found []specmodel.Reference, anchor string) []refsMatch {
+	answer := []refsMatch{}
+	wanted := markdown.Identifier(anchor)
+
+	for _, reference := range found {
+		ambiguous := ambiguousAnchor(reference)
+		if anchor != "" && !reachesHeading(reference, wanted) {
+			continue
+		}
+		answer = append(answer, refsMatch{Reference: reference, AmbiguousAnchor: ambiguous})
+	}
+	return answer
+}
+
+// reachesHeading reports whether reference's anchor resolved to the
+// heading whose identifier is wanted.
+//
+// The question is asked of the resolution rather than of the anchor's own
+// text: the References component decided what this anchor reaches, and a
+// second derivation here would be free to disagree with it. An ambiguous
+// anchor reaches every heading it matched — it resolves to none of them,
+// and the author renaming one of them is exactly the reader who has to
+// see the reference (AC-SPECANCH-003.4).
+func reachesHeading(reference specmodel.Reference, wanted string) bool {
+	if reference.AnchorResolution == nil {
+		return false
+	}
+	if resolved, ok := reference.AnchorResolution.AsResolved(); ok {
+		return markdown.Identifier(resolved.Heading.Text) == wanted
+	}
+	if ambiguous, ok := reference.AnchorResolution.AsAmbiguous(); ok {
+		for _, match := range ambiguous.Matches {
+			if markdown.Identifier(match.Text) == wanted {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// ambiguousAnchor reports whether reference's anchor matched more than
+// one heading of its target.
+func ambiguousAnchor(reference specmodel.Reference) bool {
+	if reference.AnchorResolution == nil {
+		return false
+	}
+	_, ambiguous := reference.AnchorResolution.AsAmbiguous()
+	return ambiguous
+}
+
+// renderRefs writes result to streams.out as YAML, or as JSON under
+// --json, both carrying the same values in the same order per
+// [[cli-output-standards]]. Each reference carries its file path and span
+// in either rendering (AC-SPECREF-003.3, AC-SPECANCH-003.1).
 func renderRefs(streams *ioStreams, result refsResult, asJSON bool) error {
 	if asJSON {
 		data, err := json.Marshal(result)
@@ -129,22 +235,6 @@ func renderRefs(streams *ioStreams, result refsResult, asJSON bool) error {
 		fmt.Fprintf(streams.out, "%s\n", data)
 		return nil
 	}
-
-	if !result.Declared {
-		fmt.Fprintf(streams.out, "%s: not declared by any corpus member\n", result.Slug)
-		return nil
-	}
-	if len(result.References) == 0 {
-		if result.Direction == "outbound" {
-			fmt.Fprintf(streams.out, "%s: references nothing\n", result.Slug)
-		} else {
-			fmt.Fprintf(streams.out, "%s: referenced by no corpus member\n", result.Slug)
-		}
-		return nil
-	}
-	for _, r := range result.References {
-		fmt.Fprintf(streams.out, "%s:%d:%d  %s\n",
-			r.Path, r.Position.StartLine, r.Position.StartColumn, r.Text)
-	}
+	fmt.Fprint(streams.out, renderYAML(result))
 	return nil
 }

@@ -24,9 +24,10 @@ package mdlinks
 import (
 	"path"
 	"strings"
-	"unicode"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
+	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
+	"github.com/brettcallaghan/agent-plugins/cli/core/references"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
@@ -77,6 +78,10 @@ func Resolve(refs []specmodel.Reference, options Options) (targets []*string, fi
 // resolveOne settles one reference's target, per the delta's Behavior, in
 // the order the checks below run:
 //
+//   - an anchor-only citation reaching a heading of the document being
+//     rewritten settles on that fragment alone (AC-SPECMD-001.8), ahead
+//     of the map because an empty slug names no corpus document a map
+//     could cover;
 //   - a mapped slug wins outright, whether or not it also names a corpus
 //     document (AC-SPECMD-005.5), and raises nothing;
 //   - otherwise a slug naming no corpus document raises links/unresolved
@@ -86,7 +91,17 @@ func Resolve(refs []specmodel.Reference, options Options) (targets []*string, fi
 //     was given and simply omits it (AC-SPECMD-006.3), and derives its
 //     target from the corpus when no map was given at all — never both.
 func resolveOne(ref specmodel.Reference, options Options) (*string, *specmodel.Finding) {
-	fragment := anchorFragment(ref.Anchor)
+	fragment := anchorFragment(ref)
+
+	// The one target that is not a path: the heading this reference
+	// names is in the document being rewritten, so a fragment on its own
+	// is what a reader follows, in the copy and in the source alike. An
+	// anchor-only citation whose anchor resolved to no heading falls
+	// through to the rules below and is reported and left as written
+	// like any other slug naming no corpus document.
+	if references.ResolvedSelfAnchor(ref) {
+		return &fragment, nil
+	}
 
 	if options.Map != nil {
 		if mapped, ok := options.Map[ref.Slug]; ok {
@@ -112,28 +127,35 @@ func resolveOne(ref specmodel.Reference, options Options) (*string, *specmodel.F
 
 // anchorFragment derives the `#`-prefixed target fragment for a
 // reference's anchor, empty where the reference names none.
-func anchorFragment(anchor *string) string {
-	if anchor == nil {
+//
+// The text the fragment is derived FROM is the resolved heading's, not
+// the anchor's, wherever the anchor resolved to a heading
+// (AC-SPECMD-001.3). The two agree wherever an anchor names a heading in
+// full; where they differ it is the heading that a reader following the
+// emitted link has to land on, so the anchor as authored would emit a
+// fragment matching nothing. Every other anchor resolution — no heading,
+// several, or a target whose headings were never recorded — and an
+// absent resolution alike fall back to the anchor as the author wrote it
+// (AC-SPECMD-001.7), which keeps the rewrite total and the copy no worse
+// than the source it was made from.
+//
+// The derivation itself is [markdown.Identifier], the one the Markdown
+// Structure component exposes and the References component matches
+// anchors through. This package deliberately holds no second copy of it:
+// two derivations can disagree, and every disagreement is a link the
+// checks call resolved and a reader cannot follow.
+func anchorFragment(ref specmodel.Reference) string {
+	if ref.Anchor == nil {
 		return ""
 	}
-	return "#" + slugifyAnchor(*anchor)
-}
 
-// slugifyAnchor derives a target fragment from anchor text by GitHub's
-// heading-anchor rule (AC-SPECMD-001.3): lowercase the text, drop every
-// character that is not a letter, digit, space, hyphen or underscore, then
-// replace each remaining space with a hyphen.
-func slugifyAnchor(text string) string {
-	var b strings.Builder
-	for _, r := range strings.ToLower(text) {
-		switch {
-		case r == ' ':
-			b.WriteByte('-')
-		case r == '-' || r == '_' || unicode.IsLetter(r) || unicode.IsDigit(r):
-			b.WriteRune(r)
+	text := *ref.Anchor
+	if ref.AnchorResolution != nil {
+		if resolved, ok := ref.AnchorResolution.AsResolved(); ok {
+			text = resolved.Heading.Text
 		}
 	}
-	return b.String()
+	return "#" + markdown.Identifier(text)
 }
 
 // relativeTo returns target's path relative to fromDir, both taken and
