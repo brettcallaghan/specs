@@ -116,9 +116,23 @@
       "resolution": {
         "state": "resolved",
         "target_path": "docs/adrs/adr-012-decision.md"
+      },
+      "anchor_resolution": {
+        "state": "resolved",
+        "heading": {
+          "text": "Decision",
+          "position": {
+            "offset": 203,
+            "length": 12,
+            "start_line": 12,
+            "start_column": 1,
+            "end_line": 13,
+            "end_column": 1
+          }
+        }
       }
     }
   ],
   "features": [],
-  "input_hash": "sha256:eccc717ef80f32ee3052eccf7952f78068309fe9c62b8d2cda501018f94ce9ac"
+  "input_hash": "sha256:9e72c14a1e8818f5b75851681fc693b3c0429d834cb3389f6deca6e527838888"
 }

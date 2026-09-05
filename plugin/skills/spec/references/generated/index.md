@@ -16,6 +16,11 @@
 - [ReferenceUnresolved](#referenceunresolved)
 - [ReferenceNonMember](#referencenonmember)
 - [ReferenceResolution](#referenceresolution)
+- [AnchorResolved](#anchorresolved)
+- [AnchorUnresolved](#anchorunresolved)
+- [AnchorAmbiguous](#anchorambiguous)
+- [AnchorUnverified](#anchorunverified)
+- [AnchorResolution](#anchorresolution)
 - [Reference](#reference)
 - [SpecIndex](#specindex)
 
@@ -241,6 +246,74 @@ reference is a check's job rather than the indexer's.
 | "non-member" | NonMember | The slug matched a file beneath the spec root that is not a member. |
 
 
+## AnchorResolved
+
+An anchor resolved to exactly one heading of its target document.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| heading | [AnchorMatch](finding.md#anchormatch) | The heading the anchor's identifier matched. |
+
+
+## AnchorUnresolved
+
+An anchor whose identifier matched no heading of its target document,
+whose headings were available to check it against.
+
+Held apart from `AnchorUnverified`: this is a considered "no", not an
+absence of an answer — the target's headings were read and none of
+them matched, which is what a rename-the-heading fix responds to.
+
+*No properties defined.*
+
+
+## AnchorAmbiguous
+
+An anchor whose identifier matched more than one heading of its target
+document.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| matches | Array<[AnchorMatch](finding.md#anchormatch)> | Every heading of the target document whose identifier matched, in document order. |
+
+
+## AnchorUnverified
+
+An anchor whose target document's headings could not be examined.
+
+Distinct from `AnchorUnresolved`: the tool did not get to look, so it
+says so rather than reporting a heading rename would fix — the same
+distinction `FindingUnverified` draws for a check that could not run at
+all.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| reason | String | Why the target's headings could not be examined, stated so the finding built from this needs no further lookup to act on. |
+
+
+## AnchorResolution
+
+What the anchor half of a reference resolved to.
+
+Present on a `Reference` exactly when its anchor is present and its
+target is known: the slug half reached a corpus member, or the anchor
+names no slug and resolves against the document containing the
+reference (AC-SPECANCH-002.6). Absent when the reference carries no
+anchor, and absent when the slug half is present and did not resolve —
+the parent feature already reports that reference as broken, and an
+anchor finding on top of it would be a second finding for one mistake
+(AC-SPECANCH-002.8).
+
+**Discriminator:** state (String)
+
+| Tag | Type | Documentation |
+|-----|------|---------------|
+| "resolved" | Resolved | Exactly one heading of the target matched the anchor's identifier. |
+| "unresolved" | Unresolved | No heading of the target matched, though its headings were available. |
+| "ambiguous" | Ambiguous | More than one heading of the target matched the anchor's identifier. |
+| "unverified" | Unverified | The target document's headings could not be examined. |
+
+
 ## Reference
 
 One occurrence of one document referencing another.
@@ -261,10 +334,11 @@ the line the reader must open.
 | path | String | The path of the document the reference occurs in, relative to the repository root and written with forward slashes on every platform. |
 | text | String | The reference exactly as written, without the delimiters that enclose it — `adr-012`, or `adr-012#Decision`, or the raw value of a reference-bearing frontmatter property.<br><br>Recorded alongside the halves it splits into, because the text is what a reader sees and what a rewrite replaces, and neither is recoverable from the halves once letter case or spacing has been normalized. |
 | slug | String | The slug half: everything before the first `#`, or the whole reference where it names no anchor.<br><br>A plain `String` rather than a `Slug`, deliberately. A reference is written by hand and may name something that is not a well-formed slug at all; constraining this property would make such a reference unrepresentable in the index, which is the one place it must be visible in order to be reported. |
-| anchor | String? | The anchor half: everything after the first `#`, absent where the reference names no anchor.<br><br>Recorded and not interpreted. Resolving an anchor against the target's headings is a separate feature; splitting on the first `#` is the whole of what this shape knows about anchors, and it exists so that an anchored reference resolves on its slug rather than reporting as broken. |
+| anchor | String? | The anchor half: everything after the first `#`, absent where the reference names no anchor.<br><br>Recorded and not interpreted: splitting on the first `#` is the whole of what extraction knows about anchors, which is why an anchored reference resolves on its slug rather than reporting as broken. What the anchor itself matched is carried separately, in `anchor_resolution`. |
 | origin | [ReferenceOrigin](#referenceorigin) | Where the reference was written. |
 | position | [Span](#span) | Where in the containing document the reference occurs, as a span rather than a bare line number, so a report and a rewrite both address the reference itself. |
 | resolution | [ReferenceResolution](#referenceresolution) | What the reference reached. |
+| anchor_resolution | [AnchorResolution](#anchorresolution)? | What the anchor half of this reference resolved to.<br><br>Present exactly when `anchor` is present and there is a target to check it against: `resolution` reached a corpus member, or the reference names no slug at all and resolves against the document named in `path`. Absent when the reference carries no anchor, and absent when it names a slug that did not resolve — `resolution` already reports that reference as broken. |
 
 
 ## SpecIndex

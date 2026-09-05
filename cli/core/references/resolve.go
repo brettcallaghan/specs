@@ -8,28 +8,39 @@ import (
 )
 
 // Resolve records what every reference in refs reached, against the
-// corpus that index describes.
+// corpus that index describes — both the slug half every reference
+// carries and, where present, the anchor half.
 //
 // It is the half of this component that [Extract] deliberately leaves
 // undone: extraction knows a document, resolution knows a corpus, and
 // the two are separated so that a reference cannot reach the index
 // without a corpus having been consulted. Every reference is given a
-// resolution, including the ones that reached nothing — indexing never
-// fails, and reporting a broken reference is a check's job.
+// slug resolution, including the ones that reached nothing — indexing
+// never fails, and reporting a broken reference is a check's job. An
+// anchor resolution is given only where one applies — see
+// [resolveAnchor].
 //
 // Resolution is a lookup and nothing else. No document is read, no
 // frontmatter is parsed, and the answer is a function of index alone, so
 // the same references resolved against the same index resolve the same
-// way on every platform and on every run.
+// way on every platform and on every run. Matching an anchor against a
+// heading is a corpus question for the same reason: the headings it
+// matches against already live on index, populated by the Markdown
+// Structure component, not read from disk again here.
 //
 // The references are resolved in place, because they are the rows the
-// index will carry and copying them to attach one property to each would
-// only give a caller two collections to keep in step.
+// index will carry and copying them to attach these properties to each
+// would only give a caller two collections to keep in step.
+//
+// An embed (`![[…]]`) resolves exactly as the equivalent link: nothing
+// on [specmodel.Reference] distinguishes the two, since extraction
+// already records an embed the way it records a link.
 func Resolve(refs []specmodel.Reference, index specmodel.SpecIndex) {
 	targets := newTargets(index)
 	for i := range refs {
 		refs[i].Resolution = targets.resolve(refs[i].Slug)
 	}
+	resolveAnchors(refs, index)
 }
 
 // targets is what a corpus offers a slug to match against, built once per

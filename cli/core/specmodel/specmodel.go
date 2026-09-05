@@ -4421,6 +4421,213 @@ func (u *ReferenceResolution) UnmarshalJSON(data []byte) error {
 	return fmt.Errorf("ReferenceResolution: unknown state %q", probe.Tag)
 }
 
+// An anchor resolved to exactly one heading of its target document.
+type AnchorResolved struct {
+	// The heading the anchor's identifier matched.
+	Heading AnchorMatch `json:"heading"`
+}
+
+func (v *AnchorResolved) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["heading"]; !ok || string(m) == "null" {
+		return fmt.Errorf("AnchorResolved: required field \"heading\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Heading); err != nil {
+		return prefixField("heading", err)
+	}
+	return nil
+}
+
+// An anchor whose identifier matched no heading of its target document,
+// whose headings were available to check it against.
+//
+// Held apart from `AnchorUnverified`: this is a considered "no", not an
+// absence of an answer — the target's headings were read and none of
+// them matched, which is what a rename-the-heading fix responds to.
+type AnchorUnresolved struct{}
+
+// An anchor whose identifier matched more than one heading of its target
+// document.
+type AnchorAmbiguous struct {
+	// Every heading of the target document whose identifier matched, in document order.
+	Matches []AnchorMatch `json:"matches"`
+}
+
+func (v *AnchorAmbiguous) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["matches"]; !ok || string(m) == "null" {
+		return fmt.Errorf("AnchorAmbiguous: required field \"matches\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Matches); err != nil {
+		return prefixField("matches", err)
+	}
+	return nil
+}
+
+// An anchor whose target document's headings could not be examined.
+//
+// Distinct from `AnchorUnresolved`: the tool did not get to look, so it
+// says so rather than reporting a heading rename would fix — the same
+// distinction `FindingUnverified` draws for a check that could not run at
+// all.
+type AnchorUnverified struct {
+	// Why the target's headings could not be examined, stated so the finding
+	// built from this needs no further lookup to act on.
+	Reason string `json:"reason"`
+}
+
+func (v *AnchorUnverified) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["reason"]; !ok || string(m) == "null" {
+		return fmt.Errorf("AnchorUnverified: required field \"reason\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Reason); err != nil {
+		return prefixField("reason", err)
+	}
+	return nil
+}
+
+type AnchorResolutionVariant interface{ isAnchorResolutionVariant() }
+
+// What the anchor half of a reference resolved to.
+//
+// Present on a `Reference` exactly when its anchor is present and its
+// target is known: the slug half reached a corpus member, or the anchor
+// names no slug and resolves against the document containing the
+// reference (AC-SPECANCH-002.6). Absent when the reference carries no
+// anchor, and absent when the slug half is present and did not resolve —
+// the parent feature already reports that reference as broken, and an
+// anchor finding on top of it would be a second finding for one mistake
+// (AC-SPECANCH-002.8).
+type AnchorResolution struct {
+	Value AnchorResolutionVariant
+}
+
+func (AnchorResolved) isAnchorResolutionVariant()   {}
+func (AnchorUnresolved) isAnchorResolutionVariant() {}
+func (AnchorAmbiguous) isAnchorResolutionVariant()  {}
+func (AnchorUnverified) isAnchorResolutionVariant() {}
+
+func NewAnchorResolutionResolved(v AnchorResolved) AnchorResolution {
+	return AnchorResolution{Value: v}
+}
+
+func NewAnchorResolutionUnresolved(v AnchorUnresolved) AnchorResolution {
+	return AnchorResolution{Value: v}
+}
+
+func NewAnchorResolutionAmbiguous(v AnchorAmbiguous) AnchorResolution {
+	return AnchorResolution{Value: v}
+}
+
+func NewAnchorResolutionUnverified(v AnchorUnverified) AnchorResolution {
+	return AnchorResolution{Value: v}
+}
+
+func (u AnchorResolution) AsResolved() (AnchorResolved, bool) {
+	v, ok := u.Value.(AnchorResolved)
+	return v, ok
+}
+
+func (u AnchorResolution) AsUnresolved() (AnchorUnresolved, bool) {
+	v, ok := u.Value.(AnchorUnresolved)
+	return v, ok
+}
+
+func (u AnchorResolution) AsAmbiguous() (AnchorAmbiguous, bool) {
+	v, ok := u.Value.(AnchorAmbiguous)
+	return v, ok
+}
+
+func (u AnchorResolution) AsUnverified() (AnchorUnverified, bool) {
+	v, ok := u.Value.(AnchorUnverified)
+	return v, ok
+}
+
+func (u AnchorResolution) MarshalJSON() ([]byte, error) {
+	var payload []byte
+	var tag string
+	var err error
+	switch v := u.Value.(type) {
+	case AnchorResolved:
+		tag = "resolved"
+		payload, err = json.Marshal(v)
+	case AnchorUnresolved:
+		tag = "unresolved"
+		payload, err = json.Marshal(v)
+	case AnchorAmbiguous:
+		tag = "ambiguous"
+		payload, err = json.Marshal(v)
+	case AnchorUnverified:
+		tag = "unverified"
+		payload, err = json.Marshal(v)
+	default:
+		return nil, fmt.Errorf("AnchorResolution: nil or unknown variant")
+	}
+	if err != nil {
+		return nil, err
+	}
+	tagBytes, err := json.Marshal(tag)
+	if err != nil {
+		return nil, err
+	}
+	if len(payload) == 0 || payload[0] != '{' {
+		return nil, fmt.Errorf("AnchorResolution: variant produced non-object JSON")
+	}
+	prefix := append([]byte{'{'}, []byte("\"state\":")...)
+	prefix = append(prefix, tagBytes...)
+	if payload[1] != '}' {
+		prefix = append(prefix, ',')
+	}
+	return append(prefix, payload[1:]...), nil
+}
+
+func (u *AnchorResolution) UnmarshalJSON(data []byte) error {
+	var probe struct {
+		Tag string `json:"state"`
+	}
+	if err := json.Unmarshal(data, &probe); err != nil {
+		return err
+	}
+	switch probe.Tag {
+	case "resolved":
+		var v AnchorResolved
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "unresolved":
+		var v AnchorUnresolved
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "ambiguous":
+		var v AnchorAmbiguous
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "unverified":
+		var v AnchorUnverified
+		if err := json.Unmarshal(data, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	}
+	return fmt.Errorf("AnchorResolution: unknown state %q", probe.Tag)
+}
+
 // One occurrence of one document referencing another.
 //
 // A reference is an edge, and it is recorded as a row of its own rather
@@ -4457,11 +4664,11 @@ type Reference struct {
 	// The anchor half: everything after the first `#`, absent where the
 	// reference names no anchor.
 	//
-	// Recorded and not interpreted. Resolving an anchor against the target's
-	// headings is a separate feature; splitting on the first `#` is the whole
-	// of what this shape knows about anchors, and it exists so that an
-	// anchored reference resolves on its slug rather than reporting as
-	// broken.
+	// Recorded and not interpreted: splitting on the first `#` is the whole
+	// of what extraction knows about anchors, which is why an anchored
+	// reference resolves on its slug rather than reporting as broken. What
+	// the anchor itself matched is carried separately, in
+	// `anchor_resolution`.
 	Anchor *string `json:"anchor,omitempty"`
 	// Where the reference was written.
 	Origin ReferenceOrigin `json:"origin"`
@@ -4471,6 +4678,15 @@ type Reference struct {
 	Position Span `json:"position"`
 	// What the reference reached.
 	Resolution ReferenceResolution `json:"resolution"`
+	// What the anchor half of this reference resolved to.
+	//
+	// Present exactly when `anchor` is present and there is a target to
+	// check it against: `resolution` reached a corpus member, or the
+	// reference names no slug at all and resolves against the document
+	// named in `path`. Absent when the reference carries no anchor, and
+	// absent when it names a slug that did not resolve — `resolution`
+	// already reports that reference as broken.
+	AnchorResolution *AnchorResolution `json:"anchor_resolution,omitempty"`
 }
 
 func (v *Reference) UnmarshalJSON(data []byte) error {
@@ -4512,6 +4728,11 @@ func (v *Reference) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("Reference: required field \"resolution\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Resolution); err != nil {
 		return prefixField("resolution", err)
+	}
+	if m, ok := raw["anchor_resolution"]; ok {
+		if err := json.Unmarshal(m, &v.AnchorResolution); err != nil {
+			return prefixField("anchor_resolution", err)
+		}
 	}
 	return nil
 }

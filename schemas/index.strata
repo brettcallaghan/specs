@@ -347,6 +347,77 @@ union ReferenceResolution {
 }
 
 """
+An anchor resolved to exactly one heading of its target document.
+"""
+struct AnchorResolved {
+  """The heading the anchor's identifier matched."""
+  heading: AnchorMatch
+}
+
+"""
+An anchor whose identifier matched no heading of its target document,
+whose headings were available to check it against.
+
+Held apart from `AnchorUnverified`: this is a considered "no", not an
+absence of an answer — the target's headings were read and none of
+them matched, which is what a rename-the-heading fix responds to.
+"""
+struct AnchorUnresolved {
+}
+
+"""
+An anchor whose identifier matched more than one heading of its target
+document.
+"""
+struct AnchorAmbiguous {
+  """Every heading of the target document whose identifier matched, in document order."""
+  matches: [AnchorMatch]
+}
+
+"""
+An anchor whose target document's headings could not be examined.
+
+Distinct from `AnchorUnresolved`: the tool did not get to look, so it
+says so rather than reporting a heading rename would fix — the same
+distinction `FindingUnverified` draws for a check that could not run at
+all.
+"""
+struct AnchorUnverified {
+  """
+  Why the target's headings could not be examined, stated so the finding
+  built from this needs no further lookup to act on.
+  """
+  reason: String
+}
+
+"""
+What the anchor half of a reference resolved to.
+
+Present on a `Reference` exactly when its anchor is present and its
+target is known: the slug half reached a corpus member, or the anchor
+names no slug and resolves against the document containing the
+reference (AC-SPECANCH-002.6). Absent when the reference carries no
+anchor, and absent when the slug half is present and did not resolve —
+the parent feature already reports that reference as broken, and an
+anchor finding on top of it would be a second finding for one mistake
+(AC-SPECANCH-002.8).
+"""
+@discriminator("state")
+union AnchorResolution {
+  """Exactly one heading of the target matched the anchor's identifier."""
+  @tag("resolved") Resolved: AnchorResolved
+
+  """No heading of the target matched, though its headings were available."""
+  @tag("unresolved") Unresolved: AnchorUnresolved
+
+  """More than one heading of the target matched the anchor's identifier."""
+  @tag("ambiguous") Ambiguous: AnchorAmbiguous
+
+  """The target document's headings could not be examined."""
+  @tag("unverified") Unverified: AnchorUnverified
+}
+
+"""
 One occurrence of one document referencing another.
 
 A reference is an edge, and it is recorded as a row of its own rather
@@ -394,11 +465,11 @@ struct Reference {
   The anchor half: everything after the first `#`, absent where the
   reference names no anchor.
 
-  Recorded and not interpreted. Resolving an anchor against the target's
-  headings is a separate feature; splitting on the first `#` is the whole
-  of what this shape knows about anchors, and it exists so that an
-  anchored reference resolves on its slug rather than reporting as
-  broken.
+  Recorded and not interpreted: splitting on the first `#` is the whole
+  of what extraction knows about anchors, which is why an anchored
+  reference resolves on its slug rather than reporting as broken. What
+  the anchor itself matched is carried separately, in
+  `anchor_resolution`.
   """
   anchor: String?
 
@@ -414,6 +485,18 @@ struct Reference {
 
   """What the reference reached."""
   resolution: ReferenceResolution
+
+  """
+  What the anchor half of this reference resolved to.
+
+  Present exactly when `anchor` is present and there is a target to
+  check it against: `resolution` reached a corpus member, or the
+  reference names no slug at all and resolves against the document
+  named in `path`. Absent when the reference carries no anchor, and
+  absent when it names a slug that did not resolve — `resolution`
+  already reports that reference as broken.
+  """
+  anchor_resolution: AnchorResolution?
 }
 
 """

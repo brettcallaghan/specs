@@ -633,11 +633,14 @@ in the index without a corpus having been consulted.
 
 **Resolution is a lookup, and it reads nothing.** It matches a
 reference's slug half against the slugs the index's members declare, and
-that is the whole of its input — no document is opened, no frontmatter is
-re-parsed, and the answer is a function of the index alone, so the same
-references over the same index resolve identically on every platform and
-on every run. What it costs is the walk it rides on; see Corpus below for
-where it is called from.
+where a reference carries an anchor, matches it against the headings
+already recorded on the target's index entry — headings Markdown
+Structure populated during the same walk, never read from disk again
+here. That is the whole of its input — no document is opened, no
+frontmatter is re-parsed, and the answer is a function of the index
+alone, so the same references over the same index resolve identically on
+every platform and on every run. What it costs is the walk it rides on;
+see Corpus below for where it is called from.
 
 The graph the index carries is one collection of edges, and both
 directions are read from it. `Corpus` exposes `OutboundReferences` by the
@@ -677,6 +680,36 @@ Five further semantics are pinned by the resolution half:
   non-members share a name the first in path order is reported, decided
   by comparison rather than by the order the index happens to hold its
   collections in.
+
+Five more are pinned by the anchor half, added once the corpus began
+recording headings ([[frd-spec-structure]]):
+
+- **An anchor is matched against a heading by deriving a heading
+  identifier from each and comparing them** (AC-SPECANCH-002.2), the
+  same derivation Markdown Structure exposes and Markdown Links consumes
+  for its own fragment — an anchor this component resolves is an anchor
+  an exported copy can target.
+- **Exactly one match resolves the anchor to that heading; more than one
+  resolves it to no heading and carries every match** (AC-SPECANCH-002.5),
+  so the reader is told which headings to disambiguate rather than only
+  that a collision exists.
+- **An anchor naming no slug resolves against the document containing
+  the reference** (AC-SPECANCH-002.6), so `[[#Heading]]` addresses the
+  document it is written in rather than reporting as broken. An embed
+  resolves exactly as the equivalent link, since nothing on `Reference`
+  distinguishes the two — extraction already records an embed the way
+  it records a link (AC-SPECANCH-002.7).
+- **An anchor resolution is set only where the slug half reached a
+  document to check it against** — a corpus member the slug resolved to,
+  or the containing document for a slug-less anchor. A slug that did not
+  resolve gets no anchor resolution at all: the parent feature already
+  reports it as broken, and a second finding for one mistake would train
+  a reader to skim (AC-SPECANCH-002.8).
+- **A target the index carries no entry for at all resolves the anchor
+  as unverified, not as zero matches.** The concrete case is a
+  standalone `.feature` file's own path, since a feature source produces
+  no index entry; the tool did not get to look, which is a different
+  claim from having looked and found nothing (AC-SPECANCH-002.4).
 
 Nine semantics are pinned by the extraction half:
 

@@ -70,6 +70,23 @@
       ],
       "type": "object"
     },
+    "AnchorAmbiguous": {
+      "additionalProperties": false,
+      "description": "An anchor whose identifier matched more than one heading of its target\ndocument.",
+      "properties": {
+        "matches": {
+          "description": "Every heading of the target document whose identifier matched, in document order.",
+          "items": {
+            "$ref": "#/definitions/AnchorMatch"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "matches"
+      ],
+      "type": "object"
+    },
     "AnchorMatch": {
       "additionalProperties": false,
       "description": "One heading matched against an ambiguous anchor.\n\nHeld apart from the full `Heading` shape because a match names only what\nthe reader needs to find the right one — its text and where it is\nwritten — and carries none of a heading's own section content or nested\nrecord blocks.",
@@ -86,6 +103,124 @@
       "required": [
         "text",
         "position"
+      ],
+      "type": "object"
+    },
+    "AnchorResolution": {
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "resolved"
+              }
+            },
+            "required": [
+              "state"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/AnchorResolved"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "unresolved"
+              }
+            },
+            "required": [
+              "state"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/AnchorUnresolved"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "ambiguous"
+              }
+            },
+            "required": [
+              "state"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/AnchorAmbiguous"
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "unverified"
+              }
+            },
+            "required": [
+              "state"
+            ],
+            "type": "object"
+          },
+          "then": {
+            "$ref": "#/definitions/AnchorUnverified"
+          }
+        }
+      ],
+      "description": "What the anchor half of a reference resolved to.\n\nPresent on a `Reference` exactly when its anchor is present and its\ntarget is known: the slug half reached a corpus member, or the anchor\nnames no slug and resolves against the document containing the\nreference (AC-SPECANCH-002.6). Absent when the reference carries no\nanchor, and absent when the slug half is present and did not resolve —\nthe parent feature already reports that reference as broken, and an\nanchor finding on top of it would be a second finding for one mistake\n(AC-SPECANCH-002.8).",
+      "properties": {
+        "state": {
+          "enum": [
+            "resolved",
+            "unresolved",
+            "ambiguous",
+            "unverified"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "type": "object"
+    },
+    "AnchorResolved": {
+      "additionalProperties": false,
+      "description": "An anchor resolved to exactly one heading of its target document.",
+      "properties": {
+        "heading": {
+          "$ref": "#/definitions/AnchorMatch",
+          "description": "The heading the anchor's identifier matched."
+        }
+      },
+      "required": [
+        "heading"
+      ],
+      "type": "object"
+    },
+    "AnchorUnresolved": {
+      "additionalProperties": false,
+      "description": "An anchor whose identifier matched no heading of its target document,\nwhose headings were available to check it against.\n\nHeld apart from `AnchorUnverified`: this is a considered \"no\", not an\nabsence of an answer — the target's headings were read and none of\nthem matched, which is what a rename-the-heading fix responds to.",
+      "properties": {},
+      "type": "object"
+    },
+    "AnchorUnverified": {
+      "additionalProperties": false,
+      "description": "An anchor whose target document's headings could not be examined.\n\nDistinct from `AnchorUnresolved`: the tool did not get to look, so it\nsays so rather than reporting a heading rename would fix — the same\ndistinction `FindingUnverified` draws for a check that could not run at\nall.",
+      "properties": {
+        "reason": {
+          "description": "Why the target's headings could not be examined, stated so the finding\nbuilt from this needs no further lookup to act on.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason"
       ],
       "type": "object"
     },
@@ -2588,10 +2723,21 @@
       "description": "One occurrence of one document referencing another.\n\nA reference is an edge, and it is recorded as a row of its own rather\nthan as a property of either document it connects. The facts that make\nit actionable — where it was written, whether it came from prose or from\na named frontmatter property, and what it reached — belong to neither\nendpoint, and both directions of the graph are derived by indexing this\none collection rather than stored twice.\n\nOne row per occurrence. A document that references the same target twice\ncontributes two rows carrying two spans, so a finding about either cites\nthe line the reader must open.",
       "properties": {
         "anchor": {
-          "description": "The anchor half: everything after the first `#`, absent where the\nreference names no anchor.\n\nRecorded and not interpreted. Resolving an anchor against the target's\nheadings is a separate feature; splitting on the first `#` is the whole\nof what this shape knows about anchors, and it exists so that an\nanchored reference resolves on its slug rather than reporting as\nbroken.",
+          "description": "The anchor half: everything after the first `#`, absent where the\nreference names no anchor.\n\nRecorded and not interpreted: splitting on the first `#` is the whole\nof what extraction knows about anchors, which is why an anchored\nreference resolves on its slug rather than reporting as broken. What\nthe anchor itself matched is carried separately, in\n`anchor_resolution`.",
           "type": [
             "string",
             "null"
+          ]
+        },
+        "anchor_resolution": {
+          "description": "What the anchor half of this reference resolved to.\n\nPresent exactly when `anchor` is present and there is a target to\ncheck it against: `resolution` reached a corpus member, or the\nreference names no slug at all and resolves against the document\nnamed in `path`. Absent when the reference carries no anchor, and\nabsent when it names a slug that did not resolve — `resolution`\nalready reports that reference as broken.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/AnchorResolution"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "origin": {
