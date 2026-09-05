@@ -269,12 +269,13 @@ emitted index carries the resolved reference graph, and the corpus checks
 read it: a broken link, a live document citing a retired one, a
 half-declared pairing and a typed reference landing on the wrong
 document type are each reported against the document a reader must
-open. **Markdown Structure is built for one of its three capabilities.**
-`cli/core/markdown` locates fenced blocks by info string; the heading
-tree and comment-block location remain not yet built, and the diagram
-edges that would carry those two are still the intended shape rather
-than an exercised one. Both edges from Corpus into Markdown Structure
-and Gherkin are exercised: the walk extracts a fenced Gherkin block
+open. **Markdown Structure is built for two of its three capabilities.**
+`cli/core/markdown` locates fenced blocks by info string and builds the
+heading tree with each heading's section span; comment-block location
+remains not yet built, and the diagram edge that would carry it is still
+the intended shape rather than an exercised one. Both edges from Corpus
+into Markdown Structure and Gherkin are exercised: the walk extracts a
+fenced Gherkin block
 through `markdown.Fenced` and parses every feature source through
 `gherkin.Parse`, and the `gherkin/` checks recompute from the same two
 packages.
@@ -356,6 +357,13 @@ span of its value, the value's raw source text, and the parsed value.
 serving both, so a property's position and its value cannot disagree.
 `goccy/go-yaml` is the parser, per [[adr-015]].
 
+Beside `Parse` the package exposes `Locate`, which reports the block's
+`Region` and nothing else. `Parse` is written on it, so where a block
+begins and ends is decided in one place: a caller that needs only where
+the block ends — the Corpus walk, for a document whose frontmatter did
+not parse — asks this component rather than re-deriving the delimiters,
+and a second derivation cannot disagree with the first.
+
 Six semantics are pinned by the implementation:
 
 - **A sequence-valued property carries its elements individually.**
@@ -379,9 +387,13 @@ Six semantics are pinned by the implementation:
 - **A block is recognised only at the start of the document,** located by
   the Spans scanner with `---` as the opening delimiter and a newline
   followed by `---` as the closing one. A `---` further down is content.
-  An opening delimiter with no closing one is reported as an
+  The closing delimiter carries its leading newline so that only a `---`
+  beginning a line ends the block: a run of three hyphens inside a value
+  is content, and a search for a bare `---` would close the block inside
+  that value. An opening delimiter with no closing one is reported as an
   unterminated block located at that delimiter — the case the Spans
-  scanner deliberately declines to guess at.
+  scanner deliberately declines to guess at. `Locate` applies exactly
+  this rule and is the only place it is applied.
 - **Raw text is source text, not a re-rendering.** A property's raw value
   runs from the first byte of the value to the start of the next
   property, trailing whitespace removed, so a quoted string keeps its
@@ -426,9 +438,10 @@ content and as leftover-scaffolding hygiene. This is the component the
 extract-then-review pattern depends on: an agent asks for the spans of
 particular sections and reads only those.
 
-**Built — fenced blocks only.** `cli/core/markdown`. Its surface is
-`Fenced`, which takes a document body and a set of registered tags and
-returns every fenced block whose info string matches one of them, in
+**Built — headings and fenced blocks.** `cli/core/markdown`. Its
+fenced-block surface is `Fenced`, which takes a document body and a set
+of registered tags and returns every fenced block whose info string
+matches one of them, in
 document order, as a `Block`: `Content` — the bytes between the fences —
 alongside `Outer`, over the whole construct including both fence lines
 in full, and `Inner`, over the content alone. Fence recognition comes
@@ -443,8 +456,60 @@ guess at a dangling delimiter. `Fenced` locates and returns bytes only:
 parsing a matched block's content in its tag's declared format is a
 question for that tag's own consumer, not for this package.
 
-The heading tree and the comment-block location remain **not yet
-built**. Nothing reads a heading anywhere in the module, and no
+Its heading surface is `Headings`, which takes a document body and
+returns every heading in document order as a `Heading`: its `Text` as
+authored with the markers that open and close the line removed, its
+`Level`, `Position` over the heading line itself, and `Section` over the
+content beneath it. A section runs from the end of the heading line to
+the start of the next heading of the same or a higher level, and to the
+end of the document where there is none, so a deeper heading falls
+inside its parent's section rather than closing it. A heading standing
+over nothing carries an empty span rather than an absent one, and a body
+with no heading yields an empty result rather than an error. Heading
+recognition comes from `goldmark` for the same reason fence recognition
+does: what looks like a heading inside a fenced block or an inline code
+span is not one, and only a markdown parser knows which regions are not
+to be scanned. A heading underlined rather than prefixed carries its
+underline inside `Position`, so `Position` ends exactly where `Section`
+begins in both written forms. The two forms are told apart by where the
+heading's text sits on its line — a prefixed heading's markers stand
+between the start of the line and the start of its text, an underlined
+heading's text begins the line's content — rather than by the line's
+first character, so the rule holds inside a container block, where that
+first character is the blockquote's or list item's own marker and not
+the heading's. No section content is returned — only the span of it,
+which a caller slices back out of the body it passed in.
+
+`HeadingsFrom` is the same search started at a byte offset, with every
+span still expressed in the whole source's coordinates. It is what a
+document with frontmatter needs: a frontmatter block's closing delimiter
+underlines the YAML above it, which CommonMark reads as a setext
+heading, so a whole-file search reports the entire block as a level-2
+heading. Starting at the body leaves that construct behind the offset
+rather than filtering it out afterwards, and reporting against the whole
+source is what keeps a heading's line number the one a reader counts to
+in the file. `Headings` is `HeadingsFrom` at offset zero.
+
+The package also exposes `Identifier`, the heading identifier of a text:
+its rendered inline content lowercased, with every character that is not
+a letter, digit, hyphen, underscore or space removed and each remaining
+space replaced by a hyphen. Inline content is rendered rather than
+filtered, so the identifier of ``The `Profile` interface`` is
+`the-profile-interface` and a link's target does not leak into the
+identifier of the heading that carries it. It is rendered as *inline*
+content specifically: the text is a heading's name and not a document,
+so a block-level marker opening it — an ordinal, a bullet, a blockquote
+marker — is a literal character of that name rather than syntax, and
+`1. Overview` and `2. Overview` yield `1-overview` and `2-overview`
+rather than one identifier addressing neither. The derivation is a pure
+function of the text and derives no positional suffix for a repeated
+heading, which is what lets anchor resolution match against this one
+derivation rather than a second one. It is exposed as a function rather
+than recorded on a `Heading`, and the index model carries no identifier
+property for the same reason: it is recomputable from the text and is
+therefore not state.
+
+The comment-block location remains **not yet built**: no
 `cli/core/markdown` surface locates an HTML comment block yet.
 
 ### Gherkin
@@ -757,7 +822,13 @@ The vocabulary is:
 - **`IndexEntry`** — one corpus member: its repository-relative `path`,
   its parsed `frontmatter`, and a `parse_error` carrying a located
   failure for a member whose frontmatter could not be read
-  (AC-SPEC-002.4). Exactly one of the latter two is present.
+  (AC-SPEC-002.4). Exactly one of the latter two is present. It also
+  carries the document's structure: its `headings` in document order
+  (AC-SPECSTR-001.1), and the `record_blocks` attached to the document
+  rather than to any heading — those written before the first heading,
+  and those in a document with none. Headings are recorded for every
+  member, including one whose frontmatter could not be parsed, because a
+  heading is markdown and does not depend on an envelope.
 - **`IndexExclusion`** — one candidate file that is not a member: its
   `path`, a `reason` of `no-frontmatter` or `unknown-type`, and — where
   the reason is `unknown-type` — the `type` value the file declared
@@ -810,6 +881,31 @@ The vocabulary is:
   notation only (AC-GHK-005.3). The `content_hash` covers the criterion's
   name and text and nothing else, so a criterion that moved has not
   changed (AC-GHK-005.5).
+- **`Heading`** — one heading of a document body: its `text` as
+  authored, its `level` constrained to 1 through 6, the `position` of the
+  heading line itself, the `section` span of the content beneath it, and
+  the `record_blocks` attached to it. The section span runs from the end
+  of the heading line to the start of the next heading of the same or a
+  higher level, and to the end of the document where there is none. No
+  section content is carried: a reader that wants the text reads it back
+  through the span, which is what keeps a document's prose out of the
+  index. A heading carries no identifier, because the identifier is a
+  pure function of the text and is derived by the Markdown Structure
+  component on demand.
+- **`RecordBlock`** — one fenced block the active profile registers as
+  carrying structured data about an element declared inside a document
+  ([[adr-008]]): its `tag`, its parsed `content`, and the `position` of
+  the block as written, fences included, so that a rewrite promoting the
+  element replaces the whole construct. The content is a mapping of
+  property name to value; Strata models closed shapes, so an open record
+  is a map rather than an arbitrary value, and this framework's element
+  declarations — a title, a description and a slug — are exactly that
+  shape. A tag whose registration names a schema is validated against it
+  by the Schema Registry, so this shape names no tag and carries no
+  vocabulary of its own. A block is attached to the innermost heading
+  whose section contains it, and to the document where no heading does,
+  so every parsed block in a document appears exactly once
+  (AC-SPECSTR-001.2).
 - **`Span`** and **`ParseError`** — the position type every component
   reports through, and a message paired with one. `Span` is declared
   here, in the generated model, because findings and parse errors carry
@@ -817,14 +913,18 @@ The vocabulary is:
   semantics and is the only place spans are computed.
 
 `schema_version` is required and pinned to `1.0` (AC-SPEC-002.2). The
-model is additive: later features attach headings and extracted record
-blocks under this same version. The reference collection is the first
-exercise of that rule and it is a deliberate no-bump rather than an
-oversight — `references` is an addition alongside the existing shape,
+model is additive. The reference collection is the first exercise of that
+rule and it is a deliberate no-bump rather than an oversight —
+`references` is an addition alongside the existing shape,
 which is exactly what [[container-spec-cli]]'s additive rule permits at
 the same version, and the model and the emitted index changed in the
 same change as the Change Guidance below requires. The `features`
-collection is the second exercise, and is a no-bump for the same reason. The schema constrains
+collection is the second exercise, and is a no-bump for the same reason.
+The structure properties — `headings` and `record_blocks` on
+`IndexEntry`, with the `Heading` and `RecordBlock` shapes they carry —
+are the third, and are a no-bump for the same reason: every one of them
+is an addition alongside the existing shape, and none changes how
+anything already recorded is carried. The schema constrains
 `schema_version` by pattern (`String ~= /^1\.0$/`) rather than pinning
 it, so the generated model carries a validated field and not a constant;
 the emitted value lives in `cli/core/specindex` alongside the
@@ -852,6 +952,38 @@ member, `OutboundReferences` and `InboundReferences` for the two
 directions of the reference graph, `FeatureFailures` for every Gherkin
 source that would not parse, and `FindingsFor` to narrow a
 whole-corpus result to one file.
+
+**Headings ride the walk too.** Each member's headings are extracted
+inside the same visit that reads its bytes, through Markdown Structure's
+`HeadingsFrom` — Corpus calls the component and holds no heading logic
+of its own. They are recorded in document order, which is the order the
+extraction returns and what keeps the emitted index byte-identical
+across platforms (AC-SPEC-009.7) without a sort of its own. A member
+whose frontmatter could not be parsed still carries its headings,
+because a heading is markdown and does not depend on an envelope.
+
+The search starts at the member's body rather than at the first byte of
+the file. A frontmatter block's closing delimiter underlines the YAML
+above it, which CommonMark reads as a setext heading, so a whole-file
+search would record the entire frontmatter block as a level-2 heading.
+The offset comes from the frontmatter parse the walk already performed;
+where that parse failed the block is located again from the source
+through Frontmatter's `Locate`, so the member still gets its headings and
+not its frontmatter. Corpus asks for the block rather than re-deriving
+it: the block's extent is the Frontmatter component's rule, and a second
+derivation here — closing the block at a bare `---` — would end it inside
+a value that contains one and hand the rest of the envelope to the
+heading search, which is the level-2 heading the offset exists to avoid.
+This is the
+one respect in which the heading search differs from the fenced-block
+search beside it, which is offered the whole file precisely so that its
+spans need no second arithmetic — heading spans are in document
+coordinates for the same reason, computed against the whole file rather
+than against the body slice.
+
+A warm corpus answers for headings from the index it opened, reading no
+document off disk: the headings are in the persisted index like every
+other property of an entry.
 
 **The reference graph rides the walk.** A member's references are
 extracted inside the same visit that reads its bytes and parses its

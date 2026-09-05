@@ -1,0 +1,5 @@
+description = "headings '#<heading>' answers from every corpus member"
+cites = ["AC-SPECSTR-003.3"]
+artifacts = ["checks.log"]
+args = ["headings", "#overview"]
+exit_code = 0

@@ -1,0 +1,5 @@
+description = "headings --emit writes the content a matched heading stands over, as itself, with no envelope"
+cites = ["AC-SPECSTR-003.5"]
+artifacts = ["checks.log"]
+args = ["headings", "adr-001-first#Decision", "--emit"]
+exit_code = 0

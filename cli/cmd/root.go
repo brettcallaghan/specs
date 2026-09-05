@@ -1,5 +1,5 @@
 // Command tree wiring for the Spec CLI's command surface (index, check,
-// slug-exists, next-id, refs, links, feature), per FEAT-SPEC-011 of
+// slug-exists, next-id, refs, links, feature, criterion, headings), per FEAT-SPEC-011 of
 // specs/features/spec-index/spec-index-frd.md, the reference-integrity
 // blueprint's CMD delta, the gherkin-adoption blueprint's EMIT delta, and
 // the Command Surface component in specs/containers/spec-cli/spec-cli-container.md.
@@ -127,6 +127,7 @@ func newRootCmd(streams *ioStreams) *cobra.Command {
 	root.AddCommand(newLinksCmd(streams, &configPath))
 	root.AddCommand(newFeatureCmd(streams, &configPath))
 	root.AddCommand(newCriterionCmd(streams, &configPath))
+	root.AddCommand(newHeadingsCmd(streams, &configPath))
 
 	return root
 }

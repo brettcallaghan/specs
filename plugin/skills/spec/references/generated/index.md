@@ -5,6 +5,8 @@
 - [Span](#span)
 - [ParseError](#parseerror)
 - [ExclusionReason](#exclusionreason)
+- [RecordBlock](#recordblock)
+- [Heading](#heading)
 - [IndexEntry](#indexentry)
 - [IndexExclusion](#indexexclusion)
 - [ReferenceBodyOrigin](#referencebodyorigin)
@@ -75,22 +77,60 @@ the reader.
 | UnknownType | "unknown-type" | The file declares a `type` the active profile does not define. |
 
 
+## RecordBlock
+
+A fenced block whose content the active profile registers as structured
+data about an element declared inside a document.
+
+A block is a record block only where the active profile registers its
+info string as a tag; a profile that registers none yields a corpus with
+no record blocks. The registration also names the format the content is
+parsed as and, optionally, the schema it is validated against, so this
+shape names no particular tag and carries no vocabulary of its own.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| tag | String | The block's info string, which is the tag the active profile registered — `component` for a component record block. |
+| content | Map<String, String> | The block's content, parsed in the format its tag declares.<br><br>A mapping of property name to value as written. Strata models closed shapes, so an open record is a map rather than an arbitrary value, and this framework's element declarations — a title, a description and a slug — are exactly that shape. A tag whose registration names a schema is validated against that schema by the schema registry; this property carries what was parsed and no judgement about it. |
+| position | [Span](#span) | The extent of the block as written, opening and closing fences included.<br><br>The fences are inside the span because promotion replaces the whole block with a link: a rewrite addressing only the content would leave the fences behind. |
+
+
+## Heading
+
+One heading of a document body, with the extent of the content beneath
+it.
+
+The section span is what makes a place inside a document addressable. A
+reader that wants the text under a heading reads it back through the
+span, which is why no section content is carried here or anywhere else
+in this model.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| text | String | The heading's text as authored, without the `#` markers that open the line. |
+| level | UInt in 1..6 | The heading's level: 1 for `#`, through 6 for `######`.<br><br>__Constraint:__ Values must be ≥ 1 and ≤ 6. |
+| position | [Span](#span) | Where the heading line itself is written. |
+| section | [Span](#span) | The extent of the content beneath the heading: from the end of the heading line to the start of the next heading of the same or a higher level, and to the end of the document where there is none.<br><br>A heading that stands over nothing carries an empty span rather than an absent one, the same way an empty frontmatter block does. |
+| record_blocks | Array<[RecordBlock](#recordblock)> | The record blocks attached to this heading: those whose extent falls within its section span and within no nested heading's, so a block belongs to the innermost heading that contains it. |
+
+
 ## IndexEntry
 
 One corpus member in the index: where it lives and what its frontmatter
 declares.
 
-The entry is deliberately additive. This sprint populates the path and
-the frontmatter envelope; later features attach headings, extracted
-record blocks and references to the same entry under the same
-`schema_version`, and no property here forecloses modelling references
-as their own collection later.
+The entry is deliberately additive. It carries the path, the frontmatter
+envelope, and the document's structure — its headings and the record
+blocks attached to the document rather than to any heading — and later
+features attach further properties under the same `schema_version`.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
 | path | String | The member's path, relative to the repository root and written with forward slashes on every platform. |
 | frontmatter | [DocumentFrontmatter](frontmatter.md#documentfrontmatter)? | The member's parsed frontmatter.<br><br>Absent exactly when `parse_error` is present: a document whose frontmatter could not be parsed is still indexed, but it has no parsed envelope to carry. |
 | parse_error | [ParseError](#parseerror)? | The failure that prevented this member's frontmatter from being parsed, with its position.<br><br>Present exactly when `frontmatter` is absent. A member carrying this property does not make the index a failure; the index is still emitted and still contains every other document. |
+| headings | Array<[Heading](#heading)> | The document's headings, in document order.<br><br>Recorded for every member, including one whose frontmatter could not be parsed: a heading is markdown and does not depend on an envelope. |
+| record_blocks | Array<[RecordBlock](#recordblock)> | The record blocks attached to the document rather than to any heading: those written before the first heading, and those in a document that has none.<br><br>A block inside a heading's section is carried by that heading instead, so every parsed block in a document appears exactly once. |
 
 
 ## IndexExclusion

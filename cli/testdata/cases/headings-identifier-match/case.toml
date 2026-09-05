@@ -1,0 +1,5 @@
+description = "headings matches a selection on heading identifier, so letter case and punctuation do not decide a match"
+cites = ["AC-SPECSTR-003.2"]
+artifacts = ["checks.log"]
+args = ["headings", "#KEY DECISIONS"]
+exit_code = 0

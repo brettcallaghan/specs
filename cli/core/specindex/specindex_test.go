@@ -147,6 +147,8 @@ func TestIndexCarriesEachMembersPathAndFrontmatter(t *testing.T) {
 			Status:      specmodel.StatusApproved,
 			UpdatedAt:   time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC),
 		},
+		Headings:     []specmodel.Heading{},
+		RecordBlocks: []specmodel.RecordBlock{},
 	})
 
 	entry := index.Entries[0]
@@ -186,6 +188,8 @@ func TestIndexRecordsALocatedParseFailureAgainstAMember(t *testing.T) {
 				EndColumn:   20,
 			},
 		},
+		Headings:     []specmodel.Heading{},
+		RecordBlocks: []specmodel.RecordBlock{},
 	})
 
 	entry := index.Entries[0]

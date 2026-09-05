@@ -11,7 +11,31 @@
         "type": "frd",
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
-      }
+      },
+      "headings": [
+        {
+          "text": "Checkout",
+          "level": 1,
+          "position": {
+            "offset": 176,
+            "length": 11,
+            "start_line": 10,
+            "start_column": 1,
+            "end_line": 11,
+            "end_column": 1
+          },
+          "section": {
+            "offset": 187,
+            "length": 583,
+            "start_line": 11,
+            "start_column": 1,
+            "end_line": 35,
+            "end_column": 1
+          },
+          "record_blocks": []
+        }
+      ],
+      "record_blocks": []
     }
   ],
   "exclusions": [],
@@ -121,5 +145,5 @@
       ]
     }
   ],
-  "input_hash": "sha256:ec70b0fe61ae25924b274e0c5bd59e4c18dcdeb6b9e84cff830dec7c3ab1fb6c"
+  "input_hash": "sha256:2a9e383c5eaba1b43a2d37bff409ac90dd8d02fa30e99329fd3f761612c9be83"
 }

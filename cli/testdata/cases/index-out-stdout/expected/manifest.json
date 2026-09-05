@@ -11,11 +11,35 @@
         "type": "adr",
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
-      }
+      },
+      "headings": [
+        {
+          "text": "ADR-001: Example",
+          "level": 1,
+          "position": {
+            "offset": 175,
+            "length": 19,
+            "start_line": 10,
+            "start_column": 1,
+            "end_line": 11,
+            "end_column": 1
+          },
+          "section": {
+            "offset": 194,
+            "length": 0,
+            "start_line": 11,
+            "start_column": 1,
+            "end_line": 11,
+            "end_column": 1
+          },
+          "record_blocks": []
+        }
+      ],
+      "record_blocks": []
     }
   ],
   "exclusions": [],
   "references": [],
   "features": [],
-  "input_hash": "sha256:e509cf2b09cd40bd329b2cbbd460020478b14ff4068e1a785457f3e804784385"
+  "input_hash": "sha256:73f6b16eb76be2c3d53638aeb81a986aebdf3ef8b6402942020f576d88b91617"
 }

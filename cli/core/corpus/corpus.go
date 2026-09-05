@@ -16,6 +16,7 @@ import (
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
 	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
+	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
 	"github.com/brettcallaghan/agent-plugins/cli/core/references"
 	"github.com/brettcallaghan/agent-plugins/cli/core/span"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specindex"
@@ -425,6 +426,8 @@ func (b *builder) visit(kind sourceKind, reported string, src []byte, readErr er
 		// An unreadable candidate is recorded against itself for the same
 		// reason an unparsable one is: losing a file silently is worse
 		// than an index that says which file it could not read.
+		// No bytes were read, so there is no body to find a heading in;
+		// addEntry records the empty collection.
 		b.addEntry(specmodel.IndexEntry{
 			Path:       reported,
 			ParseError: &specmodel.ParseError{Message: readErr.Error(), Position: span.Of(nil, 0, 0)},
@@ -445,7 +448,11 @@ func (b *builder) classify(reported string, src []byte) {
 		// a recorded failure, not an exclusion: the file claimed to be a
 		// specification and the claim could not be checked
 		// (AC-SPEC-002.4).
-		b.addEntry(specmodel.IndexEntry{Path: reported, ParseError: perr}, member{})
+		b.addEntry(specmodel.IndexEntry{
+			Path:       reported,
+			ParseError: perr,
+			Headings:   headingsOf(src, nil),
+		}, member{})
 
 	case doc == nil:
 		// No frontmatter block at all (AC-SPEC-001.3).
@@ -490,17 +497,77 @@ func (b *builder) classifyDocument(reported string, src []byte, doc *frontmatter
 		// envelope — a status outside the vocabulary, a timestamp that is
 		// not one. Recorded against this member so the rest of the corpus
 		// still indexes (AC-SPEC-002.4).
-		b.addEntry(specmodel.IndexEntry{Path: reported, ParseError: perr}, member{})
+		b.addEntry(specmodel.IndexEntry{
+			Path:       reported,
+			ParseError: perr,
+			Headings:   headingsOf(src, doc),
+		}, member{})
 		return
 	}
 
 	b.docs[reported] = doc
 	b.addEntry(
-		specmodel.IndexEntry{Path: reported, Frontmatter: envelope},
+		specmodel.IndexEntry{
+			Path:        reported,
+			Frontmatter: envelope,
+			Headings:    headingsOf(src, doc),
+		},
 		member{path: reported, slug: string(envelope.Slug), slugAt: slugSpan(doc), doc: doc},
 	)
 	b.extractReferences(reported, src, doc, b.types[declared])
 	b.extractBlockFeatures(reported, src, doc)
+}
+
+// headingsOf returns the headings of one candidate's body, in the order
+// they are written and in the document's own coordinates.
+//
+// The search starts at the body rather than at the start of the file. A
+// frontmatter block's closing delimiter underlines the YAML above it,
+// which CommonMark reads as a setext heading, so a whole-file search
+// reports the entire block as a level-2 heading — the one respect in
+// which a heading search differs from the fenced-block search beside it,
+// which is offered the whole file precisely so its spans need no second
+// arithmetic.
+//
+// doc is the parsed frontmatter where there is one, so that the offset
+// costs nothing beyond the parse the walk already performed. Where the
+// block could not be parsed there is no Document to ask, and the block is
+// located again from the source: a member whose frontmatter failed to
+// parse still carries its headings, a heading not depending on an
+// envelope.
+func headingsOf(src []byte, doc *frontmatter.Document) []specmodel.Heading {
+	from := 0
+	switch {
+	case doc != nil:
+		from = int(doc.Region.Outer.Offset + doc.Region.Outer.Length)
+	default:
+		// The Frontmatter component owns the format, so it is asked
+		// where the block is rather than the rule being re-derived here:
+		// its closing delimiter carries a leading newline, and a search
+		// for a bare "---" would close the block at the first such run
+		// inside a value and leave the body starting mid-block. Where no
+		// block is located — none present, or one that never closes —
+		// the whole source is the body.
+		if region, ok := frontmatter.Locate(src); ok {
+			from = int(region.Outer.Offset + region.Outer.Length)
+		}
+	}
+
+	found := markdown.HeadingsFrom(src, from)
+	headings := make([]specmodel.Heading, 0, len(found))
+	for _, heading := range found {
+		headings = append(headings, specmodel.Heading{
+			Text:     heading.Text,
+			Level:    uint64(heading.Level),
+			Position: heading.Position,
+			Section:  heading.Section,
+			// Record blocks attach to a heading once a profile registers
+			// a tag; until then every heading carries none rather than
+			// null.
+			RecordBlocks: []specmodel.RecordBlock{},
+		})
+	}
+	return headings
 }
 
 // extractReferences records the references one member makes, from the
@@ -526,6 +593,17 @@ func (b *builder) extractReferences(reported string, src []byte, doc *frontmatte
 // will need. A zero member — an entry with a parse failure — declares no
 // slug and takes part in no slug comparison.
 func (b *builder) addEntry(entry specmodel.IndexEntry, m member) {
+	// Every collection on the entry is non-nil for the reason
+	// [specindex.New] gives for the index's own: an entry with no
+	// headings marshals them as [] rather than as null, so the emitted
+	// index compares byte for byte across platforms and a consumer
+	// iterating a collection never distinguishes "empty" from "absent".
+	if entry.Headings == nil {
+		entry.Headings = []specmodel.Heading{}
+	}
+	if entry.RecordBlocks == nil {
+		entry.RecordBlocks = []specmodel.RecordBlock{}
+	}
 	b.index.Entries = append(b.index.Entries, entry)
 	if m.slug != "" {
 		b.members = append(b.members, m)
