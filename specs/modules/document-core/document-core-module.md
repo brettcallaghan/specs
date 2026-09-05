@@ -1116,6 +1116,32 @@ is separate breakage this edit caused from breakage already present — an
 edit invalidates the content fingerprint, so the check reads a freshly
 rebuilt graph with no memory of what those references resolved to.
 
+**They also report the anchor half of a reference, under two rule
+identifiers of its own.** `reference/unresolved-anchor` fires at
+severity `error` when a reference's anchor matches no heading of a
+target whose headings are known, naming the target document and the
+anchor as authored (AC-SPECANCH-002.1); `reference/ambiguous-anchor`
+fires at `error` when the anchor's identifier is the identifier of more
+than one heading, carrying every match with its span, since the reader
+has to know which headings to disambiguate rather than only that a
+collision exists (AC-SPECANCH-002.5). Where the target's headings were
+never recorded, `reference/unresolved-anchor` reports at
+`unverified` instead: the tool could not look, which is not the claim
+that it looked and found nothing (AC-SPECANCH-002.4) — the one rule
+identifier in this package that reports at more than one severity. A
+reference whose slug resolved to nothing gets no anchor finding at all;
+the unresolved slug is already reported and two findings for one mistake
+train a reader to skim (AC-SPECANCH-002.8). Both rules run over every
+anchored reference in an ordinary corpus check rather than behind an
+option (AC-SPECANCH-002.9), and both are corpus-wide on exactly the
+terms `reference/unresolved` is: a renamed heading breaks anchors held
+by files the renaming author never opened, so a single-document check
+reports them against the referring document at the referrer's own span
+(AC-SPECANCH-003.2). Unlike the three relational rules below, these two
+read no document off disk: what an anchor reached was settled by the
+References component during resolution, and this derives the finding
+from that record rather than matching a heading a second time.
+
 `CheckFor` also refuses a path no corpus member occupies, returning
 `ErrNotAMember` rather than a result. Narrowing by path means an unknown
 path selects nothing, and a caller cannot tell an empty result from a
@@ -1179,7 +1205,7 @@ criteria compared separately, the Gherkin analogue of `slug/duplicate`
 (AC-GHK-002.4, AC-GHK-003.4) — and is the one rule in this set that
 survives `CheckFor`'s narrowing on the same terms `reference/unresolved`
 does: `finding.IsCorpusWideRule` (renamed from `IsReferenceRule` to admit
-a non-`reference/`-prefixed member) now covers it alongside the four
+a non-`reference/`-prefixed member) covers it alongside the six
 reference rules. `gherkin/criterion-code-mismatch` fires when a
 criterion's identifier and its feature's disagree on the capture values
 the profile's `SharedCaptures` name (AC-GHK-003.6) — read from the two

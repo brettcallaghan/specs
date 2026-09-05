@@ -42,6 +42,34 @@ func headingsByPath(index specmodel.SpecIndex) map[string][]specmodel.Heading {
 	return byPath
 }
 
+// AnchorTarget returns the path of the document ref's anchor is checked
+// against, and whether there is one to check it against at all.
+//
+// It is the document ref.Path names when the reference carries no slug
+// of its own (AC-SPECANCH-002.6), and otherwise wherever the slug half
+// already resolved. A reference carrying no anchor, and one whose slug
+// is present and did not resolve, have no target: the parent feature
+// already reports the second as broken, and an anchor finding on top of
+// it would be a second finding for one mistake (AC-SPECANCH-002.8).
+//
+// Exported because the check that REPORTS a broken anchor names the
+// target document in its message, and deriving that name a second time
+// where the finding is built would be free to disagree with the
+// derivation that decided what the anchor was matched against.
+func AnchorTarget(ref specmodel.Reference) (string, bool) {
+	if ref.Anchor == nil {
+		return "", false
+	}
+	if ref.Slug == "" {
+		return ref.Path, true
+	}
+	resolved, ok := ref.Resolution.AsResolved()
+	if !ok {
+		return "", false
+	}
+	return resolved.TargetPath, true
+}
+
 // resolveAnchor returns what ref's anchor resolved to, or nil where an
 // anchor resolution does not apply to this reference at all.
 //
@@ -51,20 +79,9 @@ func headingsByPath(index specmodel.SpecIndex) map[string][]specmodel.Heading {
 // reports that reference as broken, and an anchor finding on top of it
 // would be a second finding for one mistake (AC-SPECANCH-002.8).
 func resolveAnchor(ref specmodel.Reference, headings map[string][]specmodel.Heading) *specmodel.AnchorResolution {
-	if ref.Anchor == nil {
+	targetPath, checkable := AnchorTarget(ref)
+	if !checkable {
 		return nil
-	}
-
-	// The target to check the anchor against: the document ref.Path names
-	// when the reference carries no slug of its own (AC-SPECANCH-002.6),
-	// otherwise wherever the slug half already resolved.
-	targetPath := ref.Path
-	if ref.Slug != "" {
-		resolved, ok := ref.Resolution.AsResolved()
-		if !ok {
-			return nil
-		}
-		targetPath = resolved.TargetPath
 	}
 
 	targetHeadings, known := headings[targetPath]

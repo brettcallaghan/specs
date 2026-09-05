@@ -1,0 +1,5 @@
+description = "check reports an anchor reaching no heading and an ambiguous anchor under rule identifiers of their own, in an ordinary corpus check, leaving the anchor that resolves unreported"
+cites = ["AC-SPECANCH-002.1", "AC-SPECANCH-002.5", "AC-SPECANCH-002.9"]
+artifacts = ["checks.log"]
+args = ["check"]
+exit_code = 1

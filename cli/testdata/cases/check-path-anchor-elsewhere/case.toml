@@ -1,0 +1,5 @@
+description = "check <path> reports the inbound anchor references to that document that no longer resolve, each at the span in the referring document, while still narrowing every non-reference finding to the file named"
+cites = ["AC-SPECANCH-003.2"]
+artifacts = ["checks.log"]
+args = ["check", "docs/adrs/adr-300-renamed.md"]
+exit_code = 1

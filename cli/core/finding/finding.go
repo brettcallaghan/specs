@@ -51,9 +51,11 @@ const (
 // them by these values, and reads each one's outcome back under the same
 // value.
 //
-// No constant here names a check that reports [SeverityUnverified]. That
-// mechanism exists — see [Report.Unverified] — but this sprint registers
-// no check that uses it.
+// [RuleUnresolvedAnchor] is the one identifier here that reports at more
+// than one severity: an anchor matching no heading is an error, and an
+// anchor whose target document has no recorded headings is
+// [SeverityUnverified] under the same identifier — the tool could not
+// look, which is not the claim that it looked and found nothing.
 const (
 	// RuleSchemaViolation covers a frontmatter value that violates the
 	// schema for its document type.
@@ -177,6 +179,8 @@ const (
 // despite carrying no such prefix itself.
 var corpusWideRules = map[specmodel.RuleId]bool{
 	RuleUnresolvedReference: true,
+	RuleUnresolvedAnchor:    true,
+	RuleAmbiguousAnchor:     true,
 	RuleRetiredTarget:       true,
 	RuleIncompletePairing:   true,
 	RuleTypeMismatch:        true,

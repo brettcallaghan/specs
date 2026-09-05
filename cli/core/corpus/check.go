@@ -7,6 +7,7 @@ import (
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
 	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
+	"github.com/brettcallaghan/agent-plugins/cli/core/references"
 	"github.com/brettcallaghan/agent-plugins/cli/core/schemaregistry"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
@@ -177,6 +178,7 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 		if f, ok := unresolvedReferenceFinding(ref); ok {
 			report.Add(f)
 		}
+		report.Add(anchorFindings(ref)...)
 	}
 
 	// The relational half of reference integrity — what a resolved
@@ -271,6 +273,72 @@ func unresolvedReferenceFinding(ref specmodel.Reference) (specmodel.Finding, boo
 		return finding.UnresolvedReference(ref.Path, ref.Position, ref.Text, ref.Slug, ref.Origin, nil), true
 	}
 	return specmodel.Finding{}, false
+}
+
+// anchorFindings derives the findings a reference's own recorded anchor
+// resolution calls for: none where the anchor resolved, or where there
+// is no anchor resolution at all (AC-SPECANCH-002.9).
+//
+// An absent resolution is the one-mistake-one-finding rule already
+// applied: a reference carrying no anchor has nothing to check, and one
+// whose slug did not resolve is already reported as an unresolved
+// reference by the loop this is called from, so an anchor finding on top
+// of it would be a second finding for one mistake (AC-SPECANCH-002.8).
+//
+// Like the unresolved-reference derivation above, this is a lookup over
+// what resolution already settled: it opens no document, re-reads no
+// heading and re-derives no identifier, so it costs nothing on the warm
+// single-document path that the relational checks below do pay for.
+//
+// Every finding is raised against the REFERRING document at the
+// reference's own span, which is the document a reader must open to fix
+// it — the target named in the message is where they look next
+// (AC-SPECANCH-003.2).
+func anchorFindings(ref specmodel.Reference) []specmodel.Finding {
+	if ref.AnchorResolution == nil || ref.Anchor == nil {
+		return nil
+	}
+	targetPath, checkable := references.AnchorTarget(ref)
+	if !checkable {
+		return nil
+	}
+
+	switch {
+	case isAnchorResolved(*ref.AnchorResolution):
+		return nil
+	case isAnchorUnresolved(*ref.AnchorResolution):
+		return []specmodel.Finding{
+			finding.UnresolvedAnchor(ref.Path, ref.Position, *ref.Anchor, targetPath),
+		}
+	}
+	if ambiguous, ok := ref.AnchorResolution.AsAmbiguous(); ok {
+		return []specmodel.Finding{
+			finding.AmbiguousAnchor(ref.Path, ref.Position, *ref.Anchor, targetPath, ambiguous.Matches),
+		}
+	}
+	if unverified, ok := ref.AnchorResolution.AsUnverified(); ok {
+		// The tool could not look, which is not the claim that it looked
+		// and found nothing (AC-SPECANCH-002.4). It is reported under
+		// the same rule identifier the anchor check owns, at
+		// [finding.SeverityUnverified], so a caller reads "this was not
+		// checked" rather than "this is fine".
+		return []specmodel.Finding{
+			finding.Unverified(finding.RuleUnresolvedAnchor, ref.Path, ref.Position, unverified.Reason),
+		}
+	}
+	return nil
+}
+
+// isAnchorResolved and isAnchorUnresolved name the two variants the
+// switch above tests without binding a payload it does not read.
+func isAnchorResolved(resolution specmodel.AnchorResolution) bool {
+	_, ok := resolution.AsResolved()
+	return ok
+}
+
+func isAnchorUnresolved(resolution specmodel.AnchorResolution) bool {
+	_, ok := resolution.AsUnresolved()
+	return ok
 }
 
 // retiredTargetFindings reports, for every resolved reference from a
