@@ -9,8 +9,13 @@ updated_at: 2026-09-04T00:00:00Z
 
 # Evidence — what this issue rests on
 findings: ["d7w5.2.1#12"]
-recurrence: 0
+recurrence: 1                        # run agent-plugins-59ic hit it again on
+                                     # 2026-09-05; see the second bullet under
+                                     # Evidence and the second report below
 report: docs/retros/2026-09-04-d7w5-spec-corpus-structure-extraction.md
+reports:                             # every run whose findings this issue rests on
+  - docs/retros/2026-09-04-d7w5-spec-corpus-structure-extraction.md
+  - docs/retros/2026-09-05-59ic-spec-corpus-anchor-references.md
 
 # Provenance — who and what produced this
 run: agent-plugins-d7w5
@@ -52,7 +57,23 @@ accept step exists to clear.
   should rebase inside the worktree, or remove the worktree before rebasing,
   since it owns both."
 
-- The same run's coordinator recorded the two accepts side by side on the run
+- **Recurrence 1 — run `agent-plugins-59ic`, 2026-09-05, same defect and same
+  workaround.** Recorded by that run's coordinator as an `amend:` comment on
+  run epic `agent-plugins-59ic`: "`swarm dispatch accept` DEFECT 2 — its
+  concurrent path runs `git rebase <target> <dispatch-branch>` while that
+  branch is still checked out in its own worktree, which git refuses:
+  \"fatal: 'bb/dev-59ic-c' is already used by worktree\". The rebase must run
+  inside the worktree, or the worktree be removed first. Worked around by
+  rebasing from inside /home/user/.bb-worktrees/dev-59ic-c, after which accept
+  saw the serialized case and completed." Same failure text, same manual
+  recovery, a different run and a different dispatch — so this is a reproducing
+  defect rather than one run's bad afternoon, and the fix below is unchanged by
+  it. Recorded as an `amend:` comment rather than a `retro:` finding, which is
+  itself filed as
+  `issue-coordinator-tooling-findings-are-invisible-to-the-harvest`; it
+  therefore carries no finding id.
+
+- The 2026-09-04 run's coordinator recorded the two accepts side by side on the run
   epic `agent-plugins-d7w5`, as its `PASS 2 ACCEPTANCE EVIDENCE` comment:
   "`swarm dispatch accept --no-push`: dev-d7w5-3: exit 0, merged true, ancestor
   true, worktree_removed true, branch_deleted true, beads_checked 1,

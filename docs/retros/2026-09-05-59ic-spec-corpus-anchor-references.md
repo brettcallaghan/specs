@@ -631,13 +631,42 @@ candidate **I** offers the small fix and does not press it.
 
 ## Validation
 
-**The 12 declared checks pass at head, exit 0 — re-measured for this record,
+**The 12 declared checks passed at head, exit 0 — re-measured for this record,
 not inherited.**
 
 ```
 python3 /root/.cache/swarm-src/plugin/skills/swarm/scripts/bb-checks.py
 → EXIT=0
 ```
+
+Run twice while this record was written: once on the run's head `a852925`, and
+again with the record itself in the tree. Both exit 0.
+
+> **AND THEN, ON A THIRD RUN AN HOUR LATER, `strata-docs` STARTED FAILING —
+> from a change to the container, not to this repository.** `bb-checks.py` →
+> `EXIT=1`, with `=== strata-docs FAILED (exit 2)` and `error: source not
+> found: /root/.cache/strata-src/docs/public/strata.llm.md`. Every other check
+> still passes.
+>
+> **Cause, measured.** `scripts/sync-strata-docs.sh` line 54 hardcodes the
+> source path `docs/public/strata.llm.md`. Upstream renamed that directory:
+> `git -C /root/.cache/strata-src log --oneline -1` →
+> `c0df36a Rename docs/ to site/ to match the @strata-lang/site package
+> (#305)`, and `ls /root/.cache/strata-src/site/public/` now lists
+> `strata.llm.md`. The session hook fast-forwards a clean default branch, so
+> the checkout moved underneath the run: `~/.cache/strata-cli/built-commit`
+> now reads `c0df36af5ddb7ab8ef9294b8b35f0d10afdb1817`, where finding
+> `rc14.1#3` recorded `c8a82518d2b51e26a96217c524ff54cf89b5e539` when that
+> bead ran.
+>
+> **Nothing in this run caused it and nothing in this run can be blamed for
+> it** — the run's own head passed twice, and the only tree changes since are
+> Markdown files under `docs/retros/` and `.sf/outbox/`. But it is a declared
+> check, so **the next bead to close in this container fails its gate**, and
+> it will keep failing for any session whose `strata-src` has passed
+> `c0df36a`. It was **not** filed: this retro's filing pass was scoped to the
+> nine decided candidates. It is reported to the human instead, and it is the
+> one thing in this record that needs an action nobody has taken.
 
 Every check that prints a result prints a passing one: `check-skills` `--- 0
 error(s), 0 warning(s) --- RESULT: PASS` (both `skills` and `skills-strict`),
@@ -720,7 +749,14 @@ does not exist.
   Defect 1's *mechanism* is confirmed by reading the source — see candidate
   **A** — but the reported `merged: true` with a stale `merged_sha` is the
   coordinator's observation, not this record's measurement.
-- **CI on `a852925`.** Not observed; see Validation.
+- **CI on `a852925`.** Not observed; see Validation. Note that CI runs
+  `strata-docs` too, so if GitHub's runner resolves a `strata` checkout past
+  `c0df36a` the job fails there for the same reason as in this container —
+  whether it does was not determined.
+- **Whether the `strata-docs` breakage described in Validation predates this
+  run's head.** It is a container-side change, so almost certainly yes for any
+  session whose checkout has moved; but no measurement was taken against an
+  older `strata-src`, and reverting one to check was out of scope.
 - **Whether the draft pull request exists.** Not recorded, not checked.
 - **`rc14.8#3`'s Definition-of-Done verification was not re-verified here.**
   It is a `proof` finding carrying its own commands and outputs, and this
@@ -892,11 +928,22 @@ Priority **2**. Recurrence **1**.
 > coverage figures. The run's coordinator regenerates coverage once at the end"
 > into three bead Designs and the dispatch prompt — a remedy that had to be
 > re-invented per bead, per run, and that this run did not carry.
+> **"Move it to CI" is already answered, and refused.** Measured on this tree,
+> `.github/workflows/cli.yml:135-140`: a `coverage` job already runs
+> `scripts/coverage.sh --check`, and the comment directly above the step
+> rejects the alternative — "a job that commits the regenerated README would
+> put the number outside review, which is where an unnoticed coverage drop
+> lives." That reason holds and the `--check` gate must stay untouched. The
+> defect is narrower than "the rule is in the wrong place": regenerating
+> coverage is correct **once per run** and wrong **once per bead in a
+> concurrent run**, because each dispatch rewrites one generated table from a
+> different tree.
 > **Proposed change:** state the exception in `AGENTS.md` beside the rule —
-> under a swarm run, coverage is regenerated once by the coordinator at the end
-> and no bead commits `README.md` coverage figures — so grooming does not have
-> to stamp it into every bead. Done is: `AGENTS.md` carries it, and a run's
-> beads need no per-bead instruction to avoid the conflict.
+> under a concurrent run the coordinator regenerates once on the merged tree
+> and no bead runs `scripts/coverage.sh` or commits `README.md` coverage
+> figures — so grooming does not have to stamp it into every bead. Done is:
+> `AGENTS.md` carries it, CI's `--check` gate is unchanged, and a run's beads
+> need no per-bead instruction to avoid the conflict.
 
 **H — the environmental-failure ledger has no entry for the permission
 classifier blocking `swarm dispatch accept`'s push step.** Priority **3**. New.
@@ -913,7 +960,8 @@ classifier blocking `swarm dispatch accept`'s push step.** Priority **3**. New.
 > classifier and recording the refusal verbatim.
 
 **I — the findings-capture protocol has no kind for "nothing to report".**
-Priority **4**. New. **Recommended: decline, or take at P4.**
+Priority **4**. New. *(This record recommended declining. **Overruled** — filed,
+and to the outbox; see "What was filed".)*
 
 > `rc14.3#3` reads `retro: clean — no scope gaps found beyond the acceptance
 > criteria` and carries no kind, so it routes nowhere. The protocol says "A
@@ -929,36 +977,96 @@ Priority **4**. New. **Recommended: decline, or take at P4.**
 
 ## What was filed
 
-**Nothing.** All nine candidates are held pending one human decision, per the
-standing instruction given to this retro. `manifest.retro_filed` and
-`manifest.retro_declined` are therefore `0`, and the run log's filed column
-reads "pending".
+**Eight issues filed, one existing issue amended, none declined.** The
+candidates were put once and answered; the decision is recorded here in full,
+including the two places it went against this record's own recommendation.
 
-The audit closes both ways only once something is filed: the moment a candidate
-is accepted, `bd comment <finding's bead> "retro:filed:<new-id> — <finding
-id>"` goes on every finding it rests on, so a finding leads to its issue and an
-issue leads back to its findings. Until then the findings stay in the
-recurrence pool, which is the correct place for them.
+### Skill audience → `.sf/outbox/swarm/`, for delivery to `brettcallaghan/swarm`
 
-Recommended dispositions, for the one pass:
+| candidate | file | P |
+|---|---|---|
+| **A** | `2026-09-05-dispatch-accept-folds-into-whatever-head-is-on.md` | 0 |
+| **B** | `2026-09-05-a-run-resolves-no-trailers-so-no-commit-carries-one.md` | 2 |
+| **D** | `2026-09-05-coordinator-tooling-findings-are-invisible-to-the-harvest.md` | 2 |
+| **E** | `2026-09-05-tier-and-collision-chain-assignment-are-in-tension.md` | 3 |
+| **I** | `2026-09-05-no-kind-for-a-clean-pass-in-the-findings-capture-protocol.md` | 4 |
 
-| candidate | audience | priority | recommendation |
-|---|---|---|---|
-| **A** accept folds into `HEAD` | skill → outbox | 0 | **file** |
-| **B** no `trailers` resolved | skill → outbox | 2 | **file** |
-| **C** rebase in worktree | skill → outbox | — | **do not re-file**; amend the existing issue's `recurrence` to 1 |
-| **D** `amend:` hides tooling findings | skill → outbox | 2 | **file** |
-| **E** tier vs collision chain | skill → outbox | 3 | **file** |
-| **F** template's rename-consumer rule | project → bead | 2 | **file** |
-| **G** coverage-table exception in `AGENTS.md` | project → bead | 2 | **file** |
-| **H** ledger entry for the classifier | project → bead | 3 | **file**, marked unverified |
-| **I** a kind for "nothing to report" | project → bead | 4 | **decline**, or take at P4 |
+**C was not re-filed, as recommended.** The existing
+`.sf/outbox/swarm/2026-09-04-dispatch-accept-rebases-a-branch-still-checked-out-in-its-worktree.md`
+had its `recurrence` raised from `0` to **1**, gained a `reports:` list naming
+both runs' records, and gained this run's occurrence as an Evidence bullet. One
+issue, two runs of evidence — which is what makes the count mean anything.
 
-Already covered, and deliberately not re-filed: the snapshot-fixture friction
-(`rfc-0025` P2), `bd-health.sh` (`agent-plugins-7jxt`, `-84yu`, `-prnv`), the
-`document-core` self-contradiction (`agent-plugins-bieu`), the slug-less anchor
-form (`agent-plugins-clau`, `rfc-0025` P6), and review pass 1's two findings
-(`agent-plugins-59ic.7`, `-59ic.8`).
+**A's evidence carries the distinction it was built on.** The source-level
+narrowing — only the *serialized* arm is affected, because
+`vc.Checkout("return-to-target", target)` sits inside `if !m.serialized` and
+`Checkout` appears exactly once in `accept.go` — is this record's own
+measurement. The observed symptom (`merged: true` with a stale `merged_sha`,
+caught by the ancestry guard at exit 2) is marked in the file as the
+coordinator's observation, not reproduced here.
+
+**I was filed against this record's recommendation, and against its own
+merge test.** This record recommended declining, and routed it to the project:
+`findings-capture-protocol`'s source of truth is
+`specs/standards/findings-capture-protocol.md` **in this repository**, and the
+copy `swarm-retro` harvests against opens `GENERATED COPY — DO NOT EDIT.
+Source of truth: brettcallaghan/agent-plugins …`. The human ruled it to the
+outbox. It was filed there, and the file opens with a routing note stating
+where the fix actually lands, so the receiving repository is not misled into
+acting on it in place.
+
+### Project audience → beads in this tracker
+
+| candidate | bead | P |
+|---|---|---|
+| **F** | `agent-plugins-flvl` — the feature-blueprint template does not require a delta to list consumers that resolve a declaration by name | 2 |
+| **G** | `agent-plugins-x59j` — `AGENTS.md`'s `cli/**` coverage rule needs a concurrent-run exception | 2 |
+| **H** | `agent-plugins-e1zx` — ledger: the permission classifier blocks `swarm dispatch accept`'s push step, filed marked unverified as to what the classifier matches | 3 |
+
+`flvl` carries `discovered-from: agent-plugins-rc14.2`; `x59j` and `e1zx`
+carry `discovered-from: agent-plugins-59ic`, because both rest on coordinator
+records rather than on a work order's finding.
+
+**G was reframed by the decision, and the reframe changed the finding.**
+`.github/workflows/cli.yml:135-140` was measured: a `coverage` job already runs
+`scripts/coverage.sh --check`, and the comment above it rejects a
+commit-the-README job because it "would put the number outside review, which is
+where an unnoticed coverage drop lives." So the CI half is settled and stays
+untouched. What `x59j` asks for is only the concurrent-run exception.
+
+### The audit closes both ways
+
+Five `retro:filed:` back-links were written, one per finding an issue rests on:
+
+```
+rc14.2 → agent-plugins-flvl                                   (rc14.2#1)
+rc14.8 → issue-coordinator-tooling-findings-…                 (rc14.8#9)
+rc14.8 → issue-tier-and-collision-chain-…                     (rc14.8#9)
+rc14.4 → issue-tier-and-collision-chain-…                     (rc14.4#5)
+rc14.3 → issue-no-kind-for-a-clean-pass-…                     (rc14.3#3)
+```
+
+**A, B, G and H carry no finding id, and that is candidate D's defect showing
+in this record's own bookkeeping.** All four rest on `amend:` comments the
+coordinator wrote on the run epic, which are not findings, so there is no bead
+comment to back-link and nothing for a recurrence count to draw on. Each filed
+file says so in its `findings:` field rather than leaving the empty list
+unexplained.
+
+**Nothing was declined.** Nothing filed here is deleted from this record if a
+later decision reverses it; the findings stay where they are.
+
+### One thing hit while filing, and not filed
+
+`swarm-retro`'s own filing snippet is `bd create --title "…" --priority <n>
+--description "…" --discovered-from <origin-bead>`. Measured on this container:
+`bd create --discovered-from` → `Error: unknown flag: --discovered-from`, and
+`bd create --help` lists no such flag; the working form is
+`--deps 'discovered-from:<id>'`, and `--title` is a positional argument. All
+three beads above were created with the working form. Not filed, because the
+instruction for this pass was to file exactly what was decided and nothing
+more — recorded here so the next retro does not rediscover it, and so a
+recurrence count can start from it.
 
 ## Counts
 
@@ -973,8 +1081,11 @@ form (`agent-plugins-clau`, `rfc-0025` P6), and review pass 1's two findings
 | **unrouted** | **1** — `rc14.3#3` |
 | coordinator records outside the finding channel | **6** — 4 `amend:` tooling, 1 manifest ledger, 1 measured here |
 | candidates | **9** |
-| filed | **0 — pending one human decision** |
-| declined | **0 — pending** |
+| filed | **8** — 5 to `.sf/outbox/swarm/`, 3 beads (`flvl`, `x59j`, `e1zx`) |
+| amended instead of filed | **1** — candidate C, recurrence 0 → 1 on the existing outbox issue |
+| declined | **0** |
+| `retro:filed:` back-links written | **5** |
 | beads closed / admitted | **9 / 9** |
 | blocked, skipped, tier escalations, dispatch failures | **0, 0, 0, 0** |
-| declared checks at head | **12 / 12, exit 0**, re-measured for this record |
+| declared checks at head | **12 / 12, exit 0**, re-measured twice for this record |
+| declared checks an hour later | **11 / 12** — `strata-docs` broken by an upstream rename in the container's `strata` checkout, not by this run. Reported, not filed. See Validation |
