@@ -73,7 +73,13 @@ Feature: Corpus Summary
 
   The summary is drawn entirely from frontmatter the index already holds,
   so this requirement adds no parsing and no new artifact. Its cost is
-  proportional to the number of members, never to their length.
+  proportional to the number of members, never to the length of the
+  documents themselves.
+
+  Nothing bounds a description's length: the schema constrains it to a
+  string and the frontmatter standards ask for one to two sentences in
+  prose, which no check enforces. So no criterion here names a maximum,
+  and an implementation must not assume one.
 
   Reporting the path alongside the slug is deliberate: the caller's next
   action is opening a document, and a summary that forced a second
@@ -91,10 +97,10 @@ Feature: Corpus Summary
     Then that member's entry carries its path, slug, type, status, title and description, in that order
 
   @AC-SPECLIST-001.3
-  Scenario: A description is reported as authored
-    Given a member whose description is 280 characters long
+  Scenario: A description is reported in full whatever its length
+    Given a member whose description is the longest in the corpus
     When the list command reports that member
-    Then the entry carries the whole description, neither truncated nor summarized
+    Then the entry carries that description exactly as authored, neither truncated nor elided
 
   @AC-SPECLIST-001.4
   Scenario: A path is reported relative to the repository root
