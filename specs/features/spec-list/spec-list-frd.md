@@ -331,12 +331,12 @@ Feature: Descriptions as a Consumed Interface
   check can make, and a length rule would pass a useless description of
   the right size.
 
-  @AC-SPECLIST-005.1
+  @AC-SPECLIST-005.1 @manual
   Scenario: The frontmatter standards state the second audience
     Given the standards document governing frontmatter properties
     Then its guidance on the description property states that the listing command reports it and that it is written to be triaged from
 
-  @AC-SPECLIST-005.2
+  @AC-SPECLIST-005.2 @manual
   Scenario: The CLI reference documents the command
     Given the guide documenting the CLI's command surface
     Then it documents the listing command, its filters, and the fields an entry carries
