@@ -20,7 +20,7 @@ verifiable by whoever reviews the work, where yours is an assertion.
 ## Contents
 
 - Prerequisites — what must exist before any command works
-- Commands — the five subcommands and the question each answers
+- Commands — the six subcommands and the question each answers
 - Reference checks — the four rules `check` applies to `[[slug]]` links
   and reference-bearing frontmatter, and the severity each carries
 - Exit statuses — how to read a run's result
@@ -50,6 +50,7 @@ it rather than assuming `docs/`.
 | `spec next-id <type>` | What number does the next document of this type take? |
 | `spec slug-exists <slug>` | Is this slug already taken, and by which file? |
 | `spec refs <slug> [--outbound]` | Who references this document — or what does it reference? |
+| `spec list [--type <type>] [--all]` | What does this corpus hold, and what is each document about? |
 
 **`spec check`** validates every document's frontmatter against the
 active profile's schema and slug patterns, reports duplicate slugs, and
@@ -102,6 +103,51 @@ references this slug" is an answer, not a failure, and it is reported
 distinctly from "no corpus member declares this slug" — the first means
 the document is unreferenced, the second means you asked about a slug
 that does not exist. Read the output, not the status.
+
+**`spec list`** answers "what does this corpus hold" without opening a
+document or the index. It returns one entry per corpus member, each
+carrying — in this order — the member's `path`, `slug`, `type`, `status`,
+`title` and `description`. The path is repository-relative with forward
+slashes, so the next step is a path you were handed rather than a slug
+you have to resolve. The answer is a mapping under a single `documents`
+key, rendered as YAML and as JSON under `--json`, with no count, no
+heading naming the command and no trailing summary around it.
+
+Two filters narrow it, and they compose:
+
+- **`--type`** names the document types to return. It is repeatable and
+  accepts a comma-separated value, so `--type adr --type frd` and
+  `--type adr,frd` ask the same question. A value the active profile does
+  not register is a malformed question rather than an empty category: the
+  command reports the unregistered value and every registered type name,
+  and exits non-zero.
+- **`--all`** asks for every status. Without it, members at a retired
+  status are omitted — a retired document is not in effect, and an agent
+  orienting over the corpus that reads one has been actively misled
+  rather than merely charged for tokens. Every other status is reported
+  by default, and each entry carries its own `status`.
+
+A filter matching no member is an empty collection and exit 0, not a
+failure.
+
+Two kinds of file are treated differently, and the difference is what the
+index recorded. A member the index recorded with a **parse error** is
+reported as an entry naming its path and the failure, carrying no slug,
+type, status, title or description — it is a member, so omitting it would
+make the listing disagree with the corpus, and an absent value would
+assert the document declares none. Under a `--type` filter it is not
+reported at all, because it declares no type for a filter to match. A
+file the index recorded as an **exclusion** is never reported: it is not
+a member, and whether it should be one is `spec check`'s judgement rather
+than this command's.
+
+Entries come back in the index's own order, fixed by repository-relative
+path, so two runs against an unchanged corpus produce byte-identical
+output.
+
+`spec list` is what makes `description` a consumed interface — see
+`shared/frontmatter-standards.md`, which tells an author to write it to
+be triaged from for exactly this reason.
 
 ## Reference checks
 
@@ -183,6 +229,9 @@ document should block.
 
 `slug-exists` and `refs` exit 0 whether or not they find anything — "not
 found" is an answer, not a failure. Read their output, not their status.
+So does `list`, whose empty answer is a fact about the corpus; the one
+thing that fails it is a `--type` value the active profile does not
+register.
 
 ## What it does not check
 
