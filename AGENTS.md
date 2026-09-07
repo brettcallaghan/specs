@@ -282,11 +282,22 @@ scope for this run's beads" tells a future reader nothing they can act on.
   hung and is not doing network I/O; `free -m` showed 14656 MB of 16075 free
   and `dmesg` carried no OOM kill; `kill -TERM` returned 0 and the process was
   still alive 8s later; `kill -9` cleared it and all three siblings completed
-  immediately, with no committed data lost. **Not re-run for the ledger** —
-  reproducing it means freezing the container for ~20 minutes. Two consequences
-  worth carrying: a `bd` call that appears hung should be checked against `ps`
-  for a sibling's `bd dolt` before being treated as a failure, and a 120s tool
-  timeout is too short for any `bd` call made while a sibling may be pulling.
+  immediately, with no committed data lost. **A third measurement, taken at
+  that run's post-flight with NO concurrent agent running, settles the scope:
+  contention is not the cause.** `ps -eo pid,args | grep -E '[b]d |[d]olt'`
+  showed no other `bd` or `dolt` process; `timeout 100 bd dolt pull` was still
+  resident at 126s at 8.9% CPU, so `timeout(1)`'s `SIGTERM` was ignored exactly
+  as with siblings present; `kill -9` cleared it and `bd stats` then read 654
+  issues with every bead of that run still closed. So a lone `bd dolt pull`
+  deadlocks on its own — losing a push race is what *leads you to run it*, not
+  what makes it hang. Three consequences worth carrying: a `bd` call that
+  appears hung should be checked against `ps` for any `bd dolt` before being
+  treated as a failure; a 120s tool timeout is too short for any `bd` call made
+  while a pull may be running; and **a non-fast-forward `bd dolt push` has no
+  in-container remedy** — `.claude/hooks/dolt-push.sh` carries no pull, merge or
+  retry path, so a diverged `refs/dolt/data` leaves the tracker local-only until
+  a human reconciles it. Measured in that state: `bd dolt push` → exit 1,
+  `! [rejected] main -> main (non-fast-forward)`, remote at `3c3103a`.
 - **`bd`'s JSONL export lags the database.** A close reaches the Dolt DB
   seconds before it reaches `.beads/issues.jsonl`, so an export taken
   immediately after `bd update --status closed` can still return pre-close
