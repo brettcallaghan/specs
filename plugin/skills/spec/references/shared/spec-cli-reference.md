@@ -139,12 +139,13 @@ Two kinds of file are treated differently, and the difference is what the
 index recorded. A member the index recorded with a **parse error** is
 reported as an entry naming its path and the failure, carrying no slug,
 type, status, title or description — it is a member, so omitting it would
-make the listing disagree with the corpus, and an absent value would
-assert the document declares none. Under a `--type` filter it is not
-reported at all, because it declares no type for a filter to match. A
-file the index recorded as an **exclusion** is never reported: it is not
-a member, and whether it should be one is `spec check`'s judgement rather
-than this command's.
+make the listing disagree with the corpus, and a null value would assert
+the document declares none, which is not known, so the fields are absent
+rather than null. Under a `--type` filter it is not reported at all,
+because it declares no type for a filter to match. A file the index
+recorded as an **exclusion** is never reported: it is not a member, and
+whether it should be one is `spec check`'s judgement rather than this
+command's.
 
 Entries come back in the index's own order, fixed by repository-relative
 path, so two runs against an unchanged corpus produce byte-identical
