@@ -7,10 +7,15 @@ results, every finding it captured verbatim, and what it could not verify.
 |---|---|---|---|---|---|---|---|
 | 2026-09-04 | `agent-plugins-d7w5` | `agent-plugins-f6tl` — spec corpus structure extraction | 8 / 8 — 4 work orders, then +4 review findings admitted by `AMENDMENT 3` | 45 (26 project, 12 skill, 7 `proof`) | 0 | 16 of 19 candidates (12 → `.sf/outbox/swarm/`, 4 beads: `3oiv`, `yqjh`, `nduj`, `yois`); 2 declined; 1 held (A1, pending root-cause investigation on `yztv`) | [2026-09-04-d7w5-spec-corpus-structure-extraction.md](2026-09-04-d7w5-spec-corpus-structure-extraction.md) |
 | 2026-09-05 | `agent-plugins-59ic` | `agent-plugins-rc14` — spec corpus anchor references | 9 / 9 — 0 excluded, 0 moved, 2 admissions at the gate | 42 (29 project, 1 skill, 1 split, 10 `proof`) | 1 | 8 of 9 candidates (5 → `.sf/outbox/swarm/`, 3 beads: `flvl`, `x59j`, `e1zx`); 0 declined; 1 (C) folded into an existing outbox issue as recurrence 1 | [2026-09-05-59ic-spec-corpus-anchor-references.md](2026-09-05-59ic-spec-corpus-anchor-references.md) |
+| 2026-09-07 | `agent-plugins-w85b` | `agent-plugins-kgir` — corpus listing (`spec list`) | 10 / 10 — 6 admitted at the gate, +4 review findings admitted across two loops; 0 excluded, 0 moved | 39 (23 project, 0 skill, 11 `proof`, 4 `environment`) | 1 | 0 of 7 candidates — **pending**, put to a human, no answer recorded; 7 further clusters deduped into existing homes; 3 recurrence bumps on existing `.sf/outbox/swarm/` issues | [2026-09-07-w85b-corpus-listing-spec-list.md](2026-09-07-w85b-corpus-listing-spec-list.md) |
 
 A record whose "admitted / closed" cell names work still in flight is
 provisional: its results are revised when that run truly ends, and its findings,
 routing and filing decision are not. No row is provisional today.
+
+The 2026-09-07 row is **pending** in the filed column: its seven candidates were
+put and no answer has been recorded. Its `retro_filed` / `retro_declined`
+counters read 0 for that reason, not because the candidates were declined.
 
 A "pending" count in the filed column means candidates were put to a human and
 the answer is not yet recorded. The record names them, and that run's
