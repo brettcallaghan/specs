@@ -6,7 +6,7 @@ description: The framework-agnostic engine that indexes markdown
 slug: module-document-core
 type: module-blueprint
 status: approved
-updated_at: 2026-08-09T00:00:00Z
+updated_at: 2026-09-07T00:00:00Z
 kind: standard
 visibility: internal
 contracts_provided: []
@@ -986,6 +986,35 @@ member, `OutboundReferences` and `InboundReferences` for the two
 directions of the reference graph, `FeatureFailures` for every Gherkin
 source that would not parse, and `FindingsFor` to narrow a
 whole-corpus result to one file.
+
+**`DocumentSummaries` is the listing query**, beside `Features` and
+`CriteriaOf` on the same query surface and for the same reason those are
+here: the command surface may hold no domain logic, and a future API or
+MCP wrapper needs the same answer without going through cobra. It
+returns one `DocumentSummary` per index entry — a projection of
+`IndexEntry` over its `path` and the frontmatter envelope it parsed,
+carrying `path`, `slug`, `type`, `status`, `title` and `description` in
+that order and nothing else (AC-SPECLIST-001.1, AC-SPECLIST-001.2). It
+is a projection and not a new record, so the index shape does not change
+and `schema_version` stays `1.0`.
+
+Summaries come back in the index's own entry order, which the emitter
+already fixes by repository-relative path, so the query sorts nothing
+and two runs over an unchanged corpus answer identically. Each path is
+passed through exactly as the index holds it, relative to the repository
+root with forward slashes on every platform (AC-SPECLIST-001.4).
+
+The envelope fields are absent rather than null on a member the index
+recorded with a `parse_error`: that member is summarized, carrying its
+path and the located failure, because the index recorded it *as a member*
+and omitting it would make the listing disagree with the corpus — but a
+null slug would assert the document declares none, which is not known
+(AC-SPECLIST-001.5). An `IndexExclusion` yields no summary at all
+(AC-SPECLIST-001.6); whether a non-member ought to be one is a
+conformance judgement `Check` already owns and reports as a finding, and
+answering it from a query would put that judgement in two places. A
+corpus with no members answers with an empty collection rather than an
+error (AC-SPECLIST-001.7).
 
 **Headings ride the walk too.** Each member's headings are extracted
 inside the same visit that reads its bytes, through Markdown Structure's

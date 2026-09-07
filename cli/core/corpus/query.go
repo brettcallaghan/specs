@@ -117,3 +117,89 @@ func qualifierMatches(criterion specmodel.Criterion, qualifier QualifierTag) boo
 		return false
 	}
 }
+
+// DocumentSummary is one corpus member as a listing reports it: a
+// projection of [specmodel.IndexEntry] over the entry's path and the
+// frontmatter envelope it parsed, carrying nothing else. It is not a new
+// record type, so no index shape changes and `schema_version` stays
+// "1.0".
+//
+// The field order — path, slug, type, status, title, description — is
+// part of the answer's contract rather than a matter of taste: the
+// command surface renders this struct directly, and both of its
+// renderings report fields in declaration order.
+//
+// The five envelope fields are pointers because a member the index
+// recorded with a parse error carries none of them, and absence is the
+// honest answer — a null slug would assert the document declares none,
+// which is not known. A pointer is what distinguishes that from a
+// document declaring an empty value, which a bare string under
+// `omitempty` could not.
+type DocumentSummary struct {
+	Path        string                  `json:"path"`
+	Slug        *specmodel.Slug         `json:"slug,omitempty"`
+	Type        *specmodel.DocumentType `json:"type,omitempty"`
+	Status      *specmodel.Status       `json:"status,omitempty"`
+	Title       *string                 `json:"title,omitempty"`
+	Description *string                 `json:"description,omitempty"`
+	// ParseError is the failure that kept this member's frontmatter from
+	// being read, with its position. Present exactly when the five
+	// envelope fields are absent, which is the same "exactly one of the
+	// two" [specmodel.IndexEntry] carries.
+	ParseError *specmodel.ParseError `json:"parse_error,omitempty"`
+}
+
+// DocumentSummaries returns one summary per corpus member, in the index's
+// own entry order — which the emitter fixes by repository-relative path,
+// so two runs over an unchanged corpus answer identically
+// (AC-SPECLIST-001.1). Nothing here sorts.
+//
+// Each path is passed through exactly as the index holds it: relative to
+// the repository root, with forward slashes on every platform
+// (AC-SPECLIST-001.4). Re-deriving one here would be a second notion of
+// where a member lives.
+//
+// A file the index recorded as an EXCLUSION yields no summary
+// (AC-SPECLIST-001.6) — it is not an entry, and whether a non-member
+// ought to be one is a conformance judgement [Corpus.Check] already owns
+// and reports as a finding. A member recorded with a PARSE ERROR is
+// returned regardless, carrying its path and that failure and no envelope
+// values (AC-SPECLIST-001.5): the index recorded it as a member, so
+// omitting it would make the listing disagree with the corpus.
+//
+// The result is never nil, so a corpus holding no members answers with an
+// empty collection rather than a null one (AC-SPECLIST-001.7).
+func (c *Corpus) DocumentSummaries() []DocumentSummary {
+	summaries := make([]DocumentSummary, 0, len(c.index.Entries))
+	for _, entry := range c.index.Entries {
+		summaries = append(summaries, summarize(entry))
+	}
+	return summaries
+}
+
+// summarize projects one index entry onto the summary shape.
+//
+// The parse error is copied rather than aliased, so a caller holding a
+// summary cannot reach into the index the corpus is still serving from.
+func summarize(entry specmodel.IndexEntry) DocumentSummary {
+	summary := DocumentSummary{Path: entry.Path}
+	if envelope := entry.Frontmatter; envelope != nil {
+		summary.Slug = ptrTo(envelope.Slug)
+		summary.Type = ptrTo(envelope.Type)
+		summary.Status = ptrTo(envelope.Status)
+		summary.Title = ptrTo(envelope.Title)
+		summary.Description = ptrTo(envelope.Description)
+	}
+	if entry.ParseError != nil {
+		failure := *entry.ParseError
+		summary.ParseError = &failure
+	}
+	return summary
+}
+
+// ptrTo returns a pointer to a copy of value, which is how a summary's
+// envelope fields are set: they are pointers so that absence is
+// representable, and every present one is taken from a value.
+func ptrTo[T any](value T) *T {
+	return &value
+}
