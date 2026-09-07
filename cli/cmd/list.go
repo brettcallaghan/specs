@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -41,13 +42,61 @@ func newListCmd(streams *ioStreams, configPath *string) *cobra.Command {
 			return runList(streams, *configPath, types, all, jsonOut)
 		},
 	}
-	cmd.Flags().StringSliceVar(&types, "type", nil,
+	cmd.Flags().Var(typeFilterValue{values: &types}, "type",
 		"report only members of the named document types; repeatable or comma-separated")
 	cmd.Flags().BoolVar(&all, "all", false,
 		"report members at every status, including ones no longer in effect")
 	cmd.Flags().BoolVar(&jsonOut, "json", false,
 		"write the summaries as JSON instead of YAML")
 	return cmd
+}
+
+// typeFilterValue collects the `--type` values without losing an empty
+// one, so that the caller's question reaches Document Core as it was
+// asked.
+//
+// pflag's own string-slice flag runs a CSV reader over each occurrence,
+// and a CSV reader given "" yields no field at all. `--type ""` therefore
+// arrived as a slice with no elements, indistinguishable from the flag
+// never having been passed, and Document Core answered "no type filter"
+// with the whole corpus — the opposite of the rejection AC-SPECLIST-002.4
+// requires, and the most dangerous answer to a `--type "$KIND"` whose
+// KIND is unset. An empty occurrence was dropped even beside a good one,
+// so `--type "" --type adr` could not be told from `--type adr`.
+//
+// Splitting on "," by hand keeps every element the caller wrote, the
+// empty one included, and `resolveTypeFilter` then rejects it through the
+// path that already rejects " adr". A plain [strings.Split], not a CSV
+// reader: the CSV reader is the thing that drops the value, and document
+// type names are bare identifiers carrying no commas or quotes.
+//
+// The flag decides nothing about which members qualify — it only stops
+// destroying the question — so [[container-spec-cli]]'s placement of that
+// decision in Document Core is undisturbed, and an absent flag still
+// leaves the slice nil, which is what `resolveTypeFilter` reads as "no
+// type filter".
+type typeFilterValue struct{ values *[]string }
+
+// Set appends every comma-separated element of one occurrence, including
+// an empty one.
+func (v typeFilterValue) Set(raw string) error {
+	*v.values = append(*v.values, strings.Split(raw, ",")...)
+	return nil
+}
+
+// Type names the flag's kind for the usage line. "stringSlice" is what
+// pflag renders as the `strings` placeholder, so `spec list --help` reads
+// exactly as it did.
+func (v typeFilterValue) Type() string { return "stringSlice" }
+
+// String renders the collected values, and renders an unset flag as the
+// empty string rather than as "[]" so that pflag reads the default as a
+// zero value and prints no `(default ...)` for a flag that has none.
+func (v typeFilterValue) String() string {
+	if v.values == nil || len(*v.values) == 0 {
+		return ""
+	}
+	return "[" + strings.Join(*v.values, ",") + "]"
 }
 
 // listResult is the answer: the summaries and nothing else, under the one

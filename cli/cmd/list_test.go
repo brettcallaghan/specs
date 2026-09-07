@@ -124,3 +124,35 @@ func equalStrings(a, b []string) bool {
 	}
 	return true
 }
+
+// AC: AC-SPECLIST-002.4
+//
+// The snapshot case list-type-empty pins the single-occurrence form,
+// `--type ""`. This covers the variant a snapshot case would only
+// duplicate a corpus for: an empty occurrence standing BESIDE a valid
+// one.
+//
+// It is the case a fix keyed off "the slice is empty" or off
+// cmd.Flags().Changed("type") would leave defective — pflag's CSV reader
+// drops the empty occurrence before either could see it, so
+// `--type "" --type adr` arrived as `["adr"]` and answered with the adr
+// members rather than reporting the malformed value.
+func TestAnEmptyTypeBesideARegisteredOneIsStillRejected(t *testing.T) {
+	dir := t.TempDir()
+	writeListFixture(t, dir)
+
+	code, stdout, stderr := runInFixture(t, dir, []string{"list", "--type", "", "--type", "adr"})
+
+	if code == 0 {
+		t.Errorf("exit code = 0, want non-zero: an empty --type value is not a registered type and must be reported rather than dropped\n--- stdout ---\n%s", stdout)
+	}
+	if !strings.Contains(stderr, `"" is not a registered document type`) {
+		t.Errorf("stderr = %q, want it to report the empty value itself", stderr)
+	}
+	if !strings.Contains(stderr, "registered: adr,") {
+		t.Errorf("stderr = %q, want it to name every registered type so the caller can correct the question", stderr)
+	}
+	if strings.Contains(stdout, "path:") {
+		t.Errorf("stdout reported corpus members, so the empty value was answered rather than rejected:\n%s", stdout)
+	}
+}
