@@ -84,14 +84,44 @@ func (v typeFilterValue) Set(raw string) error {
 	return nil
 }
 
-// Type names the flag's kind for the usage line. "stringSlice" is what
-// pflag renders as the `strings` placeholder, so `spec list --help` reads
-// exactly as it did.
-func (v typeFilterValue) Type() string { return "stringSlice" }
+// Type names the flag's kind, and the name is deliberately NOT one pflag
+// knows. This flag is not a pflag stringSlice: it splits on a plain comma
+// instead of through a CSV reader, and it keeps empty elements. pflag
+// routes its typed accessors by this string, so borrowing "stringSlice"
+// handed a value with different semantics to pflag's stringSlice
+// converter — which panicked on the empty string [typeFilterValue.String]
+// renders for an unset flag, and read "[]" back as no values at all,
+// silently discarding the empty occurrence this type exists to preserve.
+// An unrecognised name makes pflag refuse such a read instead of
+// mis-parsing it.
+//
+// The usage line is unaffected, because pflag's UnquoteUsage maps only
+// its own type names to placeholders ("stringSlice" to `strings`,
+// "intSlice" to `ints`, and so on) and renders any other name verbatim.
+// "strings" is therefore the same placeholder pflag used to derive, and
+// `spec list --help` is byte-identical to what "stringSlice" produced.
+//
+// The one thing the rename costs is cobra's flag-name completion
+// repeatability: cobra decides a flag may be offered again by testing
+// whether its value implements a GetSlice method, or whether its type
+// name contains "Slice" or "Array" or begins with "stringTo". "strings"
+// matches none of those, where "stringSlice" matched on the name. Nothing
+// reaches that code today — root.go sets CompletionOptions.DisableDefaultCmd,
+// so the CLI ships no way to generate the scripts that call `__complete`
+// — and implementing the method for it now would be dead code. If that
+// command is ever restored, add it then.
+func (v typeFilterValue) Type() string { return "strings" }
 
 // String renders the collected values, and renders an unset flag as the
 // empty string rather than as "[]" so that pflag reads the default as a
 // zero value and prints no `(default ...)` for a flag that has none.
+//
+// "[]" is not returned for an unset flag because pflag captures DefValue
+// by calling String() at registration, and its defaultIsZeroValue reaches
+// a custom [pflag.Value] only through its default branch, which counts
+// "", "0", "false" and "<nil>" as a zero default and nothing else. "[]"
+// is zero for pflag's own slice types alone, so returning it here would
+// print `(default [])` on the usage line.
 func (v typeFilterValue) String() string {
 	if v.values == nil || len(*v.values) == 0 {
 		return ""
