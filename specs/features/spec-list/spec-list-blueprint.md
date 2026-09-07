@@ -5,7 +5,7 @@ description: How the Spec CLI grows a listing surface — a summary query in
   guidance that makes description a consumed interface
 slug: feature-spec-list
 type: feature-blueprint
-status: in-progress
+status: retired
 updated_at: 2026-09-07T00:00:00Z
 delivery: single-pr
 frd: frd-spec-list
@@ -269,24 +269,39 @@ nothing warrants an ADR of its own.
 
 ## Definition of Done
 
-- [ ] Every delta above is folded into its owning blueprint:
-  - [ ] [[container-spec-cli]] — the Command Surface component's
+- [x] Every delta above is folded into its owning blueprint:
+  - [x] [[container-spec-cli]] — the Command Surface component's
         subcommand vocabulary grows by `list`, with its flags and the
         Document Core call it makes
-  - [ ] [[module-document-core]] — the query surface gains the summary
+  - [x] [[module-document-core]] — the query surface gains the summary
         query and its filters
-- [ ] [[frontmatter-standards]] states `description`'s second audience,
+- [x] [[frontmatter-standards]] states `description`'s second audience,
       and `scripts/sync-shared-references.sh` has been re-run so the
       vendored copies match
-- [ ] [[spec-cli-reference]] documents `list`
-- [ ] Every AC in the coverage table is verified at its declared level
+- [x] [[spec-cli-reference]] documents `list`
+- [x] Every AC in the coverage table is verified at its declared level
       and cited from its tests per [[ac-traceability-standards]]; the two
       `manual` rows are exempt from the citation obligation
-- [ ] `scripts/coverage.sh` has been run from the repository root and the
+- [x] `scripts/coverage.sh` has been run from the repository root and the
       README diff committed with the change, since `cli/**` changed
-- [ ] Every issue listed as subsumed in Tracker Reconciliation is closed
+- [x] Every issue listed as subsumed in Tracker Reconciliation is closed
       or re-scoped
-- [ ] This blueprint's status → retired
+- [x] This blueprint's status → retired
+
+**Verification note (recorded at retirement).** Every entry above was
+verified, with one declared-level deviation. AC-SPECLIST-004.3 is
+declared `e2e` in the AC Coverage table, but the snapshot harness
+replays each case once and cannot express a two-run comparison; it is
+verified instead by a Go test in `cli/cmd/list_test.go`. Citation is
+satisfied and the level obligation is a SHOULD in
+[[ac-traceability-standards]], so this is a permitted deviation rather
+than a gap — recorded here, and proposed as a standards change in
+`rfcs/inbox/standards/rfc-0027-two-standards-one-citation-surface.md`.
+
+Citations for the 21 non-`@manual` criteria live on two surfaces: `// AC:`
+comments under `cli/` for 11 of them, and the `cites` key of the snapshot
+manifests under `cli/testdata/cases/` for the other 10. A grep for the
+comment form alone reports half the coverage that exists.
 
 ## Open Questions
 
