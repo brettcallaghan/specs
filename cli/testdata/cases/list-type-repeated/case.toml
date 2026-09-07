@@ -1,0 +1,5 @@
+description = "three registered types named as three occurrences of --type return exactly those types' members"
+cites = ["AC-SPECLIST-002.2"]
+artifacts = ["checks.log"]
+args = ["list", "--all", "--type", "adr", "--type", "frd", "--type", "contract"]
+exit_code = 0

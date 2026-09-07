@@ -1,0 +1,5 @@
+description = "an unregistered --type value is reported with the value and the registered type names on standard error and exits non-zero, rather than being answered with an empty collection a typo could not be told from"
+cites = ["AC-SPECLIST-002.4"]
+artifacts = ["checks.err"]
+args = ["list", "--type", "runbook"]
+exit_code = 1

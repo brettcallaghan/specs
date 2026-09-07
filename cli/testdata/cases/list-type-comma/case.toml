@@ -1,0 +1,5 @@
+description = "the same three types named as one comma-separated --type return the same members as three occurrences of the flag"
+cites = ["AC-SPECLIST-002.2"]
+artifacts = ["checks.log"]
+args = ["list", "--all", "--type", "adr,frd,contract"]
+exit_code = 0

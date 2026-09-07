@@ -1,0 +1,5 @@
+description = "list --json writes the same values in the same order as the YAML rendering"
+cites = ["AC-SPECLIST-004.1", "AC-SPECLIST-004.2"]
+artifacts = ["checks.json"]
+args = ["list", "--json"]
+exit_code = 0

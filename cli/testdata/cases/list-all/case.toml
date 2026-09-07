@@ -1,0 +1,5 @@
+description = "list with no flags reports every member's path, slug, type, status, title and description in that order, omits the one no longer in effect, and carries no count, heading or trailing summary"
+cites = ["AC-SPECLIST-001.2", "AC-SPECLIST-001.3", "AC-SPECLIST-003.2", "AC-SPECLIST-004.1", "AC-SPECLIST-004.4", "AC-SPECLIST-004.5"]
+artifacts = ["checks.log"]
+args = ["list"]
+exit_code = 0

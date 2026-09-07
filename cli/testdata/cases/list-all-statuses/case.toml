@@ -1,0 +1,5 @@
+description = "list --all reports members at every status, the retired contract included"
+cites = ["AC-SPECLIST-003.2"]
+artifacts = ["checks.log"]
+args = ["list", "--all"]
+exit_code = 0

@@ -11,6 +11,7 @@ Available Commands:
   help        Help about any command
   index       Build the spec index and write it to disk
   links       Rewrite a document's wikilinks into markdown links
+  list        Report every corpus member's path, slug, type, status, title and description
   next-id     Return the next identifier for a numbered document type
   refs        Report which corpus members reference a slug or one of its headings, or what it references
   slug-exists Report whether a corpus member declares the given slug

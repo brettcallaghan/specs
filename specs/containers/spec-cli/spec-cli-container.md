@@ -6,7 +6,7 @@ description: The command-line binary that indexes a specification corpus
 slug: container-spec-cli
 type: container-blueprint
 status: approved
-updated_at: 2026-08-15T00:00:00Z
+updated_at: 2026-09-07T00:00:00Z
 contracts_provided:
   - "contract-specs-configuration"
 contracts_consumed: []
@@ -178,11 +178,12 @@ written.
 **Built (command tree)** — also `cli/cmd`, via `cobra`
 ([[adr-015]]): `Execute` builds the command tree — `index`, `check`,
 `slug-exists`, `next-id`, `refs`, `links`, `feature`, `criterion`,
-`headings` — and converts each one's flags into calls against Document Core
+`headings`, `list` — and converts each one's flags into calls against Document Core
 (`corpus.Build`, `corpus.Open`, `corpus.Load`, `corpus.Corpus.Check`/`CheckFor`,
 `corpus.Corpus.Slug`, `corpus.Corpus.InboundReferences`/`OutboundReferences`,
 `corpus.Corpus.Feature`/`Features`/`FeaturesByCode`,
 `corpus.Corpus.Criterion`/`CriteriaOf`/`CriteriaByTag`,
+`corpus.Corpus.DocumentSummaries`,
 `numbering.Next`, `references.Extract`/`Resolve`,
 `mdlinks.Resolve`/`Substitute`, `gherkin.Render`) and its result back into
 stdout and an exit status. No file here decides what makes a document
@@ -396,6 +397,45 @@ document markers.
 Every other command on this surface still prints what it printed before;
 migrating them is per command, and belongs to whichever feature next
 touches each one.
+
+`list` is the second, and is a listing over the frontmatter every member
+already declares: one entry per corpus member carrying its `path`,
+`slug`, `type`, `status`, `title` and `description`, in that order
+(AC-SPECLIST-001.2), under the single key `documents`. The whole of it is
+one `corpus.Corpus.DocumentSummaries` call — the summary shape, the entry
+order and both filters are Document Core's, and this component decides
+none of them. It opens the corpus warm, as `check` and the queries beside
+it do: every value it reports is already in the index, so a listing needs
+no walk.
+
+`--type` names the document types to return, repeatable and
+comma-separated from one `StringSliceVar` exactly as `check`'s `--only`
+is (AC-SPECLIST-002.2). Per-type boolean flags would not reach a type a
+custom profile registers, which is why the surface takes values rather
+than switches. `--all` asks for summaries at every status; without it the
+ones the active profile registers as no longer in effect are omitted
+(AC-SPECLIST-003.2), because a superseded document read as current
+misleads an agent rather than merely costing it tokens. `--json` selects
+the JSON rendering, carrying the same values in the same order as the
+YAML one (AC-SPECLIST-004.1, AC-SPECLIST-004.2).
+
+An empty answer is an answer: a filter matching nothing, and a corpus
+holding no members, both render `documents: []` and exit zero
+(AC-SPECLIST-001.7). The one non-zero exit is a `--type` value the active
+profile does not register, which `DocumentSummaries` reports rather than
+answering; the report — the value and the registered type names — reaches
+standard error through cobra and the run exits 1 (AC-SPECLIST-002.4).
+That is the deliberate departure from [[cli-output-standards]]' empty-answer
+rule, and it is narrow: the rule is about the world, where a corpus with
+no contracts is a fact, whereas an unregistered type is a malformed
+question and an empty collection would make a typo indistinguishable from
+an empty category. Nothing else reaches the output — no count, no heading
+naming the command, no trailing summary (AC-SPECLIST-004.5); the exit
+status carries the outcome. Two runs over an unchanged corpus emit the
+same bytes, because the order is the index's own (AC-SPECLIST-004.3), and
+a title carrying a colon and a space comes back double-quoted because
+`renderYAML` already quotes what a plain scalar would not round-trip
+(AC-SPECLIST-004.4).
 
 A bare invocation or `--help` lists the subcommands with their one-line
 synopses and, per subcommand, its own flags — cobra's default rendering
