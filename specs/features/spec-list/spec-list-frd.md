@@ -5,8 +5,8 @@ description: A subcommand that summarizes every corpus member from its
   opening them or the index
 slug: frd-spec-list
 type: frd
-status: draft
-updated_at: 2026-09-06T00:00:00Z
+status: approved
+updated_at: 2026-09-07T00:00:00Z
 sources: []
 ---
 

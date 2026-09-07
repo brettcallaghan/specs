@@ -5,8 +5,8 @@ description: How the Spec CLI grows a listing surface — a summary query in
   guidance that makes description a consumed interface
 slug: feature-spec-list
 type: feature-blueprint
-status: draft
-updated_at: 2026-09-06T00:00:00Z
+status: approved
+updated_at: 2026-09-07T00:00:00Z
 delivery: single-pr
 frd: frd-spec-list
 ---
