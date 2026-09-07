@@ -1016,6 +1016,48 @@ answering it from a query would put that judgement in two places. A
 corpus with no members answers with an empty collection rather than an
 error (AC-SPECLIST-001.7).
 
+**Two filters narrow that listing, and both resolve against tables the
+profile registers.** `SummaryOptions` carries them: a set of document
+types, and whether summaries at every status are wanted. Filtering is the
+query's rather than a caller's, because a caller-side filter would make
+every consumer reimplement it and would put the policy in the command
+surface, which [[container-spec-cli]]'s Change Guidance forbids. The zero
+value is the plain listing.
+
+The type filter validates each value against `Profile.DocumentTypes` and
+returns only members declaring one of them (AC-SPECLIST-002.1,
+AC-SPECLIST-002.2). A value that is not a key of that map is a malformed
+question rather than an empty category, so it is reported — wrapped in
+`ErrUnregisteredType`, naming the value and the registered type names,
+sorted so the answer does not depend on map iteration — and no summaries
+are returned at all (AC-SPECLIST-002.4). This is a deliberate departure
+from [[cli-output-standards]]' "an empty answer is an answer": that rule
+is about the world, where a corpus with no contracts is a fact, and an
+empty collection here would make a typo indistinguishable from an empty
+category. A registered type carrying no member is the other case and does
+answer empty (AC-SPECLIST-002.3). A member recorded with a parse error is
+returned under no type filter, since it declares no type for one to match
+(AC-SPECLIST-002.5).
+
+The status filter reads `LifecycleRules.RetiredStatuses` and omits
+summaries at those statuses unless every status was asked for
+(AC-SPECLIST-003.1, AC-SPECLIST-003.2, AC-SPECLIST-003.3). **It never
+tests for a status spelling of its own**, which is the single change here
+that would break the module's rule against framework-specific
+vocabulary — a profile whose documents move from `current` to `sunset`
+gets the same behavior, and the extension point's own source scan
+(`TestTheExtensionPointNamesNoRegisteredVocabulary`) fails on any string
+literal in this package naming a registered status. A profile registering
+no retired statuses withholds nothing, which is a lifecycle saying its
+documents have none. A member with a parse error survives this filter,
+unlike the type filter: it declares no status either, so it is at none of
+the withheld ones, and the unfiltered listing is where a caller looking
+for holes in the corpus finds it.
+
+The two compose — a call carrying both returns only what satisfies both
+(AC-SPECLIST-003.4) — and a filter matching nothing yields an empty
+collection rather than a failure.
+
 **Headings ride the walk too.** Each member's headings are extracted
 inside the same visit that reads its bytes, through Markdown Structure's
 `HeadingsFrom` — Corpus calls the component and holds no heading logic
