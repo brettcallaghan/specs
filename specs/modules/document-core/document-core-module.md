@@ -6,7 +6,7 @@ description: The framework-agnostic engine that indexes markdown
 slug: module-document-core
 type: module-blueprint
 status: approved
-updated_at: 2026-08-09T00:00:00Z
+updated_at: 2026-09-07T00:00:00Z
 kind: standard
 visibility: internal
 contracts_provided: []
@@ -986,6 +986,77 @@ member, `OutboundReferences` and `InboundReferences` for the two
 directions of the reference graph, `FeatureFailures` for every Gherkin
 source that would not parse, and `FindingsFor` to narrow a
 whole-corpus result to one file.
+
+**`DocumentSummaries` is the listing query**, beside `Features` and
+`CriteriaOf` on the same query surface and for the same reason those are
+here: the command surface may hold no domain logic, and a future API or
+MCP wrapper needs the same answer without going through cobra. It
+returns one `DocumentSummary` per index entry — a projection of
+`IndexEntry` over its `path` and the frontmatter envelope it parsed,
+carrying `path`, `slug`, `type`, `status`, `title` and `description` in
+that order and nothing else (AC-SPECLIST-001.1, AC-SPECLIST-001.2). It
+is a projection and not a new record, so the index shape does not change
+and `schema_version` stays `1.0`.
+
+Summaries come back in the index's own entry order, which the emitter
+already fixes by repository-relative path, so the query sorts nothing
+and two runs over an unchanged corpus answer identically. Each path is
+passed through exactly as the index holds it, relative to the repository
+root with forward slashes on every platform (AC-SPECLIST-001.4).
+
+The envelope fields are absent rather than null on a member the index
+recorded with a `parse_error`: that member is summarized, carrying its
+path and the located failure, because the index recorded it *as a member*
+and omitting it would make the listing disagree with the corpus — but a
+null slug would assert the document declares none, which is not known
+(AC-SPECLIST-001.5). An `IndexExclusion` yields no summary at all
+(AC-SPECLIST-001.6); whether a non-member ought to be one is a
+conformance judgement `Check` already owns and reports as a finding, and
+answering it from a query would put that judgement in two places. A
+corpus with no members answers with an empty collection rather than an
+error (AC-SPECLIST-001.7).
+
+**Two filters narrow that listing, and both resolve against tables the
+profile registers.** `SummaryOptions` carries them: a set of document
+types, and whether summaries at every status are wanted. Filtering is the
+query's rather than a caller's, because a caller-side filter would make
+every consumer reimplement it and would put the policy in the command
+surface, which [[container-spec-cli]]'s Change Guidance forbids. The zero
+value is the plain listing.
+
+The type filter validates each value against `Profile.DocumentTypes` and
+returns only members declaring one of them (AC-SPECLIST-002.1,
+AC-SPECLIST-002.2). A value that is not a key of that map is a malformed
+question rather than an empty category, so it is reported — wrapped in
+`ErrUnregisteredType`, naming the value and the registered type names,
+sorted so the answer does not depend on map iteration — and no summaries
+are returned at all (AC-SPECLIST-002.4). This is a deliberate departure
+from [[cli-output-standards]]' "an empty answer is an answer": that rule
+is about the world, where a corpus with no contracts is a fact, and an
+empty collection here would make a typo indistinguishable from an empty
+category. A registered type carrying no member is the other case and does
+answer empty (AC-SPECLIST-002.3). A member recorded with a parse error is
+returned under no type filter, since it declares no type for one to match
+(AC-SPECLIST-002.5).
+
+The status filter reads `LifecycleRules.RetiredStatuses` and omits
+summaries at those statuses unless every status was asked for
+(AC-SPECLIST-003.1, AC-SPECLIST-003.2, AC-SPECLIST-003.3). **It never
+tests for a status spelling of its own**, which is the single change here
+that would break the module's rule against framework-specific
+vocabulary — a profile whose documents move from `current` to `sunset`
+gets the same behavior, and the extension point's own source scan
+(`TestTheExtensionPointNamesNoRegisteredVocabulary`) fails on any string
+literal in this package naming a registered status. A profile registering
+no retired statuses withholds nothing, which is a lifecycle saying its
+documents have none. A member with a parse error survives this filter,
+unlike the type filter: it declares no status either, so it is at none of
+the withheld ones, and the unfiltered listing is where a caller looking
+for holes in the corpus finds it.
+
+The two compose — a call carrying both returns only what satisfies both
+(AC-SPECLIST-003.4) — and a filter matching nothing yields an empty
+collection rather than a failure.
 
 **Headings ride the walk too.** Each member's headings are extracted
 inside the same visit that reads its bytes, through Markdown Structure's

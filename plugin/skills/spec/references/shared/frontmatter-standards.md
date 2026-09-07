@@ -86,11 +86,32 @@ updated_at: <RFC 3339 date time in which the document was last updated>
 | Property | Type | Purpose | Format |
 |----------|------|---------|--------|
 | `title` | string | Human-readable document title | Free text |
-| `description` | string | Brief summary of the document | 1-2 sentences |
+| `description` | string | Brief summary of the document, written to be triaged from | 1-2 sentences |
 | `slug` | string | Unique identifier for cross-references | Kebab-case (lowercase with hyphens) |
 | `type` | string | Document classification | Controlled vocabulary defined by document system |
 | `status` | string | Lifecycle state | One of: `draft`, `ready-for-review`, `approved`, `in-progress`, `active`, `retired` |
 | `updated_at` | datetime | Last modification timestamp | RFC 3339 format: `YYYY-MM-DDTHH:MM:SSZ` |
+
+The `description` property has two audiences, and the second one is why it
+is required. A reader who has already opened the document reads it as an
+introduction. An agent deciding which documents to open reads it *instead
+of* the document: a corpus listing command reports every member's
+`description`, so it is the basis on which other agents decide whether to
+open this one at all. See [[spec-cli-reference]] for the command that
+reports it.
+
+Authors SHALL write `description` to be triaged from rather than as an
+introduction. Name what the document decides, governs or specifies, and
+what distinguishes it from its neighbours of the same type. "Notes on the
+caching layer" tells a triaging agent nothing the title did not; "Why
+reads are served from the replica and writes are not, and the staleness
+budget that follows" tells it whether to open the document.
+
+The one-to-two-sentence guidance above is a shape, not an enforced limit.
+Nothing truncates a description and no check measures one: whether a
+description is good enough to choose from is a judgement no check can
+make, and a length rule would pass a useless description of the right
+size.
 
 The `type` property SHALL use a controlled vocabulary defined by the document 
 system using the templates.

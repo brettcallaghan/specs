@@ -264,6 +264,40 @@ a warning count, a line number — record the command that measures it and no
 figure at all. Scope an entry to the repository, never to a session: "out of
 scope for this run's beads" tells a future reader nothing they can act on.
 
+- **`bd dolt pull` deadlocks the container, and `bd`'s own push-failure message
+  recommends it.** It takes the shared embedded-Dolt write lock, does not
+  return, ignores `SIGTERM`, and starves every other `bd` call in the container
+  until `kill -9`. The trap is a chain: a `bd dolt push` that loses a race to a
+  concurrent writer fails non-fast-forward and ends `hint: Integrate the remote
+  changes (e.g. 'dolt pull ...') before pushing again`. **Do not follow that
+  hint.** A closure already committed to the local database is not lost; the
+  repository's `Stop` hook (`.claude/hooks/dolt-push.sh`) is the documented
+  pusher, and in a swarm run tracker durability is the coordinator's.
+  Measured twice, independently, in run `agent-plugins-w85b` — findings
+  `kgir.1#5` and `kgir.4#5`, quoted in full in
+  `docs/retros/2026-09-07-w85b-corpus-listing-spec-list.md`: during one pull
+  `ps -eo pid,etimes,time,stat,args` showed `bd dolt pull` resident with three
+  sibling `bd` calls stacked behind it at **zero CPU** for 337s/211s/209s;
+  `/proc/<pid>/wchan` read `futex_do_wait` with no open sockets, so it looks
+  hung and is not doing network I/O; `free -m` showed 14656 MB of 16075 free
+  and `dmesg` carried no OOM kill; `kill -TERM` returned 0 and the process was
+  still alive 8s later; `kill -9` cleared it and all three siblings completed
+  immediately, with no committed data lost. **A third measurement, taken at
+  that run's post-flight with NO concurrent agent running, settles the scope:
+  contention is not the cause.** `ps -eo pid,args | grep -E '[b]d |[d]olt'`
+  showed no other `bd` or `dolt` process; `timeout 100 bd dolt pull` was still
+  resident at 126s at 8.9% CPU, so `timeout(1)`'s `SIGTERM` was ignored exactly
+  as with siblings present; `kill -9` cleared it and `bd stats` then read 654
+  issues with every bead of that run still closed. So a lone `bd dolt pull`
+  deadlocks on its own — losing a push race is what *leads you to run it*, not
+  what makes it hang. Three consequences worth carrying: a `bd` call that
+  appears hung should be checked against `ps` for any `bd dolt` before being
+  treated as a failure; a 120s tool timeout is too short for any `bd` call made
+  while a pull may be running; and **a non-fast-forward `bd dolt push` has no
+  in-container remedy** — `.claude/hooks/dolt-push.sh` carries no pull, merge or
+  retry path, so a diverged `refs/dolt/data` leaves the tracker local-only until
+  a human reconciles it. Measured in that state: `bd dolt push` → exit 1,
+  `! [rejected] main -> main (non-fast-forward)`, remote at `3c3103a`.
 - **`bd`'s JSONL export lags the database.** A close reaches the Dolt DB
   seconds before it reaches `.beads/issues.jsonl`, so an export taken
   immediately after `bd update --status closed` can still return pre-close

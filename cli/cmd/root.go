@@ -1,5 +1,5 @@
 // Command tree wiring for the Spec CLI's command surface (index, check,
-// slug-exists, next-id, refs, links, feature, criterion, headings), per FEAT-SPEC-011 of
+// slug-exists, next-id, refs, links, feature, criterion, headings, list), per FEAT-SPEC-011 of
 // specs/features/spec-index/spec-index-frd.md, the reference-integrity
 // blueprint's CMD delta, the gherkin-adoption blueprint's EMIT delta, and
 // the Command Surface component in specs/containers/spec-cli/spec-cli-container.md.
@@ -81,12 +81,13 @@ func Execute(args []string, stdout, stderr io.Writer) int {
 }
 
 // newRootCmd builds the command tree: index, check, slug-exists, next-id,
-// refs, links and feature (AC-SPEC-011.1 through AC-SPEC-011.5,
-// AC-SPECREF-003.1 through AC-SPECREF-003.5, AC-SPECMD-005.1 through
-// AC-SPECMD-005.10, AC-GHK-009.1). refs and links are the growth
-// FEAT-SPEC-011 anticipated; feature is the gherkin-adoption blueprint's
-// EMIT delta. None renames or repurposes a subcommand another delta
-// established.
+// refs, links, feature, criterion, headings and list (AC-SPEC-011.1
+// through AC-SPEC-011.5, AC-SPECREF-003.1 through AC-SPECREF-003.5,
+// AC-SPECMD-005.1 through AC-SPECMD-005.10, AC-GHK-009.1,
+// AC-SPECLIST-004.1). refs and links are the growth FEAT-SPEC-011
+// anticipated; feature is the gherkin-adoption blueprint's EMIT delta;
+// list is the corpus-listing blueprint's CMD delta. None renames or
+// repurposes a subcommand another delta established.
 //
 // The root carries no Run of its own. Cobra's own default behavior for a
 // command with subcommands and no Run — print the usage, which lists
@@ -128,6 +129,7 @@ func newRootCmd(streams *ioStreams) *cobra.Command {
 	root.AddCommand(newFeatureCmd(streams, &configPath))
 	root.AddCommand(newCriterionCmd(streams, &configPath))
 	root.AddCommand(newHeadingsCmd(streams, &configPath))
+	root.AddCommand(newListCmd(streams, &configPath))
 
 	return root
 }

@@ -1,0 +1,5 @@
+description = "a spec root holding no corpus members answers with an empty collection and exits zero; an empty listing is an answer, not a failure"
+cites = ["AC-SPECLIST-001.7"]
+artifacts = ["checks.log"]
+args = ["list"]
+exit_code = 0

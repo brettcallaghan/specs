@@ -1,0 +1,5 @@
+description = "an empty --type value is a malformed question rather than a request for the whole corpus: it is reported with the value and the registered type names on standard error and exits non-zero, so `--type \"$KIND\"` with KIND unset fails instead of silently widening to every document"
+cites = ["AC-SPECLIST-002.4"]
+artifacts = ["checks.err"]
+args = ["list", "--type", ""]
+exit_code = 1
