@@ -67,7 +67,7 @@ time.
    (see the AC Coverage row validity rules in the feature blueprint
    template).
 
-   **Enumerate the FRD's ACs with `spec feature <id>` rather than by
+   **Enumerate the FRD's ACs with `specs feature <id>` rather than by
    reading it.** An acceptance criterion is a tagged Gherkin `Scenario`
    ([[adr-021]]), so the set is a query. Reading for them by eye misses
    the case the notation is worst at: several `Examples` blocks under one

@@ -62,7 +62,7 @@ func newHeadingsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 // errNoEmitWithJSON rejects the one flag combination that has no meaning:
 // --emit writes a document payload as itself, which has no JSON form to
 // select.
-var errNoEmitWithJSON = errors.New("spec headings: --json cannot be combined with --emit")
+var errNoEmitWithJSON = errors.New("specs headings: --json cannot be combined with --emit")
 
 // headingMatch is one heading a selection matched, carrying exactly what
 // AC-SPECSTR-003.1 names.
@@ -98,8 +98,8 @@ type selection struct {
 
 // parseSelection splits the operand on its first "#".
 //
-// An operand with no "#" is a document, not a heading: `spec headings
-// adr-012` asks for that document's headings, and `spec headings
+// An operand with no "#" is a document, not a heading: `specs headings
+// adr-012` asks for that document's headings, and `specs headings
 // '#overview'` asks for that heading across the corpus.
 func parseSelection(operand string) selection {
 	document, heading, found := strings.Cut(operand, "#")

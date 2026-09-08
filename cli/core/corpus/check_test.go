@@ -147,7 +147,7 @@ updated_at: "2026-08-05T00:00:00Z"
 //
 // This is the real-world shape of the defect (agent-plugins-5xo), not a
 // contrived one: the spec skill instructs an author to copy a template
-// and then to run `spec check`, so every document is in exactly this
+// and then to run `specs check`, so every document is in exactly this
 // state between those two steps.
 func undecodableDocument(docType, slug, title string) string {
 	return fmt.Sprintf(`---

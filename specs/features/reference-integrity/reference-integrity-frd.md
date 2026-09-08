@@ -237,7 +237,7 @@ corpus with eleven broken links still produces a complete index
 records two outbound references naming the property they came from
 (AC-SPECREF-001.7). `` `[[#Terminology]]` `` written in a document that
 carries a `Terminology` heading is listed among that document's own
-inbound references, so `spec refs` answers with the section link a reader
+inbound references, so `specs refs` answers with the section link a reader
 renaming that heading has to fix; `` `[[#Nowhere]]` `` written beside it
 is listed among none, because it reaches no heading to break
 (AC-SPECREF-001.8).
@@ -503,14 +503,14 @@ Feature: Reference Queries
     And the CLI exits zero
 ```
 
-*Examples:* `spec refs adr-007` returns the four documents citing it, so
+*Examples:* `specs refs adr-007` returns the four documents citing it, so
 an author retiring it knows the blast radius (AC-SPECREF-003.1).
-`spec refs frd-spec-reference-integrity --outbound` lists the documents
+`specs refs frd-spec-reference-integrity --outbound` lists the documents
 this FRD cites, so an agent about to edit it knows what it depends on
 without reading it (AC-SPECREF-003.2). An agent pipes a `--json` result
 into a rewrite, opening only the lines that carry the reference rather
 than each citing document (AC-SPECREF-003.3).
-`spec refs frd-spec-reference-integrity` returning nothing is the answer
+`specs refs frd-spec-reference-integrity` returning nothing is the answer
 that a document is unreferenced, not a failure — the same contract
 `slug-exists` sets in AC-SPEC-007.2 (AC-SPECREF-003.5).
 

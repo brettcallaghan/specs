@@ -71,7 +71,7 @@ jobs:
 
       # A skill's reference directory travels to an adopting repository
       # with no corpus index behind it, so a markdown link that does not
-      # resolve to a co-located file is dead on arrival there. `spec
+      # resolve to a co-located file is dead on arrival there. `specs
       # check` only walks the corpus (the `corpus` job below) and does
       # not see this surface at all.
       - name: Reference links resolve
@@ -130,7 +130,7 @@ jobs:
 
       - name: Build the Spec CLI
         working-directory: cli
-        run: go build -o "$GITHUB_WORKSPACE/spec" ./spec
+        run: go build -o "$GITHUB_WORKSPACE/specs" ./specs
 
       # The index is the primary artifact, not a by-product of checking:
       # the FRD's own framing, and the reason a central catalogue can
@@ -139,7 +139,7 @@ jobs:
       # gitignored, so a broken index could pass unnoticed as a
       # side-effect nobody reads.
       - name: Build the index
-        run: ./spec index --out - > specs-index.json
+        run: ./specs index --out - > specs-index.json
 
       # Uploaded so the artifact a catalogue consumes is inspectable from
       # a failed run, rather than only reproducible locally.
@@ -153,7 +153,7 @@ jobs:
       # repository that dogfoods its own tool has no business shipping
       # findings it has decided to live with.
       - name: Check every document
-        run: ./spec check --strict
+        run: ./specs check --strict
 
       # The RFC queue, checked by the same binary through a second
       # specs.toml (rfcs/specs.toml, root "."). RFCs carry the same
@@ -166,5 +166,5 @@ jobs:
       # passed, so the narrowed scope is visible rather than implied.
       - name: The RFC queue conforms
         run: |
-          ./spec check --config rfcs/specs.toml \
+          ./specs check --config rfcs/specs.toml \
             --only frontmatter/parse,frontmatter/schema,frontmatter/missing-property,slug/pattern-mismatch

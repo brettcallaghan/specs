@@ -1,6 +1,6 @@
 ---
 title: "ADR-017: The Spec CLI Is a Prerequisite of the sf Plugin, Not a Payload"
-description: The sf plugin stays pure markdown and names the spec binary as
+description: The sf plugin stays pure markdown and names the specs binary as
   a prerequisite; skills call it directly and degrade to hand-checking
   rather than branching on its absence
 slug: adr-017
@@ -20,12 +20,12 @@ The `sf` plugin is distributed by clone through
 `.claude-plugin/marketplace.json` and consists entirely of markdown:
 six skills and their bundled references. The Spec CLI is a Go binary,
 published by `.github/workflows/release.yml` through two channels — the
-Go module proxy (`go install …/cli/spec@cli/vX.Y.Z`) and per-platform
+Go module proxy (`go install …/cli/specs@cli/vX.Y.Z`) and per-platform
 release archives.
 
-The skills now want to call it. `spec check` decides three of the eight
-checks in `document-readiness-checklist.md`, and `spec next-id` and
-`spec slug-exists` answer questions the skill previously told an agent to
+The skills now want to call it. `specs check` decides three of the eight
+checks in `document-readiness-checklist.md`, and `specs next-id` and
+`specs slug-exists` answer questions the skill previously told an agent to
 answer by reading the corpus. Those instructions were both expensive and
 unverifiable: an agent that scanned the corpus and one that assumed the
 answer produce identical output.
@@ -42,7 +42,7 @@ The plugin ships markdown only. The Spec CLI is a **named prerequisite**,
 installed by the adopting user or project through either published
 channel.
 
-Skills call `spec` directly, in a single code path. They do not branch on
+Skills call `specs` directly, in a single code path. They do not branch on
 whether it is installed, and they do not carry a parallel set of
 instructions for its absence.
 
@@ -50,7 +50,7 @@ The fallback is stated once, where the checks are already defined
 (`document-readiness-checklist.md`), and it is a fallback rather than a
 second procedure: every check remains defined independently of the tool,
 so all of them can be run by hand, and the agent SHALL say which happened.
-"`spec check` reports no findings" and "I read the frontmatter and it
+"`specs check` reports no findings" and "I read the frontmatter and it
 looks right" are different claims, and only the first can be re-run by a
 reviewer.
 

@@ -1,7 +1,7 @@
 refs reports every corpus member whose body or registered frontmatter properties reference the given slug. Qualified by an anchor, written <slug>#<anchor>, it reports only the references whose anchor resolves to that heading — the blast radius of renaming it — and a reference whose anchor matches more than one heading is reported for each, marked as matching more than one. A heading is matched on its identifier, so letter case and punctuation do not decide a match. Given --outbound, it reports the documents that slug references instead; --outbound takes no anchor. A slug no corpus member declares is reported distinctly from one that is declared but unreferenced; both exit zero, as does an anchor nothing references.
 
 Usage:
-  spec refs <slug>[#<anchor>] [flags]
+  specs refs <slug>[#<anchor>] [flags]
 
 Flags:
   -h, --help       help for refs

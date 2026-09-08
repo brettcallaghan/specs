@@ -5,7 +5,7 @@
 
 ---
 title: Spec CLI Reference
-description: The spec binary's command surface — what each subcommand
+description: The specs binary's command surface — what each subcommand
   decides, what it does not yet check, exit statuses, and how to install
   it — for skills that delegate corpus queries and conformance checks
 slug: spec-cli-reference
@@ -17,7 +17,7 @@ version: "0.2"
 
 # Spec CLI Reference
 
-`spec` reads a specification corpus and answers questions about it that
+`specs` reads a specification corpus and answers questions about it that
 would otherwise mean opening every document. Prefer it over reading the
 corpus yourself for anything it decides: it is faster, and its answer is
 verifiable by whoever reviews the work, where yours is an assertion.
@@ -50,14 +50,14 @@ it rather than assuming `docs/`.
 
 | Command | Answers |
 |---------|---------|
-| `spec check [path]` | Does the corpus — or one document — conform? |
-| `spec index [--out <path>\|-]` | The whole corpus's frontmatter and reference graph, as JSON |
-| `spec next-id <type>` | What number does the next document of this type take? |
-| `spec slug-exists <slug>` | Is this slug already taken, and by which file? |
-| `spec refs <slug> [--outbound]` | Who references this document — or what does it reference? |
-| `spec list [--type <type>] [--all]` | What does this corpus hold, and what is each document about? |
+| `specs check [path]` | Does the corpus — or one document — conform? |
+| `specs index [--out <path>\|-]` | The whole corpus's frontmatter and reference graph, as JSON |
+| `specs next-id <type>` | What number does the next document of this type take? |
+| `specs slug-exists <slug>` | Is this slug already taken, and by which file? |
+| `specs refs <slug> [--outbound]` | Who references this document — or what does it reference? |
+| `specs list [--type <type>] [--all]` | What does this corpus hold, and what is each document about? |
 
-**`spec check`** validates every document's frontmatter against the
+**`specs check`** validates every document's frontmatter against the
 active profile's schema and slug patterns, reports duplicate slugs, and
 applies the four reference rules in the next section. Given a path it
 narrows to that one document — the form to use after authoring — except
@@ -66,7 +66,7 @@ so renaming a slug names the documents left pointing at nothing. `--json`
 emits the full finding set with spans; `--strict` makes warning and
 unverified findings fail too. `--only <rule>` narrows to named rules.
 
-**`spec index`** writes the corpus index. Read it when you need many
+**`specs index`** writes the corpus index. Read it when you need many
 documents' metadata at once — every slug in use, every document of a
 given type, everything at a given status — instead of opening files. It
 also carries the reference graph: each entry's outbound references with
@@ -79,21 +79,21 @@ so a repository whose links are broken still contributes its graph.
 
 `check`, `refs`, `slug-exists` and `next-id` refresh that same file when
 they had to rebuild, so the second of two runs is served from it. You
-never need to run `spec index` to make the others fast — run it when you
+never need to run `specs index` to make the others fast — run it when you
 want the artifact itself. It is derived and disposable: deleting it
 changes no answer, and it belongs in `.gitignore`.
 
-**`spec next-id <type>`** returns one greater than the highest number in
+**`specs next-id <type>`** returns one greater than the highest number in
 use for a numbered type, across the whole corpus. This is the only
 correct way to pick an ADR number; scanning filenames misses a document
 whose filename and slug disagree.
 
-**`spec slug-exists <slug>`** reports whether any document declares that
+**`specs slug-exists <slug>`** reports whether any document declares that
 slug, and where. Case-insensitive, because a case-insensitive filesystem
 cannot hold two files that differ only in case. Run it before claiming a
 slug.
 
-**`spec refs <slug>`** answers the blast-radius question. By default it
+**`specs refs <slug>`** answers the blast-radius question. By default it
 lists every corpus member whose body or reference-bearing frontmatter
 names that slug, each at the line and column of the reference — run it
 *before* retiring or renaming a document, not after. `--outbound`
@@ -109,7 +109,7 @@ distinctly from "no corpus member declares this slug" — the first means
 the document is unreferenced, the second means you asked about a slug
 that does not exist. Read the output, not the status.
 
-**`spec list`** answers "what does this corpus hold" without opening a
+**`specs list`** answers "what does this corpus hold" without opening a
 document or the index. It returns one entry per corpus member, each
 carrying — in this order — the member's `path`, `slug`, `type`, `status`,
 `title` and `description`. The path is repository-relative with forward
@@ -144,20 +144,20 @@ the document declares none, which is not known, so the fields are absent
 rather than null. Under a `--type` filter it is not reported at all,
 because it declares no type for a filter to match. A file the index
 recorded as an **exclusion** is never reported: it is not a member, and
-whether it should be one is `spec check`'s judgement rather than this
+whether it should be one is `specs check`'s judgement rather than this
 command's.
 
 Entries come back in the index's own order, fixed by repository-relative
 path, so two runs against an unchanged corpus produce byte-identical
 output.
 
-`spec list` is what makes `description` a consumed interface — see
+`specs list` is what makes `description` a consumed interface — see
 `shared/frontmatter-standards.md`, which tells an author to write it to
 be triaged from for exactly this reason.
 
 ## Reference checks
 
-`spec check` applies four rules to references. All four resolve a
+`specs check` applies four rules to references. All four resolve a
 reference against the target's frontmatter `slug`, never a file path,
 and without regard to letter case.
 
@@ -189,7 +189,7 @@ reaches a real document that says it has been replaced — so it does not
 fail a build unless you pass `--strict`. It is also the one finding that
 tells an author what to cite instead.
 
-**`spec check <path>` reports the reference findings your edit caused
+**`specs check <path>` reports the reference findings your edit caused
 elsewhere.** All four reference rules escape the narrowing to the file
 you name, because the document that breaks a reference is never the
 document that holds it: rename a slug, retire a document or change its
@@ -200,12 +200,12 @@ you named.
 What no form of the check can tell you is whether a broken reference is
 *yours*. It has no memory of what those references used to resolve to,
 so breakage already in the corpus is reported alongside breakage you
-caused. In a corpus you keep green that distinction is empty. `spec refs
+caused. In a corpus you keep green that distinction is empty. `specs refs
 <slug>` before the change still answers the blast-radius question ahead
 of time, and is the cheaper habit.
 
 **A path that names no corpus member is an error, not a pass.**
-`spec check docs/typo.md` exits 1 and says the path is not a member —
+`specs check docs/typo.md` exits 1 and says the path is not a member —
 and where the file exists but was excluded, it names the reason
 (`no-frontmatter`, `unknown-type`). A clean report is never what you get
 for a path the corpus does not hold.
@@ -241,7 +241,7 @@ register.
 
 ## What it does not check
 
-`spec check` covers frontmatter properties, slug patterns, slug
+`specs check` covers frontmatter properties, slug patterns, slug
 uniqueness and reference integrity. It does **not** yet check required
 sections, element records, or line width. Those are specified and not
 built.
@@ -273,7 +273,7 @@ Say so, and name the install, rather than reading the corpus by hand and
 reporting a result you cannot show your work for:
 
 ```
-go install github.com/brettcallaghan/agent-plugins/cli/spec@latest
+go install github.com/brettcallaghan/agent-plugins/cli/specs@latest
 ```
 
 or unpack a release archive from the repository's releases page onto

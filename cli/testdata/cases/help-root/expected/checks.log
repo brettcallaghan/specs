@@ -1,7 +1,7 @@
-spec indexes a specification corpus and reports conformance findings against the rules the active profile registers. Configuration is read from specs.toml at the repository root.
+specs indexes a specification corpus and reports conformance findings against the rules the active profile registers. Configuration is read from specs.toml at the repository root.
 
 Usage:
-  spec [command]
+  specs [command]
 
 Available Commands:
   check       Check the corpus, or a single document, for conformance
@@ -18,6 +18,6 @@ Available Commands:
 
 Flags:
       --config string   path to the repository's specs.toml (default "specs.toml")
-  -h, --help            help for spec
+  -h, --help            help for specs
 
-Use "spec [command] --help" for more information about a command.
+Use "specs [command] --help" for more information about a command.

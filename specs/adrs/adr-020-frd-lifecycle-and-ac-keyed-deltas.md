@@ -99,7 +99,7 @@ carries it.
   document per revision would give.
 - No tooling computes the identifier-keyed delta yet. Until it exists,
   applying it is a manual read of two FRD versions. A CLI capability to
-  automate it (`spec diff` or equivalent) is out of scope for this
+  automate it (`specs diff` or equivalent) is out of scope for this
   decision and would need its own FRD.
 - The boundary case this ADR does not resolve is a change large enough
   that "is this the same feature" stops being obvious. The slug test
@@ -121,7 +121,7 @@ carries it.
   an amendment and a supersession, needs its own ADR. Deferring it is
   what keeps this decision to the question actually at hand — how a
   feature's requirements and acceptance criteria change.
-- **A `spec diff` CLI capability.** Computing the identifier-keyed delta
+- **A `specs diff` CLI capability.** Computing the identifier-keyed delta
   automatically is out of scope and would need its own FRD (see
   Consequences).
 

@@ -31,7 +31,7 @@ consumption is the most expensive way to ask what a corpus contains.
 This feature adds the missing surface. Every member already declares a
 `description` — a one- to two-sentence summary, required by
 [[frontmatter-standards]] on every document type — and nothing reads it
-back. `spec list` returns that summary, with the fields needed to act on
+back. `specs list` returns that summary, with the fields needed to act on
 it, for every member at once. The measured payload for this corpus is
 about 21 KB against 889 KB of documents, but the size is not the point:
 the point is that one invocation returns a complete, typed, filterable
@@ -130,7 +130,7 @@ The exclusion in AC-SPECLIST-001.6 is a scope boundary rather than a
 silence. A file beneath the spec root that declares no frontmatter, or
 declares a type the profile does not define, is not a member and has no
 summary to give; reporting it here would put a conformance judgement in a
-query. `spec check` owns that judgement and reports it as a finding.
+query. `specs check` owns that judgement and reports it as a finding.
 
 An undescribable member is different, and AC-SPECLIST-001.5 treats it
 differently for a reason: the index recorded it *as a member*, so

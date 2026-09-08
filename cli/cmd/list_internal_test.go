@@ -70,7 +70,7 @@ func TestTypeFlagTypedAccessorRefusesRatherThanPanics(t *testing.T) {
 	}
 }
 
-// TestTypeFlagUsageLineUnchanged pins `spec list --help`'s flag line.
+// TestTypeFlagUsageLineUnchanged pins `specs list --help`'s flag line.
 // The type name is unrecognised by pflag deliberately, and pflag renders
 // an unrecognised name verbatim, so the placeholder stays `strings`. The
 // absence of "(default" is the half that rules out returning "[]" from

@@ -325,7 +325,7 @@ Feature: Anchor Impact Queries
     Then the CLI lists that reference, marked as matching more than one heading
 ```
 
-*Examples:* `spec refs 'container-spec-cli#Element Registry'` lists the
+*Examples:* `specs refs 'container-spec-cli#Element Registry'` lists the
 documents that would break if that heading were renamed — the question
 [[adr-012]] created by making anchors the address of every un-promoted
 component (AC-SPECANCH-003.1). An agent renames a `### Element Registry`

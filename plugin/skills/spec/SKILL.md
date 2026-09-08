@@ -234,10 +234,10 @@ specs.
    instead of duplicating their content — duplication drifts.
 
    **Ask the corpus rather than reading it.** For a numbered type, the
-   next number is `spec next-id <type>` — never the highest filename you
+   next number is `specs next-id <type>` — never the highest filename you
    happened to see, which misses a document whose filename and slug
-   disagree. Before claiming any slug, `spec slug-exists <slug>`. To
-   learn what a document depends on before editing it, `spec refs <slug>
+   disagree. Before claiming any slug, `specs slug-exists <slug>`. To
+   learn what a document depends on before editing it, `specs refs <slug>
    --outbound`. Each is one subprocess and each is checkable by a
    reviewer; a scan you did yourself is neither.
    `references/shared/spec-cli-reference.md` covers the rest of the command surface,
@@ -247,14 +247,14 @@ specs.
    change, new information arrives, or errors are found — and update
    `status` and `updated_at` when you do.
 
-   **Before retiring or renaming a document, run `spec refs <slug>`.**
+   **Before retiring or renaming a document, run `specs refs <slug>`.**
    It lists every document that cites this one, at the line and column
    of each citation — the blast radius, decided rather than estimated.
    Retiring a document leaves those references resolving to a retired
-   target, which `spec check` reports as a warning naming the successor;
+   target, which `specs check` reports as a warning naming the successor;
    declare `superseded_by` so it has one to name. Renaming a slug breaks
    them outright, and the rename is not finished until every line `refs`
-   listed has been updated. Either way `spec check <path>` on the
+   listed has been updated. Either way `specs check <path>` on the
    document you edited reports the findings against the documents citing
    it, so the narrow form is enough to see the blast radius after the
    fact — `refs` is how you see it before.
@@ -273,10 +273,10 @@ specs.
    its FRD's (the FRD must be `approved` or `active` before grooming
    can start).
 7. **Self-check the finished document.** Before setting any document to
-   `ready-for-review`, run `spec check <path>` and then
+   `ready-for-review`, run `specs check <path>` and then
    `references/shared/document-readiness-checklist.md` against it. The
    checklist marks which of its nine checks the CLI settles and which
-   are yours; a clean `spec check` is not a passing document, and the
+   are yours; a clean `specs check` is not a passing document, and the
    checks it does not yet make are named there rather than left to
    silence. Fix what both report and re-run; do not set
    `ready-for-review` while any check fails. Feature blueprints

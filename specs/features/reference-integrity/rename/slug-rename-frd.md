@@ -145,7 +145,7 @@ Feature: Rename a Slug and Its References
     Then the CLI renames, moves and deletes no file
 ```
 
-*Examples:* `spec rename adr-011-targeted-verification-gates adr-011`
+*Examples:* `specs rename adr-011-targeted-verification-gates adr-011`
 edits one ADR's frontmatter and the 26 references across 9 other
 documents — the exact migration that was performed by hand and left 26
 broken links behind (AC-SPECREN-001.1). [[adr-012]] contains
@@ -222,7 +222,7 @@ Feature: Preflight and Preview
     And the CLI reports which write failed
 ```
 
-*Examples:* `spec rename old new` reports "1 declaration, 26 references
+*Examples:* `specs rename old new` reports "1 declaration, 26 references
 in 9 documents" with each file and span, and changes nothing; the same
 command with the write instruction performs it (AC-SPECREN-002.1).
 Renaming `adr-011` to `adr-012` where `adr-012` exists reports the
@@ -318,12 +318,12 @@ Feature: Command Surface and Skill Adoption
     Then the shipped skill states that renaming a slug is what this command is for, so that an agent prefers it over editing references directly
 ```
 
-*Examples:* `spec rename adr-011-targeted-verification-gates adr-011`
+*Examples:* `specs rename adr-011-targeted-verification-gates adr-011`
 previews, and the same command with the write flag performs it; the
 subcommand vocabulary AC-SPEC-011.5 lists gains a fifth entry, and the
 four established there are neither renamed nor repurposed
 (AC-SPECREN-004.1). The command table in `spec-cli.md` gains a
-`spec rename <current-slug> <new-slug>` row reading "Rename a slug and
+`specs rename <current-slug> <new-slug>` row reading "Rename a slug and
 every reference to it" (AC-SPECREN-004.2). The guidance sits with the
 existing instruction to prefer the CLI for anything it decides — "its
 answer is verifiable by whoever reviews the work, where yours is an

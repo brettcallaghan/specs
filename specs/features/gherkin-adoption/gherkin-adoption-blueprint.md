@@ -448,16 +448,16 @@ container already has and add no latency budget of their own.
 
 **Behavior:**
 
-- The command tree SHALL gain `spec feature` and `spec criterion`, each
+- The command tree SHALL gain `specs feature` and `specs criterion`, each
   taking an identifier argument and each opening the corpus warm as
   `check`, `slug-exists`, `next-id` and `refs` already do.
-- `spec feature <id>` SHALL return that feature's record including its
-  criteria (AC-GHK-007.1); `spec criterion <id>` SHALL return that
+- `specs feature <id>` SHALL return that feature's record including its
+  criteria (AC-GHK-007.1); `specs criterion <id>` SHALL return that
   criterion's record (AC-GHK-007.2).
-- `spec feature --code <CODE>` SHALL return every feature grouped under
-  that code, `spec feature` with no argument every feature in the
-  corpus, `spec criterion --of <feature-id>` every criterion beneath one
-  feature, and `spec criterion --tag <qualifier>` every criterion
+- `specs feature --code <CODE>` SHALL return every feature grouped under
+  that code, `specs feature` with no argument every feature in the
+  corpus, `specs criterion --of <feature-id>` every criterion beneath one
+  feature, and `specs criterion --tag <qualifier>` every criterion
   carrying one qualifier (AC-GHK-003.3, AC-GHK-007.3).
 - WHEN an identifier names no record, the command SHALL report that
   nothing declares it (AC-GHK-007.4).
@@ -485,7 +485,7 @@ product and quality tooling.
 
 **Behavior:**
 
-- `spec feature <id> --emit` SHALL write a valid Gherkin feature file
+- `specs feature <id> --emit` SHALL write a valid Gherkin feature file
   carrying that feature's tags, description and criteria, to standard
   output by default and to a named path where `--out` gives one
   (AC-GHK-009.1). One feature yields one file, as [[adr-021]]'s
@@ -510,9 +510,9 @@ the last delta for that reason.
 
 **Behavior:**
 
-- `spec criterion --changed` SHALL compare the current corpus against the
+- `specs criterion --changed` SHALL compare the current corpus against the
   persisted index (AC-GHK-008.1).
-- `spec criterion --changed` SHALL list every criterion whose content
+- `specs criterion --changed` SHALL list every criterion whose content
   hash differs, classifying each as changed, added or removed by whether
   its identifier is present in both, only now, or only before
   (AC-GHK-008.3).
@@ -637,7 +637,7 @@ sides of the comparison.
 
 - `delivery: staged`. Three stages, each a reviewable increment:
   - **Stage 1 — records in the index:** MODEL, XPT, MDS, GHK, DISC,
-    PREG. `spec index` emits feature and criterion records over this
+    PREG. `specs index` emits feature and criterion records over this
     repository's own corpus; no new check runs, no finding is raised,
     and no exit status changes. The boundary is deliberate: it puts
     extraction and ownership — the rules that produce wrong records —

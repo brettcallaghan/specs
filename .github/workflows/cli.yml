@@ -1,6 +1,6 @@
 name: cli
 
-# The Go gates for the `spec` binary the `cli` module ships, and the
+# The Go gates for the `specs` binary the `cli` module ships, and the
 # portability evidence for REQ-SPEC-009 that only a real matrix can produce.
 #
 # Why this is a second workflow rather than more jobs in checks.yml: that
@@ -192,7 +192,7 @@ jobs:
             goarch="${target#*/}"
             echo "==> $goos/$goarch"
             GOOS="$goos" GOARCH="$goarch" \
-              go build -trimpath -ldflags="-s -w" -o /dev/null ./spec
+              go build -trimpath -ldflags="-s -w" -o /dev/null ./specs
           done
 
   # AC-SPEC-009.4's worked example, run rather than asserted: the binary
@@ -219,13 +219,13 @@ jobs:
           GOARCH: amd64
         run: |
           set -euo pipefail
-          go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/spec" ./spec
+          go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/specs" ./specs
 
       - name: The binary is statically linked
         run: |
           set -euo pipefail
-          description="$(file -b spec)"
-          echo "spec: $description"
+          description="$(file -b specs)"
+          echo "specs: $description"
           # `file` rather than `ldd`: ldd's wording for a static binary
           # varies by distribution ("not a dynamic executable" against
           # "statically linked") and its exit status is not a reliable
@@ -233,20 +233,20 @@ jobs:
           case "$description" in
             *"statically linked"*) ;;
             *)
-              echo "spec is not statically linked; it will not run in a bare image"
+              echo "specs is not statically linked; it will not run in a bare image"
               exit 1
               ;;
           esac
 
-      - name: Run spec in an image containing only a shell and the binary
+      - name: Run specs in an image containing only a shell and the binary
         run: |
           set -euo pipefail
           # busybox is a shell plus coreutils. The corpus is one of the
           # committed snapshot fixtures, so the run has something real to
           # check and a known exit status (0: the fixture is clean).
           docker run --rm \
-            -v "$PWD/spec:/spec:ro" \
+            -v "$PWD/specs:/specs:ro" \
             -v "$PWD/cli/testdata/cases/check-json/input:/corpus:ro" \
             -w /corpus \
             busybox:latest \
-            /spec check --json
+            /specs check --json

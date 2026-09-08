@@ -251,7 +251,7 @@ cases under `cli/testdata/cases/`.
   what this feature needs from it. Stage 2 lands after that criterion
   does. Shipping stage 2 first would report `unverified` for every
   anchored reference in the corpus, and this repository's own gates run
-  `spec check --strict`, which fails on `unverified`.
+  `specs check --strict`, which fails on `unverified`.
 - The FIND delta SHALL land before CHK, which reports through the
   variants it declares.
 - The SREF delta SHALL land before a frontmatter citation carrying an
@@ -373,7 +373,7 @@ checks in `Corpus`; CMD = Command Surface in [[container-spec-cli]].
   an anchor by identifier equality and so cannot produce a reference
   whose two fragment sources differ; the criterion is what stops a
   looser matcher from emitting fragments that reach nothing
-- [x] `spec check --strict` reports no findings over this repository's
+- [x] `specs check --strict` reports no findings over this repository's
   corpus, with `reference/unresolved-anchor` and
   `reference/ambiguous-anchor` both listed `passed`. Eleven references
   in this corpus carry an anchor — six into

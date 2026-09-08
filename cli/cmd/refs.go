@@ -58,7 +58,7 @@ func newRefsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 // and --outbound asks what the given document cites — the anchors on
 // those references belong to other documents' headings, so there is no
 // question "the references out of X into the heading Y of X" answers.
-var errNoAnchorWithOutbound = errors.New("spec refs: --outbound takes a slug, not a slug qualified by an anchor")
+var errNoAnchorWithOutbound = errors.New("specs refs: --outbound takes a slug, not a slug qualified by an anchor")
 
 // refsResult is what runRefs renders: a mapping of the properties the
 // query established, per [[cli-output-standards]].

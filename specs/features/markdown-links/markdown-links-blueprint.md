@@ -377,7 +377,7 @@ rather than a new decision.
   `links-unreadable-operand`, `links-no-strict-flag`, `help-links`
 - [x] `go test ./core/...` and `go test ./cmd/...` pass, and the profile
   self-application gate in `cli/profile` still runs clean
-- [x] `spec check --strict` exits 0 over this repository's corpus
+- [x] `specs check --strict` exits 0 over this repository's corpus
 - [x] This blueprint's status → retired
 
 ## Open Questions

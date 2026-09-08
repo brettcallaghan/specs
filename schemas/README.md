@@ -18,7 +18,7 @@ artifact carries a do-not-edit banner. Regenerate with:
 ```bash
 scripts/generate-schemas.sh           # rewrite the generated tree
 scripts/generate-schemas.sh --check   # fail if anything is stale (for CI)
-spec check --strict                   # check this repo's own documents
+specs check --strict                   # check this repo's own documents
 ```
 
 ## The sources

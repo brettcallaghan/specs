@@ -170,7 +170,7 @@ Examples
   requirement. IF an example and the criterion conflict, THEN the
   criterion governs and the example SHALL be corrected.
 
-Verify with the CLI rather than by reading: `spec check <path>` reports
+Verify with the CLI rather than by reading: `specs check <path>` reports
 untagged criteria, malformed or duplicate identifiers, empty scenarios,
 prose in a Scenario description, and partially tagged Examples blocks.
 -->

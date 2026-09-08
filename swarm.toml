@@ -70,7 +70,7 @@ command = 'scripts/generate-schemas.sh --check'
 # belonging here rather than in CI.
 [[checks]]
 id = "corpus"
-command = 'cd cli && go build -o ../build/spec ./spec && cd .. && build/spec check --strict'
+command = 'cd cli && go build -o ../build/specs ./specs && cd .. && build/specs check --strict'
 
 [[checks]]
 id = "ref-links"

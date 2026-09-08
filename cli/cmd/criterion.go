@@ -45,18 +45,18 @@ func newCriterionCmd(streams *ioStreams, configPath *string) *cobra.Command {
 		RunE: func(_ *cobra.Command, args []string) error {
 			if changed {
 				if len(args) != 0 || of != "" || tag != "" || jsonOut {
-					return errors.New("spec criterion: --changed cannot be combined with an identifier, --of, --tag or --json")
+					return errors.New("specs criterion: --changed cannot be combined with an identifier, --of, --tag or --json")
 				}
 				return runCriterionChanged(streams, *configPath)
 			}
 			if len(args) == 1 && (of != "" || tag != "") {
-				return errors.New("spec criterion: an identifier cannot be combined with --of or --tag")
+				return errors.New("specs criterion: an identifier cannot be combined with --of or --tag")
 			}
 			if of != "" && tag != "" {
-				return errors.New("spec criterion: --of and --tag cannot both be given")
+				return errors.New("specs criterion: --of and --tag cannot both be given")
 			}
 			if len(args) == 0 && of == "" && tag == "" {
-				return errors.New("spec criterion: give an identifier, --of, --tag or --changed")
+				return errors.New("specs criterion: give an identifier, --of, --tag or --changed")
 			}
 			return runCriterionQuery(streams, *configPath, args, of, tag, jsonOut)
 		},
@@ -106,7 +106,7 @@ func runCriterionChanged(streams *ioStreams, configPath string) error {
 	indexPath := corpus.IndexPath(opts, "")
 	persisted, ok := loadPersistedIndex(indexPath)
 	if !ok {
-		fmt.Fprintf(streams.out, "no persisted index at %s; run `spec index` first\n",
+		fmt.Fprintf(streams.out, "no persisted index at %s; run `specs index` first\n",
 			filepath.ToSlash(indexPath))
 		return nil
 	}
