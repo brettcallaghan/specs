@@ -1,4 +1,4 @@
-// End-to-end tests that run the real `spec` binary as a process.
+// End-to-end tests that run the real `specs` binary as a process.
 //
 // Every other test in this module calls [cmd.Execute] in-process, which
 // exercises the command tree but stops one layer short of what a user and
@@ -68,7 +68,7 @@ func coverDir(t *testing.T) string {
 	return dir
 }
 
-// buildSpec builds the spec binary once per test binary and returns its
+// buildSpec builds the specs binary once per test binary and returns its
 // path. It uses the module the test itself lives in, so it always builds
 // the working tree's code rather than anything previously installed.
 func buildSpec(t *testing.T) string {
@@ -86,7 +86,7 @@ func buildSpec(t *testing.T) string {
 	// bare "executable file not found in %PATH%", which reads like a PATH
 	// problem and is not one. go build honours whatever -o name it is
 	// given, so the suffix has to be added here rather than assumed.
-	name := "spec"
+	name := "specs"
 	if runtime.GOOS == "windows" {
 		name += ".exe"
 	}
@@ -99,7 +99,7 @@ func buildSpec(t *testing.T) string {
 	build := exec.Command("go", args...)
 	build.Dir = "."
 	if out, err := build.CombinedOutput(); err != nil {
-		t.Fatalf("building the spec binary: %v\n%s", err, out)
+		t.Fatalf("building the specs binary: %v\n%s", err, out)
 	}
 	return bin
 }

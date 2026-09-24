@@ -9,7 +9,7 @@
 #   unit      every package's own tests, minus the snapshot replays
 #   snapshot  the data-driven cases under cli/testdata/cases/, replayed
 #             in-process against the command tree
-#   e2e       cli/spec's tests, which build the binary and run it as a
+#   e2e       cli/specs' tests, which build the binary and run it as a
 #             process
 #
 # The end-to-end leg is the one that needs machinery. Its subject is a
@@ -88,11 +88,11 @@ cd "$REPO_ROOT/cli"
 # the test, so the end-to-end leg would write no counters at all and the
 # in-process legs would report whatever the cache last held.
 
-# The unit leg covers every package except cli/spec, whose only tests are
+# The unit leg covers every package except cli/specs, whose only tests are
 # the end-to-end ones measured by the third leg.
 unit_packages=()
 while IFS= read -r pkg; do
-  [ "$pkg" = "$MODULE/spec" ] && continue
+  [ "$pkg" = "$MODULE/specs" ] && continue
   unit_packages+=("$pkg")
 done < <(go list ./...)
 
@@ -107,7 +107,7 @@ go test -count=1 -coverpkg="$COVERPKG" -coverprofile="$OUT_DIR/snapshot.cov" \
 
 echo
 echo "==> end-to-end binary tests"
-SPEC_E2E_COVERDIR="$OUT_DIR/e2e-data" go test -count=1 ./spec
+SPEC_E2E_COVERDIR="$OUT_DIR/e2e-data" go test -count=1 ./specs
 
 # The counters are per-process and binary-format; textfmt turns the whole
 # directory into one profile in the same shape as the legs above.

@@ -27,9 +27,9 @@ causes, so a reviewer can cite the row rather than argue from taste.
 | Duplicating content across documents | Copies drift; cross-reference with `[[document-slug]]` instead |
 | Leaving template comment blocks in a finished document | Instruction bloat; delete them after completing each section |
 | Reusing a retired REQ/AC identifier | Breaks traceability; never reuse IDs |
-| Reporting a check as passed without running the command that decides it | Unverifiable: an agent that ran the check and one that assumed it produce identical output. Run `spec check` and cite it |
-| Deriving the next ADR number or a slug's uniqueness by reading filenames | The slug is independent of the filename, so a scan misses the collision it exists to find. `spec next-id` and `spec slug-exists` read the index |
-| Retiring or renaming a document without asking who references it | Every citation silently stops resolving, and nobody finds out until a reader follows one. `spec refs <slug>` names them at their own lines, before the change |
+| Reporting a check as passed without running the command that decides it | Unverifiable: an agent that ran the check and one that assumed it produce identical output. Run `specs check` and cite it |
+| Deriving the next ADR number or a slug's uniqueness by reading filenames | The slug is independent of the filename, so a scan misses the collision it exists to find. `specs next-id` and `specs slug-exists` read the index |
+| Retiring or renaming a document without asking who references it | Every citation silently stops resolving, and nobody finds out until a reader follows one. `specs refs <slug>` names them at their own lines, before the change |
 | Inventing a new document type | The taxonomy is deliberately small; flag the gap instead |
 | Filing a private schema as a standalone Contract | Freezes a container's internal implementation into a de facto public interface |
 | Deep component internals in a container blueprint | Bloat; extract to a component or module blueprint when it warrants standalone docs |

@@ -62,7 +62,7 @@ is stored a second time.
 
 **Positive:**
 
-- Both questions `spec refs` answers — what points at this document, and
+- Both questions `specs refs` answers — what points at this document, and
   what does this document point at (AC-SPECREF-003.1, AC-SPECREF-003.2)
   — are served from one list, so the two answers cannot disagree.
 - Merging indexes across workspaces is appending rows. An edge from

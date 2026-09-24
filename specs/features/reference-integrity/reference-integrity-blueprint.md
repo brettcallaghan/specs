@@ -590,7 +590,7 @@ under `cli/testdata/cases/`; `scripts/regenerate-cli-snapshots.sh`.
 
 - `delivery: staged`. Two stages, each a reviewable increment:
   - **Stage 1 — the graph in the index:** MODEL, XPT, REX, RES, PREG.
-    `spec index` emits reference edges over this repository's own
+    `specs index` emits reference edges over this repository's own
     corpus; no new check runs, no finding is raised, and no exit status
     changes. The stage boundary is deliberate: it puts the extraction
     and resolution rules — the ones that produce false positives — in

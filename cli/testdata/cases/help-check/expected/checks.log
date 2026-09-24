@@ -1,7 +1,7 @@
 check validates every corpus member's frontmatter against the active profile's schema and slug patterns, and reports duplicate slugs and unresolved references, either across the whole corpus or, given a path, for one document.
 
 Usage:
-  spec check [path] [flags]
+  specs check [path] [flags]
 
 Flags:
   -h, --help           help for check

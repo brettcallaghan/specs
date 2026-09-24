@@ -29,10 +29,10 @@ version: "0.4"
 The decision behind these conventions is recorded in [[adr-012]].
 Companion to `template-authoring-standards.md`.
 
-These conventions are mechanically checked. `spec check` resolves every
+These conventions are mechanically checked. `specs check` resolves every
 `[[slug]]` in a document's body and every slug-typed frontmatter
 property against the corpus, and reports the ones that resolve to
-nothing; `spec refs <slug>` answers who cites a document before you
+nothing; `specs refs <slug>` answers who cites a document before you
 change it. `spec-cli.md` states what each rule reports and the three
 reference cases that are still yours. The rules below are what those
 checks enforce — which is also why the exceptions are worth knowing:

@@ -49,7 +49,7 @@ that would do nothing but restate a layout the CLI already knows.
 
 The capability belongs to the CLI rather than to that caller because
 deciding *what is a reference* is corpus knowledge the CLI already
-owns: it reads references through the same extractor `spec check` uses,
+owns: it reads references through the same extractor `specs check` uses,
 which excludes any wikilink overlapping a code span, an indented block
 or a fenced block. A rewriter built on a regular expression would not
 draw that distinction, and would corrupt the teaching prose it was

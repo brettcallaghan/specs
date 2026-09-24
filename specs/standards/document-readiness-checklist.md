@@ -14,7 +14,7 @@ version: "0.5"
 
 ## Contents
 
-- Who decides — which checks the `spec` CLI settles and which are yours
+- Who decides — which checks the `specs` CLI settles and which are yours
 - Two notations, two surfaces — which of #4–#5 and #9 applies where
 - Frontmatter checks #1–#3 — does the metadata conform? (required
   properties, slug, status vocabulary)
@@ -63,7 +63,7 @@ prevent — an EARS sentence inside a `gherkin` block does not parse, and a
 
 ## Who decides
 
-Run `spec check <path>` first. It settles checks 1–3 and 8 outright, and
+Run `specs check <path>` first. It settles checks 1–3 and 8 outright, and
 the machine-checkable half of check 9: it
 parses the frontmatter, validates every property against the schema for
 the document's `type`, matches the slug against that type's registered
@@ -73,7 +73,7 @@ properties that hold slugs — against the corpus. Read its findings; each
 names the rule, the span, and the value that violated it.
 
 **A single-document check reports what your edit broke elsewhere.**
-`spec check <path>` resolves that document's own references against the
+`specs check <path>` resolves that document's own references against the
 whole corpus, and also reports the reference findings held by *other*
 documents, each at its own line. Rename an ADR's slug, retire it, or
 change its `type`, then check that one file: it names the documents left
@@ -86,11 +86,11 @@ What no form of the check can tell you is whether a broken reference is
 *yours*. It has no memory of what those references used to resolve to,
 so breakage already in the corpus is reported alongside breakage your
 edit caused. In a corpus you keep green that distinction is empty —
-anything reported is new. `spec refs <slug>` before you change, retire
+anything reported is new. `specs refs <slug>` before you change, retire
 or re-type a document answers the blast-radius question ahead of time,
 and is the cheaper habit.
 
-**Check the path you got back.** `spec check` on a path that names no
+**Check the path you got back.** `specs check` on a path that names no
 corpus member exits 1 and says so, naming the exclusion reason where the
 file exists but was excluded. It never reports a clean document for a
 path the corpus does not hold.
@@ -104,18 +104,18 @@ template placeholder left unfilled — `updated_at:
 
 | # | Check | Decided by |
 |---|-------|------------|
-| 0 | Frontmatter is readable at all | `spec check` |
-| 1 | Required properties present and parseable | `spec check` |
-| 2 | Slug matches the pattern for this type; unique | `spec check` |
-| 3 | Status is in the controlled vocabulary | `spec check` |
+| 0 | Frontmatter is readable at all | `specs check` |
+| 1 | Required properties present and parseable | `specs check` |
+| 2 | Slug matches the pattern for this type; unique | `specs check` |
+| 3 | Status is in the controlled vocabulary | `specs check` |
 | 4 | Every EARS normative statement uses an EARS pattern | you |
 | 5 | No requirement joins two modal verbs | you |
 | 6 | No prose line exceeds the width limit | you — CLI planned |
 | 7 | No template instruction blocks survive | you |
-| 8 | Every `[[slug]]` reference resolves | `spec check` |
-| 9 | Every feature and criterion is well formed and identified | `spec check`, plus you |
+| 8 | Every `[[slug]]` reference resolves | `specs check` |
+| 9 | Every feature and criterion is well formed and identified | `specs check`, plus you |
 
-**A clean `spec check` is not a passing document.** It means row 0 and
+**A clean `specs check` is not a passing document.** It means row 0 and
 checks 1–3, 8 and the machine-checkable half of 9 passed. Checks 4, 5 and
 7 are judgement the tool does not make, and 6 is specified but not
 built — a silent tool is not a passing grade for them.
@@ -129,7 +129,7 @@ other reference cases a clean run says nothing about.
 WHERE the CLI is not installed, every check below is still defined and
 still runs; you carry out 1–3 by hand instead, against the property
 definitions and prefix registry the checks cite. Say which happened —
-"`spec check` reports no findings" and "I read the frontmatter and it
+"`specs check` reports no findings" and "I read the frontmatter and it
 looks right" are different claims, and only the first can be re-run by a
 reviewer. `spec-cli.md` covers installation.
 
@@ -173,7 +173,7 @@ check 9's; the prose around them is still these.
    authoring scaffolding a reader will mistake for content.
 8. Every `[[slug]]` reference resolves to an existing document.
    [[cross-document-references]] owns what a reference resolves against
-   and the notation it must use. `spec check` decides this one; run it
+   and the notation it must use. `specs check` decides this one; run it
    rather than reading the links. Two of its findings are worth reading
    rather than only counting: a `reference/retired-target` **warning**
    means the link resolves but the target has been replaced — cite the
@@ -212,7 +212,7 @@ practice an FRD. `gherkin-guide.md` owns every rule it tests for.
 Run it before setting a document to `ready-for-review`, fix what it
 reports, then run it again — a fix for one check often breaks another
 (rewrapping a line for check 6 can bury the compound requirement that
-check 5 looks for). Re-run `spec check <path>` on each pass too: it is
+check 5 looks for). Re-run `specs check <path>` on each pass too: it is
 one subprocess, and an edit made to satisfy check 5 can break check 1
 by disturbing the frontmatter above it. Do not set `ready-for-review`
 while any check fails.

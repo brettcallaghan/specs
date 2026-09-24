@@ -49,12 +49,12 @@ func newFeatureCmd(streams *ioStreams, configPath *string) *cobra.Command {
 		RunE: func(_ *cobra.Command, args []string) error {
 			if emit {
 				if code != "" || jsonOut {
-					return errors.New("spec feature: --code and --json cannot be combined with --emit")
+					return errors.New("specs feature: --code and --json cannot be combined with --emit")
 				}
 				return runFeatureEmit(streams, *configPath, args[0], out)
 			}
 			if code != "" && len(args) == 1 {
-				return errors.New("spec feature: an identifier and --code cannot both be given")
+				return errors.New("specs feature: an identifier and --code cannot both be given")
 			}
 			return runFeatureQuery(streams, *configPath, args, code, jsonOut)
 		},

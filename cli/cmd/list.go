@@ -99,7 +99,7 @@ func (v typeFilterValue) Set(raw string) error {
 // its own type names to placeholders ("stringSlice" to `strings`,
 // "intSlice" to `ints`, and so on) and renders any other name verbatim.
 // "strings" is therefore the same placeholder pflag used to derive, and
-// `spec list --help` is byte-identical to what "stringSlice" produced.
+// `specs list --help` is byte-identical to what "stringSlice" produced.
 //
 // The one thing the rename costs is cobra's flag-name completion
 // repeatability: cobra decides a flag may be offered again by testing

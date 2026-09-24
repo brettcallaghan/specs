@@ -576,16 +576,16 @@ section is authoritative for its deployment.
   change that broke it rather than at release time.
 - **Distribution — two channels.** The Go module proxy is the registry
   AC-SPEC-009.6 is satisfied by: it is mirrorable on premises (GOPROXY,
-  Athens, Artifactory), and `go install …/cli/spec@<tag>` needs no
+  Athens, Artifactory), and `go install …/cli/specs@<tag>` needs no
   release artifact at all. For a machine with no Go toolchain, tagged
   releases carry one archive per target plus `SHA256SUMS`; unpacking one
   runs no install-time code, which is what AC-SPEC-009.5 turns on.
   Nothing here is signed yet, and the binaries carry no version string —
   both are open, and both belong to the release-and-distribution ADR
   rather than to this blueprint.
-- **The entry point is `cli/spec/`, not the module root.** Go names an
+- **The entry point is `cli/specs/`, not the module root.** Go names an
   installed binary after the directory holding its main package, so the
-  path is what makes `go install` produce `spec` rather than `cli`. For
+  path is what makes `go install` produce `specs` rather than `cli`. For
   the same reason release tags are `cli/vX.Y.Z`: the module lives in a
   subdirectory, and the proxy resolves a subdirectory module's versions
   only from tags carrying that prefix.

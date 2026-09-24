@@ -53,7 +53,7 @@ WHEN the reverse direction of a relationship is needed, a consumer SHALL
 obtain it from the index's inbound edges rather than from a mirrored
 frontmatter property.
 
-**Rationale:** `spec refs <slug>` answers "what points at this" from the
+**Rationale:** `specs refs <slug>` answers "what points at this" from the
 same graph that answers "what does this point at"
 ([[frd-spec-reference-integrity]], AC-SPECREF-003.1 and AC-SPECREF-003.2).
 A document does not have to carry its own back-references for the reverse

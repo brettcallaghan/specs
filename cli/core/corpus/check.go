@@ -42,7 +42,7 @@ import (
 // reporting every rule as `passed` for the one document in the corpus
 // nothing had been able to read, so the worse a document's frontmatter
 // was, the quieter the tool got. The index recording the parse error is
-// not a substitute: `spec check` never shows the caller the index.
+// not a substitute: `specs check` never shows the caller the index.
 //
 // An error is returned only when the active profile's schema does not
 // compile; a document's own defects are always findings, never errors.

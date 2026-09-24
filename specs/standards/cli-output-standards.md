@@ -1,6 +1,6 @@
 ---
 title: Spec CLI Output Standards
-description: What every spec command writes to its output stream — YAML
+description: What every specs command writes to its output stream — YAML
   by default and JSON under --json, the answer alone, a document payload
   as itself, and the style rules that make both readable
 slug: cli-output-standards
@@ -256,7 +256,7 @@ the data.
 
 Stated because the absence is a decision rather than an omission.
 
-- **No result envelope and no `--full-result`.** A spec command reads a
+- **No result envelope and no `--full-result`.** A specs command reads a
   corpus and answers a question about it; it runs no plan whose steps a
   caller would audit, so there is no provenance layer under the answer to
   reveal. WHEN a command acquires one, it acquires the flag with it.
@@ -270,8 +270,8 @@ Stated because the absence is a decision rather than an omission.
 
 ## Current conformance
 
-Measured with a binary built from this branch (`go build -C cli -o spec
-./spec`), run against this repository's corpus. Every command below
+Measured with a binary built from this branch (`go build -C cli -o specs
+./specs`), run against this repository's corpus. Every command below
 predates these standards and none of them conforms yet; `headings`,
 specified after them, conforms and is listed last.
 

@@ -1,4 +1,4 @@
-// Command spec is the Spec CLI's entry point: it hands the process's
+// Command specs is the Spec CLI's entry point: it hands the process's
 // arguments and standard streams to the command tree cli/cmd builds, and
 // exits with the status that tree decided on.
 //
@@ -7,10 +7,10 @@
 // codes — lives in cli/cmd and the modules it composes, per the Command
 // Surface component in specs/containers/spec-cli/spec-cli-container.md.
 //
-// It sits in cli/spec/ rather than at the module root because Go names
+// It sits in cli/specs/ rather than at the module root because Go names
 // an installed binary after the directory holding its main package: from
-// here, `go install github.com/brettcallaghan/agent-plugins/cli/spec@…`
-// installs a binary called `spec`, which is the tool's name. At the
+// here, `go install github.com/brettcallaghan/agent-plugins/cli/specs@…`
+// installs a binary called `specs`, which is the tool's name. At the
 // module root the same command would install one called `cli`. The Go
 // module proxy is the registry AC-SPEC-009.6 is satisfied by, so the
 // name that path produces is part of the deliverable, not cosmetic.

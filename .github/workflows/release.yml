@@ -1,11 +1,11 @@
 name: release
 
-# Publishes the per-platform `spec` binaries for one tag.
+# Publishes the per-platform `specs` binaries for one tag.
 #
 # Distribution has two channels, and this workflow is only the second of
 # them:
 #
-#  1. `go install github.com/brettcallaghan/agent-plugins/cli/spec@<tag>`
+#  1. `go install github.com/brettcallaghan/agent-plugins/cli/specs@<tag>`
 #     — the Go module proxy is a package
 #     registry that supports on-premises mirroring (GOPROXY, Athens,
 #     Artifactory and the rest), which is what AC-SPEC-009.6 asks for. It
@@ -110,14 +110,14 @@ jobs:
             goarch="${target#*/}"
 
             stage="$(mktemp -d)"
-            binary="spec"
-            if [ "$goos" = "windows" ]; then binary="spec.exe"; fi
+            binary="specs"
+            if [ "$goos" = "windows" ]; then binary="specs.exe"; fi
 
             echo "==> $goos/$goarch"
             GOOS="$goos" GOARCH="$goarch" \
-              go build -trimpath -ldflags="-s -w" -o "$stage/$binary" ./spec
+              go build -trimpath -ldflags="-s -w" -o "$stage/$binary" ./specs
 
-            name="spec_${version}_${goos}_${goarch}"
+            name="specs_${version}_${goos}_${goarch}"
             if [ "$goos" = "windows" ]; then
               ( cd "$stage" && zip -q "$out/$name.zip" "$binary" )
             else
@@ -153,9 +153,9 @@ jobs:
             "" \
             "**Install from the Go module proxy** (needs a Go toolchain, and works against an on-premises proxy):" \
             "" \
-            "    go install github.com/brettcallaghan/agent-plugins/cli/spec@$tag" \
+            "    go install github.com/brettcallaghan/agent-plugins/cli/specs@$tag" \
             "" \
-            "**Or download a binary.** Each archive holds one statically linked executable and nothing else: unpack it and put \`spec\` on your PATH. Nothing further is fetched or executed at install time. Verify against \`SHA256SUMS\` first.")
+            "**Or download a binary.** Each archive holds one statically linked executable and nothing else: unpack it and put \`specs\` on your PATH. Nothing further is fetched or executed at install time. Verify against \`SHA256SUMS\` first.")
 
           # --clobber so a re-run against the same tag replaces the assets
           # instead of failing on the ones already uploaded.

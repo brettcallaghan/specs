@@ -98,9 +98,9 @@ func newRootCmd(streams *ioStreams) *cobra.Command {
 	var configPath string
 
 	root := &cobra.Command{
-		Use:   "spec",
+		Use:   "specs",
 		Short: "Index and check a specification corpus",
-		Long: "spec indexes a specification corpus and reports conformance findings " +
+		Long: "specs indexes a specification corpus and reports conformance findings " +
 			"against the rules the active profile registers. Configuration is read " +
 			"from specs.toml at the repository root.",
 		SilenceUsage: true,
@@ -161,7 +161,7 @@ func corpusOptions(cfg *Config, configPath string) (corpus.Options, error) {
 //
 // The persisting is what makes AC-SPEC-010.5's own example true — "run
 // twice in a row reads specs.json the second time". Until this existed
-// only `spec index` ever wrote the artifact, so a workflow of checks and
+// only `specs index` ever wrote the artifact, so a workflow of checks and
 // queries rebuilt from scratch every invocation and the warm path the
 // FEAT-SPEC-009 budgets are stated against was never reached by the
 // commands those budgets are about (`agent-plugins-9ur`).

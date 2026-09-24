@@ -38,7 +38,7 @@ When NOT to use
 
 Instructions
   1. Number ADRs sequentially: ADR-001, ADR-002, etc. Get the next number
-     from `spec next-id adr` rather than from the highest filename you
+     from `specs next-id adr` rather than from the highest filename you
      can see — the slug is independent of the filename, so a filename
      scan can miss the number actually in use.
   2. Update the frontmatter with the actual decision details
