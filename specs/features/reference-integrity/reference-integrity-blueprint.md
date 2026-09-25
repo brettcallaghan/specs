@@ -555,12 +555,12 @@ under `cli/testdata/cases/`; `scripts/regenerate-cli-snapshots.sh`.
   beside the generated models is destroyed on the next run. MODEL
   regenerates that directory; tests for the reference model therefore
   live in the consuming packages, as they already do.
-- `agent-plugins-006` — **out-of-scope** (coordination): the schema is
-  open (`allowAdditionalProperties: true`), so unknown frontmatter keys
-  are not rejected. It does not affect these checks, which read the
-  generic property tree rather than the validated envelope, and closing
-  it later must not remove the registered reference properties from the
-  per-type definitions.
+- `agent-plugins-006` — **resolved** (coordination): the schema is
+  closed (`rejectUnknownProperties: true`, strata v0.8.0), so unknown
+  frontmatter keys are rejected. These checks read the generic property
+  tree rather than the validated envelope, and closure flattens each
+  type's inherited properties inline, so the registered reference
+  properties remain in the per-type definitions.
 - `agent-plugins-9jo` — **out-of-scope**: the generated models embed
   this framework's `DocumentType` vocabulary, coupling the
   framework-agnostic half to it. XPT widens the extension point without

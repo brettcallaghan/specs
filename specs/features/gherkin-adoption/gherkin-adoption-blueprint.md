@@ -604,11 +604,11 @@ sides of the comparison.
   beside a generated model is destroyed on the next run. MODEL
   regenerates that directory; tests for the feature model therefore live
   in the consuming packages, as they already do.
-- `agent-plugins-006` — **out-of-scope** (coordination): the schema is
-  open (`allowAdditionalProperties: true`) pending correct union schema
-  emission. `FeatureSource` is a discriminated union and will be
-  affected by that fix; closing the schema later must not drop the
-  union's tags.
+- `agent-plugins-006` — **resolved** (coordination): the schema is
+  closed (`rejectUnknownProperties: true`, strata v0.8.0), which emits
+  each union variant inline with its discriminator. `FeatureSource`
+  keeps both tags — `fenced-block` and `feature-file` — as required
+  constants in its closed `anyOf`.
 - `agent-plugins-9jo` — **out-of-scope**: the generated models embed
   this framework's `DocumentType` vocabulary, coupling the
   framework-agnostic half to it. XPT widens the extension point without
