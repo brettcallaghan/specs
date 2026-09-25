@@ -107,88 +107,76 @@
       "type": "object"
     },
     "AnchorResolution": {
-      "allOf": [
+      "anyOf": [
         {
-          "if": {
-            "properties": {
-              "state": {
-                "const": "resolved"
-              }
+          "additionalProperties": false,
+          "properties": {
+            "heading": {
+              "$ref": "#/definitions/AnchorMatch"
             },
-            "required": [
-              "state"
-            ],
-            "type": "object"
+            "state": {
+              "const": "resolved",
+              "type": "string"
+            }
           },
-          "then": {
-            "$ref": "#/definitions/AnchorResolved"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "state": {
-                "const": "unresolved"
-              }
-            },
-            "required": [
-              "state"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/AnchorUnresolved"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "state": {
-                "const": "ambiguous"
-              }
-            },
-            "required": [
-              "state"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/AnchorAmbiguous"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "state": {
-                "const": "unverified"
-              }
-            },
-            "required": [
-              "state"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/AnchorUnverified"
-          }
-        }
-      ],
-      "description": "What the anchor half of a reference resolved to.\n\nPresent on a `Reference` exactly when its anchor is present and its\ntarget is known: the slug half reached a corpus member, or the anchor\nnames no slug and resolves against the document containing the\nreference (AC-SPECANCH-002.6). Absent when the reference carries no\nanchor, and absent when the slug half is present and did not resolve —\nthe parent feature already reports that reference as broken, and an\nanchor finding on top of it would be a second finding for one mistake\n(AC-SPECANCH-002.8).",
-      "properties": {
-        "state": {
-          "enum": [
-            "resolved",
-            "unresolved",
-            "ambiguous",
-            "unverified"
+          "required": [
+            "state",
+            "heading"
           ],
-          "type": "string"
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "state": {
+              "const": "unresolved",
+              "type": "string"
+            }
+          },
+          "required": [
+            "state"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "matches": {
+              "items": {
+                "$ref": "#/definitions/AnchorMatch"
+              },
+              "type": "array"
+            },
+            "state": {
+              "const": "ambiguous",
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "matches"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "reason": {
+              "type": "string"
+            },
+            "state": {
+              "const": "unverified",
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "reason"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "state"
       ],
-      "type": "object"
+      "description": "What the anchor half of a reference resolved to.\n\nPresent on a `Reference` exactly when its anchor is present and its\ntarget is known: the slug half reached a corpus member, or the anchor\nnames no slug and resolves against the document containing the\nreference (AC-SPECANCH-002.6). Absent when the reference carries no\nanchor, and absent when the slug half is present and did not resolve —\nthe parent feature already reports that reference as broken, and an\nanchor finding on top of it would be a second finding for one mistake\n(AC-SPECANCH-002.8)."
     },
     "AnchorResolved": {
       "additionalProperties": false,
@@ -1130,54 +1118,39 @@
       "type": "string"
     },
     "FeatureSource": {
-      "allOf": [
+      "anyOf": [
         {
-          "if": {
-            "properties": {
-              "form": {
-                "const": "fenced-block"
-              }
+          "additionalProperties": false,
+          "properties": {
+            "block": {
+              "$ref": "#/definitions/Span"
             },
-            "required": [
-              "form"
-            ],
-            "type": "object"
+            "form": {
+              "const": "fenced-block",
+              "type": "string"
+            }
           },
-          "then": {
-            "$ref": "#/definitions/FeatureSourceBlock"
-          }
+          "required": [
+            "form",
+            "block"
+          ],
+          "type": "object"
         },
         {
-          "if": {
-            "properties": {
-              "form": {
-                "const": "feature-file"
-              }
-            },
-            "required": [
-              "form"
-            ],
-            "type": "object"
+          "additionalProperties": false,
+          "properties": {
+            "form": {
+              "const": "feature-file",
+              "type": "string"
+            }
           },
-          "then": {
-            "$ref": "#/definitions/FeatureSourceFile"
-          }
-        }
-      ],
-      "description": "Which admissible form a feature was written in.\n\nThe distinction survives into the index because it changes what a\nconsumer may do. A fenced block sits inside a document that owns\nfrontmatter, terminology and references, and rewriting it means editing a\nregion of markdown. A standalone file has no such document around it and\nis the form external tooling ingests directly.",
-      "properties": {
-        "form": {
-          "enum": [
-            "fenced-block",
-            "feature-file"
+          "required": [
+            "form"
           ],
-          "type": "string"
+          "type": "object"
         }
-      },
-      "required": [
-        "form"
       ],
-      "type": "object"
+      "description": "Which admissible form a feature was written in.\n\nThe distinction survives into the index because it changes what a\nconsumer may do. A fenced block sits inside a document that owns\nfrontmatter, terminology and references, and rewriting it means editing a\nregion of markdown. A standalone file has no such document around it and\nis the form external tooling ingests directly."
     },
     "FeatureSourceBlock": {
       "additionalProperties": false,
@@ -1328,360 +1301,465 @@
       "type": "object"
     },
     "FindingDetail": {
-      "allOf": [
+      "anyOf": [
         {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "schema-violation"
-              }
+          "additionalProperties": false,
+          "properties": {
+            "constraint": {
+              "type": "string"
             },
-            "required": [
-              "kind"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/FindingSchemaViolation"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "missing-property"
-              }
+            "kind": {
+              "const": "schema-violation",
+              "type": "string"
             },
-            "required": [
-              "kind"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/FindingMissingProperty"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "slug-pattern"
-              }
+            "pointer": {
+              "type": "string"
             },
-            "required": [
-              "kind"
-            ],
-            "type": "object"
+            "value": {
+              "type": "string"
+            }
           },
-          "then": {
-            "$ref": "#/definitions/FindingSlugPattern"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "duplicate-slug"
-              }
-            },
-            "required": [
-              "kind"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/FindingDuplicateSlug"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "frontmatter-parse"
-              }
-            },
-            "required": [
-              "kind"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/FindingFrontmatterParse"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "corpus-empty"
-              }
-            },
-            "required": [
-              "kind"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/FindingCorpusEmpty"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "unverified"
-              }
-            },
-            "required": [
-              "kind"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/FindingUnverified"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "unresolved-reference"
-              }
-            },
-            "required": [
-              "kind"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/FindingUnresolvedReference"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "retired-target"
-              }
-            },
-            "required": [
-              "kind"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/FindingRetiredTarget"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "incomplete-pairing"
-              }
-            },
-            "required": [
-              "kind"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/FindingIncompletePairing"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "reference-type"
-              }
-            },
-            "required": [
-              "kind"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/FindingReferenceType"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "unmapped-citation"
-              }
-            },
-            "required": [
-              "kind"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/FindingUnmappedCitation"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "unresolved-citation"
-              }
-            },
-            "required": [
-              "kind"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/FindingUnresolvedCitation"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "gherkin-parse"
-              }
-            },
-            "required": [
-              "kind"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/FindingGherkinParse"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "identifier-pattern"
-              }
-            },
-            "required": [
-              "kind"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/FindingIdentifierPattern"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "duplicate-identifier"
-              }
-            },
-            "required": [
-              "kind"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/FindingDuplicateIdentifier"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "partially-tagged-outline"
-              }
-            },
-            "required": [
-              "kind"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/FindingPartiallyTaggedOutline"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "owning-document"
-              }
-            },
-            "required": [
-              "kind"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/FindingOwningDocument"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "unresolved-anchor"
-              }
-            },
-            "required": [
-              "kind"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/FindingUnresolvedAnchor"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "ambiguous-anchor"
-              }
-            },
-            "required": [
-              "kind"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/FindingAmbiguousAnchor"
-          }
-        }
-      ],
-      "description": "The structured detail of one finding, selected by the kind of defect.\n\nEvery finding carries one. The message on the finding is derivable from\nthis value, so a consumer branches on structure rather than parsing\nprose, and a renderer that wants to offer a fix reads the fields it needs\nas values.\n\nThe union is open to extension in the sense that matters: a later check\nadds a variant without changing the envelope that carries it, and a\nconsumer that does not recognise a variant still has the rule\nidentifier, the severity, the path, the span and the message.",
-      "properties": {
-        "kind": {
-          "enum": [
-            "schema-violation",
-            "missing-property",
-            "slug-pattern",
-            "duplicate-slug",
-            "frontmatter-parse",
-            "corpus-empty",
-            "unverified",
-            "unresolved-reference",
-            "retired-target",
-            "incomplete-pairing",
-            "reference-type",
-            "unmapped-citation",
-            "unresolved-citation",
-            "gherkin-parse",
-            "identifier-pattern",
-            "duplicate-identifier",
-            "partially-tagged-outline",
-            "owning-document",
-            "unresolved-anchor",
-            "ambiguous-anchor"
+          "required": [
+            "kind",
+            "pointer",
+            "constraint",
+            "value"
           ],
-          "type": "string"
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "missing-property",
+              "type": "string"
+            },
+            "pointer": {
+              "type": "string"
+            },
+            "property": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "pointer",
+            "property"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "slug-pattern",
+              "type": "string"
+            },
+            "pattern": {
+              "type": "string"
+            },
+            "slug": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "slug",
+            "pattern"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "duplicate-slug",
+              "type": "string"
+            },
+            "other_path": {
+              "type": "string"
+            },
+            "slug": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "slug",
+            "other_path"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "frontmatter-parse",
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "message"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "corpus-empty",
+              "type": "string"
+            },
+            "root": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "root"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unverified",
+              "type": "string"
+            },
+            "reason": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unresolved-reference",
+              "type": "string"
+            },
+            "non_member": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/ReferenceNonMember"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "origin": {
+              "$ref": "#/definitions/ReferenceOrigin"
+            },
+            "slug": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "slug",
+            "origin"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "retired-target",
+              "type": "string"
+            },
+            "slug": {
+              "type": "string"
+            },
+            "successor": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "slug"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "counterpart": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "incomplete-pairing",
+              "type": "string"
+            },
+            "property": {
+              "type": "string"
+            },
+            "source_path": {
+              "type": "string"
+            },
+            "target_path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "property",
+            "counterpart",
+            "source_path",
+            "target_path"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "actual_type": {
+              "type": "string"
+            },
+            "expected_type": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "reference-type",
+              "type": "string"
+            },
+            "property": {
+              "type": "string"
+            },
+            "slug": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "property",
+            "slug",
+            "expected_type",
+            "actual_type"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "citing_path": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "unmapped-citation",
+              "type": "string"
+            },
+            "map_path": {
+              "type": "string"
+            },
+            "slug": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "slug",
+            "citing_path",
+            "map_path"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "citing_path": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "unresolved-citation",
+              "type": "string"
+            },
+            "slug": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "slug",
+            "citing_path"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "expected": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "gherkin-parse",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "expected"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "identifier": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "const": "identifier-pattern",
+              "type": "string"
+            },
+            "pattern": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "pattern"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "identifier": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "duplicate-identifier",
+              "type": "string"
+            },
+            "other_path": {
+              "type": "string"
+            },
+            "other_position": {
+              "$ref": "#/definitions/Span"
+            }
+          },
+          "required": [
+            "kind",
+            "identifier",
+            "other_path",
+            "other_position"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "partially-tagged-outline",
+              "type": "string"
+            },
+            "untagged": {
+              "items": {
+                "$ref": "#/definitions/Span"
+              },
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "untagged"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "document_slug": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "const": "owning-document",
+              "type": "string"
+            },
+            "slug": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "anchor": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "unresolved-anchor",
+              "type": "string"
+            },
+            "target_path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "anchor",
+            "target_path"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "anchor": {
+              "type": "string"
+            },
+            "kind": {
+              "const": "ambiguous-anchor",
+              "type": "string"
+            },
+            "matches": {
+              "items": {
+                "$ref": "#/definitions/AnchorMatch"
+              },
+              "type": "array"
+            },
+            "target_path": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "anchor",
+            "target_path",
+            "matches"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "kind"
       ],
-      "type": "object"
+      "description": "The structured detail of one finding, selected by the kind of defect.\n\nEvery finding carries one. The message on the finding is derivable from\nthis value, so a consumer branches on structure rather than parsing\nprose, and a renderer that wants to offer a fix reads the fields it needs\nas values.\n\nThe union is open to extension in the sense that matters: a later check\nadds a variant without changing the envelope that carries it, and a\nconsumer that does not recognise a variant still has the rule\nidentifier, the severity, the path, the span and the message."
     },
     "FindingDuplicateIdentifier": {
       "additionalProperties": false,
@@ -2832,121 +2910,111 @@
       "type": "object"
     },
     "ReferenceOrigin": {
-      "allOf": [
+      "anyOf": [
         {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "body"
-              }
-            },
-            "required": [
-              "kind"
-            ],
-            "type": "object"
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "body",
+              "type": "string"
+            }
           },
-          "then": {
-            "$ref": "#/definitions/ReferenceBodyOrigin"
-          }
+          "required": [
+            "kind"
+          ],
+          "type": "object"
         },
         {
-          "if": {
-            "properties": {
-              "kind": {
-                "const": "frontmatter-property"
-              }
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "frontmatter-property",
+              "type": "string"
             },
-            "required": [
-              "kind"
-            ],
-            "type": "object"
+            "property": {
+              "type": "string"
+            }
           },
-          "then": {
-            "$ref": "#/definitions/ReferenceFrontmatterOrigin"
-          }
-        }
-      ],
-      "description": "Where a reference was written.\n\nThe distinction is not decoration. A reference in prose and a reference\nin a registered frontmatter property are reported differently — one\nquotes the link, the other names the property that holds it — and they\nare rewritten differently, so the origin belongs to the reference rather\nthan being inferred from where its span happens to fall.",
-      "properties": {
-        "kind": {
-          "enum": [
-            "body",
-            "frontmatter-property"
+          "required": [
+            "kind",
+            "property"
           ],
-          "type": "string"
+          "type": "object"
         }
-      },
-      "required": [
-        "kind"
       ],
-      "type": "object"
+      "description": "Where a reference was written.\n\nThe distinction is not decoration. A reference in prose and a reference\nin a registered frontmatter property are reported differently — one\nquotes the link, the other names the property that holds it — and they\nare rewritten differently, so the origin belongs to the reference rather\nthan being inferred from where its span happens to fall."
     },
     "ReferenceResolution": {
-      "allOf": [
+      "anyOf": [
         {
-          "if": {
-            "properties": {
-              "state": {
-                "const": "resolved"
-              }
+          "additionalProperties": false,
+          "properties": {
+            "state": {
+              "const": "resolved",
+              "type": "string"
             },
-            "required": [
-              "state"
-            ],
-            "type": "object"
+            "target_path": {
+              "type": "string"
+            }
           },
-          "then": {
-            "$ref": "#/definitions/ReferenceResolved"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "state": {
-                "const": "unresolved"
-              }
-            },
-            "required": [
-              "state"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/ReferenceUnresolved"
-          }
-        },
-        {
-          "if": {
-            "properties": {
-              "state": {
-                "const": "non-member"
-              }
-            },
-            "required": [
-              "state"
-            ],
-            "type": "object"
-          },
-          "then": {
-            "$ref": "#/definitions/ReferenceNonMember"
-          }
-        }
-      ],
-      "description": "What a reference reached.\n\nA reference that reaches nothing is recorded with this state rather than\ndropped, because indexing never fails: the index describes the corpus it\nfound, including the parts of it that are broken, and reporting a broken\nreference is a check's job rather than the indexer's.",
-      "properties": {
-        "state": {
-          "enum": [
-            "resolved",
-            "unresolved",
-            "non-member"
+          "required": [
+            "state",
+            "target_path"
           ],
-          "type": "string"
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "state": {
+              "const": "unresolved",
+              "type": "string"
+            }
+          },
+          "required": [
+            "state"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "parse_error": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/ParseError"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "path": {
+              "type": "string"
+            },
+            "reason": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/ExclusionReason"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "state": {
+              "const": "non-member",
+              "type": "string"
+            }
+          },
+          "required": [
+            "state",
+            "path"
+          ],
+          "type": "object"
         }
-      },
-      "required": [
-        "state"
       ],
-      "type": "object"
+      "description": "What a reference reached.\n\nA reference that reaches nothing is recorded with this state rather than\ndropped, because indexing never fails: the index describes the corpus it\nfound, including the parts of it that are broken, and reporting a broken\nreference is a check's job rather than the indexer's."
     },
     "ReferenceResolved": {
       "additionalProperties": false,

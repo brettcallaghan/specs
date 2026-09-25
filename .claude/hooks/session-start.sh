@@ -10,7 +10,7 @@
 #      symlinks under .claude/skills/ (each -> plugin/skills/<name>), so the
 #      session runs the working tree directly — no materialization step, and
 #      no global copy can shadow it.
-#   3. Build the `strata` CLI.
+#   3. Install the `strata` CLI from its latest release.
 #   4. Install the `swarm` plugin at user scope and build the `swarm` CLI. Its
 #      skills are the sprint orchestration this repo grooms beads for, and each
 #      of them shells out to that CLI.
@@ -156,7 +156,6 @@ if command -v bd >/dev/null 2>&1; then
   # a skill needing a durable tracker requires only "write access to
   # refs/dolt/data" and never names a credential. See docs/session-bootstrap.md.
   BB_DOLT_FATAL=""
-  BB_STRATA_FATAL="${BB_STRATA_FATAL:-}"
   # The helper body is guarded exactly like STRATA_CRED_HELPER further down.
   # `[ "$1" = get ]` because git invokes a helper for get, store and erase, and
   # only get wants an answer; the token test because an unset token would
@@ -339,200 +338,15 @@ if [ -x scripts/sync-shared-references.sh ]; then
 fi
 
 # --- 4. strata CLI -----------------------------------------------------------
-# The `strata` skill teaches an agent to write .strata schemas, and its entire
-# method is `strata build --target ast` — the compiler is the only reliable
-# validator of the language. Without the binary that skill degrades to
-# guessing, so it gets provisioned here for the same reason bd does.
-#
-# Built from the strata repo at HEAD rather than a tagged release: "latest
-# code" is what this is for, and the published binaries lag main.
-#
-# Runs last because it is the long pole (~2 min cold, no-op warm). If the hook
-# is ever killed on a timeout, everything above it has already landed.
+# Every model this repository ships is generated from schemas/*.strata, and
+# the `strata` skill's method is compiling what it writes, so the compiler is
+# provisioned for the same reason bd is. scripts/install-strata-cli.sh
+# installs the latest release binary and is a no-op when it is current.
 if [ "${STRATA_CLI_SKIP:-}" != "1" ]; then
-  STRATA_CACHE="$HOME/.cache/strata-cli"
-  STRATA_CLONE="$HOME/.cache/strata-src"
-  STRATA_BIN=/usr/local/bin/strata
-  STRATA_STAMP="$STRATA_CACHE/built-commit"
-  mkdir -p "$STRATA_CACHE"
-
-  # cargo lives in ~/.cargo/bin, which a hook subprocess may not have on PATH.
-  if [ -d "$HOME/.cargo/bin" ]; then
-    export PATH="$HOME/.cargo/bin:$PATH"
-  fi
-
-  # Prefer a checkout the session already has: when strata is attached as a
-  # source, that clone is the one the user is actually working in, and
-  # building it means the CLI matches the code in front of them. The private
-  # clone is the fallback for sessions where strata is not attached.
-  strata_src=""
-  for candidate in "${STRATA_SRC_DIR:-}" "$PROJECT_DIR/../strata" "$HOME/strata" \
-                   "$STRATA_CLONE"; do
-    [ -n "$candidate" ] || continue
-    [ -f "$candidate/crates/strata-cli/Cargo.toml" ] || continue
-    strata_src="$(cd "$candidate" && pwd)"
-    break
-  done
-
-  # strata-lang/strata is private, so an unauthenticated clone fails with
-  # "could not read Username for 'https://github.com'" — and the session's own
-  # git credentials do not cover it: the egress proxy injects credentials
-  # scoped to the repositories the session attached, not to strata. A
-  # fine-grained PAT with read access to that repo, supplied as
-  # STRATA_ACCESS_TOKEN in the environment's variables, is what closes the gap.
-  #
-  # The token is handed to git through a credential helper rather than being
-  # written into the remote URL. A URL carrying the token is persisted in the
-  # clone's .git/config, where it survives the session on disk and leaks into
-  # any `git remote -v` output; the helper reads $STRATA_ACCESS_TOKEN at call
-  # time, so only the shell snippet is stored. Passed via `git clone -c`, it
-  # authenticates the clone AND persists into the clone's local config, so the
-  # fetch/fast-forward below reuses it with no further work.
-  #
-  # Scoped to this clone's local config, never global: a global github.com
-  # helper would also answer for this repository's own pushes, and a PAT
-  # scoped to strata would be rejected there.
-  STRATA_CRED_HELPER='!f() { [ "$1" = get ] || exit 0; [ -n "${STRATA_ACCESS_TOKEN:-}" ] || exit 0; printf "username=x-access-token\npassword=%s\n" "$STRATA_ACCESS_TOKEN"; }; f'
-
-  if [ -z "$strata_src" ]; then
-    if [ -z "${STRATA_ACCESS_TOKEN:-}" ]; then
-      log "WARNING: no strata checkout and STRATA_ACCESS_TOKEN is unset — strata-lang/strata is private, so the clone would fail. Set it in the environment's variables (fine-grained PAT, read access to strata-lang/strata), or point STRATA_SRC_DIR at a checkout."
-    fi
-    log "cloning strata-lang/strata into $STRATA_CLONE"
-    # Blobless rather than shallow: `scripts/sync-strata-docs.sh` stamps each
-    # vendored doc with the commit that last touched it, which a --depth 1
-    # clone cannot answer. Falls back to a full clone if the git proxy in this
-    # environment refuses partial-clone filters.
-    # `-c credential.helper=` FIRST — defence in depth, and cheap. The Dolt
-    # block's helper is scoped to this repository's own remote and so does not
-    # answer for strata-lang/strata, but credential.helper is multi-valued and
-    # global values are tried before local ones: any bare global helper this
-    # environment (or a stale ~/.gitconfig) still carries would answer with the
-    # wrong identity, and GitHub reports that as 403 "Write access to
-    # repository not granted" — a write-shaped message for a read that was
-    # never permitted. The empty value resets the list so only the strata
-    # helper answers.
-    if git clone --filter=blob:none --quiet \
-         -c credential.helper= -c "credential.helper=$STRATA_CRED_HELPER" \
-         https://github.com/strata-lang/strata.git \
-         "$STRATA_CLONE" >>"$STRATA_CACHE/build.log" 2>&1 \
-       || git clone --quiet \
-            -c credential.helper= -c "credential.helper=$STRATA_CRED_HELPER" \
-            https://github.com/strata-lang/strata.git \
-            "$STRATA_CLONE" >>"$STRATA_CACHE/build.log" 2>&1; then
-      strata_src="$STRATA_CLONE"
-    else
-      BB_STRATA_FATAL="the clone failed (see $STRATA_CACHE/build.log)."
-      log "ERROR: could not clone strata (see $STRATA_CACHE/build.log) — CLI unavailable"
-    fi
-  fi
-
-  if [ -n "$strata_src" ]; then
-    # Reassert the credential helper on the clone this hook owns, so a clone
-    # made by an earlier version of this script — or one whose helper snippet
-    # has since changed — can still fetch. Only ever on $STRATA_CLONE: an
-    # attached checkout belongs to the user and has its own credentials, and
-    # a hook that edits someone's .git/config is the same class of surprise
-    # as a hook that rebases their branch.
-    if [ "$strata_src" = "$STRATA_CLONE" ] \
-       && git -C "$strata_src" rev-parse --git-dir >/dev/null 2>&1; then
-      # Two values, in this order: the empty one resets the list inherited
-      # from global config, then the strata helper answers. A lone local
-      # helper would still lose, because global is tried first.
-      git -C "$strata_src" config --replace-all credential.helper "" 2>/dev/null || true
-      git -C "$strata_src" config --add credential.helper "$STRATA_CRED_HELPER" 2>/dev/null || true
-    fi
-
-    # Fast-forward only, and only when there is nothing to lose. A session may
-    # be mid-change in an attached strata checkout — this hook runs in that
-    # repo too — and a hook that resets or rebases someone's branch is data
-    # loss, not convenience. Anything other than a clean default branch gets
-    # built exactly as it sits.
-    #
-    # _fetch_unverified tracks whether we actually confirmed the checkout is
-    # caught up with upstream this session. A "stamp matches local HEAD"
-    # match below only proves the binary matches what's on disk — it says
-    # nothing about whether that disk state is current if the fetch that was
-    # supposed to update it failed. Left unguarded, a persistent fetch
-    # failure (e.g. a flaky egress proxy) plus a stamp that happens to match
-    # the unmoved local HEAD reports "strata CLI current" indefinitely while
-    # actually installing whatever was on disk when the fetch first started
-    # failing (see agent-plugins-j7f). Only the explicit fetch/merge failure
-    # below sets this — the "not a git checkout" and "as-is" (non-default
-    # branch / dirty tree) cases are deliberate, not failures, and are
-    # already self-explanatory in their own log lines.
-    _fetch_unverified=0
-    if ! git -C "$strata_src" rev-parse --git-dir >/dev/null 2>&1; then
-      # STRATA_SRC_DIR pointed at a source tree with no git in it. Nothing to
-      # update and nothing to stamp, so it rebuilds every session.
-      log "strata: $strata_src is not a git checkout — building it as-is"
-    else
-      # `|| true` is load-bearing: this script runs under `set -o pipefail`,
-      # and a clone with no origin/HEAD ref (git does not always create one)
-      # makes symbolic-ref fail, which would take the whole hook down
-      # mid-pipeline.
-      _default="$(git -C "$strata_src" symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's|^origin/||' || true)"
-      _default="${_default:-main}"
-      _branch="$(git -C "$strata_src" rev-parse --abbrev-ref HEAD 2>/dev/null || echo '')"
-      if [ "$_branch" != "$_default" ]; then
-        log "strata: checkout is on '$_branch', not '$_default' — building it as-is"
-      elif [ -n "$(git -C "$strata_src" status --porcelain 2>/dev/null)" ]; then
-        log "strata: checkout has uncommitted changes — building it as-is"
-      else
-        git -C "$strata_src" fetch --quiet origin "$_default" >>"$STRATA_CACHE/build.log" 2>&1 \
-          && git -C "$strata_src" merge --ff-only --quiet "origin/$_default" >>"$STRATA_CACHE/build.log" 2>&1 \
-          || { _fetch_unverified=1; log "WARNING: strata: fetch/fast-forward against upstream failed — building the checkout as-is; freshness relative to upstream is unverified this session (see $STRATA_CACHE/build.log)"; }
-      fi
-    fi
-
-    # An empty _head means the source is not a git checkout — STRATA_SRC_DIR
-    # pointing at an extracted tarball or a vendored tree does that. Such a
-    # tree gets rebuilt every session: there is no commit to compare, and
-    # stamping a placeholder would match itself forever and pin the binary to
-    # whatever happened to be built first.
-    _head="$(git -C "$strata_src" rev-parse HEAD 2>/dev/null || true)"
-    if [ -n "$_head" ] && [ -x "$STRATA_BIN" ] \
-       && [ "$(cat "$STRATA_STAMP" 2>/dev/null)" = "$_head" ]; then
-      if [ "$_fetch_unverified" = "1" ]; then
-        # Do NOT report plain success here: the stamp matching local HEAD
-        # only proves the binary matches disk, not that disk is caught up —
-        # this is exactly the "stale stamp reports success" failure mode
-        # this branch exists to close.
-        log "WARNING: strata CLI stamp matches local HEAD (${_head:0:8}), but this session could not verify that HEAD against upstream (fetch failed above) — the installed binary may be stale. Re-run the hook once network access to github.com is restored, or inspect $STRATA_CACHE/build.log."
-      else
-        log "strata CLI current: $("$STRATA_BIN" --version 2>/dev/null || echo installed) (${_head:0:8})"
-      fi
-    else
-      log "building strata CLI from $strata_src${_head:+ @ ${_head:0:8}} (~2 min cold${_head:+, cached after})"
-      # -p strata-cli, not the workspace: this needs the binary, not the WASM
-      # crate, and skipping it saves both time and disk.
-      if ! command -v cargo >/dev/null 2>&1; then
-        log "WARNING: cargo not on PATH — cannot build the strata CLI"
-      elif cargo build --release -p strata-cli \
-           --manifest-path "$strata_src/Cargo.toml" >>"$STRATA_CACHE/build.log" 2>&1; then
-        # Install a copy rather than a symlink into target/: `cargo clean` in
-        # the strata checkout is a routine thing to do, and it would leave a
-        # dangling /usr/local/bin/strata that reads as a broken install.
-        if install -m 0755 "$strata_src/target/release/strata" "$STRATA_BIN" 2>>"$STRATA_CACHE/build.log"; then
-          # Only stamp a real commit — see the note above. A stale stamp is
-          # worse than none: it silently pins the binary.
-          if [ -n "$_head" ]; then printf '%s' "$_head" > "$STRATA_STAMP"; else rm -f "$STRATA_STAMP"; fi
-          log "strata CLI ready: $("$STRATA_BIN" --version 2>/dev/null || echo installed)"
-        else
-          log "WARNING: could not install to $STRATA_BIN — see $STRATA_CACHE/build.log"
-        fi
-      else
-        log "WARNING: strata build failed — see $STRATA_CACHE/build.log"
-      fi
-    fi
-
-    # The skill's references are vendored copies of strata's own docs. Report
-    # drift; never write, because a hook that edits tracked files turns every
-    # session start into an unexplained diff.
-    if [ -x scripts/sync-strata-docs.sh ]; then
-      STRATA_SRC_DIR="$strata_src" scripts/sync-strata-docs.sh --check >/dev/null 2>&1 \
-        || log "note: vendored strata docs are behind — run scripts/sync-strata-docs.sh"
-    fi
+  if _strata_out="$(scripts/install-strata-cli.sh 2>&1)"; then
+    log "strata CLI ready: $(strata --version 2>/dev/null || echo installed)"
+  else
+    BB_STRATA_FATAL="${_strata_out##*$'\n'}"
   fi
 fi
 
@@ -552,9 +366,8 @@ if [ "${SWARM_SKIP:-}" != "1" ]; then
   SWARM_LOG="$SWARM_CACHE/build.log"
   mkdir -p "$SWARM_CACHE"
 
-  # Prefer a checkout the session already has, for the same reason strata does:
-  # if swarm is attached as a source, the CLI should match the code in front of
-  # the user.
+  # Prefer a checkout the session already has: if swarm is attached as a
+  # source, the CLI should match the code in front of the user.
   swarm_src=""
   for candidate in "${SWARM_SRC_DIR:-}" "$PROJECT_DIR/../swarm" "$HOME/swarm" \
                    "$SWARM_CLONE"; do
@@ -716,12 +529,9 @@ if [ -n "${BB_STRATA_FATAL:-}" ] && [ -z "${STRATA_CLI_SKIP:-}" ]; then
   log "  This is fatal rather than a warning for that reason. To start a"
   log "  session that deliberately does no schema work, set STRATA_CLI_SKIP=1."
   log ""
-  log "  Otherwise the environment must provide ONE of:"
-  log "    1. STRATA_ACCESS_TOKEN — a fine-grained PAT with read access to"
-  log "       strata-lang/strata, set at container creation. See"
-  log "       docs/session-bootstrap.md."
-  log "    2. STRATA_SRC_DIR — a path to a checkout already on disk."
-  log "    3. strata-lang/strata attached to the session as a source."
+  log "  Otherwise the environment must provide STRATA_ACCESS_TOKEN — a"
+  log "  fine-grained PAT with read access to strata-lang/strata, set at"
+  log "  container creation. See docs/session-bootstrap.md."
   log ""
   exit 1
 fi

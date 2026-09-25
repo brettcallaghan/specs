@@ -16,8 +16,7 @@
 #   HEAD, so an unrelated strata commit does not make these look stale.
 #
 # Where the source comes from — first match wins:
-#   $STRATA_SRC_DIR, ../strata (sibling checkout), ~/strata,
-#   ~/.cache/strata-src (the clone .claude/hooks/session-start.sh maintains).
+#   $STRATA_SRC_DIR, ../strata (sibling checkout), ~/strata.
 #
 # Usage
 #   scripts/sync-strata-docs.sh            # write the vendored copies
@@ -59,8 +58,7 @@ EOF
 
 # ---- locate a strata checkout ----------------------------------------------
 STRATA_SRC=""
-for candidate in "${STRATA_SRC_DIR:-}" "$REPO_ROOT/../strata" "$HOME/strata" \
-                 "$HOME/.cache/strata-src"; do
+for candidate in "${STRATA_SRC_DIR:-}" "$REPO_ROOT/../strata" "$HOME/strata"; do
   [ -n "$candidate" ] || continue
   [ -f "$candidate/crates/strata-cli/Cargo.toml" ] || continue
   STRATA_SRC="$(cd "$candidate" && pwd)"
@@ -69,7 +67,7 @@ done
 
 if [ -z "$STRATA_SRC" ]; then
   echo "sync-strata-docs: no strata checkout found." >&2
-  echo "  Looked in: \$STRATA_SRC_DIR, ../strata, ~/strata, ~/.cache/strata-src" >&2
+  echo "  Looked in: \$STRATA_SRC_DIR, ../strata, ~/strata" >&2
   echo "  Clone strata-lang/strata somewhere on that list, or set STRATA_SRC_DIR." >&2
   # --check is part of this repo's test suite, and a machine with no strata
   # checkout is not a defect in this repo — it just cannot answer the

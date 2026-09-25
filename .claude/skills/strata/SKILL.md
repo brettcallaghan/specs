@@ -252,20 +252,13 @@ JSON. Those are outside what the language describes.
 
 ## Getting the compiler
 
-In a cloud session `.claude/hooks/session-start.sh` builds `strata` from
-the latest strata source and installs it to `/usr/local/bin/strata`, so
-`strata --version` should just work. If it does not:
+In a cloud session `.claude/hooks/session-start.sh` installs the latest
+`strata` release to `/usr/local/bin/strata`, so `strata --version` should
+just work. If it does not, install it by hand — it needs
+`STRATA_ACCESS_TOKEN` while `strata-lang/strata` is private:
 
 ```bash
-strata --version                       # already installed?
-cat ~/.cache/strata-cli/build.log      # the hook's build output, if it failed
-```
-
-To build it by hand from a checkout of `strata-lang/strata`:
-
-```bash
-cargo build --release -p strata-cli    # ~2 min cold
-install -m 0755 target/release/strata /usr/local/bin/strata
+scripts/install-strata-cli.sh          # latest release; or pass a tag, e.g. v0.8.0
 ```
 
 Without the binary this skill is guesswork — the loop above is the whole

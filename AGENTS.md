@@ -336,39 +336,27 @@ scope for this run's beads" tells a future reader nothing they can act on.
   bypass by refspec, so the bypass cannot apply to `refs/dolt/*` alone — the
   two remedies are that per-command override, or granting the PAT `workflow`
   scope. Do NOT "fix" it by widening the bypass back to the host.
-- **`scripts/generate-schemas.sh --check` fails when the installed `strata`
-  predates `strata-lang/strata@8997153`.** That commit fixes
-  `allowAdditionalProperties: false` silently dropping struct inheritance.
-  An older binary regenerates `cli/core/schema/spec-model.schema.json` with
-  `"properties": {}` on every inheriting type, so `--check` reports the
-  committed (correct) artifacts as stale — the binary is wrong, not the repo.
-  **Never "fix" this by committing the regenerated output**; that would delete
-  the properties. Fix the binary:
+- **`strata` must be v0.8.0 or later.** `schemas/strata.config.json` closes
+  every shape with the top-level `rejectUnknownProperties: true`. v0.8.0
+  removed `jsonSchema.allowAdditionalProperties` and refuses a manifest that
+  still sets it — measured with the v0.8.0 release binary against the old
+  manifest: `invalid manifest schemas/strata.config.json:
+  /jsonSchema/allowAdditionalProperties: unknown property`. v0.7.0 exits 0 on
+  the current manifest but emits no bundle, so `scripts/generate-schemas.sh`
+  fails at its `mv`. Do not reintroduce the old key.
 
-  ```bash
-  cd /path/to/strata && cargo build --release -p strata-cli   # ~1m20s
-  cp -f target/release/strata /usr/local/bin/strata
-  ```
+  The option closes the generated Go decoders too, not just the JSON Schema:
+  measured, `json.Unmarshal` into `specmodel.FindingSlugPattern` with an
+  extra key returns `FindingSlugPattern: unknown field "extra"`.
 
-  **`strata --version` cannot identify a build** — every build in the range
-  that matters reports `strata-cli 0.7.0`. Check
-  `~/.cache/strata-cli/built-commit` instead.
-- **Build `strata` from `strata-lang/strata` HEAD**, against the manifest as
-  committed in this repo. A build that is merely "recent enough" is not
-  sufficient: the supported build tracks HEAD, and both older and mismatched
-  builds fail — older ones *silently*, by emitting document-type structs with
-  an empty `properties` map while exiting 0.
-
-  That silent mode is why `scripts/generate-schemas.sh` asserts on the emitted
-  shape (every document-type struct retains a non-empty `required` list)
-  rather than on a version string. Keep the assertion: it catches this class
-  of corruption from any build, not one known-bad commit.
-
-  **Both entries above are unverified**: no run has been cited showing the
-  empty-`properties` failure. Settle by running
-  `scripts/generate-schemas.sh --check` against a `strata` build older than
-  `8997153` and confirming the emitted schema shows empty `properties` maps
-  on inheriting types.
+  Closing a union inlines each variant, discriminator included, as an
+  `anyOf` branch. Measured with `jsonschema` against `#/definitions/FindingDetail`:
+  `{"kind":"slug-pattern","slug":"x","pattern":"y"}` is accepted by the
+  v0.8.0 output and was rejected by the previously committed one (`'kind' was
+  unexpected`); the same document plus `"extra": 1` is rejected by both.
+  `scripts/generate-schemas.sh` still asserts every document-type struct keeps
+  a non-empty `required` list — a build that drops inheritance under a closed
+  schema exits 0 — so keep that assertion.
 - `bd`: not preinstalled. `.claude/hooks/session-start.sh` installs it via the
   official installer, which needs `libicu-dev` for the Dolt/ICU cgo dependency
   — without those headers the build fails at `unicode/uregex.h: No such file`.
@@ -425,8 +413,8 @@ scope for this run's beads" tells a future reader nothing they can act on.
   1.2.2: with `issue-prefix: "zzztest"` in `.beads/config.yaml` and a database
   configured `agent-plugins`, `bd create` minted `agent-plugins-4731`. The file
   key is ignored entirely.
-- `strata`: not preinstalled either. The hook builds it from source — see
-  "strata CLI" below.
+- `strata`: not preinstalled either. The hook installs the release binary —
+  see "strata CLI" below.
 - **Corrected 2026-08-12, was stale:** this entry previously read "`bd init`
   git-commits its own scaffolding; the hook records HEAD and unwinds that
   commit." The hook no longer runs `bd init` (see above) and contains no
@@ -442,50 +430,31 @@ scope for this run's beads" tells a future reader nothing they can act on.
 
 ### strata CLI
 
-Local sessions already have `strata` on PATH; this section is about cloud
-sessions, where `.claude/hooks/session-start.sh` provisions it because the
-`strata` skill's entire method is compiling what it writes.
+`scripts/install-strata-cli.sh` installs the latest `strata-lang/strata`
+release binary to `/usr/local/bin/strata`; the session-start hook runs it in
+cloud sessions, and anyone can run it locally. It is a no-op when
+`~/.cache/strata-cli/installed-release` already names the latest tag.
 
-- **Built from source at HEAD, not from a release.** The published binaries
-  lag `main` and the point is the latest code. Do not "optimize" this into a
-  release download: both the release API and the release assets are blocked by
-  the egress proxy, so a clone plus `cargo build` is the only path that works
-  here. **Re-verified 2026-08-12** (updates "403 and 404 respectively, last
-  measured 2026-08-09"): `api.github.com/repos/strata-lang/strata/
-  releases/latest` → 403; `github.com/strata-lang/strata/releases` → 403. A
-  direct download URL for a specific release asset returned 404, but that
-  asset/tag may simply not exist — not distinguishable from a block with the
-  URL tried, so the original "403 and 404 respectively" pairing is
-  **unverified** as stated; the net effect (no release path works) is
-  unchanged.
-- The hook prefers a checkout the session already has — an attached `strata`,
-  or `STRATA_SRC_DIR` — and clones only as a fallback. It never touches a
-  checkout with work in it: it fast-forwards only a clean default branch, and
-  otherwise builds what it finds. **Re-verified 2026-08-12** by reading the
-  hook source (candidate checkout search, and the fast-forward-only-a-clean-
-  default-branch guard).
-- **Escape hatches:** `STRATA_CLI_SKIP=1` skips the step entirely;
-  `STRATA_SRC_DIR` points at a checkout. Build output lands in
-  `~/.cache/strata-cli/build.log` and the built commit in
-  `~/.cache/strata-cli/built-commit`. **Re-verified 2026-08-12**: both
-  environment variables appear in the current hook source, and both cache
-  files exist in this container.
-- **If `strata` is missing, read the hook's warning** — it names the cause.
-  The common one is the clone: `strata-lang/strata` is private *today*, so a
-  cloud session with no attached checkout needs `STRATA_ACCESS_TOKEN` set on
-  the environment (`docs/session-bootstrap.md`). That requirement goes away
-  when the repository goes public — `agent-plugins-6gn` tracks removing it.
-  **Re-verified 2026-08-12**: the exact warning text is present in the hook
-  source.
-- **Cost:** ~1m50s and ~470 MB of `target/`, once per container. The
-  SessionStart `timeout` in `.claude/settings.json` is 900s to cover it; at
-  the 60s default the build is killed partway. **Re-verified 2026-08-12** from
-  this session's own build: `~/.cache/strata-cli/build.log` shows `Finished
-  \`release\` profile [optimized] target(s) in 2m 35s`, and
-  `du -sh ~/.cache/strata-src/target` → `470M` (exact match). The time is
-  higher than the documented ~1m50s on this run — cache warmth and container
-  CPU allocation can move it; treat ~1m50s–2m35s as the observed range rather
-  than a fixed number.
+- **Needs `STRATA_ACCESS_TOKEN`** while `strata-lang/strata` is private
+  (`docs/session-bootstrap.md`); `agent-plugins-6gn` tracks removing it.
+  Without it the release lookup fails: measured, unauthenticated direct
+  `api.github.com/repos/strata-lang/strata/releases/latest` → 403.
+- **Its GitHub requests fall back to bypassing the egress proxy, and must.**
+  The proxy replaces the credential: measured with `STRATA_ACCESS_TOKEN` set
+  and strata not attached to the session, the release lookup through the proxy
+  → 403 "GitHub access to this repository is not enabled for this session";
+  the same request under `curl --noproxy '*'` → 200, and the asset download
+  (redirected to `release-assets.githubusercontent.com`) → 200. The proxy is
+  tried first so an environment that does grant access through it still works.
+- **Verified before install**: against the `sha256:` digest GitHub publishes
+  for the asset, then by running `strata --version`. Pin a release with an
+  argument (`scripts/install-strata-cli.sh v0.8.0`) or `STRATA_VERSION`.
+- **v0.8.0 publishes no `aarch64-unknown-linux-gnu` asset** (measured from the
+  release's asset list); the script names the missing asset and exits 1.
+- **A failed install is fatal in the hook**, because a session without the
+  compiler can edit a `.strata` file but not compile it. `STRATA_CLI_SKIP=1`
+  starts a session that deliberately does no schema work.
+- **Cost:** measured 1.3s for a cold install through the hook's section.
 
 ## Where documents live
 

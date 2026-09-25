@@ -22,8 +22,8 @@ MD_OUT="plugin/skills/spec/references/generated"
 
 if ! command -v strata >/dev/null 2>&1; then
   echo "error: strata not found on PATH." >&2
-  echo "  The session-start hook installs it; see .claude/skills/strata/SKILL.md" >&2
-  echo "  to build it by hand from a strata-lang/strata checkout." >&2
+  echo "  Install it with scripts/install-strata-cli.sh (the session-start hook" >&2
+  echo "  runs it for you)." >&2
   exit 1
 fi
 
@@ -44,25 +44,18 @@ strata build "$SRC" --target json-schema --output "$WORK/schema"
 mv "$WORK/schema/SpecModel.schema.json" "$WORK/schema/spec-model.schema.json"
 
 # 2.5. Sanity assertion: every document-type struct must retain a non-empty
-#      `required` list. strata commit 44c1955 (predating strata-lang/strata's
-#      fix in 8997153, "Fix: allowAdditionalProperties: false silently
-#      dropped struct inheritance (#289)") emitted structs like
-#      `Adr: DocumentFrontmatter {}` as
-#      {"additionalProperties": false, "properties": {}} — every inherited
-#      envelope property AND the required list silently gone — while strata
-#      itself still exited 0. `strata --version` cannot tell a good build
-#      from a bad one (both report strata-cli 0.7.0), so this checks the
-#      emitted SHAPE instead of the version string, which catches any future
-#      regression of this kind rather than only this one commit
-#      (agent-plugins-j7f).
+#      `required` list. A strata build that drops struct inheritance under a
+#      closed schema emits `Adr: DocumentFrontmatter {}` as an empty closed
+#      object while still exiting 0 — strata builds predating
+#      strata-lang/strata#289 (released in v0.8.0) did exactly that. This
+#      checks the emitted SHAPE rather than a version string, so it catches
+#      any regression of that kind.
 #
-#      The DocumentType enum (kebab-case values, e.g. "system-blueprint") is
-#      used to derive the document-type struct names (PascalCase, e.g.
-#      "SystemBlueprint") rather than hardcoding them, so the check stays
-#      correct as document types are added or renamed in schemas/*.strata.
-#      The enum itself is a plain string enum with no struct inheritance, so
-#      it is not vulnerable to the bug this check guards against and remains
-#      a reliable anchor even when the structs it names have been corrupted.
+#      The document-type struct names are derived from the DocumentType enum
+#      (kebab-case values, e.g. "system-blueprint" -> "SystemBlueprint") so
+#      the check follows document types as they are added or renamed. The
+#      enum has no inheritance, so it stays a reliable anchor even when the
+#      structs it names are corrupted.
 python3 - "$WORK/schema/spec-model.schema.json" <<'PYEOF'
 import json
 import sys
@@ -105,16 +98,9 @@ if broken:
     print(
         "error: generated schema has document type(s) with an empty or "
         f"missing 'required' list: {', '.join(broken)}\n"
-        "  This is the shape of the regression fixed upstream by "
-        "strata-lang/strata commit 8997153 ('Fix: allowAdditionalProperties: "
-        "false silently dropped struct inheritance (#289)') — struct "
-        "inheritance (e.g. 'struct Adr: DocumentFrontmatter {}') silently "
-        "drops every inherited property and the required list, while strata "
-        "still exits 0 and 'strata --version' still reports strata-cli "
-        "0.7.0 either way.\n"
-        "  Check the strata build on PATH: cat "
-        "~/.cache/strata-cli/built-commit names the commit it was built "
-        "from. See .claude/skills/strata/SKILL.md to rebuild if needed.",
+        "  Struct inheritance was dropped from the emitted schema while strata "
+        "exited 0. Check `strata --version` is v0.8.0 or later, and reinstall "
+        "with scripts/install-strata-cli.sh.",
         file=sys.stderr,
     )
     sys.exit(1)
