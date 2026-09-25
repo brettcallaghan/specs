@@ -218,7 +218,7 @@ agent acting on the instruction rather than on the harness enforcing it.
 
 ```bash
 command -v bd strata swarm    # all three present -> provisioning worked
-claude plugin list            # specs@spec-driven-dev and swarm@swarm, user scope
+claude plugin list            # specs@brettcallaghan and swarm@brettcallaghan, user scope
 cat ~/.cache/strata-cli/build.log   # the hook's strata build output
 cat ~/.cache/swarm-cli/build.log    # the hook's swarm clone, plugin and build output
 ```

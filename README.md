@@ -79,12 +79,19 @@ to change your mind.
 
 ## Install
 
-**The plugin** (skills, in Claude Code):
+**The plugin** (skills, in Claude Code). This repository is the
+`brettcallaghan` marketplace, which also lists
+[`swarm`](https://github.com/brettcallaghan/swarm):
 
 ```
 /plugin marketplace add brettcallaghan/agent-plugins
-/plugin install specs@spec-driven-dev
+/plugin install specs@brettcallaghan
+/plugin install swarm@brettcallaghan   # optional — sprint orchestration
 ```
+
+Upgrading from `sf@spec-driven-dev` or `swarm@swarm`: remove the old
+marketplaces (`/plugin marketplace remove spec-driven-dev`, and `swarm`),
+then install as above.
 
 Or install the skills into `~/.claude/skills` from a checkout, without
 the plugin system:
