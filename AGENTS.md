@@ -236,7 +236,7 @@ a fresh measurement. A change under `cli/**` is therefore not finished until
 that script has been run from the repository root and the README diff committed
 with it. Regenerate with the Go version in `cli/go.mod` — statement counts come
 from the toolchain, so a different one moves the numbers. It is in `ci.sh` and
-deliberately not in `sf.toml`: three instrumented test legs is not a price
+deliberately not in `swarm.toml`: three instrumented test legs is not a price
 worth paying per bead.
 
 ### Environmental-failure ledger

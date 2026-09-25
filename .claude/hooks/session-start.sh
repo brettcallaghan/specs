@@ -638,10 +638,10 @@ if [ "${SWARM_SKIP:-}" != "1" ]; then
     # existing state and exit 0. `--yes` is required because stdout here is not
     # a TTY.
     #
-    # sf first. swarm declares sf@spec-driven-dev as a plugin dependency, and
+    # specs first. swarm declares specs@spec-driven-dev as a plugin dependency, and
     # without it `claude plugin install swarm@swarm` reports "1 dependency
     # still unresolved". THIS repository is the spec-driven-dev marketplace, so
-    # sf installs from the working tree — no clone, no token, and the same
+    # specs installs from the working tree — no clone, no token, and the same
     # files the committed .claude/skills/ symlinks already point at.
     if ! command -v claude >/dev/null 2>&1; then
       log "WARNING: claude not on PATH — skipping the swarm plugin install"
@@ -651,11 +651,11 @@ if [ "${SWARM_SKIP:-}" != "1" ]; then
         claude plugin marketplace add "$_m" --scope user >>"$SWARM_LOG" 2>&1 \
           || { _plugin_ok=0; log "WARNING: could not add the marketplace at $_m (see $SWARM_LOG)"; }
       done
-      for _p in sf@spec-driven-dev swarm@swarm; do
+      for _p in specs@spec-driven-dev swarm@swarm; do
         claude plugin install "$_p" --scope user --yes >>"$SWARM_LOG" 2>&1 \
           || { _plugin_ok=0; log "WARNING: could not install plugin $_p (see $SWARM_LOG)"; }
       done
-      [ "$_plugin_ok" = "1" ] && log "swarm plugin installed at user scope (with sf@spec-driven-dev, its declared dependency)"
+      [ "$_plugin_ok" = "1" ] && log "swarm plugin installed at user scope (with specs@spec-driven-dev, its declared dependency)"
     fi
 
     # --- the CLI ------------------------------------------------------------

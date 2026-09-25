@@ -4,8 +4,9 @@
 # (brettcallaghan/swarm) — `bb-checks.py` runs `[[checks]]`, `swarm-scope`
 # resolves `[run]`, `swarm-retro` reads `[retros]`, `swarm-review` reads
 # `[review]`, and the coordinator resolves `[models]` at dispatch. The file is
-# named for its reader, which is why it is `swarm.toml` and not `sf.toml`: the
-# `sf` plugin has no configuration file and parses no TOML at all.
+# named for its reader, which is why it is `swarm.toml`: the `specs` plugin has
+# no configuration file and parses no TOML at all (`specs.toml` belongs to the
+# Spec CLI, not the plugin).
 #
 # It lives here because a swarm run executed AGAINST this repository needs to
 # know this repository's checks, tiers and run defaults.
@@ -169,7 +170,7 @@ dir = "docs/retros"
 
 # Where issues against the SKILLS a run used are written. DELIBERATELY UNSET
 # here, and the reason is now narrower than it was: this repository vends the
-# `sf` skills — `spec`, `groom-beads`, `groom-feature-blueprint`, `retro-spec`,
+# `specs` skills — `spec`, `groom-beads`, `groom-feature-blueprint`, `retro-spec`,
 # `retro-skill` — so an issue about one of those is ordinary work in this
 # tracker and belongs in it as a bead.
 #

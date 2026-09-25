@@ -1,4 +1,4 @@
-# `sf` — Spec-First Development
+# Specs — Spec-First Development
 
 <!-- coverage:badge:start -->
 [![coverage](https://img.shields.io/badge/cli%20coverage-89.8%25-green)](#test-coverage)
@@ -83,7 +83,7 @@ to change your mind.
 
 ```
 /plugin marketplace add brettcallaghan/agent-plugins
-/plugin install sf@spec-driven-dev
+/plugin install specs@spec-driven-dev
 ```
 
 Or install the skills into `~/.claude/skills` from a checkout, without

@@ -4,7 +4,7 @@ description: Evidence-based retrospective on a SKILL that an agent just
   ran — identifies skill defects, refinements, and gaps that would make
   future runs succeed. Cites the exact instruction that misled, names
   the script that failed, flags friction seen on every run, and records
-  the model that ran it. Use after running any skill (an `sf` plugin
+  the model that ran it. Use after running any skill (a `specs` plugin
   skill, this repo's own skills, or a project-local skill),
   especially one that struggled, improvised, or produced a wrong result,
   or when asked to retro a skill, critique a skill, or capture how a
