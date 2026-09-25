@@ -37,7 +37,7 @@ sh_run "vet"           'cd cli && go vet ./...'
 sh_run "build"         'cd cli && go build ./...'
 sh_run "test-go"       'cd cli && go test ./...'
 # Re-runs the suite three times instrumented, so it is here rather than in
-# sf.toml. Fails when README.md's committed figures are not what it measured.
+# swarm.toml. Fails when README.md's committed figures are not what it measured.
 sh_run "coverage"      'scripts/coverage.sh --check'
 
 # --- documentation corpus and skills --------------------------------------

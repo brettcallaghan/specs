@@ -1,6 +1,6 @@
 ---
-title: "ADR-017: The Spec CLI Is a Prerequisite of the sf Plugin, Not a Payload"
-description: The sf plugin stays pure markdown and names the specs binary as
+title: "ADR-017: The Spec CLI Is a Prerequisite of the specs Plugin, Not a Payload"
+description: The specs plugin stays pure markdown and names the specs binary as
   a prerequisite; skills call it directly and degrade to hand-checking
   rather than branching on its absence
 slug: adr-017
@@ -9,14 +9,14 @@ status: draft
 updated_at: 2026-08-05T00:00:00Z
 ---
 
-# ADR-017: The Spec CLI Is a Prerequisite of the sf Plugin, Not a Payload
+# ADR-017: The Spec CLI Is a Prerequisite of the specs Plugin, Not a Payload
 
 **Status:** draft
 **Date:** 2026-08-05
 
 ## Context
 
-The `sf` plugin is distributed by clone through
+The `specs` plugin is distributed by clone through
 `.claude-plugin/marketplace.json` and consists entirely of markdown:
 six skills and their bundled references. The Spec CLI is a Go binary,
 published by `.github/workflows/release.yml` through two channels — the

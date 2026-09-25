@@ -33,3 +33,6 @@ build/
 # everything dirty in that worktree.
 __pycache__/
 *.pyc
+
+# bd runtime lock, created beside .beads/ (not inside it) while a command runs
+*.gate.lock*

@@ -50,7 +50,7 @@ described by identical sentences. One question separates them:
 >
 > - In **this project's own repository** → yours. An issue in its tracker.
 > - In the **repository that vends the template or standard** → `retro-skill`'s.
->   It leaves through `.sf/outbox/` and is never filed in this project's
+>   It leaves through `outbox/<plugin>/` and is never filed in this project's
 >   backlog.
 
 So: a gap in the FRD *template* this framework ships is `retro-skill`'s. A

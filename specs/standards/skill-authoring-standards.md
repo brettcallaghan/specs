@@ -13,7 +13,7 @@ version: "0.4"
 # Skill Authoring Standards
 
 These requirements govern every agent skill authored in this repository —
-the skills shipped in the `sf` plugin and the repo-local
+the skills shipped in the `specs` plugin and the repo-local
 skills under `.claude/skills/`. They apply to skill authors and to any
 agent modifying a skill on their behalf.
 
