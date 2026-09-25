@@ -1,6 +1,6 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: strata-lang/strata docs/content/docs/lang.mdx
-     Vendored from commit: 840f9ba5740c (2026-08-06)
+     Source of truth: strata-lang/strata site/content/docs/lang.mdx
+     Vendored from release: v0.8.0
      Regenerate with: scripts/sync-strata-docs.sh
      Upstream owns this text. Fix it there, then re-run that script. -->
 

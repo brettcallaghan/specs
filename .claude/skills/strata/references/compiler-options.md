@@ -1,6 +1,6 @@
 <!-- GENERATED COPY — DO NOT EDIT.
      Source of truth: strata-lang/strata strata/options.strata
-     Vendored from commit: ce18d66f188a (2026-08-07)
+     Vendored from release: v0.8.0
      Regenerate with: scripts/sync-strata-docs.sh
      Upstream owns this text. Fix it there, then re-run that script. -->
 
@@ -70,6 +70,23 @@ struct CompilerOptions {
     Defaults to `true`.
     """
     skipNullSerialization: Bool?
+
+    """
+    When `true`, every artifact generated from this package rejects keys it does not declare.
+
+    The policy is declared once and honored identically by every target: the JSON Schema
+    target closes its object schemas, and each code-generation target closes its decoder in
+    its own idiom. No target-scoped option restates or overrides it — per-target asymmetry
+    is reached by varying this option in a `--config` build overlay, since each target is a
+    separate build invocation.
+
+    Maps stay open whatever the policy declares: a map's keys are data rather than schema.
+    The `OpenAi` JSON Schema version emits closed object schemas regardless of this option,
+    which is a requirement of that API rather than a property of the policy.
+
+    Defaults to `null`, which selects the open policy: undeclared keys are ignored.
+    """
+    rejectUnknownProperties: Bool?
 
     """ Options for transpiling Strata's raw value enums. """
     enums: EnumOptions?
@@ -294,6 +311,18 @@ struct KotlinOptions {
     generateInterfaces: Bool?
 
     """
+    Version of `kotlinx-serialization-json` the generated code is written for.
+
+    The generated source targets this version, and package mode pins it in the
+    `build.gradle.kts` dependency block. It lives here rather than on
+    `KotlinPackageOptions` because it changes emitted source, which single-file mode
+    emits too.
+
+    Defaults to `"1.6.2"`.
+    """
+    serializationVersion: String?
+
+    """
     Package generation options for Kotlin.
 
     When present and `--package` is used, the transpiler emits a full Gradle project
@@ -487,29 +516,6 @@ struct JSONSchemaOptions {
     Defaults to `null` (all types are included, no top-level $ref).
     """
     root: String?
-
-    """
-    When `false`, adds `additionalProperties: false` to every generated object schema,
-    so documents containing keys not declared in the schema fail validation.
-
-    Disabling it is useful for schemas that gate configuration files, where a misspelled
-    key should be reported instead of silently ignored. The `OpenAi` schema version
-    always emits `additionalProperties: false` regardless of this option.
-
-    A closed shape and `allOf` composition cannot coexist in JSON Schema: a derived
-    type's `allOf` carries a `$ref` to its base, and that referenced subschema
-    independently rejects every property the derived type adds. Setting this to
-    `false` therefore makes inheriting types emit their ancestors' properties inline
-    instead of as a `$ref`. Validation semantics are unchanged — the same documents
-    are accepted and rejected — but the emitted schema is larger and shares no
-    definitions between a type and its supertypes. `unevaluatedProperties` does not
-    avoid this: it can close a derived type, but a base type still has to be closed
-    for its own direct use, and a closed base cannot be composed no matter which
-    keyword closed it.
-
-    Defaults to `true` (undeclared keys are allowed).
-    """
-    allowAdditionalProperties: Bool?
 }
 
 """
