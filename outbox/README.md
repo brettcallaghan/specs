@@ -8,8 +8,13 @@ about *a skill this project used* belong to whoever vends that skill, and
 land here instead.
 
 ```
-.sf/outbox/<skill>/<YYYY-MM-DD>-<slug>.md
+outbox/<plugin>/<skill>/<YYYY-MM-DD>-<slug>.md
 ```
+
+`<plugin>` is the plugin that vends the skill — the namespace it is invoked
+under (`specs:retro-skill` → `specs`, `swarm:swarm-retro` → `swarm`). Each
+vendor sweeps only its own folder, so one plugin's backlog never reaches
+another's.
 
 One file per issue, in the issue template's format — the same template a
 project-audience issue uses, since only the destination differs.
@@ -27,5 +32,8 @@ entirely are all its owners' call — a run appends and never prunes.
 ## In this repository
 
 **We vend the skills we run**, so we are our own downstream: `triage-issue`
-sweeps this directory into our own tracker rather than anyone forwarding
+sweeps `outbox/specs/` into our own tracker rather than anyone forwarding
 anything. The mechanism is identical; the hop is just short.
+
+`outbox/swarm/` is the `swarm` plugin's (brettcallaghan/swarm), not ours:
+forward it there rather than triaging it here.

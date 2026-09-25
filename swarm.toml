@@ -178,13 +178,13 @@ dir = "docs/retros"
 # `swarm` plugin's (brettcallaghan/swarm). A finding against one of THOSE
 # cannot be acted on here. `sprint-retro` reads this key as a binary switch, so
 # that split is a rule it must be told rather than one it can derive: file such
-# a finding into `.sf/outbox` for delivery there, and leave this key unset so
+# a finding into `outbox/swarm/` for delivery there, and leave this key unset so
 # everything else stays a bead.
 #
 # A project that consumes BOTH plugins and vends neither sets this —
-# `.sf/outbox` is the convention — so proposals it cannot act on accumulate
+# `outbox` is the convention, keyed `outbox/<plugin>/<skill>/` — so proposals it cannot act on accumulate
 # somewhere other than its backlog.
-# skill_issues_dir = ".sf/outbox"
+# skill_issues_dir = "outbox"
 
 [review]
 # The code reviewer a sprint runs at its review step. We do not ship one —
