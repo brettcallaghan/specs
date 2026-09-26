@@ -30,6 +30,10 @@ struct C4Model {
   """
   Systems documented by a system blueprint, each holding the containers
   that declare it.
+
+  Every collection of elements in this model is ordered by slug, and
+  every collection of slugs likewise, so that an unchanged corpus emits
+  byte-identical output.
   """
   software_systems: [C4System]
 
@@ -50,7 +54,8 @@ struct C4Model {
 
   """
   `Rel` statements the model does not admit, recorded rather than
-  dropped so that their absence from `relationships` is visible.
+  dropped so that their absence from `relationships` is visible. Ordered
+  by path, then by position.
   """
   unplaced: [C4Unplaced]
 }
@@ -123,11 +128,20 @@ struct C4Module: C4Element {
   visibility: Visibility
   version: String?
 
-  """The containers or modules that compose this one."""
+  """
+  The containers or modules that compose this one. Empty when no host
+  has a blueprint of its own.
+  """
   contained_by: [Citation]
 
   """Components declared in this module's roster section."""
   components: [C4Component]
+
+  """
+  Slugs of the modules composed into this one, derived from their
+  `contained_by` as for a container.
+  """
+  modules: [Slug]
 }
 
 """A component: the atomic leaf of one container or module."""
@@ -212,7 +226,10 @@ standard's arrow rule.
 One relationship may have been drawn in several diagrams — a parent's
 internal view and a child's context view show the same edge — and is
 recorded once with every drawing listed. Two drawings are the same
-relationship when source, target and description agree.
+relationship when source, target and description agree. Where they
+disagree on anything else, the relationship carries the values of the
+drawing that sorts first by path and then by position, and the
+`c4/diagram` check reports the disagreement.
 """
 struct C4Relationship {
   """Slug of the element that depends."""

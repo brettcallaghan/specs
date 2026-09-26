@@ -32,8 +32,9 @@ Three facts constrain the answer. The corpus's C4 diagrams use a small
 subset of Mermaid — measured across `specs/` and the spec skill's
 templates, 35 `Rel` lines and no `BiRel`, `Rel_Back`, `RelIndex`,
 `$tags` or `UpdateRelStyle`; [[c4-standards]] already requires every
-declaration to sit on one line. No Go parser handles that subset
-correctly: `github.com/sammcj/mermaid-check` v0.5.1 rejects
+declaration to sit on one line. The one Go library found with a C4
+parser does not handle that subset: `github.com/sammcj/mermaid-check`
+v0.5.1 rejects
 `Component(x, "X", "Go package (planned)", "desc")` — a parenthesis inside
 a quoted argument — which fails two of this corpus's module diagrams, and
 it requires Go 1.26.2 where `cli/go.mod` pins 1.24. And Mermaid itself
@@ -55,7 +56,7 @@ invented.
 | Option | Pros | Cons | Why rejected |
 |--------|------|------|--------------|
 | A fenced `relationship` record block beside each roster entry | Fully declared; no diagram parsing<br>Consistent with the record block model | Every edge written twice — once for the model, once on the diagram — and the two drift<br>Contradicts [[c4-standards]], which stops short of fenced declaration blocks | Doubles the authoring cost of the one fact [[adr-009]] exists to keep single |
-| Contract edges only, from `contracts_provided` and `contracts_consumed` | Already declared; needs no parser | Most neighbour edges carry no contract — none of this corpus's 35 do<br>The model would be nearly edgeless | Fails the FRD's purpose |
+| Contract edges only, from `contracts_provided` and `contracts_consumed` | Already declared; needs no parser | An edge needs a consumer as well as a provider, and no blueprint in this corpus declares a consumed contract<br>The model would be edgeless | Fails the FRD's purpose |
 | Parse diagrams with `github.com/sammcj/mermaid-check` | An existing AST whose shape matches the model | Fails on real corpus diagrams (parenthesis in a quoted string)<br>Forces Go 1.26.2 on the CLI module, which moves the committed coverage figures<br>Positions are diagram-relative lines, not the index's byte spans | The corpus cannot be parsed with it as released |
 | Parse diagrams with a parser of our own, reserved tags for the rest | Covers exactly the subset [[c4-standards]] permits<br>Spans are the index's own<br>Parse errors become check findings at the offending line | A parser to maintain<br>Diagram lines gain model weight | N/A — selected |
 
@@ -70,8 +71,10 @@ invented.
   rejects, a node matching no declared element, a bidirectional arrow and
   a duplicated edge each become a finding, where today nothing checks a
   diagram at all.
-- Reserved tags cost authors nothing at render time: Mermaid 12.0.0
-  parses `$tags="async+contract:<slug>"` and draws the edge unchanged.
+- Reserved tags cost authors nothing at parse time: Mermaid 12.0.0's
+  `mermaid.parse` accepts `$tags="async+contract:<slug>"`, positional
+  tags, and comma-joined tags alike. Rendering a tagged diagram was not
+  measured.
 
 **Negative:**
 - Diagrams stop being pure views. A `Rel` line is now the declaration of
@@ -83,9 +86,14 @@ invented.
 - Display names become load-bearing identifiers. Renaming an element
   without updating its diagram label unmatches its edges; the check
   reports it, but only when run.
-- `Rel_Back(a, b)` is read as `b -> a`, following Mermaid's rendering,
-  which draws the arrowhead at `from`. A reader who expects C4-PlantUML's
-  convention for the macro is not warned by the diagram itself.
+- `Rel_Back(a, b)` is read as `b -> a`. Mermaid 12.0.0's C4 renderer
+  keeps `from` and `to` as written and, for `rel_b`, sets only a start
+  marker, so the arrowhead is drawn at `a`. The source text reads the
+  other way round from the dependency, which a reviewer of the diff
+  rather than the rendering can misread.
+- Reserved tags and the `technology` property are new authoring rules.
+  [[c4-standards]] and the four architecture blueprint templates must
+  state them before authors can be expected to follow them.
 
 ## References
 

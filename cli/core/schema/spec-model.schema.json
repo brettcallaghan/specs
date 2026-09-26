@@ -651,7 +651,7 @@
           "type": "string"
         },
         "software_systems": {
-          "description": "Systems documented by a system blueprint, each holding the containers\nthat declare it.",
+          "description": "Systems documented by a system blueprint, each holding the containers\nthat declare it.\n\nEvery collection of elements in this model is ordered by slug, and\nevery collection of slugs likewise, so that an unchanged corpus emits\nbyte-identical output.",
           "items": {
             "$ref": "#/definitions/C4System"
           },
@@ -665,7 +665,7 @@
           "type": "array"
         },
         "unplaced": {
-          "description": "`Rel` statements the model does not admit, recorded rather than\ndropped so that their absence from `relationships` is visible.",
+          "description": "`Rel` statements the model does not admit, recorded rather than\ndropped so that their absence from `relationships` is visible. Ordered\nby path, then by position.",
           "items": {
             "$ref": "#/definitions/C4Unplaced"
           },
@@ -699,7 +699,7 @@
           "type": "array"
         },
         "contained_by": {
-          "description": "The containers or modules that compose this one.",
+          "description": "The containers or modules that compose this one. Empty when no host\nhas a blueprint of its own.",
           "items": {
             "$ref": "#/definitions/Citation"
           },
@@ -735,6 +735,13 @@
         },
         "kind": {
           "$ref": "#/definitions/BlueprintKind"
+        },
+        "modules": {
+          "description": "Slugs of the modules composed into this one, derived from their\n`contained_by` as for a container.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": "array"
         },
         "slug": {
           "$ref": "#/definitions/Slug",
@@ -779,13 +786,14 @@
         "kind",
         "visibility",
         "contained_by",
-        "components"
+        "components",
+        "modules"
       ],
       "type": "object"
     },
     "C4Relationship": {
       "additionalProperties": false,
-      "description": "A dependency edge: the source depends on the target, per the C4\nstandard's arrow rule.\n\nOne relationship may have been drawn in several diagrams — a parent's\ninternal view and a child's context view show the same edge — and is\nrecorded once with every drawing listed. Two drawings are the same\nrelationship when source, target and description agree.",
+      "description": "A dependency edge: the source depends on the target, per the C4\nstandard's arrow rule.\n\nOne relationship may have been drawn in several diagrams — a parent's\ninternal view and a child's context view show the same edge — and is\nrecorded once with every drawing listed. Two drawings are the same\nrelationship when source, target and description agree. Where they\ndisagree on anything else, the relationship carries the values of the\ndrawing that sorts first by path and then by position, and the\n`c4/diagram` check reports the disagreement.",
       "properties": {
         "contract": {
           "oneOf": [

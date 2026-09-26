@@ -32,6 +32,10 @@ type C4Model struct {
 	Workspace string `json:"workspace"`
 	// Systems documented by a system blueprint, each holding the containers
 	// that declare it.
+	//
+	// Every collection of elements in this model is ordered by slug, and
+	// every collection of slugs likewise, so that an unchanged corpus emits
+	// byte-identical output.
 	SoftwareSystems []C4System `json:"software_systems"`
 	// Containers whose blueprint declares no `system` — a documented fact,
 	// not an omission.
@@ -42,7 +46,8 @@ type C4Model struct {
 	// then target slug, then description.
 	Relationships []C4Relationship `json:"relationships"`
 	// `Rel` statements the model does not admit, recorded rather than
-	// dropped so that their absence from `relationships` is visible.
+	// dropped so that their absence from `relationships` is visible. Ordered
+	// by path, then by position.
 	Unplaced []C4Unplaced `json:"unplaced"`
 }
 
@@ -663,10 +668,14 @@ type C4Module struct {
 	Kind       BlueprintKind `json:"kind"`
 	Visibility Visibility    `json:"visibility"`
 	Version    *string       `json:"version,omitempty"`
-	// The containers or modules that compose this one.
+	// The containers or modules that compose this one. Empty when no host
+	// has a blueprint of its own.
 	ContainedBy []Citation `json:"contained_by"`
 	// Components declared in this module's roster section.
 	Components []C4Component `json:"components"`
+	// Slugs of the modules composed into this one, derived from their
+	// `contained_by` as for a container.
+	Modules []Slug `json:"modules"`
 }
 
 func (v *C4Module) UnmarshalJSON(data []byte) error {
@@ -739,10 +748,15 @@ func (v *C4Module) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Components); err != nil {
 		return prefixField("components", err)
 	}
+	if m, ok := raw["modules"]; !ok || string(m) == "null" {
+		return fmt.Errorf("C4Module: required field \"modules\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Modules); err != nil {
+		return prefixField("modules", err)
+	}
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "title", "description", "slug", "technology", "contracts_provided", "contracts_consumed", "declaration", "tags", "kind", "visibility", "version", "contained_by", "components":
+		case "title", "description", "slug", "technology", "contracts_provided", "contracts_consumed", "declaration", "tags", "kind", "visibility", "version", "contained_by", "components", "modules":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -1113,7 +1127,10 @@ func (v *C4ContractLink) UnmarshalJSON(data []byte) error {
 // One relationship may have been drawn in several diagrams — a parent's
 // internal view and a child's context view show the same edge — and is
 // recorded once with every drawing listed. Two drawings are the same
-// relationship when source, target and description agree.
+// relationship when source, target and description agree. Where they
+// disagree on anything else, the relationship carries the values of the
+// drawing that sorts first by path and then by position, and the
+// `c4/diagram` check reports the disagreement.
 type C4Relationship struct {
 	// Slug of the element that depends.
 	Source Citation `json:"source"`

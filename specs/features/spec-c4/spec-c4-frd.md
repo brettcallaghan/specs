@@ -38,6 +38,25 @@ nodes do not match the elements the blueprints declare is today invisible
 until a human notices; the check makes that mismatch a finding at the
 offending line.
 
+The index does not yet carry two things this feature projects, and both
+are prerequisites rather than part of it:
+
+- **Parsed record blocks.** Parsing them is AC-SPECSTR-001.2 of
+  [[frd-spec-structure]], which waits on the tag registration in
+  FEAT-SPECSTR-004 of [[frd-spec-structure-conformance]]. Today the index
+  records no record block at all — `specs index` on this repository
+  reports zero, including the `component` block in
+  [[container-spec-cli]]'s roster. Without them the tree holds only
+  promoted elements.
+- **Each document's type-specific frontmatter.** An index entry carries
+  the base envelope only — `IndexEntry.frontmatter` is typed
+  `DocumentFrontmatter` — so `system`, `contained_by`, `kind`,
+  `visibility` and the contract edges never reach it. The entry for
+  [[container-spec-cli]] omits the `contracts_provided` its file
+  declares. Carrying them is an addition to the index, which the
+  additive rule in [[container-spec-cli]] admits under `schema_version`
+  1.0.
+
 ## Terminology
 
 - **Architecture blueprint** — a corpus member of type
@@ -49,6 +68,13 @@ offending line.
 - **C4 diagram** — a fenced `mermaid` block whose first statement is
   `C4Context`, `C4Container` or `C4Component`. `C4Dynamic` and
   `C4Deployment` blocks are not C4 diagrams for this feature.
+- **Drawing document** — the document a C4 diagram sits in. Per
+  [[adr-009]] it owns the edges among its element's children, and it
+  draws its element's outward edges in a Context view.
+- **Scope of a drawing document** — the elements a diagram node in it may
+  name: the document's own element; the components its roster declares
+  and the modules that name it in `contained_by`; and every system and
+  container in the corpus.
 - **Diagram node** — an element statement in a C4 diagram, such as
   `Container(alias, "Label", ...)`, identified within its diagram by its
   alias.
@@ -144,8 +170,14 @@ Feature: Relationships From Parent Diagrams
   A relationship is read from the C4 diagrams of the document that owns it,
   per the parent-owns-child-edges rule. A diagram node is matched to an
   element by its label, which the C4 standard requires to be the element's
-  display name verbatim. Direction always means dependency: the source
+  display name verbatim, and only among the elements in the scope of the
+  drawing document. Scoping is what lets two containers each hold a
+  component named Parser. Direction always means dependency: the source
   depends on the target.
+
+  A relationship is identified by its source, target and description. Two
+  drawings that agree on all three are one relationship, whatever else
+  they say.
 
   People, external systems and deployment detail are out of scope for this
   version. An edge touching one is reported as unplaced rather than dropped,
@@ -183,10 +215,32 @@ Feature: Relationships From Parent Diagrams
     Then the model holds one relationship listing both drawings, each with its path, span, diagram type and aliases
 
   @AC-C4-002.5
-  Scenario: A relationship records its level
-    Given a relationship between two containers and another between two components
+  Scenario Outline: A relationship records its level from its endpoints
+    Given a relationship from a "<source kind>" to a "<target kind>"
     When the user runs specs c4
-    Then the first relationship's level is container and the second's is component
+    Then the relationship's level is "<level>"
+
+    Examples:
+      | source kind | target kind | level     |
+      | container   | container   | container |
+      | container   | system      | container |
+      | component   | component   | component |
+      | component   | module      | component |
+      | component   | container   | component |
+
+  @AC-C4-002.8
+  Scenario: A component label resolves within the drawing document's scope
+    Given two containers whose rosters each declare a component titled Parser
+    And a C4Component diagram in the first container's blueprint with a node labelled Parser
+    When the user runs specs c4
+    Then that node resolves to the first container's Parser component
+
+  @AC-C4-002.9
+  Scenario: Drawings of one relationship that disagree keep the first
+    Given one relationship drawn twice with different technology arguments
+    When the user runs specs c4
+    Then the relationship carries the technology of the drawing that sorts first by path and then by position
+    And both drawings are listed in its drawn_in
 
   @AC-C4-002.6
   Scenario Outline: Edges the model does not admit are unplaced
@@ -198,8 +252,8 @@ Feature: Relationships From Parent Diagrams
     Examples:
       | condition                                          | reason            |
       | an endpoint is a Person or an external System      | external_endpoint |
-      | an endpoint's label matches no declared element    | undeclared_node   |
-      | an endpoint's label matches two declared elements  | ambiguous_node    |
+      | an endpoint's label matches no element in scope    | undeclared_node   |
+      | an endpoint's label matches two elements in scope  | ambiguous_node    |
 
   @AC-C4-002.7 @negative
   Scenario: Dynamic and deployment diagrams contribute no relationships
@@ -220,9 +274,14 @@ Feature: Reserved Relationship Tags
   I want to state on the diagram what Mermaid has no argument for
   So that the model records whether a call is asynchronous and which contract governs it
 
-  Tags are written with Mermaid's tags parameter, several joined by a plus
-  sign. Mermaid renders tagged relationships unchanged, so the convention
-  costs a reader of the rendered diagram nothing.
+  Tags are written with Mermaid's tags parameter, positionally or as the
+  named $tags argument, several joined by a plus sign. Mermaid parses a
+  tagged relationship without error, so the convention costs an author
+  nothing at render time.
+
+  A contract tag is not a wikilink, so the reference graph does not record
+  it: specs refs on a contract does not list the diagrams that tag it.
+  Recording it there is out of scope here.
 
   @AC-C4-003.1
   Scenario Outline: The interaction tag sets the interaction
@@ -234,6 +293,17 @@ Feature: Reserved Relationship Tags
       | tags  | interaction |
       | sync  | sync        |
       | async | async       |
+
+  @AC-C4-003.6
+  Scenario Outline: Positional and named tags are read alike
+    Given the statement <statement>
+    When the user runs specs c4
+    Then the relationship's interaction is async and its tags are exactly audited
+
+    Examples:
+      | statement                                                      |
+      | Rel(a, b, "Uses", "HTTP", "", "", "async+audited")             |
+      | Rel(a, b, "Uses", "HTTP", $tags="async+audited")               |
 
   @AC-C4-003.2
   Scenario: A contract tag names the governing contract
@@ -305,10 +375,17 @@ Feature: Output
     Then the two outputs are byte-identical
 
   @AC-C4-004.4
-  Scenario: Root narrows the model to one element's subtree
-    Given a corpus with two containers
+  Scenario Outline: Root narrows the model to one element's subtree
+    Given a corpus with two elements of kind "<kind>"
     When the user runs specs c4 with --root naming one of them
-    Then the model holds that container, its components and modules, and only relationships whose endpoints are both inside it
+    Then the model holds that element and "<descendants>", and only relationships whose endpoints are both inside that set
+
+    Examples:
+      | kind      | descendants                                     |
+      | system    | its containers and everything they hold         |
+      | container | its components and the modules composed into it |
+      | module    | its components                                  |
+      | component | nothing else                                    |
 
   @AC-C4-004.5
   Scenario: An unknown root is a usage error
@@ -348,17 +425,19 @@ Feature: Diagram Conformance
     Examples:
       | defect                                                   | severity |
       | a statement does not parse                               | error    |
-      | a Container or Component label matches no declared element | error  |
-      | a label matches more than one declared element           | error    |
+      | a Container or Component label matches no element in scope | error  |
+      | a label matches more than one element in scope           | error    |
       | a BiRel statement draws a bidirectional relationship     | error    |
       | two Rel statements join the same pair of aliases         | error    |
       | one Rel statement is tagged both sync and async          | error    |
       | a contract tag names a slug that is not a contract       | error    |
       | a contract tag names a contract the source does not consume or the target does not provide | warning |
+      | two drawings of one relationship disagree on technology, detail or tags | warning |
+      | a tags value contains a comma, which joins nothing       | warning  |
 
   @AC-C4-005.2
-  Scenario: A non-C4 Mermaid diagram is unverified
-    Given a mermaid block whose first statement is not a C4 diagram type
+  Scenario: A Mermaid diagram the parser does not read is unverified
+    Given a mermaid block that is not a C4 diagram, including a C4Dynamic or C4Deployment block
     When the user runs specs check on that document
     Then the report holds a c4/diagram finding of severity unverified naming the diagram type
 
@@ -376,6 +455,8 @@ Feature: Diagram Conformance
 - [[adr-008]] — record blocks declare un-promoted elements
 - [[c4-standards]] — levels, naming, diagram types and arrow direction
 - [[frd-spec-index]] — the index this feature projects
+- [[frd-spec-structure]] and [[frd-spec-structure-conformance]] — record
+  block parsing and registration, which this feature depends on
 - [[container-spec-cli]] — the CLI and the Architecture Catalogue that
   consumes its artifacts
 - `schemas/c4.strata` — the declared shape of the emitted model
