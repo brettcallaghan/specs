@@ -1,6 +1,6 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: strata-lang/strata docs/public/strata.llm.md
-     Vendored from commit: ce18d66f188a (2026-08-07)
+     Source of truth: strata-lang/strata site/public/strata.llm.md
+     Vendored from release: v0.8.0
      Regenerate with: scripts/sync-strata-docs.sh
      Upstream owns this text. Fix it there, then re-run that script. -->
 
@@ -652,5 +652,5 @@ Real `.strata` source in the GitHub repository — copy patterns from here when 
 - **[`crates/strata/tests/snapshots/`](https://github.com/strata-lang/strata/tree/main/crates/strata/tests/snapshots)** — one focused `.strata` file per language feature, organized by target. **Browse the directory listing to find an example for any feature by filename** (e.g. `inheritance_multi.strata`, `templates_nested.strata`, `union_custom_discriminator.strata`). The generated output for each target sits beside the source.
 - [`strata/ast.strata`](https://github.com/strata-lang/strata/blob/main/strata/ast.strata) — the Strata language's own AST, written in Strata. Production-grade example of inheritance, unions, templates, and recursion at scale.
 - [`strata/options.strata`](https://github.com/strata-lang/strata/blob/main/strata/options.strata) — the compiler's configuration schema. Heavy use of nested structs, enums with custom values, and optional fields.
-- [`docs/content/docs/quick_start.mdx`](https://github.com/strata-lang/strata/blob/main/docs/content/docs/quick_start.mdx) — three small newcomer examples (bulletin board, layer, spaceship).
-- [`docs/content/docs/lang.mdx`](https://github.com/strata-lang/strata/blob/main/docs/content/docs/lang.mdx) — the long-form language reference for humans.
+- [`site/content/docs/quick_start.mdx`](https://github.com/strata-lang/strata/blob/main/site/content/docs/quick_start.mdx) — three small newcomer examples (bulletin board, layer, spaceship).
+- [`site/content/docs/lang.mdx`](https://github.com/strata-lang/strata/blob/main/site/content/docs/lang.mdx) — the long-form language reference for humans.

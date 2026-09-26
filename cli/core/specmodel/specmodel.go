@@ -58,6 +58,19 @@ func (v *SpecsConfig) UnmarshalJSON(data []byte) error {
 			return prefixField("conventions", err)
 		}
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "workspace", "profile", "conventions":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "SpecsConfig", Field: unknown}
+	}
 	return nil
 }
 
@@ -92,6 +105,19 @@ func (v *WorkspaceConfig) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Root); err != nil {
 		return prefixField("root", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "name", "root":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "WorkspaceConfig", Field: unknown}
+	}
 	return nil
 }
 
@@ -115,6 +141,19 @@ func (v *ProfileConfig) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Name); err != nil {
 		return prefixField("name", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "name":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "ProfileConfig", Field: unknown}
+	}
 	return nil
 }
 
@@ -128,6 +167,32 @@ type ConventionsConfig struct {
 	// Lines inside fenced code blocks, table rows, and lines containing a
 	// URL are exempt. Defaults to the active profile's registered value.
 	LineWidth *uint64 `json:"line_width,omitempty"`
+}
+
+func (v *ConventionsConfig) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["line_width"]; ok {
+		if err := json.Unmarshal(m, &v.LineWidth); err != nil {
+			return prefixField("line_width", err)
+		}
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "line_width":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "ConventionsConfig", Field: unknown}
+	}
+	return nil
 }
 
 // The short code that groups features by topic, domain or capability.
@@ -290,6 +355,19 @@ func (v *FeatureSourceBlock) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Block); err != nil {
 		return prefixField("block", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "block":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FeatureSourceBlock", Field: unknown}
+	}
 	return nil
 }
 
@@ -300,6 +378,23 @@ func (v *FeatureSourceBlock) UnmarshalJSON(data []byte) error {
 // exists so the source form is a value a consumer branches on rather than
 // one it infers from the absence of another property.
 type FeatureSourceFile struct{}
+
+func (v *FeatureSourceFile) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	var unknown string
+	for key := range raw {
+		if unknown == "" || key < unknown {
+			unknown = key
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FeatureSourceFile", Field: unknown}
+	}
+	return nil
+}
 
 type FeatureSourceVariant interface{ isFeatureSourceVariant() }
 
@@ -374,17 +469,26 @@ func (u *FeatureSource) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &probe); err != nil {
 		return err
 	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	delete(raw, "form")
+	body, err := json.Marshal(raw)
+	if err != nil {
+		return err
+	}
 	switch probe.Tag {
 	case "fenced-block":
 		var v FeatureSourceBlock
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "feature-file":
 		var v FeatureSourceFile
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
@@ -530,6 +634,19 @@ func (v *Criterion) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Position); err != nil {
 		return prefixField("position", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "id", "name", "text", "description", "rule", "negative", "manual", "level", "notation", "content_hash", "position":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "Criterion", Field: unknown}
+	}
 	return nil
 }
 
@@ -639,6 +756,19 @@ func (v *Feature) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Criteria); err != nil {
 		return prefixField("criteria", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "id", "code", "document_slug", "path", "name", "description", "source", "position", "criteria":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "Feature", Field: unknown}
+	}
 	return nil
 }
 
@@ -738,6 +868,19 @@ func (v *FindingSchemaViolation) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Value); err != nil {
 		return prefixField("value", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "pointer", "constraint", "value":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingSchemaViolation", Field: unknown}
+	}
 	return nil
 }
 
@@ -770,6 +913,19 @@ func (v *FindingMissingProperty) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Property); err != nil {
 		return prefixField("property", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "pointer", "property":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingMissingProperty", Field: unknown}
+	}
 	return nil
 }
 
@@ -800,6 +956,19 @@ func (v *FindingSlugPattern) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Pattern); err != nil {
 		return prefixField("pattern", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "slug", "pattern":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingSlugPattern", Field: unknown}
+	}
 	return nil
 }
 
@@ -829,6 +998,19 @@ func (v *FindingDuplicateSlug) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("FindingDuplicateSlug: required field \"other_path\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.OtherPath); err != nil {
 		return prefixField("other_path", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "slug", "other_path":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingDuplicateSlug", Field: unknown}
 	}
 	return nil
 }
@@ -863,6 +1045,19 @@ func (v *FindingFrontmatterParse) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Message); err != nil {
 		return prefixField("message", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "message":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingFrontmatterParse", Field: unknown}
+	}
 	return nil
 }
 
@@ -890,6 +1085,19 @@ func (v *FindingCorpusEmpty) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Root); err != nil {
 		return prefixField("root", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "root":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingCorpusEmpty", Field: unknown}
+	}
 	return nil
 }
 
@@ -913,6 +1121,19 @@ func (v *FindingUnverified) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("FindingUnverified: required field \"reason\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Reason); err != nil {
 		return prefixField("reason", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "reason":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingUnverified", Field: unknown}
 	}
 	return nil
 }
@@ -962,6 +1183,19 @@ func (v *FindingUnresolvedReference) UnmarshalJSON(data []byte) error {
 			return prefixField("non_member", err)
 		}
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "slug", "origin", "non_member":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingUnresolvedReference", Field: unknown}
+	}
 	return nil
 }
 
@@ -998,6 +1232,19 @@ func (v *FindingRetiredTarget) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(m, &v.Successor); err != nil {
 			return prefixField("successor", err)
 		}
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "slug", "successor":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingRetiredTarget", Field: unknown}
 	}
 	return nil
 }
@@ -1047,6 +1294,19 @@ func (v *FindingIncompletePairing) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.TargetPath); err != nil {
 		return prefixField("target_path", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "property", "counterpart", "source_path", "target_path":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingIncompletePairing", Field: unknown}
+	}
 	return nil
 }
 
@@ -1092,6 +1352,19 @@ func (v *FindingReferenceType) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.ActualType); err != nil {
 		return prefixField("actual_type", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "property", "slug", "expected_type", "actual_type":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingReferenceType", Field: unknown}
+	}
 	return nil
 }
 
@@ -1135,6 +1408,19 @@ func (v *FindingUnmappedCitation) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.MapPath); err != nil {
 		return prefixField("map_path", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "slug", "citing_path", "map_path":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingUnmappedCitation", Field: unknown}
+	}
 	return nil
 }
 
@@ -1169,6 +1455,19 @@ func (v *FindingUnresolvedCitation) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.CitingPath); err != nil {
 		return prefixField("citing_path", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "slug", "citing_path":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingUnresolvedCitation", Field: unknown}
+	}
 	return nil
 }
 
@@ -1195,6 +1494,19 @@ func (v *FindingGherkinParse) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("FindingGherkinParse: required field \"expected\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Expected); err != nil {
 		return prefixField("expected", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "expected":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingGherkinParse", Field: unknown}
 	}
 	return nil
 }
@@ -1229,6 +1541,19 @@ func (v *FindingIdentifierPattern) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("FindingIdentifierPattern: required field \"pattern\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Pattern); err != nil {
 		return prefixField("pattern", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "identifier", "pattern":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingIdentifierPattern", Field: unknown}
 	}
 	return nil
 }
@@ -1270,6 +1595,19 @@ func (v *FindingDuplicateIdentifier) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.OtherPosition); err != nil {
 		return prefixField("other_position", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "identifier", "other_path", "other_position":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingDuplicateIdentifier", Field: unknown}
+	}
 	return nil
 }
 
@@ -1299,6 +1637,19 @@ func (v *FindingPartiallyTaggedOutline) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Untagged); err != nil {
 		return prefixField("untagged", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "untagged":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingPartiallyTaggedOutline", Field: unknown}
+	}
 	return nil
 }
 
@@ -1318,6 +1669,37 @@ type FindingOwningDocument struct {
 	// The slug of the document the feature is written in, absent where the
 	// feature is a standalone feature file rather than a fenced block.
 	DocumentSlug *string `json:"document_slug,omitempty"`
+}
+
+func (v *FindingOwningDocument) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["slug"]; ok {
+		if err := json.Unmarshal(m, &v.Slug); err != nil {
+			return prefixField("slug", err)
+		}
+	}
+	if m, ok := raw["document_slug"]; ok {
+		if err := json.Unmarshal(m, &v.DocumentSlug); err != nil {
+			return prefixField("document_slug", err)
+		}
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "slug", "document_slug":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingOwningDocument", Field: unknown}
+	}
+	return nil
 }
 
 // An anchor that names no heading of its target document.
@@ -1350,6 +1732,19 @@ func (v *FindingUnresolvedAnchor) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("FindingUnresolvedAnchor: required field \"target_path\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.TargetPath); err != nil {
 		return prefixField("target_path", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "anchor", "target_path":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingUnresolvedAnchor", Field: unknown}
 	}
 	return nil
 }
@@ -1392,6 +1787,19 @@ func (v *FindingAmbiguousAnchor) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Matches); err != nil {
 		return prefixField("matches", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "anchor", "target_path", "matches":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingAmbiguousAnchor", Field: unknown}
+	}
 	return nil
 }
 
@@ -1423,6 +1831,19 @@ func (v *AnchorMatch) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("AnchorMatch: required field \"position\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Position); err != nil {
 		return prefixField("position", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "text", "position":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "AnchorMatch", Field: unknown}
 	}
 	return nil
 }
@@ -1738,143 +2159,152 @@ func (u *FindingDetail) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &probe); err != nil {
 		return err
 	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	delete(raw, "kind")
+	body, err := json.Marshal(raw)
+	if err != nil {
+		return err
+	}
 	switch probe.Tag {
 	case "schema-violation":
 		var v FindingSchemaViolation
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "missing-property":
 		var v FindingMissingProperty
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "slug-pattern":
 		var v FindingSlugPattern
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "duplicate-slug":
 		var v FindingDuplicateSlug
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "frontmatter-parse":
 		var v FindingFrontmatterParse
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "corpus-empty":
 		var v FindingCorpusEmpty
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "unverified":
 		var v FindingUnverified
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "unresolved-reference":
 		var v FindingUnresolvedReference
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "retired-target":
 		var v FindingRetiredTarget
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "incomplete-pairing":
 		var v FindingIncompletePairing
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "reference-type":
 		var v FindingReferenceType
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "unmapped-citation":
 		var v FindingUnmappedCitation
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "unresolved-citation":
 		var v FindingUnresolvedCitation
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "gherkin-parse":
 		var v FindingGherkinParse
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "identifier-pattern":
 		var v FindingIdentifierPattern
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "duplicate-identifier":
 		var v FindingDuplicateIdentifier
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "partially-tagged-outline":
 		var v FindingPartiallyTaggedOutline
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "owning-document":
 		var v FindingOwningDocument
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "unresolved-anchor":
 		var v FindingUnresolvedAnchor
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "ambiguous-anchor":
 		var v FindingAmbiguousAnchor
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
@@ -1944,6 +2374,19 @@ func (v *Finding) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("Finding: required field \"detail\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Detail); err != nil {
 		return prefixField("detail", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "rule", "severity", "path", "position", "message", "detail":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "Finding", Field: unknown}
 	}
 	return nil
 }
@@ -2023,6 +2466,19 @@ func (v *CheckResult) UnmarshalJSON(data []byte) error {
 			return prefixField("reason", err)
 		}
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "rule", "outcome", "reason":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "CheckResult", Field: unknown}
+	}
 	return nil
 }
 
@@ -2058,6 +2514,19 @@ func (v *FindingReport) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("FindingReport: required field \"findings\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Findings); err != nil {
 		return prefixField("findings", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "checks", "findings":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingReport", Field: unknown}
 	}
 	return nil
 }
@@ -2115,6 +2584,19 @@ func (v *ElementRecord) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("ElementRecord: required field \"slug\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
 		return prefixField("slug", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "title", "description", "slug":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "ElementRecord", Field: unknown}
 	}
 	return nil
 }
@@ -2225,6 +2707,19 @@ func (v *DocumentFrontmatter) UnmarshalJSON(data []byte) error {
 			return prefixField("superseded_by", err)
 		}
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "title", "description", "slug", "type", "status", "updated_at", "created_at", "tags", "superseded_by":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "DocumentFrontmatter", Field: unknown}
+	}
 	return nil
 }
 
@@ -2258,6 +2753,37 @@ type ContractEdges struct {
 	// listed here — those are neighbour edges, and per ADR-009 they belong
 	// to the parent that composes the elements, or to the code.
 	ContractsConsumed *[]Citation `json:"contracts_consumed,omitempty"`
+}
+
+func (v *ContractEdges) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["contracts_provided"]; ok {
+		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
+			return prefixField("contracts_provided", err)
+		}
+	}
+	if m, ok := raw["contracts_consumed"]; ok {
+		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
+			return prefixField("contracts_consumed", err)
+		}
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "contracts_provided", "contracts_consumed":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "ContractEdges", Field: unknown}
+	}
+	return nil
 }
 
 // An architecture decision record.
@@ -2357,6 +2883,19 @@ func (v *Adr) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(m, &v.SupersededBy); err != nil {
 			return prefixField("superseded_by", err)
 		}
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "title", "description", "slug", "type", "status", "updated_at", "created_at", "tags", "superseded_by":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "Adr", Field: unknown}
 	}
 	return nil
 }
@@ -2462,6 +3001,19 @@ func (v *Frd) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(m, &v.Sources); err != nil {
 			return prefixField("sources", err)
 		}
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "title", "description", "slug", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "sources":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "Frd", Field: unknown}
 	}
 	return nil
 }
@@ -2607,6 +3159,19 @@ func (v *Contract) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Version); err != nil {
 		return prefixField("version", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "title", "description", "slug", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "provider", "visibility", "consumers", "specs", "version":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "Contract", Field: unknown}
+	}
 	return nil
 }
 
@@ -2714,6 +3279,19 @@ func (v *Standards) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("Standards: required field \"version\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Version); err != nil {
 		return prefixField("version", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "title", "description", "slug", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "version":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "Standards", Field: unknown}
 	}
 	return nil
 }
@@ -2846,6 +3424,19 @@ func (v *SystemBlueprint) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
 			return prefixField("contracts_consumed", err)
 		}
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "title", "description", "slug", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "contracts_provided", "contracts_consumed":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "SystemBlueprint", Field: unknown}
 	}
 	return nil
 }
@@ -2987,6 +3578,19 @@ func (v *ContainerBlueprint) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(m, &v.System); err != nil {
 			return prefixField("system", err)
 		}
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "title", "description", "slug", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "contracts_provided", "contracts_consumed", "system":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "ContainerBlueprint", Field: unknown}
 	}
 	return nil
 }
@@ -3177,6 +3781,19 @@ func (v *ModuleBlueprint) UnmarshalJSON(data []byte) error {
 			return prefixField("version", err)
 		}
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "title", "description", "slug", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "contracts_provided", "contracts_consumed", "kind", "visibility", "contained_by", "source_paths", "test_paths", "version":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "ModuleBlueprint", Field: unknown}
+	}
 	return nil
 }
 
@@ -3328,6 +3945,19 @@ func (v *ComponentBlueprint) UnmarshalJSON(data []byte) error {
 			return prefixField("test_paths", err)
 		}
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "title", "description", "slug", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "contracts_provided", "contracts_consumed", "kind", "source_paths", "test_paths":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "ComponentBlueprint", Field: unknown}
+	}
 	return nil
 }
 
@@ -3469,6 +4099,19 @@ func (v *FeatureBlueprint) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("FeatureBlueprint: required field \"frd\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Frd); err != nil {
 		return prefixField("frd", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "title", "description", "slug", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "delivery", "plan", "frd":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FeatureBlueprint", Field: unknown}
 	}
 	return nil
 }
@@ -3642,6 +4285,19 @@ func (v *Rfc) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.PluginVersion); err != nil {
 		return prefixField("plugin_version", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "title", "description", "slug", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "origin", "skill", "skill_version", "model", "effort", "runs_observed", "severity", "plugin_version":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "Rfc", Field: unknown}
+	}
 	return nil
 }
 
@@ -3750,6 +4406,19 @@ func (v *Guide) UnmarshalJSON(data []byte) error {
 			return prefixField("version", err)
 		}
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "title", "description", "slug", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "version":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "Guide", Field: unknown}
+	}
 	return nil
 }
 
@@ -3818,6 +4487,19 @@ func (v *Span) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.EndColumn); err != nil {
 		return prefixField("end_column", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "offset", "length", "start_line", "start_column", "end_line", "end_column":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "Span", Field: unknown}
+	}
 	return nil
 }
 
@@ -3849,6 +4531,19 @@ func (v *ParseError) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("ParseError: required field \"position\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Position); err != nil {
 		return prefixField("position", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "message", "position":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "ParseError", Field: unknown}
 	}
 	return nil
 }
@@ -3943,6 +4638,19 @@ func (v *RecordBlock) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Position); err != nil {
 		return prefixField("position", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "tag", "content", "position":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "RecordBlock", Field: unknown}
+	}
 	return nil
 }
 
@@ -4003,6 +4711,19 @@ func (v *Heading) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("Heading: required field \"record_blocks\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.RecordBlocks); err != nil {
 		return prefixField("record_blocks", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "text", "level", "position", "section", "record_blocks":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "Heading", Field: unknown}
 	}
 	return nil
 }
@@ -4075,6 +4796,19 @@ func (v *IndexEntry) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.RecordBlocks); err != nil {
 		return prefixField("record_blocks", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "path", "frontmatter", "parse_error", "headings", "record_blocks":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "IndexEntry", Field: unknown}
+	}
 	return nil
 }
 
@@ -4111,6 +4845,19 @@ func (v *IndexExclusion) UnmarshalJSON(data []byte) error {
 			return prefixField("type", err)
 		}
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "path", "reason", "type":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "IndexExclusion", Field: unknown}
+	}
 	return nil
 }
 
@@ -4122,6 +4869,23 @@ func (v *IndexExclusion) UnmarshalJSON(data []byte) error {
 // branches on rather than a property it has to infer from the absence of
 // another.
 type ReferenceBodyOrigin struct{}
+
+func (v *ReferenceBodyOrigin) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	var unknown string
+	for key := range raw {
+		if unknown == "" || key < unknown {
+			unknown = key
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "ReferenceBodyOrigin", Field: unknown}
+	}
+	return nil
+}
 
 // A reference held by a frontmatter property the active profile registers
 // as reference-bearing.
@@ -4140,6 +4904,19 @@ func (v *ReferenceFrontmatterOrigin) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("ReferenceFrontmatterOrigin: required field \"property\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Property); err != nil {
 		return prefixField("property", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "property":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "ReferenceFrontmatterOrigin", Field: unknown}
 	}
 	return nil
 }
@@ -4217,17 +4994,26 @@ func (u *ReferenceOrigin) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &probe); err != nil {
 		return err
 	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	delete(raw, "kind")
+	body, err := json.Marshal(raw)
+	if err != nil {
+		return err
+	}
 	switch probe.Tag {
 	case "body":
 		var v ReferenceBodyOrigin
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "frontmatter-property":
 		var v ReferenceFrontmatterOrigin
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
@@ -4256,6 +5042,19 @@ func (v *ReferenceResolved) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.TargetPath); err != nil {
 		return prefixField("target_path", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "target_path":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "ReferenceResolved", Field: unknown}
+	}
 	return nil
 }
 
@@ -4265,6 +5064,23 @@ func (v *ReferenceResolved) UnmarshalJSON(data []byte) error {
 // Carries nothing: the slug that matched nothing is already on the
 // reference this resolution belongs to.
 type ReferenceUnresolved struct{}
+
+func (v *ReferenceUnresolved) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	var unknown string
+	for key := range raw {
+		if unknown == "" || key < unknown {
+			unknown = key
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "ReferenceUnresolved", Field: unknown}
+	}
+	return nil
+}
 
 // A reference whose slug matches a file the index recorded as excluded or
 // as a parse failure rather than as a corpus member.
@@ -4306,6 +5122,19 @@ func (v *ReferenceNonMember) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(m, &v.ParseError); err != nil {
 			return prefixField("parse_error", err)
 		}
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "path", "reason", "parse_error":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "ReferenceNonMember", Field: unknown}
 	}
 	return nil
 }
@@ -4395,24 +5224,33 @@ func (u *ReferenceResolution) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &probe); err != nil {
 		return err
 	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	delete(raw, "state")
+	body, err := json.Marshal(raw)
+	if err != nil {
+		return err
+	}
 	switch probe.Tag {
 	case "resolved":
 		var v ReferenceResolved
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "unresolved":
 		var v ReferenceUnresolved
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "non-member":
 		var v ReferenceNonMember
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
@@ -4437,6 +5275,19 @@ func (v *AnchorResolved) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Heading); err != nil {
 		return prefixField("heading", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "heading":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "AnchorResolved", Field: unknown}
+	}
 	return nil
 }
 
@@ -4447,6 +5298,23 @@ func (v *AnchorResolved) UnmarshalJSON(data []byte) error {
 // absence of an answer — the target's headings were read and none of
 // them matched, which is what a rename-the-heading fix responds to.
 type AnchorUnresolved struct{}
+
+func (v *AnchorUnresolved) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	var unknown string
+	for key := range raw {
+		if unknown == "" || key < unknown {
+			unknown = key
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "AnchorUnresolved", Field: unknown}
+	}
+	return nil
+}
 
 // An anchor whose identifier matched more than one heading of its target
 // document.
@@ -4464,6 +5332,19 @@ func (v *AnchorAmbiguous) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("AnchorAmbiguous: required field \"matches\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Matches); err != nil {
 		return prefixField("matches", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "matches":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "AnchorAmbiguous", Field: unknown}
 	}
 	return nil
 }
@@ -4489,6 +5370,19 @@ func (v *AnchorUnverified) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("AnchorUnverified: required field \"reason\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Reason); err != nil {
 		return prefixField("reason", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "reason":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "AnchorUnverified", Field: unknown}
 	}
 	return nil
 }
@@ -4595,31 +5489,40 @@ func (u *AnchorResolution) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &probe); err != nil {
 		return err
 	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	delete(raw, "state")
+	body, err := json.Marshal(raw)
+	if err != nil {
+		return err
+	}
 	switch probe.Tag {
 	case "resolved":
 		var v AnchorResolved
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "unresolved":
 		var v AnchorUnresolved
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "ambiguous":
 		var v AnchorAmbiguous
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
 		return nil
 	case "unverified":
 		var v AnchorUnverified
-		if err := json.Unmarshal(data, &v); err != nil {
+		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
 		u.Value = v
@@ -4734,6 +5637,19 @@ func (v *Reference) UnmarshalJSON(data []byte) error {
 			return prefixField("anchor_resolution", err)
 		}
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "path", "text", "slug", "anchor", "origin", "position", "resolution", "anchor_resolution":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "Reference", Field: unknown}
+	}
 	return nil
 }
 
@@ -4847,6 +5763,19 @@ func (v *SpecIndex) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(m, &v.InputHash); err != nil {
 			return prefixField("input_hash", err)
 		}
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "schema_version", "workspace", "entries", "exclusions", "references", "features", "input_hash":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "SpecIndex", Field: unknown}
 	}
 	return nil
 }
@@ -4981,6 +5910,19 @@ func (v *ProfileRegistration) UnmarshalJSON(data []byte) error {
 			return prefixField("conventions", err)
 		}
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "name", "document_types", "block_tags", "finished_statuses", "placeholder_patterns", "live_statuses", "retired_statuses", "successor_property", "feature_tags", "conventions":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "ProfileRegistration", Field: unknown}
+	}
 	return nil
 }
 
@@ -5027,6 +5969,52 @@ type FeatureTagRegistration struct {
 	Qualifiers *[]QualifierTagRegistration `json:"qualifiers,omitempty"`
 }
 
+func (v *FeatureTagRegistration) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["feature_pattern"]; ok {
+		if err := json.Unmarshal(m, &v.FeaturePattern); err != nil {
+			return prefixField("feature_pattern", err)
+		}
+	}
+	if m, ok := raw["criterion_pattern"]; ok {
+		if err := json.Unmarshal(m, &v.CriterionPattern); err != nil {
+			return prefixField("criterion_pattern", err)
+		}
+	}
+	if m, ok := raw["owner_prefix"]; ok {
+		if err := json.Unmarshal(m, &v.OwnerPrefix); err != nil {
+			return prefixField("owner_prefix", err)
+		}
+	}
+	if m, ok := raw["shared_captures"]; ok {
+		if err := json.Unmarshal(m, &v.SharedCaptures); err != nil {
+			return prefixField("shared_captures", err)
+		}
+	}
+	if m, ok := raw["qualifiers"]; ok {
+		if err := json.Unmarshal(m, &v.Qualifiers); err != nil {
+			return prefixField("qualifiers", err)
+		}
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "feature_pattern", "criterion_pattern", "owner_prefix", "shared_captures", "qualifiers":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FeatureTagRegistration", Field: unknown}
+	}
+	return nil
+}
+
 // One tag a profile assigns meaning to on a criterion, and the meaning it
 // assigns.
 //
@@ -5063,6 +6051,19 @@ func (v *QualifierTagRegistration) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(m, &v.Level); err != nil {
 			return prefixField("level", err)
 		}
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "tag", "meaning", "level":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "QualifierTagRegistration", Field: unknown}
 	}
 	return nil
 }
@@ -5197,6 +6198,19 @@ func (v *DocumentTypeRegistration) UnmarshalJSON(data []byte) error {
 			return prefixField("pairings", err)
 		}
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "schema", "slug_pattern", "numbered", "sections", "section_sets", "reference_properties", "typed_reference_properties", "pairings":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "DocumentTypeRegistration", Field: unknown}
+	}
 	return nil
 }
 
@@ -5248,6 +6262,19 @@ func (v *Section) UnmarshalJSON(data []byte) error {
 			return prefixField("children", err)
 		}
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "title", "required", "repeated", "children":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "Section", Field: unknown}
+	}
 	return nil
 }
 
@@ -5287,6 +6314,19 @@ func (v *PropertyPairing) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Counterpart); err != nil {
 		return prefixField("counterpart", err)
 	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "property", "counterpart":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "PropertyPairing", Field: unknown}
+	}
 	return nil
 }
 
@@ -5325,6 +6365,19 @@ func (v *BlockTagRegistration) UnmarshalJSON(data []byte) error {
 		if err := json.Unmarshal(m, &v.Schema); err != nil {
 			return prefixField("schema", err)
 		}
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "tag", "format", "schema":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "BlockTagRegistration", Field: unknown}
 	}
 	return nil
 }
@@ -5644,6 +6697,17 @@ func (e Delivery) String() string {
 	return string(e)
 }
 
+// unknownFieldError reports a key the schema does not declare. Field
+// accumulates the path as each enclosing struct prefixes its own key.
+type unknownFieldError struct {
+	Struct string
+	Field  string
+}
+
+func (e *unknownFieldError) Error() string {
+	return e.Struct + ": unknown field \"" + e.Field + "\""
+}
+
 // prefixField re-attaches a struct's key to a decode error raised inside a
 // property decoded on its own, so nested paths stay whole.
 func prefixField(key string, err error) error {
@@ -5654,6 +6718,10 @@ func prefixField(key string, err error) error {
 		} else {
 			typeErr.Field = key + "." + typeErr.Field
 		}
+	}
+	var unknownErr *unknownFieldError
+	if errors.As(err, &unknownErr) {
+		unknownErr.Field = key + "." + unknownErr.Field
 	}
 	return err
 }

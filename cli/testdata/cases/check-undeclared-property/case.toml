@@ -1,0 +1,5 @@
+description = "a frontmatter key the generated schema does not declare is an error naming the key"
+cites = ["AC-SPEC-003.1"]
+artifacts = ["checks.log"]
+args = ["check"]
+exit_code = 1

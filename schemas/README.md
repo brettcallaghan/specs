@@ -90,21 +90,23 @@ them, even though neither has a template. Without them those documents
 are excluded from every check as `unknown-type`.
 
 **Undeclared keys are rejected.** The manifest sets
-`jsonSchema.allowAdditionalProperties: false`, which puts
-`additionalProperties: false` on every emitted object — what
-`specs-configuration-contract.md` asks for, on the grounds that a
-misspelled key is far more common than a key from the future. A document
-carrying `releated:` fails validation naming the key.
+`rejectUnknownProperties: true`, which puts `additionalProperties: false`
+on every emitted object — what `specs-configuration-contract.md` asks for,
+on the grounds that a misspelled key is far more common than a key from
+the future. A document carrying `releated:` fails validation naming the
+key. The generated Go decoders enforce the same policy: unmarshalling an
+undeclared key returns an `unknown field` error.
 
 Closing a shape changes the emitted *shape* as well as its strictness:
 a closed type cannot be composed with `allOf`, because the `$ref`'d
 supertype would independently reject every property the subtype adds.
 Strata therefore flattens ancestors into each type instead, so
-`ContainerBlueprint` lists all fifteen of its properties inline rather
-than `$ref`ing `DocumentFrontmatter` and `ContractEdges`. Inheritance
-semantics are identical; only `$ref` sharing is lost, and the generated
-file is larger for it. The Markdown and Go targets are unaffected —
-both flatten anyway.
+`ContainerBlueprint` lists all twelve of its properties inline rather
+than `$ref`ing `DocumentFrontmatter` and `ContractEdges`. For the same
+reason a closed union inlines each variant, discriminator included, as an
+`anyOf` branch rather than `$ref`ing the variant's own closed definition.
+Semantics are identical; only `$ref` sharing is lost, and the generated
+file is larger for it.
 
 **The CLI still needs its own unknown-key detection.**
 `specs-configuration-contract.md` requires each finding to carry a

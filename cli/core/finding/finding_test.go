@@ -1014,10 +1014,22 @@ func TestTheGeneratedSchemaDeclaresTheFindingModel(t *testing.T) {
 		t.Errorf("Severity declares %d values, want exactly the three the FRD defines", len(values))
 	}
 
+	// A closed union inlines each variant with its discriminator, so every
+	// branch must itself require `kind` and pin it to a constant. A branch
+	// that $refs a closed variant instead rejects the discriminator and with
+	// it every valid document.
 	union := definition(t, bundle, "FindingDetail")
-	branches, ok := union["allOf"].([]any)
+	branches, ok := union["anyOf"].([]any)
 	if !ok || len(branches) == 0 {
 		t.Fatalf("FindingDetail is not a discriminated union: %v", union)
+	}
+	for i, raw := range branches {
+		branch, _ := raw.(map[string]any)
+		properties, _ := branch["properties"].(map[string]any)
+		kind, _ := properties["kind"].(map[string]any)
+		if _, ok := kind["const"].(string); !ok || !isRequired(branch, "kind") {
+			t.Errorf("FindingDetail branch %d does not require a constant `kind`: %v", i, branch)
+		}
 	}
 	for _, name := range []string{"FindingSchemaViolation", "FindingMissingProperty", "FindingSlugPattern", "FindingDuplicateSlug", "FindingUnverified"} {
 		if _, ok := bundle["definitions"].(map[string]any)[name]; !ok {

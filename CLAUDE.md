@@ -24,10 +24,11 @@ command -v bd >/dev/null && command -v strata >/dev/null || \
   bash "$(git rev-parse --show-toplevel)/.claude/hooks/session-start.sh"
 ```
 
-It is idempotent, takes a few minutes cold (it builds `bd` from source
-and `strata` from a checkout), and is a no-op once both are installed.
+It is idempotent, takes a few minutes cold (it builds `bd` from source;
+`strata` is a release download), and is a no-op once both are installed.
+To install only `strata`, run `scripts/install-strata-cli.sh`.
 
-If it skips `strata`, read the warning it logs — `AGENTS.md` ("strata
+If it fails on `strata`, read the error it logs — `AGENTS.md` ("strata
 CLI") covers the causes. Everything else still lands either way.
 
 **Why this is needed.** `.claude/settings.json` registers that hook, and

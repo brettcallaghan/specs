@@ -1,9 +1,9 @@
 {
   "packageName": "SpecModel",
   "version": "0.1.0",
+  "rejectUnknownProperties": true,
   "jsonSchema": {
     "bundle": true,
-    "schemaVersion": "Draft07",
-    "allowAdditionalProperties": false
+    "schemaVersion": "Draft07"
   }
 }

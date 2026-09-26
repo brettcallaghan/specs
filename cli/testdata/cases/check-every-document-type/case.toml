@@ -1,0 +1,5 @@
+description = "one minimal conforming document of every document type validates against the closed generated schema"
+cites = ["AC-SPEC-003.1"]
+artifacts = ["checks.log"]
+args = ["check"]
+exit_code = 0

@@ -10,7 +10,7 @@ frontmatter and is not a corpus member.
 ## The problem
 
 `.claude/settings.json` registers `.claude/hooks/session-start.sh` as a
-SessionStart hook. That hook installs `bd`, builds the `strata` CLI,
+SessionStart hook. That hook installs `bd`, installs the `strata` CLI,
 installs the `swarm` plugin and builds the `swarm` CLI, and regenerates
 the vendored shared references. (The skills are committed
 symlinks under `.claude/skills/` → `plugin/skills/`, so they need no
@@ -124,7 +124,7 @@ use the settings icon. Paste into **Setup script**.
 
 ```bash
 #!/bin/bash
-# Provision bd and the strata CLI for sessions in this environment.
+# Provision bd for sessions in this environment.
 # Runs before Claude Code launches, so it does not depend on which
 # repository is the project root. Cached after the first run.
 #
@@ -144,30 +144,6 @@ go install github.com/steveyegge/beads/cmd/bd@latest >/dev/null 2>&1 || true
 [ -x "$(go env GOPATH)/bin/bd" ] \
   && install -m 0755 "$(go env GOPATH)/bin/bd" /usr/local/bin/bd 2>/dev/null || true
 
-# strata publishes no reachable release binary either; build from source.
-#
-# strata-lang/strata is private today, so the clone needs a fine-grained PAT
-# with read access to it, set as STRATA_ACCESS_TOKEN in the same settings
-# panel as this script under Environment variables. Without it this half is a
-# no-op and only `bd` gets provisioned. The token goes to git through a
-# credential helper rather than into the remote URL, which would persist it
-# in /opt/strata-src/.git/config.
-if [ ! -x /usr/local/bin/strata ] && [ -n "${STRATA_ACCESS_TOKEN:-}" ]; then
-  helper='!f() { [ "$1" = get ] || exit 0; printf "username=x-access-token\npassword=%s\n" "$STRATA_ACCESS_TOKEN"; }; f'
-  # The empty helper FIRST resets the list. credential.helper is multi-valued
-  # and global values are tried before local ones, so any bare global helper
-  # already configured in this environment would answer first, with a token
-  # that has no access to strata-lang/strata.
-  git clone --filter=blob:none --quiet \
-    -c credential.helper= -c "credential.helper=$helper" \
-    https://github.com/strata-lang/strata.git /opt/strata-src >/dev/null 2>&1 || true
-  if [ -f /opt/strata-src/crates/strata-cli/Cargo.toml ]; then
-    ( cd /opt/strata-src && cargo build --release -p strata-cli ) >/dev/null 2>&1 || true
-    [ -x /opt/strata-src/target/release/strata ] \
-      && install -m 0755 /opt/strata-src/target/release/strata /usr/local/bin/strata || true
-  fi
-fi
-
 # Worktree base ref: without this a git worktree branches from the default
 # branch instead of session HEAD, and every bead in a bead-bonanza run loses
 # the commits its sprint branch already carries. User-scope, so it belongs here.
@@ -181,26 +157,25 @@ fi
 exit 0
 ```
 
-Set `STRATA_ACCESS_TOKEN` as an environment variable on the environment
-rather than inline in this script: the SessionStart hook re-reads it to
-fast-forward `~/.cache/strata-src`, so it is needed in the session too, and
-an environment variable covers both. All of this goes away when
-`strata-lang/strata` becomes public — `agent-plugins-6gn` tracks the removal.
+The script does not install `strata`: it runs before this repository is
+cloned, and `scripts/install-strata-cli.sh` — which the hook runs, and which
+the `CLAUDE.md` fallback names — installs the release binary in seconds. That
+script reads `STRATA_ACCESS_TOKEN`, a fine-grained PAT with read access to
+`strata-lang/strata`, so set it as an environment variable on the
+environment. It goes away when `strata-lang/strata` becomes public —
+`agent-plugins-6gn` tracks the removal.
 
 ### Trade-offs
 
 - **It duplicates logic** that also lives in
   `.claude/hooks/session-start.sh`, so the two can drift. Keep them
-  different in scope: the setup script provisions only the two binaries;
+  different in scope: the setup script provisions only `bd`;
   the hook does the repository-specific work (bootstrapping the beads
   database from the Dolt remote and verifying write access to it,
   regenerating vendored references) that cannot run before the
   repository is cloned.
-- **The five-minute budget is real.** A cold `cargo build --release` of
-  `strata-cli` takes roughly two minutes here, and the `bd` source build
-  a few more. If the script starts timing out, drop the strata half and
-  leave it to the hook — the strata skill is the only thing that needs
-  it.
+- **The five-minute budget is real.** The `bd` source build takes a few
+  minutes cold.
 - **The cache expires** after roughly seven days, and rebuilds when the
   script or the network allowlist changes. A session that lands on a
   cold cache waits for the script.
@@ -221,32 +196,33 @@ agent acting on the instruction rather than on the harness enforcing it.
 ```bash
 command -v bd strata swarm    # all three present -> provisioning worked
 claude plugin list            # specs@brettcallaghan and swarm@brettcallaghan-private, user scope
-cat ~/.cache/strata-cli/build.log   # the hook's strata build output
+cat ~/.cache/strata-cli/installed-release   # the strata release tag installed
 cat ~/.cache/swarm-cli/build.log    # the hook's swarm clone, plugin and build output
 ```
 
-`swarm` is provisioned by the hook only — the setup script above does not
-install it, so a session where the hook did not run has no `swarm` even
-when `bd` and `strata` are present from the cache. The clone reads
+`swarm` and `strata` are provisioned by the hook only — the setup script
+above installs neither, so a session where the hook did not run has neither
+even when `bd` is present from the cache. The clone reads
 `SWARM_ACCESS_TOKEN`, falling back to `AGENT_PLUGINS_ACCESS_TOKEN`, which
 that same PAT covers; `SWARM_SRC_DIR` points the build at a checkout
 already on disk, and `SWARM_SKIP=1` skips the step.
 
-A build log ending in `could not read Username for 'https://github.com'`
-means the clone was unauthenticated — `STRATA_ACCESS_TOKEN` is unset or its
-PAT no longer reads `strata-lang/strata`. Re-running the hook by hand with
-the variable set recovers it.
+A swarm build log ending in `could not read Username for 'https://github.com'`
+means the clone was unauthenticated — neither token is set, or the PAT no
+longer reads `brettcallaghan/swarm`. Re-running the hook by hand with the
+variable set recovers it.
 
 A build log ending in **`remote: Write access to repository not granted`**
 and a **403** means something different, and the message is misleading twice
 over: it names *write* access for a read-only clone, and it looks like a
 proxy or a scope problem. It is neither. `credential.helper` is multi-valued
 and git tries **global** values before local ones, so any bare global helper
-answers before the strata clone's own. A PAT that cannot read
-`strata-lang/strata` therefore authenticates the clone, and GitHub refuses.
-The remedy is `-c credential.helper=` before the strata helper, which resets
-the inherited list; the hook and the script above both do this. Measured: the
-identical clone returns 403 without the reset and succeeds with it.
+answers before the clone's own. A PAT that cannot read the cloned repository
+therefore authenticates the clone, and GitHub refuses. The remedy is
+`-c credential.helper=` before the clone's helper, which resets the inherited
+list; the hook's swarm clone does this. Measured on a clone of
+`strata-lang/strata`: the identical clone returns 403 without the reset and
+succeeds with it.
 
 The hook's own Dolt helper is registered under a URL-scoped key
 (`credential.https://github.com/<owner>/<repo>.helper`, and the same key with
@@ -254,6 +230,6 @@ a `.git` suffix), never the bare one, so it no longer answers for other repos.
 The reset stays as defence in depth against a bare helper arriving from
 somewhere else.
 
-`bd` and `strata` are the only signal that the hook (or the setup
-script) ran; the skills under `.claude/skills/` are committed symlinks
+`strata` is the signal that the hook ran, and `bd` that the hook or the
+setup script did; the skills under `.claude/skills/` are committed symlinks
 and are present either way.

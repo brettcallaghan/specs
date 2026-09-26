@@ -296,7 +296,7 @@ alone is visible rather than averaged away.
 | Test layer | Statements covered | Coverage |
 |:---|---:|---:|
 | Unit tests | 2,666 / 3,405 | 78.3% |
-| Snapshot cases | 2,608 / 3,405 | 76.6% |
+| Snapshot cases | 2,697 / 3,405 | 79.2% |
 | End-to-end (built binary) | 1,055 / 3,405 | 31.0% |
 | **All layers combined** | **3,056 / 3,405** | **89.8%** |
 
@@ -318,7 +318,7 @@ alone is visible rather than averaged away.
 | `cli/specs` | 1 | 1 | 100.0% |
 | **Total** | **3,405** | **3,056** | **89.8%** |
 
-Generated code is excluded from these figures: 1,955 statements in 1 file (`specmodel.go`) carrying the `// Code generated … DO NOT EDIT.` marker. It is excluded from the coverage profile too, so every report derived from it agrees with this table.
+Generated code is excluded from these figures: 2,542 statements in 1 file (`specmodel.go`) carrying the `// Code generated … DO NOT EDIT.` marker. It is excluded from the coverage profile too, so every report derived from it agrees with this table.
 <!-- coverage:table:end -->
 
 CI regenerates this and fails if it is stale
