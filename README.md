@@ -91,10 +91,6 @@ to change your mind.
 built on `specs`, is private for now and ships from its own
 `brettcallaghan-private` marketplace; see its README.
 
-Upgrading from `sf@spec-driven-dev` or `swarm@swarm`: remove the old
-marketplaces (`/plugin marketplace remove spec-driven-dev`, and `swarm`),
-then install as above.
-
 Or install the skills into `~/.claude/skills` from a checkout, without
 the plugin system:
 

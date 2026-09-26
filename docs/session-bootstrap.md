@@ -79,7 +79,9 @@ A cloud environment must supply two things:
    PAT, and that PAT has no `workflow` scope, so a push touching
    `.github/workflows/` is refused. Git config cannot scope a bypass by
    refspec, so it cannot apply to `refs/dolt/*` alone. Push such a change with
-   `git -c "http.<origin>.proxy=$HTTPS_PROXY" push`, which restores the proxy's
+   `git -c "http.<origin>.proxy=$HTTPS_PROXY" push`, where `<origin>` is
+   origin's exact URL (a host-wide `http.https://github.com/.proxy` loses to
+   origin's own, more specific, empty key), which restores the proxy's
    brokered token for that one command, or grant the PAT the scope. If an environment blocks direct egress,
    the hook will fail its probe and say so.
 
