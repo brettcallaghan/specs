@@ -330,12 +330,22 @@ scope for this run's beads" tells a future reader nothing they can act on.
   remote to the real PAT, and `AGENT_PLUGINS_ACCESS_TOKEN` has no `workflow`
   scope. Measured: `! [remote rejected] ... refusing to allow a Personal Access
   Token to create or update workflow '.github/workflows/cli.yml' without
-  'workflow' scope`; the same push succeeded through
-  `git -c "http.https://github.com/.proxy=$HTTPS_PROXY" push`, which restores
-  the proxy's brokered token for that one command. Git config cannot scope a
-  bypass by refspec, so the bypass cannot apply to `refs/dolt/*` alone — the
-  two remedies are that per-command override, or granting the PAT `workflow`
-  scope. Do NOT "fix" it by widening the bypass back to the host.
+  'workflow' scope`. The per-command override must name **origin's exact
+  URL**, not the host:
+  `git -c "http.$(git remote get-url origin).proxy=$HTTPS_PROXY" push`, which
+  restores the proxy's brokered token for that one command. The host-wide
+  form, `-c "http.https://github.com/.proxy=…"`, is a trap: git applies the
+  most specific URL match, so origin's own empty key still wins and the PAT is
+  still sent. Measured: `git -c "http.https://github.com/.proxy=$HTTPS_PROXY"
+  config --get-urlmatch http.proxy <origin>` prints the empty value, and a
+  push of `.github/workflows/checks.yml` under it was rejected with the same
+  `without 'workflow' scope` error; the origin-scoped form resolves to the
+  proxy, and a push touching `.github/workflows/checks.yml` under it exited 0
+  (probe branch, since deleted). Git config cannot scope a bypass by refspec,
+  so the bypass cannot apply to `refs/dolt/*` alone — the remedies are that
+  per-command override, granting the PAT `workflow` scope, or pushing the
+  files through the GitHub API. Do NOT "fix" it by widening the bypass back to
+  the host.
 - **`scripts/generate-schemas.sh --check` fails when the installed `strata`
   predates `strata-lang/strata@8997153`.** That commit fixes
   `allowAdditionalProperties: false` silently dropping struct inheritance.
