@@ -38,6 +38,7 @@ frontmatter, and every parent roster replaces the block with a link.
 | title | String | Human-readable title. Free text.<br><br>On a promoted document this is also the document's H1, and the two are kept in sync by hand. |
 | description | String | A one- to two-sentence summary of what this element is and what it is responsible for.<br><br>On C4 blueprints this is the brief description rendered on diagrams, so it is written to be read at a glance rather than as an introduction. |
 | slug | [Slug](vocabulary.md#slug) | The identifier every other document uses to reference this element.<br><br>Unique across the corpus, compared without regard to letter case, and conventionally prefixed by the document type — `adr-013`, `container-spec-cli`, `module-document-core`. |
+| technology | String? | The language, framework, store or package type the element is built with — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.<br><br>Meaningful on C4 elements, where it is the technology line drawn on diagrams. A document type with no technology leaves it unset. |
 
 
 ## DocumentFrontmatter

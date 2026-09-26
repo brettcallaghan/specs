@@ -46,6 +46,13 @@
             "null"
           ]
         },
+        "technology": {
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "title": {
           "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
           "type": "string"
@@ -255,6 +262,745 @@
       ],
       "type": "string"
     },
+    "C4BlueprintDeclaration": {
+      "additionalProperties": false,
+      "description": "An element promoted to a blueprint of its own.",
+      "properties": {
+        "path": {
+          "description": "Repository-relative path of the blueprint.",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/Status",
+          "description": "The blueprint's lifecycle state."
+        }
+      },
+      "required": [
+        "path",
+        "status"
+      ],
+      "type": "object"
+    },
+    "C4Component": {
+      "additionalProperties": false,
+      "description": "A component: the atomic leaf of one container or module.",
+      "properties": {
+        "contracts_consumed": {
+          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
+          "items": {
+            "$ref": "#/definitions/Citation"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "contracts_provided": {
+          "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
+          "items": {
+            "$ref": "#/definitions/Citation"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "declaration": {
+          "$ref": "#/definitions/C4Declaration",
+          "description": "Where the element is declared."
+        },
+        "description": {
+          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Present only when the component has a blueprint, which is where the\nproperty is declared.",
+          "oneOf": [
+            {
+              "$ref": "#/definitions/BlueprintKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "slug": {
+          "$ref": "#/definitions/Slug",
+          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+        },
+        "tags": {
+          "description": "Free-form tags copied from the declaration.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "technology": {
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "slug",
+        "declaration"
+      ],
+      "type": "object"
+    },
+    "C4Container": {
+      "additionalProperties": false,
+      "description": "A container: one deployable or runnable unit.",
+      "properties": {
+        "components": {
+          "description": "Components declared in this container's roster section.",
+          "items": {
+            "$ref": "#/definitions/C4Component"
+          },
+          "type": "array"
+        },
+        "contracts_consumed": {
+          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
+          "items": {
+            "$ref": "#/definitions/Citation"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "contracts_provided": {
+          "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
+          "items": {
+            "$ref": "#/definitions/Citation"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "declaration": {
+          "$ref": "#/definitions/C4Declaration",
+          "description": "Where the element is declared."
+        },
+        "description": {
+          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "type": "string"
+        },
+        "modules": {
+          "description": "Slugs of the modules composed into this container, derived from each\nmodule's `contained_by`. The modules themselves are in the model's\n`modules` collection.",
+          "items": {
+            "$ref": "#/definitions/Slug"
+          },
+          "type": "array"
+        },
+        "slug": {
+          "$ref": "#/definitions/Slug",
+          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+        },
+        "tags": {
+          "description": "Free-form tags copied from the declaration.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "technology": {
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "slug",
+        "declaration",
+        "components",
+        "modules"
+      ],
+      "type": "object"
+    },
+    "C4ContractLink": {
+      "additionalProperties": false,
+      "description": "The contract a relationship runs over.",
+      "properties": {
+        "slug": {
+          "$ref": "#/definitions/Citation"
+        },
+        "source": {
+          "$ref": "#/definitions/C4ContractSource"
+        }
+      },
+      "required": [
+        "slug",
+        "source"
+      ],
+      "type": "object"
+    },
+    "C4ContractSource": {
+      "description": "How a relationship's governing contract was established.",
+      "enum": [
+        "tag",
+        "derived"
+      ],
+      "type": "string"
+    },
+    "C4Declaration": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "blueprint",
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "status": {
+              "$ref": "#/definitions/Status"
+            }
+          },
+          "required": [
+            "kind",
+            "path",
+            "status"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "record-block",
+              "type": "string"
+            },
+            "path": {
+              "type": "string"
+            },
+            "position": {
+              "$ref": "#/definitions/Span"
+            }
+          },
+          "required": [
+            "kind",
+            "path",
+            "position"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "Where an element is declared. Exactly one of the two, per the\nrecord-XOR-blueprint rule of ADR-008."
+    },
+    "C4DiagramType": {
+      "description": "The diagram types that contribute relationships. Dynamic diagrams draw\ndata flow rather than dependency, and deployment diagrams draw\ninfrastructure, so neither contributes.",
+      "enum": [
+        "context",
+        "container",
+        "component"
+      ],
+      "type": "string"
+    },
+    "C4Drawing": {
+      "additionalProperties": false,
+      "description": "One place a relationship was drawn.",
+      "properties": {
+        "diagram_type": {
+          "$ref": "#/definitions/C4DiagramType"
+        },
+        "path": {
+          "description": "Repository-relative path of the document holding the diagram.",
+          "type": "string"
+        },
+        "position": {
+          "$ref": "#/definitions/Span",
+          "description": "The `Rel` statement as written."
+        },
+        "source_alias": {
+          "description": "The Mermaid aliases of the two endpoints as written. `Rel_Back`\nstatements are recorded after normalisation, so these name the\nsource first.",
+          "type": "string"
+        },
+        "target_alias": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "position",
+        "diagram_type",
+        "source_alias",
+        "target_alias"
+      ],
+      "type": "object"
+    },
+    "C4Element": {
+      "additionalProperties": false,
+      "description": "The properties every element carries, whatever its level.",
+      "properties": {
+        "contracts_consumed": {
+          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
+          "items": {
+            "$ref": "#/definitions/Citation"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "contracts_provided": {
+          "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
+          "items": {
+            "$ref": "#/definitions/Citation"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "declaration": {
+          "$ref": "#/definitions/C4Declaration",
+          "description": "Where the element is declared."
+        },
+        "description": {
+          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "type": "string"
+        },
+        "slug": {
+          "$ref": "#/definitions/Slug",
+          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+        },
+        "tags": {
+          "description": "Free-form tags copied from the declaration.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "technology": {
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "slug",
+        "declaration"
+      ],
+      "type": "object"
+    },
+    "C4Interaction": {
+      "description": "Whether the source waits on the target. Set only by a reserved tag;\nabsent means the diagram does not say.",
+      "enum": [
+        "sync",
+        "async"
+      ],
+      "type": "string"
+    },
+    "C4Model": {
+      "additionalProperties": false,
+      "description": "The C4 model a corpus declares, as `specs c4` emits it.\n\nA projection of the index, not a second source of truth: every element is\none the index already holds as a blueprint or a record block, and every\nrelationship is a `Rel` statement read from a C4 diagram in the document\nthat owns it. Nothing here is authored by hand.\n\nElements form a tree, because C4 gives each one exactly one parent: a\nsystem holds containers, a container holds components. Modules are the\nexception — a module may be composed into several containers — so they\nsit in their own collection and each host lists them by slug.\nRelationships are one flat collection for the reason ADR-018 gives for\nreferences: an edge belongs to neither endpoint, and one list is what\nmerges across workspaces by appending.",
+      "properties": {
+        "modules": {
+          "description": "Every module, once, whatever the number of its hosts.",
+          "items": {
+            "$ref": "#/definitions/C4Module"
+          },
+          "type": "array"
+        },
+        "relationships": {
+          "description": "Every dependency edge between two elements, ordered by source slug,\nthen target slug, then description.",
+          "items": {
+            "$ref": "#/definitions/C4Relationship"
+          },
+          "type": "array"
+        },
+        "schema_version": {
+          "description": "The version of this shape. Pinned to one value so a consumer can\nrefuse an artifact it does not understand.",
+          "pattern": "^0\\.1$",
+          "type": "string"
+        },
+        "software_systems": {
+          "description": "Systems documented by a system blueprint, each holding the containers\nthat declare it.",
+          "items": {
+            "$ref": "#/definitions/C4System"
+          },
+          "type": "array"
+        },
+        "standalone_containers": {
+          "description": "Containers whose blueprint declares no `system` — a documented fact,\nnot an omission.",
+          "items": {
+            "$ref": "#/definitions/C4Container"
+          },
+          "type": "array"
+        },
+        "unplaced": {
+          "description": "`Rel` statements the model does not admit, recorded rather than\ndropped so that their absence from `relationships` is visible.",
+          "items": {
+            "$ref": "#/definitions/C4Unplaced"
+          },
+          "type": "array"
+        },
+        "workspace": {
+          "description": "The workspace the model was emitted from, as configured in\n`specs.toml`. Models from several repositories are told apart by it.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "schema_version",
+        "workspace",
+        "software_systems",
+        "standalone_containers",
+        "modules",
+        "relationships",
+        "unplaced"
+      ],
+      "type": "object"
+    },
+    "C4Module": {
+      "additionalProperties": false,
+      "description": "A module: a unit composed into one or more containers.",
+      "properties": {
+        "components": {
+          "description": "Components declared in this module's roster section.",
+          "items": {
+            "$ref": "#/definitions/C4Component"
+          },
+          "type": "array"
+        },
+        "contained_by": {
+          "description": "The containers or modules that compose this one.",
+          "items": {
+            "$ref": "#/definitions/Citation"
+          },
+          "type": "array"
+        },
+        "contracts_consumed": {
+          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
+          "items": {
+            "$ref": "#/definitions/Citation"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "contracts_provided": {
+          "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
+          "items": {
+            "$ref": "#/definitions/Citation"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "declaration": {
+          "$ref": "#/definitions/C4Declaration",
+          "description": "Where the element is declared."
+        },
+        "description": {
+          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/definitions/BlueprintKind"
+        },
+        "slug": {
+          "$ref": "#/definitions/Slug",
+          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+        },
+        "tags": {
+          "description": "Free-form tags copied from the declaration.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "technology": {
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "type": "string"
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "visibility": {
+          "$ref": "#/definitions/Visibility"
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "slug",
+        "declaration",
+        "kind",
+        "visibility",
+        "contained_by",
+        "components"
+      ],
+      "type": "object"
+    },
+    "C4Relationship": {
+      "additionalProperties": false,
+      "description": "A dependency edge: the source depends on the target, per the C4\nstandard's arrow rule.\n\nOne relationship may have been drawn in several diagrams — a parent's\ninternal view and a child's context view show the same edge — and is\nrecorded once with every drawing listed. Two drawings are the same\nrelationship when source, target and description agree.",
+      "properties": {
+        "contract": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/C4ContractLink"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "description": {
+          "description": "The statement's label, which reads as a sentence between the two\nnames: \"Command Surface invokes indexing, checks and queries\".",
+          "type": "string"
+        },
+        "detail": {
+          "description": "The statement's description argument — longer text, never drawn.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "drawn_in": {
+          "description": "Every place this relationship was drawn, in document order.",
+          "items": {
+            "$ref": "#/definitions/C4Drawing"
+          },
+          "type": "array"
+        },
+        "interaction": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/C4Interaction"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "level": {
+          "$ref": "#/definitions/C4RelationshipLevel"
+        },
+        "source": {
+          "$ref": "#/definitions/Citation",
+          "description": "Slug of the element that depends."
+        },
+        "tags": {
+          "description": "Tags as written, with the reserved ones removed.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "target": {
+          "$ref": "#/definitions/Citation",
+          "description": "Slug of the element depended on."
+        },
+        "technology": {
+          "description": "The statement's technology argument.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "source",
+        "target",
+        "level",
+        "description",
+        "drawn_in"
+      ],
+      "type": "object"
+    },
+    "C4RelationshipLevel": {
+      "description": "The C4 level at which a relationship holds.",
+      "enum": [
+        "container",
+        "component"
+      ],
+      "type": "string"
+    },
+    "C4RosterDeclaration": {
+      "additionalProperties": false,
+      "description": "An element declared by a record block in its parent's roster section.",
+      "properties": {
+        "path": {
+          "description": "Repository-relative path of the parent document.",
+          "type": "string"
+        },
+        "position": {
+          "$ref": "#/definitions/Span",
+          "description": "The record block, fences included."
+        }
+      },
+      "required": [
+        "path",
+        "position"
+      ],
+      "type": "object"
+    },
+    "C4System": {
+      "additionalProperties": false,
+      "description": "A software system documented by a system blueprint.",
+      "properties": {
+        "containers": {
+          "description": "The containers whose blueprints name this system.",
+          "items": {
+            "$ref": "#/definitions/C4Container"
+          },
+          "type": "array"
+        },
+        "contracts_consumed": {
+          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
+          "items": {
+            "$ref": "#/definitions/Citation"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "contracts_provided": {
+          "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
+          "items": {
+            "$ref": "#/definitions/Citation"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "declaration": {
+          "$ref": "#/definitions/C4Declaration",
+          "description": "Where the element is declared."
+        },
+        "description": {
+          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "type": "string"
+        },
+        "slug": {
+          "$ref": "#/definitions/Slug",
+          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+        },
+        "tags": {
+          "description": "Free-form tags copied from the declaration.",
+          "items": {
+            "type": "string"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
+        },
+        "technology": {
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "title": {
+          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "slug",
+        "declaration",
+        "containers"
+      ],
+      "type": "object"
+    },
+    "C4Unplaced": {
+      "additionalProperties": false,
+      "description": "A `Rel` statement the model does not admit.",
+      "properties": {
+        "path": {
+          "description": "Repository-relative path of the document holding the diagram.",
+          "type": "string"
+        },
+        "position": {
+          "$ref": "#/definitions/Span",
+          "description": "The statement as written."
+        },
+        "reason": {
+          "$ref": "#/definitions/C4UnplacedReason"
+        },
+        "text": {
+          "description": "The statement's text, so a reader need not reopen the document.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "position",
+        "reason",
+        "text"
+      ],
+      "type": "object"
+    },
+    "C4UnplacedReason": {
+      "description": "Why a `Rel` statement was not admitted to the model.",
+      "enum": [
+        "external_endpoint",
+        "undeclared_node",
+        "ambiguous_node"
+      ],
+      "type": "string"
+    },
     "CheckOutcome": {
       "description": "What became of one check in a run.\n\nA run reports an outcome for every check it knows about, including the\nones it was not asked to perform, because the alternative — omitting\nthem — leaves a consumer unable to tell a check that passed from a check\nthat never ran.",
       "enum": [
@@ -375,6 +1121,13 @@
             "null"
           ]
         },
+        "technology": {
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "test_paths": {
           "description": "Repository-relative test roots.",
           "items": {
@@ -486,6 +1239,13 @@
             "null"
           ]
         },
+        "technology": {
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "title": {
           "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
           "type": "string"
@@ -581,6 +1341,13 @@
           },
           "type": [
             "array",
+            "null"
+          ]
+        },
+        "technology": {
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "type": [
+            "string",
             "null"
           ]
         },
@@ -806,6 +1573,13 @@
             "null"
           ]
         },
+        "technology": {
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "title": {
           "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
           "type": "string"
@@ -941,6 +1715,13 @@
         "slug": {
           "$ref": "#/definitions/Slug",
           "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+        },
+        "technology": {
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "title": {
           "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
@@ -1078,6 +1859,13 @@
           },
           "type": [
             "array",
+            "null"
+          ]
+        },
+        "technology": {
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "type": [
+            "string",
             "null"
           ]
         },
@@ -2218,6 +3006,13 @@
             "null"
           ]
         },
+        "technology": {
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "title": {
           "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
           "type": "string"
@@ -2284,6 +3079,13 @@
           },
           "type": [
             "array",
+            "null"
+          ]
+        },
+        "technology": {
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "type": [
+            "string",
             "null"
           ]
         },
@@ -2521,6 +3323,13 @@
           },
           "type": [
             "array",
+            "null"
+          ]
+        },
+        "technology": {
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "type": [
+            "string",
             "null"
           ]
         },
@@ -3115,6 +3924,13 @@
             "null"
           ]
         },
+        "technology": {
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "title": {
           "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
           "type": "string"
@@ -3381,6 +4197,13 @@
             "null"
           ]
         },
+        "technology": {
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "title": {
           "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
           "type": "string"
@@ -3484,6 +4307,13 @@
           },
           "type": [
             "array",
+            "null"
+          ]
+        },
+        "technology": {
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "type": [
+            "string",
             "null"
           ]
         },

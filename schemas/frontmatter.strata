@@ -40,6 +40,15 @@ struct ElementRecord {
   `container-spec-cli`, `module-document-core`.
   """
   slug: Slug
+
+  """
+  The language, framework, store or package type the element is built
+  with — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.
+
+  Meaningful on C4 elements, where it is the technology line drawn on
+  diagrams. A document type with no technology leaves it unset.
+  """
+  technology: String?
 }
 
 """
