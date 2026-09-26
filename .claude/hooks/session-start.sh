@@ -638,24 +638,24 @@ if [ "${SWARM_SKIP:-}" != "1" ]; then
     # existing state and exit 0. `--yes` is required because stdout here is not
     # a TTY.
     #
-    # THIS repository is the brettcallaghan marketplace, and it lists both
-    # plugins. specs installs from the working tree — no clone, no token, and
-    # the same files the committed .claude/skills/ symlinks already point at.
-    # swarm is a git-subdir entry, so it is fetched from GitHub's default
-    # branch, NOT from $swarm_src: the plugin tracks what is merged, while the
-    # CLI below builds the local checkout. specs first, since swarm declares it
-    # as a dependency.
+    # THIS repository is the public brettcallaghan marketplace (specs); the
+    # swarm checkout is the brettcallaghan-private marketplace (swarm), whose
+    # swarm plugin depends on specs@brettcallaghan across marketplaces. Both
+    # install from working trees — no clone, no token. specs first, since
+    # swarm declares it as a dependency.
     if ! command -v claude >/dev/null 2>&1; then
       log "WARNING: claude not on PATH — skipping the swarm plugin install"
     else
       _plugin_ok=1
-      claude plugin marketplace add "$PROJECT_DIR" --scope user >>"$SWARM_LOG" 2>&1 \
-        || { _plugin_ok=0; log "WARNING: could not add the marketplace at $PROJECT_DIR (see $SWARM_LOG)"; }
-      for _p in specs@brettcallaghan swarm@brettcallaghan; do
+      for _m in "$PROJECT_DIR" "$swarm_src"; do
+        claude plugin marketplace add "$_m" --scope user >>"$SWARM_LOG" 2>&1 \
+          || { _plugin_ok=0; log "WARNING: could not add the marketplace at $_m (see $SWARM_LOG)"; }
+      done
+      for _p in specs@brettcallaghan swarm@brettcallaghan-private; do
         claude plugin install "$_p" --scope user --yes >>"$SWARM_LOG" 2>&1 \
           || { _plugin_ok=0; log "WARNING: could not install plugin $_p (see $SWARM_LOG)"; }
       done
-      [ "$_plugin_ok" = "1" ] && log "specs and swarm plugins installed at user scope from the brettcallaghan marketplace"
+      [ "$_plugin_ok" = "1" ] && log "specs@brettcallaghan and swarm@brettcallaghan-private installed at user scope"
     fi
 
     # --- the CLI ------------------------------------------------------------

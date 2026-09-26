@@ -128,9 +128,15 @@ jobs:
           go-version: "1.24"
           cache-dependency-path: cli/go.sum
 
+      # Built outside the checkout: the binary shares its name with the
+      # specs/ corpus directory at the repository root, so
+      # $GITHUB_WORKSPACE/specs is a directory, not a place for a binary.
       - name: Build the Spec CLI
         working-directory: cli
-        run: go build -o "$GITHUB_WORKSPACE/specs" ./specs
+        run: |
+          mkdir -p "$RUNNER_TEMP/bin"
+          go build -o "$RUNNER_TEMP/bin/specs" ./specs
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
 
       # The index is the primary artifact, not a by-product of checking:
       # the FRD's own framing, and the reason a central catalogue can
@@ -139,7 +145,7 @@ jobs:
       # gitignored, so a broken index could pass unnoticed as a
       # side-effect nobody reads.
       - name: Build the index
-        run: ./specs index --out - > specs-index.json
+        run: specs index --out - > specs-index.json
 
       # Uploaded so the artifact a catalogue consumes is inspectable from
       # a failed run, rather than only reproducible locally.
@@ -153,7 +159,7 @@ jobs:
       # repository that dogfoods its own tool has no business shipping
       # findings it has decided to live with.
       - name: Check every document
-        run: ./specs check --strict
+        run: specs check --strict
 
       # The RFC queue, checked by the same binary through a second
       # specs.toml (rfcs/specs.toml, root "."). RFCs carry the same
@@ -166,5 +172,5 @@ jobs:
       # passed, so the narrowed scope is visible rather than implied.
       - name: The RFC queue conforms
         run: |
-          ./specs check --config rfcs/specs.toml \
+          specs check --config rfcs/specs.toml \
             --only frontmatter/parse,frontmatter/schema,frontmatter/missing-property,slug/pattern-mismatch

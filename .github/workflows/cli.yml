@@ -219,12 +219,13 @@ jobs:
           GOARCH: amd64
         run: |
           set -euo pipefail
-          go build -trimpath -ldflags="-s -w" -o "$GITHUB_WORKSPACE/specs" ./specs
+          # Outside the checkout: $GITHUB_WORKSPACE/specs is the corpus directory.
+          go build -trimpath -ldflags="-s -w" -o "$RUNNER_TEMP/specs" ./specs
 
       - name: The binary is statically linked
         run: |
           set -euo pipefail
-          description="$(file -b specs)"
+          description="$(file -b "$RUNNER_TEMP/specs")"
           echo "specs: $description"
           # `file` rather than `ldd`: ldd's wording for a static binary
           # varies by distribution ("not a dynamic executable" against
@@ -245,7 +246,7 @@ jobs:
           # committed snapshot fixtures, so the run has something real to
           # check and a known exit status (0: the fixture is clean).
           docker run --rm \
-            -v "$PWD/specs:/specs:ro" \
+            -v "$RUNNER_TEMP/specs:/specs:ro" \
             -v "$PWD/cli/testdata/cases/check-json/input:/corpus:ro" \
             -w /corpus \
             busybox:latest \
