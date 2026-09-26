@@ -6,7 +6,7 @@ description: The framework-agnostic engine that indexes markdown
 slug: module-document-core
 type: module-blueprint
 status: approved
-updated_at: 2026-09-07T00:00:00Z
+updated_at: 2026-09-26T00:00:00Z
 kind: standard
 visibility: internal
 contracts_provided: []
@@ -927,19 +927,19 @@ The vocabulary is:
   pure function of the text and is derived by the Markdown Structure
   component on demand.
 - **`RecordBlock`** — one fenced block the active profile registers as
-  carrying structured data about an element declared inside a document
-  ([[adr-008]]): its `tag`, its parsed `content`, and the `position` of
-  the block as written, fences included, so that a rewrite promoting the
-  element replaces the whole construct. The content is a mapping of
-  property name to value; Strata models closed shapes, so an open record
-  is a map rather than an arbitrary value, and this framework's element
-  declarations — a title, a description and a slug — are exactly that
-  shape. A tag whose registration names a schema is validated against it
-  by the Schema Registry, so this shape names no tag and carries no
-  vocabulary of its own. A block is attached to the innermost heading
-  whose section contains it, and to the document where no heading does,
-  so every parsed block in a document appears exactly once
-  (AC-SPECSTR-001.2).
+  carrying a YAML record about an element declared inside a document
+  ([[adr-008]]): its `tag` and the `position` of the block as written,
+  fences included, so that a rewrite promoting the element replaces the
+  whole construct. The record's content is not carried. Strata has no
+  open value type, so an arbitrary YAML mapping has no typed home in the
+  generated model; a command that needs a record reads it back through
+  the span and decodes it into its own Go type, and `specs check`
+  validates it — as YAML, as a mapping, and against the schema its
+  registration names, where it names one. This shape names no tag and
+  carries no vocabulary of its own. A block is attached to the innermost
+  heading whose section contains it, and to the document where no
+  heading does, so every registered block in a document appears exactly
+  once (AC-SPECSTR-001.2).
 - **`Span`** and **`ParseError`** — the position type every component
   reports through, and a message paired with one. `Span` is declared
   here, in the generated model, because findings and parse errors carry
@@ -958,7 +958,9 @@ The structure properties — `headings` and `record_blocks` on
 `IndexEntry`, with the `Heading` and `RecordBlock` shapes they carry —
 are the third, and are a no-bump for the same reason: every one of them
 is an addition alongside the existing shape, and none changes how
-anything already recorded is carried. The schema constrains
+anything already recorded is carried. Removing `RecordBlock.content`
+later was a no-bump under the exception [[container-spec-cli]] records
+for a property no emitted index has ever carried. The schema constrains
 `schema_version` by pattern (`String ~= /^1\.0$/`) rather than pinning
 it, so the generated model carries a validated field and not a constant;
 the emitted value lives in `cli/core/specindex` alongside the

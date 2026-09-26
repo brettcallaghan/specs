@@ -6045,28 +6045,27 @@ func (e ExclusionReason) String() string {
 //
 // A block is a record block only where the active profile registers its
 // info string as a tag; a profile that registers none yields a corpus with
-// no record blocks. The registration also names the format the content is
-// parsed as and, optionally, the schema it is validated against, so this
-// shape names no particular tag and carries no vocabulary of its own.
+// no record blocks. The registration may name a schema the record is
+// validated against, so this shape names no particular tag and carries no
+// vocabulary of its own.
+//
+// The record's content is not carried. Strata has no open value type, so
+// an arbitrary YAML mapping has no typed home in a generated model; a
+// command that needs a record reads it back through `position` and
+// decodes it into its own Go type, and `specs check` validates it. Adding
+// the content here later is an additive change.
 type RecordBlock struct {
 	// The block's info string, which is the tag the active profile
 	// registered — `component` for a component record block.
 	Tag string `json:"tag"`
-	// The block's content, parsed in the format its tag declares.
-	//
-	// A mapping of property name to value as written. Strata models closed
-	// shapes, so an open record is a map rather than an arbitrary value, and
-	// this framework's element declarations — a title, a description and a
-	// slug — are exactly that shape. A tag whose registration names a schema
-	// is validated against that schema by the schema registry; this property
-	// carries what was parsed and no judgement about it.
-	Content map[string]string `json:"content"`
 	// The extent of the block as written, opening and closing fences
 	// included.
 	//
 	// The fences are inside the span because promotion replaces the whole
 	// block with a link: a rewrite addressing only the content would leave
-	// the fences behind.
+	// the fences behind. The span is also how a command reads the record:
+	// the content between the fences is decoded on demand, into the Go type
+	// that command needs, rather than carried here.
 	Position Span `json:"position"`
 }
 
@@ -6080,11 +6079,6 @@ func (v *RecordBlock) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Tag); err != nil {
 		return prefixField("tag", err)
 	}
-	if m, ok := raw["content"]; !ok || string(m) == "null" {
-		return fmt.Errorf("RecordBlock: required field \"content\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Content); err != nil {
-		return prefixField("content", err)
-	}
 	if m, ok := raw["position"]; !ok || string(m) == "null" {
 		return fmt.Errorf("RecordBlock: required field \"position\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Position); err != nil {
@@ -6093,7 +6087,7 @@ func (v *RecordBlock) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "tag", "content", "position":
+		case "tag", "position":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -7782,19 +7776,22 @@ func (v *PropertyPairing) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// A fenced block whose contents carry structured data about an element
-// declared inside a document.
+// A fenced block whose contents are a YAML record: structured data about
+// an element declared inside a document.
+//
+// A registered block's content must parse as YAML and must be a mapping.
+// Anything else — invalid YAML, a sequence, a bare scalar — is reported
+// at the position the block opens. YAML is the only format: a JSON object
+// is already valid YAML, and one format keeps every record readable by the
+// same parser.
 type BlockTagRegistration struct {
 	// The fenced block's info string — `component` for a component record
 	// block.
 	Tag string `json:"tag"`
-	// The format the block's contents are parsed as. A block that fails to
-	// parse is reported with the parse error and its position within the
-	// containing document.
-	Format BlockFormat `json:"format"`
-	// The JSON Schema the parsed contents are validated against, expressed
-	// as a JSON Pointer into the bundled schema or as a path to a
-	// standalone one.
+	// The JSON Schema the record is validated against, expressed as a JSON
+	// Pointer into the bundled schema or as a path to a standalone one.
+	// Optional: without one, a block is checked only for being a YAML
+	// mapping.
 	Schema *string `json:"schema,omitempty"`
 }
 
@@ -7808,11 +7805,6 @@ func (v *BlockTagRegistration) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Tag); err != nil {
 		return prefixField("tag", err)
 	}
-	if m, ok := raw["format"]; !ok || string(m) == "null" {
-		return fmt.Errorf("BlockTagRegistration: required field \"format\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Format); err != nil {
-		return prefixField("format", err)
-	}
 	if m, ok := raw["schema"]; ok {
 		if err := json.Unmarshal(m, &v.Schema); err != nil {
 			return prefixField("schema", err)
@@ -7821,7 +7813,7 @@ func (v *BlockTagRegistration) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "tag", "format", "schema":
+		case "tag", "schema":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -7832,43 +7824,6 @@ func (v *BlockTagRegistration) UnmarshalJSON(data []byte) error {
 		return &unknownFieldError{Struct: "BlockTagRegistration", Field: unknown}
 	}
 	return nil
-}
-
-// The formats a registered fenced block's contents may be parsed as.
-type BlockFormat string
-
-const (
-	// YAML, the format this framework's element record blocks use.
-	BlockFormatYaml BlockFormat = "yaml"
-	// JSON.
-	BlockFormatJson BlockFormat = "json"
-	// TOML.
-	BlockFormatToml BlockFormat = "toml"
-)
-
-func (e BlockFormat) MarshalJSON() ([]byte, error) {
-	switch e {
-	case BlockFormatYaml, BlockFormatJson, BlockFormatToml:
-		return json.Marshal(string(e))
-	}
-	return nil, fmt.Errorf("BlockFormat: unknown value %q", string(e))
-}
-
-func (e *BlockFormat) UnmarshalJSON(data []byte) error {
-	var s string
-	if err := json.Unmarshal(data, &s); err != nil {
-		return err
-	}
-	switch BlockFormat(s) {
-	case BlockFormatYaml, BlockFormatJson, BlockFormatToml:
-		*e = BlockFormat(s)
-		return nil
-	}
-	return fmt.Errorf("BlockFormat: unknown value %q", s)
-}
-
-func (e BlockFormat) String() string {
-	return string(e)
 }
 
 // A cross-reference identifier for a specification document.

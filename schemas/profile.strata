@@ -336,8 +336,14 @@ struct PropertyPairing {
 }
 
 """
-A fenced block whose contents carry structured data about an element
-declared inside a document.
+A fenced block whose contents are a YAML record: structured data about
+an element declared inside a document.
+
+A registered block's content must parse as YAML and must be a mapping.
+Anything else — invalid YAML, a sequence, a bare scalar — is reported
+at the position the block opens. YAML is the only format: a JSON object
+is already valid YAML, and one format keeps every record readable by the
+same parser.
 """
 struct BlockTagRegistration {
   """
@@ -347,30 +353,10 @@ struct BlockTagRegistration {
   tag: String
 
   """
-  The format the block's contents are parsed as. A block that fails to
-  parse is reported with the parse error and its position within the
-  containing document.
-  """
-  format: BlockFormat
-
-  """
-  The JSON Schema the parsed contents are validated against, expressed
-  as a JSON Pointer into the bundled schema or as a path to a
-  standalone one.
+  The JSON Schema the record is validated against, expressed as a JSON
+  Pointer into the bundled schema or as a path to a standalone one.
+  Optional: without one, a block is checked only for being a YAML
+  mapping.
   """
   schema: String?
-}
-
-"""
-The formats a registered fenced block's contents may be parsed as.
-"""
-enum BlockFormat {
-  """YAML, the format this framework's element record blocks use."""
-  Yaml: "yaml"
-
-  """JSON."""
-  Json: "json"
-
-  """TOML."""
-  Toml: "toml"
 }

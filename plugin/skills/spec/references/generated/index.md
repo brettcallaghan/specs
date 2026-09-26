@@ -89,15 +89,20 @@ data about an element declared inside a document.
 
 A block is a record block only where the active profile registers its
 info string as a tag; a profile that registers none yields a corpus with
-no record blocks. The registration also names the format the content is
-parsed as and, optionally, the schema it is validated against, so this
-shape names no particular tag and carries no vocabulary of its own.
+no record blocks. The registration may name a schema the record is
+validated against, so this shape names no particular tag and carries no
+vocabulary of its own.
+
+The record's content is not carried. Strata has no open value type, so
+an arbitrary YAML mapping has no typed home in a generated model; a
+command that needs a record reads it back through `position` and
+decodes it into its own Go type, and `specs check` validates it. Adding
+the content here later is an additive change.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
 | tag | String | The block's info string, which is the tag the active profile registered — `component` for a component record block. |
-| content | Map<String, String> | The block's content, parsed in the format its tag declares.<br><br>A mapping of property name to value as written. Strata models closed shapes, so an open record is a map rather than an arbitrary value, and this framework's element declarations — a title, a description and a slug — are exactly that shape. A tag whose registration names a schema is validated against that schema by the schema registry; this property carries what was parsed and no judgement about it. |
-| position | [Span](#span) | The extent of the block as written, opening and closing fences included.<br><br>The fences are inside the span because promotion replaces the whole block with a link: a rewrite addressing only the content would leave the fences behind. |
+| position | [Span](#span) | The extent of the block as written, opening and closing fences included.<br><br>The fences are inside the span because promotion replaces the whole block with a link: a rewrite addressing only the content would leave the fences behind. The span is also how a command reads the record: the content between the fences is decoded on demand, into the Go type that command needs, rather than carried here. |
 
 
 ## Heading

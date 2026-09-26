@@ -29,9 +29,11 @@ This feature adds `specs c4`, which emits that model as one structured
 artifact: elements nested by containment, modules held apart because they
 may be composed into several containers, and relationships as a flat edge
 list carrying the document and line each was drawn at. It is a
-projection of the index — no document is read that the index has not
-already read — with Mermaid C4 diagrams as the one new input, parsed per
-[[adr-029]].
+projection of the index: the index says which documents are
+architecture blueprints and where each record block sits, and the
+command reads back only what the index points at — each record block
+through its span, decoded into the element record's Go type, and the
+Mermaid C4 diagrams, parsed per [[adr-029]].
 
 The same parser gives the corpus its first diagram checks. A diagram
 whose nodes do not match the elements the blueprints declare is today
@@ -43,11 +45,13 @@ at the offending line.
 The index does not yet carry two things this feature projects. Both are
 prerequisites rather than part of it:
 
-- **Parsed record blocks.** Parsing them is AC-SPECSTR-001.2 of
-  [[frd-spec-structure]], which waits on the tag registration in
-  FEAT-SPECSTR-004 of [[frd-spec-structure-conformance]]. Today the index
-  records no record block at all — `specs index` on this repository
-  reports zero, including the `component` block in
+- **Recorded record blocks.** Recording each registered block's tag and
+  span against its heading is AC-SPECSTR-001.2 of [[frd-spec-structure]],
+  which waits on the tag registration in FEAT-SPECSTR-004 of
+  [[frd-spec-structure-conformance]]. The index carries where a record
+  is, not what it says; this command decodes the content itself. Today
+  the index records no record block at all — `specs index` on this
+  repository reports zero, including the `component` block in
   [[container-spec-cli]]'s roster. Without them the tree holds only
   promoted elements.
 - **Each document's type-specific frontmatter.** An index entry carries

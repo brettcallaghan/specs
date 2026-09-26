@@ -219,25 +219,12 @@
       ],
       "type": "object"
     },
-    "BlockFormat": {
-      "description": "The formats a registered fenced block's contents may be parsed as.",
-      "enum": [
-        "yaml",
-        "json",
-        "toml"
-      ],
-      "type": "string"
-    },
     "BlockTagRegistration": {
       "additionalProperties": false,
-      "description": "A fenced block whose contents carry structured data about an element\ndeclared inside a document.",
+      "description": "A fenced block whose contents are a YAML record: structured data about\nan element declared inside a document.\n\nA registered block's content must parse as YAML and must be a mapping.\nAnything else — invalid YAML, a sequence, a bare scalar — is reported\nat the position the block opens. YAML is the only format: a JSON object\nis already valid YAML, and one format keeps every record readable by the\nsame parser.",
       "properties": {
-        "format": {
-          "$ref": "#/definitions/BlockFormat",
-          "description": "The format the block's contents are parsed as. A block that fails to\nparse is reported with the parse error and its position within the\ncontaining document."
-        },
         "schema": {
-          "description": "The JSON Schema the parsed contents are validated against, expressed\nas a JSON Pointer into the bundled schema or as a path to a\nstandalone one.",
+          "description": "The JSON Schema the record is validated against, expressed as a JSON\nPointer into the bundled schema or as a path to a standalone one.\nOptional: without one, a block is checked only for being a YAML\nmapping.",
           "type": [
             "string",
             "null"
@@ -249,8 +236,7 @@
         }
       },
       "required": [
-        "tag",
-        "format"
+        "tag"
       ],
       "type": "object"
     },
@@ -3587,21 +3573,11 @@
     },
     "RecordBlock": {
       "additionalProperties": false,
-      "description": "A fenced block whose content the active profile registers as structured\ndata about an element declared inside a document.\n\nA block is a record block only where the active profile registers its\ninfo string as a tag; a profile that registers none yields a corpus with\nno record blocks. The registration also names the format the content is\nparsed as and, optionally, the schema it is validated against, so this\nshape names no particular tag and carries no vocabulary of its own.",
+      "description": "A fenced block whose content the active profile registers as structured\ndata about an element declared inside a document.\n\nA block is a record block only where the active profile registers its\ninfo string as a tag; a profile that registers none yields a corpus with\nno record blocks. The registration may name a schema the record is\nvalidated against, so this shape names no particular tag and carries no\nvocabulary of its own.\n\nThe record's content is not carried. Strata has no open value type, so\nan arbitrary YAML mapping has no typed home in a generated model; a\ncommand that needs a record reads it back through `position` and\ndecodes it into its own Go type, and `specs check` validates it. Adding\nthe content here later is an additive change.",
       "properties": {
-        "content": {
-          "additionalProperties": {
-            "type": "string"
-          },
-          "description": "The block's content, parsed in the format its tag declares.\n\nA mapping of property name to value as written. Strata models closed\nshapes, so an open record is a map rather than an arbitrary value, and\nthis framework's element declarations — a title, a description and a\nslug — are exactly that shape. A tag whose registration names a schema\nis validated against that schema by the schema registry; this property\ncarries what was parsed and no judgement about it.",
-          "propertyNames": {
-            "type": "string"
-          },
-          "type": "object"
-        },
         "position": {
           "$ref": "#/definitions/Span",
-          "description": "The extent of the block as written, opening and closing fences\nincluded.\n\nThe fences are inside the span because promotion replaces the whole\nblock with a link: a rewrite addressing only the content would leave\nthe fences behind."
+          "description": "The extent of the block as written, opening and closing fences\nincluded.\n\nThe fences are inside the span because promotion replaces the whole\nblock with a link: a rewrite addressing only the content would leave\nthe fences behind. The span is also how a command reads the record:\nthe content between the fences is decoded on demand, into the Go type\nthat command needs, rather than carried here."
         },
         "tag": {
           "description": "The block's info string, which is the tag the active profile\nregistered — `component` for a component record block.",
@@ -3610,7 +3586,6 @@
       },
       "required": [
         "tag",
-        "content",
         "position"
       ],
       "type": "object"

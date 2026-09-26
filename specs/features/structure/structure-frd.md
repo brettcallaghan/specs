@@ -7,7 +7,7 @@ description: Records each document's headings with their section spans
 slug: frd-spec-structure
 type: frd
 status: approved
-updated_at: 2026-09-04T00:00:00Z
+updated_at: 2026-09-26T00:00:00Z
 sources:
   - "frd-spec-index"
 ---
@@ -94,18 +94,20 @@ Feature: Structure Extraction in the Index
     Then every corpus member's entry carries its headings, each with the span of the content beneath it
 
   @AC-SPECSTR-001.2
-  Scenario: A registered record block is parsed and attached to its document and heading
+  Scenario: A registered record block is recorded against its document and heading
     Given a fenced block whose info string matches a tag the active profile registers
     When the CLI builds the index
-    Then the CLI parses that block's content as the format configured for the tag
-    And the CLI attaches the parsed data to the containing document and heading in the index
+    Then the index records the block's tag and span against the containing document and the innermost heading whose section contains it
+    And the index does not carry the block's content
 ```
 
 *Note:* AC-SPECSTR-001.1 stands alone — a heading is markdown, and its
 span is computed from the document. AC-SPECSTR-001.2 waits on the
 record-block tag registration [[frd-spec-structure-conformance]]
 specifies, because a block is only a record block where the active
-profile says its info string is one.
+profile says its info string is one. The index records where a record
+is, not what it says: a command that needs the record decodes it through
+the span, and [[frd-spec-structure-conformance]] checks that it is valid.
 
 ### FEAT-SPECSTR-003: Structure Queries
 

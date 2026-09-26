@@ -6,7 +6,7 @@ description: The command-line binary that indexes a specification corpus
 slug: container-spec-cli
 type: container-blueprint
 status: approved
-updated_at: 2026-09-07T00:00:00Z
+updated_at: 2026-09-26T00:00:00Z
 contracts_provided:
   - "contract-specs-configuration"
 contracts_consumed: []
@@ -668,7 +668,13 @@ does not apply to a compiled binary.
       record blocks and references to the same entry without changing the
       version; changing what is already there — a property's meaning, its
       type, its removal — bumps `schema_version`, the Strata source and
-      the emitted index together, per the Change Guidance above. That
+      the emitted index together, per the Change Guidance above. One
+      exception: a property that no emitted index has ever carried —
+      because the shape holding it has never been emitted with an
+      instance — MAY be changed or removed without a bump, since no
+      artifact a 1.0 consumer has read contains it. `RecordBlock.content`
+      was removed under this exception: `record_blocks` had been emitted
+      empty for every entry. That
       rule is what makes a one-producer artifact safe to ship before its
       contract is written: a consumer built against 1.0 keeps working
       until the version says otherwise. It is deliberately weaker than a
