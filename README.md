@@ -80,14 +80,16 @@ to change your mind.
 ## Install
 
 **The plugin** (skills, in Claude Code). This repository is the
-`brettcallaghan` marketplace, which also lists
-[`swarm`](https://github.com/brettcallaghan/swarm):
+`brettcallaghan` marketplace:
 
 ```
 /plugin marketplace add brettcallaghan/agent-plugins
 /plugin install specs@brettcallaghan
-/plugin install swarm@brettcallaghan   # optional — sprint orchestration
 ```
+
+[`swarm`](https://github.com/brettcallaghan/swarm), the sprint orchestrator
+built on `specs`, is private for now and ships from its own
+`brettcallaghan-private` marketplace; see its README.
 
 Upgrading from `sf@spec-driven-dev` or `swarm@swarm`: remove the old
 marketplaces (`/plugin marketplace remove spec-driven-dev`, and `swarm`),
