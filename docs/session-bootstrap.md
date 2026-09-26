@@ -193,7 +193,7 @@ agent acting on the instruction rather than on the harness enforcing it.
 
 ```bash
 command -v bd strata swarm    # all three present -> provisioning worked
-claude plugin list            # sf@spec-driven-dev and swarm@swarm, user scope
+claude plugin list            # specs@brettcallaghan and swarm@brettcallaghan, user scope
 cat ~/.cache/strata-cli/installed-release   # the strata release tag installed
 cat ~/.cache/swarm-cli/build.log    # the hook's swarm clone, plugin and build output
 ```

@@ -34,5 +34,5 @@ build/
 __pycache__/
 *.pyc
 
-# bd runtime lock, created beside .beads/ (its own .gitignore only covers files inside it)
-.beads.gate.lock
+# bd runtime lock, created beside .beads/ (not inside it) while a command runs
+*.gate.lock*

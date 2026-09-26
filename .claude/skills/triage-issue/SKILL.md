@@ -40,10 +40,10 @@ Nothing here triages a document containing several of them.
 
 **Issues, from any channel.** The channel does not change the work:
 
-- **`.sf/outbox/<skill>/*.md`** — a project that ran a sprint and
+- **`outbox/specs/<skill>/*.md`** — a project that ran a sprint and
   reported a finding about a skill it does not own. The common case, and
   **this repository's own outbox is one of them**: we vend the skills we
-  run, so we are our own downstream and sweep `.sf/outbox/` here without
+  run, so we are our own downstream and sweep `outbox/specs/` here without
   anyone forwarding anything.
 - **Issues opened directly** — a GitHub issue, or a report handed over
   in conversation.
@@ -328,7 +328,7 @@ Then, per issue, in received order:
 
      A `T` change carries the same record, marked triage-originated
      rather than as some reporter's testimony.
-   - **Then retire the issue from the inbox.** An `.sf/outbox/` file
+   - **Then retire the issue from the inbox.** An `outbox/specs/` file
      that has become a bead is deleted; a GitHub issue is closed with a
      pointer to the bead. The bead is the record from here on, and an
      issue left in the inbox behind a filed bead gets triaged twice.

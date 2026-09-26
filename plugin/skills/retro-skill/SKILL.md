@@ -4,7 +4,7 @@ description: Evidence-based retrospective on a SKILL that an agent just
   ran — identifies skill defects, refinements, and gaps that would make
   future runs succeed. Cites the exact instruction that misled, names
   the script that failed, flags friction seen on every run, and records
-  the model that ran it. Use after running any skill (an `sf` plugin
+  the model that ran it. Use after running any skill (a `specs` plugin
   skill, this repo's own skills, or a project-local skill),
   especially one that struggled, improvised, or produced a wrong result,
   or when asked to retro a skill, critique a skill, or capture how a
@@ -54,7 +54,7 @@ is this skill's audience; the six work-order kinds are the project's.
 
 **A project SHALL NOT accumulate issues about skills it cannot change.** Where
 this skill runs in a project that did not author the skill, its output leaves
-through that project's `.sf/outbox/<skill>/` and is never filed in its
+through that project's `outbox/<plugin>/<skill>/` and is never filed in its
 backlog.
 
 ## When to run
@@ -223,13 +223,15 @@ Retro progress:
    carrying its finding shape, cited evidence, and a concrete change.
    Complete every section, then run the template's readiness gate. Fix what it reports and re-run; do not proceed while it fails. After two full failed cycles, stop and surface the blocker rather than continuing to retry.
    Set status `ready-for-review` only once the gate passes.
-6. **Route the output** into a directory named for the skill critiqued.
-   `<target>` is the issue's `target` frontmatter value, so one
-   directory accumulates every issue about one skill — and recurrence,
+6. **Route the output** into a directory named for the skill critiqued,
+   under one named for the plugin that vends it. `<target>` is the
+   issue's `target` frontmatter value; `<plugin>` is the namespace the
+   skill is invoked under (`specs:spec` → `specs`). One directory
+   accumulates every issue about one skill — and recurrence,
    the strongest signal this pipeline has, becomes visible by listing
    it.
    - Retroing a skill **from a project that does not vend it** →
-     `.sf/outbox/<target>/<YYYY-MM-DD>-<slug>.md`, one file per issue.
+     `outbox/<plugin>/<target>/<YYYY-MM-DD>-<slug>.md`, one file per issue.
      The project's owner forwards them to the vending repository.
      **They are NEVER filed in this project's own tracker**: a backlog
      of proposals its owners cannot act on teaches them to ignore the

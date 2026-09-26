@@ -66,8 +66,9 @@ Which audience — apply the merge test
       - In the repository that vends the skill -> audience: skill
 
   `audience: project` renders straight into the project's own tracker.
-  `audience: skill` is written to `.sf/outbox/<target>/` for delivery to
-  the repository that vends it, and is NEVER filed in the reporting
+  `audience: skill` is written to `outbox/<plugin>/<target>/` — `<plugin>`
+  being the plugin that vends the skill — for delivery to the repository
+  that vends it, and is NEVER filed in the reporting
   project's own backlog — a project must not accumulate issues it cannot
   act on. Same fields, two encodings; it is one template.
 
