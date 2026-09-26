@@ -336,27 +336,7 @@ scope for this run's beads" tells a future reader nothing they can act on.
   bypass by refspec, so the bypass cannot apply to `refs/dolt/*` alone — the
   two remedies are that per-command override, or granting the PAT `workflow`
   scope. Do NOT "fix" it by widening the bypass back to the host.
-- **`strata` must be v0.8.0 or later.** `schemas/strata.config.json` closes
-  every shape with the top-level `rejectUnknownProperties: true`. v0.8.0
-  removed `jsonSchema.allowAdditionalProperties` and refuses a manifest that
-  still sets it — measured with the v0.8.0 release binary against the old
-  manifest: `invalid manifest schemas/strata.config.json:
-  /jsonSchema/allowAdditionalProperties: unknown property`. v0.7.0 exits 0 on
-  the current manifest but emits no bundle, so `scripts/generate-schemas.sh`
-  fails at its `mv`. Do not reintroduce the old key.
-
-  The option closes the generated Go decoders too, not just the JSON Schema:
-  measured, `json.Unmarshal` into `specmodel.FindingSlugPattern` with an
-  extra key returns `FindingSlugPattern: unknown field "extra"`.
-
-  Closing a union inlines each variant, discriminator included, as an
-  `anyOf` branch. Measured with `jsonschema` against `#/definitions/FindingDetail`:
-  `{"kind":"slug-pattern","slug":"x","pattern":"y"}` is accepted by the
-  v0.8.0 output and was rejected by the previously committed one (`'kind' was
-  unexpected`); the same document plus `"extra": 1` is rejected by both.
-  `scripts/generate-schemas.sh` still asserts every document-type struct keeps
-  a non-empty `required` list — a build that drops inheritance under a closed
-  schema exits 0 — so keep that assertion.
+- **`strata` must be v0.8.0 or later.**
 - `bd`: not preinstalled. `.claude/hooks/session-start.sh` installs it via the
   official installer, which needs `libicu-dev` for the Dolt/ICU cgo dependency
   — without those headers the build fails at `unicode/uregex.h: No such file`.
