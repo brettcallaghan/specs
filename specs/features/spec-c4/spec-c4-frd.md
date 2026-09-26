@@ -279,16 +279,19 @@ Feature: Output
   Emitting the model never fails on corpus content: what cannot be placed is
   reported in the artifact, and judging it is the check's job.
 
-  @AC-C4-004.1
-  Scenario Outline: The artifact is emitted in the requested format
-    When the user runs specs c4 with "<flag>"
-    Then standard output is a "<format>" document valid against the C4 model schema
+  YAML is the default, as for every other query command, and --json selects
+  JSON. There is no other format flag.
 
-    Examples:
-      | flag          | format |
-      |               | JSON   |
-      | --format json | JSON   |
-      | --format yaml | YAML   |
+  @AC-C4-004.1
+  Scenario: The artifact is YAML by default
+    When the user runs specs c4 with no format flag
+    Then standard output is a YAML document valid against the C4 model schema
+
+  @AC-C4-004.7
+  Scenario: The json flag selects JSON
+    When the user runs specs c4 with --json
+    Then standard output is a JSON document valid against the C4 model schema
+    And it holds the same model as the YAML output for the same corpus
 
   @AC-C4-004.2
   Scenario: The artifact names its schema version and workspace
