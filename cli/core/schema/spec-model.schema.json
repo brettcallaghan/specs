@@ -629,7 +629,7 @@
     },
     "C4Model": {
       "additionalProperties": false,
-      "description": "The C4 model a corpus declares, as `specs c4` emits it.\n\nA projection of the index, not a second source of truth: every element is\none the index already holds as a blueprint or a record block, and every\nrelationship is a `Rel` statement read from a C4 diagram in the document\nthat owns it. Nothing here is authored by hand.\n\nElements form a tree, because C4 gives each one exactly one parent: a\nsystem holds containers, a container holds components. Modules are the\nexception — a module may be composed into several containers — so they\nsit in their own collection and each host lists them by slug.\nRelationships are one flat collection for the reason ADR-018 gives for\nreferences: an edge belongs to neither endpoint, and one list is what\nmerges across workspaces by appending.",
+      "description": "The C4 model a corpus declares, as `specs c4` emits it.\n\nA projection of the index, not a second source of truth: every element is\none the index already holds as a blueprint or a record block, and every\nrelationship is a `Rel` statement read from a C4 diagram in the document\nthat owns it. Nothing here is authored by hand.\n\nElements form a tree, because C4 gives each one exactly one parent: a\nsystem holds containers, a container holds components. Modules are the\nexception — a module may be composed into several containers — so they\nsit in their own collection and each host lists them by slug.\nRelationships are one flat collection for the reason ADR-018 gives for\nreferences: an edge belongs to neither endpoint.",
       "properties": {
         "modules": {
           "description": "Every module, once, whatever the number of its hosts.",
@@ -841,7 +841,7 @@
           "description": "Slug of the element that depends."
         },
         "tags": {
-          "description": "Tags as written, with the reserved ones removed.",
+          "description": "Tags in the order written, with the reserved ones removed.",
           "items": {
             "type": "string"
           },
@@ -874,6 +874,7 @@
     "C4RelationshipLevel": {
       "description": "The C4 level at which a relationship holds.",
       "enum": [
+        "system",
         "container",
         "component"
       ],
@@ -1004,6 +1005,7 @@
       "description": "Why a `Rel` statement was not admitted to the model.",
       "enum": [
         "external_endpoint",
+        "passive_store",
         "undeclared_node",
         "ambiguous_node"
       ],
@@ -1714,7 +1716,7 @@
     },
     "ElementRecord": {
       "additionalProperties": false,
-      "description": "The three fields that identify any element the framework names.\n\nThis is the smallest unit of description in the vocabulary, and it is\ndeliberately shared by two artifacts that look unrelated. A child element\na parent document declares inline — a component of a container, a module\nof a system — carries exactly these fields in a fenced record block. A\nchild that has been promoted to its own document carries them as the\nopening of its frontmatter, because `DocumentFrontmatter` inherits them.\n\nOne schema therefore validates a child in either state, which is what\nmakes promotion a lift-and-link operation rather than a re-authoring\none: the record block moves verbatim into the new document's\nfrontmatter, and every parent roster replaces the block with a link.",
+      "description": "The three fields that identify any element the framework names, and the\ntechnology it is built with.\n\nThis is the smallest unit of description in the vocabulary, and it is\ndeliberately shared by two artifacts that look unrelated. A child element\na parent document declares inline — a component of a container, a module\nof a system — carries exactly these fields in a fenced record block. A\nchild that has been promoted to its own document carries them as the\nopening of its frontmatter, because `DocumentFrontmatter` inherits them.\n\nOne schema therefore validates a child in either state, which is what\nmakes promotion a lift-and-link operation rather than a re-authoring\none: the record block moves verbatim into the new document's\nfrontmatter, and every parent roster replaces the block with a link.",
       "properties": {
         "description": {
           "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",

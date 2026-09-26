@@ -1,5 +1,6 @@
 """
-The three fields that identify any element the framework names.
+The three fields that identify any element the framework names, and the
+technology it is built with.
 
 This is the smallest unit of description in the vocabulary, and it is
 deliberately shared by two artifacts that look unrelated. A child element

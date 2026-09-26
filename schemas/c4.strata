@@ -11,8 +11,7 @@ system holds containers, a container holds components. Modules are the
 exception — a module may be composed into several containers — so they
 sit in their own collection and each host lists them by slug.
 Relationships are one flat collection for the reason ADR-018 gives for
-references: an edge belongs to neither endpoint, and one list is what
-merges across workspaces by appending.
+references: an edge belongs to neither endpoint.
 """
 struct C4Model {
   """
@@ -185,6 +184,9 @@ struct C4Drawing {
 
 """The C4 level at which a relationship holds."""
 enum C4RelationshipLevel {
+  """Between two systems."""
+  system
+
   """Between containers, or between a container and a system."""
   container
 
@@ -255,7 +257,7 @@ struct C4Relationship {
   interaction: C4Interaction?
   contract: C4ContractLink?
 
-  """Tags as written, with the reserved ones removed."""
+  """Tags in the order written, with the reserved ones removed."""
   tags: [String]?
 
   """Every place this relationship was drawn, in document order."""
@@ -264,13 +266,20 @@ struct C4Relationship {
 
 """Why a `Rel` statement was not admitted to the model."""
 enum C4UnplacedReason {
-  """An endpoint is a person or an external system."""
+  """An endpoint is a `Person` or an `_Ext` node."""
   external_endpoint
 
-  """An endpoint's label matches no declared element."""
+  """
+  An endpoint is a `Db` or `Queue` node naming no element in scope: a
+  data store the drawing element uses, which the C4 standard gives no
+  blueprint of its own.
+  """
+  passive_store
+
+  """An endpoint's label matches no element in scope."""
   undeclared_node
 
-  """An endpoint's label matches more than one declared element."""
+  """An endpoint's label matches more than one element in scope."""
   ambiguous_node
 }
 

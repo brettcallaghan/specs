@@ -21,8 +21,7 @@ import (
 // exception — a module may be composed into several containers — so they
 // sit in their own collection and each host lists them by slug.
 // Relationships are one flat collection for the reason ADR-018 gives for
-// references: an edge belongs to neither endpoint, and one list is what
-// merges across workspaces by appending.
+// references: an edge belongs to neither endpoint.
 type C4Model struct {
 	// The version of this shape. Pinned to one value so a consumer can
 	// refuse an artifact it does not understand.
@@ -983,6 +982,8 @@ func (v *C4Drawing) UnmarshalJSON(data []byte) error {
 type C4RelationshipLevel string
 
 const (
+	// Between two systems.
+	C4RelationshipLevelSystem C4RelationshipLevel = "system"
 	// Between containers, or between a container and a system.
 	C4RelationshipLevelContainer C4RelationshipLevel = "container"
 	// Between components or modules within one parent.
@@ -991,7 +992,7 @@ const (
 
 func (e C4RelationshipLevel) MarshalJSON() ([]byte, error) {
 	switch e {
-	case C4RelationshipLevelContainer, C4RelationshipLevelComponent:
+	case C4RelationshipLevelSystem, C4RelationshipLevelContainer, C4RelationshipLevelComponent:
 		return json.Marshal(string(e))
 	}
 	return nil, fmt.Errorf("C4RelationshipLevel: unknown value %q", string(e))
@@ -1003,7 +1004,7 @@ func (e *C4RelationshipLevel) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	switch C4RelationshipLevel(s) {
-	case C4RelationshipLevelContainer, C4RelationshipLevelComponent:
+	case C4RelationshipLevelSystem, C4RelationshipLevelContainer, C4RelationshipLevelComponent:
 		*e = C4RelationshipLevel(s)
 		return nil
 	}
@@ -1146,7 +1147,7 @@ type C4Relationship struct {
 	Detail      *string         `json:"detail,omitempty"`
 	Interaction *C4Interaction  `json:"interaction,omitempty"`
 	Contract    *C4ContractLink `json:"contract,omitempty"`
-	// Tags as written, with the reserved ones removed.
+	// Tags in the order written, with the reserved ones removed.
 	Tags *[]string `json:"tags,omitempty"`
 	// Every place this relationship was drawn, in document order.
 	DrawnIn []C4Drawing `json:"drawn_in"`
@@ -1227,17 +1228,21 @@ func (v *C4Relationship) UnmarshalJSON(data []byte) error {
 type C4UnplacedReason string
 
 const (
-	// An endpoint is a person or an external system.
+	// An endpoint is a `Person` or an `_Ext` node.
 	C4UnplacedReasonExternalEndpoint C4UnplacedReason = "external_endpoint"
-	// An endpoint's label matches no declared element.
+	// An endpoint is a `Db` or `Queue` node naming no element in scope: a
+	// data store the drawing element uses, which the C4 standard gives no
+	// blueprint of its own.
+	C4UnplacedReasonPassiveStore C4UnplacedReason = "passive_store"
+	// An endpoint's label matches no element in scope.
 	C4UnplacedReasonUndeclaredNode C4UnplacedReason = "undeclared_node"
-	// An endpoint's label matches more than one declared element.
+	// An endpoint's label matches more than one element in scope.
 	C4UnplacedReasonAmbiguousNode C4UnplacedReason = "ambiguous_node"
 )
 
 func (e C4UnplacedReason) MarshalJSON() ([]byte, error) {
 	switch e {
-	case C4UnplacedReasonExternalEndpoint, C4UnplacedReasonUndeclaredNode, C4UnplacedReasonAmbiguousNode:
+	case C4UnplacedReasonExternalEndpoint, C4UnplacedReasonPassiveStore, C4UnplacedReasonUndeclaredNode, C4UnplacedReasonAmbiguousNode:
 		return json.Marshal(string(e))
 	}
 	return nil, fmt.Errorf("C4UnplacedReason: unknown value %q", string(e))
@@ -1249,7 +1254,7 @@ func (e *C4UnplacedReason) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	switch C4UnplacedReason(s) {
-	case C4UnplacedReasonExternalEndpoint, C4UnplacedReasonUndeclaredNode, C4UnplacedReasonAmbiguousNode:
+	case C4UnplacedReasonExternalEndpoint, C4UnplacedReasonPassiveStore, C4UnplacedReasonUndeclaredNode, C4UnplacedReasonAmbiguousNode:
 		*e = C4UnplacedReason(s)
 		return nil
 	}
@@ -3834,7 +3839,8 @@ func (v *FindingReport) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// The three fields that identify any element the framework names.
+// The three fields that identify any element the framework names, and the
+// technology it is built with.
 //
 // This is the smallest unit of description in the vocabulary, and it is
 // deliberately shared by two artifacts that look unrelated. A child element
