@@ -1,12 +1,13 @@
 ---
 title: "Module Blueprint: Document Core"
+entity_name: Document Core
 description: The framework-agnostic engine that indexes markdown
   documents carrying frontmatter and cross-references, and reports
   conformance findings against schemas a profile registers
 slug: module-document-core
 type: module-blueprint
 status: approved
-updated_at: 2026-09-26T00:00:00Z
+updated_at: 2026-09-29T00:00:00Z
 kind: standard
 visibility: internal
 contracts_provided: []
@@ -284,7 +285,7 @@ packages.
 ### Spans
 
 ```component
-title: Spans
+entity_name: Spans
 slug: component-spans
 description: Position type and delimited-region scanning shared by every parser
 ```
@@ -334,7 +335,7 @@ serialized one, and no way for the two to drift.
 ### Frontmatter
 
 ```component
-title: Frontmatter
+entity_name: Frontmatter
 slug: component-frontmatter
 description: Frontmatter extraction and YAML parsing that preserves each property's raw text
 ```
@@ -426,7 +427,7 @@ from a file with no block.
 ### Markdown Structure
 
 ```component
-title: Markdown Structure
+entity_name: Markdown Structure
 slug: component-markdown-structure
 description: Headings with their section spans, fenced blocks by info string, and HTML comment blocks
 ```
@@ -516,7 +517,7 @@ The comment-block location remains **not yet built**: no
 ### Gherkin
 
 ```component
-title: Gherkin
+entity_name: Gherkin
 slug: component-gherkin
 description: Gherkin parsing into feature and criterion records, with tags read as strings
 ```
@@ -602,7 +603,7 @@ than an index that recorded why (AC-GHK-006.1).
 ### References
 
 ```component
-title: References
+entity_name: References
 slug: component-references
 description: Wikilink discovery, heading-anchor resolution, and the inbound and outbound reference graph
 ```
@@ -790,7 +791,7 @@ absent rather than leaving the boundary to review.
 ### Schema Registry
 
 ```component
-title: Schema Registry
+entity_name: Schema Registry
 slug: component-schema-registry
 description: Single-union JSON Schema validation, dispatched by document type, producing located findings
 ```
@@ -823,7 +824,7 @@ per-type schema pointer from the profile.
 ### Corpus
 
 ```component
-title: Corpus
+entity_name: Corpus
 slug: component-corpus
 description: Discovery, membership determination, the index model and its versioned emission
 ```
@@ -1475,7 +1476,7 @@ Six semantics are pinned by the implementation:
 ### Numbering
 
 ```component
-title: Numbering
+entity_name: Numbering
 slug: component-numbering
 description: Next-number derivation for document types a profile registers as numbered
 ```
@@ -1500,7 +1501,7 @@ answer derived from the wrong query.
 ### Findings
 
 ```component
-title: Findings
+entity_name: Findings
 slug: component-findings
 description: The finding and severity model, and emission of the report in human and JSON form
 ```
@@ -1610,7 +1611,7 @@ envelope that carries it.
 ### Markdown Links
 
 ```component
-title: Markdown Links
+entity_name: Markdown Links
 slug: component-markdown-links
 description: Wikilink-to-markdown-link substitution and target resolution
 ```

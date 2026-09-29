@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/standards/frontmatter-standards.md (version 0.2)
+     Source of truth: specs/standards/frontmatter-standards.md (version 0.3)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -11,8 +11,8 @@ description: Required, relationship, and optional frontmatter properties for
 slug: frontmatter-standards
 type: standards
 status: active
-updated_at: 2026-08-06T00:00:00Z
-version: "0.2"
+updated_at: 2026-09-29T00:00:00Z
+version: "0.3"
 ---
 
 # Frontmatter Standards
@@ -229,13 +229,14 @@ container or a module — each child is recorded in one of two states, and
 a document system MAY make that record machine-readable:
 
 - **Un-promoted** (no blueprint of its own): the child's declaration
-  SHALL carry a fenced record block holding the base record fields
-  (`title`, `slug`, `description`):
+  SHALL carry a fenced record block holding the element record fields
+  (`entity_name`, `slug`, `description`, and optionally `technology`):
 
   ```component
-  title: <Child Name>
+  entity_name: <Child Name>
   slug: component-<child-name>
   description: <one-line brief description>
+  technology: <language, framework or package type>
   ```
 
 - **Promoted** (its own blueprint): the declaration links the blueprint
@@ -243,15 +244,21 @@ a document system MAY make that record machine-readable:
   block.
 
 A child is in exactly ONE state — record block XOR blueprint link, never
-both. Promotion lifts the block verbatim into the new document's
-frontmatter and replaces it in every parent roster with the link, in the
-same change.
+both. Promotion lifts the block verbatim into the new blueprint's
+frontmatter, adds the document's `title`, and replaces the block in every
+parent roster with the link, in the same change.
 
-The base record fields and the document-envelope fields (status,
-updated_at, and the type-specific frontmatter) SHOULD be defined as two
-schemas and merged with JSON Schema `allOf` for a standalone document's
-frontmatter: the embedded record block satisfies the base-record schema
-alone, and a promoted document's frontmatter satisfies both. One schema
-therefore validates a child whether it is embedded or promoted.
+Every architecture blueprint (system, container, module, component)
+SHALL declare `entity_name`: the element's name as diagrams draw it. It
+is distinct from `title`, which names the document — the container named
+"Spec CLI" is documented by "Container Blueprint: Spec CLI".
+
+The element record fields and the document-envelope fields (`title`,
+status, updated_at, and the type-specific frontmatter) SHOULD be defined
+as two schemas and merged with JSON Schema `allOf` for a standalone
+document's frontmatter: the embedded record block satisfies the
+element-record schema alone, and a promoted document's frontmatter
+satisfies both. One schema therefore validates a child whether it is
+embedded or promoted.
 
 ---

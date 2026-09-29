@@ -1,5 +1,6 @@
 ---
 title: "Widget Service"
+entity_name: Widget Service
 slug: container-widget-service
 type: container-blueprint
 contracts_provided: [contract-widget-api]

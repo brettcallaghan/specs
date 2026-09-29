@@ -14,12 +14,12 @@
           ]
         },
         "description": {
-          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
           "type": "string"
         },
         "slug": {
           "$ref": "#/definitions/Slug",
-          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+          "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "status": {
           "$ref": "#/definitions/Status",
@@ -46,15 +46,8 @@
             "null"
           ]
         },
-        "technology": {
-          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "title": {
-          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
         "type": {
@@ -296,7 +289,11 @@
           "description": "Where the element is declared."
         },
         "description": {
-          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
+          "type": "string"
+        },
+        "entity_name": {
+          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
           "type": "string"
         },
         "kind": {
@@ -312,7 +309,7 @@
         },
         "slug": {
           "$ref": "#/definitions/Slug",
-          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+          "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "tags": {
           "description": "Free-form tags copied from the declaration.",
@@ -325,19 +322,15 @@
           ]
         },
         "technology": {
-          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nThe technology line drawn on diagrams.",
           "type": [
             "string",
             "null"
           ]
-        },
-        "title": {
-          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
-          "type": "string"
         }
       },
       "required": [
-        "title",
+        "entity_name",
         "description",
         "slug",
         "declaration"
@@ -380,7 +373,11 @@
           "description": "Where the element is declared."
         },
         "description": {
-          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
+          "type": "string"
+        },
+        "entity_name": {
+          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
           "type": "string"
         },
         "modules": {
@@ -392,7 +389,7 @@
         },
         "slug": {
           "$ref": "#/definitions/Slug",
-          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+          "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "tags": {
           "description": "Free-form tags copied from the declaration.",
@@ -405,19 +402,15 @@
           ]
         },
         "technology": {
-          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nThe technology line drawn on diagrams.",
           "type": [
             "string",
             "null"
           ]
-        },
-        "title": {
-          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
-          "type": "string"
         }
       },
       "required": [
-        "title",
+        "entity_name",
         "description",
         "slug",
         "declaration",
@@ -568,12 +561,16 @@
           "description": "Where the element is declared."
         },
         "description": {
-          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
+          "type": "string"
+        },
+        "entity_name": {
+          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
           "type": "string"
         },
         "slug": {
           "$ref": "#/definitions/Slug",
-          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+          "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "tags": {
           "description": "Free-form tags copied from the declaration.",
@@ -586,19 +583,15 @@
           ]
         },
         "technology": {
-          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nThe technology line drawn on diagrams.",
           "type": [
             "string",
             "null"
           ]
-        },
-        "title": {
-          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
-          "type": "string"
         }
       },
       "required": [
-        "title",
+        "entity_name",
         "description",
         "slug",
         "declaration"
@@ -716,7 +709,11 @@
           "description": "Where the element is declared."
         },
         "description": {
-          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
+          "type": "string"
+        },
+        "entity_name": {
+          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
           "type": "string"
         },
         "kind": {
@@ -731,7 +728,7 @@
         },
         "slug": {
           "$ref": "#/definitions/Slug",
-          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+          "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "tags": {
           "description": "Free-form tags copied from the declaration.",
@@ -744,15 +741,11 @@
           ]
         },
         "technology": {
-          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nThe technology line drawn on diagrams.",
           "type": [
             "string",
             "null"
           ]
-        },
-        "title": {
-          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
-          "type": "string"
         },
         "version": {
           "type": [
@@ -765,7 +758,7 @@
         }
       },
       "required": [
-        "title",
+        "entity_name",
         "description",
         "slug",
         "declaration",
@@ -779,7 +772,7 @@
     },
     "C4Relationship": {
       "additionalProperties": false,
-      "description": "A dependency edge: the source depends on the target, per the C4\nstandard's arrow rule.\n\nOne relationship may have been drawn in several diagrams — a parent's\ninternal view and a child's context view show the same edge — and is\nrecorded once with every drawing listed. Two drawings are the same\nrelationship when source, target and description agree. Where they\ndisagree on anything else, the relationship carries the values of the\ndrawing that sorts first by path and then by position, and the\n`c4/diagram` check reports the disagreement.",
+      "description": "A dependency edge: the source depends on the target, per the C4\nstandard's arrow rule.\n\nOne relationship may have been drawn in several diagrams — a parent's\ninternal view and a child's context view show the same edge — and is\nrecorded once with every drawing listed. Two drawings are the same\nrelationship when source, target and description agree. Where they\ndisagree on anything else, the relationship carries the values of the\ndrawing that sorts first by path and then by position, and the\n`c4/drawing-conflict` rule reports the disagreement.",
       "properties": {
         "contract": {
           "oneOf": [
@@ -921,12 +914,16 @@
           "description": "Where the element is declared."
         },
         "description": {
-          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
+          "type": "string"
+        },
+        "entity_name": {
+          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
           "type": "string"
         },
         "slug": {
           "$ref": "#/definitions/Slug",
-          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+          "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "tags": {
           "description": "Free-form tags copied from the declaration.",
@@ -939,19 +936,15 @@
           ]
         },
         "technology": {
-          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nThe technology line drawn on diagrams.",
           "type": [
             "string",
             "null"
           ]
-        },
-        "title": {
-          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
-          "type": "string"
         }
       },
       "required": [
-        "title",
+        "entity_name",
         "description",
         "slug",
         "declaration",
@@ -1071,7 +1064,11 @@
           ]
         },
         "description": {
-          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
+          "type": "string"
+        },
+        "entity_name": {
+          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
           "type": "string"
         },
         "kind": {
@@ -1080,7 +1077,7 @@
         },
         "slug": {
           "$ref": "#/definitions/Slug",
-          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+          "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "source_paths": {
           "description": "Repository-relative source roots.",
@@ -1118,7 +1115,7 @@
           ]
         },
         "technology": {
-          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nThe technology line drawn on diagrams.",
           "type": [
             "string",
             "null"
@@ -1135,7 +1132,7 @@
           ]
         },
         "title": {
-          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
         "type": {
@@ -1155,6 +1152,7 @@
         "type",
         "status",
         "updated_at",
+        "entity_name",
         "kind"
       ],
       "type": "object"
@@ -1192,12 +1190,16 @@
           ]
         },
         "description": {
-          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
+          "type": "string"
+        },
+        "entity_name": {
+          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
           "type": "string"
         },
         "slug": {
           "$ref": "#/definitions/Slug",
-          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+          "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "status": {
           "$ref": "#/definitions/Status",
@@ -1236,14 +1238,14 @@
           ]
         },
         "technology": {
-          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nThe technology line drawn on diagrams.",
           "type": [
             "string",
             "null"
           ]
         },
         "title": {
-          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
         "type": {
@@ -1262,7 +1264,8 @@
         "slug",
         "type",
         "status",
-        "updated_at"
+        "updated_at",
+        "entity_name"
       ],
       "type": "object"
     },
@@ -1294,7 +1297,7 @@
           ]
         },
         "description": {
-          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
           "type": "string"
         },
         "provider": {
@@ -1303,7 +1306,7 @@
         },
         "slug": {
           "$ref": "#/definitions/Slug",
-          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+          "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "specs": {
           "description": "Paths or URLs of the machine-readable artifacts that make this\ncontract executable: JSON Schemas, OpenAPI documents, protobuf\ndefinitions.",
@@ -1340,15 +1343,8 @@
             "null"
           ]
         },
-        "technology": {
-          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "title": {
-          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
         "type": {
@@ -1537,12 +1533,12 @@
           ]
         },
         "description": {
-          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
           "type": "string"
         },
         "slug": {
           "$ref": "#/definitions/Slug",
-          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+          "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "status": {
           "$ref": "#/definitions/Status",
@@ -1569,15 +1565,8 @@
             "null"
           ]
         },
-        "technology": {
-          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "title": {
-          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
         "type": {
@@ -1702,30 +1691,30 @@
     },
     "ElementRecord": {
       "additionalProperties": false,
-      "description": "The three fields that identify any element the framework names, and the\ntechnology it is built with.\n\nThis is the smallest unit of description in the vocabulary, and it is\ndeliberately shared by two artifacts that look unrelated. A child element\na parent document declares inline — a component of a container, a module\nof a system — carries exactly these fields in a fenced record block. A\nchild that has been promoted to its own document carries them as the\nopening of its frontmatter, because `DocumentFrontmatter` inherits them.\n\nOne schema therefore validates a child in either state, which is what\nmakes promotion a lift-and-link operation rather than a re-authoring\none: the record block moves verbatim into the new document's\nfrontmatter, and every parent roster replaces the block with a link.",
+      "description": "The fields that declare an architectural element: what it is called, what\nit is, how it is referenced, and what it is built with.\n\nDeliberately shared by two artifacts that look unrelated. A child element\na parent document declares inline — a component of a container — carries\nexactly these fields in a fenced record block. A child promoted to its\nown blueprint carries them in its frontmatter, because every architecture\nblueprint type inherits this struct.\n\nOne schema therefore validates a child in either state, which is what\nmakes promotion a lift-and-link operation rather than a re-authoring one:\nthe record block moves verbatim into the new blueprint's frontmatter, the\nblueprint adds its document `title` and envelope, and every parent roster\nreplaces the block with a link. `description` and `slug` are declared on\nboth this struct and `DocumentFrontmatter`, and merge into one property\non a blueprint that inherits both.",
       "properties": {
         "description": {
-          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
+          "type": "string"
+        },
+        "entity_name": {
+          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
           "type": "string"
         },
         "slug": {
           "$ref": "#/definitions/Slug",
-          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+          "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "technology": {
-          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nThe technology line drawn on diagrams.",
           "type": [
             "string",
             "null"
           ]
-        },
-        "title": {
-          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
-          "type": "string"
         }
       },
       "required": [
-        "title",
+        "entity_name",
         "description",
         "slug"
       ],
@@ -1815,7 +1804,7 @@
           "description": "The delivery unit grooming plans against. When `staged`, each stage\nboundary is enumerated in the blueprint's Sequencing Constraints."
         },
         "description": {
-          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
           "type": "string"
         },
         "frd": {
@@ -1831,7 +1820,7 @@
         },
         "slug": {
           "$ref": "#/definitions/Slug",
-          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+          "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "status": {
           "$ref": "#/definitions/Status",
@@ -1858,15 +1847,8 @@
             "null"
           ]
         },
-        "technology": {
-          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "title": {
-          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
         "type": {
@@ -2960,12 +2942,12 @@
           ]
         },
         "description": {
-          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
           "type": "string"
         },
         "slug": {
           "$ref": "#/definitions/Slug",
-          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+          "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "sources": {
           "description": "The documents this FRD is derived from — a brief, a research\ndocument, or an FRD it narrows.",
@@ -3002,15 +2984,8 @@
             "null"
           ]
         },
-        "technology": {
-          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "title": {
-          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
         "type": {
@@ -3046,12 +3021,12 @@
           ]
         },
         "description": {
-          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
           "type": "string"
         },
         "slug": {
           "$ref": "#/definitions/Slug",
-          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+          "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "status": {
           "$ref": "#/definitions/Status",
@@ -3078,15 +3053,8 @@
             "null"
           ]
         },
-        "technology": {
-          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "title": {
-          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
         "type": {
@@ -3276,7 +3244,11 @@
           ]
         },
         "description": {
-          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
+          "type": "string"
+        },
+        "entity_name": {
+          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
           "type": "string"
         },
         "kind": {
@@ -3285,7 +3257,7 @@
         },
         "slug": {
           "$ref": "#/definitions/Slug",
-          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+          "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "source_paths": {
           "description": "Repository-relative source roots, so a reader can find the code.",
@@ -3323,7 +3295,7 @@
           ]
         },
         "technology": {
-          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nThe technology line drawn on diagrams.",
           "type": [
             "string",
             "null"
@@ -3340,7 +3312,7 @@
           ]
         },
         "title": {
-          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
         "type": {
@@ -3371,6 +3343,7 @@
         "type",
         "status",
         "updated_at",
+        "entity_name",
         "kind",
         "visibility"
       ],
@@ -3843,7 +3816,7 @@
           ]
         },
         "description": {
-          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
           "type": "string"
         },
         "effort": {
@@ -3882,7 +3855,7 @@
         },
         "slug": {
           "$ref": "#/definitions/Slug",
-          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+          "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "status": {
           "$ref": "#/definitions/Status",
@@ -3909,15 +3882,8 @@
             "null"
           ]
         },
-        "technology": {
-          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "title": {
-          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
         "type": {
@@ -4150,12 +4116,12 @@
           ]
         },
         "description": {
-          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
           "type": "string"
         },
         "slug": {
           "$ref": "#/definitions/Slug",
-          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+          "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "status": {
           "$ref": "#/definitions/Status",
@@ -4182,15 +4148,8 @@
             "null"
           ]
         },
-        "technology": {
-          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
-          "type": [
-            "string",
-            "null"
-          ]
-        },
         "title": {
-          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
         "type": {
@@ -4263,12 +4222,16 @@
           ]
         },
         "description": {
-          "description": "A one- to two-sentence summary of what this element is and what it is\nresponsible for.\n\nOn C4 blueprints this is the brief description rendered on diagrams,\nso it is written to be read at a glance rather than as an\nintroduction.",
+          "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
+          "type": "string"
+        },
+        "entity_name": {
+          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
           "type": "string"
         },
         "slug": {
           "$ref": "#/definitions/Slug",
-          "description": "The identifier every other document uses to reference this element.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+          "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "status": {
           "$ref": "#/definitions/Status",
@@ -4296,14 +4259,14 @@
           ]
         },
         "technology": {
-          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nMeaningful on C4 elements, where it is the technology line drawn on\ndiagrams. A document type with no technology leaves it unset.",
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nThe technology line drawn on diagrams.",
           "type": [
             "string",
             "null"
           ]
         },
         "title": {
-          "description": "Human-readable title. Free text.\n\nOn a promoted document this is also the document's H1, and the two are\nkept in sync by hand.",
+          "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
         "type": {
@@ -4322,7 +4285,8 @@
         "slug",
         "type",
         "status",
-        "updated_at"
+        "updated_at",
+        "entity_name"
       ],
       "type": "object"
     },

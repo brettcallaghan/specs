@@ -231,7 +231,7 @@ recorded once with every drawing listed. Two drawings are the same
 relationship when source, target and description agree. Where they
 disagree on anything else, the relationship carries the values of the
 drawing that sorts first by path and then by position, and the
-`c4/diagram` check reports the disagreement.
+`c4/drawing-conflict` rule reports the disagreement.
 """
 struct C4Relationship {
   """Slug of the element that depends."""

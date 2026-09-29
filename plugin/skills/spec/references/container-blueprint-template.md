@@ -1,5 +1,6 @@
 ---
 title: "Container Blueprint: <Container Name>"
+entity_name: <Container Name>                 # the element, as diagrams draw it
 description: <One-sentence summary of the container and its responsibility
   — its brief description, shown on diagrams>
 slug: container-<container-name>
@@ -15,7 +16,7 @@ contracts_consumed: []               # contract slugs this container consumes
 
 <!--
 Template: Container Blueprint
-Version: 1.6
+Version: 1.7
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
 
@@ -145,11 +146,12 @@ unit is in exactly ONE of two states — a record block XOR a blueprint
 link, never both:
   - un-promoted (a simple internal component): the follow-on sentence(s)
     here ARE the detailed description, AND the declaration carries a
-    machine-readable record block holding title, slug, and description,
-    validated against the shared component-record schema:
+    machine-readable record block holding entity_name, slug and
+    description (and optionally technology), validated against the
+    shared element-record schema:
 
         ```component
-        title: <Component Name>
+        entity_name: <Component Name>
         slug: component-<component-name>
         description: <one-line brief description>
         ```
@@ -191,7 +193,7 @@ C4Component
 ### <ComponentA>
 
 ```component
-title: <ComponentA>
+entity_name: <ComponentA>
 slug: component-<component-a>
 description: <brief description>
 ```
@@ -203,7 +205,7 @@ beyond the diagram label.>
 ### <Component B>
 
 ```component
-title: <Component B>
+entity_name: <Component B>
 slug: component-<component-b>
 description: <brief description>
 ```

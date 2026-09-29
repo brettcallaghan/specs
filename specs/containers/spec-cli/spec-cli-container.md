@@ -1,12 +1,13 @@
 ---
 title: "Container Blueprint: Spec CLI"
+entity_name: Spec CLI
 description: The command-line binary that indexes a specification corpus
   and reports conformance findings, wrapping the Document Core and
   profile modules in a command surface
 slug: container-spec-cli
 type: container-blueprint
 status: approved
-updated_at: 2026-09-26T00:00:00Z
+updated_at: 2026-09-29T00:00:00Z
 contracts_provided:
   - "contract-specs-configuration"
 contracts_consumed: []
@@ -110,7 +111,7 @@ C4Component
 ### Command Surface
 
 ```component
-title: Command Surface
+entity_name: Command Surface
 slug: component-command-surface
 description: Command tree, flag parsing, configuration discovery, output rendering and exit codes
 ```

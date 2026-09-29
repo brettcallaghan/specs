@@ -7,7 +7,7 @@ description: The C4 model's neighbor edges are extracted from the Mermaid C4
 slug: adr-029
 type: adr
 status: draft
-updated_at: 2026-09-26T00:00:00Z
+updated_at: 2026-09-29T00:00:00Z
 ---
 
 # ADR-029: C4 Relationships Are Read From Blueprint Diagrams
@@ -18,7 +18,9 @@ updated_at: 2026-09-26T00:00:00Z
 ## Context
 
 [[frd-spec-c4]] asks the CLI to emit the corpus's C4 model — its elements
-and the relationships between them — as one structured artifact. Elements
+and the relationships between them — as one structured artifact, and
+[[frd-spec-c4-diagrams]] asks it to check the diagrams those relationships
+are drawn on. Elements
 have a machine-readable declaration: blueprint frontmatter, or a
 `component` record block ([[adr-008]]). Relationships do not. [[adr-009]]
 gives a neighbor edge two homes — the parent that composes both
@@ -54,7 +56,7 @@ architecture blueprints — a parent's internal views and each element's
 Context view, the two homes [[adr-009]] gives an edge — using a C4 parser
 written in this repository's CLI. We will reserve the relationship tags
 `sync`, `async` and `contract:<slug>` for the edge properties Mermaid has
-no argument for. Diagram nodes are matched to declared elements by display
+no argument for. Diagram nodes are matched to declared elements by entity
 name within the drawing document's scope; a node or edge that cannot be
 matched is reported, never invented.
 
@@ -110,7 +112,8 @@ matched is reported, never invented.
 
 ## References
 
-- [[frd-spec-c4]] — the requirements this decision serves
+- [[frd-spec-c4]] and [[frd-spec-c4-diagrams]] — the requirements this
+  decision serves
 - [[adr-009]] — an edge's two homes: the parent, and the Context view
 - [[adr-008]] — record blocks, which declare the nodes these edges join
 - [[c4-standards]] — the one-line declaration rule this parser relies on,

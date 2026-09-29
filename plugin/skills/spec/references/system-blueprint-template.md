@@ -1,5 +1,6 @@
 ---
 title: "System Blueprint: <System Name>"
+entity_name: <System Name>                 # the element, as diagrams draw it
 description: <One-sentence summary of the system and the capabilities it
   bundles — its brief description, shown on diagrams>
 slug: system-<system-name>
@@ -12,7 +13,7 @@ contracts_consumed: []               # contract slugs this system consumes
 
 <!--
 Template: System Blueprint
-Version: 1.5
+Version: 1.6
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
 

@@ -1,5 +1,6 @@
 ---
 title: "Module Blueprint: Spec-Driven Development Profile"
+entity_name: Spec-Driven Development Profile
 description: The plugin that supplies this framework's document
   vocabulary — one union schema over every document type, plus each
   type's slug pattern and numbered-ness — to Document Core
@@ -219,7 +220,7 @@ Profile Registration alongside the schema it complements.
 ### Profile Registration
 
 ```component
-title: Profile Registration
+entity_name: Profile Registration
 slug: component-profile-registration
 description: The plugin entry point supplying the union schema, the per-type slug and numbered table, the reference/typed-reference/lifecycle registrations, the Gherkin tag vocabulary, and the convention defaults
 ```
@@ -283,7 +284,7 @@ Change Guidance below.
 ### Element Records
 
 ```component
-title: Element Records
+entity_name: Element Records
 slug: component-element-records
 description: Fenced element record blocks and the invariant that a child is a record block or a blueprint link, never both
 ```

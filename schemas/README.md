@@ -34,12 +34,21 @@ specs check --strict                   # check this repo's own documents
 
 ## Design decisions
 
-**`ElementRecord` is the root, and `DocumentFrontmatter` inherits it.**
-`frontmatter-standards.md` asks for exactly this: the base record fields
-and the document envelope defined as two schemas and merged with JSON
-Schema `allOf`, so that one schema validates a child element whether it
-is embedded in a parent's record block or promoted to a document of its
-own. Strata's `struct Child: Parent` emits precisely that `allOf` +
+**Architecture blueprints inherit both `ElementRecord` and
+`DocumentFrontmatter`.** Both declare `description` and `slug`, which
+merge into one property; `ElementRecord` adds `entity_name` and
+`technology`, and `DocumentFrontmatter` the document `title` and
+envelope. The two are siblings rather than sharing a base struct because
+inherited fields are emitted first, and a shared base would move `title`
+behind `description` and `slug` in every index entry. Each
+architecture blueprint type inherits both, which is what
+`frontmatter-standards.md` asks for: the element record and the document
+envelope defined as two schemas and merged with JSON Schema `allOf`, so
+that one schema validates a child element whether it is embedded in a
+parent's record block or promoted to a document of its own. An element's
+name and its document's title are separate properties because they are
+separate facts — "Spec CLI" is documented by "Container Blueprint: Spec
+CLI". Strata's `struct Child: Parent` emits precisely that `allOf` +
 `$ref` shape, so the requirement is met by the language rather than by
 hand-assembly.
 

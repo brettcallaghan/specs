@@ -3,12 +3,11 @@ title: "FRD: C4 Model"
 description: A subcommand that emits the corpus's C4 model — its systems,
   containers, modules and components as a tree, and the relationships
   between them as one edge list — assembled from the architecture
-  blueprints and their diagrams, plus checks that keep those diagrams
-  consistent with the elements the blueprints declare
+  blueprints and their diagrams
 slug: frd-spec-c4
 type: frd
 status: draft
-updated_at: 2026-09-26T00:00:00Z
+updated_at: 2026-09-29T00:00:00Z
 sources: []
 ---
 
@@ -35,10 +34,10 @@ command reads back only what the index points at — each record block
 through its span, decoded into the element record's Go type, and the
 Mermaid C4 diagrams, parsed per [[adr-029]].
 
-The same parser gives the corpus its first diagram checks. A diagram
-whose nodes do not match the elements the blueprints declare is today
-invisible until a human notices; the checks make that mismatch a finding
-at the offending line.
+The diagram parser and node resolution are
+[[frd-spec-c4-diagrams]]'s, which also checks diagrams for conformance.
+This feature depends on that one and adds the model built from what it
+resolves.
 
 ### Prerequisites
 
@@ -68,10 +67,7 @@ prerequisites rather than part of it:
 - **People and external systems** as elements. An edge touching one is
   reported as unplaced.
 - **Dynamic and deployment diagrams.** They contribute nothing to the
-  model and are reported as unverified by the checks.
-- **Agreement between a diagram node's technology or description and its
-  element's declaration.** [[c4-standards]] requires both to match; this
-  feature matches nodes by name only.
+  model.
 - **Contract tags in the reference graph.** A `contract:` tag is not a
   wikilink, so `specs refs` on a contract does not list the diagrams that
   tag it.
@@ -80,42 +76,18 @@ prerequisites rather than part of it:
 
 ## Terminology
 
-- **Architecture blueprint** — a corpus member of type
-  `system-blueprint`, `container-blueprint`, `module-blueprint` or
-  `component-blueprint`.
-- **Element** — a system, container, module or component declared either
-  by its own architecture blueprint or by a record block in its parent's
-  roster section.
-- **Display name** — an element's name as diagrams draw it: a record
-  block's `title`, or a blueprint's `title` with its `<Type> Blueprint: `
-  prefix removed. "Container Blueprint: Spec CLI" displays as "Spec CLI".
-- **C4 diagram** — a fenced `mermaid` block in an architecture blueprint
-  whose first statement is `C4Context`, `C4Container` or `C4Component`.
-- **Drawing document** — the architecture blueprint a C4 diagram sits in.
-  Per [[adr-009]] it holds the edges among its element's children, and it
-  draws its element's outward edges in a Context view.
-- **Scope of a drawing document** — the elements a diagram node in it may
-  name: the document's own element; the components its roster declares
-  and the modules that name it in `contained_by`; and every system and
-  container in the corpus.
-- **Diagram node** — an element statement in a C4 diagram, identified
-  within its diagram by its alias. The statements are:
+The terms this feature shares with [[frd-spec-c4-diagrams]] — architecture
+blueprint, element, entity name, C4 diagram, drawing document, scope of a
+drawing document, the diagram statement kinds, drawing and reserved tag —
+are defined there and used here unchanged. In addition:
 
-  | Kind | Macros |
-  |---|---|
-  | Element node | `System`, `Container`, `Component`, and their `Db` and `Queue` forms |
-  | Passive store | a `Db` or `Queue` node that names no element in scope — a data store the drawing element uses, which [[c4-standards]] gives no blueprint |
-  | External node | `Person`, and every `_Ext` form |
-  | Boundary | `Boundary`, `Enterprise_Boundary`, `System_Boundary`, `Container_Boundary` — groups nodes and is not itself a node |
-  | Relationship | `Rel`; `Rel_U`, `Rel_Up`, `Rel_D`, `Rel_Down`, `Rel_L`, `Rel_Left`, `Rel_R`, `Rel_Right`; `Rel_Back`; `BiRel` |
-  | Ignored | `title`, `UpdateElementStyle`, `UpdateRelStyle`, `UpdateLayoutConfig` |
-
+- **Drawing document**, as used for edges: per [[adr-009]] it holds the
+  edges among its element's children, and draws its element's outward
+  edges in a Context view.
 - **Relationship** — a dependency edge between two elements, read from a
   relationship statement in a C4 diagram: the source depends on the
   target. It is identified by its source, target and description.
 - **Unplaced edge** — a relationship statement the model does not admit.
-- **Reserved tag** — a relationship tag with meaning to this feature:
-  `sync`, `async`, or `contract:` followed by a slug.
 
 ## Requirements
 
@@ -176,7 +148,7 @@ Feature: Element Tree
 
   @AC-C4-001.7
   Scenario: Element properties are copied from the declaration
-    Given an element whose declaration sets title, description, technology, contracts_provided and contracts_consumed
+    Given an element whose declaration sets entity_name, description, technology, contracts_provided and contracts_consumed
     When the user runs specs c4
     Then the element in the model carries each of those values unchanged
 
@@ -208,10 +180,9 @@ Feature: Relationships From Blueprint Diagrams
   Relationships are read from the C4 diagrams in the two homes the
   nodes-and-edges decision gives an edge: the parent that composes both
   endpoints, and an element's own Context view for its outward edges. A
-  diagram node is matched by display name, and only among the elements in
-  the scope of its drawing document. Scoping is what lets two containers
-  each hold a component named Parser. Direction always means dependency:
-  the source depends on the target.
+  diagram node resolves to an element as the diagram conformance feature
+  specifies: by entity name, within the drawing document's scope.
+  Direction always means dependency: the source depends on the target.
 
   @AC-C4-002.1
   Scenario Outline: Rel arguments become relationship properties
@@ -265,20 +236,6 @@ Feature: Relationships From Blueprint Diagrams
       | component   | module      | component |
       | component   | component   | component |
 
-  @AC-C4-002.7
-  Scenario: A label resolves within the drawing document's scope
-    Given two containers whose rosters each declare a component titled Parser
-    And a C4Component diagram in the first container's blueprint with a node labelled Parser
-    When the user runs specs c4
-    Then that node resolves to the first container's Parser component
-
-  @AC-C4-002.8
-  Scenario: A promoted element is matched by its display name
-    Given a container blueprint titled Container Blueprint: Spec CLI
-    And a C4 diagram node labelled Spec CLI
-    When the user runs specs c4
-    Then that node resolves to the container
-
   @AC-C4-002.9
   Scenario: Drawings of one relationship that disagree keep the first
     Given one relationship drawn twice with different technology arguments
@@ -325,10 +282,9 @@ Feature: Reserved Relationship Tags
   I want to state on the diagram what Mermaid has no argument for
   So that the model records whether a call is asynchronous and which contract governs it
 
-  Tags are written with Mermaid's tags parameter, positionally or as the
-  named $tags argument, several joined by a plus sign. Mermaid parses a
-  tagged relationship without error, so the convention costs an author
-  nothing at parse time.
+  The tag syntax, and the checks that keep tags well formed, belong to the
+  diagram conformance feature. This feature records what a well-formed
+  tag means in the model.
 
   @AC-C4-003.1
   Scenario Outline: The interaction tag sets the interaction
@@ -366,17 +322,6 @@ Feature: Reserved Relationship Tags
     Given the statement Rel(a, b, "Uses", $tags="async+audited")
     When the user runs specs c4
     Then the relationship's tags are exactly audited
-
-  @AC-C4-003.6
-  Scenario Outline: Positional and named tags are read alike
-    Given the statement <statement>
-    When the user runs specs c4
-    Then the relationship's interaction is async and its tags are exactly audited
-
-    Examples:
-      | statement                                                      |
-      | Rel(a, b, "Uses", "HTTP", "", "", "async+audited")             |
-      | Rel(a, b, "Uses", "HTTP", $tags="async+audited")               |
 ```
 
 ### FEAT-C4-004: Output
@@ -394,7 +339,7 @@ Feature: Output
   The artifact's shape is declared once in Strata and emitted as JSON Schema,
   so a consumer validates against the same definition the CLI emits from.
   Emitting the model never fails on corpus content: what cannot be placed is
-  reported in the artifact, and judging it is the checks' job.
+  reported in the artifact, and judging it is the diagram checks' job.
 
   YAML is the default, as for every other query command, and --json selects
   JSON. There is no other format flag.
@@ -450,101 +395,11 @@ Feature: Output
     Then the command exits with status zero
 ```
 
-### FEAT-C4-005: Diagram Conformance
-
-**Acceptance Criteria:**
-
-```gherkin
-@FEAT-C4-005
-Feature: Diagram Conformance
-
-  As an author editing a blueprint
-  I want my C4 diagrams checked against the elements the corpus declares
-  So that a diagram and its declarations cannot drift apart unnoticed
-
-  Each defect is its own rule in the c4 namespace, run by specs check
-  alongside the existing rules and selectable with --only. Every finding
-  carries the span of the offending statement. The duplicate-edge rule
-  compares statements within one diagram only, and treats a to b and b to a
-  as different pairs.
-
-  Scenario Outline: Each diagram defect is reported under its own rule
-    Given a C4 diagram where "<defect>"
-    When the user runs specs check on that document
-    Then the report holds a "<rule>" finding of severity "<severity>" at that statement's span
-
-    @AC-C4-005.1
-    Examples: a statement the parser cannot read
-      | defect                                   | rule     | severity |
-      | a statement is not one the parser reads  | c4/parse | error    |
-
-    @AC-C4-005.2
-    Examples: a node that names no element in scope
-      | defect                                                         | rule              | severity |
-      | an element node's label matches no element in scope            | c4/undeclared-node | error   |
-
-    @AC-C4-005.3
-    Examples: a node that names several elements in scope
-      | defect                                                  | rule              | severity |
-      | a label matches more than one element in scope          | c4/ambiguous-node | error    |
-
-    @AC-C4-005.4
-    Examples: a bidirectional arrow
-      | defect                  | rule             | severity |
-      | a BiRel statement       | c4/bidirectional | error    |
-
-    @AC-C4-005.5
-    Examples: an edge drawn twice in one diagram
-      | defect                                                  | rule              | severity |
-      | two relationship statements join the same ordered pair  | c4/duplicate-edge | error    |
-
-    @AC-C4-005.6
-    Examples: contradictory interaction tags
-      | defect                                     | rule                    | severity |
-      | one statement is tagged both sync and async | c4/interaction-conflict | error   |
-
-    @AC-C4-005.7
-    Examples: a contract tag naming no contract
-      | defect                                             | rule                   | severity |
-      | a contract tag names a slug that is not a contract | c4/contract-unresolved | error    |
-
-    @AC-C4-005.8
-    Examples: a contract tag the endpoints do not declare
-      | defect                                                                                     | rule                 | severity |
-      | a contract tag names a contract the source does not consume or the target does not provide | c4/contract-mismatch | warning  |
-
-    @AC-C4-005.9
-    Examples: drawings of one relationship that disagree
-      | defect                                                                   | rule                | severity |
-      | two drawings of one relationship disagree on technology, detail or tags  | c4/drawing-conflict | warning  |
-
-    @AC-C4-005.10
-    Examples: tags joined with a comma
-      | defect                                  | rule             | severity |
-      | a tags value contains a comma           | c4/tag-separator | warning  |
-
-  @AC-C4-005.11
-  Scenario: A Mermaid diagram the parser does not read is unverified
-    Given a mermaid block in an architecture blueprint that is not a C4 diagram, including a C4Dynamic or C4Deployment block
-    When the user runs specs check on that document
-    Then the report holds a c4/parse finding of severity unverified naming the diagram type
-
-  @AC-C4-005.12
-  Scenario: A quoted argument may contain parentheses and commas
-    Given a C4 diagram containing Component(x, "X", "Go package (planned), internal", "desc")
-    When the user runs specs check on that document
-    Then the report holds no c4 finding for that statement
-
-  @AC-C4-005.13 @negative
-  Scenario: A passive store is not an undeclared node
-    Given a C4 diagram whose ContainerDb node names no element in scope
-    When the user runs specs check on that document
-    Then the report holds no c4/undeclared-node finding for that node
-```
-
 ## References
 
 - [[adr-029]] — relationships are read from blueprint diagrams
+- [[frd-spec-c4-diagrams]] — the diagram parser and node resolution this
+  feature builds on
 - [[adr-009]] — an edge's two homes, the parent and the Context view
 - [[adr-008]] — record blocks declare un-promoted elements
 - [[c4-standards]] — levels, naming, diagram types and arrow direction

@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/standards/c4-standards.md (version 0.2)
+     Source of truth: specs/standards/c4-standards.md (version 0.3)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -11,8 +11,8 @@ description: How to map concrete architectural elements to C4 levels, which
 slug: c4-standards
 type: standards
 status: draft
-updated_at: 2026-07-29T00:00:00Z
-version: "0.2"
+updated_at: 2026-09-29T00:00:00Z
+version: "0.3"
 ---
 
 # Mapping Architecture to C4
@@ -150,9 +150,10 @@ modeled component — a schema, domain type, event, flag, or table — is
 written in backticks (`ElementName`), not referenced this way.
 
 WHERE an element has its own blueprint, that blueprint IS the
-declaration: the document title carries the name, the frontmatter
-`description` is the brief description, and the Overview section is
-the detailed description. Documents that reference the element repeat
+declaration: the frontmatter `entity_name` carries the name, the
+frontmatter `description` is the brief description, and the Overview
+section is the detailed description. The document `title` names the
+blueprint, not the element. Documents that reference the element repeat
 only its name, technology, and brief description, linking the
 blueprint for detail.
 
