@@ -7,7 +7,7 @@ description: Checks that keep the Mermaid C4 diagrams in architecture
 slug: frd-spec-c4-diagrams
 type: frd
 status: draft
-updated_at: 2026-09-29T00:00:00Z
+updated_at: 2026-10-01T00:00:00Z
 sources: []
 ---
 
@@ -38,10 +38,12 @@ need an element's contract edges. The index does not yet carry either:
   `component` record block, which the index records per AC-SPECSTR-001.2
   of [[frd-spec-structure]]. Today it records none. Without them a node
   naming an un-promoted element is reported as undeclared.
-- **Each document's type-specific frontmatter.** `entity_name`,
-  `contained_by` and the contract edges never reach an index entry,
-  which carries the base envelope only. Scope and the contract checks
-  depend on them.
+- **Each document's type-specific frontmatter.** AC-SPEC-002.1 of
+  [[frd-spec-index]] requires the index to carry every frontmatter
+  property a document's type defines; today an entry carries the shared
+  envelope only. Node resolution reads `entity_name` and `contained_by`,
+  and the contract checks the contract edges, from the index once it
+  does.
 
 ### Out of scope
 

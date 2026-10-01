@@ -7,7 +7,7 @@ description: A subcommand that emits the corpus's C4 model — its systems,
 slug: frd-spec-c4
 type: frd
 status: draft
-updated_at: 2026-09-29T00:00:00Z
+updated_at: 2026-10-01T00:00:00Z
 sources: []
 ---
 
@@ -53,14 +53,14 @@ prerequisites rather than part of it:
   repository reports zero, including the `component` block in
   [[container-spec-cli]]'s roster. Without them the tree holds only
   promoted elements.
-- **Each document's type-specific frontmatter.** An index entry carries
-  the base envelope only — `IndexEntry.frontmatter` is typed
-  `DocumentFrontmatter` — so `system`, `contained_by`, `kind`,
-  `visibility` and the contract edges never reach it. The entry for
-  [[container-spec-cli]] omits the `contracts_provided` its file
-  declares. Carrying them is an addition to the index, which the
-  additive rule in [[container-spec-cli]] admits under `schema_version`
-  1.0.
+- **Each document's type-specific frontmatter.** AC-SPEC-002.1 of
+  [[frd-spec-index]] requires the index to carry every frontmatter
+  property a document's type defines, and this feature reads `system`,
+  `contained_by`, `entity_name`, `kind`, `visibility` and the contract
+  edges from there. Today an entry carries the shared envelope only —
+  the entry for [[container-spec-cli]] omits the `contracts_provided`
+  its file declares — which is a conformance gap in the index, not a
+  property this feature decodes for itself.
 
 ### Out of scope
 

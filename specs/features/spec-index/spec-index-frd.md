@@ -7,7 +7,7 @@ description: A command-line tool that indexes a specification corpus into
 slug: frd-spec-index
 type: frd
 status: approved
-updated_at: 2026-08-15T00:00:00Z
+updated_at: 2026-10-01T00:00:00Z
 sources: []
 ---
 
@@ -216,7 +216,7 @@ Feature: Document Index
     @AC-SPEC-002.1
     Scenario: The index carries every corpus member's frontmatter and path
       When the CLI builds an index
-      Then the CLI emits a JSON document containing, for every corpus member, its frontmatter properties and its file path
+      Then the CLI emits a JSON document containing, for every corpus member, its file path and every frontmatter property its document type defines, not only the properties every type shares
 
     @AC-SPEC-002.2
     Scenario: The index declares a schema version
