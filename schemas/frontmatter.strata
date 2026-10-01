@@ -1,32 +1,8 @@
 """
-The fields that declare an architectural element: what it is called, what
-it is, how it is referenced, and what it is built with.
-
-Deliberately shared by two artifacts that look unrelated. A child element
-a parent document declares inline — a component of a container — carries
-exactly these fields in a fenced record block. A child promoted to its
-own blueprint carries them in its frontmatter, because every architecture
-blueprint type inherits this struct.
-
-One schema therefore validates a child in either state, which is what
-makes promotion a lift-and-link operation rather than a re-authoring one:
-the record block moves verbatim into the new blueprint's frontmatter, the
-blueprint adds its document `title` and envelope, and every parent roster
-replaces the block with a link. `description` and `slug` are declared on
-both this struct and `DocumentFrontmatter`, and merge into one property
-on a blueprint that inherits both.
+The two fields every described thing carries, document and element alike:
+its identifier and its one-line summary.
 """
-struct ElementRecord {
-  """
-  The element's name: the canonical display name drawn on every diagram
-  and matched against diagram labels. Free text.
-
-  Distinct from a blueprint's `title`, which names the document — "Spec
-  CLI" is the entity name of the container whose blueprint is titled
-  "Container Blueprint: Spec CLI".
-  """
-  entity_name: String
-
+struct Identified {
   """
   A one- to two-sentence summary of what this is and what it is
   responsible for.
@@ -44,6 +20,34 @@ struct ElementRecord {
   `container-spec-cli`, `module-document-core`.
   """
   slug: Slug
+}
+
+"""
+The fields that declare an architectural element: what it is called, what
+it is, how it is referenced, and what it is built with.
+
+Deliberately shared by two artifacts that look unrelated. A child element
+a parent document declares inline — a component of a container — carries
+exactly these fields in a fenced record block. A child promoted to its
+own blueprint carries them in its frontmatter, because every architecture
+blueprint type inherits this struct.
+
+One schema therefore validates a child in either state, which is what
+makes promotion a lift-and-link operation rather than a re-authoring one:
+the record block moves verbatim into the new blueprint's frontmatter, the
+blueprint adds its document `title` and envelope, and every parent roster
+replaces the block with a link.
+"""
+struct ElementRecord: Identified {
+  """
+  The element's name: the canonical display name drawn on every diagram
+  and matched against diagram labels. Free text.
+
+  Distinct from a blueprint's `title`, which names the document — "Spec
+  CLI" is the entity name of the container whose blueprint is titled
+  "Container Blueprint: Spec CLI".
+  """
+  entity_name: String
 
   """
   The language, framework, store or package type the element is built
@@ -70,31 +74,13 @@ edges. Before adding one, check it against the Document Relationship
 Standard — a property that merely mirrors the document's own prose
 citations does not earn its maintenance cost.
 """
-struct DocumentFrontmatter {
+struct DocumentFrontmatter: Identified {
   """
   Human-readable document title. Free text.
 
   Also the document's H1, and the two are kept in sync by hand.
   """
   title: String
-
-  """
-  A one- to two-sentence summary of what this is and what it is
-  responsible for.
-
-  On C4 elements this is the brief description rendered on diagrams, so
-  it is written to be read at a glance rather than as an introduction.
-  """
-  description: String
-
-  """
-  The identifier every other document uses to reference this.
-
-  Unique across the corpus, compared without regard to letter case, and
-  conventionally prefixed by the document type — `adr-013`,
-  `container-spec-cli`, `module-document-core`.
-  """
-  slug: Slug
 
   """
   The document's classification, which selects the schema, slug pattern

@@ -5,9 +5,9 @@
     {
       "path": "docs/adrs/adr-012-decision.md",
       "frontmatter": {
-        "title": "ADR-012: Decision",
         "description": "The document a frontmatter citation anchors into.",
         "slug": "adr-012-decision",
+        "title": "ADR-012: Decision",
         "type": "adr",
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
@@ -61,9 +61,9 @@
     {
       "path": "docs/features/frd-citing-anchor.md",
       "frontmatter": {
-        "title": "FRD: Citing Anchor",
         "description": "An FRD whose sources cites an anchor into another document.",
         "slug": "frd-citing-anchor",
+        "title": "FRD: Citing Anchor",
         "type": "frd",
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
@@ -134,5 +134,5 @@
     }
   ],
   "features": [],
-  "input_hash": "sha256:49a1d40ce7f6aac4f7f067e13538616ddf5cf40e6dad43c7185089a0d3a97986"
+  "input_hash": "sha256:bb6abe56eae3c2332ddc3aa7eb473315eeffce34f5c4594bf872439d7b125b42"
 }

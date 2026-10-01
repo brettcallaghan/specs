@@ -5,9 +5,9 @@
     {
       "path": "docs/adrs/adr-001-example.md",
       "frontmatter": {
-        "title": "ADR-001: Example",
         "description": "An example decision used by a snapshot case.",
         "slug": "adr-001-example",
+        "title": "ADR-001: Example",
         "type": "adr",
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
@@ -79,5 +79,5 @@
   "exclusions": [],
   "references": [],
   "features": [],
-  "input_hash": "sha256:bc4e85eab35a1c6950b2b75e5b93fdbc9a105b636e34ba71542855d05396e5ae"
+  "input_hash": "sha256:653bf846e363b2dc2bb26f14dc650bf937b7ac2fc9694b7dcf7eff84b93bdd2f"
 }

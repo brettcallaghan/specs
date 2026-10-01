@@ -2,6 +2,7 @@
 
 ## Table of Contents
 
+- [Identified](#identified)
 - [ElementRecord](#elementrecord)
 - [DocumentFrontmatter](#documentfrontmatter)
 - [ContractEdges](#contractedges)
@@ -16,6 +17,17 @@
 - [FeatureBlueprint](#featureblueprint)
 - [Rfc](#rfc)
 - [Guide](#guide)
+
+## Identified
+
+The two fields every described thing carries, document and element alike:
+its identifier and its one-line summary.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| description | String | A one- to two-sentence summary of what this is and what it is responsible for.<br><br>On C4 elements this is the brief description rendered on diagrams, so it is written to be read at a glance rather than as an introduction. |
+| slug | [Slug](vocabulary.md#slug) | The identifier every other document uses to reference this.<br><br>Unique across the corpus, compared without regard to letter case, and conventionally prefixed by the document type — `adr-013`, `container-spec-cli`, `module-document-core`. |
+
 
 ## ElementRecord
 
@@ -32,15 +44,13 @@ One schema therefore validates a child in either state, which is what
 makes promotion a lift-and-link operation rather than a re-authoring one:
 the record block moves verbatim into the new blueprint's frontmatter, the
 blueprint adds its document `title` and envelope, and every parent roster
-replaces the block with a link. `description` and `slug` are declared on
-both this struct and `DocumentFrontmatter`, and merge into one property
-on a blueprint that inherits both.
+replaces the block with a link.
+
+**Inherits from:** [Identified](#identified)
 
 | Property | Type | Documentation |
 |----------|------|---------------|
 | entity_name | String | The element's name: the canonical display name drawn on every diagram and matched against diagram labels. Free text.<br><br>Distinct from a blueprint's `title`, which names the document — "Spec CLI" is the entity name of the container whose blueprint is titled "Container Blueprint: Spec CLI". |
-| description | String | A one- to two-sentence summary of what this is and what it is responsible for.<br><br>On C4 elements this is the brief description rendered on diagrams, so it is written to be read at a glance rather than as an introduction. |
-| slug | [Slug](vocabulary.md#slug) | The identifier every other document uses to reference this.<br><br>Unique across the corpus, compared without regard to letter case, and conventionally prefixed by the document type — `adr-013`, `container-spec-cli`, `module-document-core`. |
 | technology | String? | The language, framework, store or package type the element is built with — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.<br><br>The technology line drawn on diagrams. |
 
 
@@ -61,11 +71,11 @@ edges. Before adding one, check it against the Document Relationship
 Standard — a property that merely mirrors the document's own prose
 citations does not earn its maintenance cost.
 
+**Inherits from:** [Identified](#identified)
+
 | Property | Type | Documentation |
 |----------|------|---------------|
 | title | String | Human-readable document title. Free text.<br><br>Also the document's H1, and the two are kept in sync by hand. |
-| description | String | A one- to two-sentence summary of what this is and what it is responsible for.<br><br>On C4 elements this is the brief description rendered on diagrams, so it is written to be read at a glance rather than as an introduction. |
-| slug | [Slug](vocabulary.md#slug) | The identifier every other document uses to reference this.<br><br>Unique across the corpus, compared without regard to letter case, and conventionally prefixed by the document type — `adr-013`, `container-spec-cli`, `module-document-core`. |
 | type | [DocumentType](vocabulary.md#documenttype) | The document's classification, which selects the schema, slug pattern and required sections that govern it. |
 | status | [Status](vocabulary.md#status) | The document's lifecycle state. |
 | updated_at | DateTime | RFC 3339 timestamp of the last substantive modification.<br><br>Validated against the text as written in the file rather than against a parsed value, so a bare `2026-07-29` is reported as a defect instead of being silently widened to midnight UTC by the YAML parser. |

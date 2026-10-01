@@ -34,15 +34,11 @@ specs check --strict                   # check this repo's own documents
 
 ## Design decisions
 
-**Architecture blueprints inherit both `ElementRecord` and
-`DocumentFrontmatter`.** Both declare `description` and `slug`, which
-merge into one property; `ElementRecord` adds `entity_name` and
+**`ElementRecord` and `DocumentFrontmatter` share a root, and
+architecture blueprints inherit both.** Both extend `Identified`
+(`description` and `slug`); `ElementRecord` adds `entity_name` and
 `technology`, and `DocumentFrontmatter` the document `title` and
-envelope. The two are siblings rather than sharing a base struct because
-inherited fields are emitted first, and a shared base would move `title`
-behind `description` and `slug` in every index entry. Each
-architecture blueprint type inherits both, which is what
-`frontmatter-standards.md` asks for: the element record and the document
+envelope. Inheriting both is what `frontmatter-standards.md` asks for: the element record and the document
 envelope defined as two schemas and merged with JSON Schema `allOf`, so
 that one schema validates a child element whether it is embedded in a
 parent's record block or promoted to a document of its own. An element's

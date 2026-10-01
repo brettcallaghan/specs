@@ -5,9 +5,9 @@
     {
       "path": "docs/adrs/adr-001-citing.md",
       "frontmatter": {
-        "title": "ADR-001: Citing",
         "description": "A decision citing one document that exists and one that does not.",
         "slug": "adr-001-citing",
+        "title": "ADR-001: Citing",
         "type": "adr",
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
@@ -40,9 +40,9 @@
     {
       "path": "docs/adrs/adr-002-cited.md",
       "frontmatter": {
-        "title": "ADR-002: Cited",
         "description": "The document the other one resolves to.",
         "slug": "adr-002-cited",
+        "title": "ADR-002: Cited",
         "type": "adr",
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
@@ -116,5 +116,5 @@
     }
   ],
   "features": [],
-  "input_hash": "sha256:ce1e9e0516b3ec0d8fdd8e892606bb9e2ce9305d1d1ea15f1e27b1ba107bed0c"
+  "input_hash": "sha256:0ba2b6e3579bfc7ccdeb981889b5e4acd34c39766ed7f596c3b85d54f529a67f"
 }

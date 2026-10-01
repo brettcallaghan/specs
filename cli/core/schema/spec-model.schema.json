@@ -61,9 +61,9 @@
         }
       },
       "required": [
-        "title",
         "description",
         "slug",
+        "title",
         "type",
         "status",
         "updated_at"
@@ -330,9 +330,9 @@
         }
       },
       "required": [
-        "entity_name",
         "description",
         "slug",
+        "entity_name",
         "declaration"
       ],
       "type": "object"
@@ -410,9 +410,9 @@
         }
       },
       "required": [
-        "entity_name",
         "description",
         "slug",
+        "entity_name",
         "declaration",
         "components",
         "modules"
@@ -591,9 +591,9 @@
         }
       },
       "required": [
-        "entity_name",
         "description",
         "slug",
+        "entity_name",
         "declaration"
       ],
       "type": "object"
@@ -758,9 +758,9 @@
         }
       },
       "required": [
-        "entity_name",
         "description",
         "slug",
+        "entity_name",
         "declaration",
         "kind",
         "visibility",
@@ -944,9 +944,9 @@
         }
       },
       "required": [
-        "entity_name",
         "description",
         "slug",
+        "entity_name",
         "declaration",
         "containers"
       ],
@@ -1146,9 +1146,9 @@
         }
       },
       "required": [
-        "title",
         "description",
         "slug",
+        "title",
         "type",
         "status",
         "updated_at",
@@ -1259,9 +1259,9 @@
         }
       },
       "required": [
-        "title",
         "description",
         "slug",
+        "title",
         "type",
         "status",
         "updated_at",
@@ -1366,9 +1366,9 @@
         }
       },
       "required": [
-        "title",
         "description",
         "slug",
+        "title",
         "type",
         "status",
         "updated_at",
@@ -1580,9 +1580,9 @@
         }
       },
       "required": [
-        "title",
         "description",
         "slug",
+        "title",
         "type",
         "status",
         "updated_at"
@@ -1691,7 +1691,7 @@
     },
     "ElementRecord": {
       "additionalProperties": false,
-      "description": "The fields that declare an architectural element: what it is called, what\nit is, how it is referenced, and what it is built with.\n\nDeliberately shared by two artifacts that look unrelated. A child element\na parent document declares inline — a component of a container — carries\nexactly these fields in a fenced record block. A child promoted to its\nown blueprint carries them in its frontmatter, because every architecture\nblueprint type inherits this struct.\n\nOne schema therefore validates a child in either state, which is what\nmakes promotion a lift-and-link operation rather than a re-authoring one:\nthe record block moves verbatim into the new blueprint's frontmatter, the\nblueprint adds its document `title` and envelope, and every parent roster\nreplaces the block with a link. `description` and `slug` are declared on\nboth this struct and `DocumentFrontmatter`, and merge into one property\non a blueprint that inherits both.",
+      "description": "The fields that declare an architectural element: what it is called, what\nit is, how it is referenced, and what it is built with.\n\nDeliberately shared by two artifacts that look unrelated. A child element\na parent document declares inline — a component of a container — carries\nexactly these fields in a fenced record block. A child promoted to its\nown blueprint carries them in its frontmatter, because every architecture\nblueprint type inherits this struct.\n\nOne schema therefore validates a child in either state, which is what\nmakes promotion a lift-and-link operation rather than a re-authoring one:\nthe record block moves verbatim into the new blueprint's frontmatter, the\nblueprint adds its document `title` and envelope, and every parent roster\nreplaces the block with a link.",
       "properties": {
         "description": {
           "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
@@ -1714,9 +1714,9 @@
         }
       },
       "required": [
-        "entity_name",
         "description",
-        "slug"
+        "slug",
+        "entity_name"
       ],
       "type": "object"
     },
@@ -1862,9 +1862,9 @@
         }
       },
       "required": [
-        "title",
         "description",
         "slug",
+        "title",
         "type",
         "status",
         "updated_at",
@@ -2999,9 +2999,9 @@
         }
       },
       "required": [
-        "title",
         "description",
         "slug",
+        "title",
         "type",
         "status",
         "updated_at"
@@ -3075,9 +3075,9 @@
         }
       },
       "required": [
-        "title",
         "description",
         "slug",
+        "title",
         "type",
         "status",
         "updated_at"
@@ -3120,6 +3120,25 @@
         "position",
         "section",
         "record_blocks"
+      ],
+      "type": "object"
+    },
+    "Identified": {
+      "additionalProperties": false,
+      "description": "The two fields every described thing carries, document and element alike:\nits identifier and its one-line summary.",
+      "properties": {
+        "description": {
+          "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
+          "type": "string"
+        },
+        "slug": {
+          "$ref": "#/definitions/Slug",
+          "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+        }
+      },
+      "required": [
+        "description",
+        "slug"
       ],
       "type": "object"
     },
@@ -3337,9 +3356,9 @@
         }
       },
       "required": [
-        "title",
         "description",
         "slug",
+        "title",
         "type",
         "status",
         "updated_at",
@@ -3897,9 +3916,9 @@
         }
       },
       "required": [
-        "title",
         "description",
         "slug",
+        "title",
         "type",
         "status",
         "updated_at",
@@ -4167,9 +4186,9 @@
         }
       },
       "required": [
-        "title",
         "description",
         "slug",
+        "title",
         "type",
         "status",
         "updated_at",
@@ -4280,9 +4299,9 @@
         }
       },
       "required": [
-        "title",
         "description",
         "slug",
+        "title",
         "type",
         "status",
         "updated_at",
