@@ -17,10 +17,8 @@ import (
 
 // member returns an index entry for a corpus member declaring one slug.
 func member(path, slug string) specmodel.IndexEntry {
-	return specmodel.IndexEntry{
-		Path:        path,
-		Frontmatter: &specmodel.DocumentFrontmatter{Slug: specmodel.Slug(slug)},
-	}
+	frontmatter := specmodel.NewTypedFrontmatterAdr(specmodel.Adr{Slug: specmodel.Slug(slug)})
+	return specmodel.IndexEntry{Path: path, Frontmatter: &frontmatter}
 }
 
 // indexOf returns an index holding the given entries and exclusions,

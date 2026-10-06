@@ -811,12 +811,25 @@ check is independent of the union schema, because the shared frontmatter
 envelope declares `slug` once and no subtype can narrow it there.
 
 **Built** — `cli/core/schemaregistry`. The branch a document is checked
-against is found mechanically: a document's declared type
-("system-blueprint") is converted to the PascalCase form the union's
-top-level `definitions` are keyed by ("SystemBlueprint"), which is a
-string transform rather than a lookup table naming any type. This is
-what lets the package hold to the Change Guidance below without a
-per-type schema pointer from the profile.
+against is found mechanically: the registry finds the discriminated union
+in the profile's schema — the definition whose `anyOf` branches each fix
+`type` to a constant — and selects the branch whose constant is the
+document's declared type. Where a schema has no such union, the declared
+type ("system-blueprint") is converted to the PascalCase form its
+top-level `definitions` are keyed by ("SystemBlueprint"). Neither is a
+lookup table naming any type, which is what lets the package hold to the
+Change Guidance below without a per-type schema pointer from the profile.
+
+**Built** — `cli/core/envelope`. The index carries each document's
+frontmatter as the union variant its `type` selects
+(`TypedFrontmatter`), so every property the type defines is carried
+(AC-SPEC-002.1). This package decodes a parsed block into that variant
+and reads the shared envelope back out of one, without naming a document
+type: the variants are discovered from the generated union, each tag the
+kebab-case of its variant's name. It decodes without the generated
+required-field enforcement, because a document missing a required
+property must still be indexed for `frontmatter/missing-property` to
+report it.
 
 ### Corpus
 

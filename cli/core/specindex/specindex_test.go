@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specindex"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
@@ -139,14 +140,16 @@ func TestIndexCarriesEachMembersPathAndFrontmatter(t *testing.T) {
 	index := specindex.New("agent-plugins")
 	index.Entries = append(index.Entries, specmodel.IndexEntry{
 		Path: "specs/modules/document-core/document-core-module.md",
-		Frontmatter: &specmodel.DocumentFrontmatter{
+		Frontmatter: frontmatterOf(specmodel.NewTypedFrontmatterModuleBlueprint(specmodel.ModuleBlueprint{
 			Title:       "Module Blueprint: Document Core",
 			Description: "The framework-agnostic engine.",
 			Slug:        specmodel.Slug("module-document-core"),
-			Type:        specmodel.DocumentTypeModuleBlueprint,
 			Status:      specmodel.StatusApproved,
 			UpdatedAt:   time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC),
-		},
+			EntityName:  "Document Core",
+			Kind:        specmodel.BlueprintKindStandard,
+			Visibility:  specmodel.VisibilityInternal,
+		})),
 		Headings:     []specmodel.Heading{},
 		RecordBlocks: []specmodel.RecordBlock{},
 	})
@@ -158,8 +161,8 @@ func TestIndexCarriesEachMembersPathAndFrontmatter(t *testing.T) {
 	if entry.Frontmatter == nil {
 		t.Fatal("Frontmatter is nil")
 	}
-	if entry.Frontmatter.Slug != specmodel.Slug("module-document-core") {
-		t.Errorf("Slug = %q", entry.Frontmatter.Slug)
+	if envelope.Of(entry.Frontmatter).Slug != specmodel.Slug("module-document-core") {
+		t.Errorf("Slug = %q", envelope.Of(entry.Frontmatter).Slug)
 	}
 	if entry.ParseError != nil {
 		t.Errorf("ParseError = %+v, want nil for a member that parsed", entry.ParseError)
@@ -502,4 +505,10 @@ func isRequired(definition map[string]any, name string) bool {
 		}
 	}
 	return false
+}
+
+// frontmatterOf returns a pointer to typed frontmatter, as an index
+// entry holds it.
+func frontmatterOf(f specmodel.TypedFrontmatter) *specmodel.TypedFrontmatter {
+	return &f
 }

@@ -73,14 +73,21 @@ type's own properties, `DocumentFrontmatter`, `C4ElementRecord` and
 `ContractEdges` — and the Go transpiler flattens all four into one
 struct.
 
-**`type` is an enum on the base, not a constant per subtype.** Strata
-forbids redeclaring an inherited property, so `Adr` cannot narrow
-`type` to the constant `"adr"`. This costs nothing in practice: the CLI
-reads `type` in order to choose which schema to validate against, so by
-the time the schema runs, the value has already been established. A
-`@discriminator("type")` union was the alternative and is worse — it
-forbids the base from declaring `type` at all, which would remove it
-from the envelope every document actually carries.
+**`type` is the discriminator of the `TypedFrontmatter` union, not a
+property of the base.** `TypedFrontmatter` is a `@discriminator("type")`
+union with one variant per document type, and it is what the index
+carries as an entry's `frontmatter` — so the index holds every property a
+document's type defines, not only the envelope every type shares. Strata
+forbids a variant from declaring its discriminator, so
+`DocumentFrontmatter` and the per-type structs carry no `type` property;
+each union branch carries it instead, as the constant for its variant
+(`"adr"` on `Adr`). Documents and encoded values still carry `type`, and
+the CLI validates a document against the branch its `type` selects
+rather than against the bare struct, which has no `type` to accept. The
+`DocumentType` enum remains as the vocabulary of declared types. Variant
+names are the kebab-case of their tags (`SystemBlueprint` is
+`system-blueprint`); the CLI derives one from the other, so a new variant
+must keep the convention.
 
 **Requiredness follows the templates, not the prose.** `version` is
 required on `Contract` and `Standards` because their templates declare

@@ -84,12 +84,6 @@ struct DocumentFrontmatter: Identified {
   title: String
 
   """
-  The document's classification, which selects the schema, slug pattern
-  and required sections that govern it.
-  """
-  type: DocumentType
-
-  """
   The document's lifecycle state.
   """
   status: Status
@@ -464,4 +458,33 @@ rather than participating in the architecture graph.
 struct Guide: DocumentFrontmatter {
   """The guide's semantic version, quoted so YAML reads it as a string."""
   version: String?
+}
+
+"""
+A document's frontmatter, as its `type` defines it: the shared envelope
+plus every property that type adds.
+
+`type` is this union's discriminator, so it is declared here rather than
+on `DocumentFrontmatter` — Strata does not let a variant declare its
+union's discriminator. Every variant's JSON Schema still requires `type`
+as a constant, and every encoded value still carries it, so documents
+and the index keep `type` exactly where they always had it. A document
+is validated against its variant rather than the bare struct, because
+the bare struct is closed and does not define `type`.
+
+The tag values are the `DocumentType` vocabulary, one variant per value.
+"""
+@discriminator("type")
+union TypedFrontmatter {
+  @tag("adr") Adr: Adr
+  @tag("frd") Frd: Frd
+  @tag("contract") Contract: Contract
+  @tag("standards") Standards: Standards
+  @tag("system-blueprint") SystemBlueprint: SystemBlueprint
+  @tag("container-blueprint") ContainerBlueprint: ContainerBlueprint
+  @tag("module-blueprint") ModuleBlueprint: ModuleBlueprint
+  @tag("component-blueprint") ComponentBlueprint: ComponentBlueprint
+  @tag("feature-blueprint") FeatureBlueprint: FeatureBlueprint
+  @tag("rfc") Rfc: Rfc
+  @tag("guide") Guide: Guide
 }

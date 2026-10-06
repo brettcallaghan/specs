@@ -41,8 +41,8 @@ resolves.
 
 ### Prerequisites
 
-The index does not yet carry two things this feature projects. Both are
-prerequisites rather than part of it:
+The index does not yet carry one thing this feature projects, and it is a
+prerequisite rather than part of it:
 
 - **Recorded record blocks.** Recording each registered block's tag and
   span against its heading is AC-SPECSTR-001.2 of [[frd-spec-structure]],
@@ -53,14 +53,11 @@ prerequisites rather than part of it:
   repository reports zero, including the `component` block in
   [[container-spec-cli]]'s roster. Without them the tree holds only
   promoted elements.
-- **Each document's type-specific frontmatter.** AC-SPEC-002.1 of
-  [[frd-spec-index]] requires the index to carry every frontmatter
-  property a document's type defines, and this feature reads `system`,
-  `modules`, `entity_name`, `kind`, `visibility`, `provider` and
-  `contracts_consumed` from there. Today an entry carries the shared
-  envelope only — the entry for [[container-spec-cli]] omits the
-  `modules` its file declares — which is a conformance gap in the index,
-  not a property this feature decodes for itself.
+
+This feature reads each document's type-specific frontmatter — `system`,
+`modules`, `entity_name`, `kind`, `visibility`, `provider` and
+`contracts_consumed` — from the index, which carries every property a
+document's type defines (AC-SPEC-002.1 of [[frd-spec-index]]).
 
 ### Out of scope
 

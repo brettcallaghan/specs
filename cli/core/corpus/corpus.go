@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
 	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
 	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
@@ -491,10 +492,10 @@ func (b *builder) classifyDocument(reported string, src []byte, doc *frontmatter
 		return
 	}
 
-	envelope, perr := decodeFrontmatter(doc)
+	frontmatter, perr := decodeFrontmatter(doc)
 	if perr != nil {
-		// The block parsed as YAML and does not fit the frontmatter
-		// envelope — a status outside the vocabulary, a timestamp that is
+		// The block parsed as YAML and does not fit its document type —
+		// a status outside the vocabulary, a timestamp that is
 		// not one. Recorded against this member so the rest of the corpus
 		// still indexes (AC-SPEC-002.4).
 		b.addEntry(specmodel.IndexEntry{
@@ -509,10 +510,10 @@ func (b *builder) classifyDocument(reported string, src []byte, doc *frontmatter
 	b.addEntry(
 		specmodel.IndexEntry{
 			Path:        reported,
-			Frontmatter: envelope,
+			Frontmatter: frontmatter,
 			Headings:    headingsOf(src, doc),
 		},
-		member{path: reported, slug: string(envelope.Slug), slugAt: slugSpan(doc), doc: doc},
+		member{path: reported, slug: string(envelope.Of(frontmatter).Slug), slugAt: slugSpan(doc), doc: doc},
 	)
 	b.extractReferences(reported, src, doc, b.types[declared])
 	b.extractBlockFeatures(reported, src, doc)
@@ -634,7 +635,7 @@ func (b *builder) finish(opts Options) *Corpus {
 		if entry.Frontmatter == nil {
 			continue
 		}
-		key := strings.ToLower(string(entry.Frontmatter.Slug))
+		key := strings.ToLower(string(envelope.Of(entry.Frontmatter).Slug))
 		if key == "" {
 			continue
 		}
@@ -849,35 +850,18 @@ func slugSpan(doc *frontmatter.Document) specmodel.Span {
 	return doc.Region.Inner
 }
 
-// envelopeShape is [specmodel.DocumentFrontmatter] with its generated
-// UnmarshalJSON deliberately dropped.
-//
-// A defined type does not inherit the methods of the type it is derived
-// from, so decoding through this one runs encoding/json's default struct
-// path: the same json tags and the same type checking, without the
-// generated decoder's required-field enforcement.
-//
-// That enforcement is right everywhere else the CLI decodes a generated
-// record — a specs.toml missing `workspace.name` or a persisted index
-// missing an entry path should fail loudly. It is wrong *here*, because a
-// missing required property in a document's frontmatter is the subject of
-// a check rather than a precondition of reading one. Enforcing it at
-// decode makes every such document a `frontmatter/parse` failure and
-// leaves `frontmatter/missing-property` unable to fire at all — a check
-// that reports success because it never runs. The schema owns
-// required-ness and says which property and where; this decode owns shape.
-type envelopeShape specmodel.DocumentFrontmatter
-
-// decodeFrontmatter converts a parsed block into the typed envelope an
-// index entry carries (AC-SPEC-002.1).
+// decodeFrontmatter converts a parsed block into the typed frontmatter an
+// index entry carries (AC-SPEC-002.1): the variant its declared type
+// selects, holding every property that type defines.
 //
 // The conversion runs through JSON because the generated records carry
-// json tags and no YAML ones. A value of the wrong shape for the
-// envelope is a located failure rather than an error the caller raises:
-// it is recorded against its own document and the walk continues. A
-// value that is merely absent is not a failure here at all — see
-// [envelopeShape].
-func decodeFrontmatter(doc *frontmatter.Document) (*specmodel.DocumentFrontmatter, *specmodel.ParseError) {
+// json tags and no YAML ones, and through [envelope.Decode],
+// which does not enforce required properties: a missing one is the
+// subject of a check rather than a precondition of reading the document.
+// A value of the wrong shape is a located failure rather than an error
+// the caller raises: it is recorded against its own document and the
+// walk continues.
+func decodeFrontmatter(doc *frontmatter.Document) (*specmodel.TypedFrontmatter, *specmodel.ParseError) {
 	raw, err := doc.JSON()
 	if err != nil {
 		return nil, &specmodel.ParseError{
@@ -886,15 +870,14 @@ func decodeFrontmatter(doc *frontmatter.Document) (*specmodel.DocumentFrontmatte
 		}
 	}
 
-	var shape envelopeShape
-	if err := json.Unmarshal(raw, &shape); err != nil {
+	typed, err := envelope.Decode(raw)
+	if err != nil {
 		return nil, &specmodel.ParseError{
-			Message: fmt.Sprintf("the frontmatter block does not fit the document envelope: %s", err),
+			Message: fmt.Sprintf("the frontmatter block does not fit the document's type: %s", err),
 			Span:    envelopeErrorSpan(doc, err),
 		}
 	}
-	envelope := specmodel.DocumentFrontmatter(shape)
-	return &envelope, nil
+	return &typed, nil
 }
 
 // envelopeErrorSpan points a decode failure at the offending property

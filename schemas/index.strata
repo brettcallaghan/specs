@@ -167,13 +167,14 @@ struct IndexEntry {
   path: String
 
   """
-  The member's parsed frontmatter.
+  The member's parsed frontmatter: every property its document type
+  defines, not only the envelope every type shares (AC-SPEC-002.1).
 
   Absent exactly when `parse_error` is present: a document whose
   frontmatter could not be parsed is still indexed, but it has no parsed
-  envelope to carry.
+  frontmatter to carry.
   """
-  frontmatter: DocumentFrontmatter?
+  frontmatter: TypedFrontmatter?
 
   """
   The failure that prevented this member's frontmatter from being

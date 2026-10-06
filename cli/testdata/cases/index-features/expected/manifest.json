@@ -5,10 +5,10 @@
     {
       "path": "docs/features/frd-checkout.md",
       "frontmatter": {
+        "type": "frd",
         "description": "A feature requirements document used by a snapshot case.",
         "slug": "frd-checkout",
         "title": "Checkout",
-        "type": "frd",
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
       },
@@ -145,5 +145,5 @@
       ]
     }
   ],
-  "input_hash": "sha256:cf80ebb5b3f1f1cbd2cb017fadc1de62632bed01d2c3345c7388841722f628e4"
+  "input_hash": "sha256:46aa836784f4012b6c720945174758888b329020243a4c3bada71b0f84b7682b"
 }

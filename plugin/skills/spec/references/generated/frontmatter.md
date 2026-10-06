@@ -17,6 +17,7 @@
 - [FeatureBlueprint](#featureblueprint)
 - [Rfc](#rfc)
 - [Guide](#guide)
+- [TypedFrontmatter](#typedfrontmatter)
 
 ## Identified
 
@@ -77,7 +78,6 @@ citations does not earn its maintenance cost.
 | Property | Type | Documentation |
 |----------|------|---------------|
 | title | String | Human-readable document title. Free text.<br><br>Also the document's H1, and the two are kept in sync by hand. |
-| type | [DocumentType](vocabulary.md#documenttype) | The document's classification, which selects the schema, slug pattern and required sections that govern it. |
 | status | [Status](vocabulary.md#status) | The document's lifecycle state. |
 | updated_at | DateTime | RFC 3339 timestamp of the last substantive modification.<br><br>Validated against the text as written in the file rather than against a parsed value, so a bare `2026-07-29` is reported as a defect instead of being silently widened to midnight UTC by the YAML parser. |
 | created_at | DateTime? | RFC 3339 timestamp of the document's creation. Optional. |
@@ -310,5 +310,37 @@ rather than participating in the architecture graph.
 | Property | Type | Documentation |
 |----------|------|---------------|
 | version | String? | The guide's semantic version, quoted so YAML reads it as a string. |
+
+
+## TypedFrontmatter
+
+A document's frontmatter, as its `type` defines it: the shared envelope
+plus every property that type adds.
+
+`type` is this union's discriminator, so it is declared here rather than
+on `DocumentFrontmatter` — Strata does not let a variant declare its
+union's discriminator. Every variant's JSON Schema still requires `type`
+as a constant, and every encoded value still carries it, so documents
+and the index keep `type` exactly where they always had it. A document
+is validated against its variant rather than the bare struct, because
+the bare struct is closed and does not define `type`.
+
+The tag values are the `DocumentType` vocabulary, one variant per value.
+
+**Discriminator:** type (String)
+
+| Tag | Type | Documentation |
+|-----|------|---------------|
+| "adr" | [Adr](#adr) |  |
+| "frd" | [Frd](#frd) |  |
+| "contract" | [Contract](#contract) |  |
+| "standards" | [Standards](#standards) |  |
+| "system-blueprint" | [SystemBlueprint](#systemblueprint) |  |
+| "container-blueprint" | [ContainerBlueprint](#containerblueprint) |  |
+| "module-blueprint" | [ModuleBlueprint](#moduleblueprint) |  |
+| "component-blueprint" | [ComponentBlueprint](#componentblueprint) |  |
+| "feature-blueprint" | [FeatureBlueprint](#featureblueprint) |  |
+| "rfc" | [Rfc](#rfc) |  |
+| "guide" | [Guide](#guide) |  |
 
 

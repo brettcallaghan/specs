@@ -5,10 +5,10 @@
     {
       "path": "docs/adr-001-choice.md",
       "frontmatter": {
+        "type": "adr",
         "description": "A minimal conforming document of this type.",
         "slug": "adr-001-choice",
         "title": "ADR-001: Choice",
-        "type": "adr",
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
       },
@@ -40,12 +40,13 @@
     {
       "path": "docs/coding-standards.md",
       "frontmatter": {
+        "type": "standards",
         "description": "A minimal conforming document of this type.",
         "slug": "coding-standards",
         "title": "Coding Standards",
-        "type": "standards",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "updated_at": "2026-08-01T00:00:00Z",
+        "version": "1.0.0"
       },
       "headings": [
         {
@@ -75,12 +76,14 @@
     {
       "path": "docs/component-widget-store.md",
       "frontmatter": {
+        "type": "component-blueprint",
         "description": "A minimal conforming document of this type.",
         "slug": "component-widget-store",
         "title": "Widget Store",
-        "type": "component-blueprint",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "updated_at": "2026-08-01T00:00:00Z",
+        "entity_name": "Widget Store",
+        "kind": "standard"
       },
       "headings": [
         {
@@ -110,12 +113,13 @@
     {
       "path": "docs/container-widget-service.md",
       "frontmatter": {
+        "type": "container-blueprint",
         "description": "A minimal conforming document of this type.",
         "slug": "container-widget-service",
         "title": "Widget Service",
-        "type": "container-blueprint",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "updated_at": "2026-08-01T00:00:00Z",
+        "entity_name": "Widget Service"
       },
       "headings": [
         {
@@ -145,12 +149,15 @@
     {
       "path": "docs/contract-widget-api.md",
       "frontmatter": {
+        "type": "contract",
         "description": "A minimal conforming document of this type.",
         "slug": "contract-widget-api",
         "title": "Widget API",
-        "type": "contract",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "updated_at": "2026-08-01T00:00:00Z",
+        "provider": "container-widget-service",
+        "visibility": "public",
+        "version": "1.0.0"
       },
       "headings": [
         {
@@ -180,10 +187,10 @@
     {
       "path": "docs/contributing-guide.md",
       "frontmatter": {
+        "type": "guide",
         "description": "A minimal conforming document of this type.",
         "slug": "contributing-guide",
         "title": "Contributing",
-        "type": "guide",
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
       },
@@ -215,12 +222,14 @@
     {
       "path": "docs/feature-widgets.md",
       "frontmatter": {
+        "type": "feature-blueprint",
         "description": "A minimal conforming document of this type.",
         "slug": "feature-widgets",
         "title": "Widgets",
-        "type": "feature-blueprint",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "updated_at": "2026-08-01T00:00:00Z",
+        "delivery": "single-pr",
+        "frd": "frd-widgets"
       },
       "headings": [
         {
@@ -250,10 +259,10 @@
     {
       "path": "docs/frd-widgets.md",
       "frontmatter": {
+        "type": "frd",
         "description": "A minimal conforming document of this type.",
         "slug": "frd-widgets",
         "title": "FRD: Widgets",
-        "type": "frd",
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
       },
@@ -285,12 +294,15 @@
     {
       "path": "docs/module-widget-core.md",
       "frontmatter": {
+        "type": "module-blueprint",
         "description": "A minimal conforming document of this type.",
         "slug": "module-widget-core",
         "title": "Widget Core",
-        "type": "module-blueprint",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "updated_at": "2026-08-01T00:00:00Z",
+        "entity_name": "Widget Core",
+        "kind": "standard",
+        "visibility": "internal"
       },
       "headings": [
         {
@@ -320,12 +332,20 @@
     {
       "path": "docs/rfc-0001-widgets.md",
       "frontmatter": {
+        "type": "rfc",
         "description": "A minimal conforming document of this type.",
         "slug": "rfc-0001-widgets",
         "title": "RFC-0001: Widgets",
-        "type": "rfc",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "updated_at": "2026-08-01T00:00:00Z",
+        "origin": "retro-skill",
+        "skill": "spec",
+        "skill_version": "1.0.0",
+        "model": "example-model",
+        "effort": "medium",
+        "runs_observed": 1,
+        "severity": "snag",
+        "plugin_version": "1.0.0"
       },
       "headings": [
         {
@@ -355,12 +375,13 @@
     {
       "path": "docs/system-acme.md",
       "frontmatter": {
+        "type": "system-blueprint",
         "description": "A minimal conforming document of this type.",
         "slug": "system-acme",
         "title": "Acme System",
-        "type": "system-blueprint",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "updated_at": "2026-08-01T00:00:00Z",
+        "entity_name": "Acme System"
       },
       "headings": [
         {
@@ -434,5 +455,5 @@
     }
   ],
   "features": [],
-  "input_hash": "sha256:49bbeed35f7bb8b60a6be2ec291eac1ef497f9d8c9e6374bad12818f7c21986d"
+  "input_hash": "sha256:7355cc214cd61f4915819de1ba07f37b5dd2e0f6d53c1d708fd5e025d8d0bfdf"
 }

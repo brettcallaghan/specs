@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
+	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specindex"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
@@ -307,23 +308,23 @@ func TestIndexCarriesEachMembersFrontmatterAndRepositoryRelativePath(t *testing.
 		t.Fatal("the entry carries no frontmatter")
 	}
 	fm := entry.Frontmatter
-	if fm.Title != "Targeted verification gates" {
-		t.Errorf("title = %q", fm.Title)
+	if envelope.Of(fm).Title != "Targeted verification gates" {
+		t.Errorf("title = %q", envelope.Of(fm).Title)
 	}
-	if fm.Description != "A fixture document." {
-		t.Errorf("description = %q", fm.Description)
+	if envelope.Of(fm).Description != "A fixture document." {
+		t.Errorf("description = %q", envelope.Of(fm).Description)
 	}
-	if string(fm.Slug) != "adr-011" {
-		t.Errorf("slug = %q", fm.Slug)
+	if string(envelope.Of(fm).Slug) != "adr-011" {
+		t.Errorf("slug = %q", envelope.Of(fm).Slug)
 	}
-	if string(fm.Type) != "adr" {
-		t.Errorf("type = %q", fm.Type)
+	if string(envelope.Of(fm).Type) != "adr" {
+		t.Errorf("type = %q", envelope.Of(fm).Type)
 	}
-	if string(fm.Status) != "approved" {
-		t.Errorf("status = %q", fm.Status)
+	if string(envelope.Of(fm).Status) != "approved" {
+		t.Errorf("status = %q", envelope.Of(fm).Status)
 	}
-	if want := time.Date(2026, 8, 5, 0, 0, 0, 0, time.UTC); !fm.UpdatedAt.Equal(want) {
-		t.Errorf("updated_at = %s, want %s", fm.UpdatedAt, want)
+	if want := time.Date(2026, 8, 5, 0, 0, 0, 0, time.UTC); !envelope.Of(fm).UpdatedAt.Equal(want) {
+		t.Errorf("updated_at = %s, want %s", envelope.Of(fm).UpdatedAt, want)
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
 	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
 	"github.com/brettcallaghan/agent-plugins/cli/core/references"
@@ -150,7 +151,7 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 			continue
 		}
 
-		docType := string(entry.Frontmatter.Type)
+		docType := string(envelope.Of(entry.Frontmatter).Type)
 
 		violations, err := registry.Validate(entry.Path, docType, doc)
 		if err != nil {
@@ -160,7 +161,7 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 
 		if rules, known := c.types[docType]; known && rules.SlugPattern != "" {
 			mismatch, err := schemaregistry.CheckSlugPattern(
-				entry.Path, slugSpan(doc), string(entry.Frontmatter.Slug), rules.SlugPattern)
+				entry.Path, slugSpan(doc), string(envelope.Of(entry.Frontmatter).Slug), rules.SlugPattern)
 			if err != nil {
 				return nil, fmt.Errorf("corpus: checking the slug pattern for %s: %w", entry.Path, err)
 			}
@@ -371,16 +372,16 @@ func (c *Corpus) retiredTargetFindings() []specmodel.Finding {
 			continue
 		}
 		referrer, ok := c.Entry(ref.Path)
-		if !ok || referrer.Frontmatter == nil || !live[string(referrer.Frontmatter.Status)] {
+		if !ok || referrer.Frontmatter == nil || !live[string(envelope.Of(referrer.Frontmatter).Status)] {
 			continue
 		}
 		target, ok := c.Entry(resolved.TargetPath)
-		if !ok || target.Frontmatter == nil || !retired[string(target.Frontmatter.Status)] {
+		if !ok || target.Frontmatter == nil || !retired[string(envelope.Of(target.Frontmatter).Status)] {
 			continue
 		}
 		successor := c.successorOf(resolved.TargetPath, lifecycle.SuccessorProperty)
 		findings = append(findings, finding.RetiredTarget(
-			ref.Path, ref.Span, string(target.Frontmatter.Slug), successor))
+			ref.Path, ref.Span, string(envelope.Of(target.Frontmatter).Slug), successor))
 	}
 	return findings
 }
@@ -431,7 +432,7 @@ func (c *Corpus) pairingIncompleteFindings() []specmodel.Finding {
 		if !ok || declarer.Frontmatter == nil {
 			continue
 		}
-		rules, known := c.types[string(declarer.Frontmatter.Type)]
+		rules, known := c.types[string(envelope.Of(declarer.Frontmatter).Type)]
 		if !known {
 			continue
 		}
@@ -479,7 +480,7 @@ func (c *Corpus) typeMismatchFindings() []specmodel.Finding {
 		if !ok || declarer.Frontmatter == nil {
 			continue
 		}
-		rules, known := c.types[string(declarer.Frontmatter.Type)]
+		rules, known := c.types[string(envelope.Of(declarer.Frontmatter).Type)]
 		if !known {
 			continue
 		}
@@ -491,7 +492,7 @@ func (c *Corpus) typeMismatchFindings() []specmodel.Finding {
 		if !ok || target.Frontmatter == nil {
 			continue
 		}
-		actual := string(target.Frontmatter.Type)
+		actual := string(envelope.Of(target.Frontmatter).Type)
 		if actual == expected {
 			continue
 		}

@@ -613,10 +613,9 @@ func TestExtractionResolvesNothing(t *testing.T) {
 // above.
 var _ span.Span = specmodel.Reference{}.Span
 
-// The index's entries carry only the typed frontmatter envelope, which
-// holds neither the per-type properties a profile registers nor the
-// positions a reference needs. Reading one through it would lose both,
-// so this package reads the parsed block instead — enforced here rather
+// The index's entries carry each document's typed frontmatter values but
+// not their positions, which a reference needs. Reading one through an
+// entry would lose them, so this package reads the parsed block instead — enforced here rather
 // than left to review (agent-plugins-gz3).
 func TestExtractionReadsNoIndexEntry(t *testing.T) {
 	const forbidden = "github.com/brettcallaghan/agent-plugins/cli/core/specindex"

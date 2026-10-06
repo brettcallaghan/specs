@@ -50,10 +50,6 @@
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
-        "type": {
-          "$ref": "#/definitions/DocumentType",
-          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
-        },
         "updated_at": {
           "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
           "format": "date-time",
@@ -64,7 +60,6 @@
         "description",
         "slug",
         "title",
-        "type",
         "status",
         "updated_at"
       ],
@@ -1104,10 +1099,6 @@
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
-        "type": {
-          "$ref": "#/definitions/DocumentType",
-          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
-        },
         "updated_at": {
           "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
           "format": "date-time",
@@ -1118,7 +1109,6 @@
         "description",
         "slug",
         "title",
-        "type",
         "status",
         "updated_at",
         "entity_name",
@@ -1217,10 +1207,6 @@
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
-        "type": {
-          "$ref": "#/definitions/DocumentType",
-          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
-        },
         "updated_at": {
           "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
           "format": "date-time",
@@ -1231,7 +1217,6 @@
         "description",
         "slug",
         "title",
-        "type",
         "status",
         "updated_at",
         "entity_name"
@@ -1306,10 +1291,6 @@
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
-        "type": {
-          "$ref": "#/definitions/DocumentType",
-          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
-        },
         "updated_at": {
           "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
           "format": "date-time",
@@ -1328,7 +1309,6 @@
         "description",
         "slug",
         "title",
-        "type",
         "status",
         "updated_at",
         "provider",
@@ -1518,10 +1498,6 @@
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
-        "type": {
-          "$ref": "#/definitions/DocumentType",
-          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
-        },
         "updated_at": {
           "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
           "format": "date-time",
@@ -1532,7 +1508,6 @@
         "description",
         "slug",
         "title",
-        "type",
         "status",
         "updated_at"
       ],
@@ -1769,10 +1744,6 @@
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
-        "type": {
-          "$ref": "#/definitions/DocumentType",
-          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
-        },
         "updated_at": {
           "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
           "format": "date-time",
@@ -1783,7 +1754,6 @@
         "description",
         "slug",
         "title",
-        "type",
         "status",
         "updated_at",
         "delivery",
@@ -2906,10 +2876,6 @@
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
-        "type": {
-          "$ref": "#/definitions/DocumentType",
-          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
-        },
         "updated_at": {
           "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
           "format": "date-time",
@@ -2920,7 +2886,6 @@
         "description",
         "slug",
         "title",
-        "type",
         "status",
         "updated_at"
       ],
@@ -2975,10 +2940,6 @@
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
-        "type": {
-          "$ref": "#/definitions/DocumentType",
-          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
-        },
         "updated_at": {
           "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
           "format": "date-time",
@@ -2996,7 +2957,6 @@
         "description",
         "slug",
         "title",
-        "type",
         "status",
         "updated_at"
       ],
@@ -3065,10 +3025,10 @@
       "description": "One corpus member in the index: where it lives and what its frontmatter\ndeclares.\n\nThe entry is deliberately additive. It carries the path, the frontmatter\nenvelope, and the document's structure — its headings and the record\nblocks attached to the document rather than to any heading — and later\nfeatures attach further properties under the same `schema_version`.",
       "properties": {
         "frontmatter": {
-          "description": "The member's parsed frontmatter.\n\nAbsent exactly when `parse_error` is present: a document whose\nfrontmatter could not be parsed is still indexed, but it has no parsed\nenvelope to carry.",
+          "description": "The member's parsed frontmatter: every property its document type\ndefines, not only the envelope every type shares (AC-SPEC-002.1).\n\nAbsent exactly when `parse_error` is present: a document whose\nfrontmatter could not be parsed is still indexed, but it has no parsed\nfrontmatter to carry.",
           "oneOf": [
             {
-              "$ref": "#/definitions/DocumentFrontmatter"
+              "$ref": "#/definitions/TypedFrontmatter"
             },
             {
               "type": "null"
@@ -3242,10 +3202,6 @@
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
-        "type": {
-          "$ref": "#/definitions/DocumentType",
-          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
-        },
         "updated_at": {
           "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
           "format": "date-time",
@@ -3267,7 +3223,6 @@
         "description",
         "slug",
         "title",
-        "type",
         "status",
         "updated_at",
         "entity_name",
@@ -3813,10 +3768,6 @@
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
-        "type": {
-          "$ref": "#/definitions/DocumentType",
-          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
-        },
         "updated_at": {
           "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
           "format": "date-time",
@@ -3827,7 +3778,6 @@
         "description",
         "slug",
         "title",
-        "type",
         "status",
         "updated_at",
         "origin",
@@ -4079,10 +4029,6 @@
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
-        "type": {
-          "$ref": "#/definitions/DocumentType",
-          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
-        },
         "updated_at": {
           "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
           "format": "date-time",
@@ -4097,7 +4043,6 @@
         "description",
         "slug",
         "title",
-        "type",
         "status",
         "updated_at",
         "version"
@@ -4186,10 +4131,6 @@
           "description": "Human-readable document title. Free text.\n\nAlso the document's H1, and the two are kept in sync by hand.",
           "type": "string"
         },
-        "type": {
-          "$ref": "#/definitions/DocumentType",
-          "description": "The document's classification, which selects the schema, slug pattern\nand required sections that govern it."
-        },
         "updated_at": {
           "description": "RFC 3339 timestamp of the last substantive modification.\n\nValidated against the text as written in the file rather than against\na parsed value, so a bare `2026-07-29` is reported as a defect instead\nof being silently widened to midnight UTC by the YAML parser.",
           "format": "date-time",
@@ -4200,12 +4141,922 @@
         "description",
         "slug",
         "title",
-        "type",
         "status",
         "updated_at",
         "entity_name"
       ],
       "type": "object"
+    },
+    "TypedFrontmatter": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "created_at": {
+              "format": "date-time",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "description": {
+              "type": "string"
+            },
+            "slug": {
+              "$ref": "#/definitions/Slug"
+            },
+            "status": {
+              "$ref": "#/definitions/Status"
+            },
+            "superseded_by": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/Citation"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "title": {
+              "type": "string"
+            },
+            "type": {
+              "const": "adr",
+              "type": "string"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "description",
+            "slug",
+            "title",
+            "status",
+            "updated_at"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "created_at": {
+              "format": "date-time",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "description": {
+              "type": "string"
+            },
+            "slug": {
+              "$ref": "#/definitions/Slug"
+            },
+            "sources": {
+              "items": {
+                "$ref": "#/definitions/Citation"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "status": {
+              "$ref": "#/definitions/Status"
+            },
+            "superseded_by": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/Citation"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "title": {
+              "type": "string"
+            },
+            "type": {
+              "const": "frd",
+              "type": "string"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "description",
+            "slug",
+            "title",
+            "status",
+            "updated_at"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "created_at": {
+              "format": "date-time",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "description": {
+              "type": "string"
+            },
+            "provider": {
+              "$ref": "#/definitions/Citation"
+            },
+            "slug": {
+              "$ref": "#/definitions/Slug"
+            },
+            "specs": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "status": {
+              "$ref": "#/definitions/Status"
+            },
+            "superseded_by": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/Citation"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "title": {
+              "type": "string"
+            },
+            "type": {
+              "const": "contract",
+              "type": "string"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "visibility": {
+              "$ref": "#/definitions/Visibility"
+            }
+          },
+          "required": [
+            "type",
+            "description",
+            "slug",
+            "title",
+            "status",
+            "updated_at",
+            "provider",
+            "visibility",
+            "version"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "created_at": {
+              "format": "date-time",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "description": {
+              "type": "string"
+            },
+            "slug": {
+              "$ref": "#/definitions/Slug"
+            },
+            "status": {
+              "$ref": "#/definitions/Status"
+            },
+            "superseded_by": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/Citation"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "title": {
+              "type": "string"
+            },
+            "type": {
+              "const": "standards",
+              "type": "string"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "description",
+            "slug",
+            "title",
+            "status",
+            "updated_at",
+            "version"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "contracts_consumed": {
+              "items": {
+                "$ref": "#/definitions/Citation"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "created_at": {
+              "format": "date-time",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "description": {
+              "type": "string"
+            },
+            "entity_name": {
+              "type": "string"
+            },
+            "slug": {
+              "$ref": "#/definitions/Slug"
+            },
+            "status": {
+              "$ref": "#/definitions/Status"
+            },
+            "superseded_by": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/Citation"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "technology": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "title": {
+              "type": "string"
+            },
+            "type": {
+              "const": "system-blueprint",
+              "type": "string"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "description",
+            "slug",
+            "title",
+            "status",
+            "updated_at",
+            "entity_name"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "contracts_consumed": {
+              "items": {
+                "$ref": "#/definitions/Citation"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "created_at": {
+              "format": "date-time",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "description": {
+              "type": "string"
+            },
+            "entity_name": {
+              "type": "string"
+            },
+            "modules": {
+              "items": {
+                "$ref": "#/definitions/Citation"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "slug": {
+              "$ref": "#/definitions/Slug"
+            },
+            "status": {
+              "$ref": "#/definitions/Status"
+            },
+            "superseded_by": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/Citation"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "system": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/Citation"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "technology": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "title": {
+              "type": "string"
+            },
+            "type": {
+              "const": "container-blueprint",
+              "type": "string"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "description",
+            "slug",
+            "title",
+            "status",
+            "updated_at",
+            "entity_name"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "contracts_consumed": {
+              "items": {
+                "$ref": "#/definitions/Citation"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "created_at": {
+              "format": "date-time",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "description": {
+              "type": "string"
+            },
+            "entity_name": {
+              "type": "string"
+            },
+            "kind": {
+              "$ref": "#/definitions/BlueprintKind"
+            },
+            "modules": {
+              "items": {
+                "$ref": "#/definitions/Citation"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "slug": {
+              "$ref": "#/definitions/Slug"
+            },
+            "source_paths": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "status": {
+              "$ref": "#/definitions/Status"
+            },
+            "superseded_by": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/Citation"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "technology": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "test_paths": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "title": {
+              "type": "string"
+            },
+            "type": {
+              "const": "module-blueprint",
+              "type": "string"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "version": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "visibility": {
+              "$ref": "#/definitions/Visibility"
+            }
+          },
+          "required": [
+            "type",
+            "description",
+            "slug",
+            "title",
+            "status",
+            "updated_at",
+            "entity_name",
+            "kind",
+            "visibility"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "contracts_consumed": {
+              "items": {
+                "$ref": "#/definitions/Citation"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "created_at": {
+              "format": "date-time",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "description": {
+              "type": "string"
+            },
+            "entity_name": {
+              "type": "string"
+            },
+            "kind": {
+              "$ref": "#/definitions/BlueprintKind"
+            },
+            "slug": {
+              "$ref": "#/definitions/Slug"
+            },
+            "source_paths": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "status": {
+              "$ref": "#/definitions/Status"
+            },
+            "superseded_by": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/Citation"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "technology": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "test_paths": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "title": {
+              "type": "string"
+            },
+            "type": {
+              "const": "component-blueprint",
+              "type": "string"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "description",
+            "slug",
+            "title",
+            "status",
+            "updated_at",
+            "entity_name",
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "created_at": {
+              "format": "date-time",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "delivery": {
+              "$ref": "#/definitions/Delivery"
+            },
+            "description": {
+              "type": "string"
+            },
+            "frd": {
+              "$ref": "#/definitions/Citation"
+            },
+            "plan": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "slug": {
+              "$ref": "#/definitions/Slug"
+            },
+            "status": {
+              "$ref": "#/definitions/Status"
+            },
+            "superseded_by": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/Citation"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "title": {
+              "type": "string"
+            },
+            "type": {
+              "const": "feature-blueprint",
+              "type": "string"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "description",
+            "slug",
+            "title",
+            "status",
+            "updated_at",
+            "delivery",
+            "frd"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "created_at": {
+              "format": "date-time",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "description": {
+              "type": "string"
+            },
+            "effort": {
+              "type": "string"
+            },
+            "model": {
+              "type": "string"
+            },
+            "origin": {
+              "type": "string"
+            },
+            "plugin_version": {
+              "type": "string"
+            },
+            "runs_observed": {
+              "maximum": 9007199254740991,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "severity": {
+              "$ref": "#/definitions/RfcSeverity"
+            },
+            "skill": {
+              "type": "string"
+            },
+            "skill_version": {
+              "type": "string"
+            },
+            "slug": {
+              "$ref": "#/definitions/Slug"
+            },
+            "status": {
+              "$ref": "#/definitions/Status"
+            },
+            "superseded_by": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/Citation"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "title": {
+              "type": "string"
+            },
+            "type": {
+              "const": "rfc",
+              "type": "string"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "description",
+            "slug",
+            "title",
+            "status",
+            "updated_at",
+            "origin",
+            "skill",
+            "skill_version",
+            "model",
+            "effort",
+            "runs_observed",
+            "severity",
+            "plugin_version"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "created_at": {
+              "format": "date-time",
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "description": {
+              "type": "string"
+            },
+            "slug": {
+              "$ref": "#/definitions/Slug"
+            },
+            "status": {
+              "$ref": "#/definitions/Status"
+            },
+            "superseded_by": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/Citation"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "tags": {
+              "items": {
+                "type": "string"
+              },
+              "type": [
+                "array",
+                "null"
+              ]
+            },
+            "title": {
+              "type": "string"
+            },
+            "type": {
+              "const": "guide",
+              "type": "string"
+            },
+            "updated_at": {
+              "format": "date-time",
+              "type": "string"
+            },
+            "version": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "description",
+            "slug",
+            "title",
+            "status",
+            "updated_at"
+          ],
+          "type": "object"
+        }
+      ],
+      "description": "A document's frontmatter, as its `type` defines it: the shared envelope\nplus every property that type adds.\n\n`type` is this union's discriminator, so it is declared here rather than\non `DocumentFrontmatter` — Strata does not let a variant declare its\nunion's discriminator. Every variant's JSON Schema still requires `type`\nas a constant, and every encoded value still carries it, so documents\nand the index keep `type` exactly where they always had it. A document\nis validated against its variant rather than the bare struct, because\nthe bare struct is closed and does not define `type`.\n\nThe tag values are the `DocumentType` vocabulary, one variant per value."
     },
     "VerificationLevel": {
       "description": "The level at which a criterion is intended to be verified.\n\nIntent, not instruction. Nothing here executes a scenario or selects a\nsuite; the value records the judgement made when the criterion was\nwritten, so that a coverage report can compare it against what tests\nactually cite.",

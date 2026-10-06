@@ -3894,9 +3894,6 @@ type DocumentFrontmatter struct {
 	//
 	// Also the document's H1, and the two are kept in sync by hand.
 	Title string `json:"title"`
-	// The document's classification, which selects the schema, slug pattern
-	// and required sections that govern it.
-	Type DocumentType `json:"type"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
 	// RFC 3339 timestamp of the last substantive modification.
@@ -3937,11 +3934,6 @@ func (v *DocumentFrontmatter) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Title); err != nil {
 		return prefixField("title", err)
 	}
-	if m, ok := raw["type"]; !ok || string(m) == "null" {
-		return fmt.Errorf("DocumentFrontmatter: required field \"type\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Type); err != nil {
-		return prefixField("type", err)
-	}
 	if m, ok := raw["status"]; !ok || string(m) == "null" {
 		return fmt.Errorf("DocumentFrontmatter: required field \"status\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
@@ -3970,7 +3962,7 @@ func (v *DocumentFrontmatter) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "type", "status", "updated_at", "created_at", "tags", "superseded_by":
+		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -4057,9 +4049,6 @@ type Adr struct {
 	//
 	// Also the document's H1, and the two are kept in sync by hand.
 	Title string `json:"title"`
-	// The document's classification, which selects the schema, slug pattern
-	// and required sections that govern it.
-	Type DocumentType `json:"type"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
 	// RFC 3339 timestamp of the last substantive modification.
@@ -4100,11 +4089,6 @@ func (v *Adr) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Title); err != nil {
 		return prefixField("title", err)
 	}
-	if m, ok := raw["type"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Adr: required field \"type\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Type); err != nil {
-		return prefixField("type", err)
-	}
 	if m, ok := raw["status"]; !ok || string(m) == "null" {
 		return fmt.Errorf("Adr: required field \"status\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
@@ -4133,7 +4117,7 @@ func (v *Adr) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "type", "status", "updated_at", "created_at", "tags", "superseded_by":
+		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -4165,9 +4149,6 @@ type Frd struct {
 	//
 	// Also the document's H1, and the two are kept in sync by hand.
 	Title string `json:"title"`
-	// The document's classification, which selects the schema, slug pattern
-	// and required sections that govern it.
-	Type DocumentType `json:"type"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
 	// RFC 3339 timestamp of the last substantive modification.
@@ -4211,11 +4192,6 @@ func (v *Frd) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Title); err != nil {
 		return prefixField("title", err)
 	}
-	if m, ok := raw["type"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Frd: required field \"type\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Type); err != nil {
-		return prefixField("type", err)
-	}
 	if m, ok := raw["status"]; !ok || string(m) == "null" {
 		return fmt.Errorf("Frd: required field \"status\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
@@ -4249,7 +4225,7 @@ func (v *Frd) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "sources":
+		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by", "sources":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -4281,9 +4257,6 @@ type Contract struct {
 	//
 	// Also the document's H1, and the two are kept in sync by hand.
 	Title string `json:"title"`
-	// The document's classification, which selects the schema, slug pattern
-	// and required sections that govern it.
-	Type DocumentType `json:"type"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
 	// RFC 3339 timestamp of the last substantive modification.
@@ -4346,11 +4319,6 @@ func (v *Contract) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Title); err != nil {
 		return prefixField("title", err)
 	}
-	if m, ok := raw["type"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Contract: required field \"type\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Type); err != nil {
-		return prefixField("type", err)
-	}
 	if m, ok := raw["status"]; !ok || string(m) == "null" {
 		return fmt.Errorf("Contract: required field \"status\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
@@ -4399,7 +4367,7 @@ func (v *Contract) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "provider", "visibility", "specs", "version":
+		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by", "provider", "visibility", "specs", "version":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -4431,9 +4399,6 @@ type Standards struct {
 	//
 	// Also the document's H1, and the two are kept in sync by hand.
 	Title string `json:"title"`
-	// The document's classification, which selects the schema, slug pattern
-	// and required sections that govern it.
-	Type DocumentType `json:"type"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
 	// RFC 3339 timestamp of the last substantive modification.
@@ -4480,11 +4445,6 @@ func (v *Standards) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Title); err != nil {
 		return prefixField("title", err)
 	}
-	if m, ok := raw["type"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Standards: required field \"type\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Type); err != nil {
-		return prefixField("type", err)
-	}
 	if m, ok := raw["status"]; !ok || string(m) == "null" {
 		return fmt.Errorf("Standards: required field \"status\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
@@ -4518,7 +4478,7 @@ func (v *Standards) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "version":
+		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by", "version":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -4562,9 +4522,6 @@ type SystemBlueprint struct {
 	//
 	// Also the document's H1, and the two are kept in sync by hand.
 	Title string `json:"title"`
-	// The document's classification, which selects the schema, slug pattern
-	// and required sections that govern it.
-	Type DocumentType `json:"type"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
 	// RFC 3339 timestamp of the last substantive modification.
@@ -4624,11 +4581,6 @@ func (v *SystemBlueprint) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Title); err != nil {
 		return prefixField("title", err)
 	}
-	if m, ok := raw["type"]; !ok || string(m) == "null" {
-		return fmt.Errorf("SystemBlueprint: required field \"type\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Type); err != nil {
-		return prefixField("type", err)
-	}
 	if m, ok := raw["status"]; !ok || string(m) == "null" {
 		return fmt.Errorf("SystemBlueprint: required field \"status\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
@@ -4672,7 +4624,7 @@ func (v *SystemBlueprint) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_consumed":
+		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_consumed":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -4710,9 +4662,6 @@ type ContainerBlueprint struct {
 	//
 	// Also the document's H1, and the two are kept in sync by hand.
 	Title string `json:"title"`
-	// The document's classification, which selects the schema, slug pattern
-	// and required sections that govern it.
-	Type DocumentType `json:"type"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
 	// RFC 3339 timestamp of the last substantive modification.
@@ -4785,11 +4734,6 @@ func (v *ContainerBlueprint) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Title); err != nil {
 		return prefixField("title", err)
 	}
-	if m, ok := raw["type"]; !ok || string(m) == "null" {
-		return fmt.Errorf("ContainerBlueprint: required field \"type\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Type); err != nil {
-		return prefixField("type", err)
-	}
 	if m, ok := raw["status"]; !ok || string(m) == "null" {
 		return fmt.Errorf("ContainerBlueprint: required field \"status\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
@@ -4843,7 +4787,7 @@ func (v *ContainerBlueprint) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_consumed", "system", "modules":
+		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_consumed", "system", "modules":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -4881,9 +4825,6 @@ type ModuleBlueprint struct {
 	//
 	// Also the document's H1, and the two are kept in sync by hand.
 	Title string `json:"title"`
-	// The document's classification, which selects the schema, slug pattern
-	// and required sections that govern it.
-	Type DocumentType `json:"type"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
 	// RFC 3339 timestamp of the last substantive modification.
@@ -4961,11 +4902,6 @@ func (v *ModuleBlueprint) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Title); err != nil {
 		return prefixField("title", err)
 	}
-	if m, ok := raw["type"]; !ok || string(m) == "null" {
-		return fmt.Errorf("ModuleBlueprint: required field \"type\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Type); err != nil {
-		return prefixField("type", err)
-	}
 	if m, ok := raw["status"]; !ok || string(m) == "null" {
 		return fmt.Errorf("ModuleBlueprint: required field \"status\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
@@ -5039,7 +4975,7 @@ func (v *ModuleBlueprint) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_consumed", "kind", "visibility", "modules", "source_paths", "test_paths", "version":
+		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_consumed", "kind", "visibility", "modules", "source_paths", "test_paths", "version":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -5078,9 +5014,6 @@ type ComponentBlueprint struct {
 	//
 	// Also the document's H1, and the two are kept in sync by hand.
 	Title string `json:"title"`
-	// The document's classification, which selects the schema, slug pattern
-	// and required sections that govern it.
-	Type DocumentType `json:"type"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
 	// RFC 3339 timestamp of the last substantive modification.
@@ -5147,11 +5080,6 @@ func (v *ComponentBlueprint) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Title); err != nil {
 		return prefixField("title", err)
 	}
-	if m, ok := raw["type"]; !ok || string(m) == "null" {
-		return fmt.Errorf("ComponentBlueprint: required field \"type\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Type); err != nil {
-		return prefixField("type", err)
-	}
 	if m, ok := raw["status"]; !ok || string(m) == "null" {
 		return fmt.Errorf("ComponentBlueprint: required field \"status\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
@@ -5210,7 +5138,7 @@ func (v *ComponentBlueprint) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_consumed", "kind", "source_paths", "test_paths":
+		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_consumed", "kind", "source_paths", "test_paths":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -5252,9 +5180,6 @@ type FeatureBlueprint struct {
 	//
 	// Also the document's H1, and the two are kept in sync by hand.
 	Title string `json:"title"`
-	// The document's classification, which selects the schema, slug pattern
-	// and required sections that govern it.
-	Type DocumentType `json:"type"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
 	// RFC 3339 timestamp of the last substantive modification.
@@ -5315,11 +5240,6 @@ func (v *FeatureBlueprint) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Title); err != nil {
 		return prefixField("title", err)
 	}
-	if m, ok := raw["type"]; !ok || string(m) == "null" {
-		return fmt.Errorf("FeatureBlueprint: required field \"type\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Type); err != nil {
-		return prefixField("type", err)
-	}
 	if m, ok := raw["status"]; !ok || string(m) == "null" {
 		return fmt.Errorf("FeatureBlueprint: required field \"status\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
@@ -5363,7 +5283,7 @@ func (v *FeatureBlueprint) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "delivery", "plan", "frd":
+		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by", "delivery", "plan", "frd":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -5402,9 +5322,6 @@ type Rfc struct {
 	//
 	// Also the document's H1, and the two are kept in sync by hand.
 	Title string `json:"title"`
-	// The document's classification, which selects the schema, slug pattern
-	// and required sections that govern it.
-	Type DocumentType `json:"type"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
 	// RFC 3339 timestamp of the last substantive modification.
@@ -5472,11 +5389,6 @@ func (v *Rfc) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("Rfc: required field \"title\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Title); err != nil {
 		return prefixField("title", err)
-	}
-	if m, ok := raw["type"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Rfc: required field \"type\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Type); err != nil {
-		return prefixField("type", err)
 	}
 	if m, ok := raw["status"]; !ok || string(m) == "null" {
 		return fmt.Errorf("Rfc: required field \"status\" is missing or null")
@@ -5546,7 +5458,7 @@ func (v *Rfc) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "origin", "skill", "skill_version", "model", "effort", "runs_observed", "severity", "plugin_version":
+		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by", "origin", "skill", "skill_version", "model", "effort", "runs_observed", "severity", "plugin_version":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -5582,9 +5494,6 @@ type Guide struct {
 	//
 	// Also the document's H1, and the two are kept in sync by hand.
 	Title string `json:"title"`
-	// The document's classification, which selects the schema, slug pattern
-	// and required sections that govern it.
-	Type DocumentType `json:"type"`
 	// The document's lifecycle state.
 	Status Status `json:"status"`
 	// RFC 3339 timestamp of the last substantive modification.
@@ -5627,11 +5536,6 @@ func (v *Guide) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Title); err != nil {
 		return prefixField("title", err)
 	}
-	if m, ok := raw["type"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Guide: required field \"type\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Type); err != nil {
-		return prefixField("type", err)
-	}
 	if m, ok := raw["status"]; !ok || string(m) == "null" {
 		return fmt.Errorf("Guide: required field \"status\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Status); err != nil {
@@ -5665,7 +5569,7 @@ func (v *Guide) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "version":
+		case "description", "slug", "title", "status", "updated_at", "created_at", "tags", "superseded_by", "version":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -5676,6 +5580,292 @@ func (v *Guide) UnmarshalJSON(data []byte) error {
 		return &unknownFieldError{Struct: "Guide", Field: unknown}
 	}
 	return nil
+}
+
+type TypedFrontmatterVariant interface{ isTypedFrontmatterVariant() }
+
+// A document's frontmatter, as its `type` defines it: the shared envelope
+// plus every property that type adds.
+//
+// `type` is this union's discriminator, so it is declared here rather than
+// on `DocumentFrontmatter` — Strata does not let a variant declare its
+// union's discriminator. Every variant's JSON Schema still requires `type`
+// as a constant, and every encoded value still carries it, so documents
+// and the index keep `type` exactly where they always had it. A document
+// is validated against its variant rather than the bare struct, because
+// the bare struct is closed and does not define `type`.
+//
+// The tag values are the `DocumentType` vocabulary, one variant per value.
+type TypedFrontmatter struct {
+	Value TypedFrontmatterVariant
+}
+
+func (Adr) isTypedFrontmatterVariant()                {}
+func (Frd) isTypedFrontmatterVariant()                {}
+func (Contract) isTypedFrontmatterVariant()           {}
+func (Standards) isTypedFrontmatterVariant()          {}
+func (SystemBlueprint) isTypedFrontmatterVariant()    {}
+func (ContainerBlueprint) isTypedFrontmatterVariant() {}
+func (ModuleBlueprint) isTypedFrontmatterVariant()    {}
+func (ComponentBlueprint) isTypedFrontmatterVariant() {}
+func (FeatureBlueprint) isTypedFrontmatterVariant()   {}
+func (Rfc) isTypedFrontmatterVariant()                {}
+func (Guide) isTypedFrontmatterVariant()              {}
+
+func NewTypedFrontmatterAdr(v Adr) TypedFrontmatter {
+	return TypedFrontmatter{Value: v}
+}
+
+func NewTypedFrontmatterFrd(v Frd) TypedFrontmatter {
+	return TypedFrontmatter{Value: v}
+}
+
+func NewTypedFrontmatterContract(v Contract) TypedFrontmatter {
+	return TypedFrontmatter{Value: v}
+}
+
+func NewTypedFrontmatterStandards(v Standards) TypedFrontmatter {
+	return TypedFrontmatter{Value: v}
+}
+
+func NewTypedFrontmatterSystemBlueprint(v SystemBlueprint) TypedFrontmatter {
+	return TypedFrontmatter{Value: v}
+}
+
+func NewTypedFrontmatterContainerBlueprint(v ContainerBlueprint) TypedFrontmatter {
+	return TypedFrontmatter{Value: v}
+}
+
+func NewTypedFrontmatterModuleBlueprint(v ModuleBlueprint) TypedFrontmatter {
+	return TypedFrontmatter{Value: v}
+}
+
+func NewTypedFrontmatterComponentBlueprint(v ComponentBlueprint) TypedFrontmatter {
+	return TypedFrontmatter{Value: v}
+}
+
+func NewTypedFrontmatterFeatureBlueprint(v FeatureBlueprint) TypedFrontmatter {
+	return TypedFrontmatter{Value: v}
+}
+
+func NewTypedFrontmatterRfc(v Rfc) TypedFrontmatter {
+	return TypedFrontmatter{Value: v}
+}
+
+func NewTypedFrontmatterGuide(v Guide) TypedFrontmatter {
+	return TypedFrontmatter{Value: v}
+}
+
+func (u TypedFrontmatter) AsAdr() (Adr, bool) {
+	v, ok := u.Value.(Adr)
+	return v, ok
+}
+
+func (u TypedFrontmatter) AsFrd() (Frd, bool) {
+	v, ok := u.Value.(Frd)
+	return v, ok
+}
+
+func (u TypedFrontmatter) AsContract() (Contract, bool) {
+	v, ok := u.Value.(Contract)
+	return v, ok
+}
+
+func (u TypedFrontmatter) AsStandards() (Standards, bool) {
+	v, ok := u.Value.(Standards)
+	return v, ok
+}
+
+func (u TypedFrontmatter) AsSystemBlueprint() (SystemBlueprint, bool) {
+	v, ok := u.Value.(SystemBlueprint)
+	return v, ok
+}
+
+func (u TypedFrontmatter) AsContainerBlueprint() (ContainerBlueprint, bool) {
+	v, ok := u.Value.(ContainerBlueprint)
+	return v, ok
+}
+
+func (u TypedFrontmatter) AsModuleBlueprint() (ModuleBlueprint, bool) {
+	v, ok := u.Value.(ModuleBlueprint)
+	return v, ok
+}
+
+func (u TypedFrontmatter) AsComponentBlueprint() (ComponentBlueprint, bool) {
+	v, ok := u.Value.(ComponentBlueprint)
+	return v, ok
+}
+
+func (u TypedFrontmatter) AsFeatureBlueprint() (FeatureBlueprint, bool) {
+	v, ok := u.Value.(FeatureBlueprint)
+	return v, ok
+}
+
+func (u TypedFrontmatter) AsRfc() (Rfc, bool) {
+	v, ok := u.Value.(Rfc)
+	return v, ok
+}
+
+func (u TypedFrontmatter) AsGuide() (Guide, bool) {
+	v, ok := u.Value.(Guide)
+	return v, ok
+}
+
+func (u TypedFrontmatter) MarshalJSON() ([]byte, error) {
+	var payload []byte
+	var tag string
+	var err error
+	switch v := u.Value.(type) {
+	case Adr:
+		tag = "adr"
+		payload, err = json.Marshal(v)
+	case Frd:
+		tag = "frd"
+		payload, err = json.Marshal(v)
+	case Contract:
+		tag = "contract"
+		payload, err = json.Marshal(v)
+	case Standards:
+		tag = "standards"
+		payload, err = json.Marshal(v)
+	case SystemBlueprint:
+		tag = "system-blueprint"
+		payload, err = json.Marshal(v)
+	case ContainerBlueprint:
+		tag = "container-blueprint"
+		payload, err = json.Marshal(v)
+	case ModuleBlueprint:
+		tag = "module-blueprint"
+		payload, err = json.Marshal(v)
+	case ComponentBlueprint:
+		tag = "component-blueprint"
+		payload, err = json.Marshal(v)
+	case FeatureBlueprint:
+		tag = "feature-blueprint"
+		payload, err = json.Marshal(v)
+	case Rfc:
+		tag = "rfc"
+		payload, err = json.Marshal(v)
+	case Guide:
+		tag = "guide"
+		payload, err = json.Marshal(v)
+	default:
+		return nil, fmt.Errorf("TypedFrontmatter: nil or unknown variant")
+	}
+	if err != nil {
+		return nil, err
+	}
+	tagBytes, err := json.Marshal(tag)
+	if err != nil {
+		return nil, err
+	}
+	if len(payload) == 0 || payload[0] != '{' {
+		return nil, fmt.Errorf("TypedFrontmatter: variant produced non-object JSON")
+	}
+	prefix := append([]byte{'{'}, []byte("\"type\":")...)
+	prefix = append(prefix, tagBytes...)
+	if payload[1] != '}' {
+		prefix = append(prefix, ',')
+	}
+	return append(prefix, payload[1:]...), nil
+}
+
+func (u *TypedFrontmatter) UnmarshalJSON(data []byte) error {
+	var probe struct {
+		Tag string `json:"type"`
+	}
+	if err := json.Unmarshal(data, &probe); err != nil {
+		return err
+	}
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	delete(raw, "type")
+	body, err := json.Marshal(raw)
+	if err != nil {
+		return err
+	}
+	switch probe.Tag {
+	case "adr":
+		var v Adr
+		if err := json.Unmarshal(body, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "frd":
+		var v Frd
+		if err := json.Unmarshal(body, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "contract":
+		var v Contract
+		if err := json.Unmarshal(body, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "standards":
+		var v Standards
+		if err := json.Unmarshal(body, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "system-blueprint":
+		var v SystemBlueprint
+		if err := json.Unmarshal(body, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "container-blueprint":
+		var v ContainerBlueprint
+		if err := json.Unmarshal(body, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "module-blueprint":
+		var v ModuleBlueprint
+		if err := json.Unmarshal(body, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "component-blueprint":
+		var v ComponentBlueprint
+		if err := json.Unmarshal(body, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "feature-blueprint":
+		var v FeatureBlueprint
+		if err := json.Unmarshal(body, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "rfc":
+		var v Rfc
+		if err := json.Unmarshal(body, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "guide":
+		var v Guide
+		if err := json.Unmarshal(body, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	}
+	return fmt.Errorf("TypedFrontmatter: unknown type %q", probe.Tag)
 }
 
 // A contiguous region of a document.
@@ -5989,12 +6179,13 @@ type IndexEntry struct {
 	// The member's path, relative to the repository root and written with
 	// forward slashes on every platform.
 	Path string `json:"path"`
-	// The member's parsed frontmatter.
+	// The member's parsed frontmatter: every property its document type
+	// defines, not only the envelope every type shares (AC-SPEC-002.1).
 	//
 	// Absent exactly when `parse_error` is present: a document whose
 	// frontmatter could not be parsed is still indexed, but it has no parsed
-	// envelope to carry.
-	Frontmatter *DocumentFrontmatter `json:"frontmatter,omitempty"`
+	// frontmatter to carry.
+	Frontmatter *TypedFrontmatter `json:"frontmatter,omitempty"`
 	// The failure that prevented this member's frontmatter from being
 	// parsed, with its position.
 	//

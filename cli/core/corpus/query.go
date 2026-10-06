@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
@@ -311,12 +312,13 @@ func withheldStatuses(lifecycle LifecycleRules, allStatuses bool) map[string]boo
 // summary cannot reach into the index the corpus is still serving from.
 func summarize(entry specmodel.IndexEntry) DocumentSummary {
 	summary := DocumentSummary{Path: entry.Path}
-	if envelope := entry.Frontmatter; envelope != nil {
-		summary.Slug = ptrTo(envelope.Slug)
-		summary.Type = ptrTo(envelope.Type)
-		summary.Status = ptrTo(envelope.Status)
-		summary.Title = ptrTo(envelope.Title)
-		summary.Description = ptrTo(envelope.Description)
+	if entry.Frontmatter != nil {
+		shared := envelope.Of(entry.Frontmatter)
+		summary.Slug = ptrTo(shared.Slug)
+		summary.Type = ptrTo(shared.Type)
+		summary.Status = ptrTo(shared.Status)
+		summary.Title = ptrTo(shared.Title)
+		summary.Description = ptrTo(shared.Description)
 	}
 	if entry.ParseError != nil {
 		failure := *entry.ParseError

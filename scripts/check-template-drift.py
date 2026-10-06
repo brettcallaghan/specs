@@ -105,6 +105,22 @@ def definition_name(declared: str) -> str:
     return "".join(part.capitalize() for part in declared.split("-"))
 
 
+def union_branches(definitions: dict) -> dict[str, dict]:
+    """Return each document type's branch of the discriminated union.
+
+    A union variant may not declare its discriminator, so the bare
+    per-type definitions carry no `type`; the branch the union inlines for
+    that type does, as a constant. The union is found by shape — every
+    branch fixing `type` to a constant — so this names no definition.
+    """
+    for definition in definitions.values():
+        branches = definition.get("anyOf") or []
+        consts = [b.get("properties", {}).get("type", {}).get("const") for b in branches]
+        if branches and all(isinstance(c, str) for c in consts):
+            return dict(zip(consts, branches))
+    return {}
+
+
 def main() -> int:
     quiet = "--quiet" in sys.argv
 
@@ -116,6 +132,7 @@ def main() -> int:
     bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
     definitions = bundle.get("definitions", {})
     vocabulary = set(definitions.get(VOCABULARY, {}).get("enum", []))
+    branches = union_branches(definitions)
 
     errors: list[tuple[str, str]] = []
     advisories: list[tuple[str, str]] = []
@@ -150,7 +167,7 @@ def main() -> int:
             continue
 
         defname = definition_name(declared)
-        definition = definitions.get(defname)
+        definition = branches.get(declared) or definitions.get(defname)
         if definition is None:
             errors.append((rel, (
                 f"template/no-definition: `{declared}` is in the {VOCABULARY} "

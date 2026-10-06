@@ -10,6 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
 	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
 	"github.com/brettcallaghan/agent-plugins/cli/core/span"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
@@ -226,7 +227,7 @@ func (s selection) selects(entry specmodel.IndexEntry) bool {
 	if entry.Frontmatter == nil {
 		return false
 	}
-	return strings.EqualFold(string(entry.Frontmatter.Slug), s.document)
+	return strings.EqualFold(string(envelope.Of(entry.Frontmatter).Slug), s.document)
 }
 
 // renderHeadings writes the answer as YAML, or as JSON under --json, both
