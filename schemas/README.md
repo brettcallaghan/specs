@@ -34,14 +34,27 @@ specs check --strict                   # check this repo's own documents
 
 ## Design decisions
 
-**`ElementRecord` is the root, and `DocumentFrontmatter` inherits it.**
-`frontmatter-standards.md` asks for exactly this: the base record fields
-and the document envelope defined as two schemas and merged with JSON
-Schema `allOf`, so that one schema validates a child element whether it
-is embedded in a parent's record block or promoted to a document of its
-own. Strata's `struct Child: Parent` emits precisely that `allOf` +
+**`ElementRecord` and `DocumentFrontmatter` share a root, and
+architecture blueprints inherit both.** Both extend `Identified`
+(`description` and `slug`); `ElementRecord` adds `entity_name` and
+`technology`, and `DocumentFrontmatter` the document `title` and
+envelope. Inheriting both is what `frontmatter-standards.md` asks for: the element record and the document
+envelope defined as two schemas and merged with JSON Schema `allOf`, so
+that one schema validates a child element whether it is embedded in a
+parent's record block or promoted to a document of its own. An element's
+name and its document's title are separate properties because they are
+separate facts — "Spec CLI" is documented by "Container Blueprint: Spec
+CLI". Strata's `struct Child: Parent` emits precisely that `allOf` +
 `$ref` shape, so the requirement is met by the language rather than by
 hand-assembly.
+
+**Every `Span`-typed property is named `span`, or `<role>_span` where
+a record carries more than one.** A span is an extent — a start and an
+end — so neither `position` nor `location`, which name a point, is used.
+A property that locates its own record is `span`; one that locates
+something else names it: `section_span` for the content beneath a
+heading, `block_span` for a feature's whole fence, `other_span` for the
+other occurrence of a duplicate.
 
 **Property names are snake_case, against Strata's camelCase
 convention.** Strata emits the property name verbatim as the wire key,
@@ -51,25 +64,30 @@ over matching the language's house style. The Go transpiler re-cases the
 Go identifier anyway, so the generated structs read as idiomatic Go with
 correct `json:"updated_at"` tags.
 
-**`ContractEdges` is a mixin, and it is the reason multiple inheritance
-is used at all.** `contracts_provided` and `contracts_consumed` mean the
-same thing on all four blueprint types, and before this they were spelled
-three different ways at three altitudes (`contracts` on a system,
-`provides`/`consumes` on a container, `provides` alone on a module) with
-components carrying none. Declaring them once and inheriting them makes
-divergence impossible rather than merely discouraged. Strata emits a
-three-branch `allOf` — the type's own properties, `DocumentFrontmatter`,
-and `ContractEdges` — and the Go transpiler flattens all three into one
+**`ContractEdges` is a mixin.** `contracts_consumed` means the same thing
+on all four blueprint types, so it is declared once and inherited, which
+makes divergence impossible rather than merely discouraged. The other end
+of a contract edge is `Contract.provider`; neither end is mirrored. For
+an architecture blueprint Strata emits a four-branch `allOf` — the
+type's own properties, `DocumentFrontmatter`, `C4ElementRecord` and
+`ContractEdges` — and the Go transpiler flattens all four into one
 struct.
 
-**`type` is an enum on the base, not a constant per subtype.** Strata
-forbids redeclaring an inherited property, so `Adr` cannot narrow
-`type` to the constant `"adr"`. This costs nothing in practice: the CLI
-reads `type` in order to choose which schema to validate against, so by
-the time the schema runs, the value has already been established. A
-`@discriminator("type")` union was the alternative and is worse — it
-forbids the base from declaring `type` at all, which would remove it
-from the envelope every document actually carries.
+**`type` is the discriminator of the `TypedFrontmatter` union, not a
+property of the base.** `TypedFrontmatter` is a `@discriminator("type")`
+union with one variant per document type, and it is what the index
+carries as an entry's `frontmatter` — so the index holds every property a
+document's type defines, not only the envelope every type shares. Strata
+forbids a variant from declaring its discriminator, so
+`DocumentFrontmatter` and the per-type structs carry no `type` property;
+each union branch carries it instead, as the constant for its variant
+(`"adr"` on `Adr`). Documents and encoded values still carry `type`, and
+the CLI validates a document against the branch its `type` selects
+rather than against the bare struct, which has no `type` to accept. The
+`DocumentType` enum remains as the vocabulary of declared types. Variant
+names are the kebab-case of their tags (`SystemBlueprint` is
+`system-blueprint`); the CLI derives one from the other, so a new variant
+must keep the convention.
 
 **Requiredness follows the templates, not the prose.** `version` is
 required on `Contract` and `Standards` because their templates declare

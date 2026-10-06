@@ -1,5 +1,6 @@
 ---
 title: "Widget Core"
+entity_name: Widget Core
 slug: module-widget-core
 type: module-blueprint
 kind: standard

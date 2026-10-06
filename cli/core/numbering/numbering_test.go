@@ -19,16 +19,20 @@ var rules = map[string]corpus.DocumentTypeRules{
 }
 
 // entry builds an index entry declaring the given type, slug and path,
-// with a parsed frontmatter envelope — enough for Next, which reads
-// only Type and Slug from it.
+// with parsed frontmatter — enough for Next, which reads only the type
+// and the slug from it. The two types these tests use are the only ones
+// it can build.
 func entry(path, docType, slug string) specmodel.IndexEntry {
-	return specmodel.IndexEntry{
-		Path: path,
-		Frontmatter: &specmodel.DocumentFrontmatter{
-			Type: specmodel.DocumentType(docType),
-			Slug: specmodel.Slug(slug),
-		},
+	var frontmatter specmodel.TypedFrontmatter
+	switch specmodel.DocumentType(docType) {
+	case specmodel.DocumentTypeAdr:
+		frontmatter = specmodel.NewTypedFrontmatterAdr(specmodel.Adr{Slug: specmodel.Slug(slug)})
+	case specmodel.DocumentTypeFrd:
+		frontmatter = specmodel.NewTypedFrontmatterFrd(specmodel.Frd{Slug: specmodel.Slug(slug)})
+	default:
+		panic("numbering_test: entry builds adr and frd entries only, not " + docType)
 	}
+	return specmodel.IndexEntry{Path: path, Frontmatter: &frontmatter}
 }
 
 // AC: AC-SPEC-007.1

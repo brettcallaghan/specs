@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
+	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specindex"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
@@ -307,23 +308,23 @@ func TestIndexCarriesEachMembersFrontmatterAndRepositoryRelativePath(t *testing.
 		t.Fatal("the entry carries no frontmatter")
 	}
 	fm := entry.Frontmatter
-	if fm.Title != "Targeted verification gates" {
-		t.Errorf("title = %q", fm.Title)
+	if envelope.Of(fm).Title != "Targeted verification gates" {
+		t.Errorf("title = %q", envelope.Of(fm).Title)
 	}
-	if fm.Description != "A fixture document." {
-		t.Errorf("description = %q", fm.Description)
+	if envelope.Of(fm).Description != "A fixture document." {
+		t.Errorf("description = %q", envelope.Of(fm).Description)
 	}
-	if string(fm.Slug) != "adr-011" {
-		t.Errorf("slug = %q", fm.Slug)
+	if string(envelope.Of(fm).Slug) != "adr-011" {
+		t.Errorf("slug = %q", envelope.Of(fm).Slug)
 	}
-	if string(fm.Type) != "adr" {
-		t.Errorf("type = %q", fm.Type)
+	if string(envelope.Of(fm).Type) != "adr" {
+		t.Errorf("type = %q", envelope.Of(fm).Type)
 	}
-	if string(fm.Status) != "approved" {
-		t.Errorf("status = %q", fm.Status)
+	if string(envelope.Of(fm).Status) != "approved" {
+		t.Errorf("status = %q", envelope.Of(fm).Status)
 	}
-	if want := time.Date(2026, 8, 5, 0, 0, 0, 0, time.UTC); !fm.UpdatedAt.Equal(want) {
-		t.Errorf("updated_at = %s, want %s", fm.UpdatedAt, want)
+	if want := time.Date(2026, 8, 5, 0, 0, 0, 0, time.UTC); !envelope.Of(fm).UpdatedAt.Equal(want) {
+		t.Errorf("updated_at = %s, want %s", envelope.Of(fm).UpdatedAt, want)
 	}
 }
 
@@ -400,7 +401,7 @@ func TestAMemberThatFailsToParseIsRecordedAndTheRestStillIndexed(t *testing.T) {
 	if broken.ParseError.Message == "" {
 		t.Error("the parse error carries no message")
 	}
-	if broken.ParseError.Position.StartLine == 0 {
+	if broken.ParseError.Span.StartLine == 0 {
 		t.Error("the parse error carries no position; lines are one-based")
 	}
 }
@@ -426,7 +427,7 @@ func TestAMemberThatDoesNotFitTheEnvelopeIsRecordedAgainstItself(t *testing.T) {
 	if entry.ParseError == nil {
 		t.Fatal("the non-conforming document carries no parse error")
 	}
-	if entry.ParseError.Position.StartLine == 0 {
+	if entry.ParseError.Span.StartLine == 0 {
 		t.Error("the parse error carries no position")
 	}
 }
@@ -458,7 +459,7 @@ func TestDuplicateSlugsAreReportedAgainstEachDocumentNamingTheOther(t *testing.T
 			t.Fatalf("detail = %T, want FindingDuplicateSlug", f.Detail.Value)
 		}
 		pairs[f.Path] = detail.OtherPath
-		if f.Position.StartLine == 0 {
+		if f.Span.StartLine == 0 {
 			t.Error("the finding carries no position")
 		}
 		if !strings.Contains(f.Message, detail.OtherPath) {

@@ -6,7 +6,7 @@ description: Builds the heading tree with section spans, attaches parsed
 slug: feature-spec-structure
 type: feature-blueprint
 status: in-progress
-updated_at: 2026-09-04T00:00:00Z
+updated_at: 2026-09-26T00:00:00Z
 delivery: staged
 frd: frd-spec-structure
 plan: agent-plugins-f6tl
@@ -50,15 +50,17 @@ like every other model rather than assembled in the emitter.
 - A recorded heading SHALL carry the record blocks attached to it, and
   `IndexEntry` SHALL carry those attached to the document rather than to
   any heading.
-- A recorded record block SHALL carry its tag, its parsed content, and
-  the span of the block as written. The parsed content is what a
-  catalogue reads an element declaration from; measured on this corpus,
-  thirteen blocks carry 1,991 bytes against a 433 KB index, beside the
-  153 KB the parsed Gherkin features already occupy.
+- A recorded record block SHALL carry its tag and the span of the block
+  as written, and SHALL NOT carry its content. Strata has no open value
+  type, so an arbitrary YAML record has no typed home in the generated
+  model. A command that needs a record SHALL read it back through the
+  span and decode it into its own Go type; `specs check` validates it
+  against the record-block criteria of
+  [[frd-spec-structure-conformance]].
 - The index SHALL carry no section content, only the span of it. A
   reader that wants the text reads it back through the span, which is
   what the CMD delta's emit form does.
-- The `schema_version` SHALL remain `1.0`: every property this delta
+- The `schema_version` SHALL NOT change for this delta: every property it
   adds is an addition, which the container blueprint's additive rule
   admits without a bump.
 
@@ -167,13 +169,14 @@ gains a registration and nothing else: the vocabulary that fills it is
 
 **Behavior:**
 - The `Profile` interface SHALL let a profile register record-block
-  tags, each with the format its content is parsed as.
+  tags, each with an optional JSON Schema the record is validated
+  against. A record is YAML; there is no per-tag format.
 - The module SHALL NOT name any particular tag, so a profile that
   registers none yields a corpus with no record blocks rather than an
   error.
-- WHERE a profile registers a tag whose format the module does not
-  support, registration validation SHALL report it rather than
-  defaulting.
+- WHERE a profile registers a tag whose schema pointer resolves to
+  nothing, registration validation SHALL report it rather than skipping
+  validation.
 
 **Anchors:** the `Profile` interface in `cli/core/corpus/profile.go`;
 `corpus.ValidateRegistration`.
@@ -181,19 +184,21 @@ gains a registration and nothing else: the vocabulary that fills it is
 ### Record blocks in [[module-document-core]] (added) — REC
 
 **Intent:** `Fenced` already returns the blocks whose info string
-matches a registered tag. What is missing is parsing the content in the
-tag's declared format and attaching the result where a reader would look
-for it: the heading whose section contains it.
+matches a registered tag. What is missing is recording each one where a
+reader would look for it — the heading whose section contains it — and
+a way to read its record back.
 
 **Behavior:**
-- The component SHALL parse a registered block's content in the format
-  its tag declares.
-- The component SHALL attach a parsed block to the innermost heading
-  whose section span contains it, and to the document where no heading
-  does.
-- WHERE a registered block's content does not parse, the component SHALL
-  report a finding carrying the parse error at the position the block
-  opens, and SHALL continue with the rest of the document.
+- The component SHALL record a registered block's tag and span, and
+  attach the record to the innermost heading whose section span contains
+  it, and to the document where no heading does.
+- The component SHALL expose one function that reads a recorded block's
+  content through its span and decodes it as YAML into a caller-supplied
+  Go value, so that every command and check decodes a record the same
+  way.
+- The index SHALL record a block whether or not its content is valid;
+  judging the content is the check's job, and a block that fails it is
+  still a place a reader can be sent.
 
 **Anchors:** `Fenced` in `cli/core/markdown`; the finding constructors
 in `cli/core/finding`.
@@ -214,7 +219,7 @@ in `cli/core/finding`.
 ## Contracts
 
 - No new contract document. The index gains properties under the
-  additive rule [[container-spec-cli]] states for `schema_version` 1.0,
+  additive rule [[container-spec-cli]] states for `schema_version`,
   which anticipates exactly this: later features attaching headings and
   extracted record blocks.
 - [[contract-specs-configuration]] (revised, drafted in place) — the

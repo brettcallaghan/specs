@@ -181,9 +181,9 @@ func TestAFencedBlockIsOwnedByTheDocumentItIsWrittenIn(t *testing.T) {
 	if !ok {
 		t.Fatalf("Source = %#v, want the fenced-block form", feature.Source)
 	}
-	if block.Block.Offset >= feature.Position.Offset {
+	if block.BlockSpan.Offset >= feature.Span.Offset {
 		t.Errorf("the fence's outer extent begins at %d and the Gherkin at %d; the fence must open first",
-			block.Block.Offset, feature.Position.Offset)
+			block.BlockSpan.Offset, feature.Span.Offset)
 	}
 }
 
@@ -288,9 +288,9 @@ func TestFeaturesAreOrderedByPathThenPosition(t *testing.T) {
 		t.Fatalf("feature paths = %v, want them ordered by path", got)
 	}
 	first, later := index.Features[1], index.Features[2]
-	if first.Position.Offset >= later.Position.Offset {
+	if first.Span.Offset >= later.Span.Offset {
 		t.Errorf("features within one file are at offsets %d then %d, want ascending",
-			first.Position.Offset, later.Position.Offset)
+			first.Span.Offset, later.Span.Offset)
 	}
 }
 

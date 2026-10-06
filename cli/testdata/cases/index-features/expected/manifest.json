@@ -1,14 +1,14 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "workspace": "acme",
   "entries": [
     {
       "path": "docs/features/frd-checkout.md",
       "frontmatter": {
-        "title": "Checkout",
+        "type": "frd",
         "description": "A feature requirements document used by a snapshot case.",
         "slug": "frd-checkout",
-        "type": "frd",
+        "title": "Checkout",
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
       },
@@ -16,7 +16,7 @@
         {
           "text": "Checkout",
           "level": 1,
-          "position": {
+          "span": {
             "offset": 176,
             "length": 11,
             "start_line": 10,
@@ -24,7 +24,7 @@
             "end_line": 11,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 187,
             "length": 583,
             "start_line": 11,
@@ -50,7 +50,7 @@
       "description": "As a shopper\nI want to pay for a basket\nSo that the goods are mine",
       "source": {
         "form": "fenced-block",
-        "block": {
+        "block_span": {
           "offset": 305,
           "length": 465,
           "start_line": 15,
@@ -59,7 +59,7 @@
           "end_column": 1
         }
       },
-      "position": {
+      "span": {
         "offset": 316,
         "length": 450,
         "start_line": 16,
@@ -77,7 +77,7 @@
           "level": "unit",
           "notation": "gherkin",
           "content_hash": "sha256:6c0b89a15617d8f8bb006d3bf0b26d151593cfb34b99a2ce46c29566669c02c1",
-          "position": {
+          "span": {
             "offset": 423,
             "length": 176,
             "start_line": 23,
@@ -95,7 +95,7 @@
           "level": "unit",
           "notation": "gherkin",
           "content_hash": "sha256:8e942b2d2200afa08ac2db1b9aa3dd44aa5b80cb696a0ee8640ed44baa80985b",
-          "position": {
+          "span": {
             "offset": 601,
             "length": 164,
             "start_line": 29,
@@ -116,7 +116,7 @@
       "source": {
         "form": "feature-file"
       },
-      "position": {
+      "span": {
         "offset": 0,
         "length": 290,
         "start_line": 1,
@@ -133,7 +133,7 @@
           "manual": true,
           "notation": "gherkin",
           "content_hash": "sha256:e31bb286ae549a29879da45ff5dc8efa3c9d2e0613bcbddf242b14f543e21a80",
-          "position": {
+          "span": {
             "offset": 132,
             "length": 157,
             "start_line": 8,
@@ -145,5 +145,5 @@
       ]
     }
   ],
-  "input_hash": "sha256:677652d191c6de6c0f6d0ca270cf80065c900d56e6808754a9686781981e289e"
+  "input_hash": "sha256:46aa836784f4012b6c720945174758888b329020243a4c3bada71b0f84b7682b"
 }

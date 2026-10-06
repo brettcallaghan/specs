@@ -1,5 +1,6 @@
 ---
 title: "Component Blueprint: <Component Name>"
+entity_name: <Component Name>                 # the element, as diagrams draw it
 description: <One-sentence summary of the component and why it warrants
   standalone documentation — its brief description, shown on diagrams>
 slug: component-<component-name>
@@ -7,8 +8,6 @@ type: component-blueprint
 status: draft
 updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 kind: <standard | pattern>           # see instructions below
-contracts_provided: []               # contract slugs, WHEN the interface
-                                     # is a standalone contract document
 contracts_consumed: []               # contract slugs this component depends on
 source_paths: []                     # repo-relative source roots
 test_paths: []                       # repo-relative test roots
@@ -16,7 +15,7 @@ test_paths: []                       # repo-relative test roots
 
 <!--
 Template: Component Blueprint
-Version: 1.6
+Version: 1.7
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
 

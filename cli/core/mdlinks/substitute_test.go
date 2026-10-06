@@ -24,11 +24,11 @@ func bodyRef(t *testing.T, src, text string) specmodel.Reference {
 	slug, anchor, anchored := strings.Cut(text, "#")
 
 	ref := specmodel.Reference{
-		Path:     "specs/adrs/adr-011.md",
-		Text:     text,
-		Slug:     slug,
-		Origin:   specmodel.NewReferenceOriginBody(specmodel.ReferenceBodyOrigin{}),
-		Position: span.Of([]byte(src), at+2, len(text)),
+		Path:   "specs/adrs/adr-011.md",
+		Text:   text,
+		Slug:   slug,
+		Origin: specmodel.NewReferenceOriginBody(specmodel.ReferenceBodyOrigin{}),
+		Span:   span.Of([]byte(src), at+2, len(text)),
 	}
 	if anchored {
 		ref.Anchor = &anchor
@@ -45,11 +45,11 @@ func frontmatterRef(t *testing.T, src, text string) specmodel.Reference {
 		t.Fatalf("fixture %q does not contain %q", src, text)
 	}
 	return specmodel.Reference{
-		Path:     "specs/adrs/adr-011.md",
-		Text:     text,
-		Slug:     text,
-		Origin:   specmodel.NewReferenceOriginFrontmatterProperty(specmodel.ReferenceFrontmatterOrigin{Property: "sources"}),
-		Position: span.Of([]byte(src), at, len(text)),
+		Path:   "specs/adrs/adr-011.md",
+		Text:   text,
+		Slug:   text,
+		Origin: specmodel.NewReferenceOriginFrontmatterProperty(specmodel.ReferenceFrontmatterOrigin{Property: "sources"}),
+		Span:   span.Of([]byte(src), at, len(text)),
 	}
 }
 

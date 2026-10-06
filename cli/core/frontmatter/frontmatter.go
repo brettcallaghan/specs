@@ -511,7 +511,7 @@ func syntaxError(src []byte, region span.Region, err error) *specmodel.ParseErro
 
 // located pairs a message with the position it is about.
 func located(message string, at specmodel.Span) *specmodel.ParseError {
-	return &specmodel.ParseError{Message: message, Position: at}
+	return &specmodel.ParseError{Message: message, Span: at}
 }
 
 // describe names a node type in the words a document author would use,

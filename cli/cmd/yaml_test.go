@@ -233,11 +233,11 @@ func TestAValueThatMarshalsItselfRendersFromItsOwnJSON(t *testing.T) {
 	value := struct {
 		Reference specmodel.Reference `json:"reference"`
 	}{Reference: specmodel.Reference{
-		Path:     "docs/adrs/adr-800-current.md",
-		Text:     "adr-900-old-approach",
-		Slug:     "adr-900-old-approach",
-		Origin:   specmodel.NewReferenceOriginFrontmatterProperty(specmodel.ReferenceFrontmatterOrigin{Property: "superseded_by"}),
-		Position: specmodel.Span{Offset: 1, Length: 2, StartLine: 3, StartColumn: 4, EndLine: 5, EndColumn: 6},
+		Path:   "docs/adrs/adr-800-current.md",
+		Text:   "adr-900-old-approach",
+		Slug:   "adr-900-old-approach",
+		Origin: specmodel.NewReferenceOriginFrontmatterProperty(specmodel.ReferenceFrontmatterOrigin{Property: "superseded_by"}),
+		Span:   specmodel.Span{Offset: 1, Length: 2, StartLine: 3, StartColumn: 4, EndLine: 5, EndColumn: 6},
 		Resolution: specmodel.NewReferenceResolutionResolved(
 			specmodel.ReferenceResolved{TargetPath: "docs/adrs/adr-900-old-approach.md"}),
 	}}
@@ -268,12 +268,12 @@ func TestTheTwoRenderingsCarryTheSameKeysInTheSameOrder(t *testing.T) {
 	value := struct {
 		Reference specmodel.Reference `json:"reference"`
 	}{Reference: specmodel.Reference{
-		Path:     "docs/adrs/adr-800-current.md",
-		Text:     "adr-900-old-approach#Decision",
-		Slug:     "adr-900-old-approach",
-		Anchor:   &anchor,
-		Origin:   specmodel.NewReferenceOriginBody(specmodel.ReferenceBodyOrigin{}),
-		Position: specmodel.Span{Offset: 1, Length: 2, StartLine: 3, StartColumn: 4, EndLine: 5, EndColumn: 6},
+		Path:   "docs/adrs/adr-800-current.md",
+		Text:   "adr-900-old-approach#Decision",
+		Slug:   "adr-900-old-approach",
+		Anchor: &anchor,
+		Origin: specmodel.NewReferenceOriginBody(specmodel.ReferenceBodyOrigin{}),
+		Span:   specmodel.Span{Offset: 1, Length: 2, StartLine: 3, StartColumn: 4, EndLine: 5, EndColumn: 6},
 		Resolution: specmodel.NewReferenceResolutionResolved(
 			specmodel.ReferenceResolved{TargetPath: "docs/adrs/adr-900-old-approach.md"}),
 		AnchorResolution: ambiguousAnchorResolution(),
@@ -294,8 +294,8 @@ func TestTheTwoRenderingsCarryTheSameKeysInTheSameOrder(t *testing.T) {
 func ambiguousAnchorResolution() *specmodel.AnchorResolution {
 	resolution := specmodel.NewAnchorResolutionAmbiguous(specmodel.AnchorAmbiguous{
 		Matches: []specmodel.AnchorMatch{
-			{Text: "Decision", Position: specmodel.Span{Offset: 7, Length: 8}},
-			{Text: "Decision", Position: specmodel.Span{Offset: 9, Length: 10}},
+			{Text: "Decision", Span: specmodel.Span{Offset: 7, Length: 8}},
+			{Text: "Decision", Span: specmodel.Span{Offset: 9, Length: 10}},
 		},
 	})
 	return &resolution

@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
+	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
@@ -55,10 +56,10 @@ func Next(index specmodel.SpecIndex, docType string, rules map[string]corpus.Doc
 	prefix := docType + "-"
 	highest := 0
 	for _, entry := range index.Entries {
-		if entry.Frontmatter == nil || string(entry.Frontmatter.Type) != docType {
+		if entry.Frontmatter == nil || string(envelope.Of(entry.Frontmatter).Type) != docType {
 			continue
 		}
-		n, ok := leadingNumber(string(entry.Frontmatter.Slug), prefix)
+		n, ok := leadingNumber(string(envelope.Of(entry.Frontmatter).Slug), prefix)
 		if !ok {
 			continue
 		}

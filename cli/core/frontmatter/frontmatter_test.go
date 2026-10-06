@@ -236,8 +236,8 @@ func TestAnUnterminatedBlockIsALocatedError(t *testing.T) {
 	if !strings.Contains(perr.Message, "never closed") {
 		t.Errorf("message = %q, want it to say the block is never closed", perr.Message)
 	}
-	if perr.Position.Offset != 0 || perr.Position.StartLine != 1 {
-		t.Errorf("position = %+v, want the opening delimiter", perr.Position)
+	if perr.Span.Offset != 0 || perr.Span.StartLine != 1 {
+		t.Errorf("position = %+v, want the opening delimiter", perr.Span)
 	}
 }
 
@@ -266,11 +266,11 @@ func TestMalformedYAMLIsALocatedErrorRatherThanAPanic(t *testing.T) {
 			if perr.Message == "" {
 				t.Error("the parse error carries no message")
 			}
-			if perr.Position.StartLine != c.line {
-				t.Errorf("error at line %d, want %d (%q)", perr.Position.StartLine, c.line, perr.Message)
+			if perr.Span.StartLine != c.line {
+				t.Errorf("error at line %d, want %d (%q)", perr.Span.StartLine, c.line, perr.Message)
 			}
-			if perr.Position.Offset+perr.Position.Length > uint64(len(c.source)) {
-				t.Errorf("position %+v runs past the document", perr.Position)
+			if perr.Span.Offset+perr.Span.Length > uint64(len(c.source)) {
+				t.Errorf("position %+v runs past the document", perr.Span)
 			}
 		})
 	}

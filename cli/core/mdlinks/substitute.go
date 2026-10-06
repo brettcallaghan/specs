@@ -53,7 +53,7 @@ func Substitute(src []byte, refs []specmodel.Reference, targets []*string) (out 
 			continue
 		}
 
-		construct := constructSpan(ref.Position)
+		construct := constructSpan(ref.Span)
 		buf.Write(src[cursor:construct.Offset])
 
 		if target := targets[i]; target != nil {

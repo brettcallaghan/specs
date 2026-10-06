@@ -1,5 +1,6 @@
 ---
 title: "Module Blueprint: <Module Name>"
+entity_name: <Module Name>                 # the element, as diagrams draw it
 description: <One-sentence summary of the module and why it warrants
   standalone documentation — its brief description, shown on diagrams>
 slug: module-<module-name>
@@ -9,14 +10,10 @@ updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 kind: <standard | pattern>           # see instructions below
 visibility: <public | internal>      # public = published to a registry;
                                      # internal = unpublished (in-repo)
-contracts_provided: []               # contract slugs, WHEN the interface
-                                     # is a standalone contract document
 contracts_consumed: []               # contract slugs this module depends on
-contained_by: []                     # the container(s) composing this
-                                     # module — a LIST because being shared
-                                     # across containers is what makes a
-                                     # unit a module; omit WHEN no host has
-                                     # a blueprint of its own
+modules: []                          # module slugs composed into this one;
+                                     # this module's own hosts are derived
+                                     # from their `modules`, never listed here
 source_paths: []                     # repo-relative source roots
 test_paths: []                       # repo-relative test roots
 version: "0.1"                       # required WHEN visibility: public
@@ -24,7 +21,7 @@ version: "0.1"                       # required WHEN visibility: public
 
 <!--
 Template: Module Blueprint
-Version: 0.8
+Version: 0.9
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
 
@@ -208,12 +205,13 @@ doubles as the diagram's description text, and a detailed description —
 
 Machine-readable record (un-promoted components): every internal
 component that does NOT have its own blueprint SHALL carry a fenced
-record block immediately under its bullet, holding title, slug, and
-description — validated against the shared component-record schema, the
-same schema a promoted component's frontmatter satisfies:
+record block immediately under its bullet, holding entity_name, slug
+and description (and optionally technology) — validated against the
+shared element-record schema, the same schema a promoted component's
+frontmatter satisfies:
 
     ```component
-    title: <Component Name>
+    entity_name: <Component Name>
     slug: component-<component-name>
     description: <one-line brief description>
     ```
@@ -243,7 +241,7 @@ C4Component
 ### <ComponentA>
 
 ```component
-title: <ComponentA>
+entity_name: <ComponentA>
 slug: component-<component-a>
 description: <one-line brief description>
 ```

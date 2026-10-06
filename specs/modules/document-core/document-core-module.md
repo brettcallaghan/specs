@@ -1,17 +1,15 @@
 ---
 title: "Module Blueprint: Document Core"
+entity_name: Document Core
 description: The framework-agnostic engine that indexes markdown
   documents carrying frontmatter and cross-references, and reports
   conformance findings against schemas a profile registers
 slug: module-document-core
 type: module-blueprint
 status: approved
-updated_at: 2026-09-07T00:00:00Z
+updated_at: 2026-09-29T00:00:00Z
 kind: standard
 visibility: internal
-contracts_provided: []
-contained_by:
-  - "container-spec-cli"
 source_paths:
   - "cli/core"
 test_paths:
@@ -284,7 +282,7 @@ packages.
 ### Spans
 
 ```component
-title: Spans
+entity_name: Spans
 slug: component-spans
 description: Position type and delimited-region scanning shared by every parser
 ```
@@ -334,7 +332,7 @@ serialized one, and no way for the two to drift.
 ### Frontmatter
 
 ```component
-title: Frontmatter
+entity_name: Frontmatter
 slug: component-frontmatter
 description: Frontmatter extraction and YAML parsing that preserves each property's raw text
 ```
@@ -426,7 +424,7 @@ from a file with no block.
 ### Markdown Structure
 
 ```component
-title: Markdown Structure
+entity_name: Markdown Structure
 slug: component-markdown-structure
 description: Headings with their section spans, fenced blocks by info string, and HTML comment blocks
 ```
@@ -516,7 +514,7 @@ The comment-block location remains **not yet built**: no
 ### Gherkin
 
 ```component
-title: Gherkin
+entity_name: Gherkin
 slug: component-gherkin
 description: Gherkin parsing into feature and criterion records, with tags read as strings
 ```
@@ -602,7 +600,7 @@ than an index that recorded why (AC-GHK-006.1).
 ### References
 
 ```component
-title: References
+entity_name: References
 slug: component-references
 description: Wikilink discovery, heading-anchor resolution, and the inbound and outbound reference graph
 ```
@@ -790,7 +788,7 @@ absent rather than leaving the boundary to review.
 ### Schema Registry
 
 ```component
-title: Schema Registry
+entity_name: Schema Registry
 slug: component-schema-registry
 description: Single-union JSON Schema validation, dispatched by document type, producing located findings
 ```
@@ -813,17 +811,30 @@ check is independent of the union schema, because the shared frontmatter
 envelope declares `slug` once and no subtype can narrow it there.
 
 **Built** — `cli/core/schemaregistry`. The branch a document is checked
-against is found mechanically: a document's declared type
-("system-blueprint") is converted to the PascalCase form the union's
-top-level `definitions` are keyed by ("SystemBlueprint"), which is a
-string transform rather than a lookup table naming any type. This is
-what lets the package hold to the Change Guidance below without a
-per-type schema pointer from the profile.
+against is found mechanically: the registry finds the discriminated union
+in the profile's schema — the definition whose `anyOf` branches each fix
+`type` to a constant — and selects the branch whose constant is the
+document's declared type. Where a schema has no such union, the declared
+type ("system-blueprint") is converted to the PascalCase form its
+top-level `definitions` are keyed by ("SystemBlueprint"). Neither is a
+lookup table naming any type, which is what lets the package hold to the
+Change Guidance below without a per-type schema pointer from the profile.
+
+**Built** — `cli/core/envelope`. The index carries each document's
+frontmatter as the union variant its `type` selects
+(`TypedFrontmatter`), so every property the type defines is carried
+(AC-SPEC-002.1). This package decodes a parsed block into that variant
+and reads the shared envelope back out of one, without naming a document
+type: the variants are discovered from the generated union, each tag the
+kebab-case of its variant's name. It decodes without the generated
+required-field enforcement, because a document missing a required
+property must still be indexed for `frontmatter/missing-property` to
+report it.
 
 ### Corpus
 
 ```component
-title: Corpus
+entity_name: Corpus
 slug: component-corpus
 description: Discovery, membership determination, the index model and its versioned emission
 ```
@@ -869,7 +880,7 @@ The vocabulary is:
   (AC-SPEC-001.3, AC-SPEC-001.4).
 - **`Reference`** — one occurrence of one document referencing another:
   the `path` it occurs in, the reference `text` as written, its `slug`
-  and `anchor` halves, its `origin`, its `position` as a `Span`, and its
+  and `anchor` halves, its `origin`, its `span`, and its
   `resolution`. References are their own collection rather than an array
   on each entry, per [[adr-018]]: the attributes of a reference describe
   the edge and not either endpoint, both directions are derived by
@@ -894,7 +905,7 @@ The vocabulary is:
 - **`Feature`** — one feature declared by the corpus: its `id`, the
   `code` that groups it, the `document_slug` of the document that owns
   it, the `path` it is written in, its `name`, its `description`, its
-  `source`, its `position` as a `Span`, and its nested `criteria`
+  `source`, its `span`, and its nested `criteria`
   (AC-GHK-005.1). Features are a top-level collection because a feature
   is addressed by its identifier and not by the document that happens to
   hold it, ordered by the path a feature occurs in and then by its
@@ -908,7 +919,7 @@ The vocabulary is:
   it qualifies rather than held in a sibling collection: its `id`, its
   `name`, its body as `text`, its `description`, the `rule` it sits
   beneath, the `negative` and `manual` qualifiers, its verification
-  `level`, its `notation`, its `content_hash`, and its `position`
+  `level`, its `notation`, its `content_hash`, and its `span`
   (AC-GHK-005.2, AC-GHK-005.4). The body is one string and is not
   decomposed into typed steps and keyed example rows: a criterion is the
   atomic unit here, and a decomposed shape could be filled from one
@@ -916,8 +927,8 @@ The vocabulary is:
   name and text and nothing else, so a criterion that moved has not
   changed (AC-GHK-005.5).
 - **`Heading`** — one heading of a document body: its `text` as
-  authored, its `level` constrained to 1 through 6, the `position` of the
-  heading line itself, the `section` span of the content beneath it, and
+  authored, its `level` constrained to 1 through 6, the `span` of the
+  heading line itself, the `section_span` of the content beneath it, and
   the `record_blocks` attached to it. The section span runs from the end
   of the heading line to the start of the next heading of the same or a
   higher level, and to the end of the document where there is none. No
@@ -927,26 +938,28 @@ The vocabulary is:
   pure function of the text and is derived by the Markdown Structure
   component on demand.
 - **`RecordBlock`** — one fenced block the active profile registers as
-  carrying structured data about an element declared inside a document
-  ([[adr-008]]): its `tag`, its parsed `content`, and the `position` of
-  the block as written, fences included, so that a rewrite promoting the
-  element replaces the whole construct. The content is a mapping of
-  property name to value; Strata models closed shapes, so an open record
-  is a map rather than an arbitrary value, and this framework's element
-  declarations — a title, a description and a slug — are exactly that
-  shape. A tag whose registration names a schema is validated against it
-  by the Schema Registry, so this shape names no tag and carries no
-  vocabulary of its own. A block is attached to the innermost heading
-  whose section contains it, and to the document where no heading does,
-  so every parsed block in a document appears exactly once
-  (AC-SPECSTR-001.2).
+  carrying a YAML record about an element declared inside a document
+  ([[adr-008]]): its `tag` and the `span` of the block as written,
+  fences included, so that a rewrite promoting the element replaces the
+  whole construct. The record's content is not carried. Strata has no
+  open value type, so an arbitrary YAML mapping has no typed home in the
+  generated model; a command that needs a record reads it back through
+  the span and decodes it into its own Go type, and `specs check`
+  validates it — as YAML, as a mapping, and against the schema its
+  registration names, where it names one. This shape names no tag and
+  carries no vocabulary of its own. A block is attached to the innermost
+  heading whose section contains it, and to the document where no
+  heading does, so every registered block in a document appears exactly
+  once (AC-SPECSTR-001.2).
 - **`Span`** and **`ParseError`** — the position type every component
   reports through, and a message paired with one. `Span` is declared
   here, in the generated model, because findings and parse errors carry
   it across the JSON boundary; the Spans component below owns its
   semantics and is the only place spans are computed.
 
-`schema_version` is required and pinned to `1.0` (AC-SPEC-002.2). The
+`schema_version` is required and pinned to `2.0` (AC-SPEC-002.2). 2.0
+renamed every `Span`-typed property to `span` (or `<role>_span`, such as
+`section_span`), a change to what was already there and so a bump. The
 model is additive. The reference collection is the first exercise of that
 rule and it is a deliberate no-bump rather than an oversight —
 `references` is an addition alongside the existing shape,
@@ -958,7 +971,9 @@ The structure properties — `headings` and `record_blocks` on
 `IndexEntry`, with the `Heading` and `RecordBlock` shapes they carry —
 are the third, and are a no-bump for the same reason: every one of them
 is an addition alongside the existing shape, and none changes how
-anything already recorded is carried. The schema constrains
+anything already recorded is carried. Removing `RecordBlock.content`
+later was a no-bump under the exception [[container-spec-cli]] records
+for a property no emitted index has ever carried. The schema constrains
 `schema_version` by pattern (`String ~= /^1\.0$/`) rather than pinning
 it, so the generated model carries a validated field and not a constant;
 the emitted value lives in `cli/core/specindex` alongside the
@@ -996,7 +1011,7 @@ returns one `DocumentSummary` per index entry — a projection of
 carrying `path`, `slug`, `type`, `status`, `title` and `description` in
 that order and nothing else (AC-SPECLIST-001.1, AC-SPECLIST-001.2). It
 is a projection and not a new record, so the index shape does not change
-and `schema_version` stays `1.0`.
+and `schema_version` is unaffected.
 
 Summaries come back in the index's own entry order, which the emitter
 already fixes by repository-relative path, so the query sorts nothing
@@ -1473,7 +1488,7 @@ Six semantics are pinned by the implementation:
 ### Numbering
 
 ```component
-title: Numbering
+entity_name: Numbering
 slug: component-numbering
 description: Next-number derivation for document types a profile registers as numbered
 ```
@@ -1498,7 +1513,7 @@ answer derived from the wrong query.
 ### Findings
 
 ```component
-title: Findings
+entity_name: Findings
 slug: component-findings
 description: The finding and severity model, and emission of the report in human and JSON form
 ```
@@ -1519,7 +1534,7 @@ transpiled to JSON Schema, Go and Markdown with every other model, per
 is:
 
 - **`Finding`** — one reported result: the `rule` that raised it, its
-  `severity`, the `path` it is against, its `position` as a `Span`, a
+  `severity`, the `path` it is against, its `span`, a
   `message` stating the violated constraint and the offending value, and
   a `detail`.
 - **`FindingDetail`** — a union discriminated on `kind`, carrying the
@@ -1608,7 +1623,7 @@ envelope that carries it.
 ### Markdown Links
 
 ```component
-title: Markdown Links
+entity_name: Markdown Links
 slug: component-markdown-links
 description: Wikilink-to-markdown-link substitution and target resolution
 ```

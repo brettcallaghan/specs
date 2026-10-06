@@ -206,7 +206,7 @@ func TestAMemberRecordedWithAParseErrorIsSummarizedWithThatFailureAndNoEnvelope(
 	if summary.ParseError.Message == "" {
 		t.Error("the parse failure carries no message")
 	}
-	if summary.ParseError.Position.StartLine == 0 {
+	if summary.ParseError.Span.StartLine == 0 {
 		t.Error("the parse failure carries no position; lines are one-based")
 	}
 	if summary.Slug != nil {

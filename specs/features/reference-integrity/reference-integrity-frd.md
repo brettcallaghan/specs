@@ -130,7 +130,7 @@ deliberately, not overlooked:
   (AC-SPECREF-002.7), because the reader's next step differs.
 - **Reference-bearing property** — a frontmatter property the active
   profile declares as holding one or more document slugs (for example
-  `superseded_by` or `contained_by`). A profile MAY additionally declare
+  `superseded_by` or `modules`). A profile MAY additionally declare
   the document `type` such a property's target must carry, making the
   property a *typed* reference.
 - **Paired relationship** — two reference-bearing properties the profile
@@ -558,7 +558,7 @@ properties the configuration schema already carries, and it adds one —
 `typed_reference_properties`, mapping a reference-bearing property to the
 document `type` its target must declare (AC-SPECREF-004.1, and
 AC-SPECREF-002.10). The shipped configuration marks `superseded_by`,
-`sources`, `frd`, `system`, `contained_by`, `contracts_provided` and
+`sources`, `frd`, `system`, `modules`, `provider` and
 `contracts_consumed` as reference-bearing, and registers **no**
 pairing — every relationship this framework declares has its reverse
 derived from inbound edges, and [[document-relationship-standards]]

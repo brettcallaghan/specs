@@ -36,7 +36,7 @@ func gherkinParseFindings(failures []SourceFailure) []specmodel.Finding {
 	var findings []specmodel.Finding
 	for _, failure := range failures {
 		for _, err := range failure.Errors {
-			findings = append(findings, finding.GherkinParse(failure.Path, err.Position, err.Message))
+			findings = append(findings, finding.GherkinParse(failure.Path, err.Span, err.Message))
 		}
 	}
 	return findings
@@ -51,7 +51,7 @@ func criterionEmptyFindings(features []*gherkin.Feature) []specmodel.Finding {
 			if criterion.Record.Text != "" {
 				continue
 			}
-			findings = append(findings, finding.CriterionEmpty(feature.Record.Path, criterion.Record.Position))
+			findings = append(findings, finding.CriterionEmpty(feature.Record.Path, criterion.Record.Span))
 		}
 	}
 	return findings
@@ -78,7 +78,7 @@ func scenarioProseFindings(rules FeatureTagRules, features []*gherkin.Feature) [
 				continue
 			}
 			findings = append(findings, finding.ScenarioProse(
-				feature.Record.Path, criterion.Record.Position, rules.CriterionPattern))
+				feature.Record.Path, criterion.Record.Span, rules.CriterionPattern))
 		}
 	}
 	return findings

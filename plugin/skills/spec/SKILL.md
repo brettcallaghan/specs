@@ -176,12 +176,12 @@ specs.
    noun (`-checklist`, `-protocol`, `-reference`).
 
    The tree mirrors containment only where the child declares no
-   parent. A component blueprint carries no parent property, so its
-   directory is the only thing naming its owner — nest it. A module
-   declares `contained_by`, a LIST, because it may be composed into
-   several containers; no tree can hold that, so `modules/` stays at
-   the top level. A container declares `system`, so it nests only when
-   nesting earns its keep:
+   parent and has exactly one. A component blueprint carries no parent
+   property and has one parent, so its directory is the only thing
+   naming its owner — nest it. A module may be composed into several
+   containers, each listing it in its own `modules`; no tree can hold
+   that, so `modules/` stays at the top level. A container declares
+   `system`, so it nests only when nesting earns its keep:
 
    | Systems documented | Where container directories live |
    |---|---|

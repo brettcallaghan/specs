@@ -6,9 +6,8 @@ slug: contract-<interface-name>
 type: contract
 status: draft
 updated_at: <YYYY-MM-DDTHH:MM:SSZ>
-provider: <container-or-system slug that provides this interface>
+provider: <slug of the system, container, module or component providing it>
 visibility: <public | internal>
-consumers: []                        # known consumer slugs (containers/systems)
 specs: []                            # paths/URLs of machine-readable artifacts
 version: "1.0"
 ---

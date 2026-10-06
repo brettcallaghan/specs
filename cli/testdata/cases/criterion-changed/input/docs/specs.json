@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "workspace": "acme",
   "entries": [
     {
@@ -28,7 +28,7 @@
       "description": "As a shopper\nI want to pay for a basket\nSo that the goods are mine",
       "source": {
         "form": "fenced-block",
-        "block": {
+        "block_span": {
           "offset": 188,
           "length": 615,
           "start_line": 12,
@@ -37,7 +37,7 @@
           "end_column": 1
         }
       },
-      "position": {
+      "span": {
         "offset": 199,
         "length": 600,
         "start_line": 13,
@@ -55,7 +55,7 @@
           "level": "unit",
           "notation": "gherkin",
           "content_hash": "sha256:6c0b89a15617d8f8bb006d3bf0b26d151593cfb34b99a2ce46c29566669c02c1",
-          "position": {
+          "span": {
             "offset": 306,
             "length": 176,
             "start_line": 20,
@@ -73,7 +73,7 @@
           "level": "unit",
           "notation": "gherkin",
           "content_hash": "sha256:8e942b2d2200afa08ac2db1b9aa3dd44aa5b80cb696a0ee8640ed44baa80985b",
-          "position": {
+          "span": {
             "offset": 484,
             "length": 164,
             "start_line": 26,
@@ -90,7 +90,7 @@
           "manual": true,
           "notation": "gherkin",
           "content_hash": "sha256:e98cdb47190c267cf32e4c57588515889b219a8e33f0e21bbbb27d5a35836569",
-          "position": {
+          "span": {
             "offset": 650,
             "length": 148,
             "start_line": 32,

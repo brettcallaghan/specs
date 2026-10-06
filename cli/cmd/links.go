@@ -104,7 +104,7 @@ func runLinks(streams *ioStreams, configPath, operand, mapPath string) error {
 		// subcommand discovered it. Stopping here, rather than falling
 		// through with doc == nil, avoids scanning the raw frontmatter
 		// block as if it were body text for `[[...]]` constructs.
-		report.Add(finding.FrontmatterParse(reported, perr.Position, perr.Message))
+		report.Add(finding.FrontmatterParse(reported, perr.Span, perr.Message))
 		return finishLinks(streams, report, nil, 0)
 	}
 

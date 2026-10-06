@@ -5,12 +5,15 @@
 // There is no per-type schema registration here: a profile hands over
 // one schema — a discriminated union over every document type it
 // defines — and this package compiles it once. The branch a document is
-// checked against is found mechanically, by converting the document's
-// declared type (kebab-case, as documents write it — "system-blueprint")
-// to the PascalCase form the union's top-level "definitions" are keyed
-// by ("SystemBlueprint"). That transform is a string operation, not a
-// lookup table, which is what lets this package name no document type
-// of its own: [[module-spec-profile]]'s Change Guidance forbids it, and
+// checked against is found mechanically. Where a top-level definition is
+// a union whose every branch pins "type" to a constant, the branch whose
+// constant equals the document's declared type is the one used: it is
+// the closed shape that admits "type" alongside the type's own
+// properties. Otherwise the declared type (kebab-case, as documents
+// write it — "system-blueprint") is converted to the PascalCase form the
+// top-level "definitions" are keyed by ("SystemBlueprint"). Both are
+// read from the schema, never from a list, which is what lets this
+// package name no document type of its own: [[module-spec-profile]]'s Change Guidance forbids it, and
 // specs/modules/document-core/document-core-module.md states the same rule for
 // every package under cli/core.
 //
@@ -55,6 +58,11 @@ const resourceURL = "mem://schemaregistry/union.json"
 type Registry struct {
 	compiler *jsonschema.Compiler
 	branches map[string]*jsonschema.Schema
+
+	// variants maps a declared document type to the JSON Pointer of the
+	// union branch that pins "type" to it, when the schema has such a
+	// union. See [discriminatedVariants].
+	variants map[string]string
 }
 
 // New compiles schema, the bytes an active profile's Schema method
@@ -80,7 +88,50 @@ func New(schema []byte) (*Registry, error) {
 	return &Registry{
 		compiler: compiler,
 		branches: make(map[string]*jsonschema.Schema),
+		variants: discriminatedVariants(schema),
 	}, nil
+}
+
+// discriminatedVariants finds the top-level definition that is a union
+// discriminated by "type" — an anyOf whose every branch declares "type"
+// as a string constant — and maps each constant to its branch's JSON
+// Pointer. It returns an empty map when the schema has no such union.
+//
+// The union's branches, not the document structs they are built from,
+// are what a document validates against: the structs are closed and do
+// not declare "type", because a union's discriminator lives on the union.
+func discriminatedVariants(schema []byte) map[string]string {
+	var doc struct {
+		Definitions map[string]struct {
+			AnyOf []struct {
+				Properties map[string]struct {
+					Const *string `json:"const"`
+				} `json:"properties"`
+			} `json:"anyOf"`
+		} `json:"definitions"`
+	}
+	variants := map[string]string{}
+	if err := json.Unmarshal(schema, &doc); err != nil {
+		return variants
+	}
+	for name, def := range doc.Definitions {
+		if len(def.AnyOf) == 0 {
+			continue
+		}
+		found := map[string]string{}
+		for i, branch := range def.AnyOf {
+			tag := branch.Properties["type"].Const
+			if tag == nil {
+				found = nil
+				break
+			}
+			found[*tag] = fmt.Sprintf("#/definitions/%s/anyOf/%d", name, i)
+		}
+		for tag, pointer := range found {
+			variants[tag] = pointer
+		}
+	}
+	return variants
 }
 
 // Validate validates doc's frontmatter against the union schema's branch
@@ -132,8 +183,10 @@ func (r *Registry) branch(documentType string) (*jsonschema.Schema, error) {
 		return s, nil
 	}
 
-	name := pascalCase(documentType)
-	location := resourceURL + "#/definitions/" + name
+	location := resourceURL + "#/definitions/" + pascalCase(documentType)
+	if pointer, ok := r.variants[documentType]; ok {
+		location = resourceURL + pointer
+	}
 	schema, err := r.compiler.Compile(location)
 	if err != nil {
 		return nil, fmt.Errorf("schemaregistry: no schema branch for document type %q: %w", documentType, err)

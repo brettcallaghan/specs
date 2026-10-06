@@ -203,7 +203,7 @@ name = "test-profile"
 	if f.Rule != cmd.RuleConfigSchema {
 		t.Errorf("rule = %q, want %q", f.Rule, cmd.RuleConfigSchema)
 	}
-	if f.Position.StartLine == 0 {
+	if f.Span.StartLine == 0 {
 		t.Error("the finding carries no span")
 	}
 	detail, ok := f.Detail.Value.(specmodel.FindingSchemaViolation)
@@ -340,7 +340,7 @@ func TestLoadReportsATOMLSyntaxError(t *testing.T) {
 	if len(findings) != 1 {
 		t.Fatalf("got %d findings, want 1: %+v", len(findings), findings)
 	}
-	if findings[0].Position.StartLine == 0 {
+	if findings[0].Span.StartLine == 0 {
 		t.Error("the syntax finding carries no span")
 	}
 }
@@ -409,7 +409,7 @@ name = "broken-profile"
 	if !strings.Contains(f.Message, "note.successor") {
 		t.Errorf("message %q does not name the offending key", f.Message)
 	}
-	if f.Position.StartLine == 0 {
+	if f.Span.StartLine == 0 {
 		t.Error("the finding carries no span")
 	}
 	detail, ok := f.Detail.Value.(specmodel.FindingSchemaViolation)

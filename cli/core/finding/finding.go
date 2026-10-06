@@ -209,7 +209,7 @@ func SchemaViolation(path string, at specmodel.Span, pointer, constraint, value 
 		Rule:     RuleSchemaViolation,
 		Severity: SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message: fmt.Sprintf("%s: %q does not satisfy %s",
 			renderPointer(pointer), value, constraint),
 		Detail: specmodel.NewFindingDetailSchemaViolation(specmodel.FindingSchemaViolation{
@@ -227,7 +227,7 @@ func MissingProperty(path string, at specmodel.Span, pointer, property string) s
 		Rule:     RuleMissingProperty,
 		Severity: SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message: fmt.Sprintf("%s: required property %q is not declared",
 			renderPointer(pointer), property),
 		Detail: specmodel.NewFindingDetailMissingProperty(specmodel.FindingMissingProperty{
@@ -248,7 +248,7 @@ func SlugPattern(path string, at specmodel.Span, slug, pattern string) specmodel
 		Rule:     RuleSlugPattern,
 		Severity: SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  fmt.Sprintf("%q does not match pattern %q", slug, pattern),
 		Detail: specmodel.NewFindingDetailSlugPattern(specmodel.FindingSlugPattern{
 			Slug:    slug,
@@ -267,7 +267,7 @@ func DuplicateSlug(path string, at specmodel.Span, slug, otherPath string) specm
 		Rule:     RuleDuplicateSlug,
 		Severity: SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  fmt.Sprintf("slug %q is also declared by %s", slug, otherPath),
 		Detail: specmodel.NewFindingDetailDuplicateSlug(specmodel.FindingDuplicateSlug{
 			Slug:      slug,
@@ -295,7 +295,7 @@ func FrontmatterParse(path string, at specmodel.Span, message string) specmodel.
 		Rule:     RuleFrontmatterParse,
 		Severity: SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  fmt.Sprintf("frontmatter could not be read: %s", message),
 		Detail: specmodel.NewFindingDetailFrontmatterParse(specmodel.FindingFrontmatterParse{
 			Message: message,
@@ -335,7 +335,7 @@ func UnresolvedReference(
 		Rule:     RuleUnresolvedReference,
 		Severity: SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  message,
 		Detail: specmodel.NewFindingDetailUnresolvedReference(specmodel.FindingUnresolvedReference{
 			Slug:      slug,
@@ -352,7 +352,7 @@ func UnresolvedReference(
 // doc comment.
 func nonMemberReason(nonMember specmodel.ReferenceNonMember) string {
 	if nonMember.ParseError != nil {
-		return fmt.Sprintf("parse failure at line %d", nonMember.ParseError.Position.StartLine)
+		return fmt.Sprintf("parse failure at line %d", nonMember.ParseError.Span.StartLine)
 	}
 	if nonMember.Reason != nil {
 		return fmt.Sprintf("excluded: %s", *nonMember.Reason)
@@ -372,7 +372,7 @@ func UnresolvedAnchor(path string, at specmodel.Span, anchor, targetPath string)
 		Rule:     RuleUnresolvedAnchor,
 		Severity: SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  fmt.Sprintf("no heading named %q in %s", anchor, targetPath),
 		Detail: specmodel.NewFindingDetailUnresolvedAnchor(specmodel.FindingUnresolvedAnchor{
 			Anchor:     anchor,
@@ -390,7 +390,7 @@ func AmbiguousAnchor(path string, at specmodel.Span, anchor, targetPath string, 
 		Rule:     RuleAmbiguousAnchor,
 		Severity: SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  fmt.Sprintf("%q matches %d headings in %s", anchor, len(matches), targetPath),
 		Detail: specmodel.NewFindingDetailAmbiguousAnchor(specmodel.FindingAmbiguousAnchor{
 			Anchor:     anchor,
@@ -418,7 +418,7 @@ func RetiredTarget(path string, at specmodel.Span, slug string, successor *strin
 		Rule:     RuleRetiredTarget,
 		Severity: SeverityWarning,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  message,
 		Detail: specmodel.NewFindingDetailRetiredTarget(specmodel.FindingRetiredTarget{
 			Slug:      slug,
@@ -443,7 +443,7 @@ func IncompletePairing(path string, at specmodel.Span, property, counterpart, so
 		Rule:     RuleIncompletePairing,
 		Severity: SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message: fmt.Sprintf("%s declares %q naming %s, which does not declare the paired property %q back",
 			sourcePath, property, targetPath, counterpart),
 		Detail: specmodel.NewFindingDetailIncompletePairing(specmodel.FindingIncompletePairing{
@@ -463,7 +463,7 @@ func ReferenceType(path string, at specmodel.Span, property, slug, expectedType,
 		Rule:     RuleTypeMismatch,
 		Severity: SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message: fmt.Sprintf("%s expects type %q, target %q declares type %q",
 			property, expectedType, slug, actualType),
 		Detail: specmodel.NewFindingDetailReferenceType(specmodel.FindingReferenceType{
@@ -489,7 +489,7 @@ func UnmappedCitation(citingPath string, at specmodel.Span, slug, mapPath string
 		Rule:     RuleUnmappedCitation,
 		Severity: SeverityError,
 		Path:     citingPath,
-		Position: at,
+		Span:     at,
 		Message:  fmt.Sprintf("[[%s]] is not covered by link map %s", slug, mapPath),
 		Detail: specmodel.NewFindingDetailUnmappedCitation(specmodel.FindingUnmappedCitation{
 			Slug:       slug,
@@ -513,7 +513,7 @@ func UnresolvedCitation(citingPath string, at specmodel.Span, slug string) specm
 		Rule:     RuleUnresolvedCitation,
 		Severity: SeverityWarning,
 		Path:     citingPath,
-		Position: at,
+		Span:     at,
 		Message:  fmt.Sprintf("[[%s]] matches no corpus document", slug),
 		Detail: specmodel.NewFindingDetailUnresolvedCitation(specmodel.FindingUnresolvedCitation{
 			Slug:       slug,
@@ -565,7 +565,7 @@ func Unverified(rule specmodel.RuleId, path string, at specmodel.Span, reason st
 		Rule:     rule,
 		Severity: SeverityUnverified,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  fmt.Sprintf("check %s could not run: %s", rule, reason),
 		Detail: specmodel.NewFindingDetailUnverified(specmodel.FindingUnverified{
 			Reason: reason,
@@ -580,7 +580,7 @@ func FeatureUntagged(path string, at specmodel.Span, pattern string) specmodel.F
 		Rule:     RuleFeatureUntagged,
 		Severity: SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  fmt.Sprintf("Feature carries no identifier tag matching %q", pattern),
 		Detail: specmodel.NewFindingDetailIdentifierPattern(specmodel.FindingIdentifierPattern{
 			Pattern: pattern,
@@ -595,7 +595,7 @@ func CriterionUntagged(path string, at specmodel.Span, pattern string) specmodel
 		Rule:     RuleCriterionUntagged,
 		Severity: SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  fmt.Sprintf("Scenario carries no identifier tag matching %q", pattern),
 		Detail: specmodel.NewFindingDetailIdentifierPattern(specmodel.FindingIdentifierPattern{
 			Pattern: pattern,
@@ -612,7 +612,7 @@ func IdentifierMalformed(path string, at specmodel.Span, identifier, pattern str
 		Rule:     RuleIdentifierMalformed,
 		Severity: SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  fmt.Sprintf("%q does not match pattern %q", identifier, pattern),
 		Detail: specmodel.NewFindingDetailIdentifierPattern(specmodel.FindingIdentifierPattern{
 			Identifier: &id,
@@ -630,7 +630,7 @@ func IdentifierMultiple(path string, at specmodel.Span, tags []string, pattern s
 		Rule:     RuleIdentifierMultiple,
 		Severity: SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  fmt.Sprintf("carries %d tags matching pattern %q: %s", len(tags), pattern, joined),
 		Detail: specmodel.NewFindingDetailIdentifierPattern(specmodel.FindingIdentifierPattern{
 			Identifier: &joined,
@@ -651,12 +651,12 @@ func IdentifierDuplicate(path string, at specmodel.Span, identifier, otherPath s
 		Rule:     RuleIdentifierDuplicate,
 		Severity: SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  fmt.Sprintf("identifier %q is also declared by %s", identifier, otherPath),
 		Detail: specmodel.NewFindingDetailDuplicateIdentifier(specmodel.FindingDuplicateIdentifier{
-			Identifier:    identifier,
-			OtherPath:     otherPath,
-			OtherPosition: otherPosition,
+			Identifier: identifier,
+			OtherPath:  otherPath,
+			OtherSpan:  otherPosition,
 		}),
 	}
 }
@@ -672,7 +672,7 @@ func CriterionCodeMismatch(path string, at specmodel.Span, criterionId, featureI
 		Rule:     RuleCriterionCodeMismatch,
 		Severity: SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  fmt.Sprintf("%q does not carry feature %q's code and number", criterionId, featureId),
 		Detail: specmodel.NewFindingDetailIdentifierPattern(specmodel.FindingIdentifierPattern{
 			Identifier: &id,
@@ -690,7 +690,7 @@ func OwnerMissing(path string, at specmodel.Span, ownerPrefix string) specmodel.
 		Rule:     RuleOwnerMissing,
 		Severity: SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  fmt.Sprintf("carries no owning-document tag (expected one prefixed %q)", ownerPrefix),
 		Detail:   specmodel.NewFindingDetailOwningDocument(specmodel.FindingOwningDocument{}),
 	}
@@ -705,7 +705,7 @@ func OwnerMismatch(path string, at specmodel.Span, taggedSlug, documentSlug stri
 		Rule:     RuleOwnerMismatch,
 		Severity: SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  fmt.Sprintf("owning-document tag names %q, but is written in %q", taggedSlug, documentSlug),
 		Detail: specmodel.NewFindingDetailOwningDocument(specmodel.FindingOwningDocument{
 			Slug:         &tagged,
@@ -724,7 +724,7 @@ func OwnerUnresolved(path string, at specmodel.Span, slug string) specmodel.Find
 		Rule:     RuleOwnerUnresolved,
 		Severity: SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  fmt.Sprintf("owning-document tag names %q, which matches no corpus member", slug),
 		Detail: specmodel.NewFindingDetailOwningDocument(specmodel.FindingOwningDocument{
 			Slug: &s,
@@ -740,7 +740,7 @@ func GherkinParse(path string, at specmodel.Span, expected string) specmodel.Fin
 		Rule:     RuleGherkinParse,
 		Severity: SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  fmt.Sprintf("Gherkin source could not be parsed: %s", expected),
 		Detail: specmodel.NewFindingDetailGherkinParse(specmodel.FindingGherkinParse{
 			Expected: expected,
@@ -757,7 +757,7 @@ func CriterionEmpty(path string, at specmodel.Span) specmodel.Finding {
 		Rule:     RuleCriterionEmpty,
 		Severity: SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  "criterion carries no steps",
 		Detail: specmodel.NewFindingDetailMissingProperty(specmodel.FindingMissingProperty{
 			Property: "steps",
@@ -775,7 +775,7 @@ func ScenarioProse(path string, at specmodel.Span, pattern string) specmodel.Fin
 		Rule:     RuleScenarioProse,
 		Severity: SeverityWarning,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  "Scenario description reads as a normative statement, which is a probable untagged criterion",
 		Detail: specmodel.NewFindingDetailIdentifierPattern(specmodel.FindingIdentifierPattern{
 			Pattern: pattern,
@@ -798,7 +798,7 @@ func ExamplesPartiallyTagged(path string, untagged []specmodel.Span) specmodel.F
 		Rule:     RuleExamplesPartiallyTagged,
 		Severity: SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message: fmt.Sprintf(
 			"Scenario Outline is partially tagged: %d Examples block(s) carry no identifier while at least one sibling does",
 			len(untagged)),
@@ -1038,11 +1038,11 @@ func less(a, b specmodel.Finding) bool {
 	if a.Path != b.Path {
 		return a.Path < b.Path
 	}
-	if a.Position.Offset != b.Position.Offset {
-		return a.Position.Offset < b.Position.Offset
+	if a.Span.Offset != b.Span.Offset {
+		return a.Span.Offset < b.Span.Offset
 	}
-	if a.Position.Length != b.Position.Length {
-		return a.Position.Length < b.Position.Length
+	if a.Span.Length != b.Span.Length {
+		return a.Span.Length < b.Span.Length
 	}
 	if a.Rule != b.Rule {
 		return a.Rule < b.Rule
@@ -1137,7 +1137,7 @@ func writeFindingsByFile(b *strings.Builder, findings []specmodel.Finding) {
 			last = f.Path
 		}
 		fmt.Fprintf(b, "  %s  %s  %d:%d  %s\n",
-			f.Rule, f.Severity, f.Position.StartLine, f.Position.StartColumn, f.Message)
+			f.Rule, f.Severity, f.Span.StartLine, f.Span.StartColumn, f.Message)
 	}
 }
 

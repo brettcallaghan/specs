@@ -30,7 +30,7 @@ func TestReportsAGherkinSourceThatWillNotParse(t *testing.T) {
 	if detail.Expected == "" {
 		t.Error("Expected is empty, want the parser's own expectation")
 	}
-	if got[0].Position.StartLine == 0 {
+	if got[0].Span.StartLine == 0 {
 		t.Error("Position carries no line at all")
 	}
 }

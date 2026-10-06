@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
 	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specindex"
@@ -404,7 +405,7 @@ func fromIndex(index specmodel.SpecIndex, opts Options) (*Corpus, error) {
 		if entry.Frontmatter == nil {
 			continue
 		}
-		key := strings.ToLower(string(entry.Frontmatter.Slug))
+		key := strings.ToLower(string(envelope.Of(entry.Frontmatter).Slug))
 		if key == "" {
 			continue
 		}
@@ -441,7 +442,7 @@ func (c *Corpus) collidingMembers() ([]member, error) {
 		if entry.Frontmatter == nil {
 			continue
 		}
-		slug := string(entry.Frontmatter.Slug)
+		slug := string(envelope.Of(entry.Frontmatter).Slug)
 		if slug == "" {
 			continue
 		}
@@ -463,7 +464,7 @@ func (c *Corpus) collidingMembers() ([]member, error) {
 			}
 			members = append(members, member{
 				path:   entry.Path,
-				slug:   string(entry.Frontmatter.Slug),
+				slug:   string(envelope.Of(entry.Frontmatter).Slug),
 				slugAt: slugSpan(doc),
 				doc:    doc,
 			})

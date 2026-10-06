@@ -1,14 +1,14 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "workspace": "acme",
   "entries": [
     {
       "path": "docs/adrs/adr-001-citing.md",
       "frontmatter": {
-        "title": "ADR-001: Citing",
+        "type": "adr",
         "description": "A decision citing one document that exists and one that does not.",
         "slug": "adr-001-citing",
-        "type": "adr",
+        "title": "ADR-001: Citing",
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
       },
@@ -16,7 +16,7 @@
         {
           "text": "ADR-001: Citing",
           "level": 1,
-          "position": {
+          "span": {
             "offset": 194,
             "length": 18,
             "start_line": 10,
@@ -24,7 +24,7 @@
             "end_line": 11,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 212,
             "length": 159,
             "start_line": 11,
@@ -40,10 +40,10 @@
     {
       "path": "docs/adrs/adr-002-cited.md",
       "frontmatter": {
-        "title": "ADR-002: Cited",
+        "type": "adr",
         "description": "The document the other one resolves to.",
         "slug": "adr-002-cited",
-        "type": "adr",
+        "title": "ADR-002: Cited",
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
       },
@@ -51,7 +51,7 @@
         {
           "text": "ADR-002: Cited",
           "level": 1,
-          "position": {
+          "span": {
             "offset": 166,
             "length": 17,
             "start_line": 10,
@@ -59,7 +59,7 @@
             "end_line": 11,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 183,
             "length": 0,
             "start_line": 11,
@@ -82,7 +82,7 @@
       "origin": {
         "kind": "body"
       },
-      "position": {
+      "span": {
         "offset": 228,
         "length": 13,
         "start_line": 12,
@@ -102,7 +102,7 @@
       "origin": {
         "kind": "body"
       },
-      "position": {
+      "span": {
         "offset": 261,
         "length": 14,
         "start_line": 12,
@@ -116,5 +116,5 @@
     }
   ],
   "features": [],
-  "input_hash": "sha256:1b50e3861ac704280f3946117531b08692f4881c60066005ec3b1cfa24ec9ac4"
+  "input_hash": "sha256:8186be793988ffe265c851e6a120ca23747d00bbd7db3dd0cfd7f141fb01b23b"
 }

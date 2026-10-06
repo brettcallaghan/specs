@@ -1,14 +1,14 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "workspace": "acme",
   "entries": [
     {
       "path": "docs/adrs/adr-001-example.md",
       "frontmatter": {
-        "title": "ADR-001: Example",
+        "type": "adr",
         "description": "An example decision used by a snapshot case.",
         "slug": "adr-001-example",
-        "type": "adr",
+        "title": "ADR-001: Example",
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
       },
@@ -16,7 +16,7 @@
         {
           "text": "ADR-001: Example",
           "level": 1,
-          "position": {
+          "span": {
             "offset": 175,
             "length": 19,
             "start_line": 10,
@@ -24,7 +24,7 @@
             "end_line": 11,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 194,
             "length": 0,
             "start_line": 11,
@@ -41,5 +41,5 @@
   "exclusions": [],
   "references": [],
   "features": [],
-  "input_hash": "sha256:ee430b9a50d0ab3e61d56b2986ad8f045931c5d622f9755542202b36818c76ed"
+  "input_hash": "sha256:a4ad27410c1dcb362897d1a54ee85f21cf970a6537771128d2837e17e1a93ce5"
 }

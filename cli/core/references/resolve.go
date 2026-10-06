@@ -4,6 +4,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
@@ -76,7 +77,7 @@ func newTargets(index specmodel.SpecIndex) targets {
 
 	for _, entry := range index.Entries {
 		if entry.Frontmatter != nil {
-			if key := lookupKey(string(entry.Frontmatter.Slug)); key != "" {
+			if key := lookupKey(string(envelope.Of(entry.Frontmatter).Slug)); key != "" {
 				if held, seen := built.members[key]; !seen || entry.Path < held {
 					built.members[key] = entry.Path
 				}

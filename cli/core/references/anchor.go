@@ -123,8 +123,8 @@ func resolveAnchor(ref specmodel.Reference, headings map[string][]specmodel.Head
 	for _, heading := range targetHeadings {
 		if markdown.Identifier(heading.Text) == wanted {
 			matches = append(matches, specmodel.AnchorMatch{
-				Text:     heading.Text,
-				Position: heading.Position,
+				Text: heading.Text,
+				Span: heading.Span,
 			})
 		}
 	}

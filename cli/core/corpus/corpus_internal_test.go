@@ -100,7 +100,7 @@ func TestAnUnparsableFrontmatterBlockIsNotIndexedAsAHeading(t *testing.T) {
 	}
 	// The envelope sits before the body, so no heading may begin inside
 	// it.
-	if got := found[0].Position.Offset; got < 40 {
+	if got := found[0].Span.Offset; got < 40 {
 		t.Errorf("the heading begins at offset %d, inside the frontmatter block", got)
 	}
 }

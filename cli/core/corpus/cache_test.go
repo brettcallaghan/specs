@@ -367,14 +367,13 @@ func TestAWarmIndexIsServedWithoutRewalkingTheCorpus(t *testing.T) {
 	persisted := readIndex(t, dest)
 	persisted.Entries = append(persisted.Entries, specmodel.IndexEntry{
 		Path: "specs/adrs/adr-999.md",
-		Frontmatter: &specmodel.DocumentFrontmatter{
+		Frontmatter: frontmatterOf(specmodel.NewTypedFrontmatterAdr(specmodel.Adr{
 			Title:       "A document that is not on disk",
 			Description: "Planted in the persisted index and nowhere else.",
 			Slug:        specmodel.Slug("adr-999"),
-			Type:        specmodel.DocumentTypeAdr,
 			Status:      specmodel.StatusApproved,
 			UpdatedAt:   time.Date(2026, 8, 5, 0, 0, 0, 0, time.UTC),
-		},
+		})),
 		Headings:     []specmodel.Heading{},
 		RecordBlocks: []specmodel.RecordBlock{},
 	})
@@ -1026,4 +1025,10 @@ func copyTree(t *testing.T, from, to string) {
 	if err != nil {
 		t.Fatalf("copying %s to %s: %v", from, to, err)
 	}
+}
+
+// frontmatterOf returns a pointer to typed frontmatter, as an index
+// entry holds it.
+func frontmatterOf(f specmodel.TypedFrontmatter) *specmodel.TypedFrontmatter {
+	return &f
 }

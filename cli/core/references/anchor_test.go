@@ -18,9 +18,9 @@ import (
 // failure message.
 func heading(text string, offset uint64) specmodel.Heading {
 	return specmodel.Heading{
-		Text:     text,
-		Level:    2,
-		Position: specmodel.Span{Offset: offset, Length: uint64(len(text))},
+		Text:  text,
+		Level: 2,
+		Span:  specmodel.Span{Offset: offset, Length: uint64(len(text))},
 	}
 }
 
@@ -145,7 +145,7 @@ func TestAnAmbiguousAnchorCarriesEveryMatch(t *testing.T) {
 	if len(ambiguous.Matches) != 2 {
 		t.Fatalf("Matches has %d entries, want both headings", len(ambiguous.Matches))
 	}
-	if ambiguous.Matches[0].Position == ambiguous.Matches[1].Position {
+	if ambiguous.Matches[0].Span == ambiguous.Matches[1].Span {
 		t.Error("both matches carry the same position; the fixture no longer proves two distinct headings")
 	}
 }

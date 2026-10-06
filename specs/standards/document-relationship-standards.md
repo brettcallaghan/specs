@@ -8,8 +8,8 @@ description: How formal relationships between specification documents are
 slug: document-relationship-standards
 type: standards
 status: active
-updated_at: 2026-08-06T00:00:00Z
-version: "0.1"
+updated_at: 2026-10-06T00:00:00Z
+version: "0.2"
 ---
 
 # Document Relationship Standards
@@ -98,46 +98,56 @@ correct than the graph and can be less.
 
 ## Choosing Which End Retains the Edge
 
+### Modify What Changed
+
 WHEN a relationship is declared once and either end could hold it, the
-author SHALL choose the retaining end by the following tie-breakers, in
-order.
+author SHALL declare it on the end whose change creates the relationship
+— the document being written or edited at the moment the relationship
+comes into being — so that recording it never requires editing the other
+end. The other end, which changes less often, SHALL NOT be required to
+restate it; the index derives it.
+
+**Rationale:** The end that changes when the relationship is created is
+the end that will be open in the editor. Putting the edge anywhere else
+turns one authoring act into two, and the second is the one that gets
+forgotten. It also keeps a stable document stable: a shared module is
+not edited every time another container adopts it.
+
+The relationships this framework declares, and why each sits where it
+does:
+
+| Relationship | Declared on | Because creating it changes |
+|---|---|---|
+| a container belongs to a system | the container, `system` | the container, which joins the system |
+| a container or module composes a module | the host, `modules` | the host, which adopts the module; the module may already serve other hosts |
+| a container or module composes a component | the host, in its roster section | the host, whose roster gains the component |
+| an element depends on a contract | the element, `contracts_consumed` | the element, which starts depending on it |
+| an element provides a contract | the contract, `provider` | the contract, which is written for its provider |
+| a feature blueprint realizes an FRD | the blueprint, `frd` | the blueprint, written after the FRD |
+| a document is derived from sources | the document, `sources` | the document, written from them |
+| a document is replaced by a successor | the retired document, `superseded_by` | the retired document, whose status changes to `retired` in the same edit |
+
+---
 
 ### Singularity
 
-WHEN one end of a relationship holds a single value and the other would
-hold a list, the author SHALL declare it on the single-valued end and
-derive the list.
+WHEN both ends change in the same act, the author SHALL declare the
+relationship on the single-valued end and derive the list.
 
 **Rationale:** A scalar drifts less than a list, and the list is exactly
-what the index rebuilds cheaply from inbound edges. A promoted component
-has one parent; storing `parent_slug` on the child and deriving the
-parent's roster is cheaper to keep correct than a hand-edited `children`
-list on the parent.
+what the index rebuilds cheaply from inbound edges.
 
 ---
 
 ### Intrinsic Over Host-Varying
 
-WHEN one end of a relationship holds regardless of context and the other
-varies by the document that observes it, the author SHALL declare it on
-the context-independent end.
+WHEN neither rule above settles the choice and one end of a relationship
+holds regardless of context while the other varies by the document that
+observes it, the author SHALL declare it on the context-independent end.
 
 **Rationale:** This is [[adr-009]]'s own logic. A shared module has
-different neighbours in every container that composes it, so no single
-outward list on the module is correct; the fact that is invariant — the
-container's membership of that module — is where the edge belongs.
-
----
-
-### Authored at Decision
-
-WHEN neither singularity nor context settles the choice, the author SHALL
-declare the relationship on the document whose author sets it at the moment
-of authoring, so that recording it never requires editing the counterpart.
-
-**Rationale:** The end that changes when the relationship is created is the
-end that will be open in the editor. Putting the edge anywhere else turns
-one authoring act into two, and the second is the one that gets forgotten.
+different neighbors in every container that composes it, so no single
+outward list on the module is correct.
 
 ---
 

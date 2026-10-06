@@ -1,14 +1,14 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "workspace": "acme",
   "entries": [
     {
       "path": "docs/adr-001-choice.md",
       "frontmatter": {
-        "title": "ADR-001: Choice",
+        "type": "adr",
         "description": "A minimal conforming document of this type.",
         "slug": "adr-001-choice",
-        "type": "adr",
+        "title": "ADR-001: Choice",
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
       },
@@ -16,7 +16,7 @@
         {
           "text": "Doc",
           "level": 1,
-          "position": {
+          "span": {
             "offset": 174,
             "length": 6,
             "start_line": 10,
@@ -24,7 +24,7 @@
             "end_line": 11,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 180,
             "length": 0,
             "start_line": 11,
@@ -40,18 +40,19 @@
     {
       "path": "docs/coding-standards.md",
       "frontmatter": {
-        "title": "Coding Standards",
+        "type": "standards",
         "description": "A minimal conforming document of this type.",
         "slug": "coding-standards",
-        "type": "standards",
+        "title": "Coding Standards",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "updated_at": "2026-08-01T00:00:00Z",
+        "version": "1.0.0"
       },
       "headings": [
         {
           "text": "Doc",
           "level": 1,
-          "position": {
+          "span": {
             "offset": 200,
             "length": 6,
             "start_line": 11,
@@ -59,7 +60,7 @@
             "end_line": 12,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 206,
             "length": 0,
             "start_line": 12,
@@ -75,31 +76,33 @@
     {
       "path": "docs/component-widget-store.md",
       "frontmatter": {
-        "title": "Widget Store",
+        "type": "component-blueprint",
         "description": "A minimal conforming document of this type.",
         "slug": "component-widget-store",
-        "type": "component-blueprint",
+        "title": "Widget Store",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "updated_at": "2026-08-01T00:00:00Z",
+        "entity_name": "Widget Store",
+        "kind": "standard"
       },
       "headings": [
         {
           "text": "Doc",
           "level": 1,
-          "position": {
-            "offset": 210,
+          "span": {
+            "offset": 236,
             "length": 6,
-            "start_line": 11,
-            "start_column": 1,
-            "end_line": 12,
-            "end_column": 1
-          },
-          "section": {
-            "offset": 216,
-            "length": 0,
             "start_line": 12,
             "start_column": 1,
-            "end_line": 12,
+            "end_line": 13,
+            "end_column": 1
+          },
+          "section_span": {
+            "offset": 242,
+            "length": 0,
+            "start_line": 13,
+            "start_column": 1,
+            "end_line": 13,
             "end_column": 1
           },
           "record_blocks": []
@@ -110,27 +113,28 @@
     {
       "path": "docs/container-widget-service.md",
       "frontmatter": {
-        "title": "Widget Service",
+        "type": "container-blueprint",
         "description": "A minimal conforming document of this type.",
         "slug": "container-widget-service",
-        "type": "container-blueprint",
+        "title": "Widget Service",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "updated_at": "2026-08-01T00:00:00Z",
+        "entity_name": "Widget Service"
       },
       "headings": [
         {
           "text": "Doc",
           "level": 1,
-          "position": {
-            "offset": 241,
+          "span": {
+            "offset": 227,
             "length": 6,
             "start_line": 11,
             "start_column": 1,
             "end_line": 12,
             "end_column": 1
           },
-          "section": {
-            "offset": 247,
+          "section_span": {
+            "offset": 233,
             "length": 0,
             "start_line": 12,
             "start_column": 1,
@@ -145,18 +149,21 @@
     {
       "path": "docs/contract-widget-api.md",
       "frontmatter": {
-        "title": "Widget API",
+        "type": "contract",
         "description": "A minimal conforming document of this type.",
         "slug": "contract-widget-api",
-        "type": "contract",
+        "title": "Widget API",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "updated_at": "2026-08-01T00:00:00Z",
+        "provider": "container-widget-service",
+        "visibility": "public",
+        "version": "1.0.0"
       },
       "headings": [
         {
           "text": "Doc",
           "level": 1,
-          "position": {
+          "span": {
             "offset": 250,
             "length": 6,
             "start_line": 13,
@@ -164,7 +171,7 @@
             "end_line": 14,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 256,
             "length": 0,
             "start_line": 14,
@@ -180,10 +187,10 @@
     {
       "path": "docs/contributing-guide.md",
       "frontmatter": {
-        "title": "Contributing",
+        "type": "guide",
         "description": "A minimal conforming document of this type.",
         "slug": "contributing-guide",
-        "type": "guide",
+        "title": "Contributing",
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
       },
@@ -191,7 +198,7 @@
         {
           "text": "Doc",
           "level": 1,
-          "position": {
+          "span": {
             "offset": 177,
             "length": 6,
             "start_line": 10,
@@ -199,7 +206,7 @@
             "end_line": 11,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 183,
             "length": 0,
             "start_line": 11,
@@ -215,18 +222,20 @@
     {
       "path": "docs/feature-widgets.md",
       "frontmatter": {
-        "title": "Widgets",
+        "type": "feature-blueprint",
         "description": "A minimal conforming document of this type.",
         "slug": "feature-widgets",
-        "type": "feature-blueprint",
+        "title": "Widgets",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "updated_at": "2026-08-01T00:00:00Z",
+        "delivery": "single-pr",
+        "frd": "frd-widgets"
       },
       "headings": [
         {
           "text": "Doc",
           "level": 1,
-          "position": {
+          "span": {
             "offset": 218,
             "length": 6,
             "start_line": 12,
@@ -234,7 +243,7 @@
             "end_line": 13,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 224,
             "length": 0,
             "start_line": 13,
@@ -250,10 +259,10 @@
     {
       "path": "docs/frd-widgets.md",
       "frontmatter": {
-        "title": "FRD: Widgets",
+        "type": "frd",
         "description": "A minimal conforming document of this type.",
         "slug": "frd-widgets",
-        "type": "frd",
+        "title": "FRD: Widgets",
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
       },
@@ -261,7 +270,7 @@
         {
           "text": "Doc",
           "level": 1,
-          "position": {
+          "span": {
             "offset": 168,
             "length": 6,
             "start_line": 10,
@@ -269,7 +278,7 @@
             "end_line": 11,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 174,
             "length": 0,
             "start_line": 11,
@@ -285,31 +294,34 @@
     {
       "path": "docs/module-widget-core.md",
       "frontmatter": {
-        "title": "Widget Core",
+        "type": "module-blueprint",
         "description": "A minimal conforming document of this type.",
         "slug": "module-widget-core",
-        "type": "module-blueprint",
+        "title": "Widget Core",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "updated_at": "2026-08-01T00:00:00Z",
+        "entity_name": "Widget Core",
+        "kind": "standard",
+        "visibility": "internal"
       },
       "headings": [
         {
           "text": "Doc",
           "level": 1,
-          "position": {
-            "offset": 223,
+          "span": {
+            "offset": 248,
             "length": 6,
-            "start_line": 12,
-            "start_column": 1,
-            "end_line": 13,
-            "end_column": 1
-          },
-          "section": {
-            "offset": 229,
-            "length": 0,
             "start_line": 13,
             "start_column": 1,
-            "end_line": 13,
+            "end_line": 14,
+            "end_column": 1
+          },
+          "section_span": {
+            "offset": 254,
+            "length": 0,
+            "start_line": 14,
+            "start_column": 1,
+            "end_line": 14,
             "end_column": 1
           },
           "record_blocks": []
@@ -320,18 +332,26 @@
     {
       "path": "docs/rfc-0001-widgets.md",
       "frontmatter": {
-        "title": "RFC-0001: Widgets",
+        "type": "rfc",
         "description": "A minimal conforming document of this type.",
         "slug": "rfc-0001-widgets",
-        "type": "rfc",
+        "title": "RFC-0001: Widgets",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "updated_at": "2026-08-01T00:00:00Z",
+        "origin": "retro-skill",
+        "skill": "spec",
+        "skill_version": "1.0.0",
+        "model": "example-model",
+        "effort": "medium",
+        "runs_observed": 1,
+        "severity": "snag",
+        "plugin_version": "1.0.0"
       },
       "headings": [
         {
           "text": "Doc",
           "level": 1,
-          "position": {
+          "span": {
             "offset": 325,
             "length": 6,
             "start_line": 18,
@@ -339,7 +359,7 @@
             "end_line": 19,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 331,
             "length": 0,
             "start_line": 19,
@@ -355,31 +375,32 @@
     {
       "path": "docs/system-acme.md",
       "frontmatter": {
-        "title": "Acme System",
+        "type": "system-blueprint",
         "description": "A minimal conforming document of this type.",
         "slug": "system-acme",
-        "type": "system-blueprint",
+        "title": "Acme System",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "updated_at": "2026-08-01T00:00:00Z",
+        "entity_name": "Acme System"
       },
       "headings": [
         {
           "text": "Doc",
           "level": 1,
-          "position": {
-            "offset": 180,
+          "span": {
+            "offset": 205,
             "length": 6,
-            "start_line": 10,
-            "start_column": 1,
-            "end_line": 11,
-            "end_column": 1
-          },
-          "section": {
-            "offset": 186,
-            "length": 0,
             "start_line": 11,
             "start_column": 1,
-            "end_line": 11,
+            "end_line": 12,
+            "end_column": 1
+          },
+          "section_span": {
+            "offset": 211,
+            "length": 0,
+            "start_line": 12,
+            "start_column": 1,
+            "end_line": 12,
             "end_column": 1
           },
           "record_blocks": []
@@ -391,27 +412,6 @@
   "exclusions": [],
   "references": [
     {
-      "path": "docs/container-widget-service.md",
-      "text": "contract-widget-api",
-      "slug": "contract-widget-api",
-      "origin": {
-        "kind": "frontmatter-property",
-        "property": "contracts_provided"
-      },
-      "position": {
-        "offset": 106,
-        "length": 19,
-        "start_line": 5,
-        "start_column": 22,
-        "end_line": 5,
-        "end_column": 41
-      },
-      "resolution": {
-        "state": "resolved",
-        "target_path": "docs/contract-widget-api.md"
-      }
-    },
-    {
       "path": "docs/contract-widget-api.md",
       "text": "container-widget-service",
       "slug": "container-widget-service",
@@ -419,7 +419,7 @@
         "kind": "frontmatter-property",
         "property": "provider"
       },
-      "position": {
+      "span": {
         "offset": 75,
         "length": 24,
         "start_line": 5,
@@ -440,7 +440,7 @@
         "kind": "frontmatter-property",
         "property": "frd"
       },
-      "position": {
+      "span": {
         "offset": 92,
         "length": 11,
         "start_line": 6,
@@ -455,5 +455,5 @@
     }
   ],
   "features": [],
-  "input_hash": "sha256:0f9b1f32a2e0dbbce039333398d37545c3b633118772fb4a5fc8c2ec7409460a"
+  "input_hash": "sha256:7355cc214cd61f4915819de1ba07f37b5dd2e0f6d53c1d708fd5e025d8d0bfdf"
 }

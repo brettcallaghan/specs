@@ -1,14 +1,14 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "workspace": "acme",
   "entries": [
     {
       "path": "docs/adrs/adr-001-example.md",
       "frontmatter": {
-        "title": "ADR-001: Example",
+        "type": "adr",
         "description": "An example decision used by a snapshot case.",
         "slug": "adr-001-example",
-        "type": "adr",
+        "title": "ADR-001: Example",
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
       },
@@ -16,7 +16,7 @@
         {
           "text": "ADR-001: Example",
           "level": 1,
-          "position": {
+          "span": {
             "offset": 175,
             "length": 19,
             "start_line": 10,
@@ -24,7 +24,7 @@
             "end_line": 11,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 194,
             "length": 0,
             "start_line": 11,
@@ -41,7 +41,7 @@
       "path": "docs/adrs/adr-002-broken.md",
       "parse_error": {
         "message": "could not find end character of double-quoted text",
-        "position": {
+        "span": {
           "offset": 11,
           "length": 158,
           "start_line": 2,
@@ -54,7 +54,7 @@
         {
           "text": "ADR-002: Broken",
           "level": 1,
-          "position": {
+          "span": {
             "offset": 175,
             "length": 18,
             "start_line": 10,
@@ -62,7 +62,7 @@
             "end_line": 11,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 193,
             "length": 0,
             "start_line": 11,
@@ -79,5 +79,5 @@
   "exclusions": [],
   "references": [],
   "features": [],
-  "input_hash": "sha256:43487a8e44f841080be12f9cc925511eb98d8dbf61255fa8812f456e2d078557"
+  "input_hash": "sha256:14e2f70841f60e9f04b236b5bb3c46dea4a6b7d3745e6d91fea336df0fdb3f6b"
 }

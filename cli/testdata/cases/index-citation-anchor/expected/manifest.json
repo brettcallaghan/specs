@@ -1,14 +1,14 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "workspace": "acme",
   "entries": [
     {
       "path": "docs/adrs/adr-012-decision.md",
       "frontmatter": {
-        "title": "ADR-012: Decision",
+        "type": "adr",
         "description": "The document a frontmatter citation anchors into.",
         "slug": "adr-012-decision",
-        "type": "adr",
+        "title": "ADR-012: Decision",
         "status": "approved",
         "updated_at": "2026-08-01T00:00:00Z"
       },
@@ -16,7 +16,7 @@
         {
           "text": "ADR-012: Decision",
           "level": 1,
-          "position": {
+          "span": {
             "offset": 182,
             "length": 20,
             "start_line": 10,
@@ -24,7 +24,7 @@
             "end_line": 11,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 202,
             "length": 36,
             "start_line": 11,
@@ -37,7 +37,7 @@
         {
           "text": "Decision",
           "level": 2,
-          "position": {
+          "span": {
             "offset": 203,
             "length": 12,
             "start_line": 12,
@@ -45,7 +45,7 @@
             "end_line": 13,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 215,
             "length": 23,
             "start_line": 13,
@@ -61,18 +61,21 @@
     {
       "path": "docs/features/frd-citing-anchor.md",
       "frontmatter": {
-        "title": "FRD: Citing Anchor",
+        "type": "frd",
         "description": "An FRD whose sources cites an anchor into another document.",
         "slug": "frd-citing-anchor",
-        "type": "frd",
+        "title": "FRD: Citing Anchor",
         "status": "approved",
-        "updated_at": "2026-08-01T00:00:00Z"
+        "updated_at": "2026-08-01T00:00:00Z",
+        "sources": [
+          "adr-012-decision#Decision"
+        ]
       },
       "headings": [
         {
           "text": "FRD: Citing Anchor",
           "level": 1,
-          "position": {
+          "span": {
             "offset": 235,
             "length": 21,
             "start_line": 12,
@@ -80,7 +83,7 @@
             "end_line": 13,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 256,
             "length": 12,
             "start_line": 13,
@@ -105,7 +108,7 @@
         "kind": "frontmatter-property",
         "property": "sources"
       },
-      "position": {
+      "span": {
         "offset": 202,
         "length": 27,
         "start_line": 9,
@@ -121,7 +124,7 @@
         "state": "resolved",
         "heading": {
           "text": "Decision",
-          "position": {
+          "span": {
             "offset": 203,
             "length": 12,
             "start_line": 12,
@@ -134,5 +137,5 @@
     }
   ],
   "features": [],
-  "input_hash": "sha256:7c8a162af0485ecb1c692ed3d9dac845cbc27293799761e278574f6fb343bcfb"
+  "input_hash": "sha256:5c7e855ef93f44a943b27c28f321c0953676534b05a16d1bde9fcf04eb382c8c"
 }

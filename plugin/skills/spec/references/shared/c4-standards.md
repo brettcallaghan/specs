@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/standards/c4-standards.md (version 0.2)
+     Source of truth: specs/standards/c4-standards.md (version 0.3)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -11,8 +11,8 @@ description: How to map concrete architectural elements to C4 levels, which
 slug: c4-standards
 type: standards
 status: draft
-updated_at: 2026-07-29T00:00:00Z
-version: "0.2"
+updated_at: 2026-09-29T00:00:00Z
+version: "0.3"
 ---
 
 # Mapping Architecture to C4
@@ -150,18 +150,19 @@ modeled component — a schema, domain type, event, flag, or table — is
 written in backticks (`ElementName`), not referenced this way.
 
 WHERE an element has its own blueprint, that blueprint IS the
-declaration: the document title carries the name, the frontmatter
-`description` is the brief description, and the Overview section is
-the detailed description. Documents that reference the element repeat
+declaration: the frontmatter `entity_name` carries the name, the
+frontmatter `description` is the brief description, and the Overview
+section is the detailed description. The document `title` names the
+blueprint, not the element. Documents that reference the element repeat
 only its name, technology, and brief description, linking the
 blueprint for detail.
 
 WHERE a child element has NOT been promoted to its own blueprint, its
 declaration in the parent's roster (a container's or module's Components
-section) carries a machine-readable **record block** instead of a
-blueprint link — so every modeled node is declared in prose whether or
-not it has its own document. The record block's format, its schema, and
-the block-XOR-link promotion rule are defined in
+section) carries a machine-readable **record block** — so every modeled
+node is declared in prose whether or not it has its own document. The
+record block's format, its schema, and how a promoted element's
+declarations relate are defined in
 [[template-authoring-standards]] (Embedded Element Records). Declaring every
 node this way keeps the model machine-readable: the element vocabulary
 and node set are parseable without a modeling DSL, and diagrams can be
@@ -193,13 +194,13 @@ files each fact at exactly one altitude:
   component or module is light on code (the code is the source of truth,
   and an agent reads it to discover collaborators).
 - **Contract edges are the exception, and they belong to the element.**
-  Every blueprint — at all four levels — carries `contracts_provided`
-  and `contracts_consumed`. The two rules above govern *neighbor* edges,
-  which have no single correct value for a shared element. A contract
-  does: it is a named document with one identity, so "this element
-  publishes it" and "this element depends on it" are true wherever the
-  element is composed. A module MAY therefore declare a consumed
-  contract even though it has no Context view.
+  Every blueprint — at all four levels — carries `contracts_consumed`,
+  and every contract names its one `provider`. The two rules above
+  govern *neighbor* edges, which have no single correct value for a
+  shared element. A contract does: it is a named document with one
+  identity, so "this element publishes it" and "this element depends on
+  it" are true wherever the element is composed. A module MAY therefore
+  declare a consumed contract even though it has no Context view.
 
 So every document sits at its own altitude: it owns its children as
 nodes and the edges among them, names the contracts it provides and

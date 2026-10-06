@@ -76,7 +76,7 @@ func TestAnAnchorMatchingNoHeadingIsAnErrorNamingTheTargetAndTheAnchor(t *testin
 	if got[0].Path != "specs/adrs/adr-001.md" {
 		t.Errorf("path = %q, want the referring document", got[0].Path)
 	}
-	if got[0].Position.Length == 0 {
+	if got[0].Span.Length == 0 {
 		t.Error("finding carries an empty span")
 	}
 	detail, ok := got[0].Detail.Value.(specmodel.FindingUnresolvedAnchor)
@@ -126,11 +126,11 @@ func TestAnAmbiguousAnchorIsAnErrorNamingEveryMatchingHeadingAndItsSpan(t *testi
 		t.Fatalf("got %d matches, want 2 — the anchor is matched on identifiers, so letter case does not decide one: %+v", len(detail.Matches), detail.Matches)
 	}
 	for i, match := range detail.Matches {
-		if match.Position.Length == 0 {
+		if match.Span.Length == 0 {
 			t.Errorf("match %d carries an empty span", i)
 		}
 	}
-	if detail.Matches[0].Position.Offset == detail.Matches[1].Position.Offset {
+	if detail.Matches[0].Span.Offset == detail.Matches[1].Span.Offset {
 		t.Error("both matches carry the same span; each names its own heading")
 	}
 
@@ -264,7 +264,7 @@ func TestCheckForReportsInboundAnchorReferencesThatNoLongerResolve(t *testing.T)
 	if got[0].Path != "specs/adrs/adr-001.md" {
 		t.Errorf("path = %q, want the referring document — the file the reader must open", got[0].Path)
 	}
-	if got[0].Position.Length == 0 {
+	if got[0].Span.Length == 0 {
 		t.Error("finding carries an empty span")
 	}
 }

@@ -8,7 +8,7 @@ references:
     origin:
       kind: frontmatter-property
       property: superseded_by
-    position:
+    span:
       offset: 195
       length: 20
       start_line: 8

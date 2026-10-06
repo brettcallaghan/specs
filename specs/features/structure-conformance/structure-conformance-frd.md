@@ -7,7 +7,7 @@ description: Checks documents against the structure recorded in the
 slug: frd-spec-structure-conformance
 type: frd
 status: draft
-updated_at: 2026-09-04T00:00:00Z
+updated_at: 2026-10-06T00:00:00Z
 sources:
   - "frd-spec-structure"
 ---
@@ -47,8 +47,10 @@ specified in [[frd-spec-reference-integrity]].
 
 ## Terminology
 
-- **Record block** — a fenced code block carrying structured data about
-  an element declared inside a document, per [[adr-008]].
+- **Record block** — a fenced code block whose info string the active
+  profile registers, carrying a YAML mapping about an element declared
+  inside a document, per [[adr-008]]. The registration may name a JSON
+  Schema the mapping must satisfy.
 - **Placeholder pattern** — a configured textual pattern that marks
   unfilled template content (for example `<Feature Name>`), expected to
   be absent once a document reaches a finished status.
@@ -115,10 +117,43 @@ Feature: Required Sections and Hygiene
     Then the CLI reports a finding
 
   @AC-SPECSTR-002.7
-  Scenario: A record block that does not parse is reported where it opens
-    Given a registered record block that fails to parse as its configured format
+  Scenario: A record block that is not valid YAML is reported where it opens
+    Given a registered record block whose content is not valid YAML
     When the CLI checks the document
     Then the CLI reports a finding carrying the parse error and its position within the document
+
+  @AC-SPECSTR-002.8
+  Scenario Outline: A record block that is not a mapping is reported
+    Given a registered record block whose content is valid YAML holding "<value>"
+    When the CLI checks the document
+    Then the CLI reports a finding at the position the block opens, naming the kind of value found
+
+    Examples:
+      | value      |
+      | a sequence |
+      | a scalar   |
+      | nothing    |
+
+  @AC-SPECSTR-002.9
+  Scenario: A record block that violates its registered schema is reported
+    Given a tag registered with a JSON Schema
+    And a record block of that tag whose mapping violates the schema
+    When the CLI checks the document
+    Then the CLI reports a finding at the position the block opens, naming the violated constraint and the property that violated it
+
+  @AC-SPECSTR-002.10
+  Scenario: A record block of a tag registered without a schema is checked only as a mapping
+    Given a tag registered with no JSON Schema
+    And a record block of that tag holding any valid YAML mapping
+    When the CLI checks the document
+    Then the CLI reports no record-block finding for it
+
+  @AC-SPECSTR-002.11
+  Scenario: Declarations of one element that disagree are reported
+    Given an element declared by its blueprint and by a record block with the same slug
+    And the two declarations give different values for one of entity_name, description or technology
+    When the CLI checks the corpus
+    Then the CLI reports a finding at the record block, naming the property and the blueprint's value
 ```
 
 *Note:* AC-SPECSTR-002.6 reports the placeholder only at a finished
@@ -139,8 +174,14 @@ Feature: Structure Configuration
 
   @AC-SPECSTR-004.1
   Scenario: One configuration file carries the structure vocabulary
-    Then the configuration determines, for each registered document type, its required headings, the registered record-block tags with their formats, the placeholder patterns, and the line-width limit
+    Then the configuration determines, for each registered document type, its required headings, the registered record-block tags with their optional JSON Schemas, the placeholder patterns, and the line-width limit
     And it does so by extending the configuration file of FEAT-SPEC-008 rather than by a separate file
+
+  @AC-SPECSTR-004.2
+  Scenario: The shipped profile registers component record blocks against the element record schema
+    Given the spec-driven-dev profile is active
+    When the CLI checks a document holding a component record block
+    Then the block is validated against the ElementRecord schema, so a block missing its slug is reported
 ```
 
 ## References

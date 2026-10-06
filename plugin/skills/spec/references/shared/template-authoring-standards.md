@@ -86,7 +86,7 @@ names the specific document.
 
 A slug encodes **identity only**. It SHALL NOT encode any mutable
 attribute — status, version, date, or containment/hierarchy. Those live
-in frontmatter (`status`, `version`, `system`, `contained_by`, …) where
+in frontmatter (`status`, `version`, `system`, `modules`, …) where
 they change without breaking references.
 
 WHEN a document's title or subject is rephrased, its slug SHOULD NOT
@@ -471,9 +471,8 @@ SHALL be created for each document type to validate:
 - Property values match allowed formats
 - Slug conventions are followed
 - Status values are valid
-- Embedded record blocks validate against the base-record schema, and
-  every child element is in exactly one state (record block XOR
-  blueprint link)
+- Embedded record blocks validate against the element-record schema, and
+  every declaration of one element agrees with the others
 
 Schema validation SHOULD be run as a pre-commit hook to catch errors before 
 commit.
@@ -486,7 +485,7 @@ that all `[[document-slug]]` references point to existing documents.
 ### Dependency Graph
 
 WHEN documents include relationship properties (`sources`, `system`,
-`contained_by`), tools SHOULD generate a dependency graph alongside the
+`modules`), tools SHOULD generate a dependency graph alongside the
 graph derived from body citations to:
 - Visualize document relationships
 - Detect circular dependencies

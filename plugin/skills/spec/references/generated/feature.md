@@ -144,7 +144,7 @@ A feature written as a fenced Gherkin block inside a markdown document.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
-| block | [Span](index.md#span) | The extent of the fenced block, opening and closing fences included.<br><br>Recorded because the feature's own span covers the Gherkin inside the fence, and a caller that replaces or extracts the whole construct needs the fence too. This is the same distinction the framework's region scanner already draws between an inner and an outer extent. |
+| block_span | [Span](index.md#span) | The extent of the fenced block, opening and closing fences included.<br><br>Recorded because the feature's own span covers the Gherkin inside the fence, and a caller that replaces or extracts the whole construct needs the fence too. This is the same distinction the framework's region scanner already draws between an inner and an outer extent. |
 
 
 ## FeatureSourceFile
@@ -211,7 +211,7 @@ removing it later would not be.
 | level | [VerificationLevel](#verificationlevel)? | The level at which the criterion is intended to be verified, absent where the author declared none. |
 | notation | [CriterionNotation](#criterionnotation) | The notation this criterion was written in. |
 | content_hash | [ContentHash](#contenthash) | A hash of the criterion's name and text, excluding its position.<br><br>Two indexes of the same criterion agree on this value whether or not the criterion moved; they disagree the moment its wording changes. |
-| position | [Span](index.md#span) | Where in its document the criterion is written, as a span rather than a bare line number, so that a report and a rewrite both address the criterion itself. |
+| span | [Span](index.md#span) | Where in its document the criterion is written, as a span rather than a bare line number, so that a report and a rewrite both address the criterion itself. |
 
 
 ## Feature
@@ -239,7 +239,7 @@ criterion is one index built over this tree when the index is read.
 | name | String | The feature's name — the text following the `Feature` keyword. |
 | description | String? | The feature's description: its user story, and any design note or scope fence written beneath it.<br><br>Absent where none was written, which is reported as a caution rather than a failure — a feature with no story is legible but poorer, and refusing to index it would help nobody. |
 | source | [FeatureSource](#featuresource) | Which admissible form the feature was written in. |
-| position | [Span](index.md#span) | Where in its file the feature is written, as a span covering the Gherkin itself.<br><br>For a feature written as a fenced block, this covers the Gherkin inside the fence; the fence's own extent is carried by `source`. |
+| span | [Span](index.md#span) | Where in its file the feature is written, as a span covering the Gherkin itself.<br><br>For a feature written as a fenced block, this covers the Gherkin inside the fence; the fence's own extent is carried by `source`. |
 | criteria | Array<[Criterion](#criterion)> | The feature's acceptance criteria, in the order they are written.<br><br>Nested rather than held in a sibling collection. A criterion belongs to exactly one feature, its identifier already names which, and a consumer fetching a feature wants its criteria with it. |
 
 

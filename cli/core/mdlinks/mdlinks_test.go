@@ -29,11 +29,11 @@ func at(t *testing.T) specmodel.Span {
 func resolvedRef(t *testing.T, citingPath, slug, targetPath string, anchor *string) specmodel.Reference {
 	t.Helper()
 	return specmodel.Reference{
-		Path:     citingPath,
-		Text:     slug,
-		Slug:     slug,
-		Anchor:   anchor,
-		Position: at(t),
+		Path:   citingPath,
+		Text:   slug,
+		Slug:   slug,
+		Anchor: anchor,
+		Span:   at(t),
 		Resolution: specmodel.NewReferenceResolutionResolved(
 			specmodel.ReferenceResolved{TargetPath: targetPath}),
 	}
@@ -44,7 +44,7 @@ func resolvedRef(t *testing.T, citingPath, slug, targetPath string, anchor *stri
 func anchorResolvedTo(t *testing.T, heading string) *specmodel.AnchorResolution {
 	t.Helper()
 	resolution := specmodel.NewAnchorResolutionResolved(specmodel.AnchorResolved{
-		Heading: specmodel.AnchorMatch{Text: heading, Position: at(t)},
+		Heading: specmodel.AnchorMatch{Text: heading, Span: at(t)},
 	})
 	return &resolution
 }
@@ -56,7 +56,7 @@ func unresolvedRef(t *testing.T, citingPath, slug string) specmodel.Reference {
 		Path:       citingPath,
 		Text:       slug,
 		Slug:       slug,
-		Position:   at(t),
+		Span:       at(t),
 		Resolution: specmodel.NewReferenceResolutionUnresolved(specmodel.ReferenceUnresolved{}),
 	}
 }
@@ -68,10 +68,10 @@ func nonMemberRef(t *testing.T, citingPath, slug, matchedPath string) specmodel.
 	t.Helper()
 	reason := specmodel.ExclusionReasonNoFrontmatter
 	return specmodel.Reference{
-		Path:     citingPath,
-		Text:     slug,
-		Slug:     slug,
-		Position: at(t),
+		Path: citingPath,
+		Text: slug,
+		Slug: slug,
+		Span: at(t),
 		Resolution: specmodel.NewReferenceResolutionNonMember(
 			specmodel.ReferenceNonMember{Path: matchedPath, Reason: &reason}),
 	}
@@ -379,8 +379,8 @@ func TestAnAnchorResolutionThatNamesNoHeadingFallsBackToTheAnchor(t *testing.T) 
 	unresolved := specmodel.NewAnchorResolutionUnresolved(specmodel.AnchorUnresolved{})
 	ambiguous := specmodel.NewAnchorResolutionAmbiguous(specmodel.AnchorAmbiguous{
 		Matches: []specmodel.AnchorMatch{
-			{Text: "Overview Of The Thing", Position: at(t)},
-			{Text: "Overview of the thing", Position: at(t)},
+			{Text: "Overview Of The Thing", Span: at(t)},
+			{Text: "Overview of the thing", Span: at(t)},
 		},
 	})
 	unverified := specmodel.NewAnchorResolutionUnverified(specmodel.AnchorUnverified{
@@ -471,7 +471,7 @@ func selfAnchorRef(t *testing.T, citingPath, anchor, heading string) specmodel.R
 		Path:       citingPath,
 		Text:       "#" + anchor,
 		Anchor:     &anchor,
-		Position:   at(t),
+		Span:       at(t),
 		Resolution: specmodel.NewReferenceResolutionUnresolved(specmodel.ReferenceUnresolved{}),
 	}
 	ref.AnchorResolution = anchorResolvedTo(t, heading)
@@ -535,7 +535,7 @@ func TestAnAnchorOnlyCitationReachingNoHeadingSettlesNoTarget(t *testing.T) {
 		Path:       "specs/adrs/adr-012.md",
 		Text:       "#Nowhere",
 		Anchor:     &anchor,
-		Position:   at(t),
+		Span:       at(t),
 		Resolution: specmodel.NewReferenceResolutionUnresolved(specmodel.ReferenceUnresolved{}),
 	}
 	unresolved := specmodel.NewAnchorResolutionUnresolved(specmodel.AnchorUnresolved{})

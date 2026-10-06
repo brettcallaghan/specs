@@ -551,8 +551,8 @@ func TestCheckReportsAMemberWhoseFrontmatterCouldNotBeDecoded(t *testing.T) {
 		t.Errorf("detail message = %q, want the index's own wording %q — the finding and the index must not describe the same failure twice",
 			detail.Message, entry.ParseError.Message)
 	}
-	if parse[0].Position != entry.ParseError.Position {
-		t.Errorf("position = %+v, want the index's own span %+v", parse[0].Position, entry.ParseError.Position)
+	if parse[0].Span != entry.ParseError.Span {
+		t.Errorf("position = %+v, want the index's own span %+v", parse[0].Span, entry.ParseError.Span)
 	}
 }
 
@@ -653,7 +653,7 @@ func TestCheckReportsAnUnresolvedBodyReference(t *testing.T) {
 	if got[0].Severity != finding.SeverityError {
 		t.Errorf("severity = %q, want error", got[0].Severity)
 	}
-	if got[0].Position.Length == 0 {
+	if got[0].Span.Length == 0 {
 		t.Error("finding carries an empty span")
 	}
 	detail, ok := got[0].Detail.Value.(specmodel.FindingUnresolvedReference)
@@ -861,8 +861,8 @@ func TestCheckForReportsTheReferencesARenamedSlugBroke(t *testing.T) {
 	if len(outbound) != 1 {
 		t.Fatalf("adr-001 holds %d references, want 1", len(outbound))
 	}
-	if broken[0].Position != outbound[0].Position {
-		t.Errorf("position = %+v, want the referrer's own span %+v", broken[0].Position, outbound[0].Position)
+	if broken[0].Span != outbound[0].Span {
+		t.Errorf("position = %+v, want the referrer's own span %+v", broken[0].Span, outbound[0].Span)
 	}
 }
 
@@ -1187,11 +1187,11 @@ func TestCheckReportsAnIncompletePairingAgainstBothDocuments(t *testing.T) {
 	// The declaring document's finding sits at the declared value's span;
 	// the target's sits at its frontmatter block's span, because an
 	// absent property has no position of its own.
-	if source[0].Position.Length == 0 {
+	if source[0].Span.Length == 0 {
 		t.Error("the declaring document's finding carries an empty span")
 	}
-	if target[0].Position != targetDoc.Region.Inner {
-		t.Errorf("target position = %+v, want the target's frontmatter-block span %+v", target[0].Position, targetDoc.Region.Inner)
+	if target[0].Span != targetDoc.Region.Inner {
+		t.Errorf("target position = %+v, want the target's frontmatter-block span %+v", target[0].Span, targetDoc.Region.Inner)
 	}
 }
 

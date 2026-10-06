@@ -219,11 +219,11 @@ func reference(path, text string, origin specmodel.ReferenceOrigin, at specmodel
 	slug, anchor, anchored := strings.Cut(text, anchorSeparator)
 
 	found := specmodel.Reference{
-		Path:     path,
-		Text:     text,
-		Slug:     slug,
-		Origin:   origin,
-		Position: at,
+		Path:   path,
+		Text:   text,
+		Slug:   slug,
+		Origin: origin,
+		Span:   at,
 	}
 	if anchored {
 		found.Anchor = &anchor

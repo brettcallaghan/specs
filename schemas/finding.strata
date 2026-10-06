@@ -393,7 +393,7 @@ struct FindingDuplicateIdentifier {
   other_path: String
 
   """Where in that file the other occurrence is written."""
-  other_position: Span
+  other_span: Span
 }
 
 """
@@ -504,7 +504,7 @@ struct AnchorMatch {
   text: String
 
   """Where the heading line itself is written."""
-  position: Span
+  span: Span
 }
 
 """
@@ -611,7 +611,7 @@ struct Finding {
   Where in the file the finding is, as a span rather than a bare line
   number, so a report can point at a value inside a line.
   """
-  position: Span
+  span: Span
 
   """
   What is wrong, stating the violated constraint and the value that

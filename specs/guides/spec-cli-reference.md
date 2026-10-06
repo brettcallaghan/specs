@@ -208,8 +208,8 @@ for a path the corpus does not hold.
 Which frontmatter properties are reference-bearing is **derived from the
 profile's schema**, not a hand-kept list: every property typed as a
 document slug is one, except `slug` itself, which names its own document.
-`superseded_by`, `sources`, `frd`, `system`, `contained_by`,
-`contracts_provided` and `contracts_consumed` are all reference-bearing
+`superseded_by`, `sources`, `frd`, `system`, `modules`, `provider` and
+`contracts_consumed` are all reference-bearing
 for that reason, and a slug-typed property added to the vocabulary
 becomes one the moment it is declared. This framework's own profile
 registers **no** pairing, so `reference/pairing-incomplete` is inert

@@ -1,5 +1,6 @@
 ---
 title: "Container Blueprint: <Container Name>"
+entity_name: <Container Name>                 # the element, as diagrams draw it
 description: <One-sentence summary of the container and its responsibility
   — its brief description, shown on diagrams>
 slug: container-<container-name>
@@ -9,13 +10,15 @@ updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 system: system-<system-name>         # the system this container belongs to;
                                      # omit WHEN the container is standalone
                                      # (no documented system) — see below
-contracts_provided: []               # contract slugs this container provides
 contracts_consumed: []               # contract slugs this container consumes
+modules: []                          # module slugs composed into this
+                                     # container; each module's hosts are
+                                     # derived from these lists
 ---
 
 <!--
 Template: Container Blueprint
-Version: 1.6
+Version: 1.7
 Source: Architecture documentation framework. C4 mapping rules are
   defined in `shared/c4-standards.md` — load it before authoring.
 
@@ -141,21 +144,24 @@ its components.
 Each declaration captures: the name (canonical — used verbatim on
 diagrams), its technology or kind, a brief description that doubles as
 the diagram's description text, and a detailed description. A composed
-unit is in exactly ONE of two states — a record block XOR a blueprint
-link, never both:
+unit is declared by a record block, by its own blueprint, or both:
   - un-promoted (a simple internal component): the follow-on sentence(s)
     here ARE the detailed description, AND the declaration carries a
-    machine-readable record block holding title, slug, and description,
-    validated against the shared component-record schema:
+    machine-readable record block holding entity_name, slug and
+    description (and optionally technology), validated against the
+    shared element-record schema:
 
         ```component
-        title: <Component Name>
+        entity_name: <Component Name>
         slug: component-<component-name>
         description: <one-line brief description>
         ```
 
   - promoted (warrants its own blueprint): link its [[component-<name>]] or
-    [[module-<name>]] blueprint and do NOT restate its internals. For a
+    [[module-<name>]] blueprint and do NOT restate its internals. The
+    record block MAY stay; where it does, it SHALL agree with the
+    blueprint's frontmatter. A module is listed in this container's
+    `modules` frontmatter as well. For a
     module, name its visibility tier (internal or public) — it governs
     the change rules for work touching it.
 
@@ -191,7 +197,7 @@ C4Component
 ### <ComponentA>
 
 ```component
-title: <ComponentA>
+entity_name: <ComponentA>
 slug: component-<component-a>
 description: <brief description>
 ```
@@ -203,7 +209,7 @@ beyond the diagram label.>
 ### <Component B>
 
 ```component
-title: <Component B>
+entity_name: <Component B>
 slug: component-<component-b>
 description: <brief description>
 ```

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/brettcallaghan/agent-plugins/cli/core/envelope"
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
 	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
 	"github.com/brettcallaghan/agent-plugins/cli/core/references"
@@ -141,7 +142,7 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 			// silence; see this function's doc comment.
 			if entry.ParseError != nil {
 				report.Add(finding.FrontmatterParse(
-					entry.Path, entry.ParseError.Position, entry.ParseError.Message))
+					entry.Path, entry.ParseError.Span, entry.ParseError.Message))
 			}
 			continue
 		}
@@ -150,7 +151,7 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 			continue
 		}
 
-		docType := string(entry.Frontmatter.Type)
+		docType := string(envelope.Of(entry.Frontmatter).Type)
 
 		violations, err := registry.Validate(entry.Path, docType, doc)
 		if err != nil {
@@ -160,7 +161,7 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 
 		if rules, known := c.types[docType]; known && rules.SlugPattern != "" {
 			mismatch, err := schemaregistry.CheckSlugPattern(
-				entry.Path, slugSpan(doc), string(entry.Frontmatter.Slug), rules.SlugPattern)
+				entry.Path, slugSpan(doc), string(envelope.Of(entry.Frontmatter).Slug), rules.SlugPattern)
 			if err != nil {
 				return nil, fmt.Errorf("corpus: checking the slug pattern for %s: %w", entry.Path, err)
 			}
@@ -273,10 +274,10 @@ func unresolvedReferenceFinding(ref specmodel.Reference) (specmodel.Finding, boo
 		return specmodel.Finding{}, false
 	}
 	if nonMember, ok := ref.Resolution.AsNonMember(); ok {
-		return finding.UnresolvedReference(ref.Path, ref.Position, ref.Text, ref.Slug, ref.Origin, &nonMember), true
+		return finding.UnresolvedReference(ref.Path, ref.Span, ref.Text, ref.Slug, ref.Origin, &nonMember), true
 	}
 	if _, ok := ref.Resolution.AsUnresolved(); ok {
-		return finding.UnresolvedReference(ref.Path, ref.Position, ref.Text, ref.Slug, ref.Origin, nil), true
+		return finding.UnresolvedReference(ref.Path, ref.Span, ref.Text, ref.Slug, ref.Origin, nil), true
 	}
 	return specmodel.Finding{}, false
 }
@@ -314,12 +315,12 @@ func anchorFindings(ref specmodel.Reference) []specmodel.Finding {
 		return nil
 	case isAnchorUnresolved(*ref.AnchorResolution):
 		return []specmodel.Finding{
-			finding.UnresolvedAnchor(ref.Path, ref.Position, *ref.Anchor, targetPath),
+			finding.UnresolvedAnchor(ref.Path, ref.Span, *ref.Anchor, targetPath),
 		}
 	}
 	if ambiguous, ok := ref.AnchorResolution.AsAmbiguous(); ok {
 		return []specmodel.Finding{
-			finding.AmbiguousAnchor(ref.Path, ref.Position, *ref.Anchor, targetPath, ambiguous.Matches),
+			finding.AmbiguousAnchor(ref.Path, ref.Span, *ref.Anchor, targetPath, ambiguous.Matches),
 		}
 	}
 	if unverified, ok := ref.AnchorResolution.AsUnverified(); ok {
@@ -329,7 +330,7 @@ func anchorFindings(ref specmodel.Reference) []specmodel.Finding {
 		// [finding.SeverityUnverified], so a caller reads "this was not
 		// checked" rather than "this is fine".
 		return []specmodel.Finding{
-			finding.Unverified(finding.RuleUnresolvedAnchor, ref.Path, ref.Position, unverified.Reason),
+			finding.Unverified(finding.RuleUnresolvedAnchor, ref.Path, ref.Span, unverified.Reason),
 		}
 	}
 	return nil
@@ -371,16 +372,16 @@ func (c *Corpus) retiredTargetFindings() []specmodel.Finding {
 			continue
 		}
 		referrer, ok := c.Entry(ref.Path)
-		if !ok || referrer.Frontmatter == nil || !live[string(referrer.Frontmatter.Status)] {
+		if !ok || referrer.Frontmatter == nil || !live[string(envelope.Of(referrer.Frontmatter).Status)] {
 			continue
 		}
 		target, ok := c.Entry(resolved.TargetPath)
-		if !ok || target.Frontmatter == nil || !retired[string(target.Frontmatter.Status)] {
+		if !ok || target.Frontmatter == nil || !retired[string(envelope.Of(target.Frontmatter).Status)] {
 			continue
 		}
 		successor := c.successorOf(resolved.TargetPath, lifecycle.SuccessorProperty)
 		findings = append(findings, finding.RetiredTarget(
-			ref.Path, ref.Position, string(target.Frontmatter.Slug), successor))
+			ref.Path, ref.Span, string(envelope.Of(target.Frontmatter).Slug), successor))
 	}
 	return findings
 }
@@ -431,7 +432,7 @@ func (c *Corpus) pairingIncompleteFindings() []specmodel.Finding {
 		if !ok || declarer.Frontmatter == nil {
 			continue
 		}
-		rules, known := c.types[string(declarer.Frontmatter.Type)]
+		rules, known := c.types[string(envelope.Of(declarer.Frontmatter).Type)]
 		if !known {
 			continue
 		}
@@ -447,7 +448,7 @@ func (c *Corpus) pairingIncompleteFindings() []specmodel.Finding {
 				continue
 			}
 			findings = append(findings,
-				finding.IncompletePairing(ref.Path, ref.Position,
+				finding.IncompletePairing(ref.Path, ref.Span,
 					pairing.Property, pairing.Counterpart, ref.Path, resolved.TargetPath),
 				finding.IncompletePairing(resolved.TargetPath, targetDoc.Region.Inner,
 					pairing.Property, pairing.Counterpart, ref.Path, resolved.TargetPath),
@@ -479,7 +480,7 @@ func (c *Corpus) typeMismatchFindings() []specmodel.Finding {
 		if !ok || declarer.Frontmatter == nil {
 			continue
 		}
-		rules, known := c.types[string(declarer.Frontmatter.Type)]
+		rules, known := c.types[string(envelope.Of(declarer.Frontmatter).Type)]
 		if !known {
 			continue
 		}
@@ -491,12 +492,12 @@ func (c *Corpus) typeMismatchFindings() []specmodel.Finding {
 		if !ok || target.Frontmatter == nil {
 			continue
 		}
-		actual := string(target.Frontmatter.Type)
+		actual := string(envelope.Of(target.Frontmatter).Type)
 		if actual == expected {
 			continue
 		}
 		findings = append(findings, finding.ReferenceType(
-			ref.Path, ref.Position, origin.Property, ref.Slug, expected, actual))
+			ref.Path, ref.Span, origin.Property, ref.Slug, expected, actual))
 	}
 	return findings
 }

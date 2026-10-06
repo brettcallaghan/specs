@@ -6,8 +6,8 @@ description: Required, relationship, and optional frontmatter properties for
 slug: frontmatter-standards
 type: standards
 status: active
-updated_at: 2026-08-06T00:00:00Z
-version: "0.2"
+updated_at: 2026-09-29T00:00:00Z
+version: "0.3"
 ---
 
 # Frontmatter Standards
@@ -20,8 +20,8 @@ version: "0.2"
 - Relationship Properties — provenance, composition, and the typed edges a
   consumer keys on
 - Optional Properties — version, created_at, tags, superseded_by
-- Embedded Element Records — the record-block XOR blueprint-link rule for
-  declaring child components
+- Embedded Element Records — declaring child components by record
+  block, blueprint, or both
 
 Companion to `template-authoring-standards.md`, which owns document
 structure, slugs, instruction blocks, versioning, and content guidelines.
@@ -147,13 +147,12 @@ sources: []                                 # Source document slugs
 
 # Composition
 system: "<system slug>"                     # container -> its one system
-contained_by: []                            # module -> the containers
-                                            # composing it; a LIST, and the
-                                            # only multi-parent edge there is
+modules: []                                 # container or module -> the
+                                            # modules composed into it
 
 # Typed edges a machine consumer keys on
-contracts_provided: []                      # contract slugs this provides
 contracts_consumed: []                      # contract slugs this consumes
+provider: "<element slug>"                  # contract -> its one provider
 ---
 ```
 
@@ -220,33 +219,45 @@ successor.
 ## Embedded Element Records
 
 WHEN a document declares child elements it composes — the components of a
-container or a module — each child is recorded in one of two states, and
-a document system MAY make that record machine-readable:
+container or a module — each child is declared by a record block, by its
+own blueprint, or both, and a document system MAY make that declaration
+machine-readable:
 
 - **Un-promoted** (no blueprint of its own): the child's declaration
-  SHALL carry a fenced record block holding the base record fields
-  (`title`, `slug`, `description`):
+  SHALL carry a fenced record block holding the element record fields
+  (`entity_name`, `slug`, `description`, and optionally `technology`):
 
   ```component
-  title: <Child Name>
+  entity_name: <Child Name>
   slug: component-<child-name>
   description: <one-line brief description>
+  technology: <language, framework or package type>
   ```
 
 - **Promoted** (its own blueprint): the declaration links the blueprint
-  (`[[component-<name>]]` / `[[module-<name>]]`) and carries NO record
+  (`[[component-<name>]]` / `[[module-<name>]]`), and MAY keep its record
   block.
 
-A child is in exactly ONE state — record block XOR blueprint link, never
-both. Promotion lifts the block verbatim into the new document's
-frontmatter and replaces it in every parent roster with the link, in the
-same change.
+An element is identified by its `slug` and MAY be declared more than
+once — by its blueprint and by the record block in its parent's roster,
+or by blocks in several documents. Promotion copies the block's fields
+into the new blueprint's frontmatter, adds the document's `title`, and
+links the blueprint from every parent roster in the same change; the
+block MAY stay. Where an element has a blueprint, its values are
+authoritative, and a declaration that disagrees with them SHALL be
+reported.
 
-The base record fields and the document-envelope fields (status,
-updated_at, and the type-specific frontmatter) SHOULD be defined as two
-schemas and merged with JSON Schema `allOf` for a standalone document's
-frontmatter: the embedded record block satisfies the base-record schema
-alone, and a promoted document's frontmatter satisfies both. One schema
-therefore validates a child whether it is embedded or promoted.
+Every architecture blueprint (system, container, module, component)
+SHALL declare `entity_name`: the element's name as diagrams draw it. It
+is distinct from `title`, which names the document — the container named
+"Spec CLI" is documented by "Container Blueprint: Spec CLI".
+
+The element record fields and the document-envelope fields (`title`,
+status, updated_at, and the type-specific frontmatter) SHOULD be defined
+as two schemas and merged with JSON Schema `allOf` for a standalone
+document's frontmatter: the embedded record block satisfies the
+element-record schema alone, and a promoted document's frontmatter
+satisfies both. One schema therefore validates a child whether it is
+embedded or promoted.
 
 ---
