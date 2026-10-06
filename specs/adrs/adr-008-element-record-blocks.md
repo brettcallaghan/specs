@@ -27,14 +27,17 @@ coupling it to graduation.
 
 We will record every un-promoted child in a machine-readable **record block**:
 a fenced `component` block in its parent's roster holding the element record
-fields — `entity_name`, `slug`, `description`, and optionally `technology`. A
-child is in exactly one state — a record block XOR a blueprint link, never both.
-Promotion lifts the block verbatim into the new blueprint's frontmatter, which
-adds the document's own `title`, and replaces the block with the link, in the
-same change. The element-record fields and the document-envelope fields
+fields — `entity_name`, `slug`, `description`, and optionally `technology`. An
+element is identified by its `slug`, and may be declared more than once: by its
+blueprint, by the record block in its parent's roster, or by blocks in several
+documents. Promotion copies the block's fields into the new blueprint's
+frontmatter, which adds the document's own `title`, and links the blueprint
+from the roster; the block may stay. Where an element has a blueprint its
+values are authoritative, and declarations that disagree with them are a
+finding. The element-record fields and the document-envelope fields
 (`title`, status, `updated_at`, and type-specific frontmatter) are defined as
-two schemas merged with JSON Schema `allOf`, so one schema validates a child
-whether it is embedded or promoted. The element's name is `entity_name`, not `title`:
+two schemas merged with JSON Schema `allOf`, so one schema validates every
+declaration of an element. The element's name is `entity_name`, not `title`:
 `title` names a document, and a promoted element's blueprint carries both.
 
 ## Alternatives Considered
@@ -56,8 +59,8 @@ whether it is embedded or promoted. The element's name is `entity_name`, not `ti
 **Negative:**
 - A small record block to maintain per un-promoted unit
 - Tooling must extract and validate blocks in addition to frontmatter
-- The block-XOR-link invariant must be enforced or a promoted unit could leave
-  a stale block behind
+- Declarations of one element can disagree, so their agreement must be
+  checked or a promoted unit could keep a stale block
 
 ## References
 

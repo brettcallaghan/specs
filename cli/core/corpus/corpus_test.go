@@ -400,7 +400,7 @@ func TestAMemberThatFailsToParseIsRecordedAndTheRestStillIndexed(t *testing.T) {
 	if broken.ParseError.Message == "" {
 		t.Error("the parse error carries no message")
 	}
-	if broken.ParseError.Position.StartLine == 0 {
+	if broken.ParseError.Span.StartLine == 0 {
 		t.Error("the parse error carries no position; lines are one-based")
 	}
 }
@@ -426,7 +426,7 @@ func TestAMemberThatDoesNotFitTheEnvelopeIsRecordedAgainstItself(t *testing.T) {
 	if entry.ParseError == nil {
 		t.Fatal("the non-conforming document carries no parse error")
 	}
-	if entry.ParseError.Position.StartLine == 0 {
+	if entry.ParseError.Span.StartLine == 0 {
 		t.Error("the parse error carries no position")
 	}
 }
@@ -458,7 +458,7 @@ func TestDuplicateSlugsAreReportedAgainstEachDocumentNamingTheOther(t *testing.T
 			t.Fatalf("detail = %T, want FindingDuplicateSlug", f.Detail.Value)
 		}
 		pairs[f.Path] = detail.OtherPath
-		if f.Position.StartLine == 0 {
+		if f.Span.StartLine == 0 {
 			t.Error("the finding carries no position")
 		}
 		if !strings.Contains(f.Message, detail.OtherPath) {

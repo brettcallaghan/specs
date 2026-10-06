@@ -22,6 +22,12 @@ import (
 // sit in their own collection and each host lists them by slug.
 // Relationships are one flat collection for the reason ADR-018 gives for
 // references: an edge belongs to neither endpoint.
+//
+// Every relationship in the model is held at the end the corpus declares
+// it, and the model derives the other end: a container lists its modules
+// and each module's `contained_by` is derived from those lists; a contract
+// names its provider and each element's `contracts_provided` is derived
+// from those names.
 type C4Model struct {
 	// The version of this shape. Pinned to one value so a consumer can
 	// refuse an artifact it does not understand.
@@ -36,9 +42,14 @@ type C4Model struct {
 	// every collection of slugs likewise, so that an unchanged corpus emits
 	// byte-identical output.
 	SoftwareSystems []C4System `json:"software_systems"`
-	// Containers whose blueprint declares no `system` — a documented fact,
-	// not an omission.
-	StandaloneContainers []C4Container `json:"standalone_containers"`
+	// Containers whose blueprint declares no `system`. An orphaned container
+	// is a documented fact rather than an omission: a repository may
+	// document containers before it documents the system they belong to.
+	OrphanedContainers []C4Container `json:"orphaned_containers"`
+	// Components that no container or module declares in its roster — a
+	// component blueprint with no parent. C4 gives every component a
+	// parent, so an orphaned component is a gap in the corpus.
+	OrphanedComponents []C4Component `json:"orphaned_components"`
 	// Every module, once, whatever the number of its hosts.
 	Modules []C4Module `json:"modules"`
 	// Every dependency edge between two elements, ordered by source slug,
@@ -46,8 +57,8 @@ type C4Model struct {
 	Relationships []C4Relationship `json:"relationships"`
 	// `Rel` statements the model does not admit, recorded rather than
 	// dropped so that their absence from `relationships` is visible. Ordered
-	// by path, then by position.
-	Unplaced []C4Unplaced `json:"unplaced"`
+	// by path, then by span.
+	ExcludedRelationships []C4ExcludedRelationship `json:"excluded_relationships"`
 }
 
 func (v *C4Model) UnmarshalJSON(data []byte) error {
@@ -70,10 +81,15 @@ func (v *C4Model) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.SoftwareSystems); err != nil {
 		return prefixField("software_systems", err)
 	}
-	if m, ok := raw["standalone_containers"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4Model: required field \"standalone_containers\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.StandaloneContainers); err != nil {
-		return prefixField("standalone_containers", err)
+	if m, ok := raw["orphaned_containers"]; !ok || string(m) == "null" {
+		return fmt.Errorf("C4Model: required field \"orphaned_containers\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.OrphanedContainers); err != nil {
+		return prefixField("orphaned_containers", err)
+	}
+	if m, ok := raw["orphaned_components"]; !ok || string(m) == "null" {
+		return fmt.Errorf("C4Model: required field \"orphaned_components\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.OrphanedComponents); err != nil {
+		return prefixField("orphaned_components", err)
 	}
 	if m, ok := raw["modules"]; !ok || string(m) == "null" {
 		return fmt.Errorf("C4Model: required field \"modules\" is missing or null")
@@ -85,15 +101,15 @@ func (v *C4Model) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Relationships); err != nil {
 		return prefixField("relationships", err)
 	}
-	if m, ok := raw["unplaced"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4Model: required field \"unplaced\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Unplaced); err != nil {
-		return prefixField("unplaced", err)
+	if m, ok := raw["excluded_relationships"]; !ok || string(m) == "null" {
+		return fmt.Errorf("C4Model: required field \"excluded_relationships\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.ExcludedRelationships); err != nil {
+		return prefixField("excluded_relationships", err)
 	}
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "schema_version", "workspace", "software_systems", "standalone_containers", "modules", "relationships", "unplaced":
+		case "schema_version", "workspace", "software_systems", "orphaned_containers", "orphaned_components", "modules", "relationships", "excluded_relationships":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -106,178 +122,45 @@ func (v *C4Model) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// An element promoted to a blueprint of its own.
-type C4BlueprintDeclaration struct {
-	// Repository-relative path of the blueprint.
-	Path string `json:"path"`
-	// The blueprint's lifecycle state.
-	Status Status `json:"status"`
-}
-
-func (v *C4BlueprintDeclaration) UnmarshalJSON(data []byte) error {
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-	if m, ok := raw["path"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4BlueprintDeclaration: required field \"path\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Path); err != nil {
-		return prefixField("path", err)
-	}
-	if m, ok := raw["status"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4BlueprintDeclaration: required field \"status\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Status); err != nil {
-		return prefixField("status", err)
-	}
-	var unknown string
-	for key := range raw {
-		switch key {
-		case "path", "status":
-		default:
-			if unknown == "" || key < unknown {
-				unknown = key
-			}
-		}
-	}
-	if unknown != "" {
-		return &unknownFieldError{Struct: "C4BlueprintDeclaration", Field: unknown}
-	}
-	return nil
-}
-
-// An element declared by a record block in its parent's roster section.
-type C4RosterDeclaration struct {
-	// Repository-relative path of the parent document.
-	Path string `json:"path"`
-	// The record block, fences included.
-	Position Span `json:"position"`
-}
-
-func (v *C4RosterDeclaration) UnmarshalJSON(data []byte) error {
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
-	}
-	if m, ok := raw["path"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4RosterDeclaration: required field \"path\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Path); err != nil {
-		return prefixField("path", err)
-	}
-	if m, ok := raw["position"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4RosterDeclaration: required field \"position\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Position); err != nil {
-		return prefixField("position", err)
-	}
-	var unknown string
-	for key := range raw {
-		switch key {
-		case "path", "position":
-		default:
-			if unknown == "" || key < unknown {
-				unknown = key
-			}
-		}
-	}
-	if unknown != "" {
-		return &unknownFieldError{Struct: "C4RosterDeclaration", Field: unknown}
-	}
-	return nil
-}
-
-type C4DeclarationVariant interface{ isC4DeclarationVariant() }
-
-// Where an element is declared. Exactly one of the two, per the
-// record-XOR-blueprint rule of ADR-008.
+// One place an element is declared: a blueprint's frontmatter, or a
+// `component` record block in some document.
 type C4Declaration struct {
-	Value C4DeclarationVariant
+	// Repository-relative path of the document holding the declaration.
+	Path string `json:"path"`
+	// The declaration as written: the frontmatter block of a blueprint, or
+	// the record block, fences included.
+	Span Span `json:"span"`
 }
 
-func (C4BlueprintDeclaration) isC4DeclarationVariant() {}
-func (C4RosterDeclaration) isC4DeclarationVariant()    {}
-
-func NewC4DeclarationBlueprint(v C4BlueprintDeclaration) C4Declaration {
-	return C4Declaration{Value: v}
-}
-
-func NewC4DeclarationRoster(v C4RosterDeclaration) C4Declaration {
-	return C4Declaration{Value: v}
-}
-
-func (u C4Declaration) AsBlueprint() (C4BlueprintDeclaration, bool) {
-	v, ok := u.Value.(C4BlueprintDeclaration)
-	return v, ok
-}
-
-func (u C4Declaration) AsRoster() (C4RosterDeclaration, bool) {
-	v, ok := u.Value.(C4RosterDeclaration)
-	return v, ok
-}
-
-func (u C4Declaration) MarshalJSON() ([]byte, error) {
-	var payload []byte
-	var tag string
-	var err error
-	switch v := u.Value.(type) {
-	case C4BlueprintDeclaration:
-		tag = "blueprint"
-		payload, err = json.Marshal(v)
-	case C4RosterDeclaration:
-		tag = "record-block"
-		payload, err = json.Marshal(v)
-	default:
-		return nil, fmt.Errorf("C4Declaration: nil or unknown variant")
-	}
-	if err != nil {
-		return nil, err
-	}
-	tagBytes, err := json.Marshal(tag)
-	if err != nil {
-		return nil, err
-	}
-	if len(payload) == 0 || payload[0] != '{' {
-		return nil, fmt.Errorf("C4Declaration: variant produced non-object JSON")
-	}
-	prefix := append([]byte{'{'}, []byte("\"kind\":")...)
-	prefix = append(prefix, tagBytes...)
-	if payload[1] != '}' {
-		prefix = append(prefix, ',')
-	}
-	return append(prefix, payload[1:]...), nil
-}
-
-func (u *C4Declaration) UnmarshalJSON(data []byte) error {
-	var probe struct {
-		Tag string `json:"kind"`
-	}
-	if err := json.Unmarshal(data, &probe); err != nil {
-		return err
-	}
+func (v *C4Declaration) UnmarshalJSON(data []byte) error {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
-	delete(raw, "kind")
-	body, err := json.Marshal(raw)
-	if err != nil {
-		return err
+	if m, ok := raw["path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("C4Declaration: required field \"path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Path); err != nil {
+		return prefixField("path", err)
 	}
-	switch probe.Tag {
-	case "blueprint":
-		var v C4BlueprintDeclaration
-		if err := json.Unmarshal(body, &v); err != nil {
-			return err
-		}
-		u.Value = v
-		return nil
-	case "record-block":
-		var v C4RosterDeclaration
-		if err := json.Unmarshal(body, &v); err != nil {
-			return err
-		}
-		u.Value = v
-		return nil
+	if m, ok := raw["span"]; !ok || string(m) == "null" {
+		return fmt.Errorf("C4Declaration: required field \"span\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Span); err != nil {
+		return prefixField("span", err)
 	}
-	return fmt.Errorf("C4Declaration: unknown kind %q", probe.Tag)
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "path", "span":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "C4Declaration", Field: unknown}
+	}
+	return nil
 }
 
 // The properties every element carries, whatever its level.
@@ -306,22 +189,24 @@ type C4Element struct {
 	//
 	// The technology line drawn on diagrams.
 	Technology *string `json:"technology,omitempty"`
-	// Contract slugs this element provides.
-	//
-	// The interface is this element's own, so it is recorded here whatever
-	// the element's altitude — a system's public API, a container's
-	// service surface, a module's package API, a component's interface
-	// where it warrants a contract document of its own.
-	ContractsProvided *[]Citation `json:"contracts_provided,omitempty"`
 	// Contract slugs this element depends on.
 	//
 	// Named contracts only. An element's untyped collaborators are not
-	// listed here — those are neighbour edges, and per ADR-009 they belong
-	// to the parent that composes the elements, or to the code.
+	// listed here — those are neighbor edges, and per ADR-009 they belong
+	// to the parent that composes the elements, or to the code. The
+	// contract's consumers are derived from this property.
 	ContractsConsumed *[]Citation `json:"contracts_consumed,omitempty"`
-	// Where the element is declared.
-	Declaration C4Declaration `json:"declaration"`
-	// Free-form tags copied from the declaration.
+	// Every declaration of this element, ordered by path and then by span.
+	// An element is one slug, however many documents declare it.
+	//
+	// The element's properties are taken from its blueprint where it has
+	// one, and otherwise from the declaration that sorts first. Declarations
+	// that disagree on a property are reported by `specs check`.
+	Declarations []C4Declaration `json:"declarations"`
+	// Contracts this element provides, derived from every contract whose
+	// `provider` names it.
+	ContractsProvided []Citation `json:"contracts_provided"`
+	// Free-form tags copied from the element's blueprint.
 	Tags *[]string `json:"tags,omitempty"`
 }
 
@@ -350,20 +235,20 @@ func (v *C4Element) UnmarshalJSON(data []byte) error {
 			return prefixField("technology", err)
 		}
 	}
-	if m, ok := raw["contracts_provided"]; ok {
-		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
-			return prefixField("contracts_provided", err)
-		}
-	}
 	if m, ok := raw["contracts_consumed"]; ok {
 		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
 			return prefixField("contracts_consumed", err)
 		}
 	}
-	if m, ok := raw["declaration"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4Element: required field \"declaration\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Declaration); err != nil {
-		return prefixField("declaration", err)
+	if m, ok := raw["declarations"]; !ok || string(m) == "null" {
+		return fmt.Errorf("C4Element: required field \"declarations\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Declarations); err != nil {
+		return prefixField("declarations", err)
+	}
+	if m, ok := raw["contracts_provided"]; !ok || string(m) == "null" {
+		return fmt.Errorf("C4Element: required field \"contracts_provided\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
+		return prefixField("contracts_provided", err)
 	}
 	if m, ok := raw["tags"]; ok {
 		if err := json.Unmarshal(m, &v.Tags); err != nil {
@@ -373,7 +258,7 @@ func (v *C4Element) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "entity_name", "technology", "contracts_provided", "contracts_consumed", "declaration", "tags":
+		case "description", "slug", "entity_name", "technology", "contracts_consumed", "declarations", "contracts_provided", "tags":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -412,22 +297,24 @@ type C4System struct {
 	//
 	// The technology line drawn on diagrams.
 	Technology *string `json:"technology,omitempty"`
-	// Contract slugs this element provides.
-	//
-	// The interface is this element's own, so it is recorded here whatever
-	// the element's altitude — a system's public API, a container's
-	// service surface, a module's package API, a component's interface
-	// where it warrants a contract document of its own.
-	ContractsProvided *[]Citation `json:"contracts_provided,omitempty"`
 	// Contract slugs this element depends on.
 	//
 	// Named contracts only. An element's untyped collaborators are not
-	// listed here — those are neighbour edges, and per ADR-009 they belong
-	// to the parent that composes the elements, or to the code.
+	// listed here — those are neighbor edges, and per ADR-009 they belong
+	// to the parent that composes the elements, or to the code. The
+	// contract's consumers are derived from this property.
 	ContractsConsumed *[]Citation `json:"contracts_consumed,omitempty"`
-	// Where the element is declared.
-	Declaration C4Declaration `json:"declaration"`
-	// Free-form tags copied from the declaration.
+	// Every declaration of this element, ordered by path and then by span.
+	// An element is one slug, however many documents declare it.
+	//
+	// The element's properties are taken from its blueprint where it has
+	// one, and otherwise from the declaration that sorts first. Declarations
+	// that disagree on a property are reported by `specs check`.
+	Declarations []C4Declaration `json:"declarations"`
+	// Contracts this element provides, derived from every contract whose
+	// `provider` names it.
+	ContractsProvided []Citation `json:"contracts_provided"`
+	// Free-form tags copied from the element's blueprint.
 	Tags *[]string `json:"tags,omitempty"`
 	// The containers whose blueprints name this system.
 	Containers []C4Container `json:"containers"`
@@ -458,20 +345,20 @@ func (v *C4System) UnmarshalJSON(data []byte) error {
 			return prefixField("technology", err)
 		}
 	}
-	if m, ok := raw["contracts_provided"]; ok {
-		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
-			return prefixField("contracts_provided", err)
-		}
-	}
 	if m, ok := raw["contracts_consumed"]; ok {
 		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
 			return prefixField("contracts_consumed", err)
 		}
 	}
-	if m, ok := raw["declaration"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4System: required field \"declaration\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Declaration); err != nil {
-		return prefixField("declaration", err)
+	if m, ok := raw["declarations"]; !ok || string(m) == "null" {
+		return fmt.Errorf("C4System: required field \"declarations\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Declarations); err != nil {
+		return prefixField("declarations", err)
+	}
+	if m, ok := raw["contracts_provided"]; !ok || string(m) == "null" {
+		return fmt.Errorf("C4System: required field \"contracts_provided\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
+		return prefixField("contracts_provided", err)
 	}
 	if m, ok := raw["tags"]; ok {
 		if err := json.Unmarshal(m, &v.Tags); err != nil {
@@ -486,7 +373,7 @@ func (v *C4System) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "entity_name", "technology", "contracts_provided", "contracts_consumed", "declaration", "tags", "containers":
+		case "description", "slug", "entity_name", "technology", "contracts_consumed", "declarations", "contracts_provided", "tags", "containers":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -525,27 +412,29 @@ type C4Container struct {
 	//
 	// The technology line drawn on diagrams.
 	Technology *string `json:"technology,omitempty"`
-	// Contract slugs this element provides.
-	//
-	// The interface is this element's own, so it is recorded here whatever
-	// the element's altitude — a system's public API, a container's
-	// service surface, a module's package API, a component's interface
-	// where it warrants a contract document of its own.
-	ContractsProvided *[]Citation `json:"contracts_provided,omitempty"`
 	// Contract slugs this element depends on.
 	//
 	// Named contracts only. An element's untyped collaborators are not
-	// listed here — those are neighbour edges, and per ADR-009 they belong
-	// to the parent that composes the elements, or to the code.
+	// listed here — those are neighbor edges, and per ADR-009 they belong
+	// to the parent that composes the elements, or to the code. The
+	// contract's consumers are derived from this property.
 	ContractsConsumed *[]Citation `json:"contracts_consumed,omitempty"`
-	// Where the element is declared.
-	Declaration C4Declaration `json:"declaration"`
-	// Free-form tags copied from the declaration.
+	// Every declaration of this element, ordered by path and then by span.
+	// An element is one slug, however many documents declare it.
+	//
+	// The element's properties are taken from its blueprint where it has
+	// one, and otherwise from the declaration that sorts first. Declarations
+	// that disagree on a property are reported by `specs check`.
+	Declarations []C4Declaration `json:"declarations"`
+	// Contracts this element provides, derived from every contract whose
+	// `provider` names it.
+	ContractsProvided []Citation `json:"contracts_provided"`
+	// Free-form tags copied from the element's blueprint.
 	Tags *[]string `json:"tags,omitempty"`
 	// Components declared in this container's roster section.
 	Components []C4Component `json:"components"`
-	// Slugs of the modules composed into this container, derived from each
-	// module's `contained_by`. The modules themselves are in the model's
+	// Slugs of the modules composed into this container, as its blueprint's
+	// `modules` declares them. The modules themselves are in the model's
 	// `modules` collection.
 	Modules []Slug `json:"modules"`
 }
@@ -575,20 +464,20 @@ func (v *C4Container) UnmarshalJSON(data []byte) error {
 			return prefixField("technology", err)
 		}
 	}
-	if m, ok := raw["contracts_provided"]; ok {
-		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
-			return prefixField("contracts_provided", err)
-		}
-	}
 	if m, ok := raw["contracts_consumed"]; ok {
 		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
 			return prefixField("contracts_consumed", err)
 		}
 	}
-	if m, ok := raw["declaration"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4Container: required field \"declaration\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Declaration); err != nil {
-		return prefixField("declaration", err)
+	if m, ok := raw["declarations"]; !ok || string(m) == "null" {
+		return fmt.Errorf("C4Container: required field \"declarations\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Declarations); err != nil {
+		return prefixField("declarations", err)
+	}
+	if m, ok := raw["contracts_provided"]; !ok || string(m) == "null" {
+		return fmt.Errorf("C4Container: required field \"contracts_provided\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
+		return prefixField("contracts_provided", err)
 	}
 	if m, ok := raw["tags"]; ok {
 		if err := json.Unmarshal(m, &v.Tags); err != nil {
@@ -608,7 +497,7 @@ func (v *C4Container) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "entity_name", "technology", "contracts_provided", "contracts_consumed", "declaration", "tags", "components", "modules":
+		case "description", "slug", "entity_name", "technology", "contracts_consumed", "declarations", "contracts_provided", "tags", "components", "modules":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -647,33 +536,35 @@ type C4Module struct {
 	//
 	// The technology line drawn on diagrams.
 	Technology *string `json:"technology,omitempty"`
-	// Contract slugs this element provides.
-	//
-	// The interface is this element's own, so it is recorded here whatever
-	// the element's altitude — a system's public API, a container's
-	// service surface, a module's package API, a component's interface
-	// where it warrants a contract document of its own.
-	ContractsProvided *[]Citation `json:"contracts_provided,omitempty"`
 	// Contract slugs this element depends on.
 	//
 	// Named contracts only. An element's untyped collaborators are not
-	// listed here — those are neighbour edges, and per ADR-009 they belong
-	// to the parent that composes the elements, or to the code.
+	// listed here — those are neighbor edges, and per ADR-009 they belong
+	// to the parent that composes the elements, or to the code. The
+	// contract's consumers are derived from this property.
 	ContractsConsumed *[]Citation `json:"contracts_consumed,omitempty"`
-	// Where the element is declared.
-	Declaration C4Declaration `json:"declaration"`
-	// Free-form tags copied from the declaration.
+	// Every declaration of this element, ordered by path and then by span.
+	// An element is one slug, however many documents declare it.
+	//
+	// The element's properties are taken from its blueprint where it has
+	// one, and otherwise from the declaration that sorts first. Declarations
+	// that disagree on a property are reported by `specs check`.
+	Declarations []C4Declaration `json:"declarations"`
+	// Contracts this element provides, derived from every contract whose
+	// `provider` names it.
+	ContractsProvided []Citation `json:"contracts_provided"`
+	// Free-form tags copied from the element's blueprint.
 	Tags       *[]string     `json:"tags,omitempty"`
 	Kind       BlueprintKind `json:"kind"`
 	Visibility Visibility    `json:"visibility"`
 	Version    *string       `json:"version,omitempty"`
-	// The containers or modules that compose this one. Empty when no host
-	// has a blueprint of its own.
+	// The containers and modules that compose this one, derived from their
+	// `modules`. Empty when nothing documented composes it.
 	ContainedBy []Citation `json:"contained_by"`
 	// Components declared in this module's roster section.
 	Components []C4Component `json:"components"`
-	// Slugs of the modules composed into this one, derived from their
-	// `contained_by` as for a container.
+	// Slugs of the modules composed into this one, as its blueprint's
+	// `modules` declares them.
 	Modules []Slug `json:"modules"`
 }
 
@@ -702,20 +593,20 @@ func (v *C4Module) UnmarshalJSON(data []byte) error {
 			return prefixField("technology", err)
 		}
 	}
-	if m, ok := raw["contracts_provided"]; ok {
-		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
-			return prefixField("contracts_provided", err)
-		}
-	}
 	if m, ok := raw["contracts_consumed"]; ok {
 		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
 			return prefixField("contracts_consumed", err)
 		}
 	}
-	if m, ok := raw["declaration"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4Module: required field \"declaration\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Declaration); err != nil {
-		return prefixField("declaration", err)
+	if m, ok := raw["declarations"]; !ok || string(m) == "null" {
+		return fmt.Errorf("C4Module: required field \"declarations\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Declarations); err != nil {
+		return prefixField("declarations", err)
+	}
+	if m, ok := raw["contracts_provided"]; !ok || string(m) == "null" {
+		return fmt.Errorf("C4Module: required field \"contracts_provided\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
+		return prefixField("contracts_provided", err)
 	}
 	if m, ok := raw["tags"]; ok {
 		if err := json.Unmarshal(m, &v.Tags); err != nil {
@@ -755,7 +646,7 @@ func (v *C4Module) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "entity_name", "technology", "contracts_provided", "contracts_consumed", "declaration", "tags", "kind", "visibility", "version", "contained_by", "components", "modules":
+		case "description", "slug", "entity_name", "technology", "contracts_consumed", "declarations", "contracts_provided", "tags", "kind", "visibility", "version", "contained_by", "components", "modules":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -794,22 +685,24 @@ type C4Component struct {
 	//
 	// The technology line drawn on diagrams.
 	Technology *string `json:"technology,omitempty"`
-	// Contract slugs this element provides.
-	//
-	// The interface is this element's own, so it is recorded here whatever
-	// the element's altitude — a system's public API, a container's
-	// service surface, a module's package API, a component's interface
-	// where it warrants a contract document of its own.
-	ContractsProvided *[]Citation `json:"contracts_provided,omitempty"`
 	// Contract slugs this element depends on.
 	//
 	// Named contracts only. An element's untyped collaborators are not
-	// listed here — those are neighbour edges, and per ADR-009 they belong
-	// to the parent that composes the elements, or to the code.
+	// listed here — those are neighbor edges, and per ADR-009 they belong
+	// to the parent that composes the elements, or to the code. The
+	// contract's consumers are derived from this property.
 	ContractsConsumed *[]Citation `json:"contracts_consumed,omitempty"`
-	// Where the element is declared.
-	Declaration C4Declaration `json:"declaration"`
-	// Free-form tags copied from the declaration.
+	// Every declaration of this element, ordered by path and then by span.
+	// An element is one slug, however many documents declare it.
+	//
+	// The element's properties are taken from its blueprint where it has
+	// one, and otherwise from the declaration that sorts first. Declarations
+	// that disagree on a property are reported by `specs check`.
+	Declarations []C4Declaration `json:"declarations"`
+	// Contracts this element provides, derived from every contract whose
+	// `provider` names it.
+	ContractsProvided []Citation `json:"contracts_provided"`
+	// Free-form tags copied from the element's blueprint.
 	Tags *[]string `json:"tags,omitempty"`
 	// Present only when the component has a blueprint, which is where the
 	// property is declared.
@@ -841,20 +734,20 @@ func (v *C4Component) UnmarshalJSON(data []byte) error {
 			return prefixField("technology", err)
 		}
 	}
-	if m, ok := raw["contracts_provided"]; ok {
-		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
-			return prefixField("contracts_provided", err)
-		}
-	}
 	if m, ok := raw["contracts_consumed"]; ok {
 		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
 			return prefixField("contracts_consumed", err)
 		}
 	}
-	if m, ok := raw["declaration"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4Component: required field \"declaration\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Declaration); err != nil {
-		return prefixField("declaration", err)
+	if m, ok := raw["declarations"]; !ok || string(m) == "null" {
+		return fmt.Errorf("C4Component: required field \"declarations\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Declarations); err != nil {
+		return prefixField("declarations", err)
+	}
+	if m, ok := raw["contracts_provided"]; !ok || string(m) == "null" {
+		return fmt.Errorf("C4Component: required field \"contracts_provided\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
+		return prefixField("contracts_provided", err)
 	}
 	if m, ok := raw["tags"]; ok {
 		if err := json.Unmarshal(m, &v.Tags); err != nil {
@@ -869,7 +762,7 @@ func (v *C4Component) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "entity_name", "technology", "contracts_provided", "contracts_consumed", "declaration", "tags", "kind":
+		case "description", "slug", "entity_name", "technology", "contracts_consumed", "declarations", "contracts_provided", "tags", "kind":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -882,39 +775,39 @@ func (v *C4Component) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// The diagram types that contribute relationships. Dynamic diagrams draw
-// data flow rather than dependency, and deployment diagrams draw
-// infrastructure, so neither contributes.
-type C4DiagramType string
+// The C4 views that contribute relationships. Dynamic views draw data flow
+// rather than dependency, and deployment views draw infrastructure, so
+// neither contributes.
+type C4View string
 
 const (
-	C4DiagramTypeContext   C4DiagramType = "context"
-	C4DiagramTypeContainer C4DiagramType = "container"
-	C4DiagramTypeComponent C4DiagramType = "component"
+	C4ViewContext   C4View = "context"
+	C4ViewContainer C4View = "container"
+	C4ViewComponent C4View = "component"
 )
 
-func (e C4DiagramType) MarshalJSON() ([]byte, error) {
+func (e C4View) MarshalJSON() ([]byte, error) {
 	switch e {
-	case C4DiagramTypeContext, C4DiagramTypeContainer, C4DiagramTypeComponent:
+	case C4ViewContext, C4ViewContainer, C4ViewComponent:
 		return json.Marshal(string(e))
 	}
-	return nil, fmt.Errorf("C4DiagramType: unknown value %q", string(e))
+	return nil, fmt.Errorf("C4View: unknown value %q", string(e))
 }
 
-func (e *C4DiagramType) UnmarshalJSON(data []byte) error {
+func (e *C4View) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
 		return err
 	}
-	switch C4DiagramType(s) {
-	case C4DiagramTypeContext, C4DiagramTypeContainer, C4DiagramTypeComponent:
-		*e = C4DiagramType(s)
+	switch C4View(s) {
+	case C4ViewContext, C4ViewContainer, C4ViewComponent:
+		*e = C4View(s)
 		return nil
 	}
-	return fmt.Errorf("C4DiagramType: unknown value %q", s)
+	return fmt.Errorf("C4View: unknown value %q", s)
 }
 
-func (e C4DiagramType) String() string {
+func (e C4View) String() string {
 	return string(e)
 }
 
@@ -923,8 +816,9 @@ type C4Drawing struct {
 	// Repository-relative path of the document holding the diagram.
 	Path string `json:"path"`
 	// The `Rel` statement as written.
-	Position    Span          `json:"position"`
-	DiagramType C4DiagramType `json:"diagram_type"`
+	Span Span `json:"span"`
+	// The view the statement's diagram draws.
+	View C4View `json:"view"`
 	// The Mermaid aliases of the two endpoints as written. `Rel_Back`
 	// statements are recorded after normalisation, so these name the
 	// source first.
@@ -942,15 +836,15 @@ func (v *C4Drawing) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Path); err != nil {
 		return prefixField("path", err)
 	}
-	if m, ok := raw["position"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4Drawing: required field \"position\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Position); err != nil {
-		return prefixField("position", err)
+	if m, ok := raw["span"]; !ok || string(m) == "null" {
+		return fmt.Errorf("C4Drawing: required field \"span\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Span); err != nil {
+		return prefixField("span", err)
 	}
-	if m, ok := raw["diagram_type"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4Drawing: required field \"diagram_type\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.DiagramType); err != nil {
-		return prefixField("diagram_type", err)
+	if m, ok := raw["view"]; !ok || string(m) == "null" {
+		return fmt.Errorf("C4Drawing: required field \"view\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.View); err != nil {
+		return prefixField("view", err)
 	}
 	if m, ok := raw["source_alias"]; !ok || string(m) == "null" {
 		return fmt.Errorf("C4Drawing: required field \"source_alias\" is missing or null")
@@ -965,7 +859,7 @@ func (v *C4Drawing) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "path", "position", "diagram_type", "source_alias", "target_alias":
+		case "path", "span", "view", "source_alias", "target_alias":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -979,39 +873,39 @@ func (v *C4Drawing) UnmarshalJSON(data []byte) error {
 }
 
 // The C4 level at which a relationship holds.
-type C4RelationshipLevel string
+type C4Level string
 
 const (
 	// Between two systems.
-	C4RelationshipLevelSystem C4RelationshipLevel = "system"
+	C4LevelSystem C4Level = "system"
 	// Between containers, or between a container and a system.
-	C4RelationshipLevelContainer C4RelationshipLevel = "container"
+	C4LevelContainer C4Level = "container"
 	// Between components or modules within one parent.
-	C4RelationshipLevelComponent C4RelationshipLevel = "component"
+	C4LevelComponent C4Level = "component"
 )
 
-func (e C4RelationshipLevel) MarshalJSON() ([]byte, error) {
+func (e C4Level) MarshalJSON() ([]byte, error) {
 	switch e {
-	case C4RelationshipLevelSystem, C4RelationshipLevelContainer, C4RelationshipLevelComponent:
+	case C4LevelSystem, C4LevelContainer, C4LevelComponent:
 		return json.Marshal(string(e))
 	}
-	return nil, fmt.Errorf("C4RelationshipLevel: unknown value %q", string(e))
+	return nil, fmt.Errorf("C4Level: unknown value %q", string(e))
 }
 
-func (e *C4RelationshipLevel) UnmarshalJSON(data []byte) error {
+func (e *C4Level) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
 		return err
 	}
-	switch C4RelationshipLevel(s) {
-	case C4RelationshipLevelSystem, C4RelationshipLevelContainer, C4RelationshipLevelComponent:
-		*e = C4RelationshipLevel(s)
+	switch C4Level(s) {
+	case C4LevelSystem, C4LevelContainer, C4LevelComponent:
+		*e = C4Level(s)
 		return nil
 	}
-	return fmt.Errorf("C4RelationshipLevel: unknown value %q", s)
+	return fmt.Errorf("C4Level: unknown value %q", s)
 }
 
-func (e C4RelationshipLevel) String() string {
+func (e C4Level) String() string {
 	return string(e)
 }
 
@@ -1055,8 +949,7 @@ type C4ContractSource string
 const (
 	// Named by a reserved `contract:<slug>` tag on the statement.
 	C4ContractSourceTag C4ContractSource = "tag"
-	// The only contract in both the source's `contracts_consumed` and the
-	// target's `contracts_provided`.
+	// The only contract the source consumes whose `provider` is the target.
 	C4ContractSourceDerived C4ContractSource = "derived"
 )
 
@@ -1130,14 +1023,14 @@ func (v *C4ContractLink) UnmarshalJSON(data []byte) error {
 // recorded once with every drawing listed. Two drawings are the same
 // relationship when source, target and description agree. Where they
 // disagree on anything else, the relationship carries the values of the
-// drawing that sorts first by path and then by position, and the
+// drawing that sorts first by path and then by span, and the
 // `c4/drawing-conflict` rule reports the disagreement.
 type C4Relationship struct {
 	// Slug of the element that depends.
 	Source Citation `json:"source"`
 	// Slug of the element depended on.
-	Target Citation            `json:"target"`
-	Level  C4RelationshipLevel `json:"level"`
+	Target Citation `json:"target"`
+	Level  C4Level  `json:"level"`
 	// The statement's label, which reads as a sentence between the two
 	// names: "Command Surface invokes indexing, checks and queries".
 	Description string `json:"description"`
@@ -1224,87 +1117,87 @@ func (v *C4Relationship) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Why a `Rel` statement was not admitted to the model.
-type C4UnplacedReason string
+// Why a `Rel` statement was excluded from the model.
+type C4ExclusionReason string
 
 const (
 	// An endpoint is a `Person` or an `_Ext` node.
-	C4UnplacedReasonExternalEndpoint C4UnplacedReason = "external_endpoint"
+	C4ExclusionReasonExternalEndpoint C4ExclusionReason = "external_endpoint"
 	// An endpoint is a `Db` or `Queue` node naming no element in scope: a
 	// data store the drawing element uses, which the C4 standard gives no
 	// blueprint of its own.
-	C4UnplacedReasonPassiveStore C4UnplacedReason = "passive_store"
+	C4ExclusionReasonPassiveStore C4ExclusionReason = "passive_store"
 	// An endpoint's label matches no element in scope.
-	C4UnplacedReasonUndeclaredNode C4UnplacedReason = "undeclared_node"
+	C4ExclusionReasonUndeclaredNode C4ExclusionReason = "undeclared_node"
 	// An endpoint's label matches more than one element in scope.
-	C4UnplacedReasonAmbiguousNode C4UnplacedReason = "ambiguous_node"
+	C4ExclusionReasonAmbiguousNode C4ExclusionReason = "ambiguous_node"
 )
 
-func (e C4UnplacedReason) MarshalJSON() ([]byte, error) {
+func (e C4ExclusionReason) MarshalJSON() ([]byte, error) {
 	switch e {
-	case C4UnplacedReasonExternalEndpoint, C4UnplacedReasonPassiveStore, C4UnplacedReasonUndeclaredNode, C4UnplacedReasonAmbiguousNode:
+	case C4ExclusionReasonExternalEndpoint, C4ExclusionReasonPassiveStore, C4ExclusionReasonUndeclaredNode, C4ExclusionReasonAmbiguousNode:
 		return json.Marshal(string(e))
 	}
-	return nil, fmt.Errorf("C4UnplacedReason: unknown value %q", string(e))
+	return nil, fmt.Errorf("C4ExclusionReason: unknown value %q", string(e))
 }
 
-func (e *C4UnplacedReason) UnmarshalJSON(data []byte) error {
+func (e *C4ExclusionReason) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
 		return err
 	}
-	switch C4UnplacedReason(s) {
-	case C4UnplacedReasonExternalEndpoint, C4UnplacedReasonPassiveStore, C4UnplacedReasonUndeclaredNode, C4UnplacedReasonAmbiguousNode:
-		*e = C4UnplacedReason(s)
+	switch C4ExclusionReason(s) {
+	case C4ExclusionReasonExternalEndpoint, C4ExclusionReasonPassiveStore, C4ExclusionReasonUndeclaredNode, C4ExclusionReasonAmbiguousNode:
+		*e = C4ExclusionReason(s)
 		return nil
 	}
-	return fmt.Errorf("C4UnplacedReason: unknown value %q", s)
+	return fmt.Errorf("C4ExclusionReason: unknown value %q", s)
 }
 
-func (e C4UnplacedReason) String() string {
+func (e C4ExclusionReason) String() string {
 	return string(e)
 }
 
-// A `Rel` statement the model does not admit.
-type C4Unplaced struct {
+// A `Rel` statement excluded from the model, and why.
+type C4ExcludedRelationship struct {
 	// Repository-relative path of the document holding the diagram.
 	Path string `json:"path"`
 	// The statement as written.
-	Position Span             `json:"position"`
-	Reason   C4UnplacedReason `json:"reason"`
+	Span   Span              `json:"span"`
+	Reason C4ExclusionReason `json:"reason"`
 	// The statement's text, so a reader need not reopen the document.
 	Text string `json:"text"`
 }
 
-func (v *C4Unplaced) UnmarshalJSON(data []byte) error {
+func (v *C4ExcludedRelationship) UnmarshalJSON(data []byte) error {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
 	if m, ok := raw["path"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4Unplaced: required field \"path\" is missing or null")
+		return fmt.Errorf("C4ExcludedRelationship: required field \"path\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Path); err != nil {
 		return prefixField("path", err)
 	}
-	if m, ok := raw["position"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4Unplaced: required field \"position\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Position); err != nil {
-		return prefixField("position", err)
+	if m, ok := raw["span"]; !ok || string(m) == "null" {
+		return fmt.Errorf("C4ExcludedRelationship: required field \"span\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Span); err != nil {
+		return prefixField("span", err)
 	}
 	if m, ok := raw["reason"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4Unplaced: required field \"reason\" is missing or null")
+		return fmt.Errorf("C4ExcludedRelationship: required field \"reason\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Reason); err != nil {
 		return prefixField("reason", err)
 	}
 	if m, ok := raw["text"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4Unplaced: required field \"text\" is missing or null")
+		return fmt.Errorf("C4ExcludedRelationship: required field \"text\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Text); err != nil {
 		return prefixField("text", err)
 	}
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "path", "position", "reason", "text":
+		case "path", "span", "reason", "text":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -1312,7 +1205,7 @@ func (v *C4Unplaced) UnmarshalJSON(data []byte) error {
 		}
 	}
 	if unknown != "" {
-		return &unknownFieldError{Struct: "C4Unplaced", Field: unknown}
+		return &unknownFieldError{Struct: "C4ExcludedRelationship", Field: unknown}
 	}
 	return nil
 }
@@ -1650,7 +1543,7 @@ type FeatureSourceBlock struct {
 	// fence, and a caller that replaces or extracts the whole construct needs
 	// the fence too. This is the same distinction the framework's region
 	// scanner already draws between an inner and an outer extent.
-	Block Span `json:"block"`
+	BlockSpan Span `json:"block_span"`
 }
 
 func (v *FeatureSourceBlock) UnmarshalJSON(data []byte) error {
@@ -1658,15 +1551,15 @@ func (v *FeatureSourceBlock) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
-	if m, ok := raw["block"]; !ok || string(m) == "null" {
-		return fmt.Errorf("FeatureSourceBlock: required field \"block\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Block); err != nil {
-		return prefixField("block", err)
+	if m, ok := raw["block_span"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FeatureSourceBlock: required field \"block_span\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.BlockSpan); err != nil {
+		return prefixField("block_span", err)
 	}
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "block":
+		case "block_span":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -1879,7 +1772,7 @@ type Criterion struct {
 	// Where in its document the criterion is written, as a span rather than a
 	// bare line number, so that a report and a rewrite both address the
 	// criterion itself.
-	Position Span `json:"position"`
+	Span Span `json:"span"`
 }
 
 func (v *Criterion) UnmarshalJSON(data []byte) error {
@@ -1937,15 +1830,15 @@ func (v *Criterion) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.ContentHash); err != nil {
 		return prefixField("content_hash", err)
 	}
-	if m, ok := raw["position"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Criterion: required field \"position\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Position); err != nil {
-		return prefixField("position", err)
+	if m, ok := raw["span"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Criterion: required field \"span\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Span); err != nil {
+		return prefixField("span", err)
 	}
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "id", "name", "text", "description", "rule", "negative", "manual", "level", "notation", "content_hash", "position":
+		case "id", "name", "text", "description", "rule", "negative", "manual", "level", "notation", "content_hash", "span":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -2005,7 +1898,7 @@ type Feature struct {
 	//
 	// For a feature written as a fenced block, this covers the Gherkin inside
 	// the fence; the fence's own extent is carried by `source`.
-	Position Span `json:"position"`
+	Span Span `json:"span"`
 	// The feature's acceptance criteria, in the order they are written.
 	//
 	// Nested rather than held in a sibling collection. A criterion belongs to
@@ -2054,10 +1947,10 @@ func (v *Feature) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Source); err != nil {
 		return prefixField("source", err)
 	}
-	if m, ok := raw["position"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Feature: required field \"position\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Position); err != nil {
-		return prefixField("position", err)
+	if m, ok := raw["span"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Feature: required field \"span\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Span); err != nil {
+		return prefixField("span", err)
 	}
 	if m, ok := raw["criteria"]; !ok || string(m) == "null" {
 		return fmt.Errorf("Feature: required field \"criteria\" is missing or null")
@@ -2067,7 +1960,7 @@ func (v *Feature) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "id", "code", "document_slug", "path", "name", "description", "source", "position", "criteria":
+		case "id", "code", "document_slug", "path", "name", "description", "source", "span", "criteria":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -2880,7 +2773,7 @@ type FindingDuplicateIdentifier struct {
 	// written with forward slashes on every platform.
 	OtherPath string `json:"other_path"`
 	// Where in that file the other occurrence is written.
-	OtherPosition Span `json:"other_position"`
+	OtherSpan Span `json:"other_span"`
 }
 
 func (v *FindingDuplicateIdentifier) UnmarshalJSON(data []byte) error {
@@ -2898,15 +2791,15 @@ func (v *FindingDuplicateIdentifier) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.OtherPath); err != nil {
 		return prefixField("other_path", err)
 	}
-	if m, ok := raw["other_position"]; !ok || string(m) == "null" {
-		return fmt.Errorf("FindingDuplicateIdentifier: required field \"other_position\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.OtherPosition); err != nil {
-		return prefixField("other_position", err)
+	if m, ok := raw["other_span"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingDuplicateIdentifier: required field \"other_span\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.OtherSpan); err != nil {
+		return prefixField("other_span", err)
 	}
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "identifier", "other_path", "other_position":
+		case "identifier", "other_path", "other_span":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -3122,7 +3015,7 @@ type AnchorMatch struct {
 	// line.
 	Text string `json:"text"`
 	// Where the heading line itself is written.
-	Position Span `json:"position"`
+	Span Span `json:"span"`
 }
 
 func (v *AnchorMatch) UnmarshalJSON(data []byte) error {
@@ -3135,15 +3028,15 @@ func (v *AnchorMatch) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Text); err != nil {
 		return prefixField("text", err)
 	}
-	if m, ok := raw["position"]; !ok || string(m) == "null" {
-		return fmt.Errorf("AnchorMatch: required field \"position\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Position); err != nil {
-		return prefixField("position", err)
+	if m, ok := raw["span"]; !ok || string(m) == "null" {
+		return fmt.Errorf("AnchorMatch: required field \"span\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Span); err != nil {
+		return prefixField("span", err)
 	}
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "text", "position":
+		case "text", "span":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -3640,7 +3533,7 @@ type Finding struct {
 	Path string `json:"path"`
 	// Where in the file the finding is, as a span rather than a bare line
 	// number, so a report can point at a value inside a line.
-	Position Span `json:"position"`
+	Span Span `json:"span"`
 	// What is wrong, stating the violated constraint and the value that
 	// violated it, so the finding needs no further lookup to act on.
 	Message string `json:"message"`
@@ -3668,10 +3561,10 @@ func (v *Finding) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Path); err != nil {
 		return prefixField("path", err)
 	}
-	if m, ok := raw["position"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Finding: required field \"position\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Position); err != nil {
-		return prefixField("position", err)
+	if m, ok := raw["span"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Finding: required field \"span\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Span); err != nil {
+		return prefixField("span", err)
 	}
 	if m, ok := raw["message"]; !ok || string(m) == "null" {
 		return fmt.Errorf("Finding: required field \"message\" is missing or null")
@@ -3686,7 +3579,7 @@ func (v *Finding) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "rule", "severity", "path", "position", "message", "detail":
+		case "rule", "severity", "path", "span", "message", "detail":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -3890,18 +3783,19 @@ func (v *Identified) UnmarshalJSON(data []byte) error {
 // The fields that declare an architectural element: what it is called, what
 // it is, how it is referenced, and what it is built with.
 //
-// Deliberately shared by two artifacts that look unrelated. A child element
-// a parent document declares inline — a component of a container — carries
-// exactly these fields in a fenced record block. A child promoted to its
-// own blueprint carries them in its frontmatter, because every architecture
+// Deliberately shared by two artifacts that look unrelated. An element
+// declared inline — a component in its container's roster — carries
+// exactly these fields in a fenced record block. An element with its own
+// blueprint carries them in its frontmatter, because every architecture
 // blueprint type inherits this struct.
 //
-// One schema therefore validates a child in either state, which is what
-// makes promotion a lift-and-link operation rather than a re-authoring one:
-// the record block moves verbatim into the new blueprint's frontmatter, the
-// blueprint adds its document `title` and envelope, and every parent roster
-// replaces the block with a link.
-type ElementRecord struct {
+// One schema therefore validates every declaration of an element, and an
+// element may have several: a blueprint and the record block in its
+// parent's roster, or blocks in more than one document. They are one
+// element because they share a `slug`. Promotion copies a block's fields
+// into a new blueprint's frontmatter, which adds the document's `title`
+// and envelope; the block may stay where it is.
+type C4ElementRecord struct {
 	// A one- to two-sentence summary of what this is and what it is
 	// responsible for.
 	//
@@ -3928,23 +3822,23 @@ type ElementRecord struct {
 	Technology *string `json:"technology,omitempty"`
 }
 
-func (v *ElementRecord) UnmarshalJSON(data []byte) error {
+func (v *C4ElementRecord) UnmarshalJSON(data []byte) error {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
 	}
 	if m, ok := raw["description"]; !ok || string(m) == "null" {
-		return fmt.Errorf("ElementRecord: required field \"description\" is missing or null")
+		return fmt.Errorf("C4ElementRecord: required field \"description\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Description); err != nil {
 		return prefixField("description", err)
 	}
 	if m, ok := raw["slug"]; !ok || string(m) == "null" {
-		return fmt.Errorf("ElementRecord: required field \"slug\" is missing or null")
+		return fmt.Errorf("C4ElementRecord: required field \"slug\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
 		return prefixField("slug", err)
 	}
 	if m, ok := raw["entity_name"]; !ok || string(m) == "null" {
-		return fmt.Errorf("ElementRecord: required field \"entity_name\" is missing or null")
+		return fmt.Errorf("C4ElementRecord: required field \"entity_name\" is missing or null")
 	} else if err := json.Unmarshal(m, &v.EntityName); err != nil {
 		return prefixField("entity_name", err)
 	}
@@ -3964,7 +3858,7 @@ func (v *ElementRecord) UnmarshalJSON(data []byte) error {
 		}
 	}
 	if unknown != "" {
-		return &unknownFieldError{Struct: "ElementRecord", Field: unknown}
+		return &unknownFieldError{Struct: "C4ElementRecord", Field: unknown}
 	}
 	return nil
 }
@@ -4089,35 +3983,28 @@ func (v *DocumentFrontmatter) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// The contract edges a C4 element owns: the interfaces it publishes, and
-// the interfaces it depends on.
+// The contract edge a C4 element declares: the interfaces it depends on.
 //
-// Declared once and inherited by all four blueprint types rather than
-// repeated on each, because the same fact recorded at four altitudes
-// under three different spellings is how a vocabulary drifts. An element
-// provides a contract at whichever altitude it happens to sit; the
-// property is named for the concept, not for the level.
+// Inherited by all four blueprint types, because an element consumes a
+// contract at whichever altitude it sits. The other end of a contract
+// edge — which element provides the contract — is declared once, on the
+// contract, as `Contract.provider`; an element's provided contracts are
+// derived from it. Each edge is declared on the document whose change
+// creates it: an element that starts depending on a contract is the
+// element edited, and a new contract names its provider when it is
+// written.
 //
-// These are not the neighbour edges ADR-009 reserves to a parent. A
-// neighbour relationship varies by host — a shared module has different
-// collaborators in every container that composes it, which is why no
-// single outward list is correct and the parent owns it. A contract is a
-// named document with one identity, and the fact that an element
-// publishes or depends on it holds wherever that element is composed. So
-// this edge belongs to the element, and ADR-009's rule is untouched.
+// These are not the neighbor edges ADR-009 reserves to a parent. A
+// neighbor relationship varies by host; a contract is a named document
+// with one identity, and the fact that an element depends on it holds
+// wherever that element is composed.
 type ContractEdges struct {
-	// Contract slugs this element provides.
-	//
-	// The interface is this element's own, so it is recorded here whatever
-	// the element's altitude — a system's public API, a container's
-	// service surface, a module's package API, a component's interface
-	// where it warrants a contract document of its own.
-	ContractsProvided *[]Citation `json:"contracts_provided,omitempty"`
 	// Contract slugs this element depends on.
 	//
 	// Named contracts only. An element's untyped collaborators are not
-	// listed here — those are neighbour edges, and per ADR-009 they belong
-	// to the parent that composes the elements, or to the code.
+	// listed here — those are neighbor edges, and per ADR-009 they belong
+	// to the parent that composes the elements, or to the code. The
+	// contract's consumers are derived from this property.
 	ContractsConsumed *[]Citation `json:"contracts_consumed,omitempty"`
 }
 
@@ -4125,11 +4012,6 @@ func (v *ContractEdges) UnmarshalJSON(data []byte) error {
 	var raw map[string]json.RawMessage
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
-	}
-	if m, ok := raw["contracts_provided"]; ok {
-		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
-			return prefixField("contracts_provided", err)
-		}
 	}
 	if m, ok := raw["contracts_consumed"]; ok {
 		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
@@ -4139,7 +4021,7 @@ func (v *ContractEdges) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "contracts_provided", "contracts_consumed":
+		case "contracts_consumed":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -4420,18 +4302,18 @@ type Contract struct {
 	// document with no resolvable successor is a dead end for anyone who
 	// follows a reference to it.
 	SupersededBy *Citation `json:"superseded_by,omitempty"`
-	// The container or system that provides this interface.
+	// The element that provides this interface — a system, container,
+	// module or component.
 	//
 	// Exactly one, because a contract with two providers is two contracts.
+	// Declared here and nowhere else: the provider's list of provided
+	// contracts is derived from this property, so writing a new contract
+	// never requires editing the element that provides it.
 	Provider Citation `json:"provider"`
 	// Whether this interface is published beyond the repository that
 	// declares it, and therefore whether its versioning policy binds
 	// adopters outside this team.
 	Visibility Visibility `json:"visibility"`
-	// Known consumers, by slug. Derived knowledge rather than a
-	// restriction — an unlisted consumer is not forbidden, it is merely
-	// unknown to the provider.
-	Consumers *[]Citation `json:"consumers,omitempty"`
 	// Paths or URLs of the machine-readable artifacts that make this
 	// contract executable: JSON Schemas, OpenAPI documents, protobuf
 	// definitions.
@@ -4504,11 +4386,6 @@ func (v *Contract) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Visibility); err != nil {
 		return prefixField("visibility", err)
 	}
-	if m, ok := raw["consumers"]; ok {
-		if err := json.Unmarshal(m, &v.Consumers); err != nil {
-			return prefixField("consumers", err)
-		}
-	}
 	if m, ok := raw["specs"]; ok {
 		if err := json.Unmarshal(m, &v.Specs); err != nil {
 			return prefixField("specs", err)
@@ -4522,7 +4399,7 @@ func (v *Contract) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "provider", "visibility", "consumers", "specs", "version":
+		case "description", "slug", "title", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "provider", "visibility", "specs", "version":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -4718,18 +4595,12 @@ type SystemBlueprint struct {
 	//
 	// The technology line drawn on diagrams.
 	Technology *string `json:"technology,omitempty"`
-	// Contract slugs this element provides.
-	//
-	// The interface is this element's own, so it is recorded here whatever
-	// the element's altitude — a system's public API, a container's
-	// service surface, a module's package API, a component's interface
-	// where it warrants a contract document of its own.
-	ContractsProvided *[]Citation `json:"contracts_provided,omitempty"`
 	// Contract slugs this element depends on.
 	//
 	// Named contracts only. An element's untyped collaborators are not
-	// listed here — those are neighbour edges, and per ADR-009 they belong
-	// to the parent that composes the elements, or to the code.
+	// listed here — those are neighbor edges, and per ADR-009 they belong
+	// to the parent that composes the elements, or to the code. The
+	// contract's consumers are derived from this property.
 	ContractsConsumed *[]Citation `json:"contracts_consumed,omitempty"`
 }
 
@@ -4793,11 +4664,6 @@ func (v *SystemBlueprint) UnmarshalJSON(data []byte) error {
 			return prefixField("technology", err)
 		}
 	}
-	if m, ok := raw["contracts_provided"]; ok {
-		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
-			return prefixField("contracts_provided", err)
-		}
-	}
 	if m, ok := raw["contracts_consumed"]; ok {
 		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
 			return prefixField("contracts_consumed", err)
@@ -4806,7 +4672,7 @@ func (v *SystemBlueprint) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_provided", "contracts_consumed":
+		case "description", "slug", "title", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_consumed":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -4822,15 +4688,11 @@ func (v *SystemBlueprint) UnmarshalJSON(data []byte) error {
 // A C4 container blueprint: one independently deployable or runnable
 // artifact.
 //
-// The modules and components composed into it are not listed here, and
-// the two arrive by different routes. A module names its hosts itself, in
-// `contained_by`, because a module may be composed into several containers
-// and that set is a fact about the module. A component has exactly one
-// parent, as C4 requires, and that edge is recorded where a reader meets
-// it: the Components section of this document's body, where each child is
-// a fenced record block XOR a `[[slug]]` blueprint link under its own
-// heading, per ADR-008 and ADR-012. Either way the index derives this
-// container's roster rather than reading it from frontmatter.
+// The modules composed into it are listed in `modules`. Its components are
+// declared where a reader meets them: the Components section of this
+// document's body, where each child sits under its own heading as a
+// fenced record block, a `[[slug]]` blueprint link, or both, per ADR-008
+// and ADR-012.
 type ContainerBlueprint struct {
 	// A one- to two-sentence summary of what this is and what it is
 	// responsible for.
@@ -4881,18 +4743,12 @@ type ContainerBlueprint struct {
 	//
 	// The technology line drawn on diagrams.
 	Technology *string `json:"technology,omitempty"`
-	// Contract slugs this element provides.
-	//
-	// The interface is this element's own, so it is recorded here whatever
-	// the element's altitude — a system's public API, a container's
-	// service surface, a module's package API, a component's interface
-	// where it warrants a contract document of its own.
-	ContractsProvided *[]Citation `json:"contracts_provided,omitempty"`
 	// Contract slugs this element depends on.
 	//
 	// Named contracts only. An element's untyped collaborators are not
-	// listed here — those are neighbour edges, and per ADR-009 they belong
-	// to the parent that composes the elements, or to the code.
+	// listed here — those are neighbor edges, and per ADR-009 they belong
+	// to the parent that composes the elements, or to the code. The
+	// contract's consumers are derived from this property.
 	ContractsConsumed *[]Citation `json:"contracts_consumed,omitempty"`
 	// The system this container belongs to.
 	//
@@ -4900,6 +4756,13 @@ type ContainerBlueprint struct {
 	// blueprint documents it. Absence records a documented fact rather than
 	// an oversight.
 	System *Citation `json:"system,omitempty"`
+	// The modules composed into this container.
+	//
+	// Declared on the host rather than on the module, because adopting a
+	// module is a change to the container: the container is the document
+	// being edited, and the module — which may already serve other hosts —
+	// is not touched. A module's hosts are derived from this property.
+	Modules *[]Citation `json:"modules,omitempty"`
 }
 
 func (v *ContainerBlueprint) UnmarshalJSON(data []byte) error {
@@ -4962,11 +4825,6 @@ func (v *ContainerBlueprint) UnmarshalJSON(data []byte) error {
 			return prefixField("technology", err)
 		}
 	}
-	if m, ok := raw["contracts_provided"]; ok {
-		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
-			return prefixField("contracts_provided", err)
-		}
-	}
 	if m, ok := raw["contracts_consumed"]; ok {
 		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
 			return prefixField("contracts_consumed", err)
@@ -4977,10 +4835,15 @@ func (v *ContainerBlueprint) UnmarshalJSON(data []byte) error {
 			return prefixField("system", err)
 		}
 	}
+	if m, ok := raw["modules"]; ok {
+		if err := json.Unmarshal(m, &v.Modules); err != nil {
+			return prefixField("modules", err)
+		}
+	}
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_provided", "contracts_consumed", "system":
+		case "description", "slug", "title", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_consumed", "system", "modules":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -4996,10 +4859,11 @@ func (v *ContainerBlueprint) UnmarshalJSON(data []byte) error {
 // A C4 module blueprint: a coherent unit of code with an interface of its
 // own, composed into a container.
 //
-// The components it composes are not listed in frontmatter. Each child is
-// declared in this document's Components section — a fenced record block
-// when un-promoted, a `[[slug]]` blueprint link once promoted, exactly one
-// of the two per ADR-008 — and the index derives the roster from there.
+// The components it composes are declared in this document's Components
+// section — a fenced record block, a `[[slug]]` blueprint link, or both,
+// per ADR-008. The modules it composes are listed in `modules`, as on a
+// container. Its own hosts are not declared here; they are derived from
+// the `modules` of every container or module that composes it.
 type ModuleBlueprint struct {
 	// A one- to two-sentence summary of what this is and what it is
 	// responsible for.
@@ -5050,18 +4914,12 @@ type ModuleBlueprint struct {
 	//
 	// The technology line drawn on diagrams.
 	Technology *string `json:"technology,omitempty"`
-	// Contract slugs this element provides.
-	//
-	// The interface is this element's own, so it is recorded here whatever
-	// the element's altitude — a system's public API, a container's
-	// service surface, a module's package API, a component's interface
-	// where it warrants a contract document of its own.
-	ContractsProvided *[]Citation `json:"contracts_provided,omitempty"`
 	// Contract slugs this element depends on.
 	//
 	// Named contracts only. An element's untyped collaborators are not
-	// listed here — those are neighbour edges, and per ADR-009 they belong
-	// to the parent that composes the elements, or to the code.
+	// listed here — those are neighbor edges, and per ADR-009 they belong
+	// to the parent that composes the elements, or to the code. The
+	// contract's consumers are derived from this property.
 	ContractsConsumed *[]Citation `json:"contracts_consumed,omitempty"`
 	// Whether this blueprint documents one concrete module or a pattern
 	// several modules follow.
@@ -5069,25 +4927,9 @@ type ModuleBlueprint struct {
 	// Whether the module is published to a registry, and therefore whether
 	// its package API is bound by a compatibility policy.
 	Visibility Visibility `json:"visibility"`
-	// The containers, or the modules, that compose this module.
-	//
-	// **The only multi-parent relationship in the vocabulary, and the reason
-	// the module level exists.** C4 gives every element exactly one parent —
-	// a container belongs to one system, a component to one container — and
-	// that edge is recorded by the parent, in the roster section of its body.
-	// Module is this framework's addition to C4, and being composed into more
-	// than one container is its whole purpose: a unit shared by two
-	// containers is a module precisely because it is shared.
-	//
-	// So this is a list, and it is declared here rather than derived from
-	// parent rosters, because a shared module's hosts are a fact about the
-	// module. It is the direction ADR-009 tells modules to point when it
-	// denies them a context view — no single outward-edge list is correct for
-	// a module, but the set of hosts is, and this is where it goes.
-	//
-	// Omitted when no host has a blueprint of its own — absence records a
-	// documented fact rather than an oversight.
-	ContainedBy *[]Citation `json:"contained_by,omitempty"`
+	// The modules composed into this one, declared on this host for the same
+	// reason a container declares its modules.
+	Modules *[]Citation `json:"modules,omitempty"`
 	// Repository-relative source roots, so a reader can find the code.
 	SourcePaths *[]string `json:"source_paths,omitempty"`
 	// Repository-relative test roots.
@@ -5159,11 +5001,6 @@ func (v *ModuleBlueprint) UnmarshalJSON(data []byte) error {
 			return prefixField("technology", err)
 		}
 	}
-	if m, ok := raw["contracts_provided"]; ok {
-		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
-			return prefixField("contracts_provided", err)
-		}
-	}
 	if m, ok := raw["contracts_consumed"]; ok {
 		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
 			return prefixField("contracts_consumed", err)
@@ -5179,9 +5016,9 @@ func (v *ModuleBlueprint) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Visibility); err != nil {
 		return prefixField("visibility", err)
 	}
-	if m, ok := raw["contained_by"]; ok {
-		if err := json.Unmarshal(m, &v.ContainedBy); err != nil {
-			return prefixField("contained_by", err)
+	if m, ok := raw["modules"]; ok {
+		if err := json.Unmarshal(m, &v.Modules); err != nil {
+			return prefixField("modules", err)
 		}
 	}
 	if m, ok := raw["source_paths"]; ok {
@@ -5202,7 +5039,7 @@ func (v *ModuleBlueprint) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_provided", "contracts_consumed", "kind", "visibility", "contained_by", "source_paths", "test_paths", "version":
+		case "description", "slug", "title", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_consumed", "kind", "visibility", "modules", "source_paths", "test_paths", "version":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -5223,9 +5060,7 @@ func (v *ModuleBlueprint) UnmarshalJSON(data []byte) error {
 // requires, and its parent's roster section already links it by
 // `[[slug]]` under its own heading — so the edge is declared once, in the
 // one place a reader meets the child, and the index derives the component's
-// parent from that inbound link. `contained_by` is the module level's
-// alone, because being composed into more than one container is what
-// distinguishes a module from a component.
+// parent from that inbound link.
 type ComponentBlueprint struct {
 	// A one- to two-sentence summary of what this is and what it is
 	// responsible for.
@@ -5276,18 +5111,12 @@ type ComponentBlueprint struct {
 	//
 	// The technology line drawn on diagrams.
 	Technology *string `json:"technology,omitempty"`
-	// Contract slugs this element provides.
-	//
-	// The interface is this element's own, so it is recorded here whatever
-	// the element's altitude — a system's public API, a container's
-	// service surface, a module's package API, a component's interface
-	// where it warrants a contract document of its own.
-	ContractsProvided *[]Citation `json:"contracts_provided,omitempty"`
 	// Contract slugs this element depends on.
 	//
 	// Named contracts only. An element's untyped collaborators are not
-	// listed here — those are neighbour edges, and per ADR-009 they belong
-	// to the parent that composes the elements, or to the code.
+	// listed here — those are neighbor edges, and per ADR-009 they belong
+	// to the parent that composes the elements, or to the code. The
+	// contract's consumers are derived from this property.
 	ContractsConsumed *[]Citation `json:"contracts_consumed,omitempty"`
 	// Whether this blueprint documents one concrete component or a pattern
 	// several components follow.
@@ -5358,11 +5187,6 @@ func (v *ComponentBlueprint) UnmarshalJSON(data []byte) error {
 			return prefixField("technology", err)
 		}
 	}
-	if m, ok := raw["contracts_provided"]; ok {
-		if err := json.Unmarshal(m, &v.ContractsProvided); err != nil {
-			return prefixField("contracts_provided", err)
-		}
-	}
 	if m, ok := raw["contracts_consumed"]; ok {
 		if err := json.Unmarshal(m, &v.ContractsConsumed); err != nil {
 			return prefixField("contracts_consumed", err)
@@ -5386,7 +5210,7 @@ func (v *ComponentBlueprint) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "description", "slug", "title", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_provided", "contracts_consumed", "kind", "source_paths", "test_paths":
+		case "description", "slug", "title", "type", "status", "updated_at", "created_at", "tags", "superseded_by", "entity_name", "technology", "contracts_consumed", "kind", "source_paths", "test_paths":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -5946,7 +5770,7 @@ type ParseError struct {
 	// lookup to act on.
 	Message string `json:"message"`
 	// Where in the document the failure occurred.
-	Position Span `json:"position"`
+	Span Span `json:"span"`
 }
 
 func (v *ParseError) UnmarshalJSON(data []byte) error {
@@ -5959,15 +5783,15 @@ func (v *ParseError) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Message); err != nil {
 		return prefixField("message", err)
 	}
-	if m, ok := raw["position"]; !ok || string(m) == "null" {
-		return fmt.Errorf("ParseError: required field \"position\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Position); err != nil {
-		return prefixField("position", err)
+	if m, ok := raw["span"]; !ok || string(m) == "null" {
+		return fmt.Errorf("ParseError: required field \"span\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Span); err != nil {
+		return prefixField("span", err)
 	}
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "message", "position":
+		case "message", "span":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -6031,7 +5855,7 @@ func (e ExclusionReason) String() string {
 //
 // The record's content is not carried. Strata has no open value type, so
 // an arbitrary YAML mapping has no typed home in a generated model; a
-// command that needs a record reads it back through `position` and
+// command that needs a record reads it back through `span` and
 // decodes it into its own Go type, and `specs check` validates it. Adding
 // the content here later is an additive change.
 type RecordBlock struct {
@@ -6046,7 +5870,7 @@ type RecordBlock struct {
 	// the fences behind. The span is also how a command reads the record:
 	// the content between the fences is decoded on demand, into the Go type
 	// that command needs, rather than carried here.
-	Position Span `json:"position"`
+	Span Span `json:"span"`
 }
 
 func (v *RecordBlock) UnmarshalJSON(data []byte) error {
@@ -6059,15 +5883,15 @@ func (v *RecordBlock) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Tag); err != nil {
 		return prefixField("tag", err)
 	}
-	if m, ok := raw["position"]; !ok || string(m) == "null" {
-		return fmt.Errorf("RecordBlock: required field \"position\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Position); err != nil {
-		return prefixField("position", err)
+	if m, ok := raw["span"]; !ok || string(m) == "null" {
+		return fmt.Errorf("RecordBlock: required field \"span\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Span); err != nil {
+		return prefixField("span", err)
 	}
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "tag", "position":
+		case "tag", "span":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -6094,14 +5918,14 @@ type Heading struct {
 	// The heading's level: 1 for `#`, through 6 for `######`.
 	Level uint64 `json:"level"`
 	// Where the heading line itself is written.
-	Position Span `json:"position"`
+	Span Span `json:"span"`
 	// The extent of the content beneath the heading: from the end of the
 	// heading line to the start of the next heading of the same or a higher
 	// level, and to the end of the document where there is none.
 	//
 	// A heading that stands over nothing carries an empty span rather than an
 	// absent one, the same way an empty frontmatter block does.
-	Section Span `json:"section"`
+	SectionSpan Span `json:"section_span"`
 	// The record blocks attached to this heading: those whose extent falls
 	// within its section span and within no nested heading's, so a block
 	// belongs to the innermost heading that contains it.
@@ -6123,15 +5947,15 @@ func (v *Heading) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Level); err != nil {
 		return prefixField("level", err)
 	}
-	if m, ok := raw["position"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Heading: required field \"position\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Position); err != nil {
-		return prefixField("position", err)
+	if m, ok := raw["span"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Heading: required field \"span\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Span); err != nil {
+		return prefixField("span", err)
 	}
-	if m, ok := raw["section"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Heading: required field \"section\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Section); err != nil {
-		return prefixField("section", err)
+	if m, ok := raw["section_span"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Heading: required field \"section_span\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.SectionSpan); err != nil {
+		return prefixField("section_span", err)
 	}
 	if m, ok := raw["record_blocks"]; !ok || string(m) == "null" {
 		return fmt.Errorf("Heading: required field \"record_blocks\" is missing or null")
@@ -6141,7 +5965,7 @@ func (v *Heading) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "text", "level", "position", "section", "record_blocks":
+		case "text", "level", "span", "section_span", "record_blocks":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -7004,7 +6828,7 @@ type Reference struct {
 	// Where in the containing document the reference occurs, as a span rather
 	// than a bare line number, so a report and a rewrite both address the
 	// reference itself.
-	Position Span `json:"position"`
+	Span Span `json:"span"`
 	// What the reference reached.
 	Resolution ReferenceResolution `json:"resolution"`
 	// What the anchor half of this reference resolved to.
@@ -7048,10 +6872,10 @@ func (v *Reference) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Origin); err != nil {
 		return prefixField("origin", err)
 	}
-	if m, ok := raw["position"]; !ok || string(m) == "null" {
-		return fmt.Errorf("Reference: required field \"position\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Position); err != nil {
-		return prefixField("position", err)
+	if m, ok := raw["span"]; !ok || string(m) == "null" {
+		return fmt.Errorf("Reference: required field \"span\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Span); err != nil {
+		return prefixField("span", err)
 	}
 	if m, ok := raw["resolution"]; !ok || string(m) == "null" {
 		return fmt.Errorf("Reference: required field \"resolution\" is missing or null")
@@ -7066,7 +6890,7 @@ func (v *Reference) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "path", "text", "slug", "anchor", "origin", "position", "resolution", "anchor_resolution":
+		case "path", "text", "slug", "anchor", "origin", "span", "resolution", "anchor_resolution":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -7095,7 +6919,7 @@ func (v *Reference) UnmarshalJSON(data []byte) error {
 type SpecIndex struct {
 	// The version of this index's schema.
 	//
-	// Pinned to `1.0` for as long as the shape only grows. A change to the
+	// Pinned to `2.0` for as long as the shape only grows. A change to the
 	// shape of what is already here — as opposed to an addition alongside it
 	// — updates this value and the emitted index in the same change.
 	SchemaVersion string `json:"schema_version"`

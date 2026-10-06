@@ -8,8 +8,6 @@ type: component-blueprint
 status: draft
 updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 kind: <standard | pattern>           # see instructions below
-contracts_provided: []               # contract slugs, WHEN the interface
-                                     # is a standalone contract document
 contracts_consumed: []               # contract slugs this component depends on
 source_paths: []                     # repo-relative source roots
 test_paths: []                       # repo-relative test roots

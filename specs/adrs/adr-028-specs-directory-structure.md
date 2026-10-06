@@ -44,15 +44,15 @@ path can only agree redundantly or disagree silently.
 
 We will adopt a default structure in which **the directory tree mirrors
 containment only at levels where the containment edge has no child-side
-declaration**, and every other document type lives in a flat top-level
-directory.
+declaration and the child has exactly one parent**, and every other
+document type lives in a flat top-level directory.
 
 Applying that rule to the three composed levels:
 
 | Level | Parent edge declared in | Directory |
 |-------|-------------------------|-----------|
 | Container | the child's `system` property | nested under its system, but only once there are two or more systems |
-| Module | the child's `contained_by` list — a LIST, because a module may be composed into several containers | top level; a tree cannot express multiple parents |
+| Module | nowhere on the child; each host lists it in its own `modules`, and a module may have several hosts | top level; a tree cannot express multiple parents |
 | Component | nowhere on the child; the parent's roster owns the edge | nested under its one container or module |
 
 The component is the case that earns nesting: its blueprint template
@@ -98,8 +98,8 @@ for when a system blueprint exists at all:
 | One | `specs/containers/<container-name>/` — the lone system blueprint sits in `specs/systems/<system-name>/` |
 | Two or more | `specs/systems/<system-name>/containers/<container-name>/` |
 
-`modules/` stays at the top level in every case: a module's
-`contained_by` list may name containers in more than one system.
+`modules/` stays at the top level in every case: a module's hosts may be
+containers in more than one system.
 
 Standards, guides, ADRs and contracts each get exactly one top-level
 home rather than being filed against the level they govern. Two

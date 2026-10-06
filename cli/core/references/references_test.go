@@ -67,11 +67,11 @@ See also [[module-document-core#Components]].
 		if reference.Path != "specs/fixture.md" {
 			t.Errorf("%q carries path %q", reference.Text, reference.Path)
 		}
-		if got := string(span.Slice(source, reference.Position)); got != reference.Text {
+		if got := string(span.Slice(source, reference.Span)); got != reference.Text {
 			t.Errorf("the span of %q covers %q", reference.Text, got)
 		}
-		if reference.Position.StartLine == 0 || reference.Position.StartColumn == 0 {
-			t.Errorf("%q carries no line or column: %+v", reference.Text, reference.Position)
+		if reference.Span.StartLine == 0 || reference.Span.StartColumn == 0 {
+			t.Errorf("%q carries no line or column: %+v", reference.Text, reference.Span)
 		}
 		if _, ok := reference.Origin.AsBody(); !ok {
 			t.Errorf("%q is not recorded as a body reference", reference.Text)
@@ -80,7 +80,7 @@ See also [[module-document-core#Components]].
 
 	// The position is the whole reference, at the line and column a
 	// reader opens, rather than a bare offset.
-	if first := found[0].Position; first.StartLine != 5 {
+	if first := found[0].Span; first.StartLine != 5 {
 		t.Errorf("the first reference is on line %d, want 5", first.StartLine)
 	}
 }
@@ -169,11 +169,11 @@ func TestAGherkinFenceReferenceIsPositionedInTheContainingDocument(t *testing.T)
 		t.Fatalf("found %d references, want 1: %v", len(found), slugs(found))
 	}
 	reference := found[0]
-	if got := string(span.Slice(source, reference.Position)); got != "gk-positioned" {
+	if got := string(span.Slice(source, reference.Span)); got != "gk-positioned" {
 		t.Errorf("the span covers %q, want the reference text", got)
 	}
-	if reference.Position.StartLine == 0 || reference.Position.StartColumn == 0 {
-		t.Errorf("%q carries no line or column: %+v", reference.Text, reference.Position)
+	if reference.Span.StartLine == 0 || reference.Span.StartColumn == 0 {
+		t.Errorf("%q carries no line or column: %+v", reference.Text, reference.Span)
 	}
 }
 
@@ -283,15 +283,15 @@ And again in its References: [[adr-002]].
 	if len(found) != 2 {
 		t.Fatalf("found %d references, want 2: %v", len(found), slugs(found))
 	}
-	if found[0].Position.Offset >= found[1].Position.Offset {
+	if found[0].Span.Offset >= found[1].Span.Offset {
 		t.Errorf("references are out of source order: %d then %d",
-			found[0].Position.Offset, found[1].Position.Offset)
+			found[0].Span.Offset, found[1].Span.Offset)
 	}
-	if found[0].Position == found[1].Position {
+	if found[0].Span == found[1].Span {
 		t.Error("both occurrences carry the same span")
 	}
 	for _, reference := range found {
-		if got := string(span.Slice(source, reference.Position)); got != "adr-002" {
+		if got := string(span.Slice(source, reference.Span)); got != "adr-002" {
 			t.Errorf("a span covers %q", got)
 		}
 	}
@@ -337,10 +337,10 @@ The body cites [[adr-012]].
 
 	// The span of a frontmatter reference covers the value as written,
 	// quoting included, because that is the extent a rewrite replaces.
-	if got := string(span.Slice(source, found[0].Position)); got != `"container-spec-cli"` {
+	if got := string(span.Slice(source, found[0].Span)); got != `"container-spec-cli"` {
 		t.Errorf("the sequence element's span covers %q", got)
 	}
-	if got := string(span.Slice(source, found[1].Position)); got != "frd-spec-reference-integrity" {
+	if got := string(span.Slice(source, found[1].Span)); got != "frd-spec-reference-integrity" {
 		t.Errorf("the scalar's span covers %q", got)
 	}
 }
@@ -359,15 +359,15 @@ Body.
 	if want := []string{"contract-specs-configuration", "contract-payments-api"}; !equal(slugs(found), want) {
 		t.Fatalf("slugs = %v, want %v", slugs(found), want)
 	}
-	if found[0].Position == found[1].Position {
+	if found[0].Span == found[1].Span {
 		t.Fatal("both items carry the span of the whole list")
 	}
-	if got := string(span.Slice(source, found[0].Position)); got != "contract-specs-configuration" {
+	if got := string(span.Slice(source, found[0].Span)); got != "contract-specs-configuration" {
 		t.Errorf("the first item's span covers %q", got)
 	}
-	if found[0].Position.StartLine != 4 || found[1].Position.StartLine != 5 {
+	if found[0].Span.StartLine != 4 || found[1].Span.StartLine != 5 {
 		t.Errorf("items are on lines %d and %d, want 4 and 5",
-			found[0].Position.StartLine, found[1].Position.StartLine)
+			found[0].Span.StartLine, found[1].Span.StartLine)
 	}
 }
 
@@ -391,7 +391,7 @@ and [[adr-009]] and [[slug|text]].
 	// One entry at one span: the anchor is carried alongside the slug on
 	// the very reference the slug is recorded on — not a second
 	// reference, and not a span of its own.
-	if got := string(span.Slice(source, found[0].Position)); got != "container-spec-cli#Element Registry" {
+	if got := string(span.Slice(source, found[0].Span)); got != "container-spec-cli#Element Registry" {
 		t.Errorf("the span covers %q, want slug and anchor together in one span", got)
 	}
 	// Split on the FIRST hash: what follows is recorded whole and not
@@ -489,7 +489,7 @@ Body.
 	if _, ok := reference.Origin.AsFrontmatterProperty(); !ok {
 		t.Errorf("%q is not recorded as a frontmatter reference", reference.Text)
 	}
-	if got := string(span.Slice(source, reference.Position)); got != `"adr-012#Decision"` {
+	if got := string(span.Slice(source, reference.Span)); got != `"adr-012#Decision"` {
 		t.Errorf("the span covers %q, want the value as written, quotes included", got)
 	}
 }
@@ -611,7 +611,7 @@ func TestExtractionResolvesNothing(t *testing.T) {
 // Every position this package reports is a Span from the Spans
 // component, checked at compile time as well as by every span assertion
 // above.
-var _ span.Span = specmodel.Reference{}.Position
+var _ span.Span = specmodel.Reference{}.Span
 
 // The index's entries carry only the typed frontmatter envelope, which
 // holds neither the per-type properties a profile registers nor the

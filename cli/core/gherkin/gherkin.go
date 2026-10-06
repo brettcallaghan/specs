@@ -173,10 +173,10 @@ func (e *ParseError) Error() string {
 	}
 	first := e.Errors[0]
 	if len(e.Errors) == 1 {
-		return fmt.Sprintf("gherkin: line %d: %s", first.Position.StartLine, first.Message)
+		return fmt.Sprintf("gherkin: line %d: %s", first.Span.StartLine, first.Message)
 	}
 	return fmt.Sprintf("gherkin: line %d: %s (and %d more)",
-		first.Position.StartLine, first.Message, len(e.Errors)-1)
+		first.Span.StartLine, first.Message, len(e.Errors)-1)
 }
 
 // Parse parses all of src, for a source that is a document in its own
@@ -456,7 +456,7 @@ func (s *source) feature(parsed *messages.Feature, opts Options) *Feature {
 		// declares one feature, and where the source is a fenced block this
 		// is the Gherkin inside the fence, the fence itself being the
 		// caller's to record.
-		Position: s.at,
+		Span: s.at,
 	}
 	if description := dedented(parsed.Description); description != "" {
 		record.Description = &description
@@ -596,7 +596,7 @@ func (s *source) criterion(d draft) Criterion {
 		Text:        d.text,
 		Notation:    specmodel.CriterionNotationGherkin,
 		ContentHash: ContentHashOf(d.name, d.text),
-		Position:    d.position,
+		Span:        d.position,
 	}
 	if d.name != "" {
 		record.Name = &d.name
@@ -648,7 +648,7 @@ var locationPattern = regexp.MustCompile(`(?s)^\((\d+):(\d+)\):\s*(.*)$`)
 func (s *source) locate(err error) specmodel.ParseError {
 	match := locationPattern.FindStringSubmatch(err.Error())
 	if match == nil {
-		return specmodel.ParseError{Message: err.Error(), Position: s.spanOf(1, 1)}
+		return specmodel.ParseError{Message: err.Error(), Span: s.spanOf(1, 1)}
 	}
 	reported, _ := strconv.Atoi(match[1])
 	column, _ := strconv.Atoi(match[2])
@@ -657,8 +657,8 @@ func (s *source) locate(err error) specmodel.ParseError {
 	within := clamp(column-1, 0, s.end[line-1]-s.start[line-1])
 	offset := int(s.at.Offset) + s.start[line-1] + within
 	return specmodel.ParseError{
-		Message:  match[3],
-		Position: span.Of(s.doc, offset, s.end[line-1]-s.start[line-1]-within),
+		Message: match[3],
+		Span:    span.Of(s.doc, offset, s.end[line-1]-s.start[line-1]-within),
 	}
 }
 

@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "workspace": "acme",
   "entries": [
     {
@@ -16,7 +16,7 @@
         {
           "text": "ADR-001: Citing",
           "level": 1,
-          "position": {
+          "span": {
             "offset": 194,
             "length": 18,
             "start_line": 10,
@@ -24,7 +24,7 @@
             "end_line": 11,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 212,
             "length": 159,
             "start_line": 11,
@@ -51,7 +51,7 @@
         {
           "text": "ADR-002: Cited",
           "level": 1,
-          "position": {
+          "span": {
             "offset": 166,
             "length": 17,
             "start_line": 10,
@@ -59,7 +59,7 @@
             "end_line": 11,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 183,
             "length": 0,
             "start_line": 11,
@@ -82,7 +82,7 @@
       "origin": {
         "kind": "body"
       },
-      "position": {
+      "span": {
         "offset": 228,
         "length": 13,
         "start_line": 12,
@@ -102,7 +102,7 @@
       "origin": {
         "kind": "body"
       },
-      "position": {
+      "span": {
         "offset": 261,
         "length": 14,
         "start_line": 12,
@@ -116,5 +116,5 @@
     }
   ],
   "features": [],
-  "input_hash": "sha256:0ba2b6e3579bfc7ccdeb981889b5e4acd34c39766ed7f596c3b85d54f529a67f"
+  "input_hash": "sha256:eb9598c2ab2b5f336ef0faf42e1a1f7f450402a04f713af253d55a4279613b1b"
 }

@@ -10,9 +10,6 @@ status: approved
 updated_at: 2026-08-07T00:00:00Z
 kind: standard
 visibility: internal
-contracts_provided: []
-contained_by:
-  - "container-spec-cli"
 source_paths:
   - "cli/profile"
 test_paths:
@@ -183,7 +180,7 @@ C4Component
     title Components — Spec-Driven Development Profile
     Container_Boundary(profile, "Spec-Driven Development Profile") {
         Component(reg, "Profile Registration", "Go package", "The plugin entry point: the union schema, the per-type slug and numbered table, the reference/typed-reference/lifecycle registrations, the Gherkin tag vocabulary, and the convention defaults")
-        Component(records, "Element Records", "Go package (planned)", "Fenced element record blocks and the record-XOR-blueprint invariant")
+        Component(records, "Element Records", "Go package (planned)", "Fenced element record blocks and the agreement of an element's declarations")
     }
     Rel(reg, records, "Registers the block rules of")
 ```
@@ -286,16 +283,16 @@ Change Guidance below.
 ```component
 entity_name: Element Records
 slug: component-element-records
-description: Fenced element record blocks and the invariant that a child is a record block or a blueprint link, never both
+description: Fenced element record blocks and the rule that every declaration of one element agrees
 ```
 
-(Go package) — Fenced element record blocks and the invariant that a
-child is a record block or a blueprint link, never both. Registers the
+(Go package) — Fenced element record blocks and the rule that every
+declaration of one element agrees. Registers the
 `component` fence tag so Document Core extracts and parses those blocks,
 supplies the base record schema they validate against, and implements
-the record-XOR-blueprint-link rule from [[adr-008]] — the one rule here
-that no schema can express, because it is a constraint between a block
-and a sibling link rather than a constraint on a value.
+the declaration-agreement rule from [[adr-008]] — the one rule here that
+no schema can express, because it is a constraint between declarations
+in different places rather than a constraint on a value.
 
 **Not yet built.** No fence tag is registered and no record schema is
 supplied. Document Core's Markdown Structure component now locates a
@@ -404,7 +401,6 @@ under Interface come from.
 - [[module-document-core]] — the host it registers into
 - [[contract-specs-configuration]] — the configuration surface it
   populates and extends
-- [[adr-008]] — the record-block-XOR-blueprint-link invariant this
-  profile registers as a rule
+- [[adr-008]] — the declaration-agreement rule this profile registers
 - [[adr-012]] — the reference conventions its slug patterns resolve
   against

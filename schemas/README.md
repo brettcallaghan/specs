@@ -48,6 +48,14 @@ CLI". Strata's `struct Child: Parent` emits precisely that `allOf` +
 `$ref` shape, so the requirement is met by the language rather than by
 hand-assembly.
 
+**Every `Span`-typed property is named `span`, or `<role>_span` where
+a record carries more than one.** A span is an extent — a start and an
+end — so neither `position` nor `location`, which name a point, is used.
+A property that locates its own record is `span`; one that locates
+something else names it: `section_span` for the content beneath a
+heading, `block_span` for a feature's whole fence, `other_span` for the
+other occurrence of a duplicate.
+
 **Property names are snake_case, against Strata's camelCase
 convention.** Strata emits the property name verbatim as the wire key,
 and the frontmatter keys (`updated_at`, `source_paths`, `superseded_by`)
@@ -56,15 +64,13 @@ over matching the language's house style. The Go transpiler re-cases the
 Go identifier anyway, so the generated structs read as idiomatic Go with
 correct `json:"updated_at"` tags.
 
-**`ContractEdges` is a mixin, and it is the reason multiple inheritance
-is used at all.** `contracts_provided` and `contracts_consumed` mean the
-same thing on all four blueprint types, and before this they were spelled
-three different ways at three altitudes (`contracts` on a system,
-`provides`/`consumes` on a container, `provides` alone on a module) with
-components carrying none. Declaring them once and inheriting them makes
-divergence impossible rather than merely discouraged. Strata emits a
-three-branch `allOf` — the type's own properties, `DocumentFrontmatter`,
-and `ContractEdges` — and the Go transpiler flattens all three into one
+**`ContractEdges` is a mixin.** `contracts_consumed` means the same thing
+on all four blueprint types, so it is declared once and inherited, which
+makes divergence impossible rather than merely discouraged. The other end
+of a contract edge is `Contract.provider`; neither end is mirrored. For
+an architecture blueprint Strata emits a four-branch `allOf` — the
+type's own properties, `DocumentFrontmatter`, `C4ElementRecord` and
+`ContractEdges` — and the Go transpiler flattens all four into one
 struct.
 
 **`type` is an enum on the base, not a constant per subtype.** Strata

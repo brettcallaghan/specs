@@ -335,7 +335,7 @@ file to open and left to search it.
 |----------|------|---------------|
 | identifier | String | The identifier both records declare. |
 | other_path | String | The other occurrence's path, relative to the repository root and written with forward slashes on every platform. |
-| other_position | [Span](index.md#span) | Where in that file the other occurrence is written. |
+| other_span | [Span](index.md#span) | Where in that file the other occurrence is written. |
 
 
 ## FindingPartiallyTaggedOutline
@@ -420,7 +420,7 @@ record blocks.
 | Property | Type | Documentation |
 |----------|------|---------------|
 | text | String | The heading's text as authored, without the `#` markers that open the line. |
-| position | [Span](index.md#span) | Where the heading line itself is written. |
+| span | [Span](index.md#span) | Where the heading line itself is written. |
 
 
 ## FindingDetail
@@ -480,7 +480,7 @@ on it rather than printing it.
 | rule | [RuleId](#ruleid) | The check that raised this finding. |
 | severity | [Severity](#severity) | How badly this finding bears on the run. |
 | path | String | The file the finding is against, relative to the repository root and written with forward slashes on every platform. |
-| position | [Span](index.md#span) | Where in the file the finding is, as a span rather than a bare line number, so a report can point at a value inside a line. |
+| span | [Span](index.md#span) | Where in the file the finding is, as a span rather than a bare line number, so a report can point at a value inside a line. |
 | message | String | What is wrong, stating the violated constraint and the value that violated it, so the finding needs no further lookup to act on. |
 | detail | [FindingDetail](#findingdetail) | The structured form of the same defect. |
 

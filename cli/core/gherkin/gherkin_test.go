@@ -110,14 +110,14 @@ func TestASourceBeginningWithAScenarioIsParsedBehindASyntheticHeader(t *testing.
 	if got, want := criterion.Record.Id, specmodel.CriterionId("AC-CHK-001.1"); got != want {
 		t.Errorf("Id = %q, want %q", got, want)
 	}
-	if got, want := criterion.Record.Position.StartLine, uint64(4); got != want {
+	if got, want := criterion.Record.Span.StartLine, uint64(4); got != want {
 		t.Errorf("criterion starts on line %d, want %d", got, want)
 	}
-	if got, want := criterion.Record.Position.EndLine, uint64(7); got != want {
+	if got, want := criterion.Record.Span.EndLine, uint64(7); got != want {
 		t.Errorf("criterion ends on line %d, want %d", got, want)
 	}
 	want := "@AC-CHK-001.1\nScenario: pays with a card\n  Given a basket\n  When the card is accepted"
-	if got := string(span.Slice([]byte(doc), criterion.Record.Position)); got != want {
+	if got := string(span.Slice([]byte(doc), criterion.Record.Span)); got != want {
 		t.Errorf("criterion position slices to %q, want %q", got, want)
 	}
 }
@@ -137,14 +137,14 @@ func TestEveryReportedLineIsTheLineInTheContainingDocument(t *testing.T) {
 
 	feature := fenced(t, doc)
 
-	if got, want := feature.Record.Position.StartLine, uint64(12); got != want {
+	if got, want := feature.Record.Span.StartLine, uint64(12); got != want {
 		t.Errorf("feature starts on line %d, want %d", got, want)
 	}
 	criterion := only(t, feature)
-	if got, want := criterion.Record.Position.StartLine, uint64(14); got != want {
+	if got, want := criterion.Record.Span.StartLine, uint64(14); got != want {
 		t.Errorf("criterion starts on line %d, want %d", got, want)
 	}
-	if got, want := criterion.Record.Position.EndLine, uint64(16); got != want {
+	if got, want := criterion.Record.Span.EndLine, uint64(16); got != want {
 		t.Errorf("criterion ends on line %d, want %d", got, want)
 	}
 	if got, want := *criterion.Record.Rule, "a card that declines returns the basket"; got != want {
@@ -163,9 +163,9 @@ func TestNoReportedPositionFallsInsideTheSyntheticHeader(t *testing.T) {
 	feature := fenced(t, doc)
 
 	content := blocks[0].Inner
-	positions := map[string]span.Span{"feature": feature.Record.Position}
+	positions := map[string]span.Span{"feature": feature.Record.Span}
 	for _, criterion := range feature.Criteria {
-		positions["criterion"] = criterion.Record.Position
+		positions["criterion"] = criterion.Record.Span
 	}
 	if len(positions) != 2 {
 		t.Fatalf("positions = %v, want one feature and one criterion", positions)
@@ -199,7 +199,7 @@ func TestAFeatureWrittenWithNoHeaderCarriesNoSyntheticName(t *testing.T) {
 	if len(feature.Tags) != 0 {
 		t.Errorf("Tags = %v, want none", feature.Tags)
 	}
-	if got, want := feature.Record.Position.StartLine, uint64(1); got != want {
+	if got, want := feature.Record.Span.StartLine, uint64(1); got != want {
 		t.Errorf("feature starts on line %d, want %d", got, want)
 	}
 }
@@ -212,7 +212,7 @@ func TestASourceThatDeclaresAFeatureIsParsedWithoutAHeader(t *testing.T) {
 		t.Errorf("Name = %q, want %q", got, want)
 	}
 	criterion := only(t, feature)
-	if got, want := criterion.Record.Position.StartLine, uint64(4); got != want {
+	if got, want := criterion.Record.Span.StartLine, uint64(4); got != want {
 		t.Errorf("criterion starts on line %d, want %d", got, want)
 	}
 }
@@ -256,7 +256,7 @@ func TestACriterionThatOnlyMovedHashesIdentically(t *testing.T) {
 		t.Errorf("hash changed when the criterion only moved: %q then %q",
 			moved.Record.ContentHash, same.Record.ContentHash)
 	}
-	if same.Record.Position.StartLine == moved.Record.Position.StartLine {
+	if same.Record.Span.StartLine == moved.Record.Span.StartLine {
 		t.Fatal("the criterion did not move; the test proves nothing")
 	}
 }
@@ -365,7 +365,7 @@ func TestAnOutlineWhoseExamplesBlocksCarryNoIdentifierIsOneCriterion(t *testing.
 			t.Errorf("text = %q, want it to cover %q", criterion.Record.Text, row)
 		}
 	}
-	if got, want := criterion.Record.Position.EndLine, uint64(13); got != want {
+	if got, want := criterion.Record.Span.EndLine, uint64(13); got != want {
 		t.Errorf("criterion ends on line %d, want %d — the last row of the last block", got, want)
 	}
 }
@@ -395,9 +395,9 @@ func TestAnUntaggedExamplesBlockBesideATaggedOneIsItsOwnCriterion(t *testing.T) 
 	if len(feature.PartialOutlines) != 1 {
 		t.Fatalf("PartialOutlines = %v, want exactly one outline recorded", feature.PartialOutlines)
 	}
-	if got := feature.PartialOutlines[0].Untagged; len(got) != 1 || got[0] != feature.Criteria[1].Record.Position {
+	if got := feature.PartialOutlines[0].Untagged; len(got) != 1 || got[0] != feature.Criteria[1].Record.Span {
 		t.Errorf("PartialOutlines[0].Untagged = %v, want the untagged block's own position %v",
-			got, feature.Criteria[1].Record.Position)
+			got, feature.Criteria[1].Record.Span)
 	}
 }
 
@@ -507,7 +507,7 @@ func TestAFeatureRecordCarriesItsNameDescriptionTagsAndSpan(t *testing.T) {
 	if got, want := strings.Join(feature.Tags, ","), "FEAT-CHK-001,frd-checkout"; got != want {
 		t.Errorf("Tags = %q, want %q", got, want)
 	}
-	if got, want := string(span.Slice([]byte(src), feature.Record.Position)), src; got != want {
+	if got, want := string(span.Slice([]byte(src), feature.Record.Span)), src; got != want {
 		t.Errorf("Position slices to %q, want the whole source", got)
 	}
 }
@@ -542,7 +542,7 @@ func TestACriterionRecordCarriesItsIdentityTextAndProvenance(t *testing.T) {
 	if got, want := strings.Join(criterion.Tags, ","), "AC-CHK-001.1,negative"; got != want {
 		t.Errorf("Tags = %q, want %q", got, want)
 	}
-	if got, want := criterion.Record.Position.StartLine, uint64(5); got != want {
+	if got, want := criterion.Record.Span.StartLine, uint64(5); got != want {
 		t.Errorf("Position starts on line %d, want %d", got, want)
 	}
 }
@@ -588,7 +588,7 @@ func TestBothSourceFormsProduceEqualRecords(t *testing.T) {
 		t.Errorf("ContentHash differs: %q as a file, %q as a block",
 			fileCriterion.Record.ContentHash, blockCriterion.Record.ContentHash)
 	}
-	if fileCriterion.Record.Position == blockCriterion.Record.Position {
+	if fileCriterion.Record.Span == blockCriterion.Record.Span {
 		t.Error("the two forms report the same position; the test proves nothing")
 	}
 }
@@ -645,7 +645,7 @@ func TestTrailingBlankAndCommentLinesEndOutsideACriterion(t *testing.T) {
 	if got, want := criterion.Record.Text, "Given a basket"; got != want {
 		t.Errorf("Text = %q, want %q", got, want)
 	}
-	if got, want := criterion.Record.Position.EndLine, uint64(4); got != want {
+	if got, want := criterion.Record.Span.EndLine, uint64(4); got != want {
 		t.Errorf("criterion ends on line %d, want %d", got, want)
 	}
 }
@@ -676,7 +676,7 @@ func TestAParseFailureIsReturnedAsALocatedErrorCarryingTheParsersExpectation(t *
 		t.Fatalf("failure carries %d errors, want 1: %+v", len(failure.Errors), failure.Errors)
 	}
 	located := failure.Errors[0]
-	if got, want := located.Position.StartLine, uint64(7); got != want {
+	if got, want := located.Span.StartLine, uint64(7); got != want {
 		t.Errorf("failure is located on line %d, want %d", got, want)
 	}
 	if !strings.Contains(located.Message, "expected") {

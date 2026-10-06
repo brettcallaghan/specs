@@ -41,9 +41,9 @@ thing that varies by host, which is the whole reason the parent owns it. A
 contract does not: it is a named document with one identity, so "this
 element provides it" and "this element depends on it" hold wherever the
 element is composed. Every blueprint at all four levels therefore carries
-`contracts_provided` and `contracts_consumed` of its own, and a module or
-component declaring a consumed contract is not an exception to this
-decision.
+`contracts_consumed` of its own, and a contract names its `provider`; a
+module or component declaring a consumed contract is not an exception to
+this decision.
 
 **Nor does it govern the parent-child membership edge itself.** "A
 container composes this module" is one fact with one authoritative home,
@@ -51,13 +51,13 @@ and that home depends on how many parents the child can have. Every C4
 element has exactly one — a container declares its `system`, and a
 component is declared in its parent's roster section, where a reader
 meets it. A module is this framework's addition to C4 and is the one
-element composed into several parents, so it names them itself in
-`contained_by`. Each parent's membership roster is derived from those
-edges rather than restated in the parent's frontmatter. The parent still
+element composed into several parents; each parent lists it in its own
+`modules`, because adopting a module changes the host, not the module,
+and the module's set of hosts is derived from those lists. The parent
 owns the edges *among* its children, which is what this decision is
-about. Deriving the roster is how that ownership is kept free of drift,
-not an exception to it — a hand-maintained roster on the parent is a
-second copy of an edge the child already declares, and two copies is the
+about, and the membership edge is declared on the parent too. A
+hand-maintained host list on the module would be a second copy of an
+edge each parent already declares, and two copies is the
 condition this decision exists to prevent.
 
 ## Alternatives Considered

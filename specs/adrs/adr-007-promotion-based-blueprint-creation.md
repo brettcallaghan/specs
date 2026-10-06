@@ -52,8 +52,9 @@ the unit.
 
 **Negative:**
 - "Is this a seam?" is a judgment call
-- Promotion requires a lockstep roster update in every composing container,
-  enforced by the record-block-XOR-link rule
+- Promotion requires linking the new blueprint from every composing
+  container's roster in the same change; the record block may stay, and
+  `specs check` reports a block whose fields disagree with the blueprint
 
 ## References
 

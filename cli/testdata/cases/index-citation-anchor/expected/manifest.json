@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "workspace": "acme",
   "entries": [
     {
@@ -16,7 +16,7 @@
         {
           "text": "ADR-012: Decision",
           "level": 1,
-          "position": {
+          "span": {
             "offset": 182,
             "length": 20,
             "start_line": 10,
@@ -24,7 +24,7 @@
             "end_line": 11,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 202,
             "length": 36,
             "start_line": 11,
@@ -37,7 +37,7 @@
         {
           "text": "Decision",
           "level": 2,
-          "position": {
+          "span": {
             "offset": 203,
             "length": 12,
             "start_line": 12,
@@ -45,7 +45,7 @@
             "end_line": 13,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 215,
             "length": 23,
             "start_line": 13,
@@ -72,7 +72,7 @@
         {
           "text": "FRD: Citing Anchor",
           "level": 1,
-          "position": {
+          "span": {
             "offset": 235,
             "length": 21,
             "start_line": 12,
@@ -80,7 +80,7 @@
             "end_line": 13,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 256,
             "length": 12,
             "start_line": 13,
@@ -105,7 +105,7 @@
         "kind": "frontmatter-property",
         "property": "sources"
       },
-      "position": {
+      "span": {
         "offset": 202,
         "length": 27,
         "start_line": 9,
@@ -121,7 +121,7 @@
         "state": "resolved",
         "heading": {
           "text": "Decision",
-          "position": {
+          "span": {
             "offset": 203,
             "length": 12,
             "start_line": 12,
@@ -134,5 +134,5 @@
     }
   ],
   "features": [],
-  "input_hash": "sha256:bb6abe56eae3c2332ddc3aa7eb473315eeffce34f5c4594bf872439d7b125b42"
+  "input_hash": "sha256:49e458e8c88989262b081f9b841217097e6c3cc9f1775864bd4c1b130cd5b7c6"
 }

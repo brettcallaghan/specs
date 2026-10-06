@@ -91,7 +91,7 @@
       "additionalProperties": false,
       "description": "One heading matched against an ambiguous anchor.\n\nHeld apart from the full `Heading` shape because a match names only what\nthe reader needs to find the right one — its text and where it is\nwritten — and carries none of a heading's own section content or nested\nrecord blocks.",
       "properties": {
-        "position": {
+        "span": {
           "$ref": "#/definitions/Span",
           "description": "Where the heading line itself is written."
         },
@@ -102,7 +102,7 @@
       },
       "required": [
         "text",
-        "position"
+        "span"
       ],
       "type": "object"
     },
@@ -241,31 +241,12 @@
       ],
       "type": "string"
     },
-    "C4BlueprintDeclaration": {
-      "additionalProperties": false,
-      "description": "An element promoted to a blueprint of its own.",
-      "properties": {
-        "path": {
-          "description": "Repository-relative path of the blueprint.",
-          "type": "string"
-        },
-        "status": {
-          "$ref": "#/definitions/Status",
-          "description": "The blueprint's lifecycle state."
-        }
-      },
-      "required": [
-        "path",
-        "status"
-      ],
-      "type": "object"
-    },
     "C4Component": {
       "additionalProperties": false,
       "description": "A component: the atomic leaf of one container or module.",
       "properties": {
         "contracts_consumed": {
-          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
+          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbor edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code. The\ncontract's consumers are derived from this property.",
           "items": {
             "$ref": "#/definitions/Citation"
           },
@@ -275,18 +256,18 @@
           ]
         },
         "contracts_provided": {
-          "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
+          "description": "Contracts this element provides, derived from every contract whose\n`provider` names it.",
           "items": {
             "$ref": "#/definitions/Citation"
           },
-          "type": [
-            "array",
-            "null"
-          ]
+          "type": "array"
         },
-        "declaration": {
-          "$ref": "#/definitions/C4Declaration",
-          "description": "Where the element is declared."
+        "declarations": {
+          "description": "Every declaration of this element, ordered by path and then by span.\nAn element is one slug, however many documents declare it.\n\nThe element's properties are taken from its blueprint where it has\none, and otherwise from the declaration that sorts first. Declarations\nthat disagree on a property are reported by `specs check`.",
+          "items": {
+            "$ref": "#/definitions/C4Declaration"
+          },
+          "type": "array"
         },
         "description": {
           "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
@@ -312,7 +293,7 @@
           "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "tags": {
-          "description": "Free-form tags copied from the declaration.",
+          "description": "Free-form tags copied from the element's blueprint.",
           "items": {
             "type": "string"
           },
@@ -333,7 +314,8 @@
         "description",
         "slug",
         "entity_name",
-        "declaration"
+        "declarations",
+        "contracts_provided"
       ],
       "type": "object"
     },
@@ -349,7 +331,7 @@
           "type": "array"
         },
         "contracts_consumed": {
-          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
+          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbor edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code. The\ncontract's consumers are derived from this property.",
           "items": {
             "$ref": "#/definitions/Citation"
           },
@@ -359,18 +341,18 @@
           ]
         },
         "contracts_provided": {
-          "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
+          "description": "Contracts this element provides, derived from every contract whose\n`provider` names it.",
           "items": {
             "$ref": "#/definitions/Citation"
           },
-          "type": [
-            "array",
-            "null"
-          ]
+          "type": "array"
         },
-        "declaration": {
-          "$ref": "#/definitions/C4Declaration",
-          "description": "Where the element is declared."
+        "declarations": {
+          "description": "Every declaration of this element, ordered by path and then by span.\nAn element is one slug, however many documents declare it.\n\nThe element's properties are taken from its blueprint where it has\none, and otherwise from the declaration that sorts first. Declarations\nthat disagree on a property are reported by `specs check`.",
+          "items": {
+            "$ref": "#/definitions/C4Declaration"
+          },
+          "type": "array"
         },
         "description": {
           "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
@@ -381,7 +363,7 @@
           "type": "string"
         },
         "modules": {
-          "description": "Slugs of the modules composed into this container, derived from each\nmodule's `contained_by`. The modules themselves are in the model's\n`modules` collection.",
+          "description": "Slugs of the modules composed into this container, as its blueprint's\n`modules` declares them. The modules themselves are in the model's\n`modules` collection.",
           "items": {
             "$ref": "#/definitions/Slug"
           },
@@ -392,7 +374,7 @@
           "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "tags": {
-          "description": "Free-form tags copied from the declaration.",
+          "description": "Free-form tags copied from the element's blueprint.",
           "items": {
             "type": "string"
           },
@@ -413,7 +395,8 @@
         "description",
         "slug",
         "entity_name",
-        "declaration",
+        "declarations",
+        "contracts_provided",
         "components",
         "modules"
       ],
@@ -445,88 +428,52 @@
       "type": "string"
     },
     "C4Declaration": {
-      "anyOf": [
-        {
-          "additionalProperties": false,
-          "properties": {
-            "kind": {
-              "const": "blueprint",
-              "type": "string"
-            },
-            "path": {
-              "type": "string"
-            },
-            "status": {
-              "$ref": "#/definitions/Status"
-            }
-          },
-          "required": [
-            "kind",
-            "path",
-            "status"
-          ],
-          "type": "object"
+      "additionalProperties": false,
+      "description": "One place an element is declared: a blueprint's frontmatter, or a\n`component` record block in some document.",
+      "properties": {
+        "path": {
+          "description": "Repository-relative path of the document holding the declaration.",
+          "type": "string"
         },
-        {
-          "additionalProperties": false,
-          "properties": {
-            "kind": {
-              "const": "record-block",
-              "type": "string"
-            },
-            "path": {
-              "type": "string"
-            },
-            "position": {
-              "$ref": "#/definitions/Span"
-            }
-          },
-          "required": [
-            "kind",
-            "path",
-            "position"
-          ],
-          "type": "object"
+        "span": {
+          "$ref": "#/definitions/Span",
+          "description": "The declaration as written: the frontmatter block of a blueprint, or\nthe record block, fences included."
         }
+      },
+      "required": [
+        "path",
+        "span"
       ],
-      "description": "Where an element is declared. Exactly one of the two, per the\nrecord-XOR-blueprint rule of ADR-008."
-    },
-    "C4DiagramType": {
-      "description": "The diagram types that contribute relationships. Dynamic diagrams draw\ndata flow rather than dependency, and deployment diagrams draw\ninfrastructure, so neither contributes.",
-      "enum": [
-        "context",
-        "container",
-        "component"
-      ],
-      "type": "string"
+      "type": "object"
     },
     "C4Drawing": {
       "additionalProperties": false,
       "description": "One place a relationship was drawn.",
       "properties": {
-        "diagram_type": {
-          "$ref": "#/definitions/C4DiagramType"
-        },
         "path": {
           "description": "Repository-relative path of the document holding the diagram.",
           "type": "string"
-        },
-        "position": {
-          "$ref": "#/definitions/Span",
-          "description": "The `Rel` statement as written."
         },
         "source_alias": {
           "description": "The Mermaid aliases of the two endpoints as written. `Rel_Back`\nstatements are recorded after normalisation, so these name the\nsource first.",
           "type": "string"
         },
+        "span": {
+          "$ref": "#/definitions/Span",
+          "description": "The `Rel` statement as written."
+        },
         "target_alias": {
           "type": "string"
+        },
+        "view": {
+          "$ref": "#/definitions/C4View",
+          "description": "The view the statement's diagram draws."
         }
       },
       "required": [
         "path",
-        "position",
-        "diagram_type",
+        "span",
+        "view",
         "source_alias",
         "target_alias"
       ],
@@ -537,7 +484,7 @@
       "description": "The properties every element carries, whatever its level.",
       "properties": {
         "contracts_consumed": {
-          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
+          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbor edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code. The\ncontract's consumers are derived from this property.",
           "items": {
             "$ref": "#/definitions/Citation"
           },
@@ -547,18 +494,18 @@
           ]
         },
         "contracts_provided": {
-          "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
+          "description": "Contracts this element provides, derived from every contract whose\n`provider` names it.",
           "items": {
             "$ref": "#/definitions/Citation"
           },
-          "type": [
-            "array",
-            "null"
-          ]
+          "type": "array"
         },
-        "declaration": {
-          "$ref": "#/definitions/C4Declaration",
-          "description": "Where the element is declared."
+        "declarations": {
+          "description": "Every declaration of this element, ordered by path and then by span.\nAn element is one slug, however many documents declare it.\n\nThe element's properties are taken from its blueprint where it has\none, and otherwise from the declaration that sorts first. Declarations\nthat disagree on a property are reported by `specs check`.",
+          "items": {
+            "$ref": "#/definitions/C4Declaration"
+          },
+          "type": "array"
         },
         "description": {
           "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
@@ -573,7 +520,7 @@
           "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "tags": {
-          "description": "Free-form tags copied from the declaration.",
+          "description": "Free-form tags copied from the element's blueprint.",
           "items": {
             "type": "string"
           },
@@ -594,9 +541,79 @@
         "description",
         "slug",
         "entity_name",
-        "declaration"
+        "declarations",
+        "contracts_provided"
       ],
       "type": "object"
+    },
+    "C4ElementRecord": {
+      "additionalProperties": false,
+      "description": "The fields that declare an architectural element: what it is called, what\nit is, how it is referenced, and what it is built with.\n\nDeliberately shared by two artifacts that look unrelated. An element\ndeclared inline — a component in its container's roster — carries\nexactly these fields in a fenced record block. An element with its own\nblueprint carries them in its frontmatter, because every architecture\nblueprint type inherits this struct.\n\nOne schema therefore validates every declaration of an element, and an\nelement may have several: a blueprint and the record block in its\nparent's roster, or blocks in more than one document. They are one\nelement because they share a `slug`. Promotion copies a block's fields\ninto a new blueprint's frontmatter, which adds the document's `title`\nand envelope; the block may stay where it is.",
+      "properties": {
+        "description": {
+          "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
+          "type": "string"
+        },
+        "entity_name": {
+          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
+          "type": "string"
+        },
+        "slug": {
+          "$ref": "#/definitions/Slug",
+          "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
+        },
+        "technology": {
+          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nThe technology line drawn on diagrams.",
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "description",
+        "slug",
+        "entity_name"
+      ],
+      "type": "object"
+    },
+    "C4ExcludedRelationship": {
+      "additionalProperties": false,
+      "description": "A `Rel` statement excluded from the model, and why.",
+      "properties": {
+        "path": {
+          "description": "Repository-relative path of the document holding the diagram.",
+          "type": "string"
+        },
+        "reason": {
+          "$ref": "#/definitions/C4ExclusionReason"
+        },
+        "span": {
+          "$ref": "#/definitions/Span",
+          "description": "The statement as written."
+        },
+        "text": {
+          "description": "The statement's text, so a reader need not reopen the document.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "span",
+        "reason",
+        "text"
+      ],
+      "type": "object"
+    },
+    "C4ExclusionReason": {
+      "description": "Why a `Rel` statement was excluded from the model.",
+      "enum": [
+        "external_endpoint",
+        "passive_store",
+        "undeclared_node",
+        "ambiguous_node"
+      ],
+      "type": "string"
     },
     "C4Interaction": {
       "description": "Whether the source waits on the target. Set only by a reserved tag;\nabsent means the diagram does not say.",
@@ -606,14 +623,44 @@
       ],
       "type": "string"
     },
+    "C4Level": {
+      "description": "The C4 level at which a relationship holds.",
+      "enum": [
+        "system",
+        "container",
+        "component"
+      ],
+      "type": "string"
+    },
     "C4Model": {
       "additionalProperties": false,
-      "description": "The C4 model a corpus declares, as `specs c4` emits it.\n\nA projection of the index, not a second source of truth: every element is\none the index already holds as a blueprint or a record block, and every\nrelationship is a `Rel` statement read from a C4 diagram in the document\nthat owns it. Nothing here is authored by hand.\n\nElements form a tree, because C4 gives each one exactly one parent: a\nsystem holds containers, a container holds components. Modules are the\nexception — a module may be composed into several containers — so they\nsit in their own collection and each host lists them by slug.\nRelationships are one flat collection for the reason ADR-018 gives for\nreferences: an edge belongs to neither endpoint.",
+      "description": "The C4 model a corpus declares, as `specs c4` emits it.\n\nA projection of the index, not a second source of truth: every element is\none the index already holds as a blueprint or a record block, and every\nrelationship is a `Rel` statement read from a C4 diagram in the document\nthat owns it. Nothing here is authored by hand.\n\nElements form a tree, because C4 gives each one exactly one parent: a\nsystem holds containers, a container holds components. Modules are the\nexception — a module may be composed into several containers — so they\nsit in their own collection and each host lists them by slug.\nRelationships are one flat collection for the reason ADR-018 gives for\nreferences: an edge belongs to neither endpoint.\n\nEvery relationship in the model is held at the end the corpus declares\nit, and the model derives the other end: a container lists its modules\nand each module's `contained_by` is derived from those lists; a contract\nnames its provider and each element's `contracts_provided` is derived\nfrom those names.",
       "properties": {
+        "excluded_relationships": {
+          "description": "`Rel` statements the model does not admit, recorded rather than\ndropped so that their absence from `relationships` is visible. Ordered\nby path, then by span.",
+          "items": {
+            "$ref": "#/definitions/C4ExcludedRelationship"
+          },
+          "type": "array"
+        },
         "modules": {
           "description": "Every module, once, whatever the number of its hosts.",
           "items": {
             "$ref": "#/definitions/C4Module"
+          },
+          "type": "array"
+        },
+        "orphaned_components": {
+          "description": "Components that no container or module declares in its roster — a\ncomponent blueprint with no parent. C4 gives every component a\nparent, so an orphaned component is a gap in the corpus.",
+          "items": {
+            "$ref": "#/definitions/C4Component"
+          },
+          "type": "array"
+        },
+        "orphaned_containers": {
+          "description": "Containers whose blueprint declares no `system`. An orphaned container\nis a documented fact rather than an omission: a repository may\ndocument containers before it documents the system they belong to.",
+          "items": {
+            "$ref": "#/definitions/C4Container"
           },
           "type": "array"
         },
@@ -636,20 +683,6 @@
           },
           "type": "array"
         },
-        "standalone_containers": {
-          "description": "Containers whose blueprint declares no `system` — a documented fact,\nnot an omission.",
-          "items": {
-            "$ref": "#/definitions/C4Container"
-          },
-          "type": "array"
-        },
-        "unplaced": {
-          "description": "`Rel` statements the model does not admit, recorded rather than\ndropped so that their absence from `relationships` is visible. Ordered\nby path, then by position.",
-          "items": {
-            "$ref": "#/definitions/C4Unplaced"
-          },
-          "type": "array"
-        },
         "workspace": {
           "description": "The workspace the model was emitted from, as configured in\n`specs.toml`. Models from several repositories are told apart by it.",
           "type": "string"
@@ -659,10 +692,11 @@
         "schema_version",
         "workspace",
         "software_systems",
-        "standalone_containers",
+        "orphaned_containers",
+        "orphaned_components",
         "modules",
         "relationships",
-        "unplaced"
+        "excluded_relationships"
       ],
       "type": "object"
     },
@@ -678,14 +712,14 @@
           "type": "array"
         },
         "contained_by": {
-          "description": "The containers or modules that compose this one. Empty when no host\nhas a blueprint of its own.",
+          "description": "The containers and modules that compose this one, derived from their\n`modules`. Empty when nothing documented composes it.",
           "items": {
             "$ref": "#/definitions/Citation"
           },
           "type": "array"
         },
         "contracts_consumed": {
-          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
+          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbor edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code. The\ncontract's consumers are derived from this property.",
           "items": {
             "$ref": "#/definitions/Citation"
           },
@@ -695,18 +729,18 @@
           ]
         },
         "contracts_provided": {
-          "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
+          "description": "Contracts this element provides, derived from every contract whose\n`provider` names it.",
           "items": {
             "$ref": "#/definitions/Citation"
           },
-          "type": [
-            "array",
-            "null"
-          ]
+          "type": "array"
         },
-        "declaration": {
-          "$ref": "#/definitions/C4Declaration",
-          "description": "Where the element is declared."
+        "declarations": {
+          "description": "Every declaration of this element, ordered by path and then by span.\nAn element is one slug, however many documents declare it.\n\nThe element's properties are taken from its blueprint where it has\none, and otherwise from the declaration that sorts first. Declarations\nthat disagree on a property are reported by `specs check`.",
+          "items": {
+            "$ref": "#/definitions/C4Declaration"
+          },
+          "type": "array"
         },
         "description": {
           "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
@@ -720,7 +754,7 @@
           "$ref": "#/definitions/BlueprintKind"
         },
         "modules": {
-          "description": "Slugs of the modules composed into this one, derived from their\n`contained_by` as for a container.",
+          "description": "Slugs of the modules composed into this one, as its blueprint's\n`modules` declares them.",
           "items": {
             "$ref": "#/definitions/Slug"
           },
@@ -731,7 +765,7 @@
           "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "tags": {
-          "description": "Free-form tags copied from the declaration.",
+          "description": "Free-form tags copied from the element's blueprint.",
           "items": {
             "type": "string"
           },
@@ -761,7 +795,8 @@
         "description",
         "slug",
         "entity_name",
-        "declaration",
+        "declarations",
+        "contracts_provided",
         "kind",
         "visibility",
         "contained_by",
@@ -772,7 +807,7 @@
     },
     "C4Relationship": {
       "additionalProperties": false,
-      "description": "A dependency edge: the source depends on the target, per the C4\nstandard's arrow rule.\n\nOne relationship may have been drawn in several diagrams — a parent's\ninternal view and a child's context view show the same edge — and is\nrecorded once with every drawing listed. Two drawings are the same\nrelationship when source, target and description agree. Where they\ndisagree on anything else, the relationship carries the values of the\ndrawing that sorts first by path and then by position, and the\n`c4/drawing-conflict` rule reports the disagreement.",
+      "description": "A dependency edge: the source depends on the target, per the C4\nstandard's arrow rule.\n\nOne relationship may have been drawn in several diagrams — a parent's\ninternal view and a child's context view show the same edge — and is\nrecorded once with every drawing listed. Two drawings are the same\nrelationship when source, target and description agree. Where they\ndisagree on anything else, the relationship carries the values of the\ndrawing that sorts first by path and then by span, and the\n`c4/drawing-conflict` rule reports the disagreement.",
       "properties": {
         "contract": {
           "oneOf": [
@@ -813,7 +848,7 @@
           ]
         },
         "level": {
-          "$ref": "#/definitions/C4RelationshipLevel"
+          "$ref": "#/definitions/C4Level"
         },
         "source": {
           "$ref": "#/definitions/Citation",
@@ -850,34 +885,6 @@
       ],
       "type": "object"
     },
-    "C4RelationshipLevel": {
-      "description": "The C4 level at which a relationship holds.",
-      "enum": [
-        "system",
-        "container",
-        "component"
-      ],
-      "type": "string"
-    },
-    "C4RosterDeclaration": {
-      "additionalProperties": false,
-      "description": "An element declared by a record block in its parent's roster section.",
-      "properties": {
-        "path": {
-          "description": "Repository-relative path of the parent document.",
-          "type": "string"
-        },
-        "position": {
-          "$ref": "#/definitions/Span",
-          "description": "The record block, fences included."
-        }
-      },
-      "required": [
-        "path",
-        "position"
-      ],
-      "type": "object"
-    },
     "C4System": {
       "additionalProperties": false,
       "description": "A software system documented by a system blueprint.",
@@ -890,7 +897,7 @@
           "type": "array"
         },
         "contracts_consumed": {
-          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
+          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbor edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code. The\ncontract's consumers are derived from this property.",
           "items": {
             "$ref": "#/definitions/Citation"
           },
@@ -900,18 +907,18 @@
           ]
         },
         "contracts_provided": {
-          "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
+          "description": "Contracts this element provides, derived from every contract whose\n`provider` names it.",
           "items": {
             "$ref": "#/definitions/Citation"
           },
-          "type": [
-            "array",
-            "null"
-          ]
+          "type": "array"
         },
-        "declaration": {
-          "$ref": "#/definitions/C4Declaration",
-          "description": "Where the element is declared."
+        "declarations": {
+          "description": "Every declaration of this element, ordered by path and then by span.\nAn element is one slug, however many documents declare it.\n\nThe element's properties are taken from its blueprint where it has\none, and otherwise from the declaration that sorts first. Declarations\nthat disagree on a property are reported by `specs check`.",
+          "items": {
+            "$ref": "#/definitions/C4Declaration"
+          },
+          "type": "array"
         },
         "description": {
           "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
@@ -926,7 +933,7 @@
           "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
         },
         "tags": {
-          "description": "Free-form tags copied from the declaration.",
+          "description": "Free-form tags copied from the element's blueprint.",
           "items": {
             "type": "string"
           },
@@ -947,46 +954,18 @@
         "description",
         "slug",
         "entity_name",
-        "declaration",
+        "declarations",
+        "contracts_provided",
         "containers"
       ],
       "type": "object"
     },
-    "C4Unplaced": {
-      "additionalProperties": false,
-      "description": "A `Rel` statement the model does not admit.",
-      "properties": {
-        "path": {
-          "description": "Repository-relative path of the document holding the diagram.",
-          "type": "string"
-        },
-        "position": {
-          "$ref": "#/definitions/Span",
-          "description": "The statement as written."
-        },
-        "reason": {
-          "$ref": "#/definitions/C4UnplacedReason"
-        },
-        "text": {
-          "description": "The statement's text, so a reader need not reopen the document.",
-          "type": "string"
-        }
-      },
-      "required": [
-        "path",
-        "position",
-        "reason",
-        "text"
-      ],
-      "type": "object"
-    },
-    "C4UnplacedReason": {
-      "description": "Why a `Rel` statement was not admitted to the model.",
+    "C4View": {
+      "description": "The C4 views that contribute relationships. Dynamic views draw data flow\nrather than dependency, and deployment views draw infrastructure, so\nneither contributes.",
       "enum": [
-        "external_endpoint",
-        "passive_store",
-        "undeclared_node",
-        "ambiguous_node"
+        "context",
+        "container",
+        "component"
       ],
       "type": "string"
     },
@@ -1033,20 +1012,10 @@
     },
     "ComponentBlueprint": {
       "additionalProperties": false,
-      "description": "A C4 component blueprint: a single component promoted out of its\nparent's roster into a document of its own, because it warrants more\nthan a record block.\n\nCarries no parent property. A component has exactly one parent, as C4\nrequires, and its parent's roster section already links it by\n`[[slug]]` under its own heading — so the edge is declared once, in the\none place a reader meets the child, and the index derives the component's\nparent from that inbound link. `contained_by` is the module level's\nalone, because being composed into more than one container is what\ndistinguishes a module from a component.",
+      "description": "A C4 component blueprint: a single component promoted out of its\nparent's roster into a document of its own, because it warrants more\nthan a record block.\n\nCarries no parent property. A component has exactly one parent, as C4\nrequires, and its parent's roster section already links it by\n`[[slug]]` under its own heading — so the edge is declared once, in the\none place a reader meets the child, and the index derives the component's\nparent from that inbound link.",
       "properties": {
         "contracts_consumed": {
-          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
-          "items": {
-            "$ref": "#/definitions/Citation"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "contracts_provided": {
-          "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
+          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbor edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code. The\ncontract's consumers are derived from this property.",
           "items": {
             "$ref": "#/definitions/Citation"
           },
@@ -1159,20 +1128,10 @@
     },
     "ContainerBlueprint": {
       "additionalProperties": false,
-      "description": "A C4 container blueprint: one independently deployable or runnable\nartifact.\n\nThe modules and components composed into it are not listed here, and\nthe two arrive by different routes. A module names its hosts itself, in\n`contained_by`, because a module may be composed into several containers\nand that set is a fact about the module. A component has exactly one\nparent, as C4 requires, and that edge is recorded where a reader meets\nit: the Components section of this document's body, where each child is\na fenced record block XOR a `[[slug]]` blueprint link under its own\nheading, per ADR-008 and ADR-012. Either way the index derives this\ncontainer's roster rather than reading it from frontmatter.",
+      "description": "A C4 container blueprint: one independently deployable or runnable\nartifact.\n\nThe modules composed into it are listed in `modules`. Its components are\ndeclared where a reader meets them: the Components section of this\ndocument's body, where each child sits under its own heading as a\nfenced record block, a `[[slug]]` blueprint link, or both, per ADR-008\nand ADR-012.",
       "properties": {
         "contracts_consumed": {
-          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
-          "items": {
-            "$ref": "#/definitions/Citation"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "contracts_provided": {
-          "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
+          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbor edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code. The\ncontract's consumers are derived from this property.",
           "items": {
             "$ref": "#/definitions/Citation"
           },
@@ -1196,6 +1155,16 @@
         "entity_name": {
           "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
           "type": "string"
+        },
+        "modules": {
+          "description": "The modules composed into this container.\n\nDeclared on the host rather than on the module, because adopting a\nmodule is a change to the container: the container is the document\nbeing edited, and the module — which may already serve other hosts —\nis not touched. A module's hosts are derived from this property.",
+          "items": {
+            "$ref": "#/definitions/Citation"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "slug": {
           "$ref": "#/definitions/Slug",
@@ -1278,16 +1247,6 @@
       "additionalProperties": false,
       "description": "An interface specification governing an exchange across a boundary of\nindependent change.",
       "properties": {
-        "consumers": {
-          "description": "Known consumers, by slug. Derived knowledge rather than a\nrestriction — an unlisted consumer is not forbidden, it is merely\nunknown to the provider.",
-          "items": {
-            "$ref": "#/definitions/Citation"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
         "created_at": {
           "description": "RFC 3339 timestamp of the document's creation. Optional.",
           "format": "date-time",
@@ -1302,7 +1261,7 @@
         },
         "provider": {
           "$ref": "#/definitions/Citation",
-          "description": "The container or system that provides this interface.\n\nExactly one, because a contract with two providers is two contracts."
+          "description": "The element that provides this interface — a system, container,\nmodule or component.\n\nExactly one, because a contract with two providers is two contracts.\nDeclared here and nowhere else: the provider's list of provided\ncontracts is derived from this property, so writing a new contract\nnever requires editing the element that provides it."
         },
         "slug": {
           "$ref": "#/definitions/Slug",
@@ -1380,20 +1339,10 @@
     },
     "ContractEdges": {
       "additionalProperties": false,
-      "description": "The contract edges a C4 element owns: the interfaces it publishes, and\nthe interfaces it depends on.\n\nDeclared once and inherited by all four blueprint types rather than\nrepeated on each, because the same fact recorded at four altitudes\nunder three different spellings is how a vocabulary drifts. An element\nprovides a contract at whichever altitude it happens to sit; the\nproperty is named for the concept, not for the level.\n\nThese are not the neighbour edges ADR-009 reserves to a parent. A\nneighbour relationship varies by host — a shared module has different\ncollaborators in every container that composes it, which is why no\nsingle outward list is correct and the parent owns it. A contract is a\nnamed document with one identity, and the fact that an element\npublishes or depends on it holds wherever that element is composed. So\nthis edge belongs to the element, and ADR-009's rule is untouched.",
+      "description": "The contract edge a C4 element declares: the interfaces it depends on.\n\nInherited by all four blueprint types, because an element consumes a\ncontract at whichever altitude it sits. The other end of a contract\nedge — which element provides the contract — is declared once, on the\ncontract, as `Contract.provider`; an element's provided contracts are\nderived from it. Each edge is declared on the document whose change\ncreates it: an element that starts depending on a contract is the\nelement edited, and a new contract names its provider when it is\nwritten.\n\nThese are not the neighbor edges ADR-009 reserves to a parent. A\nneighbor relationship varies by host; a contract is a named document\nwith one identity, and the fact that an element depends on it holds\nwherever that element is composed.",
       "properties": {
         "contracts_consumed": {
-          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
-          "items": {
-            "$ref": "#/definitions/Citation"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "contracts_provided": {
-          "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
+          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbor edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code. The\ncontract's consumers are derived from this property.",
           "items": {
             "$ref": "#/definitions/Citation"
           },
@@ -1472,16 +1421,16 @@
           "$ref": "#/definitions/CriterionNotation",
           "description": "The notation this criterion was written in."
         },
-        "position": {
-          "$ref": "#/definitions/Span",
-          "description": "Where in its document the criterion is written, as a span rather than a\nbare line number, so that a report and a rewrite both address the\ncriterion itself."
-        },
         "rule": {
           "description": "The name of the business rule this criterion sits beneath, absent where\nit sits directly under its feature.\n\nThe rule's name is an assertion — \"a build failure is the checker's job,\nnot the indexer's\" — so recording it puts the reason several criteria\nexist together in the index, scoped explicitly rather than inferred from\nposition in a document.",
           "type": [
             "string",
             "null"
           ]
+        },
+        "span": {
+          "$ref": "#/definitions/Span",
+          "description": "Where in its document the criterion is written, as a span rather than a\nbare line number, so that a report and a rewrite both address the\ncriterion itself."
         },
         "text": {
           "description": "The criterion's body, exactly as written.\n\nFor a Gherkin criterion this is its steps and any example table,\nverbatim, with the block's common indentation removed. For a prose\ncriterion it is the sentence. One property serves both because the\ncriterion is the unit, and its text is what every notation has.",
@@ -1495,7 +1444,7 @@
         "manual",
         "notation",
         "content_hash",
-        "position"
+        "span"
       ],
       "type": "object"
     },
@@ -1689,37 +1638,6 @@
       ],
       "type": "object"
     },
-    "ElementRecord": {
-      "additionalProperties": false,
-      "description": "The fields that declare an architectural element: what it is called, what\nit is, how it is referenced, and what it is built with.\n\nDeliberately shared by two artifacts that look unrelated. A child element\na parent document declares inline — a component of a container — carries\nexactly these fields in a fenced record block. A child promoted to its\nown blueprint carries them in its frontmatter, because every architecture\nblueprint type inherits this struct.\n\nOne schema therefore validates a child in either state, which is what\nmakes promotion a lift-and-link operation rather than a re-authoring one:\nthe record block moves verbatim into the new blueprint's frontmatter, the\nblueprint adds its document `title` and envelope, and every parent roster\nreplaces the block with a link.",
-      "properties": {
-        "description": {
-          "description": "A one- to two-sentence summary of what this is and what it is\nresponsible for.\n\nOn C4 elements this is the brief description rendered on diagrams, so\nit is written to be read at a glance rather than as an introduction.",
-          "type": "string"
-        },
-        "entity_name": {
-          "description": "The element's name: the canonical display name drawn on every diagram\nand matched against diagram labels. Free text.\n\nDistinct from a blueprint's `title`, which names the document — \"Spec\nCLI\" is the entity name of the container whose blueprint is titled\n\"Container Blueprint: Spec CLI\".",
-          "type": "string"
-        },
-        "slug": {
-          "$ref": "#/definitions/Slug",
-          "description": "The identifier every other document uses to reference this.\n\nUnique across the corpus, compared without regard to letter case, and\nconventionally prefixed by the document type — `adr-013`,\n`container-spec-cli`, `module-document-core`."
-        },
-        "technology": {
-          "description": "The language, framework, store or package type the element is built\nwith — `Go, cobra`, `PostgreSQL 16`, `npm package`. Optional.\n\nThe technology line drawn on diagrams.",
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "description",
-        "slug",
-        "entity_name"
-      ],
-      "type": "object"
-    },
     "ExclusionReason": {
       "description": "Why a candidate file beneath the spec root is not a corpus member.\n\nExclusions are recorded rather than dropped, so that a document which\n*should* be a specification but is missing frontmatter is visible in the\nindex rather than absent from it — a judgement the tool cannot make for\nthe reader.",
       "enum": [
@@ -1766,13 +1684,13 @@
           "description": "The path of the file the feature is written in, relative to the\nrepository root and written with forward slashes on every platform.",
           "type": "string"
         },
-        "position": {
-          "$ref": "#/definitions/Span",
-          "description": "Where in its file the feature is written, as a span covering the Gherkin\nitself.\n\nFor a feature written as a fenced block, this covers the Gherkin inside\nthe fence; the fence's own extent is carried by `source`."
-        },
         "source": {
           "$ref": "#/definitions/FeatureSource",
           "description": "Which admissible form the feature was written in."
+        },
+        "span": {
+          "$ref": "#/definitions/Span",
+          "description": "Where in its file the feature is written, as a span covering the Gherkin\nitself.\n\nFor a feature written as a fenced block, this covers the Gherkin inside\nthe fence; the fence's own extent is carried by `source`."
         }
       },
       "required": [
@@ -1782,7 +1700,7 @@
         "path",
         "name",
         "source",
-        "position",
+        "span",
         "criteria"
       ],
       "type": "object"
@@ -1888,7 +1806,7 @@
         {
           "additionalProperties": false,
           "properties": {
-            "block": {
+            "block_span": {
               "$ref": "#/definitions/Span"
             },
             "form": {
@@ -1898,7 +1816,7 @@
           },
           "required": [
             "form",
-            "block"
+            "block_span"
           ],
           "type": "object"
         },
@@ -1922,13 +1840,13 @@
       "additionalProperties": false,
       "description": "A feature written as a fenced Gherkin block inside a markdown document.",
       "properties": {
-        "block": {
+        "block_span": {
           "$ref": "#/definitions/Span",
           "description": "The extent of the fenced block, opening and closing fences included.\n\nRecorded because the feature's own span covers the Gherkin inside the\nfence, and a caller that replaces or extracts the whole construct needs\nthe fence too. This is the same distinction the framework's region\nscanner already draws between an inner and an outer extent."
         }
       },
       "required": [
-        "block"
+        "block_span"
       ],
       "type": "object"
     },
@@ -2002,10 +1920,6 @@
           "description": "The file the finding is against, relative to the repository root and\nwritten with forward slashes on every platform.",
           "type": "string"
         },
-        "position": {
-          "$ref": "#/definitions/Span",
-          "description": "Where in the file the finding is, as a span rather than a bare line\nnumber, so a report can point at a value inside a line."
-        },
         "rule": {
           "$ref": "#/definitions/RuleId",
           "description": "The check that raised this finding."
@@ -2013,13 +1927,17 @@
         "severity": {
           "$ref": "#/definitions/Severity",
           "description": "How badly this finding bears on the run."
+        },
+        "span": {
+          "$ref": "#/definitions/Span",
+          "description": "Where in the file the finding is, as a span rather than a bare line\nnumber, so a report can point at a value inside a line."
         }
       },
       "required": [
         "rule",
         "severity",
         "path",
-        "position",
+        "span",
         "message",
         "detail"
       ],
@@ -2418,7 +2336,7 @@
             "other_path": {
               "type": "string"
             },
-            "other_position": {
+            "other_span": {
               "$ref": "#/definitions/Span"
             }
           },
@@ -2426,7 +2344,7 @@
             "kind",
             "identifier",
             "other_path",
-            "other_position"
+            "other_span"
           ],
           "type": "object"
         },
@@ -2539,7 +2457,7 @@
           "description": "The other occurrence's path, relative to the repository root and\nwritten with forward slashes on every platform.",
           "type": "string"
         },
-        "other_position": {
+        "other_span": {
           "$ref": "#/definitions/Span",
           "description": "Where in that file the other occurrence is written."
         }
@@ -2547,7 +2465,7 @@
       "required": [
         "identifier",
         "other_path",
-        "other_position"
+        "other_span"
       ],
       "type": "object"
     },
@@ -3094,10 +3012,6 @@
           "minimum": 1,
           "type": "integer"
         },
-        "position": {
-          "$ref": "#/definitions/Span",
-          "description": "Where the heading line itself is written."
-        },
         "record_blocks": {
           "description": "The record blocks attached to this heading: those whose extent falls\nwithin its section span and within no nested heading's, so a block\nbelongs to the innermost heading that contains it.",
           "items": {
@@ -3105,9 +3019,13 @@
           },
           "type": "array"
         },
-        "section": {
+        "section_span": {
           "$ref": "#/definitions/Span",
           "description": "The extent of the content beneath the heading: from the end of the\nheading line to the start of the next heading of the same or a higher\nlevel, and to the end of the document where there is none.\n\nA heading that stands over nothing carries an empty span rather than an\nabsent one, the same way an empty frontmatter block does."
+        },
+        "span": {
+          "$ref": "#/definitions/Span",
+          "description": "Where the heading line itself is written."
         },
         "text": {
           "description": "The heading's text as authored, without the `#` markers that open the\nline.",
@@ -3117,8 +3035,8 @@
       "required": [
         "text",
         "level",
-        "position",
-        "section",
+        "span",
+        "section_span",
         "record_blocks"
       ],
       "type": "object"
@@ -3222,30 +3140,10 @@
     },
     "ModuleBlueprint": {
       "additionalProperties": false,
-      "description": "A C4 module blueprint: a coherent unit of code with an interface of its\nown, composed into a container.\n\nThe components it composes are not listed in frontmatter. Each child is\ndeclared in this document's Components section — a fenced record block\nwhen un-promoted, a `[[slug]]` blueprint link once promoted, exactly one\nof the two per ADR-008 — and the index derives the roster from there.",
+      "description": "A C4 module blueprint: a coherent unit of code with an interface of its\nown, composed into a container.\n\nThe components it composes are declared in this document's Components\nsection — a fenced record block, a `[[slug]]` blueprint link, or both,\nper ADR-008. The modules it composes are listed in `modules`, as on a\ncontainer. Its own hosts are not declared here; they are derived from\nthe `modules` of every container or module that composes it.",
       "properties": {
-        "contained_by": {
-          "description": "The containers, or the modules, that compose this module.\n\n**The only multi-parent relationship in the vocabulary, and the reason\nthe module level exists.** C4 gives every element exactly one parent —\na container belongs to one system, a component to one container — and\nthat edge is recorded by the parent, in the roster section of its body.\nModule is this framework's addition to C4, and being composed into more\nthan one container is its whole purpose: a unit shared by two\ncontainers is a module precisely because it is shared.\n\nSo this is a list, and it is declared here rather than derived from\nparent rosters, because a shared module's hosts are a fact about the\nmodule. It is the direction ADR-009 tells modules to point when it\ndenies them a context view — no single outward-edge list is correct for\na module, but the set of hosts is, and this is where it goes.\n\nOmitted when no host has a blueprint of its own — absence records a\ndocumented fact rather than an oversight.",
-          "items": {
-            "$ref": "#/definitions/Citation"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
         "contracts_consumed": {
-          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
-          "items": {
-            "$ref": "#/definitions/Citation"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "contracts_provided": {
-          "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
+          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbor edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code. The\ncontract's consumers are derived from this property.",
           "items": {
             "$ref": "#/definitions/Citation"
           },
@@ -3273,6 +3171,16 @@
         "kind": {
           "$ref": "#/definitions/BlueprintKind",
           "description": "Whether this blueprint documents one concrete module or a pattern\nseveral modules follow."
+        },
+        "modules": {
+          "description": "The modules composed into this one, declared on this host for the same\nreason a container declares its modules.",
+          "items": {
+            "$ref": "#/definitions/Citation"
+          },
+          "type": [
+            "array",
+            "null"
+          ]
         },
         "slug": {
           "$ref": "#/definitions/Slug",
@@ -3376,14 +3284,14 @@
           "description": "What could not be parsed, stated so that the message needs no further\nlookup to act on.",
           "type": "string"
         },
-        "position": {
+        "span": {
           "$ref": "#/definitions/Span",
           "description": "Where in the document the failure occurred."
         }
       },
       "required": [
         "message",
-        "position"
+        "span"
       ],
       "type": "object"
     },
@@ -3565,9 +3473,9 @@
     },
     "RecordBlock": {
       "additionalProperties": false,
-      "description": "A fenced block whose content the active profile registers as structured\ndata about an element declared inside a document.\n\nA block is a record block only where the active profile registers its\ninfo string as a tag; a profile that registers none yields a corpus with\nno record blocks. The registration may name a schema the record is\nvalidated against, so this shape names no particular tag and carries no\nvocabulary of its own.\n\nThe record's content is not carried. Strata has no open value type, so\nan arbitrary YAML mapping has no typed home in a generated model; a\ncommand that needs a record reads it back through `position` and\ndecodes it into its own Go type, and `specs check` validates it. Adding\nthe content here later is an additive change.",
+      "description": "A fenced block whose content the active profile registers as structured\ndata about an element declared inside a document.\n\nA block is a record block only where the active profile registers its\ninfo string as a tag; a profile that registers none yields a corpus with\nno record blocks. The registration may name a schema the record is\nvalidated against, so this shape names no particular tag and carries no\nvocabulary of its own.\n\nThe record's content is not carried. Strata has no open value type, so\nan arbitrary YAML mapping has no typed home in a generated model; a\ncommand that needs a record reads it back through `span` and\ndecodes it into its own Go type, and `specs check` validates it. Adding\nthe content here later is an additive change.",
       "properties": {
-        "position": {
+        "span": {
           "$ref": "#/definitions/Span",
           "description": "The extent of the block as written, opening and closing fences\nincluded.\n\nThe fences are inside the span because promotion replaces the whole\nblock with a link: a rewrite addressing only the content would leave\nthe fences behind. The span is also how a command reads the record:\nthe content between the fences is decoded on demand, into the Go type\nthat command needs, rather than carried here."
         },
@@ -3578,7 +3486,7 @@
       },
       "required": [
         "tag",
-        "position"
+        "span"
       ],
       "type": "object"
     },
@@ -3612,10 +3520,6 @@
           "description": "The path of the document the reference occurs in, relative to the\nrepository root and written with forward slashes on every platform.",
           "type": "string"
         },
-        "position": {
-          "$ref": "#/definitions/Span",
-          "description": "Where in the containing document the reference occurs, as a span rather\nthan a bare line number, so a report and a rewrite both address the\nreference itself."
-        },
         "resolution": {
           "$ref": "#/definitions/ReferenceResolution",
           "description": "What the reference reached."
@@ -3623,6 +3527,10 @@
         "slug": {
           "description": "The slug half: everything before the first `#`, or the whole reference\nwhere it names no anchor.\n\nA plain `String` rather than a `Slug`, deliberately. A reference is\nwritten by hand and may name something that is not a well-formed slug\nat all; constraining this property would make such a reference\nunrepresentable in the index, which is the one place it must be\nvisible in order to be reported.",
           "type": "string"
+        },
+        "span": {
+          "$ref": "#/definitions/Span",
+          "description": "Where in the containing document the reference occurs, as a span rather\nthan a bare line number, so a report and a rewrite both address the\nreference itself."
         },
         "text": {
           "description": "The reference exactly as written, without the delimiters that enclose\nit — `adr-012`, or `adr-012#Decision`, or the raw value of a\nreference-bearing frontmatter property.\n\nRecorded alongside the halves it splits into, because the text is what\na reader sees and what a rewrite replaces, and neither is recoverable\nfrom the halves once letter case or spacing has been normalized.",
@@ -3634,7 +3542,7 @@
         "text",
         "slug",
         "origin",
-        "position",
+        "span",
         "resolution"
       ],
       "type": "object"
@@ -4073,8 +3981,8 @@
           "type": "array"
         },
         "schema_version": {
-          "description": "The version of this index's schema.\n\nPinned to `1.0` for as long as the shape only grows. A change to the\nshape of what is already here — as opposed to an addition alongside it\n— updates this value and the emitted index in the same change.",
-          "pattern": "^1\\.0$",
+          "description": "The version of this index's schema.\n\nPinned to `2.0` for as long as the shape only grows. A change to the\nshape of what is already here — as opposed to an addition alongside it\n— updates this value and the emitted index in the same change.",
+          "pattern": "^2\\.0$",
           "type": "string"
         },
         "workspace": {
@@ -4213,17 +4121,7 @@
       "description": "A C4 system blueprint: the public contracts a system provides.\n\nThe containers a system bundles are not listed here. Each container\ndeclares the system that composes it in its own `system` property, and\nthe roster is derived from those inbound edges — one authoritative end,\nper the Document Relationship Standard.\n\nA system's dependency on another system is not recorded in frontmatter\nat all. Where the dependency is a named interface it is a contract, and\n`contracts_consumed` holds it. Where it is looser, the blueprint's own\n\"Consumed Systems and Contracts\" section says what is depended on and\nwhat for — which a slug list cannot, and which is what a reader actually\nneeds. A repository spanning more than one system is rare enough that a\nfrontmatter property for the untyped case would be maintained by nobody.",
       "properties": {
         "contracts_consumed": {
-          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbour edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code.",
-          "items": {
-            "$ref": "#/definitions/Citation"
-          },
-          "type": [
-            "array",
-            "null"
-          ]
-        },
-        "contracts_provided": {
-          "description": "Contract slugs this element provides.\n\nThe interface is this element's own, so it is recorded here whatever\nthe element's altitude — a system's public API, a container's\nservice surface, a module's package API, a component's interface\nwhere it warrants a contract document of its own.",
+          "description": "Contract slugs this element depends on.\n\nNamed contracts only. An element's untyped collaborators are not\nlisted here — those are neighbor edges, and per ADR-009 they belong\nto the parent that composes the elements, or to the code. The\ncontract's consumers are derived from this property.",
           "items": {
             "$ref": "#/definitions/Citation"
           },

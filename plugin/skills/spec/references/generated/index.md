@@ -62,7 +62,7 @@ reports.
 | Property | Type | Documentation |
 |----------|------|---------------|
 | message | String | What could not be parsed, stated so that the message needs no further lookup to act on. |
-| position | [Span](#span) | Where in the document the failure occurred. |
+| span | [Span](#span) | Where in the document the failure occurred. |
 
 
 ## ExclusionReason
@@ -95,14 +95,14 @@ vocabulary of its own.
 
 The record's content is not carried. Strata has no open value type, so
 an arbitrary YAML mapping has no typed home in a generated model; a
-command that needs a record reads it back through `position` and
+command that needs a record reads it back through `span` and
 decodes it into its own Go type, and `specs check` validates it. Adding
 the content here later is an additive change.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
 | tag | String | The block's info string, which is the tag the active profile registered — `component` for a component record block. |
-| position | [Span](#span) | The extent of the block as written, opening and closing fences included.<br><br>The fences are inside the span because promotion replaces the whole block with a link: a rewrite addressing only the content would leave the fences behind. The span is also how a command reads the record: the content between the fences is decoded on demand, into the Go type that command needs, rather than carried here. |
+| span | [Span](#span) | The extent of the block as written, opening and closing fences included.<br><br>The fences are inside the span because promotion replaces the whole block with a link: a rewrite addressing only the content would leave the fences behind. The span is also how a command reads the record: the content between the fences is decoded on demand, into the Go type that command needs, rather than carried here. |
 
 
 ## Heading
@@ -119,8 +119,8 @@ in this model.
 |----------|------|---------------|
 | text | String | The heading's text as authored, without the `#` markers that open the line. |
 | level | UInt in 1..6 | The heading's level: 1 for `#`, through 6 for `######`.<br><br>__Constraint:__ Values must be ≥ 1 and ≤ 6. |
-| position | [Span](#span) | Where the heading line itself is written. |
-| section | [Span](#span) | The extent of the content beneath the heading: from the end of the heading line to the start of the next heading of the same or a higher level, and to the end of the document where there is none.<br><br>A heading that stands over nothing carries an empty span rather than an absent one, the same way an empty frontmatter block does. |
+| span | [Span](#span) | Where the heading line itself is written. |
+| section_span | [Span](#span) | The extent of the content beneath the heading: from the end of the heading line to the start of the next heading of the same or a higher level, and to the end of the document where there is none.<br><br>A heading that stands over nothing carries an empty span rather than an absent one, the same way an empty frontmatter block does. |
 | record_blocks | Array<[RecordBlock](#recordblock)> | The record blocks attached to this heading: those whose extent falls within its section span and within no nested heading's, so a block belongs to the innermost heading that contains it. |
 
 
@@ -341,7 +341,7 @@ the line the reader must open.
 | slug | String | The slug half: everything before the first `#`, or the whole reference where it names no anchor.<br><br>A plain `String` rather than a `Slug`, deliberately. A reference is written by hand and may name something that is not a well-formed slug at all; constraining this property would make such a reference unrepresentable in the index, which is the one place it must be visible in order to be reported. |
 | anchor | String? | The anchor half: everything after the first `#`, absent where the reference names no anchor.<br><br>Recorded and not interpreted: splitting on the first `#` is the whole of what extraction knows about anchors, which is why an anchored reference resolves on its slug rather than reporting as broken. What the anchor itself matched is carried separately, in `anchor_resolution`. |
 | origin | [ReferenceOrigin](#referenceorigin) | Where the reference was written. |
-| position | [Span](#span) | Where in the containing document the reference occurs, as a span rather than a bare line number, so a report and a rewrite both address the reference itself. |
+| span | [Span](#span) | Where in the containing document the reference occurs, as a span rather than a bare line number, so a report and a rewrite both address the reference itself. |
 | resolution | [ReferenceResolution](#referenceresolution) | What the reference reached. |
 | anchor_resolution | [AnchorResolution](#anchorresolution)? | What the anchor half of this reference resolved to.<br><br>Present exactly when `anchor` is present and there is a target to check it against: `resolution` reached a corpus member, or the reference names no slug at all and resolves against the document named in `path`. Absent when the reference carries no anchor, and absent when it names a slug that did not resolve — `resolution` already reports that reference as broken. |
 
@@ -364,7 +364,7 @@ without a change to this model.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
-| schema_version | String ~= `/^1\.0$/` | The version of this index's schema.<br><br>Pinned to `1.0` for as long as the shape only grows. A change to the shape of what is already here — as opposed to an addition alongside it — updates this value and the emitted index in the same change. |
+| schema_version | String ~= `/^2\.0$/` | The version of this index's schema.<br><br>Pinned to `2.0` for as long as the shape only grows. A change to the shape of what is already here — as opposed to an addition alongside it — updates this value and the emitted index in the same change. |
 | workspace | String | The workspace identifier from configuration, so that indexes emitted by several repositories can be merged into one graph without two documents that both declare `adr-001` colliding. |
 | entries | Array<[IndexEntry](#indexentry)> | Every corpus member, in the order the emitter fixes. |
 | exclusions | Array<[IndexExclusion](#indexexclusion)> | Every excluded candidate file, in the order the emitter fixes. |

@@ -147,7 +147,7 @@ func TestInboundReferencesAreDerivedFromTheSameCollection(t *testing.T) {
 		if reference.Path != wantReferrers[i] {
 			t.Errorf("inbound %d comes from %q, want %q", i, reference.Path, wantReferrers[i])
 		}
-		if reference.Position.Length == 0 {
+		if reference.Span.Length == 0 {
 			t.Errorf("inbound %d carries an empty span", i)
 		}
 	}
@@ -201,7 +201,7 @@ func TestAnAnchorOnlyReferenceIsInboundOnTheDocumentHoldingIt(t *testing.T) {
 	if inbound[0].Slug != "" {
 		t.Errorf("slug = %q, want empty — this is the anchor-only form", inbound[0].Slug)
 	}
-	if inbound[0].Position.Length == 0 {
+	if inbound[0].Span.Length == 0 {
 		t.Errorf("inbound carries an empty span")
 	}
 
@@ -398,11 +398,11 @@ func TestAWarmCorpusServesTheGraphFromThePersistedIndex(t *testing.T) {
 		t.Fatalf("the built index carries %d references, want 1", len(persisted.References))
 	}
 	persisted.References = append(persisted.References, specmodel.Reference{
-		Path:     "specs/adrs/adr-002.md",
-		Text:     "adr-001",
-		Slug:     "adr-001",
-		Origin:   specmodel.NewReferenceOriginBody(specmodel.ReferenceBodyOrigin{}),
-		Position: persisted.References[0].Position,
+		Path:   "specs/adrs/adr-002.md",
+		Text:   "adr-001",
+		Slug:   "adr-001",
+		Origin: specmodel.NewReferenceOriginBody(specmodel.ReferenceBodyOrigin{}),
+		Span:   persisted.References[0].Span,
 		Resolution: specmodel.NewReferenceResolutionResolved(
 			specmodel.ReferenceResolved{TargetPath: "specs/adrs/adr-001.md"}),
 	})

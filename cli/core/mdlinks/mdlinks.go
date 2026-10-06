@@ -112,12 +112,12 @@ func resolveOne(ref specmodel.Reference, options Options) (*string, *specmodel.F
 
 	resolved, isCorpusDocument := ref.Resolution.AsResolved()
 	if !isCorpusDocument {
-		f := finding.UnresolvedCitation(ref.Path, ref.Position, ref.Slug)
+		f := finding.UnresolvedCitation(ref.Path, ref.Span, ref.Slug)
 		return nil, &f
 	}
 
 	if options.Map != nil {
-		f := finding.UnmappedCitation(ref.Path, ref.Position, ref.Slug, options.MapPath)
+		f := finding.UnmappedCitation(ref.Path, ref.Span, ref.Slug, options.MapPath)
 		return nil, &f
 	}
 

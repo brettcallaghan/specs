@@ -8,7 +8,6 @@ status: approved
 updated_at: 2026-08-07T00:00:00Z
 provider: container-spec-cli
 visibility: public
-consumers: []
 specs:
   - "cli/core/schema/specs-config.schema.json"
 version: "1.0"
@@ -97,8 +96,8 @@ frontmatter satisfies, the slug pattern, whether the type is numbered,
 the section hierarchy it requires, and the named section sets a span
 query can select. It additionally supplies the fenced block tags to
 extract and any rule that cannot be expressed as data — the
-record-XOR-blueprint-link invariant and supersession integrity are the
-two current examples.
+agreement of an element's declarations and supersession integrity are
+the two current examples.
 
 Required sections are a **hierarchy, not a flat list.** A document's
 headings nest, and the rules worth enforcing are about that nesting: a

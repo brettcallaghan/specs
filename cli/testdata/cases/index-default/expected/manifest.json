@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "workspace": "acme",
   "entries": [
     {
@@ -16,7 +16,7 @@
         {
           "text": "ADR-001: Example",
           "level": 1,
-          "position": {
+          "span": {
             "offset": 175,
             "length": 19,
             "start_line": 10,
@@ -24,7 +24,7 @@
             "end_line": 11,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 194,
             "length": 0,
             "start_line": 11,
@@ -41,7 +41,7 @@
       "path": "docs/adrs/adr-002-broken.md",
       "parse_error": {
         "message": "could not find end character of double-quoted text",
-        "position": {
+        "span": {
           "offset": 11,
           "length": 158,
           "start_line": 2,
@@ -54,7 +54,7 @@
         {
           "text": "ADR-002: Broken",
           "level": 1,
-          "position": {
+          "span": {
             "offset": 175,
             "length": 18,
             "start_line": 10,
@@ -62,7 +62,7 @@
             "end_line": 11,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 193,
             "length": 0,
             "start_line": 11,
@@ -79,5 +79,5 @@
   "exclusions": [],
   "references": [],
   "features": [],
-  "input_hash": "sha256:653bf846e363b2dc2bb26f14dc650bf937b7ac2fc9694b7dcf7eff84b93bdd2f"
+  "input_hash": "sha256:48cd090a161b937bffc7f6891533ec8f28b0a1ecddd6e3e58e48029e88a573d5"
 }

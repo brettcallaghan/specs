@@ -119,7 +119,7 @@ func configSchemaViolation(path string, at specmodel.Span, pointer, constraint, 
 		Rule:     RuleConfigSchema,
 		Severity: finding.SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message: fmt.Sprintf("%s: %q does not satisfy %s",
 			renderPointer(pointer), value, constraint),
 		Detail: specmodel.NewFindingDetailSchemaViolation(specmodel.FindingSchemaViolation{
@@ -137,7 +137,7 @@ func configMissingProperty(path string, at specmodel.Span, pointer, property str
 		Rule:     RuleConfigMissingProperty,
 		Severity: finding.SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message: fmt.Sprintf("%s: required property %q is not declared",
 			renderPointer(pointer), property),
 		Detail: specmodel.NewFindingDetailMissingProperty(specmodel.FindingMissingProperty{
@@ -162,7 +162,7 @@ func configUndeclaredKey(path string, at specmodel.Span, pointer, key string) sp
 		Rule:     RuleConfigUndeclaredKey,
 		Severity: finding.SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message: fmt.Sprintf("%s: %q is not a key this configuration defines",
 			renderPointer(pointer), key),
 		Detail: specmodel.NewFindingDetailSchemaViolation(specmodel.FindingSchemaViolation{
@@ -183,7 +183,7 @@ func configSyntaxError(path string, at specmodel.Span, message string) specmodel
 		Rule:     RuleConfigSchema,
 		Severity: finding.SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  message,
 		Detail: specmodel.NewFindingDetailSchemaViolation(specmodel.FindingSchemaViolation{
 			Pointer:    "",
@@ -205,7 +205,7 @@ func configUnknownProfile(path string, at specmodel.Span, name string, registere
 		Rule:     RuleConfigUnknownProfile,
 		Severity: finding.SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  fmt.Sprintf("%q is not a registered profile; registered: %s", name, list),
 		Detail: specmodel.NewFindingDetailSchemaViolation(specmodel.FindingSchemaViolation{
 			Pointer:    "/profile/name",
@@ -232,7 +232,7 @@ func configRegistrationDefect(path string, at specmodel.Span, defect corpus.Regi
 		Rule:     RuleConfigInvalidRegistration,
 		Severity: finding.SeverityError,
 		Path:     path,
-		Position: at,
+		Span:     at,
 		Message:  fmt.Sprintf("profile registration: %q %s", key, defect.Detail),
 		Detail: specmodel.NewFindingDetailSchemaViolation(specmodel.FindingSchemaViolation{
 			Pointer:    "/profile/name",
@@ -252,7 +252,7 @@ func linkMapUnreadable(path string, err error) specmodel.Finding {
 		Rule:     RuleLinkMapInvalid,
 		Severity: finding.SeverityError,
 		Path:     path,
-		Position: wholeFile(nil),
+		Span:     wholeFile(nil),
 		Message:  fmt.Sprintf("cannot be read: %s", readErrorText(err)),
 		Detail: specmodel.NewFindingDetailSchemaViolation(specmodel.FindingSchemaViolation{
 			Pointer:    "",
@@ -271,7 +271,7 @@ func linkMapUnparseable(path string, src []byte, err error) specmodel.Finding {
 		Rule:     RuleLinkMapInvalid,
 		Severity: finding.SeverityError,
 		Path:     path,
-		Position: wholeFile(src),
+		Span:     wholeFile(src),
 		Message:  fmt.Sprintf("cannot be parsed as YAML: %s", err),
 		Detail: specmodel.NewFindingDetailSchemaViolation(specmodel.FindingSchemaViolation{
 			Pointer:    "",
@@ -292,7 +292,7 @@ func documentUnreadable(path string, err error) specmodel.Finding {
 		Rule:     RuleDocumentUnreadable,
 		Severity: finding.SeverityError,
 		Path:     path,
-		Position: wholeFile(nil),
+		Span:     wholeFile(nil),
 		Message:  fmt.Sprintf("cannot be read: %s", readErrorText(err)),
 		Detail: specmodel.NewFindingDetailSchemaViolation(specmodel.FindingSchemaViolation{
 			Pointer:    "",
@@ -312,7 +312,7 @@ func linkMapMissingPath(path string, src []byte, slug string) specmodel.Finding 
 		Rule:     RuleLinkMapMissingPath,
 		Severity: finding.SeverityError,
 		Path:     path,
-		Position: wholeFile(src),
+		Span:     wholeFile(src),
 		Message:  fmt.Sprintf("%s: required property %q is not declared", pointer, "path"),
 		Detail: specmodel.NewFindingDetailMissingProperty(specmodel.FindingMissingProperty{
 			Pointer:  pointer,

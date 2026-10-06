@@ -223,9 +223,9 @@ func TestValidateReportsOneFindingPerUndeclaredProperty(t *testing.T) {
 		if violation.Value != wantValue[violation.Pointer] {
 			t.Errorf("%s value = %q, want %q", violation.Pointer, violation.Value, wantValue[violation.Pointer])
 		}
-		if f.Position != wantSpan[violation.Pointer] {
+		if f.Span != wantSpan[violation.Pointer] {
 			t.Errorf("%s position = %+v, want the property's own span %+v",
-				violation.Pointer, f.Position, wantSpan[violation.Pointer])
+				violation.Pointer, f.Span, wantSpan[violation.Pointer])
 		}
 		seen[violation.Pointer] = true
 	}

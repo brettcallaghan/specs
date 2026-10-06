@@ -143,7 +143,7 @@ func TestRenderIsParsesInverse(t *testing.T) {
 			t.Errorf("criterion %d: Tags = %q, want %q\nrendered:\n%s",
 				i, joined(roundTripped.Criteria[i].Tags), joined(original.Criteria[i].Tags), rendered)
 		}
-		if gotC.Position == wantC.Position {
+		if gotC.Span == wantC.Span {
 			t.Errorf("criterion %d: Position equals the source's own, want a fresh one over the emitted bytes", i)
 		}
 	}

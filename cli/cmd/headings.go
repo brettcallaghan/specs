@@ -205,7 +205,7 @@ func selectHeadings(index specmodel.SpecIndex, sel selection) []headingMatch {
 				Text:       heading.Text,
 				Identifier: markdown.Identifier(heading.Text),
 				Level:      heading.Level,
-				Section:    heading.Section,
+				Section:    heading.SectionSpan,
 			})
 		}
 	}

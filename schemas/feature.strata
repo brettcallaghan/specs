@@ -110,7 +110,7 @@ struct FeatureSourceBlock {
   the fence too. This is the same distinction the framework's region
   scanner already draws between an inner and an outer extent.
   """
-  block: Span
+  block_span: Span
 }
 
 """
@@ -246,7 +246,7 @@ struct Criterion {
   bare line number, so that a report and a rewrite both address the
   criterion itself.
   """
-  position: Span
+  span: Span
 }
 
 """
@@ -317,7 +317,7 @@ struct Feature {
   For a feature written as a fenced block, this covers the Gherkin inside
   the fence; the fence's own extent is carried by `source`.
   """
-  position: Span
+  span: Span
 
   """
   The feature's acceptance criteria, in the order they are written.

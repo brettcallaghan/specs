@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "workspace": "acme",
   "entries": [
     {
@@ -16,7 +16,7 @@
         {
           "text": "ADR-001: Example",
           "level": 1,
-          "position": {
+          "span": {
             "offset": 175,
             "length": 19,
             "start_line": 10,
@@ -24,7 +24,7 @@
             "end_line": 11,
             "end_column": 1
           },
-          "section": {
+          "section_span": {
             "offset": 194,
             "length": 0,
             "start_line": 11,
@@ -41,5 +41,5 @@
   "exclusions": [],
   "references": [],
   "features": [],
-  "input_hash": "sha256:54ad7f84904eae89e0ddf810ab3b33878442db4e06ac9a7dfcc3830fd85b6a3d"
+  "input_hash": "sha256:7fe8814f15d59e495918c273118a659b62df166fdcbd7668ca7163c154033bd8"
 }

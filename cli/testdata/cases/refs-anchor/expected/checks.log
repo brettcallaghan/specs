@@ -9,7 +9,7 @@ references:
     anchor: Decision
     origin:
       kind: body
-    position:
+    span:
       offset: 242
       length: 29
       start_line: 12
@@ -23,7 +23,7 @@ references:
       state: resolved
       heading:
         text: Decision
-        position:
+        span:
           offset: 246
           length: 12
           start_line: 13
@@ -36,7 +36,7 @@ references:
     anchor: decision
     origin:
       kind: body
-    position:
+    span:
       offset: 215
       length: 29
       start_line: 12
@@ -50,7 +50,7 @@ references:
       state: resolved
       heading:
         text: Decision
-        position:
+        span:
           offset: 246
           length: 12
           start_line: 13

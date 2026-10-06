@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "2.0",
   "workspace": "acme",
   "entries": [
     {
@@ -28,7 +28,7 @@
       "description": "As a shopper\nI want to pay for a basket\nSo that the goods are mine",
       "source": {
         "form": "fenced-block",
-        "block": {
+        "block_span": {
           "offset": 188,
           "length": 299,
           "start_line": 12,
@@ -37,7 +37,7 @@
           "end_column": 1
         }
       },
-      "position": {
+      "span": {
         "offset": 199,
         "length": 284,
         "start_line": 13,
@@ -55,7 +55,7 @@
           "level": "unit",
           "notation": "gherkin",
           "content_hash": "sha256:6c0b89a15617d8f8bb006d3bf0b26d151593cfb34b99a2ce46c29566669c02c1",
-          "position": {
+          "span": {
             "offset": 306,
             "length": 176,
             "start_line": 20,

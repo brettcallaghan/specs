@@ -430,7 +430,7 @@ func (b *builder) visit(kind sourceKind, reported string, src []byte, readErr er
 		// addEntry records the empty collection.
 		b.addEntry(specmodel.IndexEntry{
 			Path:       reported,
-			ParseError: &specmodel.ParseError{Message: readErr.Error(), Position: span.Of(nil, 0, 0)},
+			ParseError: &specmodel.ParseError{Message: readErr.Error(), Span: span.Of(nil, 0, 0)},
 		}, member{})
 		return
 	}
@@ -557,10 +557,10 @@ func headingsOf(src []byte, doc *frontmatter.Document) []specmodel.Heading {
 	headings := make([]specmodel.Heading, 0, len(found))
 	for _, heading := range found {
 		headings = append(headings, specmodel.Heading{
-			Text:     heading.Text,
-			Level:    uint64(heading.Level),
-			Position: heading.Position,
-			Section:  heading.Section,
+			Text:        heading.Text,
+			Level:       uint64(heading.Level),
+			Span:        heading.Position,
+			SectionSpan: heading.Section,
 			// Record blocks attach to a heading once a profile registers
 			// a tag; until then every heading carries none rather than
 			// null.
@@ -696,7 +696,7 @@ func orderedReferences(refs []specmodel.Reference) []specmodel.Reference {
 		if refs[i].Path != refs[j].Path {
 			return refs[i].Path < refs[j].Path
 		}
-		return refs[i].Position.Offset < refs[j].Position.Offset
+		return refs[i].Span.Offset < refs[j].Span.Offset
 	})
 	return refs
 }
@@ -716,7 +716,7 @@ func orderedFeatures(features []specmodel.Feature) []specmodel.Feature {
 		if features[i].Path != features[j].Path {
 			return features[i].Path < features[j].Path
 		}
-		return features[i].Position.Offset < features[j].Position.Offset
+		return features[i].Span.Offset < features[j].Span.Offset
 	})
 	return features
 }
@@ -881,16 +881,16 @@ func decodeFrontmatter(doc *frontmatter.Document) (*specmodel.DocumentFrontmatte
 	raw, err := doc.JSON()
 	if err != nil {
 		return nil, &specmodel.ParseError{
-			Message:  fmt.Sprintf("the frontmatter block could not be read: %s", err),
-			Position: doc.Region.Inner,
+			Message: fmt.Sprintf("the frontmatter block could not be read: %s", err),
+			Span:    doc.Region.Inner,
 		}
 	}
 
 	var shape envelopeShape
 	if err := json.Unmarshal(raw, &shape); err != nil {
 		return nil, &specmodel.ParseError{
-			Message:  fmt.Sprintf("the frontmatter block does not fit the document envelope: %s", err),
-			Position: envelopeErrorSpan(doc, err),
+			Message: fmt.Sprintf("the frontmatter block does not fit the document envelope: %s", err),
+			Span:    envelopeErrorSpan(doc, err),
 		}
 	}
 	envelope := specmodel.DocumentFrontmatter(shape)

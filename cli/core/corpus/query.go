@@ -128,8 +128,8 @@ func qualifierMatches(criterion specmodel.Criterion, qualifier QualifierTag) boo
 // DocumentSummary is one corpus member as a listing reports it: a
 // projection of [specmodel.IndexEntry] over the entry's path and the
 // frontmatter envelope it parsed, carrying nothing else. It is not a new
-// record type, so no index shape changes and `schema_version` stays
-// "1.0".
+// record type, so no index shape changes and `schema_version` is
+// unaffected.
 //
 // The field order — path, slug, type, status, title, description — is
 // part of the answer's contract rather than a matter of taste: the

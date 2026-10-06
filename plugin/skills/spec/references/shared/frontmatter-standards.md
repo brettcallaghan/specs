@@ -25,8 +25,8 @@ version: "0.3"
 - Relationship Properties — provenance, composition, and the typed edges a
   consumer keys on
 - Optional Properties — version, created_at, tags, superseded_by
-- Embedded Element Records — the record-block XOR blueprint-link rule for
-  declaring child components
+- Embedded Element Records — declaring child components by record
+  block, blueprint, or both
 
 Companion to `template-authoring-standards.md`, which owns document
 structure, slugs, instruction blocks, versioning, and content guidelines.
@@ -152,13 +152,12 @@ sources: []                                 # Source document slugs
 
 # Composition
 system: "<system slug>"                     # container -> its one system
-contained_by: []                            # module -> the containers
-                                            # composing it; a LIST, and the
-                                            # only multi-parent edge there is
+modules: []                                 # container or module -> the
+                                            # modules composed into it
 
 # Typed edges a machine consumer keys on
-contracts_provided: []                      # contract slugs this provides
 contracts_consumed: []                      # contract slugs this consumes
+provider: "<element slug>"                  # contract -> its one provider
 ---
 ```
 
@@ -225,8 +224,9 @@ successor.
 ## Embedded Element Records
 
 WHEN a document declares child elements it composes — the components of a
-container or a module — each child is recorded in one of two states, and
-a document system MAY make that record machine-readable:
+container or a module — each child is declared by a record block, by its
+own blueprint, or both, and a document system MAY make that declaration
+machine-readable:
 
 - **Un-promoted** (no blueprint of its own): the child's declaration
   SHALL carry a fenced record block holding the element record fields
@@ -240,13 +240,17 @@ a document system MAY make that record machine-readable:
   ```
 
 - **Promoted** (its own blueprint): the declaration links the blueprint
-  (`[[component-<name>]]` / `[[module-<name>]]`) and carries NO record
+  (`[[component-<name>]]` / `[[module-<name>]]`), and MAY keep its record
   block.
 
-A child is in exactly ONE state — record block XOR blueprint link, never
-both. Promotion lifts the block verbatim into the new blueprint's
-frontmatter, adds the document's `title`, and replaces the block in every
-parent roster with the link, in the same change.
+An element is identified by its `slug` and MAY be declared more than
+once — by its blueprint and by the record block in its parent's roster,
+or by blocks in several documents. Promotion copies the block's fields
+into the new blueprint's frontmatter, adds the document's `title`, and
+links the blueprint from every parent roster in the same change; the
+block MAY stay. Where an element has a blueprint, its values are
+authoritative, and a declaration that disagrees with them SHALL be
+reported.
 
 Every architecture blueprint (system, container, module, component)
 SHALL declare `entity_name`: the element's name as diagrams draw it. It

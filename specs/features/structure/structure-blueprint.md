@@ -60,7 +60,7 @@ like every other model rather than assembled in the emitter.
 - The index SHALL carry no section content, only the span of it. A
   reader that wants the text reads it back through the span, which is
   what the CMD delta's emit form does.
-- The `schema_version` SHALL remain `1.0`: every property this delta
+- The `schema_version` SHALL NOT change for this delta: every property it
   adds is an addition, which the container blueprint's additive rule
   admits without a bump.
 
@@ -219,7 +219,7 @@ in `cli/core/finding`.
 ## Contracts
 
 - No new contract document. The index gains properties under the
-  additive rule [[container-spec-cli]] states for `schema_version` 1.0,
+  additive rule [[container-spec-cli]] states for `schema_version`,
   which anticipates exactly this: later features attaching headings and
   extracted record blocks.
 - [[contract-specs-configuration]] (revised, drafted in place) — the

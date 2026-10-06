@@ -3,7 +3,7 @@
 ## Table of Contents
 
 - [Identified](#identified)
-- [ElementRecord](#elementrecord)
+- [C4ElementRecord](#c4elementrecord)
 - [DocumentFrontmatter](#documentfrontmatter)
 - [ContractEdges](#contractedges)
 - [Adr](#adr)
@@ -29,22 +29,23 @@ its identifier and its one-line summary.
 | slug | [Slug](vocabulary.md#slug) | The identifier every other document uses to reference this.<br><br>Unique across the corpus, compared without regard to letter case, and conventionally prefixed by the document type — `adr-013`, `container-spec-cli`, `module-document-core`. |
 
 
-## ElementRecord
+## C4ElementRecord
 
 The fields that declare an architectural element: what it is called, what
 it is, how it is referenced, and what it is built with.
 
-Deliberately shared by two artifacts that look unrelated. A child element
-a parent document declares inline — a component of a container — carries
-exactly these fields in a fenced record block. A child promoted to its
-own blueprint carries them in its frontmatter, because every architecture
+Deliberately shared by two artifacts that look unrelated. An element
+declared inline — a component in its container's roster — carries
+exactly these fields in a fenced record block. An element with its own
+blueprint carries them in its frontmatter, because every architecture
 blueprint type inherits this struct.
 
-One schema therefore validates a child in either state, which is what
-makes promotion a lift-and-link operation rather than a re-authoring one:
-the record block moves verbatim into the new blueprint's frontmatter, the
-blueprint adds its document `title` and envelope, and every parent roster
-replaces the block with a link.
+One schema therefore validates every declaration of an element, and an
+element may have several: a blueprint and the record block in its
+parent's roster, or blocks in more than one document. They are one
+element because they share a `slug`. Promotion copies a block's fields
+into a new blueprint's frontmatter, which adds the document's `title`
+and envelope; the block may stay where it is.
 
 **Inherits from:** [Identified](#identified)
 
@@ -86,27 +87,25 @@ citations does not earn its maintenance cost.
 
 ## ContractEdges
 
-The contract edges a C4 element owns: the interfaces it publishes, and
-the interfaces it depends on.
+The contract edge a C4 element declares: the interfaces it depends on.
 
-Declared once and inherited by all four blueprint types rather than
-repeated on each, because the same fact recorded at four altitudes
-under three different spellings is how a vocabulary drifts. An element
-provides a contract at whichever altitude it happens to sit; the
-property is named for the concept, not for the level.
+Inherited by all four blueprint types, because an element consumes a
+contract at whichever altitude it sits. The other end of a contract
+edge — which element provides the contract — is declared once, on the
+contract, as `Contract.provider`; an element's provided contracts are
+derived from it. Each edge is declared on the document whose change
+creates it: an element that starts depending on a contract is the
+element edited, and a new contract names its provider when it is
+written.
 
-These are not the neighbour edges ADR-009 reserves to a parent. A
-neighbour relationship varies by host — a shared module has different
-collaborators in every container that composes it, which is why no
-single outward list is correct and the parent owns it. A contract is a
-named document with one identity, and the fact that an element
-publishes or depends on it holds wherever that element is composed. So
-this edge belongs to the element, and ADR-009's rule is untouched.
+These are not the neighbor edges ADR-009 reserves to a parent. A
+neighbor relationship varies by host; a contract is a named document
+with one identity, and the fact that an element depends on it holds
+wherever that element is composed.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
-| contracts_provided | Array<[Citation](vocabulary.md#citation)>? | Contract slugs this element provides.<br><br>The interface is this element's own, so it is recorded here whatever the element's altitude — a system's public API, a container's service surface, a module's package API, a component's interface where it warrants a contract document of its own. |
-| contracts_consumed | Array<[Citation](vocabulary.md#citation)>? | Contract slugs this element depends on.<br><br>Named contracts only. An element's untyped collaborators are not listed here — those are neighbour edges, and per ADR-009 they belong to the parent that composes the elements, or to the code. |
+| contracts_consumed | Array<[Citation](vocabulary.md#citation)>? | Contract slugs this element depends on.<br><br>Named contracts only. An element's untyped collaborators are not listed here — those are neighbor edges, and per ADR-009 they belong to the parent that composes the elements, or to the code. The contract's consumers are derived from this property. |
 
 
 ## Adr
@@ -144,9 +143,8 @@ independent change.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
-| provider | [Citation](vocabulary.md#citation) | The container or system that provides this interface.<br><br>Exactly one, because a contract with two providers is two contracts. |
+| provider | [Citation](vocabulary.md#citation) | The element that provides this interface — a system, container, module or component.<br><br>Exactly one, because a contract with two providers is two contracts. Declared here and nowhere else: the provider's list of provided contracts is derived from this property, so writing a new contract never requires editing the element that provides it. |
 | visibility | [Visibility](vocabulary.md#visibility) | Whether this interface is published beyond the repository that declares it, and therefore whether its versioning policy binds adopters outside this team. |
-| consumers | Array<[Citation](vocabulary.md#citation)>? | Known consumers, by slug. Derived knowledge rather than a restriction — an unlisted consumer is not forbidden, it is merely unknown to the provider. |
 | specs | Array<String>? | Paths or URLs of the machine-readable artifacts that make this contract executable: JSON Schemas, OpenAPI documents, protobuf definitions. |
 | version | String | The contract's semantic version.<br><br>Required rather than optional: a contract without a version cannot state a compatibility promise, which is the only reason to write one down separately from the code that implements it. |
 
@@ -180,7 +178,7 @@ what for — which a slug list cannot, and which is what a reader actually
 needs. A repository spanning more than one system is rare enough that a
 frontmatter property for the untyped case would be maintained by nobody.
 
-**Inherits from:** [DocumentFrontmatter](#documentfrontmatter), [ElementRecord](#elementrecord), [ContractEdges](#contractedges)
+**Inherits from:** [DocumentFrontmatter](#documentfrontmatter), [C4ElementRecord](#c4elementrecord), [ContractEdges](#contractedges)
 
 *No properties defined.*
 
@@ -190,21 +188,18 @@ frontmatter property for the untyped case would be maintained by nobody.
 A C4 container blueprint: one independently deployable or runnable
 artifact.
 
-The modules and components composed into it are not listed here, and
-the two arrive by different routes. A module names its hosts itself, in
-`contained_by`, because a module may be composed into several containers
-and that set is a fact about the module. A component has exactly one
-parent, as C4 requires, and that edge is recorded where a reader meets
-it: the Components section of this document's body, where each child is
-a fenced record block XOR a `[[slug]]` blueprint link under its own
-heading, per ADR-008 and ADR-012. Either way the index derives this
-container's roster rather than reading it from frontmatter.
+The modules composed into it are listed in `modules`. Its components are
+declared where a reader meets them: the Components section of this
+document's body, where each child sits under its own heading as a
+fenced record block, a `[[slug]]` blueprint link, or both, per ADR-008
+and ADR-012.
 
-**Inherits from:** [DocumentFrontmatter](#documentfrontmatter), [ElementRecord](#elementrecord), [ContractEdges](#contractedges)
+**Inherits from:** [DocumentFrontmatter](#documentfrontmatter), [C4ElementRecord](#c4elementrecord), [ContractEdges](#contractedges)
 
 | Property | Type | Documentation |
 |----------|------|---------------|
 | system | [Citation](vocabulary.md#citation)? | The system this container belongs to.<br><br>Omitted when the container is standalone — that is, when no system blueprint documents it. Absence records a documented fact rather than an oversight. |
+| modules | Array<[Citation](vocabulary.md#citation)>? | The modules composed into this container.<br><br>Declared on the host rather than on the module, because adopting a module is a change to the container: the container is the document being edited, and the module — which may already serve other hosts — is not touched. A module's hosts are derived from this property. |
 
 
 ## ModuleBlueprint
@@ -212,18 +207,19 @@ container's roster rather than reading it from frontmatter.
 A C4 module blueprint: a coherent unit of code with an interface of its
 own, composed into a container.
 
-The components it composes are not listed in frontmatter. Each child is
-declared in this document's Components section — a fenced record block
-when un-promoted, a `[[slug]]` blueprint link once promoted, exactly one
-of the two per ADR-008 — and the index derives the roster from there.
+The components it composes are declared in this document's Components
+section — a fenced record block, a `[[slug]]` blueprint link, or both,
+per ADR-008. The modules it composes are listed in `modules`, as on a
+container. Its own hosts are not declared here; they are derived from
+the `modules` of every container or module that composes it.
 
-**Inherits from:** [DocumentFrontmatter](#documentfrontmatter), [ElementRecord](#elementrecord), [ContractEdges](#contractedges)
+**Inherits from:** [DocumentFrontmatter](#documentfrontmatter), [C4ElementRecord](#c4elementrecord), [ContractEdges](#contractedges)
 
 | Property | Type | Documentation |
 |----------|------|---------------|
 | kind | [BlueprintKind](vocabulary.md#blueprintkind) | Whether this blueprint documents one concrete module or a pattern several modules follow. |
 | visibility | [Visibility](vocabulary.md#visibility) | Whether the module is published to a registry, and therefore whether its package API is bound by a compatibility policy. |
-| contained_by | Array<[Citation](vocabulary.md#citation)>? | The containers, or the modules, that compose this module.<br><br>**The only multi-parent relationship in the vocabulary, and the reason the module level exists.** C4 gives every element exactly one parent — a container belongs to one system, a component to one container — and that edge is recorded by the parent, in the roster section of its body. Module is this framework's addition to C4, and being composed into more than one container is its whole purpose: a unit shared by two containers is a module precisely because it is shared.<br><br>So this is a list, and it is declared here rather than derived from parent rosters, because a shared module's hosts are a fact about the module. It is the direction ADR-009 tells modules to point when it denies them a context view — no single outward-edge list is correct for a module, but the set of hosts is, and this is where it goes.<br><br>Omitted when no host has a blueprint of its own — absence records a documented fact rather than an oversight. |
+| modules | Array<[Citation](vocabulary.md#citation)>? | The modules composed into this one, declared on this host for the same reason a container declares its modules. |
 | source_paths | Array<String>? | Repository-relative source roots, so a reader can find the code. |
 | test_paths | Array<String>? | Repository-relative test roots. |
 | version | String? | The module's semantic version.<br><br>Required in practice when `visibility` is `public`, since a published package API owes its consumers a compatibility promise. |
@@ -239,11 +235,9 @@ Carries no parent property. A component has exactly one parent, as C4
 requires, and its parent's roster section already links it by
 `[[slug]]` under its own heading — so the edge is declared once, in the
 one place a reader meets the child, and the index derives the component's
-parent from that inbound link. `contained_by` is the module level's
-alone, because being composed into more than one container is what
-distinguishes a module from a component.
+parent from that inbound link.
 
-**Inherits from:** [DocumentFrontmatter](#documentfrontmatter), [ElementRecord](#elementrecord), [ContractEdges](#contractedges)
+**Inherits from:** [DocumentFrontmatter](#documentfrontmatter), [C4ElementRecord](#c4elementrecord), [ContractEdges](#contractedges)
 
 | Property | Type | Documentation |
 |----------|------|---------------|

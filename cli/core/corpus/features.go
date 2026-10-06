@@ -202,8 +202,8 @@ func failureOf(reported string, err error) SourceFailure {
 		failure.Errors = parse.Errors
 	} else {
 		failure.Errors = []specmodel.ParseError{{
-			Message:  err.Error(),
-			Position: span.Of(nil, 0, 0),
+			Message: err.Error(),
+			Span:    span.Of(nil, 0, 0),
 		}}
 	}
 	return failure
@@ -240,7 +240,7 @@ func blockFeatures(vocab vocabulary, reported string, src []byte, doc *frontmatt
 		}
 		parsed.Record.Path = reported
 		parsed.Record.DocumentSlug = slug
-		parsed.Record.Source = specmodel.NewFeatureSourceFencedBlock(specmodel.FeatureSourceBlock{Block: block.Outer})
+		parsed.Record.Source = specmodel.NewFeatureSourceFencedBlock(specmodel.FeatureSourceBlock{BlockSpan: block.Outer})
 		features = append(features, parsed)
 	}
 	return features, failures

@@ -25,11 +25,11 @@ const schemaPath = "../schema/spec-model.schema.json"
 func TestNewDeclaresTheSchemaVersion(t *testing.T) {
 	index := specindex.New("agent-plugins")
 
-	if index.SchemaVersion != "1.0" {
-		t.Errorf("SchemaVersion = %q, want %q", index.SchemaVersion, "1.0")
+	if index.SchemaVersion != "2.0" {
+		t.Errorf("SchemaVersion = %q, want %q", index.SchemaVersion, "2.0")
 	}
-	if specindex.SchemaVersion != "1.0" {
-		t.Errorf("specindex.SchemaVersion = %q, want %q", specindex.SchemaVersion, "1.0")
+	if specindex.SchemaVersion != "2.0" {
+		t.Errorf("specindex.SchemaVersion = %q, want %q", specindex.SchemaVersion, "2.0")
 	}
 	if index.Workspace != "agent-plugins" {
 		t.Errorf("Workspace = %q, want %q", index.Workspace, "agent-plugins")
@@ -52,8 +52,8 @@ func TestEmittedIndexCarriesTheSchemaVersion(t *testing.T) {
 	if !ok {
 		t.Fatalf("emitted index has no schema_version property: %s", encoded)
 	}
-	if string(version) != `"1.0"` {
-		t.Errorf("schema_version = %s, want %q", version, "1.0")
+	if string(version) != `"2.0"` {
+		t.Errorf("schema_version = %s, want %q", version, "2.0")
 	}
 }
 
@@ -66,7 +66,7 @@ func TestNewEmitsEmptyCollectionsRatherThanNull(t *testing.T) {
 		t.Fatalf("marshal: %v", err)
 	}
 
-	want := `{"schema_version":"1.0","workspace":"agent-plugins","entries":[],"exclusions":[],"references":[],"features":[]}`
+	want := `{"schema_version":"2.0","workspace":"agent-plugins","entries":[],"exclusions":[],"references":[],"features":[]}`
 	if string(encoded) != want {
 		t.Errorf("emitted index =\n  %s\nwant\n  %s", encoded, want)
 	}
@@ -93,7 +93,7 @@ func TestSchemaRequiresAndPinsTheSchemaVersion(t *testing.T) {
 	if !matcher.MatchString(specindex.SchemaVersion) {
 		t.Errorf("pattern %q rejects the emitted version %q", pattern, specindex.SchemaVersion)
 	}
-	for _, rejected := range []string{"", "1", "1.1", "2.0", "v1.0", "1.0.0"} {
+	for _, rejected := range []string{"", "2", "2.1", "1.0", "v2.0", "2.0.0"} {
 		if matcher.MatchString(rejected) {
 			t.Errorf("pattern %q accepts %q, but only %q is a valid version this sprint",
 				pattern, rejected, specindex.SchemaVersion)
@@ -179,7 +179,7 @@ func TestIndexRecordsALocatedParseFailureAgainstAMember(t *testing.T) {
 		Path: "plugin/skills/groom-beads/references/work-order-template.md",
 		ParseError: &specmodel.ParseError{
 			Message: "mapping values are not allowed in this context",
-			Position: specmodel.Span{
+			Span: specmodel.Span{
 				Offset:      512,
 				Length:      17,
 				StartLine:   28,
@@ -199,9 +199,9 @@ func TestIndexRecordsALocatedParseFailureAgainstAMember(t *testing.T) {
 	if entry.ParseError == nil {
 		t.Fatal("ParseError is nil")
 	}
-	if entry.ParseError.Position.Offset != 512 || entry.ParseError.Position.Length != 17 {
+	if entry.ParseError.Span.Offset != 512 || entry.ParseError.Span.Length != 17 {
 		t.Errorf("Position extent = (%d, %d), want (512, 17)",
-			entry.ParseError.Position.Offset, entry.ParseError.Position.Length)
+			entry.ParseError.Span.Offset, entry.ParseError.Span.Length)
 	}
 
 	assertRoundTrips(t, index)
@@ -269,7 +269,7 @@ func TestACriterionsBodyIsCarriedAsTextRatherThanDecomposed(t *testing.T) {
 	definition := loadDefinition(t, "Criterion")
 
 	want := []string{
-		"id", "text", "negative", "manual", "notation", "content_hash", "position",
+		"id", "text", "negative", "manual", "notation", "content_hash", "span",
 		"name", "description", "rule", "level",
 	}
 	got := propertyNames(t, definition)
@@ -364,8 +364,8 @@ func featureWith(id specmodel.FeatureId, criteria ...specmodel.Criterion) specmo
 		DocumentSlug: specmodel.Slug("frd-gherkin-adoption"),
 		Path:         "specs/features/gherkin-adoption/gherkin-adoption-frd.md",
 		Name:         "Feature and Criterion Records",
-		Source:       specmodel.NewFeatureSourceFencedBlock(specmodel.FeatureSourceBlock{Block: span(400, 900)}),
-		Position:     span(420, 860),
+		Source:       specmodel.NewFeatureSourceFencedBlock(specmodel.FeatureSourceBlock{BlockSpan: span(400, 900)}),
+		Span:         span(420, 860),
 		Criteria:     criteria,
 	}
 }
@@ -380,7 +380,7 @@ func gherkinCriterion(id specmodel.CriterionId, name string) specmodel.Criterion
 		Manual:      false,
 		Notation:    specmodel.CriterionNotationGherkin,
 		ContentHash: specmodel.ContentHash("sha256:" + strings.Repeat("0", 64)),
-		Position:    span(512, 128),
+		Span:        span(512, 128),
 	}
 }
 

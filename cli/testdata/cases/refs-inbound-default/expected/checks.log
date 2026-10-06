@@ -7,7 +7,7 @@ references:
     slug: adr-900-old-approach
     origin:
       kind: body
-    position:
+    span:
       offset: 242
       length: 20
       start_line: 12

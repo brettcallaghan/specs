@@ -94,11 +94,11 @@ what
 		t.Fatalf("reading the fixture back: %v", err)
 	}
 	title := entry.Headings[0]
-	if got, want := string(span.Slice(src, title.Position)), "# Title\n"; got != want {
+	if got, want := string(span.Slice(src, title.Span)), "# Title\n"; got != want {
 		t.Errorf("the first heading's position slices to %q, want %q", got, want)
 	}
 	context := entry.Headings[1]
-	if got, want := string(span.Slice(src, context.Section)), "\nwhy\n\n### Detail\n\ndeeper\n\n"; got != want {
+	if got, want := string(span.Slice(src, context.SectionSpan)), "\nwhy\n\n### Detail\n\ndeeper\n\n"; got != want {
 		t.Errorf("Context's section slices to %q, want %q", got, want)
 	}
 }
@@ -233,8 +233,8 @@ func TestAWarmCorpusAnswersForHeadingsWithoutReadingTheDocument(t *testing.T) {
 	persisted.Entries[0].Headings = append(persisted.Entries[0].Headings, specmodel.Heading{
 		Text:         "Planted in the persisted index and nowhere else",
 		Level:        2,
-		Position:     span.Of(nil, 0, 0),
-		Section:      span.Of(nil, 0, 0),
+		Span:         span.Of(nil, 0, 0),
+		SectionSpan:  span.Of(nil, 0, 0),
 		RecordBlocks: []specmodel.RecordBlock{},
 	})
 	if err := corpus.Write(persisted, dest, nil); err != nil {

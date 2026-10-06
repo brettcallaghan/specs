@@ -117,10 +117,10 @@ func untaggedOrMalformedFindings(vocab vocabulary, rules FeatureTagRules, featur
 		if feature.Record.Id == "" {
 			if candidates := candidateTags(vocab.feature, featurePrefix, feature.Tags); len(candidates) > 0 {
 				findings = append(findings, finding.IdentifierMalformed(
-					feature.Record.Path, feature.Record.Position, candidates[0], rules.FeaturePattern))
+					feature.Record.Path, feature.Record.Span, candidates[0], rules.FeaturePattern))
 			} else {
 				findings = append(findings, finding.FeatureUntagged(
-					feature.Record.Path, feature.Record.Position, rules.FeaturePattern))
+					feature.Record.Path, feature.Record.Span, rules.FeaturePattern))
 			}
 		}
 
@@ -129,16 +129,16 @@ func untaggedOrMalformedFindings(vocab vocabulary, rules FeatureTagRules, featur
 			if criterion.Record.Id != "" {
 				continue
 			}
-			if excluded[criterion.Record.Position] {
+			if excluded[criterion.Record.Span] {
 				continue
 			}
 			candidates := candidateTags(vocab.criterion, criterionPrefix, criterion.Tags)
 			if len(candidates) > 0 {
 				findings = append(findings, finding.IdentifierMalformed(
-					feature.Record.Path, criterion.Record.Position, candidates[0], rules.CriterionPattern))
+					feature.Record.Path, criterion.Record.Span, candidates[0], rules.CriterionPattern))
 			} else {
 				findings = append(findings, finding.CriterionUntagged(
-					feature.Record.Path, criterion.Record.Position, rules.CriterionPattern))
+					feature.Record.Path, criterion.Record.Span, rules.CriterionPattern))
 			}
 		}
 	}
@@ -168,7 +168,7 @@ func multipleFindings(vocab vocabulary, rules FeatureTagRules, features []*gherk
 	for _, feature := range features {
 		if matches := matchedAll(vocab.feature, feature.Tags); len(matches) > 1 {
 			findings = append(findings, finding.IdentifierMultiple(
-				feature.Record.Path, feature.Record.Position, matches, rules.FeaturePattern))
+				feature.Record.Path, feature.Record.Span, matches, rules.FeaturePattern))
 		}
 		for _, criterion := range feature.Criteria {
 			matches := matchedAll(vocab.criterion, criterion.Tags)
@@ -176,7 +176,7 @@ func multipleFindings(vocab vocabulary, rules FeatureTagRules, features []*gherk
 				continue
 			}
 			findings = append(findings, finding.IdentifierMultiple(
-				feature.Record.Path, criterion.Record.Position, matches, rules.CriterionPattern))
+				feature.Record.Path, criterion.Record.Span, matches, rules.CriterionPattern))
 		}
 	}
 	return findings
@@ -201,7 +201,7 @@ func duplicateIdentifierFindings(features []*gherkin.Feature) []specmodel.Findin
 	for _, feature := range features {
 		if feature.Record.Id != "" {
 			featureOccurrences = append(featureOccurrences, identifierOccurrence{
-				id: string(feature.Record.Id), path: feature.Record.Path, position: feature.Record.Position,
+				id: string(feature.Record.Id), path: feature.Record.Path, position: feature.Record.Span,
 			})
 		}
 		for _, criterion := range feature.Criteria {
@@ -209,7 +209,7 @@ func duplicateIdentifierFindings(features []*gherkin.Feature) []specmodel.Findin
 				continue
 			}
 			criterionOccurrences = append(criterionOccurrences, identifierOccurrence{
-				id: string(criterion.Record.Id), path: feature.Record.Path, position: criterion.Record.Position,
+				id: string(criterion.Record.Id), path: feature.Record.Path, position: criterion.Record.Span,
 			})
 		}
 	}
@@ -306,7 +306,7 @@ func codeMismatchFindings(vocab vocabulary, rules FeatureTagRules, features []*g
 				continue
 			}
 			findings = append(findings, finding.CriterionCodeMismatch(
-				feature.Record.Path, criterion.Record.Position,
+				feature.Record.Path, criterion.Record.Span,
 				string(criterion.Record.Id), string(feature.Record.Id), rules.CriterionPattern))
 		}
 	}
@@ -336,11 +336,11 @@ func ownershipFindings(c *Corpus, vocab vocabulary, features []*gherkin.Feature)
 			switch {
 			case tagged == "":
 				findings = append(findings, finding.OwnerMissing(
-					feature.Record.Path, feature.Record.Position, vocab.owner))
+					feature.Record.Path, feature.Record.Span, vocab.owner))
 			default:
 				if _, ok := c.Slug(string(tagged)); !ok {
 					findings = append(findings, finding.OwnerUnresolved(
-						feature.Record.Path, feature.Record.Position, string(tagged)))
+						feature.Record.Path, feature.Record.Span, string(tagged)))
 				}
 			}
 			continue
@@ -348,7 +348,7 @@ func ownershipFindings(c *Corpus, vocab vocabulary, features []*gherkin.Feature)
 
 		if tagged != "" && tagged != feature.Record.DocumentSlug {
 			findings = append(findings, finding.OwnerMismatch(
-				feature.Record.Path, feature.Record.Position,
+				feature.Record.Path, feature.Record.Span,
 				string(tagged), string(feature.Record.DocumentSlug)))
 		}
 	}

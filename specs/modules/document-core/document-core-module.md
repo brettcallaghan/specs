@@ -10,9 +10,6 @@ status: approved
 updated_at: 2026-09-29T00:00:00Z
 kind: standard
 visibility: internal
-contracts_provided: []
-contained_by:
-  - "container-spec-cli"
 source_paths:
   - "cli/core"
 test_paths:
@@ -870,7 +867,7 @@ The vocabulary is:
   (AC-SPEC-001.3, AC-SPEC-001.4).
 - **`Reference`** — one occurrence of one document referencing another:
   the `path` it occurs in, the reference `text` as written, its `slug`
-  and `anchor` halves, its `origin`, its `position` as a `Span`, and its
+  and `anchor` halves, its `origin`, its `span`, and its
   `resolution`. References are their own collection rather than an array
   on each entry, per [[adr-018]]: the attributes of a reference describe
   the edge and not either endpoint, both directions are derived by
@@ -895,7 +892,7 @@ The vocabulary is:
 - **`Feature`** — one feature declared by the corpus: its `id`, the
   `code` that groups it, the `document_slug` of the document that owns
   it, the `path` it is written in, its `name`, its `description`, its
-  `source`, its `position` as a `Span`, and its nested `criteria`
+  `source`, its `span`, and its nested `criteria`
   (AC-GHK-005.1). Features are a top-level collection because a feature
   is addressed by its identifier and not by the document that happens to
   hold it, ordered by the path a feature occurs in and then by its
@@ -909,7 +906,7 @@ The vocabulary is:
   it qualifies rather than held in a sibling collection: its `id`, its
   `name`, its body as `text`, its `description`, the `rule` it sits
   beneath, the `negative` and `manual` qualifiers, its verification
-  `level`, its `notation`, its `content_hash`, and its `position`
+  `level`, its `notation`, its `content_hash`, and its `span`
   (AC-GHK-005.2, AC-GHK-005.4). The body is one string and is not
   decomposed into typed steps and keyed example rows: a criterion is the
   atomic unit here, and a decomposed shape could be filled from one
@@ -917,8 +914,8 @@ The vocabulary is:
   name and text and nothing else, so a criterion that moved has not
   changed (AC-GHK-005.5).
 - **`Heading`** — one heading of a document body: its `text` as
-  authored, its `level` constrained to 1 through 6, the `position` of the
-  heading line itself, the `section` span of the content beneath it, and
+  authored, its `level` constrained to 1 through 6, the `span` of the
+  heading line itself, the `section_span` of the content beneath it, and
   the `record_blocks` attached to it. The section span runs from the end
   of the heading line to the start of the next heading of the same or a
   higher level, and to the end of the document where there is none. No
@@ -929,7 +926,7 @@ The vocabulary is:
   component on demand.
 - **`RecordBlock`** — one fenced block the active profile registers as
   carrying a YAML record about an element declared inside a document
-  ([[adr-008]]): its `tag` and the `position` of the block as written,
+  ([[adr-008]]): its `tag` and the `span` of the block as written,
   fences included, so that a rewrite promoting the element replaces the
   whole construct. The record's content is not carried. Strata has no
   open value type, so an arbitrary YAML mapping has no typed home in the
@@ -947,7 +944,9 @@ The vocabulary is:
   it across the JSON boundary; the Spans component below owns its
   semantics and is the only place spans are computed.
 
-`schema_version` is required and pinned to `1.0` (AC-SPEC-002.2). The
+`schema_version` is required and pinned to `2.0` (AC-SPEC-002.2). 2.0
+renamed every `Span`-typed property to `span` (or `<role>_span`, such as
+`section_span`), a change to what was already there and so a bump. The
 model is additive. The reference collection is the first exercise of that
 rule and it is a deliberate no-bump rather than an oversight —
 `references` is an addition alongside the existing shape,
@@ -999,7 +998,7 @@ returns one `DocumentSummary` per index entry — a projection of
 carrying `path`, `slug`, `type`, `status`, `title` and `description` in
 that order and nothing else (AC-SPECLIST-001.1, AC-SPECLIST-001.2). It
 is a projection and not a new record, so the index shape does not change
-and `schema_version` stays `1.0`.
+and `schema_version` is unaffected.
 
 Summaries come back in the index's own entry order, which the emitter
 already fixes by repository-relative path, so the query sorts nothing
@@ -1522,7 +1521,7 @@ transpiled to JSON Schema, Go and Markdown with every other model, per
 is:
 
 - **`Finding`** — one reported result: the `rule` that raised it, its
-  `severity`, the `path` it is against, its `position` as a `Span`, a
+  `severity`, the `path` it is against, its `span`, a
   `message` stating the violated constraint and the offending value, and
   a `detail`.
 - **`FindingDetail`** — a union discriminated on `kind`, carrying the

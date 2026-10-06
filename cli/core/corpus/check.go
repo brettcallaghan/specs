@@ -141,7 +141,7 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 			// silence; see this function's doc comment.
 			if entry.ParseError != nil {
 				report.Add(finding.FrontmatterParse(
-					entry.Path, entry.ParseError.Position, entry.ParseError.Message))
+					entry.Path, entry.ParseError.Span, entry.ParseError.Message))
 			}
 			continue
 		}
@@ -273,10 +273,10 @@ func unresolvedReferenceFinding(ref specmodel.Reference) (specmodel.Finding, boo
 		return specmodel.Finding{}, false
 	}
 	if nonMember, ok := ref.Resolution.AsNonMember(); ok {
-		return finding.UnresolvedReference(ref.Path, ref.Position, ref.Text, ref.Slug, ref.Origin, &nonMember), true
+		return finding.UnresolvedReference(ref.Path, ref.Span, ref.Text, ref.Slug, ref.Origin, &nonMember), true
 	}
 	if _, ok := ref.Resolution.AsUnresolved(); ok {
-		return finding.UnresolvedReference(ref.Path, ref.Position, ref.Text, ref.Slug, ref.Origin, nil), true
+		return finding.UnresolvedReference(ref.Path, ref.Span, ref.Text, ref.Slug, ref.Origin, nil), true
 	}
 	return specmodel.Finding{}, false
 }
@@ -314,12 +314,12 @@ func anchorFindings(ref specmodel.Reference) []specmodel.Finding {
 		return nil
 	case isAnchorUnresolved(*ref.AnchorResolution):
 		return []specmodel.Finding{
-			finding.UnresolvedAnchor(ref.Path, ref.Position, *ref.Anchor, targetPath),
+			finding.UnresolvedAnchor(ref.Path, ref.Span, *ref.Anchor, targetPath),
 		}
 	}
 	if ambiguous, ok := ref.AnchorResolution.AsAmbiguous(); ok {
 		return []specmodel.Finding{
-			finding.AmbiguousAnchor(ref.Path, ref.Position, *ref.Anchor, targetPath, ambiguous.Matches),
+			finding.AmbiguousAnchor(ref.Path, ref.Span, *ref.Anchor, targetPath, ambiguous.Matches),
 		}
 	}
 	if unverified, ok := ref.AnchorResolution.AsUnverified(); ok {
@@ -329,7 +329,7 @@ func anchorFindings(ref specmodel.Reference) []specmodel.Finding {
 		// [finding.SeverityUnverified], so a caller reads "this was not
 		// checked" rather than "this is fine".
 		return []specmodel.Finding{
-			finding.Unverified(finding.RuleUnresolvedAnchor, ref.Path, ref.Position, unverified.Reason),
+			finding.Unverified(finding.RuleUnresolvedAnchor, ref.Path, ref.Span, unverified.Reason),
 		}
 	}
 	return nil
@@ -380,7 +380,7 @@ func (c *Corpus) retiredTargetFindings() []specmodel.Finding {
 		}
 		successor := c.successorOf(resolved.TargetPath, lifecycle.SuccessorProperty)
 		findings = append(findings, finding.RetiredTarget(
-			ref.Path, ref.Position, string(target.Frontmatter.Slug), successor))
+			ref.Path, ref.Span, string(target.Frontmatter.Slug), successor))
 	}
 	return findings
 }
@@ -447,7 +447,7 @@ func (c *Corpus) pairingIncompleteFindings() []specmodel.Finding {
 				continue
 			}
 			findings = append(findings,
-				finding.IncompletePairing(ref.Path, ref.Position,
+				finding.IncompletePairing(ref.Path, ref.Span,
 					pairing.Property, pairing.Counterpart, ref.Path, resolved.TargetPath),
 				finding.IncompletePairing(resolved.TargetPath, targetDoc.Region.Inner,
 					pairing.Property, pairing.Counterpart, ref.Path, resolved.TargetPath),
@@ -496,7 +496,7 @@ func (c *Corpus) typeMismatchFindings() []specmodel.Finding {
 			continue
 		}
 		findings = append(findings, finding.ReferenceType(
-			ref.Path, ref.Position, origin.Property, ref.Slug, expected, actual))
+			ref.Path, ref.Span, origin.Property, ref.Slug, expected, actual))
 	}
 	return findings
 }

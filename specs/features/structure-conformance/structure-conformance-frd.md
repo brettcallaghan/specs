@@ -7,7 +7,7 @@ description: Checks documents against the structure recorded in the
 slug: frd-spec-structure-conformance
 type: frd
 status: draft
-updated_at: 2026-09-26T00:00:00Z
+updated_at: 2026-10-06T00:00:00Z
 sources:
   - "frd-spec-structure"
 ---
@@ -147,6 +147,13 @@ Feature: Required Sections and Hygiene
     And a record block of that tag holding any valid YAML mapping
     When the CLI checks the document
     Then the CLI reports no record-block finding for it
+
+  @AC-SPECSTR-002.11
+  Scenario: Declarations of one element that disagree are reported
+    Given an element declared by its blueprint and by a record block with the same slug
+    And the two declarations give different values for one of entity_name, description or technology
+    When the CLI checks the corpus
+    Then the CLI reports a finding at the record block, naming the property and the blueprint's value
 ```
 
 *Note:* AC-SPECSTR-002.6 reports the placeholder only at a finished

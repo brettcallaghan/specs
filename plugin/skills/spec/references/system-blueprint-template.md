@@ -7,7 +7,6 @@ slug: system-<system-name>
 type: system-blueprint
 status: draft
 updated_at: <YYYY-MM-DDTHH:MM:SSZ>
-contracts_provided: []               # contract slugs this system provides
 contracts_consumed: []               # contract slugs this system consumes
 ---
 

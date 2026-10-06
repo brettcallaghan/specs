@@ -7,7 +7,7 @@ description: Checks that keep the Mermaid C4 diagrams in architecture
 slug: frd-spec-c4-diagrams
 type: frd
 status: draft
-updated_at: 2026-10-01T00:00:00Z
+updated_at: 2026-10-06T00:00:00Z
 sources: []
 ---
 
@@ -41,7 +41,7 @@ need an element's contract edges. The index does not yet carry either:
 - **Each document's type-specific frontmatter.** AC-SPEC-002.1 of
   [[frd-spec-index]] requires the index to carry every frontmatter
   property a document's type defines; today an entry carries the shared
-  envelope only. Node resolution reads `entity_name` and `contained_by`,
+  envelope only. Node resolution reads `entity_name` and `modules`,
   and the contract checks the contract edges, from the index once it
   does.
 
@@ -70,7 +70,7 @@ need an element's contract edges. The index does not yet carry either:
 - **Drawing document** — the architecture blueprint a C4 diagram sits in.
 - **Scope of a drawing document** — the elements a diagram node in it may
   name: the document's own element; the components its roster declares
-  and the modules that name it in `contained_by`; and every system and
+  and the modules it lists in `modules`; and every system and
   container in the corpus.
 - **Diagram statement** — one line of a C4 diagram. The parser reads:
 
@@ -226,7 +226,7 @@ Feature: Relationship Conformance
   Scenario: Drawings of one relationship that disagree are a warning
     Given one relationship drawn in two diagrams with different technology arguments
     When the user runs specs check
-    Then the report holds a c4/drawing-conflict finding of severity warning at the drawing that sorts second by path and then by position, naming the other
+    Then the report holds a c4/drawing-conflict finding of severity warning at the drawing that sorts second by path and then by span, naming the other
 ```
 
 ### FEAT-C4-DIAG-004: Reserved Relationship Tags

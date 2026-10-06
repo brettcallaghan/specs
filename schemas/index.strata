@@ -55,7 +55,7 @@ struct ParseError {
   message: String
 
   """Where in the document the failure occurred."""
-  position: Span
+  span: Span
 }
 
 """
@@ -86,7 +86,7 @@ vocabulary of its own.
 
 The record's content is not carried. Strata has no open value type, so
 an arbitrary YAML mapping has no typed home in a generated model; a
-command that needs a record reads it back through `position` and
+command that needs a record reads it back through `span` and
 decodes it into its own Go type, and `specs check` validates it. Adding
 the content here later is an additive change.
 """
@@ -107,7 +107,7 @@ struct RecordBlock {
   the content between the fences is decoded on demand, into the Go type
   that command needs, rather than carried here.
   """
-  position: Span
+  span: Span
 }
 
 """
@@ -130,7 +130,7 @@ struct Heading {
   level: UInt in 1 .. 6
 
   """Where the heading line itself is written."""
-  position: Span
+  span: Span
 
   """
   The extent of the content beneath the heading: from the end of the
@@ -140,7 +140,7 @@ struct Heading {
   A heading that stands over nothing carries an empty span rather than an
   absent one, the same way an empty frontmatter block does.
   """
-  section: Span
+  section_span: Span
 
   """
   The record blocks attached to this heading: those whose extent falls
@@ -477,7 +477,7 @@ struct Reference {
   than a bare line number, so a report and a rewrite both address the
   reference itself.
   """
-  position: Span
+  span: Span
 
   """What the reference reached."""
   resolution: ReferenceResolution
@@ -514,11 +514,11 @@ struct SpecIndex {
   """
   The version of this index's schema.
 
-  Pinned to `1.0` for as long as the shape only grows. A change to the
+  Pinned to `2.0` for as long as the shape only grows. A change to the
   shape of what is already here — as opposed to an addition alongside it
   — updates this value and the emitted index in the same change.
   """
-  schema_version: String ~= /^1\.0$/
+  schema_version: String ~= /^2\.0$/
 
   """
   The workspace identifier from configuration, so that indexes emitted

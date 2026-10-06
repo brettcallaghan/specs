@@ -168,8 +168,8 @@ func TestEveryFindingIsSelfContained(t *testing.T) {
 			name: "ambiguous anchor",
 			finding: finding.AmbiguousAnchor("specs/adrs/adr-011.md", position, "References", "module-document-core.md",
 				[]specmodel.AnchorMatch{
-					{Text: "References", Position: position},
-					{Text: "References", Position: position},
+					{Text: "References", Span: position},
+					{Text: "References", Span: position},
 				}),
 			rule:     finding.RuleAmbiguousAnchor,
 			contains: []string{"References", "module-document-core.md", "2"},
@@ -341,7 +341,7 @@ func TestEveryFindingIsSelfContained(t *testing.T) {
 				if !ok {
 					t.Fatalf("detail is not a duplicate identifier: %#v", d.Value)
 				}
-				if v.Identifier != "AC-CHK-001.1" || v.OtherPath != "specs/adrs/other.md" || v.OtherPosition != position {
+				if v.Identifier != "AC-CHK-001.1" || v.OtherPath != "specs/adrs/other.md" || v.OtherSpan != position {
 					t.Errorf("detail = %#v, want the identifier and the other occurrence's location", v)
 				}
 			},
@@ -487,8 +487,8 @@ func TestEveryFindingIsSelfContained(t *testing.T) {
 			if f.Path != "specs/adrs/adr-011.md" {
 				t.Errorf("Path = %q, want the file the finding is against", f.Path)
 			}
-			if f.Position != position {
-				t.Errorf("Position = %#v, want %#v", f.Position, position)
+			if f.Span != position {
+				t.Errorf("Position = %#v, want %#v", f.Span, position)
 			}
 			if f.Message == "" {
 				t.Error("Message is empty; a finding with no message is not self-contained")
@@ -669,8 +669,8 @@ func TestCitationFindingsNameTheCitingDocumentSlugAndPosition(t *testing.T) {
 			if c.finding.Path != "specs/adrs/adr-011.md" {
 				t.Errorf("Path = %q, want the citing document", c.finding.Path)
 			}
-			if c.finding.Position != position {
-				t.Errorf("Position = %#v, want the citation's position", c.finding.Position)
+			if c.finding.Span != position {
+				t.Errorf("Position = %#v, want the citation's position", c.finding.Span)
 			}
 			if !strings.Contains(c.finding.Message, c.slug) {
 				t.Errorf("Message %q does not name the slug %q", c.finding.Message, c.slug)
@@ -721,7 +721,7 @@ func TestAFindingSerialisesEveryPropertyItCarries(t *testing.T) {
 	if err := json.Unmarshal(encoded, &decoded); err != nil {
 		t.Fatalf("unmarshal: %v", err)
 	}
-	for _, property := range []string{"rule", "severity", "path", "position", "message", "detail"} {
+	for _, property := range []string{"rule", "severity", "path", "span", "message", "detail"} {
 		if _, ok := decoded[property]; !ok {
 			t.Errorf("emitted finding has no %q property: %s", property, encoded)
 		}
@@ -972,7 +972,7 @@ func TestOutputOrderIsDeterministic(t *testing.T) {
 			t.Errorf("findings[%d].Path = %q, want %q", i, model.Findings[i].Path, want)
 		}
 	}
-	if model.Findings[0].Position.Offset != early.Offset {
+	if model.Findings[0].Span.Offset != early.Offset {
 		t.Error("findings within one file are not ordered by position")
 	}
 	if model.Checks[0].Rule != finding.RuleDuplicateSlug {
@@ -991,7 +991,7 @@ func TestTheGeneratedSchemaDeclaresTheFindingModel(t *testing.T) {
 	bundle := loadBundle(t)
 
 	base := definition(t, bundle, "Finding")
-	for _, property := range []string{"rule", "severity", "path", "position", "message", "detail"} {
+	for _, property := range []string{"rule", "severity", "path", "span", "message", "detail"} {
 		if !isRequired(base, property) {
 			t.Errorf("Finding does not require %q", property)
 		}
@@ -1137,7 +1137,7 @@ func TestUnresolvedReferenceMessageVariesByOriginAndNonMember(t *testing.T) {
 	parseFailed := finding.UnresolvedReference("specs/adrs/adr-011.md", position, "broken", "broken", bodyOrigin,
 		&specmodel.ReferenceNonMember{
 			Path:       "specs/notes/broken.md",
-			ParseError: &specmodel.ParseError{Message: "unterminated string", Position: position},
+			ParseError: &specmodel.ParseError{Message: "unterminated string", Span: position},
 		})
 	if want := fmt.Sprintf("line %d", position.StartLine); !strings.Contains(parseFailed.Message, want) {
 		t.Errorf("parse-failure message = %q, want it to cite the failure's line (%s)", parseFailed.Message, want)

@@ -10,8 +10,10 @@ updated_at: <YYYY-MM-DDTHH:MM:SSZ>
 system: system-<system-name>         # the system this container belongs to;
                                      # omit WHEN the container is standalone
                                      # (no documented system) — see below
-contracts_provided: []               # contract slugs this container provides
 contracts_consumed: []               # contract slugs this container consumes
+modules: []                          # module slugs composed into this
+                                     # container; each module's hosts are
+                                     # derived from these lists
 ---
 
 <!--
@@ -142,8 +144,7 @@ its components.
 Each declaration captures: the name (canonical — used verbatim on
 diagrams), its technology or kind, a brief description that doubles as
 the diagram's description text, and a detailed description. A composed
-unit is in exactly ONE of two states — a record block XOR a blueprint
-link, never both:
+unit is declared by a record block, by its own blueprint, or both:
   - un-promoted (a simple internal component): the follow-on sentence(s)
     here ARE the detailed description, AND the declaration carries a
     machine-readable record block holding entity_name, slug and
@@ -157,7 +158,10 @@ link, never both:
         ```
 
   - promoted (warrants its own blueprint): link its [[component-<name>]] or
-    [[module-<name>]] blueprint and do NOT restate its internals. For a
+    [[module-<name>]] blueprint and do NOT restate its internals. The
+    record block MAY stay; where it does, it SHALL agree with the
+    blueprint's frontmatter. A module is listed in this container's
+    `modules` frontmatter as well. For a
     module, name its visibility tier (internal or public) — it governs
     the change rules for work touching it.
 

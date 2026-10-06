@@ -7,7 +7,7 @@ description: A subcommand that emits the corpus's C4 model — its systems,
 slug: frd-spec-c4
 type: frd
 status: draft
-updated_at: 2026-10-01T00:00:00Z
+updated_at: 2026-10-06T00:00:00Z
 sources: []
 ---
 
@@ -56,16 +56,16 @@ prerequisites rather than part of it:
 - **Each document's type-specific frontmatter.** AC-SPEC-002.1 of
   [[frd-spec-index]] requires the index to carry every frontmatter
   property a document's type defines, and this feature reads `system`,
-  `contained_by`, `entity_name`, `kind`, `visibility` and the contract
-  edges from there. Today an entry carries the shared envelope only —
-  the entry for [[container-spec-cli]] omits the `contracts_provided`
-  its file declares — which is a conformance gap in the index, not a
-  property this feature decodes for itself.
+  `modules`, `entity_name`, `kind`, `visibility`, `provider` and
+  `contracts_consumed` from there. Today an entry carries the shared
+  envelope only — the entry for [[container-spec-cli]] omits the
+  `modules` its file declares — which is a conformance gap in the index,
+  not a property this feature decodes for itself.
 
 ### Out of scope
 
 - **People and external systems** as elements. An edge touching one is
-  reported as unplaced.
+  reported as an excluded relationship.
 - **Dynamic and deployment diagrams.** They contribute nothing to the
   model.
 - **Contract tags in the reference graph.** A `contract:` tag is not a
@@ -87,7 +87,10 @@ are defined there and used here unchanged. In addition:
 - **Relationship** — a dependency edge between two elements, read from a
   relationship statement in a C4 diagram: the source depends on the
   target. It is identified by its source, target and description.
-- **Unplaced edge** — a relationship statement the model does not admit.
+- **Excluded relationship** — a relationship statement the model does not
+  admit, recorded with the reason it was excluded.
+- **Orphaned element** — a container whose blueprint names no system, or
+  a component that no container or module declares in its roster.
 
 ## Requirements
 
@@ -104,10 +107,15 @@ Feature: Element Tree
   So that I can see what the system is made of without opening each blueprint
 
   Containment follows the edges the corpus already declares: a container's
-  system property, a module's contained_by list, and a component's place in
-  its parent's roster section. Nothing is inferred from directory layout.
-  A module may have several hosts, so modules form their own collection and
-  each host lists them by slug rather than nesting a copy.
+  system property, a host's modules list, and a component's place in its
+  parent's roster section. Nothing is inferred from directory layout. A
+  module may have several hosts, so modules form their own collection,
+  each host lists them by slug, and each module's contained_by is derived
+  from those lists.
+
+  An element is one slug, however many documents declare it. Its
+  properties come from its blueprint where it has one, and otherwise from
+  the declaration whose path sorts first.
 
   @AC-C4-001.1
   Scenario: Containers nest under the system they declare
@@ -116,10 +124,10 @@ Feature: Element Tree
     Then that container appears among the containers of that system
 
   @AC-C4-001.2
-  Scenario: A container that declares no system is standalone
+  Scenario: A container that declares no system is orphaned
     Given a container blueprint with no system property
     When the user runs specs c4
-    Then that container appears in the model's standalone containers
+    Then that container appears in the model's orphaned containers
 
   @AC-C4-001.3
   Scenario: Components nest under the parent whose roster declares them
@@ -128,27 +136,28 @@ Feature: Element Tree
     Then that component appears among the components of that container or module
 
   @AC-C4-001.4
-  Scenario: A module appears once and is listed by each host
-    Given a module blueprint whose contained_by names two containers
+  Scenario: A module appears once and its hosts are derived
+    Given two container blueprints whose modules each name the same module
     When the user runs specs c4
     Then the module appears exactly once in the model's modules
     And each of the two containers lists the module's slug among its modules
+    And the module's contained_by names both containers
 
   @AC-C4-001.5
-  Scenario: A promoted element records the blueprint that declares it
-    Given an element with its own architecture blueprint
+  Scenario: An element lists every declaration
+    Given an element declared by its own blueprint and by a record block in its parent's roster
     When the user runs specs c4
-    Then the element's declaration kind is blueprint and carries the blueprint's path and status
+    Then the element's declarations list both, each with its document's path and the span of the frontmatter or the record block
 
   @AC-C4-001.6
-  Scenario: An unpromoted element records the record block that declares it
-    Given an element declared by a record block in a roster section
+  Scenario: An element with a blueprint takes its properties from the blueprint
+    Given an element whose blueprint and record block disagree on its description
     When the user runs specs c4
-    Then the element's declaration kind is record-block and carries the parent document's path and the block's span
+    Then the element carries the blueprint's description
 
   @AC-C4-001.7
   Scenario: Element properties are copied from the declaration
-    Given an element whose declaration sets entity_name, description, technology, contracts_provided and contracts_consumed
+    Given an element whose declaration sets entity_name, description, technology and contracts_consumed
     When the user runs specs c4
     Then the element in the model carries each of those values unchanged
 
@@ -159,10 +168,22 @@ Feature: Element Tree
     Then the model contains no element for that node
 
   @AC-C4-001.9
-  Scenario: A slug declared twice yields one element
-    Given two declarations of the same element slug, in two documents
+  Scenario: Record blocks in two documents yield one element
+    Given two record blocks declaring the same element slug, in two documents, and no blueprint for it
     When the user runs specs c4
-    Then the model holds one element with that slug, taken from the declaration whose path sorts first
+    Then the model holds one element with that slug, listing both declarations and taking its properties from the one whose path sorts first
+
+  @AC-C4-001.10
+  Scenario: Provided contracts are derived from each contract's provider
+    Given a contract whose provider names a container
+    When the user runs specs c4
+    Then the container's contracts_provided lists that contract
+
+  @AC-C4-001.11
+  Scenario: A component no roster declares is orphaned
+    Given a component blueprint that no container or module declares in its roster
+    When the user runs specs c4
+    Then that component appears in the model's orphaned components
 ```
 
 ### FEAT-C4-002: Relationships From Blueprint Diagrams
@@ -217,7 +238,7 @@ Feature: Relationships From Blueprint Diagrams
 
   @AC-C4-002.5
   Scenario: A relationship drawn only in a Context view is admitted
-    Given a standalone container whose Context view draws a relationship to another declared container
+    Given an orphaned container whose Context view draws a relationship to another declared container
     When the user runs specs c4
     Then the model holds that relationship
 
@@ -240,14 +261,14 @@ Feature: Relationships From Blueprint Diagrams
   Scenario: Drawings of one relationship that disagree keep the first
     Given one relationship drawn twice with different technology arguments
     When the user runs specs c4
-    Then the relationship carries the technology of the drawing that sorts first by path and then by position
+    Then the relationship carries the technology of the drawing that sorts first by path and then by span
     And both drawings are listed in its drawn_in
 
   @AC-C4-002.10
-  Scenario Outline: Edges the model does not admit are unplaced
+  Scenario Outline: Edges the model does not admit are excluded
     Given a relationship statement where "<condition>"
     When the user runs specs c4
-    Then the model's unplaced list holds that statement with reason "<reason>", its path and its span
+    Then the model's excluded relationships hold that statement with reason "<reason>", its path and its span
     And the model's relationships do not include it
 
     Examples:
@@ -261,13 +282,13 @@ Feature: Relationships From Blueprint Diagrams
   Scenario: Dynamic and deployment diagrams contribute no relationships
     Given a C4Dynamic or C4Deployment diagram containing Rel statements
     When the user runs specs c4
-    Then no relationship and no unplaced entry is recorded from that diagram
+    Then no relationship and no excluded relationship is recorded from that diagram
 
   @AC-C4-002.12 @negative
   Scenario: Diagrams outside architecture blueprints contribute no relationships
     Given a C4 diagram in a feature blueprint
     When the user runs specs c4
-    Then no relationship and no unplaced entry is recorded from that diagram
+    Then no relationship and no excluded relationship is recorded from that diagram
 ```
 
 ### FEAT-C4-003: Reserved Relationship Tags
@@ -306,14 +327,14 @@ Feature: Reserved Relationship Tags
   @AC-C4-003.3
   Scenario: An untagged relationship derives its contract when exactly one fits
     Given a relationship with no contract tag
-    And exactly one contract appears in both the source's contracts_consumed and the target's contracts_provided
+    And exactly one contract in the source's contracts_consumed names the target as its provider
     When the user runs specs c4
     Then the relationship's contract is that contract's slug with source derived
 
   @AC-C4-003.4 @negative
   Scenario: No contract is derived when more than one fits
     Given a relationship with no contract tag
-    And two contracts appear in both the source's contracts_consumed and the target's contracts_provided
+    And two contracts in the source's contracts_consumed name the target as their provider
     When the user runs specs c4
     Then the relationship carries no contract
 
@@ -345,7 +366,8 @@ Feature: Output
   JSON. There is no other format flag.
 
   Under --root the model keeps its shape. The root's ancestors appear only
-  as the path down to it, holding no other children, and an unplaced entry
+  as the path down to it, holding no other children, and an excluded
+  relationship
   is kept when its statement sits in a document inside the subtree.
 
   @AC-C4-004.1
@@ -389,8 +411,8 @@ Feature: Output
     Then the command names the slug on standard error and exits non-zero
 
   @AC-C4-004.7
-  Scenario: Unplaced edges do not fail the command
-    Given a corpus whose diagrams hold unplaced edges
+  Scenario: Excluded relationships do not fail the command
+    Given a corpus whose diagrams hold excluded relationships
     When the user runs specs c4
     Then the command exits with status zero
 ```
