@@ -113,117 +113,69 @@ if command -v bd >/dev/null 2>&1; then
   export BD_DISABLE_TELEMETRY=1
   [ -n "${CLAUDE_ENV_FILE:-}" ] && echo 'export BD_DISABLE_TELEMETRY=1' >> "$CLAUDE_ENV_FILE"
 
-  # --- 2a. Write access to refs/dolt/data -----------------------------------
+  # --- 2a. The DoltHub credential ---------------------------------------------
   #
-  # The tracker's source of truth is the Dolt remote (`refs/dolt/data` on
-  # origin), not a committed JSONL export. That makes WRITE access to that ref
-  # a hard precondition for this repository, not a nice-to-have: a session that
-  # can read but not write can close a bead and lose it on container reclaim.
+  # The tracker lives on DoltHub (sync.remote in .beads/config.yaml). DoltHub
+  # authenticates with a Dolt credential — an ed25519 key in JWK form under
+  # ~/.dolt/creds/, selected by `user.creds` in ~/.dolt/config_global.json —
+  # which the embedded Dolt inside bd reads. The environment supplies it as
+  # DOLT_CREDS_JWK, the contents of the .jwk file `dolt creds new` writes.
   #
-  # There is deliberately NO JSONL fallback. Carrying both models means two
-  # code paths, a rule for which one wins, and every reader having to ask which
-  # mode it is in — more complexity than either model alone, and it preserves
-  # exactly the machinery agent-plugins-92q.31 retired. An environment that
-  # cannot reach the tracker is broken and says so.
+  # Installed here without the dolt CLI, which is not on the image. The file
+  # must be named by the key id, which Dolt derives as base32 (alphabet
+  # 0-9a-v, unpadded) of SHA-512/224 over the key's `d` member — Dolt stores
+  # the PUBLIC key in `d` (libraries/doltcore/creds: PubKeyToKID,
+  # JWKCredsDeserialize). A wrong name is silent until the first push.
   #
-  # Two settings make it work, and both are global git config rather than
-  # per-command environment juggling, because `bd dolt push` shells out to git
-  # from wherever the agent happens to run it:
-  #
-  #   1. A credential helper that reads the PAT from the environment at call
-  #      time. The token is never written to disk. It is registered under a
-  #      URL-scoped key, never the bare `credential.helper` — see below.
-  #   2. Proxy bypass, scoped to THIS repository's origin. The egress proxy
-  #      REPLACES the Authorization header with a brokered GitHub App
-  #      installation token, which is scoped to refs/heads and returns 403 on
-  #      refs/dolt/*. Proof it is the proxy and not GitHub: a push with a
-  #      deliberately INVALID token succeeded, which is only possible if the
-  #      proxy substituted its own credential. Direct egress to github.com is
-  #      permitted, so bypassing the proxy lets the real PAT through.
-  #
-  #      SCOPE IT THE SAME WAY AS THE HELPER — never `http.https://github.com/`.
-  #      A host-wide bypass reaches every OTHER github.com remote in the
-  #      container while the helper beside it does not, so those remotes lose
-  #      the proxy's brokered credential and gain nothing in its place. In a
-  #      session with a second repository attached this breaks both directions:
-  #      a push to the other repo dies with "could not read Username for
-  #      'https://github.com'", and a push to THIS one starts using the PAT,
-  #      which lacks `workflow` scope and is refused on any commit touching
-  #      .github/workflows/. Both were measured in a session holding
-  #      agent-plugins and swarm.
-  #
-  # The token name is this repository's environment contract, not any skill's:
-  # a skill needing a durable tracker requires only "write access to
-  # refs/dolt/data" and never names a credential. See docs/session-bootstrap.md.
+  # There is deliberately NO JSONL fallback: a session that cannot reach the
+  # tracker is broken and says so.
   BB_DOLT_FATAL=""
-  # The helper body is guarded exactly like STRATA_CRED_HELPER further down.
-  # `[ "$1" = get ]` because git invokes a helper for get, store and erase, and
-  # only get wants an answer; the token test because an unset token would
-  # otherwise emit `password=` and authenticate as the empty string instead of
-  # declining. One printf rather than two echos: echo with a backslash in the
-  # value is implementation-defined in sh.
-  DOLT_CRED_HELPER='!f() { [ "$1" = get ] || exit 0; [ -n "${AGENT_PLUGINS_ACCESS_TOKEN:-}" ] || exit 0; printf "username=x-access-token\npassword=%s\n" "$AGENT_PLUGINS_ACCESS_TOKEN"; }; f'
-
-  if [ -z "${AGENT_PLUGINS_ACCESS_TOKEN:-}" ]; then
-    BB_DOLT_FATAL="AGENT_PLUGINS_ACCESS_TOKEN is not set in this container."
+  if [ -z "${DOLT_CREDS_JWK:-}" ]; then
+    BB_DOLT_FATAL="DOLT_CREDS_JWK is not set in this container."
+  elif ! DOLT_CREDS_JWK="$DOLT_CREDS_JWK" python3 -I - <<'PY' 2>/dev/null
+import base64, hashlib, json, os
+jwk = json.loads(os.environ["DOLT_CREDS_JWK"])
+pub = base64.urlsafe_b64decode(jwk["d"] + "=" * (-len(jwk["d"]) % 4))
+kid = base64.b32hexencode(hashlib.new("sha512_224", pub).digest()).decode().lower().rstrip("=")
+root = os.path.join(os.path.expanduser("~"), ".dolt")
+os.makedirs(os.path.join(root, "creds"), mode=0o700, exist_ok=True)
+path = os.path.join(root, "creds", kid + ".jwk")
+fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+with os.fdopen(fd, "w") as f:
+    json.dump(jwk, f)
+cfg_path = os.path.join(root, "config_global.json")
+try:
+    cfg = json.load(open(cfg_path))
+except (OSError, ValueError):
+    cfg = {}
+cfg["user.creds"] = kid
+cfg["metrics.disabled"] = "true"
+json.dump(cfg, open(cfg_path, "w"))
+PY
+  then
+    BB_DOLT_FATAL="DOLT_CREDS_JWK is set but could not be installed — it must be the JSON content of a .jwk file from \`dolt creds new\`."
   else
-    # Scoped to origin's URL, NEVER the bare `credential.helper` key.
-    # credential.helper is multi-valued and git tries global values before
-    # local ones, so a bare global helper wins over any per-clone helper and
-    # hands this repository's PAT to a clone of an unrelated private repo —
-    # which GitHub rejects with a 403 "Write access to repository not granted",
-    # a write-shaped message for a read that was never permitted.
-    #
-    # Registered under both the suffixless and the `.git` form, because git
-    # matches the config key's path against the request's path EXACTLY and only
-    # the matching form answers — measured against a clone whose origin carries
-    # `.git`: with only the suffixless key registered the push died with "could
-    # not read Username for 'https://github.com'", and with only the `.git` key
-    # it succeeded. Whether origin carries the suffix varies by how the clone
-    # was made, so register both rather than guess. The bare key is unset, not
-    # merely shadowed — leaving it in place would keep answering for every
-    # host, which is the defect.
-    _origin="$(git remote get-url origin 2>/dev/null || true)"
-    _origin="${_origin%.git}"
-    case "$_origin" in
-      https://*) _origin_scoped=1 ;;
-      *)         _origin_scoped=0 ;;
-    esac
-
-    if [ "$_origin_scoped" = 0 ]; then
-      BB_DOLT_FATAL="origin is '${_origin:-<none>}', not an https:// URL — an https credential helper cannot be scoped to it, and a bare one would capture every other host."
-    else
-      git config --global --unset-all credential.helper 2>/dev/null || true
-      git config --global "credential.${_origin}.helper" "$DOLT_CRED_HELPER"
-      git config --global "credential.${_origin}.git.helper" "$DOLT_CRED_HELPER"
-
-      # Both URL forms, for the reason the helper registers both: git matches
-      # an http.<url>.* key's path against the request's path, and only the
-      # matching form answers.
-      #
-      # The host-wide key is UNSET rather than merely shadowed. An earlier
-      # revision of this hook set it, so a container whose git config it
-      # already touched still carries it — and a bypass left in place keeps
-      # answering for every github.com remote, which is the defect.
-      git config --global --unset-all 'http.https://github.com/.proxy' 2>/dev/null || true
-      git config --global "http.${_origin}.proxy" ''
-      git config --global "http.${_origin}.git.proxy" ''
-
-      # Verify rather than assume — a mis-scoped helper breaks nothing in the
-      # session that writes it and everything in the next one. Pushing HEAD
-      # (already on the remote in any normal clone) to a scratch ref under
-      # refs/dolt/ transfers no objects and exercises the exact permission that
-      # matters, then removes it.
-      _probe="refs/dolt/write-probe-$$"
-      if git push -q origin "HEAD:$_probe" >/dev/null 2>&1; then
-        git push -q origin --delete "$_probe" >/dev/null 2>&1 || \
-          log "note: left a stray probe ref $_probe on origin — delete it by hand"
-        log "verified write access to refs/dolt/* (probe pushed and removed)"
-      else
-        BB_DOLT_FATAL="a probe push to refs/dolt/* was rejected."
-      fi
-    fi
+    log "DoltHub credential installed"
   fi
+
+  # Never let a push fall back to adopting the git origin as a Dolt remote:
+  # the tracker's old home there is retired.
+  export BD_NO_REMOTE_ADOPT=1
+  [ -n "${CLAUDE_ENV_FILE:-}" ] && echo 'export BD_NO_REMOTE_ADOPT=1' >> "$CLAUDE_ENV_FILE"
+
+  # A container reused from before the move may still carry the GitHub proxy
+  # bypass and PAT helper the old refs/dolt/data tracker needed. Left in place
+  # they keep routing this repository's pushes around the proxy with a PAT that
+  # lacks `workflow` scope, so remove them.
+  _origin="$(git remote get-url origin 2>/dev/null || true)"
+  _origin="${_origin%.git}"
+  case "$_origin" in
+    https://*)
+      for _k in "http.${_origin}.proxy" "http.${_origin}.git.proxy" \
+                "credential.${_origin}.helper" "credential.${_origin}.git.helper"; do
+        git config --global --unset-all "$_k" 2>/dev/null || true
+      done ;;
+  esac
 
   # --- 2b. The database name --------------------------------------------------
   #
@@ -275,7 +227,7 @@ if command -v bd >/dev/null 2>&1; then
     _n="$(_count)"; [ -n "$_n" ] || _n=0
 
     if [ "$_n" -eq 0 ]; then
-      log "tracker is empty ($_n issues) — bootstrapping from origin refs/dolt/data"
+      log "tracker is empty ($_n issues) — bootstrapping from DoltHub"
       # A stale empty database short-circuits bootstrap's own probe. Move it
       # aside rather than deleting it: if the remote turns out to be the empty
       # one, the copy is the only remaining evidence.
@@ -287,7 +239,7 @@ if command -v bd >/dev/null 2>&1; then
       _bootstrap_out="$(BD_NON_INTERACTIVE=1 bd bootstrap --yes 2>&1)"
       _n="$(_count)"; [ -n "$_n" ] || _n=0
       if [ "$_n" -gt 0 ]; then
-        log "beads DB bootstrapped from origin refs/dolt/data ($_n issues)"
+        log "beads DB bootstrapped from DoltHub ($_n issues)"
       else
         BB_DOLT_FATAL="bootstrap left the tracker empty ($_n issues); it may have exited 0 anyway. Output: $(printf '%s' "$_bootstrap_out" | tr '\n' ' ' | cut -c1-300)"
       fi
@@ -297,34 +249,26 @@ if command -v bd >/dev/null 2>&1; then
       # costs ~2s.
       if timeout 300 bd dolt pull >/dev/null 2>&1; then
         _n="$(_count)"; [ -n "$_n" ] || _n=0
-        log "tracker pulled from origin refs/dolt/data ($_n issues)"
+        log "tracker pulled from DoltHub ($_n issues)"
       else
-        log "WARNING: \`bd dolt pull\` failed — the tracker may be behind origin"
+        log "WARNING: \`bd dolt pull\` failed — the tracker may be behind DoltHub"
       fi
     fi
   fi
 
   # A database whose configured prefix disagrees with the ids it holds mints a
-  # SECOND id namespace silently — measured: a bootstrapped clone carrying 146
-  # `agent-plugins-*` issues minted `spec-driven-dev-w0n`, because the prefix
-  # lives in the database config and travels with the remote. Repaired at the
-  # source and pushed, so this is a regression guard rather than a fix-up: it
-  # should never fire. `--repair` rewrites no ids when they are already correct.
+  # SECOND id namespace silently, because the prefix lives in the database and
+  # travels with the remote. Warn only: `bd rename-prefix --repair` rewrites
+  # ids to random hashes when it misdetects the prefix, which is worse than the
+  # stray namespace it would fix.
   if [ -z "$BB_DOLT_FATAL" ] && [ -d .beads/embeddeddolt ]; then
-    # Read the prefix positively rather than testing for its absence: under
-    # `pipefail` a transient `bd config list` failure is indistinguishable from
-    # "the prefix is wrong", and acting on that ran a repair that then errored
-    # with "new prefix is the same as current prefix" — two alarming warnings
-    # about a database that was correct all along. Only act on a value actually
-    # read.
+    # Read the prefix positively: under `pipefail` a transient `bd config list`
+    # failure is indistinguishable from "the prefix is wrong".
     _prefix="$(bd config list 2>/dev/null | sed -n 's/^[[:space:]]*issue_prefix = //p' | head -1)" || _prefix=""
     if [ -z "$_prefix" ]; then
       log "note: could not read the tracker prefix — skipping the namespace guard"
-    elif [ "$_prefix" != "agent-plugins" ]; then
-      log "WARNING: tracker prefix is '$_prefix', not 'agent-plugins' — repairing"
-      bd rename-prefix agent-plugins --repair >/dev/null 2>&1 \
-        && log "repaired tracker prefix -> agent-plugins" \
-        || log "WARNING: prefix repair failed — new beads may mint a second namespace"
+    elif [ "$_prefix" != "specs" ]; then
+      log "WARNING: tracker prefix is '$_prefix', not 'specs' — new beads will mint a second namespace"
     fi
   fi
 fi
@@ -377,8 +321,8 @@ if [ "${SWARM_SKIP:-}" != "1" ]; then
     break
   done
 
-  # brettcallaghan/swarm is private. The token that already exists in this
-  # environment for the Dolt remote — AGENT_PLUGINS_ACCESS_TOKEN — reads it
+  # brettcallaghan/swarm is private. AGENT_PLUGINS_ACCESS_TOKEN, a GitHub PAT
+  # the environment provides, reads it
   # (SWARM_ACCESS_TOKEN overrides, for an environment that scopes them apart).
   # Handed to git through a credential helper that reads the variable at call
   # time, never written into the remote URL: a URL carrying the token persists
@@ -388,8 +332,8 @@ if [ "${SWARM_SKIP:-}" != "1" ]; then
   # helper would also answer for this repository's own pushes.
   #
   # No proxy bypass: the clone succeeds through the egress proxy with this
-  # token. Do not add one — the bypass this repo configures is scoped to
-  # origin's URL on purpose (see AGENTS.md).
+  # token. Do not add one — a github.com bypass strips the proxy's brokered
+  # credential from every other github.com remote in the container.
   SWARM_CRED_HELPER='!f() { [ "$1" = get ] || exit 0; t="${SWARM_ACCESS_TOKEN:-${AGENT_PLUGINS_ACCESS_TOKEN:-}}"; [ -n "$t" ] || exit 0; printf "username=x-access-token\npassword=%s\n" "$t"; }; f'
 
   if [ -z "$swarm_src" ]; then
@@ -540,19 +484,17 @@ if [ -n "${BB_DOLT_FATAL:-}" ]; then
   log ""
   log "ERROR: the beads tracker is not usable in this session — $BB_DOLT_FATAL"
   log ""
-  log "  This repository's tracker is the Dolt remote (refs/dolt/data on"
-  log "  origin). There is no JSONL fallback by design. Do not create or close"
-  log "  beads in this session: the work would be lost when the container is"
-  log "  reclaimed."
+  log "  This repository's tracker is the Dolt database on DoltHub"
+  log "  (bcallaghan/beads). There is no JSONL fallback by design. Do not"
+  log "  create or close beads in this session: the work would be lost when"
+  log "  the container is reclaimed."
   log ""
-  log "  If the cause above is a credentials or push failure, the environment"
-  log "  must provide BOTH:"
-  log "    1. AGENT_PLUGINS_ACCESS_TOKEN — a GitHub PAT with push access to"
-  log "       this repository, set at container creation (claude.ai/code ->"
-  log "       the environment's variables)."
-  log "    2. Direct, unproxied egress to github.com. The egress proxy"
-  log "       substitutes a brokered token scoped to refs/heads, which 403s on"
-  log "       refs/dolt/*."
+  log "  The environment must provide BOTH:"
+  log "    1. DOLT_CREDS_JWK — the contents of a DoltHub credential's .jwk"
+  log "       file, set at container creation (claude.ai/code -> the"
+  log "       environment's variables)."
+  log "    2. Network access to doltremoteapi.dolthub.com and DoltHub's chunk"
+  log "       storage hosts (see docs/session-bootstrap.md for the list)."
   log ""
   log "  See docs/session-bootstrap.md."
   log ""

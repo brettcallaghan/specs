@@ -40,50 +40,55 @@ run by hand it completes. It is simply never invoked.
 `strata` has the same exposure through its own
 `scripts/setup-cloud-env.sh`.
 
-## The cloud environment contract: write access to `refs/dolt/data`
+## The cloud environment contract: access to the DoltHub tracker
 
 **This section applies to Claude's cloud environments only.** A local
-developer already has git credentials for this repository, so `bd dolt push`
-works with no token and no proxy bypass; skip to [the setup
-script](#the-fix-an-environment-setup-script). In a cloud container neither is
-true, and neither can be fixed from inside a running session — read this first.
+developer runs `dolt login` (or `dolt creds import`) once and is done; skip to
+[the setup script](#the-fix-an-environment-setup-script).
 
-This repository's issue tracker is a Dolt database synced to `refs/dolt/data`
-on the GitHub remote. `.beads/*.jsonl` is untracked and is **not** a fallback:
-there deliberately isn't one, because carrying both models means two code
-paths and a rule for which wins. A session that can read but not write the
-tracker can close a bead and lose it when the container is reclaimed, so
-`.claude/hooks/session-start.sh` **verifies** write access with a real probe
-push and **exits 1** when it cannot.
+This repository's issue tracker is a Dolt database on DoltHub,
+[`bcallaghan/beads`](https://www.dolthub.com/repositories/bcallaghan/beads),
+with the `specs-` prefix. `.beads/config.yaml`'s `sync.remote` points at it.
+`.beads/*.jsonl` is untracked and is **not** a fallback: a session that can
+read but not write the tracker can close a bead and lose it when the container
+is reclaimed, so `.claude/hooks/session-start.sh` **exits 1** when the tracker
+cannot be set up.
 
 A cloud environment must supply two things:
 
-1. **`AGENT_PLUGINS_ACCESS_TOKEN`** — a GitHub PAT with push access to this
-   repository. Set it at [claude.ai/code](https://claude.ai/code) on the
-   environment's variables. **Environment variables are read at container
-   creation**, so adding one cannot rescue a session already running; that
-   session has to be restarted.
+1. **`DOLT_CREDS_JWK`** — the JSON content of a DoltHub credential's `.jwk`
+   file (what `dolt creds new` writes under `~/.dolt/creds/`), with the public
+   key registered on a DoltHub account that can write `bcallaghan/beads`. Set
+   it at [claude.ai/code](https://claude.ai/code) on the environment's
+   variables. **Environment variables are read at container creation**, so
+   adding one cannot rescue a session already running. The hook installs it
+   into `~/.dolt/` without the `dolt` CLI.
 
-2. **Direct, unproxied egress to `github.com`.** The egress proxy replaces the
-   `Authorization` header with a brokered GitHub App installation token scoped
-   to `refs/heads`, which returns 403 on `refs/dolt/*` — the 403 is the proxy,
-   **not** GitHub refusing `refs/dolt/*` writes. The hook handles this by
-   setting the proxy to empty **for this repository's own origin URL** —
-   `http.<origin>.proxy`, never the host-wide `http.https://github.com/.proxy`,
-   which would reach every other github.com remote in the container while the
-   credential helper beside it does not — and installing a credential helper
-   scoped the same way, which reads the PAT from the environment at call time
-   so the token is never written to disk.
+2. **Network access to DoltHub.** Under a Custom network policy, allow:
+   - `doltremoteapi.dolthub.com` — the remote API `bd dolt push/pull` talks to
+   - `dolthub.com` and `www.dolthub.com` — the web UI and its API
+   - `dolthub-chunks-prod.s3.us-west-2.amazonaws.com` — chunk uploads
+   - `d264tdk9acngkv.cloudfront.net` — chunk downloads (the host observed
+     in a push on 2026-10-06; a different one in a `Forbidden` error means
+     DoltHub moved its CDN)
 
-   One consequence to know about: the bypass is what routes this remote to the
-   PAT, and that PAT has no `workflow` scope, so a push touching
-   `.github/workflows/` is refused. Git config cannot scope a bypass by
-   refspec, so it cannot apply to `refs/dolt/*` alone. Push such a change with
-   `git -c "http.<origin>.proxy=$HTTPS_PROXY" push`, where `<origin>` is
-   origin's exact URL (a host-wide `http.https://github.com/.proxy` loses to
-   origin's own, more specific, empty key), which restores the proxy's
-   brokered token for that one command, or grant the PAT the scope. If an environment blocks direct egress,
-   the hook will fail its probe and say so.
+   The two storage hosts are where DoltHub sends the data itself; without
+   them the remote API answers but every push or clone fails, with
+   `Forbidden` on a presigned S3 or CloudFront URL. **Network settings, like
+   variables, reach only sessions started after the change.**
+
+`BD_NO_REMOTE_ADOPT=1` is exported by the hook so `bd dolt push` can never
+fall back to adopting the git origin as a Dolt remote.
+
+### The pre-DoltHub history
+
+Until 2026-10-06 the tracker lived on this repository's own git remote under
+`refs/dolt/data`, with the `agent-plugins-` prefix. Only open work moved to
+DoltHub. The full tracker as it stood at the move — all 690 beads, closed
+ones included, with their comments and dependencies — is committed as one
+`bd export` file under [`docs/archive/`](archive/). Ids of the form
+`agent-plugins-…` anywhere in this repository resolve there, not in the live
+tracker.
 
 ### Not needed here any more: `worktree.baseRef`
 
@@ -170,10 +175,9 @@ environment. It goes away when `strata-lang/strata` becomes public —
 - **It duplicates logic** that also lives in
   `.claude/hooks/session-start.sh`, so the two can drift. Keep them
   different in scope: the setup script provisions only `bd`;
-  the hook does the repository-specific work (bootstrapping the beads
-  database from the Dolt remote and verifying write access to it,
-  regenerating vendored references) that cannot run before the
-  repository is cloned.
+  the hook does the repository-specific work (installing the DoltHub
+  credential, bootstrapping the beads database from DoltHub, regenerating
+  vendored references) that cannot run before the repository is cloned.
 - **The five-minute budget is real.** The `bd` source build takes a few
   minutes cold.
 - **The cache expires** after roughly seven days, and rebuilds when the
@@ -224,11 +228,10 @@ list; the hook's swarm clone does this. Measured on a clone of
 `strata-lang/strata`: the identical clone returns 403 without the reset and
 succeeds with it.
 
-The hook's own Dolt helper is registered under a URL-scoped key
-(`credential.https://github.com/<owner>/<repo>.helper`, and the same key with
-a `.git` suffix), never the bare one, so it no longer answers for other repos.
-The reset stays as defence in depth against a bare helper arriving from
-somewhere else.
+The hook registers no github.com credential helper of its own, and removes the
+URL-scoped helper and proxy bypass that the old `refs/dolt/data` tracker
+needed from any container that still carries them. The reset stays as defence
+in depth against a bare helper arriving from somewhere else.
 
 `strata` is the signal that the hook ran, and `bd` that the hook or the
 setup script did; the skills under `.claude/skills/` are committed symlinks

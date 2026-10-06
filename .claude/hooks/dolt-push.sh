@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Stop hook: push the tracker to origin refs/dolt/data at the end of every turn.
+# Stop hook: push the tracker to DoltHub (sync.remote) at the end of every turn.
 #
 # The Dolt remote is this repository's source of truth and the container is
 # ephemeral, so a bead created or closed locally is lost on reclaim until it is

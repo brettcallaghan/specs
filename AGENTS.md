@@ -3,9 +3,8 @@
 This project uses **bd** (beads) for issue tracking. Run `bd prime` for full workflow context.
 
 > **Architecture in one line:** Issues live in a local Dolt database
-> (`.beads/dolt/`); cross-machine sync uses `bd dolt push/pull` (a
-> git-compatible protocol), stored under `refs/dolt/data` on your git
-> remote — separate from `refs/heads/*` where your code lives.
+> (`.beads/embeddeddolt/`); cross-machine sync uses `bd dolt push/pull`
+> against the DoltHub database `bcallaghan/beads` (prefix `specs-`).
 > `.beads/issues.jsonl` is a passive export, not the wire protocol.
 >
 > See [SYNC_CONCEPTS.md](https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md)
@@ -295,7 +294,7 @@ scope for this run's beads" tells a future reader nothing they can act on.
   treated as a failure; a 120s tool timeout is too short for any `bd` call made
   while a pull may be running; and **a non-fast-forward `bd dolt push` has no
   in-container remedy** — `.claude/hooks/dolt-push.sh` carries no pull, merge or
-  retry path, so a diverged `refs/dolt/data` leaves the tracker local-only until
+  retry path, so a diverged Dolt remote leaves the tracker local-only until
   a human reconciles it. Measured in that state: `bd dolt push` → exit 1,
   `! [rejected] main -> main (non-fast-forward)`, remote at `3c3103a`.
 - **`bd`'s JSONL export lags the database.** A close reaches the Dolt DB
@@ -313,39 +312,6 @@ scope for this run's beads" tells a future reader nothing they can act on.
   of times and refuse to commit a closure the export does not carry — rather
   than trusting one export. (`swarm`'s `bb-close-bead.sh` does exactly this;
   the trap is `bd`'s, not that script's, so it applies here too.)
-- **The hook's proxy bypass is SCOPED to origin's URL, and must stay that way.**
-  A host-wide `http.https://github.com/.proxy` reaches every other github.com
-  remote in the container while the credential helper beside it does not, so
-  those remotes lose the proxy's brokered credential and gain nothing in its
-  place. Measured in a session holding `agent-plugins` and `swarm`, with the
-  host-wide form in place: a push to `swarm` died with `could not read Username
-  for 'https://github.com'`, and the same push succeeded under
-  `git -c "http.https://github.com/.proxy=$HTTPS_PROXY" push`. After scoping,
-  `git config --get-urlmatch http.proxy <url>` returns rc=0 (bypass applies)
-  for `https://github.com/brettcallaghan/agent-plugins` and its `.git` form,
-  and rc=1 (proxy stays on) for `https://github.com/brettcallaghan/swarm`;
-  `git ls-remote origin HEAD` exits 0 in both clones with no `-c` override.
-- **A push to THIS repository touching `.github/workflows/` is refused, and
-  that is the bypass working as designed.** The bypass is what routes this
-  remote to the real PAT, and `AGENT_PLUGINS_ACCESS_TOKEN` has no `workflow`
-  scope. Measured: `! [remote rejected] ... refusing to allow a Personal Access
-  Token to create or update workflow '.github/workflows/cli.yml' without
-  'workflow' scope`. The per-command override must name **origin's exact
-  URL**, not the host:
-  `git -c "http.$(git remote get-url origin).proxy=$HTTPS_PROXY" push`, which
-  restores the proxy's brokered token for that one command. The host-wide
-  form, `-c "http.https://github.com/.proxy=…"`, is a trap: git applies the
-  most specific URL match, so origin's own empty key still wins and the PAT is
-  still sent. Measured: `git -c "http.https://github.com/.proxy=$HTTPS_PROXY"
-  config --get-urlmatch http.proxy <origin>` prints the empty value, and a
-  push of `.github/workflows/checks.yml` under it was rejected with the same
-  `without 'workflow' scope` error; the origin-scoped form resolves to the
-  proxy, and a push touching `.github/workflows/checks.yml` under it exited 0
-  (probe branch, since deleted). Git config cannot scope a bypass by refspec,
-  so the bypass cannot apply to `refs/dolt/*` alone — the remedies are that
-  per-command override, granting the PAT `workflow` scope, or pushing the
-  files through the GitHub API. Do NOT "fix" it by widening the bypass back to
-  the host.
 - **`strata` must be v0.8.0 or later.**
 - `bd`: not preinstalled. `.claude/hooks/session-start.sh` installs it via the
   official installer, which needs `libicu-dev` for the Dolt/ICU cgo dependency
@@ -597,7 +563,7 @@ bd close <id>         # Complete work
 - Run `bd prime` for detailed command reference and session close protocol
 - Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
 
-**Architecture in one line:** issues live in a local Dolt DB; sync uses `refs/dolt/data` on your git remote; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md for details and anti-patterns.
+**Architecture in one line:** issues live in a local Dolt DB; sync uses the DoltHub database `bcallaghan/beads`; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md for details and anti-patterns.
 
 ## Agent Context Profiles
 
@@ -635,82 +601,64 @@ This protocol applies when ending a Beads implementation workflow. It is subordi
 
 ## How beads persist in THIS project
 
-**The Dolt remote is the source of truth.** Issues live in a Dolt database
-synced to `refs/dolt/data` on the GitHub remote. `.beads/*.jsonl` is **not
-tracked** and is not how issues travel.
+**The DoltHub database is the source of truth.** Issues live in a Dolt
+database synced to [`bcallaghan/beads`](https://www.dolthub.com/repositories/bcallaghan/beads)
+on DoltHub, with the `specs-` prefix. `.beads/*.jsonl` is **not tracked** and is
+not how issues travel.
 
-This is beads' documented model, and this project used to violate it. Until
-2026-08-11 the database was per-session and disposable, `.beads/issues.jsonl`
-was committed, and this section told you to run `bd export` before the
-container died or lose your work. `agent-plugins-92q.31` retired all of that.
+**Ids of the form `agent-plugins-…` are archived, not live.** Until 2026-10-06
+the tracker lived under `refs/dolt/data` on this repository's git remote. Only
+open work moved to DoltHub, under new `specs-` ids. Every bead as it stood at
+the move, closed ones included, is in the one-time export under
+`docs/archive/`; look an old id up there, never in `bd`.
 
 ### What this requires of you
 
 - **Nothing.** The SessionStart hook bootstraps the database when it is empty
   and otherwise pulls; a `Stop` hook (`.claude/hooks/dolt-push.sh`) pushes at
   the end of every turn. Beads you create or close are durable without
-  ceremony, in or out of the close ceremony. Pushing by hand is never wrong,
-  just redundant.
+  ceremony. Pushing by hand is never wrong, just redundant.
 - **Never `bd export` as a persistence step.** It writes an untracked file and
   persists nothing. Export only for a viewer or for interchange.
-- **`bd remember` memories are excluded from `bd export`** and are not
-  synced. Durable context belongs in an issue description, not a memory.
+- **Never `bd flatten`, `bd compact`, `bd gc` or `bd admin cleanup` on this
+  database.** DoltHub keeps every chunk it has received and
+  `bd dolt remote reset-data` does not support DoltHub URLs, so a rewrite
+  only adds history; the database was flattened once, before its first push.
+- **`bd remember` memories are excluded from `bd export`.** Durable context
+  belongs in an issue description, not a memory.
 
-### The environment must provide write access to `refs/dolt/data`
+### The environment must provide access to DoltHub
 
 Not a preference — a precondition, and deliberately without a JSONL fallback.
-A session that can read but not write the tracker can close a bead and lose it.
-The hook therefore **verifies** write access on every session with a real probe
-push and **fails loudly** (exit 1) when it cannot, rather than degrading.
+A session that can read but not write the tracker can close a bead and lose
+it, so the hook **fails loudly** (exit 1) when it cannot set the tracker up.
 
-Two things the environment supplies:
+Two things the environment supplies, both read only at container creation:
 
-1. `AGENT_PLUGINS_ACCESS_TOKEN` — a GitHub PAT with push access, set at
-   container creation. Environment variables cannot be added to a running
-   container.
-2. **Direct, unproxied egress to `github.com`.** The egress proxy substitutes a
-   brokered GitHub App token scoped to `refs/heads`, which returns 403 on
-   `refs/dolt/*`. The hook configures `http.https://github.com/.proxy` empty
-   and a credential helper that reads the PAT from the environment at call
-   time, so the token is never written to disk.
+1. `DOLT_CREDS_JWK` — a DoltHub credential (the `.jwk` file `dolt creds new`
+   writes) whose key can write `bcallaghan/beads`. The hook installs it into
+   `~/.dolt/` itself, without the `dolt` CLI.
+2. Network access to DoltHub's API and its chunk storage hosts. The list is
+   in `docs/session-bootstrap.md`; the API alone is not enough, since pushes
+   and clones move data through presigned S3 and CloudFront URLs.
 
-Both re-measured 2026-08-20 on this repository, four pushes:
+The hook also exports `BD_NO_REMOTE_ADOPT=1`, so `bd dolt push` can never
+adopt the git origin as a Dolt remote, and `.beads/config.yaml` keeps
+`dolt.auto-push`, `import.auto` and `backup.enabled` off.
 
-| proxy | token | target | result |
-|---|---|---|---|
-| bypassed | real PAT | `refs/dolt/*` | succeeds |
-| enabled | real PAT | `refs/dolt/*` | **403** |
-| enabled | garbage | `refs/heads/*` | **succeeds** |
-| bypassed | garbage | `refs/dolt/*` | auth failed |
-
-Row 3 is the one that settles it: a push authenticated with a deliberately
-invalid token cannot succeed unless the proxy replaced the credential. So this
-is not GitHub refusing `refs/dolt/*` writes — it is the proxy's brokered token
-being scoped to `refs/heads`.
-
-The credential helper is registered under **both** the suffixless and the
-`.git` form of origin's URL because git matches the config key's path against
-the request's path exactly, and only the matching form answers — measured
-against a clone whose origin carries `.git`: suffixless key alone → `could not
-read Username for 'https://github.com'`; `.git` key alone → push succeeds.
-This repository's origin currently has no suffix, so the suffixless key is the
-live one and the other is the spare; which is which depends on how the clone
-was made.
-
-See `.claude/hooks/session-start.sh` and `docs/session-bootstrap.md`. A skill
-that needs a durable tracker never names a credential — it requires only "write
-access to `refs/dolt/data`", and the mechanism is this repository's business.
+A skill that needs a durable tracker never names a credential — it requires
+only "write access to the tracker's Dolt remote", and the mechanism is this
+repository's business.
 
 ### Two hazards that remain
 
 - **The id prefix travels with the database.** A bootstrapped clone mints ids
-  from the database's configured `issue_prefix`, not from `.beads/config.yaml`
-  (measured: `config.yaml` said `agent-plugins`, `bd where` reported
-  `agent-plugins`, and a new bead came out `spec-driven-dev-w0n`). It was
-  repaired at the source with `bd rename-prefix agent-plugins --repair` and
-  pushed; the hook re-checks it each session as a regression guard.
+  from the database's configured `issue_prefix`, not from `.beads/config.yaml`.
+  The hook warns when it is not `specs`. Do not repair it with
+  `bd rename-prefix --repair`, which rewrites ids to random hashes when it
+  misdetects the prefix.
 - **The hook is not always registered.** Claude Code loads hooks from the
   project root only, so a session attaching this repo alongside another never
-  runs it — and then nothing bootstraps the database or establishes write
-  access. The manual fallback is at the top of this file; the durable fix is
-  the per-environment setup script in `docs/session-bootstrap.md`.
+  runs it — and then nothing installs the credential or bootstraps the
+  database. The manual fallback is at the top of `CLAUDE.md`; the durable fix
+  is the per-environment setup script in `docs/session-bootstrap.md`.
