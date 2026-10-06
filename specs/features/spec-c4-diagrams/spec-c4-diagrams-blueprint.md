@@ -33,8 +33,9 @@ shape or adds a command: the rules are reached through `specs check` and
 `--only` as every other rule is. [[frd-spec-c4]] builds its model on the
 ELEM and DRAW deltas below.
 
-Delta blocks in dependency order: XPT, then PREG; PARSE and FIND
-independent of both; then ELEM, DRAW, CHKN, CHKR; DOC independent.
+Delta blocks in dependency order: PARSE and FIND, which depend on
+nothing; then XPT, PREG, ELEM, DRAW, CHKN and CHKR in that order; DOC
+alongside CHKR.
 
 ## Element Deltas
 
@@ -60,12 +61,17 @@ profile says what is there.
 - The module SHALL NOT name any of those values. A profile that
   registers no architecture vocabulary SHALL yield a corpus with no
   elements, and SHALL NOT cause an error.
+- Each registered property SHALL apply to a fixed set of registered
+  types: the entity-name and consumed-contracts properties to every
+  registered type; the system property to types at the `container`
+  level; the composed-modules property to types at the `container` and
+  `module` levels; the provider property to the contract type.
 - WHEN a profile is activated, `ValidateRegistration` SHALL report as a
   defect: a registered type the profile does not define; a registered
-  property that a registered type does not declare in the union schema;
-  a level outside the four above; and a roster record-block tag that is
-  not among the profile's registered record-block tags. Each defect SHALL
-  name the offending key, as the existing defects do.
+  property that the union schema does not declare on a type it applies
+  to; a level outside the four above; and a roster record-block tag that
+  is not among the profile's registered record-block tags. Each defect
+  SHALL name the offending key, as the existing defects do.
 
 **Anchors:** `cli/core/corpus/profile.go` (`Profile`, `FeatureTagRules`
 as the precedent); `cli/core/corpus/registration.go`
@@ -91,9 +97,9 @@ together, as the reference registration's test does.
 - The profile SHALL register `Components` as the roster heading and
   `component` as the roster record-block tag for `container-blueprint`
   and for `module-blueprint`, and no roster for the other two types.
-- A test SHALL assert that every registered property is declared by
-  every registered type the union schema says carries it, so a renamed
-  property fails the suite rather than silently resolving nothing.
+- A test SHALL assert that the union schema declares every registered
+  property on every type it applies to, so a renamed property fails the
+  suite rather than silently resolving nothing.
 
 **Anchors:** `cli/profile/profile.go`, `cli/profile/registration.go`;
 `TestEveryCitationTypedPropertyInTheVocabularyIsRegistered` as the
@@ -198,6 +204,10 @@ the finding concerns without parsing a message.
 - No `c4/*` rule SHALL be corpus-wide in the sense of
   `IsCorpusWideRule`: each finding is narrowed to the file it sits in,
   like every rule outside the reference family.
+- This delta SHALL NOT add any `c4/*` identifier to `checkRules` in
+  `cli/cmd/check.go`. A rule listed there is reported as passed whenever
+  it is requested, so each identifier is added by the check delta that
+  runs it, and never before.
 
 **Anchors:** `cli/core/finding/finding.go` (the rule constants and
 `corpusWideRules`); `schemas/finding.strata` (`FindingDetail`),
@@ -316,10 +326,15 @@ judged from one statement and the scope it was drawn in.
   is not registered as declaring an element.
 - WHERE the profile registers no architecture vocabulary, the checks
   SHALL report nothing.
+- This delta SHALL add `c4/parse`, `c4/undeclared-node` and
+  `c4/ambiguous-node` to `checkRules` in `cli/cmd/check.go`, so `--only`
+  can name them and a clean run reports them as passed.
 
 **Anchors:** `cli/core/corpus/check.go` (`Check`, `CheckFor`), beside
-the reference and Gherkin checks; snapshot cases under
-`cli/testdata/cases/` following `check-only-anchor-rule`.
+the reference and Gherkin checks; `checkRules` in `cli/cmd/check.go`;
+snapshot cases under `cli/testdata/cases/` following
+`check-only-anchor-rule`. Adding to `checkRules` changes the pass list
+every existing `check` snapshot records.
 
 ### Corpus in [[module-document-core]] (modified — relationship checks)
 
@@ -354,9 +369,15 @@ it, including the one rule that compares drawings across documents.
   since the node finding already covers the statement.
 - WHEN a tags argument contains a comma, the check SHALL report
   `c4/tag-separator` at severity warning at the statement's span.
+- WHEN `specs check` names one document, `c4/drawing-conflict` SHALL
+  still compare that document's drawings against every architecture
+  blueprint's, and SHALL then be narrowed to the named file like every
+  other `c4/*` rule.
+- This delta SHALL add the seven remaining `c4/*` identifiers to
+  `checkRules` in `cli/cmd/check.go`.
 
-**Anchors:** `cli/core/corpus/check.go`; snapshot cases under
-`cli/testdata/cases/`.
+**Anchors:** `cli/core/corpus/check.go`; `checkRules` in
+`cli/cmd/check.go`; snapshot cases under `cli/testdata/cases/`.
 
 ### Documentation (modified — diagram rules)
 
@@ -400,8 +421,9 @@ SHALL be re-run so the vendored copies follow.
 - The structure feature's record-block recording and its decoding
   function — not yet built; see Sequencing Constraints.
 - `finding.NewReport` and the `--only` machinery in `cli/cmd/check.go`,
-  which select and account for the new rules with no change of their
-  own.
+  which select and account for any rule `checkRules` declares. The only
+  Command Surface change is the two `checkRules` additions the CHKN and
+  CHKR deltas make.
 
 ## Contracts
 
@@ -412,9 +434,9 @@ document.
 ## Tracker Reconciliation
 
 - `agent-plugins-f6tl.5` — prerequisite: the record-block tag
-  registration point. ELEM reads roster blocks by a registered tag and
-  XPT validates against the registered tags; neither exists until this
-  lands.
+  registration point. XPT validates the roster tag against the
+  registered tags and ELEM reads roster blocks by one; neither can land
+  before this does.
 - `agent-plugins-f6tl.6` — prerequisite: recording record blocks against
   their heading, and the decoding function ELEM uses. Without it no
   un-promoted component is an element, and every component node on this
@@ -431,9 +453,9 @@ document.
 
 ## Sequencing Constraints
 
-- Delivery is staged. Stage 1 is XPT, PREG, PARSE and FIND, which add
-  the registration and the parser and raise no finding. Stage 2 is ELEM,
-  DRAW, CHKN, CHKR and DOC.
+- Delivery is staged. Stage 1 is PARSE and FIND, which depend on
+  nothing outside this blueprint, add no rule to `checkRules` and change
+  no output. Stage 2 is XPT, PREG, ELEM, DRAW, CHKN, CHKR and DOC.
 - Stage 2 SHALL NOT begin until `agent-plugins-f6tl.5`,
   `agent-plugins-f6tl.6`, and the registration of the `component`
   record-block tag that FEAT-SPECSTR-004 of
@@ -452,7 +474,9 @@ document.
   C4 diagrams carries an entity name that a blueprint or a roster record
   block declares.
 - The DOC delta SHALL land no later than the CHKR delta, so no rule is
-  enforced before the standard states it.
+  enforced before the standard states it, and SHALL NOT land before
+  [[adr-029]] is approved, since it amends [[c4-standards]] on that
+  ADR's authority.
 - WHEN a delta changes observable output, the snapshot cases under
   `cli/testdata/cases/` SHALL be regenerated with
   `scripts/regenerate-cli-snapshots.sh` and every diff reviewed before
@@ -504,6 +528,8 @@ Corpus delta (relationship and tag checks); DOC = Documentation delta.
         Corpus's check list and Findings' rule list updated
   - [ ] [[module-spec-profile]] — Profile Registration's member table
         gains the architecture vocabulary
+  - [ ] [[container-spec-cli]] — the Command Surface's account of `check`
+        paragraph names the `c4/*` rules
 - [ ] [[c4-standards]], the four architecture blueprint templates and
       [[spec-cli-reference]] updated, and
       `scripts/sync-shared-references.sh --check` passes
