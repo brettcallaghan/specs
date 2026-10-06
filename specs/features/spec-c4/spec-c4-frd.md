@@ -6,8 +6,8 @@ description: A subcommand that emits the corpus's C4 model — its systems,
   blueprints and their diagrams
 slug: frd-spec-c4
 type: frd
-status: draft
-updated_at: 2026-10-06T00:00:00Z
+status: approved
+updated_at: 2026-10-06T17:45:00Z
 sources: []
 ---
 

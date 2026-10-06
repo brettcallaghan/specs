@@ -7,8 +7,8 @@ description: How the Spec CLI learns to read the Mermaid C4 diagrams in
   malformed tag as a c4 finding
 slug: feature-spec-c4-diagrams
 type: feature-blueprint
-status: draft
-updated_at: 2026-10-06T00:00:00Z
+status: approved
+updated_at: 2026-10-06T17:45:00Z
 delivery: staged
 frd: frd-spec-c4-diagrams
 ---

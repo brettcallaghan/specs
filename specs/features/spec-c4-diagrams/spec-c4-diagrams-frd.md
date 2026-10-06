@@ -6,8 +6,8 @@ description: Checks that keep the Mermaid C4 diagrams in architecture
   dependency, every reserved relationship tag well formed
 slug: frd-spec-c4-diagrams
 type: frd
-status: draft
-updated_at: 2026-10-06T00:00:00Z
+status: approved
+updated_at: 2026-10-06T17:45:00Z
 sources: []
 ---
 

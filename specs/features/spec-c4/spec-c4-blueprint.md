@@ -6,8 +6,8 @@ description: How the Spec CLI assembles the corpus's C4 model — an element
   new c4 subcommand
 slug: feature-spec-c4
 type: feature-blueprint
-status: draft
-updated_at: 2026-10-06T00:00:00Z
+status: approved
+updated_at: 2026-10-06T17:45:00Z
 delivery: single-pr
 frd: frd-spec-c4
 ---
