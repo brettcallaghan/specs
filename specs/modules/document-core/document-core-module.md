@@ -248,6 +248,7 @@ C4Component
         Component(fm, "Frontmatter", "Go package", "Frontmatter extraction and YAML parsing with raw-text access")
         Component(md, "Markdown Structure", "Go package (fences built)", "Headings, section spans, fenced blocks and comment blocks")
         Component(gherkin, "Gherkin", "Go package", "Gherkin parsing into feature and criterion records, with tags read as strings")
+        Component(c4, "C4 Diagrams", "Go package", "Mermaid C4 diagram parsing into located statements, with relationship tags read")
         Component(refs, "References", "Go package", "Wikilink and frontmatter reference extraction, resolution against corpus slugs, and the reference graph")
         Component(schema, "Schema Registry", "Go package", "Single-union JSON Schema validation dispatched by document type")
         Component(corpus, "Corpus", "Go package", "Discovery, membership, the index model and its emission")
@@ -263,6 +264,7 @@ C4Component
     Rel(fm, span, "Locates delimited regions with")
     Rel(md, span, "Locates delimited regions with")
     Rel(gherkin, span, "Reports every position through")
+    Rel(c4, span, "Reports every position through")
     Rel(refs, span, "Locates occurrences with")
     Rel(schema, fm, "Validates records produced by")
     Rel(num, corpus, "Queries the index of")
@@ -275,9 +277,10 @@ C4Component
     Rel(mdlinks, find, "Reports through")
 ```
 
-Nine of the ten are built and carry a **Built** paragraph naming the
-package that realizes them: Spans, Frontmatter, Gherkin, References,
-Schema Registry, Corpus, Numbering, Findings and Markdown Links. The
+Ten of the eleven are built and carry a **Built** paragraph naming the
+package that realizes them: Spans, Frontmatter, Gherkin, C4 Diagrams,
+References, Schema Registry, Corpus, Numbering, Findings and Markdown
+Links. The
 emitted index carries the resolved reference graph, and the corpus checks
 read it: a broken link, a live document citing a retired one, a
 half-declared pairing and a typed reference landing on the wrong
@@ -631,6 +634,46 @@ A parse failure is returned instead of records rather than alongside
 them, and never panics: a half-parsed source yields a feature missing
 criteria its author wrote, and an index that silently lost one is worse
 than an index that recorded why (AC-GHK-006.1).
+
+### C4 Diagrams
+
+```component
+entity_name: C4 Diagrams
+slug: component-c4-diagrams
+description: Mermaid C4 diagram parsing into located statements, with relationship tags read
+```
+
+(Go package) — Mermaid C4 diagram parsing into located statements, with
+relationship tags read. Takes the content of one fenced `mermaid` block
+and its position in its document, and returns the diagram type and the
+statements read, each with its kind, its macro, its arguments and its
+span. [[adr-029]] gives the CLI this parser of its own, because the one
+Go library measured fails on this corpus's own diagrams.
+
+**The subset is a table, and everything outside it is a parse error.**
+Only `C4Context`, `C4Container` and `C4Component` diagrams are parsed;
+any other diagram type is returned by name with no statements. The
+macros read are those [[frd-spec-c4-diagrams]]'s terminology lists, and
+a statement outside them, with unbalanced quotes or parentheses, or with
+too few arguments for its macro is returned as a parse error carrying
+its span, and parsing continues with the next line. Growing the subset
+is an edit to the table rather than a change of behaviour.
+
+**It is pure notation.** It neither reads the corpus nor resolves a node
+to an element. Relationships come back in dependency direction —
+`Rel_Back(a, b)` with source `b` — with every directional variant
+returned as `Rel` and the macro as written kept, and `BiRel` flagged
+bidirectional. Tags are split on `+` only; `sync`, `async` and
+`contract:<slug>` are returned as reserved, and a comma in the tags
+argument is recorded rather than treated as a separator
+(AC-C4-DIAG-001.2, AC-C4-DIAG-004.1).
+
+**Built** — `cli/core/c4diagram`. A boundary's `{` opens it and a line
+holding only `}` closes the innermost one; a stray `}` and a boundary
+left open are both parse errors. Leading `---` frontmatter and
+`%%{ ... }%%` directives spread over several lines are skipped before the
+diagram type is read. Nothing calls it yet: the C4 checks
+are what bring a Corpus edge into it.
 
 ### References
 
@@ -1654,6 +1697,26 @@ The unverified mechanism is built and no check registers against it yet;
 the diagram validation AC-SPEC-006.3 illustrates is a structure-feature
 concern. A later check adds a variant to the union without changing the
 envelope that carries it.
+
+**The c4 rules are declared and not yet raised.** Ten identifiers check
+the Mermaid C4 diagrams in architecture blueprints for
+[[frd-spec-c4-diagrams]]: `c4/parse`, `c4/undeclared-node`,
+`c4/ambiguous-node`, `c4/bidirectional`, `c4/duplicate-edge`,
+`c4/drawing-conflict`, `c4/interaction-conflict`,
+`c4/contract-unresolved`, `c4/contract-mismatch` and `c4/tag-separator`.
+Each has its `FindingDetail` variant: an unreadable statement with the
+statement and the parser's reason; for `c4/parse` at `unverified`, the
+diagram type the block names; an undeclared or ambiguous node with its
+alias, its label and the slug of every element the label matched; a
+bidirectional, duplicate or interaction-conflicting relationship with its
+source and target aliases; a drawing conflict with those aliases and the
+other drawing's path and span; a contract tag with its slug and both
+aliases; and a tag-separator defect with the tags argument as written.
+`c4/parse` reports at `error` and at `unverified` under one identifier,
+as `reference/unresolved-anchor` does. None is corpus-wide in the sense
+of `IsCorpusWideRule`, and none is in the command surface's check list
+until the check that raises it lands — a rule listed there reads as
+passed whenever it is requested.
 
 ### Markdown Links
 

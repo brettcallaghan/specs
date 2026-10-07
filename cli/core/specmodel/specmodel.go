@@ -3049,6 +3049,344 @@ func (v *AnchorMatch) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// A statement in a C4 diagram that the parser cannot read.
+//
+// The parser reads a fixed statement subset and turns everything outside it
+// into this finding rather than skipping it, so the subset grows
+// deliberately. The statement is carried as written, beside the parser's
+// reason, so the author is told what was wrong with the line without
+// reopening the document.
+type FindingC4Parse struct {
+	// The statement as written, with surrounding whitespace removed.
+	Statement string `json:"statement"`
+	// Why the parser could not read it — for example not a read macro,
+	// unbalanced quotes or parentheses, too few arguments, or an unknown
+	// named parameter — quoted from the parser so the message needs no
+	// further lookup to act on.
+	Reason string `json:"reason"`
+}
+
+func (v *FindingC4Parse) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["statement"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingC4Parse: required field \"statement\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Statement); err != nil {
+		return prefixField("statement", err)
+	}
+	if m, ok := raw["reason"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingC4Parse: required field \"reason\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Reason); err != nil {
+		return prefixField("reason", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "statement", "reason":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingC4Parse", Field: unknown}
+	}
+	return nil
+}
+
+// A `mermaid` block in an architecture blueprint that is not a diagram type
+// the C4 parser reads.
+//
+// Reported at severity `unverified` under the same rule as an unreadable
+// statement: the tool did not look inside the block, which is not the claim
+// that it looked and found it sound. The diagram type is carried so the
+// reader can tell a deliberate non-C4 diagram from a misspelt C4 header.
+type FindingC4UnreadDiagram struct {
+	// The diagram type the block's first statement names, as written — for
+	// example `C4Dynamic` or `flowchart`.
+	DiagramType string `json:"diagram_type"`
+}
+
+func (v *FindingC4UnreadDiagram) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["diagram_type"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingC4UnreadDiagram: required field \"diagram_type\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.DiagramType); err != nil {
+		return prefixField("diagram_type", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "diagram_type":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingC4UnreadDiagram", Field: unknown}
+	}
+	return nil
+}
+
+// A C4 diagram node whose label resolves to no element in the scope of its
+// drawing document, or to more than one.
+//
+// One shape for both defects, told apart by the rule that raised the
+// finding. The alias and the label are both carried: the alias is what the
+// diagram's relationships name, and the label is what resolution matched
+// against an element's entity name.
+type FindingC4Node struct {
+	// The node's alias, as written.
+	Alias string `json:"alias"`
+	// The node's label, as written.
+	Label string `json:"label"`
+	// The slug of every element in scope whose entity name the label
+	// matched, in slug order. Empty for an undeclared node; two or more for
+	// an ambiguous one.
+	Matches []string `json:"matches"`
+}
+
+func (v *FindingC4Node) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["alias"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingC4Node: required field \"alias\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Alias); err != nil {
+		return prefixField("alias", err)
+	}
+	if m, ok := raw["label"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingC4Node: required field \"label\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Label); err != nil {
+		return prefixField("label", err)
+	}
+	if m, ok := raw["matches"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingC4Node: required field \"matches\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Matches); err != nil {
+		return prefixField("matches", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "alias", "label", "matches":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingC4Node", Field: unknown}
+	}
+	return nil
+}
+
+// A C4 relationship statement whose defect lies in the statement alone: an
+// arrow drawn both ways, an edge drawn twice in one diagram, or contradictory
+// interaction tags.
+//
+// The rule that raised the finding says which. Both aliases are carried
+// after `Rel_Back` normalisation, so `source` is the dependent end and a
+// consumer comparing two findings compares like with like. A `BiRel` has no
+// dependent end: its `source` and `target` are its first and second aliases
+// as written.
+type FindingC4Relationship struct {
+	// The alias of the relationship's source, in dependency direction; for a
+	// `BiRel`, its first alias.
+	Source string `json:"source"`
+	// The alias of the relationship's target, in dependency direction; for a
+	// `BiRel`, its second alias.
+	Target string `json:"target"`
+}
+
+func (v *FindingC4Relationship) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["source"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingC4Relationship: required field \"source\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Source); err != nil {
+		return prefixField("source", err)
+	}
+	if m, ok := raw["target"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingC4Relationship: required field \"target\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Target); err != nil {
+		return prefixField("target", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "source", "target":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingC4Relationship", Field: unknown}
+	}
+	return nil
+}
+
+// Two drawings of one relationship that disagree in technology,
+// description or tags.
+//
+// Reported at the drawing that sorts second by path and then by span,
+// naming the first. The other drawing's span is carried beside its path
+// because a blueprint holds several diagrams and an arrow is not a heading:
+// without the span the reader is told which file to open and left to search
+// it.
+type FindingC4DrawingConflict struct {
+	// The alias of the relationship's source in this drawing.
+	Source string `json:"source"`
+	// The alias of the relationship's target in this drawing.
+	Target string `json:"target"`
+	// The other drawing's path, relative to the repository root and written
+	// with forward slashes on every platform.
+	OtherPath string `json:"other_path"`
+	// Where in that file the other drawing's statement is written.
+	OtherSpan Span `json:"other_span"`
+}
+
+func (v *FindingC4DrawingConflict) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["source"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingC4DrawingConflict: required field \"source\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Source); err != nil {
+		return prefixField("source", err)
+	}
+	if m, ok := raw["target"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingC4DrawingConflict: required field \"target\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Target); err != nil {
+		return prefixField("target", err)
+	}
+	if m, ok := raw["other_path"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingC4DrawingConflict: required field \"other_path\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.OtherPath); err != nil {
+		return prefixField("other_path", err)
+	}
+	if m, ok := raw["other_span"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingC4DrawingConflict: required field \"other_span\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.OtherSpan); err != nil {
+		return prefixField("other_span", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "source", "target", "other_path", "other_span":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingC4DrawingConflict", Field: unknown}
+	}
+	return nil
+}
+
+// A `contract:` tag on a relationship that names no contract, or names one
+// the relationship's endpoints do not declare.
+//
+// One shape for both defects, told apart by the rule that raised the
+// finding. The slug is carried as written after `contract:`, and both
+// aliases are carried so the reader can see which arrow the tag sits on.
+type FindingC4Contract struct {
+	// The contract slug the tag names, as written after `contract:`.
+	Slug string `json:"slug"`
+	// The alias of the relationship's source, in dependency direction.
+	Source string `json:"source"`
+	// The alias of the relationship's target, in dependency direction.
+	Target string `json:"target"`
+}
+
+func (v *FindingC4Contract) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["slug"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingC4Contract: required field \"slug\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Slug); err != nil {
+		return prefixField("slug", err)
+	}
+	if m, ok := raw["source"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingC4Contract: required field \"source\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Source); err != nil {
+		return prefixField("source", err)
+	}
+	if m, ok := raw["target"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingC4Contract: required field \"target\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Target); err != nil {
+		return prefixField("target", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "slug", "source", "target":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingC4Contract", Field: unknown}
+	}
+	return nil
+}
+
+// A relationship's tags argument that joins tags with a comma.
+//
+// Mermaid joins tags with `+`; a comma makes the whole argument one
+// unreserved tag, so a reserved tag written beside it is silently lost.
+// The argument is carried as written so the fix is a visible edit.
+type FindingC4TagSeparator struct {
+	// The tags argument as written.
+	Tags string `json:"tags"`
+}
+
+func (v *FindingC4TagSeparator) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+	if m, ok := raw["tags"]; !ok || string(m) == "null" {
+		return fmt.Errorf("FindingC4TagSeparator: required field \"tags\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Tags); err != nil {
+		return prefixField("tags", err)
+	}
+	var unknown string
+	for key := range raw {
+		switch key {
+		case "tags":
+		default:
+			if unknown == "" || key < unknown {
+				unknown = key
+			}
+		}
+	}
+	if unknown != "" {
+		return &unknownFieldError{Struct: "FindingC4TagSeparator", Field: unknown}
+	}
+	return nil
+}
+
 type FindingDetailVariant interface{ isFindingDetailVariant() }
 
 // The structured detail of one finding, selected by the kind of defect.
@@ -3086,6 +3424,13 @@ func (FindingPartiallyTaggedOutline) isFindingDetailVariant() {}
 func (FindingOwningDocument) isFindingDetailVariant()         {}
 func (FindingUnresolvedAnchor) isFindingDetailVariant()       {}
 func (FindingAmbiguousAnchor) isFindingDetailVariant()        {}
+func (FindingC4Parse) isFindingDetailVariant()                {}
+func (FindingC4UnreadDiagram) isFindingDetailVariant()        {}
+func (FindingC4Node) isFindingDetailVariant()                 {}
+func (FindingC4Relationship) isFindingDetailVariant()         {}
+func (FindingC4DrawingConflict) isFindingDetailVariant()      {}
+func (FindingC4Contract) isFindingDetailVariant()             {}
+func (FindingC4TagSeparator) isFindingDetailVariant()         {}
 
 func NewFindingDetailSchemaViolation(v FindingSchemaViolation) FindingDetail {
 	return FindingDetail{Value: v}
@@ -3164,6 +3509,34 @@ func NewFindingDetailUnresolvedAnchor(v FindingUnresolvedAnchor) FindingDetail {
 }
 
 func NewFindingDetailAmbiguousAnchor(v FindingAmbiguousAnchor) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailC4Parse(v FindingC4Parse) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailC4UnreadDiagram(v FindingC4UnreadDiagram) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailC4Node(v FindingC4Node) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailC4RelationshipDefect(v FindingC4Relationship) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailC4DrawingConflict(v FindingC4DrawingConflict) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailC4Contract(v FindingC4Contract) FindingDetail {
+	return FindingDetail{Value: v}
+}
+
+func NewFindingDetailC4TagSeparator(v FindingC4TagSeparator) FindingDetail {
 	return FindingDetail{Value: v}
 }
 
@@ -3267,6 +3640,41 @@ func (u FindingDetail) AsAmbiguousAnchor() (FindingAmbiguousAnchor, bool) {
 	return v, ok
 }
 
+func (u FindingDetail) AsC4Parse() (FindingC4Parse, bool) {
+	v, ok := u.Value.(FindingC4Parse)
+	return v, ok
+}
+
+func (u FindingDetail) AsC4UnreadDiagram() (FindingC4UnreadDiagram, bool) {
+	v, ok := u.Value.(FindingC4UnreadDiagram)
+	return v, ok
+}
+
+func (u FindingDetail) AsC4Node() (FindingC4Node, bool) {
+	v, ok := u.Value.(FindingC4Node)
+	return v, ok
+}
+
+func (u FindingDetail) AsC4RelationshipDefect() (FindingC4Relationship, bool) {
+	v, ok := u.Value.(FindingC4Relationship)
+	return v, ok
+}
+
+func (u FindingDetail) AsC4DrawingConflict() (FindingC4DrawingConflict, bool) {
+	v, ok := u.Value.(FindingC4DrawingConflict)
+	return v, ok
+}
+
+func (u FindingDetail) AsC4Contract() (FindingC4Contract, bool) {
+	v, ok := u.Value.(FindingC4Contract)
+	return v, ok
+}
+
+func (u FindingDetail) AsC4TagSeparator() (FindingC4TagSeparator, bool) {
+	v, ok := u.Value.(FindingC4TagSeparator)
+	return v, ok
+}
+
 func (u FindingDetail) MarshalJSON() ([]byte, error) {
 	var payload []byte
 	var tag string
@@ -3331,6 +3739,27 @@ func (u FindingDetail) MarshalJSON() ([]byte, error) {
 		payload, err = json.Marshal(v)
 	case FindingAmbiguousAnchor:
 		tag = "ambiguous-anchor"
+		payload, err = json.Marshal(v)
+	case FindingC4Parse:
+		tag = "c4-parse"
+		payload, err = json.Marshal(v)
+	case FindingC4UnreadDiagram:
+		tag = "c4-unread-diagram"
+		payload, err = json.Marshal(v)
+	case FindingC4Node:
+		tag = "c4-node"
+		payload, err = json.Marshal(v)
+	case FindingC4Relationship:
+		tag = "c4-relationship"
+		payload, err = json.Marshal(v)
+	case FindingC4DrawingConflict:
+		tag = "c4-drawing-conflict"
+		payload, err = json.Marshal(v)
+	case FindingC4Contract:
+		tag = "c4-contract"
+		payload, err = json.Marshal(v)
+	case FindingC4TagSeparator:
+		tag = "c4-tag-separator"
 		payload, err = json.Marshal(v)
 	default:
 		return nil, fmt.Errorf("FindingDetail: nil or unknown variant")
@@ -3505,6 +3934,55 @@ func (u *FindingDetail) UnmarshalJSON(data []byte) error {
 		return nil
 	case "ambiguous-anchor":
 		var v FindingAmbiguousAnchor
+		if err := json.Unmarshal(body, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "c4-parse":
+		var v FindingC4Parse
+		if err := json.Unmarshal(body, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "c4-unread-diagram":
+		var v FindingC4UnreadDiagram
+		if err := json.Unmarshal(body, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "c4-node":
+		var v FindingC4Node
+		if err := json.Unmarshal(body, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "c4-relationship":
+		var v FindingC4Relationship
+		if err := json.Unmarshal(body, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "c4-drawing-conflict":
+		var v FindingC4DrawingConflict
+		if err := json.Unmarshal(body, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "c4-contract":
+		var v FindingC4Contract
+		if err := json.Unmarshal(body, &v); err != nil {
+			return err
+		}
+		u.Value = v
+		return nil
+	case "c4-tag-separator":
+		var v FindingC4TagSeparator
 		if err := json.Unmarshal(body, &v); err != nil {
 			return err
 		}
