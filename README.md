@@ -339,3 +339,9 @@ trust.
 The framework specifies itself. The FRDs, ADRs, blueprints and standards
 under `specs/` are the ones that produced the CLI in `cli/` — which is
 the only honest way to find out whether any of this works.
+
+---
+
+## License
+
+[MIT](LICENSE).
