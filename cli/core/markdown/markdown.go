@@ -53,8 +53,17 @@ type Block struct {
 	Tag string
 
 	// Content is the bytes between the fences: what [Block.Inner] covers,
-	// sliced from body.
+	// sliced from body. It is positional, so inside a container block
+	// every content line after the first still carries its container
+	// prefix (a blockquote's "> ", a list item's indentation).
 	Content []byte
+
+	// Text is the content lines as the parser reads them, container
+	// prefixes removed: the concatenation of goldmark's per-line segments
+	// for the block. Unlike [Block.Content] it is not a slice of body, so
+	// a caller decoding the block's content reads Text; one needing
+	// positions reads Content, Inner or Outer.
+	Text []byte
 
 	// Outer covers the whole construct: the opening fence line, the
 	// content, and the closing fence line, each in full — a caller
@@ -117,9 +126,14 @@ func blockOf(body []byte, node *mdast.FencedCodeBlock, tag string) (Block, bool)
 	openLineStart := lineStart(body, node.Info.Segment.Start)
 
 	var contentStart, contentEnd int
+	var textBytes []byte
 	if lines := node.Lines(); lines.Len() > 0 {
 		contentStart = lines.At(0).Start
 		contentEnd = lines.At(lines.Len() - 1).Stop
+		for i := 0; i < lines.Len(); i++ {
+			line := lines.At(i)
+			textBytes = append(textBytes, line.Value(body)...)
+		}
 	} else {
 		// Empty content: if the fence closes at all, the closing line is
 		// the one immediately following the opening line.
@@ -137,6 +151,7 @@ func blockOf(body []byte, node *mdast.FencedCodeBlock, tag string) (Block, bool)
 	return Block{
 		Tag:     tag,
 		Content: bytes.Clone(body[contentStart:contentEnd]),
+		Text:    textBytes,
 		Outer:   span.Of(body, openLineStart, closeLineEnd-openLineStart),
 		Inner:   span.Of(body, contentStart, contentEnd-contentStart),
 	}, true

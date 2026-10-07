@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
+	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
@@ -162,6 +163,57 @@ func TestDecodeRecordBlockDecodesIntoACallerType(t *testing.T) {
 	}
 	if err := corpus.DecodeRecordBlock(src[:10], bad, &widget); err == nil {
 		t.Error("a span outside the document decoded without error")
+	}
+}
+
+// A record inside a container block decodes from the content the parser
+// reads, not from the raw lines with their prefixes.
+//
+// AC: AC-SPECSTR-001.2
+func TestDecodeRecordBlockDecodesRecordsInsideContainers(t *testing.T) {
+	cases := map[string]string{
+		"blockquote": "# T\n\n> ```component\n> name: x\n> kind: y\n> ```\n",
+		"list item":  "# T\n\n- item\n\n  ```component\n  name: x\n  kind: y\n  ```\n",
+		"top level":  "# T\n\n```component\nname: x\nkind: y\n```\n",
+	}
+	for name, doc := range cases {
+		t.Run(name, func(t *testing.T) {
+			src := []byte(doc)
+			found := markdown.Fenced(src, []string{"component"})
+			if len(found) != 1 {
+				t.Fatalf("found %d blocks, want 1", len(found))
+			}
+			block := specmodel.RecordBlock{Tag: "component", Span: found[0].Outer}
+			var got struct {
+				Name string `yaml:"name"`
+				Kind string `yaml:"kind"`
+			}
+			if err := corpus.DecodeRecordBlock(src, block, &got); err != nil {
+				t.Fatalf("DecodeRecordBlock: %v", err)
+			}
+			if got.Name != "x" || got.Kind != "y" {
+				t.Errorf("decoded %+v, want name x kind y", got)
+			}
+		})
+	}
+}
+
+// A span that does not cover a fenced block of the block's tag is an
+// error, not an empty decode.
+//
+// AC: AC-SPECSTR-001.2
+func TestDecodeRecordBlockRejectsASpanThatIsNotABlockOfItsTag(t *testing.T) {
+	src := []byte("# T\n\n```component\nname: x\n```\n\n```other\nname: y\n```\n")
+	found := markdown.Fenced(src, []string{"component"})
+	if len(found) != 1 {
+		t.Fatalf("found %d blocks, want 1", len(found))
+	}
+	var got map[string]any
+	if err := corpus.DecodeRecordBlock(src, specmodel.RecordBlock{Tag: "component", Span: found[0].Inner}, &got); err == nil {
+		t.Error("an inner-content span decoded without error")
+	}
+	if err := corpus.DecodeRecordBlock(src, specmodel.RecordBlock{Tag: "other", Span: found[0].Outer}, &got); err == nil {
+		t.Error("a span of a block with another tag decoded without error")
 	}
 }
 

@@ -207,3 +207,36 @@ func TestInnerOffsetIsExpressedInDocumentCoordinates(t *testing.T) {
 		t.Errorf("body[%d] = %q, want 'X'", absolute, body[absolute])
 	}
 }
+
+// Text is the content with container prefixes removed; Content and Inner
+// stay positional.
+func TestTextOmitsContainerPrefixesWhileContentStaysPositional(t *testing.T) {
+	body := []byte("# T\n\n> ```component\n> name: x\n> kind: y\n> ```\n")
+
+	found := markdown.Fenced(body, []string{"component"})
+	if len(found) != 1 {
+		t.Fatalf("found %d blocks, want 1", len(found))
+	}
+	block := found[0]
+	if got, want := string(block.Text), "name: x\nkind: y\n"; got != want {
+		t.Errorf("Text = %q, want %q", got, want)
+	}
+	if got, want := string(block.Content), "name: x\n> kind: y\n"; got != want {
+		t.Errorf("Content = %q, want %q", got, want)
+	}
+	if got := string(span.Slice(body, block.Inner)); got != string(block.Content) {
+		t.Errorf("Inner slices to %q, want Content %q", got, block.Content)
+	}
+}
+
+func TestTextEqualsContentForABlockAtTheTopLevel(t *testing.T) {
+	body := []byte("```component\nname: x\n```\n")
+
+	found := markdown.Fenced(body, []string{"component"})
+	if len(found) != 1 {
+		t.Fatalf("found %d blocks, want 1", len(found))
+	}
+	if string(found[0].Text) != string(found[0].Content) {
+		t.Errorf("Text = %q, Content = %q, want equal", found[0].Text, found[0].Content)
+	}
+}

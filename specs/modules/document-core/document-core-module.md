@@ -451,7 +451,9 @@ fenced-block surface is `Fenced`, which takes a document body and a set
 of registered tags and returns every fenced block whose info string
 matches one of them, in
 document order, as a `Block`: `Content` — the bytes between the fences —
-alongside `Outer`, over the whole construct including both fence lines
+and `Text` — the content lines as the parser reads them, container
+prefixes such as a blockquote's `> ` removed, so unlike `Content` it is
+not a slice of the document — alongside `Outer`, over the whole construct including both fence lines
 in full, and `Inner`, over the content alone. Fence recognition comes
 from `goldmark` — [[adr-015]]'s choice, already a module dependency via
 References — rather than from a hand-rolled scan, because where a fence
@@ -471,10 +473,12 @@ heading's does; each appears exactly once, and an entry with no
 registered tag carries `[]` throughout. A block is recorded whether or
 not its content is valid: indexing raises no finding about a record.
 `DecodeRecordBlock` reads a recorded block's content back through its
-span, strips the fences and decodes the YAML into a caller-supplied Go
-value, so every command and check decodes a record the same way. The
-registered tags are folded into the input hash, since they decide what
-the index records.
+span: it re-locates the block through `Fenced`, matching on `Outer`, and
+decodes the block's `Text` as YAML into a caller-supplied Go value, so a
+record inside a blockquote decodes like any other and a span that covers
+no fenced block of the tag is an error. Every command and check decodes
+a record the same way. The registered tags are folded into the input
+hash, since they decide what the index records.
 
 Its heading surface is `Headings`, which takes a document body and
 returns every heading in document order as a `Heading`: its `Text` as

@@ -1,8 +1,6 @@
 package corpus
 
 import (
-	"bytes"
-	"errors"
 	"fmt"
 	"sort"
 
@@ -78,28 +76,23 @@ func attachRecordBlocks(headings []specmodel.Heading, records []specmodel.Record
 // through its span and decodes it as YAML into target, which is a
 // pointer to the caller's own Go value.
 //
-// src is the bytes of the document the block was recorded in. The two
-// fence lines are stripped and the content between them decoded, so every
-// command and check decodes a record the same way. A span outside src, a
-// span that is not a fenced block, or content that is not YAML fitting
-// target is an error.
+// src is the bytes of the document the block was recorded in. The block
+// is re-located through Markdown Structure and its content read as the
+// parser reads it, container prefixes (a blockquote's "> ") removed, so
+// every command and check decodes a record the same way. A span outside
+// src, a span that does not cover a fenced block of the block's tag, or
+// content that is not YAML fitting target is an error.
 func DecodeRecordBlock(src []byte, block specmodel.RecordBlock, target any) error {
 	end := block.Span.Offset + block.Span.Length
 	if end > uint64(len(src)) {
 		return fmt.Errorf("record block span [%d,%d) lies outside a %d-byte document",
 			block.Span.Offset, end, len(src))
 	}
-	raw := src[block.Span.Offset:end]
-
-	open := bytes.IndexByte(raw, '\n')
-	if open < 0 {
-		return errors.New("record block span holds no content between its fences")
+	for _, found := range markdown.Fenced(src, []string{block.Tag}) {
+		if found.Outer.Offset == block.Span.Offset && found.Outer.Length == block.Span.Length {
+			return yaml.Unmarshal(found.Text, target)
+		}
 	}
-	content := raw[open+1:]
-	if close := bytes.LastIndexByte(bytes.TrimRight(content, "\r\n"), '\n'); close >= 0 {
-		content = content[:close+1]
-	} else {
-		content = nil
-	}
-	return yaml.Unmarshal(content, target)
+	return fmt.Errorf("record block span [%d,%d) is not a fenced %q block",
+		block.Span.Offset, end, block.Tag)
 }

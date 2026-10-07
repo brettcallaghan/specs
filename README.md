@@ -1,7 +1,7 @@
 # Specs — Spec-First Development
 
 <!-- coverage:badge:start -->
-[![coverage](https://img.shields.io/badge/cli%20coverage-90.0%25-green)](#test-coverage)
+[![coverage](https://img.shields.io/badge/cli%20coverage-90.0%25-brightgreen)](#test-coverage)
 <!-- coverage:badge:end -->
 
 **Agency for the agents.**
@@ -295,20 +295,20 @@ alone is visible rather than averaged away.
 <!-- coverage:table:start -->
 | Test layer | Statements covered | Coverage |
 |:---|---:|---:|
-| Unit tests | 2,790 / 3,536 | 78.9% |
-| Snapshot cases | 2,745 / 3,536 | 77.6% |
-| End-to-end (built binary) | 1,148 / 3,536 | 32.5% |
-| **All layers combined** | **3,182 / 3,536** | **90.0%** |
+| Unit tests | 2,791 / 3,535 | 79.0% |
+| Snapshot cases | 2,749 / 3,535 | 77.8% |
+| End-to-end (built binary) | 1,148 / 3,535 | 32.5% |
+| **All layers combined** | **3,183 / 3,535** | **90.0%** |
 
 | Package | Statements | Covered | Coverage |
 |:---|---:|---:|---:|
 | `cli/cmd` | 1,201 | 1,028 | 85.6% |
-| `cli/core/corpus` | 1,109 | 1,012 | 91.3% |
+| `cli/core/corpus` | 1,104 | 1,009 | 91.4% |
 | `cli/core/envelope` | 47 | 44 | 93.6% |
 | `cli/core/finding` | 166 | 158 | 95.2% |
 | `cli/core/frontmatter` | 131 | 116 | 88.5% |
 | `cli/core/gherkin` | 289 | 267 | 92.4% |
-| `cli/core/markdown` | 95 | 89 | 93.7% |
+| `cli/core/markdown` | 99 | 93 | 93.9% |
 | `cli/core/mdlinks` | 70 | 70 | 100.0% |
 | `cli/core/numbering` | 26 | 22 | 84.6% |
 | `cli/core/references` | 155 | 151 | 97.4% |
@@ -317,7 +317,7 @@ alone is visible rather than averaged away.
 | `cli/core/specindex` | 1 | 1 | 100.0% |
 | `cli/profile` | 61 | 57 | 93.4% |
 | `cli/specs` | 1 | 1 | 100.0% |
-| **Total** | **3,536** | **3,182** | **90.0%** |
+| **Total** | **3,535** | **3,183** | **90.0%** |
 
 Generated code is excluded from these figures: 3,127 statements in 1 file (`specmodel.go`) carrying the `// Code generated … DO NOT EDIT.` marker. It is excluded from the coverage profile too, so every report derived from it agrees with this table.
 <!-- coverage:table:end -->
