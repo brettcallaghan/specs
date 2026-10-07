@@ -748,6 +748,27 @@ and a `Db` or `Queue` node matching nothing in scope is a passive store
 rather than an undeclared node. A member whose type declares no element
 has no drawing document, so its diagrams yield no node.
 
+**Drawings.** A relationship statement resolves to a drawing when both
+of its endpoint aliases name nodes in the same diagram that each resolve
+to exactly one element. A drawing carries the source and target elements
+in dependency direction — `Rel_Back(a, b)` draws `b` depending on `a` —
+the label, technology and description arguments, the tags as parsed,
+the view the diagram's type draws, the aliases as written, and the
+statement's path and span. Any other statement is unresolved with one
+reason, spelled as the model's `C4ExclusionReason`: `external_endpoint`,
+`passive_store`, `undeclared_node` (an alias naming no node in its
+diagram included) and `ambiguous_node`, checked in that order with the
+source endpoint before the target at each step, so an ambiguous source
+with an external target is `external_endpoint`. A `BiRel` statement
+states no single direction and is neither a drawing nor unresolved.
+
+**Relationships.** Drawings whose source element, target element and
+label are equal are drawings of one relationship, wherever they are
+drawn; a relationship holds its drawings ordered by path and then by
+span, and the set orders relationships by source slug, target slug and
+label. This grouping is what the drawing-conflict rule compares and what
+the C4 model emits.
+
 **Built** — `cli/core/c4elements`, reached through `Corpus.C4Elements`.
 Diagrams are read from each drawing document's source at the time of the
 run through `Corpus.Source`; the index does not record them, so neither

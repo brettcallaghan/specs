@@ -115,6 +115,90 @@ type Diagram struct {
 	// Nodes are the diagram's element and external node statements, in
 	// the order written.
 	Nodes []Node
+
+	// Drawings are the relationship statements that resolved, in the
+	// order written.
+	Drawings []Drawing
+
+	// Unresolved are the relationship statements that did not, in the
+	// order written. A `BiRel` statement is in neither: it states no
+	// single direction, so it draws no relationship and is not an
+	// endpoint failure either.
+	Unresolved []Unresolved
+}
+
+// Drawing is one relationship statement whose two endpoints each name
+// exactly one element.
+type Drawing struct {
+	// Source and Target are the elements at the two ends, in dependency
+	// direction: Source depends on Target, after `Rel_Back` normalisation.
+	Source *Element
+	Target *Element
+
+	// Label, Technology and Description are the statement's arguments as
+	// written, empty where absent.
+	Label       string
+	Technology  string
+	Description string
+
+	// Tags are the statement's tags, as the parser read them.
+	Tags c4diagram.Tags
+
+	// View is the view the diagram draws.
+	View specmodel.C4View
+
+	// SourceAlias and TargetAlias are the endpoint aliases as written, in
+	// dependency direction.
+	SourceAlias string
+	TargetAlias string
+
+	// Path is the drawing document's path, and Span covers the statement.
+	Path string
+	Span specmodel.Span
+
+	// Statement is the statement's index into [Diagram.Parsed]'s
+	// statements.
+	Statement int
+}
+
+// Unresolved is one relationship statement an endpoint of which does not
+// name exactly one element.
+type Unresolved struct {
+	// Reason is why, as the first failing check finds it: every endpoint
+	// is checked for being external, then for being a passive store, then
+	// for naming no element — an alias with no node in the diagram
+	// included — then for naming several, the source endpoint before the
+	// target at each step.
+	Reason specmodel.C4ExclusionReason
+
+	// SourceEndpoint reports whether the endpoint Reason is about is the
+	// source, in dependency direction, rather than the target.
+	SourceEndpoint bool
+
+	// SourceAlias and TargetAlias are the endpoint aliases as written, in
+	// dependency direction.
+	SourceAlias string
+	TargetAlias string
+
+	// Path is the drawing document's path, and Span covers the statement.
+	Path string
+	Span specmodel.Span
+
+	// Statement is the statement's index into [Diagram.Parsed]'s
+	// statements.
+	Statement int
+}
+
+// Relationship is every drawing of one relationship: drawings whose
+// source element, target element and label are equal.
+type Relationship struct {
+	Source *Element
+	Target *Element
+	Label  string
+
+	// Drawings are the relationship's drawings, ordered by path and then
+	// by span.
+	Drawings []Drawing
 }
 
 // Node is one node statement of a diagram, resolved.
@@ -146,9 +230,10 @@ type Node struct {
 
 // Set is the corpus's elements and its drawing documents.
 type Set struct {
-	elements  []*Element
-	bySlug    map[string]*Element
-	documents []*Document
+	elements      []*Element
+	bySlug        map[string]*Element
+	documents     []*Document
+	relationships []Relationship
 }
 
 // Elements returns every element, ordered by slug.
@@ -163,6 +248,10 @@ func (s *Set) Element(slug string) (*Element, bool) {
 
 // Documents returns every drawing document, ordered by path.
 func (s *Set) Documents() []*Document { return s.documents }
+
+// Relationships returns every relationship drawn anywhere in the corpus,
+// ordered by source slug, then target slug, then label.
+func (s *Set) Relationships() []Relationship { return s.relationships }
 
 // member is one corpus member whose type declares an element, as the
 // build reads it.
@@ -221,11 +310,59 @@ func Build(in Input) (*Set, error) {
 	for _, m := range members {
 		document := &Document{Path: m.entry.Path, Element: m.element}
 		document.Scope = scopeOf(in, vocabulary, set, m, rosters[m], byPath)
-		document.Diagrams = diagramsOf(m.src, document.Scope)
+		document.Diagrams = diagramsOf(m.entry.Path, m.src, document.Scope)
 		set.documents = append(set.documents, document)
 	}
 	sort.Slice(set.documents, func(i, j int) bool { return set.documents[i].Path < set.documents[j].Path })
+	set.relationships = group(set.documents)
 	return set, nil
+}
+
+// group gathers every drawing into the relationship it draws: one per
+// distinct source element, target element and label.
+func group(documents []*Document) []Relationship {
+	type key struct {
+		source, target *Element
+		label          string
+	}
+	index := map[key]int{}
+	var relationships []Relationship
+	for _, document := range documents {
+		for _, diagram := range document.Diagrams {
+			for _, drawing := range diagram.Drawings {
+				k := key{drawing.Source, drawing.Target, drawing.Label}
+				i, ok := index[k]
+				if !ok {
+					i = len(relationships)
+					index[k] = i
+					relationships = append(relationships, Relationship{
+						Source: drawing.Source, Target: drawing.Target, Label: drawing.Label,
+					})
+				}
+				relationships[i].Drawings = append(relationships[i].Drawings, drawing)
+			}
+		}
+	}
+	for _, relationship := range relationships {
+		sort.SliceStable(relationship.Drawings, func(i, j int) bool {
+			a, b := relationship.Drawings[i], relationship.Drawings[j]
+			if a.Path != b.Path {
+				return a.Path < b.Path
+			}
+			return a.Span.Offset < b.Span.Offset
+		})
+	}
+	sort.SliceStable(relationships, func(i, j int) bool {
+		a, b := relationships[i], relationships[j]
+		if a.Source.Slug != b.Source.Slug {
+			return a.Source.Slug < b.Source.Slug
+		}
+		if a.Target.Slug != b.Target.Slug {
+			return a.Target.Slug < b.Target.Slug
+		}
+		return a.Label < b.Label
+	})
+	return relationships
 }
 
 // readMembers returns every member whose type declares an element, in
@@ -378,21 +515,103 @@ func scopeOf(in Input, vocabulary ArchitectureRules, set *Set, m *member, roster
 	return ordered
 }
 
-// diagramsOf parses every Mermaid block in src and resolves its nodes
-// against scope.
-func diagramsOf(src []byte, scope []*Element) []Diagram {
+// diagramsOf parses every Mermaid block in src, resolves its nodes
+// against scope, and resolves its relationship statements against its
+// nodes.
+func diagramsOf(path string, src []byte, scope []*Element) []Diagram {
 	var diagrams []Diagram
 	for _, block := range markdown.FencedFrom(src, bodyOffset(src), []string{c4diagram.FenceTag}) {
 		diagram := Diagram{Block: block.Outer, Parsed: c4diagram.Parse(src, block.Inner)}
+		byAlias := map[string]int{}
 		for i, statement := range diagram.Parsed.Statements {
 			if statement.Kind != c4diagram.KindElement && statement.Kind != c4diagram.KindExternal {
 				continue
 			}
-			diagram.Nodes = append(diagram.Nodes, resolve(i, statement, scope))
+			node := resolve(i, statement, scope)
+			if _, seen := byAlias[node.Alias]; !seen {
+				byAlias[node.Alias] = len(diagram.Nodes)
+			}
+			diagram.Nodes = append(diagram.Nodes, node)
+		}
+		view := views[diagram.Parsed.Type]
+		for i, statement := range diagram.Parsed.Statements {
+			rel := statement.Relationship
+			if statement.Kind != c4diagram.KindRelationship || rel == nil || rel.Bidirectional {
+				continue
+			}
+			ends := [2]*Node{}
+			for e, alias := range []string{rel.Source.Value, rel.Target.Value} {
+				if n, ok := byAlias[alias]; ok {
+					ends[e] = &diagram.Nodes[n]
+				}
+			}
+			if reason, source, failed := endpointFailure(ends); failed {
+				diagram.Unresolved = append(diagram.Unresolved, Unresolved{
+					Reason:         reason,
+					SourceEndpoint: source,
+					SourceAlias:    rel.Source.Value,
+					TargetAlias:    rel.Target.Value,
+					Path:           path,
+					Span:           statement.Span,
+					Statement:      i,
+				})
+				continue
+			}
+			diagram.Drawings = append(diagram.Drawings, Drawing{
+				Source:      ends[0].Matches[0],
+				Target:      ends[1].Matches[0],
+				Label:       param(statement, c4diagram.ParamLabel),
+				Technology:  param(statement, c4diagram.ParamTechnology),
+				Description: param(statement, c4diagram.ParamDescription),
+				Tags:        rel.Tags,
+				View:        view,
+				SourceAlias: rel.Source.Value,
+				TargetAlias: rel.Target.Value,
+				Path:        path,
+				Span:        statement.Span,
+				Statement:   i,
+			})
 		}
 		diagrams = append(diagrams, diagram)
 	}
 	return diagrams
+}
+
+// views maps each diagram type the parser reads to the view it draws.
+var views = map[string]specmodel.C4View{
+	c4diagram.TypeContext:   specmodel.C4ViewContext,
+	c4diagram.TypeContainer: specmodel.C4ViewContainer,
+	c4diagram.TypeComponent: specmodel.C4ViewComponent,
+}
+
+// endpointFailure returns why a relationship's endpoints, source then
+// target, do not each name exactly one element, and which of them it is
+// about. A nil endpoint is an alias that names no node in the diagram.
+func endpointFailure(ends [2]*Node) (specmodel.C4ExclusionReason, bool, bool) {
+	checks := []struct {
+		reason specmodel.C4ExclusionReason
+		fails  func(*Node) bool
+	}{
+		{specmodel.C4ExclusionReasonExternalEndpoint, func(n *Node) bool { return n != nil && n.External }},
+		{specmodel.C4ExclusionReasonPassiveStore, func(n *Node) bool { return n != nil && n.PassiveStore }},
+		{specmodel.C4ExclusionReasonUndeclaredNode, func(n *Node) bool { return n == nil || len(n.Matches) == 0 }},
+		{specmodel.C4ExclusionReasonAmbiguousNode, func(n *Node) bool { return len(n.Matches) > 1 }},
+	}
+	for _, check := range checks {
+		for e, end := range ends {
+			if check.fails(end) {
+				return check.reason, e == 0, true
+			}
+		}
+	}
+	return "", false, false
+}
+
+// param returns the argument a statement gave the named parameter, and
+// empty where it gave none.
+func param(statement c4diagram.Statement, name string) string {
+	arg, _ := statement.Param(name)
+	return arg.Value
 }
 
 // resolve resolves one node statement against scope: an external node

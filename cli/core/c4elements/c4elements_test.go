@@ -337,3 +337,158 @@ func TestADiagramTheParserDoesNotReadIsKept(t *testing.T) {
 		t.Errorf("an unread diagram has nodes: %+v", doc.Diagrams[0].Nodes)
 	}
 }
+
+// relationshipFixture draws relationships of every outcome: in alpha, a
+// component diagram; in beta, a container diagram drawing one of alpha's
+// relationships again; and two containers both named Twin, so a node
+// naming Twin is ambiguous everywhere.
+func relationshipFixture() map[string]string {
+	return map[string]string{
+		"alpha.md": head("container-alpha", "container-blueprint", "Alpha") +
+			"# Alpha\n\n## Components\n\n" +
+			diagram(
+				`Component(p, "Parser", "Go")`,
+				`Component(l, "Lexer", "Go")`,
+				`Component(x, "Ghost", "Go")`,
+				`ContainerDb(db, "Store", "Files")`,
+				`Person(u, "User")`,
+				`Container(a, "Alpha", "Go")`,
+				`Container(b, "Beta", "Go")`,
+				`Container(t, "Twin", "Go")`,
+				`Rel(p, l, "Tokenizes with", "Go", "streams tokens")`,
+				`Rel_Back(l, p, "Tokenizes with")`,
+				`Rel(u, p, "Uses")`,
+				`Rel(p, db, "Writes")`,
+				`Rel(p, nobody, "Calls")`,
+				`Rel(p, x, "Calls")`,
+				`Rel(t, p, "Calls")`,
+				`Rel(t, u, "Mixed")`,
+				`BiRel(p, l, "Talks")`,
+				`Rel(a, b, "Calls", "HTTP", "", $tags="sync+contract:contract-api")`,
+			) +
+			"\n### Parser\n\n" + record("component-parser", "Parser") +
+			"\n### Lexer\n\n" + record("component-lexer", "Lexer"),
+		"beta.md": head("container-beta", "container-blueprint", "Beta") +
+			"# Beta\n\n```mermaid\nC4Container\n" +
+			"Container(a, \"Alpha\", \"Go\")\nContainer(b, \"Beta\", \"Go\")\n" +
+			"Rel(a, b, \"Calls\", \"gRPC\")\n```\n",
+		"twin1.md": head("container-twin-one", "container-blueprint", "Twin"),
+		"twin2.md": head("container-twin-two", "container-blueprint", "Twin"),
+	}
+}
+
+func TestRelationshipStatementsResolveToDrawings(t *testing.T) {
+	set := build(t, relationshipFixture(), vocabulary())
+	diagram := document(t, set, "alpha.md").Diagrams[0]
+
+	var got []string
+	for _, drawing := range diagram.Drawings {
+		got = append(got, drawing.Source.Slug+">"+drawing.Target.Slug+":"+drawing.Label)
+	}
+	want := "component-parser>component-lexer:Tokenizes with," +
+		"component-parser>component-lexer:Tokenizes with," +
+		"container-alpha>container-beta:Calls"
+	if strings.Join(got, ",") != want {
+		t.Errorf("drawings = %v\nwant       %s", got, want)
+	}
+
+	first := diagram.Drawings[0]
+	if first.Technology != "Go" || first.Description != "streams tokens" ||
+		first.View != specmodel.C4ViewComponent || first.Path != "alpha.md" ||
+		first.SourceAlias != "p" || first.TargetAlias != "l" {
+		t.Errorf("first drawing = %+v", first)
+	}
+	last := diagram.Drawings[2]
+	if len(last.Tags.Reserved) != 2 || last.Tags.Reserved[1].Slug != "contract-api" {
+		t.Errorf("tags = %+v", last.Tags)
+	}
+}
+
+// Rel_Back(l, p) draws p depending on l, and its aliases are reported in
+// that direction.
+func TestRelBackIsReadInDependencyDirection(t *testing.T) {
+	set := build(t, relationshipFixture(), vocabulary())
+	back := document(t, set, "alpha.md").Diagrams[0].Drawings[1]
+
+	if back.Source.Slug != "component-parser" || back.Target.Slug != "component-lexer" {
+		t.Errorf("Rel_Back drew %s > %s", back.Source.Slug, back.Target.Slug)
+	}
+	if back.SourceAlias != "p" || back.TargetAlias != "l" {
+		t.Errorf("aliases = %s > %s", back.SourceAlias, back.TargetAlias)
+	}
+}
+
+func TestUnresolvedStatementsCarryOneReasonInOrder(t *testing.T) {
+	set := build(t, relationshipFixture(), vocabulary())
+	unresolved := document(t, set, "alpha.md").Diagrams[0].Unresolved
+
+	type outcome struct {
+		reason specmodel.C4ExclusionReason
+		source bool
+	}
+	want := []outcome{
+		{specmodel.C4ExclusionReasonExternalEndpoint, true}, // Rel(u, p)
+		{specmodel.C4ExclusionReasonPassiveStore, false},    // Rel(p, db)
+		{specmodel.C4ExclusionReasonUndeclaredNode, false},  // Rel(p, nobody): no node
+		{specmodel.C4ExclusionReasonUndeclaredNode, false},  // Rel(p, x): Ghost names nothing
+		{specmodel.C4ExclusionReasonAmbiguousNode, true},    // Rel(t, p): two Twins
+		// Rel(t, u): the source is ambiguous, but an external endpoint is
+		// checked first, on either end.
+		{specmodel.C4ExclusionReasonExternalEndpoint, false},
+	}
+	if len(unresolved) != len(want) {
+		t.Fatalf("unresolved = %+v, want %d", unresolved, len(want))
+	}
+	for i, w := range want {
+		if unresolved[i].Reason != w.reason || unresolved[i].SourceEndpoint != w.source {
+			t.Errorf("unresolved %d (%s > %s) = %s source=%v, want %s source=%v",
+				i, unresolved[i].SourceAlias, unresolved[i].TargetAlias,
+				unresolved[i].Reason, unresolved[i].SourceEndpoint, w.reason, w.source)
+		}
+	}
+}
+
+func TestBiRelResolvesToNoDrawing(t *testing.T) {
+	set := build(t, relationshipFixture(), vocabulary())
+	diagram := document(t, set, "alpha.md").Diagrams[0]
+
+	for _, drawing := range diagram.Drawings {
+		if drawing.Label == "Talks" {
+			t.Error("BiRel resolved to a drawing")
+		}
+	}
+	for _, unresolved := range diagram.Unresolved {
+		if unresolved.SourceAlias == "p" && unresolved.TargetAlias == "l" {
+			t.Error("BiRel is reported unresolved")
+		}
+	}
+}
+
+// Alpha's and Beta's diagrams both draw Alpha calling Beta: one
+// relationship with two drawings, ordered by path, each keeping its own
+// technology and view.
+func TestDrawingsGroupIntoRelationshipsAcrossDocuments(t *testing.T) {
+	set := build(t, relationshipFixture(), vocabulary())
+
+	var calls *c4elements.Relationship
+	for i, relationship := range set.Relationships() {
+		if relationship.Source.Slug == "container-alpha" && relationship.Label == "Calls" {
+			calls = &set.Relationships()[i]
+		}
+	}
+	if calls == nil {
+		t.Fatalf("no Alpha calls Beta relationship among %+v", set.Relationships())
+	}
+	if len(calls.Drawings) != 2 || calls.Drawings[0].Path != "alpha.md" || calls.Drawings[1].Path != "beta.md" {
+		t.Fatalf("drawings = %+v", calls.Drawings)
+	}
+	if calls.Drawings[0].Technology != "HTTP" || calls.Drawings[1].Technology != "gRPC" {
+		t.Errorf("technologies = %q, %q", calls.Drawings[0].Technology, calls.Drawings[1].Technology)
+	}
+	if calls.Drawings[1].View != specmodel.C4ViewContainer {
+		t.Errorf("beta's view = %s", calls.Drawings[1].View)
+	}
+	if got := len(set.Relationships()); got != 2 {
+		t.Errorf("relationships = %d, want 2 (Parser>Lexer and Alpha>Beta)", got)
+	}
+}
