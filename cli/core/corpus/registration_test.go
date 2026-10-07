@@ -449,3 +449,16 @@ func TestValidateRegistrationReportsAnUnresolvableSchemaPointer(t *testing.T) {
 		t.Errorf("defect keys = %q, %q; want the registered tags", defects[0].Key, defects[1].Key)
 	}
 }
+
+// A schema that is not JSON is the schema's fault, reported by the schema
+// registry; it must not read as every pointer resolving to nothing.
+func TestValidateRegistrationRaisesNoPointerDefectForAnUnparsableSchema(t *testing.T) {
+	profile := stubProfile{
+		schema:       []byte(`{not json`),
+		recordBlocks: []corpus.RecordBlockTag{{Tag: "widget", Schema: "#/definitions/Widget"}},
+	}
+
+	if defects := corpus.ValidateRegistration(profile); len(defects) != 0 {
+		t.Errorf("got %d defects for an unparsable schema, want none: %+v", len(defects), defects)
+	}
+}

@@ -180,6 +180,9 @@ The optional `Schema` pointer addresses a definition inside
 no tag, and a profile that registers none yields a corpus with no record
 blocks. `ValidateRegistration` reports a pointer that resolves to
 nothing instead of skipping validation; a tag with no pointer is valid.
+A schema that is not JSON raises no pointer defect, since no pointer can
+be judged against it: the schema registry reports it when the corpus
+compiles the profile's schema.
 
 `FeatureTagRules` is profile-level for a different reason: a feature is
 not a document type. It is written inside a document of any type, or in

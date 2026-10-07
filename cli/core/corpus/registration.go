@@ -98,16 +98,23 @@ func ValidateRegistration(profile Profile) []RegistrationDefect {
 // An unresolvable pointer is reported rather than skipped because
 // skipping it would validate every record against nothing and report
 // success.
+//
+// A schema that is not JSON yields no defect at all: no pointer can be
+// judged against it, and the fault is the schema's rather than any tag's.
+// It is reported, once, by the schema registry the corpus compiles the
+// active profile's schema with.
 func recordBlockDefects(tags []RecordBlockTag, schema []byte) []RegistrationDefect {
 	var document any
-	parsed := json.Unmarshal(schema, &document) == nil
+	if json.Unmarshal(schema, &document) != nil {
+		return nil
+	}
 
 	var defects []RegistrationDefect
 	for _, tag := range tags {
 		if tag.Schema == "" {
 			continue
 		}
-		if parsed && resolvePointer(document, tag.Schema) {
+		if resolvePointer(document, tag.Schema) {
 			continue
 		}
 		defects = append(defects, RegistrationDefect{
