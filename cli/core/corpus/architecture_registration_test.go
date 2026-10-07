@@ -184,6 +184,28 @@ func TestValidateRegistrationReportsAnUnregisteredRosterTag(t *testing.T) {
 	}
 }
 
+func TestValidateRegistrationReportsARosterTagWithNoHeading(t *testing.T) {
+	profile := architectureProfile()
+	profile.architecture.Elements["wing"] = corpus.ElementTypeRules{Level: corpus.LevelModule, RosterTag: "room"}
+
+	defects := corpus.ValidateRegistration(profile)
+	if len(defects) != 1 || defects[0].DocumentType != "wing" || defects[0].Key != "room" ||
+		!strings.Contains(defects[0].Detail, "no roster heading is registered") {
+		t.Errorf("defects = %+v, want one for wing keyed room naming the missing heading", defects)
+	}
+}
+
+func TestValidateRegistrationReportsARosterHeadingWithNoTag(t *testing.T) {
+	profile := architectureProfile()
+	profile.architecture.Elements["wing"] = corpus.ElementTypeRules{Level: corpus.LevelModule, RosterHeading: "Components"}
+
+	defects := corpus.ValidateRegistration(profile)
+	if len(defects) != 1 || defects[0].DocumentType != "wing" || defects[0].Key != "Components" ||
+		!strings.Contains(defects[0].Detail, "no roster record-block tag is registered") {
+		t.Errorf("defects = %+v, want one for wing keyed Components naming the missing tag", defects)
+	}
+}
+
 // A schema that is not JSON can judge no property, so it yields no
 // property defect; the other three defects do not read the schema and
 // are still reported.

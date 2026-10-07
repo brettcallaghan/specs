@@ -120,7 +120,7 @@ the plugin, and no framework vocabulary is compiled into the host.
   - WHEN a profile is activated, the module SHALL validate its
     registration and SHALL report every defect it finds, naming the
     offending key, rather than falling back to a default for that key
-    (AC-SPECREF-004.3). The defects are eleven: a pairing or a typed
+    (AC-SPECREF-004.3). The defects are thirteen: a pairing or a typed
     reference naming a property the same type does not register as
     reference-bearing; a typed reference naming a document type the
     profile does not define; a lifecycle registration naming a status
@@ -133,8 +133,10 @@ the plugin, and no framework vocabulary is compiled into the host.
     profile does not define; an architecture registration naming a
     property the union schema does not declare on a type the property
     applies to; an element type registered at a level outside the four
-    C4 levels; and a roster record-block tag that is not among the
-    profile's registered record-block tags.
+    C4 levels; a roster record-block tag registered with no roster
+    heading; a roster heading registered with no roster record-block tag;
+    and a roster record-block tag that is not among the profile's
+    registered record-block tags.
   - The module SHALL return those defects to the caller rather than
     rendering them. A compiled-in registration has no file position of
     its own, and the position a reader needs — the configuration value

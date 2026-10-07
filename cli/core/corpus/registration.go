@@ -108,8 +108,9 @@ func ValidateRegistration(profile Profile) []RegistrationDefect {
 // architectureDefects reports the faults in an architecture registration:
 // a registered type the profile does not define, a level outside the
 // four, a registered property the union schema does not declare on a
-// type it applies to, and a roster tag that is not a registered
-// record-block tag.
+// type it applies to, and a roster registration that reads no child: a
+// roster tag with no roster heading, a roster heading with no roster
+// tag, or a roster tag that is not a registered record-block tag.
 //
 // Defects follow the element types in ascending order — for each, an
 // undefined type alone, otherwise its level, then its properties in the
@@ -167,7 +168,22 @@ func architectureDefects(profile Profile) []RegistrationDefect {
 				defects = append(defects, undeclaredPropertyDefect(registry, name, property.name, property.role)...)
 			}
 		}
-		if (element.RosterHeading != "" || element.RosterTag != "") && !tags[element.RosterTag] {
+		switch {
+		case element.RosterTag != "" && element.RosterHeading == "":
+			defects = append(defects, RegistrationDefect{
+				DocumentType: name,
+				Key:          element.RosterTag,
+				Detail: "is registered as the roster record-block tag, but no roster heading " +
+					"is registered, so no child would ever be read",
+			})
+		case element.RosterHeading != "" && element.RosterTag == "":
+			defects = append(defects, RegistrationDefect{
+				DocumentType: name,
+				Key:          element.RosterHeading,
+				Detail: "is registered as the roster heading, but no roster record-block tag " +
+					"is registered, so no child would ever be read under it",
+			})
+		case element.RosterTag != "" && !tags[element.RosterTag]:
 			defects = append(defects, RegistrationDefect{
 				DocumentType: name,
 				Key:          element.RosterTag,
