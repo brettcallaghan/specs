@@ -293,6 +293,12 @@ enum C4ExclusionReason {
 
   """An endpoint's label matches more than one element in scope."""
   ambiguous_node
+
+  """
+  A `BiRel` statement, which states no single dependency between its
+  endpoints.
+  """
+  bidirectional
 }
 
 """A `Rel` statement excluded from the model, and why."""

@@ -606,7 +606,8 @@
         "external_endpoint",
         "passive_store",
         "undeclared_node",
-        "ambiguous_node"
+        "ambiguous_node",
+        "bidirectional"
       ],
       "type": "string"
     },
