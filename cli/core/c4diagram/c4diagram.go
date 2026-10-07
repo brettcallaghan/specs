@@ -345,6 +345,9 @@ func Parse(doc []byte, at span.Span) Diagram {
 	diagram := Diagram{TypeSpan: span.Of(doc, start, 0)}
 	typed := false
 	var open []int
+	seen := false        // a non-blank line has been read
+	frontmatter := false // inside a leading --- block
+	directive := false   // inside a multi-line %%{ ... }%% directive
 
 	for lineStart := start; lineStart < end; {
 		lineEnd := lineStart
@@ -359,7 +362,22 @@ func Parse(doc []byte, at span.Span) Diagram {
 			continue
 		}
 		text := string(doc[from:to])
+		first := !seen
+		seen = true
+		if frontmatter {
+			frontmatter = text != "---"
+			continue
+		}
+		if directive {
+			directive = !strings.Contains(text, "}%%")
+			continue
+		}
+		if first && text == "---" {
+			frontmatter = true
+			continue
+		}
 		if strings.HasPrefix(text, "%%") {
+			directive = strings.HasPrefix(text, "%%{") && !strings.Contains(text, "}%%")
 			continue
 		}
 		at := span.Of(doc, from, to-from)

@@ -441,6 +441,42 @@ func TestMissingRequiredParametersStillFail(t *testing.T) {
 	}
 }
 
+// Leading frontmatter and multi-line directives are skipped, not read as
+// the diagram type.
+func TestFrontmatterAndMultiLineDirectivesAreSkipped(t *testing.T) {
+	doc := "# Doc\n\n```mermaid\n---\ntitle: X\n---\nC4Component\nComponent(a, \"A\")\n```\n"
+	d := parseBlock(t, doc)
+	if d.Type != "C4Component" || !d.Read() {
+		t.Fatalf("type = %q, read = %v", d.Type, d.Read())
+	}
+	only(t, d)
+	if got := string(span.Slice([]byte(doc), d.TypeSpan)); got != "C4Component" {
+		t.Errorf("type span covers %q", got)
+	}
+
+	doc = "# Doc\n\n```mermaid\n%%{\ninit: {\"theme\": \"dark\"}\n}%%\nC4Container\n```\n"
+	if d = parseBlock(t, doc); d.Type != "C4Container" {
+		t.Errorf("type after a multi-line directive = %q", d.Type)
+	}
+
+	d = parseBlock(t, diagram(`%%{`, `init: {"theme": "dark"}`, `}%%`, `Component(a, "A")`))
+	only(t, d)
+}
+
+func TestUnterminatedFrontmatterYieldsNoDiagram(t *testing.T) {
+	d := parseBlock(t, "# Doc\n\n```mermaid\n---\ntitle: X\nC4Component\nComponent(a, \"A\")\n```\n")
+	if d.Type != "" || len(d.Statements) != 0 || len(d.Errors) != 0 {
+		t.Errorf("got type %q, %d statements, %d errors", d.Type, len(d.Statements), len(d.Errors))
+	}
+}
+
+func TestUnterminatedDirectiveConsumesTheRestWithoutError(t *testing.T) {
+	d := parseBlock(t, diagram(`%%{`, `init: {}`, `Component(a, "A")`))
+	if len(d.Errors) != 0 || len(d.Statements) != 0 {
+		t.Errorf("got %d statements, %+v", len(d.Statements), d.Errors)
+	}
+}
+
 // Every C4 diagram this repository draws parses with no error.
 func TestThisRepositorysDiagramsParse(t *testing.T) {
 	root := filepath.Join("..", "..", "..")

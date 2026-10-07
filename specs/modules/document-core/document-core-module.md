@@ -635,7 +635,9 @@ argument is recorded rather than treated as a separator
 
 **Built** — `cli/core/c4diagram`. A boundary's `{` opens it and a line
 holding only `}` closes the innermost one; a stray `}` and a boundary
-left open are both parse errors. Nothing calls it yet: the C4 checks
+left open are both parse errors. Leading `---` frontmatter and
+`%%{ ... }%%` directives spread over several lines are skipped before the
+diagram type is read. Nothing calls it yet: the C4 checks
 are what bring a Corpus edge into it.
 
 ### References
