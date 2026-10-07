@@ -87,7 +87,7 @@ func TestAnUnparsableFrontmatterBlockIsNotIndexedAsAHeading(t *testing.T) {
 	// a sequence it never closes.
 	src := []byte("---\ntitle: a---b\nstatus: [unclosed\n---\n\n# Real heading\n\nbody\n")
 
-	found := headingsOf(src, nil)
+	found, _ := headingsOf(src, nil, nil)
 
 	if len(found) != 1 {
 		t.Fatalf("found %d headings, want 1: %+v", len(found), found)
@@ -110,19 +110,19 @@ func TestAnUnparsableFrontmatterBlockIsNotIndexedAsAHeading(t *testing.T) {
 // no frontmatter at all — the behaviours the fallback exists for.
 func TestTheFallbackStillLocatesTheBodyOfAnOrdinaryDocument(t *testing.T) {
 	unparsable := []byte("---\nstatus: [unclosed\n---\n\n# Real heading\n\nbody\n")
-	if found := headingsOf(unparsable, nil); len(found) != 1 || found[0].Text != "Real heading" {
+	if found, _ := headingsOf(unparsable, nil, nil); len(found) != 1 || found[0].Text != "Real heading" {
 		t.Errorf("unparsable frontmatter: got %+v, want the one heading %q", found, "Real heading")
 	}
 
 	none := []byte("# Only heading\n\nbody\n")
-	if found := headingsOf(none, nil); len(found) != 1 || found[0].Text != "Only heading" {
+	if found, _ := headingsOf(none, nil, nil); len(found) != 1 || found[0].Text != "Only heading" {
 		t.Errorf("no frontmatter: got %+v, want the one heading %q", found, "Only heading")
 	}
 
 	// A "---" further down a document with no block of its own opens
 	// nothing: the whole source is the body.
 	late := []byte("# Heading\n\nbody\n\n---\n\nmore\n")
-	if found := headingsOf(late, nil); len(found) != 1 || found[0].Text != "Heading" {
+	if found, _ := headingsOf(late, nil, nil); len(found) != 1 || found[0].Text != "Heading" {
 		t.Errorf("a late delimiter: got %+v, want the one heading %q", found, "Heading")
 	}
 }

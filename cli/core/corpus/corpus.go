@@ -180,6 +180,7 @@ func Build(opts Options) (*Corpus, error) {
 		profile:    opts.Profile,
 		types:      opts.Profile.DocumentTypes(),
 		vocabulary: newVocabulary(opts.Profile.FeatureTags()),
+		recordTags: recordTagsOf(opts.Profile),
 		index:      specindex.New(opts.Workspace),
 		byPath:     map[string]int{},
 		alsoKnown:  map[string]int{},
@@ -379,6 +380,9 @@ type builder struct {
 	// vocabulary is opts.Profile.FeatureTags() compiled once, the seam
 	// through which the registered patterns reach the Gherkin component.
 	vocabulary vocabulary
+	// recordTags is the info strings opts.Profile.RecordBlocks()
+	// registers, in registration order. Empty where none is.
+	recordTags []string
 
 	// hasher accumulates the content hash of everything the walk reads,
 	// so that the fingerprint the emitted index records is a by-product of
@@ -449,10 +453,12 @@ func (b *builder) classify(reported string, src []byte) {
 		// a recorded failure, not an exclusion: the file claimed to be a
 		// specification and the claim could not be checked
 		// (AC-SPEC-002.4).
+		headings, records := headingsOf(src, nil, b.recordTags)
 		b.addEntry(specmodel.IndexEntry{
-			Path:       reported,
-			ParseError: perr,
-			Headings:   headingsOf(src, nil),
+			Path:         reported,
+			ParseError:   perr,
+			Headings:     headings,
+			RecordBlocks: records,
 		}, member{})
 
 	case doc == nil:
@@ -498,20 +504,24 @@ func (b *builder) classifyDocument(reported string, src []byte, doc *frontmatter
 		// a status outside the vocabulary, a timestamp that is
 		// not one. Recorded against this member so the rest of the corpus
 		// still indexes (AC-SPEC-002.4).
+		headings, records := headingsOf(src, doc, b.recordTags)
 		b.addEntry(specmodel.IndexEntry{
-			Path:       reported,
-			ParseError: perr,
-			Headings:   headingsOf(src, doc),
+			Path:         reported,
+			ParseError:   perr,
+			Headings:     headings,
+			RecordBlocks: records,
 		}, member{})
 		return
 	}
 
 	b.docs[reported] = doc
+	headings, records := headingsOf(src, doc, b.recordTags)
 	b.addEntry(
 		specmodel.IndexEntry{
-			Path:        reported,
-			Frontmatter: frontmatter,
-			Headings:    headingsOf(src, doc),
+			Path:         reported,
+			Frontmatter:  frontmatter,
+			Headings:     headings,
+			RecordBlocks: records,
 		},
 		member{path: reported, slug: string(envelope.Of(frontmatter).Slug), slugAt: slugSpan(doc), doc: doc},
 	)
@@ -520,7 +530,10 @@ func (b *builder) classifyDocument(reported string, src []byte, doc *frontmatter
 }
 
 // headingsOf returns the headings of one candidate's body, in the order
-// they are written and in the document's own coordinates.
+// they are written and in the document's own coordinates, each carrying
+// the record blocks registered by recordTags that its section contains.
+// The second result is the record blocks no heading's section contains,
+// which belong to the document itself.
 //
 // The search starts at the body rather than at the start of the file. A
 // frontmatter block's closing delimiter underlines the YAML above it,
@@ -536,7 +549,7 @@ func (b *builder) classifyDocument(reported string, src []byte, doc *frontmatter
 // located again from the source: a member whose frontmatter failed to
 // parse still carries its headings, a heading not depending on an
 // envelope.
-func headingsOf(src []byte, doc *frontmatter.Document) []specmodel.Heading {
+func headingsOf(src []byte, doc *frontmatter.Document, recordTags []string) ([]specmodel.Heading, []specmodel.RecordBlock) {
 	from := 0
 	switch {
 	case doc != nil:
@@ -558,17 +571,14 @@ func headingsOf(src []byte, doc *frontmatter.Document) []specmodel.Heading {
 	headings := make([]specmodel.Heading, 0, len(found))
 	for _, heading := range found {
 		headings = append(headings, specmodel.Heading{
-			Text:        heading.Text,
-			Level:       uint64(heading.Level),
-			Span:        heading.Position,
-			SectionSpan: heading.Section,
-			// Record blocks attach to a heading once a profile registers
-			// a tag; until then every heading carries none rather than
-			// null.
+			Text:         heading.Text,
+			Level:        uint64(heading.Level),
+			Span:         heading.Position,
+			SectionSpan:  heading.Section,
 			RecordBlocks: []specmodel.RecordBlock{},
 		})
 	}
-	return headings
+	return headings, attachRecordBlocks(headings, recordBlocksOf(src, recordTags))
 }
 
 // extractReferences records the references one member makes, from the

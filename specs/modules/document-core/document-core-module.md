@@ -460,9 +460,21 @@ Every position is still computed by Spans's `Of`, so a fenced block's
 position is comparable to a frontmatter or reference position. An
 unterminated fence — content running to the end of the document with no
 closing line — yields no block, matching the Spans scanner's refusal to
-guess at a dangling delimiter. `Fenced` locates and returns bytes only:
-parsing a matched block's content in its tag's declared format is a
-question for that tag's own consumer, not for this package.
+guess at a dangling delimiter. `Fenced` locates and returns bytes only.
+
+**Built — record-block recording.** Corpus calls `Fenced` with the tags
+the active profile registers through `RecordBlocks` and records each
+block as a `RecordBlock` of tag and `Outer` span, fences included, never
+its content. A record attaches to the innermost heading whose section
+span contains it, and to the entry's own `record_blocks` where no
+heading's does; each appears exactly once, and an entry with no
+registered tag carries `[]` throughout. A block is recorded whether or
+not its content is valid: indexing raises no finding about a record.
+`DecodeRecordBlock` reads a recorded block's content back through its
+span, strips the fences and decodes the YAML into a caller-supplied Go
+value, so every command and check decodes a record the same way. The
+registered tags are folded into the input hash, since they decide what
+the index records.
 
 Its heading surface is `Headings`, which takes a document body and
 returns every heading in document order as a `Heading`: its `Text` as

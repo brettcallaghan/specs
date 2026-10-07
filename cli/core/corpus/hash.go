@@ -134,6 +134,12 @@ func (h *inputHasher) sum(opts Options) string {
 
 	foldFeatureTags(sum, opts.Profile.FeatureTags())
 
+	// The registered record-block tags decide which fenced blocks the
+	// index records, so a changed set changes the index while every file
+	// stands still. The schema pointers are not folded: they are read
+	// only by checks, against the live profile.
+	field(sum, "record-blocks", []byte(strings.Join(sortedTags(recordTagsOf(opts.Profile)), "\x00")))
+
 	sort.Slice(h.files, func(i, j int) bool { return h.files[i].path < h.files[j].path })
 	for _, file := range h.files {
 		field(sum, file.label()+file.path, file.digest[:])
