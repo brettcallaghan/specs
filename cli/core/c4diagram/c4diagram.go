@@ -117,7 +117,8 @@ type Statement struct {
 	Args []Argument
 
 	// Named are the `$<name>=<value>` arguments, in the order written.
-	// They occupy no positional slot.
+	// They occupy no positional slot. When the same parameter is named
+	// multiple times, the last one wins.
 	Named []Argument
 
 	// Parent is the index into [Diagram.Statements] of the innermost
@@ -155,7 +156,8 @@ type Argument struct {
 
 // Param returns the argument the macro's parameter of this name was
 // given, positionally or as a named argument. A named argument wins over
-// a positional one, since Mermaid applies it last.
+// a positional one, since Mermaid applies it last; among repeated named
+// arguments, the last one wins.
 func (s Statement) Param(name string) (Argument, bool) {
 	if arg, ok := s.named(name); ok {
 		return arg, true
@@ -176,11 +178,14 @@ func (s Statement) Param(name string) (Argument, bool) {
 	return Argument{}, false
 }
 
-// named returns the `$name` argument that names the parameter, if any.
+// named returns the last `$name` argument that names the parameter, if
+// any. This matches Mermaid's semantics, where later named arguments
+// overwrite earlier ones, and among short and long forms naming the same
+// parameter (e.g. $descr and $description), the later one wins.
 func (s Statement) named(name string) (Argument, bool) {
-	for _, arg := range s.Named {
-		if namedAs(arg.Name, name) {
-			return arg, true
+	for i := len(s.Named) - 1; i >= 0; i-- {
+		if namedAs(s.Named[i].Name, name) {
+			return s.Named[i], true
 		}
 	}
 	return Argument{}, false

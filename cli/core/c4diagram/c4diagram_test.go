@@ -544,3 +544,49 @@ func TestThisRepositorysDiagramsParse(t *testing.T) {
 		t.Errorf("read %d C4 diagrams, want at least 4", diagrams)
 	}
 }
+
+func TestARepeatedNamedArgumentKeepsTheLastValue(t *testing.T) {
+	for name, tc := range map[string]struct {
+		statement string
+		param     string
+		want      string
+	}{
+		"repeated $tags": {
+			statement: `Rel(a, b, "x", $tags="sync", $tags="async")`,
+			param:     c4diagram.ParamTags,
+			want:      "async",
+		},
+		"short and long form of description": {
+			statement: `Container(c, "C", $descr="first", $description="second")`,
+			param:     c4diagram.ParamDescription,
+			want:      "second",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			s := only(t, parseBlock(t, diagram(tc.statement)))
+			got := param(t, s, tc.param)
+			if got != tc.want {
+				t.Errorf("%s = %q, want %q", tc.param, got, tc.want)
+			}
+		})
+	}
+}
+
+// AC: repeated named arguments for tags
+func TestRepeatedTagsArgumentKeepsTheLastOne(t *testing.T) {
+	s := only(t, parseBlock(t, diagram(`Rel(a, b, "x", $tags="sync", $tags="async")`)))
+
+	tags := s.Relationship.Tags
+	if !tags.Present {
+		t.Fatal("tags argument not found")
+	}
+	if tags.Raw != "async" {
+		t.Errorf("tags Raw = %q, want async (the last value)", tags.Raw)
+	}
+	if want := []c4diagram.ReservedTag{{Name: c4diagram.TagAsync}}; !reflect.DeepEqual(tags.Reserved, want) {
+		t.Errorf("reserved = %+v, want %+v", tags.Reserved, want)
+	}
+	if len(tags.Unreserved) != 0 {
+		t.Errorf("unreserved = %q, want empty", tags.Unreserved)
+	}
+}
