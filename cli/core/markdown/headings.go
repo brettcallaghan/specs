@@ -71,8 +71,8 @@ func Headings(body []byte) []Heading {
 // the start of the document, frontmatter included.
 //
 // Searching from an offset rather than over the whole file is what a
-// document with frontmatter requires, and it is the one place the heading
-// search differs from the fenced-block one. A frontmatter block's closing
+// document with frontmatter requires, and [FencedFrom] takes the same
+// offset for the same reason. A frontmatter block's closing
 // "---" underlines the YAML above it, which is a setext heading in
 // CommonMark: offered a whole specification file, a markdown parser
 // reports the entire frontmatter block as a level-2 heading. Starting at

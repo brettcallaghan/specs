@@ -141,7 +141,7 @@ the plugin, and no framework vocabulary is compiled into the host.
     and only to the destination the caller resolves. It modifies no
     document it reads.
 
-**Built** — the `Profile` interface in `cli/core/corpus` has five
+**Built** — the `Profile` interface in `cli/core/corpus` has six
 members and nothing else:
 
 | Member | Supplies |
@@ -151,6 +151,7 @@ members and nothing else:
 | `Conventions() specmodel.ConventionsConfig` | the convention defaults resolved where an adopting repository's configuration omits them |
 | `Lifecycle() LifecycleRules` | the profile's status vocabulary, which of those statuses mean in effect and which mean superseded, and the property a superseded document names its replacement in |
 | `FeatureTags() FeatureTagRules` | the tag vocabulary: the identifier patterns a feature and a criterion match, the prefix an owning-document tag carries, the captures a criterion identifier shares with its feature's, and the qualifier tags with their meanings |
+| `RecordBlocks() []RecordBlockTag` | the fenced-block info strings registered as record blocks, each with an optional JSON Pointer fragment into the union schema that its YAML record is validated against |
 
 `DocumentTypeRules` carries a slug pattern, a numbered flag, and the
 type's reference registration — `ReferenceProperties`, the properties
@@ -171,6 +172,19 @@ not report a lifecycle naming a status the profile does not define. The
 alternative, reading the vocabulary out of the union schema, would mean
 the host knowing where a schema keeps its status enum and passing
 vacuously against a profile that keeps it elsewhere.
+
+`RecordBlockTag` registers a record-block tag as data, as the lifecycle
+and tag vocabulary are. A record is YAML, so there is no per-tag format.
+The optional `Schema` pointer addresses a definition inside
+`Profile.Schema()`, so the host still holds one schema. The module names
+no tag, and a profile that registers none yields a corpus with no record
+blocks. `ValidateRegistration` reports a pointer that resolves to
+nothing instead of skipping validation, and a tag registered more than
+once, since which schema applies would depend on registration order; a
+tag with no pointer is valid.
+A schema that is not JSON raises no pointer defect, since no pointer can
+be judged against it: the schema registry reports it when the corpus
+compiles the profile's schema.
 
 `FeatureTagRules` is profile-level for a different reason: a feature is
 not a document type. It is written inside a document of any type, or in
@@ -442,7 +456,9 @@ fenced-block surface is `Fenced`, which takes a document body and a set
 of registered tags and returns every fenced block whose info string
 matches one of them, in
 document order, as a `Block`: `Content` — the bytes between the fences —
-alongside `Outer`, over the whole construct including both fence lines
+and `Text` — the content lines as the parser reads them, container
+prefixes such as a blockquote's `> ` removed, so unlike `Content` it is
+not a slice of the document — alongside `Outer`, over the whole construct including both fence lines
 in full, and `Inner`, over the content alone. Fence recognition comes
 from `goldmark` — [[adr-015]]'s choice, already a module dependency via
 References — rather than from a hand-rolled scan, because where a fence
@@ -451,9 +467,28 @@ Every position is still computed by Spans's `Of`, so a fenced block's
 position is comparable to a frontmatter or reference position. An
 unterminated fence — content running to the end of the document with no
 closing line — yields no block, matching the Spans scanner's refusal to
-guess at a dangling delimiter. `Fenced` locates and returns bytes only:
-parsing a matched block's content in its tag's declared format is a
-question for that tag's own consumer, not for this package.
+guess at a dangling delimiter. `Fenced` locates and returns bytes only.
+`FencedFrom` is its offset-taking form, mirroring `HeadingsFrom`: it searches from a byte offset and
+reports every span in whole-file coordinates, and `Fenced` is
+`FencedFrom` at offset 0.
+
+**Built — record-block recording.** Corpus calls `FencedFrom`, from the
+start of the body so a fence inside frontmatter YAML is never a record,
+with the tags the
+active profile registers through `RecordBlocks` and records each
+block as a `RecordBlock` of tag and `Outer` span, fences included, never
+its content. A record attaches to the innermost heading whose section
+span contains it, and to the entry's own `record_blocks` where no
+heading's does; each appears exactly once, and an entry with no
+registered tag carries `[]` throughout. A block is recorded whether or
+not its content is valid: indexing raises no finding about a record.
+`DecodeRecordBlock` reads a recorded block's content back through its
+span: it re-locates the block from the body through `FencedFrom`, the same search that recorded it, matching on `Outer`, and
+decodes the block's `Text` as YAML into a caller-supplied Go value, so a
+record inside a blockquote decodes like any other and a span that covers
+no fenced block of the tag is an error. Every command and check decodes
+a record the same way. The registered tags are folded into the input
+hash, since they decide what the index records.
 
 Its heading surface is `Headings`, which takes a document body and
 returns every heading in document order as a `Heading`: its `Text` as

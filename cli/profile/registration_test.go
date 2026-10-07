@@ -468,3 +468,25 @@ func equalStrings(got, want []string) bool {
 	}
 	return true
 }
+
+// The component fence tag is registered, and its schema pointer resolves
+// to the generated element record definition in the embedded schema.
+func TestRecordBlocksRegistersTheComponentTagAgainstTheElementRecord(t *testing.T) {
+	tags := profile.New().RecordBlocks()
+	if len(tags) != 1 || tags[0].Tag != "component" {
+		t.Fatalf("RecordBlocks = %+v, want exactly the component tag", tags)
+	}
+	const want = "#/definitions/C4ElementRecord"
+	if tags[0].Schema != want {
+		t.Fatalf("component schema pointer = %q, want %q", tags[0].Schema, want)
+	}
+	var bundle struct {
+		Definitions map[string]json.RawMessage `json:"definitions"`
+	}
+	if err := json.Unmarshal(profile.New().Schema(), &bundle); err != nil {
+		t.Fatalf("the embedded schema is not JSON: %v", err)
+	}
+	if _, ok := bundle.Definitions["C4ElementRecord"]; !ok {
+		t.Errorf("the embedded schema declares no C4ElementRecord definition")
+	}
+}

@@ -23,11 +23,12 @@ import (
 // stubProfile stands in for a real profile, the same fixture shape
 // cli/core/corpus's own tests use.
 type stubProfile struct {
-	schema      []byte
-	types       map[string]corpus.DocumentTypeRules
-	conventions specmodel.ConventionsConfig
-	lifecycle   corpus.LifecycleRules
-	featureTags corpus.FeatureTagRules
+	schema       []byte
+	types        map[string]corpus.DocumentTypeRules
+	conventions  specmodel.ConventionsConfig
+	lifecycle    corpus.LifecycleRules
+	featureTags  corpus.FeatureTagRules
+	recordBlocks []corpus.RecordBlockTag
 }
 
 func (p stubProfile) Schema() []byte                                     { return p.schema }
@@ -35,6 +36,7 @@ func (p stubProfile) DocumentTypes() map[string]corpus.DocumentTypeRules { retur
 func (p stubProfile) Conventions() specmodel.ConventionsConfig           { return p.conventions }
 func (p stubProfile) Lifecycle() corpus.LifecycleRules                   { return p.lifecycle }
 func (p stubProfile) FeatureTags() corpus.FeatureTagRules                { return p.featureTags }
+func (p stubProfile) RecordBlocks() []corpus.RecordBlockTag              { return p.recordBlocks }
 
 // testRegistry registers exactly one profile, "test-profile", with a
 // line_width default of 100 — distinct from spec-driven-dev's 80, so a
