@@ -230,11 +230,9 @@ func (a *assembly) contractOf(source, target *c4elements.Element, tags c4diagram
 			return &specmodel.C4ContractLink{Slug: specmodel.Citation(tag.Slug), Source: specmodel.C4ContractSourceTag}
 		}
 	}
-	var consumed []string
-	decode(a.values(source), a.in.Elements.Vocabulary.ConsumedContractsProperty, &consumed)
 	var fits []*c4elements.Contract
 	seen := map[*c4elements.Contract]bool{}
-	for _, slug := range consumed {
+	for _, slug := range source.ConsumedContracts {
 		contract, ok := a.set.Contract(slug)
 		if !ok || seen[contract] || !contract.ProvidedBy(target) {
 			continue

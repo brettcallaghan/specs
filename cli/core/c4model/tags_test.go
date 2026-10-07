@@ -99,3 +99,22 @@ func TestUnreservedTagsPassThrough(t *testing.T) {
 		t.Errorf("tags = %v, want absent when only reserved tags are written", *r.Tags)
 	}
 }
+
+// AC: AC-C4-003.3
+func TestADerivedContractIgnoresTheAnchorOfTheConsumedCitation(t *testing.T) {
+	files := tagged(`Rel(a, c, "Uses")`)
+	files["a.md"] = head("container-a", "container-blueprint", "A",
+		"contracts_consumed:", `  - "contract-three#Ops"`) +
+		"# A\n\n" + mermaid("C4Container",
+		`Container(a, "A", "Go")`, `Container(c, "C", "Go")`, `Rel(a, c, "Uses")`)
+	model := build(t, files)
+
+	r := relationship(t, model, "container-a", "container-c", "Uses")
+	if r.Contract == nil || r.Contract.Slug != "contract-three" || r.Contract.Source != specmodel.C4ContractSourceDerived {
+		t.Errorf("contract = %+v, want contract-three with source derived", r.Contract)
+	}
+	a := container(t, model, "container-a")
+	if a.ContractsConsumed == nil || len(*a.ContractsConsumed) != 1 || (*a.ContractsConsumed)[0] != "contract-three#Ops" {
+		t.Errorf("contracts_consumed = %v, want the citation as written", a.ContractsConsumed)
+	}
+}
