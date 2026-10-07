@@ -743,7 +743,8 @@ component-level member; the elements its composed-modules property
 names; and every system- and container-level element in the corpus.
 
 **Resolution.** A node resolves to every in-scope element whose name
-equals its label exactly, as written. An external node is not resolved,
+equals its label exactly, as written; an element with no entity name is
+named by no node. An external node is not resolved,
 and a `Db` or `Queue` node matching nothing in scope is a passive store
 rather than an undeclared node. A member whose type declares no element
 has no drawing document, so its diagrams yield no node.

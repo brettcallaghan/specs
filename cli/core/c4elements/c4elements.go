@@ -723,6 +723,10 @@ func resolve(index int, statement c4diagram.Statement, scope []*Element) Node {
 		return node
 	}
 	for _, element := range scope {
+		// An element with no entity name is named by no node.
+		if element.Name == "" {
+			continue
+		}
 		if element.Name == node.Label {
 			node.Matches = append(node.Matches, element)
 		}

@@ -492,3 +492,38 @@ func TestDrawingsGroupIntoRelationshipsAcrossDocuments(t *testing.T) {
 		t.Errorf("relationships = %d, want 2 (Parser>Lexer and Alpha>Beta)", got)
 	}
 }
+
+func TestAnElementWithNoEntityNameIsNamedByNoNode(t *testing.T) {
+	files := map[string]string{
+		"alpha.md": head("container-alpha", "container-blueprint", "Alpha") +
+			"# Alpha\n\n```mermaid\nC4Container\n" +
+			"Container(a, \"Alpha\", \"Go\")\nContainer(x, \"\", \"Go\")\n" +
+			"Rel(a, x, \"Calls\")\n```\n",
+		"nameless1.md": head("container-nameless-one", "container-blueprint", ""),
+	}
+	for name, extra := range map[string]map[string]string{
+		"one nameless element":  {},
+		"two nameless elements": {"nameless2.md": head("container-nameless-two", "container-blueprint", "")},
+	} {
+		t.Run(name, func(t *testing.T) {
+			all := map[string]string{}
+			for k, v := range files {
+				all[k] = v
+			}
+			for k, v := range extra {
+				all[k] = v
+			}
+			set := build(t, all, vocabulary())
+			diagram := document(t, set, "alpha.md").Diagrams[0]
+			for _, node := range diagram.Nodes {
+				if node.Alias == "x" && len(node.Matches) != 0 {
+					t.Errorf("node x matched %v, want none", slugs(node.Matches))
+				}
+			}
+			if len(diagram.Unresolved) != 1 ||
+				diagram.Unresolved[0].Reason != specmodel.C4ExclusionReasonUndeclaredNode {
+				t.Errorf("unresolved = %+v, want one undeclared_node", diagram.Unresolved)
+			}
+		})
+	}
+}
