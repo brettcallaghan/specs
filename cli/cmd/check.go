@@ -3,6 +3,8 @@ package cmd
 import (
 	"errors"
 	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -104,6 +106,15 @@ func newCheckCmd(streams *ioStreams, configPath *string) *cobra.Command {
 // latency budgets are measured against, and a persisted index at the
 // default location answers it without re-walking the corpus.
 func runCheck(streams *ioStreams, configPath, path string, jsonOut, strict bool, only []string) error {
+	// An --only value naming no known check is a malformed question, not
+	// a request the corpus happens to satisfy: answered with a report, a
+	// misspelt rule would read as "every requested check passed" and exit
+	// zero, silently disabling whatever gate passed it (AC-SPEC-006.10).
+	// It is refused before the corpus is opened, so no report is written.
+	if err := validateOnly(only); err != nil {
+		return err
+	}
+
 	cfg, findings, err := Load(configPath, BuiltinRegistry())
 	if err != nil {
 		return err
@@ -209,6 +220,37 @@ func requestedRules(only []string) map[specmodel.RuleId]bool {
 		set[specmodel.RuleId(name)] = true
 	}
 	return set
+}
+
+// ErrUnknownCheck reports an --only value naming no rule identifier in
+// checkRules.
+var ErrUnknownCheck = errors.New("not a known check")
+
+// validateOnly refuses any --only value that names no rule in checkRules,
+// naming every unknown value and every known rule so the caller can
+// correct a typo without a second lookup — the shape list's
+// unregistered --type error already takes (AC-SPECLIST-002.4).
+func validateOnly(only []string) error {
+	known := make(map[specmodel.RuleId]bool, len(checkRules))
+	for _, rule := range checkRules {
+		known[rule] = true
+	}
+	var unknown []string
+	for _, name := range only {
+		if !known[specmodel.RuleId(name)] {
+			unknown = append(unknown, fmt.Sprintf("%q", name))
+		}
+	}
+	if len(unknown) == 0 {
+		return nil
+	}
+	names := make([]string, 0, len(checkRules))
+	for _, rule := range checkRules {
+		names = append(names, string(rule))
+	}
+	sort.Strings(names)
+	return fmt.Errorf("cmd: --only %s is %w; known: %s",
+		strings.Join(unknown, ", "), ErrUnknownCheck, strings.Join(names, ", "))
 }
 
 // exitCodeFor derives the process exit status from a rendered report, per

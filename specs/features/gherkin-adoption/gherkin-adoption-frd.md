@@ -6,7 +6,7 @@ description: The CLI parses Gherkin from FRD blocks and standalone feature
 slug: frd-gherkin-adoption
 type: frd
 status: approved
-updated_at: 2026-08-14T00:00:00Z
+updated_at: 2026-10-07T00:00:00Z
 sources: []
 ---
 
@@ -233,6 +233,12 @@ Feature: Tag Vocabulary
     Given a Feature in a fenced block carrying an owning-document tag that names another document
     When the CLI validates it
     Then the CLI reports a finding naming both documents
+
+  @AC-GHK-002.12 @negative
+  Scenario: An owning-document tag naming no corpus member is reported
+    Given a Feature in a standalone .feature file whose owning-document tag names a slug no corpus member declares
+    When the CLI validates it
+    Then the CLI reports a finding naming the slug
 
   @AC-GHK-002.3
   Scenario Outline: An acceptance criterion identifier is well formed
@@ -570,18 +576,16 @@ Feature: Validation and Diagnostics
     Then the message quotes the identifier as written and the pattern it must match
 
   @AC-GHK-006.6
-  Scenario Outline: Severity distinguishes a defect from a caution
+  Scenario Outline: A structural defect fails the run
     Given a source containing "<condition>"
     When the CLI validates it
-    Then the CLI reports it with severity "<severity>"
+    Then the CLI reports it with severity "error"
 
     Examples:
-      | condition                                     | severity |
-      | an untagged criterion                         | error    |
-      | a duplicated identifier                       | error    |
-      | a criterion with no steps                     | error    |
-      | a Feature description that is absent          | warning  |
-      | a criterion carrying no verification level    | warning  |
+      | condition                                     |
+      | an untagged criterion                         |
+      | a duplicated identifier                       |
+      | a criterion with no steps                     |
 
   @AC-GHK-006.7
   Scenario: Validating one document reports that document's findings
@@ -589,6 +593,12 @@ Feature: Validation and Diagnostics
     Then the CLI reports the findings for that document
     And the CLI resolves identifier uniqueness against the whole corpus
 ```
+
+Every Gherkin rule is an error. A Feature with no description and a
+criterion with no `@level-*` tag are not findings at all: the
+description is the author's to write or omit, and [[gherkin-guide]]
+makes the level tag optional, so a warning on either would fire on most
+of the corpus and teach readers to ignore the severity.
 
 ### FEAT-GHK-007: Queries by Tag
 

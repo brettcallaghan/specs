@@ -6,7 +6,7 @@ description: Resolves the anchor half of a wikilink — the heading it
 slug: frd-spec-anchor-references
 type: frd
 status: approved
-updated_at: 2026-09-05T00:00:00Z
+updated_at: 2026-10-07T00:00:00Z
 sources:
   - "frd-spec-reference-integrity"
 ---
@@ -323,6 +323,12 @@ Feature: Anchor Impact Queries
     Given a reference whose anchor matches more than one heading in the target document
     When the CLI is asked for the references to that document qualified by one of those headings
     Then the CLI lists that reference, marked as matching more than one heading
+
+  @AC-SPECANCH-003.5 @negative
+  Scenario: An outbound query takes no anchor
+    Given a query for the references out of a document
+    When the argument is qualified by an anchor
+    Then the CLI refuses the combination and exits non-zero
 ```
 
 *Examples:* `specs refs 'container-spec-cli#Element Registry'` lists the
@@ -337,7 +343,10 @@ consistent with AC-SPECREF-003.5 and AC-SPEC-007.2 (AC-SPECANCH-003.3).
 An ambiguous reference resolves to no heading, and the author renaming
 one of the headings it matches is exactly the reader who has to see it,
 so the query lists it rather than hiding it behind its own error
-(AC-SPECANCH-003.4).
+(AC-SPECANCH-003.4). An anchor names a heading of the cited document, and
+the outbound direction asks what the given document cites, so
+`specs refs 'adr-012#Decision' --outbound` names no set and is refused
+(AC-SPECANCH-003.5).
 
 *Rationale:* AC-SPECANCH-003.2 is what makes anchors safe to adopt at
 all. Without it a heading rename is the edit the tooling cannot see: the

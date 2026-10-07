@@ -7,7 +7,7 @@ description: The plugin that supplies this framework's document
 slug: module-spec-profile
 type: module-blueprint
 status: approved
-updated_at: 2026-08-07T00:00:00Z
+updated_at: 2026-10-07T00:00:00Z
 kind: standard
 visibility: internal
 source_paths:
@@ -159,11 +159,8 @@ Profile Registration and its checks placed in Document Core; and Element
 Records is retained as designed but marked not yet built.
 
 **The registered patterns are grounded in this repository's corpus, not
-transcribed from the prefix registry**, and in three places the two
-disagree. Feature blueprints: the registry assigns `fb-`, while this
-repository's one real feature blueprint is slugged
-`feature-spec-index`, so the pattern follows the document that
-exists. Guides: the registry has no row at all and this repository's four
+transcribed from the prefix registry**, and in two places the two
+disagree. Guides: the registry has no row at all and this repository's four
 guides split two-and-two on a `guide-` prefix, so the pattern is the
 type's least restrictive form. RFCs: this repository mixes a numbered
 form (`rfc-0007`) with an unnumbered self-critique form, so `Numbered` is

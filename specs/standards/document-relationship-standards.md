@@ -8,8 +8,8 @@ description: How formal relationships between specification documents are
 slug: document-relationship-standards
 type: standards
 status: active
-updated_at: 2026-10-06T00:00:00Z
-version: "0.2"
+updated_at: 2026-10-07T00:00:00Z
+version: "0.3"
 ---
 
 # Document Relationship Standards
@@ -126,6 +126,23 @@ does:
 | a feature blueprint realizes an FRD | the blueprint, `frd` | the blueprint, written after the FRD |
 | a document is derived from sources | the document, `sources` | the document, written from them |
 | a document is replaced by a successor | the retired document, `superseded_by` | the retired document, whose status changes to `retired` in the same edit |
+
+---
+
+### Nothing Durable Points at a Feature Blueprint
+
+A document the profile registers at a live status SHALL NOT declare a
+relationship to a feature blueprint, in prose or in frontmatter. The
+feature blueprint declares its own edges (to its FRD, to the blueprints
+it folds into, to the decisions it applies), and the reverse direction is
+answered by `specs refs <slug>`.
+
+**Rationale:** a feature blueprint retires when its Definition of Done is
+complete, not because something replaced it. An edge declared *into* one
+becomes a `reference/retired-target` warning on the day the feature
+ships, and fails every `--strict` run from then on. The durable end of
+the relationship is the ADR, the FRD or the architecture blueprint; those
+stay live, and the graph already carries the direction that matters.
 
 ---
 

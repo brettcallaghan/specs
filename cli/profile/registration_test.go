@@ -177,6 +177,8 @@ func TestTheProfileRegistersOneTypedReference(t *testing.T) {
 // The lifecycle registers the whole status vocabulary, `retired` as its
 // only retired status, every other status as live, and `superseded_by` as
 // the successor property.
+//
+// AC: AC-SPECREF-004.4
 func TestTheProfileRegistersTheLifecycle(t *testing.T) {
 	rules := profile.New().Lifecycle()
 

@@ -6,7 +6,7 @@ description: Parses cross-document references from a spec corpus, records
 slug: frd-spec-reference-integrity
 type: frd
 status: approved
-updated_at: 2026-09-05T00:00:00Z
+updated_at: 2026-10-07T00:00:00Z
 sources:
   - "frd-spec-index"
 ---
@@ -549,6 +549,10 @@ Feature: Reference Configuration
     When the CLI reads the configuration
     Then the CLI reports the offending key and its position
     And the CLI falls back to no default for it
+
+  @AC-SPECREF-004.4
+  Scenario: The configuration carries the lifecycle the retirement checks read
+    Then the configuration determines the profile's status vocabulary, which of those statuses are live, which are retired, and which frontmatter property names a retired document's replacement
 ```
 
 *Examples:* `reference_properties` and `pairings` are already declared
@@ -568,6 +572,15 @@ reference: a feature blueprint's `frd` must resolve to a document of type
 only `parent_slug` is registered names the key and line, rather than
 silently checking nothing — the vacuous-success failure this project has
 now observed in three independently built tools (AC-SPECREF-004.3).
+While the active profile is compiled in and unreachable from
+`specs.toml` ([[contract-specs-configuration]]), the only file position
+such a registration has is the `[profile].name` value that selected it,
+so that is where the finding is positioned; once a registration becomes
+authored data, the position is the offending key's own span. The shipped
+configuration registers the whole status vocabulary, `retired` as its
+only retired status, every other status as live, and `superseded_by` as
+the successor property, so AC-SPECREF-002.6 can quote a replacement
+without the engine knowing either name (AC-SPECREF-004.4).
 
 *Rationale:* Configuration is what makes the checks in FEAT-SPECREF-002
 belong to the adopting team rather than to this framework. A team whose

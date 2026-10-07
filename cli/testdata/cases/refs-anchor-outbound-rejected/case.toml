@@ -1,5 +1,5 @@
 description = "refs --outbound refuses an anchor-qualified argument: an anchor names a heading of the cited document, which is not a question the outbound direction answers"
-cites = []
+cites = ["AC-SPECANCH-003.5"]
 artifacts = ["checks.err"]
 args = ["refs", "adr-900-old-approach#Decision", "--outbound"]
 exit_code = 1

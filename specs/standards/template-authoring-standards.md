@@ -7,7 +7,7 @@ description: System invariants for authoring document templates —
 slug: template-authoring-standards
 type: standards
 status: active
-updated_at: 2026-07-30T00:00:00Z
+updated_at: 2026-10-07T00:00:00Z
 version: "0.13"
 ---
 
@@ -132,7 +132,7 @@ abbreviations.
 | Module Blueprint | `module-` | `[[module-auth-sdk]]` |
 | Component Blueprint | `component-` | `[[component-ledger]]` |
 | Contract | `contract-` | `[[contract-payments-api]]` |
-| Feature Blueprint | `fb-` | `[[fb-guest-checkout]]` |
+| Feature Blueprint | `feature-` | `[[feature-guest-checkout]]` |
 | Work Order | `wo-` | `[[wo-1234]]` |
 
 The **Standards** type is the deliberate exception: it carries no fixed
@@ -141,9 +141,6 @@ name ending in an approved role noun — `-standards`, `-policy`,
 `-guidelines`, `-constraints` (e.g. `security-standards`,
 `data-retention-policy`). A forced `standards-` prefix would be both
 redundant and less descriptive.
-
-`feature-` is reserved for Gherkin `.feature` files and is NOT a spec
-slug prefix; feature blueprints use `fb-`.
 
 ### Filenames
 
@@ -209,7 +206,7 @@ WHEN creating a slug from a document title:
 4. Prepend the type's registered prefix
 
 **Example transformations:**
-- "Guest Checkout" (feature blueprint) → `fb-guest-checkout`
+- "Guest Checkout" (feature blueprint) → `feature-guest-checkout`
 - "Payments API" (contract) → `contract-payments-api`
 - "Data Retention" (standards) → `data-retention-policy`
 

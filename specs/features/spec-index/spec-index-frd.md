@@ -7,7 +7,7 @@ description: A command-line tool that indexes a specification corpus into
 slug: frd-spec-index
 type: frd
 status: approved
-updated_at: 2026-10-01T00:00:00Z
+updated_at: 2026-10-07T00:00:00Z
 sources: []
 ---
 
@@ -390,6 +390,11 @@ Feature: Findings, Severities, and Diagnostics
   @AC-SPEC-006.9 @negative
   Scenario: A check that was not requested is never reported as passed
     Then the CLI does not report a check that was not requested as passed
+
+  @AC-SPEC-006.10 @negative
+  Scenario: A subset naming an unknown check is refused
+    When the check subcommand is invoked with an option naming a check the CLI does not know
+    Then the CLI reports the unknown name and the name of every known check, writes no report, and exits non-zero
 ```
 
 *Examples:* `slug/pattern-mismatch  error
@@ -401,7 +406,10 @@ diagram validator available, the CLI emits one `unverified` finding per
 diagram naming the missing dependency (AC-SPEC-006.3). An agent running
 `check --only slug-uniqueness` gets a report covering that check alone
 (AC-SPEC-006.8), and that report distinguishes "slug uniqueness passed"
-from "frontmatter schema was not checked" (AC-SPEC-006.9).
+from "frontmatter schema was not checked" (AC-SPEC-006.9). The same
+agent typing `check --only frontmatter/pars` gets an error naming the
+known checks rather than a report: a report covering no known check
+would pass every gate that runs it (AC-SPEC-006.10).
 
 ### FEAT-SPEC-007: Corpus Queries
 
