@@ -75,7 +75,7 @@ Core names none of those values.
   than an error.
 
 **Negative:**
-- `Profile` gains a sixth member, and `ValidateRegistration` gains the
+- `Profile` gains a seventh member, and `ValidateRegistration` gains the
   defects that member can carry.
 - Document Core now knows the Mermaid C4 notation. A corpus that never
   draws a diagram pays nothing for it at run time, but the code is
