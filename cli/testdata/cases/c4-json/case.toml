@@ -1,0 +1,5 @@
+description = "c4 --json writes the same model as JSON"
+cites = ["AC-C4-004.2"]
+artifacts = ["checks.json"]
+args = ["c4", "--json"]
+exit_code = 0

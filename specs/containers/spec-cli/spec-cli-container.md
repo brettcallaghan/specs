@@ -180,12 +180,12 @@ written.
 **Built (command tree)** — also `cli/cmd`, via `cobra`
 ([[adr-015]]): `Execute` builds the command tree — `index`, `check`,
 `slug-exists`, `next-id`, `refs`, `links`, `feature`, `criterion`,
-`headings`, `list` — and converts each one's flags into calls against Document Core
+`headings`, `list`, `c4` — and converts each one's flags into calls against Document Core
 (`corpus.Build`, `corpus.Open`, `corpus.Load`, `corpus.Corpus.Check`/`CheckFor`,
 `corpus.Corpus.Slug`, `corpus.Corpus.InboundReferences`/`OutboundReferences`,
 `corpus.Corpus.Feature`/`Features`/`FeaturesByCode`,
 `corpus.Corpus.Criterion`/`CriteriaOf`/`CriteriaByTag`,
-`corpus.Corpus.DocumentSummaries`,
+`corpus.Corpus.DocumentSummaries`, `corpus.Corpus.C4Model`,
 `numbering.Next`, `references.Extract`/`Resolve`,
 `mdlinks.Resolve`/`Substitute`, `gherkin.Render`) and its result back into
 stdout and an exit status. No file here decides what makes a document
@@ -446,6 +446,21 @@ same bytes, because the order is the index's own (AC-SPECLIST-004.3), and
 a title carrying a colon and a space comes back double-quoted because
 `renderYAML` already quotes what a plain scalar would not round-trip
 (AC-SPECLIST-004.4).
+
+`c4` emits the corpus's C4 model and is wired the same way: flags in, one
+`corpus.Corpus.C4Model` call, one rendering out. It takes no positional
+argument and two flags, `--root <slug>`, which narrows the model to that
+element and its descendants, and `--json`. It opens the corpus warm, as
+`list` does, passes `Config.Workspace` as the workspace name, and writes
+the model as YAML by default and as JSON under `--json`, both carrying the
+same values in the same order (AC-C4-004.1, AC-C4-004.2). The model
+carries `schema_version` and the workspace name (AC-C4-004.3), and two
+runs over an unchanged corpus emit the same bytes (AC-C4-004.4). It exits
+zero whatever the model holds, excluded relationships and `c4/*` findings
+included (AC-C4-004.7). A `--root` naming no element is reported by
+Document Core; the message naming the slug reaches standard error through
+cobra, nothing reaches standard output, and the run exits 1
+(AC-C4-004.6).
 
 A bare invocation or `--help` lists the subcommands with their one-line
 synopses and, per subcommand, its own flags — cobra's default rendering

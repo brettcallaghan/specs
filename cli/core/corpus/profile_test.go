@@ -179,9 +179,11 @@ func TestTheExtensionPointNamesNoRegisteredVocabulary(t *testing.T) {
 		}
 	}
 
-	// The C4 Elements package reads the architecture vocabulary through
-	// the extension point's types, so it is held to the same rule.
+	// The C4 Elements and C4 Model packages read the architecture
+	// vocabulary through the extension point's types, so they are held to
+	// the same rule.
 	files := append(goFilesUnder(t, "."), goFilesUnder(t, filepath.Join("..", "c4elements"))...)
+	files = append(files, goFilesUnder(t, filepath.Join("..", "c4model"))...)
 	for _, file := range files {
 		if strings.HasSuffix(file, "_test.go") {
 			continue

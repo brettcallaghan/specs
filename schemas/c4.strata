@@ -135,8 +135,8 @@ struct C4Container: C4Element {
 A module: a unit composed into one or more containers.
 """
 struct C4Module: C4Element {
-  kind: BlueprintKind
-  visibility: Visibility
+  kind: BlueprintKind?
+  visibility: Visibility?
   version: String?
 
   """
@@ -293,6 +293,12 @@ enum C4ExclusionReason {
 
   """An endpoint's label matches more than one element in scope."""
   ambiguous_node
+
+  """
+  A `BiRel` statement, which states no single dependency between its
+  endpoints.
+  """
+  bidirectional
 }
 
 """A `Rel` statement excluded from the model, and why."""

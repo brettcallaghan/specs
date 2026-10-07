@@ -554,10 +554,10 @@ type C4Module struct {
 	// `provider` names it.
 	ContractsProvided []Citation `json:"contracts_provided"`
 	// Free-form tags copied from the element's blueprint.
-	Tags       *[]string     `json:"tags,omitempty"`
-	Kind       BlueprintKind `json:"kind"`
-	Visibility Visibility    `json:"visibility"`
-	Version    *string       `json:"version,omitempty"`
+	Tags       *[]string      `json:"tags,omitempty"`
+	Kind       *BlueprintKind `json:"kind,omitempty"`
+	Visibility *Visibility    `json:"visibility,omitempty"`
+	Version    *string        `json:"version,omitempty"`
 	// The containers and modules that compose this one, derived from their
 	// `modules`. Empty when nothing documented composes it.
 	ContainedBy []Citation `json:"contained_by"`
@@ -613,15 +613,15 @@ func (v *C4Module) UnmarshalJSON(data []byte) error {
 			return prefixField("tags", err)
 		}
 	}
-	if m, ok := raw["kind"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4Module: required field \"kind\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Kind); err != nil {
-		return prefixField("kind", err)
+	if m, ok := raw["kind"]; ok {
+		if err := json.Unmarshal(m, &v.Kind); err != nil {
+			return prefixField("kind", err)
+		}
 	}
-	if m, ok := raw["visibility"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4Module: required field \"visibility\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Visibility); err != nil {
-		return prefixField("visibility", err)
+	if m, ok := raw["visibility"]; ok {
+		if err := json.Unmarshal(m, &v.Visibility); err != nil {
+			return prefixField("visibility", err)
+		}
 	}
 	if m, ok := raw["version"]; ok {
 		if err := json.Unmarshal(m, &v.Version); err != nil {
@@ -1131,11 +1131,14 @@ const (
 	C4ExclusionReasonUndeclaredNode C4ExclusionReason = "undeclared_node"
 	// An endpoint's label matches more than one element in scope.
 	C4ExclusionReasonAmbiguousNode C4ExclusionReason = "ambiguous_node"
+	// A `BiRel` statement, which states no single dependency between its
+	// endpoints.
+	C4ExclusionReasonBidirectional C4ExclusionReason = "bidirectional"
 )
 
 func (e C4ExclusionReason) MarshalJSON() ([]byte, error) {
 	switch e {
-	case C4ExclusionReasonExternalEndpoint, C4ExclusionReasonPassiveStore, C4ExclusionReasonUndeclaredNode, C4ExclusionReasonAmbiguousNode:
+	case C4ExclusionReasonExternalEndpoint, C4ExclusionReasonPassiveStore, C4ExclusionReasonUndeclaredNode, C4ExclusionReasonAmbiguousNode, C4ExclusionReasonBidirectional:
 		return json.Marshal(string(e))
 	}
 	return nil, fmt.Errorf("C4ExclusionReason: unknown value %q", string(e))
@@ -1147,7 +1150,7 @@ func (e *C4ExclusionReason) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	switch C4ExclusionReason(s) {
-	case C4ExclusionReasonExternalEndpoint, C4ExclusionReasonPassiveStore, C4ExclusionReasonUndeclaredNode, C4ExclusionReasonAmbiguousNode:
+	case C4ExclusionReasonExternalEndpoint, C4ExclusionReasonPassiveStore, C4ExclusionReasonUndeclaredNode, C4ExclusionReasonAmbiguousNode, C4ExclusionReasonBidirectional:
 		*e = C4ExclusionReason(s)
 		return nil
 	}

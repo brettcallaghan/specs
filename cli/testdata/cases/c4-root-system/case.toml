@@ -1,0 +1,5 @@
+description = "c4 --root naming a system keeps it, its containers and everything they hold, and only the relationships inside that set"
+cites = ["AC-C4-004.5"]
+artifacts = ["checks.log"]
+args = ["c4", "--root", "system-one"]
+exit_code = 0

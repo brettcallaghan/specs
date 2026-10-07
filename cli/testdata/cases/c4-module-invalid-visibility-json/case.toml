@@ -1,0 +1,5 @@
+description = "c4 --json when a module blueprint has an invalid visibility and the model builds without inventing one"
+cites = ["AC-C4-004.2"]
+artifacts = ["checks.json"]
+args = ["c4", "--json"]
+exit_code = 0

@@ -1,0 +1,50 @@
+schema_version: "0.1"
+workspace: acme
+software_systems:
+  - description: A fixture for the c4 command.
+    slug: system-one
+    entity_name: One
+    declarations:
+      - path: docs/systems/one.md
+        span:
+          offset: 0
+          length: 177
+          start_line: 1
+          start_column: 1
+          end_line: 9
+          end_column: 4
+    contracts_provided: []
+    containers:
+      - description: A fixture for the c4 command.
+        slug: container-alpha
+        entity_name: Alpha
+        declarations:
+          - path: docs/containers/alpha.md
+            span:
+              offset: 0
+              length: 239
+              start_line: 1
+              start_column: 1
+              end_line: 12
+              end_column: 4
+        contracts_provided: []
+        components:
+          - description: Parses
+            slug: component-parser
+            entity_name: Parser
+            declarations:
+              - path: docs/containers/alpha.md
+                span:
+                  offset: 516
+                  length: 80
+                  start_line: 31
+                  start_column: 1
+                  end_line: 36
+                  end_column: 1
+            contracts_provided: []
+        modules: []
+orphaned_containers: []
+orphaned_components: []
+modules: []
+relationships: []
+excluded_relationships: []

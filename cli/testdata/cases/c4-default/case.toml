@@ -1,0 +1,5 @@
+description = "c4 with no flags writes the model as YAML carrying schema_version and the configured workspace name, and exits zero although a BiRel statement is excluded"
+cites = ["AC-C4-004.1", "AC-C4-004.3", "AC-C4-004.7"]
+artifacts = ["checks.log"]
+args = ["c4"]
+exit_code = 0

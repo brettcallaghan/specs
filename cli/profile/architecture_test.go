@@ -14,6 +14,7 @@ import (
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
 	"github.com/brettcallaghan/agent-plugins/cli/core/schema"
+	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 	"github.com/brettcallaghan/agent-plugins/cli/profile"
 )
 
@@ -163,5 +164,64 @@ func TestEveryNodeOnThisRepositorysDiagramsResolvesToOneElement(t *testing.T) {
 	}
 	if resolved == 0 {
 		t.Fatal("resolved no node; the check would pass vacuously")
+	}
+}
+
+// Over this repository's own corpus, the C4 model places the Spec CLI
+// container — whose blueprint names no system — among the orphaned
+// containers with both of its modules, and derives Document Core's host
+// from the container's modules list.
+func TestThisRepositorysC4ModelNestsItsContainerAndModules(t *testing.T) {
+	root := repositoryRoot(t)
+	built, err := corpus.Build(corpus.Options{
+		RepoRoot:  root,
+		Root:      filepath.Join(root, "specs"),
+		Workspace: "agent-plugins",
+		Profile:   profile.New(),
+	})
+	if err != nil {
+		t.Fatalf("corpus.Build: %v", err)
+	}
+	model, err := built.C4Model("agent-plugins", "")
+	if err != nil {
+		t.Fatalf("C4Model: %v", err)
+	}
+
+	var cli *specmodel.C4Container
+	for i, container := range model.OrphanedContainers {
+		if container.Slug == "container-spec-cli" {
+			cli = &model.OrphanedContainers[i]
+		}
+	}
+	if cli == nil {
+		t.Fatalf("container-spec-cli is not among the orphaned containers: %+v", model.OrphanedContainers)
+	}
+	var modules []string
+	for _, slug := range cli.Modules {
+		modules = append(modules, string(slug))
+	}
+	if got := strings.Join(modules, ","); got != "module-document-core,module-spec-profile" {
+		t.Errorf("container-spec-cli modules = %q, want module-document-core,module-spec-profile", got)
+	}
+
+	found := false
+	for _, module := range model.Modules {
+		if module.Slug != "module-document-core" {
+			continue
+		}
+		found = true
+		var hosts []string
+		for _, host := range module.ContainedBy {
+			hosts = append(hosts, string(host))
+		}
+		if got := strings.Join(hosts, ","); got != "container-spec-cli" {
+			t.Errorf("module-document-core contained_by = %q, want container-spec-cli", got)
+		}
+		if len(module.Components) == 0 {
+			t.Error("module-document-core holds no components; its roster declares several")
+		}
+	}
+	if !found {
+		t.Error("module-document-core is not in the model's modules")
 	}
 }

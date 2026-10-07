@@ -1,0 +1,5 @@
+description = "c4 --root naming no element writes the slug to standard error, nothing to standard output, and exits non-zero"
+cites = ["AC-C4-004.6"]
+artifacts = ["checks.log", "checks.err"]
+args = ["c4", "--root", "no-such-element"]
+exit_code = 1
