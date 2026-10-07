@@ -179,7 +179,10 @@ func TestTheExtensionPointNamesNoRegisteredVocabulary(t *testing.T) {
 		}
 	}
 
-	for _, file := range goFilesUnder(t, ".") {
+	// The C4 Elements package reads the architecture vocabulary through
+	// the extension point's types, so it is held to the same rule.
+	files := append(goFilesUnder(t, "."), goFilesUnder(t, filepath.Join("..", "c4elements"))...)
+	for _, file := range files {
 		if strings.HasSuffix(file, "_test.go") {
 			continue
 		}

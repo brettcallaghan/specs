@@ -275,6 +275,7 @@ C4Component
         Component(md, "Markdown Structure", "Go package (fences built)", "Headings, section spans, fenced blocks and comment blocks")
         Component(gherkin, "Gherkin", "Go package", "Gherkin parsing into feature and criterion records, with tags read as strings")
         Component(c4, "C4 Diagrams", "Go package", "Mermaid C4 diagram parsing into located statements, with relationship tags read")
+        Component(c4e, "C4 Elements", "Go package", "The corpus's architectural elements, each drawing document's scope, and node and relationship resolution")
         Component(refs, "References", "Go package", "Wikilink and frontmatter reference extraction, resolution against corpus slugs, and the reference graph")
         Component(schema, "Schema Registry", "Go package", "Single-union JSON Schema validation dispatched by document type")
         Component(corpus, "Corpus", "Go package", "Discovery, membership, the index model and its emission")
@@ -291,6 +292,9 @@ C4Component
     Rel(md, span, "Locates delimited regions with")
     Rel(gherkin, span, "Reports every position through")
     Rel(c4, span, "Reports every position through")
+    Rel(c4e, c4, "Reads diagram statements through")
+    Rel(c4e, md, "Matches roster headings and finds diagram blocks via")
+    Rel(corpus, c4e, "Resolves elements and diagram nodes through")
     Rel(refs, span, "Locates occurrences with")
     Rel(schema, fm, "Validates records produced by")
     Rel(num, corpus, "Queries the index of")
@@ -698,8 +702,60 @@ argument is recorded rather than treated as a separator
 holding only `}` closes the innermost one; a stray `}` and a boundary
 left open are both parse errors. Leading `---` frontmatter and
 `%%{ ... }%%` directives spread over several lines are skipped before the
-diagram type is read. Nothing calls it yet: the C4 checks
-are what bring a Corpus edge into it.
+diagram type is read. C4 Elements is its one caller; the C4 checks
+will reach it through that component.
+
+### C4 Elements
+
+```component
+entity_name: C4 Elements
+slug: component-c4-elements
+description: The corpus's architectural elements, each drawing document's scope, and node and relationship resolution
+```
+
+(Go package) — The corpus's architectural elements, each drawing
+document's scope, and node and relationship resolution. It owns the
+judgement of what a diagram node names, so the C4 checks and the C4
+model read one answer. It reads the index and the architecture
+vocabulary the profile registers ([[adr-030]]) and names no document
+type, property or heading of its own.
+
+**Elements.** Every corpus member whose type the vocabulary registers
+declares an element: the member's slug, its entity-name property as the
+name, and its registered level. So does every record block carrying the
+registered roster tag of its document's type and attached to the roster
+heading or to a heading nested in its section; the heading is matched on
+the identifier Markdown Structure derives, so letter case does not
+decide. A roster block is decoded through the corpus's record-block
+decoding function, and one that does not decode to a mapping carrying a
+slug and an entity name declares nothing — reporting it is the structure
+checks' job. A record block in a document whose type registers no
+roster declares nothing. Declarations of one slug — a blueprint and
+record blocks, or several record blocks — are one element carrying every
+declaration, ordered by path and then by span; a blueprint's declaration
+is its frontmatter block and defines the element's name and level, and
+an element only record blocks declare is a component.
+
+**Scope.** A node drawn in a document may name the document's own
+element; the elements its roster declares, by record block or by a
+`[[slug]]` reference under the roster heading resolving to a
+component-level member; the elements its composed-modules property
+names; and every system- and container-level element in the corpus.
+
+**Resolution.** A node resolves to every in-scope element whose name
+equals its label exactly, as written. An external node is not resolved,
+and a `Db` or `Queue` node matching nothing in scope is a passive store
+rather than an undeclared node. A member whose type declares no element
+has no drawing document, so its diagrams yield no node.
+
+**Built** — `cli/core/c4elements`, reached through `Corpus.C4Elements`.
+Diagrams are read from each drawing document's source at the time of the
+run through `Corpus.Source`; the index does not record them, so neither
+its shape nor its `schema_version` changes. The architecture
+vocabulary's types are declared in this package and named by the
+`Profile` extension point, because the corpus's checks call this package
+and not the reverse. The source scan that keeps `cli/core/corpus` free of
+registered vocabulary covers this package too.
 
 ### References
 
