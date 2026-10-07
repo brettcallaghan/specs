@@ -24,9 +24,9 @@ merges, because the base was moved there; see Scope.
 | `base_sha` → head | `d21fdef` (PR #47 head, `claude/project-thread-a9wsta`, draft/unmerged) → `d7284c7` — 12 commits |
 | queue | 2 admitted at the gate (`.1`, `.2`); +7 admitted by review pass 1 (`.3`–`.9`); +2 by review pass 2 (`.10`, `.11`); +1 by the coordinator's combined-tree check (`.12`). 12 / 12 closed |
 | declared checks | `format`, `vet`, `build`, `test-go`, `skills`, `shared-refs`, `strata-docs`, `schemas`, `corpus`, `ref-links`, `template-drift`, `skills-strict` |
-| model lineup | `manifest.models`: light=haiku, standard=sonnet, advanced=opus, frontier=fable. Tiers served: 1 advanced (`.1`), 4 standard (`.2`–`.5`), 6 light (`.6`–`.11`); `.12` by the coordinator |
+| model lineup | `manifest.models`: light=haiku, standard=sonnet, advanced=opus, frontier=fable. Tiers: 1 advanced (`.1`), 4 standard (`.2`–`.5`), 6 light (`.6`–`.11`); `.12` by the coordinator. **Models actually served** (coordinator's explicit overrides): `dev-specs-c4s1-1` opus, `dev-specs-c4s1-2` sonnet, `dev-specs-c4s1-3` haiku, `dev-specs-c4s1-4` haiku; plan, review and retro agents on the session default model |
 | effort | `manifest.effort` reads `unrecorded` |
-| reviewer | declared `code-review`; `review_budget` 2 (default); three passes ran. `manifest.review_passes` reads **2** — whether it counts loops or passes is not stated on the epic |
+| reviewer | declared `code-review`; `review_budget` 2 (default); three passes ran. `manifest.review_passes` reads **2** because it counts loops, not passes — a write of 3 was refused: "would be 3 against a budget of 2" |
 | concurrency cap | 20 |
 | dispatches | `dev-specs-c4s1-1` (`.2`, `.1`), `dev-specs-c4s1-2` (`.3`–`.8`), `dev-specs-c4s1-3` (`.9`), `dev-specs-c4s1-4` (`.10`, `.11`) |
 
@@ -99,9 +99,9 @@ this run produced about the blueprint.
   head `d21fdef` and re-admitted both. **The run's branch therefore carries
   PR #47's six commits until #47 merges.**
 - **Admitted after the gate:** `.3`–`.11` by review (`amend:` comments 6 and
-  13), `.12` by the coordinator (`amend:` comment 17). **`manifest.admitted`
-  still lists only `.1` and `.2`** — the later admissions live only in
-  `amend:` comments.
+  13), `.12` by the coordinator (`amend:` comment 17). `manifest.admitted`
+  lists `.1`–`.12` (corrected by the coordinator after this record was first
+  drafted, when it still read only `.1`, `.2`).
 - **Held out to backlog (14):** `specs-en5`, `specs-jvj`, `specs-1nz`,
   `specs-y9o`, `specs-46f`, `specs-7lm`, `specs-4j2`, `specs-1wj`, `specs-as5`,
   `specs-oyg`, `specs-543`, `specs-0y5`, `specs-3kx`, `specs-813` — all open.
@@ -322,28 +322,26 @@ the epic Definition of Ready; `c4s1#7` against `swarm ready`.
 `git log origin/claude/project-thread-u8o164..HEAD` is empty — nothing
 stranded. The push went to the harness-mandated branch, by hand, after
 `swarm dispatch accept --no-push`; `sprint/specs-c4s1` itself has no remote
-counterpart. **No pull request has been opened.** This record is uncommitted.
+counterpart. **No pull request has been opened.** This record and the retro's
+filings are committed and pushed by the coordinator, not by the retro.
 
 ## What this record could NOT verify
 
-- Which model actually served each dispatch. `manifest.models` maps tiers to
-  models; nothing records the model a given dispatch ran on, and `effort` is
-  `unrecorded`.
+- Which model served each dispatch is **not on the epic**: `manifest.models`
+  maps tiers only. The per-dispatch models in "The run" are the coordinator's
+  report of its own overrides. `effort` is `unrecorded`.
 - CI on `claude/project-thread-u8o164` at `d7284c7`.
 - The head check results — taken from the coordinator, not re-run here.
-- Whether `manifest.review_passes` = 2 counts loops (2) or passes (3 ran).
 - `.10`'s claim that last-wins "aligns with Mermaid's semantics" — no finding
   carries a measurement; held-out `specs-0y5` says it is unverified against
   Mermaid.
 - Whether `.9`'s dispatch recorded any finding — it recorded none
   (`c4s1.9#1` is the coordinator's).
-- `manifest.admitted` lists only `.1`, `.2`; whether that is intended for
-  review admissions is not stated anywhere this retro read.
 
 ## Candidates
 
-**Pending: to be put to a human by the coordinator.** Nothing filed yet;
-`retro_filed` / `retro_declined` / `retro_routed` not written.
+**Decided 2026-10-07: Brett accepted all eleven**, put to him once by the
+coordinator. Nothing declined.
 
 Ranked by how much each changes the next run. "Fold" means the issue already
 exists; the action is to attach this run's evidence rather than file anew.
@@ -355,7 +353,7 @@ exists; the action is to attach this run's evidence rather than file anew.
 | 3 | **`swarm dispatch accept` merges into the recorded sprint branch, not the main checkout's current branch** | skill → `outbox/swarm/swarm/` | `c4s1#3` | Every run in a harness that mandates a push branch hits it on the first accept, exits 2, and needs a hand repair |
 | 4 | **`swarm dispatch accept` refuses a dispatch branch with no commits beyond its base while that dispatch's beads read closed** | skill → `outbox/swarm/swarm/` | `c4s1.9#1` | Accept read an empty branch as merged and deleted the worktree and branch; only a post-merge re-check saved the commit. Next time the work can be silently lost |
 | 5 | **`swarm dispatch accept` rebases a dispatch branch inside the worktree that holds it** | skill → `outbox/swarm/swarm/` | `c4s1#8` | Every concurrent dispatch accepted after another fails `git rebase` exit 128 and needs a hand rebase |
-| 6 | **Map the `light` tier to `sonnet` in `swarm.toml`'s `[models]`** (code beads only, if the human prefers) | project → bead | `c4s1.9#1`, `c4s1.12#1`, `c4s1.10#1`, `c4s1.11#1` | Both light-only dispatches broke protocol: one committed outside its worktree and recorded no finding, the other claimed checks it had not run and wrote kindless "clean" findings. *Which model served each is unrecorded* |
+| 6 | **Map the `light` tier to `sonnet` in `swarm.toml`'s `[models]`** (code beads only, if the human prefers) | project → bead | `c4s1.9#1`, `c4s1.12#1`, `c4s1.10#1`, `c4s1.11#1` | Both light-only dispatches broke protocol: one committed outside its worktree and recorded no finding, the other claimed checks it had not run and wrote kindless "clean" findings. Both were served by haiku; the sonnet-served mixed dispatch (`dev-specs-c4s1-2`, three light beads of six) had none of these failures |
 | 7 | **`swarm-review` files run-introduced beads with design, acceptance, a `## Steps to Reproduce` heading and a chosen fix direction** — recurrence of `specs-p5w9` (open here, from run `e6xt`) | skill → `outbox/swarm/swarm-review/` | `c4s1#5`, `c4s1#10` | All nine review-filed beads needed a full groom pass, twice, including measuring repros the reviewer had already probed |
 | 8 | **`swarm-plan` instructs its findings in `retro:<kind>:<target>` form** — measured: `grep -n 'retro:' plugin/skills/swarm-plan/SKILL.md` in the swarm source (`/root/.cache/swarm-src`) exits 1, no match | skill → `outbox/swarm/swarm-plan/` | `c4s1#1`, `#2`, `#5`, `#6`, `#7`, `#9`, `#10` | 7 of this run's 9 unrouted findings are the planner's; the routing metric is meaningless while one writer never sets a kind |
 | 9 | **`swarm dispatch accept` runs the declared checks on the merged head before reporting the dispatch accepted** | skill → `outbox/swarm/swarm/` | `c4s1.12#1` | A dispatch's "all checks pass" is testimony; the gofmt failure was caught only because the coordinator happened to re-run checks |
@@ -369,7 +367,27 @@ the next dispatch id).
 
 ## What was filed
 
-Nothing yet — pending the human's decision on the candidates above.
+| # | filed as | findings marked `retro:filed:` |
+|---|---|---|
+| 1 | `specs-3kx` updated: P3 → **P2**, evidence comment added, and `specs-y9o`, `specs-543`, `specs-0y5`, `specs-4j2` now depend on it (`blocks`) | `c4s1.1#1`, `c4s1.4#2` |
+| 2 | **`specs-qlr`** (P2, `discovered-from:specs-c4s1`) | `c4s1#2` |
+| 3 | `outbox/swarm/swarm/2026-10-07-accept-merges-into-the-current-branch.md` | `c4s1#3` |
+| 4 | `outbox/swarm/swarm/2026-10-07-accept-treats-an-empty-dispatch-branch-as-merged.md` | `c4s1.9#1` |
+| 5 | `outbox/swarm/swarm/2026-10-07-accept-rebases-a-branch-held-by-a-worktree.md` | `c4s1#8` |
+| 6 | **`specs-77f`** (P2, `discovered-from:specs-c4s1.9`, `specs-c4s1.12`) | `c4s1.9#1`, `c4s1.12#1`, `c4s1.10#1`, `c4s1.11#1` |
+| 7 | `outbox/swarm/swarm-review/2026-10-07-review-filed-beads-arrive-ungroomed.md` (recurrence 1, of `specs-p5w9`) | `c4s1#5`, `c4s1#10` |
+| 8 | `outbox/swarm/swarm-plan/2026-10-07-planner-findings-carry-no-kind.md` | `c4s1#1`, `#2`, `#5`, `#6`, `#7`, `#9`, `#10` |
+| 9 | `outbox/swarm/swarm/2026-10-07-accept-does-not-run-the-declared-checks.md` | `c4s1.12#1` |
+| 10 | `outbox/swarm/swarm/2026-10-07-manifest-validate-flags-grooming-metadata.md` | `c4s1#4` |
+| 11 | Recurrence comments on `specs-84yu`, `specs-7jxt`, `specs-a484`; `specs-23v` closed by `bd duplicate --of specs-a484` | `c4s1#1`, `c4s1#9` (→ `84yu`; `#9` also → `7jxt`), `c4s1.2#3` (→ `a484`) |
+
+25 `retro:filed:<id> — <finding id>` comments were written, one per
+finding–issue pair, on each finding's own bead. Each filed issue carries its
+findings quoted inline and the per-dispatch models. Nothing from the skill
+branch was filed in this tracker, and nothing in `brettcallaghan/swarm`'s.
+
+Manifest, one merge: `retro_filed` **11**, `retro_declined` **0**,
+`retro_routed` **20** (29 harvested less 9 unrouted).
 
 ## Counts
 
@@ -382,5 +400,5 @@ Nothing yet — pending the human's decision on the candidates above.
 | routed — `environment` (ledger) | 0 |
 | unrouted | 9 |
 | candidates | 11 (10 issues, 1 recurrence-only fold) |
-| filed | pending |
-| declined | pending |
+| filed | 11 — 2 new beads (`specs-qlr`, `specs-77f`), 1 bead folded (`specs-3kx`), 7 outbox files, 1 recurrence fold |
+| declined | 0 |
