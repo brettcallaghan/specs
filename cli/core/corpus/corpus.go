@@ -180,6 +180,7 @@ func Build(opts Options) (*Corpus, error) {
 		profile:    opts.Profile,
 		types:      opts.Profile.DocumentTypes(),
 		vocabulary: newVocabulary(opts.Profile.FeatureTags()),
+		recordTags: recordTagsOf(opts.Profile),
 		index:      specindex.New(opts.Workspace),
 		byPath:     map[string]int{},
 		alsoKnown:  map[string]int{},
@@ -379,6 +380,9 @@ type builder struct {
 	// vocabulary is opts.Profile.FeatureTags() compiled once, the seam
 	// through which the registered patterns reach the Gherkin component.
 	vocabulary vocabulary
+	// recordTags is the info strings opts.Profile.RecordBlocks()
+	// registers, in registration order. Empty where none is.
+	recordTags []string
 
 	// hasher accumulates the content hash of everything the walk reads,
 	// so that the fingerprint the emitted index records is a by-product of
@@ -449,10 +453,12 @@ func (b *builder) classify(reported string, src []byte) {
 		// a recorded failure, not an exclusion: the file claimed to be a
 		// specification and the claim could not be checked
 		// (AC-SPEC-002.4).
+		headings, records := headingsOf(src, nil, b.recordTags)
 		b.addEntry(specmodel.IndexEntry{
-			Path:       reported,
-			ParseError: perr,
-			Headings:   headingsOf(src, nil),
+			Path:         reported,
+			ParseError:   perr,
+			Headings:     headings,
+			RecordBlocks: records,
 		}, member{})
 
 	case doc == nil:
@@ -498,20 +504,24 @@ func (b *builder) classifyDocument(reported string, src []byte, doc *frontmatter
 		// a status outside the vocabulary, a timestamp that is
 		// not one. Recorded against this member so the rest of the corpus
 		// still indexes (AC-SPEC-002.4).
+		headings, records := headingsOf(src, doc, b.recordTags)
 		b.addEntry(specmodel.IndexEntry{
-			Path:       reported,
-			ParseError: perr,
-			Headings:   headingsOf(src, doc),
+			Path:         reported,
+			ParseError:   perr,
+			Headings:     headings,
+			RecordBlocks: records,
 		}, member{})
 		return
 	}
 
 	b.docs[reported] = doc
+	headings, records := headingsOf(src, doc, b.recordTags)
 	b.addEntry(
 		specmodel.IndexEntry{
-			Path:        reported,
-			Frontmatter: frontmatter,
-			Headings:    headingsOf(src, doc),
+			Path:         reported,
+			Frontmatter:  frontmatter,
+			Headings:     headings,
+			RecordBlocks: records,
 		},
 		member{path: reported, slug: string(envelope.Of(frontmatter).Slug), slugAt: slugSpan(doc), doc: doc},
 	)
@@ -519,16 +529,36 @@ func (b *builder) classifyDocument(reported string, src []byte, doc *frontmatter
 	b.extractBlockFeatures(reported, src, doc)
 }
 
-// headingsOf returns the headings of one candidate's body, in the order
-// they are written and in the document's own coordinates.
+// bodyOffset is the byte offset at which src's body begins: just past
+// its frontmatter block, or 0 where there is none.
 //
-// The search starts at the body rather than at the start of the file. A
-// frontmatter block's closing delimiter underlines the YAML above it,
-// which CommonMark reads as a setext heading, so a whole-file search
-// reports the entire block as a level-2 heading — the one respect in
-// which a heading search differs from the fenced-block search beside it,
-// which is offered the whole file precisely so its spans need no second
-// arithmetic.
+// The Frontmatter component owns the format, so it is asked where the
+// block is rather than the rule being re-derived here: its closing
+// delimiter carries a leading newline, and a search for a bare "---"
+// would close the block at the first such run inside a value and leave
+// the body starting mid-block. Where no block is located — none present,
+// or one that never closes — the whole source is the body. Indexing and
+// decoding a record block both search from here, so a span the index
+// recorded is one decoding finds again.
+func bodyOffset(src []byte) int {
+	if region, ok := frontmatter.Locate(src); ok {
+		return int(region.Outer.Offset + region.Outer.Length)
+	}
+	return 0
+}
+
+// headingsOf returns the headings of one candidate's body, in the order
+// they are written and in the document's own coordinates, each carrying
+// the record blocks registered by recordTags that its section contains.
+// The second result is the record blocks no heading's section contains,
+// which belong to the document itself.
+//
+// Both searches start at the body rather than at the start of the file,
+// with spans still in whole-file coordinates. A frontmatter block's
+// closing delimiter underlines the YAML above it, which CommonMark reads
+// as a setext heading, so a whole-file search reports the entire block as
+// a level-2 heading; and an indented fence inside a YAML block scalar
+// would be read as a record block.
 //
 // doc is the parsed frontmatter where there is one, so that the offset
 // costs nothing beyond the parse the walk already performed. Where the
@@ -536,39 +566,27 @@ func (b *builder) classifyDocument(reported string, src []byte, doc *frontmatter
 // located again from the source: a member whose frontmatter failed to
 // parse still carries its headings, a heading not depending on an
 // envelope.
-func headingsOf(src []byte, doc *frontmatter.Document) []specmodel.Heading {
+func headingsOf(src []byte, doc *frontmatter.Document, recordTags []string) ([]specmodel.Heading, []specmodel.RecordBlock) {
 	from := 0
 	switch {
 	case doc != nil:
 		from = int(doc.Region.Outer.Offset + doc.Region.Outer.Length)
 	default:
-		// The Frontmatter component owns the format, so it is asked
-		// where the block is rather than the rule being re-derived here:
-		// its closing delimiter carries a leading newline, and a search
-		// for a bare "---" would close the block at the first such run
-		// inside a value and leave the body starting mid-block. Where no
-		// block is located — none present, or one that never closes —
-		// the whole source is the body.
-		if region, ok := frontmatter.Locate(src); ok {
-			from = int(region.Outer.Offset + region.Outer.Length)
-		}
+		from = bodyOffset(src)
 	}
 
 	found := markdown.HeadingsFrom(src, from)
 	headings := make([]specmodel.Heading, 0, len(found))
 	for _, heading := range found {
 		headings = append(headings, specmodel.Heading{
-			Text:        heading.Text,
-			Level:       uint64(heading.Level),
-			Span:        heading.Position,
-			SectionSpan: heading.Section,
-			// Record blocks attach to a heading once a profile registers
-			// a tag; until then every heading carries none rather than
-			// null.
+			Text:         heading.Text,
+			Level:        uint64(heading.Level),
+			Span:         heading.Position,
+			SectionSpan:  heading.Section,
 			RecordBlocks: []specmodel.RecordBlock{},
 		})
 	}
-	return headings
+	return headings, attachRecordBlocks(headings, recordBlocksOf(src, from, recordTags))
 }
 
 // extractReferences records the references one member makes, from the

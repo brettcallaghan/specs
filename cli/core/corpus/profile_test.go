@@ -33,11 +33,12 @@ const modulePath = "github.com/brettcallaghan/agent-plugins/cli"
 // item. It exists to prove the interface is satisfiable from outside the
 // package that declares it, using nothing but data.
 type stubProfile struct {
-	schema      []byte
-	types       map[string]corpus.DocumentTypeRules
-	conventions specmodel.ConventionsConfig
-	lifecycle   corpus.LifecycleRules
-	featureTags corpus.FeatureTagRules
+	schema       []byte
+	types        map[string]corpus.DocumentTypeRules
+	conventions  specmodel.ConventionsConfig
+	lifecycle    corpus.LifecycleRules
+	featureTags  corpus.FeatureTagRules
+	recordBlocks []corpus.RecordBlockTag
 }
 
 func (p stubProfile) Schema() []byte                                     { return p.schema }
@@ -45,6 +46,7 @@ func (p stubProfile) DocumentTypes() map[string]corpus.DocumentTypeRules { retur
 func (p stubProfile) Conventions() specmodel.ConventionsConfig           { return p.conventions }
 func (p stubProfile) Lifecycle() corpus.LifecycleRules                   { return p.lifecycle }
 func (p stubProfile) FeatureTags() corpus.FeatureTagRules                { return p.featureTags }
+func (p stubProfile) RecordBlocks() []corpus.RecordBlockTag              { return p.recordBlocks }
 
 // The interface is satisfiable, checked at compile time rather than only
 // when a test runs.

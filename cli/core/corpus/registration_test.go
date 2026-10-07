@@ -13,6 +13,7 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
@@ -399,4 +400,135 @@ func sorted(values []string) []string {
 		}
 	}
 	return out
+}
+
+// A profile registering no record-block tag describes documents with no
+// record blocks, not one the host has to reject or repair.
+func TestProfileMayRegisterNoRecordBlocks(t *testing.T) {
+	var profile corpus.Profile = stubProfile{}
+
+	if tags := profile.RecordBlocks(); len(tags) != 0 {
+		t.Errorf("RecordBlocks = %+v, want none", tags)
+	}
+	if defects := corpus.ValidateRegistration(profile); len(defects) != 0 {
+		t.Errorf("a profile registering no record blocks has defects: %+v", defects)
+	}
+}
+
+// A tag whose pointer addresses a definition in the profile's own schema
+// is valid, and so is a tag registered with no pointer at all.
+func TestValidateRegistrationAcceptsResolvingAndAbsentSchemaPointers(t *testing.T) {
+	profile := stubProfile{
+		schema: []byte(`{"definitions":{"Widget":{"type":"object"}}}`),
+		recordBlocks: []corpus.RecordBlockTag{
+			{Tag: "widget", Schema: "#/definitions/Widget"},
+			{Tag: "note"},
+		},
+	}
+
+	if defects := corpus.ValidateRegistration(profile); len(defects) != 0 {
+		t.Errorf("a resolving or absent pointer was reported: %+v", defects)
+	}
+}
+
+// A pointer resolving to nothing would validate every record against
+// nothing, so it is reported rather than skipped.
+func TestValidateRegistrationReportsAnUnresolvableSchemaPointer(t *testing.T) {
+	profile := stubProfile{
+		schema: []byte(`{"definitions":{"Widget":{"type":"object"}}}`),
+		recordBlocks: []corpus.RecordBlockTag{
+			{Tag: "widget", Schema: "#/definitions/Gadget"},
+			{Tag: "bare", Schema: "Widget"},
+		},
+	}
+
+	defects := corpus.ValidateRegistration(profile)
+	if len(defects) != 2 {
+		t.Fatalf("got %d defects, want 2: %+v", len(defects), defects)
+	}
+	if defects[0].Key != "widget" || defects[1].Key != "bare" {
+		t.Errorf("defect keys = %q, %q; want the registered tags", defects[0].Key, defects[1].Key)
+	}
+}
+
+// A schema that is not JSON is the schema's fault, reported by the schema
+// registry; it must not read as every pointer resolving to nothing.
+func TestValidateRegistrationRaisesNoPointerDefectForAnUnparsableSchema(t *testing.T) {
+	profile := stubProfile{
+		schema:       []byte(`{not json`),
+		recordBlocks: []corpus.RecordBlockTag{{Tag: "widget", Schema: "#/definitions/Widget"}},
+	}
+
+	if defects := corpus.ValidateRegistration(profile); len(defects) != 0 {
+		t.Errorf("got %d defects for an unparsable schema, want none: %+v", len(defects), defects)
+	}
+}
+
+// A pointer with no leading slash is not a JSON Pointer, so it resolves
+// to nothing.
+func TestValidateRegistrationReportsAPointerWithNoLeadingSlash(t *testing.T) {
+	profile := stubProfile{
+		schema:       []byte(`{"definitions":{"Widget":{"type":"object"}}}`),
+		recordBlocks: []corpus.RecordBlockTag{{Tag: "widget", Schema: "#definitions/Widget"}},
+	}
+
+	defects := corpus.ValidateRegistration(profile)
+	if len(defects) != 1 || defects[0].Key != "widget" {
+		t.Errorf("got %+v, want one defect keyed widget", defects)
+	}
+}
+
+// A record-block tag registered more than once has no single schema, so
+// each registration after the first is a defect, whether or not the
+// pointers agree, and the duplicate check does not depend on the schema.
+func TestValidateRegistrationReportsARecordBlockTagRegisteredTwice(t *testing.T) {
+	schema := []byte(`{"definitions":{"W":{},"V":{}}}`)
+
+	same := stubProfile{schema: schema, recordBlocks: []corpus.RecordBlockTag{
+		{Tag: "c", Schema: "#/definitions/W"}, {Tag: "c", Schema: "#/definitions/W"},
+	}}
+	if defects := corpus.ValidateRegistration(same); len(defects) != 1 || defects[0].Key != "c" {
+		t.Errorf("same pointer twice: got %+v, want one defect keyed c", defects)
+	}
+
+	differ := stubProfile{schema: schema, recordBlocks: []corpus.RecordBlockTag{
+		{Tag: "c", Schema: "#/definitions/W"}, {Tag: "c", Schema: "#/definitions/V"},
+	}}
+	defects := corpus.ValidateRegistration(differ)
+	if len(defects) != 1 {
+		t.Fatalf("two pointers: got %+v, want one defect", defects)
+	}
+	for _, pointer := range []string{"#/definitions/W", "#/definitions/V"} {
+		if !strings.Contains(defects[0].Detail, pointer) {
+			t.Errorf("Detail %q does not name %s", defects[0].Detail, pointer)
+		}
+	}
+
+	thrice := stubProfile{schema: schema, recordBlocks: []corpus.RecordBlockTag{
+		{Tag: "c"}, {Tag: "c"}, {Tag: "c"},
+	}}
+	if defects := corpus.ValidateRegistration(thrice); len(defects) != 2 {
+		t.Errorf("three registrations: got %d defects, want 2: %+v", len(defects), defects)
+	}
+
+	unparsable := stubProfile{schema: []byte(`{not json`), recordBlocks: []corpus.RecordBlockTag{
+		{Tag: "c", Schema: "#/definitions/W"}, {Tag: "c", Schema: "#/definitions/W"},
+	}}
+	if defects := corpus.ValidateRegistration(unparsable); len(defects) != 1 {
+		t.Errorf("unparsable schema: got %+v, want only the duplicate defect", defects)
+	}
+
+	badDuplicate := stubProfile{schema: schema, recordBlocks: []corpus.RecordBlockTag{
+		{Tag: "c", Schema: "#/definitions/W"}, {Tag: "c", Schema: "#/definitions/Nope"},
+	}}
+	if defects := corpus.ValidateRegistration(badDuplicate); len(defects) != 2 {
+		t.Errorf("duplicate with a bad pointer: got %d defects, want 2: %+v", len(defects), defects)
+	}
+
+	distinct := stubProfile{schema: schema, recordBlocks: []corpus.RecordBlockTag{
+		{Tag: "a", Schema: "#/definitions/W"}, {Tag: "b", Schema: "#/definitions/V"},
+	}}
+	if defects := corpus.ValidateRegistration(distinct); len(defects) != 0 {
+		t.Errorf("distinct tags: got %+v, want none", defects)
+	}
 }

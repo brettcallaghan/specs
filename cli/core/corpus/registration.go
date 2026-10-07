@@ -1,9 +1,13 @@
 package corpus
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/url"
 	"regexp"
 	"sort"
+	"strconv"
+	"strings"
 )
 
 // RegistrationDefect is one fault found in an active profile's
@@ -45,7 +49,7 @@ type RegistrationDefect struct {
 // registration the caller was told is wrong is better than a registration
 // silently repaired into one that checks less than it says.
 //
-// Five defects are found, and they are the whole of what a registration
+// Seven defects are found, and they are the whole of what a registration
 // can get wrong on its own terms:
 //
 //   - a pairing or a typed reference naming a property the same document
@@ -57,9 +61,12 @@ type RegistrationDefect struct {
 //   - a feature-tag registration whose identifier pattern does not
 //     compile;
 //   - a feature-tag registration whose shared captures name a capture
-//     group an identifier pattern does not define.
+//     group an identifier pattern does not define;
+//   - a record-block registration whose schema pointer resolves to
+//     nothing in the profile's schema;
+//   - a record-block tag registered more than once.
 //
-// The last two are found here rather than where they are used because
+// The feature-tag two are found here rather than where they are used because
 // both are defects of the registration against itself, which is what
 // this validation is for: a pattern that cannot compile matches nothing,
 // and a derivation over a capture no pattern defines compares two empty
@@ -83,7 +90,137 @@ func ValidateRegistration(profile Profile) []RegistrationDefect {
 		defects = append(defects, documentTypeDefects(name, types[name], types)...)
 	}
 	defects = append(defects, lifecycleDefects(profile.Lifecycle())...)
-	return append(defects, featureTagDefects(profile.FeatureTags())...)
+	defects = append(defects, featureTagDefects(profile.FeatureTags())...)
+	return append(defects, recordBlockDefects(profile.RecordBlocks(), profile.Schema())...)
+}
+
+// recordBlockDefects reports each record-block tag whose schema pointer
+// does not resolve to a definition in schema, and each registration of a
+// tag already registered earlier. A tag registered with no pointer has no
+// pointer defect: its records are simply not validated. Defects follow
+// registration order, a registration's duplicate defect before its
+// pointer defect.
+//
+// An unresolvable pointer is reported rather than skipped because
+// skipping it would validate every record against nothing and report
+// success.
+//
+// A schema that is not JSON yields no pointer defect: no pointer can be
+// judged against it, and the fault is the schema's rather than any tag's.
+// It is reported, once, by the schema registry the corpus compiles the
+// active profile's schema with. The duplicate check does not read the
+// schema and still runs.
+func recordBlockDefects(tags []RecordBlockTag, schema []byte) []RegistrationDefect {
+	var document any
+	parsed := json.Unmarshal(schema, &document) == nil
+
+	var defects []RegistrationDefect
+	first := make(map[string]RecordBlockTag, len(tags))
+	for _, tag := range tags {
+		if earlier, seen := first[tag.Tag]; seen {
+			detail := "is registered as a record block more than once, so which " +
+				"schema a record is validated against would depend on registration order"
+			if earlier.Schema != tag.Schema {
+				detail += fmt.Sprintf(" (pointers %q and %q)", earlier.Schema, tag.Schema)
+			}
+			defects = append(defects, RegistrationDefect{Key: tag.Tag, Detail: detail})
+		} else {
+			first[tag.Tag] = tag
+		}
+		if !parsed || tag.Schema == "" || resolvePointer(document, tag.Schema) {
+			continue
+		}
+		defects = append(defects, RegistrationDefect{
+			Key: tag.Tag,
+			Detail: fmt.Sprintf("is registered as a record block validated against %q, "+
+				"which resolves to nothing in this profile's schema, so its records "+
+				"would be checked against nothing", tag.Schema),
+		})
+	}
+	return defects
+}
+
+// resolvePointer reports whether fragment, a JSON Pointer in its URI
+// fragment form (RFC 6901 sections 4 to 6) such as "#/definitions/Name",
+// addresses a value in document.
+//
+// The fragment is percent-decoded, must then be empty (the whole
+// document) or start with "/", and is split into reference tokens with
+// "~1" read as "/" and "~0" as "~"; any other "~" makes the pointer
+// invalid. A token steps into an object by key and into an array by
+// index: "0" or a decimal with no leading zero, within range. "-" and any other token on an array, and any step into a
+// scalar, resolve to nothing.
+func resolvePointer(document any, fragment string) bool {
+	encoded, ok := strings.CutPrefix(fragment, "#")
+	if !ok {
+		return false
+	}
+	path, err := url.PathUnescape(encoded)
+	if err != nil {
+		return false
+	}
+	if path == "" {
+		return true
+	}
+	path, ok = strings.CutPrefix(path, "/")
+	if !ok {
+		return false
+	}
+	current := document
+	for _, token := range strings.Split(path, "/") {
+		if !validEscapes(token) {
+			return false
+		}
+		token = strings.ReplaceAll(strings.ReplaceAll(token, "~1", "/"), "~0", "~")
+		switch node := current.(type) {
+		case map[string]any:
+			next, found := node[token]
+			if !found {
+				return false
+			}
+			current = next
+		case []any:
+			index, valid := arrayIndex(token, len(node))
+			if !valid {
+				return false
+			}
+			current = node[index]
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+// validEscapes reports whether every "~" in token begins "~0" or "~1",
+// the only escapes RFC 6901 defines.
+func validEscapes(token string) bool {
+	for i := 0; i < len(token); i++ {
+		if token[i] == '~' {
+			if i+1 == len(token) || (token[i+1] != '0' && token[i+1] != '1') {
+				return false
+			}
+			i++
+		}
+	}
+	return true
+}
+
+// arrayIndex parses token as an RFC 6901 array index below length.
+func arrayIndex(token string, length int) (int, bool) {
+	if token == "" || (len(token) > 1 && token[0] == '0') {
+		return 0, false
+	}
+	for _, r := range token {
+		if r < '0' || r > '9' {
+			return 0, false
+		}
+	}
+	index, err := strconv.Atoi(token)
+	if err != nil || index >= length {
+		return 0, false
+	}
+	return index, true
 }
 
 // documentTypeDefects reports the defects in one document type's rules.
