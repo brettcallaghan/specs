@@ -113,60 +113,13 @@ if command -v bd >/dev/null 2>&1; then
   export BD_DISABLE_TELEMETRY=1
   [ -n "${CLAUDE_ENV_FILE:-}" ] && echo 'export BD_DISABLE_TELEMETRY=1' >> "$CLAUDE_ENV_FILE"
 
-  # --- 2a. The DoltHub credential ---------------------------------------------
+  # --- 2a. Leftovers from the refs/dolt/data tracker --------------------------
   #
-  # The tracker lives on DoltHub (sync.remote in .beads/config.yaml). DoltHub
-  # authenticates with a Dolt credential — an ed25519 key in JWK form under
-  # ~/.dolt/creds/, selected by `user.creds` in ~/.dolt/config_global.json —
-  # which the embedded Dolt inside bd reads. The environment supplies it as
-  # DOLT_CREDS_JWK, the contents of the .jwk file `dolt creds new` writes.
-  #
-  # Installed here without the dolt CLI, which is not on the image. The file
-  # must be named by the key id, which Dolt derives as base32 (alphabet
-  # 0-9a-v, unpadded) of SHA-512/224 over the key's `d` member — Dolt stores
-  # the PUBLIC key in `d` (libraries/doltcore/creds: PubKeyToKID,
-  # JWKCredsDeserialize). A wrong name is silent until the first push.
-  #
-  # There is deliberately NO JSONL fallback: a session that cannot reach the
-  # tracker is broken and says so.
-  BB_DOLT_FATAL=""
-  if [ -z "${DOLT_CREDS_JWK:-}" ]; then
-    BB_DOLT_FATAL="DOLT_CREDS_JWK is not set in this container."
-  elif ! DOLT_CREDS_JWK="$DOLT_CREDS_JWK" python3 -I - <<'PY' 2>/dev/null
-import base64, hashlib, json, os
-jwk = json.loads(os.environ["DOLT_CREDS_JWK"])
-pub = base64.urlsafe_b64decode(jwk["d"] + "=" * (-len(jwk["d"]) % 4))
-kid = base64.b32hexencode(hashlib.new("sha512_224", pub).digest()).decode().lower().rstrip("=")
-root = os.path.join(os.path.expanduser("~"), ".dolt")
-os.makedirs(os.path.join(root, "creds"), mode=0o700, exist_ok=True)
-path = os.path.join(root, "creds", kid + ".jwk")
-fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-with os.fdopen(fd, "w") as f:
-    json.dump(jwk, f)
-cfg_path = os.path.join(root, "config_global.json")
-try:
-    cfg = json.load(open(cfg_path))
-except (OSError, ValueError):
-    cfg = {}
-cfg["user.creds"] = kid
-cfg["metrics.disabled"] = "true"
-json.dump(cfg, open(cfg_path, "w"))
-PY
-  then
-    BB_DOLT_FATAL="DOLT_CREDS_JWK is set but could not be installed — it must be the JSON content of a .jwk file from \`dolt creds new\`."
-  else
-    log "DoltHub credential installed"
-  fi
-
-  # Never let a push fall back to adopting the git origin as a Dolt remote:
-  # the tracker's old home there is retired.
-  export BD_NO_REMOTE_ADOPT=1
-  [ -n "${CLAUDE_ENV_FILE:-}" ] && echo 'export BD_NO_REMOTE_ADOPT=1' >> "$CLAUDE_ENV_FILE"
-
   # A container reused from before the move may still carry the GitHub proxy
   # bypass and PAT helper the old refs/dolt/data tracker needed. Left in place
   # they keep routing this repository's pushes around the proxy with a PAT that
-  # lacks `workflow` scope, so remove them.
+  # lacks `workflow` scope, so remove them. The tracker now needs no credential
+  # beyond the one that pushes code.
   _origin="$(git remote get-url origin 2>/dev/null || true)"
   _origin="${_origin%.git}"
   case "$_origin" in
@@ -177,83 +130,38 @@ PY
       done ;;
   esac
 
-  # --- 2b. The database name --------------------------------------------------
+  # bd must never add a Dolt remote on its own: one added without the
+  # `beads/data` ref points at refs/dolt/data. scripts/beads-setup.sh writes it.
+  export BD_NO_REMOTE_ADOPT=1
+  [ -n "${CLAUDE_ENV_FILE:-}" ] && echo 'export BD_NO_REMOTE_ADOPT=1' >> "$CLAUDE_ENV_FILE"
+
+  # --- 2b. A database from an earlier tracker ---------------------------------
   #
-  # Must run BEFORE anything reads the tracker, because reading it is what
-  # destroys the evidence. If `dolt_database` names a database not on disk, bd
-  # CREATES an empty one under that name and reports a healthy, empty tracker:
-  # measured on bd 1.2.2 against a database holding 318 issues, `bd stats`
-  # printed "Total Issues: 0" and `bd ready` printed "No open issues", both
-  # exit 0, no error. Ordered after the count below, the sequence measured was
-  # worse than the bug: the count read 0, the hook moved the REAL database
-  # aside as stale, re-cloned under the wrong name, and the guard then found
-  # the directory present and stayed silent.
-  #
-  # Fatal rather than a warning — an empty tracker that reports itself healthy
-  # is the thing this hook exists to prevent. Skipped when there is no database
-  # yet, which is the ordinary fresh-clone case handled below.
-  if [ -z "$BB_DOLT_FATAL" ] && [ -d .beads/embeddeddolt ]; then
+  # Must run BEFORE anything reads the tracker. If `dolt_database` names a
+  # database not on disk, bd CREATES an empty one under that name and reports
+  # a healthy, empty tracker — measured on bd 1.2.2: `bd stats` printed
+  # "Total Issues: 0", exit 0, no error. A container reused from before the
+  # tracker moved holds exactly that: the old `beads` database and no `specs`.
+  # Move the whole directory aside — never delete it, it may hold unpushed
+  # beads — so the setup script below clones the named database fresh.
+  if [ -d .beads/embeddeddolt ]; then
     _want="$(python3 -c 'import json,io;print(json.load(io.open(".beads/metadata.json",encoding="utf-8")).get("dolt_database",""))' 2>/dev/null)" || _want=""
     if [ -n "$_want" ] && [ ! -d ".beads/embeddeddolt/$_want" ]; then
-      BB_DOLT_FATAL="metadata.json names database '$_want' but it is absent from .beads/embeddeddolt/ (present: $(ls .beads/embeddeddolt/ 2>/dev/null | tr '\n' ' ')). bd would report an empty tracker rather than an error."
+      _stale=".beads/embeddeddolt.stale.$$"
+      mv .beads/embeddeddolt "$_stale" \
+        && log "moved aside a database from an earlier tracker (no '$_want' in it): $_stale"
     fi
   fi
 
   # --- 2c. The database -------------------------------------------------------
-  # The database is gitignored, so a fresh clone has none and every bd command
-  # fails with "no beads database found".
-  #
-  # Verify by ISSUE COUNT, never by directory existence, and never by exit code.
-  # A stale but genuinely initialised `.beads/embeddeddolt/` can survive into a
-  # new container, and bootstrap cannot clone over one: measured on bd 1.2.2, it
-  # exits 1 with "can't create database beads; database exists". A guard that
-  # skips bootstrap because that directory exists therefore skips it exactly
-  # when it is needed, which is why the stale database is moved aside below
-  # rather than treated as proof of a tracker.
-  #
-  # The count is the outcome test. bd 1.2.2 fails loudly on the ways bootstrap
-  # can go wrong — including a workspace-identity check comparing metadata.json's
-  # project_id against the database's — so this is no longer catching a silent
-  # empty tracker at this step. It stays because it tests the thing that
-  # matters (issues are present) rather than a proxy for it, and because the
-  # database-name mismatch further down still is silent.
-  if [ -z "$BB_DOLT_FATAL" ] && [ -d .beads ]; then
-    # `|| true` inside, not outside: `bd stats` EXITS NON-ZERO when there is no
-    # database, which under `set -euo pipefail` makes `_n="$(_count)"` kill the
-    # script — silently, with no message and exit 1, before bootstrap can run.
-    # That is precisely the fresh-clone case this block exists to handle, so
-    # without this the hook can only ever succeed where it was not needed.
-    _count() { { bd stats 2>/dev/null || true; } | sed -n 's/^[[:space:]]*Total Issues:[[:space:]]*\([0-9][0-9]*\).*/\1/p' | head -1; }
-    _n="$(_count)"; [ -n "$_n" ] || _n=0
-
-    if [ "$_n" -eq 0 ]; then
-      log "tracker is empty ($_n issues) — bootstrapping from DoltHub"
-      # A stale empty database short-circuits bootstrap's own probe. Move it
-      # aside rather than deleting it: if the remote turns out to be the empty
-      # one, the copy is the only remaining evidence.
-      if [ -d .beads/embeddeddolt ]; then
-        _stale=".beads/embeddeddolt.stale.$$"
-        mv .beads/embeddeddolt "$_stale" \
-          && log "moved a stale empty database aside: $_stale"
-      fi
-      _bootstrap_out="$(BD_NON_INTERACTIVE=1 bd bootstrap --yes 2>&1)"
-      _n="$(_count)"; [ -n "$_n" ] || _n=0
-      if [ "$_n" -gt 0 ]; then
-        log "beads DB bootstrapped from DoltHub ($_n issues)"
-      else
-        BB_DOLT_FATAL="bootstrap left the tracker empty ($_n issues); it may have exited 0 anyway. Output: $(printf '%s' "$_bootstrap_out" | tr '\n' ' ' | cut -c1-300)"
-      fi
-    else
-      # A container can be reused across sessions, so a non-empty tracker is
-      # not necessarily a CURRENT one. Pull rather than assume; a no-op pull
-      # costs ~2s.
-      if timeout 300 bd dolt pull >/dev/null 2>&1; then
-        _n="$(_count)"; [ -n "$_n" ] || _n=0
-        log "tracker pulled from DoltHub ($_n issues)"
-      else
-        log "WARNING: \`bd dolt pull\` failed — the tracker may be behind DoltHub"
-      fi
-    fi
+  # scripts/beads-setup.sh clones the tracker from the `beads/data` branch on a
+  # fresh clone, points the Dolt remote at that branch, and pulls otherwise.
+  # It verifies by issue count and exits non-zero on an empty tracker.
+  BB_DOLT_FATAL=""
+  if _setup_out="$(scripts/beads-setup.sh 2>&1)"; then
+    printf '%s\n' "$_setup_out" | sed 's/^beads-setup: /[session-start] /'
+  else
+    BB_DOLT_FATAL="scripts/beads-setup.sh failed: $(printf '%s' "$_setup_out" | tr '\n' ' ' | cut -c1-400)"
   fi
 
   # A database whose configured prefix disagrees with the ids it holds mints a
@@ -484,17 +392,14 @@ if [ -n "${BB_DOLT_FATAL:-}" ]; then
   log ""
   log "ERROR: the beads tracker is not usable in this session — $BB_DOLT_FATAL"
   log ""
-  log "  This repository's tracker is the Dolt database on DoltHub"
-  log "  (bcallaghan/beads). There is no JSONL fallback by design. Do not"
+  log "  This repository's tracker is the Dolt database on the beads/data"
+  log "  branch of origin. There is no JSONL fallback by design. Do not"
   log "  create or close beads in this session: the work would be lost when"
   log "  the container is reclaimed."
   log ""
-  log "  The environment must provide BOTH:"
-  log "    1. DOLT_CREDS_JWK — the contents of a DoltHub credential's .jwk"
-  log "       file, set at container creation (claude.ai/code -> the"
-  log "       environment's variables)."
-  log "    2. Network access to doltremoteapi.dolthub.com and DoltHub's chunk"
-  log "       storage hosts (see docs/session-bootstrap.md for the list)."
+  log "  Check that origin carries the branch:"
+  log "    git ls-remote origin 'refs/heads/beads/*'"
+  log "  then re-run ./scripts/beads-setup.sh."
   log ""
   log "  See docs/session-bootstrap.md."
   log ""

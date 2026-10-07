@@ -13,21 +13,24 @@
 # for interchange. It is not a backup.
 export:
     auto: false
-# The tracker: issues live in a Dolt database on DoltHub
-# (bcallaghan/beads, prefix `specs-`). There is no JSONL fallback by design.
+# The tracker: issues live in a Dolt database (prefix `specs-`) synced to the
+# ordinary branch `beads/data` on this repository's git origin. There is no
+# JSONL fallback by design.
 #
-# KEEP IT SET. `bd bootstrap` clones from this URL, and it is what makes
-# `bd prime` emit the Dolt sync commands; unset, bd tells every agent "No git
-# remote configured. Issues are saved locally only."
+# KEEP IT SET. It is what makes `bd prime` emit the Dolt sync commands; unset,
+# bd tells every agent "No git remote configured. Issues are saved locally
+# only."
 #
-# DoltHub authenticates with a Dolt credential, not a GitHub token: the
-# SessionStart hook installs it from DOLT_CREDS_JWK — see
-# .claude/hooks/session-start.sh and docs/session-bootstrap.md.
+# This URL alone points at Dolt's DEFAULT ref, `refs/dolt/data`, which is NOT
+# where the data is and which a Claude Code cloud session cannot write. The
+# branch is set per clone by scripts/beads-setup.sh, because bd has no config
+# key for a ref. Never use `bd bootstrap` here: it clones from the default ref
+# and finds nothing.
 #
 # The closed history from before the move (690 beads, `agent-plugins-` prefix)
 # is a one-time export under docs/archive/, not in this database.
 sync:
-    remote: "https://doltremoteapi.dolthub.com/bcallaghan/beads"
+    remote: "git+https://github.com/brettcallaghan/agent-plugins.git"
 
 # Never re-import a JSONL found lying around: the Dolt remote is the source of
 # truth, and a stale export would overwrite newer rows.
@@ -40,9 +43,7 @@ backup:
     enabled: false
 
 # Pushing is the Stop hook's job (.claude/hooks/dolt-push.sh), once per turn.
-# bd's own auto-push is unsafe with more than one writer. Nothing pushed to
-# DoltHub can be squashed afterwards — `bd dolt remote reset-data` does not
-# support DoltHub URLs — so never run `bd flatten` on this database again.
+# bd's own auto-push is unsafe with more than one writer.
 dolt:
     auto-push: false
     auto-commit: "on"

@@ -40,53 +40,30 @@ run by hand it completes. It is simply never invoked.
 `strata` has the same exposure through its own
 `scripts/setup-cloud-env.sh`.
 
-## The cloud environment contract: access to the DoltHub tracker
+## The tracker needs nothing from the environment
 
-**This section applies to Claude's cloud environments only.** A local
-developer runs `dolt login` (or `dolt creds import`) once and is done; skip to
-[the setup script](#the-fix-an-environment-setup-script).
+This repository's issue tracker is a Dolt database (prefix `specs-`) stored on
+the ordinary branch `beads/data` of this repository's git remote.
+`.beads/config.yaml`'s `sync.remote` names the remote; the branch is written
+into each clone's Dolt config by `scripts/beads-setup.sh`, because `bd` has no
+config key for a ref. The SessionStart hook runs that script and **exits 1**
+when it leaves the tracker empty: `.beads/*.jsonl` is untracked and is **not**
+a fallback, and a session that cannot sync the tracker can close a bead and
+lose it when the container is reclaimed.
 
-This repository's issue tracker is a Dolt database on DoltHub,
-[`bcallaghan/beads`](https://www.dolthub.com/repositories/bcallaghan/beads),
-with the `specs-` prefix. `.beads/config.yaml`'s `sync.remote` points at it.
-`.beads/*.jsonl` is untracked and is **not** a fallback: a session that can
-read but not write the tracker can close a bead and lose it when the container
-is reclaimed, so `.claude/hooks/session-start.sh` **exits 1** when the tracker
-cannot be set up.
+No variable, secret or network rule is needed. A Claude Code cloud session's
+GitHub credential is accepted on `refs/heads/*` (and refused on `refs/dolt/*`,
+Dolt's default, which is why the data is on a branch), and the git host is
+already reachable. A local developer runs `./scripts/beads-setup.sh` once
+after cloning and uses whatever git credential pushes their code.
 
-A cloud environment must supply two things:
-
-1. **`DOLT_CREDS_JWK`** — the JSON content of a DoltHub credential's `.jwk`
-   file (what `dolt creds new` writes under `~/.dolt/creds/`), with the public
-   key registered on a DoltHub account that can write `bcallaghan/beads`. Set
-   it at [claude.ai/code](https://claude.ai/code) on the environment's
-   variables. **Environment variables are read at container creation**, so
-   adding one cannot rescue a session already running. The hook installs it
-   into `~/.dolt/` without the `dolt` CLI.
-
-2. **Network access to DoltHub.** Under a Custom network policy, allow:
-   - `doltremoteapi.dolthub.com` — the remote API `bd dolt push/pull` talks to
-   - `dolthub.com` and `www.dolthub.com` — the web UI and its API
-   - `dolthub-chunks-prod.s3.us-west-2.amazonaws.com` — chunk uploads
-   - `d264tdk9acngkv.cloudfront.net` — chunk downloads (the host observed
-     in a push on 2026-10-06; a different one in a `Forbidden` error means
-     DoltHub moved its CDN)
-
-   The two storage hosts are where DoltHub sends the data itself; without
-   them the remote API answers but every push or clone fails, with
-   `Forbidden` on a presigned S3 or CloudFront URL. **Network settings, like
-   variables, reach only sessions started after the change.**
-
-`BD_NO_REMOTE_ADOPT=1` is exported by the hook so `bd dolt push` can never
-fall back to adopting the git origin as a Dolt remote.
-
-### The pre-DoltHub history
+### The pre-move history
 
 Until 2026-10-06 the tracker lived on this repository's own git remote under
 `refs/dolt/data`, with the `agent-plugins-` prefix. Only open work moved to
-DoltHub. The full tracker as it stood at the move — all 690 beads, closed
-ones included, with their comments and dependencies — is committed as one
-`bd export` file under [`docs/archive/`](archive/). Ids of the form
+the new database. The full tracker as it stood at the move — all 690 beads,
+closed ones included, with their comments and dependencies — is committed as
+one `bd export` file under [`docs/archive/`](archive/). Ids of the form
 `agent-plugins-…` anywhere in this repository resolve there, not in the live
 tracker.
 
@@ -175,9 +152,8 @@ environment. It goes away when `strata-lang/strata` becomes public —
 - **It duplicates logic** that also lives in
   `.claude/hooks/session-start.sh`, so the two can drift. Keep them
   different in scope: the setup script provisions only `bd`;
-  the hook does the repository-specific work (installing the DoltHub
-  credential, bootstrapping the beads database from DoltHub, regenerating
-  vendored references) that cannot run before the repository is cloned.
+  the hook does the repository-specific work (hydrating the beads database
+  from the `beads/data` branch, regenerating vendored references) that cannot run before the repository is cloned.
 - **The five-minute budget is real.** The `bd` source build takes a few
   minutes cold.
 - **The cache expires** after roughly seven days, and rebuilds when the

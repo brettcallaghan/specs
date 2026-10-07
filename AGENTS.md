@@ -4,7 +4,8 @@ This project uses **bd** (beads) for issue tracking. Run `bd prime` for full wor
 
 > **Architecture in one line:** Issues live in a local Dolt database
 > (`.beads/embeddeddolt/`); cross-machine sync uses `bd dolt push/pull`
-> against the DoltHub database `bcallaghan/beads` (prefix `specs-`).
+> against the `beads/data` branch of this repository's git remote (prefix
+> `specs-`), set up per clone by `scripts/beads-setup.sh`.
 > `.beads/issues.jsonl` is a passive export, not the wire protocol.
 >
 > See [SYNC_CONCEPTS.md](https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md)
@@ -338,8 +339,8 @@ scope for this run's beads" tells a future reader nothing they can act on.
   **Unverified this session** — `bd` (`bd version 1.2.1`) was already
   installed when this bead started, so no fresh cold/warm timing was taken.
 - The Dolt database (`.beads/embeddeddolt`) is gitignored, so **no clone ever
-  has one**. The hook bootstraps it from the Dolt remote with `bd bootstrap`
-  when the tracker reports zero issues.
+  has one**. `scripts/beads-setup.sh`, which the hook runs, clones it from the
+  `beads/data` branch when the tracker reports zero issues.
 - **`bd stats` exits non-zero when there is no database, and the hook runs under
   `set -euo pipefail`.** Until 2026-08-20 that combination made the hook die at
   `_n="$(_count)"` — silently, no message, exit 1 — on any clone without a
@@ -353,7 +354,8 @@ scope for this run's beads" tells a future reader nothing they can act on.
   `.beads/embeddeddolt/` makes bd CREATE an empty database under that name;
   `bd stats` then prints `Total Issues: 0` and `bd ready` prints "No open
   issues", both exit 0, no warning. The hook checks this **before** anything
-  reads the tracker and treats it as fatal — ordered after the issue count, the
+  reads the tracker and moves the whole `.beads/embeddeddolt/` aside, so the
+  named database is cloned fresh — ordered after the issue count, the
   measured sequence was worse than the bug itself: the count read 0, the hook
   moved the real database aside as stale, re-cloned under the wrong name, and
   the guard then saw the directory present and stayed silent.
@@ -563,7 +565,7 @@ bd close <id>         # Complete work
 - Run `bd prime` for detailed command reference and session close protocol
 - Use `bd remember` for persistent knowledge — do NOT use MEMORY.md files
 
-**Architecture in one line:** issues live in a local Dolt DB; sync uses the DoltHub database `bcallaghan/beads`; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md for details and anti-patterns.
+**Architecture in one line:** issues live in a local Dolt DB; sync uses the `beads/data` branch on the git remote; `.beads/issues.jsonl` is a passive export. See https://github.com/gastownhall/beads/blob/main/docs/SYNC_CONCEPTS.md for details and anti-patterns.
 
 ## Agent Context Profiles
 
@@ -601,50 +603,62 @@ This protocol applies when ending a Beads implementation workflow. It is subordi
 
 ## How beads persist in THIS project
 
-**The DoltHub database is the source of truth.** Issues live in a Dolt
-database synced to [`bcallaghan/beads`](https://www.dolthub.com/repositories/bcallaghan/beads)
-on DoltHub, with the `specs-` prefix. `.beads/*.jsonl` is **not tracked** and is
-not how issues travel.
+**The `beads/data` branch is the source of truth.** Issues live in a Dolt
+database synced to the ordinary branch `beads/data` on this repository's git
+remote, with the `specs-` prefix. Dolt also keeps its bookkeeping branch
+`__dolt_remote_info__` there. `.beads/*.jsonl` is **not tracked** and is not
+how issues travel.
 
 **Ids of the form `agent-plugins-…` are archived, not live.** Until 2026-10-06
 the tracker lived under `refs/dolt/data` on this repository's git remote. Only
-open work moved to DoltHub, under new `specs-` ids. Every bead as it stood at
-the move, closed ones included, is in the one-time export under
+open work moved to the new database, under new `specs-` ids. Every bead as it
+stood at the move, closed ones included, is in the one-time export under
 `docs/archive/`; look an old id up there, never in `bd`.
 
 ### What this requires of you
 
-- **Nothing.** The SessionStart hook bootstraps the database when it is empty
-  and otherwise pulls; a `Stop` hook (`.claude/hooks/dolt-push.sh`) pushes at
-  the end of every turn. Beads you create or close are durable without
-  ceremony. Pushing by hand is never wrong, just redundant.
+- **Outside a cloud session, run `./scripts/beads-setup.sh` once after
+  cloning.** It needs `bd`, `git` and `python3`, and no token. In a cloud
+  session the SessionStart hook runs it for you.
+- **Otherwise nothing.** A `Stop` hook (`.claude/hooks/dolt-push.sh`) pushes
+  at the end of every turn. Beads you create or close are durable without
+  ceremony. Pushing by hand (`bd dolt push`) is never wrong, just redundant.
+- **Never `bd bootstrap` or `bd init` by hand.** Both read Dolt's default ref,
+  `refs/dolt/data`, which does not exist here, and `bd` has no config key for
+  any other ref. The failure is silent: measured on bd 1.3.1 against a remote
+  holding only `beads/data`, `bd bootstrap --yes` exits 0, prints "Created
+  fresh database", and `bd stats` reads 0 issues. `scripts/beads-setup.sh` is the only supported way to
+  hydrate a clone. Refresh a broken one with
+  `rm -rf .beads/embeddeddolt && ./scripts/beads-setup.sh`, after
+  `bd dolt push` if it holds beads not yet pushed.
 - **Never `bd export` as a persistence step.** It writes an untracked file and
   persists nothing. Export only for a viewer or for interchange.
-- **Never `bd flatten`, `bd compact`, `bd gc` or `bd admin cleanup` on this
-  database.** DoltHub keeps every chunk it has received and
-  `bd dolt remote reset-data` does not support DoltHub URLs, so a rewrite
-  only adds history; the database was flattened once, before its first push.
 - **`bd remember` memories are excluded from `bd export`.** Durable context
   belongs in an issue description, not a memory.
 
-### The environment must provide access to DoltHub
+### Write access to the tracker is write access to the repository
 
-Not a preference — a precondition, and deliberately without a JSONL fallback.
-A session that can read but not write the tracker can close a bead and lose
-it, so the hook **fails loudly** (exit 1) when it cannot set the tracker up.
+A Claude Code cloud session's GitHub credential is accepted on `refs/heads/*`
+and refused on `refs/dolt/*`, which is why the data lives on a branch. Anyone
+who can push a branch here can push the tracker; anyone who can clone can read
+it. No PAT, proxy bypass, Dolt credential or extra network host is involved.
 
-Two things the environment supplies, both read only at container creation:
+- **Never put a force-push block on `beads/**` or `__dolt_remote_info__`.**
+  Dolt syncs with `--force-with-lease`; a rule forbidding force pushes breaks
+  every `bd dolt push`. Restricting who may push, and forbidding deletion, is
+  fine.
+- **Never merge, rebase or open a pull request from `beads/data`.** Its
+  commits are Dolt's storage, not source files.
+- **`refs/dolt/data` must stay absent.** A clone that reached it would get a
+  tracker that is populated, plausible and wrong. `dolt-push.sh` refuses to
+  push unless the Dolt remote targets `refs/heads/beads/data`.
+- **swarm's pre-flight probe pushes to `refs/dolt/*` and will report the
+  tracker as not durable.** That is a false positive here. Verify the real
+  path with `bd dolt push` (exit 0, "Push complete.") and proceed.
 
-1. `DOLT_CREDS_JWK` — a DoltHub credential (the `.jwk` file `dolt creds new`
-   writes) whose key can write `bcallaghan/beads`. The hook installs it into
-   `~/.dolt/` itself, without the `dolt` CLI.
-2. Network access to DoltHub's API and its chunk storage hosts. The list is
-   in `docs/session-bootstrap.md`; the API alone is not enough, since pushes
-   and clones move data through presigned S3 and CloudFront URLs.
-
-The hook also exports `BD_NO_REMOTE_ADOPT=1`, so `bd dolt push` can never
-adopt the git origin as a Dolt remote, and `.beads/config.yaml` keeps
-`dolt.auto-push`, `import.auto` and `backup.enabled` off.
+The hook exports `BD_NO_REMOTE_ADOPT=1` so `bd` never adds a Dolt remote
+without the branch ref, and `.beads/config.yaml` keeps `dolt.auto-push`,
+`import.auto` and `backup.enabled` off.
 
 A skill that needs a durable tracker never names a credential — it requires
 only "write access to the tracker's Dolt remote", and the mechanism is this
@@ -659,6 +673,6 @@ repository's business.
   misdetects the prefix.
 - **The hook is not always registered.** Claude Code loads hooks from the
   project root only, so a session attaching this repo alongside another never
-  runs it — and then nothing installs the credential or bootstraps the
-  database. The manual fallback is at the top of `CLAUDE.md`; the durable fix
+  runs it — and then nothing hydrates the database. Run
+  `./scripts/beads-setup.sh` by hand. The manual fallback is at the top of `CLAUDE.md`; the durable fix
   is the per-environment setup script in `docs/session-bootstrap.md`.
