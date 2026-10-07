@@ -729,7 +729,7 @@ union FindingDetail {
   @tag("c4-node") C4Node: FindingC4Node
 
   """A C4 relationship drawn both ways, drawn twice, or tagged sync and async."""
-  @tag("c4-relationship") C4Relationship: FindingC4Relationship
+  @tag("c4-relationship") C4RelationshipDefect: FindingC4Relationship
 
   """Two drawings of one relationship that disagree."""
   @tag("c4-drawing-conflict") C4DrawingConflict: FindingC4DrawingConflict

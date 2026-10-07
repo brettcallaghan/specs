@@ -583,7 +583,7 @@ identifier, the severity, the path, the span and the message.
 | "c4-parse" | C4Parse | A C4 diagram statement the parser cannot read. |
 | "c4-unread-diagram" | C4UnreadDiagram | A mermaid block whose diagram type the C4 parser does not read. |
 | "c4-node" | C4Node | A C4 node resolving to no element in scope, or to several. |
-| "c4-relationship" | [C4Relationship](c4.md#c4relationship) | A C4 relationship drawn both ways, drawn twice, or tagged sync and async. |
+| "c4-relationship" | C4RelationshipDefect | A C4 relationship drawn both ways, drawn twice, or tagged sync and async. |
 | "c4-drawing-conflict" | C4DrawingConflict | Two drawings of one relationship that disagree. |
 | "c4-contract" | C4Contract | A contract tag naming no contract, or one the endpoints do not declare. |
 | "c4-tag-separator" | C4TagSeparator | A relationship tags argument joined with a comma. |

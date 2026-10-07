@@ -3519,7 +3519,7 @@ func NewFindingDetailC4Node(v FindingC4Node) FindingDetail {
 	return FindingDetail{Value: v}
 }
 
-func NewFindingDetailC4Relationship(v FindingC4Relationship) FindingDetail {
+func NewFindingDetailC4RelationshipDefect(v FindingC4Relationship) FindingDetail {
 	return FindingDetail{Value: v}
 }
 
@@ -3650,7 +3650,7 @@ func (u FindingDetail) AsC4Node() (FindingC4Node, bool) {
 	return v, ok
 }
 
-func (u FindingDetail) AsC4Relationship() (FindingC4Relationship, bool) {
+func (u FindingDetail) AsC4RelationshipDefect() (FindingC4Relationship, bool) {
 	v, ok := u.Value.(FindingC4Relationship)
 	return v, ok
 }
