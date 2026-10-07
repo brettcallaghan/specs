@@ -1131,11 +1131,14 @@ const (
 	C4ExclusionReasonUndeclaredNode C4ExclusionReason = "undeclared_node"
 	// An endpoint's label matches more than one element in scope.
 	C4ExclusionReasonAmbiguousNode C4ExclusionReason = "ambiguous_node"
+	// A `BiRel` statement, which states no single dependency between its
+	// endpoints.
+	C4ExclusionReasonBidirectional C4ExclusionReason = "bidirectional"
 )
 
 func (e C4ExclusionReason) MarshalJSON() ([]byte, error) {
 	switch e {
-	case C4ExclusionReasonExternalEndpoint, C4ExclusionReasonPassiveStore, C4ExclusionReasonUndeclaredNode, C4ExclusionReasonAmbiguousNode:
+	case C4ExclusionReasonExternalEndpoint, C4ExclusionReasonPassiveStore, C4ExclusionReasonUndeclaredNode, C4ExclusionReasonAmbiguousNode, C4ExclusionReasonBidirectional:
 		return json.Marshal(string(e))
 	}
 	return nil, fmt.Errorf("C4ExclusionReason: unknown value %q", string(e))
@@ -1147,7 +1150,7 @@ func (e *C4ExclusionReason) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	switch C4ExclusionReason(s) {
-	case C4ExclusionReasonExternalEndpoint, C4ExclusionReasonPassiveStore, C4ExclusionReasonUndeclaredNode, C4ExclusionReasonAmbiguousNode:
+	case C4ExclusionReasonExternalEndpoint, C4ExclusionReasonPassiveStore, C4ExclusionReasonUndeclaredNode, C4ExclusionReasonAmbiguousNode, C4ExclusionReasonBidirectional:
 		*e = C4ExclusionReason(s)
 		return nil
 	}
