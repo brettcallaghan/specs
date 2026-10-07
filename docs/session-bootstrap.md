@@ -57,16 +57,6 @@ Dolt's default, which is why the data is on a branch), and the git host is
 already reachable. A local developer runs `./scripts/beads-setup.sh` once
 after cloning and uses whatever git credential pushes their code.
 
-### The pre-move history
-
-Until 2026-10-06 the tracker lived on this repository's own git remote under
-`refs/dolt/data`, with the `agent-plugins-` prefix. Only open work moved to
-the new database. The full tracker as it stood at the move — all 690 beads,
-closed ones included, with their comments and dependencies — is committed as
-one `bd export` file under [`docs/archive/`](archive/). Ids of the form
-`agent-plugins-…` anywhere in this repository resolve there, not in the live
-tracker.
-
 ### Not needed here any more: `worktree.baseRef`
 
 `{ "worktree": { "baseRef": "head" } }` must be in effect. Unset, a git

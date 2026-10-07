@@ -26,9 +26,6 @@ export:
 # branch is set per clone by scripts/beads-setup.sh, because bd has no config
 # key for a ref. Never use `bd bootstrap` here: it clones from the default ref
 # and finds nothing.
-#
-# The closed history from before the move (690 beads, `agent-plugins-` prefix)
-# is a one-time export under docs/archive/, not in this database.
 sync:
     remote: "git+https://github.com/brettcallaghan/agent-plugins.git"
 

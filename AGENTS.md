@@ -609,11 +609,10 @@ remote, with the `specs-` prefix. Dolt also keeps its bookkeeping branch
 `__dolt_remote_info__` there. `.beads/*.jsonl` is **not tracked** and is not
 how issues travel.
 
-**Ids of the form `agent-plugins-…` are archived, not live.** Until 2026-10-06
-the tracker lived under `refs/dolt/data` on this repository's git remote. Only
-open work moved to the new database, under new `specs-` ids. Every bead as it
-stood at the move, closed ones included, is in the one-time export under
-`docs/archive/`; look an old id up there, never in `bd`.
+**Ids of the form `agent-plugins-…` are retired.** Until 2026-10-06 the
+tracker lived under `refs/dolt/data` with that prefix. Open work moved to this
+database under the same suffix with the `specs-` prefix (`agent-plugins-hx1x`
+became `specs-hx1x`); closed beads were not carried over.
 
 ### What this requires of you
 
