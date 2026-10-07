@@ -278,6 +278,7 @@ C4Component
         Component(gherkin, "Gherkin", "Go package", "Gherkin parsing into feature and criterion records, with tags read as strings")
         Component(c4, "C4 Diagrams", "Go package", "Mermaid C4 diagram parsing into located statements, with relationship tags read")
         Component(c4e, "C4 Elements", "Go package", "The corpus's architectural elements, each drawing document's scope, and node and relationship resolution")
+        Component(c4m, "C4 Model", "Go package", "Assembles the element tree, modules, relationships and exclusions of the corpus's C4 model")
         Component(refs, "References", "Go package", "Wikilink and frontmatter reference extraction, resolution against corpus slugs, and the reference graph")
         Component(schema, "Schema Registry", "Go package", "Single-union JSON Schema validation dispatched by document type")
         Component(corpus, "Corpus", "Go package", "Discovery, membership, the index model and its emission")
@@ -297,6 +298,9 @@ C4Component
     Rel(c4e, c4, "Reads diagram statements through")
     Rel(c4e, md, "Matches roster headings and finds diagram blocks via")
     Rel(corpus, c4e, "Resolves elements and diagram nodes through")
+    Rel(c4m, c4e, "Nests the elements and rosters resolved by")
+    Rel(c4m, fm, "Reads each element's properties via")
+    Rel(corpus, c4m, "Assembles the C4 model through")
     Rel(refs, span, "Locates occurrences with")
     Rel(schema, fm, "Validates records produced by")
     Rel(num, corpus, "Queries the index of")
@@ -309,10 +313,10 @@ C4Component
     Rel(mdlinks, find, "Reports through")
 ```
 
-Ten of the eleven are built and carry a **Built** paragraph naming the
-package that realizes them: Spans, Frontmatter, Gherkin, C4 Diagrams,
-References, Schema Registry, Corpus, Numbering, Findings and Markdown
-Links. The
+Eleven of the thirteen are built and carry a **Built** paragraph naming
+the package that realizes them: Spans, Frontmatter, Gherkin, C4 Diagrams,
+C4 Elements, References, Schema Registry, Corpus, Numbering, Findings and
+Markdown Links. C4 Model is built for its element tree. The
 emitted index carries the resolved reference graph, and the corpus checks
 read it: a broken link, a live document citing a retired one, a
 half-declared pairing and a typed reference landing on the wrong
@@ -784,7 +788,62 @@ its shape nor its `schema_version` changes. The architecture
 vocabulary's types are declared in this package and named by the
 `Profile` extension point, because the corpus's checks call this package
 and not the reverse. The source scan that keeps `cli/core/corpus` free of
-registered vocabulary covers this package too.
+registered vocabulary covers this package too. Each drawing document
+also carries its roster — every child its roster declares, by record
+block or by reference, with the declaration's span — and each element
+the system and composed-modules slugs its blueprint names, which is what
+C4 Model nests by.
+
+### C4 Model
+
+```component
+entity_name: C4 Model
+slug: component-c4-model
+description: Assembles the element tree, modules, relationships and exclusions of the corpus's C4 model
+```
+
+(Go package) — Assembles the corpus's C4 model from the elements and
+drawings C4 Elements resolves: the element tree, the module collection,
+the relationships and the excluded statements. It returns the generated
+`specmodel.C4Model`, whose shape `schemas/c4.strata` declares, and
+renders nothing. It decides nothing C4 Elements owns and, like it, names
+no document type, property or heading of its own.
+
+**Element tree.** Every `system`-level element is placed in
+`software_systems`, every `module`-level element in `modules`, and every
+other element under its parent or in an orphaned collection — by the
+edges the corpus declares and never by directory layout or a diagram,
+so no element is created from a diagram node. A container nests under
+the system its system property names; where that property is absent or
+names no system-level element, it is in `orphaned_containers`. A
+component nests under the container or module whose roster declares it,
+by record block or by a reference to its blueprint; declared by several
+rosters, it nests under the one whose declaration sorts first by path
+and then by span, and nowhere else. A component no roster declares is in
+`orphaned_components`.
+
+**Derived edges.** A container's and a module's `modules` list the slugs
+its composed-modules property names; a module's `contained_by` lists
+every container and module naming it, and an element's
+`contracts_provided` every contract whose provider property names it.
+Both are computed over the whole corpus.
+
+**Properties.** An element's `declarations` are every declaration C4
+Elements holds for its slug, each with its path and the span of the
+frontmatter block or the record block, fences included. Its properties
+are taken from its blueprint's frontmatter where it has one, and
+otherwise from the declaration sorting first by path and then by span:
+`entity_name`, `description`, `technology`, `contracts_consumed` and
+`tags`; for a module `kind`, `visibility` and `version`; for a component
+with a blueprint `kind`. A property the source does not carry is absent.
+Every collection of elements and of slugs is ordered by slug.
+
+**Built** — `cli/core/c4model`, reached through `Corpus.C4Model`, for the
+element tree; its relationships and excluded relationships are emitted
+empty until they are assembled. The source scan that keeps
+`cli/core/corpus` free of registered vocabulary covers this package: the
+properties it copies are named by the registered vocabulary or by the
+model's own field names.
 
 ### References
 

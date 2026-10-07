@@ -1,0 +1,385 @@
+// Package c4model assembles the corpus's C4 model: the element tree,
+// the module collection, the relationships and the excluded statements,
+// as the generated [specmodel.C4Model].
+//
+// It is a projection of what the C4 Elements package resolves and
+// decides nothing that package already owns: which members declare an
+// element, which declarations are one element, and what a roster
+// declares. It nests those elements by the containment edges the corpus
+// declares — a container's system property, a host's composed-modules
+// property, a child's place in its parent's roster — and never by
+// directory layout or by a diagram. It renders nothing.
+//
+// Like the C4 Elements package, it names no document type, property or
+// heading of its own: the properties it copies are named by the
+// vocabulary a profile registers, or by the model's own shape.
+package c4model
+
+import (
+	"encoding/json"
+	"reflect"
+	"sort"
+	"strings"
+
+	"github.com/brettcallaghan/agent-plugins/cli/core/c4elements"
+	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
+	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+)
+
+// SchemaVersion is the version of the model's shape this package emits.
+const SchemaVersion = "0.1"
+
+// Input is what [Build] reads.
+type Input struct {
+	// Elements is what the C4 Elements package reads; Build resolves the
+	// element set from it, and reads each element's properties out of the
+	// same sources through its Source and Decode.
+	Elements c4elements.Input
+
+	// Workspace is the configured workspace name the model carries.
+	Workspace string
+}
+
+// Build assembles the corpus's C4 model.
+//
+// Every system-level element is placed in the model's systems, every
+// module-level element in its modules, and every other element under its
+// parent or in an orphaned collection. Every collection of elements is
+// ordered by slug, and every collection of slugs likewise. No element is
+// created from a diagram node. An element with no slug is identified by
+// nothing and is left out.
+func Build(in Input) (*specmodel.C4Model, error) {
+	set, err := c4elements.Build(in.Elements)
+	if err != nil {
+		return nil, err
+	}
+	a := &assembly{in: in, set: set, entries: map[string]specmodel.IndexEntry{}}
+	for _, entry := range in.Elements.Entries {
+		a.entries[entry.Path] = entry
+	}
+	return a.model(), nil
+}
+
+// assembly is one run of [Build].
+type assembly struct {
+	in      Input
+	set     *c4elements.Set
+	entries map[string]specmodel.IndexEntry
+	// sources caches each document's bytes, read once.
+	sources map[string][]byte
+}
+
+func (a *assembly) model() *specmodel.C4Model {
+	model := &specmodel.C4Model{
+		SchemaVersion:         SchemaVersion,
+		Workspace:             a.in.Workspace,
+		SoftwareSystems:       []specmodel.C4System{},
+		OrphanedContainers:    []specmodel.C4Container{},
+		OrphanedComponents:    []specmodel.C4Component{},
+		Modules:               []specmodel.C4Module{},
+		Relationships:         []specmodel.C4Relationship{},
+		ExcludedRelationships: []specmodel.C4ExcludedRelationship{},
+	}
+
+	parents := a.parents()
+	components := map[*c4elements.Element][]specmodel.C4Component{}
+	containers := map[*c4elements.Element][]specmodel.C4Container{}
+
+	// Components first, so each container and module finds its own
+	// already placed; the element set is ordered by slug, so each
+	// collection is too.
+	for _, element := range a.elements(c4elements.LevelComponent) {
+		component := a.component(element)
+		if parent, ok := parents[element]; ok {
+			components[parent] = append(components[parent], component)
+			continue
+		}
+		model.OrphanedComponents = append(model.OrphanedComponents, component)
+	}
+
+	for _, element := range a.elements(c4elements.LevelContainer) {
+		container := specmodel.C4Container{
+			Components: nonNil(components[element]),
+			Modules:    slugsOf(element.ComposedModules),
+		}
+		a.fill(element, &container)
+		if system, ok := a.systemOf(element); ok {
+			containers[system] = append(containers[system], container)
+			continue
+		}
+		model.OrphanedContainers = append(model.OrphanedContainers, container)
+	}
+
+	for _, element := range a.elements(c4elements.LevelSystem) {
+		system := specmodel.C4System{Containers: nonNil(containers[element])}
+		a.fill(element, &system)
+		model.SoftwareSystems = append(model.SoftwareSystems, system)
+	}
+
+	for _, element := range a.elements(c4elements.LevelModule) {
+		values := a.values(element)
+		module := specmodel.C4Module{
+			ContainedBy: a.containedBy(element),
+			Components:  nonNil(components[element]),
+			Modules:     slugsOf(element.ComposedModules),
+		}
+		a.fill(element, &module)
+		copyProperties(values, &moduleProperties{
+			Kind: &module.Kind, Visibility: &module.Visibility, Version: &module.Version,
+		})
+		model.Modules = append(model.Modules, module)
+	}
+	return model
+}
+
+// elements returns every element at level that has a slug, ordered by
+// slug.
+func (a *assembly) elements(level c4elements.ElementLevel) []*c4elements.Element {
+	var out []*c4elements.Element
+	for _, element := range a.set.Elements() {
+		if element.Level == level && element.Slug != "" {
+			out = append(out, element)
+		}
+	}
+	return out
+}
+
+// component returns element as a component, with its blueprint's kind
+// where it has a blueprint.
+func (a *assembly) component(element *c4elements.Element) specmodel.C4Component {
+	var component specmodel.C4Component
+	a.fill(element, &component)
+	if element.Path != "" {
+		copyProperties(a.values(element), &componentProperties{Kind: &component.Kind})
+	}
+	return component
+}
+
+// parents returns the container or module each component-level element
+// is placed under: the parent whose roster declaration of it sorts first
+// by path and then by span. A component no container or module roster
+// declares has none.
+func (a *assembly) parents() map[*c4elements.Element]*c4elements.Element {
+	parents := map[*c4elements.Element]*c4elements.Element{}
+	// Documents are ordered by path and each roster by span, so the first
+	// declaration met is the one that sorts first.
+	for _, document := range a.set.Documents() {
+		parent := document.Element
+		if parent.Slug == "" || (parent.Level != c4elements.LevelContainer && parent.Level != c4elements.LevelModule) {
+			continue
+		}
+		for _, child := range document.Roster {
+			element := child.Element
+			if element == parent || element.Level != c4elements.LevelComponent {
+				continue
+			}
+			if _, placed := parents[element]; !placed {
+				parents[element] = parent
+			}
+		}
+	}
+	return parents
+}
+
+// systemOf returns the system-level element a container's system
+// property names, if it names one.
+func (a *assembly) systemOf(container *c4elements.Element) (*c4elements.Element, bool) {
+	if container.System == "" {
+		return nil, false
+	}
+	system, ok := a.set.Element(container.System)
+	if !ok || system.Level != c4elements.LevelSystem || system.Slug == "" {
+		return nil, false
+	}
+	return system, true
+}
+
+// containedBy returns every container and module whose composed-modules
+// property names module, ordered by slug. It is computed over the whole
+// element set.
+func (a *assembly) containedBy(module *c4elements.Element) []specmodel.Citation {
+	hosts := []specmodel.Citation{}
+	for _, host := range a.set.Elements() {
+		if host.Slug == "" || (host.Level != c4elements.LevelContainer && host.Level != c4elements.LevelModule) {
+			continue
+		}
+		for _, composed := range host.ComposedModules {
+			if slugKey(composed) == slugKey(module.Slug) {
+				hosts = append(hosts, specmodel.Citation(host.Slug))
+				break
+			}
+		}
+	}
+	return hosts
+}
+
+// contractsProvided returns every contract whose provider property names
+// element, ordered by slug.
+func (a *assembly) contractsProvided(element *c4elements.Element) []specmodel.Citation {
+	provided := []specmodel.Citation{}
+	for _, contract := range a.set.Contracts() {
+		if contract.ProvidedBy(element) {
+			provided = append(provided, specmodel.Citation(contract.Slug))
+		}
+	}
+	return provided
+}
+
+// fill sets the properties every element carries on target, a pointer to
+// one of the model's element types: its slug, declarations and derived
+// contracts, and the properties copied from its source declaration.
+func (a *assembly) fill(element *c4elements.Element, target any) {
+	values := a.values(element)
+	common := specmodel.C4Element{
+		Slug:              specmodel.Slug(element.Slug),
+		Declarations:      append([]specmodel.C4Declaration{}, element.Declarations...),
+		ContractsProvided: a.contractsProvided(element),
+	}
+	vocabulary := a.in.Elements.Vocabulary
+	decode(values, vocabulary.EntityNameProperty, &common.EntityName)
+	decode(values, vocabulary.ConsumedContractsProperty, &common.ContractsConsumed)
+	copyProperties(values, &elementProperties{
+		Description: &common.Description, Technology: &common.Technology, Tags: &common.Tags,
+	})
+
+	// The model's element types repeat C4Element's fields rather than
+	// embedding it, so each is set by name.
+	out := reflect.ValueOf(target).Elem()
+	in := reflect.ValueOf(common)
+	for i := 0; i < in.NumField(); i++ {
+		if field := out.FieldByName(in.Type().Field(i).Name); field.IsValid() {
+			field.Set(in.Field(i))
+		}
+	}
+}
+
+// values returns the properties of element's source declaration: its
+// blueprint's frontmatter where it has a blueprint, and otherwise the
+// declaration that sorts first by path and then by span. A declaration
+// that cannot be read yields none.
+func (a *assembly) values(element *c4elements.Element) map[string]any {
+	if element.Path != "" {
+		src := a.source(element.Path)
+		if doc, err := frontmatter.Parse(src); err == nil && doc != nil {
+			return doc.Values()
+		}
+		return nil
+	}
+	if len(element.Declarations) == 0 || a.in.Elements.Decode == nil {
+		return nil
+	}
+	first := element.Declarations[0]
+	entry, ok := a.entries[first.Path]
+	if !ok {
+		return nil
+	}
+	for _, heading := range entry.Headings {
+		for _, block := range heading.RecordBlocks {
+			if block.Span.Offset != first.Span.Offset || block.Span.Length != first.Span.Length {
+				continue
+			}
+			var record map[string]any
+			if err := a.in.Elements.Decode(a.source(first.Path), block, &record); err != nil {
+				return nil
+			}
+			return record
+		}
+	}
+	return nil
+}
+
+// source returns the bytes of the member at path, read once, and nil
+// where it cannot be read.
+func (a *assembly) source(path string) []byte {
+	if a.sources == nil {
+		a.sources = map[string][]byte{}
+	}
+	if src, ok := a.sources[path]; ok {
+		return src
+	}
+	var src []byte
+	if a.in.Elements.Source != nil {
+		src, _ = a.in.Elements.Source(path)
+	}
+	a.sources[path] = src
+	return src
+}
+
+// elementProperties, moduleProperties and componentProperties name the
+// properties copied from a source declaration by the model's own JSON
+// names. Each field points at the model field it fills.
+type elementProperties struct {
+	Description *string    `json:"description"`
+	Technology  **string   `json:"technology"`
+	Tags        **[]string `json:"tags"`
+}
+
+type moduleProperties struct {
+	Kind       *specmodel.BlueprintKind `json:"kind"`
+	Visibility *specmodel.Visibility    `json:"visibility"`
+	Version    **string                 `json:"version"`
+}
+
+type componentProperties struct {
+	Kind **specmodel.BlueprintKind `json:"kind"`
+}
+
+// copyProperties decodes, for each field of the struct props points at,
+// the value values holds under the field's JSON name into the location
+// the field points at. A property values does not carry, or carries in a
+// form the model cannot hold, is left as it was.
+func copyProperties(values map[string]any, props any) {
+	fields := reflect.ValueOf(props).Elem()
+	for i := 0; i < fields.NumField(); i++ {
+		name, _, _ := strings.Cut(fields.Type().Field(i).Tag.Get("json"), ",")
+		decode(values, name, fields.Field(i).Interface())
+	}
+}
+
+// decode decodes the value values holds under name into target, a
+// pointer. A property values does not carry, or carries in a form target
+// cannot hold, leaves target as it was.
+func decode(values map[string]any, name string, target any) {
+	value, ok := values[name]
+	if name == "" || !ok || value == nil {
+		return
+	}
+	raw, err := json.Marshal(value)
+	if err != nil {
+		return
+	}
+	fresh := reflect.New(reflect.TypeOf(target).Elem())
+	if err := json.Unmarshal(raw, fresh.Interface()); err != nil {
+		return
+	}
+	reflect.ValueOf(target).Elem().Set(fresh.Elem())
+}
+
+// slugsOf returns slugs as the model's slugs, ordered and each held once.
+func slugsOf(slugs []string) []specmodel.Slug {
+	out := []specmodel.Slug{}
+	seen := map[string]bool{}
+	for _, slug := range slugs {
+		if seen[slug] {
+			continue
+		}
+		seen[slug] = true
+		out = append(out, specmodel.Slug(slug))
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
+	return out
+}
+
+// nonNil returns items, or an empty collection where there are none, so
+// the model emits an empty list rather than null.
+func nonNil[T any](items []T) []T {
+	if items == nil {
+		return []T{}
+	}
+	return items
+}
+
+// slugKey is the form two slugs are compared in.
+func slugKey(slug string) string {
+	return strings.ToLower(strings.TrimSpace(slug))
+}

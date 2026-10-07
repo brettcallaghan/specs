@@ -84,6 +84,15 @@ type Element struct {
 	// lists in its consumed-contracts property, as written and without
 	// any anchor. A record block declares none.
 	ConsumedContracts []string
+
+	// System is the slug the element's blueprint names in its system
+	// property, as written and without any anchor, and empty where it
+	// names none.
+	System string
+
+	// ComposedModules are the slugs the element's blueprint lists in its
+	// composed-modules property, as written and without any anchor.
+	ComposedModules []string
 }
 
 // Contract is one corpus member of the registered contract type.
@@ -137,6 +146,21 @@ type Document struct {
 
 	// Diagrams are the document's Mermaid blocks, in the order written.
 	Diagrams []Diagram
+
+	// Roster is every child the document's roster declares, in the order
+	// written: each record block of its roster tag, and each reference
+	// under its roster heading resolving to a component-level blueprint.
+	Roster []Child
+}
+
+// Child is one declaration of an element in a parent's roster.
+type Child struct {
+	// Element is the element declared.
+	Element *Element
+
+	// Span covers the declaration: the record block, fences included, or
+	// the reference.
+	Span specmodel.Span
 }
 
 // Diagram is one Mermaid block of a drawing document.
@@ -281,6 +305,17 @@ func (s *Set) Contract(slug string) (*Contract, bool) {
 	return contract, ok
 }
 
+// Contracts returns every member of the registered contract type,
+// ordered by slug.
+func (s *Set) Contracts() []*Contract {
+	contracts := make([]*Contract, 0, len(s.contracts))
+	for _, contract := range s.contracts {
+		contracts = append(contracts, contract)
+	}
+	sort.Slice(contracts, func(i, j int) bool { return contracts[i].Slug < contracts[j].Slug })
+	return contracts
+}
+
 // Elements returns every element, ordered by slug.
 func (s *Set) Elements() []*Element { return s.elements }
 
@@ -350,10 +385,17 @@ func Build(in Input) (*Set, error) {
 
 	for _, ref := range in.References {
 		m, ok := byPath[ref.Path]
-		if !ok || m.element.Path != m.entry.Path || !fromProperty(ref, vocabulary.ConsumedContractsProperty) {
+		if !ok || m.element.Path != m.entry.Path {
 			continue
 		}
-		m.element.ConsumedContracts = append(m.element.ConsumedContracts, ref.Slug)
+		switch {
+		case fromProperty(ref, vocabulary.ConsumedContractsProperty):
+			m.element.ConsumedContracts = append(m.element.ConsumedContracts, ref.Slug)
+		case fromProperty(ref, vocabulary.SystemProperty) && m.element.System == "":
+			m.element.System = ref.Slug
+		case fromProperty(ref, vocabulary.ComposedModulesProperty):
+			m.element.ComposedModules = append(m.element.ComposedModules, ref.Slug)
+		}
 	}
 
 	refsByPath := map[string][]specmodel.Reference{}
@@ -361,7 +403,7 @@ func Build(in Input) (*Set, error) {
 		refsByPath[ref.Path] = append(refsByPath[ref.Path], ref)
 	}
 
-	rosters := map[*member][]*Element{}
+	rosters := map[*member][]Child{}
 	for _, m := range members {
 		rosters[m] = set.declareRoster(in, vocabulary, m)
 	}
@@ -369,7 +411,8 @@ func Build(in Input) (*Set, error) {
 
 	for _, m := range members {
 		document := &Document{Path: m.entry.Path, Element: m.element}
-		document.Scope = scopeOf(refsByPath[m.entry.Path], vocabulary, set, m, rosters[m], byPath)
+		document.Roster = rosterOf(refsByPath[m.entry.Path], m, rosters[m], byPath)
+		document.Scope = scopeOf(refsByPath[m.entry.Path], vocabulary, set, m, document.Roster, byPath)
 		document.Diagrams = diagramsOf(m.entry.Path, m.src, document.Scope)
 		set.documents = append(set.documents, document)
 	}
@@ -505,11 +548,11 @@ func readMembers(in Input) ([]*member, error) {
 // member's roster tag attached to its roster heading or to a heading
 // nested in its section, and returns those elements in the order
 // written. A member whose type registers no roster declares none.
-func (s *Set) declareRoster(in Input, vocabulary ArchitectureRules, m *member) []*Element {
+func (s *Set) declareRoster(in Input, vocabulary ArchitectureRules, m *member) []Child {
 	if m.rules.RosterTag == "" || len(m.roster) == 0 || in.Decode == nil {
 		return nil
 	}
-	var declared []*Element
+	var declared []Child
 	for _, heading := range m.entry.Headings {
 		if !insideAny(heading.Span, m.roster) {
 			continue
@@ -531,7 +574,7 @@ func (s *Set) declareRoster(in Input, vocabulary ArchitectureRules, m *member) [
 			if element.Name == "" {
 				element.Name = name
 			}
-			declared = append(declared, element)
+			declared = append(declared, Child{Element: element, Span: block.Span})
 		}
 	}
 	return declared
@@ -585,10 +628,10 @@ func (s *Set) finishElements() {
 
 // scopeOf returns the elements a node drawn in m may name, ordered by
 // slug and each held once.
-func scopeOf(refs []specmodel.Reference, vocabulary ArchitectureRules, set *Set, m *member, roster []*Element, byPath map[string]*member) []*Element {
+func scopeOf(refs []specmodel.Reference, vocabulary ArchitectureRules, set *Set, m *member, roster []Child, byPath map[string]*member) []*Element {
 	scope := map[*Element]bool{m.element: true}
-	for _, element := range roster {
-		scope[element] = true
+	for _, child := range roster {
+		scope[child.Element] = true
 	}
 	for _, ref := range refs {
 		resolved, ok := ref.Resolution.AsResolved()
@@ -597,12 +640,6 @@ func scopeOf(refs []specmodel.Reference, vocabulary ArchitectureRules, set *Set,
 		}
 		target, ok := byPath[resolved.TargetPath]
 		if !ok {
-			continue
-		}
-		if _, body := ref.Origin.AsBody(); body {
-			if target.rules.Level == LevelComponent && insideAny(ref.Span, m.roster) {
-				scope[target.element] = true
-			}
 			continue
 		}
 		if fromProperty(ref, vocabulary.ComposedModulesProperty) {
@@ -626,6 +663,27 @@ func scopeOf(refs []specmodel.Reference, vocabulary ArchitectureRules, set *Set,
 		return ordered[i].Path < ordered[j].Path
 	})
 	return ordered
+}
+
+// rosterOf returns every child m's roster declares, in the order written:
+// the record blocks already declared, and each body reference placed
+// under a roster heading that resolves to a component-level blueprint.
+func rosterOf(refs []specmodel.Reference, m *member, records []Child, byPath map[string]*member) []Child {
+	roster := append([]Child(nil), records...)
+	for _, ref := range refs {
+		if _, body := ref.Origin.AsBody(); !body || !insideAny(ref.Span, m.roster) {
+			continue
+		}
+		resolved, ok := ref.Resolution.AsResolved()
+		if !ok {
+			continue
+		}
+		if target, ok := byPath[resolved.TargetPath]; ok && target.rules.Level == LevelComponent {
+			roster = append(roster, Child{Element: target.element, Span: ref.Span})
+		}
+	}
+	sort.SliceStable(roster, func(i, j int) bool { return roster[i].Span.Offset < roster[j].Span.Offset })
+	return roster
 }
 
 // diagramsOf parses every Mermaid block in src, resolves its nodes

@@ -7,6 +7,7 @@ import (
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/c4diagram"
 	"github.com/brettcallaghan/agent-plugins/cli/core/c4elements"
+	"github.com/brettcallaghan/agent-plugins/cli/core/c4model"
 	"github.com/brettcallaghan/agent-plugins/cli/core/finding"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
@@ -20,17 +21,31 @@ import (
 // registering no architecture vocabulary yields an empty set and no
 // error.
 func (c *Corpus) C4Elements() (*c4elements.Set, error) {
+	return c4elements.Build(c.c4Input())
+}
+
+// C4Model returns the corpus's C4 model, carrying workspace as the
+// configured workspace name: the element tree nested by the containment
+// edges the corpus declares, and the module collection. It is assembled
+// from the same element set [Corpus.C4Elements] returns.
+func (c *Corpus) C4Model(workspace string) (*specmodel.C4Model, error) {
+	return c4model.Build(c4model.Input{Elements: c.c4Input(), Workspace: workspace})
+}
+
+// c4Input is what the C4 Elements package reads from this corpus,
+// through the active profile's architecture vocabulary.
+func (c *Corpus) c4Input() c4elements.Input {
 	var vocabulary ArchitectureRules
 	if c.profile != nil {
 		vocabulary = c.profile.Architecture()
 	}
-	return c4elements.Build(c4elements.Input{
+	return c4elements.Input{
 		Vocabulary: vocabulary,
 		Entries:    c.index.Entries,
 		References: c.index.References,
 		Source:     c.Source,
 		Decode:     DecodeRecordBlock,
-	})
+	}
 }
 
 // c4NodeFindings raises the first half of the c4 rule family over every
