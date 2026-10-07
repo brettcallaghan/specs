@@ -34,7 +34,7 @@ func (stubProfile) DocumentTypes() map[string]corpus.DocumentTypeRules {
 		types[name] = any
 	}
 	container := any
-	container.ReferenceProperties = []string{"modules"}
+	container.ReferenceProperties = []string{"modules", "contracts_consumed"}
 	types["container-blueprint"] = container
 	return types
 }
@@ -572,5 +572,43 @@ func TestAnUnreadableMemberDeclaresANamelessElementAndDrawsNothing(t *testing.T)
 	got := nodes(t, document(t, set, "alpha.md"))
 	if got["a"] != "container-alpha" || got["e"] != "" || got["g"] != "" {
 		t.Errorf("alpha.md nodes = %v, want a resolved and e, g unmatched", got)
+	}
+}
+
+func TestMembersWithNoSlugDeclareElementsOfTheirOwn(t *testing.T) {
+	diagramBody := "# %s\n\n```mermaid\nC4Container\nContainer(a, \"Alpha\", \"Go\")\nContainer(b, \"Beta\", \"Go\")\n```\n"
+	files := map[string]string{
+		"a.md": strings.Replace(head("x", "container-blueprint", "Alpha", `contracts_consumed:`, `  - "contract-one"`),
+			"slug: x\n", "slug: \"\"\n", 1) + strings.Replace(diagramBody, "%s", "Alpha", 1),
+		"b.md": strings.Replace(head("x", "container-blueprint", "Beta", `contracts_consumed:`, `  - "contract-two"`),
+			"slug: x\n", "slug: \"\"\n", 1) + strings.Replace(diagramBody, "%s", "Beta", 1),
+		"one.md": head("contract-one", "contract", "One"),
+		"two.md": head("contract-two", "contract", "Two"),
+	}
+	for run := 0; run < 5; run++ {
+		set := build(t, files, vocabulary())
+		var named []*c4elements.Element
+		for _, element := range set.Elements() {
+			if element.Slug == "" {
+				named = append(named, element)
+			}
+		}
+		if len(named) != 2 || named[0].Path != "a.md" || named[0].Name != "Alpha" ||
+			named[1].Path != "b.md" || named[1].Name != "Beta" {
+			t.Fatalf("run %d: slugless elements = %+v, want Alpha at a.md then Beta at b.md", run, named)
+		}
+		if _, ok := set.Element(""); ok {
+			t.Errorf("Element(\"\") found, want not found")
+		}
+		if !named[0].Consumes("contract-one") || named[0].Consumes("contract-two") ||
+			!named[1].Consumes("contract-two") || named[1].Consumes("contract-one") {
+			t.Errorf("consumed contracts crossed: %v / %v", named[0].ConsumedContracts, named[1].ConsumedContracts)
+		}
+		doc := document(t, set, "a.md")
+		for _, node := range doc.Diagrams[0].Nodes {
+			if node.Alias == "b" && (len(node.Matches) != 1 || node.Matches[0] != named[1]) {
+				t.Errorf("node b matches %v, want exactly the second member's element", node.Matches)
+			}
+		}
 	}
 }

@@ -537,9 +537,16 @@ func (s *Set) declareRoster(in Input, vocabulary ArchitectureRules, m *member) [
 func (s *Set) declare(slug specmodel.Slug, at specmodel.C4Declaration) *Element {
 	key := slugKey(string(slug))
 	element, ok := s.bySlug[key]
+	if key == "" {
+		// A member with no slug declares an element of its own, which no
+		// declaration merges with and no slug lookup finds.
+		element, ok = nil, false
+	}
 	if !ok {
 		element = &Element{Slug: string(slug)}
-		s.bySlug[key] = element
+		if key != "" {
+			s.bySlug[key] = element
+		}
 		s.elements = append(s.elements, element)
 	}
 	element.Declarations = append(element.Declarations, at)
@@ -562,7 +569,13 @@ func (s *Set) finishElements() {
 			return a.Span.Offset < b.Span.Offset
 		})
 	}
-	sort.Slice(s.elements, func(i, j int) bool { return s.elements[i].Slug < s.elements[j].Slug })
+	sort.SliceStable(s.elements, func(i, j int) bool {
+		a, b := s.elements[i], s.elements[j]
+		if a.Slug != b.Slug {
+			return a.Slug < b.Slug
+		}
+		return a.Path < b.Path
+	})
 }
 
 // scopeOf returns the elements a node drawn in m may name, ordered by

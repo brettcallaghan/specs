@@ -722,15 +722,17 @@ type, property or heading of its own.
 
 **Elements.** Every corpus member whose type the vocabulary registers
 declares an element: the member's slug, its entity-name property as the
-name, and its registered level; a member whose source cannot be read at
-the time of the run declares its element without a name and draws
-nothing. So does every record block carrying the registered roster tag of its document's type and attached to the roster
+name, and its registered level. So does every record block carrying the
+registered roster tag of its document's type and attached to the roster
 heading or to a heading nested in its section; the heading is matched on
 the identifier Markdown Structure derives, so letter case does not
 decide. A roster block is decoded through the corpus's record-block
 decoding function, and one that does not decode to a mapping carrying a
 slug and an entity name declares nothing — reporting it is the structure
-checks' job. A record block in a document whose type registers no
+checks' job. A member whose source cannot be read at the time of the
+run declares its element without a name and draws nothing, and a member
+with no slug declares an element of its own that no declaration merges
+with and no slug lookup finds. A record block in a document whose type registers no
 roster declares nothing. Declarations of one slug — a blueprint and
 record blocks, or several record blocks — are one element carrying every
 declaration, ordered by path and then by span; a blueprint's declaration
