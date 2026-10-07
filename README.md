@@ -319,7 +319,7 @@ alone is visible rather than averaged away.
 | `cli/specs` | 1 | 1 | 100.0% |
 | **Total** | **3,470** | **3,119** | **89.9%** |
 
-Generated code is excluded from these figures: 3,127 statements in 1 file (`specmodel.go`) carrying the `// Code generated … DO NOT EDIT.` marker. It is excluded from the coverage profile too, so every report derived from it agrees with this table.
+Generated code is excluded from these figures: 3,338 statements in 1 file (`specmodel.go`) carrying the `// Code generated … DO NOT EDIT.` marker. It is excluded from the coverage profile too, so every report derived from it agrees with this table.
 <!-- coverage:table:end -->
 
 CI regenerates this and fails if it is stale

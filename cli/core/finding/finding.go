@@ -162,6 +162,51 @@ const (
 	// RuleExamplesPartiallyTagged covers a Scenario Outline whose
 	// Examples blocks carry an identifier on some and not others.
 	RuleExamplesPartiallyTagged specmodel.RuleId = "gherkin/examples-partially-tagged"
+
+	// The c4 rules check the Mermaid C4 diagrams in architecture
+	// blueprints. They are declared here before any check raises them,
+	// so the identifiers and their detail variants exist as one
+	// published surface; none is corpus-wide, since each finding is
+	// narrowed to the file it sits in, and none is listed among the
+	// rules a check run reports until the check that raises it lands.
+
+	// RuleC4Parse covers a C4 diagram statement the parser cannot read,
+	// at [SeverityError]. Like [RuleUnresolvedAnchor] it also reports at
+	// [SeverityUnverified] under the same identifier: a `mermaid` block
+	// whose diagram type the parser does not read was not looked inside,
+	// which is not the claim that it was looked inside and found sound.
+	RuleC4Parse specmodel.RuleId = "c4/parse"
+	// RuleC4UndeclaredNode covers a non-external node that resolves to
+	// no element in the scope of its drawing document and is not a
+	// passive store.
+	RuleC4UndeclaredNode specmodel.RuleId = "c4/undeclared-node"
+	// RuleC4AmbiguousNode covers a node whose label matches the entity
+	// names of more than one element in scope.
+	RuleC4AmbiguousNode specmodel.RuleId = "c4/ambiguous-node"
+	// RuleC4Bidirectional covers a `BiRel` statement: an arrow states
+	// one dependency, in one direction.
+	RuleC4Bidirectional specmodel.RuleId = "c4/bidirectional"
+	// RuleC4DuplicateEdge covers two relationship statements in one
+	// diagram with the same source and target after `Rel_Back`
+	// normalisation.
+	RuleC4DuplicateEdge specmodel.RuleId = "c4/duplicate-edge"
+	// RuleC4DrawingConflict covers two drawings of one relationship,
+	// anywhere in the corpus, that differ in technology, description or
+	// tags.
+	RuleC4DrawingConflict specmodel.RuleId = "c4/drawing-conflict"
+	// RuleC4InteractionConflict covers a relationship tagged both `sync`
+	// and `async`.
+	RuleC4InteractionConflict specmodel.RuleId = "c4/interaction-conflict"
+	// RuleC4ContractUnresolved covers a `contract:` tag whose slug no
+	// corpus member of the registered contract type declares.
+	RuleC4ContractUnresolved specmodel.RuleId = "c4/contract-unresolved"
+	// RuleC4ContractMismatch covers a `contract:` tag naming a contract
+	// the source element does not consume or the target element does not
+	// provide.
+	RuleC4ContractMismatch specmodel.RuleId = "c4/contract-mismatch"
+	// RuleC4TagSeparator covers a relationship tags argument that joins
+	// its tags with a comma rather than `+`.
+	RuleC4TagSeparator specmodel.RuleId = "c4/tag-separator"
 )
 
 // corpusWideRules is every rule whose finding is raised against the

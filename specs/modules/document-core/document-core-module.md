@@ -1620,6 +1620,26 @@ the diagram validation AC-SPEC-006.3 illustrates is a structure-feature
 concern. A later check adds a variant to the union without changing the
 envelope that carries it.
 
+**The c4 rules are declared and not yet raised.** Ten identifiers check
+the Mermaid C4 diagrams in architecture blueprints for
+[[frd-spec-c4-diagrams]]: `c4/parse`, `c4/undeclared-node`,
+`c4/ambiguous-node`, `c4/bidirectional`, `c4/duplicate-edge`,
+`c4/drawing-conflict`, `c4/interaction-conflict`,
+`c4/contract-unresolved`, `c4/contract-mismatch` and `c4/tag-separator`.
+Each has its `FindingDetail` variant: an unreadable statement with the
+statement and the parser's reason; for `c4/parse` at `unverified`, the
+diagram type the block names; an undeclared or ambiguous node with its
+alias, its label and the slug of every element the label matched; a
+bidirectional, duplicate or interaction-conflicting relationship with its
+source and target aliases; a drawing conflict with those aliases and the
+other drawing's path and span; a contract tag with its slug and both
+aliases; and a tag-separator defect with the tags argument as written.
+`c4/parse` reports at `error` and at `unverified` under one identifier,
+as `reference/unresolved-anchor` does. None is corpus-wide in the sense
+of `IsCorpusWideRule`, and none is in the command surface's check list
+until the check that raises it lands — a rule listed there reads as
+passed whenever it is requested.
+
 ### Markdown Links
 
 ```component

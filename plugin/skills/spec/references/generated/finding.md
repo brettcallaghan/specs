@@ -25,6 +25,13 @@
 - [FindingUnresolvedAnchor](#findingunresolvedanchor)
 - [FindingAmbiguousAnchor](#findingambiguousanchor)
 - [AnchorMatch](#anchormatch)
+- [FindingC4Parse](#findingc4parse)
+- [FindingC4UnreadDiagram](#findingc4unreaddiagram)
+- [FindingC4Node](#findingc4node)
+- [FindingC4Relationship](#findingc4relationship)
+- [FindingC4DrawingConflict](#findingc4drawingconflict)
+- [FindingC4Contract](#findingc4contract)
+- [FindingC4TagSeparator](#findingc4tagseparator)
 - [FindingDetail](#findingdetail)
 - [Finding](#finding)
 - [CheckOutcome](#checkoutcome)
@@ -423,6 +430,118 @@ record blocks.
 | span | [Span](index.md#span) | Where the heading line itself is written. |
 
 
+## FindingC4Parse
+
+A statement in a C4 diagram that the parser cannot read.
+
+The parser reads a fixed statement subset and turns everything outside it
+into this finding rather than skipping it, so the subset grows
+deliberately. The statement is carried as written, beside the parser's
+reason, so the author is told what was wrong with the line without
+reopening the document.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| statement | String | The statement as written, with surrounding whitespace removed. |
+| reason | String | Why the parser could not read it — not a read macro, unbalanced quotes or parentheses, or too few arguments — quoted from the parser so the message needs no further lookup to act on. |
+
+
+## FindingC4UnreadDiagram
+
+A `mermaid` block in an architecture blueprint that is not a diagram type
+the C4 parser reads.
+
+Reported at severity `unverified` under the same rule as an unreadable
+statement: the tool did not look inside the block, which is not the claim
+that it looked and found it sound. The diagram type is carried so the
+reader can tell a deliberate non-C4 diagram from a misspelt C4 header.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| diagram_type | String | The diagram type the block's first statement names, as written — for example `C4Dynamic` or `flowchart`. |
+
+
+## FindingC4Node
+
+A C4 diagram node whose label resolves to no element in the scope of its
+drawing document, or to more than one.
+
+One shape for both defects, told apart by the rule that raised the
+finding. The alias and the label are both carried: the alias is what the
+diagram's relationships name, and the label is what resolution matched
+against an element's entity name.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| alias | String | The node's alias, as written. |
+| label | String | The node's label, as written. |
+| matches | Array<String> | The slug of every element in scope whose entity name the label matched, in slug order. Empty for an undeclared node; two or more for an ambiguous one. |
+
+
+## FindingC4Relationship
+
+A C4 relationship statement whose defect lies in the statement alone: an
+arrow drawn both ways, an edge drawn twice in one diagram, or contradictory
+interaction tags.
+
+The rule that raised the finding says which. Both aliases are carried
+after `Rel_Back` normalisation, so `source` is always the dependent end
+and a consumer comparing two findings compares like with like.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| source | String | The alias of the relationship's source, in dependency direction. |
+| target | String | The alias of the relationship's target, in dependency direction. |
+
+
+## FindingC4DrawingConflict
+
+Two drawings of one relationship that disagree in technology,
+description or tags.
+
+Reported at the drawing that sorts second by path and then by span,
+naming the first. The other drawing's span is carried beside its path
+because a blueprint holds several diagrams and an arrow is not a heading:
+without the span the reader is told which file to open and left to search
+it.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| source | String | The alias of the relationship's source in this drawing. |
+| target | String | The alias of the relationship's target in this drawing. |
+| other_path | String | The other drawing's path, relative to the repository root and written with forward slashes on every platform. |
+| other_span | [Span](index.md#span) | Where in that file the other drawing's statement is written. |
+
+
+## FindingC4Contract
+
+A `contract:` tag on a relationship that names no contract, or names one
+the relationship's endpoints do not declare.
+
+One shape for both defects, told apart by the rule that raised the
+finding. The slug is carried as written after `contract:`, and both
+aliases are carried so the reader can see which arrow the tag sits on.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| slug | String | The contract slug the tag names, as written after `contract:`. |
+| source | String | The alias of the relationship's source, in dependency direction. |
+| target | String | The alias of the relationship's target, in dependency direction. |
+
+
+## FindingC4TagSeparator
+
+A relationship's tags argument that joins tags with a comma.
+
+Mermaid joins tags with `+`; a comma makes the whole argument one
+unreserved tag, so a reserved tag written beside it is silently lost.
+The argument is carried as written so the fix is a visible edit.
+
+| Property | Type | Documentation |
+|----------|------|---------------|
+| tags | String | The tags argument as written. |
+
+
 ## FindingDetail
 
 The structured detail of one finding, selected by the kind of defect.
@@ -461,6 +580,13 @@ identifier, the severity, the path, the span and the message.
 | "owning-document" | OwningDocument | A feature whose owning document is unstated, mismatched or unresolved. |
 | "unresolved-anchor" | UnresolvedAnchor | An anchor matching no heading of its target document. |
 | "ambiguous-anchor" | AmbiguousAnchor | An anchor matching more than one heading of its target document. |
+| "c4-parse" | C4Parse | A C4 diagram statement the parser cannot read. |
+| "c4-unread-diagram" | C4UnreadDiagram | A mermaid block whose diagram type the C4 parser does not read. |
+| "c4-node" | C4Node | A C4 node resolving to no element in scope, or to several. |
+| "c4-relationship" | [C4Relationship](c4.md#c4relationship) | A C4 relationship drawn both ways, drawn twice, or tagged sync and async. |
+| "c4-drawing-conflict" | C4DrawingConflict | Two drawings of one relationship that disagree. |
+| "c4-contract" | C4Contract | A contract tag naming no contract, or one the endpoints do not declare. |
+| "c4-tag-separator" | C4TagSeparator | A relationship tags argument joined with a comma. |
 
 
 ## Finding
