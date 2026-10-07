@@ -21,6 +21,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/brettcallaghan/agent-plugins/cli/core/c4diagram"
 	"github.com/brettcallaghan/agent-plugins/cli/core/c4elements"
 	"github.com/brettcallaghan/agent-plugins/cli/core/frontmatter"
 	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
@@ -77,8 +78,8 @@ func (a *assembly) model() *specmodel.C4Model {
 		OrphanedContainers:    []specmodel.C4Container{},
 		OrphanedComponents:    []specmodel.C4Component{},
 		Modules:               []specmodel.C4Module{},
-		Relationships:         []specmodel.C4Relationship{},
-		ExcludedRelationships: []specmodel.C4ExcludedRelationship{},
+		Relationships:         a.relationships(),
+		ExcludedRelationships: a.excluded(),
 	}
 
 	parents := a.parents()
@@ -130,6 +131,112 @@ func (a *assembly) model() *specmodel.C4Model {
 		model.Modules = append(model.Modules, module)
 	}
 	return model
+}
+
+// relationships returns one relationship for each group of drawings C4
+// Elements reports as one relationship, ordered by source slug, then
+// target slug, then description. Its arguments are those of the drawing
+// that sorts first by path and then by span.
+func (a *assembly) relationships() []specmodel.C4Relationship {
+	relationships := []specmodel.C4Relationship{}
+	for _, group := range a.set.Relationships() {
+		if len(group.Drawings) == 0 || group.Source.Slug == "" || group.Target.Slug == "" {
+			continue
+		}
+		first := group.Drawings[0]
+		relationship := specmodel.C4Relationship{
+			Source:      specmodel.Citation(group.Source.Slug),
+			Target:      specmodel.Citation(group.Target.Slug),
+			Level:       levelOf(group.Source, group.Target),
+			Description: first.Label,
+			Technology:  present(first.Technology),
+			Detail:      present(first.Description),
+			DrawnIn:     []specmodel.C4Drawing{},
+		}
+		for _, drawing := range group.Drawings {
+			relationship.DrawnIn = append(relationship.DrawnIn, specmodel.C4Drawing{
+				Path:        drawing.Path,
+				Span:        drawing.Span,
+				View:        drawing.View,
+				SourceAlias: drawing.SourceAlias,
+				TargetAlias: drawing.TargetAlias,
+			})
+		}
+		relationships = append(relationships, relationship)
+	}
+	return relationships
+}
+
+// excluded returns every relationship statement the model does not
+// admit, ordered by path and then by span: each statement C4 Elements
+// leaves unresolved, with the reason it gives, and each `BiRel`
+// statement, which states no single dependency. A diagram the parser does
+// not read — a dynamic or deployment view among them — holds no
+// statement, and a statement it could not read is not one, so neither
+// contributes.
+func (a *assembly) excluded() []specmodel.C4ExcludedRelationship {
+	excluded := []specmodel.C4ExcludedRelationship{}
+	for _, document := range a.set.Documents() {
+		for _, diagram := range document.Diagrams {
+			for _, unresolved := range diagram.Unresolved {
+				excluded = append(excluded, a.exclusion(document.Path, unresolved.Span, unresolved.Reason))
+			}
+			for _, statement := range diagram.Parsed.Statements {
+				if statement.Kind == c4diagram.KindRelationship && statement.Relationship != nil && statement.Relationship.Bidirectional {
+					excluded = append(excluded, a.exclusion(document.Path, statement.Span, specmodel.C4ExclusionReasonBidirectional))
+				}
+			}
+		}
+	}
+	sort.SliceStable(excluded, func(i, j int) bool {
+		if excluded[i].Path != excluded[j].Path {
+			return excluded[i].Path < excluded[j].Path
+		}
+		return excluded[i].Span.Offset < excluded[j].Span.Offset
+	})
+	return excluded
+}
+
+// exclusion records the statement at at in the document at path as
+// excluded for reason, with its text as written.
+func (a *assembly) exclusion(path string, at specmodel.Span, reason specmodel.C4ExclusionReason) specmodel.C4ExcludedRelationship {
+	var text string
+	if src := a.source(path); at.Offset+at.Length <= uint64(len(src)) {
+		text = string(src[at.Offset : at.Offset+at.Length])
+	}
+	return specmodel.C4ExcludedRelationship{Path: path, Span: at, Reason: reason, Text: text}
+}
+
+// levelOf returns the level a relationship holds at: the finer of its
+// endpoints' levels, where a system is coarser than a container and a
+// container than a module or a component, both recorded as component.
+func levelOf(source, target *c4elements.Element) specmodel.C4Level {
+	rank := func(level c4elements.ElementLevel) int {
+		switch level {
+		case c4elements.LevelSystem:
+			return 0
+		case c4elements.LevelContainer:
+			return 1
+		}
+		return 2
+	}
+	switch max(rank(source.Level), rank(target.Level)) {
+	case 0:
+		return specmodel.C4LevelSystem
+	case 1:
+		return specmodel.C4LevelContainer
+	}
+	return specmodel.C4LevelComponent
+}
+
+// present returns a pointer to value, or nil where it is empty: an absent
+// argument and one written as the empty string both leave a property
+// absent.
+func present(value string) *string {
+	if value == "" {
+		return nil
+	}
+	return &value
 }
 
 // elements returns every element at level that has a slug, ordered by

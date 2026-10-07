@@ -316,7 +316,7 @@ C4Component
 Eleven of the thirteen are built and carry a **Built** paragraph naming
 the package that realizes them: Spans, Frontmatter, Gherkin, C4 Diagrams,
 C4 Elements, References, Schema Registry, Corpus, Numbering, Findings and
-Markdown Links. C4 Model is built for its element tree. The
+Markdown Links. C4 Model is built for its element tree, relationships and exclusions. The
 emitted index carries the resolved reference graph, and the corpus checks
 read it: a broken link, a live document citing a retired one, a
 half-declared pairing and a typed reference landing on the wrong
@@ -838,9 +838,27 @@ otherwise from the declaration sorting first by path and then by span:
 with a blueprint `kind`. A property the source does not carry is absent.
 Every collection of elements and of slugs is ordered by slug.
 
+**Relationships.** Each group of drawings C4 Elements reports as one
+relationship is one relationship, whatever document and view each
+drawing sits in. Its `description`, `technology` and `detail` are the
+label, technology and description arguments of the drawing sorting
+first by path and then by span; an absent or empty argument leaves the
+property absent. Its `drawn_in` lists every drawing by path and then
+span, with the view and the aliases after `Rel_Back` normalisation. Its
+`level` is the finer of its endpoints' levels — `system`, then
+`container`, then `module` and `component`, both recorded as
+`component`. Relationships are ordered by source slug, target slug and
+description.
+
+**Exclusions.** Every statement C4 Elements leaves unresolved is in
+`excluded_relationships` with the reason it gives, and every `BiRel`
+statement with reason `bidirectional`, each with its path, span and
+text as written, ordered by path and then by span. A statement the
+parser could not read, a `C4Dynamic` or `C4Deployment` diagram, and a
+diagram in a member whose type declares no element contribute nothing.
+
 **Built** — `cli/core/c4model`, reached through `Corpus.C4Model`, for the
-element tree; its relationships and excluded relationships are emitted
-empty until they are assembled. The source scan that keeps
+element tree, relationships and exclusions. The source scan that keeps
 `cli/core/corpus` free of registered vocabulary covers this package: the
 properties it copies are named by the registered vocabulary or by the
 model's own field names.
