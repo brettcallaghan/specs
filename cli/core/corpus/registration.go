@@ -146,9 +146,9 @@ func recordBlockDefects(tags []RecordBlockTag, schema []byte) []RegistrationDefe
 //
 // The fragment is percent-decoded, must then be empty (the whole
 // document) or start with "/", and is split into reference tokens with
-// "~1" read as "/" and "~0" as "~". A token steps into an object by key
-// and into an array by index: "0" or a decimal with no leading zero,
-// within range. "-" and any other token on an array, and any step into a
+// "~1" read as "/" and "~0" as "~"; any other "~" makes the pointer
+// invalid. A token steps into an object by key and into an array by
+// index: "0" or a decimal with no leading zero, within range. "-" and any other token on an array, and any step into a
 // scalar, resolve to nothing.
 func resolvePointer(document any, fragment string) bool {
 	encoded, ok := strings.CutPrefix(fragment, "#")
@@ -168,6 +168,9 @@ func resolvePointer(document any, fragment string) bool {
 	}
 	current := document
 	for _, token := range strings.Split(path, "/") {
+		if !validEscapes(token) {
+			return false
+		}
 		token = strings.ReplaceAll(strings.ReplaceAll(token, "~1", "/"), "~0", "~")
 		switch node := current.(type) {
 		case map[string]any:
@@ -184,6 +187,20 @@ func resolvePointer(document any, fragment string) bool {
 			current = node[index]
 		default:
 			return false
+		}
+	}
+	return true
+}
+
+// validEscapes reports whether every "~" in token begins "~0" or "~1",
+// the only escapes RFC 6901 defines.
+func validEscapes(token string) bool {
+	for i := 0; i < len(token); i++ {
+		if token[i] == '~' {
+			if i+1 == len(token) || (token[i+1] != '0' && token[i+1] != '1') {
+				return false
+			}
+			i++
 		}
 	}
 	return true

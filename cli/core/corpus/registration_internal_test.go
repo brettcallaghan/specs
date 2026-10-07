@@ -8,7 +8,7 @@ import (
 // resolvePointer implements the URI-fragment form of a JSON Pointer.
 func TestResolvePointer(t *testing.T) {
 	var document any
-	const source = `{"definitions":{"W":{},"a/b":{},"m~n":{},"sp ace":{}},"allOf":[{},{"x":1}]}`
+	const source = `{"definitions":{"W":{},"W~":{},"m~2n":{},"a/b":{},"m~n":{},"sp ace":{}},"allOf":[{},{"x":1}]}`
 	if err := json.Unmarshal([]byte(source), &document); err != nil {
 		t.Fatal(err)
 	}
@@ -28,6 +28,9 @@ func TestResolvePointer(t *testing.T) {
 		{"#/allOf/1/x/y", false},
 		{"#/definitions/a~1b", true},
 		{"#/definitions/m~0n", true},
+		{"#/definitions/m~n", false},
+		{"#/definitions/m~2n", false},
+		{"#/definitions/W~", false},
 		{"#/definitions/sp%20ace", true},
 		{"#/definitions/%ZZ", false},
 		{"#/definitions/Missing", false},
