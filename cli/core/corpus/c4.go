@@ -2,7 +2,6 @@ package corpus
 
 import (
 	"fmt"
-	"reflect"
 	"slices"
 	"strings"
 
@@ -216,7 +215,12 @@ func drawingConflictFindings(relationship c4elements.Relationship) []specmodel.F
 }
 
 // sameTags reports whether two tags arguments read as the same tags, in
-// the same order.
+// the same order. A contract tag's slug is compared the way contract
+// resolution compares slugs (c4elements' slugKey): without regard to
+// letter case or surrounding space. Unreserved tags are free text and
+// compare exactly.
 func sameTags(a, b c4diagram.Tags) bool {
-	return reflect.DeepEqual(a.Reserved, b.Reserved) && slices.Equal(a.Unreserved, b.Unreserved)
+	return slices.EqualFunc(a.Reserved, b.Reserved, func(x, y c4diagram.ReservedTag) bool {
+		return x.Name == y.Name && strings.ToLower(strings.TrimSpace(x.Slug)) == strings.ToLower(strings.TrimSpace(y.Slug))
+	}) && slices.Equal(a.Unreserved, b.Unreserved)
 }
