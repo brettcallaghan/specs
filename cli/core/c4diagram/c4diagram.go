@@ -117,8 +117,9 @@ type Statement struct {
 	Args []Argument
 
 	// Named are the `$<name>=<value>` arguments, in the order written.
-	// They occupy no positional slot. When the same parameter is named
-	// multiple times, the last one wins.
+	// Each occupies the position it is written at, so the positional
+	// arguments after it fill the parameters after that position. When
+	// the same parameter is named multiple times, the last one wins.
 	Named []Argument
 
 	// Parent is the index into [Diagram.Statements] of the innermost
@@ -155,33 +156,52 @@ type Argument struct {
 }
 
 // Param returns the argument the macro's parameter of this name was
-// given, positionally or as a named argument. A named argument wins over
-// a positional one, since Mermaid applies it last; among repeated named
+// given, positionally or as a named argument. Every argument, named or
+// not, occupies the position it is written at, as in Mermaid's own C4
+// parser: a positional argument fills the parameter at that position, so
+// a named argument never shifts the positional arguments around it. A
+// named argument wins over a positional one; among repeated named
 // arguments, the last one wins.
 func (s Statement) Param(name string) (Argument, bool) {
 	if arg, ok := s.named(name); ok {
 		return arg, true
 	}
-	slot := 0
-	for _, param := range s.params {
-		if _, ok := s.named(param); ok {
-			continue // written by name: it takes no positional slot
+	for i, param := range s.params {
+		if param != name {
+			continue
 		}
-		if param == name {
-			if slot < len(s.Args) {
-				return s.Args[slot], true
+		for _, arg := range s.Args {
+			if s.position(arg) == i {
+				return arg, true
 			}
-			return Argument{}, false
 		}
-		slot++
+		return Argument{}, false
 	}
 	return Argument{}, false
 }
 
+// position returns the index of a positional argument among all of the
+// statement's arguments, named ones included, in the order written.
+func (s Statement) position(arg Argument) int {
+	n := 0
+	for _, a := range s.Args {
+		if a.Span.Offset < arg.Span.Offset {
+			n++
+		}
+	}
+	for _, a := range s.Named {
+		if a.Span.Offset < arg.Span.Offset {
+			n++
+		}
+	}
+	return n
+}
+
 // named returns the last `$name` argument that names the parameter, if
-// any. This matches Mermaid's semantics, where later named arguments
-// overwrite earlier ones, and among short and long forms naming the same
-// parameter (e.g. $descr and $description), the later one wins.
+// any. Mermaid's C4 database assigns named arguments in the order
+// written, so a later one overwrites an earlier one; this parser applies
+// the same rule across a short and a long form naming one parameter
+// (e.g. $descr and $description).
 func (s Statement) named(name string) (Argument, bool) {
 	for i := len(s.Named) - 1; i >= 0; i-- {
 		if namedAs(s.Named[i].Name, name) {

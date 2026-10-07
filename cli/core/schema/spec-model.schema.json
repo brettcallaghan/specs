@@ -2025,7 +2025,7 @@
       "description": "A statement in a C4 diagram that the parser cannot read.\n\nThe parser reads a fixed statement subset and turns everything outside it\ninto this finding rather than skipping it, so the subset grows\ndeliberately. The statement is carried as written, beside the parser's\nreason, so the author is told what was wrong with the line without\nreopening the document.",
       "properties": {
         "reason": {
-          "description": "Why the parser could not read it — not a read macro, unbalanced quotes\nor parentheses, or too few arguments — quoted from the parser so the\nmessage needs no further lookup to act on.",
+          "description": "Why the parser could not read it — for example not a read macro,\nunbalanced quotes or parentheses, too few arguments, or an unknown\nnamed parameter — quoted from the parser so the message needs no\nfurther lookup to act on.",
           "type": "string"
         },
         "statement": {
@@ -2041,14 +2041,14 @@
     },
     "FindingC4Relationship": {
       "additionalProperties": false,
-      "description": "A C4 relationship statement whose defect lies in the statement alone: an\narrow drawn both ways, an edge drawn twice in one diagram, or contradictory\ninteraction tags.\n\nThe rule that raised the finding says which. Both aliases are carried\nafter `Rel_Back` normalisation, so `source` is always the dependent end\nand a consumer comparing two findings compares like with like.",
+      "description": "A C4 relationship statement whose defect lies in the statement alone: an\narrow drawn both ways, an edge drawn twice in one diagram, or contradictory\ninteraction tags.\n\nThe rule that raised the finding says which. Both aliases are carried\nafter `Rel_Back` normalisation, so `source` is the dependent end and a\nconsumer comparing two findings compares like with like. A `BiRel` has no\ndependent end: its `source` and `target` are its first and second aliases\nas written.",
       "properties": {
         "source": {
-          "description": "The alias of the relationship's source, in dependency direction.",
+          "description": "The alias of the relationship's source, in dependency direction; for a\n`BiRel`, its first alias.",
           "type": "string"
         },
         "target": {
-          "description": "The alias of the relationship's target, in dependency direction.",
+          "description": "The alias of the relationship's target, in dependency direction; for a\n`BiRel`, its second alias.",
           "type": "string"
         }
       },

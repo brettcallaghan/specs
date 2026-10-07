@@ -284,7 +284,7 @@ contract document until a consumer exists that is built independently.
 
 ## Tracker Reconciliation
 
-- `agent-plugins-f6tl.5` and `agent-plugins-f6tl.6` — prerequisite,
+- `specs-f6tl.5` and `specs-f6tl.6` — prerequisite,
   transitively: [[feature-spec-c4-diagrams]]'s stage 2 waits on both,
   and this feature waits on that stage.
 - `agent-plugins-7os0` — out-of-scope: subsumed by

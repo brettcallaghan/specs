@@ -151,7 +151,9 @@ reads the corpus nor resolves a node.
   no escape sequences. An unquoted argument SHALL be read as its text
   with surrounding whitespace removed.
 - An argument written `$<name>=<value>` SHALL be read as the named
-  parameter `<name>`, and SHALL NOT occupy a positional slot.
+  parameter `<name>`, and SHALL occupy the position it is written at, as
+  Mermaid's own C4 parser assigns it: a positional argument after it
+  fills the parameter at its own position, never an earlier one.
 - The component SHALL map positional arguments onto Mermaid's
   parameter order for each macro: for `Rel` and its variants, source
   alias, target alias, label, technology, description, sprite, tags and
@@ -434,11 +436,11 @@ document.
 
 ## Tracker Reconciliation
 
-- `agent-plugins-f6tl.5` — prerequisite: the record-block tag
+- `specs-f6tl.5` — prerequisite: the record-block tag
   registration point. XPT validates the roster tag against the
   registered tags and ELEM reads roster blocks by one; neither can land
   before this does.
-- `agent-plugins-f6tl.6` — prerequisite: recording record blocks against
+- `specs-f6tl.6` — prerequisite: recording record blocks against
   their heading, and the decoding function ELEM uses. Without it no
   un-promoted component is an element, and every component node on this
   repository's diagrams is undeclared.
@@ -457,8 +459,8 @@ document.
 - Delivery is staged. Stage 1 is PARSE and FIND, which depend on
   nothing outside this blueprint, add no rule to `checkRules` and change
   no output. Stage 2 is XPT, PREG, ELEM, DRAW, CHKN, CHKR and DOC.
-- Stage 2 SHALL NOT begin until `agent-plugins-f6tl.5`,
-  `agent-plugins-f6tl.6`, and the registration of the `component`
+- Stage 2 SHALL NOT begin until `specs-f6tl.5`,
+  `specs-f6tl.6`, and the registration of the `component`
   record-block tag that FEAT-SPECSTR-004 of
   [[frd-spec-structure-conformance]] specifies, have landed. No work
   order for that registration exists yet.
@@ -525,7 +527,7 @@ Corpus delta (relationship and tag checks); DOC = Documentation delta.
 - [ ] Every delta above is folded into its owning blueprint:
   - [ ] [[module-document-core]] — C4 Diagrams and C4 Elements added to
         the Components roster and diagram with their record blocks; the
-        extension point's sixth member and its defects in Interface;
+        extension point's seventh member and its defects in Interface;
         Corpus's check list and Findings' rule list updated
   - [ ] [[module-spec-profile]] — Profile Registration's member table
         gains the architecture vocabulary

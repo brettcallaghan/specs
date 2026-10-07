@@ -443,7 +443,7 @@ reopening the document.
 | Property | Type | Documentation |
 |----------|------|---------------|
 | statement | String | The statement as written, with surrounding whitespace removed. |
-| reason | String | Why the parser could not read it — not a read macro, unbalanced quotes or parentheses, or too few arguments — quoted from the parser so the message needs no further lookup to act on. |
+| reason | String | Why the parser could not read it — for example not a read macro, unbalanced quotes or parentheses, too few arguments, or an unknown named parameter — quoted from the parser so the message needs no further lookup to act on. |
 
 
 ## FindingC4UnreadDiagram
@@ -485,13 +485,15 @@ arrow drawn both ways, an edge drawn twice in one diagram, or contradictory
 interaction tags.
 
 The rule that raised the finding says which. Both aliases are carried
-after `Rel_Back` normalisation, so `source` is always the dependent end
-and a consumer comparing two findings compares like with like.
+after `Rel_Back` normalisation, so `source` is the dependent end and a
+consumer comparing two findings compares like with like. A `BiRel` has no
+dependent end: its `source` and `target` are its first and second aliases
+as written.
 
 | Property | Type | Documentation |
 |----------|------|---------------|
-| source | String | The alias of the relationship's source, in dependency direction. |
-| target | String | The alias of the relationship's target, in dependency direction. |
+| source | String | The alias of the relationship's source, in dependency direction; for a `BiRel`, its first alias. |
+| target | String | The alias of the relationship's target, in dependency direction; for a `BiRel`, its second alias. |
 
 
 ## FindingC4DrawingConflict

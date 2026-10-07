@@ -411,7 +411,7 @@ func TestNamedArgumentsTakeNoPositionalSlot(t *testing.T) {
 }
 
 // A required parameter given by name counts as supplied, and a named
-// argument takes no positional slot.
+// argument fills the position it is written at.
 func TestRequiredParametersMayBeGivenByName(t *testing.T) {
 	s := only(t, parseBlock(t, diagram(`Rel(a, b, $label="Uses")`)))
 	if got := param(t, s, c4diagram.ParamLabel); got != "Uses" {
@@ -425,6 +425,23 @@ func TestRequiredParametersMayBeGivenByName(t *testing.T) {
 		t.Errorf("label = %q, want the positional argument after the named slot", got)
 	}
 	only(t, parseBlock(t, diagram(`Component($alias=x, $label="X")`)))
+}
+
+// A named argument written after positional ones does not shift them:
+// each positional argument fills the parameter at its own position, as
+// Mermaid's C4 parser assigns them.
+func TestANamedArgumentDoesNotShiftEarlierPositionalOnes(t *testing.T) {
+	s := only(t, parseBlock(t, diagram(`Rel(a, b, "Uses", "HTTP", $label="Calls")`)))
+	if got := param(t, s, c4diagram.ParamTechnology); got != "HTTP" {
+		t.Errorf("technology = %q, want HTTP", got)
+	}
+	if got := param(t, s, c4diagram.ParamLabel); got != "Calls" {
+		t.Errorf("label = %q, want the $label value", got)
+	}
+	s = only(t, parseBlock(t, diagram(`Rel(a, b, "Uses", $techn="HTTP", "Described")`)))
+	if got := param(t, s, c4diagram.ParamDescription); got != "Described" {
+		t.Errorf("description = %q, want the positional argument after $techn", got)
+	}
 }
 
 func TestMissingRequiredParametersStillFail(t *testing.T) {

@@ -3059,9 +3059,10 @@ func (v *AnchorMatch) UnmarshalJSON(data []byte) error {
 type FindingC4Parse struct {
 	// The statement as written, with surrounding whitespace removed.
 	Statement string `json:"statement"`
-	// Why the parser could not read it — not a read macro, unbalanced quotes
-	// or parentheses, or too few arguments — quoted from the parser so the
-	// message needs no further lookup to act on.
+	// Why the parser could not read it — for example not a read macro,
+	// unbalanced quotes or parentheses, too few arguments, or an unknown
+	// named parameter — quoted from the parser so the message needs no
+	// further lookup to act on.
 	Reason string `json:"reason"`
 }
 
@@ -3194,12 +3195,16 @@ func (v *FindingC4Node) UnmarshalJSON(data []byte) error {
 // interaction tags.
 //
 // The rule that raised the finding says which. Both aliases are carried
-// after `Rel_Back` normalisation, so `source` is always the dependent end
-// and a consumer comparing two findings compares like with like.
+// after `Rel_Back` normalisation, so `source` is the dependent end and a
+// consumer comparing two findings compares like with like. A `BiRel` has no
+// dependent end: its `source` and `target` are its first and second aliases
+// as written.
 type FindingC4Relationship struct {
-	// The alias of the relationship's source, in dependency direction.
+	// The alias of the relationship's source, in dependency direction; for a
+	// `BiRel`, its first alias.
 	Source string `json:"source"`
-	// The alias of the relationship's target, in dependency direction.
+	// The alias of the relationship's target, in dependency direction; for a
+	// `BiRel`, its second alias.
 	Target string `json:"target"`
 }
 
