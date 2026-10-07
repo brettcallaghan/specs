@@ -629,6 +629,7 @@ func diagramsOf(path string, src []byte, scope []*Element) []Diagram {
 	for _, block := range markdown.FencedFrom(src, bodyOffset(src), []string{c4diagram.FenceTag}) {
 		diagram := Diagram{Block: block.Outer, Parsed: c4diagram.Parse(src, block.Inner)}
 		byAlias := map[string]int{}
+		duplicated := map[string]bool{}
 		for i, statement := range diagram.Parsed.Statements {
 			if statement.Kind != c4diagram.KindElement && statement.Kind != c4diagram.KindExternal {
 				continue
@@ -636,6 +637,8 @@ func diagramsOf(path string, src []byte, scope []*Element) []Diagram {
 			node := resolve(i, statement, scope)
 			if _, seen := byAlias[node.Alias]; !seen {
 				byAlias[node.Alias] = len(diagram.Nodes)
+			} else {
+				duplicated[node.Alias] = true
 			}
 			diagram.Nodes = append(diagram.Nodes, node)
 		}
@@ -646,12 +649,14 @@ func diagramsOf(path string, src []byte, scope []*Element) []Diagram {
 				continue
 			}
 			ends := [2]*Node{}
+			var many [2]bool
 			for e, alias := range []string{rel.Source.Value, rel.Target.Value} {
 				if n, ok := byAlias[alias]; ok {
 					ends[e] = &diagram.Nodes[n]
+					many[e] = duplicated[alias]
 				}
 			}
-			if reason, source, failed := endpointFailure(ends); failed {
+			if reason, source, failed := endpointFailure(ends, many); failed {
 				diagram.Unresolved = append(diagram.Unresolved, Unresolved{
 					Reason:         reason,
 					SourceEndpoint: source,
@@ -692,20 +697,22 @@ var views = map[string]specmodel.C4View{
 
 // endpointFailure returns why a relationship's endpoints, source then
 // target, do not each name exactly one element, and which of them it is
-// about. A nil endpoint is an alias that names no node in the diagram.
-func endpointFailure(ends [2]*Node) (specmodel.C4ExclusionReason, bool, bool) {
+// about. A nil endpoint is an alias that names no node in the diagram;
+// many[e] marks an endpoint whose alias more than one node carries,
+// which is ambiguous however each node resolves.
+func endpointFailure(ends [2]*Node, many [2]bool) (specmodel.C4ExclusionReason, bool, bool) {
 	checks := []struct {
 		reason specmodel.C4ExclusionReason
-		fails  func(*Node) bool
+		fails  func(n *Node, many bool) bool
 	}{
-		{specmodel.C4ExclusionReasonExternalEndpoint, func(n *Node) bool { return n != nil && n.External }},
-		{specmodel.C4ExclusionReasonPassiveStore, func(n *Node) bool { return n != nil && n.PassiveStore }},
-		{specmodel.C4ExclusionReasonUndeclaredNode, func(n *Node) bool { return n == nil || len(n.Matches) == 0 }},
-		{specmodel.C4ExclusionReasonAmbiguousNode, func(n *Node) bool { return len(n.Matches) > 1 }},
+		{specmodel.C4ExclusionReasonExternalEndpoint, func(n *Node, _ bool) bool { return n != nil && n.External }},
+		{specmodel.C4ExclusionReasonPassiveStore, func(n *Node, _ bool) bool { return n != nil && n.PassiveStore }},
+		{specmodel.C4ExclusionReasonUndeclaredNode, func(n *Node, _ bool) bool { return n == nil || len(n.Matches) == 0 }},
+		{specmodel.C4ExclusionReasonAmbiguousNode, func(n *Node, many bool) bool { return many || len(n.Matches) > 1 }},
 	}
 	for _, check := range checks {
 		for e, end := range ends {
-			if check.fails(end) {
+			if check.fails(end, many[e]) {
 				return check.reason, e == 0, true
 			}
 		}

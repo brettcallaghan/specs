@@ -612,3 +612,44 @@ func TestMembersWithNoSlugDeclareElementsOfTheirOwn(t *testing.T) {
 		}
 	}
 }
+
+func TestADuplicatedNodeAliasMakesItsRelationshipsAmbiguous(t *testing.T) {
+	type outcome struct {
+		reason specmodel.C4ExclusionReason
+		source bool
+	}
+	cases := []struct {
+		name  string
+		lines []string
+		want  outcome
+	}{
+		{"target duplicated", []string{
+			`Container(web, "Alpha", "Go")`, `Container(api, "Alpha", "Go")`, `Container(api, "Beta", "Go")`,
+			`Rel(web, api, "calls")`}, outcome{specmodel.C4ExclusionReasonAmbiguousNode, false}},
+		{"source duplicated", []string{
+			`Container(api, "Alpha", "Go")`, `Container(api, "Beta", "Go")`, `Container(web, "Alpha", "Go")`,
+			`Rel(api, web, "calls")`}, outcome{specmodel.C4ExclusionReasonAmbiguousNode, true}},
+		{"external other endpoint takes precedence", []string{
+			`Container(api, "Alpha", "Go")`, `Container(api, "Beta", "Go")`, `Container_Ext(ext, "Alpha", "Go")`,
+			`Rel(api, ext, "calls")`}, outcome{specmodel.C4ExclusionReasonExternalEndpoint, false}},
+		{"undeclared other endpoint takes precedence", []string{
+			`Container(api, "Alpha", "Go")`, `Container(api, "Beta", "Go")`,
+			`Rel(api, nobody, "calls")`}, outcome{specmodel.C4ExclusionReasonUndeclaredNode, false}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			files := map[string]string{
+				"alpha.md": head("container-alpha", "container-blueprint", "Alpha") +
+					"# Alpha\n\n" + strings.Replace(diagram(c.lines...), "C4Component", "C4Container", 1),
+				"beta.md": head("container-beta", "container-blueprint", "Beta"),
+			}
+			d := document(t, build(t, files, vocabulary()), "alpha.md").Diagrams[0]
+			if len(d.Drawings) != 0 {
+				t.Errorf("drawings = %+v, want none", d.Drawings)
+			}
+			if len(d.Unresolved) != 1 || d.Unresolved[0].Reason != c.want.reason || d.Unresolved[0].SourceEndpoint != c.want.source {
+				t.Errorf("unresolved = %+v, want %+v", d.Unresolved, c.want)
+			}
+		})
+	}
+}
