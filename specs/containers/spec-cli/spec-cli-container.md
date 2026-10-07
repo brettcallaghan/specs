@@ -7,7 +7,7 @@ description: The command-line binary that indexes a specification corpus
 slug: container-spec-cli
 type: container-blueprint
 status: approved
-updated_at: 2026-09-29T00:00:00Z
+updated_at: 2026-10-07T00:00:00Z
 contracts_consumed: []
 modules:
   - "module-document-core"
@@ -207,7 +207,15 @@ never requested, which is what lets the rendered report tell "checked
 and clean" apart from "not asked for" (AC-SPEC-006.8). Exit status
 follows `finding.Report.HasErrors`: any error exits 1 unconditionally;
 warning or unverified findings alone exit 0 unless `--strict` is given
-(AC-SPEC-006.6, AC-SPEC-006.7). `slug-exists` and `next-id` open the
+(AC-SPEC-006.6, AC-SPEC-006.7). `checkRules` declares every rule a run
+can raise, so `--only` can name each and a clean run reports each as
+passed. It holds all ten `c4/*` rules Document Core raises over the C4
+diagrams in architecture blueprints — `c4/parse`, `c4/undeclared-node`,
+`c4/ambiguous-node`, `c4/bidirectional`, `c4/duplicate-edge`,
+`c4/drawing-conflict`, `c4/interaction-conflict`,
+`c4/contract-unresolved`, `c4/contract-mismatch` and `c4/tag-separator`
+— so each is selectable with `--only`; the command surface adds no c4
+logic of its own. `slug-exists` and `next-id` open the
 corpus warm and answer `corpus.Corpus.Slug` and `numbering.Next`
 directly (AC-SPEC-011.3, AC-SPEC-011.4).
 

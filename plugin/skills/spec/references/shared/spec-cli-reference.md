@@ -11,7 +11,7 @@ description: The specs binary's command surface — what each subcommand
 slug: spec-cli-reference
 type: guide
 status: active
-updated_at: 2026-08-09T00:00:00Z
+updated_at: 2026-10-07T00:00:00Z
 version: "0.2"
 ---
 
@@ -28,6 +28,8 @@ verifiable by whoever reviews the work, where yours is an assertion.
 - Commands — the six subcommands and the question each answers
 - Reference checks — the four rules `check` applies to `[[slug]]` links
   and reference-bearing frontmatter, and the severity each carries
+- C4 diagram checks — the ten `c4/*` rules over architecture blueprint
+  diagrams
 - Exit statuses — how to read a run's result
 - What it does not check — the gap you still cover by hand
 - When it is not installed
@@ -183,7 +185,7 @@ Three things about `reference/unresolved` decide whether you trust it:
   rather than as a slug matching nothing, because the reader's next step
   differs.
 
-`reference/retired-target` is the only rule in the tool that emits
+`reference/retired-target` is the only reference rule that emits
 `warning`. A reference to a retired document still resolves — the reader
 reaches a real document that says it has been replaced — so it does not
 fail a build unless you pass `--strict`. It is also the one finding that
@@ -221,6 +223,33 @@ registers **no** pairing, so `reference/pairing-incomplete` is inert
 against its own corpus by design — it exists for adopting profiles whose
 relationships are declared from both ends.
 
+## C4 diagram checks
+
+`specs check` reads the C4 diagrams in architecture blueprints (system,
+container, module and component) and applies ten `c4/*` rules. Select
+them with `--only`, one identifier at a time. Every finding carries the
+span of the statement it concerns. Diagrams in other document types are
+not checked. The statement subset the parser reads and the reserved tags
+are defined in [[c4-standards]].
+
+| Rule | Severity | Reports |
+|------|----------|---------|
+| `c4/parse` | error; unverified | A statement outside the parsed subset (error). A `mermaid` block whose diagram type is not read, including `C4Dynamic` and `C4Deployment` — it was not looked inside (unverified) |
+| `c4/undeclared-node` | error | A non-external node that resolves to no element in the drawing document's scope and is not a passive store |
+| `c4/ambiguous-node` | error | A node whose label matches the entity names of more than one element in scope, naming each |
+| `c4/bidirectional` | error | A `BiRel` statement |
+| `c4/duplicate-edge` | error | A second relationship statement in one diagram with the same source and target, after `Rel_Back` is normalised |
+| `c4/drawing-conflict` | warning | One relationship drawn in two places with differing technology, description or tags, naming the other drawing |
+| `c4/interaction-conflict` | error | A relationship tagged both `sync` and `async` |
+| `c4/contract-unresolved` | error | A `contract:` tag whose slug no contract document declares |
+| `c4/contract-mismatch` | warning | A `contract:` tag naming a contract the source element does not consume or the target element does not provide |
+| `c4/tag-separator` | warning | A tags argument that joins tags with a comma instead of `+` |
+
+Unlike the reference rules, no `c4/*` rule escapes the narrowing to the
+file you name. `c4/drawing-conflict` still compares that file's drawings
+against every architecture blueprint's, but reports only the findings that
+sit in the named file.
+
 ## Exit statuses
 
 - **0** — the run succeeded. For `check`, no error-severity findings
@@ -228,10 +257,11 @@ relationships are declared from both ends.
 - **1** — `check` found something, or the invocation itself failed: no
   `specs.toml`, an unknown profile, a malformed configuration.
 
-A run that reports only `reference/retired-target` exits **0** without
-`--strict` and **1** with it. That is the only place the two differ
-today, so `--strict` is worth passing in CI where citing a retired
-document should block.
+A run whose findings are all `warning` or `unverified` — such as
+`reference/retired-target`, `c4/drawing-conflict`, `c4/contract-mismatch`,
+`c4/tag-separator`, or a diagram `c4/parse` did not look inside — exits
+**0** without `--strict` and **1** with it. That is where the two differ,
+so `--strict` is worth passing in CI where any of them should block.
 
 `slug-exists` and `refs` exit 0 whether or not they find anything — "not
 found" is an answer, not a failure. Read their output, not their status.

@@ -225,7 +225,7 @@ it holds no engine and no parsing of its own. Its value is that the
 conformance surface is one file: whether this module is a well-behaved
 plugin is answerable by reading it.
 
-**Built** — `cli/profile`. `New` returns a `corpus.Profile` whose six
+**Built** — `cli/profile`. `New` returns a `corpus.Profile` whose seven
 members are the whole of what this framework tells the host:
 
 | Member | Registers |
@@ -236,6 +236,7 @@ members are the whole of what this framework tells the host:
 | `Lifecycle()` | the whole status vocabulary, `retired` as the only retired status, every other status as live, and `superseded_by` as the successor property |
 | `FeatureTags()` | the feature and criterion identifier patterns, the owning-document tag prefix `frd-`, the `code`/`number` capture groups the two identifier patterns share, and the qualifier tags `negative`, `manual`, and the `level-` prefixed vocabulary `unit`, `integration`, `e2e` |
 | `RecordBlocks()` | the `component` record-block tag, validated against the generated `C4ElementRecord` definition (`#/definitions/C4ElementRecord`) |
+| `Architecture()` | the architecture vocabulary: `system-blueprint`, `container-blueprint`, `module-blueprint` and `component-blueprint` at the `system`, `container`, `module` and `component` levels; `entity_name`, `system`, `modules` and `contracts_consumed` as the entity-name, system, composed-modules and consumed-contracts properties; `contract` as the contract type with `provider` as its provider property; and the `Components` roster heading with the `component` record-block tag for container and module blueprints only |
 
 **The union schema is generated, not authored here.** It comes from
 `schemas/*.strata` through `scripts/generate-schemas.sh`, which emits
@@ -256,6 +257,16 @@ properties and the status vocabulary from the decoded schema at package
 initialization; only the one typed reference (`frd` → `type: frd`) and
 the lifecycle's live/retired split are authored, because the schema has
 no way to state either.
+
+**The architecture vocabulary is authored, and held to the schema by a
+test.** Nothing in the schema says which property is an element's name
+or which heading holds a roster, so `Architecture()` transcribes them
+from the vocabulary and [[c4-standards]].
+`TestEveryRegisteredArchitecturePropertyIsDeclaredWhereItApplies` asserts
+that the generated schema declares each registered property on every
+type it applies to, so a renamed property fails the suite rather than
+silently resolving nothing; `corpus.ValidateRegistration` checks the same
+at activation.
 
 **The Gherkin identifier patterns carry the same guard, structurally
 rather than by derivation.** `FeaturePattern` and `CriterionPattern` are

@@ -1,0 +1,5 @@
+description = "check reports c4/parse (error and unverified), c4/undeclared-node and c4/ambiguous-node in architecture blueprints; resolves nodes within the drawing document's scope; leaves external nodes, passive stores and a feature blueprint's diagram unreported"
+cites = ["AC-C4-DIAG-001.1", "AC-C4-DIAG-001.3", "AC-C4-DIAG-001.4", "AC-C4-DIAG-002.1", "AC-C4-DIAG-002.2", "AC-C4-DIAG-002.3", "AC-C4-DIAG-002.4", "AC-C4-DIAG-002.5"]
+artifacts = ["checks.log"]
+args = ["check"]
+exit_code = 1

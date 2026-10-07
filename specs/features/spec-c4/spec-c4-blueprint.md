@@ -20,8 +20,8 @@ plan: specs-c4model
 **FRD:** [[frd-spec-c4]]
 
 The model is a projection, assembled in [[module-document-core]] by a new
-**C4 Model** component from two things [[feature-spec-c4-diagrams]]
-already builds: the element set with its declarations, and the drawings
+**C4 Model** component from two things Document Core's **C4 Elements**
+component already builds: the element set with its declarations, and the drawings
 each relationship statement resolves to. C4 Model nests the elements by
 the containment edges the corpus declares, merges drawings into
 relationships, reads the reserved tags into properties, and narrows the
@@ -116,7 +116,7 @@ and [[adr-030]].
   collection of slugs likewise.
 
 **Anchors:** a new package under `cli/core`, beside the C4 Elements
-package [[feature-spec-c4-diagrams]] adds; `specmodel.C4Model` and its
+package (`cli/core/c4elements`); `specmodel.C4Model` and its
 member types, generated from `schemas/c4.strata`.
 
 ### C4 Model in [[module-document-core]] (modified — relationships)
@@ -154,8 +154,7 @@ the model's edge list and exclusion list.
 - `relationships` SHALL be ordered by source slug, then target slug,
   then description; `excluded_relationships` by path, then span.
 
-**Anchors:** the C4 Model package; the C4 Elements drawings API that
-[[feature-spec-c4-diagrams]]'s DRAW delta adds.
+**Anchors:** the C4 Model package; the C4 Elements drawings API.
 
 ### C4 Model in [[module-document-core]] (modified — reserved tags)
 
@@ -262,11 +261,11 @@ copies follow.
 
 ### Relied-upon elements (unchanged)
 
-- [[feature-spec-c4-diagrams]]'s C4 Elements component — the element
+- [[module-document-core]]'s C4 Elements component — the element
   set, each element's declarations, node resolution, and drawings
   grouped into relationships with unresolved statements and their
   reasons. This feature adds no resolution of its own.
-- [[feature-spec-c4-diagrams]]'s C4 Diagrams component — statements,
+- [[module-document-core]]'s C4 Diagrams component — statements,
   views and the reserved-tag split.
 - The architecture vocabulary the profile registers per [[adr-030]],
   read through Document Core's extension point.
@@ -285,10 +284,11 @@ contract document until a consumer exists that is built independently.
 ## Tracker Reconciliation
 
 - `specs-f6tl.5` and `specs-f6tl.6` — prerequisite,
-  transitively: [[feature-spec-c4-diagrams]]'s stage 2 waits on both,
-  and this feature waits on that stage.
+  transitively, already met: Document Core's C4 Elements component
+  rests on both, and this feature rests on that component.
 - `agent-plugins-7os0` — out-of-scope: subsumed by
-  [[feature-spec-c4-diagrams]]'s DOC delta. This feature does not amend
+  the [[c4-standards]] amendment that landed with Document Core's C4
+  Elements component. This feature does not amend
   [[c4-standards]].
 - `agent-plugins-h6c` — out-of-scope: the index-schema and contract
   ADR. This feature emits a separate model and changes no index shape,
@@ -299,8 +299,8 @@ contract document until a consumer exists that is built independently.
 
 ## Sequencing Constraints
 
-- [[feature-spec-c4-diagrams]]'s ELEM and DRAW deltas SHALL land before
-  the TREE delta.
+- Document Core's C4 Elements component, with its drawings, SHALL be in
+  place before the TREE delta; it is.
 - The MODEL delta SHALL land before the REL delta.
 - The TREE delta SHALL land before the REL, TAGS and ROOT deltas.
 - The REL delta SHALL land before the TAGS and ROOT deltas.
@@ -398,11 +398,11 @@ None.
 - [[c4-standards]] — the levels, containment and arrow rules the model
   follows
 - [[frd-spec-c4]] — the requirements this blueprint realizes
-- [[feature-spec-c4-diagrams]] — the parser, element set and drawings
-  this model is built from
 - [[container-spec-cli]] — the container whose Change Guidance binds
   every delta
-- [[module-document-core]] — the module the model is assembled in
+- [[module-document-core]] — the module the model is assembled in, whose
+  C4 Diagrams and C4 Elements components are the parser, element set and
+  drawings this model is built from
 - [[cli-output-standards]] — the rendering rules the CMD delta follows
 - [[ac-traceability-standards]] — the citation obligations the coverage
   table feeds

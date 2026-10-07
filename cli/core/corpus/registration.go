@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/brettcallaghan/agent-plugins/cli/core/schemaregistry"
 )
 
 // RegistrationDefect is one fault found in an active profile's
@@ -49,7 +51,7 @@ type RegistrationDefect struct {
 // registration the caller was told is wrong is better than a registration
 // silently repaired into one that checks less than it says.
 //
-// Seven defects are found, and they are the whole of what a registration
+// Thirteen defects are found, and they are the whole of what a registration
 // can get wrong on its own terms:
 //
 //   - a pairing or a typed reference naming a property the same document
@@ -64,7 +66,16 @@ type RegistrationDefect struct {
 //     group an identifier pattern does not define;
 //   - a record-block registration whose schema pointer resolves to
 //     nothing in the profile's schema;
-//   - a record-block tag registered more than once.
+//   - a record-block tag registered more than once;
+//   - an architecture registration naming a document type the profile
+//     does not define;
+//   - an architecture registration naming a property the union schema
+//     does not declare on a type the property applies to;
+//   - an element type registered at a level outside the four C4 levels;
+//   - a roster record-block tag registered with no roster heading;
+//   - a roster heading registered with no roster record-block tag;
+//   - a roster record-block tag that is not a registered record-block
+//     tag.
 //
 // The feature-tag two are found here rather than where they are used because
 // both are defects of the registration against itself, which is what
@@ -77,7 +88,8 @@ type RegistrationDefect struct {
 //
 // The result is empty for a registration with no defect, and ordered
 // deterministically: by document type, then by key, with the
-// profile-level lifecycle defects and then the feature-tag defects last.
+// profile-level lifecycle defects, the feature-tag defects, the
+// record-block defects and then the architecture defects last.
 // Callers render it, so its order is output.
 func ValidateRegistration(profile Profile) []RegistrationDefect {
 	if profile == nil {
@@ -91,7 +103,138 @@ func ValidateRegistration(profile Profile) []RegistrationDefect {
 	}
 	defects = append(defects, lifecycleDefects(profile.Lifecycle())...)
 	defects = append(defects, featureTagDefects(profile.FeatureTags())...)
-	return append(defects, recordBlockDefects(profile.RecordBlocks(), profile.Schema())...)
+	defects = append(defects, recordBlockDefects(profile.RecordBlocks(), profile.Schema())...)
+	return append(defects, architectureDefects(profile)...)
+}
+
+// architectureDefects reports the faults in an architecture registration:
+// a registered type the profile does not define, a level outside the
+// four, a registered property the union schema does not declare on a
+// type it applies to, and a roster registration that reads no child: a
+// roster tag with no roster heading, a roster heading with no roster
+// tag, or a roster tag that is not a registered record-block tag.
+//
+// Defects follow the element types in ascending order — for each, an
+// undefined type alone, otherwise its level, then its properties in the
+// order [ArchitectureRules] declares them, then its roster tag — and then
+// the contract type and its provider property. A type the profile does
+// not define has no other defect reported against it: its rules would
+// be checked against a branch that does not exist.
+//
+// A profile registering no architecture vocabulary has no defect: the
+// zero value is a corpus whose documents declare no elements. A schema
+// that is not JSON yields no property defect, for the reason
+// [recordBlockDefects] gives for pointers.
+func architectureDefects(profile Profile) []RegistrationDefect {
+	rules := profile.Architecture()
+	if len(rules.Elements) == 0 && rules.ContractType == "" {
+		return nil
+	}
+
+	types := profile.DocumentTypes()
+	// A nil registry is a schema that is not JSON.
+	registry, _ := schemaregistry.New(profile.Schema())
+	tags := make(map[string]bool)
+	for _, tag := range profile.RecordBlocks() {
+		tags[tag.Tag] = true
+	}
+
+	var defects []RegistrationDefect
+	for _, name := range sortedKeys(rules.Elements) {
+		element := rules.Elements[name]
+		if _, defined := types[name]; !defined {
+			defects = append(defects, undefinedTypeDefect(name, "an element type"))
+			continue
+		}
+		if !element.Level.Valid() {
+			defects = append(defects, RegistrationDefect{
+				DocumentType: name,
+				Key:          string(element.Level),
+				Detail: fmt.Sprintf("is registered as this element type's level, but is not one "+
+					"of the four C4 levels (%s, %s, %s, %s)",
+					LevelSystem, LevelContainer, LevelModule, LevelComponent),
+			})
+		}
+		for _, property := range []struct {
+			name    string
+			role    string
+			applies bool
+		}{
+			{rules.EntityNameProperty, "the entity-name property", true},
+			{rules.SystemProperty, "the system property", element.Level == LevelContainer},
+			{rules.ComposedModulesProperty, "the composed-modules property",
+				element.Level == LevelContainer || element.Level == LevelModule},
+			{rules.ConsumedContractsProperty, "the consumed-contracts property", true},
+		} {
+			if property.applies {
+				defects = append(defects, undeclaredPropertyDefect(registry, name, property.name, property.role)...)
+			}
+		}
+		switch {
+		case element.RosterTag != "" && element.RosterHeading == "":
+			defects = append(defects, RegistrationDefect{
+				DocumentType: name,
+				Key:          element.RosterTag,
+				Detail: "is registered as the roster record-block tag, but no roster heading " +
+					"is registered, so no child would ever be read",
+			})
+		case element.RosterHeading != "" && element.RosterTag == "":
+			defects = append(defects, RegistrationDefect{
+				DocumentType: name,
+				Key:          element.RosterHeading,
+				Detail: "is registered as the roster heading, but no roster record-block tag " +
+					"is registered, so no child would ever be read under it",
+			})
+		case element.RosterTag != "" && !tags[element.RosterTag]:
+			defects = append(defects, RegistrationDefect{
+				DocumentType: name,
+				Key:          element.RosterTag,
+				Detail: fmt.Sprintf("is registered as the record-block tag declaring a child under "+
+					"the roster heading %q, but is not one of this profile's record-block tags, "+
+					"so no child would ever be read there", element.RosterHeading),
+			})
+		}
+	}
+
+	if rules.ContractType != "" {
+		if _, defined := types[rules.ContractType]; !defined {
+			defects = append(defects, undefinedTypeDefect(rules.ContractType, "the contract type"))
+		} else {
+			defects = append(defects, undeclaredPropertyDefect(
+				registry, rules.ContractType, rules.ProviderProperty, "the provider property")...)
+		}
+	}
+	return defects
+}
+
+// undefinedTypeDefect reports an architecture registration naming, in
+// role, a document type the profile does not define.
+func undefinedTypeDefect(name, role string) RegistrationDefect {
+	return RegistrationDefect{
+		Key: name,
+		Detail: "is registered as " + role + " in the architecture vocabulary, " +
+			"but is not a document type this profile defines, so no document could declare it",
+	}
+}
+
+// undeclaredPropertyDefect reports property, registered in role, when
+// the union schema does not declare it on documentType. An empty
+// property is not registered and has no defect; a nil registry is a
+// schema that is not JSON, against which nothing can be judged.
+func undeclaredPropertyDefect(registry *schemaregistry.Registry, documentType, property, role string) []RegistrationDefect {
+	if property == "" || registry == nil {
+		return nil
+	}
+	declared, err := registry.Declares(documentType, property)
+	if err == nil && declared {
+		return nil
+	}
+	return []RegistrationDefect{{
+		DocumentType: documentType,
+		Key:          property,
+		Detail: "is registered as " + role + " of this type, but the profile's schema does not " +
+			"declare it on this type, so every document of the type would be read as lacking it",
+	}}
 }
 
 // recordBlockDefects reports each record-block tag whose schema pointer

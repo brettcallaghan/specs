@@ -232,6 +232,44 @@ func (specDrivenDev) FeatureTags() corpus.FeatureTagRules {
 // blueprint's frontmatter share one definition of an element.
 func (specDrivenDev) RecordBlocks() []corpus.RecordBlockTag {
 	return []corpus.RecordBlockTag{
-		{Tag: "component", Schema: "#/definitions/C4ElementRecord"},
+		{Tag: componentRecordTag, Schema: "#/definitions/C4ElementRecord"},
+	}
+}
+
+// componentRecordTag is the fence tag a roster block declaring one
+// component is written under.
+const componentRecordTag = "component"
+
+// Architecture returns this profile's architecture vocabulary: the four
+// architecture blueprint types at their C4 levels, the frontmatter
+// properties schemas/frontmatter.strata gives an element's name and its
+// containment and contract edges, and the `Components` roster in which a
+// container or module blueprint declares its components.
+//
+// Transcribed from the vocabulary and [[c4-standards]] rather than
+// derived, because nothing in the schema says which property is an
+// element's name or which heading holds a roster. The drift test in
+// architecture_test.go holds every registered property to the schema.
+func (specDrivenDev) Architecture() corpus.ArchitectureRules {
+	roster := func(level corpus.ElementLevel) corpus.ElementTypeRules {
+		return corpus.ElementTypeRules{
+			Level:         level,
+			RosterHeading: "Components",
+			RosterTag:     componentRecordTag,
+		}
+	}
+	return corpus.ArchitectureRules{
+		Elements: map[string]corpus.ElementTypeRules{
+			string(specmodel.DocumentTypeSystemBlueprint):    {Level: corpus.LevelSystem},
+			string(specmodel.DocumentTypeContainerBlueprint): roster(corpus.LevelContainer),
+			string(specmodel.DocumentTypeModuleBlueprint):    roster(corpus.LevelModule),
+			string(specmodel.DocumentTypeComponentBlueprint): {Level: corpus.LevelComponent},
+		},
+		EntityNameProperty:        "entity_name",
+		SystemProperty:            "system",
+		ComposedModulesProperty:   "modules",
+		ConsumedContractsProperty: "contracts_consumed",
+		ContractType:              string(specmodel.DocumentTypeContract),
+		ProviderProperty:          "provider",
 	}
 }

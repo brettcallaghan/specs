@@ -7,7 +7,7 @@ description: The framework-agnostic engine that indexes markdown
 slug: module-document-core
 type: module-blueprint
 status: approved
-updated_at: 2026-09-29T00:00:00Z
+updated_at: 2026-10-07T00:00:00Z
 kind: standard
 visibility: internal
 source_paths:
@@ -120,14 +120,23 @@ the plugin, and no framework vocabulary is compiled into the host.
   - WHEN a profile is activated, the module SHALL validate its
     registration and SHALL report every defect it finds, naming the
     offending key, rather than falling back to a default for that key
-    (AC-SPECREF-004.3). The defects are five: a pairing or a typed
+    (AC-SPECREF-004.3). The defects are thirteen: a pairing or a typed
     reference naming a property the same type does not register as
     reference-bearing; a typed reference naming a document type the
     profile does not define; a lifecycle registration naming a status
     outside the profile's own status vocabulary; a feature-tag
-    registration whose identifier pattern does not compile; and a
+    registration whose identifier pattern does not compile; a
     feature-tag registration whose shared captures name a capture group
-    an identifier pattern does not define.
+    an identifier pattern does not define; a record-block schema pointer
+    that resolves to nothing; a record-block tag registered more than
+    once; an architecture registration naming a document type the
+    profile does not define; an architecture registration naming a
+    property the union schema does not declare on a type the property
+    applies to; an element type registered at a level outside the four
+    C4 levels; a roster record-block tag registered with no roster
+    heading; a roster heading registered with no roster record-block tag;
+    and a roster record-block tag that is not among the profile's
+    registered record-block tags.
   - The module SHALL return those defects to the caller rather than
     rendering them. A compiled-in registration has no file position of
     its own, and the position a reader needs — the configuration value
@@ -141,7 +150,7 @@ the plugin, and no framework vocabulary is compiled into the host.
     and only to the destination the caller resolves. It modifies no
     document it reads.
 
-**Built** — the `Profile` interface in `cli/core/corpus` has six
+**Built** — the `Profile` interface in `cli/core/corpus` has seven
 members and nothing else:
 
 | Member | Supplies |
@@ -152,6 +161,7 @@ members and nothing else:
 | `Lifecycle() LifecycleRules` | the profile's status vocabulary, which of those statuses mean in effect and which mean superseded, and the property a superseded document names its replacement in |
 | `FeatureTags() FeatureTagRules` | the tag vocabulary: the identifier patterns a feature and a criterion match, the prefix an owning-document tag carries, the captures a criterion identifier shares with its feature's, and the qualifier tags with their meanings |
 | `RecordBlocks() []RecordBlockTag` | the fenced-block info strings registered as record blocks, each with an optional JSON Pointer fragment into the union schema that its YAML record is validated against |
+| `Architecture() ArchitectureRules` | the architecture vocabulary: the document types that declare an element, each with its C4 level and, where it holds children, its roster heading and roster record-block tag; the entity-name, system, composed-modules and consumed-contracts properties; and the contract type with its provider property |
 
 `DocumentTypeRules` carries a slug pattern, a numbered flag, and the
 type's reference registration — `ReferenceProperties`, the properties
@@ -185,6 +195,24 @@ tag with no pointer is valid.
 A schema that is not JSON raises no pointer defect, since no pointer can
 be judged against it: the schema registry reports it when the corpus
 compiles the profile's schema.
+
+`ArchitectureRules` registers, as data, how a profile's documents declare
+C4 elements, following the `FeatureTagRules` precedent ([[adr-030]]).
+The module knows the four C4 levels — `system`, `container`, `module`,
+`component` — because they are notation, and names no document type,
+property or heading. Each registered property applies to a fixed set of
+types: the entity-name and consumed-contracts properties to every
+element type, the system property to container-level types, the
+composed-modules property to container- and module-level types, and the
+provider property to the contract type. `ValidateRegistration` asks the
+schema registry whether the union schema declares each property on each
+type it applies to, selecting the branch exactly as validation does, so
+a renamed property is a defect rather than a model that silently reads
+nothing. A type the profile does not define is reported alone, without
+the level, property and roster defects its rules would otherwise raise.
+A property left empty is not registered and is checked nowhere. A
+profile that registers no architecture vocabulary yields a corpus with
+no elements, and no error.
 
 `FeatureTagRules` is profile-level for a different reason: a feature is
 not a document type. It is written inside a document of any type, or in
@@ -249,6 +277,7 @@ C4Component
         Component(md, "Markdown Structure", "Go package (fences built)", "Headings, section spans, fenced blocks and comment blocks")
         Component(gherkin, "Gherkin", "Go package", "Gherkin parsing into feature and criterion records, with tags read as strings")
         Component(c4, "C4 Diagrams", "Go package", "Mermaid C4 diagram parsing into located statements, with relationship tags read")
+        Component(c4e, "C4 Elements", "Go package", "The corpus's architectural elements, each drawing document's scope, and node and relationship resolution")
         Component(refs, "References", "Go package", "Wikilink and frontmatter reference extraction, resolution against corpus slugs, and the reference graph")
         Component(schema, "Schema Registry", "Go package", "Single-union JSON Schema validation dispatched by document type")
         Component(corpus, "Corpus", "Go package", "Discovery, membership, the index model and its emission")
@@ -265,6 +294,9 @@ C4Component
     Rel(md, span, "Locates delimited regions with")
     Rel(gherkin, span, "Reports every position through")
     Rel(c4, span, "Reports every position through")
+    Rel(c4e, c4, "Reads diagram statements through")
+    Rel(c4e, md, "Matches roster headings and finds diagram blocks via")
+    Rel(corpus, c4e, "Resolves elements and diagram nodes through")
     Rel(refs, span, "Locates occurrences with")
     Rel(schema, fm, "Validates records produced by")
     Rel(num, corpus, "Queries the index of")
@@ -672,8 +704,87 @@ argument is recorded rather than treated as a separator
 holding only `}` closes the innermost one; a stray `}` and a boundary
 left open are both parse errors. Leading `---` frontmatter and
 `%%{ ... }%%` directives spread over several lines are skipped before the
-diagram type is read. Nothing calls it yet: the C4 checks
-are what bring a Corpus edge into it.
+diagram type is read. C4 Elements is its one caller; the C4 checks
+will reach it through that component.
+
+### C4 Elements
+
+```component
+entity_name: C4 Elements
+slug: component-c4-elements
+description: The corpus's architectural elements, each drawing document's scope, and node and relationship resolution
+```
+
+(Go package) — The corpus's architectural elements, each drawing
+document's scope, and node and relationship resolution. It owns the
+judgement of what a diagram node names, so the C4 checks and the C4
+model read one answer. It reads the index and the architecture
+vocabulary the profile registers ([[adr-030]]) and names no document
+type, property or heading of its own.
+
+**Elements.** Every corpus member whose type the vocabulary registers
+declares an element: the member's slug, its entity-name property as the
+name, and its registered level. So does every record block carrying the
+registered roster tag of its document's type and attached to the roster
+heading or to a heading nested in its section; the heading is matched on
+the identifier Markdown Structure derives, so letter case does not
+decide. A roster block is decoded through the corpus's record-block
+decoding function, and one that does not decode to a mapping carrying a
+slug and an entity name declares nothing — reporting it is the structure
+checks' job. A member whose source cannot be read at the time of the
+run declares its element without a name and draws nothing, and a member
+with no slug declares an element of its own that no declaration merges
+with and no slug lookup finds. A record block in a document whose type registers no
+roster declares nothing. Declarations of one slug — a blueprint and
+record blocks, or several record blocks — are one element carrying every
+declaration, ordered by path and then by span; a blueprint's declaration
+is its frontmatter block and defines the element's name and level, and
+an element only record blocks declare is a component.
+
+**Scope.** A node drawn in a document may name the document's own
+element; the elements its roster declares, by record block or by a
+`[[slug]]` reference under the roster heading resolving to a
+component-level member; the elements its composed-modules property
+names; and every system- and container-level element in the corpus.
+
+**Resolution.** A node resolves to every in-scope element whose name
+equals its label exactly, as written; an element with no entity name is
+named by no node. An external node is not resolved,
+and a `Db` or `Queue` node matching nothing in scope is a passive store
+rather than an undeclared node. A member whose type declares no element
+has no drawing document, so its diagrams yield no node.
+
+**Drawings.** A relationship statement resolves to a drawing when both
+of its endpoint aliases name nodes in the same diagram that each resolve
+to exactly one element. A drawing carries the source and target elements
+in dependency direction — `Rel_Back(a, b)` draws `b` depending on `a` —
+the label, technology and description arguments, the tags as parsed,
+the view the diagram's type draws, the aliases as written, and the
+statement's path and span. Any other statement is unresolved with one
+reason, spelled as the model's `C4ExclusionReason`: `external_endpoint`,
+`passive_store`, `undeclared_node` (an alias naming no node in its
+diagram included) and `ambiguous_node`, checked in that order with the
+source endpoint before the target at each step, so an ambiguous source
+with an external target is `external_endpoint`. An endpoint alias that more than
+one node in the diagram carries is `ambiguous_node`, whatever its first
+node resolves to. A `BiRel` statement
+states no single direction and is neither a drawing nor unresolved.
+
+**Relationships.** Drawings whose source element, target element and
+label are equal are drawings of one relationship, wherever they are
+drawn; a relationship holds its drawings ordered by path and then by
+span, and the set orders relationships by source slug, target slug and
+label. This grouping is what the drawing-conflict rule compares and what
+the C4 model emits.
+
+**Built** — `cli/core/c4elements`, reached through `Corpus.C4Elements`.
+Diagrams are read from each drawing document's source at the time of the
+run through `Corpus.Source`; the index does not record them, so neither
+its shape nor its `schema_version` changes. The architecture
+vocabulary's types are declared in this package and named by the
+`Profile` extension point, because the corpus's checks call this package
+and not the reverse. The source scan that keeps `cli/core/corpus` free of
+registered vocabulary covers this package too.
 
 ### References
 
@@ -897,6 +1008,10 @@ type ("system-blueprint") is converted to the PascalCase form its
 top-level `definitions` are keyed by ("SystemBlueprint"). Neither is a
 lookup table naming any type, which is what lets the package hold to the
 Change Guidance below without a per-type schema pointer from the profile.
+`Declares` answers, over that same branch, whether a type declares a
+property — directly or through `$ref` and `allOf`, never through an
+alternative — which is how a profile's architecture registration is
+checked against its own schema.
 
 **Built** — `cli/core/envelope`. The index carries each document's
 frontmatter as the union variant its `type` selects
@@ -1447,6 +1562,55 @@ one document reports that document's own content findings and nothing
 more, on the same path-scoped narrowing every VTAG rule but
 `gherkin/identifier-duplicate` gets (AC-GHK-006.7).
 
+**They check the C4 diagrams in architecture blueprints** — the first
+half of the `c4/*` family, raised from `c4NodeFindings` over the element
+set `Corpus.C4Elements` builds, after the Gherkin rules. `c4/parse`
+reports, at severity `error` and at the statement's span, a statement
+the C4 Diagrams parser could not read, quoting it and the parser's
+reason (AC-C4-DIAG-001.1); and, at severity `unverified` and at the
+block's span, a `mermaid` block whose diagram type the parser does not
+read, naming the type (AC-C4-DIAG-001.3) — the block was not looked
+inside, which is not the claim that it is sound. `c4/undeclared-node`
+reports a node that is neither external nor a passive store and names
+no element in its drawing document's scope, and `c4/ambiguous-node` a
+node naming several, listing every match in slug order (AC-C4-DIAG-002.3,
+AC-C4-DIAG-002.4); both are errors at the node's span, and a node naming
+one element raises nothing (AC-C4-DIAG-002.1, AC-C4-DIAG-002.2). External
+nodes and passive stores are never reported undeclared
+(AC-C4-DIAG-002.5). Only a member whose type the profile registers as
+declaring an element is examined, so a diagram in a feature blueprint
+raises nothing (AC-C4-DIAG-001.4), and a profile registering no
+architecture vocabulary raises nothing at all. The element set is built
+for the whole corpus even on a single-document check, because a node's
+scope reaches beyond its own file; the findings are then narrowed to the
+named file like every other per-file rule.
+
+**They check every arrow and the tags on it** — the second half of the
+family, raised from `c4RelationshipFindings` over the same element set.
+Per relationship statement: `c4/bidirectional` at a `BiRel`
+(AC-C4-DIAG-003.1); `c4/duplicate-edge` at the later of two statements
+in one diagram with the same source and target alias after `Rel_Back`
+normalisation, where `a` to `b` and `b` to `a` are different pairs and a
+`BiRel` is not counted (AC-C4-DIAG-003.2); `c4/interaction-conflict` at
+a statement tagged both `sync` and `async` (AC-C4-DIAG-004.2);
+`c4/contract-unresolved` for a `contract:` tag naming a slug no member
+of the registered contract type declares (AC-C4-DIAG-004.3); and
+`c4/tag-separator` for a tags argument holding a comma
+(AC-C4-DIAG-004.5) — the first three errors, the last a warning. Per
+drawing, `c4/contract-mismatch` warns when a resolved contract tag names
+a contract the source element's blueprint does not list in its
+consumed-contracts property, or whose provider property does not name
+the target element, saying which (AC-C4-DIAG-004.4); a statement whose
+endpoint does not resolve to exactly one element is not a drawing, so it
+is never reported here — the node finding already covers it. Per
+relationship, `c4/drawing-conflict` warns at every drawing that differs
+from the relationship's first drawing, by path and then by span, in
+technology, description or tags, naming the first (AC-C4-DIAG-003.3).
+Because the element set and its relationships are built for the whole
+corpus, a single-document check still compares the named document's
+drawings against every architecture blueprint's before the result is
+narrowed to the named file.
+
 **Output and warm cache** — the same package. `Write` emits the index to
 one destination, resolved by `IndexPath`: `specs.json` inside the
 configured spec root by default (AC-SPEC-010.1), a named path when the
@@ -1901,6 +2065,12 @@ This module SHALL comply with:
 - [[adr-018]] — references are one top-level edge collection on the
   index, with both directions derived from it, which is why the index
   vocabulary above gains `Reference` rather than an array on each entry.
+- [[adr-029]] — relationships are read from blueprint diagrams by a
+  parser this CLI owns, with reserved relationship tags, which is why C4
+  Diagrams exists as a component of its own.
+- [[adr-030]] — the parser and the resolver live in this module, and the
+  architecture vocabulary arrives as a profile registration, which is
+  why C4 Elements takes its types and properties from `Architecture()`.
 
 ## Open Questions
 

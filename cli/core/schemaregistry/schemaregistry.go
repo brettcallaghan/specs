@@ -196,6 +196,47 @@ func (r *Registry) branch(documentType string) (*jsonschema.Schema, error) {
 	return schema, nil
 }
 
+// Declares reports whether the branch documentType selects declares
+// property, either directly or through a schema the branch references
+// or requires in full ($ref, allOf).
+//
+// The branch is selected exactly as [Registry.Validate] selects it, so a
+// property this reports as declared is one a document of that type may
+// carry. An alternative (anyOf, oneOf) is not followed: a property
+// declared on only one alternative is not declared on the type.
+//
+// An error is returned only when the union schema declares no branch
+// for documentType.
+func (r *Registry) Declares(documentType, property string) (bool, error) {
+	branch, err := r.branch(documentType)
+	if err != nil {
+		return false, err
+	}
+	return declares(branch, property, make(map[*jsonschema.Schema]bool)), nil
+}
+
+// declares reports whether s, or a schema it references or requires in
+// full, declares property. seen guards against a cyclic schema graph.
+func declares(s *jsonschema.Schema, property string, seen map[*jsonschema.Schema]bool) bool {
+	if s == nil || seen[s] {
+		return false
+	}
+	seen[s] = true
+
+	if _, found := s.Properties[property]; found {
+		return true
+	}
+	if declares(s.Ref, property, seen) {
+		return true
+	}
+	for _, required := range s.AllOf {
+		if declares(required, property, seen) {
+			return true
+		}
+	}
+	return false
+}
+
 // pascalCase converts a kebab-case document type value to the PascalCase
 // form the union schema's "definitions" are keyed by:
 // "system-blueprint" becomes "SystemBlueprint". It is a mechanical

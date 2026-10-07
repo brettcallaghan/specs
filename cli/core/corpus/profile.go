@@ -10,7 +10,10 @@
 // import or special-case a profile that provides them.
 package corpus
 
-import "github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+import (
+	"github.com/brettcallaghan/agent-plugins/cli/core/c4elements"
+	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
+)
 
 // Profile supplies the document vocabulary one corpus operation is
 // checked against.
@@ -21,9 +24,10 @@ import "github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 //
 // The surface is deliberately narrow — a schema, a per-type table, the
 // convention defaults, the lifecycle registration, the tag
-// vocabulary and the record-block tags — because it constrains everything downstream of it.
-// Required sections and element records are later capabilities, and each
-// will widen this interface further. Per the Change Guidance in
+// vocabulary, the record-block tags and the architecture vocabulary —
+// because it constrains everything downstream of it.
+// Required sections are a later capability, and will widen this
+// interface further. Per the Change Guidance in
 // specs/modules/spec-profile/spec-profile-module.md, that widening is a change to
 // the host reviewed on its own merits, never a special case granted to
 // one profile.
@@ -111,7 +115,44 @@ type Profile interface {
 	// corpus built under it has no record blocks. That is a profile
 	// describing documents with none, not a malformed one.
 	RecordBlocks() []RecordBlockTag
+
+	// Architecture returns the vocabulary through which this profile's
+	// documents declare C4 elements: which document types declare one and
+	// at what level, the frontmatter properties naming an element and its
+	// containment and contract edges, and where a parent declares its
+	// children.
+	//
+	// Registered as data the host reads, as the tag vocabulary is. The
+	// host knows the C4 notation — the four levels and what a diagram
+	// statement says — and holds no document type, property or heading
+	// of its own.
+	//
+	// A profile that registers none returns the zero value, and a corpus
+	// built under it has no elements. That is a profile describing
+	// documents that declare no architecture, not a malformed one.
+	Architecture() ArchitectureRules
 }
+
+// The architecture vocabulary's types are declared by the C4 Elements
+// package, which reads them, and named here so that a profile implements
+// the extension point against this package alone. Their documentation is
+// there.
+type (
+	// ArchitectureRules is [c4elements.ArchitectureRules].
+	ArchitectureRules = c4elements.ArchitectureRules
+	// ElementTypeRules is [c4elements.ElementTypeRules].
+	ElementTypeRules = c4elements.ElementTypeRules
+	// ElementLevel is [c4elements.ElementLevel].
+	ElementLevel = c4elements.ElementLevel
+)
+
+// The four C4 levels, as [c4elements] declares them.
+const (
+	LevelSystem    = c4elements.LevelSystem
+	LevelContainer = c4elements.LevelContainer
+	LevelModule    = c4elements.LevelModule
+	LevelComponent = c4elements.LevelComponent
+)
 
 // RecordBlockTag is one fenced-block info string a profile registers as
 // a record block, and where its record is validated.

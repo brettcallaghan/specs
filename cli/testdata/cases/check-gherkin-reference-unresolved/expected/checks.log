@@ -4,6 +4,16 @@ docs/features/refunds.feature:
   reference/unresolved  error  5:40  [[refund-policy-absent]] matches no document's slug
 
 checks:
+  c4/ambiguous-node  passed
+  c4/bidirectional  passed
+  c4/contract-mismatch  passed
+  c4/contract-unresolved  passed
+  c4/drawing-conflict  passed
+  c4/duplicate-edge  passed
+  c4/interaction-conflict  passed
+  c4/parse  passed
+  c4/tag-separator  passed
+  c4/undeclared-node  passed
   corpus/empty  passed
   frontmatter/missing-property  passed
   frontmatter/parse  passed

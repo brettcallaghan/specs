@@ -1,7 +1,7 @@
 # Specs — Spec-First Development
 
 <!-- coverage:badge:start -->
-[![coverage](https://img.shields.io/badge/cli%20coverage-90.5%25-brightgreen)](#test-coverage)
+[![coverage](https://img.shields.io/badge/cli%20coverage-91.4%25-brightgreen)](#test-coverage)
 <!-- coverage:badge:end -->
 
 **Agency for the agents.**
@@ -292,30 +292,31 @@ alone is visible rather than averaged away.
 <!-- coverage:table:start -->
 | Test layer | Statements covered | Coverage |
 |:---|---:|---:|
-| Unit tests | 3,069 / 3,840 | 79.9% |
-| Snapshot cases | 2,782 / 3,840 | 72.4% |
-| End-to-end (built binary) | 1,171 / 3,840 | 30.5% |
-| **All layers combined** | **3,477 / 3,840** | **90.5%** |
+| Unit tests | 3,531 / 4,269 | 82.7% |
+| Snapshot cases | 3,381 / 4,269 | 79.2% |
+| End-to-end (built binary) | 1,279 / 4,269 | 30.0% |
+| **All layers combined** | **3,901 / 4,269** | **91.4%** |
 
 | Package | Statements | Covered | Coverage |
 |:---|---:|---:|---:|
 | `cli/cmd` | 1,217 | 1,044 | 85.8% |
 | `cli/core/c4diagram` | 246 | 234 | 95.1% |
-| `cli/core/corpus` | 1,140 | 1,046 | 91.8% |
-| `cli/core/envelope` | 47 | 44 | 93.6% |
-| `cli/core/finding` | 166 | 158 | 95.2% |
+| `cli/core/c4elements` | 266 | 259 | 97.4% |
+| `cli/core/corpus` | 1,272 | 1,176 | 92.5% |
+| `cli/core/envelope` | 47 | 45 | 95.7% |
+| `cli/core/finding` | 179 | 173 | 96.6% |
 | `cli/core/frontmatter` | 131 | 116 | 88.5% |
 | `cli/core/gherkin` | 289 | 267 | 92.4% |
 | `cli/core/markdown` | 106 | 100 | 94.3% |
 | `cli/core/mdlinks` | 70 | 70 | 100.0% |
 | `cli/core/numbering` | 26 | 22 | 84.6% |
 | `cli/core/references` | 155 | 151 | 97.4% |
-| `cli/core/schemaregistry` | 147 | 130 | 88.4% |
+| `cli/core/schemaregistry` | 162 | 146 | 90.1% |
 | `cli/core/span` | 37 | 36 | 97.3% |
 | `cli/core/specindex` | 1 | 1 | 100.0% |
-| `cli/profile` | 61 | 57 | 93.4% |
+| `cli/profile` | 64 | 60 | 93.8% |
 | `cli/specs` | 1 | 1 | 100.0% |
-| **Total** | **3,840** | **3,477** | **90.5%** |
+| **Total** | **4,269** | **3,901** | **91.4%** |
 
 Generated code is excluded from these figures: 3,338 statements in 1 file (`specmodel.go`) carrying the `// Code generated … DO NOT EDIT.` marker. It is excluded from the coverage profile too, so every report derived from it agrees with this table.
 <!-- coverage:table:end -->

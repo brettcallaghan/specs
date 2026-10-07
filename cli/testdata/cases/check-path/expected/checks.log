@@ -2,6 +2,16 @@ docs/adrs/adr-1-checked.md:
   slug/pattern-mismatch  error  4:7  "adr-1" does not match pattern "^adr-[0-9]{3,}(-[a-z0-9]+(-[a-z0-9]+)*)?$"
 
 checks:
+  c4/ambiguous-node  passed
+  c4/bidirectional  passed
+  c4/contract-mismatch  passed
+  c4/contract-unresolved  passed
+  c4/drawing-conflict  passed
+  c4/duplicate-edge  passed
+  c4/interaction-conflict  passed
+  c4/parse  passed
+  c4/tag-separator  passed
+  c4/undeclared-node  passed
   corpus/empty  passed
   frontmatter/missing-property  passed
   frontmatter/parse  passed

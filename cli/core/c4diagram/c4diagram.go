@@ -30,6 +30,10 @@ const (
 	TypeComponent = "C4Component"
 )
 
+// FenceTag is the info string of the fenced block a Mermaid diagram is
+// written in.
+const FenceTag = "mermaid"
+
 // Kind classifies a statement.
 type Kind string
 

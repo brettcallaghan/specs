@@ -29,6 +29,7 @@ type stubProfile struct {
 	lifecycle    corpus.LifecycleRules
 	featureTags  corpus.FeatureTagRules
 	recordBlocks []corpus.RecordBlockTag
+	architecture corpus.ArchitectureRules
 }
 
 func (p stubProfile) Schema() []byte                                     { return p.schema }
@@ -37,6 +38,7 @@ func (p stubProfile) Conventions() specmodel.ConventionsConfig           { retur
 func (p stubProfile) Lifecycle() corpus.LifecycleRules                   { return p.lifecycle }
 func (p stubProfile) FeatureTags() corpus.FeatureTagRules                { return p.featureTags }
 func (p stubProfile) RecordBlocks() []corpus.RecordBlockTag              { return p.recordBlocks }
+func (p stubProfile) Architecture() corpus.ArchitectureRules             { return p.architecture }
 
 // testRegistry registers exactly one profile, "test-profile", with a
 // line_width default of 100 — distinct from spec-driven-dev's 80, so a

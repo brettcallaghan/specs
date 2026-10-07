@@ -994,9 +994,21 @@ func (c *Corpus) document(reported string) (*frontmatter.Document, bool) {
 	return doc, true
 }
 
-// readDocument reads and parses one member's source, through the same
+// Source returns the bytes of one file beneath the spec root as the walk
+// reads them — through the same containment (AC-SPEC-001.5) and with the
+// same line-ending normalization — so every span the index records
+// addresses them.
+//
+// It reads the file as it stands now; a caller that needs what a check
+// reads at the time of the run, such as a diagram the index does not
+// record, reads it here. path may be absolute or repository-relative.
+func (c *Corpus) Source(path string) ([]byte, error) {
+	return c.readSource(c.normalize(path))
+}
+
+// readSource reads one file named in reported form, through the same
 // os.Root containment the walk reads under (AC-SPEC-001.5).
-func (c *Corpus) readDocument(reported string) (*frontmatter.Document, error) {
+func (c *Corpus) readSource(reported string) ([]byte, error) {
 	rel, err := filepath.Rel(c.specRoot, filepath.Join(c.repoRoot, filepath.FromSlash(reported)))
 	if err != nil {
 		return nil, err
@@ -1008,7 +1020,12 @@ func (c *Corpus) readDocument(reported string) (*frontmatter.Document, error) {
 	}
 	defer root.Close()
 
-	src, err := readUnder(root, rel)
+	return readUnder(root, rel)
+}
+
+// readDocument reads and parses one member's source.
+func (c *Corpus) readDocument(reported string) (*frontmatter.Document, error) {
+	src, err := c.readSource(reported)
 	if err != nil {
 		return nil, err
 	}

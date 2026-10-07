@@ -7,7 +7,7 @@ description: How the Spec CLI learns to read the Mermaid C4 diagrams in
   malformed tag as a c4 finding
 slug: feature-spec-c4-diagrams
 type: feature-blueprint
-status: in-progress
+status: retired
 updated_at: 2026-10-07T05:00:00Z
 delivery: staged
 frd: frd-spec-c4-diagrams
@@ -524,26 +524,26 @@ Corpus delta (relationship and tag checks); DOC = Documentation delta.
 
 ## Definition of Done
 
-- [ ] Every delta above is folded into its owning blueprint:
-  - [ ] [[module-document-core]] — C4 Diagrams and C4 Elements added to
+- [x] Every delta above is folded into its owning blueprint:
+  - [x] [[module-document-core]] — C4 Diagrams and C4 Elements added to
         the Components roster and diagram with their record blocks; the
         extension point's seventh member and its defects in Interface;
         Corpus's check list and Findings' rule list updated
-  - [ ] [[module-spec-profile]] — Profile Registration's member table
+  - [x] [[module-spec-profile]] — Profile Registration's member table
         gains the architecture vocabulary
-  - [ ] [[container-spec-cli]] — the Command Surface's account of `check`
+  - [x] [[container-spec-cli]] — the Command Surface's account of `check`
         paragraph names the `c4/*` rules
-- [ ] [[c4-standards]], the four architecture blueprint templates and
+- [x] [[c4-standards]], the four architecture blueprint templates and
       [[spec-cli-reference]] updated, and
       `scripts/sync-shared-references.sh --check` passes
-- [ ] [[adr-029]] and [[adr-030]] are referenced from
+- [x] [[adr-029]] and [[adr-030]] are referenced from
       [[module-document-core]]'s Key Decisions
-- [ ] Every AC in the coverage table is verified at its declared level
+- [x] Every AC in the coverage table is verified at its declared level
       and cited from its tests per [[ac-traceability-standards]]
-- [ ] `scripts/coverage.sh` has been run from the repository root and
+- [x] `scripts/coverage.sh` has been run from the repository root and
       the README diff committed, since `cli/**` changed
-- [ ] `agent-plugins-7os0` is closed
-- [ ] This blueprint's status → retired
+- [x] `agent-plugins-7os0` is closed
+- [x] This blueprint's status → retired
 
 ## Open Questions
 
