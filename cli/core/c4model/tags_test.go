@@ -118,3 +118,21 @@ func TestADerivedContractIgnoresTheAnchorOfTheConsumedCitation(t *testing.T) {
 		t.Errorf("contracts_consumed = %v, want the citation as written", a.ContractsConsumed)
 	}
 }
+
+// AC: AC-C4-003.3
+func TestADerivedContractReadsTheConsumedCitationOfARecordBlockSource(t *testing.T) {
+	files := map[string]string{
+		"a.md": head("container-a", "container-blueprint", "A") +
+			"# A\n\n## Components\n\n" + mermaid("C4Component", `Component(p, "Parser", "Go")`, `Container(b, "B", "Go")`, `Rel(p, b, "Uses")`) +
+			"\n### Parser\n\n```component\nentity_name: Parser\nslug: component-parser\ndescription: Parses\n" +
+			"contracts_consumed: [contract-x#Ops]\n```\n",
+		"b.md": head("container-b", "container-blueprint", "B"),
+		"x.md": head("contract-x", "contract", "", "provider: container-b"),
+	}
+	model := build(t, files)
+
+	r := relationship(t, model, "component-parser", "container-b", "Uses")
+	if r.Contract == nil || r.Contract.Slug != "contract-x" || r.Contract.Source != specmodel.C4ContractSourceDerived {
+		t.Errorf("contract = %+v, want contract-x with source derived", r.Contract)
+	}
+}
