@@ -562,10 +562,22 @@ func TestComposedModulesAreFoldedLikeTheRestOfTheModel(t *testing.T) {
 		"kind: standard", "visibility: internal") + "# Delta\n"
 	model := build(t, files)
 
-	if got := slugsOf(container(t, model, "container-alpha").Modules); got != "Ghost-Mod,module-gamma" {
-		t.Errorf("container-alpha modules = %q, want module-gamma and ghost-mod once each", got)
+	if got := slugsOf(container(t, model, "container-alpha").Modules); got != "ghost-mod,module-gamma" {
+		t.Errorf("container-alpha modules = %q, want module-gamma and ghost-mod once each, malformed spellings left out", got)
 	}
 	if got := slugsOf(module(t, model, "module-gamma").Modules); got != "module-delta" {
 		t.Errorf("module-gamma modules = %q, want module-delta once", got)
+	}
+}
+
+func TestAComposedModuleThatIsNotASlugIsLeftOut(t *testing.T) {
+	files := fixture()
+	files["alpha.md"] = head("container-alpha", "container-blueprint", "Alpha",
+		"system: system-one",
+		"modules:", `  - "Module Gamma"`, `  - "module-gamma"`)
+	model := build(t, files)
+
+	if got := slugsOf(container(t, model, "container-alpha").Modules); got != "module-gamma" {
+		t.Errorf("container-alpha modules = %q, want only module-gamma", got)
 	}
 }

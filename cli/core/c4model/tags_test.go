@@ -64,6 +64,15 @@ func TestAContractTagNamesTheGoverningContract(t *testing.T) {
 	}
 }
 
+func TestAContractTagThatIsNotACitationIsReadAsAbsent(t *testing.T) {
+	model := build(t, tagged(`Rel(a, c, "Uses", $tags="contract:Orders API")`))
+
+	r := relationship(t, model, "container-a", "container-c", "Uses")
+	if r.Contract == nil || r.Contract.Slug != "contract-three" || r.Contract.Source != specmodel.C4ContractSourceDerived {
+		t.Errorf("contract = %+v, want contract-three derived, the malformed tag read as absent", r.Contract)
+	}
+}
+
 // AC: AC-C4-003.3
 func TestAnUntaggedRelationshipDerivesItsContractWhenExactlyOneFits(t *testing.T) {
 	model := build(t, tagged(`Rel(a, c, "Uses")`))

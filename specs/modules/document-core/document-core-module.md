@@ -836,6 +836,8 @@ otherwise from the declaration sorting first by path and then by span:
 `entity_name`, `description`, `technology`, `contracts_consumed` and
 `tags`; for a module `kind`, `visibility` and `version`; for a component
 with a blueprint `kind`. A property the source does not carry is absent.
+A composed-module slug that is not a well-formed slug is left out of
+`modules`; reporting it is the checks' job.
 Every collection of elements and of slugs is ordered by slug.
 
 **Relationships.** Each group of drawings C4 Elements reports as one
@@ -854,7 +856,8 @@ description.
 drawing, by path and then span. `interaction` is `sync` or `async` when
 exactly one of the two is tagged, and absent when both or neither are.
 `contract` carries the slug the first `contract:` tag names, with source
-`tag`, whether or not it resolves; with no such tag, it carries the one
+`tag`, whether or not it resolves, so long as it is a well-formed
+citation — a malformed one is read as no tag; with no such tag, it carries the one
 contract in the source element's `contracts_consumed` whose provider is
 the target, with source `derived`, and is absent when none or several
 fit. `tags` are the drawing's unreserved tags in the order written, and

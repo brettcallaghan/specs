@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -226,7 +227,7 @@ func interactionOf(tags c4diagram.Tags) *specmodel.C4Interaction {
 // none.
 func (a *assembly) contractOf(source, target *c4elements.Element, tags c4diagram.Tags) *specmodel.C4ContractLink {
 	for _, tag := range tags.Reserved {
-		if tag.Name == c4diagram.TagContract && tag.Slug != "" {
+		if tag.Name == c4diagram.TagContract && citationPattern.MatchString(tag.Slug) {
 			return &specmodel.C4ContractLink{Slug: specmodel.Citation(tag.Slug), Source: specmodel.C4ContractSourceTag}
 		}
 	}
@@ -411,7 +412,7 @@ func (a *assembly) containedBy(module *c4elements.Element) []specmodel.Citation 
 func (a *assembly) contractsProvided(element *c4elements.Element) []specmodel.Citation {
 	provided := []specmodel.Citation{}
 	for _, contract := range a.set.Contracts() {
-		if contract.ProvidedBy(element) {
+		if contract.ProvidedBy(element) && citationPattern.MatchString(contract.Slug) {
 			provided = append(provided, specmodel.Citation(contract.Slug))
 		}
 	}
@@ -561,7 +562,7 @@ func (a *assembly) composedModules(element *c4elements.Element) []specmodel.Slug
 			slug = resolved.Slug
 		}
 		key := slugKey(slug)
-		if seen[key] {
+		if seen[key] || !slugPattern.MatchString(slug) {
 			continue
 		}
 		seen[key] = true
@@ -579,6 +580,15 @@ func nonNil[T any](items []T) []T {
 	}
 	return items
 }
+
+// slugPattern and citationPattern are the vocabulary's Slug and Citation
+// patterns. A value read from a diagram or a frontmatter list that fails
+// them is left out of the model, as absent, rather than emitted where the
+// schema would reject it; reporting it is the checks' job.
+var (
+	slugPattern     = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
+	citationPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*(?:#.+)?$`)
+)
 
 // slugKey is the form two slugs are compared in.
 func slugKey(slug string) string {
