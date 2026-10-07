@@ -12,7 +12,6 @@
 package c4elements
 
 import (
-	"fmt"
 	"sort"
 	"strings"
 
@@ -46,7 +45,7 @@ type Input struct {
 
 	// Source returns the bytes of the member at an entry's path, as the
 	// corpus read it. It is called once per member whose type declares an
-	// element.
+	// element. A member it fails for is kept, nameless and drawing nothing.
 	Source func(path string) ([]byte, error)
 
 	// Decode decodes a recorded record block's content out of its
@@ -317,10 +316,11 @@ type member struct {
 // Build reads the element set, every drawing document's scope, and the
 // resolution of every node drawn in one.
 //
-// It returns an error only when a member's source cannot be read; a
-// member whose source does not hold what the vocabulary expects — no
-// entity name, an undecodable record block — declares what it can and
-// is reported by the checks that own that judgement.
+// A member whose source cannot be read declares its element without a
+// name and draws nothing; a member whose source does not hold what the
+// vocabulary expects — no entity name, an undecodable record block —
+// declares what it can and is reported by the checks that own that
+// judgement. The error return is reserved; no read failure sets it.
 func Build(in Input) (*Set, error) {
 	set := &Set{bySlug: map[string]*Element{}, contracts: map[string]*Contract{}}
 	vocabulary := in.Vocabulary
@@ -469,15 +469,17 @@ func readMembers(in Input) ([]*member, error) {
 		if !registered {
 			continue
 		}
+		// A member whose source cannot be read stays, nameless and
+		// drawing nothing, so one unreadable file does not drop the rest.
 		src, err := in.Source(entry.Path)
-		if err != nil {
-			return nil, fmt.Errorf("c4elements: reading %s: %w", entry.Path, err)
+		m := &member{entry: entry, rules: rules, values: map[string]any{}}
+		if err == nil {
+			m.src = src
+			if doc, perr := frontmatter.Parse(src); perr == nil && doc != nil {
+				m.values = doc.Values()
+			}
 		}
-		m := &member{entry: entry, rules: rules, src: src, values: map[string]any{}}
-		if doc, perr := frontmatter.Parse(src); perr == nil && doc != nil {
-			m.values = doc.Values()
-		}
-		if rules.RosterHeading != "" {
+		if err == nil && rules.RosterHeading != "" {
 			wanted := markdown.Identifier(rules.RosterHeading)
 			for _, heading := range entry.Headings {
 				if markdown.Identifier(heading.Text) == wanted {

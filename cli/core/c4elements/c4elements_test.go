@@ -527,3 +527,50 @@ func TestAnElementWithNoEntityNameIsNamedByNoNode(t *testing.T) {
 		})
 	}
 }
+
+func TestAnUnreadableMemberDeclaresANamelessElementAndDrawsNothing(t *testing.T) {
+	files := map[string]string{
+		"alpha.md": head("container-alpha", "container-blueprint", "Alpha") +
+			"# Alpha\n\n```mermaid\nC4Container\n" +
+			"Container(a, \"Alpha\", \"Go\")\nContainer(e, \"\", \"Go\")\nContainer(g, \"Ghost\", \"Go\")\n" +
+			"Rel(a, g, \"Calls\")\nRel(a, e, \"Calls\")\n```\n",
+		"beta.md": head("container-beta", "container-blueprint", "Beta") +
+			"# Beta\n\n```mermaid\nC4Container\nContainer(b, \"Beta\", \"Go\")\n```\n",
+	}
+	dir := t.TempDir()
+	for name, content := range files {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	built, err := corpus.Build(corpus.Options{Root: dir, Profile: stubProfile{architecture: vocabulary()}})
+	if err != nil {
+		t.Fatalf("corpus.Build: %v", err)
+	}
+	set, err := c4elements.Build(c4elements.Input{
+		Vocabulary: vocabulary(),
+		Entries:    built.Index().Entries,
+		References: built.Index().References,
+		Source: func(path string) ([]byte, error) {
+			if path == "beta.md" {
+				return nil, os.ErrNotExist
+			}
+			return built.Source(path)
+		},
+		Decode: corpus.DecodeRecordBlock,
+	})
+	if err != nil || set == nil {
+		t.Fatalf("Build = %v, %v, want a set and no error", set, err)
+	}
+	beta, ok := set.Element("container-beta")
+	if !ok || beta.Name != "" {
+		t.Fatalf("container-beta = %+v, %v, want a nameless element", beta, ok)
+	}
+	if got := document(t, set, "beta.md"); len(got.Diagrams) != 0 {
+		t.Errorf("beta.md has %d diagrams, want none", len(got.Diagrams))
+	}
+	got := nodes(t, document(t, set, "alpha.md"))
+	if got["a"] != "container-alpha" || got["e"] != "" || got["g"] != "" {
+		t.Errorf("alpha.md nodes = %v, want a resolved and e, g unmatched", got)
+	}
+}
