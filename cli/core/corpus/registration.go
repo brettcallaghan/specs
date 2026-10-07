@@ -1,9 +1,11 @@
 package corpus
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"sort"
+	"strings"
 )
 
 // RegistrationDefect is one fault found in an active profile's
@@ -45,7 +47,7 @@ type RegistrationDefect struct {
 // registration the caller was told is wrong is better than a registration
 // silently repaired into one that checks less than it says.
 //
-// Five defects are found, and they are the whole of what a registration
+// Six defects are found, and they are the whole of what a registration
 // can get wrong on its own terms:
 //
 //   - a pairing or a typed reference naming a property the same document
@@ -57,9 +59,11 @@ type RegistrationDefect struct {
 //   - a feature-tag registration whose identifier pattern does not
 //     compile;
 //   - a feature-tag registration whose shared captures name a capture
-//     group an identifier pattern does not define.
+//     group an identifier pattern does not define;
+//   - a record-block registration whose schema pointer resolves to
+//     nothing in the profile's schema.
 //
-// The last two are found here rather than where they are used because
+// The feature-tag two are found here rather than where they are used because
 // both are defects of the registration against itself, which is what
 // this validation is for: a pattern that cannot compile matches nothing,
 // and a derivation over a capture no pattern defines compares two empty
@@ -83,7 +87,61 @@ func ValidateRegistration(profile Profile) []RegistrationDefect {
 		defects = append(defects, documentTypeDefects(name, types[name], types)...)
 	}
 	defects = append(defects, lifecycleDefects(profile.Lifecycle())...)
-	return append(defects, featureTagDefects(profile.FeatureTags())...)
+	defects = append(defects, featureTagDefects(profile.FeatureTags())...)
+	return append(defects, recordBlockDefects(profile.RecordBlocks(), profile.Schema())...)
+}
+
+// recordBlockDefects reports each record-block tag whose schema pointer
+// does not resolve to a definition in schema. A tag registered with no
+// pointer has no defect: its records are simply not validated.
+//
+// An unresolvable pointer is reported rather than skipped because
+// skipping it would validate every record against nothing and report
+// success.
+func recordBlockDefects(tags []RecordBlockTag, schema []byte) []RegistrationDefect {
+	var document any
+	parsed := json.Unmarshal(schema, &document) == nil
+
+	var defects []RegistrationDefect
+	for _, tag := range tags {
+		if tag.Schema == "" {
+			continue
+		}
+		if parsed && resolvePointer(document, tag.Schema) {
+			continue
+		}
+		defects = append(defects, RegistrationDefect{
+			Key: tag.Tag,
+			Detail: fmt.Sprintf("is registered as a record block validated against %q, "+
+				"which resolves to nothing in this profile's schema, so its records "+
+				"would be checked against nothing", tag.Schema),
+		})
+	}
+	return defects
+}
+
+// resolvePointer reports whether fragment, a JSON Pointer URI fragment
+// such as "#/definitions/Name", addresses a value in document.
+func resolvePointer(document any, fragment string) bool {
+	path, ok := strings.CutPrefix(fragment, "#")
+	if !ok || path == "" {
+		return false
+	}
+	current := document
+	for _, token := range strings.Split(strings.TrimPrefix(path, "/"), "/") {
+		token = strings.ReplaceAll(strings.ReplaceAll(token, "~1", "/"), "~0", "~")
+		switch node := current.(type) {
+		case map[string]any:
+			next, found := node[token]
+			if !found {
+				return false
+			}
+			current = next
+		default:
+			return false
+		}
+	}
+	return true
 }
 
 // documentTypeDefects reports the defects in one document type's rules.

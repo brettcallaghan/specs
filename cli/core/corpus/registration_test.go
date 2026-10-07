@@ -400,3 +400,52 @@ func sorted(values []string) []string {
 	}
 	return out
 }
+
+// A profile registering no record-block tag describes documents with no
+// record blocks, not one the host has to reject or repair.
+func TestProfileMayRegisterNoRecordBlocks(t *testing.T) {
+	var profile corpus.Profile = stubProfile{}
+
+	if tags := profile.RecordBlocks(); len(tags) != 0 {
+		t.Errorf("RecordBlocks = %+v, want none", tags)
+	}
+	if defects := corpus.ValidateRegistration(profile); len(defects) != 0 {
+		t.Errorf("a profile registering no record blocks has defects: %+v", defects)
+	}
+}
+
+// A tag whose pointer addresses a definition in the profile's own schema
+// is valid, and so is a tag registered with no pointer at all.
+func TestValidateRegistrationAcceptsResolvingAndAbsentSchemaPointers(t *testing.T) {
+	profile := stubProfile{
+		schema: []byte(`{"definitions":{"Widget":{"type":"object"}}}`),
+		recordBlocks: []corpus.RecordBlockTag{
+			{Tag: "widget", Schema: "#/definitions/Widget"},
+			{Tag: "note"},
+		},
+	}
+
+	if defects := corpus.ValidateRegistration(profile); len(defects) != 0 {
+		t.Errorf("a resolving or absent pointer was reported: %+v", defects)
+	}
+}
+
+// A pointer resolving to nothing would validate every record against
+// nothing, so it is reported rather than skipped.
+func TestValidateRegistrationReportsAnUnresolvableSchemaPointer(t *testing.T) {
+	profile := stubProfile{
+		schema: []byte(`{"definitions":{"Widget":{"type":"object"}}}`),
+		recordBlocks: []corpus.RecordBlockTag{
+			{Tag: "widget", Schema: "#/definitions/Gadget"},
+			{Tag: "bare", Schema: "Widget"},
+		},
+	}
+
+	defects := corpus.ValidateRegistration(profile)
+	if len(defects) != 2 {
+		t.Fatalf("got %d defects, want 2: %+v", len(defects), defects)
+	}
+	if defects[0].Key != "widget" || defects[1].Key != "bare" {
+		t.Errorf("defect keys = %q, %q; want the registered tags", defects[0].Key, defects[1].Key)
+	}
+}

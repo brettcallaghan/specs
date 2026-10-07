@@ -141,7 +141,7 @@ the plugin, and no framework vocabulary is compiled into the host.
     and only to the destination the caller resolves. It modifies no
     document it reads.
 
-**Built** — the `Profile` interface in `cli/core/corpus` has five
+**Built** — the `Profile` interface in `cli/core/corpus` has six
 members and nothing else:
 
 | Member | Supplies |
@@ -151,6 +151,7 @@ members and nothing else:
 | `Conventions() specmodel.ConventionsConfig` | the convention defaults resolved where an adopting repository's configuration omits them |
 | `Lifecycle() LifecycleRules` | the profile's status vocabulary, which of those statuses mean in effect and which mean superseded, and the property a superseded document names its replacement in |
 | `FeatureTags() FeatureTagRules` | the tag vocabulary: the identifier patterns a feature and a criterion match, the prefix an owning-document tag carries, the captures a criterion identifier shares with its feature's, and the qualifier tags with their meanings |
+| `RecordBlocks() []RecordBlockTag` | the fenced-block info strings registered as record blocks, each with an optional JSON Pointer fragment into the union schema that its YAML record is validated against |
 
 `DocumentTypeRules` carries a slug pattern, a numbered flag, and the
 type's reference registration — `ReferenceProperties`, the properties
@@ -171,6 +172,14 @@ not report a lifecycle naming a status the profile does not define. The
 alternative, reading the vocabulary out of the union schema, would mean
 the host knowing where a schema keeps its status enum and passing
 vacuously against a profile that keeps it elsewhere.
+
+`RecordBlockTag` registers a record-block tag as data, as the lifecycle
+and tag vocabulary are. A record is YAML, so there is no per-tag format.
+The optional `Schema` pointer addresses a definition inside
+`Profile.Schema()`, so the host still holds one schema. The module names
+no tag, and a profile that registers none yields a corpus with no record
+blocks. `ValidateRegistration` reports a pointer that resolves to
+nothing instead of skipping validation; a tag with no pointer is valid.
 
 `FeatureTagRules` is profile-level for a different reason: a feature is
 not a document type. It is written inside a document of any type, or in

@@ -234,3 +234,9 @@ func (specDrivenDev) Lifecycle() corpus.LifecycleRules {
 func (specDrivenDev) FeatureTags() corpus.FeatureTagRules {
 	return featureTags
 }
+
+// RecordBlocks returns this profile's record-block registration: none.
+// Registering the component tag is separate work.
+func (specDrivenDev) RecordBlocks() []corpus.RecordBlockTag {
+	return nil
+}
