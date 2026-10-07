@@ -356,6 +356,11 @@ func Build(in Input) (*Set, error) {
 		m.element.ConsumedContracts = append(m.element.ConsumedContracts, ref.Slug)
 	}
 
+	refsByPath := map[string][]specmodel.Reference{}
+	for _, ref := range in.References {
+		refsByPath[ref.Path] = append(refsByPath[ref.Path], ref)
+	}
+
 	rosters := map[*member][]*Element{}
 	for _, m := range members {
 		rosters[m] = set.declareRoster(in, vocabulary, m)
@@ -364,7 +369,7 @@ func Build(in Input) (*Set, error) {
 
 	for _, m := range members {
 		document := &Document{Path: m.entry.Path, Element: m.element}
-		document.Scope = scopeOf(in, vocabulary, set, m, rosters[m], byPath)
+		document.Scope = scopeOf(refsByPath[m.entry.Path], vocabulary, set, m, rosters[m], byPath)
 		document.Diagrams = diagramsOf(m.entry.Path, m.src, document.Scope)
 		set.documents = append(set.documents, document)
 	}
@@ -580,15 +585,12 @@ func (s *Set) finishElements() {
 
 // scopeOf returns the elements a node drawn in m may name, ordered by
 // slug and each held once.
-func scopeOf(in Input, vocabulary ArchitectureRules, set *Set, m *member, roster []*Element, byPath map[string]*member) []*Element {
+func scopeOf(refs []specmodel.Reference, vocabulary ArchitectureRules, set *Set, m *member, roster []*Element, byPath map[string]*member) []*Element {
 	scope := map[*Element]bool{m.element: true}
 	for _, element := range roster {
 		scope[element] = true
 	}
-	for _, ref := range in.References {
-		if ref.Path != m.entry.Path {
-			continue
-		}
+	for _, ref := range refs {
 		resolved, ok := ref.Resolution.AsResolved()
 		if !ok {
 			continue
@@ -617,7 +619,12 @@ func scopeOf(in Input, vocabulary ArchitectureRules, set *Set, m *member, roster
 	for element := range scope {
 		ordered = append(ordered, element)
 	}
-	sort.Slice(ordered, func(i, j int) bool { return ordered[i].Slug < ordered[j].Slug })
+	sort.Slice(ordered, func(i, j int) bool {
+		if ordered[i].Slug != ordered[j].Slug {
+			return ordered[i].Slug < ordered[j].Slug
+		}
+		return ordered[i].Path < ordered[j].Path
+	})
 	return ordered
 }
 
