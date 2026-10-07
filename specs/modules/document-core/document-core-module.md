@@ -2057,6 +2057,12 @@ This module SHALL comply with:
 - [[adr-018]] — references are one top-level edge collection on the
   index, with both directions derived from it, which is why the index
   vocabulary above gains `Reference` rather than an array on each entry.
+- [[adr-029]] — relationships are read from blueprint diagrams by a
+  parser this CLI owns, with reserved relationship tags, which is why C4
+  Diagrams exists as a component of its own.
+- [[adr-030]] — the parser and the resolver live in this module, and the
+  architecture vocabulary arrives as a profile registration, which is
+  why C4 Elements takes its types and properties from `Architecture()`.
 
 ## Open Questions
 

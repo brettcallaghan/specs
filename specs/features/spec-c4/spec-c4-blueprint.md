@@ -20,7 +20,7 @@ plan: specs-c4model
 **FRD:** [[frd-spec-c4]]
 
 The model is a projection, assembled in [[module-document-core]] by a new
-**C4 Model** component from two things [[feature-spec-c4-diagrams]]
+**C4 Model** component from two things the C4 diagram conformance blueprint (`feature-spec-c4-diagrams`)
 already builds: the element set with its declarations, and the drawings
 each relationship statement resolves to. C4 Model nests the elements by
 the containment edges the corpus declares, merges drawings into
@@ -116,7 +116,7 @@ and [[adr-030]].
   collection of slugs likewise.
 
 **Anchors:** a new package under `cli/core`, beside the C4 Elements
-package [[feature-spec-c4-diagrams]] adds; `specmodel.C4Model` and its
+package the C4 diagram conformance blueprint (`feature-spec-c4-diagrams`) adds; `specmodel.C4Model` and its
 member types, generated from `schemas/c4.strata`.
 
 ### C4 Model in [[module-document-core]] (modified — relationships)
@@ -155,7 +155,7 @@ the model's edge list and exclusion list.
   then description; `excluded_relationships` by path, then span.
 
 **Anchors:** the C4 Model package; the C4 Elements drawings API that
-[[feature-spec-c4-diagrams]]'s DRAW delta adds.
+the C4 diagram conformance blueprint (`feature-spec-c4-diagrams`)'s DRAW delta adds.
 
 ### C4 Model in [[module-document-core]] (modified — reserved tags)
 
@@ -262,11 +262,11 @@ copies follow.
 
 ### Relied-upon elements (unchanged)
 
-- [[feature-spec-c4-diagrams]]'s C4 Elements component — the element
+- the C4 diagram conformance blueprint (`feature-spec-c4-diagrams`)'s C4 Elements component — the element
   set, each element's declarations, node resolution, and drawings
   grouped into relationships with unresolved statements and their
   reasons. This feature adds no resolution of its own.
-- [[feature-spec-c4-diagrams]]'s C4 Diagrams component — statements,
+- the C4 diagram conformance blueprint (`feature-spec-c4-diagrams`)'s C4 Diagrams component — statements,
   views and the reserved-tag split.
 - The architecture vocabulary the profile registers per [[adr-030]],
   read through Document Core's extension point.
@@ -285,10 +285,10 @@ contract document until a consumer exists that is built independently.
 ## Tracker Reconciliation
 
 - `specs-f6tl.5` and `specs-f6tl.6` — prerequisite,
-  transitively: [[feature-spec-c4-diagrams]]'s stage 2 waits on both,
+  transitively: the C4 diagram conformance blueprint (`feature-spec-c4-diagrams`)'s stage 2 waits on both,
   and this feature waits on that stage.
 - `agent-plugins-7os0` — out-of-scope: subsumed by
-  [[feature-spec-c4-diagrams]]'s DOC delta. This feature does not amend
+  the C4 diagram conformance blueprint (`feature-spec-c4-diagrams`)'s DOC delta. This feature does not amend
   [[c4-standards]].
 - `agent-plugins-h6c` — out-of-scope: the index-schema and contract
   ADR. This feature emits a separate model and changes no index shape,
@@ -299,7 +299,7 @@ contract document until a consumer exists that is built independently.
 
 ## Sequencing Constraints
 
-- [[feature-spec-c4-diagrams]]'s ELEM and DRAW deltas SHALL land before
+- the C4 diagram conformance blueprint (`feature-spec-c4-diagrams`)'s ELEM and DRAW deltas SHALL land before
   the TREE delta.
 - The MODEL delta SHALL land before the REL delta.
 - The TREE delta SHALL land before the REL, TAGS and ROOT deltas.
@@ -398,7 +398,7 @@ None.
 - [[c4-standards]] — the levels, containment and arrow rules the model
   follows
 - [[frd-spec-c4]] — the requirements this blueprint realizes
-- [[feature-spec-c4-diagrams]] — the parser, element set and drawings
+- the C4 diagram conformance blueprint (`feature-spec-c4-diagrams`) — the parser, element set and drawings
   this model is built from
 - [[container-spec-cli]] — the container whose Change Guidance binds
   every delta
