@@ -6,8 +6,8 @@ description: How the Spec CLI assembles the corpus's C4 model — an element
   new c4 subcommand
 slug: feature-spec-c4
 type: feature-blueprint
-status: in-progress
-updated_at: 2026-10-07T05:00:00Z
+status: retired
+updated_at: 2026-10-07T12:00:00Z
 delivery: single-pr
 frd: frd-spec-c4
 plan: specs-c4model
@@ -373,21 +373,21 @@ replays each case once and cannot compare two runs; a Go test in
 
 ## Definition of Done
 
-- [ ] Every delta above is folded into its owning blueprint:
-  - [ ] [[module-document-core]] — C4 Model added to the Components
+- [x] Every delta above is folded into its owning blueprint:
+  - [x] [[module-document-core]] — C4 Model added to the Components
         roster and diagram with its record block, including the subtree
         query
-  - [ ] [[container-spec-cli]] — the Command Surface's subcommand list
+  - [x] [[container-spec-cli]] — the Command Surface's subcommand list
         gains `c4`, with its flags and the Document Core call it makes
-- [ ] `schemas/c4.strata` carries `bidirectional`, and the generated
+- [x] `schemas/c4.strata` carries `bidirectional`, and the generated
       schema and Go model are regenerated from it
-- [ ] [[spec-cli-reference]] documents `specs c4`, [[cli-output-standards]]
+- [x] [[spec-cli-reference]] documents `specs c4`, [[cli-output-standards]]
       lists it, and `scripts/sync-shared-references.sh --check` passes
-- [ ] Every AC in the coverage table is verified at its declared level
+- [x] Every AC in the coverage table is verified at its declared level
       and cited from its tests per [[ac-traceability-standards]]
-- [ ] `scripts/coverage.sh` has been run from the repository root and
+- [x] `scripts/coverage.sh` has been run from the repository root and
       the README diff committed, since `cli/**` changed
-- [ ] This blueprint's status → retired
+- [x] This blueprint's status → retired
 
 ## Open Questions
 
