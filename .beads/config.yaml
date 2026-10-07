@@ -13,24 +13,37 @@
 # for interchange. It is not a backup.
 export:
     auto: false
-# The tracker: issues live in a Dolt database synced to `refs/dolt/data` on
-# this repository's git origin. There is no JSONL fallback by design.
+# The tracker: issues live in a Dolt database (prefix `specs-`) synced to the
+# ordinary branch `beads/data` on this repository's git origin. There is no
+# JSONL fallback by design.
 #
-# This is the value `bd bootstrap` derives and writes for itself, so leaving it
-# committed is idempotent rather than a fight. Setting it is also what makes
-# `bd prime` emit the Dolt sync commands and the push half of its session-close
-# protocol; unset, bd tells every agent "No git remote configured. Issues are
-# saved locally only." KEEP IT SET — unsetting it makes the tracker's own
-# guidance contradict the way this repository works, every session.
+# KEEP IT SET. It is what makes `bd prime` emit the Dolt sync commands; unset,
+# bd tells every agent "No git remote configured. Issues are saved locally
+# only."
 #
-# Trap: a 403 from `bd dolt push` is NOT GitHub refusing refs/dolt/* writes. It
-# is an egress proxy substituting a brokered GitHub App token scoped to
-# refs/heads; bypass the proxy for github.com and push with a real PAT. The
-# SessionStart hook establishes and verifies that write path every session and
-# fails loudly when it cannot — see .claude/hooks/session-start.sh and
-# docs/session-bootstrap.md.
+# This URL alone points at Dolt's DEFAULT ref, `refs/dolt/data`, which is NOT
+# where the data is and which a Claude Code cloud session cannot write. The
+# branch is set per clone by scripts/beads-setup.sh, because bd has no config
+# key for a ref. Never use `bd bootstrap` here: it clones from the default ref
+# and finds nothing.
 sync:
     remote: "git+https://github.com/brettcallaghan/agent-plugins.git"
+
+# Never re-import a JSONL found lying around: the Dolt remote is the source of
+# truth, and a stale export would overwrite newer rows.
+import:
+    auto: false
+
+# Off explicitly so no stray `.beads/backup/` copy appears; it never reaches
+# the remote either way.
+backup:
+    enabled: false
+
+# Pushing is the Stop hook's job (.claude/hooks/dolt-push.sh), once per turn.
+# bd's own auto-push is unsafe with more than one writer.
+dolt:
+    auto-push: false
+    auto-commit: "on"
 
 # Integration settings (access with 'bd config get/set')
 # Non-secret keys live in the database: jira.url, jira.project, linear.team_id,
