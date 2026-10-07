@@ -1,5 +1,5 @@
 description = "an operand naming a file that cannot be read raises document/unreadable, no rewritten document is emitted, and the run exits non-zero"
-cites = []
+cites = ["AC-SPECMD-005.11", "AC-SPECMD-005.12"]
 artifacts = ["checks.err"]
 args = ["links", "docs/adrs/absent.md"]
 exit_code = 1

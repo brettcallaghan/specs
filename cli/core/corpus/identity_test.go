@@ -400,8 +400,7 @@ func TestNoOwnerMismatchFindingForAFencedBlockCarryingNoOwnerTag(t *testing.T) {
 	}
 }
 
-// AC: AC-GHK-002.10's own note that the FRD requires ownership be
-// recorded, extended to a tag naming nothing at all.
+// AC: AC-GHK-002.12
 func TestReportsAnOwnerTagNamingNoCorpusMember(t *testing.T) {
 	repo := t.TempDir()
 	write(t, repo, "specs/features/frd-checkout.md", document("frd", "frd-checkout", "Checkout"))

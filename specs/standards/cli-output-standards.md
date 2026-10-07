@@ -6,7 +6,7 @@ description: What every specs command writes to its output stream — YAML
 slug: cli-output-standards
 type: standards
 status: approved
-updated_at: 2026-09-04T00:00:00Z
+updated_at: 2026-10-07T00:00:00Z
 version: "0.1"
 ---
 
@@ -128,6 +128,18 @@ and SHALL exit zero.
 **Rationale:** nothing found is a fact about the corpus, not a failure of
 the invocation. Exiting non-zero would make a caller branch on the shape
 of the world rather than on whether the command worked.
+
+### A malformed question is not an empty answer
+
+WHERE an argument names a value from a registered set (a rule
+identifier, a document type, a profile) and the value is not in that set,
+the CLI SHALL report the value and every registered name, SHALL NOT
+render an answer, and SHALL exit non-zero.
+
+**Rationale:** an unregistered value is a fact about the invocation, not
+about the corpus. Answered as an empty collection or a clean report, a
+typo is indistinguishable from a real "nothing found", and a gate that
+passes a misspelt rule name to `check --only` passes forever.
 
 ---
 

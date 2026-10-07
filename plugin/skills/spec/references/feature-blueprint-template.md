@@ -2,7 +2,7 @@
 title: "Feature Blueprint: <Feature Name>"
 description: <One-sentence summary of how the system changes to deliver
   this feature>
-slug: fb-<feature-name>
+slug: feature-<feature-name>
 type: feature-blueprint
 status: draft
 updated_at: <YYYY-MM-DDTHH:MM:SSZ>
@@ -128,10 +128,8 @@ Code anchors — anchors, not signatures
   agent's choice.
 
 Slug format
-  fb-<feature-name>, lowercase kebab-case, matching the FRD:
-  frd-checkout → fb-checkout
-  (feature blueprints are transient and agent-generated, so the prefix is
-  terse; feature- is reserved for Gherkin .feature files)
+  feature-<feature-name>, lowercase kebab-case, matching the FRD:
+  frd-checkout → feature-checkout
 
 This is a living document while in flight — update it when the design
 changes, and update `status` and `updated_at` when you do. Remove all
@@ -443,9 +441,19 @@ truthful again. Keep one checkbox per affected document.
 - [ ] New ADRs are referenced from the owning blueprints' Key Decisions
 - [ ] Every AC in the coverage table is verified at its declared level
   and cited from its tests per [[ac-traceability-standards]]
+- [ ] Every behaviour this blueprint decided that no FRD criterion asks
+  for (a refusal, an error path, a registration) is lifted into the FRD
+  as a criterion and cited from its test; it must not retire with this
+  document
 - [ ] Every issue listed as subsumed in Tracker Reconciliation is
   closed or re-scoped (omit WHERE that section states "None.")
+- [ ] No live document references this blueprint (`specs refs
+  <this-slug>` names no live document), per
+  [[document-relationship-standards]]
 - [ ] This blueprint's status → retired
+- [ ] With this blueprint already retired, `specs check --strict` over
+  the corpus is green — a gate run before retirement tests a state that
+  will never exist again
 
 ## Open Questions
 

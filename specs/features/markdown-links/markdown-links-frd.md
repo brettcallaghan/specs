@@ -6,7 +6,7 @@ description: The Spec CLI rewrites corpus wikilinks into markdown links,
 slug: frd-spec-markdown-links
 type: frd
 status: approved
-updated_at: 2026-09-05T00:00:00Z
+updated_at: 2026-10-07T00:00:00Z
 sources: [adr-018, frd-spec-reference-integrity]
 ---
 
@@ -400,6 +400,16 @@ Feature: Command surface and link-map input
   @AC-SPECMD-005.10
   Scenario: An invocation naming no link map is accepted
     Then the CLI accepts an invocation that names no link map
+
+  @AC-SPECMD-005.11
+  Scenario: A document that cannot be read is named
+    Given a document named for rewriting that cannot be read
+    Then the CLI reports a finding of severity "error" naming the file and the fault
+
+  @AC-SPECMD-005.12 @negative
+  Scenario: A document that cannot be read produces no rewritten document
+    Given a document named for rewriting that cannot be read
+    Then the CLI does not emit a rewritten document
 ```
 
 *Example:* the map above is written for copies that land beside each
