@@ -1,6 +1,8 @@
 ---
 title: "Container Blueprint: <Container Name>"
 entity_name: <Container Name>                 # the element, as diagrams draw it
+technology: <language, framework or package type>   # OPTIONAL; shown on diagrams.
+                                     # omit WHEN not meaningful
 description: <One-sentence summary of the container and its responsibility
   — its brief description, shown on diagrams>
 slug: container-<container-name>
@@ -155,6 +157,7 @@ unit is declared by a record block, by its own blueprint, or both:
         entity_name: <Component Name>
         slug: component-<component-name>
         description: <one-line brief description>
+        technology: <technology / kind>        # optional
         ```
 
   - promoted (warrants its own blueprint): link its [[component-<name>]] or
@@ -200,6 +203,7 @@ C4Component
 entity_name: <ComponentA>
 slug: component-<component-a>
 description: <brief description>
+technology: <technology / kind>        # optional
 ```
 
 (<technology / kind>) — <brief description, as it appears on diagrams>.
@@ -212,6 +216,7 @@ beyond the diagram label.>
 entity_name: <Component B>
 slug: component-<component-b>
 description: <brief description>
+technology: <technology / kind>        # optional
 ```
 
 (<technology / kind>) — <brief description>.

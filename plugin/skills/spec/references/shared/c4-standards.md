@@ -1,5 +1,5 @@
 <!-- GENERATED COPY — DO NOT EDIT.
-     Source of truth: specs/standards/c4-standards.md (version 0.3)
+     Source of truth: specs/standards/c4-standards.md (version 0.4)
      Regenerate with: scripts/sync-shared-references.sh
      Edit the source, then re-run that script. -->
 
@@ -12,7 +12,7 @@ slug: c4-standards
 type: standards
 status: draft
 updated_at: 2026-09-29T00:00:00Z
-version: "0.3"
+version: "0.4"
 ---
 
 # Mapping Architecture to C4
@@ -20,7 +20,8 @@ version: "0.3"
 ## Contents
 
 - The Abstraction Levels — system, container, module, component
-- Element Declarations: Model in Prose, Views in Diagrams
+- Element Declarations: Model in Prose, Views in Diagrams — and the
+  relationship statements that declare edges
 - Nodes and Edges: Who Owns What
 - Naming and Relationship Conventions — acronyms, arrow direction, message
   buses and async
@@ -46,8 +47,11 @@ belongs on a diagram at all.
 Diagrams are **views of a model**. The model is the set of elements and
 relationships declared across the blueprint documents; every diagram is a
 projection of that model, scoped and filtered for one audience. A diagram
-SHALL NOT show an element or relationship that the documents do not
-describe.
+SHALL NOT show an element that the documents do not declare, or a
+relationship that the documents do not describe. Nodes and edges differ in
+where the declaration lives: a node is a view of its element's
+declaration, while a relationship statement on a diagram IS the
+declaration of its edge ([[adr-029]]).
 
 ---
 
@@ -123,9 +127,14 @@ code and its inline documentation are the source of truth.
 
 This framework separates the model from its views without a modeling
 DSL — it deliberately stops short of Structurizr or fenced declaration
-blocks. Prose is the declaration format: every modeled element is
-declared once, in its home document (see the mapping table below), and
-every diagram is rendered from declarations that already exist.
+blocks. Prose is the declaration format for **elements**: every modeled
+element is declared once, in its home document (see the mapping table
+below), and every diagram node is a view of a declaration that already
+exists. **Edges are the exception:** a relationship statement
+(`Rel(...)` and its variants) in an architecture blueprint's C4 diagram
+declares the edge it draws, and the prose beside it restates the edge for
+a reader. The statements are read as specified under Relationship
+Statements below.
 
 Each declaration SHALL capture these facts:
 
@@ -168,8 +177,57 @@ node this way keeps the model machine-readable: the element vocabulary
 and node set are parseable without a modeling DSL, and diagrams can be
 rendered from the declarations.
 
-WHEN a diagram and a declaration disagree, the declaration is
-authoritative — fix the view.
+WHEN a diagram node and an element's declaration disagree, the
+declaration is authoritative — fix the node. A relationship statement has
+no separate declaration to yield to; WHEN the same edge is drawn in more
+than one diagram and the drawings differ in technology, description or
+tags, the drawings disagree with each other and the author reconciles
+them.
+
+### Relationship Statements
+
+A C4 diagram is a fenced `mermaid` block in an architecture blueprint
+whose first statement is `C4Context`, `C4Container` or `C4Component`.
+The tooling reads exactly the following statement subset; a statement
+outside it is a parse error, not skipped, so the subset grows
+deliberately. Diagrams outside architecture blueprints (a feature
+blueprint's proposed architecture, for instance) are not read.
+
+| Kind | Macros |
+|------|--------|
+| Element node | `System`, `Container`, `Component`, and their `Db` and `Queue` forms |
+| External node | `Person`, and every `_Ext` form |
+| Boundary | `Boundary`, `Enterprise_Boundary`, `System_Boundary`, `Container_Boundary` — groups nodes and is not itself a node |
+| Relationship | `Rel`; `Rel_U`, `Rel_Up`, `Rel_D`, `Rel_Down`, `Rel_L`, `Rel_Left`, `Rel_R`, `Rel_Right`; `Rel_Back`; `BiRel` |
+| Ignored | `title`, `UpdateElementStyle`, `UpdateRelStyle`, `UpdateLayoutConfig` |
+
+A `Db` or `Queue` node that names no element in scope is a passive store
+the drawing element uses; it needs no blueprint.
+
+Rules for relationship statements:
+
+- **Direction.** `Rel(a, b, ...)` declares `a` depending on `b`.
+  `Rel_Back(a, b, ...)` declares `b` depending on `a` — it is the same
+  edge drawn with the arrowhead reversed. `BiRel` is reported: an arrow
+  states one dependency in one direction (Relationship Direction above).
+- **Reserved tags.** A relationship's tags argument, written
+  positionally or as `$tags`, MAY carry these tags and no others with
+  meaning to the framework: `sync`, `async`, and `contract:<slug>`, the
+  last naming the contract the edge is governed by. A relationship SHALL
+  NOT carry both `sync` and `async`.
+- **Tag separator.** Tags are joined with `+`
+  (`$tags="async+contract:<slug>"`), never a comma.
+- **Contract tags.** A `contract:<slug>` tag SHALL name a contract
+  document; the source element SHOULD consume it and the target element
+  SHOULD provide it.
+- **One drawing per edge, or drawings that agree.** An edge drawn twice
+  in one diagram is reported; an edge drawn in two diagrams SHALL carry
+  the same technology, description and tags in both.
+- **Names are identifiers.** A node's label is matched to an element's
+  `entity_name` within the drawing document's scope — its own element,
+  the components its roster declares, the modules it lists in `modules`,
+  and every system and container in the corpus. Renaming an element means
+  updating every diagram label that names it.
 
 ---
 

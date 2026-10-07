@@ -1,6 +1,8 @@
 ---
 title: "Module Blueprint: <Module Name>"
 entity_name: <Module Name>                 # the element, as diagrams draw it
+technology: <language, framework or package type>   # OPTIONAL; shown on diagrams.
+                                     # omit WHEN not meaningful
 description: <One-sentence summary of the module and why it warrants
   standalone documentation — its brief description, shown on diagrams>
 slug: module-<module-name>
@@ -214,6 +216,7 @@ frontmatter satisfies:
     entity_name: <Component Name>
     slug: component-<component-name>
     description: <one-line brief description>
+    technology: <technology / kind>        # optional
     ```
 
 WHEN such a component is promoted to its own blueprint, its record block
@@ -244,6 +247,7 @@ C4Component
 entity_name: <ComponentA>
 slug: component-<component-a>
 description: <one-line brief description>
+technology: <technology / kind>        # optional
 ```
 
 (<kind>) — <brief description, as it appears on diagrams>. <Detailed

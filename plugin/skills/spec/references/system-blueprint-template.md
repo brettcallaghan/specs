@@ -1,6 +1,8 @@
 ---
 title: "System Blueprint: <System Name>"
 entity_name: <System Name>                 # the element, as diagrams draw it
+technology: <language, framework or package type>   # OPTIONAL; shown on diagrams.
+                                     # omit WHEN not meaningful
 description: <One-sentence summary of the system and the capabilities it
   bundles — its brief description, shown on diagrams>
 slug: system-<system-name>

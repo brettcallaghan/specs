@@ -1,6 +1,8 @@
 ---
 title: "Component Blueprint: <Component Name>"
 entity_name: <Component Name>                 # the element, as diagrams draw it
+technology: <language, framework or package type>   # OPTIONAL; shown on diagrams.
+                                     # omit WHEN not meaningful
 description: <One-sentence summary of the component and why it warrants
   standalone documentation — its brief description, shown on diagrams>
 slug: component-<component-name>
