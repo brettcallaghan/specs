@@ -11,7 +11,7 @@ description: How to map concrete architectural elements to C4 levels, which
 slug: c4-standards
 type: standards
 status: draft
-updated_at: 2026-09-29T00:00:00Z
+updated_at: 2026-10-07T00:00:00Z
 version: "0.4"
 ---
 

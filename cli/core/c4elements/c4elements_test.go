@@ -635,6 +635,15 @@ func TestADuplicatedNodeAliasMakesItsRelationshipsAmbiguous(t *testing.T) {
 		{"undeclared other endpoint takes precedence", []string{
 			`Container(api, "Alpha", "Go")`, `Container(api, "Beta", "Go")`,
 			`Rel(api, nobody, "calls")`}, outcome{specmodel.C4ExclusionReasonUndeclaredNode, false}},
+		{"duplicated alias whose first node is external", []string{
+			`Container_Ext(api, "Alpha", "Go")`, `Container(api, "Beta", "Go")`, `Container(web, "Alpha", "Go")`,
+			`Rel(web, api, "calls")`}, outcome{specmodel.C4ExclusionReasonAmbiguousNode, false}},
+		{"duplicated alias whose first node is undeclared", []string{
+			`Container(api, "Nobody", "Go")`, `Container(api, "Beta", "Go")`, `Container(web, "Alpha", "Go")`,
+			`Rel(web, api, "calls")`}, outcome{specmodel.C4ExclusionReasonAmbiguousNode, false}},
+		{"duplicated alias whose first node is a passive store", []string{
+			`ContainerDb(api, "Store", "Postgres")`, `Container(api, "Beta", "Go")`, `Container(web, "Alpha", "Go")`,
+			`Rel(web, api, "calls")`}, outcome{specmodel.C4ExclusionReasonAmbiguousNode, false}},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

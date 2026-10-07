@@ -11,7 +11,7 @@ description: The specs binary's command surface — what each subcommand
 slug: spec-cli-reference
 type: guide
 status: active
-updated_at: 2026-08-09T00:00:00Z
+updated_at: 2026-10-07T00:00:00Z
 version: "0.2"
 ---
 
@@ -185,7 +185,7 @@ Three things about `reference/unresolved` decide whether you trust it:
   rather than as a slug matching nothing, because the reader's next step
   differs.
 
-`reference/retired-target` is the only rule in the tool that emits
+`reference/retired-target` is the only reference rule that emits
 `warning`. A reference to a retired document still resolves — the reader
 reaches a real document that says it has been replaced — so it does not
 fail a build unless you pass `--strict`. It is also the one finding that
@@ -257,10 +257,11 @@ sit in the named file.
 - **1** — `check` found something, or the invocation itself failed: no
   `specs.toml`, an unknown profile, a malformed configuration.
 
-A run that reports only `reference/retired-target` exits **0** without
-`--strict` and **1** with it. That is the only place the two differ
-today, so `--strict` is worth passing in CI where citing a retired
-document should block.
+A run whose findings are all `warning` or `unverified` — such as
+`reference/retired-target`, `c4/drawing-conflict`, `c4/contract-mismatch`,
+`c4/tag-separator`, or a diagram `c4/parse` did not look inside — exits
+**0** without `--strict` and **1** with it. That is where the two differ,
+so `--strict` is worth passing in CI where any of them should block.
 
 `slug-exists` and `refs` exit 0 whether or not they find anything — "not
 found" is an answer, not a failure. Read their output, not their status.

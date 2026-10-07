@@ -766,7 +766,8 @@ reason, spelled as the model's `C4ExclusionReason`: `external_endpoint`,
 diagram included) and `ambiguous_node`, checked in that order with the
 source endpoint before the target at each step, so an ambiguous source
 with an external target is `external_endpoint`. An endpoint alias that more than
-one node in the diagram carries is `ambiguous_node`. A `BiRel` statement
+one node in the diagram carries is `ambiguous_node`, whatever its first
+node resolves to. A `BiRel` statement
 states no single direction and is neither a drawing nor unresolved.
 
 **Relationships.** Drawings whose source element, target element and

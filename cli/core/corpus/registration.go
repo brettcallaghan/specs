@@ -51,7 +51,7 @@ type RegistrationDefect struct {
 // registration the caller was told is wrong is better than a registration
 // silently repaired into one that checks less than it says.
 //
-// Eleven defects are found, and they are the whole of what a registration
+// Thirteen defects are found, and they are the whole of what a registration
 // can get wrong on its own terms:
 //
 //   - a pairing or a typed reference naming a property the same document
@@ -72,6 +72,8 @@ type RegistrationDefect struct {
 //   - an architecture registration naming a property the union schema
 //     does not declare on a type the property applies to;
 //   - an element type registered at a level outside the four C4 levels;
+//   - a roster record-block tag registered with no roster heading;
+//   - a roster heading registered with no roster record-block tag;
 //   - a roster record-block tag that is not a registered record-block
 //     tag.
 //

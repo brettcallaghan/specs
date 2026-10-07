@@ -712,9 +712,11 @@ func endpointFailure(ends [2]*Node, many [2]bool) (specmodel.C4ExclusionReason, 
 		reason specmodel.C4ExclusionReason
 		fails  func(n *Node, many bool) bool
 	}{
-		{specmodel.C4ExclusionReasonExternalEndpoint, func(n *Node, _ bool) bool { return n != nil && n.External }},
-		{specmodel.C4ExclusionReasonPassiveStore, func(n *Node, _ bool) bool { return n != nil && n.PassiveStore }},
-		{specmodel.C4ExclusionReasonUndeclaredNode, func(n *Node, _ bool) bool { return n == nil || len(n.Matches) == 0 }},
+		// A duplicated alias names no single node, so the single-node
+		// reasons do not apply to it and it reaches ambiguous_node.
+		{specmodel.C4ExclusionReasonExternalEndpoint, func(n *Node, many bool) bool { return !many && n != nil && n.External }},
+		{specmodel.C4ExclusionReasonPassiveStore, func(n *Node, many bool) bool { return !many && n != nil && n.PassiveStore }},
+		{specmodel.C4ExclusionReasonUndeclaredNode, func(n *Node, many bool) bool { return !many && (n == nil || len(n.Matches) == 0) }},
 		{specmodel.C4ExclusionReasonAmbiguousNode, func(n *Node, many bool) bool { return many || len(n.Matches) > 1 }},
 	}
 	for _, check := range checks {
