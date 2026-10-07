@@ -462,3 +462,17 @@ func TestValidateRegistrationRaisesNoPointerDefectForAnUnparsableSchema(t *testi
 		t.Errorf("got %d defects for an unparsable schema, want none: %+v", len(defects), defects)
 	}
 }
+
+// A pointer with no leading slash is not a JSON Pointer, so it resolves
+// to nothing.
+func TestValidateRegistrationReportsAPointerWithNoLeadingSlash(t *testing.T) {
+	profile := stubProfile{
+		schema:       []byte(`{"definitions":{"Widget":{"type":"object"}}}`),
+		recordBlocks: []corpus.RecordBlockTag{{Tag: "widget", Schema: "#definitions/Widget"}},
+	}
+
+	defects := corpus.ValidateRegistration(profile)
+	if len(defects) != 1 || defects[0].Key != "widget" {
+		t.Errorf("got %+v, want one defect keyed widget", defects)
+	}
+}

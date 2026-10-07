@@ -3,8 +3,10 @@ package corpus
 import (
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -127,15 +129,34 @@ func recordBlockDefects(tags []RecordBlockTag, schema []byte) []RegistrationDefe
 	return defects
 }
 
-// resolvePointer reports whether fragment, a JSON Pointer URI fragment
-// such as "#/definitions/Name", addresses a value in document.
+// resolvePointer reports whether fragment, a JSON Pointer in its URI
+// fragment form (RFC 6901 sections 4 to 6) such as "#/definitions/Name",
+// addresses a value in document.
+//
+// The fragment is percent-decoded, must then be empty (the whole
+// document) or start with "/", and is split into reference tokens with
+// "~1" read as "/" and "~0" as "~". A token steps into an object by key
+// and into an array by index: "0" or a decimal with no leading zero,
+// within range. "-" and any other token on an array, and any step into a
+// scalar, resolve to nothing.
 func resolvePointer(document any, fragment string) bool {
-	path, ok := strings.CutPrefix(fragment, "#")
-	if !ok || path == "" {
+	encoded, ok := strings.CutPrefix(fragment, "#")
+	if !ok {
+		return false
+	}
+	path, err := url.PathUnescape(encoded)
+	if err != nil {
+		return false
+	}
+	if path == "" {
+		return true
+	}
+	path, ok = strings.CutPrefix(path, "/")
+	if !ok {
 		return false
 	}
 	current := document
-	for _, token := range strings.Split(strings.TrimPrefix(path, "/"), "/") {
+	for _, token := range strings.Split(path, "/") {
 		token = strings.ReplaceAll(strings.ReplaceAll(token, "~1", "/"), "~0", "~")
 		switch node := current.(type) {
 		case map[string]any:
@@ -144,11 +165,34 @@ func resolvePointer(document any, fragment string) bool {
 				return false
 			}
 			current = next
+		case []any:
+			index, valid := arrayIndex(token, len(node))
+			if !valid {
+				return false
+			}
+			current = node[index]
 		default:
 			return false
 		}
 	}
 	return true
+}
+
+// arrayIndex parses token as an RFC 6901 array index below length.
+func arrayIndex(token string, length int) (int, bool) {
+	if token == "" || (len(token) > 1 && token[0] == '0') {
+		return 0, false
+	}
+	for _, r := range token {
+		if r < '0' || r > '9' {
+			return 0, false
+		}
+	}
+	index, err := strconv.Atoi(token)
+	if err != nil || index >= length {
+		return 0, false
+	}
+	return index, true
 }
 
 // documentTypeDefects reports the defects in one document type's rules.
