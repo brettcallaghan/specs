@@ -235,3 +235,11 @@ func (specDrivenDev) RecordBlocks() []corpus.RecordBlockTag {
 		{Tag: "component", Schema: "#/definitions/C4ElementRecord"},
 	}
 }
+
+// Architecture returns this profile's architecture vocabulary. It
+// registers none yet, so a corpus built under this profile declares no
+// elements; filling it from the generated schema is the profile's own
+// change, made separately from the extension point that carries it.
+func (specDrivenDev) Architecture() corpus.ArchitectureRules {
+	return corpus.ArchitectureRules{}
+}

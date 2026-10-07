@@ -7,7 +7,7 @@ description: The framework-agnostic engine that indexes markdown
 slug: module-document-core
 type: module-blueprint
 status: approved
-updated_at: 2026-09-29T00:00:00Z
+updated_at: 2026-10-07T00:00:00Z
 kind: standard
 visibility: internal
 source_paths:
@@ -120,14 +120,21 @@ the plugin, and no framework vocabulary is compiled into the host.
   - WHEN a profile is activated, the module SHALL validate its
     registration and SHALL report every defect it finds, naming the
     offending key, rather than falling back to a default for that key
-    (AC-SPECREF-004.3). The defects are five: a pairing or a typed
+    (AC-SPECREF-004.3). The defects are eleven: a pairing or a typed
     reference naming a property the same type does not register as
     reference-bearing; a typed reference naming a document type the
     profile does not define; a lifecycle registration naming a status
     outside the profile's own status vocabulary; a feature-tag
-    registration whose identifier pattern does not compile; and a
+    registration whose identifier pattern does not compile; a
     feature-tag registration whose shared captures name a capture group
-    an identifier pattern does not define.
+    an identifier pattern does not define; a record-block schema pointer
+    that resolves to nothing; a record-block tag registered more than
+    once; an architecture registration naming a document type the
+    profile does not define; an architecture registration naming a
+    property the union schema does not declare on a type the property
+    applies to; an element type registered at a level outside the four
+    C4 levels; and a roster record-block tag that is not among the
+    profile's registered record-block tags.
   - The module SHALL return those defects to the caller rather than
     rendering them. A compiled-in registration has no file position of
     its own, and the position a reader needs — the configuration value
@@ -141,7 +148,7 @@ the plugin, and no framework vocabulary is compiled into the host.
     and only to the destination the caller resolves. It modifies no
     document it reads.
 
-**Built** — the `Profile` interface in `cli/core/corpus` has six
+**Built** — the `Profile` interface in `cli/core/corpus` has seven
 members and nothing else:
 
 | Member | Supplies |
@@ -152,6 +159,7 @@ members and nothing else:
 | `Lifecycle() LifecycleRules` | the profile's status vocabulary, which of those statuses mean in effect and which mean superseded, and the property a superseded document names its replacement in |
 | `FeatureTags() FeatureTagRules` | the tag vocabulary: the identifier patterns a feature and a criterion match, the prefix an owning-document tag carries, the captures a criterion identifier shares with its feature's, and the qualifier tags with their meanings |
 | `RecordBlocks() []RecordBlockTag` | the fenced-block info strings registered as record blocks, each with an optional JSON Pointer fragment into the union schema that its YAML record is validated against |
+| `Architecture() ArchitectureRules` | the architecture vocabulary: the document types that declare an element, each with its C4 level and, where it holds children, its roster heading and roster record-block tag; the entity-name, system, composed-modules and consumed-contracts properties; and the contract type with its provider property |
 
 `DocumentTypeRules` carries a slug pattern, a numbered flag, and the
 type's reference registration — `ReferenceProperties`, the properties
@@ -185,6 +193,24 @@ tag with no pointer is valid.
 A schema that is not JSON raises no pointer defect, since no pointer can
 be judged against it: the schema registry reports it when the corpus
 compiles the profile's schema.
+
+`ArchitectureRules` registers, as data, how a profile's documents declare
+C4 elements, following the `FeatureTagRules` precedent ([[adr-030]]).
+The module knows the four C4 levels — `system`, `container`, `module`,
+`component` — because they are notation, and names no document type,
+property or heading. Each registered property applies to a fixed set of
+types: the entity-name and consumed-contracts properties to every
+element type, the system property to container-level types, the
+composed-modules property to container- and module-level types, and the
+provider property to the contract type. `ValidateRegistration` asks the
+schema registry whether the union schema declares each property on each
+type it applies to, selecting the branch exactly as validation does, so
+a renamed property is a defect rather than a model that silently reads
+nothing. A type the profile does not define is reported alone, without
+the level, property and roster defects its rules would otherwise raise.
+A property left empty is not registered and is checked nowhere. A
+profile that registers no architecture vocabulary yields a corpus with
+no elements, and no error.
 
 `FeatureTagRules` is profile-level for a different reason: a feature is
 not a document type. It is written inside a document of any type, or in
@@ -897,6 +923,10 @@ type ("system-blueprint") is converted to the PascalCase form its
 top-level `definitions` are keyed by ("SystemBlueprint"). Neither is a
 lookup table naming any type, which is what lets the package hold to the
 Change Guidance below without a per-type schema pointer from the profile.
+`Declares` answers, over that same branch, whether a type declares a
+property — directly or through `$ref` and `allOf`, never through an
+alternative — which is how a profile's architecture registration is
+checked against its own schema.
 
 **Built** — `cli/core/envelope`. The index carries each document's
 frontmatter as the union variant its `type` selects

@@ -1,7 +1,7 @@
 # Specs — Spec-First Development
 
 <!-- coverage:badge:start -->
-[![coverage](https://img.shields.io/badge/cli%20coverage-90.5%25-brightgreen)](#test-coverage)
+[![coverage](https://img.shields.io/badge/cli%20coverage-90.7%25-brightgreen)](#test-coverage)
 <!-- coverage:badge:end -->
 
 **Agency for the agents.**
@@ -292,16 +292,16 @@ alone is visible rather than averaged away.
 <!-- coverage:table:start -->
 | Test layer | Statements covered | Coverage |
 |:---|---:|---:|
-| Unit tests | 3,069 / 3,840 | 79.9% |
-| Snapshot cases | 2,782 / 3,840 | 72.4% |
-| End-to-end (built binary) | 1,171 / 3,840 | 30.5% |
-| **All layers combined** | **3,477 / 3,840** | **90.5%** |
+| Unit tests | 3,123 / 3,893 | 80.2% |
+| Snapshot cases | 2,787 / 3,893 | 71.6% |
+| End-to-end (built binary) | 1,176 / 3,893 | 30.2% |
+| **All layers combined** | **3,531 / 3,893** | **90.7%** |
 
 | Package | Statements | Covered | Coverage |
 |:---|---:|---:|---:|
 | `cli/cmd` | 1,217 | 1,044 | 85.8% |
 | `cli/core/c4diagram` | 246 | 234 | 95.1% |
-| `cli/core/corpus` | 1,140 | 1,046 | 91.8% |
+| `cli/core/corpus` | 1,177 | 1,083 | 92.0% |
 | `cli/core/envelope` | 47 | 44 | 93.6% |
 | `cli/core/finding` | 166 | 158 | 95.2% |
 | `cli/core/frontmatter` | 131 | 116 | 88.5% |
@@ -310,12 +310,12 @@ alone is visible rather than averaged away.
 | `cli/core/mdlinks` | 70 | 70 | 100.0% |
 | `cli/core/numbering` | 26 | 22 | 84.6% |
 | `cli/core/references` | 155 | 151 | 97.4% |
-| `cli/core/schemaregistry` | 147 | 130 | 88.4% |
+| `cli/core/schemaregistry` | 162 | 146 | 90.1% |
 | `cli/core/span` | 37 | 36 | 97.3% |
 | `cli/core/specindex` | 1 | 1 | 100.0% |
-| `cli/profile` | 61 | 57 | 93.4% |
+| `cli/profile` | 62 | 58 | 93.5% |
 | `cli/specs` | 1 | 1 | 100.0% |
-| **Total** | **3,840** | **3,477** | **90.5%** |
+| **Total** | **3,893** | **3,531** | **90.7%** |
 
 Generated code is excluded from these figures: 3,338 statements in 1 file (`specmodel.go`) carrying the `// Code generated … DO NOT EDIT.` marker. It is excluded from the coverage profile too, so every report derived from it agrees with this table.
 <!-- coverage:table:end -->
