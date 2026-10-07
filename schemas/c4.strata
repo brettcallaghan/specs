@@ -135,8 +135,8 @@ struct C4Container: C4Element {
 A module: a unit composed into one or more containers.
 """
 struct C4Module: C4Element {
-  kind: BlueprintKind
-  visibility: Visibility
+  kind: BlueprintKind?
+  visibility: Visibility?
   version: String?
 
   """

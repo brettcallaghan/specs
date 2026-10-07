@@ -747,7 +747,14 @@
           "type": "string"
         },
         "kind": {
-          "$ref": "#/definitions/BlueprintKind"
+          "oneOf": [
+            {
+              "$ref": "#/definitions/BlueprintKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "modules": {
           "description": "Slugs of the modules composed into this one, as its blueprint's\n`modules` declares them.",
@@ -784,7 +791,14 @@
           ]
         },
         "visibility": {
-          "$ref": "#/definitions/Visibility"
+          "oneOf": [
+            {
+              "$ref": "#/definitions/Visibility"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -793,8 +807,6 @@
         "entity_name",
         "declarations",
         "contracts_provided",
-        "kind",
-        "visibility",
         "contained_by",
         "components",
         "modules"

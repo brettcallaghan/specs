@@ -1,0 +1,5 @@
+description = "c4 when a module blueprint omits kind and the module carries no kind key"
+cites = ["AC-C4-004.1"]
+artifacts = ["checks.log"]
+args = ["c4"]
+exit_code = 0

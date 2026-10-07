@@ -554,10 +554,10 @@ type C4Module struct {
 	// `provider` names it.
 	ContractsProvided []Citation `json:"contracts_provided"`
 	// Free-form tags copied from the element's blueprint.
-	Tags       *[]string     `json:"tags,omitempty"`
-	Kind       BlueprintKind `json:"kind"`
-	Visibility Visibility    `json:"visibility"`
-	Version    *string       `json:"version,omitempty"`
+	Tags       *[]string      `json:"tags,omitempty"`
+	Kind       *BlueprintKind `json:"kind,omitempty"`
+	Visibility *Visibility    `json:"visibility,omitempty"`
+	Version    *string        `json:"version,omitempty"`
 	// The containers and modules that compose this one, derived from their
 	// `modules`. Empty when nothing documented composes it.
 	ContainedBy []Citation `json:"contained_by"`
@@ -613,15 +613,15 @@ func (v *C4Module) UnmarshalJSON(data []byte) error {
 			return prefixField("tags", err)
 		}
 	}
-	if m, ok := raw["kind"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4Module: required field \"kind\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Kind); err != nil {
-		return prefixField("kind", err)
+	if m, ok := raw["kind"]; ok {
+		if err := json.Unmarshal(m, &v.Kind); err != nil {
+			return prefixField("kind", err)
+		}
 	}
-	if m, ok := raw["visibility"]; !ok || string(m) == "null" {
-		return fmt.Errorf("C4Module: required field \"visibility\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.Visibility); err != nil {
-		return prefixField("visibility", err)
+	if m, ok := raw["visibility"]; ok {
+		if err := json.Unmarshal(m, &v.Visibility); err != nil {
+			return prefixField("visibility", err)
+		}
 	}
 	if m, ok := raw["version"]; ok {
 		if err := json.Unmarshal(m, &v.Version); err != nil {

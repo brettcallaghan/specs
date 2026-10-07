@@ -339,8 +339,60 @@ func TestAModuleAppearsOnceAndItsHostsAreDerived(t *testing.T) {
 	if got := slugsOf(gamma.ContainedBy); got != "container-alpha,container-beta" {
 		t.Errorf("module-gamma contained_by = %q, want container-alpha,container-beta", got)
 	}
-	if gamma.Kind != "standard" || gamma.Visibility != "internal" || gamma.Version == nil || *gamma.Version != "1.0" {
-		t.Errorf("module-gamma kind/visibility/version = %q/%q/%v", gamma.Kind, gamma.Visibility, gamma.Version)
+	if gamma.Kind == nil || *gamma.Kind != "standard" || gamma.Visibility == nil || *gamma.Visibility != "internal" ||
+		gamma.Version == nil || *gamma.Version != "1.0" {
+		t.Errorf("module-gamma kind/visibility/version = %v/%v/%v", gamma.Kind, gamma.Visibility, gamma.Version)
+	}
+}
+
+// A module blueprint that omits kind or visibility carries no such
+// property, and the model still marshals.
+// AC: AC-C4-004.1
+func TestAModuleWithAMissingKindOrVisibilityOmitsThem(t *testing.T) {
+	for name, props := range map[string][]string{
+		"missing kind":       {"visibility: internal"},
+		"missing visibility": {"kind: standard"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			files := fixture()
+			files["gamma.md"] = head("module-gamma", "module-blueprint", "Gamma", props...) + "# Gamma\n"
+			gamma := module(t, build(t, files), "module-gamma")
+			out, err := json.Marshal(gamma)
+			if err != nil {
+				t.Fatalf("json.Marshal: %v", err)
+			}
+			var keys map[string]any
+			if err := json.Unmarshal(out, &keys); err != nil {
+				t.Fatal(err)
+			}
+			wantKind := name != "missing kind"
+			if _, has := keys["kind"]; has != wantKind {
+				t.Errorf("kind key present = %v for %s", has, name)
+			}
+			if _, has := keys["visibility"]; has == wantKind {
+				t.Errorf("visibility key present = %v for %s", has, name)
+			}
+		})
+	}
+}
+
+// A module blueprint whose kind or visibility is outside its enum is
+// invalid frontmatter; building the model neither fails nor invents a
+// value, and the model marshals.
+// AC: AC-C4-004.1
+func TestAModuleWithAnInvalidKindOrVisibilityDoesNotBreakTheModel(t *testing.T) {
+	for name, props := range map[string][]string{
+		"kind":       {"kind: bogus", "visibility: internal"},
+		"visibility": {"kind: standard", "visibility: bogus"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			files := fixture()
+			files["gamma.md"] = head("module-gamma", "module-blueprint", "Gamma", props...) + "# Gamma\n"
+			model := build(t, files)
+			if _, err := json.Marshal(model); err != nil {
+				t.Fatalf("json.Marshal: %v", err)
+			}
+		})
 	}
 }
 

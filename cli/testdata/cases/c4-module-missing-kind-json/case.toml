@@ -1,0 +1,5 @@
+description = "c4 --json when a module blueprint omits kind and the module carries no kind key"
+cites = ["AC-C4-004.2"]
+artifacts = ["checks.json"]
+args = ["c4", "--json"]
+exit_code = 0

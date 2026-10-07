@@ -503,9 +503,9 @@ type elementProperties struct {
 }
 
 type moduleProperties struct {
-	Kind       *specmodel.BlueprintKind `json:"kind"`
-	Visibility *specmodel.Visibility    `json:"visibility"`
-	Version    **string                 `json:"version"`
+	Kind       **specmodel.BlueprintKind `json:"kind"`
+	Visibility **specmodel.Visibility    `json:"visibility"`
+	Version    **string                  `json:"version"`
 }
 
 type componentProperties struct {
