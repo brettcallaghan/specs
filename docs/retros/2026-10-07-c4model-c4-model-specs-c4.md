@@ -17,8 +17,8 @@ and recorded only as a retro comment** (`specs-c4model.4#1`: read
 
 **Accept needed hand repair again** — third run in a row (`specs-c4model#3`).
 
-**All candidates are PENDING** — returned to the coordinator to put to a human.
-Nothing has been filed and no `retro:filed:` comment written.
+**Brett decided the candidates: F filed as `specs-pxc`; A, B, C, D, E and G
+declined.**
 
 ## The run
 
@@ -245,8 +245,9 @@ record's own commit is local until the coordinator pushes. No
 
 ## Candidates
 
-**PENDING — returned to the coordinator to put to a human; no decision
-recorded.**
+**Decided by Brett, relayed by the coordinator: file F only; A, B, C, D, E
+and G declined.** His words on F, after asking what its unwritten rules were:
+"Okay let's do it (F)".
 
 Ranked by how much each changes the next run. "Fold" means the issue already
 exists; the action is to attach this run's evidence and raise its recurrence
@@ -254,13 +255,13 @@ rather than file anew.
 
 | # | candidate | audience → destination | findings | why it changes the next run | decision |
 |---|---|---|---|---|---|
-| A | **Fold: accept merges into the recorded sprint branch, not the checked-out one** — recurrence: `specs-c4s1`, `specs-c4s2` (its fold is itself pending), now `specs-c4model` | skill → existing `outbox/swarm/swarm/2026-10-07-accept-merges-into-the-current-branch.md` | `specs-c4model#3` | Third run in a row the first accept exits 2 and needs `git branch -f` | pending |
-| B | **`swarm-plan`: a plan that needs no new edges returns no edge file** — say so in `references/partitioning.md` and have the coordinator skip `bd dep add --file` when there is none, because `bd dep add --file` on an empty input exits 1 (`Error: no dependency edges found`, measured on bd 1.3.1 here and in run `agent-plugins-w85b`) | skill → new `outbox/swarm/swarm-plan/2026-10-07-no-path-for-a-plan-with-no-new-edges.md` | `specs-c4model#2`; epic `amend:` 19:27:51Z | The planner padded the file with five restated `blocks` edges and the coordinator had to judge and discard it; the next zero-edge plan does the same | pending |
-| C | **`swarm-dispatch`: make "a clean bead records none" unambiguous** — the instruction reads "A clean bead records none — say so rather than inventing filler.", and "say so" is being read as "write a `retro:` comment saying clean" | skill → new `outbox/swarm/swarm-dispatch/2026-10-07-clean-bead-instruction-invites-a-marker.md` | `specs-c4model.7#1`, `.8#1`; prior: `specs-c4s1.10#1`, `.11#1`, `specs-f6tl.5#3` | Third run with kind-less clean markers inflating the unrouted count — the taxonomy's health metric | pending |
-| D | **Fold: planner findings carry no kind** — recurrence 1 | skill → existing `outbox/swarm/swarm-plan/2026-10-07-planner-findings-carry-no-kind.md` | `specs-c4model#1`, `#2` | Both planner findings again routed nowhere by kind | pending |
-| E | **Fold: `bd-health.sh` validates non-epics** — recurrence comment (39 scraped vs 9 real epics) | project → comment on existing bead `specs-84yu` | `specs-c4model#1` | Every plan pass still has to ignore the health script's exit 1 and re-run `bd swarm validate` by hand | pending |
-| F | **Pin the C4 model's unpinned rules in the durable specs** — run `retro-spec` (or a direct spec edit) over this feature's `decision` findings into `module-document-core` / the C4 Elements and C4 Model component docs and the CLI reference, first among them `.4#1`'s rule that the derived contract reads `contracts_consumed` from the source declaration (blueprint, else first record block) | project → bead (could be merged with `specs-c4s2`'s pending candidate G, the same ask for the C4 diagrams feature) | `.2#1`, `.2#2`, `.2#3`, `.3#2`, `.4#1`, `.5#1`, `.10#1`, `.12#1` | The feature blueprint is retired, so these rules now live only in retro comments and code; `.10`'s review fix reversed `.4#1` and cost a whole review loop (`.12`), and `specs-i20` is the same question on the check side | pending |
-| G | **Fold: a schema edit's snapshot regeneration is invisible to the bead** — recurrence on `specs-xoe` (the snapshot failure should name `scripts/regenerate-cli-snapshots.sh`) | project → comment on existing bead `specs-xoe` | `specs-c4model.1#1` (also `.9#2` regenerated the same hashes) | Schema-touching beads keep failing `go test` once before finding the script; runs `agent-plugins-59ic`, `specs-sra`, `specs-c4s1` hit it too | pending |
+| A | **Fold: accept merges into the recorded sprint branch, not the checked-out one** — recurrence: `specs-c4s1`, `specs-c4s2` (its fold is itself pending), now `specs-c4model` | skill → existing `outbox/swarm/swarm/2026-10-07-accept-merges-into-the-current-branch.md` | `specs-c4model#3` | Third run in a row the first accept exits 2 and needs `git branch -f` | declined |
+| B | **`swarm-plan`: a plan that needs no new edges returns no edge file** — say so in `references/partitioning.md` and have the coordinator skip `bd dep add --file` when there is none, because `bd dep add --file` on an empty input exits 1 (`Error: no dependency edges found`, measured on bd 1.3.1 here and in run `agent-plugins-w85b`) | skill → new `outbox/swarm/swarm-plan/2026-10-07-no-path-for-a-plan-with-no-new-edges.md` | `specs-c4model#2`; epic `amend:` 19:27:51Z | The planner padded the file with five restated `blocks` edges and the coordinator had to judge and discard it; the next zero-edge plan does the same | declined |
+| C | **`swarm-dispatch`: make "a clean bead records none" unambiguous** — the instruction reads "A clean bead records none — say so rather than inventing filler.", and "say so" is being read as "write a `retro:` comment saying clean" | skill → new `outbox/swarm/swarm-dispatch/2026-10-07-clean-bead-instruction-invites-a-marker.md` | `specs-c4model.7#1`, `.8#1`; prior: `specs-c4s1.10#1`, `.11#1`, `specs-f6tl.5#3` | Third run with kind-less clean markers inflating the unrouted count — the taxonomy's health metric | declined |
+| D | **Fold: planner findings carry no kind** — recurrence 1 | skill → existing `outbox/swarm/swarm-plan/2026-10-07-planner-findings-carry-no-kind.md` | `specs-c4model#1`, `#2` | Both planner findings again routed nowhere by kind | declined |
+| E | **Fold: `bd-health.sh` validates non-epics** — recurrence comment (39 scraped vs 9 real epics) | project → comment on existing bead `specs-84yu` | `specs-c4model#1` | Every plan pass still has to ignore the health script's exit 1 and re-run `bd swarm validate` by hand | declined |
+| F | **Pin the C4 model's unpinned rules in the durable specs** — run `retro-spec` (or a direct spec edit) over this feature's `decision` findings into `module-document-core` / the C4 Elements and C4 Model component docs and the CLI reference, first among them `.4#1`'s rule that the derived contract reads `contracts_consumed` from the source declaration (blueprint, else first record block) | project → bead (could be merged with `specs-c4s2`'s pending candidate G, the same ask for the C4 diagrams feature) | `.2#1`, `.2#2`, `.2#3`, `.3#2`, `.4#1`, `.5#1`, `.10#1`, `.12#1` | The feature blueprint is retired, so these rules now live only in retro comments and code; `.10`'s review fix reversed `.4#1` and cost a whole review loop (`.12`), and `specs-i20` is the same question on the check side | **filed** → `specs-pxc` |
+| G | **Fold: a schema edit's snapshot regeneration is invisible to the bead** — recurrence on `specs-xoe` (the snapshot failure should name `scripts/regenerate-cli-snapshots.sh`) | project → comment on existing bead `specs-xoe` | `specs-c4model.1#1` (also `.9#2` regenerated the same hashes) | Schema-touching beads keep failing `go test` once before finding the script; runs `agent-plugins-59ic`, `specs-sra`, `specs-c4s1` hit it too | declined |
 
 **Kept in this record, not candidates** (do not clear the bar on this run's
 evidence): `.2#4` and `.9#1` (`stale`, both fixed in-bead); `.5#2` (the
@@ -268,11 +269,30 @@ signature change was the plan's own sequencing, handled inside one dispatch);
 `.11#1`'s unverified case-variant-slug question; `.12#1`'s note that a record
 block must sit under `## Components` (already the corpus rule).
 
+**Declined candidates stay in this record.** A later run that hits the same
+friction raises them again with a higher recurrence count. One fact for that
+later run, about C: the sentence it quotes is also stamped into every groomed
+bead's `## Retro` section by this repository's grooming ("A clean item records
+none; say so rather than inventing filler." — read in `specs-c4model.4`'s
+description). So the fix may belong partly to this project, not only to
+`swarm-dispatch`.
+
 ## What was filed
 
-**Nothing yet** — decisions pending. No `retro:filed:` comment has been
-written. `retro_filed`, `retro_declined` and `retro_routed` are not yet set on
-the manifest; `findings_path` is.
+- **`specs-pxc`** (P2, task, backlog — no parent; `discovered-from:specs-c4model.4`)
+  — "Pin the C4 model's five unwritten assembly rules in the durable specs".
+  It quotes the findings inline and names the five rules: the derived-contract
+  source, property copying, nesting via C4 Elements, BiRel, and `--root`
+  narrowing. Its targets are `document-core-module.md` (the C4 Elements and C4
+  Model entries) and the CLI reference's `specs c4` section. It notes a
+  possible merge with `specs-c4s2`'s candidate G, for which no bead existed
+  (`bd search "retro-spec"` and a `bd export` text match found none).
+- **`retro:filed:specs-pxc` comments** were written for `specs-c4model.2#1`,
+  `.2#2`, `.2#3`, `.3#2`, `.4#1`, `.5#1`, `.10#1` and `.12#1`, each on its own
+  bead.
+- **Manifest**, written as one merge: `retro_filed` 1, `retro_declined` 6,
+  `retro_routed` 19 (23 harvested less 4 unrouted, the convention earlier runs
+  used). `swarm manifest require --run specs-c4model --key retro_filed` exits 0.
 
 ## Counts
 
@@ -285,5 +305,5 @@ the manifest; `findings_path` is.
 | routed — `environment` (ledger) | 0 |
 | unrouted | 4 |
 | candidates | 7 (2 new skill issues, 2 folds into existing outbox issues, 2 folds onto existing project beads, 1 new project bead) |
-| filed | 0 — pending |
-| declined | 0 — pending |
+| filed | 1 (`specs-pxc`) |
+| declined | 6 (A, B, C, D, E, G) |
