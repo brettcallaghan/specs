@@ -487,6 +487,21 @@ func TestContractSlugIsTrimmed(t *testing.T) {
 	}
 }
 
+func TestAnEmptyUnquotedArgumentIsAParseError(t *testing.T) {
+	for _, line := range []string{`Component(, "A")`, `Rel(a, b, "x",)`, `Rel(a,, "x")`, `Rel(a, b, $label=)`} {
+		t.Run(line, func(t *testing.T) {
+			d := parseBlock(t, diagram(line))
+			if len(d.Errors) != 1 || !strings.Contains(d.Errors[0].Reason, "empty argument") {
+				t.Fatalf("errors = %+v, want one 'empty argument'", d.Errors)
+			}
+			if got := string(span.Slice([]byte(diagram(line)), d.Errors[0].Span)); got != line {
+				t.Errorf("error span covers %q, want the statement %q", got, line)
+			}
+		})
+	}
+	only(t, parseBlock(t, diagram(`Rel(a, b, "")`)))
+}
+
 // Every C4 diagram this repository draws parses with no error.
 func TestThisRepositorysDiagramsParse(t *testing.T) {
 	root := filepath.Join("..", "..", "..")

@@ -612,6 +612,9 @@ func (p *parser) arguments(text string, base, from int) (args, named []Argument,
 		if r != "" {
 			return nil, nil, 0, r
 		}
+		if !arg.Quoted && arg.Value == "" {
+			return nil, nil, 0, `empty argument: write "" for an empty value`
+		}
 		if arg.Name != "" {
 			named = append(named, arg)
 		} else {
