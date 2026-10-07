@@ -120,7 +120,7 @@ func TestDocumentTypesCoversEveryVocabularyValue(t *testing.T) {
 }
 
 // Only adr is numbered. RFC deliberately is not, even though some real
-// RFC slugs carry a sequence number, because this repository's own RFCs
+// RFC slugs carry a sequence number, because the RFCs the retro skills author
 // also use a non-numeric self- form — see the documentTypes comment in
 // profile.go.
 func TestOnlyAdrIsNumbered(t *testing.T) {
@@ -160,7 +160,7 @@ var realSlugs = []struct {
 	{"feature-blueprint", "feature-spec-index", "specs/features/spec-index/spec-index-blueprint.md"},
 	{"rfc", "rfc-0007", "rfcs/retired/rfc-0007-spec-architecture-templates.md"},
 	{"rfc", "rfc-0001-spec-document-self-check", "rfcs/retired/rfc-0001-spec-document-self-check.md"},
-	{"rfc", "rfc-self-strata-compile-gate", "rfcs/inbox/strata/rfc-self-strata-compile-gate.md"},
+	{"rfc", "rfc-self-strata-compile-gate", "the unnumbered self- form the retro skills author"},
 	{"guide", "guide-ears", "specs/guides/ears-guide.md"},
 	{"guide", "work-order-field-guide", "specs/guides/work-order-field-guide.md"},
 }

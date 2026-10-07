@@ -56,28 +56,19 @@ const defaultLineWidth = 80
 //
 // Patterns are grounded in this repository's own corpus rather than
 // restated from the prefix registry in template-authoring-standards.md,
-// because in two places the registry and this repository's actual
-// documents disagree:
+// because the registry and this repository's actual documents disagree
+// on guides: the registry has no row for this type at all. Of this
+// repository's four guide documents, two are prefixed guide- and two are
+// not (work-order-field-guide.md, in two copies). The pattern here is
+// accordingly the type's least restrictive form: any kebab-case slug.
 //
-//   - Feature blueprints. The registry assigns the fb- prefix, but this
-//     repository's one real feature blueprint
-//     (specs/features/spec-index/spec-index-blueprint.md) is slugged
-//     feature-spec-index. The pattern here follows the
-//     document that exists, not the template that was not.
-//   - Guides. The registry has no row for this type at all. Of this
-//     repository's four guide documents, two are prefixed guide- and
-//     two are not (work-order-field-guide.md, in two copies). The
-//     pattern here is accordingly the type's least restrictive form:
-//     any kebab-case slug.
-//
-// RFCs mix two identifier schemes in this repository: a numbered form
-// (rfc-0007) and a self-critique form with no number at all
+// RFCs mix two identifier schemes: a numbered form (rfc-0007) and the
+// self-critique form the retro skills author, with no number at all
 // (rfc-self-greenfield-anchors-and-split-numbering). Because a
 // meaningful share of real RFC slugs carry no number, Numbered is false
 // here — a "highest number in use" query would silently ignore every
 // self- document, which is worse than not offering next-id for the
-// type. rfcs/inbox/groom-feature-blueprint/rfc-self-delta-keys-and-tracker-vocabulary.md
-// tracks this split scheme as an open concern in its own right.
+// type.
 // featureIDPattern and criterionIDPattern are this framework's Gherkin
 // identifier patterns (specs/standards/gherkin-guide.md, AC-GHK-002.1,
 // AC-GHK-002.3).
@@ -233,4 +224,14 @@ func (specDrivenDev) Lifecycle() corpus.LifecycleRules {
 // [featureTags].
 func (specDrivenDev) FeatureTags() corpus.FeatureTagRules {
 	return featureTags
+}
+
+// RecordBlocks returns this profile's record-block registration: the
+// `component` fence tag, validated against the generated C4ElementRecord
+// definition in the embedded union schema, so a roster block and a
+// blueprint's frontmatter share one definition of an element.
+func (specDrivenDev) RecordBlocks() []corpus.RecordBlockTag {
+	return []corpus.RecordBlockTag{
+		{Tag: "component", Schema: "#/definitions/C4ElementRecord"},
+	}
 }

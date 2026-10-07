@@ -165,7 +165,7 @@ By `kind`:
             carries child orders instead of Design / Acceptance below
 
 WHEN this order was decomposed from a feature blueprint, link the blueprint
-and FRD here ([[fb-<slug>]], [[frd-<slug>]]) so the agent can reach design
+and FRD here ([[feature-<slug>]], [[frd-<slug>]]) so the agent can reach design
 context without searching. Maps to the bead `description`.
 -->
 

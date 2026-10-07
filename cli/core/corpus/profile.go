@@ -20,8 +20,8 @@ import "github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 // profile is active per operation, and the caller chooses which.
 //
 // The surface is deliberately narrow — a schema, a per-type table, the
-// convention defaults, the lifecycle registration and the tag
-// vocabulary — because it constrains everything downstream of it.
+// convention defaults, the lifecycle registration, the tag
+// vocabulary and the record-block tags — because it constrains everything downstream of it.
 // Required sections and element records are later capabilities, and each
 // will widen this interface further. Per the Change Guidance in
 // specs/modules/spec-profile/spec-profile-module.md, that widening is a change to
@@ -96,6 +96,42 @@ type Profile interface {
 	// checks that read it do not run. That is a profile describing a
 	// corpus with no tagged features, not a malformed one.
 	FeatureTags() FeatureTagRules
+
+	// RecordBlocks returns the fenced-block info strings this profile
+	// registers as record blocks, each with an optional pointer to the
+	// definition in [Profile.Schema] its record is validated against.
+	//
+	// A fenced block is a record block only where the active profile
+	// says its info string is one; the host holds no tag spelling and no
+	// knowledge of what any record means. A record is YAML, so there is
+	// no per-tag content format to register.
+	//
+	// Registered as data the host reads, as the lifecycle and the tag
+	// vocabulary are. A profile that registers none returns nil, and a
+	// corpus built under it has no record blocks. That is a profile
+	// describing documents with none, not a malformed one.
+	RecordBlocks() []RecordBlockTag
+}
+
+// RecordBlockTag is one fenced-block info string a profile registers as
+// a record block, and where its record is validated.
+type RecordBlockTag struct {
+	// Tag is the info string that marks a fenced block as a record
+	// block of this kind, as written after the opening fence.
+	Tag string
+
+	// Schema is an optional JSON Pointer URI fragment, such as
+	// "#/definitions/Name", addressing the definition inside
+	// [Profile.Schema] that a record under this tag is validated
+	// against.
+	//
+	// It addresses the profile's own union schema rather than a second
+	// schema, so the host never holds more than one. Empty means the
+	// tag is registered with no schema and its records are not
+	// validated. A non-empty pointer that resolves to nothing is a
+	// registration defect, reported by [ValidateRegistration] and never
+	// treated as empty.
+	Schema string
 }
 
 // FeatureTagRules is what a profile tells the host about the tags that

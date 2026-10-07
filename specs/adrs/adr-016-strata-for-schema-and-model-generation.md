@@ -7,7 +7,7 @@ description: Adopt Strata to define document frontmatter and CLI
 slug: adr-016
 type: adr
 status: ready-for-review
-updated_at: 2026-08-01T00:00:00Z
+updated_at: 2026-10-07T00:00:00Z
 ---
 
 # ADR-016: Strata as the Single Source for Schemas and Generated Types
@@ -151,8 +151,6 @@ repository remains buildable and correct if Strata is removed.
 - `strata-lang/strata#289` — the upstream fix for the
   `allowAdditionalProperties` inheritance bug found during this
   evaluation
-- `rfcs/inbox/strata/rfc-self-strata-compile-gate.md` — the skill-level
-  findings from this evaluation
 - TypeSpec JSON Schema emitter —
   https://www.npmjs.com/package/@typespec/json-schema
 - TypeSpec Go emitter (Azure SDK client generator) —

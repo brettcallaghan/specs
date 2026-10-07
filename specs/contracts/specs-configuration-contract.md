@@ -232,6 +232,23 @@ type QualifierTag struct {
 }
 ```
 
+A profile separately registers **record-block tags**: the fenced-block
+info strings that mark a block as a record. A record is YAML, so a tag
+carries no content format; it carries an optional JSON Pointer fragment
+(for example `#/definitions/Name`) addressing the definition in the
+profile's own union schema that the record is validated against. A
+profile MAY register none, describing documents with no record blocks.
+A pointer that resolves to nothing in the profile's schema is reported
+by registration validation rather than skipped; a tag with no pointer is
+valid and its records are not schema-validated.
+
+```go
+type RecordBlockTag struct {
+    Tag    string // fenced-block info string
+    Schema string // optional "#/definitions/<Name>" into Profile.Schema()
+}
+```
+
 Because the public surface no longer overlaps the internal one, the
 relationship binding them into a single contract is naming rather than
 override: `[profile].name` selects one of these registrations, and
@@ -241,7 +258,7 @@ a defect in this contract rather than in either module.
 
 `version` stays `"1.0"` for the whole of the internal surface described
 above, including the reference-bearing, typed-reference, pairing,
-lifecycle and tag-vocabulary registrations: the Versioning and Change
+lifecycle, tag-vocabulary and record-block tag registrations: the Versioning and Change
 Policy section below
 exempts the internal registration surface from versioning while
 [[module-document-core]] and [[module-spec-profile]] are both

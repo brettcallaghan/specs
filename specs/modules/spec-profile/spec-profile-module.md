@@ -7,7 +7,7 @@ description: The plugin that supplies this framework's document
 slug: module-spec-profile
 type: module-blueprint
 status: approved
-updated_at: 2026-08-07T00:00:00Z
+updated_at: 2026-10-07T00:00:00Z
 kind: standard
 visibility: internal
 source_paths:
@@ -159,11 +159,8 @@ Profile Registration and its checks placed in Document Core; and Element
 Records is retained as designed but marked not yet built.
 
 **The registered patterns are grounded in this repository's corpus, not
-transcribed from the prefix registry**, and in three places the two
-disagree. Feature blueprints: the registry assigns `fb-`, while this
-repository's one real feature blueprint is slugged
-`feature-spec-index`, so the pattern follows the document that
-exists. Guides: the registry has no row at all and this repository's four
+transcribed from the prefix registry**, and in two places the two
+disagree. Guides: the registry has no row at all and this repository's four
 guides split two-and-two on a `guide-` prefix, so the pattern is the
 type's least restrictive form. RFCs: this repository mixes a numbered
 form (`rfc-0007`) with an unnumbered self-critique form, so `Numbered` is
@@ -228,7 +225,7 @@ it holds no engine and no parsing of its own. Its value is that the
 conformance surface is one file: whether this module is a well-behaved
 plugin is answerable by reading it.
 
-**Built** — `cli/profile`. `New` returns a `corpus.Profile` whose five
+**Built** — `cli/profile`. `New` returns a `corpus.Profile` whose six
 members are the whole of what this framework tells the host:
 
 | Member | Registers |
@@ -238,6 +235,7 @@ members are the whole of what this framework tells the host:
 | `Conventions()` | the `line_width` default of 80 codepoints |
 | `Lifecycle()` | the whole status vocabulary, `retired` as the only retired status, every other status as live, and `superseded_by` as the successor property |
 | `FeatureTags()` | the feature and criterion identifier patterns, the owning-document tag prefix `frd-`, the `code`/`number` capture groups the two identifier patterns share, and the qualifier tags `negative`, `manual`, and the `level-` prefixed vocabulary `unit`, `integration`, `e2e` |
+| `RecordBlocks()` | the `component` record-block tag, validated against the generated `C4ElementRecord` definition (`#/definitions/C4ElementRecord`) |
 
 **The union schema is generated, not authored here.** It comes from
 `schemas/*.strata` through `scripts/generate-schemas.sh`, which emits
@@ -294,12 +292,11 @@ the declaration-agreement rule from [[adr-008]] — the one rule here that
 no schema can express, because it is a constraint between declarations
 in different places rather than a constraint on a value.
 
-**Not yet built.** No fence tag is registered and no record schema is
-supplied. Document Core's Markdown Structure component now locates a
-fenced block by a caller-supplied tag, but nothing yet lets a profile
-register one: the host carries no extension-point member through which
-a tag could reach that lookup. Building this component means widening
-the host first; it is not blocked on this module.
+**Partly built.** The `component` fence tag is registered by Profile
+Registration through `Profile.RecordBlocks`, with its schema pointing at
+the generated `C4ElementRecord` definition in the embedded union schema.
+Validating a block against it and the declaration-agreement rule are not
+yet built.
 
 **Profile Registration → Element Records.** Registration is a pure
 wiring layer: it exposes what it registers, and hands it to the host. No
