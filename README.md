@@ -54,7 +54,7 @@ flowchart LR
     B --> C["/spec<br/>Feature Blueprint"]
     C --> D{{"Engineer<br/>review"}}
     D --> E["/groom-feature-blueprint<br/>→ work orders"]
-    E --> F["swarm<br/>→ implementation"]
+    E --> F["Agents<br/>→ implementation"]
     F --> G{{"PR<br/>review"}}
 
     style B fill:#fde68a,stroke:#b45309,color:#1c1917
@@ -62,11 +62,6 @@ flowchart LR
     style G fill:#fde68a,stroke:#b45309,color:#1c1917
     style F stroke-dasharray: 4 4
 ```
-
-The implementation step is a **separate plugin in a separate repository**:
-[brettcallaghan/swarm](https://github.com/brettcallaghan/swarm) ships
-`bead-bonanza` and its sprint subprocesses. It depends on this plugin — its
-`sprint-plan` invokes `groom-beads` — and nothing here depends on it.
 
 Two review checkpoints before the PR: the **FRD**, where Product asks
 whether this is the right feature, and the **Feature Blueprint**, where
@@ -86,10 +81,6 @@ to change your mind.
 /plugin marketplace add brettcallaghan/agent-plugins
 /plugin install specs@brettcallaghan
 ```
-
-[`swarm`](https://github.com/brettcallaghan/swarm), the sprint orchestrator
-built on `specs`, is private for now and ships from its own
-`brettcallaghan-private` marketplace; see its README.
 
 Or install the skills into `~/.claude/skills` from a checkout, without
 the plugin system:
@@ -116,7 +107,7 @@ Go toolchain, no runtime, nothing to install alongside them.
 Every document type below is authored by the `spec` skill from a
 template it ships with. The taxonomy is deliberately small and closed:
 if a piece of work doesn't fit one of these, that is a signal to stop
-and think, not to invent a ninth kind of document.
+and think, not to invent an eleventh kind of document.
 
 ### Product
 
@@ -124,7 +115,7 @@ The *what*. Owned by Product.
 
 | Document | Captures | Example | Template |
 |:---|:---|:---|:---|
-| **FRD** — Feature Requirements Document | Pure features: the user story (WHY) and the acceptance criteria (WHAT), in EARS. Never the how. | [FRD: Spec Corpus Index](specs/features/spec-index/spec-index-frd.md) | [`frd-template.md`](plugin/skills/spec/references/frd-template.md) |
+| **FRD** — Feature Requirements Document | Pure features: the user story (WHY) and the acceptance criteria (WHAT), as tagged Gherkin. Never the how. | [FRD: Spec Corpus Index](specs/features/spec-index/spec-index-frd.md) | [`frd-template.md`](plugin/skills/spec/references/frd-template.md) |
 
 **Always start here. No FRD, no feature.** An FRD is one feature that
 delivers independently testable value — sub-features get their own FRDs
@@ -160,7 +151,7 @@ or delete them once merged.
 | Document | Captures | Example | Template |
 |:---|:---|:---|:---|
 | **Feature Blueprint** | The HOW, 1:1 with an FRD's WHAT: how the feature maps onto your architecture — components created, updated, deleted — plus contracts, sequencing, AC coverage, and a definition of done | [Blueprint: Spec Corpus Index](specs/features/spec-index/spec-index-blueprint.md) | [`feature-blueprint-template.md`](plugin/skills/spec/references/feature-blueprint-template.md) |
-| **Work Order** | One atomic unit of work — a "dev task". Everything a fresh, zero-context agent needs to finish one job, connecting component changes to code changes | Materialized as beads in [`.beads/issues.jsonl`](.beads/issues.jsonl) | [`work-order-template.md`](plugin/skills/spec/references/work-order-template.md) |
+| **Work Order** | One atomic unit of work — a "dev task". Everything a fresh, zero-context agent needs to finish one job, connecting component changes to code changes | Materialized as beads in this repository's own tracker | [`work-order-template.md`](plugin/skills/spec/references/work-order-template.md) |
 
 A **Feature Blueprint** references exactly one FRD, and as many
 system/container/component/module blueprints as the change touches. It
@@ -196,7 +187,7 @@ references. Making it an explicit frontmatter property is planned.
 
 | Skill | What it does |
 |:---|:---|
-| **`spec`** | Authors every document type above from the framework's templates, in [EARS](https://alistairmavin.com/ears/) syntax and the C4 model. Picks the right type for what you're describing and refuses to invent new ones. Runs readiness checklists before anything is handed to a reviewer. |
+| **`spec`** | Authors every document type above from the framework's templates, writing acceptance criteria in Gherkin, other requirements in [EARS](https://alistairmavin.com/ears/), and architecture in the C4 model. Picks the right type for what you're describing and refuses to invent new ones. Runs readiness checklists before anything is handed to a reviewer. |
 | **`groom-feature-blueprint`** | The boundary between the human specification loop and autonomous execution. Gates on an approved blueprint with no open questions, then decomposes its deltas into a graph of work orders carrying AC coverage and a definition of done. A quality firewall: a blueprint it can't plan mechanically gets sent back, not guessed at. |
 | **`groom-beads`** | The Definition of Ready engine for the beads backend. Materializes work orders as beads, wires the dependency graph, assigns each a capability tier, validates the result, and previews execution waves. The north star: a fresh sub-agent with zero context can open `bd show <id>` and finish the job without asking anyone anything. |
 | **`retro-spec`** | Retrospective on the *documents* a completed phase consumed. A spec's quality is only observable through its consumers, so this runs after a downstream phase has exercised it, and argues from that evidence into improvement RFCs for your own specs. |
@@ -224,9 +215,9 @@ Blueprint for it. An Engineer reviews and approves it.
 blueprint into specific work orders — beads, if you use them —
 specifying how agents should build the feature.
 
-**5. Execute.** Install the
-[swarm](https://github.com/brettcallaghan/swarm) plugin, start a fresh
-session and run `/bead-bonanza` to work through the epic. Review the PR.
+**5. Execute.** Hand each work order to a fresh agent session. Every
+one carries what that agent needs, so no one has to brief it. Review the
+PR.
 
 **6. Retro.** When a phase struggled, run `/retro-spec` on the documents
 it consumed, or `/retro-skill` on the skill that guided it. The friction
@@ -253,6 +244,12 @@ didn't parse — none of which a reviewer had noticed.
 | `specs check [path]` | Check the corpus, or one document, for conformance: frontmatter against the active profile's schema, slug patterns, duplicate slugs. `--json`, `--strict`, `--only <rule>` |
 | `specs next-id <type>` | Return the next identifier for a numbered document type |
 | `specs slug-exists <slug>` | Report whether any corpus member declares that slug |
+| `specs list` | Report every document's path, slug, type, status, title and description |
+| `specs refs <slug>` | Report which documents reference a slug or one of its headings, or what it references |
+| `specs headings` | Report the headings matching a selection, with the span of each one's section |
+| `specs criterion [id]` | Query an acceptance criterion, or list ones that changed locally |
+| `specs feature [id]` | Query a feature, or emit one as a standalone Gherkin file |
+| `specs links <path>` | Rewrite a document's wikilinks into markdown links |
 
 Configuration lives in [`specs.toml`](specs.toml) at the repository
 root:
@@ -343,3 +340,9 @@ trust.
 The framework specifies itself. The FRDs, ADRs, blueprints and standards
 under `specs/` are the ones that produced the CLI in `cli/` — which is
 the only honest way to find out whether any of this works.
+
+---
+
+## License
+
+[MIT](LICENSE).
