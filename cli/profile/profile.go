@@ -235,8 +235,12 @@ func (specDrivenDev) FeatureTags() corpus.FeatureTagRules {
 	return featureTags
 }
 
-// RecordBlocks returns this profile's record-block registration: none.
-// Registering the component tag is separate work.
+// RecordBlocks returns this profile's record-block registration: the
+// `component` fence tag, validated against the generated C4ElementRecord
+// definition in the embedded union schema, so a roster block and a
+// blueprint's frontmatter share one definition of an element.
 func (specDrivenDev) RecordBlocks() []corpus.RecordBlockTag {
-	return nil
+	return []corpus.RecordBlockTag{
+		{Tag: "component", Schema: "#/definitions/C4ElementRecord"},
+	}
 }
