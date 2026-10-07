@@ -134,9 +134,12 @@ func TestTheFallbackStillLocatesTheBodyOfAnOrdinaryDocument(t *testing.T) {
 func TestRecordBlocksAreSearchedFromTheBodyInWholeFileCoordinates(t *testing.T) {
 	frontOnly := []byte("---\ntitle: X\ndescription: |\n  ```component\n  name: x\n  ```\n---\n\n# Body\n\ntext\n")
 	found, unattached := headingsOf(frontOnly, nil, []string{"component"})
-	if len(found) != 1 || len(unattached) != 0 || len(found[0].RecordBlocks) != 0 {
-		t.Errorf("frontmatter fence: %d headings, %d unattached, %d attached; want 1, 0, 0",
-			len(found), len(unattached), len(found[0].RecordBlocks))
+	if len(found) != 1 {
+		t.Fatalf("frontmatter fence: %d headings, want 1", len(found))
+	}
+	if len(unattached) != 0 || len(found[0].RecordBlocks) != 0 {
+		t.Errorf("frontmatter fence: %d unattached, %d attached; want 0, 0",
+			len(unattached), len(found[0].RecordBlocks))
 	}
 
 	inBody := []byte("---\ntitle: X\ndescription: |\n  ```component\n  name: x\n  ```\n---\n\n# Body\n\n```component\nname: y\n```\n")
