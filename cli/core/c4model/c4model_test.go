@@ -545,3 +545,27 @@ func TestTheModelCarriesItsVersionWorkspaceAndEmptyCollections(t *testing.T) {
 		t.Errorf("the empty model emits null: %s", raw)
 	}
 }
+
+// A composed slug resolves as the element set resolves it: a case variant
+// of a module's slug emits that module's own slug, once; a slug naming no
+// module is kept, trimmed, once per case-folded key.
+// AC: AC-C4-001.4
+func TestComposedModulesAreFoldedLikeTheRestOfTheModel(t *testing.T) {
+	files := fixture()
+	files["alpha.md"] = head("container-alpha", "container-blueprint", "Alpha",
+		"system: system-one",
+		"modules:", `  - "Module-Gamma"`, `  - "module-gamma"`, `  - "Ghost-Mod"`, `  - " ghost-mod "`)
+	files["gamma.md"] = head("module-gamma", "module-blueprint", "Gamma",
+		"kind: standard", "visibility: internal",
+		"modules:", `  - "Module-Delta"`, `  - "module-delta"`) + "# Gamma\n"
+	files["moddelta.md"] = head("module-delta", "module-blueprint", "Delta",
+		"kind: standard", "visibility: internal") + "# Delta\n"
+	model := build(t, files)
+
+	if got := slugsOf(container(t, model, "container-alpha").Modules); got != "Ghost-Mod,module-gamma" {
+		t.Errorf("container-alpha modules = %q, want module-gamma and ghost-mod once each", got)
+	}
+	if got := slugsOf(module(t, model, "module-gamma").Modules); got != "module-delta" {
+		t.Errorf("module-gamma modules = %q, want module-delta once", got)
+	}
+}

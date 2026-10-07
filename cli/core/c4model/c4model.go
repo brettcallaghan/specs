@@ -122,7 +122,7 @@ func (a *assembly) model() *specmodel.C4Model {
 	for _, element := range a.elements(c4elements.LevelContainer) {
 		container := specmodel.C4Container{
 			Components: nonNil(components[element]),
-			Modules:    slugsOf(element.ComposedModules),
+			Modules:    a.composedModules(element),
 		}
 		a.fill(element, &container)
 		if system, ok := a.systemOf(element); ok {
@@ -143,7 +143,7 @@ func (a *assembly) model() *specmodel.C4Model {
 		module := specmodel.C4Module{
 			ContainedBy: a.containedBy(element),
 			Components:  nonNil(components[element]),
-			Modules:     slugsOf(element.ComposedModules),
+			Modules:     a.composedModules(element),
 		}
 		a.fill(element, &module)
 		copyProperties(values, &moduleProperties{
@@ -541,15 +541,23 @@ func decode(values map[string]any, name string, target any) {
 	reflect.ValueOf(target).Elem().Set(fresh.Elem())
 }
 
-// slugsOf returns slugs as the model's slugs, ordered and each held once.
-func slugsOf(slugs []string) []specmodel.Slug {
+// composedModules returns the modules element composes as the model's
+// slugs, ordered and each held once by case-folded key. A slug naming a
+// module is emitted as that module's own slug; one naming none is
+// emitted as written, trimmed.
+func (a *assembly) composedModules(element *c4elements.Element) []specmodel.Slug {
 	out := []specmodel.Slug{}
 	seen := map[string]bool{}
-	for _, slug := range slugs {
-		if seen[slug] {
+	for _, composed := range element.ComposedModules {
+		slug := strings.TrimSpace(composed)
+		if resolved, ok := a.set.Element(slug); ok && resolved.Level == c4elements.LevelModule {
+			slug = resolved.Slug
+		}
+		key := slugKey(slug)
+		if seen[key] {
 			continue
 		}
-		seen[slug] = true
+		seen[key] = true
 		out = append(out, specmodel.Slug(slug))
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
