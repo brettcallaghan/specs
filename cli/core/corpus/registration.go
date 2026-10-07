@@ -49,7 +49,7 @@ type RegistrationDefect struct {
 // registration the caller was told is wrong is better than a registration
 // silently repaired into one that checks less than it says.
 //
-// Six defects are found, and they are the whole of what a registration
+// Seven defects are found, and they are the whole of what a registration
 // can get wrong on its own terms:
 //
 //   - a pairing or a typed reference naming a property the same document
@@ -63,7 +63,8 @@ type RegistrationDefect struct {
 //   - a feature-tag registration whose shared captures name a capture
 //     group an identifier pattern does not define;
 //   - a record-block registration whose schema pointer resolves to
-//     nothing in the profile's schema.
+//     nothing in the profile's schema;
+//   - a record-block tag registered more than once.
 //
 // The feature-tag two are found here rather than where they are used because
 // both are defects of the registration against itself, which is what
@@ -94,29 +95,39 @@ func ValidateRegistration(profile Profile) []RegistrationDefect {
 }
 
 // recordBlockDefects reports each record-block tag whose schema pointer
-// does not resolve to a definition in schema. A tag registered with no
-// pointer has no defect: its records are simply not validated.
+// does not resolve to a definition in schema, and each registration of a
+// tag already registered earlier. A tag registered with no pointer has no
+// pointer defect: its records are simply not validated. Defects follow
+// registration order, a registration's duplicate defect before its
+// pointer defect.
 //
 // An unresolvable pointer is reported rather than skipped because
 // skipping it would validate every record against nothing and report
 // success.
 //
-// A schema that is not JSON yields no defect at all: no pointer can be
+// A schema that is not JSON yields no pointer defect: no pointer can be
 // judged against it, and the fault is the schema's rather than any tag's.
 // It is reported, once, by the schema registry the corpus compiles the
-// active profile's schema with.
+// active profile's schema with. The duplicate check does not read the
+// schema and still runs.
 func recordBlockDefects(tags []RecordBlockTag, schema []byte) []RegistrationDefect {
 	var document any
-	if json.Unmarshal(schema, &document) != nil {
-		return nil
-	}
+	parsed := json.Unmarshal(schema, &document) == nil
 
 	var defects []RegistrationDefect
+	first := make(map[string]RecordBlockTag, len(tags))
 	for _, tag := range tags {
-		if tag.Schema == "" {
-			continue
+		if earlier, seen := first[tag.Tag]; seen {
+			detail := "is registered as a record block more than once, so which " +
+				"schema a record is validated against would depend on registration order"
+			if earlier.Schema != tag.Schema {
+				detail += fmt.Sprintf(" (pointers %q and %q)", earlier.Schema, tag.Schema)
+			}
+			defects = append(defects, RegistrationDefect{Key: tag.Tag, Detail: detail})
+		} else {
+			first[tag.Tag] = tag
 		}
-		if resolvePointer(document, tag.Schema) {
+		if !parsed || tag.Schema == "" || resolvePointer(document, tag.Schema) {
 			continue
 		}
 		defects = append(defects, RegistrationDefect{

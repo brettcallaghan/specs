@@ -13,6 +13,7 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
@@ -474,5 +475,60 @@ func TestValidateRegistrationReportsAPointerWithNoLeadingSlash(t *testing.T) {
 	defects := corpus.ValidateRegistration(profile)
 	if len(defects) != 1 || defects[0].Key != "widget" {
 		t.Errorf("got %+v, want one defect keyed widget", defects)
+	}
+}
+
+// A record-block tag registered more than once has no single schema, so
+// each registration after the first is a defect, whether or not the
+// pointers agree, and the duplicate check does not depend on the schema.
+func TestValidateRegistrationReportsARecordBlockTagRegisteredTwice(t *testing.T) {
+	schema := []byte(`{"definitions":{"W":{},"V":{}}}`)
+
+	same := stubProfile{schema: schema, recordBlocks: []corpus.RecordBlockTag{
+		{Tag: "c", Schema: "#/definitions/W"}, {Tag: "c", Schema: "#/definitions/W"},
+	}}
+	if defects := corpus.ValidateRegistration(same); len(defects) != 1 || defects[0].Key != "c" {
+		t.Errorf("same pointer twice: got %+v, want one defect keyed c", defects)
+	}
+
+	differ := stubProfile{schema: schema, recordBlocks: []corpus.RecordBlockTag{
+		{Tag: "c", Schema: "#/definitions/W"}, {Tag: "c", Schema: "#/definitions/V"},
+	}}
+	defects := corpus.ValidateRegistration(differ)
+	if len(defects) != 1 {
+		t.Fatalf("two pointers: got %+v, want one defect", defects)
+	}
+	for _, pointer := range []string{"#/definitions/W", "#/definitions/V"} {
+		if !strings.Contains(defects[0].Detail, pointer) {
+			t.Errorf("Detail %q does not name %s", defects[0].Detail, pointer)
+		}
+	}
+
+	thrice := stubProfile{schema: schema, recordBlocks: []corpus.RecordBlockTag{
+		{Tag: "c"}, {Tag: "c"}, {Tag: "c"},
+	}}
+	if defects := corpus.ValidateRegistration(thrice); len(defects) != 2 {
+		t.Errorf("three registrations: got %d defects, want 2: %+v", len(defects), defects)
+	}
+
+	unparsable := stubProfile{schema: []byte(`{not json`), recordBlocks: []corpus.RecordBlockTag{
+		{Tag: "c", Schema: "#/definitions/W"}, {Tag: "c", Schema: "#/definitions/W"},
+	}}
+	if defects := corpus.ValidateRegistration(unparsable); len(defects) != 1 {
+		t.Errorf("unparsable schema: got %+v, want only the duplicate defect", defects)
+	}
+
+	badDuplicate := stubProfile{schema: schema, recordBlocks: []corpus.RecordBlockTag{
+		{Tag: "c", Schema: "#/definitions/W"}, {Tag: "c", Schema: "#/definitions/Nope"},
+	}}
+	if defects := corpus.ValidateRegistration(badDuplicate); len(defects) != 2 {
+		t.Errorf("duplicate with a bad pointer: got %d defects, want 2: %+v", len(defects), defects)
+	}
+
+	distinct := stubProfile{schema: schema, recordBlocks: []corpus.RecordBlockTag{
+		{Tag: "a", Schema: "#/definitions/W"}, {Tag: "b", Schema: "#/definitions/V"},
+	}}
+	if defects := corpus.ValidateRegistration(distinct); len(defects) != 0 {
+		t.Errorf("distinct tags: got %+v, want none", defects)
 	}
 }

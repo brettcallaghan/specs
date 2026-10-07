@@ -179,7 +179,9 @@ The optional `Schema` pointer addresses a definition inside
 `Profile.Schema()`, so the host still holds one schema. The module names
 no tag, and a profile that registers none yields a corpus with no record
 blocks. `ValidateRegistration` reports a pointer that resolves to
-nothing instead of skipping validation; a tag with no pointer is valid.
+nothing instead of skipping validation, and a tag registered more than
+once, since which schema applies would depend on registration order; a
+tag with no pointer is valid.
 A schema that is not JSON raises no pointer defect, since no pointer can
 be judged against it: the schema registry reports it when the corpus
 compiles the profile's schema.
