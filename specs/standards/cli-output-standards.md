@@ -297,6 +297,7 @@ specified after them, conforms and is listed last.
 | `links <path>` | the rewritten document | conforms — a document payload, written as itself |
 | `index` | the artifact, or the path it wrote | the artifact is out of scope; the printed path is an answer |
 | `headings <selection>` | a YAML mapping whose one key is the sequence of matches; `--json` the same values in the same order; `--emit` the matched sections as themselves | conforms — written against these standards, and the source of the `renderYAML` the other commands adopt |
+| `c4 [--root <slug>]` | a YAML mapping of the C4 model; `--json` the same values in the same order | conforms — written against these standards, and renders through `renderYAML` unchanged |
 
 Migration is per command and belongs to whichever feature next touches
 it. Every command carries snapshot cases under `cli/testdata/cases/`,

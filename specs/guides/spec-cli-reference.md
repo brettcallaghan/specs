@@ -53,6 +53,7 @@ it rather than assuming `docs/`.
 | `specs slug-exists <slug>` | Is this slug already taken, and by which file? |
 | `specs refs <slug> [--outbound]` | Who references this document — or what does it reference? |
 | `specs list [--type <type>] [--all]` | What does this corpus hold, and what is each document about? |
+| `specs c4 [--root <slug>] [--json]` | What systems, containers, components and modules does the corpus document, and what depends on what? |
 
 **`specs check`** validates every document's frontmatter against the
 active profile's schema and slug patterns, reports duplicate slugs, and
@@ -151,6 +152,44 @@ output.
 `specs list` is what makes `description` a consumed interface — see
 `shared/frontmatter-standards.md`, which tells an author to write it to
 be triaged from for exactly this reason.
+
+**`specs c4`** emits the corpus's C4 model: the architecture the corpus
+declares, read from blueprint frontmatter, roster record blocks and the
+`mermaid` C4 diagrams in blueprints. It takes no positional argument and
+two flags, and prints YAML by default:
+
+- **`--root <slug>`** narrows the model to the element with that slug and
+  its descendants. The root's ancestors appear only as the path down to
+  it, and only relationships with both endpoints inside the subtree are
+  kept. A slug naming no element is reported on standard error, nothing
+  is written to standard output, and the command exits non-zero.
+- **`--json`** writes JSON instead, holding the same values in the same
+  order.
+
+The model is a mapping whose top-level keys are `schema_version` (`0.1`),
+`workspace` (the name in `specs.toml`), and these collections, each
+ordered by slug so that two runs over an unchanged corpus produce
+byte-identical output:
+
+- `software_systems` — systems, each holding its containers, and each
+  container its components and the slugs of its modules.
+- `orphaned_containers` — containers whose blueprint declares no `system`.
+- `orphaned_components` — components no container or module declares.
+- `modules` — every module once, whatever the number of its hosts.
+- `relationships` — the dependency edges drawn in blueprint diagrams
+  between two elements.
+- `excluded_relationships` — every `Rel` or `BiRel` statement the model
+  does not admit, with its `path`, `span`, `text` and a `reason`:
+  `external_endpoint` (a `Person` or `_Ext` node), `passive_store` (a
+  `Db` or `Queue` naming no element), `undeclared_node` (a label
+  matching no element in scope), `ambiguous_node` (a label matching more
+  than one) or `bidirectional` (a `BiRel`, which states no single
+  dependency).
+
+The command exits 0 whatever the model holds: excluded relationships are
+facts recorded in the artifact, and judging the diagrams is `specs check`'s
+job (`c4/*` findings). The JSON output validates against the `C4Model`
+definition in the generated model JSON Schema.
 
 ## Reference checks
 
@@ -262,7 +301,8 @@ so `--strict` is worth passing in CI where any of them should block.
 found" is an answer, not a failure. Read their output, not their status.
 So does `list`, whose empty answer is a fact about the corpus; the one
 thing that fails it is a `--type` value the active profile does not
-register.
+register. `c4` exits 0 whatever its model holds; the one thing that fails it
+is a `--root` slug naming no element.
 
 ## What it does not check
 
