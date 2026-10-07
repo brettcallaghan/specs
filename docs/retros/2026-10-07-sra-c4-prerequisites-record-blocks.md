@@ -9,7 +9,7 @@ finding it captured, what it routed where, and what it could not establish.*
   three passes). Pass 3 filed `specs-sra.8` and `specs-sra.9` as run-introduced
   defects and they are **left open under the run epic, not worked**. The run
   finished over a narrower scope than its review produced.
-- **Every tracker write this run is local-only.** The tracker's Dolt remote
+- **Every tracker write this run was local-only until post-retro** (reconciled at 06:00Z; see Decisions and filings). The tracker's Dolt remote
   diverged mid-run (another session pushed `beads/data` at 05:05–05:07Z), so
   every `bd dolt push` failed non-fast-forward (manifest ledger entry 3). The
   closures, comments and this run's manifest keys exist only in this
@@ -403,5 +403,23 @@ remaining bead blocked/skipped with its reason) before the agent returns.
 
 ## Decisions and filings
 
-**Pending.** The candidates are put to the human by the coordinator; nothing is
-filed yet. `retro_filed` / `retro_declined` / `retro_routed` are not yet set.
+Put to Brett in the project thread at 05:55Z; answered "yes" at 06:00Z to the
+recommendation to file all six. Filed 6, declined 0.
+
+| | filed as |
+|---|---|
+| A | bead `specs-xoe`, `discovered-from:specs-f6tl.6` |
+| B | `outbox/swarm/swarm-dispatch/2026-10-07-read-beads-as-json-not-rendered-text.md` |
+| C | bead `specs-30x`, `discovered-from:specs-sra` — re-scoped: see below |
+| D | `outbox/swarm/swarm/2026-10-07-dispatch-open-cannot-adopt-a-designated-branch.md` |
+| E | `outbox/swarm/swarm/2026-10-07-a-run-resolves-no-trailers.md` |
+| F | `outbox/swarm/swarm-dispatch/2026-10-07-dispatch-returned-with-queue-undrained.md` |
+
+Dedupe: recurrence comment added to `specs-84yu` (`bd-health.sh`).
+
+**The tracker is no longer local-only.** With Brett's approval, after a tar
+backup of `.beads/embeddeddolt`: `timeout -s KILL 240 bd dolt pull` → exit 0,
+"Pull complete."; a second pull then `bd dolt push` → "Push complete.";
+`git ls-remote origin beads/data` → `9e1382b`. The pull did not deadlock, so C
+was filed as "document the reconcile procedure and re-measure the `bd dolt
+pull` deadlock ledger entry" rather than "no in-container remedy exists".
