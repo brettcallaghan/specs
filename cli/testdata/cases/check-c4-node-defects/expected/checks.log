@@ -1,0 +1,37 @@
+checked 6 documents
+
+docs/containers/spec-cli.md:
+  c4/ambiguous-node  error  22:5  node "twin" labelled "Twin" names 2 elements in scope: container-twin-one, container-twin-two
+  c4/undeclared-node  error  23:5  node "ghost" labelled "Ghost Service" names no element in scope
+  c4/parse  error  24:5  cannot read "Frobnicate(x, \"Not a macro\")": `Frobnicate` is not a macro this parser reads
+  c4/parse  unverified  46:1  diagram type "C4Dynamic" is not a C4 diagram this check reads
+
+checks:
+  c4/ambiguous-node  failed
+  c4/parse  failed
+  c4/undeclared-node  failed
+  corpus/empty  passed
+  frontmatter/missing-property  passed
+  frontmatter/parse  passed
+  frontmatter/schema  passed
+  gherkin/criterion-code-mismatch  passed
+  gherkin/criterion-empty  passed
+  gherkin/criterion-untagged  passed
+  gherkin/examples-partially-tagged  passed
+  gherkin/feature-untagged  passed
+  gherkin/identifier-duplicate  passed
+  gherkin/identifier-malformed  passed
+  gherkin/identifier-multiple  passed
+  gherkin/owner-mismatch  passed
+  gherkin/owner-missing  passed
+  gherkin/owner-unresolved  passed
+  gherkin/parse  passed
+  gherkin/scenario-prose  passed
+  reference/ambiguous-anchor  passed
+  reference/pairing-incomplete  passed
+  reference/retired-target  passed
+  reference/type-mismatch  passed
+  reference/unresolved  passed
+  reference/unresolved-anchor  passed
+  slug/duplicate  passed
+  slug/pattern-mismatch  passed

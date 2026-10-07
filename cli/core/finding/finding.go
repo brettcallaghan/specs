@@ -853,6 +853,76 @@ func ExamplesPartiallyTagged(path string, untagged []specmodel.Span) specmodel.F
 	}
 }
 
+// C4Parse reports a statement of a C4 diagram the parser could not read,
+// quoting the statement and the parser's reason (AC-C4-DIAG-001.1).
+func C4Parse(path string, at specmodel.Span, statement, reason string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleC4Parse,
+		Severity: SeverityError,
+		Path:     path,
+		Span:     at,
+		Message:  fmt.Sprintf("cannot read %q: %s", statement, reason),
+		Detail: specmodel.NewFindingDetailC4Parse(specmodel.FindingC4Parse{
+			Statement: statement,
+			Reason:    reason,
+		}),
+	}
+}
+
+// C4UnreadDiagram reports a `mermaid` block in an architecture blueprint
+// whose diagram type the parser does not read, naming the type
+// (AC-C4-DIAG-001.3). It carries [SeverityUnverified] under
+// [RuleC4Parse]: the block was not looked inside, which is not the claim
+// that it was and is sound.
+func C4UnreadDiagram(path string, at specmodel.Span, diagramType string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleC4Parse,
+		Severity: SeverityUnverified,
+		Path:     path,
+		Span:     at,
+		Message:  fmt.Sprintf("diagram type %q is not a C4 diagram this check reads", diagramType),
+		Detail: specmodel.NewFindingDetailC4UnreadDiagram(specmodel.FindingC4UnreadDiagram{
+			DiagramType: diagramType,
+		}),
+	}
+}
+
+// C4UndeclaredNode reports a non-external node whose label names no
+// element in the scope of its drawing document and which is not a
+// passive store (AC-C4-DIAG-002.3).
+func C4UndeclaredNode(path string, at specmodel.Span, alias, label string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleC4UndeclaredNode,
+		Severity: SeverityError,
+		Path:     path,
+		Span:     at,
+		Message:  fmt.Sprintf("node %q labelled %q names no element in scope", alias, label),
+		Detail: specmodel.NewFindingDetailC4Node(specmodel.FindingC4Node{
+			Alias:   alias,
+			Label:   label,
+			Matches: []string{},
+		}),
+	}
+}
+
+// C4AmbiguousNode reports a node whose label names more than one element
+// in scope, naming every one in slug order (AC-C4-DIAG-002.4).
+func C4AmbiguousNode(path string, at specmodel.Span, alias, label string, matches []string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleC4AmbiguousNode,
+		Severity: SeverityError,
+		Path:     path,
+		Span:     at,
+		Message: fmt.Sprintf("node %q labelled %q names %d elements in scope: %s",
+			alias, label, len(matches), strings.Join(matches, ", ")),
+		Detail: specmodel.NewFindingDetailC4Node(specmodel.FindingC4Node{
+			Alias:   alias,
+			Label:   label,
+			Matches: matches,
+		}),
+	}
+}
+
 // renderPointer renders a JSON Pointer for a message, substituting the
 // root pointer for the empty string the JSON Pointer spec uses for it.
 func renderPointer(pointer string) string {

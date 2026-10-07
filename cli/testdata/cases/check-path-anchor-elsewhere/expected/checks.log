@@ -2,6 +2,9 @@ docs/adrs/adr-301-referrer.md:
   reference/unresolved-anchor  error  12:25  no heading named "Decision" in docs/adrs/adr-300-renamed.md
 
 checks:
+  c4/ambiguous-node  passed
+  c4/parse  passed
+  c4/undeclared-node  passed
   corpus/empty  passed
   frontmatter/missing-property  passed
   frontmatter/parse  passed

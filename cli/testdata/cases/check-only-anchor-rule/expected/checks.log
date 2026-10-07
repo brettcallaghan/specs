@@ -4,6 +4,9 @@ docs/adrs/adr-401-referrer.md:
   reference/ambiguous-anchor  error  13:43  "References" matches 2 headings in docs/adrs/adr-400-target.md
 
 checks:
+  c4/ambiguous-node  not-requested
+  c4/parse  not-requested
+  c4/undeclared-node  not-requested
   corpus/empty  not-requested
   frontmatter/missing-property  not-requested
   frontmatter/parse  not-requested

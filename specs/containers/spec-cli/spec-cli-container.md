@@ -207,7 +207,11 @@ never requested, which is what lets the rendered report tell "checked
 and clean" apart from "not asked for" (AC-SPEC-006.8). Exit status
 follows `finding.Report.HasErrors`: any error exits 1 unconditionally;
 warning or unverified findings alone exit 0 unless `--strict` is given
-(AC-SPEC-006.6, AC-SPEC-006.7). `slug-exists` and `next-id` open the
+(AC-SPEC-006.6, AC-SPEC-006.7). `checkRules` declares every rule a run
+can raise, so `--only` can name each and a clean run reports each as
+passed; the first three `c4/*` rules — `c4/parse`, `c4/undeclared-node`
+and `c4/ambiguous-node` — joined it when Document Core began raising
+them, and the rest join as their checks land. `slug-exists` and `next-id` open the
 corpus warm and answer `corpus.Corpus.Slug` and `numbering.Next`
 directly (AC-SPEC-011.3, AC-SPEC-011.4).
 

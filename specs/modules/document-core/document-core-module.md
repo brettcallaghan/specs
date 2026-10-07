@@ -1554,6 +1554,29 @@ one document reports that document's own content findings and nothing
 more, on the same path-scoped narrowing every VTAG rule but
 `gherkin/identifier-duplicate` gets (AC-GHK-006.7).
 
+**They check the C4 diagrams in architecture blueprints** — the first
+half of the `c4/*` family, raised from `c4NodeFindings` over the element
+set `Corpus.C4Elements` builds, after the Gherkin rules. `c4/parse`
+reports, at severity `error` and at the statement's span, a statement
+the C4 Diagrams parser could not read, quoting it and the parser's
+reason (AC-C4-DIAG-001.1); and, at severity `unverified` and at the
+block's span, a `mermaid` block whose diagram type the parser does not
+read, naming the type (AC-C4-DIAG-001.3) — the block was not looked
+inside, which is not the claim that it is sound. `c4/undeclared-node`
+reports a node that is neither external nor a passive store and names
+no element in its drawing document's scope, and `c4/ambiguous-node` a
+node naming several, listing every match in slug order (AC-C4-DIAG-002.3,
+AC-C4-DIAG-002.4); both are errors at the node's span, and a node naming
+one element raises nothing (AC-C4-DIAG-002.1, AC-C4-DIAG-002.2). External
+nodes and passive stores are never reported undeclared
+(AC-C4-DIAG-002.5). Only a member whose type the profile registers as
+declaring an element is examined, so a diagram in a feature blueprint
+raises nothing (AC-C4-DIAG-001.4), and a profile registering no
+architecture vocabulary raises nothing at all. The element set is built
+for the whole corpus even on a single-document check, because a node's
+scope reaches beyond its own file; the findings are then narrowed to the
+named file like every other per-file rule.
+
 **Output and warm cache** — the same package. `Write` emits the index to
 one destination, resolved by `IndexPath`: `specs.json` inside the
 configured spec root by default (AC-SPEC-010.1), a named path when the

@@ -4,6 +4,9 @@ docs/adrs/adr-001-missing-description.md:
   frontmatter/missing-property  error  1:4  /: required property "description" is not declared
 
 checks:
+  c4/ambiguous-node  passed
+  c4/parse  passed
+  c4/undeclared-node  passed
   corpus/empty  passed
   frontmatter/missing-property  failed
   frontmatter/parse  passed

@@ -3,6 +3,9 @@ docs/adrs/adr-201-referrer.md:
   reference/retired-target  warning  13:3  "adr-202-retired" is retired
 
 checks:
+  c4/ambiguous-node  passed
+  c4/parse  passed
+  c4/undeclared-node  passed
   corpus/empty  passed
   frontmatter/missing-property  passed
   frontmatter/parse  passed

@@ -218,6 +218,16 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 	report.Add(c.gherkinIdentityFindings(vocab, rules, gherkinFeatures)...)
 	report.Add(gherkinContentFindings(rules, gherkinFeatures, gherkinFailures)...)
 
+	// The C4 checks read the element set from the index and each
+	// drawing document's diagrams from its source; resolving a node needs
+	// the whole corpus's elements, so the set is built whatever only
+	// names, and the narrowing below scopes the findings to one file.
+	elements, err := c.C4Elements()
+	if err != nil {
+		return nil, fmt.Errorf("corpus: reading C4 diagrams: %w", err)
+	}
+	report.Add(c4NodeFindings(elements)...)
+
 	findings := report.Model().Findings
 	if only == nil {
 		return findings, nil
