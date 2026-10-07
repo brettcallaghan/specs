@@ -90,9 +90,32 @@ type Block struct {
 // with no closing fence line — is not returned, matching the Spans
 // scanner's refusal to guess at a dangling delimiter.
 func Fenced(body []byte, tags []string) []Block {
+	return FencedFrom(body, 0, tags)
+}
+
+// FencedFrom returns every fenced block of src at or after the byte offset
+// from whose info string exactly matches one of tags, with every span
+// expressed in src's own coordinates, as [Fenced] does for a whole body.
+//
+// A caller passes the offset of a document's body rather than slicing it
+// out, for the reason [HeadingsFrom] does: a span counts from the start of
+// the file, frontmatter included. Searching from the body also keeps YAML
+// text in the frontmatter, such as an indented fenced example inside a
+// block scalar, from being read as a Markdown fence.
+//
+// A negative from is treated as 0, and one past the end of src yields no
+// block.
+func FencedFrom(src []byte, from int, tags []string) []Block {
 	if len(tags) == 0 {
 		return nil
 	}
+	if from < 0 {
+		from = 0
+	}
+	if from > len(src) {
+		return nil
+	}
+	body := src[from:]
 	registered := make(map[string]bool, len(tags))
 	for _, tag := range tags {
 		registered[tag] = true
@@ -112,7 +135,7 @@ func Fenced(body []byte, tags []string) []Block {
 		if !registered[tag] {
 			return mdast.WalkContinue, nil
 		}
-		if block, ok := blockOf(body, fenced, tag); ok {
+		if block, ok := blockOf(src, from, fenced, tag); ok {
 			found = append(found, block)
 		}
 		return mdast.WalkContinue, nil
@@ -122,7 +145,11 @@ func Fenced(body []byte, tags []string) []Block {
 
 // blockOf computes tag's Block from the fenced code block node goldmark
 // already located, reporting false for a fence with no closing line.
-func blockOf(body []byte, node *mdast.FencedCodeBlock, tag string) (Block, bool) {
+//
+// Offsets are computed within the searched region src[from:], and the
+// spans are made against src at from plus those offsets.
+func blockOf(src []byte, from int, node *mdast.FencedCodeBlock, tag string) (Block, bool) {
+	body := src[from:]
 	openLineStart := lineStart(body, node.Info.Segment.Start)
 
 	var contentStart, contentEnd int
@@ -152,8 +179,8 @@ func blockOf(body []byte, node *mdast.FencedCodeBlock, tag string) (Block, bool)
 		Tag:     tag,
 		Content: bytes.Clone(body[contentStart:contentEnd]),
 		Text:    textBytes,
-		Outer:   span.Of(body, openLineStart, closeLineEnd-openLineStart),
-		Inner:   span.Of(body, contentStart, contentEnd-contentStart),
+		Outer:   span.Of(src, from+openLineStart, closeLineEnd-openLineStart),
+		Inner:   span.Of(src, from+contentStart, contentEnd-contentStart),
 	}, true
 }
 

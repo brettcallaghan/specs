@@ -5,6 +5,7 @@ package corpus
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -124,5 +125,30 @@ func TestTheFallbackStillLocatesTheBodyOfAnOrdinaryDocument(t *testing.T) {
 	late := []byte("# Heading\n\nbody\n\n---\n\nmore\n")
 	if found, _ := headingsOf(late, nil, nil); len(found) != 1 || found[0].Text != "Heading" {
 		t.Errorf("a late delimiter: got %+v, want the one heading %q", found, "Heading")
+	}
+}
+
+// A fence written inside frontmatter YAML is not a record block, and a
+// record block in the body of a document with frontmatter is still
+// recorded with a span counted from the start of the file.
+func TestRecordBlocksAreSearchedFromTheBodyInWholeFileCoordinates(t *testing.T) {
+	frontOnly := []byte("---\ntitle: X\ndescription: |\n  ```component\n  name: x\n  ```\n---\n\n# Body\n\ntext\n")
+	found, unattached := headingsOf(frontOnly, nil, []string{"component"})
+	if len(found) != 1 || len(unattached) != 0 || len(found[0].RecordBlocks) != 0 {
+		t.Errorf("frontmatter fence: %d headings, %d unattached, %d attached; want 1, 0, 0",
+			len(found), len(unattached), len(found[0].RecordBlocks))
+	}
+
+	inBody := []byte("---\ntitle: X\ndescription: |\n  ```component\n  name: x\n  ```\n---\n\n# Body\n\n```component\nname: y\n```\n")
+	found, unattached = headingsOf(inBody, nil, []string{"component"})
+	if len(unattached) != 0 || len(found) != 1 || len(found[0].RecordBlocks) != 1 {
+		t.Fatalf("body fence: %d headings, %d unattached; want the block attached to its heading", len(found), len(unattached))
+	}
+	record := found[0].RecordBlocks[0]
+	if want := uint64(strings.Index(string(inBody), "```component\nname: y")); record.Span.Offset != want {
+		t.Errorf("Offset = %d, want %d", record.Span.Offset, want)
+	}
+	if record.Span.StartLine != 11 {
+		t.Errorf("StartLine = %d, want 11 (frontmatter included)", record.Span.StartLine)
 	}
 }

@@ -535,13 +535,12 @@ func (b *builder) classifyDocument(reported string, src []byte, doc *frontmatter
 // The second result is the record blocks no heading's section contains,
 // which belong to the document itself.
 //
-// The search starts at the body rather than at the start of the file. A
-// frontmatter block's closing delimiter underlines the YAML above it,
-// which CommonMark reads as a setext heading, so a whole-file search
-// reports the entire block as a level-2 heading — the one respect in
-// which a heading search differs from the fenced-block search beside it,
-// which is offered the whole file precisely so its spans need no second
-// arithmetic.
+// Both searches start at the body rather than at the start of the file,
+// with spans still in whole-file coordinates. A frontmatter block's
+// closing delimiter underlines the YAML above it, which CommonMark reads
+// as a setext heading, so a whole-file search reports the entire block as
+// a level-2 heading; and an indented fence inside a YAML block scalar
+// would be read as a record block.
 //
 // doc is the parsed frontmatter where there is one, so that the offset
 // costs nothing beyond the parse the walk already performed. Where the
@@ -578,7 +577,7 @@ func headingsOf(src []byte, doc *frontmatter.Document, recordTags []string) ([]s
 			RecordBlocks: []specmodel.RecordBlock{},
 		})
 	}
-	return headings, attachRecordBlocks(headings, recordBlocksOf(src, recordTags))
+	return headings, attachRecordBlocks(headings, recordBlocksOf(src, from, recordTags))
 }
 
 // extractReferences records the references one member makes, from the

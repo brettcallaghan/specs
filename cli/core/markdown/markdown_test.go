@@ -5,6 +5,7 @@
 package markdown_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
@@ -238,5 +239,37 @@ func TestTextEqualsContentForABlockAtTheTopLevel(t *testing.T) {
 	}
 	if string(found[0].Text) != string(found[0].Content) {
 		t.Errorf("Text = %q, Content = %q, want equal", found[0].Text, found[0].Content)
+	}
+}
+
+// FencedFrom leaves a fence before the offset behind and reports a later
+// fence's spans exactly as Fenced does over the whole source.
+func TestFencedFromSkipsEarlierFencesAndKeepsWholeSourceSpans(t *testing.T) {
+	src := []byte("```component\nname: a\n```\n\nBody.\n\n```component\nname: b\n```\n")
+	from := strings.Index(string(src), "Body.")
+
+	all := markdown.Fenced(src, []string{"component"})
+	if len(all) != 2 {
+		t.Fatalf("Fenced found %d blocks, want 2", len(all))
+	}
+	got := markdown.FencedFrom(src, from, []string{"component"})
+	if len(got) != 1 {
+		t.Fatalf("FencedFrom found %d blocks, want 1", len(got))
+	}
+	if got[0].Outer != all[1].Outer || got[0].Inner != all[1].Inner {
+		t.Errorf("spans = %+v / %+v, want %+v / %+v", got[0].Outer, got[0].Inner, all[1].Outer, all[1].Inner)
+	}
+	if got[0].Outer.StartLine != 7 {
+		t.Errorf("Outer.StartLine = %d, want 7 (counted from the start of src)", got[0].Outer.StartLine)
+	}
+}
+
+func TestFencedFromClampsItsOffset(t *testing.T) {
+	src := []byte("```component\nname: a\n```\n")
+	if got := markdown.FencedFrom(src, -5, []string{"component"}); len(got) != 1 {
+		t.Errorf("negative from found %d blocks, want 1", len(got))
+	}
+	if got := markdown.FencedFrom(src, len(src)+1, []string{"component"}); got != nil {
+		t.Errorf("from past the end found %d blocks, want none", len(got))
 	}
 }

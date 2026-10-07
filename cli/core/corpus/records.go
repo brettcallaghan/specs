@@ -33,11 +33,12 @@ func sortedTags(tags []string) []string {
 //
 // The blocks are recorded whether or not their content is valid. Judging
 // a record is a check's job; a block that fails it is still a place a
-// reader can be sent. src is the whole file, so the spans are in the same
-// coordinates as the heading spans.
-func recordBlocksOf(src []byte, tags []string) []specmodel.RecordBlock {
+// reader can be sent. The search starts at byte offset from, the start of
+// the body, so a fence written inside frontmatter YAML is not a record;
+// the spans are in whole-file coordinates, the same as the heading spans.
+func recordBlocksOf(src []byte, from int, tags []string) []specmodel.RecordBlock {
 	var records []specmodel.RecordBlock
-	for _, block := range markdown.Fenced(src, tags) {
+	for _, block := range markdown.FencedFrom(src, from, tags) {
 		records = append(records, specmodel.RecordBlock{Tag: block.Tag, Span: block.Outer})
 	}
 	return records

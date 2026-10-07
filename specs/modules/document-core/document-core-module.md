@@ -463,9 +463,14 @@ position is comparable to a frontmatter or reference position. An
 unterminated fence — content running to the end of the document with no
 closing line — yields no block, matching the Spans scanner's refusal to
 guess at a dangling delimiter. `Fenced` locates and returns bytes only.
+`FencedFrom` is its offset-taking form, mirroring `HeadingsFrom`: it searches from a byte offset and
+reports every span in whole-file coordinates, and `Fenced` is
+`FencedFrom` at offset 0.
 
-**Built — record-block recording.** Corpus calls `Fenced` with the tags
-the active profile registers through `RecordBlocks` and records each
+**Built — record-block recording.** Corpus calls `FencedFrom`, from the
+start of the body so a fence inside frontmatter YAML is never a record,
+with the tags the
+active profile registers through `RecordBlocks` and records each
 block as a `RecordBlock` of tag and `Outer` span, fences included, never
 its content. A record attaches to the innermost heading whose section
 span contains it, and to the entry's own `record_blocks` where no
