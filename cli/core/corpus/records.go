@@ -78,7 +78,8 @@ func attachRecordBlocks(headings []specmodel.Heading, records []specmodel.Record
 // pointer to the caller's own Go value.
 //
 // src is the bytes of the document the block was recorded in. The block
-// is re-located through Markdown Structure and its content read as the
+// is re-located from the body through Markdown Structure, as the index
+// searched, and its content read as the
 // parser reads it, container prefixes (a blockquote's "> ") removed, so
 // every command and check decodes a record the same way. A span outside
 // src, a span that does not cover a fenced block of the block's tag, or
@@ -89,7 +90,7 @@ func DecodeRecordBlock(src []byte, block specmodel.RecordBlock, target any) erro
 		return fmt.Errorf("record block span [%d,%d) lies outside a %d-byte document",
 			block.Span.Offset, end, len(src))
 	}
-	for _, found := range markdown.Fenced(src, []string{block.Tag}) {
+	for _, found := range markdown.FencedFrom(src, bodyOffset(src), []string{block.Tag}) {
 		if found.Outer.Offset == block.Span.Offset && found.Outer.Length == block.Span.Length {
 			return yaml.Unmarshal(found.Text, target)
 		}

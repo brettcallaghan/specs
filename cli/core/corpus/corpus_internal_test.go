@@ -152,3 +152,20 @@ func TestRecordBlocksAreSearchedFromTheBodyInWholeFileCoordinates(t *testing.T) 
 		t.Errorf("StartLine = %d, want 11 (frontmatter included)", record.Span.StartLine)
 	}
 }
+
+func TestARecordTheIndexFoundFromTheBodyDecodesDespiteAFenceInFrontmatter(t *testing.T) {
+	src := []byte("---\ntitle: X\ndescription: |\n  ```yaml\n  foo: 1\n---\n\n# Body\n\n```component\nname: y\n```\n")
+	found, _ := headingsOf(src, nil, []string{"component"})
+	if len(found) != 1 || len(found[0].RecordBlocks) != 1 {
+		t.Fatalf("found %d headings; want one with one record block", len(found))
+	}
+	var v struct {
+		Name string `yaml:"name"`
+	}
+	if err := DecodeRecordBlock(src, found[0].RecordBlocks[0], &v); err != nil {
+		t.Fatalf("DecodeRecordBlock: %v", err)
+	}
+	if v.Name != "y" {
+		t.Errorf("name = %q, want y", v.Name)
+	}
+}

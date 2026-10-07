@@ -483,7 +483,7 @@ heading's does; each appears exactly once, and an entry with no
 registered tag carries `[]` throughout. A block is recorded whether or
 not its content is valid: indexing raises no finding about a record.
 `DecodeRecordBlock` reads a recorded block's content back through its
-span: it re-locates the block through `Fenced`, matching on `Outer`, and
+span: it re-locates the block from the body through `FencedFrom`, the same search that recorded it, matching on `Outer`, and
 decodes the block's `Text` as YAML into a caller-supplied Go value, so a
 record inside a blockquote decodes like any other and a span that covers
 no fenced block of the tag is an error. Every command and check decodes

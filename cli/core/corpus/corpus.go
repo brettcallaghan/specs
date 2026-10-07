@@ -529,6 +529,24 @@ func (b *builder) classifyDocument(reported string, src []byte, doc *frontmatter
 	b.extractBlockFeatures(reported, src, doc)
 }
 
+// bodyOffset is the byte offset at which src's body begins: just past
+// its frontmatter block, or 0 where there is none.
+//
+// The Frontmatter component owns the format, so it is asked where the
+// block is rather than the rule being re-derived here: its closing
+// delimiter carries a leading newline, and a search for a bare "---"
+// would close the block at the first such run inside a value and leave
+// the body starting mid-block. Where no block is located — none present,
+// or one that never closes — the whole source is the body. Indexing and
+// decoding a record block both search from here, so a span the index
+// recorded is one decoding finds again.
+func bodyOffset(src []byte) int {
+	if region, ok := frontmatter.Locate(src); ok {
+		return int(region.Outer.Offset + region.Outer.Length)
+	}
+	return 0
+}
+
 // headingsOf returns the headings of one candidate's body, in the order
 // they are written and in the document's own coordinates, each carrying
 // the record blocks registered by recordTags that its section contains.
@@ -554,16 +572,7 @@ func headingsOf(src []byte, doc *frontmatter.Document, recordTags []string) ([]s
 	case doc != nil:
 		from = int(doc.Region.Outer.Offset + doc.Region.Outer.Length)
 	default:
-		// The Frontmatter component owns the format, so it is asked
-		// where the block is rather than the rule being re-derived here:
-		// its closing delimiter carries a leading newline, and a search
-		// for a bare "---" would close the block at the first such run
-		// inside a value and leave the body starting mid-block. Where no
-		// block is located — none present, or one that never closes —
-		// the whole source is the body.
-		if region, ok := frontmatter.Locate(src); ok {
-			from = int(region.Outer.Offset + region.Outer.Length)
-		}
+		from = bodyOffset(src)
 	}
 
 	found := markdown.HeadingsFrom(src, from)
