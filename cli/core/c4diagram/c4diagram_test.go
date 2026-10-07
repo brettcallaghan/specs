@@ -590,3 +590,97 @@ func TestRepeatedTagsArgumentKeepsTheLastOne(t *testing.T) {
 		t.Errorf("unreserved = %q, want empty", tags.Unreserved)
 	}
 }
+
+func TestAnUnknownNamedArgumentIsAParseError(t *testing.T) {
+	for name, tc := range map[string]struct {
+		statement string
+		unknown   string
+	}{
+		"$tag= (typo for $tags=)": {
+			statement: `Rel(a, b, "Uses", $tag="contract:missing")`,
+			unknown:   "tag",
+		},
+		"$foo= (unknown parameter)": {
+			statement: `Rel(a, b, "x", $foo="y")`,
+			unknown:   "foo",
+		},
+		"$$tags= (double dollar)": {
+			statement: `Rel(a, b, "x", $$tags="sync")`,
+			unknown:   "$tags",
+		},
+		"$techn= on System (tech not allowed)": {
+			statement: `System(s, "S", $techn="Go")`,
+			unknown:   "techn",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			d := parseBlock(t, diagram(tc.statement))
+			if len(d.Errors) != 1 {
+				t.Fatalf("got %d errors, want 1: %+v", len(d.Errors), d.Errors)
+			}
+			err := d.Errors[0]
+			want := "$" + tc.unknown + "` is not a parameter"
+			if !strings.Contains(err.Reason, want) {
+				t.Errorf("reason = %q, want it to mention %q", err.Reason, want)
+			}
+			if err.Statement != tc.statement {
+				t.Errorf("Statement = %q, want %q", err.Statement, tc.statement)
+			}
+		})
+	}
+}
+
+func TestShortAndLongParameterNamesAreAccepted(t *testing.T) {
+	for name, tc := range map[string]struct {
+		statement string
+		param     string
+		want      string
+	}{
+		"$techn= on Container": {
+			statement: `Container(c, "C", $techn="Go")`,
+			param:     c4diagram.ParamTechnology,
+			want:      "Go",
+		},
+		"$descr= on Container": {
+			statement: `Container(c, "C", $descr="Described")`,
+			param:     c4diagram.ParamDescription,
+			want:      "Described",
+		},
+		"$techn= on Rel": {
+			statement: `Rel(a, b, "Uses", $techn="HTTP")`,
+			param:     c4diagram.ParamTechnology,
+			want:      "HTTP",
+		},
+		"$descr= on Rel": {
+			statement: `Rel(a, b, "Uses", $descr="Async")`,
+			param:     c4diagram.ParamDescription,
+			want:      "Async",
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			s := only(t, parseBlock(t, diagram(tc.statement)))
+			got := param(t, s, tc.param)
+			if got != tc.want {
+				t.Errorf("%s = %q, want %q", tc.param, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestIgnoredMacrosAcceptArbitraryNamedArguments(t *testing.T) {
+	for name, macro := range map[string]string{
+		"UpdateRelStyle": `UpdateRelStyle(a, b, $offsetX="5")`,
+		"UpdateElementStyle": `UpdateElementStyle(c, $strokeColor="#ff0000")`,
+		"UpdateLayoutConfig": `UpdateLayoutConfig($c4ShapeInRow="3")`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			d := parseBlock(t, diagram(macro))
+			if len(d.Errors) != 0 {
+				t.Fatalf("unexpected errors: %+v", d.Errors)
+			}
+			if len(d.Statements) != 1 || d.Statements[0].Kind != c4diagram.KindIgnored {
+				t.Errorf("got %d statements or wrong kind; want 1 ignored statement", len(d.Statements))
+			}
+		})
+	}
+}

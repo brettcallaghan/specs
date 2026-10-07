@@ -519,6 +519,23 @@ func (p *parser) statement(text string, base int, at span.Span) (Statement, *Par
 		return failure("unexpected text after the closing parenthesis: " + rest)
 	}
 
+	// Validate that named arguments reference known parameters. KindIgnored
+	// macros are exempt, as they accept arbitrary named arguments like $offsetX.
+	if row.kind != KindIgnored {
+		for _, arg := range named {
+			valid := false
+			for _, param := range row.params {
+				if namedAs(arg.Name, param) {
+					valid = true
+					break
+				}
+			}
+			if !valid {
+				return failure("`$" + arg.Name + "` is not a parameter of " + name)
+			}
+		}
+	}
+
 	statement := Statement{
 		Kind:      row.kind,
 		Macro:     name,
