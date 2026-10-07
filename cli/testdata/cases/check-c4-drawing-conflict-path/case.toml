@@ -1,0 +1,5 @@
+description = "check naming one document still compares its drawings against every architecture blueprint's: beta's drawing of alpha calling beta conflicts with alpha's, and the warning lands on beta, the drawing that sorts second"
+cites = ["AC-C4-DIAG-003.3"]
+artifacts = ["checks.log"]
+args = ["check", "docs/containers/beta.md"]
+exit_code = 0

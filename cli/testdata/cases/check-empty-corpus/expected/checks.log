@@ -5,7 +5,14 @@ docs:
 
 checks:
   c4/ambiguous-node  passed
+  c4/bidirectional  passed
+  c4/contract-mismatch  passed
+  c4/contract-unresolved  passed
+  c4/drawing-conflict  passed
+  c4/duplicate-edge  passed
+  c4/interaction-conflict  passed
   c4/parse  passed
+  c4/tag-separator  passed
   c4/undeclared-node  passed
   corpus/empty  failed
   frontmatter/missing-property  passed

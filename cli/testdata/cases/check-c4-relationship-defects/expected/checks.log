@@ -1,0 +1,49 @@
+checked 5 documents
+
+docs/containers/alpha.md:
+  c4/bidirectional  error  24:5  BiRel(a, g) states no direction; draw the dependency as Rel
+  c4/duplicate-edge  error  26:5  a -> b is drawn more than once in this diagram
+  c4/interaction-conflict  error  28:5  g -> a is tagged both sync and async
+  c4/contract-unresolved  error  29:5  contract:contract-missing names no contract
+  c4/contract-mismatch  warning  30:5  contract:contract-good on b -> g: container-beta does not list it among the contracts it consumes, and its provider is not container-gamma
+  c4/tag-separator  warning  31:5  tags "async,audited" contain a comma; join tags with +
+
+docs/containers/beta.md:
+  c4/drawing-conflict  warning  20:5  a -> b differs in technology from its drawing at docs/containers/alpha.md:25
+
+checks:
+  c4/ambiguous-node  passed
+  c4/bidirectional  failed
+  c4/contract-mismatch  failed
+  c4/contract-unresolved  failed
+  c4/drawing-conflict  failed
+  c4/duplicate-edge  failed
+  c4/interaction-conflict  failed
+  c4/parse  passed
+  c4/tag-separator  failed
+  c4/undeclared-node  passed
+  corpus/empty  passed
+  frontmatter/missing-property  passed
+  frontmatter/parse  passed
+  frontmatter/schema  passed
+  gherkin/criterion-code-mismatch  passed
+  gherkin/criterion-empty  passed
+  gherkin/criterion-untagged  passed
+  gherkin/examples-partially-tagged  passed
+  gherkin/feature-untagged  passed
+  gherkin/identifier-duplicate  passed
+  gherkin/identifier-malformed  passed
+  gherkin/identifier-multiple  passed
+  gherkin/owner-mismatch  passed
+  gherkin/owner-missing  passed
+  gherkin/owner-unresolved  passed
+  gherkin/parse  passed
+  gherkin/scenario-prose  passed
+  reference/ambiguous-anchor  passed
+  reference/pairing-incomplete  passed
+  reference/retired-target  passed
+  reference/type-mismatch  passed
+  reference/unresolved  passed
+  reference/unresolved-anchor  passed
+  slug/duplicate  passed
+  slug/pattern-mismatch  passed

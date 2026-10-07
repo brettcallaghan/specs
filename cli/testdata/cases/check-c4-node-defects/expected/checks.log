@@ -8,7 +8,14 @@ docs/containers/spec-cli.md:
 
 checks:
   c4/ambiguous-node  failed
+  c4/bidirectional  passed
+  c4/contract-mismatch  passed
+  c4/contract-unresolved  passed
+  c4/drawing-conflict  passed
+  c4/duplicate-edge  passed
+  c4/interaction-conflict  passed
   c4/parse  failed
+  c4/tag-separator  passed
   c4/undeclared-node  failed
   corpus/empty  passed
   frontmatter/missing-property  passed

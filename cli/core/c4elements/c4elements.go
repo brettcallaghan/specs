@@ -80,6 +80,43 @@ type Element struct {
 	// blueprint's frontmatter and each record block naming its slug —
 	// ordered by path and then by span.
 	Declarations []specmodel.C4Declaration
+
+	// ConsumedContracts are the contract slugs the element's blueprint
+	// lists in its consumed-contracts property, as written and without
+	// any anchor. A record block declares none.
+	ConsumedContracts []string
+}
+
+// Contract is one corpus member of the registered contract type.
+type Contract struct {
+	// Slug is the contract's slug, and Path the member declaring it.
+	Slug string
+	Path string
+
+	// Providers are the slugs the contract names in its provider
+	// property, as written and without any anchor.
+	Providers []string
+}
+
+// Consumes reports whether the element lists slug among its consumed
+// contracts, compared without regard to letter case.
+func (e *Element) Consumes(slug string) bool {
+	for _, consumed := range e.ConsumedContracts {
+		if slugKey(consumed) == slugKey(slug) {
+			return true
+		}
+	}
+	return false
+}
+
+// ProvidedBy reports whether the contract names element as its provider.
+func (c *Contract) ProvidedBy(element *Element) bool {
+	for _, provider := range c.Providers {
+		if slugKey(provider) == slugKey(element.Slug) {
+			return true
+		}
+	}
+	return false
 }
 
 // Document is one drawing document: a corpus member whose type the
@@ -234,6 +271,15 @@ type Set struct {
 	bySlug        map[string]*Element
 	documents     []*Document
 	relationships []Relationship
+	contracts     map[string]*Contract
+}
+
+// Contract returns the member of the registered contract type declaring
+// slug, compared without regard to letter case. A profile registering no
+// contract type has none.
+func (s *Set) Contract(slug string) (*Contract, bool) {
+	contract, ok := s.contracts[slugKey(slug)]
+	return contract, ok
 }
 
 // Elements returns every element, ordered by slug.
@@ -276,11 +322,12 @@ type member struct {
 // entity name, an undecodable record block — declares what it can and
 // is reported by the checks that own that judgement.
 func Build(in Input) (*Set, error) {
-	set := &Set{bySlug: map[string]*Element{}}
+	set := &Set{bySlug: map[string]*Element{}, contracts: map[string]*Contract{}}
 	vocabulary := in.Vocabulary
 	if len(vocabulary.Elements) == 0 {
 		return set, nil
 	}
+	set.contracts = contractsOf(in)
 
 	members, err := readMembers(in)
 	if err != nil {
@@ -299,6 +346,14 @@ func Build(in Input) (*Set, error) {
 			m.element.Level = m.rules.Level
 			m.element.Name = stringValue(m.values[vocabulary.EntityNameProperty])
 		}
+	}
+
+	for _, ref := range in.References {
+		m, ok := byPath[ref.Path]
+		if !ok || m.element.Path != m.entry.Path || !fromProperty(ref, vocabulary.ConsumedContractsProperty) {
+			continue
+		}
+		m.element.ConsumedContracts = append(m.element.ConsumedContracts, ref.Slug)
 	}
 
 	rosters := map[*member][]*Element{}
@@ -363,6 +418,43 @@ func group(documents []*Document) []Relationship {
 		return a.Label < b.Label
 	})
 	return relationships
+}
+
+// contractsOf returns every member of the registered contract type, keyed
+// by slug, with the providers its provider property names.
+func contractsOf(in Input) map[string]*Contract {
+	contracts := map[string]*Contract{}
+	if in.Vocabulary.ContractType == "" {
+		return contracts
+	}
+	byPath := map[string]*Contract{}
+	for _, entry := range in.Entries {
+		shared := envelope.Of(entry.Frontmatter)
+		if entry.Frontmatter == nil || string(shared.Type) != in.Vocabulary.ContractType {
+			continue
+		}
+		key := slugKey(string(shared.Slug))
+		if _, seen := contracts[key]; seen {
+			continue
+		}
+		contract := &Contract{Slug: string(shared.Slug), Path: entry.Path}
+		contracts[key] = contract
+		byPath[entry.Path] = contract
+	}
+	for _, ref := range in.References {
+		contract, ok := byPath[ref.Path]
+		if ok && fromProperty(ref, in.Vocabulary.ProviderProperty) {
+			contract.Providers = append(contract.Providers, ref.Slug)
+		}
+	}
+	return contracts
+}
+
+// fromProperty reports whether ref was written in the frontmatter
+// property named property. An empty property is registered nowhere.
+func fromProperty(ref specmodel.Reference, property string) bool {
+	origin, ok := ref.Origin.AsFrontmatterProperty()
+	return ok && property != "" && origin.Property == property
 }
 
 // readMembers returns every member whose type declares an element, in
@@ -496,8 +588,7 @@ func scopeOf(in Input, vocabulary ArchitectureRules, set *Set, m *member, roster
 			}
 			continue
 		}
-		origin, _ := ref.Origin.AsFrontmatterProperty()
-		if vocabulary.ComposedModulesProperty != "" && origin.Property == vocabulary.ComposedModulesProperty {
+		if fromProperty(ref, vocabulary.ComposedModulesProperty) {
 			scope[target.element] = true
 		}
 	}

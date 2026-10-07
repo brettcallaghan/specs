@@ -923,6 +923,113 @@ func C4AmbiguousNode(path string, at specmodel.Span, alias, label string, matche
 	}
 }
 
+// C4Bidirectional reports a `BiRel` statement: an arrow states one
+// dependency, in one direction (AC-C4-DIAG-003.1).
+func C4Bidirectional(path string, at specmodel.Span, source, target string) specmodel.Finding {
+	return c4Relationship(RuleC4Bidirectional, SeverityError, path, at, source, target,
+		fmt.Sprintf("BiRel(%s, %s) states no direction; draw the dependency as Rel", source, target))
+}
+
+// C4DuplicateEdge reports the later of two relationship statements in
+// one diagram from the same source alias to the same target alias, after
+// `Rel_Back` normalisation (AC-C4-DIAG-003.2).
+func C4DuplicateEdge(path string, at specmodel.Span, source, target string) specmodel.Finding {
+	return c4Relationship(RuleC4DuplicateEdge, SeverityError, path, at, source, target,
+		fmt.Sprintf("%s -> %s is drawn more than once in this diagram", source, target))
+}
+
+// C4InteractionConflict reports a relationship statement tagged both
+// `sync` and `async` (AC-C4-DIAG-004.2).
+func C4InteractionConflict(path string, at specmodel.Span, source, target string) specmodel.Finding {
+	return c4Relationship(RuleC4InteractionConflict, SeverityError, path, at, source, target,
+		fmt.Sprintf("%s -> %s is tagged both sync and async", source, target))
+}
+
+// c4Relationship builds a finding carrying the relationship-defect
+// detail: the statement's two aliases, in dependency direction.
+func c4Relationship(rule specmodel.RuleId, severity specmodel.Severity, path string, at specmodel.Span, source, target, message string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     rule,
+		Severity: severity,
+		Path:     path,
+		Span:     at,
+		Message:  message,
+		Detail: specmodel.NewFindingDetailC4RelationshipDefect(specmodel.FindingC4Relationship{
+			Source: source,
+			Target: target,
+		}),
+	}
+}
+
+// C4DrawingConflict reports a drawing of a relationship that differs in
+// technology, description or tags from the relationship's first drawing
+// by path and then by span, which it names (AC-C4-DIAG-003.3). It is a
+// warning: the relationship is declared, and which drawing is right is
+// the author's call.
+func C4DrawingConflict(path string, at specmodel.Span, source, target, otherPath string, otherSpan specmodel.Span, differs string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleC4DrawingConflict,
+		Severity: SeverityWarning,
+		Path:     path,
+		Span:     at,
+		Message: fmt.Sprintf("%s -> %s differs in %s from its drawing at %s:%d",
+			source, target, differs, otherPath, otherSpan.StartLine),
+		Detail: specmodel.NewFindingDetailC4DrawingConflict(specmodel.FindingC4DrawingConflict{
+			Source:    source,
+			Target:    target,
+			OtherPath: otherPath,
+			OtherSpan: otherSpan,
+		}),
+	}
+}
+
+// C4ContractUnresolved reports a `contract:` tag naming a slug no member
+// of the registered contract type declares (AC-C4-DIAG-004.3).
+func C4ContractUnresolved(path string, at specmodel.Span, slug, source, target string) specmodel.Finding {
+	return c4Contract(RuleC4ContractUnresolved, SeverityError, path, at, slug, source, target,
+		fmt.Sprintf("contract:%s names no contract", slug))
+}
+
+// C4ContractMismatch reports a `contract:` tag naming a contract the
+// source element does not consume or the target element does not
+// provide (AC-C4-DIAG-004.4). why says which.
+func C4ContractMismatch(path string, at specmodel.Span, slug, source, target, why string) specmodel.Finding {
+	return c4Contract(RuleC4ContractMismatch, SeverityWarning, path, at, slug, source, target,
+		fmt.Sprintf("contract:%s on %s -> %s: %s", slug, source, target, why))
+}
+
+// c4Contract builds a finding carrying the contract detail.
+func c4Contract(rule specmodel.RuleId, severity specmodel.Severity, path string, at specmodel.Span, slug, source, target, message string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     rule,
+		Severity: severity,
+		Path:     path,
+		Span:     at,
+		Message:  message,
+		Detail: specmodel.NewFindingDetailC4Contract(specmodel.FindingC4Contract{
+			Slug:   slug,
+			Source: source,
+			Target: target,
+		}),
+	}
+}
+
+// C4TagSeparator reports a tags argument containing a comma: tags are
+// joined with `+`, so a comma-joined pair reads as one unreserved tag
+// (AC-C4-DIAG-004.5).
+func C4TagSeparator(path string, at specmodel.Span, tags string) specmodel.Finding {
+	return specmodel.Finding{
+		Rule:     RuleC4TagSeparator,
+		Severity: SeverityWarning,
+		Path:     path,
+		Span:     at,
+		Message:  fmt.Sprintf("tags %q contain a comma; join tags with +", tags),
+		Detail: specmodel.NewFindingDetailC4TagSeparator(specmodel.FindingC4TagSeparator{
+			Tags: tags,
+		}),
+	}
+}
+
 // renderPointer renders a JSON Pointer for a message, substituting the
 // root pointer for the empty string the JSON Pointer spec uses for it.
 func renderPointer(pointer string) string {

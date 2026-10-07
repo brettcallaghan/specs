@@ -227,6 +227,7 @@ func (c *Corpus) check(only *string) ([]specmodel.Finding, error) {
 		return nil, fmt.Errorf("corpus: reading C4 diagrams: %w", err)
 	}
 	report.Add(c4NodeFindings(elements)...)
+	report.Add(c4RelationshipFindings(elements)...)
 
 	findings := report.Model().Findings
 	if only == nil {

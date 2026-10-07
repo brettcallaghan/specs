@@ -1577,6 +1577,32 @@ for the whole corpus even on a single-document check, because a node's
 scope reaches beyond its own file; the findings are then narrowed to the
 named file like every other per-file rule.
 
+**They check every arrow and the tags on it** — the second half of the
+family, raised from `c4RelationshipFindings` over the same element set.
+Per relationship statement: `c4/bidirectional` at a `BiRel`
+(AC-C4-DIAG-003.1); `c4/duplicate-edge` at the later of two statements
+in one diagram with the same source and target alias after `Rel_Back`
+normalisation, where `a` to `b` and `b` to `a` are different pairs and a
+`BiRel` is not counted (AC-C4-DIAG-003.2); `c4/interaction-conflict` at
+a statement tagged both `sync` and `async` (AC-C4-DIAG-004.2);
+`c4/contract-unresolved` for a `contract:` tag naming a slug no member
+of the registered contract type declares (AC-C4-DIAG-004.3); and
+`c4/tag-separator` for a tags argument holding a comma
+(AC-C4-DIAG-004.5) — the first three errors, the last a warning. Per
+drawing, `c4/contract-mismatch` warns when a resolved contract tag names
+a contract the source element's blueprint does not list in its
+consumed-contracts property, or whose provider property does not name
+the target element, saying which (AC-C4-DIAG-004.4); a statement whose
+endpoint does not resolve to exactly one element is not a drawing, so it
+is never reported here — the node finding already covers it. Per
+relationship, `c4/drawing-conflict` warns at every drawing that differs
+from the relationship's first drawing, by path and then by span, in
+technology, description or tags, naming the first (AC-C4-DIAG-003.3).
+Because the element set and its relationships are built for the whole
+corpus, a single-document check still compares the named document's
+drawings against every architecture blueprint's before the result is
+narrowed to the named file.
+
 **Output and warm cache** — the same package. `Write` emits the index to
 one destination, resolved by `IndexPath`: `specs.json` inside the
 configured spec root by default (AC-SPEC-010.1), a named path when the

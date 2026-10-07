@@ -1,0 +1,5 @@
+description = "check reports c4/bidirectional, c4/duplicate-edge, c4/drawing-conflict, c4/interaction-conflict, c4/contract-unresolved, c4/contract-mismatch and c4/tag-separator; a to b and b to a are not duplicates, and a contract the endpoints declare raises nothing"
+cites = ["AC-C4-DIAG-003.1", "AC-C4-DIAG-003.2", "AC-C4-DIAG-003.3", "AC-C4-DIAG-004.2", "AC-C4-DIAG-004.3", "AC-C4-DIAG-004.4", "AC-C4-DIAG-004.5"]
+artifacts = ["checks.log"]
+args = ["check"]
+exit_code = 1

@@ -37,8 +37,7 @@ import (
 // rules (VCON) are declared for the same reason: without it, a corpus
 // with no Gherkin defect at all would leave them out of the accounting
 // entirely, rather than showing "passed".
-// The c4/* rules are declared as each check that raises them lands, for
-// the same reason.
+// The ten c4/* rules are declared for the same reason.
 var checkRules = []specmodel.RuleId{
 	finding.RuleFrontmatterParse,
 	finding.RuleSchemaViolation,
@@ -68,6 +67,13 @@ var checkRules = []specmodel.RuleId{
 	finding.RuleC4Parse,
 	finding.RuleC4UndeclaredNode,
 	finding.RuleC4AmbiguousNode,
+	finding.RuleC4Bidirectional,
+	finding.RuleC4DuplicateEdge,
+	finding.RuleC4DrawingConflict,
+	finding.RuleC4InteractionConflict,
+	finding.RuleC4ContractUnresolved,
+	finding.RuleC4ContractMismatch,
+	finding.RuleC4TagSeparator,
 }
 
 // newCheckCmd builds the `check` subcommand: run conformance checks over
