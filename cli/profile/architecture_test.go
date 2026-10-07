@@ -182,7 +182,7 @@ func TestThisRepositorysC4ModelNestsItsContainerAndModules(t *testing.T) {
 	if err != nil {
 		t.Fatalf("corpus.Build: %v", err)
 	}
-	model, err := built.C4Model("agent-plugins")
+	model, err := built.C4Model("agent-plugins", "")
 	if err != nil {
 		t.Fatalf("C4Model: %v", err)
 	}

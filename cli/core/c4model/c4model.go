@@ -17,6 +17,7 @@ package c4model
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"sort"
 	"strings"
@@ -39,6 +40,19 @@ type Input struct {
 
 	// Workspace is the configured workspace name the model carries.
 	Workspace string
+
+	// Root, when not empty, narrows the model to the element it names and
+	// its descendants. It is compared without regard to letter case.
+	Root string
+}
+
+// UnknownRootError reports a root slug that names no element.
+type UnknownRootError struct {
+	Slug string
+}
+
+func (e *UnknownRootError) Error() string {
+	return fmt.Sprintf("%s names no element", e.Slug)
 }
 
 // Build assembles the corpus's C4 model.
@@ -58,7 +72,14 @@ func Build(in Input) (*specmodel.C4Model, error) {
 	for _, entry := range in.Elements.Entries {
 		a.entries[entry.Path] = entry
 	}
-	return a.model(), nil
+	if in.Root == "" {
+		return a.model(), nil
+	}
+	root, ok := set.Element(in.Root)
+	if !ok || root.Slug == "" {
+		return nil, &UnknownRootError{Slug: in.Root}
+	}
+	return a.narrow(a.model(), root), nil
 }
 
 // assembly is one run of [Build].

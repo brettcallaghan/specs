@@ -313,11 +313,10 @@ C4Component
     Rel(mdlinks, find, "Reports through")
 ```
 
-Eleven of the thirteen are built and carry a **Built** paragraph naming
+Twelve of the thirteen are built and carry a **Built** paragraph naming
 the package that realizes them: Spans, Frontmatter, Gherkin, C4 Diagrams,
-C4 Elements, References, Schema Registry, Corpus, Numbering, Findings and
-Markdown Links. C4 Model is built for its element tree, relationships, reserved tags and
-exclusions. The
+C4 Elements, C4 Model, References, Schema Registry, Corpus, Numbering,
+Findings and Markdown Links. The
 emitted index carries the resolved reference graph, and the corpus checks
 read it: a broken link, a live document citing a retired one, a
 half-declared pairing and a typed reference landing on the wrong
@@ -868,8 +867,24 @@ text as written, ordered by path and then by span. A statement the
 parser could not read, a `C4Dynamic` or `C4Deployment` diagram, and a
 diagram in a member whose type declares no element contribute nothing.
 
+**Subtree.** Given a root slug, the model holds only that element and
+its descendants: for a system, its containers and everything they hold;
+for a container or a module, its components, the modules composed into
+it, and theirs; for a component, nothing else. The root's ancestors
+appear only as the chain from the top of the tree down to it, each
+holding no other child — no other component, container or composed
+module. A module root, and every module among the descendants, is in
+`modules`, and a component whose parent is a module appears under it
+there; an orphaned root stays in its orphaned collection. Only the
+relationships whose two endpoints are both in the narrowed set are kept,
+and only the excluded relationships whose statement sits in the
+blueprint of an element in it. Derived properties keep their
+whole-corpus values. A root naming no element is reported as naming no
+element, and no model is returned.
+
 **Built** — `cli/core/c4model`, reached through `Corpus.C4Model`, for the
-element tree, relationships, reserved tags and exclusions. The source scan that keeps
+element tree, relationships, reserved tags, exclusions and the subtree
+query; a root naming no element is a `c4model.UnknownRootError`. The source scan that keeps
 `cli/core/corpus` free of registered vocabulary covers this package: the
 properties it copies are named by the registered vocabulary or by the
 model's own field names.

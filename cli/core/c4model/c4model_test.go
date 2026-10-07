@@ -139,6 +139,17 @@ func fixture() map[string]string {
 
 func build(t *testing.T, files map[string]string) *specmodel.C4Model {
 	t.Helper()
+	model, err := buildRooted(t, files, "")
+	if err != nil {
+		t.Fatalf("C4Model: %v", err)
+	}
+	return model
+}
+
+// buildRooted builds the model over files narrowed to root, returning
+// C4Model's error rather than failing on it.
+func buildRooted(t *testing.T, files map[string]string, root string) (*specmodel.C4Model, error) {
+	t.Helper()
 	dir := t.TempDir()
 	for name, content := range files {
 		if err := os.WriteFile(filepath.Join(dir, name), []byte(content), 0o644); err != nil {
@@ -149,11 +160,7 @@ func build(t *testing.T, files map[string]string) *specmodel.C4Model {
 	if err != nil {
 		t.Fatalf("corpus.Build: %v", err)
 	}
-	model, err := built.C4Model("test")
-	if err != nil {
-		t.Fatalf("C4Model: %v", err)
-	}
-	return model
+	return built.C4Model("test", root)
 }
 
 func system(t *testing.T, model *specmodel.C4Model, slug string) specmodel.C4System {

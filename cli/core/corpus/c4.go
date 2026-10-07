@@ -26,10 +26,15 @@ func (c *Corpus) C4Elements() (*c4elements.Set, error) {
 
 // C4Model returns the corpus's C4 model, carrying workspace as the
 // configured workspace name: the element tree nested by the containment
-// edges the corpus declares, and the module collection. It is assembled
-// from the same element set [Corpus.C4Elements] returns.
-func (c *Corpus) C4Model(workspace string) (*specmodel.C4Model, error) {
-	return c4model.Build(c4model.Input{Elements: c.c4Input(), Workspace: workspace})
+// edges the corpus declares, the module collection, the relationships and
+// the excluded statements. It is assembled from the same element set
+// [Corpus.C4Elements] returns.
+//
+// A non-empty root narrows the model to the element it names and its
+// descendants; a root naming no element returns a
+// [*c4model.UnknownRootError] and no model.
+func (c *Corpus) C4Model(workspace, root string) (*specmodel.C4Model, error) {
+	return c4model.Build(c4model.Input{Elements: c.c4Input(), Workspace: workspace, Root: root})
 }
 
 // c4Input is what the C4 Elements package reads from this corpus,
