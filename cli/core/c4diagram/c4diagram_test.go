@@ -477,6 +477,16 @@ func TestUnterminatedDirectiveConsumesTheRestWithoutError(t *testing.T) {
 	}
 }
 
+func TestContractSlugIsTrimmed(t *testing.T) {
+	for tags, slug := range map[string]string{"contract: c-1": "c-1", "contract:": "", "contract:   ": ""} {
+		s := only(t, parseBlock(t, diagram(`Rel(a, b, "Uses", $tags="`+tags+`")`)))
+		want := []c4diagram.ReservedTag{{Name: c4diagram.TagContract, Slug: slug}}
+		if got := s.Relationship.Tags.Reserved; !reflect.DeepEqual(got, want) {
+			t.Errorf("%q: reserved = %+v, want %+v", tags, got, want)
+		}
+	}
+}
+
 // Every C4 diagram this repository draws parses with no error.
 func TestThisRepositorysDiagramsParse(t *testing.T) {
 	root := filepath.Join("..", "..", "..")

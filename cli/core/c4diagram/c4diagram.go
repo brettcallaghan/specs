@@ -572,7 +572,7 @@ func readTags(arg Argument) Tags {
 		case tag == TagSync || tag == TagAsync:
 			tags.Reserved = append(tags.Reserved, ReservedTag{Name: tag})
 		case strings.HasPrefix(tag, TagContract+":"):
-			tags.Reserved = append(tags.Reserved, ReservedTag{Name: TagContract, Slug: strings.TrimPrefix(tag, TagContract+":")})
+			tags.Reserved = append(tags.Reserved, ReservedTag{Name: TagContract, Slug: strings.TrimSpace(strings.TrimPrefix(tag, TagContract+":"))})
 		default:
 			tags.Unreserved = append(tags.Unreserved, tag)
 		}
