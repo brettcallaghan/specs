@@ -1,0 +1,107 @@
+schema_version: "0.1"
+workspace: acme
+software_systems:
+  - description: A fixture for the c4 command.
+    slug: system-one
+    entity_name: One
+    declarations:
+      - path: docs/systems/one.md
+        span:
+          offset: 0
+          length: 177
+          start_line: 1
+          start_column: 1
+          end_line: 9
+          end_column: 4
+    contracts_provided: []
+    containers:
+      - description: A fixture for the c4 command.
+        slug: container-alpha
+        entity_name: Alpha
+        declarations:
+          - path: docs/containers/alpha.md
+            span:
+              offset: 0
+              length: 239
+              start_line: 1
+              start_column: 1
+              end_line: 12
+              end_column: 4
+        contracts_provided: []
+        components:
+          - description: Parses
+            slug: component-parser
+            entity_name: Parser
+            declarations:
+              - path: docs/containers/alpha.md
+                span:
+                  offset: 516
+                  length: 80
+                  start_line: 31
+                  start_column: 1
+                  end_line: 36
+                  end_column: 1
+            contracts_provided: []
+          - description: Writes
+            slug: component-writer
+            entity_name: Writer
+            declarations:
+              - path: docs/containers/alpha.md
+                span:
+                  offset: 609
+                  length: 80
+                  start_line: 39
+                  start_column: 1
+                  end_line: 44
+                  end_column: 1
+            contracts_provided: []
+        modules:
+          - module-gamma
+orphaned_containers: []
+orphaned_components: []
+modules:
+  - description: A fixture for the c4 command.
+    slug: module-gamma
+    entity_name: Gamma
+    declarations:
+      - path: docs/modules/gamma.md
+        span:
+          offset: 0
+          length: 234
+          start_line: 1
+          start_column: 1
+          end_line: 12
+          end_column: 4
+    contracts_provided: []
+    kind: standard
+    visibility: internal
+    version: "1.0"
+    contained_by:
+      - container-alpha
+    components:
+      - description: Gamma own
+        slug: component-own
+        entity_name: Own
+        declarations:
+          - path: docs/modules/gamma.md
+            span:
+              offset: 269
+              length: 77
+              start_line: 20
+              start_column: 1
+              end_line: 25
+              end_column: 1
+        contracts_provided: []
+    modules: []
+relationships: []
+excluded_relationships:
+  - path: docs/containers/alpha.md
+    span:
+      offset: 458
+      length: 25
+      start_line: 24
+      start_column: 5
+      end_line: 24
+      end_column: 30
+    reason: bidirectional
+    text: BiRel(a, b, "Talks with")

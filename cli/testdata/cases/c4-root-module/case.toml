@@ -1,0 +1,5 @@
+description = "c4 --root naming a module keeps it and its components"
+cites = ["AC-C4-004.5"]
+artifacts = ["checks.log"]
+args = ["c4", "--root", "module-gamma"]
+exit_code = 0

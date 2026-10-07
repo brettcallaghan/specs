@@ -1,0 +1,41 @@
+schema_version: "0.1"
+workspace: acme
+software_systems: []
+orphaned_containers: []
+orphaned_components: []
+modules:
+  - description: A fixture for the c4 command.
+    slug: module-gamma
+    entity_name: Gamma
+    declarations:
+      - path: docs/modules/gamma.md
+        span:
+          offset: 0
+          length: 234
+          start_line: 1
+          start_column: 1
+          end_line: 12
+          end_column: 4
+    contracts_provided: []
+    kind: standard
+    visibility: internal
+    version: "1.0"
+    contained_by:
+      - container-alpha
+    components:
+      - description: Gamma own
+        slug: component-own
+        entity_name: Own
+        declarations:
+          - path: docs/modules/gamma.md
+            span:
+              offset: 269
+              length: 77
+              start_line: 20
+              start_column: 1
+              end_line: 25
+              end_column: 1
+        contracts_provided: []
+    modules: []
+relationships: []
+excluded_relationships: []

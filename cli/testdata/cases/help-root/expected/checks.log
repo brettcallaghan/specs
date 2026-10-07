@@ -4,6 +4,7 @@ Usage:
   specs [command]
 
 Available Commands:
+  c4          Emit the corpus's C4 model: elements, relationships and excluded statements
   check       Check the corpus, or a single document, for conformance
   criterion   Query an acceptance criterion, or list ones that changed locally
   feature     Query a feature, or emit one as a standalone Gherkin file

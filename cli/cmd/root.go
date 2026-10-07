@@ -130,6 +130,7 @@ func newRootCmd(streams *ioStreams) *cobra.Command {
 	root.AddCommand(newCriterionCmd(streams, &configPath))
 	root.AddCommand(newHeadingsCmd(streams, &configPath))
 	root.AddCommand(newListCmd(streams, &configPath))
+	root.AddCommand(newC4Cmd(streams, &configPath))
 
 	return root
 }
