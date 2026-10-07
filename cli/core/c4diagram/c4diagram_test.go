@@ -669,7 +669,7 @@ func TestShortAndLongParameterNamesAreAccepted(t *testing.T) {
 
 func TestIgnoredMacrosAcceptArbitraryNamedArguments(t *testing.T) {
 	for name, macro := range map[string]string{
-		"UpdateRelStyle": `UpdateRelStyle(a, b, $offsetX="5")`,
+		"UpdateRelStyle":     `UpdateRelStyle(a, b, $offsetX="5")`,
 		"UpdateElementStyle": `UpdateElementStyle(c, $strokeColor="#ff0000")`,
 		"UpdateLayoutConfig": `UpdateLayoutConfig($c4ShapeInRow="3")`,
 	} {
