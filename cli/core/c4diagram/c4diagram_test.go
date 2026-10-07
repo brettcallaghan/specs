@@ -502,6 +502,16 @@ func TestAnEmptyUnquotedArgumentIsAParseError(t *testing.T) {
 	only(t, parseBlock(t, diagram(`Rel(a, b, "")`)))
 }
 
+func TestUnexpectedCharacterIsReportedWhole(t *testing.T) {
+	for line, char := range map[string]string{`Component(a, "A" é)`: "é", `Component(a, "A" x)`: "x"} {
+		d := parseBlock(t, diagram(line))
+		want := "unexpected `" + char + "` after an argument"
+		if len(d.Errors) != 1 || !strings.Contains(d.Errors[0].Reason, want) {
+			t.Errorf("%s: errors = %+v, want reason containing %q", line, d.Errors, want)
+		}
+	}
+}
+
 // Every C4 diagram this repository draws parses with no error.
 func TestThisRepositorysDiagramsParse(t *testing.T) {
 	root := filepath.Join("..", "..", "..")

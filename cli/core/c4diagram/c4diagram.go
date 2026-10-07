@@ -17,6 +17,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/span"
 )
@@ -630,7 +631,8 @@ func (p *parser) arguments(text string, base, from int) (args, named []Argument,
 		case text[i] == ')':
 			return args, named, i, ""
 		default:
-			return nil, nil, 0, "unexpected `" + string(text[i]) + "` after an argument"
+			r, _ := utf8.DecodeRuneInString(text[i:])
+			return nil, nil, 0, "unexpected `" + string(r) + "` after an argument"
 		}
 	}
 }
