@@ -257,6 +257,47 @@ func TestBoundaryErrors(t *testing.T) {
 	}
 }
 
+// A failed line ending in { still holds a place on the boundary stack, so
+// its } does not close the enclosing boundary.
+func TestAFailedOpeningLineKeepsTheBracePairing(t *testing.T) {
+	for name, inner := range map[string]string{
+		"unknown macro": `Deployment_Node(n, "N") {`,
+		"bad arguments": `Container_Boundary(x) {`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			d := parseBlock(t, diagram(
+				`Container_Boundary(o, "O") {`,
+				inner,
+				`Component(a, "A")`,
+				`}`,
+				`Component(b, "B")`,
+				`}`,
+			))
+			if len(d.Errors) != 1 {
+				t.Fatalf("got %d errors, want 1: %+v", len(d.Errors), d.Errors)
+			}
+			if len(d.Statements) != 3 {
+				t.Fatalf("got %d statements, want 3", len(d.Statements))
+			}
+			for _, s := range d.Statements[1:] {
+				if s.Parent != 0 {
+					t.Errorf("%s parent = %d, want 0", param(t, s, c4diagram.ParamAlias), s.Parent)
+				}
+			}
+		})
+	}
+}
+
+func TestAFailedOpeningLineNeverClosedAddsNoSecondError(t *testing.T) {
+	d := parseBlock(t, diagram(`Deployment_Node(n, "N") {`, `Component(a, "A")`))
+	if len(d.Errors) != 1 {
+		t.Fatalf("got %d errors, want 1: %+v", len(d.Errors), d.Errors)
+	}
+	if d.Statements[0].Parent != -1 {
+		t.Errorf("parent = %d, want -1", d.Statements[0].Parent)
+	}
+}
+
 // A parse error carries the span of its statement, in the coordinates of
 // the whole document, and parsing continues with the next line.
 func TestParseErrorsCarryTheStatementSpanAndParsingContinues(t *testing.T) {

@@ -370,11 +370,19 @@ func Parse(doc []byte, at span.Span) Diagram {
 		statement, err := p.statement(text, from, at)
 		if err != nil {
 			diagram.Errors = append(diagram.Errors, *err)
+			if strings.HasSuffix(text, "{") {
+				// A placeholder keeps the brace pairing intact, so the
+				// matching } closes this line and not the enclosing boundary.
+				open = append(open, -1)
+			}
 			continue
 		}
 		statement.Parent = -1
-		if len(open) > 0 {
-			statement.Parent = open[len(open)-1]
+		for i := len(open) - 1; i >= 0; i-- {
+			if open[i] >= 0 {
+				statement.Parent = open[i]
+				break
+			}
 		}
 		diagram.Statements = append(diagram.Statements, statement)
 		if statement.Kind == KindBoundary {
@@ -383,6 +391,9 @@ func Parse(doc []byte, at span.Span) Diagram {
 	}
 
 	for _, index := range open {
+		if index < 0 {
+			continue // a failed line already carries its own error
+		}
 		boundary := diagram.Statements[index]
 		diagram.Errors = append(diagram.Errors, p.fail(boundary.Span, string(span.Slice(doc, boundary.Span)), "opens a boundary that is never closed"))
 	}
