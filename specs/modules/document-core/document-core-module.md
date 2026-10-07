@@ -316,7 +316,8 @@ C4Component
 Eleven of the thirteen are built and carry a **Built** paragraph naming
 the package that realizes them: Spans, Frontmatter, Gherkin, C4 Diagrams,
 C4 Elements, References, Schema Registry, Corpus, Numbering, Findings and
-Markdown Links. C4 Model is built for its element tree, relationships and exclusions. The
+Markdown Links. C4 Model is built for its element tree, relationships, reserved tags and
+exclusions. The
 emitted index carries the resolved reference graph, and the corpus checks
 read it: a broken link, a live document citing a retired one, a
 half-declared pairing and a typed reference landing on the wrong
@@ -850,6 +851,16 @@ span, with the view and the aliases after `Rel_Back` normalisation. Its
 `component`. Relationships are ordered by source slug, target slug and
 description.
 
+**Reserved tags.** A relationship reads the reserved tags of its first
+drawing, by path and then span. `interaction` is `sync` or `async` when
+exactly one of the two is tagged, and absent when both or neither are.
+`contract` carries the slug the first `contract:` tag names, with source
+`tag`, whether or not it resolves; with no such tag, it carries the one
+contract in the source element's `contracts_consumed` whose provider is
+the target, with source `derived`, and is absent when none or several
+fit. `tags` are the drawing's unreserved tags in the order written, and
+absent when there are none.
+
 **Exclusions.** Every statement C4 Elements leaves unresolved is in
 `excluded_relationships` with the reason it gives, and every `BiRel`
 statement with reason `bidirectional`, each with its path, span and
@@ -858,7 +869,7 @@ parser could not read, a `C4Dynamic` or `C4Deployment` diagram, and a
 diagram in a member whose type declares no element contribute nothing.
 
 **Built** — `cli/core/c4model`, reached through `Corpus.C4Model`, for the
-element tree, relationships and exclusions. The source scan that keeps
+element tree, relationships, reserved tags and exclusions. The source scan that keeps
 `cli/core/corpus` free of registered vocabulary covers this package: the
 properties it copies are named by the registered vocabulary or by the
 model's own field names.

@@ -152,6 +152,12 @@ func (a *assembly) relationships() []specmodel.C4Relationship {
 			Technology:  present(first.Technology),
 			Detail:      present(first.Description),
 			DrawnIn:     []specmodel.C4Drawing{},
+			Interaction: interactionOf(first.Tags),
+			Contract:    a.contractOf(group.Source, group.Target, first.Tags),
+		}
+		if len(first.Tags.Unreserved) > 0 {
+			tags := append([]string{}, first.Tags.Unreserved...)
+			relationship.Tags = &tags
 		}
 		for _, drawing := range group.Drawings {
 			relationship.DrawnIn = append(relationship.DrawnIn, specmodel.C4Drawing{
@@ -165,6 +171,60 @@ func (a *assembly) relationships() []specmodel.C4Relationship {
 		relationships = append(relationships, relationship)
 	}
 	return relationships
+}
+
+// interactionOf returns the interaction a drawing's reserved tags state:
+// sync or async when it carries exactly one of them, and none when it
+// carries both or neither.
+func interactionOf(tags c4diagram.Tags) *specmodel.C4Interaction {
+	var sync, async bool
+	for _, tag := range tags.Reserved {
+		switch tag.Name {
+		case c4diagram.TagSync:
+			sync = true
+		case c4diagram.TagAsync:
+			async = true
+		}
+	}
+	var interaction specmodel.C4Interaction
+	switch {
+	case sync && !async:
+		interaction = specmodel.C4InteractionSync
+	case async && !sync:
+		interaction = specmodel.C4InteractionAsync
+	default:
+		return nil
+	}
+	return &interaction
+}
+
+// contractOf returns the contract a relationship runs over: the slug the
+// first contract tag of its first drawing names, whether or not it
+// resolves; or, with no such tag, the one contract the source consumes
+// whose provider is the target. Zero or several such contracts yield
+// none.
+func (a *assembly) contractOf(source, target *c4elements.Element, tags c4diagram.Tags) *specmodel.C4ContractLink {
+	for _, tag := range tags.Reserved {
+		if tag.Name == c4diagram.TagContract && tag.Slug != "" {
+			return &specmodel.C4ContractLink{Slug: specmodel.Citation(tag.Slug), Source: specmodel.C4ContractSourceTag}
+		}
+	}
+	var consumed []string
+	decode(a.values(source), a.in.Elements.Vocabulary.ConsumedContractsProperty, &consumed)
+	var fits []*c4elements.Contract
+	seen := map[*c4elements.Contract]bool{}
+	for _, slug := range consumed {
+		contract, ok := a.set.Contract(slug)
+		if !ok || seen[contract] || !contract.ProvidedBy(target) {
+			continue
+		}
+		seen[contract] = true
+		fits = append(fits, contract)
+	}
+	if len(fits) != 1 {
+		return nil
+	}
+	return &specmodel.C4ContractLink{Slug: specmodel.Citation(fits[0].Slug), Source: specmodel.C4ContractSourceDerived}
 }
 
 // excluded returns every relationship statement the model does not
