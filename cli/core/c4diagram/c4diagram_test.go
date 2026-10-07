@@ -410,6 +410,37 @@ func TestNamedArgumentsTakeNoPositionalSlot(t *testing.T) {
 	}
 }
 
+// A required parameter given by name counts as supplied, and a named
+// argument takes no positional slot.
+func TestRequiredParametersMayBeGivenByName(t *testing.T) {
+	s := only(t, parseBlock(t, diagram(`Rel(a, b, $label="Uses")`)))
+	if got := param(t, s, c4diagram.ParamLabel); got != "Uses" {
+		t.Errorf("label = %q, want Uses", got)
+	}
+	s = only(t, parseBlock(t, diagram(`Rel(a, $to=b, "x")`)))
+	if got := param(t, s, c4diagram.ParamTo); got != "b" {
+		t.Errorf("to = %q, want the $to value", got)
+	}
+	if got := param(t, s, c4diagram.ParamLabel); got != "x" {
+		t.Errorf("label = %q, want the positional argument after the named slot", got)
+	}
+	only(t, parseBlock(t, diagram(`Component($alias=x, $label="X")`)))
+}
+
+func TestMissingRequiredParametersStillFail(t *testing.T) {
+	for name, line := range map[string]string{
+		"two positional":      `Rel(a, b)`,
+		"unrelated named arg": `Rel(a, b, $sprite=s)`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			d := parseBlock(t, diagram(line))
+			if len(d.Errors) != 1 || !strings.Contains(d.Errors[0].Reason, "needs at least 3 arguments, found 2") {
+				t.Fatalf("errors = %+v, want one 'needs at least 3 arguments, found 2'", d.Errors)
+			}
+		})
+	}
+}
+
 // Every C4 diagram this repository draws parses with no error.
 func TestThisRepositorysDiagramsParse(t *testing.T) {
 	root := filepath.Join("..", "..", "..")

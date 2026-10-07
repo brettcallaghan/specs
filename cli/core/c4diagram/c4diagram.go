@@ -156,14 +156,30 @@ type Argument struct {
 // given, positionally or as a named argument. A named argument wins over
 // a positional one, since Mermaid applies it last.
 func (s Statement) Param(name string) (Argument, bool) {
+	if arg, ok := s.named(name); ok {
+		return arg, true
+	}
+	slot := 0
+	for _, param := range s.params {
+		if _, ok := s.named(param); ok {
+			continue // written by name: it takes no positional slot
+		}
+		if param == name {
+			if slot < len(s.Args) {
+				return s.Args[slot], true
+			}
+			return Argument{}, false
+		}
+		slot++
+	}
+	return Argument{}, false
+}
+
+// named returns the `$name` argument that names the parameter, if any.
+func (s Statement) named(name string) (Argument, bool) {
 	for _, arg := range s.Named {
 		if namedAs(arg.Name, name) {
 			return arg, true
-		}
-	}
-	for i, param := range s.params {
-		if param == name && i < len(s.Args) {
-			return s.Args[i], true
 		}
 	}
 	return Argument{}, false
@@ -479,10 +495,6 @@ func (p *parser) statement(text string, base int, at span.Span) (Statement, *Par
 		return failure("unexpected text after the closing parenthesis: " + rest)
 	}
 
-	if row.kind != KindIgnored && len(args) < row.required {
-		return failure("`" + name + "` needs at least " + strconv.Itoa(row.required) + " arguments, found " + strconv.Itoa(len(args)))
-	}
-
 	statement := Statement{
 		Kind:      row.kind,
 		Macro:     name,
@@ -492,6 +504,17 @@ func (p *parser) statement(text string, base int, at span.Span) (Statement, *Par
 		Named:     named,
 		Store:     row.store,
 		params:    row.params,
+	}
+	if row.kind != KindIgnored {
+		supplied := 0
+		for _, param := range row.params[:min(row.required, len(row.params))] {
+			if _, ok := statement.Param(param); ok {
+				supplied++
+			}
+		}
+		if supplied < row.required {
+			return failure("`" + name + "` needs at least " + strconv.Itoa(row.required) + " arguments, found " + strconv.Itoa(supplied))
+		}
 	}
 	if row.kind == KindRelationship {
 		statement.Relationship = relationship(&statement)
