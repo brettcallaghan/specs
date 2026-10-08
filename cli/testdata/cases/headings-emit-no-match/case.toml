@@ -1,0 +1,5 @@
+description = "headings --emit naming a declared document and a heading it lacks writes nothing to standard output, says the selection matches no heading, and exits 2"
+cites = ["AC-SPECSTR-003.13"]
+artifacts = ["checks.err"]
+args = ["headings", "adr-001-first#nope", "--emit"]
+exit_code = 2

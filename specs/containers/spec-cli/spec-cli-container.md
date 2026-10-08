@@ -530,7 +530,10 @@ under `Select one of:` those whose selection, run back through the same
 selection, matches that heading alone, and listed apart those no
 selection names alone, for which the query without `--emit` returns the
 span. A selection matching nothing renders the empty
-collection and exits zero (AC-SPECSTR-003.6). A selection with a document
+collection and exits zero (AC-SPECSTR-003.6); under `--emit` it is
+refused instead, exit `2` with nothing on standard output and a message
+saying whether the document is undeclared or the heading absent
+(AC-SPECSTR-003.13). A selection with a document
 half also carries `declared` before `matches`, false when no corpus
 member is that document, so a missing heading reads apart from a missing
 document (AC-SPECSTR-003.8); a selection with none carries no such key. Like the queries beside it,

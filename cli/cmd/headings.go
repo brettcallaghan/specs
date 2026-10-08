@@ -48,6 +48,8 @@ func newHeadingsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 			"is returned with every heading nested inside its section. Given --emit, " +
 			"the content the one matching heading stands over is written as itself " +
 			"instead; --emit requires the selection to match exactly one heading, " +
+			"and a selection matching none is refused, naming whether the document " +
+			"is undeclared or the heading absent, " +
 			"and a selection matching several is refused with each match named: those a " +
 			"selection matches alone as selections to choose from, and the rest as " +
 			"reachable only through the span the query without --emit returns. A " +
@@ -186,7 +188,7 @@ func runHeadings(streams *ioStreams, configPath, operand string, emit, jsonOut b
 	matches, direct := selectHeadings(c.Index(), sel)
 
 	if emit {
-		return emitSection(streams, c.Index(), opts.RepoRoot, operand, matches, direct)
+		return emitSection(streams, c.Index(), opts.RepoRoot, operand, sel, matches, direct)
 	}
 	result := headingsResult{Matches: matches}
 	if sel.document != "" {
@@ -324,8 +326,11 @@ func renderHeadings(streams *ioStreams, result headingsResult, asJSON bool) erro
 // exactly one heading. The headings nested inside it are carried as
 // matches but are not counted, since its span already covers their text.
 //
-// No heading named is an answer and writes nothing (AC-SPECSTR-003.6).
-// More than one is an invocation error that writes nothing to standard
+// No heading named is refused, writing nothing to standard output
+// (AC-SPECSTR-003.13): raw text cannot carry the `declared` property or an
+// empty `matches`, so an empty output would read the same for an absent
+// heading, an undeclared document and an empty section. The message says
+// which of the first two it was. More than one is an invocation error that writes nothing to standard
 // output and names every heading the selection named, so the caller can
 // narrow it (AC-SPECSTR-003.7). Under "Select one of:" go only the
 // matches whose ref, pasted back, names that heading
@@ -341,7 +346,7 @@ func renderHeadings(streams *ioStreams, result headingsResult, asJSON bool) erro
 // normalized them, because the span was computed against the normalized
 // form and would otherwise be off by one byte per line on a CRLF
 // checkout.
-func emitSection(streams *ioStreams, index specmodel.SpecIndex, repoRoot, operand string, matches []headingMatch, direct []bool) error {
+func emitSection(streams *ioStreams, index specmodel.SpecIndex, repoRoot, operand string, sel selection, matches []headingMatch, direct []bool) error {
 	var named []headingMatch
 	for i, match := range matches {
 		if direct[i] {
@@ -351,7 +356,10 @@ func emitSection(streams *ioStreams, index specmodel.SpecIndex, repoRoot, operan
 
 	switch len(named) {
 	case 0:
-		return nil
+		if sel.document != "" && !sel.declaredIn(index) {
+			return invocationError("%q: no corpus member is the document it names (%q); --emit needs exactly one heading", operand, sel.document)
+		}
+		return invocationError("%q: the selection matches no heading; --emit needs exactly one", operand)
 	case 1:
 	default:
 		var alone, shared []headingMatch

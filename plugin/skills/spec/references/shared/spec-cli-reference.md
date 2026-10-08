@@ -411,7 +411,10 @@ or drop --emit to list the matches
 
 A document the corpus does not declare answers `declared: false`; a
 heading matching nothing in a declared document answers `declared: true`
-with no matches. Both exit 0.
+with no matches. Both exit 0. Under `--emit`, where raw text cannot say
+either, both are refused (exit 2, nothing on standard output) with a
+message naming the selection and whether the document is undeclared or
+the heading absent.
 
 **`specs feature`** returns features, each with its criteria, from the
 Gherkin in the corpus. `feature <id>` returns that one, `--code <CODE>`
