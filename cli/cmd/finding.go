@@ -292,6 +292,32 @@ func linkMapUnparseable(path string, src []byte, err error) specmodel.Finding {
 	}
 }
 
+// linkMapShape is the shape a link map must have, as a finding about a
+// map of another shape states it (AC-SPECMD-005.13).
+const linkMapShape = `each corpus slug mapped to a record declaring "path", e.g. adr-012: {path: ../adrs/adr-012.md}`
+
+// linkMapWrongShape reports a link map that is valid YAML of the wrong
+// shape: its top level when slug is empty, and otherwise the entry for
+// slug, naming what was found and the shape expected (AC-SPECMD-005.13).
+func linkMapWrongShape(path string, src []byte, slug, found string) specmodel.Finding {
+	pointer, subject := "", "the link map"
+	if slug != "" {
+		pointer, subject = "/"+slug, fmt.Sprintf("the entry for %q", slug)
+	}
+	return specmodel.Finding{
+		Rule:     RuleLinkMapInvalid,
+		Severity: finding.SeverityError,
+		Path:     path,
+		Span:     wholeFile(src),
+		Message:  fmt.Sprintf("%s is %s; a link map holds %s", subject, found, linkMapShape),
+		Detail: specmodel.NewFindingDetailSchemaViolation(specmodel.FindingSchemaViolation{
+			Pointer:    pointer,
+			Constraint: "link-map-shape",
+			Value:      found,
+		}),
+	}
+}
+
 // documentUnreadable reports the `links` operand itself failing to open,
 // per the delta's Behavior ("IF the named document cannot be read... the
 // links subcommand SHALL report an error finding and write no rewritten

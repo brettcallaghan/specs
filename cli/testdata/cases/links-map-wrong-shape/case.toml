@@ -1,0 +1,5 @@
+description = "a --map that is valid YAML of the wrong shape, a slug mapped to a bare URL, raises linkmap/invalid naming the slug and the expected record-with-path shape rather than the parser's wording, and emits no document"
+cites = ["AC-SPECMD-005.13", "AC-SPECMD-005.8"]
+artifacts = ["checks.err"]
+args = ["links", "docs/adrs/adr-800-current.md", "--map", "map.yaml"]
+exit_code = 2

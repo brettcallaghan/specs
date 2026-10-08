@@ -35,15 +35,19 @@ func newLinksCmd(streams *ioStreams, configPath *string) *cobra.Command {
 		Long: "links rewrites the [[slug]] wikilinks in one markdown document into " +
 			"ordinary markdown links: each citation targets the path a caller-supplied " +
 			"--map names for its slug, or, given no map, the cited document's path " +
-			"relative to the document being rewritten. Unlike refs, which reports what " +
-			"cites what, links emits one document with its citations rewritten.",
+			"relative to the document being rewritten. The link map is a YAML mapping " +
+			"from each corpus slug to a record declaring \"path\", the link target, " +
+			"such as adr-012: {path: ../adrs/adr-012.md}; a record's other properties " +
+			"are ignored, and a map written in JSON is accepted. Unlike refs, which " +
+			"reports what cites what, links emits one document with its citations " +
+			"rewritten.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			return runLinks(streams, *configPath, args[0], mapPath)
 		},
 	}
 	cmd.Flags().StringVar(&mapPath, "map", "",
-		"path to a YAML link map resolving corpus slugs to link targets")
+		"path to a YAML link map: each corpus slug mapped to a record declaring \"path\", e.g. adr-012: {path: ../adrs/adr-012.md}")
 	return cmd
 }
 

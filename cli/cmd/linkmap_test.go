@@ -5,9 +5,11 @@ package cmd_test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/brettcallaghan/agent-plugins/cli/cmd"
+	"github.com/brettcallaghan/agent-plugins/cli/core/specmodel"
 )
 
 // writeLinkMap writes content to name under dir and returns its path.
@@ -134,6 +136,11 @@ func TestLoadLinkMapReportsInvalidYAMLAndResolvesNoMap(t *testing.T) {
 	if findings[0].Rule != cmd.RuleLinkMapInvalid {
 		t.Errorf("Rule = %q, want %q", findings[0].Rule, cmd.RuleLinkMapInvalid)
 	}
+	// A syntax fault stays a syntax fault, told apart from a map of the
+	// wrong shape (AC-SPECMD-005.13).
+	if v, ok := findings[0].Detail.AsSchemaViolation(); !ok || v.Constraint != "yaml-syntax" {
+		t.Errorf("detail = %+v, want constraint yaml-syntax", findings[0].Detail)
+	}
 }
 
 // AC: AC-SPECMD-005.8
@@ -217,5 +224,75 @@ template-authoring-standards:
 	}
 	if second.Pointer != "/template-authoring-standards" {
 		t.Errorf("findings[1] pointer = %q, want /template-authoring-standards (sorted by slug)", second.Pointer)
+	}
+}
+
+// shapeViolations returns the link-map-shape findings among findings.
+func shapeViolations(t *testing.T, findings []specmodel.Finding) []specmodel.Finding {
+	t.Helper()
+	var out []specmodel.Finding
+	for _, f := range findings {
+		if v, ok := f.Detail.AsSchemaViolation(); ok && v.Constraint == "link-map-shape" {
+			out = append(out, f)
+		}
+	}
+	return out
+}
+
+// A map whose top level is not a mapping is reported with the shape it
+// should have, not with the parser's account of the mismatch.
+//
+// AC: AC-SPECMD-005.13
+func TestLoadLinkMapReportsATopLevelListWithTheExpectedShape(t *testing.T) {
+	path := writeLinkMap(t, t.TempDir(), "links.yaml", "- adr-012\n- adr-013\n")
+
+	links, findings := cmd.LoadLinkMap(path)
+	if links != nil {
+		t.Errorf("links = %+v, want no map resolved", links)
+	}
+	shape := shapeViolations(t, findings)
+	if len(findings) != 1 || len(shape) != 1 {
+		t.Fatalf("findings = %+v, want one link-map-shape finding", findings)
+	}
+	if shape[0].Rule != cmd.RuleLinkMapInvalid || !strings.Contains(shape[0].Message, `record declaring "path"`) {
+		t.Errorf("finding = %s %q, want linkmap/invalid naming the record-with-path shape", shape[0].Rule, shape[0].Message)
+	}
+	if strings.Contains(shape[0].Message, "where mapping is expected") {
+		t.Errorf("message %q carries the parser's wording", shape[0].Message)
+	}
+}
+
+// An entry that is not a record, or whose path is not a string, is
+// reported per slug with what was found and the expected shape, every one
+// in one run.
+//
+// AC: AC-SPECMD-005.13, AC-SPECMD-005.8
+func TestLoadLinkMapReportsEveryEntryOfTheWrongShape(t *testing.T) {
+	path := writeLinkMap(t, t.TempDir(), "links.yaml", `
+adr-013:
+  path: [a, b]
+adr-012: https://x
+adr-014:
+  path: ok.md
+`)
+
+	links, findings := cmd.LoadLinkMap(path)
+	if links != nil {
+		t.Errorf("links = %+v, want no map resolved", links)
+	}
+	shape := shapeViolations(t, findings)
+	if len(shape) != 2 || len(findings) != 2 {
+		t.Fatalf("findings = %+v, want two link-map-shape findings", findings)
+	}
+	for i, want := range []struct{ slug, found string }{{"adr-012", "a string"}, {"adr-013", "a list"}} {
+		f := shape[i]
+		for _, part := range []string{want.slug, want.found, `"path"`} {
+			if !strings.Contains(f.Message, part) {
+				t.Errorf("finding %d message %q does not carry %q", i, f.Message, part)
+			}
+		}
+		if v, _ := f.Detail.AsSchemaViolation(); v.Pointer != "/"+want.slug {
+			t.Errorf("finding %d pointer = %q, want /%s", i, v.Pointer, want.slug)
+		}
 	}
 }

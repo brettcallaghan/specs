@@ -187,7 +187,11 @@ repository configuration, so unlike `specs.toml` there is no
 not-found contract of its own: a file that cannot be read or parsed, or
 a record declaring no `path`, is reported as a finding naming the file
 and the fault, with no map resolved at all — never partially, the same
-discipline `Load` applies to `specs.toml` (AC-SPECMD-005.8). A slug
+discipline `Load` applies to `specs.toml` (AC-SPECMD-005.8). A file that
+parses but has the wrong shape — a top-level list or scalar, an entry
+that is not a record, a `path` that is not a string — is reported per
+offending entry, naming what was found and stating the shape a link map
+holds, so the message itself says how to fix it (AC-SPECMD-005.13). A slug
 repeated as a top-level key is a parse fault `goccy/go-yaml` itself
 rejects as a duplicate mapping key, rather than one record silently
 winning. `LoadLinkMap` performs no interpretation, resolution or

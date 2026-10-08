@@ -1,11 +1,11 @@
-links rewrites the [[slug]] wikilinks in one markdown document into ordinary markdown links: each citation targets the path a caller-supplied --map names for its slug, or, given no map, the cited document's path relative to the document being rewritten. Unlike refs, which reports what cites what, links emits one document with its citations rewritten.
+links rewrites the [[slug]] wikilinks in one markdown document into ordinary markdown links: each citation targets the path a caller-supplied --map names for its slug, or, given no map, the cited document's path relative to the document being rewritten. The link map is a YAML mapping from each corpus slug to a record declaring "path", the link target, such as adr-012: {path: ../adrs/adr-012.md}; a record's other properties are ignored, and a map written in JSON is accepted. Unlike refs, which reports what cites what, links emits one document with its citations rewritten.
 
 Usage:
   specs links <path> [flags]
 
 Flags:
   -h, --help         help for links
-      --map string   path to a YAML link map resolving corpus slugs to link targets
+      --map string   path to a YAML link map: each corpus slug mapped to a record declaring "path", e.g. adr-012: {path: ../adrs/adr-012.md}
 
 Global Flags:
       --config string   path to specs.toml (default: the nearest specs.toml in the working directory or above it, up to the repository root)
