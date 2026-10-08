@@ -7,7 +7,7 @@ description: The framework-agnostic engine that indexes markdown
 slug: module-document-core
 type: module-blueprint
 status: approved
-updated_at: 2026-10-07T00:00:00Z
+updated_at: 2026-10-08T00:00:00Z
 kind: standard
 visibility: internal
 source_paths:
@@ -285,6 +285,7 @@ C4Component
         Component(num, "Numbering", "Go package", "Next-number derivation for numbered document types")
         Component(find, "Findings", "Go package", "Finding and severity model, and report emission")
         Component(mdlinks, "Markdown Links", "Go package", "Wikilink-to-markdown-link substitution and target resolution")
+        Component(rev, "Revisions", "Go package", "Resolves a git base revision and materializes a directory as a commit holds it")
     }
     Rel(corpus, fm, "Extracts frontmatter via")
     Rel(corpus, md, "Extracts structure via")
@@ -313,10 +314,10 @@ C4Component
     Rel(mdlinks, find, "Reports through")
 ```
 
-Twelve of the thirteen are built and carry a **Built** paragraph naming
+Thirteen of the fourteen are built and carry a **Built** paragraph naming
 the package that realizes them: Spans, Frontmatter, Gherkin, C4 Diagrams,
 C4 Elements, C4 Model, References, Schema Registry, Corpus, Numbering,
-Findings and Markdown Links. The
+Findings, Markdown Links and Revisions. The
 emitted index carries the resolved reference graph, and the corpus checks
 read it: a broken link, a live document citing a retired one, a
 half-declared pairing and a typed reference landing on the wrong
@@ -2094,6 +2095,53 @@ replaced (AC-SPECMD-003.1). Three semantics are pinned:
   than a `[[...]]` construct, so `Substitute` leaves it untouched even
   where it settled a target.
 
+### Revisions
+
+```component
+entity_name: Revisions
+slug: component-revisions
+description: Resolves a git base revision and materializes a directory as a commit holds it
+```
+
+(Go package) — Reads the spec root as a git commit holds it, so a
+comparison can build the corpus at a base revision with the same Corpus
+build the working tree uses. It resolves the base — the merge-base of
+HEAD and the repository's default branch, or of HEAD and a named
+revision — and copies a directory's tracked files at that commit into a
+temporary directory. It knows git and directories and nothing of
+documents, criteria or the index, which is why it is framework-agnostic
+and lives here rather than in the command surface ([[adr-031]]).
+
+**Built** — `cli/core/revisions`. `Open` locates the work tree
+containing a directory (`git rev-parse --show-toplevel`) and exposes its
+top level, cleaned and in OS form. `Repository.Base` resolves a revision
+string: empty names the default branch, the first that resolves of the
+target of `refs/remotes/origin/HEAD`, then `main`, `origin/main`,
+`master` and `origin/master`; anything else must resolve under
+`git rev-parse --verify '<revision>^{commit}'`. The base is
+`git merge-base HEAD <commit>`, returned as a full object name with the
+reference it was taken against. `Repository.Materialize` lists a
+repository-relative directory at a commit with
+`git ls-tree -r -z --full-tree`, keeps only `100644` and `100755`
+entries — no symbolic link, no submodule — and writes each blob, read
+through one `git cat-file --batch` process, byte for byte at its
+repository-relative path under a fresh temporary directory: no checkout
+filter, `.gitattributes` rule or `export-ignore` applies. A directory the
+commit does not hold gives an empty tree. The returned `Tree`'s `Close`
+removes the directory, and every error path removes it before returning.
+
+The package runs only `rev-parse`, `merge-base`, `ls-tree` and
+`cat-file`, always as `git -C <top level>` with `GIT_TERMINAL_PROMPT=0`
+and `GIT_OPTIONAL_LOCKS=0`, so it never writes to the repository or its
+`.git` directory and never changes HEAD, the index or the working tree.
+Every condition a caller can act on is a `revisions.Error` carrying a
+class rather than an exit status: a named revision that does not resolve
+is **invocation**; no work tree, no runnable `git`, no default branch
+(naming every reference tried and `--since`), no common ancestor (saying
+so, and that the clone is shallow where it is) and an unborn HEAD are
+**environment**. Nothing in this module uses it; the command surface of
+[[container-spec-cli]] does.
+
 The relationships below are stated for the module's whole component set.
 The Corpus → Markdown Structure edge is still the intended shape rather
 than an existing one: nothing in Corpus calls `cli/core/markdown` yet.
@@ -2174,6 +2222,7 @@ This module SHALL comply with:
 
 ## Key Decisions
 
+
 - [[adr-015]] — Go, `goccy/go-yaml`, `santhosh-tekuri/jsonschema` and
   `goldmark` are the implementation choices this module is built on. All
   four are in use; `goldmark` arrived with References rather than with
@@ -2195,6 +2244,9 @@ This module SHALL comply with:
 - [[adr-030]] — the parser and the resolver live in this module, and the
   architecture vocabulary arrives as a profile registration, which is
   why C4 Elements takes its types and properties from `Architecture()`.
+- [[adr-031]] — base revisions are read through the `git` executable,
+  with the spec root's tracked blobs copied into a temporary directory,
+  which is why Revisions runs `git` rather than linking a git library.
 
 ## Open Questions
 

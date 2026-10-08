@@ -6,13 +6,13 @@ description: The Spec CLI reads a corpus at an earlier git revision by
   asking git to export an archive
 slug: adr-031
 type: adr
-status: draft
-updated_at: 2026-10-08T00:00:00Z
+status: approved
+updated_at: 2026-10-08T12:00:00Z
 ---
 
 # ADR-031: Base Revisions Are Read Through the git Executable
 
-**Status:** draft  
+**Status:** approved  
 **Date:** 2026-10-08
 
 ## Context
@@ -76,8 +76,8 @@ tree uses. The temporary directory is removed before the command exits.
 
 - [[frd-gherkin-adoption]] — FEAT-GHK-008, the comparison this decision
   serves
-- [[feature-gherkin-change-detection]] — the blueprint that builds it
 - [[container-spec-cli]] — the single-binary and no-runtime constraints
-- [[module-document-core]] — the Corpus build the base reuses
+- [[module-document-core]] — the Corpus build the base reuses, and the
+  Revisions component that realizes this decision
 - [[cli-exit-status-standards]] — the class a missing `git` is reported
   under
