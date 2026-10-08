@@ -1,0 +1,82 @@
+{
+  "schema_version": "2.0",
+  "workspace": "acme",
+  "entries": [
+    {
+      "path": "docs/adrs/adr-001-example.md",
+      "frontmatter": {
+        "type": "adr",
+        "description": "An example decision used by a snapshot case.",
+        "slug": "adr-001-example",
+        "title": "ADR-001: Example",
+        "updated_at": "2026-08-01T00:00:00Z"
+      },
+      "headings": [
+        {
+          "text": "ADR-001: Example",
+          "level": 1,
+          "span": {
+            "offset": 158,
+            "length": 19,
+            "start_line": 9,
+            "start_column": 1,
+            "end_line": 10,
+            "end_column": 1
+          },
+          "section_span": {
+            "offset": 177,
+            "length": 0,
+            "start_line": 10,
+            "start_column": 1,
+            "end_line": 10,
+            "end_column": 1
+          },
+          "record_blocks": []
+        }
+      ],
+      "record_blocks": []
+    },
+    {
+      "path": "docs/modules/module-gamma.md",
+      "frontmatter": {
+        "type": "module-blueprint",
+        "description": "A module blueprint that omits its required kind.",
+        "slug": "module-gamma",
+        "title": "Module: Gamma",
+        "status": "approved",
+        "updated_at": "2026-10-08T00:00:00Z",
+        "entity_name": "Gamma",
+        "visibility": "internal",
+        "version": "1.0"
+      },
+      "headings": [
+        {
+          "text": "Module: Gamma",
+          "level": 1,
+          "span": {
+            "offset": 241,
+            "length": 16,
+            "start_line": 13,
+            "start_column": 1,
+            "end_line": 14,
+            "end_column": 1
+          },
+          "section_span": {
+            "offset": 257,
+            "length": 0,
+            "start_line": 14,
+            "start_column": 1,
+            "end_line": 14,
+            "end_column": 1
+          },
+          "record_blocks": []
+        }
+      ],
+      "record_blocks": []
+    }
+  ],
+  "exclusions": [],
+  "references": [],
+  "features": [],
+  "input_hash": "sha256:efa975ebfc5deac53e9569cc79a196c606e1484aacbdbca05b8138e3449d3ee0"
+}

@@ -1142,7 +1142,20 @@ type: the variants are discovered from the generated union, each tag the
 kebab-case of its variant's name. It decodes without the generated
 required-field enforcement, because a document missing a required
 property must still be indexed for `frontmatter/missing-property` to
-report it.
+report it. `Encode` is the matching write: Corpus encodes every entry's
+frontmatter through it when it renders the index, and it writes the
+`type` discriminator and then the variant's properties exactly as the
+generated encoder does, except that a required enum the document leaves
+undeclared — an ADR's `status`, a blueprint's `kind` — is **omitted from
+the index rather than refused**. The generated encoder refuses the empty
+value, which would make the index unwritable over a corpus that merely
+fails a check; the omission is that check's finding alone
+(AC-SPEC-002.4, AC-SPEC-002.5). For a frontmatter that declares every
+enum the bytes are the generated encoder's, so the index of a valid
+corpus is unchanged. Such an index does not load back through the
+generated decoder, which requires the property, so a corpus holding such
+a member always rebuilds rather than serving its cache warm; status and
+output are the same either way.
 
 ### Corpus
 

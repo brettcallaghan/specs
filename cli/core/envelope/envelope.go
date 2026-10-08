@@ -153,6 +153,116 @@ func Decode(raw []byte) (specmodel.TypedFrontmatter, error) {
 	return specmodel.TypedFrontmatter{Value: value}, nil
 }
 
+// Encode encodes a document's typed frontmatter as the generated
+// [specmodel.TypedFrontmatter] encoder does — the `type` discriminator
+// first, then the variant's properties in declaration order — except that
+// an enum-typed property holding the empty value is omitted rather than
+// refused.
+//
+// [Decode] leaves a required enum the document does not declare at its
+// empty value, so the document can be read and the omission reported by a
+// check (`frontmatter/missing-property`). The generated encoder refuses
+// that value, because it is not a member of the enum, which would make the
+// index unwritable over a corpus that merely fails a check. Omitting the
+// property records what the author wrote, and nothing they did not.
+//
+// For a frontmatter with no empty enum the bytes are exactly those
+// [json.Marshal] produces for the generated union.
+func Encode(f specmodel.TypedFrontmatter) ([]byte, error) {
+	if f.Value == nil {
+		return nil, fmt.Errorf("envelope: encoding frontmatter: nil variant")
+	}
+	value := reflect.ValueOf(f.Value)
+	if value.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("envelope: encoding frontmatter: variant %s is not a struct", value.Type())
+	}
+	tag, err := json.Marshal(kebab(value.Type().Name()))
+	if err != nil {
+		return nil, err
+	}
+
+	out := append([]byte(`{"type":`), tag...)
+	for i := 0; i < value.NumField(); i++ {
+		field := value.Type().Field(i)
+		if !field.IsExported() || field.Anonymous {
+			return nil, fmt.Errorf("envelope: encoding frontmatter: %s.%s is not a plain exported field", value.Type(), field.Name)
+		}
+		name, options, _ := strings.Cut(field.Tag.Get("json"), ",")
+		if name == "-" && options == "" {
+			continue
+		}
+		if name == "" {
+			name = field.Name
+		}
+		v := value.Field(i)
+		if hasOption(options, "string") {
+			return nil, fmt.Errorf("envelope: encoding frontmatter: %s.%s uses the unsupported \",string\" option", value.Type(), field.Name)
+		}
+		if hasOption(options, "omitempty") && isEmpty(v) {
+			continue
+		}
+		if isEmptyEnum(v) {
+			continue
+		}
+		key, err := json.Marshal(name)
+		if err != nil {
+			return nil, err
+		}
+		encoded, err := json.Marshal(v.Interface())
+		if err != nil {
+			return nil, fmt.Errorf("envelope: encoding frontmatter property %s: %w", name, err)
+		}
+		out = append(out, ',')
+		out = append(out, key...)
+		out = append(out, ':')
+		out = append(out, encoded...)
+	}
+	return append(out, '}'), nil
+}
+
+// hasOption reports whether a comma-separated json tag option list holds
+// option.
+func hasOption(options, option string) bool {
+	for options != "" {
+		var next string
+		next, options, _ = strings.Cut(options, ",")
+		if next == option {
+			return true
+		}
+	}
+	return false
+}
+
+// isEmpty is encoding/json's omitempty test: false, 0, a nil pointer or
+// interface, and an empty array, slice, map or string.
+func isEmpty(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
+		return v.Len() == 0
+	case reflect.Bool:
+		return !v.Bool()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return v.Int() == 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return v.Uint() == 0
+	case reflect.Float32, reflect.Float64:
+		return v.Float() == 0
+	case reflect.Interface, reflect.Pointer:
+		return v.IsNil()
+	}
+	return false
+}
+
+// marshaler is the generated enums' encoding method.
+var marshaler = reflect.TypeOf((*json.Marshaler)(nil)).Elem()
+
+// isEmptyEnum reports whether v is a generated enum — a string type that
+// encodes itself — holding the empty value, which no generated enum
+// admits.
+func isEmptyEnum(v reflect.Value) bool {
+	return v.Kind() == reflect.String && v.Len() == 0 && v.Type().Implements(marshaler)
+}
+
 // DeclaredSlug returns the slug an index entry declares: its envelope's
 // slug where its frontmatter parsed, the slug recovered from a block that
 // did not parse where one was legible (AC-SPEC-003.7), and the empty

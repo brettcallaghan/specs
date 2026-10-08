@@ -1,0 +1,5 @@
+description = "index exits zero and writes every member when an ADR omits its required status and a module blueprint its required kind: each entry carries every property it declares and omits the undeclared enum, which is check's finding rather than a reason the index cannot be written"
+cites = ["AC-SPEC-002.4", "AC-SPEC-002.5"]
+artifacts = ["checks.log", "manifest.json"]
+args = ["index"]
+exit_code = 0

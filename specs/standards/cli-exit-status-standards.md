@@ -260,7 +260,10 @@ Measured with a binary built from `main` at `31b3079`, run against this
 repository's corpus; the `headings` row at `12b2eda`. The last row was
 re-measured on the change that moved `criterion --changed` onto a git
 base, in a directory outside any repository: exit `3`, nothing on
-standard output.
+standard output. The missing-enum row was re-measured on the change that
+omits an undeclared enum from the index, over `index-default`'s corpus
+with an ADR's `status` deleted: `index --out -` and `list --json` each
+exit `0` with the answer written.
 
 | invocation | today | under these standards |
 |---|---|---|
@@ -273,7 +276,7 @@ standard output.
 | `c4 --root zzz` | `1` | `0`, with the subject marked not declared |
 | `criterion --tag zzz` | `0`, empty | `2` — qualifiers are a registered set |
 | `slug-exists zzz`, `feature --code ZZ`, `headings 'zzz#q'` | `0` | `0`, with the subject marked not declared |
-| `list --json` or `index` on a document missing a required enum | `1` | `0` and the artifact written; until fixed, `4` |
+| `list --json` or `index` on a document missing a required enum | `0`, the artifact written | `0` and the artifact written |
 | a panic | `2` (Go's default) | `4` |
 | `headings 'module-document-core#references' --emit`, two matches | `0`, both sections joined | `2`, each match named on standard error |
 | `criterion --changed` outside a git repository | `3` | `3` |

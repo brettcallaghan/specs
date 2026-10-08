@@ -67,8 +67,16 @@ func IndexPath(opts Options, out string) string {
 // the same bytes — which is what makes "identical output whether or not a
 // warm index is present" a property of one function rather than a promise
 // spread across callers.
+//
+// An entry's frontmatter is encoded by [envelope.Encode], which omits a
+// required enum the document leaves undeclared instead of refusing it, so
+// an index can always be written over a corpus that fails check.
 func Marshal(index specmodel.SpecIndex) ([]byte, error) {
-	encoded, err := json.MarshalIndent(index, "", "  ")
+	view, err := encodable(index)
+	if err != nil {
+		return nil, fmt.Errorf("corpus: rendering the index: %w", err)
+	}
+	encoded, err := json.MarshalIndent(view, "", "  ")
 	if err != nil {
 		return nil, fmt.Errorf("corpus: rendering the index: %w", err)
 	}

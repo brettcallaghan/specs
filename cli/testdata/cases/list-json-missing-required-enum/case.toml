@@ -1,0 +1,5 @@
+description = "list --json exits zero and lists an ADR that omits its required status without a status, as the YAML rendering does, and a module blueprint that omits its required kind"
+cites = ["AC-SPECLIST-004.1"]
+artifacts = ["checks.json"]
+args = ["list", "--json"]
+exit_code = 0

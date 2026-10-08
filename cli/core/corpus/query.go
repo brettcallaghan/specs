@@ -316,7 +316,11 @@ func summarize(entry specmodel.IndexEntry) DocumentSummary {
 		shared := envelope.Of(entry.Frontmatter)
 		summary.Slug = ptrTo(shared.Slug)
 		summary.Type = ptrTo(shared.Type)
-		summary.Status = ptrTo(shared.Status)
+		// An undeclared status is omitted, as the YAML rendering omits it,
+		// rather than handed to the encoder that refuses the empty value.
+		if shared.Status != "" {
+			summary.Status = ptrTo(shared.Status)
+		}
 		summary.Title = ptrTo(shared.Title)
 		summary.Description = ptrTo(shared.Description)
 	}
