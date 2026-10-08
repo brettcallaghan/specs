@@ -43,8 +43,8 @@ func newHeadingsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 			"a path of headings separated by #, outermost first, each nested within " +
 			"the one before it at any depth, so <document>#Components#References " +
 			"selects the References heading beneath Components; every match carries " +
-			"its heading path, which pastes back as such a selection, naming that heading " +
-			"alone unless the path is a single segment another heading shares. A matched heading " +
+			"its anchor and a ref, which pastes back as a selection, naming that heading " +
+			"alone unless the anchor is a single segment another heading shares. A matched heading " +
 			"is returned with every heading nested inside its section. Given --emit, " +
 			"the content the one matching heading stands over is written as itself " +
 			"instead; --emit requires the selection to match exactly one heading, " +
@@ -88,14 +88,17 @@ type headingMatch struct {
 	Path       string `json:"path"`
 	Text       string `json:"text"`
 	Identifier string `json:"identifier"`
-	// HeadingPath is the identifier of each enclosing heading from the
+	// Anchor is the identifier of each enclosing heading from the
 	// outermost down, then the heading's own, joined by "#"
-	// (AC-SPECSTR-003.9). Written as a selection's heading half it
-	// selects this heading alone, unless a sibling shares its text all
-	// the way up.
-	HeadingPath string         `json:"heading_path"`
-	Level       uint64         `json:"level"`
-	Section     specmodel.Span `json:"section"`
+	// (AC-SPECSTR-003.9): the part after the "#" of a reference.
+	Anchor string `json:"anchor"`
+	// Ref is the member's declared slug, "#" and Anchor, or its path in
+	// place of the slug where it declares none. Pasted into specs
+	// headings, specs refs or a [[...]] wikilink it selects this heading
+	// alone, unless a sibling shares its text all the way up.
+	Ref     string         `json:"ref"`
+	Level   uint64         `json:"level"`
+	Section specmodel.Span `json:"section"`
 }
 
 // headingsResult is the answer: the matches, and whether the document the
@@ -228,6 +231,12 @@ func selectHeadings(index specmodel.SpecIndex, sel selection) (matches []heading
 		chosen := make([]bool, len(entry.Headings))
 		named := make([]bool, len(entry.Headings))
 		paths := references.HeadingPaths(entry.Headings)
+		// A reference is addressed by the declared slug; a member that
+		// declares none is reached only by its path.
+		refPrefix := envelope.DeclaredSlug(entry)
+		if refPrefix == "" {
+			refPrefix = entry.Path
+		}
 		// The heading half is a heading path query: one segment is
 		// matched on its identifier, and several select the heading
 		// named by the last beneath each earlier one, at any depth
@@ -259,13 +268,15 @@ func selectHeadings(index specmodel.SpecIndex, sel selection) (matches []heading
 			if !chosen[i] {
 				continue
 			}
+			anchor := markdown.JoinPath(paths[i])
 			matches = append(matches, headingMatch{
-				Path:        entry.Path,
-				Text:        heading.Text,
-				Identifier:  paths[i][len(paths[i])-1],
-				HeadingPath: markdown.JoinPath(paths[i]),
-				Level:       heading.Level,
-				Section:     heading.SectionSpan,
+				Path:       entry.Path,
+				Text:       heading.Text,
+				Identifier: paths[i][len(paths[i])-1],
+				Anchor:     anchor,
+				Ref:        refPrefix + "#" + anchor,
+				Level:      heading.Level,
+				Section:    heading.SectionSpan,
 			})
 			direct = append(direct, named[i])
 		}
@@ -317,7 +328,7 @@ func renderHeadings(streams *ioStreams, result headingsResult, asJSON bool) erro
 // More than one is an invocation error that writes nothing to standard
 // output and names every heading the selection named, so the caller can
 // narrow it (AC-SPECSTR-003.7). Under "Select one of:" go only the
-// matches whose <path>#<heading_path>, pasted back, names that heading
+// matches whose ref, pasted back, names that heading
 // alone — tested by running that very selection, not predicted. The rest
 // are listed apart: a one-segment heading path is an identifier
 // comparison and full-path precedence applies to several segments only
@@ -356,13 +367,13 @@ func emitSection(streams *ioStreams, index specmodel.SpecIndex, repoRoot, operan
 		if len(alone) > 0 {
 			b.WriteString(" Select one of:")
 			for _, match := range alone {
-				fmt.Fprintf(&b, "\n    %s#%s", match.Path, match.HeadingPath)
+				fmt.Fprintf(&b, "\n    %s", match.Ref)
 			}
 		}
 		if len(shared) > 0 {
 			b.WriteString("\nNo selection matches these alone; the query without --emit returns each one's span:")
 			for _, match := range shared {
-				fmt.Fprintf(&b, "\n    %s#%s", match.Path, match.HeadingPath)
+				fmt.Fprintf(&b, "\n    %s", match.Ref)
 			}
 		}
 		b.WriteString("\nor drop --emit to list the matches")
@@ -380,12 +391,12 @@ func emitSection(streams *ioStreams, index specmodel.SpecIndex, repoRoot, operan
 	return nil
 }
 
-// selectsAlone reports whether match's own <path>#<heading_path>, given
+// selectsAlone reports whether match's own ref, given
 // back as a selection, names exactly that heading — the question a caller
 // pasting it back with --emit is asking, answered by the same selection
 // the command runs.
 func selectsAlone(index specmodel.SpecIndex, match headingMatch) bool {
-	matches, direct := selectHeadings(index, parseSelection(match.Path+"#"+match.HeadingPath))
+	matches, direct := selectHeadings(index, parseSelection(match.Ref))
 	var named []headingMatch
 	for i, m := range matches {
 		if direct[i] {

@@ -1385,9 +1385,10 @@ The vocabulary is:
   it across the JSON boundary; the Spans component below owns its
   semantics and is the only place spans are computed.
 
-`schema_version` is required and pinned to `2.0` (AC-SPEC-002.2). 2.0
+`schema_version` is required and pinned to `2.1` (AC-SPEC-002.2). 2.0
 renamed every `Span`-typed property to `span` (or `<role>_span`, such as
-`section_span`), a change to what was already there and so a bump. The
+`section_span`), a change to what was already there and so a bump. 2.1
+renamed the heading-path property of `AnchorMatch` to `anchor`, likewise a bump. The
 model is additive. The reference collection is the first exercise of that
 rule and it is a deliberate no-bump rather than an oversight —
 `references` is an addition alongside the existing shape,

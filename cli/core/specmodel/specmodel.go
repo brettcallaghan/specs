@@ -3108,14 +3108,14 @@ type AnchorMatch struct {
 	// The heading's text as authored, without the `#` markers that open the
 	// line.
 	Text string `json:"text"`
-	// The heading's heading path: the identifier of each enclosing heading
+	// The heading's anchor: the identifier of each enclosing heading
 	// from the outermost down, followed by its own, joined by `#`. Written as
 	// a selection or an anchor, it names this heading alone unless two
 	// sibling headings share identical text all the way up, and then no path
 	// can — or unless it is a single segment another heading's identifier
 	// shares, since a one-segment query is an identifier comparison over
 	// every heading.
-	HeadingPath string `json:"heading_path"`
+	Anchor string `json:"anchor"`
 	// Where the heading line itself is written.
 	Span Span `json:"span"`
 }
@@ -3130,10 +3130,10 @@ func (v *AnchorMatch) UnmarshalJSON(data []byte) error {
 	} else if err := json.Unmarshal(m, &v.Text); err != nil {
 		return prefixField("text", err)
 	}
-	if m, ok := raw["heading_path"]; !ok || string(m) == "null" {
-		return fmt.Errorf("AnchorMatch: required field \"heading_path\" is missing or null")
-	} else if err := json.Unmarshal(m, &v.HeadingPath); err != nil {
-		return prefixField("heading_path", err)
+	if m, ok := raw["anchor"]; !ok || string(m) == "null" {
+		return fmt.Errorf("AnchorMatch: required field \"anchor\" is missing or null")
+	} else if err := json.Unmarshal(m, &v.Anchor); err != nil {
+		return prefixField("anchor", err)
 	}
 	if m, ok := raw["span"]; !ok || string(m) == "null" {
 		return fmt.Errorf("AnchorMatch: required field \"span\" is missing or null")
@@ -3143,7 +3143,7 @@ func (v *AnchorMatch) UnmarshalJSON(data []byte) error {
 	var unknown string
 	for key := range raw {
 		switch key {
-		case "text", "heading_path", "span":
+		case "text", "anchor", "span":
 		default:
 			if unknown == "" || key < unknown {
 				unknown = key
@@ -7729,7 +7729,7 @@ func (v *Reference) UnmarshalJSON(data []byte) error {
 type SpecIndex struct {
 	// The version of this index's schema.
 	//
-	// Pinned to `2.0` for as long as the shape only grows. A change to the
+	// Pinned to `2.1` for as long as the shape only grows. A change to the
 	// shape of what is already here — as opposed to an addition alongside it
 	// — updates this value and the emitted index in the same change.
 	SchemaVersion string `json:"schema_version"`

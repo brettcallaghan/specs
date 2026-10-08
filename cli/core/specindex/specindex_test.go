@@ -26,11 +26,11 @@ const schemaPath = "../schema/spec-model.schema.json"
 func TestNewDeclaresTheSchemaVersion(t *testing.T) {
 	index := specindex.New("agent-plugins")
 
-	if index.SchemaVersion != "2.0" {
-		t.Errorf("SchemaVersion = %q, want %q", index.SchemaVersion, "2.0")
+	if index.SchemaVersion != "2.1" {
+		t.Errorf("SchemaVersion = %q, want %q", index.SchemaVersion, "2.1")
 	}
-	if specindex.SchemaVersion != "2.0" {
-		t.Errorf("specindex.SchemaVersion = %q, want %q", specindex.SchemaVersion, "2.0")
+	if specindex.SchemaVersion != "2.1" {
+		t.Errorf("specindex.SchemaVersion = %q, want %q", specindex.SchemaVersion, "2.1")
 	}
 	if index.Workspace != "agent-plugins" {
 		t.Errorf("Workspace = %q, want %q", index.Workspace, "agent-plugins")
@@ -53,8 +53,8 @@ func TestEmittedIndexCarriesTheSchemaVersion(t *testing.T) {
 	if !ok {
 		t.Fatalf("emitted index has no schema_version property: %s", encoded)
 	}
-	if string(version) != `"2.0"` {
-		t.Errorf("schema_version = %s, want %q", version, "2.0")
+	if string(version) != `"2.1"` {
+		t.Errorf("schema_version = %s, want %q", version, "2.1")
 	}
 }
 
@@ -67,7 +67,7 @@ func TestNewEmitsEmptyCollectionsRatherThanNull(t *testing.T) {
 		t.Fatalf("marshal: %v", err)
 	}
 
-	want := `{"schema_version":"2.0","workspace":"agent-plugins","entries":[],"exclusions":[],"references":[],"features":[]}`
+	want := `{"schema_version":"2.1","workspace":"agent-plugins","entries":[],"exclusions":[],"references":[],"features":[]}`
 	if string(encoded) != want {
 		t.Errorf("emitted index =\n  %s\nwant\n  %s", encoded, want)
 	}
@@ -94,7 +94,7 @@ func TestSchemaRequiresAndPinsTheSchemaVersion(t *testing.T) {
 	if !matcher.MatchString(specindex.SchemaVersion) {
 		t.Errorf("pattern %q rejects the emitted version %q", pattern, specindex.SchemaVersion)
 	}
-	for _, rejected := range []string{"", "2", "2.1", "1.0", "v2.0", "2.0.0"} {
+	for _, rejected := range []string{"", "2", "2.0", "1.0", "v2.1", "2.1.0"} {
 		if matcher.MatchString(rejected) {
 			t.Errorf("pattern %q accepts %q, but only %q is a valid version this sprint",
 				pattern, rejected, specindex.SchemaVersion)

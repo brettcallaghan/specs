@@ -522,7 +522,7 @@ struct AnchorMatch {
   text: String
 
   """
-  The heading's heading path: the identifier of each enclosing heading
+  The heading's anchor: the identifier of each enclosing heading
   from the outermost down, followed by its own, joined by `#`. Written as
   a selection or an anchor, it names this heading alone unless two
   sibling headings share identical text all the way up, and then no path
@@ -530,7 +530,7 @@ struct AnchorMatch {
   shares, since a one-segment query is an identifier comparison over
   every heading.
   """
-  heading_path: String
+  anchor: String
 
   """Where the heading line itself is written."""
   span: Span

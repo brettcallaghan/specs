@@ -175,9 +175,9 @@ func resolveAnchor(ref specmodel.Reference, headings *lazyOutlines) *specmodel.A
 	for i, heading := range target.headings {
 		if selected[i] {
 			matches = append(matches, specmodel.AnchorMatch{
-				Text:        heading.Text,
-				HeadingPath: markdown.JoinPath(target.paths[i]),
-				Span:        heading.Span,
+				Text:   heading.Text,
+				Anchor: markdown.JoinPath(target.paths[i]),
+				Span:   heading.Span,
 			})
 		}
 	}

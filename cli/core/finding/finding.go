@@ -404,7 +404,7 @@ func UnresolvedAnchor(path string, at specmodel.Span, anchor, targetPath string)
 func AmbiguousAnchor(path string, at specmodel.Span, anchor, targetPath string, matches []specmodel.AnchorMatch) specmodel.Finding {
 	named := make([]string, len(matches))
 	for i, match := range matches {
-		named[i] = fmt.Sprintf("%s (line %d)", match.HeadingPath, match.Span.StartLine)
+		named[i] = fmt.Sprintf("%s (line %d)", match.Anchor, match.Span.StartLine)
 	}
 	return specmodel.Finding{
 		Rule:     RuleAmbiguousAnchor,

@@ -104,7 +104,7 @@ findings:
       target_path: docs/adrs/adr-500-roster.md
       matches:
         - text: Detail
-          heading_path: adr-500-roster#components#references#detail
+          anchor: adr-500-roster#components#references#detail
           span:
             offset: 278
             length: 12
@@ -113,7 +113,7 @@ findings:
             end_line: 19
             end_column: 1
         - text: Detail
-          heading_path: adr-500-roster#appendix#references#detail
+          anchor: adr-500-roster#appendix#references#detail
           span:
             offset: 470
             length: 12

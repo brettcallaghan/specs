@@ -3,7 +3,8 @@ matches:
   - path: docs/adrs/adr-500-roster.md
     text: References
     identifier: references
-    heading_path: adr-500-roster#references
+    anchor: adr-500-roster#references
+    ref: adr-500-roster#adr-500-roster#references
     level: 2
     section:
       offset: 376

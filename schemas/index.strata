@@ -526,11 +526,11 @@ struct SpecIndex {
   """
   The version of this index's schema.
 
-  Pinned to `2.0` for as long as the shape only grows. A change to the
+  Pinned to `2.1` for as long as the shape only grows. A change to the
   shape of what is already here — as opposed to an addition alongside it
   — updates this value and the emitted index in the same change.
   """
-  schema_version: String ~= /^2\.0$/
+  schema_version: String ~= /^2\.1$/
 
   """
   The workspace identifier from configuration, so that indexes emitted

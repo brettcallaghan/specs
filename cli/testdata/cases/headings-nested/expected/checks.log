@@ -3,7 +3,8 @@ matches:
   - path: docs/adrs/adr-001-first.md
     text: Decision
     identifier: decision
-    heading_path: adr-001-first#decision
+    anchor: adr-001-first#decision
+    ref: adr-001-first#adr-001-first#decision
     level: 2
     section:
       offset: 252
@@ -15,7 +16,8 @@ matches:
   - path: docs/adrs/adr-001-first.md
     text: Detail
     identifier: detail
-    heading_path: adr-001-first#decision#detail
+    anchor: adr-001-first#decision#detail
+    ref: adr-001-first#adr-001-first#decision#detail
     level: 3
     section:
       offset: 287

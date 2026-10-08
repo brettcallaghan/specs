@@ -1,5 +1,5 @@
 {
-  "schema_version": "2.0",
+  "schema_version": "2.1",
   "workspace": "acme",
   "entries": [
     {
@@ -116,5 +116,5 @@
     }
   ],
   "features": [],
-  "input_hash": "sha256:34cabeff7aba7fd08fa79bc5554a695955f2e6d5de30e1f1b2d5cf82a6e95b12"
+  "input_hash": "sha256:426dc4b3de119cb6a38a17951ebecaf7cc18ae8461c8330cdaeadaca0ac6a178"
 }

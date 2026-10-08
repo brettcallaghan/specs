@@ -2,7 +2,8 @@ matches:
   - path: docs/adrs/adr-001-first.md
     text: Overview
     identifier: overview
-    heading_path: adr-001-first#overview
+    anchor: adr-001-first#overview
+    ref: adr-001-first#adr-001-first#overview
     level: 2
     section:
       offset: 209
@@ -14,7 +15,8 @@ matches:
   - path: docs/adrs/adr-002-second.md
     text: Overview
     identifier: overview
-    heading_path: adr-002-second#overview
+    anchor: adr-002-second#overview
+    ref: adr-002-second#adr-002-second#overview
     level: 2
     section:
       offset: 219

@@ -445,7 +445,7 @@ record blocks.
 | Property | Type | Documentation |
 |----------|------|---------------|
 | text | String | The heading's text as authored, without the `#` markers that open the line. |
-| heading_path | String | The heading's heading path: the identifier of each enclosing heading from the outermost down, followed by its own, joined by `#`. Written as a selection or an anchor, it names this heading alone unless two sibling headings share identical text all the way up, and then no path can — or unless it is a single segment another heading's identifier shares, since a one-segment query is an identifier comparison over every heading. |
+| anchor | String | The heading's anchor: the identifier of each enclosing heading from the outermost down, followed by its own, joined by `#`. Written as a selection or an anchor, it names this heading alone unless two sibling headings share identical text all the way up, and then no path can — or unless it is a single segment another heading's identifier shares, since a one-segment query is an identifier comparison over every heading. |
 | span | [Span](index.md#span) | Where the heading line itself is written. |
 
 

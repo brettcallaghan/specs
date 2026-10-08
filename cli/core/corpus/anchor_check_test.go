@@ -341,7 +341,7 @@ func TestANestedAnchorResolvesThroughItsEnclosingHeadings(t *testing.T) {
 			if c.rule == finding.RuleAmbiguousAnchor {
 				detail, _ := got[0].Detail.AsAmbiguousAnchor()
 				for _, match := range detail.Matches {
-					if !strings.HasPrefix(match.HeadingPath, "second#") {
+					if !strings.HasPrefix(match.Anchor, "second#") {
 						t.Errorf("match %+v carries no heading path", match)
 					}
 				}

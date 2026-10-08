@@ -2,7 +2,8 @@ matches:
   - path: docs/adrs/adr-001-first.md
     text: Key Decisions
     identifier: key-decisions
-    heading_path: adr-001-first#key-decisions
+    anchor: adr-001-first#key-decisions
+    ref: adr-001-first#adr-001-first#key-decisions
     level: 2
     section:
       offset: 356

@@ -1,5 +1,5 @@
 {
-  "schema_version": "2.0",
+  "schema_version": "2.1",
   "workspace": "acme",
   "entries": [
     {
@@ -124,7 +124,7 @@
         "state": "resolved",
         "heading": {
           "text": "Decision",
-          "heading_path": "adr-012-decision#decision",
+          "anchor": "adr-012-decision#decision",
           "span": {
             "offset": 203,
             "length": 12,
@@ -138,5 +138,5 @@
     }
   ],
   "features": [],
-  "input_hash": "sha256:79961e4196255223586f2abcb1d3bb3346e348db1c7b720fb5daf7356be48ee0"
+  "input_hash": "sha256:b551d098331dc2ef56a205dd6d2ce2b2ce99672cb8a478e9a6fcd85afdf8b939"
 }

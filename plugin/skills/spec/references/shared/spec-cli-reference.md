@@ -373,8 +373,8 @@ is a repository-relative path; otherwise it is a slug. A heading is
 matched on its identifier, so letter case and punctuation do not decide
 a match. The heading half may be a path of headings joined by `#`,
 outermost first, each nested anywhere inside the one before it. Each
-match carries its file `path`, `text`, `identifier`, `heading_path`,
-`level` and the `section` span of the content beneath it, and is
+match carries its file `path`, `text`, `identifier`, `anchor`,
+`ref`, `level` and the `section` span of the content beneath it, and is
 followed by every heading nested inside its section.
 
 ```
@@ -384,7 +384,8 @@ matches:
   - path: specs/modules/document-core/document-core-module.md
     text: References
     identifier: references
-    heading_path: document-core#components#references
+    anchor: document-core#components#references
+    ref: module-document-core#document-core#components#references
     level: 3
     section:
       offset: 55158
@@ -395,14 +396,16 @@ matches:
 **`--emit`** writes the section's content as itself instead — the
 cheapest way to read one part of a long document. It requires the
 selection to match exactly one heading. A selection matching several is
-refused (exit 2), naming each match by a selection that matches it
-alone, which you paste back:
+refused (exit 2), naming each match by its `ref` that selects it
+alone, which you paste back (`ref` is the declared slug, `#`, and the
+`anchor`; a member declaring no slug is named by its path in place of
+the slug):
 
 ```
 $ specs headings 'module-document-core#References' --emit     # exit 2
 "module-document-core#References" matches 2 headings; --emit needs exactly one. Select one of:
-    specs/modules/document-core/document-core-module.md#document-core#components#references
-    specs/modules/document-core/document-core-module.md#document-core#references
+    module-document-core#document-core#components#references
+    module-document-core#document-core#references
 or drop --emit to list the matches
 ```
 
