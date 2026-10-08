@@ -13,6 +13,8 @@ The roster entry is [[adr-500-roster#Components#References]].
 
 A heading the roster lacks is [[adr-500-roster#Components#Nope]].
 
-A path both References headings satisfy is [[adr-500-roster#ADR-500: Roster#References]].
+The document's own References, by its full heading path, is [[adr-500-roster#ADR-500: Roster#References]].
 
 Another roster entry is [[adr-500-roster#Findings]].
+
+A detail both References headings carry is [[adr-500-roster#References#Detail]].

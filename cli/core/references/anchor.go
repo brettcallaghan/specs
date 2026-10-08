@@ -168,10 +168,12 @@ func resolveAnchor(ref specmodel.Reference, headings *lazyOutlines) *specmodel.A
 
 	// An anchor is a heading path query: one segment is matched on its
 	// identifier, and several select the heading named by the last
-	// beneath each earlier one (AC-SPECANCH-002.10).
+	// beneath each earlier one (AC-SPECANCH-002.10) — or, where they
+	// spell some heading's full path, that heading alone.
 	var matches []specmodel.AnchorMatch
+	selected := markdown.SelectPaths(*ref.Anchor, target.paths)
 	for i, heading := range target.headings {
-		if markdown.MatchesPath(*ref.Anchor, target.paths[i]) {
+		if selected[i] {
 			matches = append(matches, specmodel.AnchorMatch{
 				Text:        heading.Text,
 				HeadingPath: markdown.JoinPath(target.paths[i]),

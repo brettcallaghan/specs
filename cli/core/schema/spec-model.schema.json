@@ -87,7 +87,7 @@
       "description": "One heading matched against an ambiguous anchor.\n\nHeld apart from the full `Heading` shape because a match names only what\nthe reader needs to find the right one — its text and where it is\nwritten — and carries none of a heading's own section content or nested\nrecord blocks.",
       "properties": {
         "heading_path": {
-          "description": "The heading's heading path: the identifier of each enclosing heading\nfrom the outermost down, followed by its own, joined by `#`. Written as\na selection or an anchor, it names this heading alone unless two\nsibling headings share identical text all the way up, and then no path\ncan.",
+          "description": "The heading's heading path: the identifier of each enclosing heading\nfrom the outermost down, followed by its own, joined by `#`. Written as\na selection or an anchor, it names this heading alone unless two\nsibling headings share identical text all the way up, and then no path\ncan — or unless it is a single segment another heading's identifier\nshares, since a one-segment query is an identifier comparison over\nevery heading.",
           "type": "string"
         },
         "span": {

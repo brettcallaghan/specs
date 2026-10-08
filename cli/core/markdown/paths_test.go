@@ -2,6 +2,7 @@ package markdown_test
 
 import (
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/markdown"
@@ -101,6 +102,60 @@ func TestASingleSegmentQueryIsTodaysIdentifierMatch(t *testing.T) {
 			if got := markdown.MatchesPath(query, paths[i]); got != want {
 				t.Errorf("MatchesPath(%q, %v) = %v, identifier comparison says %v", query, paths[i], got, want)
 			}
+		}
+	}
+}
+
+// A heading's full heading path selects that heading alone, even where a
+// deeper same-named heading's path contains it as a subsequence; a query
+// spelling no full path still selects every heading satisfying it.
+//
+// AC: AC-SPECSTR-003.7, AC-SPECSTR-003.11, AC-SPECANCH-002.5, AC-SPECANCH-002.10
+func TestAFullHeadingPathSelectsItsHeadingAlone(t *testing.T) {
+	outline := []markdown.Outline{
+		{Text: "Document Core", Level: 1},
+		{Text: "Components", Level: 2},
+		{Text: "References", Level: 3},
+		{Text: "References", Level: 2},
+		{Text: "Appendix", Level: 2},
+		{Text: "Components", Level: 3},
+		{Text: "References", Level: 4},
+	}
+	paths := markdown.HeadingPaths(outline)
+	cases := []struct {
+		name  string
+		query string
+		want  []int
+	}{
+		{"the shallow heading's full path", "document-core#references", []int{3}},
+		{"the deep heading's full path", "Document Core#Components#References", []int{2}},
+		{"a path no heading has exactly falls back to subsequence", "Components#References", []int{2, 6}},
+		{"a single segment stays an identifier comparison", "References", []int{2, 3, 6}},
+		{"an empty segment selects nothing", "document-core##references", nil},
+		{"no heading satisfies", "Findings#References", nil},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			var got []int
+			for i, chosen := range markdown.SelectPaths(c.query, paths) {
+				if chosen {
+					got = append(got, i)
+				}
+			}
+			if !slices.Equal(got, c.want) {
+				t.Errorf("SelectPaths(%q) = %v, want %v", c.query, got, c.want)
+			}
+		})
+	}
+	for i, path := range paths {
+		var got []int
+		for j, chosen := range markdown.SelectPaths(markdown.JoinPath(path), paths) {
+			if chosen {
+				got = append(got, j)
+			}
+		}
+		if len(path) > 1 && !slices.Equal(got, []int{i}) {
+			t.Errorf("pasting %q back selected %v, want only %d", markdown.JoinPath(path), got, i)
 		}
 	}
 }

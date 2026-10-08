@@ -26,3 +26,13 @@ Another roster entry.
 ## References
 
 The document's own references.
+
+## Appendix
+
+### References
+
+The appendix's own references.
+
+#### Detail
+
+Nested beneath the appendix's references.

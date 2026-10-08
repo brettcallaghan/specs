@@ -191,12 +191,17 @@ func selectHeadings(index specmodel.SpecIndex, sel selection) []headingMatch {
 		// another match is reported once.
 		chosen := make([]bool, len(entry.Headings))
 		paths := references.HeadingPaths(entry.Headings)
+		// The heading half is a heading path query: one segment is
+		// matched on its identifier, and several select the heading
+		// named by the last beneath each earlier one, at any depth
+		// (AC-SPECSTR-003.10, AC-SPECSTR-003.11) — or, where they spell
+		// some heading's full path, that heading alone.
+		var selected []bool
+		if sel.heading != "" {
+			selected = markdown.SelectPaths(sel.heading, paths)
+		}
 		for i, heading := range entry.Headings {
-			// The heading half is a heading path query: one segment is
-			// matched on its identifier, and several select the heading
-			// named by the last beneath each earlier one, at any depth
-			// (AC-SPECSTR-003.10, AC-SPECSTR-003.11).
-			if sel.heading != "" && !markdown.MatchesPath(sel.heading, paths[i]) {
+			if sel.heading != "" && !selected[i] {
 				continue
 			}
 			chosen[i] = true

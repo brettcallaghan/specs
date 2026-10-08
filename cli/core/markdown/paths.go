@@ -1,6 +1,9 @@
 package markdown
 
-import "strings"
+import (
+	"slices"
+	"strings"
+)
 
 // Outline is what a heading path is derived from: one heading's text as
 // authored and its level, in document order.
@@ -49,16 +52,20 @@ func JoinPath(path []string) string {
 	return strings.Join(path, PathSeparator)
 }
 
-// MatchesPath reports whether query selects the heading whose heading
-// path is path.
+// MatchesPath reports whether query satisfies the heading whose heading
+// path is path, taken alone.
 //
 // query is one or more segments separated by [PathSeparator], each
 // compared on its identifier. The last names the heading itself; every
 // earlier one names a heading enclosing it, outermost first, at any depth
-// — so an intermediate heading may be left out, and the full path pastes
-// back as a query selecting the same heading. A single segment is exactly
-// an identifier comparison. A query holding an empty segment matches
-// nothing: "A##B" and "A#" name no heading.
+// — so an intermediate heading may be left out. A single segment is
+// exactly an identifier comparison. A query holding an empty segment
+// matches nothing: "A##B" and "A#" name no heading.
+//
+// Satisfying a query is not the same as being selected by it: a shallow
+// heading's full path can be satisfied by a deeper same-named heading
+// too. [SelectPaths] decides selection over a whole outline, and is what
+// a caller answering a query uses.
 func MatchesPath(query string, path []string) bool {
 	if len(path) == 0 {
 		return false
@@ -87,4 +94,42 @@ func MatchesPath(query string, path []string) bool {
 		ancestors = ancestors[1:]
 	}
 	return true
+}
+
+// SelectPaths reports, for each heading path of one document's outline,
+// whether query selects that heading.
+//
+// A query of more than one segment that equals some heading's full
+// heading path, segment for segment on identifiers, selects exactly the
+// headings with that full path — so a path the CLI prints pastes back as
+// a query naming that heading alone, unless two sibling headings share
+// identical text all the way up. Any other query selects every heading
+// [MatchesPath] says it satisfies.
+//
+// A single segment is never narrowed this way: it stays an identifier
+// comparison over every heading, so a top-level heading's one-segment
+// path selects each same-named heading of the document, as every
+// selection and anchor written before paths existed always did.
+func SelectPaths(query string, paths [][]string) []bool {
+	selected := make([]bool, len(paths))
+	if segments := strings.Split(query, PathSeparator); len(segments) > 1 {
+		wanted := make([]string, len(segments))
+		for i, segment := range segments {
+			wanted[i] = Identifier(segment)
+		}
+		exact := false
+		for i, path := range paths {
+			if slices.Equal(path, wanted) && MatchesPath(query, path) {
+				selected[i] = true
+				exact = true
+			}
+		}
+		if exact {
+			return selected
+		}
+	}
+	for i, path := range paths {
+		selected[i] = MatchesPath(query, path)
+	}
+	return selected
 }

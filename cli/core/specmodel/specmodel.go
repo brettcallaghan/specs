@@ -3056,7 +3056,9 @@ type AnchorMatch struct {
 	// from the outermost down, followed by its own, joined by `#`. Written as
 	// a selection or an anchor, it names this heading alone unless two
 	// sibling headings share identical text all the way up, and then no path
-	// can.
+	// can — or unless it is a single segment another heading's identifier
+	// shares, since a one-segment query is an identifier comparison over
+	// every heading.
 	HeadingPath string `json:"heading_path"`
 	// Where the heading line itself is written.
 	Span Span `json:"span"`

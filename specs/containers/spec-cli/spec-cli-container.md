@@ -299,7 +299,7 @@ the same inbound set is narrowed to the references whose anchor
 resolves to that heading, the blast radius of renaming it
 (AC-SPECANCH-003.1). The asked anchor may be a path of headings, like any
 anchor (AC-SPECANCH-002.10): it is matched against the document's own
-headings by Markdown Structure's `MatchesPath`, and a reference reaches
+headings by Markdown Structure's `SelectPaths`, and a reference reaches
 the query when the heading its `anchor_resolution` records — or one of
 its ambiguous matches — is one the asked anchor selected, compared by
 the heading line's position, since two headings of one name are two
@@ -478,10 +478,13 @@ heading half may be a path of headings separated by `#` —
 `module-document-core#Components#References` — selecting the heading
 named by the last segment beneath a heading named by each earlier one, in
 order and at any depth (AC-SPECSTR-003.10, AC-SPECSTR-003.11), through
-Markdown Structure's `MatchesPath`, the matcher anchor resolution uses.
+Markdown Structure's `SelectPaths`, the selection anchor resolution uses.
 Each match's `heading_path` is the identifier of every enclosing heading
 from the outermost down, then its own, joined by `#` (AC-SPECSTR-003.9),
-so it tells two same-named headings apart and pastes back as a selection.
+so it tells two same-named headings apart and pastes back as a selection
+naming that heading alone: a query spelling some heading's full path
+selects the headings with exactly that path before any whose path merely
+contains it.
 A matched heading is returned with every heading nested inside its
 section, each carrying its own level (AC-SPECSTR-003.4). `--emit` writes
 the content each match stands over instead, read back through the

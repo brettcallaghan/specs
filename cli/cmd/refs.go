@@ -195,9 +195,9 @@ func matches(found []specmodel.Reference, anchor string, headings []specmodel.He
 	answer := []refsMatch{}
 	selected := map[uint64]bool{}
 	if anchor != "" {
-		paths := references.HeadingPaths(headings)
+		chosen := markdown.SelectPaths(anchor, references.HeadingPaths(headings))
 		for i, heading := range headings {
-			if markdown.MatchesPath(anchor, paths[i]) {
+			if chosen[i] {
 				selected[heading.Span.Offset] = true
 			}
 		}

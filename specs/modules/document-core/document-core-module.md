@@ -604,18 +604,26 @@ A heading encloses the headings after it up to the next one at its own
 level or higher, the nesting its section follows, so a skipped level
 changes nothing and a document with no top-level heading has paths that
 begin at its shallowest. `MatchesPath` decides whether a query — one or
-more `#`-separated segments, each compared on its identifier — selects
-a heading by its path: the last segment must be the heading's own
+more `#`-separated segments, each compared on its identifier — is
+satisfied by a heading's path: the last segment must be the heading's own
 identifier and every earlier one an enclosing heading's, in order from
-the outermost, at any depth (AC-SPECSTR-003.11, AC-SPECANCH-002.10). One
-segment is exactly an identifier comparison, so every selection and
-anchor written before paths existed answers as it did; a full heading
-path pastes back as a query selecting the same heading; and a query
-holding an empty segment selects nothing. The `headings` query and
-anchor resolution both match through `MatchesPath`, over paths derived
-by one conversion of the recorded headings (`references.HeadingPaths`),
-so a selection and an anchor written alike cannot select different
-headings.
+the outermost, at any depth (AC-SPECSTR-003.11, AC-SPECANCH-002.10).
+`SelectPaths` decides selection over one document's whole outline: a
+query of more than one segment that equals some heading's full heading
+path selects exactly the headings with that path, and any other query
+selects every heading satisfying it. Without that precedence a shallow
+heading's full path — `document-core#references` — is also satisfied by
+a deeper same-named heading (`document-core#components#references`), and
+a path the CLI prints would not paste back as a selection naming its
+heading alone. One segment is never narrowed: it is exactly an
+identifier comparison over every heading, so every selection and anchor
+written before paths existed answers as it did, and a heading whose path
+is one segment is named alone only where no other heading shares its
+identifier. A query holding an empty segment selects nothing. The
+`headings` query, `refs` and anchor resolution all select through
+`SelectPaths`, over paths derived by one conversion of the recorded
+headings (`references.HeadingPaths`), so a selection and an anchor
+written alike cannot select different headings.
 
 The comment-block location remains **not yet built**: no
 `cli/core/markdown` surface locates an HTML comment block yet.
@@ -1032,10 +1040,11 @@ recording headings ([[frd-spec-structure]]):
 - **An anchor written as a path of headings resolves through its
   enclosing headings** (AC-SPECANCH-002.10): `#Components#References`
   selects the `References` heading beneath `Components` at any depth, by
-  Markdown Structure's `MatchesPath`, so one of two same-named headings
+  Markdown Structure's `SelectPaths`, so one of two same-named headings
   can be named without renaming either. It is unresolved where no heading
-  satisfies every segment and ambiguous where several do, by the same
-  rule as a single-segment anchor. Every match the resolution records
+  satisfies every segment and ambiguous where several are selected — a
+  full heading path selecting only the headings with exactly that path —
+  by the same rule as a single-segment anchor. Every match the resolution records
   carries its `heading_path`, and a resolved nested anchor's markdown
   link fragment is its last heading's, since a fragment can address only
   one heading.

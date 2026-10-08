@@ -1,0 +1,13 @@
+matches:
+  - path: docs/adrs/adr-500-roster.md
+    text: References
+    identifier: references
+    heading_path: adr-500-roster#references
+    level: 2
+    section:
+      offset: 376
+      length: 32
+      start_line: 27
+      start_column: 1
+      end_line: 29
+      end_column: 1

@@ -1,4 +1,4 @@
-description = "refs '<slug>#<ancestor>#<heading>' lists only the references reaching the heading that path selects, including an ambiguous one among whose matches it is, and none reaching another heading"
+description = "refs '<slug>#<ancestor>#<heading>' lists only the references reaching the heading that path selects, including an ambiguous one among whose matches it is, and none reaching another heading — the shallower References named by its own full path among them"
 cites = ["AC-SPECANCH-003.1", "AC-SPECANCH-002.10"]
 artifacts = ["checks.log"]
 args = ["refs", "adr-500-roster#Components#References"]

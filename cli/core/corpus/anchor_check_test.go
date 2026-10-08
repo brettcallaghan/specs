@@ -296,7 +296,8 @@ func TestCheckForReportsTheNamedDocumentsOwnBrokenAnchor(t *testing.T) {
 // AC: AC-SPECANCH-002.10, AC-SPECANCH-002.5
 func TestANestedAnchorResolvesThroughItsEnclosingHeadings(t *testing.T) {
 	target := sectioned("adr", "adr-002", "Second",
-		"## Components", "### References", "### Findings", "#### Detail", "## References")
+		"## Components", "### References", "### Findings", "#### Detail", "## References",
+		"## Appendix", "### Findings", "#### Detail")
 
 	cases := []struct {
 		name   string
@@ -305,12 +306,13 @@ func TestANestedAnchorResolvesThroughItsEnclosingHeadings(t *testing.T) {
 		names  []string
 	}{
 		{"a path naming one of two same-named headings resolves", "Components#References", "", nil},
-		{"an intermediate ancestor may be left out", "Second#Detail", "", nil},
+		{"an intermediate ancestor may be left out", "Components#Detail", "", nil},
 		{"the full heading path resolves", "second#components#references", "", nil},
+		{"a shallow heading's full path resolves though a deeper heading satisfies it", "Second#References", "", nil},
 		{"a path no heading satisfies is unresolved", "Components#Nope", finding.RuleUnresolvedAnchor, nil},
 		{"out-of-order segments are unresolved", "References#Components", finding.RuleUnresolvedAnchor, nil},
-		{"a path several headings satisfy is ambiguous", "Second#References", finding.RuleAmbiguousAnchor,
-			[]string{"second#components#references (line ", "second#references (line "}},
+		{"a path several headings satisfy and none spells in full is ambiguous", "Findings#Detail", finding.RuleAmbiguousAnchor,
+			[]string{"second#components#findings#detail (line ", "second#appendix#findings#detail (line "}},
 		{"a single segment several match names every heading path", "References", finding.RuleAmbiguousAnchor,
 			[]string{"second#components#references (line ", "second#references (line "}},
 	}
