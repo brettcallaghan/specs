@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/brettcallaghan/agent-plugins/cli/core/corpus"
@@ -41,12 +43,32 @@ func readErrorText(err error) string {
 // [*fs.PathError] carries are dropped, since the caller's message already
 // names the destination, and the cause is rendered as [readErrorText]
 // renders it.
+//
+// A destination beneath a regular file is reported as "not a directory"
+// on every platform. Unix says so itself (ENOTDIR), while Windows reports
+// the same case as a missing path, which would read as "no such file".
 func writeErrorText(err error) string {
 	var pathErr *fs.PathError
 	if errors.As(err, &pathErr) {
+		if beneathRegularFile(pathErr.Path) {
+			return "not a directory"
+		}
 		return readErrorText(pathErr.Err)
 	}
 	return readErrorText(err)
+}
+
+// beneathRegularFile reports whether the nearest existing ancestor of
+// path is something other than a directory.
+func beneathRegularFile(path string) bool {
+	for d := filepath.Dir(path); ; d = filepath.Dir(d) {
+		if info, err := os.Stat(d); err == nil {
+			return !info.IsDir()
+		}
+		if filepath.Dir(d) == d {
+			return false
+		}
+	}
 }
 
 // The rule identifiers this package's checks raise.
