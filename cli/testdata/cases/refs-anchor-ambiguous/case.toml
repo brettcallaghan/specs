@@ -1,5 +1,5 @@
-description = "refs '<slug>#<anchor>' lists a reference whose anchor matches more than one heading, marked as matching more than one and carrying every match"
-cites = ["AC-SPECANCH-003.4"]
+description = "refs '<slug>#<anchor>' lists a reference whose anchor matches more than one heading, marked as matching more than one, in the compact view"
+cites = ["AC-SPECANCH-003.4", "AC-SPECREF-003.7"]
 artifacts = ["checks.log"]
 args = ["refs", "adr-900-old-approach#Decision"]
 exit_code = 0

@@ -1,0 +1,5 @@
+description = "refs <slug> --full --json carries the full view in JSON: --json changes the syntax and --full the view"
+cites = ["AC-SPECREF-003.3", "AC-SPECREF-003.7"]
+artifacts = ["checks.json"]
+args = ["refs", "adr-900-old-approach", "--full", "--json"]
+exit_code = 0

@@ -1,5 +1,5 @@
-description = "refs <slug> --json emits each returned reference with its file path and span"
-cites = ["AC-SPECREF-003.3"]
+description = "refs <slug> --json carries the compact view in JSON, the same values in the same order as the YAML rendering"
+cites = ["AC-SPECREF-003.6", "AC-SPECREF-003.7"]
 artifacts = ["checks.json"]
 args = ["refs", "adr-900-old-approach", "--json"]
 exit_code = 0

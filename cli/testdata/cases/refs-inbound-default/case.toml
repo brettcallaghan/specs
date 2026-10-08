@@ -1,5 +1,5 @@
-description = "refs <slug> returns every corpus member referencing that slug from its body, by default"
-cites = ["AC-SPECREF-003.1"]
+description = "refs <slug> returns every corpus member referencing that slug from its body, by default, in the compact view: one entry per referring document, each reference reduced to its line and text"
+cites = ["AC-SPECREF-003.1", "AC-SPECREF-003.6"]
 artifacts = ["checks.log"]
 args = ["refs", "adr-900-old-approach"]
 exit_code = 0

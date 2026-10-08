@@ -21,7 +21,7 @@ import (
 // (spec-cli-container.md's Change Guidance); it neither renames nor
 // repurposes the four `newRootCmd` already builds.
 func newRefsCmd(streams *ioStreams, configPath *string) *cobra.Command {
-	var jsonOut, outbound bool
+	var jsonOut, outbound, full bool
 
 	cmd := &cobra.Command{
 		Use:   "refs <slug>[#<anchor>]",
@@ -36,20 +36,24 @@ func newRefsCmd(streams *ioStreams, configPath *string) *cobra.Command {
 			"the documents that slug references instead; --outbound takes no anchor. A " +
 			"slug no corpus member declares is reported distinctly from one that is " +
 			"declared but unreferenced; both exit zero, as does an anchor nothing " +
-			"references.",
+			"references. The answer is compact by default — one entry per referring " +
+			"document, each reference reduced to its line and text — and --full " +
+			"returns every field of every reference, its span included.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			asked := parseSelection(args[0])
 			if outbound && asked.heading != "" {
 				return invocationError("%w", errNoAnchorWithOutbound)
 			}
-			return runRefs(streams, *configPath, asked, outbound, jsonOut)
+			return runRefs(streams, *configPath, asked, outbound, full, jsonOut)
 		},
 	}
 	cmd.Flags().BoolVar(&jsonOut, "json", false,
 		"write the references as JSON instead of YAML")
 	cmd.Flags().BoolVar(&outbound, "outbound", false,
 		"report the documents the slug references, instead of the documents referencing it")
+	cmd.Flags().BoolVar(&full, "full", false,
+		"report every field of every reference, its span included, instead of the compact view")
 	return cmd
 }
 
@@ -116,7 +120,7 @@ type refsMatch struct {
 // opened warm (corpus.Open), the same as check, slug-exists and next-id,
 // because this is exactly the corpus query FEAT-SPEC-009.1's latency
 // budget is measured against (AC-SPECREF-003.4).
-func runRefs(streams *ioStreams, configPath string, asked selection, outbound, jsonOut bool) error {
+func runRefs(streams *ioStreams, configPath string, asked selection, outbound, full, jsonOut bool) error {
 	cfg, findings, err := Load(configPath, BuiltinRegistry())
 	if err != nil {
 		return err
@@ -163,7 +167,14 @@ func runRefs(streams *ioStreams, configPath string, asked selection, outbound, j
 		result.References = matches(found, asked.heading)
 	}
 
-	return renderRefs(streams, result, jsonOut)
+	if full {
+		return renderRefs(streams, result, jsonOut)
+	}
+	compact, err := compactRefs(result)
+	if err != nil {
+		return err
+	}
+	return renderRefs(streams, compact, jsonOut)
 }
 
 // matches turns the references the corpus returned into the query's
@@ -225,8 +236,10 @@ func ambiguousAnchor(reference specmodel.Reference) bool {
 // renderRefs writes result to streams.out as YAML, or as JSON under
 // --json, both carrying the same values in the same order per
 // [[cli-output-standards]]. Each reference carries its file path and span
-// in either rendering (AC-SPECREF-003.3, AC-SPECANCH-003.1).
-func renderRefs(streams *ioStreams, result refsResult, asJSON bool) error {
+// in either rendering under --full (AC-SPECREF-003.3, AC-SPECANCH-003.1);
+// the compact view is rendered the same way, so --json changes the syntax
+// of whichever view was chosen and never the view (AC-SPECREF-003.7).
+func renderRefs(streams *ioStreams, result any, asJSON bool) error {
 	if asJSON {
 		data, err := json.Marshal(result)
 		if err != nil {
@@ -237,4 +250,112 @@ func renderRefs(streams *ioStreams, result refsResult, asJSON bool) error {
 	}
 	fmt.Fprint(streams.out, renderYAML(result))
 	return nil
+}
+
+// refsCompactResult is the default answer: the query-level properties
+// exactly as [refsResult] carries them, and the references grouped into
+// one entry per referring document (AC-SPECREF-003.6), per
+// [[cli-output-standards]]'s "refs: the compact view and --full".
+type refsCompactResult struct {
+	Slug       string         `json:"slug"`
+	Anchor     string         `json:"anchor,omitempty"`
+	Direction  string         `json:"direction"`
+	Declared   bool           `json:"declared"`
+	References []refsDocument `json:"references"`
+}
+
+// refsDocument is one referring document's entry in the compact view.
+type refsDocument struct {
+	Path       string                 `json:"path"`
+	References []refsCompactReference `json:"references"`
+}
+
+// refsCompactReference keeps the fields of a reference the standard's
+// compact-view table keeps, and drops the rest: the span is reduced to its
+// start line, and slug, anchor, the target path and the anchor resolution
+// are left out because the query already established them.
+//
+// Origin is written only for a reference in frontmatter, Resolution only
+// for one whose slug did not resolve, and AmbiguousAnchor only where it is
+// true (AC-SPECANCH-003.4).
+type refsCompactReference struct {
+	Line            uint64                     `json:"line"`
+	Text            string                     `json:"text"`
+	Origin          *specmodel.ReferenceOrigin `json:"origin,omitempty"`
+	Resolution      *refsResolutionState       `json:"resolution,omitempty"`
+	AmbiguousAnchor bool                       `json:"ambiguous_anchor,omitempty"`
+}
+
+// refsResolutionState is a slug resolution reduced to its state.
+type refsResolutionState struct {
+	State string `json:"state"`
+}
+
+// compactRefs derives the compact view from the full answer, so the two
+// views cover exactly the same references by construction
+// (AC-SPECREF-003.8). A document's entry is placed by its first reference
+// and its references keep the corpus's order inside it, so two runs over
+// an unchanged corpus print identical bytes.
+func compactRefs(result refsResult) (refsCompactResult, error) {
+	compact := refsCompactResult{
+		Slug:       result.Slug,
+		Anchor:     result.Anchor,
+		Direction:  result.Direction,
+		Declared:   result.Declared,
+		References: []refsDocument{},
+	}
+	position := map[string]int{}
+	for _, match := range result.References {
+		reference, err := compactReference(match)
+		if err != nil {
+			return refsCompactResult{}, err
+		}
+		at, seen := position[match.Path]
+		if !seen {
+			at = len(compact.References)
+			position[match.Path] = at
+			compact.References = append(compact.References,
+				refsDocument{Path: match.Path, References: []refsCompactReference{}})
+		}
+		compact.References[at].References = append(compact.References[at].References, reference)
+	}
+	return compact, nil
+}
+
+// compactReference reduces one reference to the compact view's fields.
+func compactReference(match refsMatch) (refsCompactReference, error) {
+	reference := refsCompactReference{
+		Line:            match.Span.StartLine,
+		Text:            match.Text,
+		AmbiguousAnchor: match.AmbiguousAnchor,
+	}
+	if _, body := match.Origin.AsBody(); !body {
+		origin := match.Origin
+		reference.Origin = &origin
+	}
+	if _, resolved := match.Resolution.AsResolved(); !resolved {
+		state, err := resolutionState(match.Resolution)
+		if err != nil {
+			return refsCompactReference{}, err
+		}
+		reference.Resolution = &refsResolutionState{State: state}
+	}
+	return reference, nil
+}
+
+// resolutionState reads the state tag a resolution marshals under, so the
+// compact view names a state exactly as the full view does rather than
+// keeping a second list of the schema's state names.
+func resolutionState(resolution specmodel.ReferenceResolution) (string, error) {
+	data, err := json.Marshal(resolution)
+	if err != nil {
+		return "", fmt.Errorf("rendering a reference resolution: %w", err)
+	}
+	var tagged struct {
+		State string `json:"state"`
+	}
+	if err := json.Unmarshal(data, &tagged); err != nil {
+		return "", fmt.Errorf("reading a reference resolution's state: %w", err)
+	}
+	return tagged.State, nil
 }

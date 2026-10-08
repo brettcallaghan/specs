@@ -292,12 +292,21 @@ anchor names a heading of the *cited* document, and the outbound
 direction asks what the given document cites.
 
 The answer is a mapping of the properties the query established, with
-the references as a sequence of mappings beneath it, rendered as YAML
-and as JSON under `--json` per [[cli-output-standards]]. Each reference
-is the generated `specmodel.Reference` — already carrying its file path
-and span (AC-SPECREF-003.3) — embedded rather than copied, so both
-renderings are views over the generated model ([[adr-016]]) rather than
-a second declaration of it. The YAML renderer resolves a value that
+the references beneath it, rendered as YAML and as JSON under `--json`
+per [[cli-output-standards]]; `--json` changes the syntax of whichever
+view is chosen and never the view (AC-SPECREF-003.7). By default the
+references are the compact view: one entry per referring document, in
+the order the corpus returned them, holding a `path` and that document's
+references, each reduced to its `line` and `text`, with `origin` only for
+a reference in frontmatter, `resolution` only — as its bare `state` —
+for a reference that did not resolve, and `ambiguous_anchor` only where
+it is true (AC-SPECREF-003.6). `--full` answers with every field of every
+reference instead: each is the generated `specmodel.Reference` — carrying
+its file path and span (AC-SPECREF-003.3) — embedded rather than copied,
+so that view is over the generated model ([[adr-016]]) rather than a
+second declaration of it. The compact view is derived from the full
+answer's references after the anchor has narrowed them, so the two
+views hold exactly the same references (AC-SPECREF-003.8). The YAML renderer resolves a value that
 marshals itself through its own `MarshalJSON`, which is what makes the
 two renderings carry the same keys in the same order for a union such
 as `resolution` or `anchor_resolution`.

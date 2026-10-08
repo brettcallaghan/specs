@@ -4,55 +4,12 @@ direction: inbound
 declared: true
 references:
   - path: docs/adrs/adr-402-self-citing.md
-    text: "#Decision"
-    slug: ""
-    anchor: Decision
-    origin:
-      kind: body
-    span:
-      offset: 337
-      length: 9
-      start_line: 12
-      start_column: 58
-      end_line: 12
-      end_column: 67
-    resolution:
-      state: unresolved
-    anchor_resolution:
-      state: resolved
-      heading:
-        text: Decision
-        span:
-          offset: 351
-          length: 12
-          start_line: 14
-          start_column: 1
-          end_line: 15
-          end_column: 1
+    references:
+      - line: 12
+        text: "#Decision"
+        resolution:
+          state: unresolved
   - path: docs/adrs/adr-404-neighbour.md
-    text: adr-402-self-citing#Decision
-    slug: adr-402-self-citing
-    anchor: Decision
-    origin:
-      kind: body
-    span:
-      offset: 252
-      length: 28
-      start_line: 12
-      start_column: 18
-      end_line: 12
-      end_column: 46
-    resolution:
-      state: resolved
-      target_path: docs/adrs/adr-402-self-citing.md
-    anchor_resolution:
-      state: resolved
-      heading:
-        text: Decision
-        span:
-          offset: 351
-          length: 12
-          start_line: 14
-          start_column: 1
-          end_line: 15
-          end_column: 1
+    references:
+      - line: 12
+        text: adr-402-self-citing#Decision

@@ -1,0 +1,5 @@
+description = "refs <slug> --outbound in the compact view writes resolution with only its state for a reference that did not resolve, and origin only for the frontmatter reference"
+cites = ["AC-SPECREF-003.6", "AC-SPECREF-003.7"]
+artifacts = ["checks.log"]
+args = ["refs", "adr-900-old-approach", "--outbound"]
+exit_code = 0

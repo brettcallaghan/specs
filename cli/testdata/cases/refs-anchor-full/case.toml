@@ -1,0 +1,5 @@
+description = "refs '<slug>#<anchor>' --full answers the anchor-qualified query in the full view, each reference with its span and anchor resolution"
+cites = ["AC-SPECANCH-003.1", "AC-SPECREF-003.7"]
+artifacts = ["checks.log"]
+args = ["refs", "adr-900-old-approach#Decision", "--full"]
+exit_code = 0

@@ -4,56 +4,10 @@ direction: inbound
 declared: true
 references:
   - path: docs/adrs/adr-800-current.md
-    text: adr-900-old-approach#Decision
-    slug: adr-900-old-approach
-    anchor: Decision
-    origin:
-      kind: body
-    span:
-      offset: 242
-      length: 29
-      start_line: 12
-      start_column: 25
-      end_line: 12
-      end_column: 54
-    resolution:
-      state: resolved
-      target_path: docs/adrs/adr-900-old-approach.md
-    anchor_resolution:
-      state: resolved
-      heading:
-        text: Decision
-        span:
-          offset: 246
-          length: 12
-          start_line: 13
-          start_column: 1
-          end_line: 14
-          end_column: 1
+    references:
+      - line: 12
+        text: adr-900-old-approach#Decision
   - path: docs/adrs/adr-901-new-approach.md
-    text: adr-900-old-approach#decision
-    slug: adr-900-old-approach
-    anchor: decision
-    origin:
-      kind: body
-    span:
-      offset: 215
-      length: 29
-      start_line: 12
-      start_column: 15
-      end_line: 12
-      end_column: 44
-    resolution:
-      state: resolved
-      target_path: docs/adrs/adr-900-old-approach.md
-    anchor_resolution:
-      state: resolved
-      heading:
-        text: Decision
-        span:
-          offset: 246
-          length: 12
-          start_line: 13
-          start_column: 1
-          end_line: 14
-          end_column: 1
+    references:
+      - line: 12
+        text: adr-900-old-approach#decision

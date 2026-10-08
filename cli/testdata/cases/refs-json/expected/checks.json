@@ -1,1 +1,1 @@
-{"slug":"adr-900-old-approach","direction":"inbound","declared":true,"references":[{"path":"docs/adrs/adr-800-current.md","text":"adr-900-old-approach","slug":"adr-900-old-approach","origin":{"kind":"body"},"span":{"offset":242,"length":20,"start_line":12,"start_column":25,"end_line":12,"end_column":45},"resolution":{"state":"resolved","target_path":"docs/adrs/adr-900-old-approach.md"}}]}
+{"slug":"adr-900-old-approach","direction":"inbound","declared":true,"references":[{"path":"docs/adrs/adr-800-current.md","references":[{"line":12,"text":"adr-900-old-approach"}]}]}

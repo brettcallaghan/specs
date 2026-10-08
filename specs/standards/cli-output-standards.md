@@ -241,6 +241,7 @@ document's references.
 | `resolution.target_path` | dropped |
 | `span.offset`, `span.length`, `span.start_column`, `span.end_line`, `span.end_column` | dropped |
 | `anchor_resolution.heading` | dropped |
+| `ambiguous_anchor` | kept, written only where true |
 
 The properties the query established above the references are rendered
 as in the full answer.
@@ -364,7 +365,7 @@ repository's corpus.
 
 | command | prints today | to conform |
 |---|---|---|
-| `refs <slug>[#<anchor>]` | a YAML mapping of the properties the query established, the references a sequence of mappings beneath it; `--json` the same values in the same order | the compact view by default, today's answer under `--full` |
+| `refs <slug>[#<anchor>]` | a YAML mapping of the properties the query established, the references in the compact view beneath it, and every field of every reference under `--full`; `--json` the same values in the same order | conforms |
 | `list` | a YAML mapping whose one key is the sequence of documents; `--json` the same values in the same order | conforms |
 | `slug-exists <slug>` | a YAML mapping carrying `slug`, `declared` and `path` (`null` where undeclared); `--json` the same values in the same order | conforms |
 | `next-id <type>` | a YAML mapping carrying `number` and then `slug`, `number: 32` and `slug: adr-032`; `--json` the same values in the same order | conforms |
